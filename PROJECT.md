@@ -74,3 +74,25 @@ Next:
 - create first SQLAlchemy models in models/
 - create default config JSON files in config/
 - set up database initialisation logic
+
+## Data hierarchy
+
+Driver — defined at season level, independent of any weekend or outing.
+Has a name and a driving level/style profile.
+Drivers are saved permanently and selectable across all weekends and seasons.
+
+Race Weekend — defines the track and the event (year, round or name).
+All outings belong to a weekend. The weekend has no date itself.
+
+Outing — belongs to a weekend, each outing stores its own date and time independently.
+Contains:
+- driver: selected from the driver list
+- environment: air temp, track temp, track condition — carried over from previous outing, always editable
+- car state: fuel level, tyre age, tyre compound (dry or wet) — carried over from previous outing, always editable
+- setup: full car setup state — carried over from previous outing, always editable
+- data reference: path to Cosworth CSV file, lap selection (single lap or all laps)
+
+Setup preset — a named setup saved independently of any outing.
+Can be loaded as a starting point for any outing setup.
+
+Rule: everything carries over from the previous outing as default, every field is always editable.
