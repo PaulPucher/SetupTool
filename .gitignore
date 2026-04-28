@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Database files
+data/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# IDE
+.idea/
+.vscode/settings.json
+
+# OS
+Thumbs.db
+.DS_Store
