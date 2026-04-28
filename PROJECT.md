@@ -59,21 +59,6 @@ Config files are editable through the settings menu in the UI.
 They can also be loaded from anywhere on the machine via file picker.
 Defaults ship with the application and are used as fallback if a file is missing or corrupt.
 
-## Current status
-Phase 1 in progress.
-
-Done:
-- virtual environment set up
-- folder structure created
-- PyQt6 installed, first window running
-- SQLAlchemy installed
-- Git initialised, connected to GitHub
-- PROJECT.md started
-
-Next:
-- create first SQLAlchemy models in models/
-- create default config JSON files in config/
-- set up database initialisation logic
 
 ## Data hierarchy
 
@@ -96,3 +81,21 @@ Setup preset — a named setup saved independently of any outing.
 Can be loaded as a starting point for any outing setup.
 
 Rule: everything carries over from the previous outing as default, every field is always editable.
+
+## Current status
+Phase 1 complete.
+
+Done:
+- virtual environment set up
+- folder structure created
+- PyQt6 installed, first window running
+- SQLAlchemy installed
+- Git initialised, connected to GitHub
+- PROJECT.md started
+- models created: Driver, RaceWeekend, Outing
+- database initialises correctly, tables created in data/setuptool.db
+
+Next:
+- create default config JSON files in config/
+- build main window structure with basic navigation
+- build first UI forms for creating a driver and a race weekend
