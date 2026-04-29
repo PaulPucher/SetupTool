@@ -1,7 +1,6 @@
 # define a raceweekend or test as folder for outings
 
-
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy.orm import relationship
 from models.base import Base
 
@@ -13,5 +12,6 @@ class RaceWeekend(Base):
     series = Column(String(100), nullable=False)
     car_number = Column(Integer, nullable=False)
     year = Column(Integer, nullable=False)
+    date = Column(Date, nullable=True)
 
     outings = relationship("Outing", back_populates="race_weekend")
