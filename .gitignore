@@ -20,3 +20,7 @@ build/
 # OS
 Thumbs.db
 .DS_Store
+
+# Handover document — local only
+HANDOVER.md
+generate_handover.py

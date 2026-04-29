@@ -98,6 +98,31 @@ Layout:
 Navigation sections: Race Weekends & Tests, Drivers, Settings.
 Settings sits at the bottom of the sidebar, separated from main navigation.
 
+## Naming conventions
+- outing not session — session is SQLAlchemy's internal word for database transactions
+- SetupTool not RacingSetupTool
+- table names are plural snake_case — race_weekends, outings, drivers
+
+## Hard rules
+- no PyQt6 imports in core/
+- no business logic in ui/
+- all models import Base and Session from models/base.py only, never create a second one
+- init_db() is called once at startup in main.py
+- config files are never bundled into the exe — they live next to it at runtime
+- HANDOVER.md and generate_handover.py are local only, never pushed to GitHub
+
+## File responsibilities
+- main.py — entry point, starts app, applies stylesheet, calls init_db
+- ui/style.py — global dark theme stylesheet, all colors defined here
+- ui/main_window.py — window layout, topbar, sidebar, page stack navigation
+- ui/views/weekends.py — race weekends & tests list view, loads from database
+- ui/views/weekend_dialog.py — new weekend form dialog, saves to database
+- models/base.py — engine, Session factory, Base class, init_db function
+- models/driver.py — Driver model (name, driving_level 1-10)
+- models/raceweekend.py — RaceWeekend model (track, series, car_number, year, date, type)
+- models/outing.py — Outing model (date_time, driver, environment, car state, csv reference)
+- config/car.json — Porsche 992 GT3R setup sheet template, all parameters null by default
+
 ## Current status
 Phase 2 in progress.
 
