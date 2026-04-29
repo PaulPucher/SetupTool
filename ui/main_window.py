@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QLabel, QListWidget, QStackedWidget,QListWidgetItem  )           # QList is Sidebar, Stackwidget holds the pages
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
+from ui.views.weekends import WeekendsView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -85,7 +86,9 @@ class MainWindow(QMainWindow):
     
 
     def _build_pages(self):
-        for label in ["Race Weekends & Tests", "Drivers", "Settings"]:     # for the 3 pages 
+        self.stack.addWidget(WeekendsView())   
+        
+        for label in [ "Drivers", "Settings"]:    
             page = QWidget()                                               # order like sidebar!
             layout = QVBoxLayout(page)
             placeholder = QLabel(label)
