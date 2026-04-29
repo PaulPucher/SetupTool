@@ -82,6 +82,22 @@ Can be loaded as a starting point for any outing setup.
 
 Rule: everything carries over from the previous outing as default, every field is always editable.
 
+## UI style
+Dark theme, clean and modern. No gradients, no clutter.
+
+Accent color: amber #C0A060 — used for active navigation, primary buttons, highlights.
+Background: #141414 main, #1a1a1a sidebar and topbar, #1e1e1e hover states.
+Borders: #2a2a2a primary, #222 subtle separators.
+Text: #e0e0e0 primary, #888 secondary, #555 muted.
+
+Layout:
+- top bar with two logo slots and centered app title
+- narrow icon sidebar for navigation (Race Weekends, Drivers, Settings)
+- main content area with header and list/form view
+
+Navigation sections: Race Weekends & Tests, Drivers, Settings.
+Settings sits at the bottom of the sidebar, separated from main navigation.
+
 ## Current status
 Phase 1 complete.
 
