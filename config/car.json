@@ -1,0 +1,77 @@
+{
+    "car": "Porsche 992 GT3R",
+    "setup_parameters": {
+        "front_left": {
+            "ride_height_fia": null,
+            "ride_height_aero": null,
+            "toe": null,
+            "camber": null,
+            "spring": null,
+            "corner_weight": null,
+            "damper_bump_low": null,
+            "damper_bump_high": null,
+            "damper_blowoff": null,
+            "damper_rebound_low": null,
+            "damper_rebound_high": null,
+            "bump_rubber": null,
+            "packer_gap": null
+        },
+        "front_right": {
+            "ride_height_fia": null,
+            "ride_height_aero": null,
+            "toe": null,
+            "camber": null,
+            "spring": null,
+            "corner_weight": null,
+            "damper_bump_low": null,
+            "damper_bump_high": null,
+            "damper_blowoff": null,
+            "damper_rebound_low": null,
+            "damper_rebound_high": null,
+            "bump_rubber": null,
+            "packer_gap": null
+        },
+        "rear_left": {
+            "ride_height_fia": null,
+            "ride_height_aero": null,
+            "toe": null,
+            "camber": null,
+            "spring": null,
+            "corner_weight": null,
+            "damper_bump_low": null,
+            "damper_bump_high": null,
+            "damper_blowoff": null,
+            "damper_rebound_low": null,
+            "damper_rebound_high": null,
+            "bump_rubber": null,
+            "packer_gap": null
+        },
+        "rear_right": {
+            "ride_height_fia": null,
+            "ride_height_aero": null,
+            "toe": null,
+            "camber": null,
+            "spring": null,
+            "corner_weight": null,
+            "damper_bump_low": null,
+            "damper_bump_high": null,
+            "damper_blowoff": null,
+            "damper_rebound_low": null,
+            "damper_rebound_high": null,
+            "bump_rubber": null,
+            "packer_gap": null
+        },
+        "front_axle": {
+            "antirollbar_position": null
+        },
+        "car": {
+            "splitter_offset": null,
+            "differential_preload": null,
+            "differential_position": null,
+            "wing_position": null,
+            "total_weight": null,
+            "cross_percentage": null,
+            "notes": null
+        }
+    }
+}
