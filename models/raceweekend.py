@@ -13,5 +13,6 @@ class RaceWeekend(Base):
     car_number = Column(Integer, nullable=False)
     year = Column(Integer, nullable=False)
     date = Column(Date, nullable=True)
+    type = Column(String(20), nullable=True)
 
     outings = relationship("Outing", back_populates="race_weekend")

@@ -74,6 +74,8 @@ class WeekendDialog(QDialog):
         series = self.series_input.text().strip()
         car_number = self.car_number_input.text().strip()
         date = self.date_edit.date().toPyDate()
+        event_type = self.type_combo.currentText()
+       
 
         if not track or not series or not car_number:
             return
@@ -84,7 +86,8 @@ class WeekendDialog(QDialog):
             series=series,
             car_number=int(car_number),
             year=date.year,
-            date=date
+            date=date,
+            type=event_type
         )
         session.add(weekend)
         session.commit()

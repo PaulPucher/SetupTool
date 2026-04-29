@@ -53,6 +53,7 @@ class WeekendsView(QWidget):
         table.setColumnCount(5)
         table.setHorizontalHeaderLabels(["Track", "Series", "Car No.", "Date", "Type"])
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        table.setColumnWidth(4, 120)
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -73,7 +74,8 @@ class WeekendsView(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(weekend.track))
             self.table.setItem(row, 1, QTableWidgetItem(weekend.series))
             self.table.setItem(row, 2, QTableWidgetItem(str(weekend.car_number)))
-            self.table.setItem(row, 3, QTableWidgetItem(str(weekend.date) if weekend.date else ""))
-            self.table.setItem(row, 4, QTableWidgetItem(""))
-        
+            date_str = weekend.date.strftime("%d.%m.%Y") if weekend.date else ""
+            self.table.setItem(row, 3, QTableWidgetItem(date_str))
+            self.table.setItem(row, 4, QTableWidgetItem(weekend.type or ""))
+
         session.close()

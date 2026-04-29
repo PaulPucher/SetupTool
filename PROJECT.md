@@ -99,7 +99,7 @@ Navigation sections: Race Weekends & Tests, Drivers, Settings.
 Settings sits at the bottom of the sidebar, separated from main navigation.
 
 ## Current status
-Phase 1 complete.
+Phase 2 in progress.
 
 Done:
 - virtual environment set up
@@ -108,12 +108,17 @@ Done:
 - SQLAlchemy installed and connected to SQLite
 - Git initialised, connected to GitHub
 - models created: Driver, RaceWeekend, Outing
-- database initialises correctly, tables created in data/setuptool.db
+- database initialises correctly on startup
 - requirements.txt created
 - car.json setup sheet template created in config/
+- main window with dark theme, topbar, sidebar navigation
+- SVG icons in sidebar — calendar, person, settings
+- Race Weekends & Tests list view with sortable table
+- New Weekend dialog — saves track, series, car number, date, type to database
+- list reloads after save, date formatted as DD.MM.YYYY
 
-Next — Phase 2:
-- build main window structure with tab navigation
-- build UI forms for creating a driver and a race weekend
-- build outing form with setup sheet input
-- connect UI forms to database models
+Next:
+- Drivers view and new driver dialog
+- Settings view
+- Outing form linked to a race weekend
+- connect Type column with badge styling (Race Weekend / Test)
