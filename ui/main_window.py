@@ -1,0 +1,95 @@
+# Main application window. Defines the overall layout — topbar, sidebar, content area.
+# No business logic here, only layout and navigation.
+
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, # QH for horizontal, QV for vertical
+    QLabel, QListWidget, QStackedWidget,QListWidgetItem  )           # QList is Sidebar, Stackwidget holds the pages
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt, QSize
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SetupTool")
+        self.resize(1100, 680)                           # can choose size freely when running
+
+        central = QWidget()
+        self.setCentralWidget(central)
+        root_layout = QVBoxLayout(central)
+        root_layout.setContentsMargins(0, 0, 0, 0)       # 0 for no gaps     
+        root_layout.setSpacing(0)
+
+        root_layout.addWidget(self._build_topbar())      # topbar build
+
+        body = QWidget()                                 # body build below topbar
+        body_layout = QHBoxLayout(body)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
+
+        self.nav = self._build_sidebar()                 # safesidebar and stack as instance variables
+        self.stack = QStackedWidget()
+
+        body_layout.addWidget(self.nav)
+        body_layout.addWidget(self.stack)
+        root_layout.addWidget(body)
+
+        self._build_pages()
+        self.nav.setCurrentRow(0)
+        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)  # sidebar logic
+
+    def _build_topbar(self):
+        bar = QWidget()
+        bar.setFixedHeight(52)
+        bar.setStyleSheet("background-color: #1a1a1a; border-bottom: 1px solid #2a2a2a;")
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(16, 0, 16, 0)
+
+        left_logo = QLabel("[ logo ]")
+        left_logo.setStyleSheet("color: #333; font-size: 11px;")
+        left_logo.setFixedWidth(80)
+
+        title = QLabel("SetupTool")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("color: #666; font-size: 12px; letter-spacing: 2px;")
+
+        right_logo = QLabel("[ logo ]")
+        right_logo.setStyleSheet("color: #333; font-size: 11px;")
+        right_logo.setFixedWidth(80)
+        right_logo.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        layout.addWidget(left_logo)
+        layout.addWidget(title)
+        layout.addWidget(right_logo)
+
+        return bar
+   
+    def _build_sidebar(self):
+        nav = QListWidget()
+        nav.setFixedWidth(52)
+        nav.setIconSize(QSize(22,22))
+        nav.setSpacing(4)
+        nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        icon = [                        # icons in seperate svg file. make better later
+            "ui/icons/weekends.svg",
+            "ui/icons/drivers.svg",
+            "ui/icons/settings.svg"
+        ]
+
+        for icon_path in icon:
+            item = QListWidgetItem()
+            item.setIcon(QIcon(icon_path))
+            nav.addItem(item)
+
+        return nav
+    
+
+    def _build_pages(self):
+        for label in ["Race Weekends & Tests", "Drivers", "Settings"]:     # for the 3 pages 
+            page = QWidget()                                               # order like sidebar!
+            layout = QVBoxLayout(page)
+            placeholder = QLabel(label)
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setStyleSheet("color: #444; font-size: 18px;")
+            layout.addWidget(placeholder)
+            self.stack.addWidget(page)
