@@ -89,13 +89,15 @@ Done:
 - virtual environment set up
 - folder structure created
 - PyQt6 installed, first window running
-- SQLAlchemy installed
+- SQLAlchemy installed and connected to SQLite
 - Git initialised, connected to GitHub
-- PROJECT.md started
 - models created: Driver, RaceWeekend, Outing
 - database initialises correctly, tables created in data/setuptool.db
+- requirements.txt created
+- car.json setup sheet template created in config/
 
-Next:
-- create default config JSON files in config/
-- build main window structure with basic navigation
-- build first UI forms for creating a driver and a race weekend
+Next — Phase 2:
+- build main window structure with tab navigation
+- build UI forms for creating a driver and a race weekend
+- build outing form with setup sheet input
+- connect UI forms to database models
