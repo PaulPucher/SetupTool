@@ -3,10 +3,11 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QTableWidget, QTableWidgetItem,
-    QPushButton, QHeaderView
+    QPushButton, QHeaderView, QStackedWidget
 )
 from PyQt6.QtCore import Qt
 from ui.views.weekend_dialog import WeekendDialog
+from ui.views.outings import OutingsView
 from models.base import Session
 from models.raceweekend import RaceWeekend
 
@@ -18,8 +19,17 @@ class WeekendsView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        layout.addWidget(self._build_header())
-        layout.addWidget(self._build_table())
+        self.stack = QStackedWidget()
+
+        self.list_page = QWidget()
+        list_layout = QVBoxLayout(self.list_page)
+        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setSpacing(0)
+        list_layout.addWidget(self._build_header())
+        list_layout.addWidget(self._build_table())
+        
+        self.stack.addWidget(self.list_page)
+        layout.addWidget(self.stack)
         self.load_data()
 
     def _build_header(self):
@@ -47,7 +57,29 @@ class WeekendsView(QWidget):
         if dialog.exec():
             self.load_data()
 
-        
+    def _open_weekend(self, row, column):
+        session = Session()
+        weekends = session.query(RaceWeekend).order_by(RaceWeekend.date.desc()).all()
+        weekend = weekends[row] 
+        session.close()
+
+        outings_view = OutingsView(weekend, on_back=self._show_list)
+        self.stack.addWidget(outings_view)
+        self.stack.setCurrentWidget(outings_view)
+
+    def _show_list(self):
+        self.load_data()
+        self.stack.setCurrentWidget(self.list_page)
+
+    def _open_edit_dialog(self, row, column):
+        session = Session()
+        weekends = session.query(RaceWeekend).order_by(RaceWeekend.date.desc()).all()
+        weekend = weekends[row]
+        session.close()
+        dialog = WeekendDialog(self, weekend=weekend)
+        if dialog.exec():
+            self.load_data()
+
     def _build_table(self):
         table = QTableWidget()
         table.setColumnCount(5)
@@ -58,6 +90,7 @@ class WeekendsView(QWidget):
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setSortingEnabled(True)
+        table.cellDoubleClicked.connect(self._open_weekend)
 
         self.table = table
         return table

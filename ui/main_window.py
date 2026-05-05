@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
 from ui.views.weekends import WeekendsView
+from ui.views.drivers import DriversView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -87,12 +88,13 @@ class MainWindow(QMainWindow):
 
     def _build_pages(self):
         self.stack.addWidget(WeekendsView())   
+        self.stack.addWidget(DriversView())
+
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        placeholder = QLabel("Settings")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setStyleSheet("color: #444; font-size: 18px;")
+        layout.addWidget(placeholder)
+        self.stack.addWidget(page)
         
-        for label in [ "Drivers", "Settings"]:    
-            page = QWidget()                                               # order like sidebar!
-            layout = QVBoxLayout(page)
-            placeholder = QLabel(label)
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            placeholder.setStyleSheet("color: #444; font-size: 18px;")
-            layout.addWidget(placeholder)
-            self.stack.addWidget(page)

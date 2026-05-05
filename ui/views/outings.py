@@ -1,0 +1,104 @@
+# Outings view — list of all outings for a specific race weekend.
+
+from tkinter import dialog
+
+from tkinter import dialog
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QTableWidget, QTableWidgetItem,
+    QPushButton, QHeaderView
+)
+from PyQt6.QtCore import Qt
+from models.base import Session
+from models.outing import Outing
+from models.raceweekend import RaceWeekend
+from ui.views.weekend_dialog import WeekendDialog
+
+
+class OutingsView(QWidget):
+    def __init__(self, weekend, on_back):
+        super().__init__()
+        self.weekend = weekend
+        self.on_back = on_back
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        layout.addWidget(self._build_header())
+        layout.addWidget(self._build_table())
+        self.load_data()
+
+    def _build_header(self):
+        header = QWidget()
+        header.setFixedHeight(52)
+        header.setStyleSheet("border-bottom: 1px solid #222;")
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(20, 0, 20, 0)
+
+        btn_back = QPushButton("← Back")
+        btn_back.setFixedWidth(80)
+        btn_back.setStyleSheet("background-color: #252525; color: #888;")
+        btn_back.clicked.connect(self.on_back)
+
+        self.title = QLabel(f"{self.weekend.track} — {self.weekend.series} {self.weekend.year}")
+        self.title.setStyleSheet("font-size: 15px; font-weight: 500; color: #e0e0e0;")
+
+        btn_edit = QPushButton("Edit")
+        btn_edit.setFixedWidth(80)
+        btn_edit.setStyleSheet("background-color: #252525; color: #888;")
+        btn_edit.clicked.connect(self._open_edit_dialog)
+        
+        btn_new = QPushButton("+ New")
+        btn_new.setFixedWidth(80)
+
+        layout.addWidget(btn_back)
+        layout.addSpacing(16)
+        layout.addWidget(self.title)
+        layout.addStretch()
+        layout.addWidget(btn_edit)
+        layout.addSpacing(8)
+        layout.addWidget(btn_new)
+
+        return header
+
+    def _build_table(self):
+        table = QTableWidget()
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(["Date & Time", "Driver", "Session Type", "Laps"])
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setSortingEnabled(True)
+
+        self.table = table
+        return table
+
+    def load_data(self):
+        session = Session()
+        outings = (
+            session.query(Outing)
+            .filter(Outing.race_weekend_id == self.weekend.id)
+            .order_by(Outing.date_time)
+            .all()
+        )
+
+        self.table.setRowCount(0)
+
+        for outing in outings:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QTableWidgetItem(outing.date_time.strftime("%d.%m.%Y %H:%M")))
+            self.table.setItem(row, 1, QTableWidgetItem(str(outing.driver_id)))
+            self.table.setItem(row, 2, QTableWidgetItem(""))
+            self.table.setItem(row, 3, QTableWidgetItem(""))
+
+        session.close()
+    
+    def _open_edit_dialog(self):
+        dialog = WeekendDialog(self, weekend=self.weekend)
+        if dialog.exec():
+            self.weekend = Session().get(RaceWeekend, self.weekend.id)
+            self.title.setText(f"{self.weekend.track} — {self.weekend.series} {self.weekend.year}")

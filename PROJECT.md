@@ -141,9 +141,17 @@ Done:
 - Race Weekends & Tests list view with sortable table
 - New Weekend dialog — saves track, series, car number, date, type to database
 - list reloads after save, date formatted as DD.MM.YYYY
+- Drivers view with sortable table
+- New Driver dialog — saves name and driving level to database
+- Edit and delete for drivers — double click row to open pre-filled dialog
+- Edit and delete for weekends — double click row to open pre-filled dialog
+- Outings view per race weekend — opens when clicking a weekend row
+- Back button returns to weekends list and refreshes it
+- Edit weekend button in outings header — updates title immediately
+- Edit and delete for drivers and weekends via double click dialog
 
 Next:
-- Drivers view and new driver dialog
+- Outing form — full form with driver dropdown, session type, car setup, comments
+- CSV loading and lap selection
+- Track map with clickable corners
 - Settings view
-- Outing form linked to a race weekend
-- connect Type column with badge styling (Race Weekend / Test)

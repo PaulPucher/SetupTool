@@ -7,13 +7,15 @@ from PyQt6.QtWidgets import (
     QPushButton, QDateEdit, QWidget
 )
 from PyQt6.QtCore import Qt, QDate
+from models import session
 from models.base import Session
 from models.raceweekend import RaceWeekend
 
 
 class WeekendDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, weekend=None):
         super().__init__(parent)
+        self.weekend = weekend
         self.setWindowTitle("New Race Weekend / Test")
         self.setFixedWidth(400)
         self.setModal(True)
@@ -32,6 +34,15 @@ class WeekendDialog(QDialog):
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
+
+        if weekend:
+            self.setWindowTitle("Edit Race Weekend / Test")
+            self.track_input.setText(weekend.track)
+            self.series_input.setText(weekend.series)
+            self.car_number_input.setText(str(weekend.car_number))
+            self.type_combo.setCurrentText(weekend.type or "Race Weekend")
+            if weekend.date:
+                self.date_edit.setDate(QDate(weekend.date.year, weekend.date.month, weekend.date.day))
 
         layout.addWidget(self._row("Track", self.track_input))
         layout.addWidget(self._row("Series", self.series_input))
@@ -65,6 +76,13 @@ class WeekendDialog(QDialog):
         btn_save = QPushButton("Save")
         btn_save.clicked.connect(self._save)
 
+        if self.weekend:
+            btn_delete = QPushButton("Delete")
+            btn_delete.setStyleSheet("background-color: #252525; color: #c0392b;")
+            btn_delete.clicked.connect(self._delete)
+            layout.addWidget(btn_delete)
+
+        layout.addStretch()
         layout.addWidget(btn_cancel)
         layout.addWidget(btn_save)
         return row
@@ -81,15 +99,36 @@ class WeekendDialog(QDialog):
             return
 
         session = Session()
-        weekend = RaceWeekend(
-            track=track,
-            series=series,
-            car_number=int(car_number),
-            year=date.year,
-            date=date,
-            type=event_type
-        )
-        session.add(weekend)
+        if self.weekend:
+            from sqlalchemy import update
+            session.execute(
+                update(RaceWeekend).where(RaceWeekend.id == self.weekend.id).values(
+                    track=track,
+                    series=series,
+                    car_number=int(car_number),
+                    year=date.year,
+                    date=date,
+                    type=event_type
+                )
+            )
+        else:
+            weekend = RaceWeekend(
+                track=track,
+                series=series,
+                car_number=int(car_number),
+                year=date.year,
+                date=date,
+                type=event_type
+            )
+            session.add(weekend)
+        session.commit()
+        session.close()
+        self.accept()
+    
+    def _delete(self):
+        session = Session()
+        weekend = session.get(RaceWeekend, self.weekend.id)
+        session.delete(weekend)
         session.commit()
         session.close()
         self.accept()
