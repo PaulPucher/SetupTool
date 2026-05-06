@@ -7,13 +7,14 @@ from tkinter import dialog
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QTableWidget, QTableWidgetItem,
-    QPushButton, QHeaderView
+    QPushButton, QHeaderView, QStackedWidget
 )
 from PyQt6.QtCore import Qt
 from models.base import Session
 from models.outing import Outing
 from models.raceweekend import RaceWeekend
 from ui.views.weekend_dialog import WeekendDialog
+from ui.views.outing_form import OutingForm
 
 
 class OutingsView(QWidget):
@@ -26,8 +27,17 @@ class OutingsView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        layout.addWidget(self._build_header())
-        layout.addWidget(self._build_table())
+        self.stack = QStackedWidget()
+
+        self.list_page = QWidget()
+        list_layout = QVBoxLayout(self.list_page)
+        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setSpacing(0)
+        list_layout.addWidget(self._build_header())
+        list_layout.addWidget(self._build_table())
+
+        self.stack.addWidget(self.list_page)
+        layout.addWidget(self.stack)
         self.load_data()
 
     def _build_header(self):
@@ -52,6 +62,7 @@ class OutingsView(QWidget):
         
         btn_new = QPushButton("+ New")
         btn_new.setFixedWidth(80)
+        btn_new.clicked.connect(self._open_new_outing)
 
         layout.addWidget(btn_back)
         layout.addSpacing(16)
@@ -65,13 +76,20 @@ class OutingsView(QWidget):
 
     def _build_table(self):
         table = QTableWidget()
-        table.setColumnCount(4)
-        table.setHorizontalHeaderLabels(["Date & Time", "Driver", "Session Type", "Laps"])
+        table.setColumnCount(6)
+        table.setHorizontalHeaderLabels(["No.", "Name", "Driver", "Session Type", "Tyre Age", "Date & Time"])
+        table.setColumnWidth(0, 40)
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        table.setColumnWidth(2, 150)
+        table.setColumnWidth(3, 120)
+        table.setColumnWidth(4, 80)
+        table.setColumnWidth(5, 160)
         table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         table.setSortingEnabled(True)
+        table.cellDoubleClicked.connect(self._open_edit_outing)
 
         self.table = table
         return table
@@ -81,7 +99,7 @@ class OutingsView(QWidget):
         outings = (
             session.query(Outing)
             .filter(Outing.race_weekend_id == self.weekend.id)
-            .order_by(Outing.date_time)
+            .order_by(Outing.date_time.desc())
             .all()
         )
 
@@ -90,10 +108,13 @@ class OutingsView(QWidget):
         for outing in outings:
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(outing.date_time.strftime("%d.%m.%Y %H:%M")))
-            self.table.setItem(row, 1, QTableWidgetItem(str(outing.driver_id)))
-            self.table.setItem(row, 2, QTableWidgetItem(""))
-            self.table.setItem(row, 3, QTableWidgetItem(""))
+            self.table.setItem(row, 0, QTableWidgetItem(str(outing.number or "")))
+            self.table.setItem(row, 1, QTableWidgetItem(outing.name or ""))
+            self.table.setItem(row, 2, QTableWidgetItem(outing.driver.name if outing.driver else ""))
+            self.table.setItem(row, 3, QTableWidgetItem(outing.session_type or ""))
+            self.table.setItem(row, 4, QTableWidgetItem(f"{outing.tyre_age} km" if outing.tyre_age else "New"))
+            self.table.setItem(row, 5, QTableWidgetItem(outing.date_time.strftime("%d.%m.%Y %H:%M")))
+            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, outing.id)
 
         session.close()
     
@@ -102,3 +123,22 @@ class OutingsView(QWidget):
         if dialog.exec():
             self.weekend = Session().get(RaceWeekend, self.weekend.id)
             self.title.setText(f"{self.weekend.track} — {self.weekend.series} {self.weekend.year}")
+
+    def _open_new_outing(self):
+        form = OutingForm(self.weekend, on_back=self._show_list)
+        self.stack.addWidget(form)
+        self.stack.setCurrentWidget(form)
+
+    def _open_edit_outing(self, row, column):
+        outing_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        session = Session()
+        outing = session.get(Outing, outing_id)
+        session.close()
+        form = OutingForm(self.weekend, on_back=self._show_list, outing=outing)
+        self.stack.addWidget(form)
+        self.stack.setCurrentWidget(form)
+    
+    def _show_list(self):
+        self.load_data()
+        self.stack.setCurrentWidget(self.list_page)
+                               

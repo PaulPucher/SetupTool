@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (
     QPushButton, QDateEdit, QWidget
 )
 from PyQt6.QtCore import Qt, QDate
-from models import session
 from models.base import Session
 from models.raceweekend import RaceWeekend
 

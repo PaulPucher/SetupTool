@@ -73,6 +73,17 @@ STYLESHEET = """
         color: #e0e0e0;
     }
 
+    QTableWidget::item:focus {
+        outline: 0;
+        border: 0px;
+        background-color: #1e1e1e;
+        }
+
+    QTableWidget:focus {
+        outline: 0;
+        border: none;
+    }
+
     QHeaderView::section {
         background-color: #1a1a1a;
         color: #555;
