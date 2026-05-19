@@ -15,7 +15,7 @@ class Outing(Base):
     
     # links
     race_weekend_id = Column(Integer, ForeignKey("race_weekends.id"), nullable=False)
-    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=False)
+    driver_id = Column(Integer, ForeignKey("drivers.id"), nullable=True)
 
     # environment
     air_temp = Column(Float, nullable=True)
@@ -27,6 +27,9 @@ class Outing(Base):
     tyre_age = Column(Integer, nullable=True)
     tyre_type = Column(String(10), nullable=True)
     tyre_name = Column(String(100), nullable=True)
+
+    # car setup - stored as JSON string
+    setup_data = Column(String(10000), nullable=True)
 
     # data reference
     csv_path = Column(String(500), nullable=True)

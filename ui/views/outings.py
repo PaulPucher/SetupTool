@@ -1,8 +1,5 @@
 # Outings view — list of all outings for a specific race weekend.
 
-from tkinter import dialog
-
-from tkinter import dialog
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
@@ -84,7 +81,6 @@ class OutingsView(QWidget):
         table.setColumnWidth(3, 120)
         table.setColumnWidth(4, 80)
         table.setColumnWidth(5, 160)
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         table.verticalHeader().setVisible(False)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
