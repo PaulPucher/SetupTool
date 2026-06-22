@@ -342,7 +342,7 @@ class OutingForm(QWidget):
             "arb": "ARB (pos.)", "springs": "Springs (N/mm)",
             "bump_ls": "Bump LS", "bump_hs": "Bump HS",
             "blowoff": "Blowoff",
-            "rebound_ls": "Reb LS", "rebound_hs": "Reb HS",
+            "rebound_ls": "Rebound LS", "rebound_hs": "Rebound HS",
             "packer": "Packer (mm)", "preload": "Preload (mm)",
             "total_travel": "Total Travel (mm)", "free_length": "Free Length (mm)",
             "static_droop": "Static Droop (mm)", "gap_on_gnd": "Gap on GND (mm)"
@@ -394,7 +394,7 @@ class OutingForm(QWidget):
         reb_layout = QHBoxLayout(reb_row)
         reb_layout.setContentsMargins(0, 0, 0, 0)
         reb_layout.setSpacing(8)
-        for param, label_text in [("rebound_ls", "Reb LS"), ("rebound_hs", "Reb HS")]:
+        for param, label_text in [("rebound_ls", "Rebound LS"), ("rebound_hs", "Rebound HS")]:
             cell = QWidget()
             cell_layout = QVBoxLayout(cell)
             cell_layout.setContentsMargins(0, 0, 0, 0)
@@ -412,7 +412,7 @@ class OutingForm(QWidget):
             mirror_target = "FR" if corner_label == "FL" else "RR"
             btn_mirror = QPushButton(f"↔ mirror damper to {mirror_target}")
             btn_mirror.setStyleSheet("background-color: #1e1e1e; color: #888; font-size: 10px; padding: 3px 8px;")
-            btn_mirror.clicked.connect(lambda checked, cl=corner_label: self._mirror_damper(cl))
+            btn_mirror.clicked.connect(lambda checked, cl=corner_label, inp=self._active_inputs: self._mirror_damper(cl, inp))
             layout.addWidget(btn_mirror)
 
         btn_advanced = QPushButton("▶ Damper Advanced")
@@ -575,14 +575,14 @@ class OutingForm(QWidget):
         layout.addStretch()
         return center
 
-    def _mirror_damper(self, from_corner):
+    def _mirror_damper(self, from_corner, inputs):
         mapping = {"FL": "FR", "RL": "RR"}
         from_key = {"FL": "front_left", "RL": "rear_left"}[from_corner]
         to_key = {"FR": "front_right", "RR": "rear_right"}[mapping[from_corner]]
 
         for param in ["bump_ls", "bump_hs", "blowoff", "rebound_ls", "rebound_hs"]:
-            self._active_inputs[to_key][param].setText(
-                self._active_inputs[from_key][param].text()
+            inputs[to_key][param].setText(
+                inputs[from_key][param].text()
             )
 
     def _collect_inputs(self, inputs):
@@ -604,7 +604,7 @@ class OutingForm(QWidget):
 
     def _collect_setdown_data(self):
         return self._collect_inputs(self.setdown_inputs)
-    
+
     def _collect_feedback_data(self):
         import json
         corners = []
@@ -622,7 +622,7 @@ class OutingForm(QWidget):
             "corners": corners,
             "map_path": self.feedback_map_path or ""
         })
-    
+
     def _load_feedback_data(self, json_string):
         import json
         if not json_string:
@@ -688,7 +688,6 @@ class OutingForm(QWidget):
             self._load_inputs(self.setdown_inputs, self.outing.setdown_data)
         else:
             self._load_inputs(self.setdown_inputs, self._collect_setup_data())
-
 
     def _print_sheet(self, sheet_type):
         from PyQt6.QtWidgets import QFileDialog

@@ -80,10 +80,11 @@ def _styles():
 def _fmt(value):
     if value is None or value == "":
         return "—"
-    if isinstance(value, float) and value == 0.0:
-        return "—"
+    if isinstance(value, float):
+        if value == int(value):
+            return str(int(value))
+        return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
-
 
 def _param_rows(data, label_map, styles):
     rows = []
@@ -127,8 +128,8 @@ def _corner_flowables(label, data, styles, col_w):
     elements.append(_simple_table(blowoff_rows, [inner_w * 0.6, inner_w * 0.4], styles))
 
     reb_rows = [[
-        Paragraph("Reb LS", styles["label"]), Paragraph(_fmt(data.get("rebound_ls", "")), styles["value"]),
-        Paragraph("Reb HS", styles["label"]), Paragraph(_fmt(data.get("rebound_hs", "")), styles["value"]),
+        Paragraph("Rebound LS", styles["label"]), Paragraph(_fmt(data.get("rebound_ls", "")), styles["value"]),
+        Paragraph("Rebound HS", styles["label"]), Paragraph(_fmt(data.get("rebound_hs", "")), styles["value"]),
     ]]
     elements.append(_simple_table(reb_rows, [half_w*0.55, half_w*0.45, half_w*0.55, half_w*0.45], styles))
 

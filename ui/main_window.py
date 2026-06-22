@@ -46,18 +46,29 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(16, 0, 16, 0)
 
-        left_logo = QLabel("[ logo ]")
-        left_logo.setStyleSheet("color: #333; font-size: 11px;")
-        left_logo.setFixedWidth(80)
+        from PyQt6.QtGui import QPixmap
+
+        left_logo = QLabel()
+        left_logo.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        left_pixmap = QPixmap("config/images/logo_left.png")
+        if not left_pixmap.isNull():
+            left_logo.setPixmap(left_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
+        else:
+            left_logo.setText("[ logo ]")
+            left_logo.setStyleSheet("color: #333; font-size: 11px;")
 
         title = QLabel("SetupTool")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: #666; font-size: 12px; letter-spacing: 2px;")
+        title.setStyleSheet("color: #666; font-size: 16px; letter-spacing: 3px;")
 
-        right_logo = QLabel("[ logo ]")
-        right_logo.setStyleSheet("color: #333; font-size: 11px;")
-        right_logo.setFixedWidth(80)
-        right_logo.setAlignment(Qt.AlignmentFlag.AlignRight)
+        right_logo = QLabel()
+        right_logo.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        right_pixmap = QPixmap("config/images/logo_right.jpg")
+        if not right_pixmap.isNull():
+            right_logo.setPixmap(right_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
+        else:
+            right_logo.setText("[ logo ]")
+            right_logo.setStyleSheet("color: #333; font-size: 11px;")
 
         layout.addWidget(left_logo)
         layout.addWidget(title)
