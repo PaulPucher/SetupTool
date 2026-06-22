@@ -96,6 +96,11 @@ class WeekendDialog(QDialog):
 
         if not track or not series or not car_number:
             return
+        
+        try:
+            car_number_int = int(car_number)
+        except ValueError:
+            return
 
         session = Session()
         if self.weekend:
@@ -104,7 +109,7 @@ class WeekendDialog(QDialog):
                 update(RaceWeekend).where(RaceWeekend.id == self.weekend.id).values(
                     track=track,
                     series=series,
-                    car_number=int(car_number),
+                    car_number=car_number_int,
                     year=date.year,
                     date=date,
                     type=event_type
@@ -114,7 +119,7 @@ class WeekendDialog(QDialog):
             weekend = RaceWeekend(
                 track=track,
                 series=series,
-                car_number=int(car_number),
+                car_number=car_number_int,
                 year=date.year,
                 date=date,
                 type=event_type

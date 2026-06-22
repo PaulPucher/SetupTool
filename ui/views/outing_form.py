@@ -5,7 +5,9 @@ from PyQt6.QtWidgets import (
     QLabel, QScrollArea, QPushButton,
     QLineEdit, QComboBox, QTextEdit,
     QDateTimeEdit, QDoubleSpinBox,
-    QGroupBox, QFrame
+    QGroupBox, QFrame, QSpinBox,
+    QTableWidget, QCheckBox,
+    QHeaderView, QAbstractSpinBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QDateTime
 from models.base import Session
@@ -17,6 +19,9 @@ class NoScrollSpinBox(QDoubleSpinBox):
     def wheelEvent(self, event):
         event.ignore()
 
+class NoScrollIntSpinBox(QSpinBox):
+    def wheelEvent(self, event):
+        event.ignore()
 
 class OutingForm(QWidget):
     def __init__(self, weekend, on_back, outing=None):
@@ -24,6 +29,10 @@ class OutingForm(QWidget):
         self.weekend = weekend
         self.on_back = on_back
         self.outing = outing
+        self.setup_inputs = {}
+        self.setdown_inputs = {}
+        self.feedback_map_path = None
+        self.corner_rows = []
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -42,7 +51,8 @@ class OutingForm(QWidget):
 
         self.content_layout.addWidget(self._build_session_section())
         self.content_layout.addWidget(self._build_data_section())
-        self.content_layout.addWidget(self._build_setup_section())
+        self.content_layout.addWidget(self._build_setup_section("setup"))
+        self.content_layout.addWidget(self._build_setdown_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
         self.content_layout.addWidget(self._build_comments_section())
         self.content_layout.addStretch()
@@ -193,15 +203,24 @@ class OutingForm(QWidget):
 
         return section
 
-    def _build_setup_section(self):
+    def _build_setup_section(self, prefix="setup"):
         section = QWidget()
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
-        layout.addWidget(self._section_label("Car Setup"))
+
+        if prefix == "setup":
+            layout.addWidget(self._section_label("Car Setup"))
+            self.setup_inputs = {}
+            self.setup_inputs["car"] = {}
+            self._active_inputs = self.setup_inputs
+        else:
+            layout.addWidget(self._section_label("Setdown"))
+            self.setdown_inputs = {}
+            self.setdown_inputs["car"] = {}
+            self._active_inputs = self.setdown_inputs
 
         params = get_setup_parameters()
-        self.setup_inputs = {}
 
         columns = QWidget()
         columns_layout = QHBoxLayout(columns)
@@ -230,13 +249,12 @@ class OutingForm(QWidget):
 
         layout.addWidget(columns)
 
-        # full width notes
         notes_label = QLabel("Setup Notes")
         notes_label.setStyleSheet("color: #888; font-size: 11px; margin-top: 8px;")
-        self.setup_inputs["car"]["notes"] = QTextEdit()
-        self.setup_inputs["car"]["notes"].setMinimumHeight(100)
-        self.setup_inputs["car"]["notes"].setPlaceholderText("Kinematic info, special configurations, general setup notes...")
-        self.setup_inputs["car"]["notes"].setStyleSheet("""
+        notes_widget = QTextEdit()
+        notes_widget.setMinimumHeight(100)
+        notes_widget.setPlaceholderText("Kinematic info, special configurations, general setup notes...")
+        notes_widget.setStyleSheet("""
             QTextEdit {
                 background-color: #1a1a1a;
                 border: 1px solid #2a2a2a;
@@ -246,19 +264,53 @@ class OutingForm(QWidget):
                 font-size: 12px;
             }
         """)
+        self._active_inputs["car"]["notes"] = notes_widget
         layout.addWidget(notes_label)
-        layout.addWidget(self.setup_inputs["car"]["notes"])
+        layout.addWidget(notes_widget)
+
+        if prefix == "setup":
+            btn_print = QPushButton("⎙ Print Setup")
+            btn_print.setFixedWidth(140)
+            btn_print.clicked.connect(lambda: self._print_sheet("setup"))
+            layout.addWidget(btn_print)
+        else:
+            btn_print = QPushButton("⎙ Print Setdown")
+            btn_print.setFixedWidth(140)
+            btn_print.clicked.connect(lambda: self._print_sheet("setdown"))
+            layout.addWidget(btn_print)
 
         return section
 
-        
+    def _build_setdown_toggle(self):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        btn_toggle = QPushButton("▶ Add Setdown")
+        btn_toggle.setStyleSheet("background-color: #1a1a1a; color: #888; font-size: 12px; padding: 8px 14px; text-align: left;")
+        btn_toggle.setCheckable(True)
+        btn_toggle.setChecked(False)
+        layout.addWidget(btn_toggle)
+
+        self.setdown_widget = self._build_setup_section("setdown")
+        self.setdown_widget.setVisible(False)
+        layout.addWidget(self.setdown_widget)
+
+        btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
+            self.setdown_widget.setVisible(checked),
+            btn.setText("▼ Add Setdown" if checked else "▶ Add Setdown"),
+            self._prefill_setdown() if checked else None
+        ))
+
+        return container
 
     def _build_corner_block(self, corner_label, params):
         corner_key = {"FL": "front_left", "FR": "front_right",
                       "RL": "rear_left", "RR": "rear_right"}[corner_label]
 
-        if corner_key not in self.setup_inputs:
-            self.setup_inputs[corner_key] = {}
+        if corner_key not in self._active_inputs:
+            self._active_inputs[corner_key] = {}
 
         group = QGroupBox(corner_label)
         group.setStyleSheet("""
@@ -301,7 +353,7 @@ class OutingForm(QWidget):
             widget.setRange(-9999, 9999)
             widget.setDecimals(2)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs[corner_key][param] = widget
+            self._active_inputs[corner_key][param] = widget
             layout.addWidget(self._setup_row(labels[param], widget))
 
         damper_label = QLabel("Damper")
@@ -320,7 +372,7 @@ class OutingForm(QWidget):
             lbl = QLabel(label_text)
             lbl.setStyleSheet("color: #555; font-size: 10px;")
             widget = QLineEdit()
-            self.setup_inputs[corner_key][param] = widget
+            self._active_inputs[corner_key][param] = widget
             cell_layout.addWidget(lbl)
             cell_layout.addWidget(widget)
             bump_layout.addWidget(cell)
@@ -333,7 +385,7 @@ class OutingForm(QWidget):
         blowoff_lbl = QLabel("Blowoff")
         blowoff_lbl.setStyleSheet("color: #555; font-size: 10px;")
         blowoff_widget = QLineEdit()
-        self.setup_inputs[corner_key]["blowoff"] = blowoff_widget
+        self._active_inputs[corner_key]["blowoff"] = blowoff_widget
         blowoff_cell_layout.addWidget(blowoff_lbl)
         blowoff_cell_layout.addWidget(blowoff_widget)
         layout.addWidget(blowoff_cell)
@@ -350,7 +402,7 @@ class OutingForm(QWidget):
             lbl = QLabel(label_text)
             lbl.setStyleSheet("color: #555; font-size: 10px;")
             widget = QLineEdit()
-            self.setup_inputs[corner_key][param] = widget
+            self._active_inputs[corner_key][param] = widget
             cell_layout.addWidget(lbl)
             cell_layout.addWidget(widget)
             reb_layout.addWidget(cell)
@@ -380,7 +432,7 @@ class OutingForm(QWidget):
             widget.setRange(-9999, 9999)
             widget.setDecimals(2)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs[corner_key][param] = widget
+            self._active_inputs[corner_key][param] = widget
             advanced_layout.addWidget(self._setup_row(labels[param], widget))
 
         layout.addWidget(advanced_widget)
@@ -402,7 +454,7 @@ class OutingForm(QWidget):
         img_label = QLabel()
         img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         img_label.setStyleSheet("border: 1px solid #2a2a2a; border-radius: 4px;")
-        
+
         from PyQt6.QtGui import QPixmap
         pixmap = QPixmap("config/images/car_default.jpg")
         if not pixmap.isNull():
@@ -411,7 +463,7 @@ class OutingForm(QWidget):
         else:
             img_label.setText("[ car image ]")
             img_label.setStyleSheet("color: #333; border: 1px solid #2a2a2a; border-radius: 4px;")
-        
+
         layout.addWidget(img_label)
 
         weights_group = QGroupBox("Weights")
@@ -434,8 +486,6 @@ class OutingForm(QWidget):
         weights_layout.setSpacing(4)
         weights_layout.setContentsMargins(8, 12, 8, 8)
 
-        self.setup_inputs["car"] = {}
-
         weight_grid = QWidget()
         weight_grid_layout = QHBoxLayout(weight_grid)
         weight_grid_layout.setContentsMargins(0, 0, 0, 0)
@@ -456,7 +506,7 @@ class OutingForm(QWidget):
             widget.setRange(0, 9999)
             widget.setDecimals(1)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs["car"][param] = widget
+            self._active_inputs["car"][param] = widget
             left_weights_layout.addWidget(self._setup_row(label_text, widget))
 
         for param, label_text in [("corner_weight_fr", "FR (kg)"), ("corner_weight_rr", "RR (kg)")]:
@@ -464,7 +514,7 @@ class OutingForm(QWidget):
             widget.setRange(0, 9999)
             widget.setDecimals(1)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs["car"][param] = widget
+            self._active_inputs["car"][param] = widget
             right_weights_layout.addWidget(self._setup_row(label_text, widget))
 
         weight_grid_layout.addWidget(left_weights)
@@ -481,7 +531,7 @@ class OutingForm(QWidget):
             widget.setRange(0, 9999)
             widget.setDecimals(1)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs["car"][param] = widget
+            self._active_inputs["car"][param] = widget
             weights_layout.addWidget(self._setup_row(label_text, widget))
 
         layout.addWidget(weights_group)
@@ -511,18 +561,14 @@ class OutingForm(QWidget):
             "differential_position": "Diff Position",
             "wing_position": "Wing Pos.",
             "splitter_offset": "Splitter",
-            
         }
 
         for param, label_text in car_labels.items():
-            if param == "notes":
-                widget = QLineEdit()
-            else:
-                widget = NoScrollSpinBox()
-                widget.setRange(-9999, 9999)
-                widget.setDecimals(2)
-                widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-            self.setup_inputs["car"][param] = widget
+            widget = NoScrollSpinBox()
+            widget.setRange(-9999, 9999)
+            widget.setDecimals(2)
+            widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+            self._active_inputs["car"][param] = widget
             car_layout.addWidget(self._setup_row(label_text, widget))
 
         layout.addWidget(car_group)
@@ -535,14 +581,14 @@ class OutingForm(QWidget):
         to_key = {"FR": "front_right", "RR": "rear_right"}[mapping[from_corner]]
 
         for param in ["bump_ls", "bump_hs", "blowoff", "rebound_ls", "rebound_hs"]:
-            self.setup_inputs[to_key][param].setText(
-                self.setup_inputs[from_key][param].text()
+            self._active_inputs[to_key][param].setText(
+                self._active_inputs[from_key][param].text()
             )
 
-    def _collect_setup_data(self):
+    def _collect_inputs(self, inputs):
         import json
         data = {}
-        for corner_key, fields in self.setup_inputs.items():
+        for corner_key, fields in inputs.items():
             data[corner_key] = {}
             for param, widget in fields.items():
                 if isinstance(widget, QDoubleSpinBox):
@@ -552,8 +598,60 @@ class OutingForm(QWidget):
                 elif isinstance(widget, QTextEdit):
                     data[corner_key][param] = widget.toPlainText().strip()
         return json.dumps(data)
+
+    def _collect_setup_data(self):
+        return self._collect_inputs(self.setup_inputs)
+
+    def _collect_setdown_data(self):
+        return self._collect_inputs(self.setdown_inputs)
     
-    def _load_setup_data(self, json_string):
+    def _collect_feedback_data(self):
+        import json
+        corners = []
+        for row_data in self.corner_rows:
+            corners.append({
+                "worst": row_data["worst"].isChecked(),
+                "e1": row_data["e1"].value(),
+                "e2": row_data["e2"].value(),
+                "a3": row_data["a3"].value(),
+                "x4": row_data["x4"].value(),
+                "x5": row_data["x5"].value(),
+            })
+        return json.dumps({
+            "corner_count": self.corner_count_spin.value(),
+            "corners": corners,
+            "map_path": self.feedback_map_path or ""
+        })
+    
+    def _load_feedback_data(self, json_string):
+        import json
+        if not json_string:
+            return
+        try:
+            data = json.loads(json_string)
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        count = data.get("corner_count", 10)
+        self.corner_count_spin.setValue(count)
+
+        for i, row_data in enumerate(self.corner_rows):
+            if i >= len(data.get("corners", [])):
+                break
+            c = data["corners"][i]
+            row_data["worst"].setChecked(c.get("worst", False))
+            row_data["e1"].setValue(c.get("e1", 0))
+            row_data["e2"].setValue(c.get("e2", 0))
+            row_data["a3"].setValue(c.get("a3", 0))
+            row_data["x4"].setValue(c.get("x4", 0))
+            row_data["x5"].setValue(c.get("x5", 0))
+
+        map_path = data.get("map_path", "")
+        if map_path:
+            self.feedback_map_path = map_path
+            self._display_track_map(map_path)
+
+    def _load_inputs(self, inputs_dict, json_string):
         import json
         if not json_string:
             return
@@ -563,12 +661,12 @@ class OutingForm(QWidget):
             return
 
         for corner_key, fields in data.items():
-            if corner_key not in self.setup_inputs:
+            if corner_key not in inputs_dict:
                 continue
             for param, value in fields.items():
-                if param not in self.setup_inputs[corner_key]:
+                if param not in inputs_dict[corner_key]:
                     continue
-                widget = self.setup_inputs[corner_key][param]
+                widget = inputs_dict[corner_key][param]
                 if isinstance(widget, QDoubleSpinBox):
                     try:
                         widget.setValue(float(value) if value else 0.0)
@@ -579,19 +677,247 @@ class OutingForm(QWidget):
                 elif isinstance(widget, QTextEdit):
                     widget.setPlainText(str(value) if value else "")
 
+    def _load_setup_data(self, json_string):
+        self._load_inputs(self.setup_inputs, json_string)
+
+    def _load_setdown_data(self, json_string):
+        self._load_inputs(self.setdown_inputs, json_string)
+
+    def _prefill_setdown(self):
+        if self.outing and self.outing.setdown_data:
+            self._load_inputs(self.setdown_inputs, self.outing.setdown_data)
+        else:
+            self._load_inputs(self.setdown_inputs, self._collect_setup_data())
+
+
+    def _print_sheet(self, sheet_type):
+        from PyQt6.QtWidgets import QFileDialog
+        from core.pdf_export import generate_setup_pdf
+
+        label = "Setup" if sheet_type == "setup" else "Setdown"
+        default_name = f"{self.weekend.track}_Outing{self.outing.number if self.outing else 'new'}_{self.session_type_combo.currentText()}_{label}.pdf"
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, f"Save {label} PDF", default_name, "PDF Files (*.pdf)"
+        )
+
+        if not path:
+            return
+
+        class TempOuting:
+            pass
+
+        temp = TempOuting()
+        temp.setup_data = self._collect_setup_data() if sheet_type == "setup" else self._collect_setdown_data()
+        temp.date_time = self.datetime_edit.dateTime().toPyDateTime()
+        temp.number = self.outing.number if self.outing else "new"
+        temp.name = self.name_input.text().strip()
+        temp.session_type = self.session_type_combo.currentText()
+        temp.driver_name = self.driver_combo.currentText()
+
+        generate_setup_pdf(temp, self.weekend, path, sheet_type=label)
+
     def _build_feedback_section(self):
         section = QWidget()
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(12)
         layout.addWidget(self._section_label("Driver Feedback"))
 
-        placeholder = QLabel("Track map and corner feedback will go here")
-        placeholder.setStyleSheet("color: #555; font-size: 12px;")
-        layout.addWidget(placeholder)
+        count_row = QWidget()
+        count_layout = QHBoxLayout(count_row)
+        count_layout.setContentsMargins(0, 0, 0, 0)
+        count_label = QLabel("Corners")
+        count_label.setStyleSheet("color: #888;")
+        self.corner_count_spin = NoScrollIntSpinBox()
+        self.corner_count_spin.setRange(1, 30)
+        self.corner_count_spin.setValue(10)
+        self.corner_count_spin.setFixedWidth(60)
+        self.corner_count_spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.corner_count_spin.setStyleSheet("""
+            QSpinBox {
+                background-color: #1a1a1a;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                color: #e0e0e0;
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        """)
+        count_layout.addWidget(count_label)
+        count_layout.addSpacing(8)
+        count_layout.addWidget(self.corner_count_spin)
+        count_layout.addStretch()
+        layout.addWidget(count_row)
+
+        split = QWidget()
+        split_layout = QHBoxLayout(split)
+        split_layout.setContentsMargins(0, 0, 0, 0)
+        split_layout.setSpacing(16)
+
+        self.feedback_table = QTableWidget()
+        self.feedback_table.setColumnCount(7)
+        self.feedback_table.setHorizontalHeaderLabels(
+            ["No.", "Worst", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]
+        )
+        self.feedback_table.verticalHeader().setVisible(False)
+        self.feedback_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.feedback_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        self.feedback_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.feedback_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.feedback_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.feedback_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.feedback_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.feedback_table.setColumnWidth(0, 36)
+        self.feedback_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.feedback_table.setColumnWidth(1, 52)
+        for col in range(2, 7):
+            self.feedback_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+        self.feedback_table.setStyleSheet("""
+            QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
+            QTableWidget::item { padding: 2px; border-bottom: 1px solid #1e1e1e; }
+            QTableWidget::item:selected { background-color: #141414; }
+            QHeaderView::section { background-color: #1a1a1a; color: #555; font-size: 10px;
+                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }
+        """)
+
+        self._rebuild_corner_rows(self.corner_count_spin.value())
+        self.corner_count_spin.valueChanged.connect(self._rebuild_corner_rows)
+
+        split_layout.addWidget(self.feedback_table, 3)
+
+        map_panel = QWidget()
+        map_layout = QVBoxLayout(map_panel)
+        map_layout.setContentsMargins(0, 0, 0, 0)
+        map_layout.setSpacing(8)
+
+        map_title = QLabel("Track Map")
+        map_title.setStyleSheet("color: #888; font-size: 11px;")
+        map_layout.addWidget(map_title)
+
+        self.map_label = QLabel()
+        self.map_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.map_label.setMinimumHeight(200)
+        self.map_label.setStyleSheet("""
+            QLabel {
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                color: #333;
+                font-size: 11px;
+                background-color: #1a1a1a;
+            }
+        """)
+        self.map_label.setText("No track map loaded")
+        map_layout.addWidget(self.map_label, 1)
+
+        btn_load_map = QPushButton("Load Image")
+        btn_load_map.setFixedWidth(120)
+        btn_load_map.clicked.connect(self._load_track_map)
+        map_layout.addWidget(btn_load_map)
+
+        self.map_filename_label = QLabel("")
+        self.map_filename_label.setStyleSheet("color: #555; font-size: 10px;")
+        map_layout.addWidget(self.map_filename_label)
+        map_layout.addStretch()
+
+        split_layout.addWidget(map_panel, 2)
+        layout.addWidget(split)
+
+        scale_desc = QLabel(
+            "Scale: −5 undrivable understeer · −3 strong understeer · −1 slight understeer · "
+            "0 neutral · +1 slight oversteer · +3 strong oversteer · +5 undrivable oversteer\n"
+            "Placeholder — full description to be added per value."
+        )
+        scale_desc.setStyleSheet("color: #444; font-size: 10px; margin-top: 4px;")
+        scale_desc.setWordWrap(True)
+        layout.addWidget(scale_desc)
 
         return section
-    
+
+    def _rebuild_corner_rows(self, count):
+        existing = []
+        for row_data in self.corner_rows:
+            existing.append({
+                "worst": row_data["worst"].isChecked(),
+                "values": [row_data[k].value() for k in ["e1", "e2", "a3", "x4", "x5"]]
+            })
+
+        self.corner_rows = []
+        self.feedback_table.setRowCount(0)
+
+        for i in range(count):
+            row = self.feedback_table.rowCount()
+            self.feedback_table.insertRow(row)
+            self.feedback_table.setRowHeight(row, 28)
+
+            num_label = QLabel(str(i + 1))
+            num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            num_label.setStyleSheet("color: #C0A060; font-weight: 600; font-size: 11px; background: transparent;")
+            self.feedback_table.setCellWidget(row, 0, num_label)
+
+            check_container = QWidget()
+            check_container.setStyleSheet("background: transparent;")
+            check_layout = QHBoxLayout(check_container)
+            check_layout.setContentsMargins(0, 0, 0, 0)
+            check_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            checkbox = QCheckBox()
+            checkbox.setStyleSheet("""
+                QCheckBox::indicator { width: 14px; height: 14px; border: 1px solid #2a2a2a; border-radius: 2px; background: #1a1a1a; }
+                QCheckBox::indicator:checked { background-color: #C0A060; border-color: #C0A060; }
+            """)
+            check_layout.addWidget(checkbox)
+            self.feedback_table.setCellWidget(row, 1, check_container)
+
+            prev = existing[i] if i < len(existing) else None
+            spins = {}
+            for col_idx, key in enumerate(["e1", "e2", "a3", "x4", "x5"]):
+                spin = NoScrollIntSpinBox()
+                spin.setRange(-5, 5)
+                spin.setValue(prev["values"][col_idx] if prev else 0)
+                spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+                spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                spin.setStyleSheet("""
+                    QSpinBox {
+                        background-color: #1a1a1a;
+                        border: 1px solid #2a2a2a;
+                        color: #e0e0e0;
+                        padding: 2px;
+                        font-size: 12px;
+                    }
+                """)
+                self.feedback_table.setCellWidget(row, col_idx + 2, spin)
+                spins[key] = spin
+
+            if prev:
+                checkbox.setChecked(prev["worst"])
+
+            self.corner_rows.append({"worst": checkbox, **spins})
+
+        header_h = self.feedback_table.horizontalHeader().height()
+        total_row_h = sum(self.feedback_table.rowHeight(i) for i in range(count))
+        self.feedback_table.setFixedHeight(header_h + total_row_h + 4)
+
+    def _load_track_map(self):
+        from PyQt6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load Track Map", "", "Images (*.png *.jpg *.jpeg *.bmp)"
+        )
+        if path:
+            self.feedback_map_path = path
+            self._display_track_map(path)
+
+    def _display_track_map(self, path):
+        from PyQt6.QtGui import QPixmap
+        import os
+        pixmap = QPixmap(path)
+        if not pixmap.isNull():
+            w = self.map_label.width() or 300
+            scaled = pixmap.scaledToWidth(w, Qt.TransformationMode.SmoothTransformation)
+            self.map_label.setPixmap(scaled)
+            self.map_filename_label.setText(os.path.basename(path))
+        else:
+            self.map_label.setText("Could not load image")
+
     def _build_comments_section(self):
         section = QWidget()
         section.setStyleSheet("background-color: #1a1a1a; border-radius: 4px;")
@@ -617,7 +943,6 @@ class OutingForm(QWidget):
 
         return section
 
-   
     def _load_drivers(self):
         session = Session()
         drivers = session.query(Driver).order_by(Driver.name).all()
@@ -652,6 +977,9 @@ class OutingForm(QWidget):
             self.track_condition_combo.setCurrentText(self.outing.track_condition)
         self.comments_input.setPlainText(self.outing.comments or "")
         self._load_setup_data(self.outing.setup_data)
+        self._load_feedback_data(self.outing.feedback_data)
+        if self.outing.setdown_data:
+            self._load_setdown_data(self.outing.setdown_data)
 
     def _carryon_from_last(self):
         session = Session()
@@ -710,7 +1038,9 @@ class OutingForm(QWidget):
                     track_temp=self.track_temp_input.value(),
                     track_condition=self.track_condition_combo.currentText(),
                     comments=self.comments_input.toPlainText().strip(),
-                    setup_data=self._collect_setup_data()
+                    setup_data=self._collect_setup_data(),
+                    setdown_data=self._collect_setdown_data(),
+                    feedback_data=self._collect_feedback_data(),
                 )
             )
         else:
@@ -731,7 +1061,9 @@ class OutingForm(QWidget):
                 track_temp=self.track_temp_input.value(),
                 track_condition=self.track_condition_combo.currentText(),
                 comments=self.comments_input.toPlainText().strip(),
-                setup_data=self._collect_setup_data()
+                setup_data=self._collect_setup_data(),
+                setdown_data=self._collect_setdown_data(),
+                feedback_data=self._collect_feedback_data(),
             )
             session.add(outing)
         session.commit()

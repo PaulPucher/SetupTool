@@ -30,6 +30,8 @@ class Outing(Base):
 
     # car setup - stored as JSON string
     setup_data = Column(String(10000), nullable=True)
+    setdown_data = Column(String(10000), nullable=True)
+    feedback_data = Column(String(10000), nullable=True)
 
     # data reference
     csv_path = Column(String(500), nullable=True)
