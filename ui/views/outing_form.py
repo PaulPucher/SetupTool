@@ -14,6 +14,7 @@ from models.base import Session
 from models.driver import Driver
 from models.outing import Outing
 from core.config_loader import get_setup_parameters
+from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
 
 class NoScrollSpinBox(QDoubleSpinBox):
     def wheelEvent(self, event):
@@ -22,6 +23,23 @@ class NoScrollSpinBox(QDoubleSpinBox):
 class NoScrollIntSpinBox(QSpinBox):
     def wheelEvent(self, event):
         event.ignore()
+
+
+class CsvLoaderThread(QThread):
+    finished = pyqtSignal(object)
+    error = pyqtSignal(str)
+
+    def __init__(self, path):
+        super().__init__()
+        self.path = path
+
+    def run(self):
+        try:
+            from modules.csv_parser import parse_csv
+            result = parse_csv(self.path)
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
 
 class OutingForm(QWidget):
     def __init__(self, weekend, on_back, outing=None):
@@ -34,6 +52,7 @@ class OutingForm(QWidget):
         self.feedback_map_path = None
         self.corner_rows = []
         self.parsed_data = None
+        self.loaded_csv_path = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -198,7 +217,7 @@ class OutingForm(QWidget):
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(10)
 
-        btn_load = QPushButton("Load CSV")
+        btn_load = QPushButton("Load Outing")
         btn_load.setFixedWidth(120)
         btn_load.clicked.connect(self._load_csv)
 
@@ -239,33 +258,64 @@ class OutingForm(QWidget):
         return section
 
     def _load_csv(self):
-        from PyQt6.QtWidgets import QFileDialog
-        from modules.csv_parser import parse_csv, get_lap_summary, get_available_channels
-        import os
+        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
 
         path, _ = QFileDialog.getOpenFileName(
-            self, "Load Cosworth CSV", "", "CSV Files (*.csv *.CSV);;All Files (*)"
+            self, "Load Outing Data", "", "Pi Toolbox Files (*.txt *.csv);;All Files (*)"
         )
         if not path:
             return
 
-        try:
-            self.parsed_data = parse_csv(path)
-        except Exception as e:
-            self.csv_status_label.setText(f"Error loading file: {e}")
-            self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
-            return
+        self.progress = QProgressDialog("Loading outing data...", None, 0, 0, self)
+        self.progress.setWindowTitle("Loading")
+        self.progress.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress.setMinimumDuration(0)
+        self.progress.setStyleSheet("""
+            QProgressDialog {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 12px;
+            }
+            QProgressBar {
+                background-color: #141414;
+                border: 1px solid #2a2a2a;
+                border-radius: 3px;
+                height: 6px;
+            }
+            QProgressBar::chunk {
+                background-color: #C0A060;
+                border-radius: 3px;
+            }
+        """)
+        self.progress.show()
 
-        filename = os.path.basename(path)
+        self.loader_thread = CsvLoaderThread(path)
+        self.loader_thread.finished.connect(self._on_csv_loaded)
+        self.loader_thread.error.connect(self._on_csv_error)
+        self.loader_thread.start()
+
+    def _on_csv_loaded(self, result):
+        import os
+        from modules.csv_parser import get_lap_summary, get_available_channels
+        self.progress.close()
+        self.parsed_data = result
+        self.loaded_csv_path = self.loader_thread.path
+        filename = os.path.basename(self.loader_thread.path)
         laps = get_lap_summary(self.parsed_data)
         available = get_available_channels(self.parsed_data)
-
         self.csv_status_label.setText(
             f"{filename} — {len(laps)} laps, {len(available)} channels"
         )
         self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
-
         self._populate_lap_table(laps)
+
+    def _on_csv_error(self, error_msg):
+        self.progress.close()
+        self.csv_status_label.setText(f"Error loading file: {error_msg}")
+        self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
 
     def _populate_lap_table(self, laps):
         self.lap_table.setRowCount(0)
@@ -1101,6 +1151,25 @@ class OutingForm(QWidget):
         self._load_feedback_data(self.outing.feedback_data)
         if self.outing.setdown_data:
             self._load_setdown_data(self.outing.setdown_data)
+        if self.outing.csv_path:
+            QTimer.singleShot(100, lambda: self._auto_load_csv(self.outing.csv_path))
+
+    def _auto_load_csv(self, path):
+        import os
+        if not os.path.exists(path):
+            self.csv_status_label.setText("Data file not found at saved path")
+            self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
+            return
+        self.progress = __import__('PyQt6.QtWidgets', fromlist=['QProgressDialog']).QProgressDialog(
+            "Loading outing data...", None, 0, 0, self)
+        self.progress.setWindowTitle("Loading")
+        self.progress.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress.setMinimumDuration(0)
+        self.progress.show()
+        self.loader_thread = CsvLoaderThread(path)
+        self.loader_thread.finished.connect(self._on_csv_loaded)
+        self.loader_thread.error.connect(self._on_csv_error)
+        self.loader_thread.start()
 
     def _carryon_from_last(self):
         session = Session()
@@ -1162,6 +1231,7 @@ class OutingForm(QWidget):
                     setup_data=self._collect_setup_data(),
                     setdown_data=self._collect_setdown_data(),
                     feedback_data=self._collect_feedback_data(),
+                    csv_path=self.loaded_csv_path or "",
                 )
             )
         else:
@@ -1185,6 +1255,7 @@ class OutingForm(QWidget):
                 setup_data=self._collect_setup_data(),
                 setdown_data=self._collect_setdown_data(),
                 feedback_data=self._collect_feedback_data(),
+                csv_path=self.loaded_csv_path or "",
             )
             session.add(outing)
         session.commit()
