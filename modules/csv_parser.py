@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+from modules.corner_analysis import analyse_corners
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -116,14 +117,17 @@ def parse_csv(file_path):
         }
 
     laps = _split_laps(result_channels)
-    corners = _detect_corners(result_channels, laps, thresholds)
 
-    return {
+    result = {
         "metadata": metadata,
         "channels": result_channels,
         "laps": laps,
-        "corners": corners
+        "corners": []
     }
+
+    result["corners"] = analyse_corners(result)
+
+    return result
 
 
 def _split_laps(channels):
@@ -155,106 +159,66 @@ def _split_laps(channels):
             "start_time": start_t,
             "end_time": end_t,
             "lap_time": duration,
-            "is_fastest": False
+            "is_fastest": False,
+            "is_valid_for_analysis": False,
+            "warnings": []
         })
 
-    # Mark fastest — only laps longer than 10s to filter out partial laps
+    _verify_laps(laps, channels)
+
     valid = [l for l in laps if l["lap_time"] > 10]
     if valid:
         fastest_lap = min(valid, key=lambda l: l["lap_time"])
+        fastest_time = fastest_lap["lap_time"]
         for l in laps:
             l["is_fastest"] = (l is fastest_lap)
+            l["is_valid_for_analysis"] = (
+                l["lap_number"] != 0
+                and l["lap_time"] <= fastest_time * 1.10
+                and l["lap_time"] > 10
+                and len(l["warnings"]) == 0
+            )
 
     return laps
 
 
-def _detect_corners(channels, laps, thresholds):
-    corners = []
-    speed_ch = channels.get("Team_vCar")
-
-    if not speed_ch or speed_ch["quality"] in ("missing", "failed"):
-        return corners
-
-    speed_time = speed_ch["time"]
-    speed_data = speed_ch["data"]
-    low_max = thresholds["low_max"]
-    medium_max = thresholds["medium_max"]
+def _verify_laps(laps, channels):
+    file_lap_time = channels.get("lap_time")
+    lap_distance = channels.get("lap_distance")
 
     for lap in laps:
-        if lap["lap_time"] < 10:
-            continue
+        start_t = lap["start_time"]
+        end_t = lap["end_time"]
+        duration = lap["lap_time"]
 
-        mask = (speed_time >= lap["start_time"]) & (speed_time <= lap["end_time"])
-        lap_time = speed_time[mask]
-        lap_speed = speed_data[mask]
+        # Check 1 — file's own lap_time channel agrees with our computed duration
+        if file_lap_time and file_lap_time["quality"] not in ("missing", "failed"):
+            t = file_lap_time["time"]
+            d = file_lap_time["data"]
+            mask = (t >= start_t) & (t <= end_t)
+            if mask.any():
+                file_max = float(d[mask].max())
+                if file_max > 5 and abs(file_max - duration) > 2.0:
+                    lap["warnings"].append(
+                        f"lap_time channel ({file_max:.1f}s) disagrees with "
+                        f"computed duration ({duration:.1f}s)"
+                    )
 
-        if len(lap_speed) < 20:
-            continue
-
-        smoothed = pd.Series(lap_speed).rolling(
-            window=10, center=True, min_periods=1
-        ).mean().values
-
-        minima = _find_local_minima(smoothed, min_prominence=15, min_distance=20)
-
-        for corner_num, idx in enumerate(minima, start=1):
-            if idx >= len(lap_time):
-                continue
-
-            apex_speed = float(smoothed[idx])
-            apex_time = float(lap_time[idx])
-
-            if apex_speed < low_max:
-                speed_class = "low"
-            elif apex_speed < medium_max:
-                speed_class = "medium"
-            else:
-                speed_class = "high"
-
-            entry_idx = _find_preceding_peak(smoothed, idx)
-            exit_idx = _find_following_peak(smoothed, idx)
-
-            corners.append({
-                "lap": lap["lap_number"],
-                "corner": corner_num,
-                "apex_time": apex_time,
-                "apex_speed": apex_speed,
-                "speed_class": speed_class,
-                "entry_start_time": float(lap_time[entry_idx]),
-                "exit_end_time": float(lap_time[exit_idx]),
-            })
-
-    return corners
-
-
-def _find_local_minima(data, min_prominence=15, min_distance=20):
-    n = len(data)
-    minima = []
-    for i in range(1, n - 1):
-        if data[i] <= data[i - 1] and data[i] <= data[i + 1]:
-            window_start = max(0, i - min_distance)
-            window_end = min(n, i + min_distance)
-            local_max = max(data[window_start:window_end])
-            if local_max - data[i] >= min_prominence:
-                if not minima or i - minima[-1] >= min_distance:
-                    minima.append(i)
-    return minima
-
-
-def _find_preceding_peak(data, idx):
-    peak = max(0, idx - 1)
-    while peak > 0 and data[peak] < data[peak - 1]:
-        peak -= 1
-    return peak
-
-
-def _find_following_peak(data, idx):
-    n = len(data)
-    peak = min(n - 1, idx + 1)
-    while peak < n - 1 and data[peak] < data[peak + 1]:
-        peak += 1
-    return peak
-
+                # Check 2 — lap_distance should ramp up within the lap (skip outlap)
+        if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
+            t = lap_distance["time"]
+            d = lap_distance["data"]
+            mask = (t >= start_t) & (t <= end_t)
+            if mask.any():
+                lap_d = d[mask]
+                d_start = float(lap_d[0])
+                d_peak = float(lap_d.max())
+                d_traveled = d_peak - d_start
+                if d_traveled < 1000 and duration > 30:
+                    lap["warnings"].append(
+                        f"lap_distance only rose by {d_traveled:.0f} units "
+                        f"despite {duration:.1f}s duration"
+                    )
 
 def get_lap_summary(parsed_data):
     return [

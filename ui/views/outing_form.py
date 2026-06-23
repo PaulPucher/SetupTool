@@ -229,6 +229,29 @@ class OutingForm(QWidget):
         btn_layout.addStretch()
         layout.addWidget(btn_row)
 
+        self.exclude_inout_btn = QPushButton("Exclude In/Out Laps")
+        self.exclude_inout_btn.setCheckable(True)
+        self.exclude_inout_btn.setChecked(False)
+        self.exclude_inout_btn.setFixedWidth(160)
+        self.exclude_inout_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1a1a1a;
+                color: #888;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            QPushButton:checked {
+                background-color: #252525;
+                color: #C0A060;
+                border-color: #C0A060;
+            }
+        """)
+        self.exclude_inout_btn.toggled.connect(self._on_exclude_toggled)
+        self.exclude_inout_btn.setVisible(False)
+        layout.addWidget(self.exclude_inout_btn)
+
         self.lap_table = QTableWidget()
         self.lap_table.setColumnCount(3)
         self.lap_table.setHorizontalHeaderLabels(["Lap", "Lap Time", ""])
@@ -252,10 +275,179 @@ class OutingForm(QWidget):
             QHeaderView::section { background-color: #1a1a1a; color: #555; font-size: 10px;
                 padding: 6px 4px; border: none; border-bottom: 1px solid #222; }
         """)
+        self.lap_table.cellClicked.connect(self._on_lap_selected)
         self.lap_table.setVisible(False)
         layout.addWidget(self.lap_table)
 
+        self.plot_container = self._build_plot_widget()
+        self.plot_container.setVisible(False)
+        layout.addWidget(self.plot_container)
+
         return section
+    
+    def _on_exclude_toggled(self, checked):
+        if not self.parsed_data:
+            return
+        from modules.csv_parser import get_lap_summary
+        laps = get_lap_summary(self.parsed_data)
+        self._populate_lap_table(laps)
+    
+    def _build_plot_widget(self):
+        import pyqtgraph as pg
+        pg.setConfigOption('background', '#141414')
+        pg.setConfigOption('foreground', '#888888')
+        pg.setConfigOptions(antialias=True)
+
+        class TimeAxisItem(pg.AxisItem):
+            def tickStrings(self, values, scale, spacing):
+                result = []
+                for v in values:
+                    mins = int(abs(v) // 60)
+                    secs = abs(v) % 60
+                    result.append(f"{mins}:{secs:04.1f}")
+                return result
+
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 8, 0, 0)
+        container_layout.setSpacing(0)
+
+        self.plot_channels = [
+            {"key": "ecu_speed",    "label": "Speed (km/h)", "color": "#C0A060"},
+            {"key": "ecu_aps",      "label": "Throttle (%)", "color": "#4CAF50"},
+            {"key": "log_pbrake_f", "label": "Brake (bar)",  "color": "#e74c3c"},
+            {"key": "ecu_nmot",     "label": "RPM",          "color": "#00bcd4"},
+            {"key": "ecu_gear",     "label": "Gear",         "color": "#f1c40f"},
+            {"key": "log_asteer",   "label": "Steer (°)",    "color": "#9b59b6"},
+        ]
+
+        self.pg_layout = pg.GraphicsLayoutWidget()
+        self.pg_layout.setFixedHeight(500)
+        self.plot_items = {}
+        self.plot_curves = {}
+        self.crosshair_lines = {}
+        first_plot = None
+
+        for i, ch in enumerate(self.plot_channels):
+            is_last = (i == len(self.plot_channels) - 1)
+            axis_items = {'bottom': TimeAxisItem(orientation='bottom')} if is_last else {}
+            plot = self.pg_layout.addPlot(axisItems=axis_items)
+            plot.setLabel('left', ch["label"], color='#888', size='8pt')
+            plot.showGrid(x=True, y=True, alpha=0.15)
+            plot.setMaximumHeight(80)
+            plot.getAxis('left').setWidth(70)
+            plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+            plot.getViewBox().setMouseEnabled(x=True, y=False)
+            plot.getViewBox().wheelEvent = lambda event, axis=None: None
+
+            if not is_last:
+                plot.getAxis('bottom').setStyle(showValues=False)
+                plot.getAxis('bottom').setHeight(0)
+            else:
+                plot.setMaximumHeight(100)
+                plot.getAxis('bottom').setLabel('Time (m:ss)', color='#888', size='8pt')
+
+            if first_plot is None:
+                first_plot = plot
+            else:
+                plot.setXLink(first_plot)
+
+            curve = plot.plot(pen=pg.mkPen(color=ch["color"], width=1.5))
+            cross = pg.InfiniteLine(
+                angle=90, movable=False,
+                pen=pg.mkPen(color='#444444', width=1,
+                             style=Qt.PenStyle.DashLine)
+            )
+            plot.addItem(cross, ignoreBounds=True)
+
+            self.plot_items[ch["key"]] = plot
+            self.plot_curves[ch["key"]] = curve
+            self.crosshair_lines[ch["key"]] = cross
+            self.pg_layout.nextRow()
+
+        self.pg_layout.scene().sigMouseMoved.connect(self._on_mouse_moved)
+        container_layout.addWidget(self.pg_layout)
+        return container
+    
+    def _on_mouse_moved(self, pos):
+        if not self.plot_items:
+            return
+        for ch in self.plot_channels:
+            plot = self.plot_items.get(ch["key"])
+            if plot and plot.sceneBoundingRect().contains(pos):
+                mouse_point = plot.vb.mapSceneToView(pos)
+                x = mouse_point.x()
+                for line in self.crosshair_lines.values():
+                    line.setPos(x)
+                break
+    
+    def _on_lap_selected(self, row, col):
+        lap_item = self.lap_table.item(row, 0)
+        if not lap_item:
+            return
+        value = lap_item.data(Qt.ItemDataRole.UserRole)
+        if value == "all":
+            self._update_plots(None)
+        else:
+            self._update_plots(value)
+
+    def _update_plots(self, lap_number):
+        if not self.parsed_data:
+            return
+
+        channels = self.parsed_data["channels"]
+        start_t = None
+        end_t = None
+
+        if lap_number is not None:
+            lap = next(
+                (l for l in self.parsed_data["laps"]
+                 if l["lap_number"] == lap_number),
+                None
+            )
+            if not lap:
+                return
+            start_t = lap["start_time"]
+            end_t = lap["end_time"]
+
+        for ch_config in self.plot_channels:
+            key = ch_config["key"]
+            if key not in channels:
+                self.plot_curves[key].setData([], [])
+                continue
+            ch = channels[key]
+            if ch["quality"] in ("missing", "failed") or ch["time"] is None:
+                self.plot_curves[key].setData([], [])
+                continue
+
+            time_arr = ch["time"]
+            data_arr = ch["data"]
+
+            if start_t is not None:
+                mask = (time_arr >= start_t) & (time_arr <= end_t)
+                plot_time = time_arr[mask] - start_t
+                plot_data = data_arr[mask]
+            else:
+                plot_time = time_arr - time_arr[0] if len(time_arr) > 0 else time_arr
+                plot_data = data_arr
+
+            self.plot_curves[key].setData(
+                plot_time.tolist(), plot_data.tolist()
+            )
+            first_key = self.plot_channels[0]["key"]
+        if first_key in self.plot_items:
+            self.plot_items[first_key].setXRange(
+                0, (end_t - start_t) if start_t is not None else
+                max((ch["time"][-1] - ch["time"][0])
+                    for ch in channels.values()
+                    if ch["time"] is not None and len(ch["time"]) > 0),
+                padding=0.02
+            )
+        for ch_config in self.plot_channels:
+            if ch_config["key"] in self.plot_items:
+                self.plot_items[ch_config["key"]].enableAutoRange(axis='y')
+
+        self.plot_container.setVisible(True)
 
     def _load_csv(self):
         from PyQt6.QtWidgets import QFileDialog, QProgressDialog
@@ -318,15 +510,35 @@ class OutingForm(QWidget):
         self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
 
     def _populate_lap_table(self, laps):
+        from PyQt6.QtGui import QColor
+        exclude = getattr(self, 'exclude_inout_btn', None) and self.exclude_inout_btn.isChecked()
+        if exclude:
+            laps = [l for l in laps if l.get("is_valid_for_analysis", False)]
         self.lap_table.setRowCount(0)
+
+        all_row = self.lap_table.rowCount()
+        self.lap_table.insertRow(all_row)
+        self.lap_table.setRowHeight(all_row, 28)
+        all_item = QTableWidgetItem("All")
+        all_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        all_item.setForeground(QColor("#888"))
+        all_item.setData(Qt.ItemDataRole.UserRole, "all")
+        self.lap_table.setItem(all_row, 0, all_item)
+        self.lap_table.setItem(all_row, 1, QTableWidgetItem(""))
+        full_item = QTableWidgetItem("Full Outing")
+        full_item.setForeground(QColor("#555"))
+        self.lap_table.setItem(all_row, 2, full_item)
 
         for lap in laps:
             row = self.lap_table.rowCount()
             self.lap_table.insertRow(row)
             self.lap_table.setRowHeight(row, 28)
 
-            lap_item = QTableWidgetItem(str(lap["lap_number"]))
+            is_outlap = lap["lap_number"] == 0
+            display_text = "Out" if is_outlap else str(lap["lap_number"])
+            lap_item = QTableWidgetItem(display_text)
             lap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            lap_item.setData(Qt.ItemDataRole.UserRole, lap["lap_number"])
 
             mins = int(lap["lap_time"] // 60)
             secs = lap["lap_time"] % 60
@@ -334,12 +546,21 @@ class OutingForm(QWidget):
             time_item = QTableWidgetItem(time_str)
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            badge_item = QTableWidgetItem("FASTEST" if lap["is_fastest"] else "")
+            if is_outlap:
+                badge_text = "OUT LAP"
+            elif lap["is_fastest"]:
+                badge_text = "FASTEST"
+            else:
+                badge_text = ""
+            badge_item = QTableWidgetItem(badge_text)
             badge_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            if lap["is_fastest"]:
+            if lap["is_fastest"] and not is_outlap:
                 for item in [lap_item, time_item, badge_item]:
-                    item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor("#C0A060"))
+                    item.setForeground(QColor("#C0A060"))
+            elif is_outlap:
+                for item in [lap_item, time_item, badge_item]:
+                    item.setForeground(QColor("#555555"))
 
             self.lap_table.setItem(row, 0, lap_item)
             self.lap_table.setItem(row, 1, time_item)
@@ -347,9 +568,33 @@ class OutingForm(QWidget):
 
         if self.lap_table.rowCount() > 0:
             header_h = self.lap_table.horizontalHeader().height()
-            total_row_h = sum(self.lap_table.rowHeight(i) for i in range(self.lap_table.rowCount()))
+            total_row_h = sum(
+                self.lap_table.rowHeight(i)
+                for i in range(self.lap_table.rowCount())
+            )
             self.lap_table.setFixedHeight(header_h + total_row_h + 4)
             self.lap_table.setVisible(True)
+
+        for row in range(self.lap_table.rowCount()):
+            badge = self.lap_table.item(row, 2)
+            if badge and badge.text() == "FASTEST":
+                self.lap_table.selectRow(row)
+                fastest_num = self.lap_table.item(row, 0).data(
+                    Qt.ItemDataRole.UserRole
+                )
+                self._update_plots(fastest_num)
+                break
+        
+        if self.lap_table.rowCount() > 0:
+            header_h = self.lap_table.horizontalHeader().height()
+            total_row_h = sum(
+                self.lap_table.rowHeight(i)
+                for i in range(self.lap_table.rowCount())
+            )
+            self.lap_table.setFixedHeight(header_h + total_row_h + 4)
+            self.lap_table.setVisible(True)
+            self.exclude_inout_btn.setVisible(True)
+
 
     def _build_setup_section(self, prefix="setup"):
         section = QWidget()

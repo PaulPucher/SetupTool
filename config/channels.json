@@ -100,5 +100,13 @@
     "corner_speed_thresholds": {
         "low_max": 80,
         "medium_max": 150
+    },
+    "corner_detection": {
+        "steering_entry_threshold_deg": 25,
+        "steering_exit_threshold_deg": 15,
+        "min_corner_duration_s": 0.8,
+        "smoothing_window_samples": 10,
+        "lateral_g_apex_threshold": 0.3,
+        "min_apex_speed_drop_kmh": 10
     }
 }
