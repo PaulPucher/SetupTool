@@ -1,0 +1,104 @@
+{
+    "channels": {
+        "ecu_speed": {
+            "label": "Speed",
+            "unit": "km/h",
+            "range": [0, 350],
+            "required": true
+        },
+        "lap_number": {
+            "label": "Lap Number",
+            "unit": "",
+            "range": [0, 999],
+            "required": true
+        },
+        "lap_time": {
+            "label": "Lap Time",
+            "unit": "s",
+            "range": [0, 600],
+            "required": false
+        },
+        "lap_distance": {
+            "label": "Lap Distance",
+            "unit": "ft",
+            "range": [0, 70000],
+            "required": false
+        },
+        "ecu_aps": {
+            "label": "Throttle",
+            "unit": "%",
+            "range": [0, 100],
+            "required": false
+        },
+        "log_pbrake_f": {
+            "label": "Brake Pressure Front",
+            "unit": "bar",
+            "range": [0, 200],
+            "required": false
+        },
+        "log_pbrake_r": {
+            "label": "Brake Pressure Rear",
+            "unit": "bar",
+            "range": [0, 200],
+            "required": false
+        },
+        "log_asteer": {
+            "label": "Steering Angle",
+            "unit": "deg",
+            "range": [-720, 720],
+            "required": false
+        },
+        "ecu_nmot": {
+            "label": "RPM",
+            "unit": "rpm",
+            "range": [0, 10000],
+            "required": false
+        },
+        "ecu_gear": {
+            "label": "Gear",
+            "unit": "",
+            "range": [0, 7],
+            "required": false
+        },
+        "log_acc_x": {
+            "label": "Longitudinal G",
+            "unit": "g",
+            "range": [-5, 5],
+            "required": false
+        },
+        "log_acc_y": {
+            "label": "Lateral G",
+            "unit": "g",
+            "range": [-5, 5],
+            "required": false
+        },
+        "log_rideheight_fl": {
+            "label": "Ride Height FL",
+            "unit": "mm",
+            "range": [0, 150],
+            "required": false
+        },
+        "log_rideheight_fr": {
+            "label": "Ride Height FR",
+            "unit": "mm",
+            "range": [0, 150],
+            "required": false
+        },
+        "log_rideheight_rl": {
+            "label": "Ride Height RL",
+            "unit": "mm",
+            "range": [0, 150],
+            "required": false
+        },
+        "log_rideheight_rr": {
+            "label": "Ride Height RR",
+            "unit": "mm",
+            "range": [0, 150],
+            "required": false
+        }
+    },
+    "corner_speed_thresholds": {
+        "low_max": 80,
+        "medium_max": 150
+    }
+}

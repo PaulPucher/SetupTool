@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QComboBox, QTextEdit,
     QDateTimeEdit, QDoubleSpinBox,
     QGroupBox, QFrame, QSpinBox,
-    QTableWidget, QCheckBox,
+    QTableWidget, QTableWidgetItem, QCheckBox,
     QHeaderView, QAbstractSpinBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QDateTime
@@ -33,6 +33,7 @@ class OutingForm(QWidget):
         self.setdown_inputs = {}
         self.feedback_map_path = None
         self.corner_rows = []
+        self.parsed_data = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -192,16 +193,113 @@ class OutingForm(QWidget):
         layout.setSpacing(10)
         layout.addWidget(self._section_label("Data"))
 
+        btn_row = QWidget()
+        btn_layout = QHBoxLayout(btn_row)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(10)
+
         btn_load = QPushButton("Load CSV")
         btn_load.setFixedWidth(120)
+        btn_load.clicked.connect(self._load_csv)
 
-        placeholder = QLabel("No file loaded")
-        placeholder.setStyleSheet("color: #555; font-size: 12px;")
+        self.csv_status_label = QLabel("No file loaded")
+        self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
-        layout.addWidget(btn_load)
-        layout.addWidget(placeholder)
+        btn_layout.addWidget(btn_load)
+        btn_layout.addWidget(self.csv_status_label)
+        btn_layout.addStretch()
+        layout.addWidget(btn_row)
+
+        self.lap_table = QTableWidget()
+        self.lap_table.setColumnCount(3)
+        self.lap_table.setHorizontalHeaderLabels(["Lap", "Lap Time", ""])
+        self.lap_table.verticalHeader().setVisible(False)
+        self.lap_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.lap_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.lap_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.lap_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.lap_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.lap_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.lap_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.lap_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.lap_table.setColumnWidth(0, 50)
+        self.lap_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.lap_table.setColumnWidth(1, 100)
+        self.lap_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.lap_table.setStyleSheet("""
+            QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
+            QTableWidget::item { padding: 4px; border-bottom: 1px solid #1e1e1e; color: #d0d0d0; }
+            QTableWidget::item:selected { background-color: #252525; color: #C0A060; }
+            QHeaderView::section { background-color: #1a1a1a; color: #555; font-size: 10px;
+                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }
+        """)
+        self.lap_table.setVisible(False)
+        layout.addWidget(self.lap_table)
 
         return section
+
+    def _load_csv(self):
+        from PyQt6.QtWidgets import QFileDialog
+        from modules.csv_parser import parse_csv, get_lap_summary, get_available_channels
+        import os
+
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load Cosworth CSV", "", "CSV Files (*.csv *.CSV);;All Files (*)"
+        )
+        if not path:
+            return
+
+        try:
+            self.parsed_data = parse_csv(path)
+        except Exception as e:
+            self.csv_status_label.setText(f"Error loading file: {e}")
+            self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
+            return
+
+        filename = os.path.basename(path)
+        laps = get_lap_summary(self.parsed_data)
+        available = get_available_channels(self.parsed_data)
+
+        self.csv_status_label.setText(
+            f"{filename} — {len(laps)} laps, {len(available)} channels"
+        )
+        self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
+
+        self._populate_lap_table(laps)
+
+    def _populate_lap_table(self, laps):
+        self.lap_table.setRowCount(0)
+
+        for lap in laps:
+            row = self.lap_table.rowCount()
+            self.lap_table.insertRow(row)
+            self.lap_table.setRowHeight(row, 28)
+
+            lap_item = QTableWidgetItem(str(lap["lap_number"]))
+            lap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            mins = int(lap["lap_time"] // 60)
+            secs = lap["lap_time"] % 60
+            time_str = f"{mins}:{secs:06.3f}"
+            time_item = QTableWidgetItem(time_str)
+            time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            badge_item = QTableWidgetItem("FASTEST" if lap["is_fastest"] else "")
+            badge_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            if lap["is_fastest"]:
+                for item in [lap_item, time_item, badge_item]:
+                    item.setForeground(__import__('PyQt6.QtGui', fromlist=['QColor']).QColor("#C0A060"))
+
+            self.lap_table.setItem(row, 0, lap_item)
+            self.lap_table.setItem(row, 1, time_item)
+            self.lap_table.setItem(row, 2, badge_item)
+
+        if self.lap_table.rowCount() > 0:
+            header_h = self.lap_table.horizontalHeader().height()
+            total_row_h = sum(self.lap_table.rowHeight(i) for i in range(self.lap_table.rowCount()))
+            self.lap_table.setFixedHeight(header_h + total_row_h + 4)
+            self.lap_table.setVisible(True)
 
     def _build_setup_section(self, prefix="setup"):
         section = QWidget()
@@ -690,18 +788,36 @@ class OutingForm(QWidget):
             self._load_inputs(self.setdown_inputs, self._collect_setup_data())
 
     def _print_sheet(self, sheet_type):
-        from PyQt6.QtWidgets import QFileDialog
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
         from core.pdf_export import generate_setup_pdf
+        import os
 
         label = "Setup" if sheet_type == "setup" else "Setdown"
         default_name = f"{self.weekend.track}_Outing{self.outing.number if self.outing else 'new'}_{self.session_type_combo.currentText()}_{label}.pdf"
 
         path, _ = QFileDialog.getSaveFileName(
-            self, f"Save {label} PDF", default_name, "PDF Files (*.pdf)"
+            self, f"Save {label} PDF", default_name, "PDF Files (*.pdf)",
+            options=QFileDialog.Option.DontConfirmOverwrite
         )
 
         if not path:
             return
+
+        if not path.endswith(".pdf"):
+            path += ".pdf"
+
+        if os.path.exists(path):
+            reply = QMessageBox.question(
+                self, "File exists",
+                f"{os.path.basename(path)} already exists. Do you want to replace it?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.No:
+                base = path[:-4]
+                counter = 2
+                while os.path.exists(f"{base}_{counter}.pdf"):
+                    counter += 1
+                path = f"{base}_{counter}.pdf"
 
         class TempOuting:
             pass
@@ -714,7 +830,13 @@ class OutingForm(QWidget):
         temp.session_type = self.session_type_combo.currentText()
         temp.driver_name = self.driver_combo.currentText()
 
-        generate_setup_pdf(temp, self.weekend, path, sheet_type=label)
+        try:
+            generate_setup_pdf(temp, self.weekend, path, sheet_type=label)
+        except PermissionError:
+            QMessageBox.warning(
+                self, "Save failed",
+                f"Could not save {os.path.basename(path)}.\nThe file may be open in another program."
+            )
 
     def _build_feedback_section(self):
         section = QWidget()

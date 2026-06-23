@@ -1,0 +1,2622 @@
+ACT101_Blockierung_aufgetreten
+ACT101_Ist_Position_Aktuator[Unit_None]
+ACT101_Notlauf_aufgetreten
+ACT101_Reset
+ACT101_diag
+ACT102_Blockierung_aufgetreten
+ACT102_Ist_Position_Aktuator[Unit_None]
+ACT102_Notlauf_aufgetreten
+ACT102_Reset
+ACT102_diag
+ACT103_Blockierung_aufgetreten
+ACT103_Ist_Position_Aktuator[Unit_None]
+ACT103_Notlauf_aufgetreten
+ACT103_Reset
+ACT103_diag
+ACT104_Blockierung_aufgetreten
+ACT104_Ist_Position_Aktuator[Unit_None]
+ACT104_Notlauf_aufgetreten
+ACT104_Reset
+ACT104_diag
+ACT105_Blockierung_aufgetreten
+ACT105_Ist_Position_Aktuator[Unit_None]
+ACT105_Notlauf_aufgetreten
+ACT105_Reset
+ACT105_diag
+ACT106_Blockierung_aufgetreten
+ACT106_Ist_Position_Aktuator[Unit_None]
+ACT106_Notlauf_aufgetreten
+ACT106_Reset
+ACT106_diag
+ACT107_Blockierung_aufgetreten
+ACT107_Ist_Position_Aktuator[Unit_None]
+ACT107_Notlauf_aufgetreten
+ACT107_Reset
+ACT107_diag
+ACT108_Blockierung_aufgetreten
+ACT108_Ist_Position_Aktuator[Unit_None]
+ACT108_Notlauf_aufgetreten
+ACT108_Reset
+ACT108_diag
+ADR2_SW_Version
+ADR2_SW_version
+ADR2_SerialNum
+ADR2_acc_x[G]
+ADR2_acc_y[G]
+ADR2_acc_z[G]
+ADR2_accident_severity.user type
+ADR2_serial_number
+ADR2_status
+ADR_Accident_Severity_Index
+ADR_Status_AccStored
+ADR_Status_Logging
+ADR_Status_NewAccident
+ADR_Status_RecCAN
+ADR_Status_RecConfig
+Acceleration X[G]
+Acceleration Y[G]
+Acceleration Z[G]
+BDM_UBattVorgabe[V]
+BDM_current[A]
+BDM_temperature[�C]
+BDM_voltage[V]
+BLOWER_DIAG_FLAG1
+BLOWER_DIAG_FLAG2
+BLOWER_IBATT Fields
+BLOWER_IBATT[A]
+BLOWER_ROTATION_SPEED Fields
+BLOWER_ROTATION_SPEED[rpm]
+BLOWER_ResponseError
+BLOWER_STATUS_MOTOR
+BLOWER_SUPPLIER
+BLOWER_TEMPERATURE Fields
+BLOWER_TEMPERATURE[�C]
+BLOWER_TORQUE Fields
+BLOWER_TORQUE.torque[Nm]
+BLOWER_UBATT Fields
+BLOWER_UBATT[V]
+BLOWER_UMOTOR Fields
+BLOWER_UMOTOR.voltage[V]
+BZE_SOC_K20
+Battery Voltage[V]
+Beacons Last Value Received[Value]
+Box Temperature[�F]
+CAS_Radar_State Timeout
+CAS_camera_state Timeout
+CAS_camera_state2 Timeout
+CAS_packMon1
+CAS_packMon2
+CAS_state Timeout
+CAS_state2 Timeout
+CAS_state3 Timeout
+CAS_state4 Timeout
+CCU_Fehler_CAN
+CCU_Fehler_HW
+CCU_Fehler_Temperatur
+CCU_Fehler_Unterspannung
+CCU_Fehler_mechanisch
+CCU_HW_Version
+CCU_HYB_01_BZ
+CCU_HYB_01_CHK
+CCU_HYB_02_BZ
+CCU_HYB_02_CHK
+CCU_IstDruck[bar]
+CCU_IstPosition[�]
+CCU_IstWinkelGeschw[rpm]
+CCU_Istmodus
+CCU_Medium
+CCU_SW_Version
+CCU_Seriennummer
+CCU_SleepInd
+CCU_Strom_momentbildend[A]
+CCU_Teilenummer
+CCU_Warnung_Temperatur
+CDU 10.3 Alarm LEDs LED 1
+CDU 10.3 Alarm LEDs LED 2
+CDU 10.3 Alarm LEDs LED 3
+CDU 10.3 Alarm LEDs LED 4
+CDU 10.3 Alarm LEDs LED 5
+CDU 10.3 Alarm LEDs LED 6
+CDU 10.3 Alarm LEDs LED 7
+CDU 10.3 Alarm LEDs LED 8
+CDU 10.3 CPU Temperature[�C]
+CDU 10.3 Device Present
+CDU 10.3 Display Version Build
+CDU 10.3 Display Version Major
+CDU 10.3 Display Version Minor
+CDU 10.3 Display Version Update
+CDU 10.3 Displayed Page
+CDU 10.3 Free Cpu1[%]
+CDU 10.3 Free Cpu2[%]
+CDU 10.3 Module Temperature[�C]
+CDU 10.3 Overlays 1-31
+CDU 10.3 Overlays 32-62
+CDU 10.3 Serial Number
+CDU 10.3 Total Memory[MB]
+CDU 10.3 Used Memory[MB]
+CDU 10.3 Version Build
+CDU 10.3 Version Major
+CDU 10.3 Version Minor
+CDU 10.3 Version Update
+Corrected Distance[m]
+Corrected Speed[kph]
+Digital 01.user type
+Digital 02.user type
+Digital 03.user type
+Digital 04.user type
+Digital 06
+ECDS_B_OT_Err
+ECDS_B_OT_Warn
+ECDS_I_CAP[A]
+ECDS_N_CAP_OV_Err
+ECDS_N_CloseValveFail
+ECDS_N_CloseValvePass
+ECDS_N_DB_Major
+ECDS_N_DB_Minor
+ECDS_N_HW_Ver
+ECDS_N_MsgCounter
+ECDS_N_OpenClutchFail
+ECDS_N_OpenClutchPass
+ECDS_N_OpenValveFail
+ECDS_N_OpenValvePass
+ECDS_N_SM_State
+ECDS_N_SW_Mstr_Major
+ECDS_N_SW_Mstr_Minor
+ECDS_N_SW_Projekt
+ECDS_N_SW_Slv_Major
+ECDS_N_SW_Slv_Minor
+ECDS_N_SerialNr
+ECDS_N_TDC_Switch
+ECDS_N_TestState
+ECDS_N_UC_OverVoltage
+ECDS_R_ValvePos
+ECDS_T_BOOST[�C]
+ECDS_T_CAP1[�C]
+ECDS_T_CAP2[�C]
+ECDS_T_DCDC[�C]
+ECDS_V_CAP[V]
+ECDS_V_KL15[V]
+ECDS_V_KL30[V]
+ECDS_V_TDS_H[V]
+ECDS_V_TDS_L[V]
+ECDS_V_UC1[V]
+ECDS_V_UC2[V]
+ECDS_V_UC3[V]
+ECDS_V_UC4[V]
+ECDS_V_UC5[V]
+ECDS_V_UC6[V]
+ECDS_t_TimeToShutdown[s]
+ECDS_t_UC_OverTemp[s]
+E_ECU_001 Stored
+E_ECU_001 Triggering
+E_ECU_002 Stored
+E_ECU_002 Triggering
+E_ECU_003 Stored
+E_ECU_003 Triggering
+E_ECU_004 Stored
+E_ECU_004 Triggering
+E_ECU_005 Stored
+E_ECU_005 Triggering
+E_ECU_006 Stored
+E_ECU_006 Triggering
+E_ECU_007 Stored
+E_ECU_007 Triggering
+E_ECU_008 Stored
+E_ECU_008 Triggering
+E_ECU_009 Stored
+E_ECU_009 Triggering
+E_ECU_010 Stored
+E_ECU_010 Triggering
+E_ECU_011 Stored
+E_ECU_011 Triggering
+E_ECU_012 Stored
+E_ECU_012 Triggering
+E_ECU_013 Stored
+E_ECU_013 Triggering
+E_ECU_014 Stored
+E_ECU_014 Triggering
+E_ECU_015 Stored
+E_ECU_015 Triggering
+E_ECU_016 Stored
+E_ECU_016 Triggering
+E_ECU_017 Stored
+E_ECU_017 Triggering
+E_ECU_018 Stored
+E_ECU_018 Triggering
+E_ECU_019 Stored
+E_ECU_019 Triggering
+E_ECU_020 Stored
+E_ECU_020 Triggering
+E_ECU_021 Stored
+E_ECU_021 Triggering
+E_ECU_022 Stored
+E_ECU_022 Triggering
+E_ECU_023 Stored
+E_ECU_023 Triggering
+E_ECU_024 Stored
+E_ECU_024 Triggering
+E_ECU_025 Stored
+E_ECU_025 Triggering
+E_ECU_026 Stored
+E_ECU_026 Triggering
+E_ECU_027 Stored
+E_ECU_027 Triggering
+E_ECU_028 Stored
+E_ECU_028 Triggering
+E_ECU_029 Stored
+E_ECU_029 Triggering
+E_ECU_030 Stored
+E_ECU_030 Triggering
+E_ECU_031 Stored
+E_ECU_031 Triggering
+E_ECU_032 Stored
+E_ECU_032 Triggering
+E_ECU_033 Stored
+E_ECU_033 Triggering
+E_ECU_034 Stored
+E_ECU_034 Triggering
+E_ECU_035 Stored
+E_ECU_035 Triggering
+E_ECU_036 Stored
+E_ECU_036 Triggering
+E_ECU_037 Stored
+E_ECU_037 Triggering
+E_ECU_038 Stored
+E_ECU_038 Triggering
+E_ECU_040 Stored
+E_ECU_040 Triggering
+E_ECU_041 Stored
+E_ECU_041 Triggering
+E_ECU_042 Stored
+E_ECU_042 Triggering
+E_ECU_043 Stored
+E_ECU_043 Triggering
+E_ECU_044 Stored
+E_ECU_044 Triggering
+E_ECU_045 Stored
+E_ECU_045 Triggering
+E_ECU_046 Stored
+E_ECU_046 Triggering
+E_ECU_047 Stored
+E_ECU_047 Triggering
+E_ECU_049 Stored
+E_ECU_049 Triggering
+E_ECU_050 Stored
+E_ECU_050 Triggering
+E_ECU_051 Stored
+E_ECU_051 Triggering
+E_ECU_052 Stored
+E_ECU_052 Triggering
+E_ECU_053 Stored
+E_ECU_053 Triggering
+E_ECU_054 Stored
+E_ECU_054 Triggering
+E_ECU_055 Stored
+E_ECU_055 Triggering
+E_ECU_056 Stored
+E_ECU_056 Triggering
+E_ECU_057 Stored
+E_ECU_057 Triggering
+E_ECU_058 Stored
+E_ECU_058 Triggering
+E_ECU_059 Stored
+E_ECU_059 Triggering
+E_ECU_061 Stored
+E_ECU_061 Triggering
+E_ECU_062 Stored
+E_ECU_062 Triggering
+E_ECU_064 Stored
+E_ECU_064 Triggering
+E_ECU_065 Stored
+E_ECU_065 Triggering
+E_ECU_066 Stored
+E_ECU_066 Triggering
+E_ECU_067 Stored
+E_ECU_067 Triggering
+E_ECU_068 Stored
+E_ECU_068 Triggering
+E_ECU_069 Stored
+E_ECU_069 Triggering
+E_ECU_070 Stored
+E_ECU_070 Triggering
+E_ECU_071 Stored
+E_ECU_071 Triggering
+E_ECU_072 Stored
+E_ECU_072 Triggering
+E_ECU_073 Stored
+E_ECU_073 Triggering
+E_ECU_074 Stored
+E_ECU_074 Triggering
+E_ECU_075 Stored
+E_ECU_075 Triggering
+E_ECU_076 Stored
+E_ECU_076 Triggering
+E_ECU_077 Stored
+E_ECU_077 Triggering
+E_ECU_078 Stored
+E_ECU_078 Triggering
+E_ECU_079 Stored
+E_ECU_079 Triggering
+E_ECU_080 Stored
+E_ECU_080 Triggering
+E_ECU_081 Stored
+E_ECU_081 Triggering
+E_ECU_082 Stored
+E_ECU_082 Triggering
+E_ECU_083 Stored
+E_ECU_083 Triggering
+E_ECU_084 Stored
+E_ECU_084 Triggering
+Elapsed Lap Time[s]
+Elapsed Time[s]
+Engine
+Erregerstrombeg_GEN[A]
+Error Code Trigger Count
+EtherCAT Data Errors[counts]
+EtherCAT Time High
+EtherCAT Time Low[nS]
+Free CPU[%]
+GEN_Auslastungsgrad_2[%]
+GEN_Erregerstrom_2[A]
+GEV_Errors
+GEV_exposure
+GEV_frameDT[us]
+GEV_sessionState
+GEV_streamState
+GEV_temperature[degC]
+Gear
+Global Alarm
+Global Time[s]
+IMSA_CANDelta_Error
+IMSA_CANEcho_Error
+IMSA_CANFoxtrot_Error
+IMSA_CANGolf_Error
+IMSA_DriverID
+IMSA_GPS_NSat
+IMSA_GPS_NStatus
+IMSA_GPS_aLat[�]
+IMSA_GPS_aLong[�]
+IMSA_GPS_rBestCNO1[dBHz]
+IMSA_GPS_rBestCNO2[dBHz]
+IMSA_GPS_rBestCNO3[dBHz]
+IMSA_GPS_rBestCNO4[dBHz]
+IMSA_GPS_tUTC_Hour[s]
+IMSA_GPS_tUTC_Min[s]
+IMSA_GPS_tUTC_Ms[s]
+IMSA_GPS_tUTC_Sec[s]
+IMSA_GPS_vSpeed[kph]
+IMSA_GPS_xAlt[m]
+IMSA_Logger_Status
+IMSA_MDriveshaftRLFilt[Nm]
+IMSA_MDriveshaftRRFilt[Nm]
+IMSA_MPUOffsetUsedDFL[Nm]
+IMSA_MPUOffsetUsedDFR[Nm]
+IMSA_MPUOffsetUsedDRL[Nm]
+IMSA_MPUOffsetUsedDRR[Nm]
+IMSA_NBeacon
+IMSA_NBox
+IMSA_NCalcStatus
+IMSA_NDashLumSensor
+IMSA_NDiag
+IMSA_NSCMOffsetDiag
+IMSA_RefuelLapNumber[Laps]
+IMSA_RefuelSwitch
+IMSA_TCockpit[�C]
+IMSA_TIntake1[�C]
+IMSA_TIntake2[�C]
+IMSA_TLogger[�C]
+IMSA_TManifold1[�C]
+IMSA_TManifold2[�C]
+IMSA_USB_Status
+IMSA_VLoggerSupply[V]
+IMSA_b_FFMService
+IMSA_class_position
+IMSA_gAccel_X[G]
+IMSA_gAccel_Y[G]
+IMSA_gAccel_Z[G]
+IMSA_lapnum
+IMSA_mFFMLastStint[kg]
+IMSA_nDriveshaftRLFilt[rpm]
+IMSA_nDriveshaftRRFilt[rpm]
+IMSA_nEngine2[rpm]
+IMSA_nEngine[rpm]
+IMSA_pAirbox1[bar]
+IMSA_pAirbox2[bar]
+IMSA_pAtmospheric[bar]
+IMSA_pFuelFFM[bar]
+IMSA_pRestrictor1[bar]
+IMSA_pRestrictor2[bar]
+IMSA_pTire_FL_PrevLapAve
+IMSA_pTire_FL_Violation
+IMSA_pTire_FR_PrevLapAve
+IMSA_pTire_FR_Violation
+IMSA_pTire_RL_PrevLapAve
+IMSA_pTire_RL_Violation
+IMSA_pTire_RR_PrevLapAve
+IMSA_pTire_RR_Violation
+IMSA_rLambda1[lbd]
+IMSA_rLambda2[lbd]
+IMSA_rTelem_RSSI[dBm]
+IMSA_rainlight
+IMSA_tRefuelIMSA[s]
+IMSA_tRefuelRaceIMSA[s]
+IMSA_tRefuel[s]
+IMSA_track_condition
+Input 01 Voltage[V]
+Input 02 Voltage[V]
+Input 03 Voltage[V]
+Input 04 Voltage[V]
+Input 05 Voltage[V]
+Input 06 Voltage[V]
+Input 07 Voltage[V]
+Input 08 Voltage[V]
+Input 09 Voltage[V]
+Input 10 Voltage[V]
+Input 11 Voltage[V]
+Input 12 Voltage[V]
+Input 13 Voltage[V]
+Input 14 Voltage[V]
+Input 15 Voltage[V]
+Input 16 Voltage[V]
+Input 17 Voltage[V]
+Input 18 Voltage[V]
+Input 19 Voltage[V]
+Input 20 Voltage[V]
+Input 21 Voltage[V]
+Input 22 Voltage[V]
+Input 23 Voltage[V]
+Input 29 Voltage[V]
+Input 30 Voltage[V]
+Input 31 Voltage[V]
+Input 32 Voltage[V]
+Input 33 Voltage[V]
+Input 39 Voltage[V]
+Input 40 Voltage[V]
+LED_daylight_fl_dwn
+LED_daylight_fl_top
+LED_daylight_fr_dwn
+LED_daylight_fr_top
+LED_dim_mainlight_fl_dwn[%]
+LED_dim_mainlight_fl_top[%]
+LED_dim_mainlight_fr_dwn[%]
+LED_dim_mainlight_fr_top[%]
+LED_fan_fl_dwn
+LED_fan_fl_top
+LED_fan_fr_dwn
+LED_fan_fr_top
+LED_frontbeam_fl_dwn
+LED_frontbeam_fl_top
+LED_frontbeam_fr_dwn
+LED_frontbeam_fr_top
+LED_idlight_fl_dwn
+LED_idlight_fl_top
+LED_idlight_fr_dwn
+LED_idlight_fr_top
+LED_indicator_fl_dwn
+LED_indicator_fl_top
+LED_indicator_fr_dwn
+LED_indicator_fr_top
+LED_ledcheck_fl_dwn
+LED_ledcheck_fl_top
+LED_ledcheck_fr_dwn
+LED_ledcheck_fr_top
+LED_pencilbeam_fl_dwn[%]
+LED_pencilbeam_fl_top[%]
+LED_pencilbeam_fr_dwn[%]
+LED_pencilbeam_fr_top[%]
+LED_regwhite_fl_dwn
+LED_regwhite_fl_top
+LED_regwhite_fr_dwn
+LED_regwhite_fr_top
+LED_runtime_fl_dwn[h]
+LED_sidebeam_fl_dwn
+LED_sidebeam_fl_top
+LED_sidebeam_fr_dwn
+LED_sidebeam_fr_top
+LED_status_fl_dwn
+LED_status_fl_top
+LED_status_fr_dwn
+LED_status_fr_top
+LED_sw_fl_dwn[-]
+LED_sw_fl_dwn_diag
+LED_sw_fl_top[-]
+LED_sw_fl_top_diag
+LED_sw_fr_dwn[-]
+LED_sw_fr_dwn_diag
+LED_sw_fr_top[-]
+LED_sw_fr_top_diag
+LED_sw_target
+LKL_Bewegungsstatus
+LKL_Drehrichtung
+LKL_Init_Referenzierung_nio
+LKL_Init_ok
+LKL_Ist_Moment_Niedrig_Hoch
+LKL_Ist_Pos
+LKL_Mechanik_blockiert
+LKL_Mechanik_dreht_frei
+LKL_PCB_temp[�C]
+LKL_Referenzierbereich
+LKL_Referenzierung_ok
+LKL_ResponseError
+LKL_UBatt[V]
+LKL_Ueberspannung
+LKL_Uebertemperatur
+LKL_Unterspannung
+LKL_interner_Fehler
+LKLe_Adresse
+LKLe_Drehrichtung_soll
+LKLe_Init
+LKLe_Referenzierung_Anf
+LKLe_Schalter_geschlossen
+LKLe_Soll_Moment_Niedrig_Hoch
+LKLe_Soll_Pos
+LKLe_kein_reversieren
+Lap Distance[m]
+Logger Status
+MRR_EgoVehSpeed[km/h]
+MRR_EgoYawRate[deg/s]
+MRR_Errors
+MRR_RaceCar0_dx[ft]
+MRR_RaceCar0_vx[mph]
+MRR_RaceCar1_dx[ft]
+MRR_RaceCar1_vx[mph]
+MRR_RaceCar2_dx[ft]
+MRR_RaceCar2_vx[mph]
+MRR_RaceCar3_dx[ft]
+MRR_RaceCar3_vx[mph]
+MRR_Status_temperature[degC]
+MRR_Status_vehSpeedValid
+Map Position D[m]
+Map Position X[m]
+Map Position Y[m]
+Map Position Z[m]
+Moving
+NFFMDensitySlopeF1[kg/m^3/�C]
+NFFMSensorSerialF1
+NFFMSupplierCalibrationCountF1
+NMEA RX RMC Course Over Ground[�]
+NMEA RX RMC Magnetic Var[�]
+NMEA RX RMC Mode
+NMEA RX RMC Speed Over Ground[kph]
+NMEA RX RMC UTC Time[s]
+NMEA RX VTG Course Mag[�]
+NMEA RX VTG Speed Ground[kph]
+Outing Number
+Outing Time[s]
+Overruns 100Hz[counts]
+Overruns 10Hz[counts]
+Overruns 1Hz[counts]
+Overruns 1kHz[counts]
+Overruns 20Hz[counts]
+Overruns 2Hz[counts]
+Overruns 500Hz[counts]
+Overruns 50Hz[counts]
+Overruns 5Hz[counts]
+RPM[rpm]
+Remote Bad Packets[Packets]
+Remote Disk Write Failures
+Remote Disk Writes
+Remote Ignored Packets[Packets]
+Remote Missing Packets[Packets]
+Remote Packet Retries
+Remote Packets Received[Packets]
+Remote Status
+Remote USB Driver Resets
+SHL_li1_error
+SHL_li2_error
+SHL_re1_error
+SHL_re2_error
+Sensor Power 01 Voltage[V]
+Sensor Power 02 Voltage[V]
+Sensor Power 03 Voltage[V]
+Sensor Power 04 Voltage[V]
+Sensor Power 05 Voltage[V]
+Sensor Power 06 Voltage[V]
+Sensor Power 07 Voltage[V]
+Sensor Power 08 Voltage[V]
+Sensor Power 09 Voltage[V]
+Sensor Power 10 Voltage[V]
+System Time High[sec]
+System Time Low[frac Sec]
+TFFMReferenceF1[�C]
+TO_ABS
+TO_ABS_00
+TO_ABS_00x
+TO_ABS_01
+TO_ABS_02
+TO_ABS_03
+TO_ABS_04
+TO_ABS_06
+TO_ABS_10
+TO_ABS_11
+TO_ABS_12
+TO_ABS_13
+TO_ABS_30
+TO_ABS_31
+TO_ABS_52
+TO_ACC
+TO_ACC_74
+TO_ACC_78
+TO_ACC_7C
+TO_ADR2_01
+TO_ADR2_02
+TO_CAN1
+TO_CAN2
+TO_CAN3
+TO_CAN4
+TO_CAN5
+TO_CAN6
+TO_CAN7
+TO_CB_Info
+TO_CB_Status
+TO_CCU
+TO_CCU_HYB_01
+TO_CCU_HYB_02
+TO_CP
+TO_CP_Info
+TO_CP_Status
+TO_ECDS
+TO_ECDS_DIAG1
+TO_ECDS_DIAG2
+TO_ECDS_INFO
+TO_ECDS_LKLe_01
+TO_ECDS_LKLs_01
+TO_ECDS_STATISTIC
+TO_ECDS_STATUS
+TO_ECDS_VLV
+TO_ECU
+TO_ECU_TX_GEAR
+TO_ECU_TX_SYSTEM
+TO_EGT_ERROR_TIME
+TO_EGT_ERROR_VALUE
+TO_EGT_Mot_Meas_1
+TO_EGT_System_Meas_1
+TO_EGT_System_Meas_2
+TO_EGT_System_Meas_3
+TO_EPHS
+TO_EPHS_01
+TO_EPHS_02
+TO_EPHS_03
+TO_ESW
+TO_FFM1_Main
+TO_FFM1_Multiplex
+TO_FUEL
+TO_FUEL_01
+TO_FUEL_02
+TO_FromIMSALogger_250_20ms
+TO_FromIMSALogger_251_20ms
+TO_FromIMSALogger_252_50ms
+TO_FromIMSALogger_253_200ms
+TO_FromIMSALogger_254_100ms
+TO_FromIMSALogger_255_100ms
+TO_FromIMSALogger_257_20ms
+TO_FromIMSALogger_258_20ms
+TO_FromIMSALogger_259_50ms
+TO_FromIMSALogger_25A_1000ms
+TO_FromIMSALogger_25B_20ms
+TO_FromIMSALogger_25C_500ms
+TO_FromIMSALogger_25F_20ms
+TO_FromIMSALogger_260_10000ms
+TO_FromIMSALogger_261_1000ms
+TO_FromIMSALogger_262_100ms
+TO_HSW_L
+TO_HSW_R
+TO_LED_FL_DWN_01
+TO_LED_FL_DWN_02
+TO_LED_FL_TOP_01
+TO_LED_FL_TOP_02
+TO_LED_FR_DWN_01
+TO_LED_FR_DWN_02
+TO_LED_FR_TOP_01
+TO_LED_FR_TOP_02
+TO_MS6_00
+TO_MS6_01
+TO_MS6_03
+TO_MS6_04
+TO_MS6_05
+TO_MS6_06
+TO_MS6_07
+TO_MS6_08
+TO_MS6_09
+TO_MS6_11
+TO_MS6_12
+TO_MS6_13
+TO_MS6_16
+TO_MS6_17
+TO_MS6_19
+TO_MS6_20
+TO_MS6_24
+TO_MS6_25
+TO_MS6_28
+TO_MS6_30
+TO_MS6_34
+TO_MS6_35
+TO_MS6_36
+TO_MS6_37
+TO_MS6_38
+TO_MS6_39
+TO_MS6_79
+TO_MS6_81
+TO_MS6_93
+TO_MS6_94
+TO_MS6_97
+TO_MS6_99
+TO_MSG_HYB_01
+TO_MSG_HYB_15
+TO_OWM_CHA
+TO_OWM_CHASSIS_BACKUP
+TO_OWM_Diag
+TO_OWM_ENG
+TO_OWM_ENGINE_BACKUP
+TO_OWM_ENG_REVISIONS
+TO_OWM_GBX
+TO_OWM_GBX_BACKUP
+TO_OWM_GBX_REVISIONS
+TO_PCU
+TO_PCU_00
+TO_PCU_01
+TO_PCU_02
+TO_PCU_02_CAN1
+TO_PCU_03
+TO_PCU_04
+TO_PCU_05
+TO_PCU_06
+TO_PCU_07
+TO_PCU_08
+TO_PCU_09
+TO_PCU_10
+TO_PCU_11
+TO_PCU_12
+TO_PCU_13
+TO_PCU_14
+TO_PCU_15
+TO_PCU_16
+TO_PCU_17
+TO_PCU_18
+TO_PCU_19
+TO_PCU_20
+TO_PCU_21
+TO_PCU_22
+TO_PCU_23
+TO_PCU_24
+TO_PCU_25
+TO_PCU_26
+TO_PCU_27
+TO_PCU_28
+TO_PCU_29
+TO_PCU_30
+TO_PCU_31
+TO_PCU_CAN1
+TO_PCU_Version
+TO_PCU_to_board
+TO_PCU_to_panel
+TO_RVC_01
+TO_SMC_MirrorDiag
+TO_SMC_MirrorInfo
+TO_SMC_MirrorStatus
+TO_STA
+TO_STA_01
+TO_STW
+TO_STW_01
+TO_STW_03
+TO_TPMS_ECU_INFO_fl
+TO_TPMS_ECU_INFO_fr
+TO_TPMS_ECU_INFO_rl
+TO_TPMS_ECU_INFO_rr
+TO_TPMS_FL
+TO_TPMS_FR
+TO_TPMS_RL
+TO_TPMS_RR
+TO_TPMS_WS_DATA_fl
+TO_TPMS_WS_DATA_fr
+TO_TPMS_WS_DATA_rl
+TO_TPMS_WS_DATA_rr
+TO_TPMS_WS_INFO_fl
+TO_TPMS_WS_INFO_fr
+TO_TPMS_WS_INFO_rl
+TO_TPMS_WS_INFO_rr
+TO_VBOX_01
+TO_VBOX_02
+TO_VBOX_03
+TO_VBOX_04
+TO_VBOX_05
+TO_fuelLT
+TO_lockLTl
+TO_lockLTr
+TO_oilLT
+TO_tpms_FL_WS_IR_DATA
+TO_tpms_FR_WS_IR_DATA
+TO_tpms_RL_WS_IR_DATA
+TO_tpms_RR_WS_IR_DATA
+Team_Fuel_Used[ltr]
+Team_Fuel_Used_Stint[kg]
+Team_Fuel_Used_per_Lap[kg]
+Team_NCarState
+Team_nWheelFL[rpm]
+Team_nWheelFR[rpm]
+Team_nWheelRL[rpm]
+Team_nWheelRR[rpm]
+U_Soll_GEN[V]
+Utilization 100Hz[%]
+Utilization 10Hz[%]
+Utilization 1Hz[%]
+Utilization 1kHz[%]
+Utilization 200Hz[%]
+Utilization 20Hz[%]
+Utilization 2Hz[%]
+Utilization 500Hz[%]
+Utilization 50Hz[%]
+Utilization 5Hz[%]
+WCU_ActAngle[�]
+WCU_Act_Mot_Pos_MA[�]
+WCU_Act_Move_Dir
+WCU_Act_Wipe_Frq[Cyc/min]
+WCU_Battery_Voltage[V]
+WCU_Blocking_Sum[Vs]
+WCU_Chip_Temperature[�C]
+WCU_Com_Version[scalar value]
+WCU_Energy_State
+WCU_Err_Blocked_MA
+WCU_Err_Blocked_SL
+WCU_Err_CRC_Flt
+WCU_Err_DMC
+WCU_Err_HW_Flt_MA
+WCU_Err_HW_Flt_SL
+WCU_Err_Overload
+WCU_Err_Overtemp_MA
+WCU_Err_Overtemp_SL
+WCU_Err_Overvolt
+WCU_Err_Undervolt
+WCU_FET_Temperatur[�C]
+WCU_Function_State_1
+WCU_Function_State_2
+WCU_Gear_Temperature[�C]
+WCU_In_Wipe_Area_MA
+WCU_In_Wipe_Area_SL
+WCU_JW_Pump_Cmd_MA
+WCU_JW_Pump_Cmd_SL
+WCU_LIN_RespErr
+WCU_Load_Value[A]
+WCU_Move_Pos_Conf
+WCU_RefAngle[�]
+WCU_System_State
+WCU_VoltageOutUnlimited[V]
+WCU_VoltageOut[V]
+WCU_Wipe_Command
+WCU_Wipe_State
+abs_ABS_fault_info
+abs_Appl_Id_01[ASCII]
+abs_Appl_Id_02[ASCII]
+abs_Appl_Id_03[ASCII]
+abs_Appl_Id_04[ASCII]
+abs_Appl_Id_05[ASCII]
+abs_Appl_Id_06[ASCII]
+abs_Appl_Id_07[ASCII]
+abs_Appl_Id_08[ASCII]
+abs_Appl_Id_09[ASCII]
+abs_Appl_Id_10[ASCII]
+abs_Appl_Id_11[ASCII]
+abs_Appl_Id_12[ASCII]
+abs_Appl_Id_13[ASCII]
+abs_Appl_Id_14[ASCII]
+abs_Appl_date_01
+abs_Appl_date_02
+abs_Appl_date_03
+abs_Appl_date_04
+abs_Appl_date_05
+abs_Appl_date_06
+abs_BB_dig1[ASCII]
+abs_BB_dig2[ASCII]
+abs_BB_dig3[ASCII]
+abs_BB_dig4[ASCII]
+abs_BB_dig5[ASCII]
+abs_BB_dig6[ASCII]
+abs_BB_dig7[ASCII]
+abs_BLS
+abs_EBD_lamp
+abs_Ecu_serial
+abs_HU_date_day
+abs_HU_date_month
+abs_HU_date_year
+abs_MIL
+abs_RtaOk_Placeholder
+abs_SW_CAN_ident
+abs_SW_ver_High_lower
+abs_SW_ver_High_upper
+abs_SW_ver_Low_lower
+abs_SW_ver_Low_upper
+abs_SW_ver_Mid_lower
+abs_SW_ver_Mid_upper
+abs_Slip_FL[%]
+abs_Slip_FR[%]
+abs_Slip_RL[%]
+abs_Slip_RR[%]
+abs_WarmUpLogic_act
+abs_WhlDecel_FFL[G]
+abs_WhlDecel_FFR[G]
+abs_WhlDecel_FRL[G]
+abs_WhlDecel_FRR[G]
+abs_WhlDecel_fl[G]
+abs_WhlDecel_fr[G]
+abs_WhlDecel_rl[G]
+abs_WhlDecel_rr[G]
+abs_acc_fa[cm3]
+abs_acc_ra[cm3]
+abs_active
+abs_ax1_int.acceleration[G]
+abs_ay1_int.acceleration[G]
+abs_brk_bal_at50[psi]
+abs_brk_bal_at50_adv[psi]
+abs_brk_bal_prop[%]
+abs_brk_bal_prop_ad[%]
+abs_circ_f[m]
+abs_circ_r[m]
+abs_diag_YRS
+abs_diag_absunit
+abs_diag_fl
+abs_diag_fr
+abs_diag_fusepmp
+abs_diag_fusevalve
+abs_diag_pbrake_f
+abs_diag_pbrake_r
+abs_diag_rl
+abs_diag_rr
+abs_lamp
+abs_pbrake_f[psi]
+abs_pbrake_r[psi]
+abs_speed_fl[mph]
+abs_speed_fr[mph]
+abs_speed_rl[mph]
+abs_speed_rr[mph]
+abs_sw_ver
+abs_switch_pos
+abs_vVeh_absRef[mph]
+abs_wheelquality_fl
+abs_wheelquality_fr
+abs_wheelquality_rl
+abs_wheelquality_rr
+alarm_ABS_error
+alarm_ABS_error2
+alarm_TC
+alarm_alt_stopped
+alarm_brake_leakage
+alarm_ccu_cr
+alarm_ccu_cr2
+alarm_engine
+alarm_engine_latched
+alarm_eps
+alarm_esw
+alarm_etc
+alarm_gearbox
+alarm_gearbox_latched
+alarm_lowfuel
+alarm_lowfuel2
+alarm_noseup
+alarm_pcrank
+alarm_pfuel
+alarm_poil
+alarm_prail
+alarm_pwat
+alarm_starter
+alarm_systems
+alarm_systems_latched
+alarm_tgear
+alarm_tmot
+alarm_toil
+alarm_tpms_hard
+alarm_tpms_soft
+alarm_tyre
+alarm_tyre_latched
+alarm_ubat
+brake_balance[%]
+casm_cameraState
+casm_ovtkLeft
+casm_ovtkRight
+casm_radarState
+cb_hw_ver
+cb_sw_ver_major
+cb_sw_ver_minor
+corner_radius[m]
+corner_radius_filtered[m]
+cp_hw_ver
+cp_sw_ver
+cp_sw_ver_major
+cp_sw_ver_minor
+ecu_B_alarm_pcrank
+ecu_B_autostart_act
+ecu_B_autostart_en
+ecu_B_cc_FIAdriveoffallowed
+ecu_B_cc_accrequest
+ecu_B_cc_decrequest
+ecu_B_cc_downshiftrequired
+ecu_B_cc_eclutch_closed
+ecu_B_cc_eclutch_open
+ecu_B_cc_identrele_cltop
+ecu_B_cc_identrelease
+ecu_B_cc_identsuccess
+ecu_B_cc_killengine
+ecu_B_cc_shiftpulse_act
+ecu_B_eclutch_pad_l
+ecu_B_eclutch_pad_r
+ecu_B_gc_req_cc
+ecu_B_gc_shiftpulse_req
+ecu_B_mildiag
+ecu_B_musw_ack
+ecu_B_noseup_act[bit]
+ecu_B_noseup_enab
+ecu_B_noseup_err_dash[bit]
+ecu_B_oillamp
+ecu_B_paddn
+ecu_B_padup
+ecu_B_shift_reverse_act
+ecu_B_shreverse_denied
+ecu_B_slowzone_act
+ecu_B_speedlimit_act
+ecu_B_speedlimit_en
+ecu_B_tc_act
+ecu_B_tc_dash
+ecu_B_tc_launch
+ecu_B_tc_launch_enab
+ecu_E_paddle_down
+ecu_E_paddle_up
+ecu_E_speed_fl
+ecu_E_speed_fr
+ecu_E_speed_rl
+ecu_E_speed_rr
+ecu_FW_version
+ecu_SW_version
+ecu_a_camctrl.user type[�KW]
+ecu_a_camctrl2.user type[�KW]
+ecu_a_camctrl_out.user type[�KW]
+ecu_a_camctrl_out2.user type[�KW]
+ecu_aps[%]
+ecu_ath2[pp1]
+ecu_ath[%]
+ecu_camposnoms_in.user type[�KW]
+ecu_camposnoms_out.user type[�KW]
+ecu_cc_clutch_led
+ecu_cc_identstatus
+ecu_cc_mode
+ecu_cc_operationmode
+ecu_cc_stiffnessident[mbar/deg]
+ecu_cc_t_killengine[sec]
+ecu_cc_xclutch_p0[�]
+ecu_cc_xclutch_p1[�]
+ecu_cc_xclutch_tar[�]
+ecu_cc_xclutch_tp_ident[�]
+ecu_circwheel_front_act[m]
+ecu_circwheel_rear_act[m]
+ecu_circwheel_tyre_r_idt[m]
+ecu_data_version
+ecu_diag_001
+ecu_diag_002
+ecu_diag_003
+ecu_diag_004
+ecu_diag_005
+ecu_diag_006
+ecu_diag_007
+ecu_dign_kc1.user type[�KW]
+ecu_dign_kc2.user type[�KW]
+ecu_dign_kc3.user type[�KW]
+ecu_dign_kc4.user type[�KW]
+ecu_dign_kc5.user type[�KW]
+ecu_dign_kc6.user type[�KW]
+ecu_error_cc
+ecu_error_ccu
+ecu_error_eng
+ecu_error_esw
+ecu_error_etc
+ecu_error_etc2
+ecu_error_gbx
+ecu_error_misc
+ecu_error_rpc
+ecu_error_tc
+ecu_etc_pwm2[%]
+ecu_etc_pwm[%]
+ecu_etcpwm2_fil[%]
+ecu_etcpwm_fil[%]
+ecu_f_fuelcons.user type
+ecu_flc
+ecu_flc2
+ecu_flca
+ecu_flca2
+ecu_fpump_pwm[%]
+ecu_fuelcons[ltr]
+ecu_fuelcons_dash
+ecu_fuelcons_kg[kg]
+ecu_fuellap[USgal]
+ecu_fuellap_dash
+ecu_fuellap_old[USgal]
+ecu_fuellap_old_dash[ltr]
+ecu_fuellap_old_kg[kg]
+ecu_fueltotal[USgal]
+ecu_gear
+ecu_gear_dash
+ecu_gear_pos_1[�]
+ecu_gear_pos_2[�]
+ecu_gear_pos_3[�]
+ecu_gear_pos_4[�]
+ecu_gear_pos_5[�]
+ecu_gear_pos_6[�]
+ecu_gear_pos_N[�]
+ecu_gear_pos_R[�]
+ecu_gear_pos_tab_use
+ecu_gear_req_max
+ecu_gear_req_min
+ecu_grlp_activation
+ecu_grlp_pwm_max[%]
+ecu_i_gear
+ecu_ign_act.user type[�KW]
+ecu_ign_out.user type[�KW]
+ecu_lambda
+ecu_lambda2
+ecu_lamnom
+ecu_lsuh_out2[%]
+ecu_lsuh_out[%]
+ecu_ltdist[m]
+ecu_lteng.time[s]
+ecu_lteng2.time[s]
+ecu_mappos
+ecu_mi_bas[%]
+ecu_mi_tc[%]
+ecu_mi_tc_launch[%]
+ecu_muy_used
+ecu_nmot[rpm]
+ecu_oillevel.volume[ltr]
+ecu_p22.pressure[bar]
+ecu_p22_2.pressure[bar]
+ecu_pairjack[psi]
+ecu_pamb[psi]
+ecu_pclutch[bar]
+ecu_pclutch_dash
+ecu_pcrank[bar]
+ecu_pfuel[bar]
+ecu_pfuel_dash
+ecu_pgear[bar]
+ecu_pgear_dash
+ecu_poil[bar]
+ecu_poil_dash
+ecu_prail2[bar]
+ecu_prail[bar]
+ecu_pwat[bar]
+ecu_pwat_dash
+ecu_rpc_adap
+ecu_rpc_adap2
+ecu_rpc_msv_ip.user type[�KW]
+ecu_rpc_msv_ip2.user type[�KW]
+ecu_sbpos_adap_g2
+ecu_sbpos_adap_g3
+ecu_sbpos_adap_g4
+ecu_sbpos_adap_g5
+ecu_sbpos_nom[�]
+ecu_serialnumber
+ecu_slip_act[%]
+ecu_slip_nom[%]
+ecu_speed[kph]
+ecu_speed_fl[kph]
+ecu_speed_fr[kph]
+ecu_speed_rl[kph]
+ecu_speed_rr[kph]
+ecu_speedlim_mode
+ecu_speedlim_nom[kph]
+ecu_state_oillevel
+ecu_tc_con
+ecu_tc_con_automode
+ecu_tc_operationmode
+ecu_tecu_max[�C]
+ecu_temp_lsu2[�C]
+ecu_temp_lsu[�C]
+ecu_tgear[�C]
+ecu_tgear_dash
+ecu_tint[�C]
+ecu_tmot[�C]
+ecu_tmot_dash
+ecu_toil[�C]
+ecu_toil_dash
+ecu_uaps_a[V]
+ecu_uaps_b[V]
+ecu_ubat[V]
+ecu_uprailm[V]
+ecu_uprailm_2[V]
+ecu_uthrottle2[V]
+ecu_uthrottle2_b[V]
+ecu_uthrottle2_c[V]
+ecu_uthrottle[V]
+ecu_uthrottle_b[V]
+ecu_uthrottle_c[V]
+ecu_xclutch_tar_open[�]
+error_active_001
+error_active_002
+error_active_003
+error_active_004
+error_active_005
+error_active_006
+error_active_007
+error_active_008
+error_active_009
+error_active_010
+error_active_011
+error_active_012
+error_active_013
+error_active_014
+error_active_015
+error_active_016
+error_active_017
+error_active_018
+error_active_019
+error_active_020
+error_duration_001[sec]
+error_duration_002[sec]
+error_duration_003[sec]
+error_duration_004[sec]
+error_duration_005[sec]
+error_duration_006[sec]
+error_duration_007[sec]
+error_duration_008[sec]
+error_duration_009[sec]
+error_duration_010[sec]
+error_duration_011[sec]
+error_duration_012[sec]
+error_duration_013[sec]
+error_duration_014[sec]
+error_duration_015[sec]
+error_duration_016[sec]
+error_duration_017[sec]
+error_duration_018[sec]
+error_duration_019[sec]
+error_duration_020[sec]
+error_location_001
+error_location_002
+error_location_003
+error_location_004
+error_location_005
+error_location_006
+error_location_007
+error_location_008
+error_location_009
+error_location_010
+error_location_011
+error_location_012
+error_location_013
+error_location_014
+error_location_015
+error_location_016
+error_location_017
+error_location_018
+error_location_019
+error_location_020
+esw_B_service
+esw_basic_number
+esw_customer_number
+esw_diag
+esw_error_location_fast_01
+esw_error_location_fast_02
+esw_error_location_fast_03
+esw_error_location_fast_04
+esw_error_location_slow_01
+esw_error_location_slow_02
+esw_error_location_slow_03
+esw_error_location_slow_04
+esw_i[A]
+esw_lifetime.time[s]
+esw_lifetime_after_rev[s]
+esw_power_suppy_min_shif.voltage[V]
+esw_project_number
+esw_revision
+esw_revision_diag
+esw_revision_target
+esw_sbpos[�]
+esw_sbposnom_fb[�]
+esw_serial_number
+esw_tpa[�F]
+esw_tstator[�F]
+esw_ttle[�F]
+esw_upa[V]
+esw_version
+esw_version_diag
+esw_version_target
+ffm_mass_rate[g/min]
+ffm_mass_total.mass[kg]
+ffm_tfuel[�C]
+ffm_vol_rate[kg]
+ffm_vol_total[ml]
+fuelLT_HW_VERSION[-]
+fuelLT_SW_VERSION[-]
+fuelLT_brightness_act[%]
+fuelLT_led01_act
+fuelLT_led09_act
+fuelLT_msg_cntr[-]
+l_dist_lap_new[m]
+l_dist_new[m]
+lambda_WOT[user defined]
+lap_distance[ft]
+lap_number
+lap_time[s]
+lap_time_diff_dis[s]
+lap_time_dis[s]
+lap_time_pred_dis[s]
+lap_time_prev[s]
+lockLTl_HW_VERSION[-]
+lockLTl_SW_VERSION[-]
+lockLTl_brightness_act[%]
+lockLTl_led01_act
+lockLTl_led09_act
+lockLTl_msg_cntr[-]
+lockLTr_HW_VERSION[-]
+lockLTr_SW_VERSION[-]
+lockLTr_brightness_act[%]
+lockLTr_led01_act
+lockLTr_led09_act
+lockLTr_msg_cntr[-]
+log_B_ABS_diag
+log_B_D2D
+log_B_FCYsw_act
+log_B_LT_pitdelay
+log_B_abs_circ_OV
+log_B_abs_en
+log_B_abs_setting
+log_B_abs_setting_dash
+log_B_ac_check_req
+log_B_ac_test_lgc
+log_B_alarm
+log_B_alarm_act
+log_B_alarm_change
+log_B_beacon
+log_B_brake_dash
+log_B_brake_leakage
+log_B_brev
+log_B_brkbal_OV
+log_B_brkbias_change
+log_B_codeXX_act
+log_B_codeXX_reset
+log_B_cond_brev_lgc
+log_B_deact_aABS_OFF
+log_B_deact_aABS_diag
+log_B_deact_aABS_error
+log_B_deact_aTyre_circ
+log_B_delta_sectime
+log_B_downshift_braking
+log_B_drinkpmp
+log_B_drivermark
+log_B_eclutch_pad_l
+log_B_eclutch_pad_r
+log_B_engstart_dash
+log_B_fancas
+log_B_fogLT_on
+log_B_fueling
+log_B_fuelprobe1
+log_B_fuelprobe2
+log_B_fuelressw
+log_B_hide_pittimer_OV
+log_B_ident_P0_point
+log_B_ident_dis_check
+log_B_ident_touchpoint
+log_B_logo_dis
+log_B_manualmark
+log_B_mech_OV
+log_B_mech_OV_ti[s]
+log_B_oilcrank_OV
+log_B_paddn
+log_B_padup
+log_B_pclutch_col
+log_B_pit_tc_off_OV
+log_B_pitspeedsw_act
+log_B_pitspeedsw_bwp
+log_B_steering_m
+log_B_tc_en
+log_B_tpms_hide
+log_B_wet
+log_B_wipersw_act
+log_E_asteer
+log_E_pbrake_f
+log_E_pbrake_r
+log_E_stw
+log_FCY_ov_speed[kph]
+log_GB_crossOnFinish
+log_GB_finish1_lat
+log_GB_finish1_lon
+log_GB_finish2_lat
+log_GB_finish2_lon
+log_GB_pitin_course
+log_GB_pitin_lat
+log_GB_pitin_lon
+log_GB_pitout_course
+log_GB_pitout_lat
+log_GB_pitout_lon
+log_LT_fan_fl
+log_LT_fan_fr
+log_LT_indicator_fl
+log_LT_indicator_fr
+log_LT_mainlight_fl
+log_LT_mainlight_fr
+log_PL_backup_active
+log_PL_distance_out
+log_PL_gateidx
+log_PL_gps_lat_out
+log_PL_gps_lon_out
+log_PL_lap_distance_corr[m]
+log_PL_lap_distance_wheel[m]
+log_PL_laptime_fixed
+log_PL_mode_active
+log_PL_opt01_out
+log_PL_opt02_out
+log_PL_opt03_out
+log_PL_opt04_out
+log_PL_opt05_out
+log_PL_opt06_out
+log_PL_opt07_out
+log_PL_opt08_out
+log_PL_opt09_out
+log_PL_opt10_out
+log_PL_opt11_out
+log_PL_opt12_out
+log_PL_opt13_out
+log_PL_opt14_out
+log_PL_opt15_out
+log_PL_overlay
+log_PL_predtime
+log_PL_predtime_corr
+log_PL_predtime_distance
+log_PL_predtime_gps
+log_PL_predtime_wheel
+log_PL_ref_sectime_dist
+log_PL_ref_sectime_out
+log_PL_reflap_used
+log_PL_status
+log_PL_track
+log_PL_track_reset_req
+log_PT_c_pit_lapcounter_course
+log_PT_c_pit_lapcounter_lat
+log_PT_c_pit_lapcounter_lon
+log_PT_c_ti_max_shortstop[s]
+log_PT_c_ti_min_pitstop[s]
+log_PT_c_ti_pitexit[s]
+log_PT_c_ti_race[hour]
+log_PT_c_ti_target[s]
+log_PT_c_ti_utc_start[s]
+log_PT_lap_counter
+log_PT_launch
+log_PT_m_pit_timer
+log_PT_offset_B_overlay
+log_PT_offset_ti_overlay
+log_PT_offset_value
+log_PT_pit_counter
+log_PT_pit_exit_target[s]
+log_PT_pit_timer[s]
+log_PT_start_time[s]
+log_PT_status
+log_PT_time_exit[s]
+log_PT_time_exit_diff[s]
+log_PT_time_racestart_set
+log_PT_time_racestart_value[s]
+log_PT_time_to_race_end[s]
+log_PT_timer_dash[s]
+log_ST_A_col
+log_ST_A_diff[s]
+log_ST_A_num
+log_ST_A_time[s]
+log_ST_B_col
+log_ST_B_diff[s]
+log_ST_B_num
+log_ST_B_time[s]
+log_ST_C_col
+log_ST_C_diff[s]
+log_ST_C_num
+log_ST_C_time[s]
+log_ST_D_col
+log_ST_D_diff[s]
+log_ST_D_num
+log_ST_D_time[s]
+log_ST_sector
+log_TO_can_diag
+log_a_car[�]
+log_a_car_mc_hs[�]
+log_a_car_mc_ls[�]
+log_a_car_mc_ms[�]
+log_abs_cmd_state
+log_abs_memory_del_rq
+log_abs_memory_read_rq
+log_abs_pos
+log_abs_pos_distanceoffset
+log_abs_repairbleed_rq_l
+log_abs_status
+log_abs_wheelcheck_rq_fl
+log_abs_wheelcheck_rq_fr
+log_abs_wheelcheck_rq_rl
+log_abs_wheelcheck_rq_rr
+log_ac_clutch_dash
+log_ac_pos
+log_ac_status_dash
+log_acc_x[G]
+log_acc_xy_brk[G]
+log_acc_xy_entry[G]
+log_acc_xy_exit[G]
+log_acc_xy_mc[G]
+log_acc_y[G]
+log_acc_z[G]
+log_alarm_bitfield
+log_alarm_ccu
+log_alarm_esw
+log_asteer[�]
+log_asteer_diag
+log_asteer_diag_dash
+log_ath_pos
+log_beacon
+log_beacon_S1
+log_beacon_S2
+log_beacon_pitin
+log_beacon_pitout
+log_brake_counter
+log_brev_dash
+log_brev_status
+log_brev_time[s]
+log_brkbal_prop[%]
+log_brkbias.user type
+log_brkbias_change_dir
+log_brkbias_diag
+log_brkdisctemp_fl[�C]
+log_brkdisctemp_fl_diag
+log_brkdisctemp_fr[�C]
+log_brkdisctemp_fr_diag
+log_brkdisctemp_rl[�C]
+log_brkdisctemp_rl_diag
+log_brkdisctemp_rr[�C]
+log_brkdisctemp_rr_diag
+log_c_alarm_lowfuel
+log_c_alarm_lowfuel2
+log_c_fueldensity
+log_c_ti_refuel_target[s]
+log_c_ti_refuel_target_short[s]
+log_c_ti_refuel_wait[s]
+log_car_variant
+log_ccu_pos_dash
+log_circ_f[m]
+log_circ_r[m]
+log_codeXX_avgspeed[mph]
+log_cond_alarm_EPS
+log_cond_alarm_etc
+log_cond_alarm_lowfuel_1
+log_cond_alarm_lowfuel_2
+log_cond_alarm_starter
+log_cond_alarm_ubat
+log_cond_alt_stopped
+log_cond_ath_30
+log_cond_crank
+log_cond_deact_aABS_OFF
+log_cond_deact_aABS_diag
+log_cond_deact_aABS_error
+log_cond_deact_aTyre_Circ
+log_cond_eng_1k
+log_cond_eng_2k
+log_cond_eng_2k5
+log_cond_eng_3k5
+log_cond_eng_5k
+log_cond_eng_6k5
+log_cond_engrun_10
+log_cond_engruntimer[s]
+log_cond_lockLT_fl
+log_cond_lockLT_fr
+log_cond_lockLT_rl
+log_cond_lockLT_rr
+log_cond_prail
+log_cond_rpm_low
+log_cond_tmot_68
+log_cond_warn_abs_off
+log_cond_warn_brk_status
+log_cond_warn_brkbias
+log_cond_warn_start_btn
+log_cond_warn_tyre_circ
+log_current_alt_diag
+log_current_alternator[A]
+log_current_bat_diag
+log_current_battery[A]
+log_current_servo[A]
+log_current_servo_diag
+log_dash_b1
+log_dash_b1_enum
+log_dash_b2
+log_dash_b2_enum
+log_dash_b3
+log_dash_b3_enum
+log_dash_b4
+log_dash_b4_enum
+log_dash_gear
+log_digital_change
+log_digital_change_name
+log_digital_change_value
+log_digital_stat
+log_dim_cas
+log_dim_cp[%]
+log_dim_dash[%]
+log_dim_led[%]
+log_dim_led_night
+log_dim_lock[%]
+log_dim_pos
+log_dim_stw
+log_display_pos
+log_distanceToPitExit[m]
+log_distanceToTrack[m]
+log_distance[ft]
+log_distance_topspeed[m]
+log_dms_dam_fl[N]
+log_dms_dam_fr[N]
+log_dms_dam_rl[N]
+log_dms_dam_rr[N]
+log_ecds_check_diag
+log_ecds_check_request
+log_ecds_check_state
+log_eps_check
+log_fcn1_pos
+log_fcn2_pos
+log_fcn3_pos
+log_fire_ext_diag
+log_fire_ext_rbl[%]
+log_fire_ext_ubat[V]
+log_fuelLT_brightness[%]
+log_fuelLT_led01
+log_fuelLT_led02
+log_fuelLT_led03
+log_fuelLT_led04
+log_fuelLT_led05
+log_fuelLT_led06
+log_fuelLT_led07
+log_fuelLT_led08
+log_fuelLT_led09
+log_fuelcons_dash
+log_fueldelta[ltr]
+log_fueldelta_old[ltr]
+log_fueling_diag
+log_fuellap[ltr]
+log_fuellevel_catch[ltr]
+log_fuellevel_dash.user type
+log_fuelprobe_connect_time.time[s]
+log_fuelprobe_target_time[s]
+log_fuelprobe_target_time_short.time[s]
+log_fueltarget[ltr]
+log_fueltype
+log_func_enum
+log_func_overlay
+log_func_overlay_green
+log_func_overlay_type
+log_func_pos
+log_func_pos_act
+log_func_pos_dis
+log_gps_alt[m]
+log_gps_course[�]
+log_gps_data_age[s]
+log_gps_date[sec]
+log_gps_gsep[m]
+log_gps_hdop[%]
+log_gps_lat[�]
+log_gps_lat_RMC[�]
+log_gps_lon[�]
+log_gps_lon_RMC[�]
+log_gps_mode
+log_gps_quality
+log_gps_sats
+log_gps_speed[kph]
+log_gps_station_id
+log_gps_status
+log_gps_time[s]
+log_launchsw
+log_lockLT_ign_test
+log_lockLTl_brightness[%]
+log_lockLTl_led01
+log_lockLTl_led02
+log_lockLTl_led03
+log_lockLTl_led04
+log_lockLTl_led05
+log_lockLTl_led06
+log_lockLTl_led07
+log_lockLTl_led08
+log_lockLTl_led09
+log_lockLTr_brightness[%]
+log_lockLTr_led01
+log_lockLTr_led02
+log_lockLTr_led03
+log_lockLTr_led04
+log_lockLTr_led05
+log_lockLTr_led06
+log_lockLTr_led07
+log_lockLTr_led08
+log_lockLTr_led09
+log_logger_ontime[s]
+log_m_abs_en
+log_m_alarm_lowfuel
+log_m_alarm_noseup
+log_m_alarm_waterlevel
+log_m_fuelreset_auto
+log_m_heatscrn_en
+log_m_scrut_logger
+log_m_shiftLT_down_deact
+log_m_shiftbeep
+log_m_tc_en
+log_map_pos
+log_master_cyl_front[m]
+log_master_cyl_rear[m]
+log_multi_A
+log_multi_B
+log_multi_C
+log_multi_D
+log_multi_E
+log_multi_F
+log_multi_G
+log_multi_H
+log_multi_I
+log_multi_enum
+log_multi_let_pos
+log_multi_num_pos
+log_multi_overlay
+log_multi_overlay_green
+log_multi_reset
+log_multi_steering_map
+log_odometer[m]
+log_odometer_trip[m]
+log_oilLT_brightness[%]
+log_pbrake_f[bar]
+log_pbrake_f_diag
+log_pbrake_r[bar]
+log_pbrake_r_diag
+log_pevap_dash
+log_pitspeed_col
+log_pitspeed_diff[mph]
+log_pitspeed_nom_bwp[kph]
+log_pservo[psi]
+log_pservo_diag
+log_qm_cum_segtime[s]
+log_qm_cum_segtime_diff[s]
+log_qm_laptime_pred[s]
+log_qm_laptime_ref[s]
+log_qm_mode_stat
+log_qm_segm_number
+log_qm_segm_time[s]
+log_qm_segm_time_diff[s]
+log_r_s_whl_lck[%]
+log_rideheight_fa_mc[m]
+log_rideheight_fl[mm]
+log_rideheight_fl_diag
+log_rideheight_fr[mm]
+log_rideheight_fr_diag
+log_rideheight_ra_mc[m]
+log_rideheight_rake[m]
+log_rideheight_rake_mc[m]
+log_rideheight_rl[mm]
+log_rideheight_rl_diag
+log_rideheight_rr[mm]
+log_rideheight_rr_diag
+log_rotary_overlay
+log_rotary_overlay_name
+log_rotary_overlay_value
+log_s_whl_lck_fa[s]
+log_s_whl_lck_ra[s]
+log_sens_diag
+log_serial_number
+log_setup
+log_shift_LED01
+log_shift_LED02
+log_shift_LED03
+log_shift_LED04
+log_shift_LED05
+log_shift_LED06
+log_shift_LED07
+log_shift_LED08
+log_shift_LED09
+log_shift_LED10
+log_shift_LED11
+log_shift_LED12
+log_shift_LED13
+log_shift_LED14
+log_shift_LED15
+log_shift_LED16
+log_shift_flash_lgc
+log_shiftbeep
+log_shiftlights
+log_shiftlights_rpm[rpm]
+log_speed[kph]
+log_speed_dash
+log_speed_fl[kph]
+log_speed_fl_dash
+log_speed_fl_lock[s]
+log_speed_fr[kph]
+log_speed_fr_dash
+log_speed_fr_lock[s]
+log_speed_rl[kph]
+log_speed_rl_dash
+log_speed_rl_lock[s]
+log_speed_rr[kph]
+log_speed_rr_dash
+log_speed_rr_lock[s]
+log_sta_res
+log_state_FCY
+log_state_braking
+log_state_codeXX
+log_state_moving
+log_state_moving_front
+log_state_moving_rear
+log_state_pitspeed
+log_state_wiper
+log_std_dms_fl
+log_std_dms_fr
+log_std_dms_rl
+log_std_dms_rr
+log_susp_travel_fl[m]
+log_susp_travel_fl_diag
+log_susp_travel_fr[m]
+log_susp_travel_fr_diag
+log_susp_travel_rl[m]
+log_susp_travel_rl_diag
+log_susp_travel_rr[m]
+log_susp_travel_rr_diag
+log_sw_FCY
+log_sw_beamLT
+log_sw_crk
+log_sw_drink
+log_sw_fcn_neg
+log_sw_fcn_pos
+log_sw_indic_l
+log_sw_indic_r
+log_sw_joker
+log_sw_ok
+log_sw_pitspeed
+log_sw_rvs
+log_sw_wiper
+log_t_tyr_IR_in_fa_mean[�C]
+log_t_tyr_IR_in_ra_mean[�C]
+log_tamb[�C]
+log_tamb_diag
+log_tc_lat_pos
+log_tc_lat_pos_distanceoffset
+log_tc_lon_pos
+log_tc_lon_pos_distanceoffset
+log_tcockpit[�C]
+log_tcockpit_diag
+log_tevap[�C]
+log_tevap_dash
+log_tevap_diag
+log_time_day[-]
+log_time_dayinyear[-]
+log_time_hour[-]
+log_time_minute[-]
+log_time_month[-]
+log_time_second[-]
+log_time_year[-]
+log_track
+log_ttrack[�C]
+log_tw_left_down
+log_tw_left_fault
+log_tw_left_pos
+log_tw_left_up
+log_tw_right_down
+log_tw_right_fault
+log_tw_right_pos
+log_tw_right_up
+log_ubat[V]
+log_unit_fuel
+log_unit_pressure
+log_unit_temperature
+log_unit_velocity
+log_warn_starter_lgc
+log_zero
+lvlfuel_fueltype
+lvlfuel_lvl Voltage[mV]
+lvlfuel_lvl_raw[%]
+lvlfuel_runtime[s]
+lvlfuel_sw
+lvlfuel_temp_raw[�C]
+oilLT_HW_VERSION[-]
+oilLT_SW_VERSION[-]
+oilLT_brightness_act[%]
+oilLT_led01_act
+oilLT_led09_act
+oilLT_msg_cntr[-]
+pbrake_tot[bar]
+pcu_01_com_sply1 Amps[A]
+pcu_01_com_sply1 Volts[V]
+pcu_01_com_sply1_diag
+pcu_02_steerangle Amps[A]
+pcu_02_steerangle Volts[V]
+pcu_02_steerangle_diag
+pcu_03_sclu Amps[A]
+pcu_03_sclu Volts[V]
+pcu_03_sclu_diag
+pcu_04_tpms_fl_rr Amps[A]
+pcu_04_tpms_fl_rr Volts[V]
+pcu_04_tpms_fl_rr_diag
+pcu_05_tpms_fr_rl Amps[A]
+pcu_05_tpms_fr_rl Volts[V]
+pcu_05_tpms_fr_rl_diag
+pcu_06_center_cons Amps[A]
+pcu_06_center_cons Volts[V]
+pcu_06_center_cons_diag
+pcu_07_eclutchCT15 Amps[A]
+pcu_07_eclutchCT15 Volts[V]
+pcu_07_eclutchCT15_diag
+pcu_08_acflaps Amps[A]
+pcu_08_acflaps Volts[V]
+pcu_08_acflaps_diag
+pcu_09_shiftbeep Amps[A]
+pcu_09_shiftbeep Volts[V]
+pcu_09_shiftbeep_diag
+pcu_10_ac_vlv Amps[A]
+pcu_10_ac_vlv Volts[V]
+pcu_10_ac_vlv_diag
+pcu_11_ABS_CT15 Amps[A]
+pcu_11_ABS_CT15 Volts[V]
+pcu_11_ABS_CT15_diag
+pcu_12_EPS_CT15 Amps[A]
+pcu_12_EPS_CT15 Volts[V]
+pcu_12_EPS_CT15_diag
+pcu_13_ECU_CT30 Amps[A]
+pcu_13_ECU_CT30 Volts[V]
+pcu_13_ECU_CT30_diag
+pcu_14_ECU_CT15 Amps[A]
+pcu_14_ECU_CT15 Volts[V]
+pcu_14_ECU_CT15_diag
+pcu_15_stw Amps[A]
+pcu_15_stw Volts[V]
+pcu_15_stw_diag
+pcu_16_display Amps[A]
+pcu_16_display Volts[V]
+pcu_16_display_diag
+pcu_17_tele Amps[A]
+pcu_17_tele Volts[V]
+pcu_17_tele_diag
+pcu_18_PMDI Amps[A]
+pcu_18_PMDI Volts[V]
+pcu_18_PMDI_diag
+pcu_19_IDLT Amps[A]
+pcu_19_IDLT Volts[V]
+pcu_19_IDLT_diag
+pcu_20_interiorLT Amps[A]
+pcu_20_interiorLT Volts[V]
+pcu_20_interiorLT_diag
+pcu_21_intank1 Amps[A]
+pcu_21_intank1 Volts[V]
+pcu_21_intank1_diag
+pcu_22_intank2 Amps[A]
+pcu_22_intank2 Volts[V]
+pcu_22_intank2_diag
+pcu_23_intank3 Amps[A]
+pcu_23_intank3 Volts[V]
+pcu_23_intank3_diag
+pcu_24_intank4 Amps[A]
+pcu_24_intank4 Volts[V]
+pcu_24_intank4_diag
+pcu_25_video Amps[A]
+pcu_25_video Volts[V]
+pcu_25_video_diag
+pcu_26_heatscrn Amps[A]
+pcu_26_heatscrn Volts[V]
+pcu_26_heatscrn_diag
+pcu_27_com_sply3 Amps[A]
+pcu_27_com_sply3 Volts[V]
+pcu_27_com_sply3_diag
+pcu_29_com_sply2 Amps[A]
+pcu_29_com_sply2 Volts[V]
+pcu_29_com_sply2_diag
+pcu_30_log Amps[A]
+pcu_30_log Volts[V]
+pcu_30_log_diag
+pcu_31_fandipLTl Amps[A]
+pcu_31_fandipLTl Volts[V]
+pcu_31_fandipLTl_diag
+pcu_33_rainLT Amps[A]
+pcu_33_rainLT Volts[V]
+pcu_33_rainLT_diag
+pcu_34_tailLTl Amps[A]
+pcu_34_tailLTl Volts[V]
+pcu_34_tailLTl_diag
+pcu_35_tailLTr Amps[A]
+pcu_35_tailLTr Volts[V]
+pcu_35_tailLTr_diag
+pcu_36_brkLT Amps[A]
+pcu_36_brkLT Volts[V]
+pcu_36_brkLT_diag
+pcu_37_led_ecu Amps[A]
+pcu_37_led_ecu Volts[V]
+pcu_37_led_ecu_diag
+pcu_38_cas Amps[A]
+pcu_38_cas Volts[V]
+pcu_38_cas_diag
+pcu_39_drinkpmp Amps[A]
+pcu_39_drinkpmp Volts[V]
+pcu_39_drinkpmp_diag
+pcu_40_opt2 Amps[A]
+pcu_40_opt2 Volts[V]
+pcu_40_opt2_diag
+pcu_41_indic_l Amps[A]
+pcu_41_indic_l Volts[V]
+pcu_41_indic_l_diag
+pcu_42_fancas Amps[A]
+pcu_42_fancas Volts[V]
+pcu_42_fancas_diag
+pcu_43_indic_r Amps[A]
+pcu_43_indic_r Volts[V]
+pcu_43_indic_r_diag
+pcu_44_ac_clutch Amps[A]
+pcu_44_ac_clutch Volts[V]
+pcu_44_ac_clutch_diag
+pcu_46_teamlogCT15 Amps[A]
+pcu_46_teamlogCT15 Volts[V]
+pcu_46_teamlogCT15_diag
+pcu_47_fandipLTr Amps[A]
+pcu_47_fandipLTr Volts[V]
+pcu_47_fandipLTr_diag
+pcu_49_ECUDYN Amps[A]
+pcu_49_ECUDYN Volts[V]
+pcu_49_ECUDYN_diag
+pcu_51_starter Amps[A]
+pcu_51_starter Volts[V]
+pcu_51_starter_diag
+pcu_52_wiper Amps[A]
+pcu_52_wiper Volts[V]
+pcu_52_wiper_diag
+pcu_53_sup_mp Amps[A]
+pcu_53_sup_mp Volts[V]
+pcu_53_sup_mp_diag
+pcu_55_fandrv Amps[A]
+pcu_55_fandrv Volts[V]
+pcu_55_fandrv_diag
+pcu_56_sup_sp Amps[A]
+pcu_56_sup_sp Volts[V]
+pcu_56_sup_sp_diag
+pcu_58_dipLTfl Amps[A]
+pcu_58_dipLTfl Volts[V]
+pcu_58_dipLTfl_diag
+pcu_60_radio Amps[A]
+pcu_60_radio Volts[V]
+pcu_60_radio_diag
+pcu_61_teamlogCT30 Amps[A]
+pcu_61_teamlogCT30 Volts[V]
+pcu_61_teamlogCT30_diag
+pcu_62_dipLTfr Amps[A]
+pcu_62_dipLTfr Volts[V]
+pcu_62_dipLTfr_diag
+pcu_63_fanclutch Amps[A]
+pcu_63_fanclutch Volts[V]
+pcu_63_fanclutch_diag
+pcu_64_opt1 Amps[A]
+pcu_64_opt1 Volts[V]
+pcu_64_opt1_diag
+pcu_ACmodel
+pcu_ACmodel_diag
+pcu_ACmodel_target
+pcu_BAT_diag
+pcu_BAT_diag_dash
+pcu_B_flashmode
+pcu_B_prekill_act
+pcu_B_startreq
+pcu_B_tc_wet
+pcu_B_tyre_wet
+pcu_GEN_diag
+pcu_GEN_diag_dash
+pcu_ac_bitfield
+pcu_ac_pwm[%]
+pcu_ctrl_PWM_fpump.proportion[%]
+pcu_ctrl_absCT15
+pcu_ctrl_ac_clutch
+pcu_ctrl_acvlv
+pcu_ctrl_auxLT
+pcu_ctrl_brkLT
+pcu_ctrl_dayLT
+pcu_ctrl_drinkpmp
+pcu_ctrl_ecu
+pcu_ctrl_ecudyn
+pcu_ctrl_fandrv
+pcu_ctrl_fmpmp
+pcu_ctrl_hazard
+pcu_ctrl_heatscrn
+pcu_ctrl_indic_l
+pcu_ctrl_indic_r
+pcu_ctrl_intankpmp
+pcu_ctrl_mainLT
+pcu_ctrl_rainLT
+pcu_ctrl_starter
+pcu_ctrl_steering
+pcu_ctrl_tailLT
+pcu_fuelpmp_m
+pcu_fuse_ABS
+pcu_fuse_ABS_diag
+pcu_fuse_eclutch
+pcu_fuse_eclutch_diag
+pcu_output_2_diag
+pcu_output_diag_dash
+pcu_pbrake[bar]
+pcu_pbrake_diag
+pcu_pevap[bar]
+pcu_pevap_diag
+pcu_setup_diag
+pcu_setup_target
+pcu_state_LTmode
+pcu_state_LTmode_save
+pcu_state_braking
+pcu_state_clutch
+pcu_state_engine_running
+pcu_state_engine_stalled
+pcu_state_engine_starting
+pcu_state_fandrv
+pcu_state_fuelpmp
+pcu_state_hazard
+pcu_state_heatscrn
+pcu_state_ign
+pcu_state_lap2grid
+pcu_state_main
+pcu_state_moving
+pcu_state_opt1
+pcu_state_opt2
+pcu_state_rainLT
+pcu_state_starter
+pcu_state_tc_wet
+pcu_state_tyre
+pcu_steering_m
+pcu_sw_LTmode
+pcu_sw_LTmode_diag
+pcu_sw_brk_status
+pcu_sw_fandrv
+pcu_sw_fandrv_diag
+pcu_sw_fire_ext
+pcu_sw_fire_ext_diag
+pcu_sw_fuelpmp
+pcu_sw_fuelpmp_diag
+pcu_sw_hazard
+pcu_sw_hazard_diag
+pcu_sw_heatscrn
+pcu_sw_heatscrn_diag
+pcu_sw_ign
+pcu_sw_ign_diag
+pcu_sw_main
+pcu_sw_main_diag
+pcu_sw_opt1
+pcu_sw_opt1_diag
+pcu_sw_opt2
+pcu_sw_opt2_diag
+pcu_sw_rainLT
+pcu_sw_rainLT_diag
+pcu_sw_start_btn
+pcu_sw_start_btn_diag
+pcu_sw_tc
+pcu_sw_tc_diag
+pcu_sw_tyre
+pcu_sw_tyre_diag
+pcu_temp_diag
+pcu_ti_fuelpmp_m[s]
+pcu_ti_steering_m[s]
+pcu_ubat[V]
+pcu_volt_diag
+pitot_a_yaw[�]
+pitot_p_yaw[bar]
+pitot_pd[bar]
+pitot_press_static_abs[bar]
+pitot_temp_air[�C]
+pitot_temp_board[�C]
+rvc_countdown_timer[sec]
+rvc_eps
+rvc_hw_version
+rvc_serial_number
+rvc_sw_version
+rvc_ufps
+rvc_vfps
+sclu_HW_index
+sclu_acc_x[G]
+sclu_acc_x_stat
+sclu_acc_y[G]
+sclu_acc_y_stat
+sclu_acc_z[G]
+sclu_acc_z_stat
+sclu_clu_diag
+sclu_clu_stat
+sclu_clu_stat5
+sclu_crc_tx1
+sclu_crc_tx2
+sclu_crc_tx3
+sclu_msg_cnt_tx1
+sclu_msg_cnt_tx2
+sclu_msg_cnt_tx3
+sclu_pitch_rate[rpm]
+sclu_pitch_rate_stat
+sclu_roll_rate[rpm]
+sclu_roll_rate_stat
+sclu_temp_rate_z[�]
+sclu_yaw_rate[rpm]
+sclu_yaw_rate_stat
+scm_sw_version[-]
+sta_angle[�]
+sta_angle_ok
+sta_cal
+sta_ok
+sta_serial_number
+sta_speed[rpm]
+sta_speed_ok
+stw_hw_rev
+stw_lifetime.user type[h]
+stw_lifetime_rev.user type[h]
+stw_paddle_L_pull
+stw_paddle_R_pull
+stw_rt01_tc_lat
+stw_rt01_tc_lat_raw
+stw_rt02_func
+stw_rt02_func_in
+stw_rt02_func_raw
+stw_rt03_tc_lon
+stw_rt03_tc_lon_raw
+stw_rt04_abs
+stw_rt04_abs_raw
+stw_sw01_fcn_pos
+stw_sw02_radio
+stw_sw03_FCY
+stw_sw04_wiper
+stw_sw05_joker
+stw_sw06_pitspeed
+stw_sw07_beamLT
+stw_sw08_drink
+stw_sw09_crk
+stw_sw10_ok
+stw_sw11_rvs
+stw_sw12_fcn_neg
+stw_sw13_indic_l
+stw_sw14_indic_r
+stw_sw15_ec_l
+stw_sw16_ec_r
+stw_sw_ok Button
+stw_sw_ver
+stw_tw01_left
+stw_tw01_left_raw
+stw_tw02_right
+stw_tw02_right_raw
+tFFMServiceCounterF1[s]
+ti_diff.time[s]
+tpms_ATM_PRESS_RX_TIMEOUT_fl
+tpms_ATM_PRESS_RX_TIMEOUT_fr
+tpms_ATM_PRESS_RX_TIMEOUT_rl
+tpms_ATM_PRESS_RX_TIMEOUT_rr
+tpms_CFGCNTL_RX_TIMEOUT_fl
+tpms_CFGCNTL_RX_TIMEOUT_fr
+tpms_CFGCNTL_RX_TIMEOUT_rl
+tpms_CFGCNTL_RX_TIMEOUT_rr
+tpms_DIAG_ADV_ID_1_FL
+tpms_DIAG_ADV_ID_1_FR
+tpms_DIAG_ADV_ID_1_RL
+tpms_DIAG_ADV_ID_1_RR
+tpms_DIAG_ADV_ID_2_FL
+tpms_DIAG_ADV_ID_2_FR
+tpms_DIAG_ADV_ID_2_RL
+tpms_DIAG_ADV_ID_2_RR
+tpms_DIAG_ADV_ID_3_FL
+tpms_DIAG_ADV_ID_3_FR
+tpms_DIAG_ADV_ID_3_RL
+tpms_DIAG_ADV_ID_3_RR
+tpms_DIAG_ADV_ID_4_FL
+tpms_DIAG_ADV_ID_4_FR
+tpms_DIAG_ADV_ID_4_RL
+tpms_DIAG_ADV_ID_4_RR
+tpms_DIAG_ADV_POSN_1_FL
+tpms_DIAG_ADV_POSN_1_FR
+tpms_DIAG_ADV_POSN_1_RL
+tpms_DIAG_ADV_POSN_1_RR[s]
+tpms_DIAG_ADV_POSN_2_FL
+tpms_DIAG_ADV_POSN_2_FR
+tpms_DIAG_ADV_POSN_2_RL
+tpms_DIAG_ADV_POSN_2_RR[s]
+tpms_DIAG_ADV_POSN_3_FL
+tpms_DIAG_ADV_POSN_3_FR
+tpms_DIAG_ADV_POSN_3_RL
+tpms_DIAG_ADV_POSN_3_RR[s]
+tpms_DIAG_ADV_POSN_4_FL
+tpms_DIAG_ADV_POSN_4_FR
+tpms_DIAG_ADV_POSN_4_RL
+tpms_DIAG_ADV_POSN_4_RR[s]
+tpms_DIAG_ADV_RSSI_1_FL[dBm]
+tpms_DIAG_ADV_RSSI_1_FR[dBm]
+tpms_DIAG_ADV_RSSI_1_RL[dBm]
+tpms_DIAG_ADV_RSSI_1_RR[dBm]
+tpms_DIAG_ADV_RSSI_2_FL[dBm]
+tpms_DIAG_ADV_RSSI_2_FR[dBm]
+tpms_DIAG_ADV_RSSI_2_RL[dBm]
+tpms_DIAG_ADV_RSSI_2_RR[dBm]
+tpms_DIAG_ADV_RSSI_3_FL[dBm]
+tpms_DIAG_ADV_RSSI_3_FR[dBm]
+tpms_DIAG_ADV_RSSI_3_RL[dBm]
+tpms_DIAG_ADV_RSSI_3_RR[dBm]
+tpms_DIAG_ADV_RSSI_4_FL[dBm]
+tpms_DIAG_ADV_RSSI_4_FR[dBm]
+tpms_DIAG_ADV_RSSI_4_RL[dBm]
+tpms_DIAG_ADV_RSSI_4_RR[dBm]
+tpms_DIAG_ECU_CORE_T_FL[�C]
+tpms_DIAG_ECU_CORE_T_FR[�C]
+tpms_DIAG_ECU_CORE_T_RL[�C]
+tpms_DIAG_ECU_CORE_T_RR
+tpms_DIAG_ECU_HEALTH_FL
+tpms_DIAG_ECU_HEALTH_FR
+tpms_DIAG_ECU_HEALTH_RL
+tpms_DIAG_ECU_HEALTH_RR
+tpms_DIAG_VEH_ATMOS_P_FL[bar]
+tpms_DIAG_VEH_ATMOS_P_FR[bar]
+tpms_DIAG_VEH_ATMOS_P_RL[bar]
+tpms_DIAG_VEH_ATMOS_P_RR[bar]
+tpms_DIAG_VEH_MOVING_FL
+tpms_DIAG_VEH_MOVING_FR
+tpms_DIAG_VEH_MOVING_RL
+tpms_DIAG_VEH_MOVING_RR
+tpms_DIAG_VEH_ODO_FL[m]
+tpms_DIAG_VEH_ODO_FR[m]
+tpms_DIAG_VEH_ODO_RL[m]
+tpms_DIAG_VEH_ODO_RR[m]
+tpms_DIAG_VEH_SPEED_FL[kph]
+tpms_DIAG_VEH_SPEED_FR[kph]
+tpms_DIAG_VEH_SPEED_RL[kph]
+tpms_DIAG_VEH_SPEED_RR[kph]
+tpms_ECU_FW_MAJOR_fl
+tpms_ECU_FW_MAJOR_fr
+tpms_ECU_FW_MAJOR_rl
+tpms_ECU_FW_MAJOR_rr
+tpms_ECU_FW_MINOR_fl
+tpms_ECU_FW_MINOR_fr
+tpms_ECU_FW_MINOR_rl
+tpms_ECU_FW_MINOR_rr
+tpms_ECU_FW_PATCH_fl
+tpms_ECU_FW_PATCH_fr
+tpms_ECU_FW_PATCH_rl
+tpms_ECU_FW_PATCH_rr
+tpms_ECU_HIGH_TEMP_fl
+tpms_ECU_HIGH_TEMP_fr
+tpms_ECU_HIGH_TEMP_rl
+tpms_ECU_HIGH_TEMP_rr
+tpms_ECU_HIGH_VOLTAGE_fl
+tpms_ECU_HIGH_VOLTAGE_fr
+tpms_ECU_HIGH_VOLTAGE_rl
+tpms_ECU_HIGH_VOLTAGE_rr
+tpms_ECU_LOW_VOLTAGE_fl
+tpms_ECU_LOW_VOLTAGE_fr
+tpms_ECU_LOW_VOLTAGE_rl
+tpms_ECU_LOW_VOLTAGE_rr
+tpms_FL_WS_IR_CRE_TEMP_1
+tpms_FL_WS_IR_CRE_TEMP_2
+tpms_FL_WS_IR_ERROR
+tpms_FL_WS_IR_TEMP_12
+tpms_FL_WS_IR_TEMP_13
+tpms_FL_WS_IR_TEMP_15
+tpms_FL_WS_IR_TEMP_17
+tpms_FL_WS_IR_TEMP_18
+tpms_FL_WS_IR_TEMP_19
+tpms_FL_WS_IR_TEMP_20
+tpms_FL_WS_IR_TEMP_21
+tpms_FL_WS_IR_TEMP_22
+tpms_FL_WS_IR_TEMP_23
+tpms_FL_WS_IR_TEMP_27
+tpms_FL_WS_IR_TEMP_6
+tpms_FL_WS_IR_TEMP_9
+tpms_FR_WS_IR_CRE_TEMP_1
+tpms_FR_WS_IR_CRE_TEMP_2
+tpms_FR_WS_IR_ERROR
+tpms_FR_WS_IR_TEMP_12
+tpms_FR_WS_IR_TEMP_13
+tpms_FR_WS_IR_TEMP_15
+tpms_FR_WS_IR_TEMP_17
+tpms_FR_WS_IR_TEMP_18
+tpms_FR_WS_IR_TEMP_19
+tpms_FR_WS_IR_TEMP_20
+tpms_FR_WS_IR_TEMP_21
+tpms_FR_WS_IR_TEMP_22
+tpms_FR_WS_IR_TEMP_23
+tpms_FR_WS_IR_TEMP_27
+tpms_FR_WS_IR_TEMP_6
+tpms_FR_WS_IR_TEMP_9
+tpms_RL_WS_IR_CRE_TEMP_1
+tpms_RL_WS_IR_CRE_TEMP_2
+tpms_RL_WS_IR_ERROR
+tpms_RL_WS_IR_TEMP_12
+tpms_RL_WS_IR_TEMP_13
+tpms_RL_WS_IR_TEMP_15
+tpms_RL_WS_IR_TEMP_17
+tpms_RL_WS_IR_TEMP_18
+tpms_RL_WS_IR_TEMP_19
+tpms_RL_WS_IR_TEMP_20
+tpms_RL_WS_IR_TEMP_21
+tpms_RL_WS_IR_TEMP_22
+tpms_RL_WS_IR_TEMP_23
+tpms_RL_WS_IR_TEMP_27
+tpms_RL_WS_IR_TEMP_6
+tpms_RL_WS_IR_TEMP_9
+tpms_RR_WS_IR_CRE_TEMP_1
+tpms_RR_WS_IR_CRE_TEMP_2
+tpms_RR_WS_IR_ERROR
+tpms_RR_WS_IR_TEMP_12
+tpms_RR_WS_IR_TEMP_13
+tpms_RR_WS_IR_TEMP_15
+tpms_RR_WS_IR_TEMP_17
+tpms_RR_WS_IR_TEMP_18
+tpms_RR_WS_IR_TEMP_19
+tpms_RR_WS_IR_TEMP_20
+tpms_RR_WS_IR_TEMP_21
+tpms_RR_WS_IR_TEMP_22
+tpms_RR_WS_IR_TEMP_23
+tpms_RR_WS_IR_TEMP_27
+tpms_RR_WS_IR_TEMP_6
+tpms_RR_WS_IR_TEMP_9
+tpms_VEH_SPEED_RX_TIMEOUT_fl
+tpms_VEH_SPEED_RX_TIMEOUT_fr
+tpms_VEH_SPEED_RX_TIMEOUT_rl
+tpms_VEH_SPEED_RX_TIMEOUT_rr
+tpms_WS_ACCEL_ERR_fl
+tpms_WS_ACCEL_ERR_fr
+tpms_WS_ACCEL_ERR_rl
+tpms_WS_ACCEL_ERR_rr
+tpms_WS_BATTERY_ERR_fl
+tpms_WS_BATTERY_ERR_fr
+tpms_WS_BATTERY_ERR_rl
+tpms_WS_BATTERY_ERR_rr
+tpms_WS_BATTERY_LOW_fl
+tpms_WS_BATTERY_LOW_fr
+tpms_WS_BATTERY_LOW_rl
+tpms_WS_BATTERY_LOW_rr
+tpms_WS_FW_MAJOR_fl
+tpms_WS_FW_MAJOR_fr
+tpms_WS_FW_MAJOR_rl
+tpms_WS_FW_MAJOR_rr
+tpms_WS_FW_MINOR_fl
+tpms_WS_FW_MINOR_fr
+tpms_WS_FW_MINOR_rl
+tpms_WS_FW_MINOR_rr
+tpms_WS_GAS_LOSS_WRN_fl
+tpms_WS_GAS_LOSS_WRN_fr
+tpms_WS_GAS_LOSS_WRN_rl
+tpms_WS_GAS_LOSS_WRN_rr
+tpms_WS_HIGH_TEMP_WRN_fl
+tpms_WS_HIGH_TEMP_WRN_fr
+tpms_WS_HIGH_TEMP_WRN_rl
+tpms_WS_HIGH_TEMP_WRN_rr
+tpms_WS_ID_fl
+tpms_WS_ID_fr
+tpms_WS_ID_rl
+tpms_WS_ID_rr
+tpms_WS_NOT_CONFIRMED_fl
+tpms_WS_NOT_CONFIRMED_fr
+tpms_WS_NOT_CONFIRMED_rl
+tpms_WS_NOT_CONFIRMED_rr
+tpms_WS_NOT_DETECTED_fl
+tpms_WS_NOT_DETECTED_fr
+tpms_WS_NOT_DETECTED_rl
+tpms_WS_NOT_DETECTED_rr
+tpms_WS_PRESSURE_ERR_fl
+tpms_WS_PRESSURE_ERR_fr
+tpms_WS_PRESSURE_ERR_rl
+tpms_WS_PRESSURE_ERR_rr
+tpms_WS_RBL_LOW_fl
+tpms_WS_RBL_LOW_fr
+tpms_WS_RBL_LOW_rl
+tpms_WS_RBL_LOW_rr
+tpms_WS_RBL_fl[%]
+tpms_WS_RBL_fr[%]
+tpms_WS_RBL_rl[%]
+tpms_WS_RBL_rr[%]
+tpms_WS_RX_RSSI_fl[dBm]
+tpms_WS_RX_RSSI_fr[dBm]
+tpms_WS_RX_RSSI_rl[dBm]
+tpms_WS_RX_RSSI_rr[dBm]
+tpms_WS_RX_TIMEOUT_fl
+tpms_WS_RX_TIMEOUT_fr
+tpms_WS_RX_TIMEOUT_rl
+tpms_WS_RX_TIMEOUT_rr
+tpms_WS_SENSOR_TYPE_fl
+tpms_WS_SENSOR_TYPE_fr
+tpms_WS_SENSOR_TYPE_rl
+tpms_WS_SENSOR_TYPE_rr
+tpms_WS_TEMPERATURE_ERR_fl
+tpms_WS_TEMPERATURE_ERR_fr
+tpms_WS_TEMPERATURE_ERR_rl
+tpms_WS_TEMPERATURE_ERR_rr
+tpms_WS_UNDER_PRESS_HARD_WRN_fl
+tpms_WS_UNDER_PRESS_HARD_WRN_fr
+tpms_WS_UNDER_PRESS_HARD_WRN_rl
+tpms_WS_UNDER_PRESS_HARD_WRN_rr
+tpms_WS_UNDER_PRESS_SOFT_WRN_fl
+tpms_WS_UNDER_PRESS_SOFT_WRN_fr
+tpms_WS_UNDER_PRESS_SOFT_WRN_rl
+tpms_WS_UNDER_PRESS_SOFT_WRN_rr
+tpms_ecu_fw_version_fl
+tpms_ecu_fw_version_fr
+tpms_ecu_fw_version_rl
+tpms_ecu_fw_version_rr
+tpms_ecu_major_fl_diag
+tpms_ecu_major_fr_diag
+tpms_ecu_major_rl_diag
+tpms_ecu_major_rr_diag
+tpms_ecu_major_target
+tpms_ecu_minor_fl_diag
+tpms_ecu_minor_fr_diag
+tpms_ecu_minor_rl_diag
+tpms_ecu_minor_rr_diag
+tpms_ecu_minor_target
+tpms_get_IR_warn_fl[�C]
+tpms_get_IR_warn_fr[�C]
+tpms_get_IR_warn_rl[�C]
+tpms_get_IR_warn_rr[�C]
+tpms_get_RBL_low_fl[%]
+tpms_get_RBL_low_fr[%]
+tpms_get_RBL_low_rl[%]
+tpms_get_RBL_low_rr[%]
+tpms_get_mseq_fl
+tpms_get_mseq_fr
+tpms_get_mseq_rl
+tpms_get_mseq_rr
+tpms_get_press_flat_fl[bar]
+tpms_get_press_flat_fr[bar]
+tpms_get_press_flat_rl[bar]
+tpms_get_press_flat_rr[bar]
+tpms_get_press_hard_fl[bar]
+tpms_get_press_hard_fr[bar]
+tpms_get_press_hard_rl[bar]
+tpms_get_press_hard_rr[bar]
+tpms_get_press_soft_fl[bar]
+tpms_get_press_soft_fr[bar]
+tpms_get_press_soft_rl[bar]
+tpms_get_press_soft_rr[bar]
+tpms_get_rapid_loss_fl[bar/min]
+tpms_get_rapid_loss_fr[bar/min]
+tpms_get_rapid_loss_rl[bar/min]
+tpms_get_rapid_loss_rr[bar/min]
+tpms_get_sign_fl
+tpms_get_sign_fr
+tpms_get_sign_rl
+tpms_get_sign_rr
+tpms_get_temp_high_fl[�C]
+tpms_get_temp_high_fr[�C]
+tpms_get_temp_high_rl[�C]
+tpms_get_temp_high_rr[�C]
+tpms_p_warn_fl
+tpms_p_warn_fr
+tpms_p_warn_rl
+tpms_p_warn_rr
+tpms_press_fl[bar]
+tpms_press_fl_abs[bar]
+tpms_press_fl_dash
+tpms_press_fl_raw[bar]
+tpms_press_fr[bar]
+tpms_press_fr_abs[bar]
+tpms_press_fr_dash
+tpms_press_fr_raw[bar]
+tpms_press_rl[bar]
+tpms_press_rl_abs[bar]
+tpms_press_rl_dash
+tpms_press_rl_raw[bar]
+tpms_press_rr[bar]
+tpms_press_rr_abs[bar]
+tpms_press_rr_dash
+tpms_press_rr_raw[bar]
+tpms_state_fl_dash
+tpms_state_fr_dash
+tpms_state_rl_dash
+tpms_state_rr_dash
+tpms_temp_fl[�C]
+tpms_temp_fl_dash
+tpms_temp_fr[�C]
+tpms_temp_fr_dash
+tpms_temp_rl[�C]
+tpms_temp_rl_dash
+tpms_temp_rr[�C]
+tpms_temp_rr_dash
+tpms_warn_hard
+tpms_warn_soft
+tpms_ws_major_fl_diag
+tpms_ws_major_fr_diag
+tpms_ws_major_rl_diag
+tpms_ws_major_rr_diag
+tpms_ws_major_target
+tpms_ws_minor_fl_diag
+tpms_ws_minor_fr_diag
+tpms_ws_minor_rl_diag
+tpms_ws_minor_rr_diag
+tpms_ws_minor_target
+warn_ABS_OFF
+warn_SOC
+warn_abs_diag
+warn_abs_setting
+warn_brk_switch
+warn_brkbias
+warn_ccu_backup
+warn_eps
+warn_esw
+warn_map0
+warn_oillvl_low
+warn_start_btn
+warn_tyre_circ
