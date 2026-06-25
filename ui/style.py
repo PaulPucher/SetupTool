@@ -1,6 +1,33 @@
 # Global application stylesheet.
 # All colors and styles are defined here and applied once at startup.
 
+# Colour palette — used by stylesheet and by widget code for status colouring.
+# Keep all colour literals here so the app has one source of truth.
+
+# Base
+BG          = "#141414"
+PANEL       = "#1a1a1a"
+PANEL_ALT   = "#252525"
+BORDER      = "#2a2a2a"
+DIVIDER     = "#1e1e1e"
+
+# Text
+TEXT        = "#e0e0e0"
+TEXT_MUTED  = "#888"
+TEXT_DIM    = "#555"
+TEXT_FAINT  = "#444"
+
+# Accent
+ACCENT      = "#C0A060"
+ACCENT_HOVER = "#d4b472"
+ACCENT_PRESSED = "#a88c50"
+
+# Status colours (used for stability cards, validity flags, etc.)
+OK          = "#4CAF50"   # healthy / stabilising
+WARN        = "#C0A060"   # transition / borderline (same hue as accent on purpose)
+BAD         = "#c0392b"   # saturated / destabilising
+NEUTRAL     = "#444"      # no data / NaN
+
 STYLESHEET = """
     QMainWindow, QWidget {
         background-color: #141414;

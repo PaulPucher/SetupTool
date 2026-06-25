@@ -95,7 +95,50 @@
             "unit": "mm",
             "range": [0, 150],
             "required": false
+        },
+        "sclu_yaw_rate": {
+            "label": "Yaw Rate",
+            "unit": "rpm",
+            "range": [-300, 300],
+            "required": false
+        },
+        "VBOX_Lateral_acc": {
+            "label": "GPS Lateral Acceleration",
+            "unit": "g",
+            "range": [-5, 5],
+            "required": false
+        },
+        "VBOX_Velocity": {
+            "label": "GPS Speed",
+            "unit": "km/h",
+            "range": [0, 350],
+            "required": false
+        },
+        "VBOX_Heading": {
+            "label": "GPS Heading",
+            "unit": "deg",
+            "range": [0, 360],
+            "required": false
+        },
+        "gpsa_lat": {
+            "label": "GPS Latitude",
+            "unit": "deg",
+            "range": [-90, 90],
+            "required": false
+        },
+        "gpsa_long": {
+            "label": "GPS Longitude",
+            "unit": "deg",
+            "range": [-180, 180],
+            "required": false
+        },
+        "VBOX_Longitudinal_acc": {
+            "label": "GPS Longitudinal Acceleration",
+            "unit": "g",
+            "range": [-5, 5],
+            "required": false
         }
+
     },
     "corner_speed_thresholds": {
         "low_max": 80,

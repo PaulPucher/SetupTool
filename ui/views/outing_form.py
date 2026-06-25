@@ -9,16 +9,18 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QCheckBox,
     QHeaderView, QAbstractSpinBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QDateTime
+from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
 from models.base import Session
 from models.driver import Driver
 from models.outing import Outing
 from core.config_loader import get_setup_parameters
-from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
+from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
+
 
 class NoScrollSpinBox(QDoubleSpinBox):
     def wheelEvent(self, event):
         event.ignore()
+
 
 class NoScrollIntSpinBox(QSpinBox):
     def wheelEvent(self, event):
@@ -40,6 +42,47 @@ class CsvLoaderThread(QThread):
             self.finished.emit(result)
         except Exception as e:
             self.error.emit(str(e))
+
+
+class StabilityAnalysisThread(QThread):
+    finished = pyqtSignal(object)
+    error = pyqtSignal(str)
+
+    def __init__(self, parsed_data, lap_filter):
+        super().__init__()
+        self.parsed_data = parsed_data
+        self.lap_filter = lap_filter
+
+    def run(self):
+        try:
+            from modules.stability_analysis import (
+                load_parameters, prepare_vehicle_state, estimate_sideslip,
+                estimate_slip_angles, estimate_lateral_forces,
+                estimate_cornering_stiffness, estimate_yaw_moment_stability,
+                summarise_corners,
+            )
+            params = load_parameters()
+            state = prepare_vehicle_state(self.parsed_data["channels"], params)
+            if state is None:
+                self.error.emit("Required channels missing or failed")
+                return
+            beta = estimate_sideslip(state, params)
+            slip = estimate_slip_angles(state, beta, params)
+            forces = estimate_lateral_forces(state, params)
+            cs = estimate_cornering_stiffness(slip, forces, state, params)
+            stab = estimate_yaw_moment_stability(state, beta, params)
+            corners = self.parsed_data.get("corners", [])
+            summaries = summarise_corners(corners, cs, stab, state,
+                                          lap_filter=self.lap_filter)
+            self.finished.emit({
+                "summaries": summaries,
+                "state": state,
+                "cs": cs,
+                "stab": stab,
+            })
+        except Exception as e:
+            self.error.emit(str(e))
+
 
 class OutingForm(QWidget):
     def __init__(self, weekend, on_back, outing=None):
@@ -73,6 +116,7 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._build_data_section())
         self.content_layout.addWidget(self._build_setup_section("setup"))
         self.content_layout.addWidget(self._build_setdown_toggle())
+        self.content_layout.addWidget(self._build_stability_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
         self.content_layout.addWidget(self._build_comments_section())
         self.content_layout.addStretch()
@@ -84,6 +128,235 @@ class OutingForm(QWidget):
 
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
+
+    def _stability_colour(self, kind, value):
+        if value is None or (isinstance(value, float) and value != value):
+            return NEUTRAL
+        if kind == "cs":
+            if value >= 0.7:
+                return OK
+            if value >= 0.4:
+                return WARN
+            return BAD
+        if kind == "stab":
+            if value > 500:
+                return OK
+            if value > -200:
+                return WARN
+            return BAD
+        return TEXT_MUTED
+
+    def _classify_corner(self, summary):
+        STRONG_CS = 0.40
+        MODERATE_CS = 0.55
+        STAB_NEG_THRESH = 0.0
+
+        worst_f_phase = None
+        worst_f_val = 1.0
+        worst_r_phase = None
+        worst_r_val = 1.0
+        worst_stab_phase = None
+        worst_stab_val = 1e9
+
+        phase_labels = {
+            "entry_1_brake": "brake",
+            "entry_2_turnin": "turn-in",
+            "apex_3": "apex",
+            "exit_4": "early exit",
+            "exit_5": "late exit",
+        }
+
+        for phase, p in summary["phases"].items():
+            csf = p["cs_ratio_f"]["median"]
+            csr = p["cs_ratio_r"]["median"]
+            sob = p["stability_observed_Nm_per_deg"]["median"]
+            if csf == csf and csf < worst_f_val:
+                worst_f_val = csf
+                worst_f_phase = phase
+            if csr == csr and csr < worst_r_val:
+                worst_r_val = csr
+                worst_r_phase = phase
+            if sob == sob and sob < worst_stab_val:
+                worst_stab_val = sob
+                worst_stab_phase = phase
+
+        verdicts = []
+        severity = "normal"
+
+        front_strong = worst_f_val < STRONG_CS
+        rear_strong = worst_r_val < STRONG_CS
+        front_moderate = STRONG_CS <= worst_f_val < MODERATE_CS
+        rear_moderate = STRONG_CS <= worst_r_val < MODERATE_CS
+
+        if front_strong and rear_strong:
+            verdicts.append(
+                f"both axles saturated at {phase_labels[worst_f_phase]}"
+            )
+            severity = "strong"
+        elif front_strong:
+            verdicts.append(
+                f"strong understeer at {phase_labels[worst_f_phase]} "
+                f"(front {worst_f_val:.2f})"
+            )
+            severity = "strong"
+        elif rear_strong:
+            verdicts.append(
+                f"strong oversteer at {phase_labels[worst_r_phase]} "
+                f"(rear {worst_r_val:.2f})"
+            )
+            severity = "strong"
+        elif front_moderate and rear_moderate:
+            verdicts.append(
+                f"both axles working hard at {phase_labels[worst_f_phase]}"
+            )
+            severity = "moderate"
+        elif front_moderate:
+            verdicts.append(
+                f"mild understeer at {phase_labels[worst_f_phase]} "
+                f"(front {worst_f_val:.2f})"
+            )
+            severity = "moderate"
+        elif rear_moderate:
+            verdicts.append(
+                f"mild oversteer at {phase_labels[worst_r_phase]} "
+                f"(rear {worst_r_val:.2f})"
+            )
+            severity = "moderate"
+
+        if worst_stab_val == worst_stab_val and worst_stab_val < STAB_NEG_THRESH:
+            verdicts.append(
+                f"destabilising yaw moment at {phase_labels[worst_stab_phase]} "
+                f"({worst_stab_val:.0f} Nm/deg)"
+            )
+            if severity == "normal":
+                severity = "moderate"
+            elif severity == "moderate":
+                severity = "strong"
+
+        if not verdicts:
+            verdicts.append("within normal range")
+
+        colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
+        return severity, " · ".join(verdicts), colour_map[severity]
+
+    def _build_corner_card(self, summary):
+        card = QWidget()
+        card.setStyleSheet(
+            f"background-color: {PANEL}; border: 1px solid {BORDER}; border-radius: 4px;"
+        )
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(10, 8, 10, 8)
+        card_layout.setSpacing(6)
+
+        severity, verdict, colour = self._classify_corner(summary)
+
+        header = QWidget()
+        h_layout = QHBoxLayout(header)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.setSpacing(10)
+
+        title = QLabel(
+            f"Lap {summary['lap_number']} · Corner {summary['corner_number']}  "
+            f"<span style='color:{TEXT_DIM};'>({summary['speed_class']}, "
+            f"{summary['apex_speed']:.0f} km/h, t={summary['apex_time']:.1f}s)</span>"
+        )
+        title.setStyleSheet(f"color: {TEXT}; font-size: 12px;")
+        title.setTextFormat(Qt.TextFormat.RichText)
+
+        verdict_badge = QLabel(verdict)
+        verdict_badge.setStyleSheet(
+            f"background-color: {colour}; color: #111; "
+            "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
+        )
+
+        btn_jump = QPushButton("→ plot")
+        btn_jump.setFixedWidth(70)
+        btn_jump.setStyleSheet(
+            f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; "
+            "font-size: 10px; padding: 2px 6px;"
+        )
+        btn_jump.clicked.connect(lambda _, t=summary["apex_time"]:
+                                 self._jump_plot_to_time(t))
+
+        btn_expand = QPushButton("▶ details")
+        btn_expand.setCheckable(True)
+        btn_expand.setFixedWidth(80)
+        btn_expand.setStyleSheet(
+            f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; "
+            "font-size: 10px; padding: 2px 6px;"
+        )
+
+        h_layout.addWidget(title)
+        h_layout.addWidget(verdict_badge)
+        h_layout.addStretch()
+        h_layout.addWidget(btn_jump)
+        h_layout.addWidget(btn_expand)
+        card_layout.addWidget(header)
+
+        details = QWidget()
+        d_layout = QVBoxLayout(details)
+        d_layout.setContentsMargins(0, 6, 0, 0)
+        d_layout.setSpacing(2)
+
+        phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
+        phase_labels = {
+            "entry_1_brake": "Brake",
+            "entry_2_turnin": "Turn-in",
+            "apex_3": "Apex",
+            "exit_4": "Exit 4",
+            "exit_5": "Exit 5",
+        }
+
+        rows_html = (
+            f"<table cellpadding='2' style='font-size:10px;'>"
+            f"<tr>"
+            f"<th align='left' style='color:{TEXT_DIM};'>phase</th>"
+            f"<th style='color:{TEXT_DIM};'>n</th>"
+            f"<th style='color:{TEXT_DIM};'>valid</th>"
+            f"<th style='color:{TEXT_DIM};'>CSf med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>CSr med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>Stab med [p25..p75]</th>"
+            f"</tr>"
+        )
+        for phase in phase_keys:
+            p = summary["phases"][phase]
+            csf = p["cs_ratio_f"]
+            csr = p["cs_ratio_r"]
+            sob = p["stability_observed_Nm_per_deg"]
+            csf_colour = self._stability_colour("cs", csf["median"])
+            csr_colour = self._stability_colour("cs", csr["median"])
+            sob_colour = self._stability_colour("stab", sob["median"])
+            csf_str = (f"{csf['median']:.2f} [{csf['p25']:.2f}..{csf['p75']:.2f}]"
+                       if csf["n"] > 0 else "—")
+            csr_str = (f"{csr['median']:.2f} [{csr['p25']:.2f}..{csr['p75']:.2f}]"
+                       if csr["n"] > 0 else "—")
+            sob_str = (f"{sob['median']:.0f} [{sob['p25']:.0f}..{sob['p75']:.0f}]"
+                       if sob["n"] > 0 else "—")
+            rows_html += (
+                f"<tr>"
+                f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:40px;'>{p['n_samples']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:50px;'>{p['valid_fraction_stab']*100:.0f}%</td>"
+                f"<td style='color:{csf_colour}; width:160px;'>{csf_str}</td>"
+                f"<td style='color:{csr_colour}; width:160px;'>{csr_str}</td>"
+                f"<td style='color:{sob_colour}; width:180px;'>{sob_str}</td>"
+                f"</tr>"
+            )
+        rows_html += "</table>"
+
+        body = QLabel(rows_html)
+        body.setTextFormat(Qt.TextFormat.RichText)
+        d_layout.addWidget(body)
+
+        details.setVisible(False)
+        card_layout.addWidget(details)
+
+        btn_expand.toggled.connect(lambda checked, w=details, b=btn_expand: (
+            w.setVisible(checked),
+            b.setText("▼ details" if checked else "▶ details")
+        ))
+
+        return card, severity
 
     def _build_header(self):
         header = QWidget()
@@ -221,13 +494,29 @@ class OutingForm(QWidget):
         btn_load.setFixedWidth(120)
         btn_load.clicked.connect(self._load_csv)
 
+        self.btn_analyse = QPushButton("Analyse")
+        self.btn_analyse.setFixedWidth(100)
+        self.btn_analyse.clicked.connect(self._run_stability_analysis)
+        self.btn_analyse.setEnabled(False)
+
         self.csv_status_label = QLabel("No file loaded")
         self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
+        self.stability_status_label = QLabel("")
+        self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
+
         btn_layout.addWidget(btn_load)
+        btn_layout.addWidget(self.btn_analyse)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
         layout.addWidget(btn_row)
+
+        status_row = QWidget()
+        status_layout = QHBoxLayout(status_row)
+        status_layout.setContentsMargins(0, 0, 0, 0)
+        status_layout.addWidget(self.stability_status_label)
+        status_layout.addStretch()
+        layout.addWidget(status_row)
 
         self.exclude_inout_btn = QPushButton("Exclude In/Out Laps")
         self.exclude_inout_btn.setCheckable(True)
@@ -284,14 +573,26 @@ class OutingForm(QWidget):
         layout.addWidget(self.plot_container)
 
         return section
-    
+
     def _on_exclude_toggled(self, checked):
         if not self.parsed_data:
             return
         from modules.csv_parser import get_lap_summary
+        prev_value = None
+        cur_row = self.lap_table.currentRow()
+        if cur_row >= 0:
+            item = self.lap_table.item(cur_row, 0)
+            if item is not None:
+                prev_value = item.data(Qt.ItemDataRole.UserRole)
         laps = get_lap_summary(self.parsed_data)
         self._populate_lap_table(laps)
-    
+        if prev_value is not None:
+            for r in range(self.lap_table.rowCount()):
+                it = self.lap_table.item(r, 0)
+                if it is not None and it.data(Qt.ItemDataRole.UserRole) == prev_value:
+                    self.lap_table.selectRow(r)
+                    break
+
     def _build_plot_widget(self):
         import pyqtgraph as pg
         pg.setConfigOption('background', '#141414')
@@ -368,7 +669,7 @@ class OutingForm(QWidget):
         self.pg_layout.scene().sigMouseMoved.connect(self._on_mouse_moved)
         container_layout.addWidget(self.pg_layout)
         return container
-    
+
     def _on_mouse_moved(self, pos):
         if not self.plot_items:
             return
@@ -380,7 +681,7 @@ class OutingForm(QWidget):
                 for line in self.crosshair_lines.values():
                     line.setPos(x)
                 break
-    
+
     def _on_lap_selected(self, row, col):
         lap_item = self.lap_table.item(row, 0)
         if not lap_item:
@@ -463,24 +764,15 @@ class OutingForm(QWidget):
         self.progress.setWindowModality(Qt.WindowModality.WindowModal)
         self.progress.setMinimumDuration(0)
         self.progress.setStyleSheet("""
-            QProgressDialog {
-                background-color: #1a1a1a;
-                color: #e0e0e0;
-            }
-            QLabel {
-                color: #e0e0e0;
-                font-size: 12px;
-            }
+            QProgressDialog { background-color: #1a1a1a; color: #e0e0e0; }
+            QLabel { color: #e0e0e0; font-size: 12px; }
             QProgressBar {
                 background-color: #141414;
                 border: 1px solid #2a2a2a;
                 border-radius: 3px;
                 height: 6px;
             }
-            QProgressBar::chunk {
-                background-color: #C0A060;
-                border-radius: 3px;
-            }
+            QProgressBar::chunk { background-color: #C0A060; border-radius: 3px; }
         """)
         self.progress.show()
 
@@ -503,11 +795,191 @@ class OutingForm(QWidget):
         )
         self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
         self._populate_lap_table(laps)
+        self.btn_analyse.setEnabled(True)
 
     def _on_csv_error(self, error_msg):
         self.progress.close()
         self.csv_status_label.setText(f"Error loading file: {error_msg}")
         self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
+
+    def _get_lap_filter_from_selector(self):
+        if not self.parsed_data:
+            return None
+        all_laps = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
+        exclude_inout = self.exclude_inout_btn.isChecked()
+        valid_laps = [l["lap_number"] for l in self.parsed_data.get("laps", [])
+                      if l.get("is_valid_for_analysis", False)]
+        current_row = self.lap_table.currentRow()
+        selected_value = None
+        if current_row >= 0:
+            lap_item = self.lap_table.item(current_row, 0)
+            if lap_item is not None:
+                selected_value = lap_item.data(Qt.ItemDataRole.UserRole)
+        if selected_value is None or selected_value == "all":
+            if exclude_inout:
+                return valid_laps if valid_laps else all_laps
+            return all_laps
+        return [int(selected_value)]
+
+    def _run_stability_analysis(self):
+        if not self.parsed_data:
+            return
+        lap_filter = self._get_lap_filter_from_selector()
+        all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
+        exclude_state = self.exclude_inout_btn.isChecked()
+        sel_row = self.lap_table.currentRow()
+        sel_value = None
+        if sel_row >= 0:
+            item = self.lap_table.item(sel_row, 0)
+            if item is not None:
+                sel_value = item.data(Qt.ItemDataRole.UserRole)
+        print(f"[ANALYSE] selector_row={sel_row} selector_value={sel_value!r}  "
+              f"exclude_inout={exclude_state}  all_laps={all_lap_nums}  "
+              f"lap_filter={lap_filter}")
+        self.btn_analyse.setEnabled(False)
+        self.stability_status_label.setText(
+            f"Analysing laps {lap_filter}..."
+        )
+        self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
+        self.stab_thread = StabilityAnalysisThread(self.parsed_data, lap_filter)
+        self.stab_thread.finished.connect(self._on_stability_done)
+        self.stab_thread.error.connect(self._on_stability_error)
+        self.stab_thread.start()
+
+    def _on_stability_done(self, result):
+        self.stability_result = result
+        summaries = result["summaries"]
+        self.stability_status_label.setText(
+            f"Analysed {len(summaries)} corners. See Stability Analysis section."
+        )
+        self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+        self.btn_analyse.setEnabled(True)
+
+        self._clear_cards()
+        if not summaries:
+            self.stability_summary_label.setText("No corners in selected laps.")
+            return
+
+        strong_cards = []
+        moderate_cards = []
+        normal_cards = []
+        for s in summaries:
+            card, severity = self._build_corner_card(s)
+            if severity == "strong":
+                strong_cards.append(card)
+            elif severity == "moderate":
+                moderate_cards.append(card)
+            else:
+                normal_cards.append(card)
+
+        n_strong = len(strong_cards)
+        n_moderate = len(moderate_cards)
+        n_normal = len(normal_cards)
+
+        self.stability_summary_label.setText(
+            f"{len(summaries)} corners · "
+            f"<span style='color:{BAD};'>{n_strong} strong</span> · "
+            f"<span style='color:{WARN};'>{n_moderate} moderate</span> · "
+            f"<span style='color:{OK};'>{n_normal} normal</span>"
+        )
+        self.stability_summary_label.setTextFormat(Qt.TextFormat.RichText)
+        self.stability_summary_label.setStyleSheet("font-size: 11px;")
+
+        insert_pos = self.cards_host_layout.count() - 1
+        for card in strong_cards + moderate_cards:
+            self.cards_host_layout.insertWidget(insert_pos, card)
+            insert_pos += 1
+
+        if normal_cards:
+            divider = QLabel(f"— {n_normal} corners within normal range —")
+            divider.setStyleSheet(
+                f"color: {TEXT_DIM}; font-size: 10px; padding: 8px 0;"
+            )
+            divider.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.cards_host_layout.insertWidget(insert_pos, divider)
+            insert_pos += 1
+            for card in normal_cards:
+                self.cards_host_layout.insertWidget(insert_pos, card)
+                insert_pos += 1
+
+    def _build_stability_toggle(self):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        btn_toggle = QPushButton("▶ Stability Analysis")
+        btn_toggle.setStyleSheet(
+            f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
+            "padding: 8px 14px; text-align: left;"
+        )
+        btn_toggle.setCheckable(True)
+        btn_toggle.setChecked(False)
+        layout.addWidget(btn_toggle)
+
+        self.stability_panel = QWidget()
+        panel_layout = QVBoxLayout(self.stability_panel)
+        panel_layout.setContentsMargins(0, 8, 0, 0)
+        panel_layout.setSpacing(8)
+
+        self.stability_summary_label = QLabel(
+            "Click Analyse in the Data section to populate results."
+        )
+        self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        panel_layout.addWidget(self.stability_summary_label)
+
+        self.cards_scroll = QScrollArea()
+        self.cards_scroll.setWidgetResizable(True)
+        self.cards_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.cards_scroll.setMinimumHeight(400)
+
+        self.cards_host = QWidget()
+        self.cards_host_layout = QVBoxLayout(self.cards_host)
+        self.cards_host_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_host_layout.setSpacing(6)
+        self.cards_host_layout.addStretch()
+
+        self.cards_scroll.setWidget(self.cards_host)
+        panel_layout.addWidget(self.cards_scroll)
+
+        self.stability_panel.setVisible(False)
+        layout.addWidget(self.stability_panel)
+
+        btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
+            self.stability_panel.setVisible(checked),
+            btn.setText("▼ Stability Analysis" if checked else "▶ Stability Analysis")
+        ))
+
+        return container
+
+    def _clear_cards(self):
+        while self.cards_host_layout.count() > 1:
+            item = self.cards_host_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+    def _jump_plot_to_time(self, apex_t):
+        if not self.parsed_data:
+            return
+        for lap in self.parsed_data.get("laps", []):
+            if lap["start_time"] <= apex_t <= lap["end_time"]:
+                rel_t = apex_t - lap["start_time"]
+                first_key = self.plot_channels[0]["key"]
+                if first_key in self.plot_items:
+                    self._update_plots(lap["lap_number"])
+                    span = 6.0
+                    self.plot_items[first_key].setXRange(
+                        max(0, rel_t - span / 2),
+                        rel_t + span / 2,
+                        padding=0
+                    )
+                break
+
+    def _on_stability_error(self, msg):
+        self.stability_status_label.setText(f"Analysis failed: {msg}")
+        self.stability_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
+        self.btn_analyse.setEnabled(True)
 
     def _populate_lap_table(self, laps):
         from PyQt6.QtGui import QColor
@@ -584,7 +1056,7 @@ class OutingForm(QWidget):
                 )
                 self._update_plots(fastest_num)
                 break
-        
+
         if self.lap_table.rowCount() > 0:
             header_h = self.lap_table.horizontalHeader().height()
             total_row_h = sum(
@@ -594,7 +1066,6 @@ class OutingForm(QWidget):
             self.lap_table.setFixedHeight(header_h + total_row_h + 4)
             self.lap_table.setVisible(True)
             self.exclude_inout_btn.setVisible(True)
-
 
     def _build_setup_section(self, prefix="setup"):
         section = QWidget()
@@ -716,10 +1187,7 @@ class OutingForm(QWidget):
                 margin-top: 8px;
                 padding-top: 8px;
             }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-            }
+            QGroupBox::title { subcontrol-origin: margin; left: 8px; }
         """)
 
         layout = QVBoxLayout(group)
@@ -870,10 +1338,7 @@ class OutingForm(QWidget):
                 margin-top: 8px;
                 padding-top: 8px;
             }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-            }
+            QGroupBox::title { subcontrol-origin: margin; left: 8px; }
         """)
         weights_layout = QVBoxLayout(weights_group)
         weights_layout.setSpacing(4)
@@ -940,10 +1405,7 @@ class OutingForm(QWidget):
                 margin-top: 8px;
                 padding-top: 8px;
             }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 8px;
-            }
+            QGroupBox::title { subcontrol-origin: margin; left: 8px; }
         """)
         car_layout = QVBoxLayout(car_group)
         car_layout.setSpacing(4)

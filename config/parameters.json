@@ -1,0 +1,48 @@
+{
+    "vehicle": {
+        "wheelbase_m": 2.505,
+        "mass_kg": 1356.0,
+        "mass_note": "Measured with setup wheel adapters, 75kg driver, 35kg fuel. Adapters cancel in ratios.",
+        "driver_mass_ref_kg": 75.0,
+        "fuel_mass_ref_kg": 35.0,
+        "corner_weights": {
+            "FL_kg": 290.0,
+            "FR_kg": 290.0,
+            "RL_kg": 395.0,
+            "RR_kg": 381.0,
+            "note": "RR calculated: total - FL - FR - RL. Measured on setup patch including adapters."
+        },
+        "yaw_inertia_kgm2": 2082.0,
+        "yaw_inertia_note": "Estimated from Iz = m*a*b bicycle model approximation. Error ~10-20%. Replace with homologation value when available.",
+        "steering_ratio": 15.7,
+        "steering_ratio_note": "Read from steering ratio lookup table at centre wheel travel and zero steering stroke. Treated as constant at Level 1.",
+        "cog_to_front_axle_m": 1.433,
+        "cog_to_rear_axle_m": 1.072,
+        "cog_note": "Derived from static weight distribution. a = L * rear_fraction, b = L * front_fraction."
+    },
+
+    "stability_estimation": {
+    "yaw_rate_unit": "rpm",
+    "yaw_rate_to_radps": 0.10472,
+    "cs_filter_cutoff_hz": 2.0,
+    "cs_min_slip_angle_span_rad": 0.02,
+    "cs_linear_slip_threshold_rad": 0.021,
+    "beta_washout_cutoff_hz": 0.05,
+    "yaw_accel_filter_cutoff_hz": 5.0,
+    "stability_min_beta_span_rad": 0.01,
+    "stability_regression_window_s": 2.0,
+
+    "_comment_cs_fallback": "Fallback cornering stiffness references. Derived from axle normal load × C_alpha/Fz = 12 rad⁻¹ (Milliken & Milliken, RCVD, GT3 slick). Front: (290+290)*9.81*12 = 68268. Rear: (395+381)*9.81*12 = 91343. Used as C_linear_ref when OLS cannot resolve the linear stiffness from data (insufficient alpha excitation on rear axle). Accuracy Level 1.",
+    "cs_front_fallback_reference_n_per_rad": 68268,
+    "cs_rear_fallback_reference_n_per_rad": 91343
+    },
+    "accuracy_levels": {
+        "mass": 1,
+        "cog_position": 1,
+        "yaw_inertia": 1,
+        "steering_ratio": 1,
+        "lateral_force_split": 1,
+        "sideslip_angle": 1,
+        "note": "1=config default, 2=session measurement, 3=logged sensor, 4=lookup table. Upgrade each node independently."
+    }
+}
