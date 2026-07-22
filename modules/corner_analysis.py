@@ -14,6 +14,14 @@
 #        Apex 3           — apex point (single sample)
 #        Exit 4           — apex → 50% of steering unwind
 #        Exit 5           — 50% of steering unwind → steering exit threshold
+#   6. Merge same-direction adjacent brackets separated by a short time gap
+#      (stabilises corners with a momentary mid-corner steering dip; opposite-
+#      direction pairs, i.e. chicanes, are left as separate brackets)
+#   7. Cross-lap identity (assign_stable_corner_ids): link corners across laps
+#      by bracket-span overlap fraction along lap_distance; connected
+#      components are candidate clusters, with same-lap exclusivity enforced
+#      by a deterministic seeded split where one lap's bracket straddles what
+#      other laps detect as two distinct corners
 #
 # Fallback chain:
 #   - No steering channel: use speed minima with prominence threshold
@@ -21,7 +29,6 @@
 #   - No throttle channel: Entry 1 (Brake) collapses to start of bracket
 
 import json
-import os
 import numpy as np
 
 CHANNELS_CONFIG_PATH = "config/channels.json"

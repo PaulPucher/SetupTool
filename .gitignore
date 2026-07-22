@@ -24,3 +24,7 @@ Thumbs.db
 # Handover document — local only
 HANDOVER.md
 generate_handover.py
+
+# Diagnostic script outputs — reproducible, not source
+diagnostics/*.txt
+diagnostics/*.png

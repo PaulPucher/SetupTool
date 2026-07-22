@@ -89,7 +89,9 @@ Pi Toolbox ASCII format (.txt). Key properties:
 - European decimal notation (comma → period)
 - Channel names include unit suffix — parser strips before matching
 - Variable sample rates per channel
-- Currently 23 channels configured including sclu_yaw_rate and GPS/VBOX placeholders
+- Currently 26 channels configured, including sclu_yaw_rate and the real GPS
+  position channels (log_gps_lat/log_gps_lon); gpsa_lat/gpsa_long/VBOX_* are
+  configured but absent from the current sample file
 
 ## Data pipeline
 1. Parser reads file, loads only channels in channels.json
@@ -100,11 +102,26 @@ Pi Toolbox ASCII format (.txt). Key properties:
 6. Stability analysis (stability_analysis.py) — separate from parser, triggered from UI
 
 ## Corner segmentation
-Steering angle threshold bracketing with hysteresis (entry 25°, exit 15°).
-Lateral G apex detection, speed fallback, five-phase segment boundaries.
-All parameters config-driven in channels.json corner_detection block.
-Known limitation: corner count may vary 13-15 per lap on 16-corner layout.
-Track-anchored detection identified as future improvement.
+Dual-criterion bracketing with hysteresis: enter on steering angle (25°) OR
+lateral G (0.6g); exit only when both drop below their thresholds (15°,
+0.35g). Steering alone is systematically marginal in fast corners (delta
+scales inversely with radius); lateral G answers "is the car cornering"
+directly. Same-direction adjacent brackets separated by a short time gap are
+merged (chicanes, which reverse direction, are left as separate brackets).
+Brackets longer than 300 m are flagged "compound_corner" (sustained-G
+double-apex corner, not two events linked by a straight).
+Lateral G apex detection within each bracket, speed fallback if no steering
+channel, five-phase segment boundaries. All parameters config-driven in
+channels.json corner_detection block.
+Cross-lap corner identity (assign_stable_corner_ids in corner_analysis.py):
+corners are linked across laps by bracket-span overlap fraction along
+lap_distance, not apex position (a single peak-G point moves within a
+bracket lap-to-lap in a way the bracket boundaries don't). Connected
+components are candidate clusters; same-lap exclusivity is a hard
+constraint enforced by a deterministic seeded split where one lap's bracket
+straddles what other laps detect as two distinct corners
+("straddles_adjacent_corners" warning marks this). stable_corner_id is
+consistent across laps for the same physical corner.
 
 ## Driver Feedback
 Corner-by-corner table, configurable 1-30 corners.
@@ -142,8 +159,10 @@ Module 5 — estimate_yaw_moment_stability(): Iz·ψ̈ → Mz_inertial,
   Positive c_β = stabilising (Suzuka convention).
 Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
   lap_filter argument (UI selector translates to lap numbers), apex_3 window
-  expansion ±5 samples, placeholders for apex_position_x_m, apex_position_y_m,
-  stable_corner_id (track-map module fills these later).
+  expansion ±5 samples. apex_position_x_m/y_m filled from log_gps_lat/lon via
+  a local equirectangular projection (origin = first GPS sample, fine at
+  track scale); stable_corner_id passed through from the cross-lap
+  clustering in corner_analysis.py.
 
 ### Verified output on Dubai sample (5 valid laps, 50 Hz, 40 800 samples)
 - β: −4.29° to +2.91°, mean abs 0.87°, std 1.11°
@@ -155,7 +174,9 @@ Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
 - Implied C_linear_ref front 158 k / rear 190 k N/rad (within expected 80-180 k band)
 - Yaw acceleration ±5.5 rad/s², Mz_inertial ±11 kNm
 - Stability observed median 2547 Nm/deg, 93 % positive (stabilising), 7 % negative
-- 72 corners detected across 5 laps, per-corner output captures understeer signature
+- 64 corners detected across 5 laps (dual-criterion detection + bracket-merge),
+  clustering into 15 stable cross-lap corner identities (11 full 5-lap
+  clusters + 3 compound-straddle partial + 1 genuine singleton)
 
 ### Documented Level 1 limitations (for thesis)
 1. Static weight split for Fy (overstates rear on roll-stiff GT3)
@@ -177,12 +198,18 @@ Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
 ui/views/outing_form.py:
 - "Analyse" button in the Data section (enabled once a CSV is loaded)
 - StabilityAnalysisThread runs Modules 1–6 in the background
-- Lap selector + Exclude In/Out toggle translate to a lap_filter list
+- Lap selector: single-select table with an explicit "All laps" row;
+  click-to-select, click-again-to-deselect (toggles back to "All laps",
+  highlight moves visibly rather than leaving no row selected), plus a
+  "Clear Selection" button; + Exclude In/Out toggle. Both translate to a
+  lap_filter list.
 - Collapsible "Stability Analysis" section between Setdown and Driver Feedback
-- Per-corner cards with severity-based plain-English verdict
-  ("strong understeer at turn-in", "destabilising yaw moment at apex", etc.)
-- Cards grouped by severity: strong (red) → moderate (amber) → divider → normal (green)
-- Each card expands to full per-phase table (CSf, CSr, Stab medians + IQR)
+- Grid keyed by stable_corner_id, not per-lap corner_number: one column per
+  stable id found across the analysed laps, ascending; a lap missing that
+  corner shows a dim NEUTRAL placeholder cell ("—", not clickable) instead
+  of a gap or shifted numbering. Cell label reads "C{stable_corner_id}".
+- Each cell expands inline to a full per-phase table (CSf, CSr, Stab
+  medians + IQR)
 - Click "→ plot" jumps the channel plot to the corner's apex time
 
 ## UI style
@@ -231,8 +258,10 @@ used both by the global stylesheet and by widget code for status colouring.
 - config/parameters.json — vehicle constants + stability estimation parameters
 
 ## Current status
-Phase 5 (stability analysis Level 1) functionally complete.
-End-to-end pipeline: load CSV → Analyse → verdict-coloured per-corner cards in UI.
+WP1 complete (cross-lap corner identity + detection robustness), baseline
+repo cleanup done. Modules 1-6, corner segmentation, and the UI grid all
+reflect the current dual-criterion, interval-overlap-clustered state.
+WP2 (recommendation engine) is next — see PLAN.md for the full work plan.
 
 ### Done
 - Full PyQt6 app: dark theme, topbar logos, sidebar navigation
@@ -240,36 +269,37 @@ End-to-end pipeline: load CSV → Analyse → verdict-coloured per-corner cards 
 - Outing form: session, setup (3-col, per-corner dampers, mirror), setdown, feedback, comments
 - PDF export: A4, light theme, print setup/setdown
 - CSV parser: Pi Toolbox ASCII, selective loading, quality flags, lap splitting/verification
-- pyqtgraph plot: stacked traces, crosshair, lap selector, auto-range, in/out exclusion
-- Corner segmentation: steering threshold + lateral G apex + five phases
-- Stability Modules 1-6: full documented Werner method, yaw stability, per-corner aggregation
+- pyqtgraph plot: stacked traces, crosshair, lap selector (toggle/clear), auto-range, in/out exclusion
+- Corner segmentation: dual-criterion (steering OR ay) bracketing, same-
+  direction bracket-merge, compound-corner flagging, five phases
+- Cross-lap corner identity: interval-overlap + connected-components
+  clustering with same-lap-exclusive seeded splitting; stable_corner_id +
+  GPS-derived apex position
+- Stability Modules 1-6: full documented Werner method, yaw stability,
+  kerb/jump exclusion, data-driven AND-logic severity classification,
+  per-corner aggregation
 - UI integration: Analyse button, background thread, lap-filter-aware,
-  collapsible section, verdict-based corner cards with expand-for-details
+  collapsible section, stable_corner_id grid with placeholder cells,
+  expand-for-details
 - Shared colour-constant module in ui/style.py
 
 ### To-do (next session, in priority order)
-1. Tighten verdict thresholds — 10/14 corners flagged "strong" on Dubai is too eager.
-   CS thresholds need tightening, and "strong" should likely require combined conditions
-   (CS drop AND negative stability) rather than either alone.
-2. UI layout rework — corner grid: laps stacked vertically, corners horizontal within
-   each lap and ordered by number, severity shown by cell colour.
-3. Curb/jump exclusion — vertical-G or wheel-speed-deviation gate to flag samples
-   affected by kerbs and exclude them from CS regression and stability windows.
-4. Data lifecycle — Clear loaded data button, behaviour on loading a different CSV,
-   verify edit+reload+reanalyse for existing outings.
-5. Performance — UI lag with 72 cards; grid layout may help, profile before assuming.
-   Module 5 subsampling + caching also deferred from this session.
-6. Track-map module — dead-reckon v + ψ̇ with lap closure correction; cross-lap
-   corner ID via spatial clustering of apex positions; numbered colour-coded
-   corners as primary stability interface.
+1. WP2 — Recommendation engine framework (modules/recommendation.py,
+   config/recommendations.json, rule-based ranked suggestions with an
+   evidence trail). Full spec in PLAN.md.
+2. WP3 — Driver feedback vs. analysis comparison view.
+3. WP3b — Track template + corner naming map (official turn labels over
+   stable_corner_id; GPS-based track map).
+4. WP4 — Data lifecycle (Clear Data, reset-on-reload, verify edit/reopen cycle).
+5. WP5 — Result persistence (cache analysis on the Outing model).
+6. WP6 — Performance (cache Modules 1-5 output across lap-filter changes).
 7. Level 2 Fy split — dynamic load transfer from roll stiffness balance.
-8. Result persistence — cache analysis result on Outing model so re-opening
-   doesn't recompute.
-9. Settings UI (after engine parameters stable).
-10. PyInstaller packaging.
+8. Settings UI (after engine parameters stable).
+9. PyInstaller packaging.
 
 ## Known gaps
 - Math channels pending (full Cosworth licence)
-- GPS channels configured but not present in current sample file
-- Track-anchored corner detection future work (needs track map module first)
+- GPS channels (log_gps_lat/log_gps_lon) present, whitelisted, and used for
+  apex_position_x_m/y_m; a full track-map view (plotting the trace, WP3b)
+  is still future work
 - test_stability.py in project root — keep for now, useful for non-UI module testing

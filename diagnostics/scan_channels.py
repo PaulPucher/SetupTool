@@ -5,7 +5,7 @@
 import os
 
 src = r"C:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt"
-out = r"C:\UNI\Bachelorarbeit\Setuptool_local\channels_in_file.txt"
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "channels_in_file.txt")
 
 if not os.path.exists(src):
     print(f"File not found: {src}")

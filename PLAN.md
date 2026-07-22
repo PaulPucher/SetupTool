@@ -1,12 +1,13 @@
 ## STATUS (update at every work stop)
-Current WP: WP1 complete, commit pending. Last commit: <hash/date>.
-Next commit: WP1 close (cross-lap corner identity + detection
-robustness -- dual-criterion detection, compound-corner flag, lap
-selector toggle/clear, interval-overlap clustering with seeded
-splitting). Open threads: track_check naming verdict (T5-T6 region,
-user-confirmed two real corners = one load event); second-track
-clustering validation when new data arrives (also tests the
-overlap-fraction gap-vs-overlap assumption).
+Current WP: baseline cleanup done, WP2 next. Last commit: <hash/date>.
+Next commit: baseline cleanup (diagnostics/ folder, dead-code removal,
+project.md/thesis_notes.md refresh) on top of WP1 close (cross-lap
+corner identity + detection robustness -- dual-criterion detection,
+compound-corner flag, lap selector toggle/clear, interval-overlap
+clustering with seeded splitting). Open threads: track_check naming
+verdict (T5-T6 region, user-confirmed two real corners = one load
+event); second-track clustering validation when new data arrives
+(also tests the overlap-fraction gap-vs-overlap assumption).
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order

@@ -119,7 +119,7 @@ if state:
     print(f"\n=== Per-corner summary ===")
     print(f"Detected corners: {len(corners)}")
 
-    print(f"\n=== Stable corner id validation (WP1 Step B, temporary) ===")
+    print(f"\n=== Stable corner id clustering (per-cluster membership) ===")
     stable_ids = {c["stable_corner_id"] for c in corners if c["stable_corner_id"] is not None}
     print(f"Unique stable corners: {len(stable_ids)}")
     by_id = {}
