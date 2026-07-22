@@ -90,6 +90,23 @@ def _section_slopes(alpha, Fy, sections):
     return slopes, spans
 
 
+def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
+    # Flag samples where vertical accel deviates more than threshold_g from baseline_g,
+    # then dilate the mask by dilation_samples on each side to catch ringdown.
+    if az_g is None:
+        return None
+    raw = np.abs(az_g - baseline_g) > threshold_g
+    if dilation_samples <= 0:
+        return raw
+    # Simple symmetric dilation using a rolling-OR
+    n = len(raw)
+    out = raw.copy()
+    for shift in range(1, dilation_samples + 1):
+        out[shift:] |= raw[:-shift]
+        out[:-shift] |= raw[shift:]
+    return out
+
+
 def prepare_vehicle_state(channels, params):
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -123,11 +140,38 @@ def prepare_vehicle_state(channels, params):
     ay_mps2 = interp_channel("log_acc_y") * 9.81
     ax_mps2 = interp_channel("log_acc_x") * 9.81
 
+    # Vertical accel (g) for kerb detection. Optional channel -- graceful degradation.
+    az_g = None
+    az_ch = channels.get("log_acc_z")
+    if az_ch is not None and az_ch.get("quality") not in ("missing", "failed") and az_ch.get("time") is not None:
+        az_g = np.interp(t_ref, az_ch["time"], az_ch["data"])
+
+    kerb_mask = _compute_kerb_mask_from_az(
+        az_g,
+        threshold_g=se["kerb_z_deviation_threshold_g"],
+        baseline_g=se["kerb_baseline_g"],
+        dilation_samples=int(se["kerb_dilation_samples"]),
+    )
+
     throttle = interp_channel("ecu_aps")
     brake_f = interp_channel("log_pbrake_f")
     gear = interp_channel("ecu_gear")
 
     moving_mask = v_mps > 5.0
+
+    # GPS position (Level 3, optional). Used for apex_position_x/y_m via a
+    # local equirectangular projection anchored at the first sample -- fine
+    # at track scale, no need for a proper geodesic projection.
+    gps_lat = interp_channel("log_gps_lat")
+    gps_lon = interp_channel("log_gps_lon")
+    gps_origin_lat = None
+    gps_origin_lon = None
+    if gps_lat is not None and gps_lon is not None:
+        gps_origin_lat = float(gps_lat[0])
+        gps_origin_lon = float(gps_lon[0])
+    else:
+        gps_lat = None
+        gps_lon = None
 
     return {
         "time": t_ref,
@@ -142,6 +186,12 @@ def prepare_vehicle_state(channels, params):
         "brake_f_bar": brake_f,
         "gear": gear,
         "moving_mask": moving_mask,
+        "kerb_mask": kerb_mask,
+        "az_g": az_g,
+        "gps_lat": gps_lat,
+        "gps_lon": gps_lon,
+        "gps_origin_lat": gps_origin_lat,
+        "gps_origin_lon": gps_origin_lon,
         "steering_ratio": i_s,
         "accuracy_level": {
             "speed": 1,
@@ -242,6 +292,9 @@ def estimate_lateral_forces(state, params):
 def estimate_cornering_stiffness(slip, forces, state, params):
     se = params["stability_estimation"]
     moving = state["moving_mask"]
+    kerb_mask = state.get("kerb_mask")
+    if kerb_mask is not None:
+        moving = moving & ~kerb_mask
 
     alpha_f = slip["alpha_f_filt"]
     alpha_r = slip["alpha_r_filt"]
@@ -360,6 +413,9 @@ def estimate_yaw_moment_stability(state, beta, params):
     delta_f = state["delta_f_rad"]
     ax = state["ax_mps2"]
     moving = state["moving_mask"]
+    kerb_mask = state.get("kerb_mask")
+    if kerb_mask is not None:
+        moving = moving & ~kerb_mask
 
     Iz = vp["yaw_inertia_kgm2"]
     cutoff_hz = se["yaw_accel_filter_cutoff_hz"]
@@ -429,6 +485,7 @@ def estimate_yaw_moment_stability(state, beta, params):
 def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_window_samples=5):
     t = state["time"]
     moving = state["moving_mask"]
+    kerb_mask = state.get("kerb_mask")
 
     cs_f = cs["CS_ratio_f"]
     cs_r = cs["CS_ratio_r"]
@@ -462,10 +519,26 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
             hi = min(len(t), centre + apex_half_window_samples + 1)
         return slice(lo, hi)
 
+    gps_lat = state.get("gps_lat")
+    gps_lon = state.get("gps_lon")
+    gps_origin_lat = state.get("gps_origin_lat")
+    gps_origin_lon = state.get("gps_origin_lon")
+    meters_per_deg_lat = 111320.0
+    meters_per_deg_lon = (111320.0 * np.cos(np.radians(gps_origin_lat))
+                          if gps_origin_lat is not None else None)
+
     out = []
     for c in corners:
         if lap_filter is not None and c["lap_number"] not in lap_filter:
             continue
+
+        apex_x = None
+        apex_y = None
+        if gps_lat is not None:
+            apex_idx = int(np.searchsorted(t, c["apex_time"]))
+            apex_idx = min(max(apex_idx, 0), len(t) - 1)
+            apex_x = float((gps_lon[apex_idx] - gps_origin_lon) * meters_per_deg_lon)
+            apex_y = float((gps_lat[apex_idx] - gps_origin_lat) * meters_per_deg_lat)
 
         corner_summary = {
             "lap_number": c["lap_number"],
@@ -476,9 +549,9 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
             "apex_lateral_g": c.get("apex_lateral_g"),
             "method": c.get("method"),
             "warnings": c.get("warnings", []),
-            "apex_position_x_m": None,
-            "apex_position_y_m": None,
-            "stable_corner_id": None,
+            "apex_position_x_m": apex_x,
+            "apex_position_y_m": apex_y,
+            "stable_corner_id": c.get("stable_corner_id"),
             "phases": {},
         }
 
@@ -489,14 +562,27 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
             if sl.stop > sl.start:
                 phase_moving = moving[sl]
                 idx = np.where(phase_moving)[0] + sl.start
+                # Kerb fraction: of the moving samples in this phase,
+                # how many were flagged as kerb-affected
+                if kerb_mask is not None:
+                    n_phase_moving = int(phase_moving.sum())
+                    if n_phase_moving > 0:
+                        kerb_in_phase = int(kerb_mask[sl][phase_moving].sum())
+                        kerb_fraction = float(kerb_in_phase / n_phase_moving)
+                    else:
+                        kerb_fraction = 0.0
+                else:
+                    kerb_fraction = 0.0
             else:
                 idx = np.array([], dtype=int)
+                kerb_fraction = 0.0
 
             n_samples = len(idx)
             if n_samples == 0:
                 corner_summary["phases"][phase] = {
                     "n_samples": 0,
                     "valid_fraction_stab": 0.0,
+                    "kerb_fraction": kerb_fraction,
                     "cs_ratio_f": _stats(np.array([])),
                     "cs_ratio_r": _stats(np.array([])),
                     "stability_observed_Nm_per_deg": _stats(np.array([])),
@@ -509,6 +595,7 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
             corner_summary["phases"][phase] = {
                 "n_samples": int(n_samples),
                 "valid_fraction_stab": valid_fraction_stab,
+                "kerb_fraction": kerb_fraction,
                 "cs_ratio_f": _stats(cs_f[idx]),
                 "cs_ratio_r": _stats(cs_r[idx]),
                 "stability_observed_Nm_per_deg": _stats(stab_obs[idx]),
@@ -517,5 +604,3 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
         out.append(corner_summary)
 
     return out
-
-    

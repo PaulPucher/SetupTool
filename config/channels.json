@@ -72,6 +72,12 @@
             "range": [-5, 5],
             "required": false
         },
+        "log_acc_z": {
+            "label": "Vertical G",
+            "unit": "g",
+            "range": [-5, 5],
+            "required": false
+        },
         "log_rideheight_fl": {
             "label": "Ride Height FL",
             "unit": "mm",
@@ -132,6 +138,18 @@
             "range": [-180, 180],
             "required": false
         },
+        "log_gps_lat": {
+            "label": "GPS Latitude",
+            "unit": "deg",
+            "range": [-90, 90],
+            "required": false
+        },
+        "log_gps_lon": {
+            "label": "GPS Longitude",
+            "unit": "deg",
+            "range": [-180, 180],
+            "required": false
+        },
         "VBOX_Longitudinal_acc": {
             "label": "GPS Longitudinal Acceleration",
             "unit": "g",
@@ -150,6 +168,11 @@
         "min_corner_duration_s": 0.8,
         "smoothing_window_samples": 10,
         "lateral_g_apex_threshold": 0.3,
-        "min_apex_speed_drop_kmh": 10
+        "min_apex_speed_drop_kmh": 10,
+        "bracket_merge_gap_s": 0.6,
+        "ay_entry_threshold_g": 0.6,
+        "ay_exit_threshold_g": 0.35,
+        "compound_corner_min_length_m": 300,
+        "bracket_overlap_min_fraction": 0.3
     }
 }

@@ -129,27 +129,39 @@ class OutingForm(QWidget):
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
 
-    def _stability_colour(self, kind, value):
+    def _stability_colour(self, kind, value, axle="f"):
+        # Align with _classify_corner thresholds so details colours match verdicts.
+        # CS thresholds differ front vs rear because rear normally stays stiffer.
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
         if kind == "cs":
-            if value >= 0.7:
-                return OK
-            if value >= 0.4:
-                return WARN
-            return BAD
+            if axle == "r":
+                if value >= 0.35:
+                    return OK
+                if value >= 0.20:
+                    return WARN
+                return BAD
+            else:
+                if value >= 0.25:
+                    return OK
+                if value >= 0.10:
+                    return WARN
+                return BAD
         if kind == "stab":
-            if value > 500:
-                return OK
             if value > -200:
+                return OK
+            if value > -500:
                 return WARN
             return BAD
         return TEXT_MUTED
 
     def _classify_corner(self, summary):
-        STRONG_CS = 0.40
-        MODERATE_CS = 0.55
-        STAB_NEG_THRESH = 0.0
+        # Returns (severity, short_verdict, long_verdict, colour).
+        STRONG_CSF = 0.10
+        STRONG_CSR = 0.20
+        MODERATE_CSF = 0.25
+        MODERATE_CSR = 0.35
+        STAB_NEG_THRESH = -500.0
 
         worst_f_phase = None
         worst_f_val = 1.0
@@ -158,7 +170,14 @@ class OutingForm(QWidget):
         worst_stab_phase = None
         worst_stab_val = 1e9
 
-        phase_labels = {
+        phase_labels_short = {
+            "entry_1_brake": "brake",
+            "entry_2_turnin": "turn-in",
+            "apex_3": "apex",
+            "exit_4": "exit",
+            "exit_5": "exit",
+        }
+        phase_labels_long = {
             "entry_1_brake": "brake",
             "entry_2_turnin": "turn-in",
             "apex_3": "apex",
@@ -180,64 +199,82 @@ class OutingForm(QWidget):
                 worst_stab_val = sob
                 worst_stab_phase = phase
 
-        verdicts = []
+        front_strong_cs = worst_f_val < STRONG_CSF
+        rear_strong_cs = worst_r_val < STRONG_CSR
+        front_moderate_cs = STRONG_CSF <= worst_f_val < MODERATE_CSF
+        rear_moderate_cs = STRONG_CSR <= worst_r_val < MODERATE_CSR
+        destabilising = (worst_stab_val == worst_stab_val
+                         and worst_stab_val < STAB_NEG_THRESH)
+
+        # Vocabulary intentionally limited to: understeer / oversteer / unstable yaw.
+        # We pick the dominant axle behaviour and the phase where it's worst.
+        # Front issue -> understeer. Rear issue -> oversteer. Both -> the worse one.
+        short_parts = []
+        long_parts = []
         severity = "normal"
 
-        front_strong = worst_f_val < STRONG_CS
-        rear_strong = worst_r_val < STRONG_CS
-        front_moderate = STRONG_CS <= worst_f_val < MODERATE_CS
-        rear_moderate = STRONG_CS <= worst_r_val < MODERATE_CS
+        # Decide which axle leads the verdict
+        # (rear collapse is rarer and more consequential, so it wins ties)
+        front_active = front_strong_cs or front_moderate_cs
+        rear_active = rear_strong_cs or rear_moderate_cs
 
-        if front_strong and rear_strong:
-            verdicts.append(
-                f"both axles saturated at {phase_labels[worst_f_phase]}"
-            )
-            severity = "strong"
-        elif front_strong:
-            verdicts.append(
-                f"strong understeer at {phase_labels[worst_f_phase]} "
-                f"(front {worst_f_val:.2f})"
-            )
-            severity = "strong"
-        elif rear_strong:
-            verdicts.append(
-                f"strong oversteer at {phase_labels[worst_r_phase]} "
-                f"(rear {worst_r_val:.2f})"
-            )
-            severity = "strong"
-        elif front_moderate and rear_moderate:
-            verdicts.append(
-                f"both axles working hard at {phase_labels[worst_f_phase]}"
-            )
-            severity = "moderate"
-        elif front_moderate:
-            verdicts.append(
-                f"mild understeer at {phase_labels[worst_f_phase]} "
-                f"(front {worst_f_val:.2f})"
-            )
-            severity = "moderate"
-        elif rear_moderate:
-            verdicts.append(
-                f"mild oversteer at {phase_labels[worst_r_phase]} "
-                f"(rear {worst_r_val:.2f})"
-            )
-            severity = "moderate"
+        primary = None  # "understeer" or "oversteer" or None
+        primary_phase = None
+        primary_val = None
+        primary_axle = None
 
-        if worst_stab_val == worst_stab_val and worst_stab_val < STAB_NEG_THRESH:
-            verdicts.append(
-                f"destabilising yaw moment at {phase_labels[worst_stab_phase]} "
+        if rear_strong_cs:
+            primary, primary_phase, primary_val, primary_axle = (
+                "oversteer", worst_r_phase, worst_r_val, "r")
+        elif front_strong_cs:
+            primary, primary_phase, primary_val, primary_axle = (
+                "understeer", worst_f_phase, worst_f_val, "f")
+        elif rear_moderate_cs:
+            primary, primary_phase, primary_val, primary_axle = (
+                "oversteer", worst_r_phase, worst_r_val, "r")
+        elif front_moderate_cs:
+            primary, primary_phase, primary_val, primary_axle = (
+                "understeer", worst_f_phase, worst_f_val, "f")
+
+        # Severity logic
+        if (front_strong_cs or rear_strong_cs) and destabilising:
+            severity = "strong"
+        elif front_strong_cs or rear_strong_cs:
+            severity = "moderate"
+        elif (front_moderate_cs or rear_moderate_cs) and destabilising:
+            severity = "moderate"
+        elif destabilising:
+            severity = "moderate"
+        # else stays "normal"
+
+        # Build verdict strings from the simple vocabulary
+        if primary is not None:
+            short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}")
+            cs_label = "CSf" if primary_axle == "f" else "CSr"
+            long_parts.append(
+                f"{primary} at {phase_labels_long[primary_phase]} "
+                f"({cs_label} {primary_val:.2f})"
+            )
+
+        if destabilising:
+            short_parts.append(f"unstable yaw @ {phase_labels_short[worst_stab_phase]}")
+            long_parts.append(
+                f"unstable yaw at {phase_labels_long[worst_stab_phase]} "
                 f"({worst_stab_val:.0f} Nm/deg)"
             )
-            if severity == "normal":
-                severity = "moderate"
-            elif severity == "moderate":
-                severity = "strong"
 
-        if not verdicts:
-            verdicts.append("within normal range")
+        if not short_parts:
+            short_parts.append("ok")
+        if not long_parts:
+            long_parts.append("within normal range")
 
         colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
-        return severity, " · ".join(verdicts), colour_map[severity]
+        return (
+            severity,
+            " · ".join(short_parts),
+            " · ".join(long_parts),
+            colour_map[severity],
+        )
 
     def _build_corner_card(self, summary):
         card = QWidget()
@@ -248,7 +285,7 @@ class OutingForm(QWidget):
         card_layout.setContentsMargins(10, 8, 10, 8)
         card_layout.setSpacing(6)
 
-        severity, verdict, colour = self._classify_corner(summary)
+        severity, _short, verdict, colour = self._classify_corner(summary)
 
         header = QWidget()
         h_layout = QHBoxLayout(header)
@@ -323,8 +360,8 @@ class OutingForm(QWidget):
             csf = p["cs_ratio_f"]
             csr = p["cs_ratio_r"]
             sob = p["stability_observed_Nm_per_deg"]
-            csf_colour = self._stability_colour("cs", csf["median"])
-            csr_colour = self._stability_colour("cs", csr["median"])
+            csf_colour = self._stability_colour("cs", csf["median"], axle="f")
+            csr_colour = self._stability_colour("cs", csr["median"], axle="r")
             sob_colour = self._stability_colour("stab", sob["median"])
             csf_str = (f"{csf['median']:.2f} [{csf['p25']:.2f}..{csf['p75']:.2f}]"
                        if csf["n"] > 0 else "—")
@@ -539,7 +576,39 @@ class OutingForm(QWidget):
         """)
         self.exclude_inout_btn.toggled.connect(self._on_exclude_toggled)
         self.exclude_inout_btn.setVisible(False)
-        layout.addWidget(self.exclude_inout_btn)
+
+        self.btn_clear_lap_selection = QPushButton("Clear Selection")
+        self.btn_clear_lap_selection.setFixedWidth(120)
+        self.btn_clear_lap_selection.setStyleSheet("""
+            QPushButton {
+                background-color: #1a1a1a;
+                color: #888;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                color: #C0A060;
+                border-color: #C0A060;
+            }
+        """)
+        self.btn_clear_lap_selection.clicked.connect(self._clear_lap_selection)
+        self.btn_clear_lap_selection.setVisible(False)
+
+        lap_controls_row = QWidget()
+        lap_controls_layout = QHBoxLayout(lap_controls_row)
+        lap_controls_layout.setContentsMargins(0, 0, 0, 0)
+        lap_controls_layout.setSpacing(8)
+        lap_controls_layout.addWidget(self.exclude_inout_btn)
+        lap_controls_layout.addWidget(self.btn_clear_lap_selection)
+        lap_controls_layout.addStretch()
+        layout.addWidget(lap_controls_row)
+
+        # Tracks the lap_table's effective selection so a repeat click on the
+        # same lap can toggle it off (Qt's SingleSelection alone can't tell
+        # "clicked the already-selected row" from a fresh selection).
+        self._selected_lap_value = None
 
         self.lap_table = QTableWidget()
         self.lap_table.setColumnCount(3)
@@ -687,10 +756,36 @@ class OutingForm(QWidget):
         if not lap_item:
             return
         value = lap_item.data(Qt.ItemDataRole.UserRole)
+
+        if value != "all" and value == self._selected_lap_value:
+            # Repeat click on the already-selected lap -- toggle off.
+            self._clear_lap_selection()
+            return
+
+        self._selected_lap_value = value
         if value == "all":
             self._update_plots(None)
         else:
             self._update_plots(value)
+
+    def _all_laps_row(self):
+        for row in range(self.lap_table.rowCount()):
+            item = self.lap_table.item(row, 0)
+            if item is not None and item.data(Qt.ItemDataRole.UserRole) == "all":
+                return row
+        return None
+
+    def _clear_lap_selection(self):
+        # Move the highlight to "All laps" rather than leaving no row
+        # selected -- the effective scope must stay visible, not just correct.
+        all_row = self._all_laps_row()
+        if all_row is not None:
+            self.lap_table.selectRow(all_row)
+        else:
+            self.lap_table.clearSelection()
+            self.lap_table.setCurrentCell(-1, -1)
+        self._selected_lap_value = "all"
+        self._update_plots(None)
 
     def _update_plots(self, lap_number):
         if not self.parsed_data:
@@ -860,21 +955,25 @@ class OutingForm(QWidget):
             self.stability_summary_label.setText("No corners in selected laps.")
             return
 
-        strong_cards = []
-        moderate_cards = []
-        normal_cards = []
+        # Group by lap, classify each corner
+        by_lap = {}
+        n_strong = n_moderate = n_normal = 0
         for s in summaries:
-            card, severity = self._build_corner_card(s)
+            severity, short, long_v, colour = self._classify_corner(s)
+            entry = {
+                "summary": s,
+                "severity": severity,
+                "short": short,
+                "long": long_v,
+                "colour": colour,
+            }
+            by_lap.setdefault(s["lap_number"], []).append(entry)
             if severity == "strong":
-                strong_cards.append(card)
+                n_strong += 1
             elif severity == "moderate":
-                moderate_cards.append(card)
+                n_moderate += 1
             else:
-                normal_cards.append(card)
-
-        n_strong = len(strong_cards)
-        n_moderate = len(moderate_cards)
-        n_normal = len(normal_cards)
+                n_normal += 1
 
         self.stability_summary_label.setText(
             f"{len(summaries)} corners · "
@@ -885,22 +984,244 @@ class OutingForm(QWidget):
         self.stability_summary_label.setTextFormat(Qt.TextFormat.RichText)
         self.stability_summary_label.setStyleSheet("font-size: 11px;")
 
+        # Columns are keyed by stable_corner_id: the full set across all
+        # analysed laps, ascending, so every lap row has the same slots.
+        all_stable_ids = sorted({
+            s["stable_corner_id"] for s in summaries
+            if s.get("stable_corner_id") is not None
+        })
+
+        # Index each lap's entries by stable_corner_id
+        for lap_num in by_lap:
+            by_lap[lap_num] = {
+                e["summary"]["stable_corner_id"]: e for e in by_lap[lap_num]
+            }
+
+        # Build one lap row per lap, in lap order
         insert_pos = self.cards_host_layout.count() - 1
-        for card in strong_cards + moderate_cards:
-            self.cards_host_layout.insertWidget(insert_pos, card)
+        for lap_num in sorted(by_lap.keys()):
+            lap_row = self._build_lap_row(lap_num, by_lap[lap_num], all_stable_ids)
+            self.cards_host_layout.insertWidget(insert_pos, lap_row)
             insert_pos += 1
 
-        if normal_cards:
-            divider = QLabel(f"— {n_normal} corners within normal range —")
-            divider.setStyleSheet(
-                f"color: {TEXT_DIM}; font-size: 10px; padding: 8px 0;"
+    def _build_lap_row(self, lap_num, entries_by_id, all_stable_ids):
+        # Container with the lap header row, the corner cells row, and a
+        # placeholder for the inline details panel that expands below.
+        wrapper = QWidget()
+        w_layout = QVBoxLayout(wrapper)
+        w_layout.setContentsMargins(0, 0, 0, 0)
+        w_layout.setSpacing(0)
+
+        # Header + cells row
+        row = QWidget()
+        row.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(8, 6, 8, 6)
+        row_layout.setSpacing(6)
+
+        lap_label = QLabel(f"Lap {lap_num}")
+        lap_label.setFixedWidth(60)
+        lap_label.setStyleSheet(
+            f"color: {ACCENT}; font-size: 12px; font-weight: 600; background: transparent; border: none;"
+        )
+        row_layout.addWidget(lap_label)
+
+        # Inline details placeholder, hidden by default
+        details_host = QWidget()
+        details_layout = QVBoxLayout(details_host)
+        details_layout.setContentsMargins(0, 4, 0, 0)
+        details_layout.setSpacing(0)
+        details_host.setVisible(False)
+
+        # Track which cell is currently expanded for this lap
+        state = {"active_corner": None, "details_widget": None}
+
+        def show_details(entry):
+            # Clear any previous details
+            while details_layout.count() > 0:
+                item = details_layout.takeAt(0)
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+            new_details = self._build_corner_details(entry["summary"])
+            details_layout.addWidget(new_details)
+            details_host.setVisible(True)
+            state["active_corner"] = entry["summary"]["stable_corner_id"]
+            state["details_widget"] = new_details
+
+        def hide_details():
+            while details_layout.count() > 0:
+                item = details_layout.takeAt(0)
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+            details_host.setVisible(False)
+            state["active_corner"] = None
+            state["details_widget"] = None
+
+        for stable_id in all_stable_ids:
+            entry = entries_by_id.get(stable_id)
+            if entry is not None:
+                cell = self._build_corner_cell(entry, show_details, hide_details, state)
+            else:
+                cell = self._build_placeholder_cell()
+            row_layout.addWidget(cell)
+
+        row_layout.addStretch()
+
+        w_layout.addWidget(row)
+        w_layout.addWidget(details_host)
+        return wrapper
+
+    def _build_corner_cell(self, entry, show_details, hide_details, state):
+        # Compact horizontal cell for one corner inside its lap row.
+        s = entry["summary"]
+        stable_id = s["stable_corner_id"]
+        colour = entry["colour"]
+        short = entry["short"]
+
+        cell = QPushButton()
+        cell.setCheckable(False)
+        cell.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Two lines: stable corner id, then short verdict
+        cell.setText(f"C{stable_id}\n{short}")
+        cell.setStyleSheet(
+            f"QPushButton {{"
+            f" background-color: {colour}; color: #111; "
+            f" border: none; border-radius: 3px; "
+            f" padding: 4px 8px; font-size: 10px; font-weight: 600; "
+            f" text-align: center; "
+            f"}}"
+            f"QPushButton:hover {{ background-color: {colour}; opacity: 0.85; }}"
+        )
+        cell.setMinimumWidth(110)
+        cell.setMinimumHeight(38)
+
+        def on_clicked():
+            if state["active_corner"] == stable_id:
+                hide_details()
+            else:
+                show_details(entry)
+
+        cell.clicked.connect(on_clicked)
+        return cell
+
+    def _build_placeholder_cell(self):
+        # Dim, non-interactive cell for a lap with no corner at this stable id.
+        cell = QPushButton("—")
+        cell.setEnabled(False)
+        cell.setStyleSheet(
+            f"QPushButton {{"
+            f" background-color: {NEUTRAL}; color: {TEXT_DIM}; "
+            f" border: none; border-radius: 3px; "
+            f" padding: 4px 8px; font-size: 10px; font-weight: 600; "
+            f" text-align: center; "
+            f"}}"
+        )
+        cell.setMinimumWidth(110)
+        cell.setMinimumHeight(38)
+        return cell
+
+    def _build_corner_details(self, summary):
+        # Inline details panel: long verdict, the per-phase table, and plot jump.
+        severity, _short, long_v, colour = self._classify_corner(summary)
+
+        panel = QWidget()
+        panel.setStyleSheet(
+            f"background-color: {PANEL_ALT}; border: 1px solid {BORDER}; border-radius: 3px;"
+        )
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(8)
+
+        # Header line: corner identifier + verdict + plot jump
+        header = QWidget()
+        h_layout = QHBoxLayout(header)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.setSpacing(10)
+
+        title = QLabel(
+            f"Lap {summary['lap_number']} · Corner {summary['corner_number']}  "
+            f"<span style='color:{TEXT_DIM};'>({summary['speed_class']}, "
+            f"{summary['apex_speed']:.0f} km/h, t={summary['apex_time']:.1f}s)</span>"
+        )
+        title.setStyleSheet(f"color: {TEXT}; font-size: 12px; background: transparent; border: none;")
+        title.setTextFormat(Qt.TextFormat.RichText)
+
+        verdict_badge = QLabel(long_v)
+        verdict_badge.setStyleSheet(
+            f"background-color: {colour}; color: #111; "
+            "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
+        )
+
+        btn_jump = QPushButton("→ plot")
+        btn_jump.setFixedWidth(70)
+        btn_jump.setStyleSheet(
+            f"background-color: {PANEL}; color: {TEXT_MUTED}; "
+            "font-size: 10px; padding: 2px 6px;"
+        )
+        btn_jump.clicked.connect(lambda _, t=summary["apex_time"]:
+                                 self._jump_plot_to_time(t))
+
+        h_layout.addWidget(title)
+        h_layout.addWidget(verdict_badge)
+        h_layout.addStretch()
+        h_layout.addWidget(btn_jump)
+        layout.addWidget(header)
+
+        # Per-phase table
+        phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
+        phase_labels = {
+            "entry_1_brake": "Brake",
+            "entry_2_turnin": "Turn-in",
+            "apex_3": "Apex",
+            "exit_4": "Exit 4",
+            "exit_5": "Exit 5",
+        }
+
+        rows_html = (
+            f"<table cellpadding='2' style='font-size:10px;'>"
+            f"<tr>"
+            f"<th align='left' style='color:{TEXT_DIM};'>phase</th>"
+            f"<th style='color:{TEXT_DIM};'>n</th>"
+            f"<th style='color:{TEXT_DIM};'>valid</th>"
+            f"<th style='color:{TEXT_DIM};'>CSf med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>CSr med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>Stab med [p25..p75]</th>"
+            f"</tr>"
+        )
+        for phase in phase_keys:
+            p = summary["phases"][phase]
+            csf = p["cs_ratio_f"]
+            csr = p["cs_ratio_r"]
+            sob = p["stability_observed_Nm_per_deg"]
+            csf_colour = self._stability_colour("cs", csf["median"], axle="f")
+            csr_colour = self._stability_colour("cs", csr["median"], axle="r")
+            sob_colour = self._stability_colour("stab", sob["median"])
+            csf_str = (f"{csf['median']:.2f} [{csf['p25']:.2f}..{csf['p75']:.2f}]"
+                       if csf["n"] > 0 else "—")
+            csr_str = (f"{csr['median']:.2f} [{csr['p25']:.2f}..{csr['p75']:.2f}]"
+                       if csr["n"] > 0 else "—")
+            sob_str = (f"{sob['median']:.0f} [{sob['p25']:.0f}..{sob['p75']:.0f}]"
+                       if sob["n"] > 0 else "—")
+            rows_html += (
+                f"<tr>"
+                f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:40px;'>{p['n_samples']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:50px;'>{p['valid_fraction_stab']*100:.0f}%</td>"
+                f"<td style='color:{csf_colour}; width:160px;'>{csf_str}</td>"
+                f"<td style='color:{csr_colour}; width:160px;'>{csr_str}</td>"
+                f"<td style='color:{sob_colour}; width:180px;'>{sob_str}</td>"
+                f"</tr>"
             )
-            divider.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.cards_host_layout.insertWidget(insert_pos, divider)
-            insert_pos += 1
-            for card in normal_cards:
-                self.cards_host_layout.insertWidget(insert_pos, card)
-                insert_pos += 1
+        rows_html += "</table>"
+
+        body = QLabel(rows_html)
+        body.setTextFormat(Qt.TextFormat.RichText)
+        body.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(body)
+
+        return panel
 
     def _build_stability_toggle(self):
         container = QWidget()
@@ -1054,6 +1375,7 @@ class OutingForm(QWidget):
                 fastest_num = self.lap_table.item(row, 0).data(
                     Qt.ItemDataRole.UserRole
                 )
+                self._selected_lap_value = fastest_num
                 self._update_plots(fastest_num)
                 break
 

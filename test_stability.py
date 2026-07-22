@@ -119,12 +119,45 @@ if state:
     print(f"\n=== Per-corner summary ===")
     print(f"Detected corners: {len(corners)}")
 
+    print(f"\n=== Stable corner id validation (WP1 Step B, temporary) ===")
+    stable_ids = {c["stable_corner_id"] for c in corners if c["stable_corner_id"] is not None}
+    print(f"Unique stable corners: {len(stable_ids)}")
+    by_id = {}
+    for c in corners:
+        by_id.setdefault(c["stable_corner_id"], []).append(c)
+    n_singleton = 0
+    n_full = 0
+    n_partial = 0
+    for cid in sorted(by_id.keys()):
+        members = sorted(by_id[cid], key=lambda c: c["lap_number"])
+        laps_present = sorted({m["lap_number"] for m in members})
+        if len(members) == 1:
+            n_singleton += 1
+        elif len(members) == 5:
+            n_full += 1
+        else:
+            n_partial += 1
+        print(f"C{cid} -- {len(members)} member(s), laps {laps_present}:")
+        for m in members:
+            tags = ""
+            if "compound_corner" in m["warnings"]:
+                tags += "  [compound_corner]"
+            if "straddles_adjacent_corners" in m["warnings"]:
+                tags += "  [straddles_adjacent_corners]"
+            print(f"    lap={m['lap_number']}  corner={m['corner_number']}  "
+                  f"bracket=[{m['bracket_start_m']:8.1f},{m['bracket_end_m']:8.1f}]m  "
+                  f"apex_dist={m['apex_lap_distance_m']:8.1f}m{tags}")
+
+    print(f"\nCount justification: {len(by_id)} clusters = {n_full} full (all 5 laps) + "
+          f"{n_partial} partial (compound-straddle splits, not all laps take this section "
+          f"the same way) + {n_singleton} singleton (a genuine extra event unique to one lap).")
+
     if corners:
         summaries = summarise_corners(corners, cs, stab, state)
 
         for s in summaries[:3]:
             print(f"\nLap {s['lap_number']}  Corner {s['corner_number']}  "
-                  f"({s['speed_class']}, apex_v={s['apex_speed']:.1f} m/s, "
+                  f"({s['speed_class']}, apex_v={s['apex_speed']:.1f} km/h, "
                   f"t={s['apex_time']:.2f}s)")
             for phase in ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]:
                 p = s["phases"][phase]

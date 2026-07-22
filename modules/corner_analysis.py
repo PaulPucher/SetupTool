@@ -3,7 +3,8 @@
 # Pure Python/numpy — no Qt imports.
 #
 # Algorithm:
-#   1. Bracket corners by steering angle threshold crossings (with hysteresis)
+#   1. Bracket corners by steering angle OR lateral G threshold crossings
+#      (with hysteresis; exit requires both signals below their thresholds)
 #   2. Locate apex inside each bracket via lateral G peak, cross-checked with speed minimum
 #   3. Validate against lateral G threshold to filter lane changes and gentle bends
 #   4. Classify by apex speed (low/medium/high) from config thresholds
@@ -64,6 +65,8 @@ def analyse_corners(parsed_data):
         lap_corners = _analyse_lap(lap, channels, cd, speed_thresholds)
         corners.extend(lap_corners)
 
+    assign_stable_corner_ids(corners, channels)
+
     return corners
 
 
@@ -81,7 +84,7 @@ def _analyse_lap(lap, channels, cd, speed_thresholds):
         return []
 
     if steering is not None:
-        brackets, method = _bracket_corners_by_steering(steering, cd), "steering"
+        brackets, method = _bracket_corners_by_steering(steering, cd, lat_g), "steering"
     else:
         brackets, method = _bracket_corners_by_speed(speed, cd), "speed_fallback"
 
@@ -110,30 +113,64 @@ def _slice_channel(ch, start_t, end_t):
     return {"time": t[mask] - start_t, "data": d[mask], "abs_start": start_t}
 
 
-def _bracket_corners_by_steering(steering, cd):
+def _bracket_corners_by_steering(steering, cd, lat_g=None):
     sw = cd["smoothing_window_samples"]
     entry_th = cd["steering_entry_threshold_deg"]
     exit_th = cd["steering_exit_threshold_deg"]
     min_dur = cd["min_corner_duration_s"]
+    ay_entry_th = cd["ay_entry_threshold_g"]
+    ay_exit_th = cd["ay_exit_threshold_g"]
 
-    abs_steer = np.abs(_smooth(steering["data"], sw))
+    smoothed = _smooth(steering["data"], sw)
+    abs_steer = np.abs(smoothed)
     t = steering["time"]
+
+    # Lateral G is the vehicle's cornering response (steering is only the
+    # driver input, which is scale-dependent on corner radius and carries
+    # line variance). Enter on either signal, exit only when both have
+    # dropped -- this catches fast corners where a fixed steering-angle
+    # threshold is systematically marginal, and keeps a bracket open through
+    # a mid-corner steering correction as long as the car is still turning.
+    if lat_g is not None:
+        ay_on_steer_grid = np.interp(t, lat_g["time"], lat_g["data"])
+        ay_abs = np.abs(_smooth(ay_on_steer_grid, sw))
+    else:
+        ay_abs = np.zeros_like(abs_steer)
 
     brackets = []
     in_corner = False
     b_start = 0
     for i in range(len(abs_steer)):
-        if not in_corner and abs_steer[i] > entry_th:
+        entering = (abs_steer[i] > entry_th) or (ay_abs[i] > ay_entry_th)
+        exiting = (abs_steer[i] < exit_th) and (ay_abs[i] < ay_exit_th)
+        if not in_corner and entering:
             in_corner = True
             b_start = i
-        elif in_corner and abs_steer[i] < exit_th:
+        elif in_corner and exiting:
             in_corner = False
             if t[i] - t[b_start] >= min_dur:
                 brackets.append((b_start, i))
     if in_corner and t[-1] - t[b_start] >= min_dur:
         brackets.append((b_start, len(abs_steer) - 1))
 
-    return brackets
+    # Merge same-direction adjacent brackets separated by a short gap --
+    # stabilises corners where steering dips briefly below threshold without
+    # changing lock direction. Opposite-direction pairs (chicanes) are left
+    # separate since they are distinct steering events.
+    merge_gap = cd["bracket_merge_gap_s"]
+    merged = []
+    for b in brackets:
+        if merged:
+            prev = merged[-1]
+            gap = t[b[0]] - t[prev[1]]
+            same_dir = (np.sign(np.mean(smoothed[prev[0]:prev[1] + 1]))
+                        == np.sign(np.mean(smoothed[b[0]:b[1] + 1])))
+            if gap < merge_gap and same_dir:
+                merged[-1] = (prev[0], b[1])
+                continue
+        merged.append(b)
+
+    return merged
 
 
 def _bracket_corners_by_speed(speed, cd):
@@ -265,4 +302,130 @@ def _build_corner(lap_number, corner_number, method,
         "segments": segments,
         "method": method,
         "warnings": warnings,
+        "stable_corner_id": None,
     }
+
+
+def _overlap_fraction(a, b):
+    ov = min(a["bracket_end_m"], b["bracket_end_m"]) - max(a["bracket_start_m"], b["bracket_start_m"])
+    if ov <= 0:
+        return 0.0
+    len_a = a["bracket_end_m"] - a["bracket_start_m"]
+    len_b = b["bracket_end_m"] - b["bracket_start_m"]
+    return ov / min(len_a, len_b)
+
+
+def assign_stable_corner_ids(corners, channels):
+    """
+    Cross-lap corner identity: interpolate each corner's bracket span
+    (steering/ay threshold-crossing start -> end, ft -> m) along lap_distance,
+    then link corners across laps whose spans overlap by at least
+    bracket_overlap_min_fraction of the shorter bracket -- bracket boundaries
+    are stable across laps, a single peak-G apex point is not (see
+    double-apex/compound corners; a proportional criterion also avoids a
+    coincidental few-metre overlap between two genuinely different corners
+    being mistaken for a real link). Connected components of that link graph
+    are candidate clusters. Same-lap exclusivity is a hard constraint: a
+    component where it's violated (the compound-straddle case, one lap's
+    single wide bracket spanning two other laps' distinct corners) is split
+    deterministically, seeded from the lap contributing the most brackets.
+    Leaves stable_corner_id as None (no clustering) if lap_distance is
+    unavailable or invalid quality.
+    """
+    lap_distance = channels.get("lap_distance")
+    if (lap_distance is None or lap_distance.get("time") is None
+            or lap_distance.get("quality") in ("missing", "failed")):
+        return
+
+    ld_time = lap_distance["time"]
+    ld_data = lap_distance["data"]
+
+    cd = _load_config()["corner_detection"]
+    compound_min_len = cd["compound_corner_min_length_m"]
+    min_frac = cd["bracket_overlap_min_fraction"]
+
+    for c in corners:
+        c["apex_lap_distance_m"] = float(np.interp(c["apex_time"], ld_time, ld_data)) * 0.3048
+
+        bracket_start_t, _ = c["segments"]["entry_2_turnin"]
+        _, bracket_end_t = c["segments"]["exit_5"]
+        c["bracket_start_m"] = float(np.interp(bracket_start_t, ld_time, ld_data)) * 0.3048
+        c["bracket_end_m"] = float(np.interp(bracket_end_t, ld_time, ld_data)) * 0.3048
+        if (c["bracket_end_m"] - c["bracket_start_m"]) > compound_min_len:
+            c["warnings"].append("compound_corner")
+
+    n = len(corners)
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i, j):
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            parent[rj] = ri
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            if corners[i]["lap_number"] == corners[j]["lap_number"]:
+                continue
+            if _overlap_fraction(corners[i], corners[j]) >= min_frac:
+                union(i, j)
+
+    components = {}
+    for i in range(n):
+        components.setdefault(find(i), []).append(corners[i])
+
+    final_clusters = []
+    for comp in components.values():
+        lap_counts = {}
+        for c in comp:
+            lap_counts[c["lap_number"]] = lap_counts.get(c["lap_number"], 0) + 1
+
+        if max(lap_counts.values()) <= 1:
+            final_clusters.append(comp)
+            continue
+
+        # Compound-straddle case: seed sub-clusters from the lap with the
+        # most brackets in this component (finest granularity available),
+        # then assign every other bracket to its best-overlap seed.
+        max_count = max(lap_counts.values())
+        candidate_laps = [lap for lap, cnt in lap_counts.items() if cnt == max_count]
+        seed_lap = min(candidate_laps)
+        seeds = sorted(
+            (c for c in comp if c["lap_number"] == seed_lap),
+            key=lambda c: c["bracket_start_m"]
+        )
+
+        sub_clusters = [[s] for s in seeds]
+        for c in comp:
+            if c["lap_number"] == seed_lap:
+                continue
+            fracs = [_overlap_fraction(c, s) for s in seeds]
+            best_idx = max(range(len(seeds)), key=lambda k: (fracs[k], -seeds[k]["bracket_start_m"]))
+            sub_clusters[best_idx].append(c)
+
+            ranked = sorted(fracs, reverse=True)
+            if ranked[1] >= min_frac:
+                c["warnings"].append("straddles_adjacent_corners")
+
+        for sub in sub_clusters:
+            seen = set()
+            for c in sub:
+                if c["lap_number"] in seen:
+                    raise RuntimeError(
+                        f"Residual same-lap collision after seeded split at "
+                        f"lap {c['lap_number']}, corner {c['corner_number']} -- "
+                        f"needs manual review, not auto-resolved."
+                    )
+                seen.add(c["lap_number"])
+
+        final_clusters.extend(sub_clusters)
+
+    final_clusters.sort(key=lambda cluster: min(c["bracket_start_m"] for c in cluster))
+    for cluster_id, cluster in enumerate(final_clusters, start=1):
+        for c in cluster:
+            c["stable_corner_id"] = cluster_id

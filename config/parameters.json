@@ -34,7 +34,10 @@
 
     "_comment_cs_fallback": "Fallback cornering stiffness references. Derived from axle normal load × C_alpha/Fz = 12 rad⁻¹ (Milliken & Milliken, RCVD, GT3 slick). Front: (290+290)*9.81*12 = 68268. Rear: (395+381)*9.81*12 = 91343. Used as C_linear_ref when OLS cannot resolve the linear stiffness from data (insufficient alpha excitation on rear axle). Accuracy Level 1.",
     "cs_front_fallback_reference_n_per_rad": 68268,
-    "cs_rear_fallback_reference_n_per_rad": 91343
+    "cs_rear_fallback_reference_n_per_rad": 91343,
+    "kerb_z_deviation_threshold_g": 1.2,
+    "kerb_dilation_samples": 5,
+    "kerb_baseline_g": 1.0
     },
     "accuracy_levels": {
         "mass": 1,
