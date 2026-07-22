@@ -161,6 +161,12 @@ HOW TO USE:
 - Final structure: 11 full (5-lap) clusters + 3 partial (compound-
   straddle splits) + 1 true singleton = 15 stable corners. Same-lap
   exclusivity holds everywhere; no residual violation after splitting.
+  [SUPERSEDED 2026-07-22 by the limiter-based inlap reclassification
+  below -- lap 5 was contaminated by pit-entry driving and is now
+  excluded from is_valid_for_analysis, so the valid-lap count dropped
+  from 5 to 4: 11 full (now 4-lap) + 3 partial + 0 singleton = 14
+  stable corners. The clustering METHOD documented above is unchanged;
+  only the input lap set changed.]
 
 ### Recommendation engine: median-of-medians aggregation + classifier reuse [2026-07-22]
 - Corner-level recommendation evidence aggregates each stable corner's
@@ -181,6 +187,34 @@ HOW TO USE:
   sees in the grid for the same corner and phase, because both read
   the same classifier.
 
+### Limiter-based inlap reclassification [2026-07-22]
+- Duration-window lap validity (`is_valid_for_analysis`: lap_time <=
+  1.10x fastest) had ACCEPTED the pre-merge "lap 5" (129.2s, well
+  inside the 110% window) as a normal valid lap -- but its final ~13s
+  were already pit-entry driving under the pit speed limiter
+  (`ecu_B_speedlimit_en` engages at t=1108.78s, 13.14s before the
+  lap_number transition; `ecu_speed` decays from 140.7 km/h to
+  pit-limiter speed ~55-60 km/h entirely within that window, confirmed
+  by three independent limiter-state channels agreeing on the same
+  timing). A duration check cannot see this -- the contamination is in
+  WHAT was driven, not how long it took.
+- Fix: Level 3 limiter-channel detection (`ecu_B_speedlimit_en` engaged
+  at the trailing fragment's first sample; Level 1 fallback: fragment
+  shorter than a config duration threshold when the channel is
+  missing) merges the session-trailing fragment into the preceding
+  lap and flags it `is_inlap`, excluded from `is_valid_for_analysis`
+  like the outlap. Merged duration 137.4s.
+- Effect: stable corner count 15->14 (see superseded note above); the
+  one true singleton (lap-5-only) disappeared entirely once lap 5
+  stopped contributing corner candidates -- exactly the predicted
+  failure mode, not a coincidence.
+- THESIS POINT: qualitatively different from earlier accuracy-level
+  upgrades (Level 1->3 for beta, kerb detection, etc.), which refine a
+  NUMBER within an already-correct classification. Here a Level 3
+  signal corrected a STRUCTURAL misclassification a duration window
+  could not detect in principle -- the accuracy-level cascade's value
+  is not limited to numerical precision.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Accuracy-level cascade [project-wide]
@@ -188,6 +222,14 @@ HOW TO USE:
   measurement -> 3 logged sensor -> 4 lookup table. Nodes upgrade
   independently without pipeline restructuring. This is the answer to
   "how do you ship a useful tool with imperfect data TODAY".
+- [2026-07-22] The cascade applies to lap timing itself, not just
+  vehicle dynamics: boundary-sample durations (Level 1, +/-0.2s grid,
+  from the lap_number channel's own sample interval) are retained for
+  slicing; the logger's dedicated lap-timer channel (Level 3, ms
+  resolution) is adopted for display and fastest/validity decisions --
+  after a real tie at grid resolution (laps 3 and 4 both quantised to
+  125.19999999999993s) demonstrated the need, not as a speculative
+  upgrade.
 
 ### Analysis layer vs human layer for corner identity [2026-07-22]
 - The tool detects LOAD EVENTS (anything stressing tyres, incl. flat-out
@@ -323,7 +365,7 @@ warning into a structural guarantee: no cluster can claim two events
 from one lap, protecting genuine per-lap extra detections from being
 merged away.
 
-[2026-07] Segmentation acceptance criteria (frozen for thesis scope):
+[2026-07-22] Segmentation acceptance criteria (frozen for thesis scope):
 structural same-lap exclusivity; physically explainable memberships;
 ambiguity marked not hidden (straddle/compound warnings,
 placeholders); stable cross-lap identity for feedback mapping. NOT
@@ -333,3 +375,15 @@ imperfection is bounded by the engineer merge/split override (WP3b).
 Rationale: segmentation is a means; the deliverable is per-corner
 stability insight. Driving ambiguity (one lap taking two corners as
 one event) is irreducible in the data, not an algorithm defect.
+
+[2026-07] Inlap reclassification cascade: limiter-based inlap
+detection (Level 3, ecu_B_speedlimit_en) revealed that
+duration-window validation had accepted the true inlap (lap 5) as a
+valid race lap — its final sector is pit-entry driving. Merging the
+8 s pit-lane fragment into it and excluding it by default removed
+singleton cluster C14, whose sole supporting corner was detected on
+that lap: what looked like a genuine one-lap extra corner was
+pit-approach driving. Two lessons: (1) the accuracy-level cascade can
+correct structural misclassifications, not just refine numbers;
+(2) data-quality fixes propagate — a lap-model correction changed the
+corner-identity result without touching the clustering algorithm.

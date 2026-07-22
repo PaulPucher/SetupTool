@@ -1414,20 +1414,30 @@ class OutingForm(QWidget):
             self.lap_table.insertRow(row)
             self.lap_table.setRowHeight(row, 28)
 
-            is_outlap = lap["lap_number"] == 0
-            display_text = "Out" if is_outlap else str(lap["lap_number"])
+            is_outlap = lap.get("is_outlap", False)
+            is_inlap = lap.get("is_inlap", False)
+            display_text = "Out" if is_outlap else ("In" if is_inlap else str(lap["lap_number"]))
             lap_item = QTableWidgetItem(display_text)
             lap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             lap_item.setData(Qt.ItemDataRole.UserRole, lap["lap_number"])
 
-            mins = int(lap["lap_time"] // 60)
-            secs = lap["lap_time"] % 60
-            time_str = f"{mins}:{secs:06.3f}"
+            # Show only as much precision as is actually held: the precise
+            # channel value (hundredths) when the parser adopted it, the
+            # computed 0.2s-grid value (tenths) otherwise -- never claim
+            # more precision than the underlying number has.
+            precise = lap.get("lap_time_precise")
+            use_precise = precise is not None
+            display_time = precise if use_precise else lap["lap_time"]
+            mins = int(display_time // 60)
+            secs = display_time % 60
+            time_str = f"{mins}:{secs:05.2f}" if use_precise else f"{mins}:{secs:04.1f}"
             time_item = QTableWidgetItem(time_str)
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
             if is_outlap:
                 badge_text = "OUT LAP"
+            elif is_inlap:
+                badge_text = "IN LAP"
             elif lap["is_fastest"]:
                 badge_text = "FASTEST"
             else:
@@ -1435,10 +1445,10 @@ class OutingForm(QWidget):
             badge_item = QTableWidgetItem(badge_text)
             badge_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            if lap["is_fastest"] and not is_outlap:
+            if lap["is_fastest"] and not is_outlap and not is_inlap:
                 for item in [lap_item, time_item, badge_item]:
                     item.setForeground(QColor("#C0A060"))
-            elif is_outlap:
+            elif is_outlap or is_inlap:
                 for item in [lap_item, time_item, badge_item]:
                     item.setForeground(QColor("#555555"))
 

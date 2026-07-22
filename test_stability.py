@@ -122,6 +122,7 @@ if state:
     print(f"\n=== Stable corner id clustering (per-cluster membership) ===")
     stable_ids = {c["stable_corner_id"] for c in corners if c["stable_corner_id"] is not None}
     print(f"Unique stable corners: {len(stable_ids)}")
+    n_valid_laps = len([l for l in data.get("laps", []) if l.get("is_valid_for_analysis")])
     by_id = {}
     for c in corners:
         by_id.setdefault(c["stable_corner_id"], []).append(c)
@@ -133,7 +134,7 @@ if state:
         laps_present = sorted({m["lap_number"] for m in members})
         if len(members) == 1:
             n_singleton += 1
-        elif len(members) == 5:
+        elif len(members) == n_valid_laps:
             n_full += 1
         else:
             n_partial += 1
@@ -148,9 +149,10 @@ if state:
                   f"bracket=[{m['bracket_start_m']:8.1f},{m['bracket_end_m']:8.1f}]m  "
                   f"apex_dist={m['apex_lap_distance_m']:8.1f}m{tags}")
 
-    print(f"\nCount justification: {len(by_id)} clusters = {n_full} full (all 5 laps) + "
-          f"{n_partial} partial (compound-straddle splits, not all laps take this section "
-          f"the same way) + {n_singleton} singleton (a genuine extra event unique to one lap).")
+    print(f"\nCount justification: {len(by_id)} clusters = {n_full} full (all {n_valid_laps} "
+          f"valid laps) + {n_partial} partial (compound-straddle splits, not all laps take "
+          f"this section the same way) + {n_singleton} singleton (a genuine extra event "
+          f"unique to one lap).")
 
     if corners:
         summaries = summarise_corners(corners, cs, stab, state)

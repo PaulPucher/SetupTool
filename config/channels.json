@@ -24,6 +24,12 @@
             "range": [0, 70000],
             "required": false
         },
+        "ecu_B_speedlimit_en": {
+            "label": "Pit Speed Limiter Engaged",
+            "unit": "",
+            "range": [0, 1],
+            "required": false
+        },
         "ecu_aps": {
             "label": "Throttle",
             "unit": "%",
@@ -174,5 +180,9 @@
         "ay_exit_threshold_g": 0.35,
         "compound_corner_min_length_m": 300,
         "bracket_overlap_min_fraction": 0.3
+    },
+    "lap_splitting": {
+        "pit_fragment_max_duration_s": 20,
+        "lap_time_precise_max_delta_s": 1.0
     }
 }

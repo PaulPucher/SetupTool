@@ -116,7 +116,7 @@ def parse_csv(file_path):
             "quality": quality
         }
 
-    laps = _split_laps(result_channels)
+    laps = _split_laps(result_channels, config)
 
     result = {
         "metadata": metadata,
@@ -130,7 +130,85 @@ def parse_csv(file_path):
     return result
 
 
-def _split_laps(channels):
+def _merge_trailing_pit_fragment(laps, channels, config):
+    # SCOPE: handles the SESSION-TRAILING fragment only -- the final
+    # lap_number segment after the pit-in beacon, e.g. Dubai's 8s "lap 6"
+    # (log_beacon_pitin at t=1121.65s, 0.27s before the lap_number 5->6
+    # transition). The true inlap -- pit committed, decelerating to pit
+    # speed under the limiter -- is the PRECEDING lap: on Dubai the
+    # pit-speed limiter (ecu_B_speedlimit_en) engages at t=1108.78s, 13.14s
+    # before that transition, entirely inside what was "lap 5".
+    # Multi-stint race files have no such trailing fragment (the stop lap
+    # runs line-to-line through the pit box as one lap_number) -- they will
+    # need stint-aware in/out/stop-lap classification via MID-lap limiter
+    # engagement instead. That is deferred until multi-stint data arrives
+    # (see PLAN.md IDEAS); the limiter channel whitelisted here is the
+    # enabler for that later work, not a solution to it.
+    if len(laps) < 2:
+        return
+
+    last = laps[-1]
+    prev = laps[-2]
+
+    limiter_ch = channels.get("ecu_B_speedlimit_en")
+    merge = False
+    if (limiter_ch is not None and limiter_ch.get("quality") not in ("missing", "failed")
+            and limiter_ch.get("time") is not None and len(limiter_ch["time"]) > 0):
+        # Level 3: limiter already engaged at the fragment's first sample.
+        idx = min(np.searchsorted(limiter_ch["time"], last["start_time"]),
+                  len(limiter_ch["data"]) - 1)
+        merge = bool(limiter_ch["data"][idx] >= 0.5)
+    else:
+        # Level 1 fallback: no limiter channel -- fragment shorter than
+        # any real lap could plausibly be.
+        max_dur = config.get("lap_splitting", {}).get("pit_fragment_max_duration_s", 20)
+        merge = last["lap_time"] < max_dur
+
+    if not merge:
+        return
+
+    prev["end_time"] = last["end_time"]
+    prev["lap_time"] = prev["end_time"] - prev["start_time"]
+    prev["is_inlap"] = True
+    laps.pop()
+
+
+def _attach_precise_lap_time(laps, channels, config):
+    # lap_time (computed) is bounded by the lap_number channel's own
+    # sample interval (0.2 s on Dubai) -- boundaries land on that grid, so
+    # two genuinely different lap durations can quantise to the identical
+    # float and only "tie-break" by list order. The file's own lap_time
+    # channel is logged independently, at its own (finer) sample interval,
+    # and carries the logger's real sub-tenth timing. We take its max
+    # value inside the lap's window (same pattern _verify_laps already
+    # uses) as lap_time_precise, gated against the computed duration so a
+    # boundary that doesn't correspond to this channel's own lap concept
+    # (the outlap -- channel hasn't started counting; the merged inlap --
+    # channel reflects the pre-merge, un-merged lap) falls back to
+    # computed rather than silently substituting an unrelated number. Max
+    # possible undercount from this method is bounded by one lap_time
+    # channel sample interval, which is well inside the gate.
+    max_delta = config.get("lap_splitting", {}).get("lap_time_precise_max_delta_s", 1.0)
+    lt_ch = channels.get("lap_time")
+    for l in laps:
+        l["lap_time_precise"] = None
+        if lt_ch is None or lt_ch.get("quality") in ("missing", "failed") or lt_ch.get("time") is None:
+            continue
+        t, v = lt_ch["time"], lt_ch["data"]
+        mask = (t >= l["start_time"]) & (t <= l["end_time"])
+        if not mask.any():
+            continue
+        candidate = float(v[mask].max())
+        if abs(candidate - l["lap_time"]) <= max_delta:
+            l["lap_time_precise"] = candidate
+
+
+def _effective_lap_time(l):
+    return l["lap_time_precise"] if l.get("lap_time_precise") is not None else l["lap_time"]
+
+
+def _split_laps(channels, config=None):
+    config = config or {}
     laps = []
     lap_ch = channels.get("lap_number")
 
@@ -161,21 +239,26 @@ def _split_laps(channels):
             "lap_time": duration,
             "is_fastest": False,
             "is_valid_for_analysis": False,
+            "is_outlap": int(lap_n) == 0,
+            "is_inlap": False,
             "warnings": []
         })
 
+    _merge_trailing_pit_fragment(laps, channels, config)
+    _attach_precise_lap_time(laps, channels, config)
     _verify_laps(laps, channels)
 
-    valid = [l for l in laps if l["lap_time"] > 10]
+    valid = [l for l in laps if _effective_lap_time(l) > 10]
     if valid:
-        fastest_lap = min(valid, key=lambda l: l["lap_time"])
-        fastest_time = fastest_lap["lap_time"]
+        fastest_lap = min(valid, key=_effective_lap_time)
+        fastest_time = _effective_lap_time(fastest_lap)
         for l in laps:
             l["is_fastest"] = (l is fastest_lap)
             l["is_valid_for_analysis"] = (
-                l["lap_number"] != 0
-                and l["lap_time"] <= fastest_time * 1.10
-                and l["lap_time"] > 10
+                not l["is_outlap"]
+                and not l["is_inlap"]
+                and _effective_lap_time(l) <= fastest_time * 1.10
+                and _effective_lap_time(l) > 10
                 and len(l["warnings"]) == 0
             )
 

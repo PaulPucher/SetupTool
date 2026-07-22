@@ -395,6 +395,16 @@ after caching (measure first, ask the user).
    arrives): dead-reckoning becomes unnecessary if gps lat/lon are logged —
    the file already contains log_gps_lat/lon at 10 Hz; a plotted outline with
    stable-corner markers is then mostly a drawing task.
+9. **Multi-stint stint-aware in/out/stop-lap classification** (later, when
+   multi-stint race data arrives): `_merge_trailing_pit_fragment` in
+   `modules/csv_parser.py` only handles the session-trailing fragment (the
+   final `lap_number` segment after the pit-in beacon, as on the Dubai
+   sample). A multi-stint file has no such fragment mid-race — the stop lap
+   runs line-to-line through the pit box as a single `lap_number`, so a
+   stint's true in-lap/out-lap/stop-lap boundaries need classification via
+   MID-lap `ecu_B_speedlimit_en` engagement (already whitelisted in
+   `config/channels.json` for this reason) rather than a trailing-fragment
+   merge. Deferred until such a file is available to validate against.
 
 ---
 
