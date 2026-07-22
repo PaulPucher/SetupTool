@@ -220,20 +220,6 @@ def _verify_laps(laps, channels):
                         f"despite {duration:.1f}s duration"
                     )
 
-def get_lap_summary(parsed_data):
-    return [
-        {
-            "lap_number": l["lap_number"],
-            "lap_time": l["lap_time"],
-            "is_fastest": l["is_fastest"],
-            "start_time": l["start_time"],
-            "end_time": l["end_time"],
-        }
-        for l in parsed_data.get("laps", [])
-        if l["lap_time"] > 10
-    ]
-
-
 def get_available_channels(parsed_data):
     return [
         {

@@ -1,0 +1,145 @@
+{
+  "_comment_parameters": "suggestion.parameter names (front_arb, rear_arb) are provisional labels, not yet mapped to real car.json setup-sheet fields. That mapping is WP2b, done alongside the rule-engineering session -- see PLAN.md.",
+  "_comment_trigger": "condition.trigger selects how a rule fires. 'data': fires from classify_fn (verdict + min_severity) on the rule's phases; feedback_sign/min_feedback_abs only modulate the score (agreement_bonus / conflict_penalty / 1.0 if feedback absent). 'driver': fires from feedback_sign/min_feedback_abs on the rule's phases alone (score scales with max |feedback|/5 among those phases); condition.verdict is NOT a firing gate here -- it is only the agreement reference against which classify_fn's verdict on the same phases is compared, to modulate the score (agreement_bonus if it matches, conflict_penalty + the corner listed in conflicts if it contradicts with the opposite axle verdict, 1.0 if data is silent/ok). 'both': fires only when the data condition AND the driver condition both hold independently -- no further modulation, higher default weight (high-confidence tier).",
+  "_comment_source_balance": "settings.source_balance (0..1) is a global multiplier on top of the per-trigger score, applied after agreement/conflict modulation: data-triggered rules get (1 - source_balance) * 2, driver-triggered rules get source_balance * 2, both-triggered rules always get 1.0 (corroborated evidence is never discounted). Default 0.5 is exactly neutral (both multipliers = 1.0, current behaviour unchanged). At the extremes a single-source rule still fires and evaluates -- its match, corner, and conflict flag still exist -- but its score multiplies to 0 and it drops out at min_score_to_show, which is suppression at the scoring stage only, not at the evaluation stage. source_balance does not touch agreement_bonus/conflict_penalty: balance weighs WHO may raise a hypothesis, modulation weighs WHAT the other source says about it.",
+  "_comment_worst_corner": "settings.worst_corner_multiplier scales EVERY match's score on a corner the driver flagged as 'worst' in the feedback table, regardless of trigger type -- applied once, after source_balance and agreement/conflict modulation. It is orthogonal to both: source_balance weighs who may raise a hypothesis, agreement/conflict weighs what the other source says about a specific match, worst_corner_multiplier weighs the driver's own prioritisation of which corner matters most this outing. Default 1.5; a corner with no 'worst' flag is unaffected (implicit x1.0). Multiple flagged corners each get the multiplier independently.",
+  "settings": {
+    "agreement_bonus": 1.5,
+    "conflict_penalty": 0.5,
+    "source_balance": 0.5,
+    "worst_corner_multiplier": 1.5,
+    "min_score_to_show": 0.5,
+    "max_recommendations": 8
+  },
+  "rules": [
+    {
+      "id": "us_entry_arb",
+      "name": "Entry understeer (data) -> soften front ARB",
+      "status": "seed",
+      "phases": ["entry_2_turnin"],
+      "condition": {
+        "trigger": "data",
+        "verdict": "understeer",
+        "min_severity": "moderate",
+        "feedback_sign": "negative",
+        "min_feedback_abs": 1
+      },
+      "suggestion": {
+        "parameter": "front_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Front axle saturating at turn-in (understeer): softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle."
+    },
+    {
+      "id": "os_exit_traction",
+      "name": "Exit oversteer / traction (data) -> soften rear ARB",
+      "status": "seed",
+      "phases": ["exit_4", "exit_5"],
+      "condition": {
+        "trigger": "data",
+        "verdict": "oversteer",
+        "min_severity": "moderate",
+        "feedback_sign": "positive",
+        "min_feedback_abs": 1
+      },
+      "suggestion": {
+        "parameter": "rear_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Rear axle losing grip on power application (oversteer): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the sliding (rear) axle, restoring traction and stability on exit."
+    },
+    {
+      "id": "us_apex_arb",
+      "name": "Apex understeer (data) -> soften front ARB",
+      "status": "seed",
+      "phases": ["apex_3"],
+      "condition": {
+        "trigger": "data",
+        "verdict": "understeer",
+        "min_severity": "moderate",
+        "feedback_sign": "negative",
+        "min_feedback_abs": 1
+      },
+      "suggestion": {
+        "parameter": "front_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Sustained mid-corner understeer at peak lateral load: softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle through the apex."
+    },
+    {
+      "id": "yaw_entry_unstable",
+      "name": "Unstable yaw on entry (data) -> soften rear ARB",
+      "status": "seed",
+      "phases": ["entry_1_brake", "entry_2_turnin"],
+      "condition": {
+        "trigger": "data",
+        "verdict": "unstable_yaw",
+        "min_severity": "moderate"
+      },
+      "suggestion": {
+        "parameter": "rear_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Destabilising yaw moment while trail-braking into the corner (rear-limited rotation): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the rear axle, adding yaw damping on entry."
+    },
+    {
+      "id": "driver_os_exit",
+      "name": "Driver-reported exit oversteer (driver) -> soften rear ARB",
+      "status": "seed",
+      "phases": ["exit_4", "exit_5"],
+      "condition": {
+        "trigger": "driver",
+        "verdict": "oversteer",
+        "feedback_sign": "positive",
+        "min_feedback_abs": 3
+      },
+      "suggestion": {
+        "parameter": "rear_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Driver reports strong oversteer on exit (|feedback| >= 3): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the sliding (rear) axle. Classifier agreement/conflict on the same phases modulates the score."
+    },
+    {
+      "id": "driver_us_entry",
+      "name": "Driver-reported entry understeer (driver) -> soften front ARB",
+      "status": "seed",
+      "phases": ["entry_1_brake", "entry_2_turnin"],
+      "condition": {
+        "trigger": "driver",
+        "verdict": "understeer",
+        "feedback_sign": "negative",
+        "min_feedback_abs": 3
+      },
+      "suggestion": {
+        "parameter": "front_arb",
+        "direction": "soften",
+        "weight": 1.0
+      },
+      "rationale": "Driver reports strong understeer on entry (|feedback| >= 3): softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle. Classifier agreement/conflict on the same phases modulates the score."
+    },
+    {
+      "id": "both_us_entry_arb",
+      "name": "Entry understeer, data + driver agree (both) -> soften front ARB",
+      "status": "seed",
+      "phases": ["entry_2_turnin"],
+      "condition": {
+        "trigger": "both",
+        "verdict": "understeer",
+        "min_severity": "moderate",
+        "feedback_sign": "negative",
+        "min_feedback_abs": 1
+      },
+      "suggestion": {
+        "parameter": "front_arb",
+        "direction": "soften",
+        "weight": 2.0
+      },
+      "rationale": "Classifier and driver independently confirm entry understeer: softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle. High-confidence tier since both sources corroborate."
+    }
+  ]
+}

@@ -162,6 +162,25 @@ HOW TO USE:
   straddle splits) + 1 true singleton = 15 stable corners. Same-lap
   exclusivity holds everywhere; no residual violation after splitting.
 
+### Recommendation engine: median-of-medians aggregation + classifier reuse [2026-07-22]
+- Corner-level recommendation evidence aggregates each stable corner's
+  per-lap phase medians via a further median across laps (median-of-
+  medians), not a mean and not single-lap values. This deliberately
+  privileges REPEATABLE behaviour: a single-lap anomaly (traffic, a
+  missed apex, a gust) washes out of the aggregate and cannot by
+  itself drive a setup suggestion -- a recommendation only fires when
+  the pattern holds across the analysed laps. n_laps (cluster member
+  count contributing to that corner) is carried in the evidence trail
+  so a partial cluster is visibly thinner evidence than a full one,
+  without any confidence weighting suppressing it.
+- Rules never reimplement the CS/stability thresholds: they call the
+  identical classify_fn (self._classify_corner) the stability grid
+  already uses, sliced to the rule's own phases. This is a structural
+  guarantee, not a convention that could drift -- a recommendation for
+  a corner can never disagree with the verdict the engineer already
+  sees in the grid for the same corner and phase, because both read
+  the same classifier.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Accuracy-level cascade [project-wide]
@@ -189,6 +208,37 @@ HOW TO USE:
   deliberately allowed to differ.
 - Missing corner in a lap = empty grid cell, not renumbering. A missing
   detection is itself information (wider line, lift, traffic).
+
+### Data and driver as co-equal evidence sources [2026-07-22]
+- The recommendation engine's rule trigger types (data / driver / both)
+  treat classifier output and driver feedback symmetrically: either
+  can independently raise a hypothesis (a "data" rule fires from the
+  classifier and lets feedback modulate it; a "driver" rule fires from
+  feedback and lets the classifier modulate it instead), and each
+  modulates the other's score up (agreement) or down (conflict) rather
+  than one silently overriding the other. A global source_balance
+  setting can additionally weigh how much a data- vs driver-raised
+  hypothesis counts (neutral by default) without touching that
+  agreement/conflict modulation -- balance decides who may raise a
+  hypothesis, modulation decides what the other source says about it.
+- Conflicts are SURFACED, not suppressed: a rule that fires with a
+  contradicting signal from the other source is flagged in a
+  "conflicts" list carried through to the UI, not discarded or
+  averaged away. Continues the transparency-over-suppression principle
+  above -- a driver feeling something the data doesn't show (or vice
+  versa) is a debrief item the engineer should see, not noise to be
+  filtered out.
+- The engine's three scoring signals mirror a real debrief's
+  information flow, and are kept deliberately orthogonal rather than
+  collapsed into one tunable: source_balance decides WHO may raise a
+  hypothesis (data-driven or driver-driven); agreement/conflict
+  modulation decides WHAT the other source says about that specific
+  hypothesis once raised; the worst-corner flag is the driver's own
+  PRIORITISATION, scaling every finding on that corner regardless of
+  which source raised it. Three separate questions an engineer asks in
+  a debrief, kept as three separate multipliers rather than one
+  conflated weight -- so each can be reasoned about and defended on
+  its own.
 
 ### Verdict vocabulary
 - Deliberately limited to understeer / oversteer / unstable yaw / ok.

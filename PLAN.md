@@ -195,6 +195,35 @@ engineering content later; the pipe must work.
 
 ---
 
+## WP2b-1 — Setup-parameter registry [promoted from WP2 config note]
+`config/recommendations.json` rule `suggestion.parameter` values (`front_arb`,
+`rear_arb`) are provisional labels, not yet tied to real setup-sheet fields.
+New file `config/setup_parameters.json`: one entry per tunable, defining --
+identity mapping to the real `car.json` field, its value space (range/units),
+direction semantics (what "soften"/"stiffen"/etc. means for that parameter),
+a one-sentence physical mechanism, and an optional phase-affinity hint (which
+corner phases that parameter plausibly affects). Prerequisite for WP2b-2 --
+rules cannot cite real parameters until the registry defining them exists.
+Do after WP2 lands; not a blocker for the WP2 framework itself.
+
+## WP2b-2 — Rule engineering against the registry
+Rewrite `config/recommendations.json` rules to reference `config/
+setup_parameters.json` keys instead of provisional strings; replace the seed
+weights/conditions with tuned, engineering-reviewed values; promote each
+rule's `status` from `"seed"` to `"reviewed"` as it is validated. Depends on
+WP2b-1.
+
+Optional scope addition: per-driver feedback weighting (NOT "driver level")
+— an optional field on the `Driver` model letting a driver's reported
+feedback carry more or less weight in `source_balance` resolution.
+`modules/recommendation.py` already isolates this behind a single helper,
+`_resolve_source_balance(config, outing)`, which today just returns
+`config["settings"]["source_balance"]`; extend it to resolve in order
+feedback-weighting override (driver) > outing override > global default
+rather than reading `settings["source_balance"]` inline anywhere else.
+
+---
+
 ## WP3 — Driver feedback ↔ analysis comparison view
 
 ### Goal
@@ -262,6 +291,16 @@ Depends on: WP1 complete, GPS channels confirmed (Task 1 scan).
 ### Acceptance criteria
 - After Clear, the form looks exactly like a fresh outing's data section.
 - Loading file B after file A shows only B's laps/corners; no stale widgets.
+
+### Naming note [2026-07-22]
+The "Exclude In/Out Laps" toggle actually filters on `is_valid_for_analysis`
+(`_get_lap_filter_from_selector`, `_populate_lap_table`), which on Dubai
+happens to coincide with in/out laps but is not the same thing in general --
+a mid-session lap with a `warnings` entry (e.g. lap_distance/lap_time
+disagreement) or one outside the 110%-of-fastest window is also excluded by
+this toggle, silently, with a label that only mentions in/out. Decide:
+rename the toggle/label to something accurate ("Exclude Invalid Laps"), or
+split the concept into two independent filters (in/out vs validity).
 
 ---
 

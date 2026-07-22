@@ -96,6 +96,7 @@ class OutingForm(QWidget):
         self.corner_rows = []
         self.parsed_data = None
         self.loaded_csv_path = None
+        self.stability_result = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -117,6 +118,7 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._build_setup_section("setup"))
         self.content_layout.addWidget(self._build_setdown_toggle())
         self.content_layout.addWidget(self._build_stability_toggle())
+        self.content_layout.addWidget(self._build_recommendations_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
         self.content_layout.addWidget(self._build_comments_section())
         self.content_layout.addStretch()
@@ -527,14 +529,13 @@ class OutingForm(QWidget):
     def _on_exclude_toggled(self, checked):
         if not self.parsed_data:
             return
-        from modules.csv_parser import get_lap_summary
         prev_value = None
         cur_row = self.lap_table.currentRow()
         if cur_row >= 0:
             item = self.lap_table.item(cur_row, 0)
             if item is not None:
                 prev_value = item.data(Qt.ItemDataRole.UserRole)
-        laps = get_lap_summary(self.parsed_data)
+        laps = self.parsed_data.get("laps", [])
         self._populate_lap_table(laps)
         if prev_value is not None:
             for r in range(self.lap_table.rowCount()):
@@ -759,12 +760,12 @@ class OutingForm(QWidget):
 
     def _on_csv_loaded(self, result):
         import os
-        from modules.csv_parser import get_lap_summary, get_available_channels
+        from modules.csv_parser import get_available_channels
         self.progress.close()
         self.parsed_data = result
         self.loaded_csv_path = self.loader_thread.path
         filename = os.path.basename(self.loader_thread.path)
-        laps = get_lap_summary(self.parsed_data)
+        laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
         self.csv_status_label.setText(
             f"{filename} — {len(laps)} laps, {len(available)} channels"
@@ -830,6 +831,7 @@ class OutingForm(QWidget):
         )
         self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self.btn_analyse.setEnabled(True)
+        self.btn_generate_recommendations.setEnabled(True)
 
         self._clear_cards()
         if not summaries:
@@ -1160,6 +1162,210 @@ class OutingForm(QWidget):
             w = item.widget()
             if w is not None:
                 w.deleteLater()
+
+    def _build_recommendations_toggle(self):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        btn_toggle = QPushButton("▶ Recommendations")
+        btn_toggle.setStyleSheet(
+            f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
+            "padding: 8px 14px; text-align: left;"
+        )
+        btn_toggle.setCheckable(True)
+        btn_toggle.setChecked(False)
+        layout.addWidget(btn_toggle)
+
+        self.recommendations_panel = QWidget()
+        panel_layout = QVBoxLayout(self.recommendations_panel)
+        panel_layout.setContentsMargins(0, 8, 0, 0)
+        panel_layout.setSpacing(8)
+
+        gen_row = QWidget()
+        gen_row_layout = QHBoxLayout(gen_row)
+        gen_row_layout.setContentsMargins(0, 0, 0, 0)
+        self.btn_generate_recommendations = QPushButton("Generate")
+        self.btn_generate_recommendations.setFixedWidth(100)
+        self.btn_generate_recommendations.setEnabled(False)
+        self.btn_generate_recommendations.clicked.connect(self._generate_recommendations)
+        gen_row_layout.addWidget(self.btn_generate_recommendations)
+        gen_row_layout.addStretch()
+        panel_layout.addWidget(gen_row)
+
+        self.recommendations_summary_label = QLabel(
+            "Run Analyse in the Data section, then Generate."
+        )
+        self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        panel_layout.addWidget(self.recommendations_summary_label)
+
+        self.recommendations_host = QWidget()
+        self.recommendations_host_layout = QVBoxLayout(self.recommendations_host)
+        self.recommendations_host_layout.setContentsMargins(0, 0, 0, 0)
+        self.recommendations_host_layout.setSpacing(6)
+        self.recommendations_host_layout.addStretch()
+        panel_layout.addWidget(self.recommendations_host)
+
+        self.recommendations_panel.setVisible(False)
+        layout.addWidget(self.recommendations_panel)
+
+        btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
+            self.recommendations_panel.setVisible(checked),
+            btn.setText("▼ Recommendations" if checked else "▶ Recommendations")
+        ))
+
+        return container
+
+    def _clear_recommendation_rows(self):
+        while self.recommendations_host_layout.count() > 1:
+            item = self.recommendations_host_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+    def _generate_recommendations(self):
+        # Synchronous: aggregation + rule matching over ~15 corners and a
+        # handful of rules is fast enough not to need a worker thread.
+        if not self.stability_result:
+            return
+        import json
+        from modules.recommendation import generate_recommendations, load_recommendations_config
+
+        summaries = self.stability_result["summaries"]
+        feedback_data = json.loads(self._collect_feedback_data())
+        setup_data = json.loads(self._collect_setup_data())
+        config = load_recommendations_config()
+
+        results = generate_recommendations(
+            summaries, self._classify_corner, feedback_data, setup_data, config,
+            outing=self.outing
+        )
+
+        rule_status = {r["id"]: r.get("status", "seed") for r in config["rules"]}
+        analysed_lap_count = len({s["lap_number"] for s in summaries})
+
+        self._clear_recommendation_rows()
+
+        if not results:
+            self.recommendations_summary_label.setText(
+                "No recommendations at current thresholds."
+            )
+            return
+
+        self.recommendations_summary_label.setText(f"{len(results)} recommendation(s).")
+
+        insert_pos = self.recommendations_host_layout.count() - 1
+        for r in results:
+            row = self._build_recommendation_row(r, rule_status, analysed_lap_count)
+            self.recommendations_host_layout.insertWidget(insert_pos, row)
+            insert_pos += 1
+
+    def _build_recommendation_row(self, r, rule_status, analysed_lap_count):
+        card = QWidget()
+        card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(10, 8, 10, 8)
+        card_layout.setSpacing(6)
+
+        header = QWidget()
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(10)
+
+        badge = QLabel(f"{r['parameter']} · {r['direction']}")
+        badge.setStyleSheet(
+            f"background-color: {ACCENT}; color: #111; font-size: 11px; "
+            "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
+        )
+        header_layout.addWidget(badge)
+
+        score_label = QLabel(f"score {r['score']:.2f}")
+        score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
+        header_layout.addWidget(score_label)
+
+        trigger_label = QLabel(" / ".join(r["trigger_source"]))
+        trigger_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+        header_layout.addWidget(trigger_label)
+
+        # Mandatory per WP2: a placeholder rule must never look like
+        # engineering truth. Shown whenever ANY contributing rule is still
+        # status:"seed" (all seven seed rules are, until WP2b-2 promotes them).
+        has_seed = any(
+            rule_status.get(rule_id, "seed") == "seed" for rule_id in r["rules_fired"]
+        )
+        if has_seed:
+            seed_label = QLabel("unvalidated rule")
+            seed_label.setStyleSheet(
+                f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;"
+            )
+            header_layout.addWidget(seed_label)
+
+        header_layout.addStretch()
+        card_layout.addWidget(header)
+
+        chips_row = QWidget()
+        chips_layout = QHBoxLayout(chips_row)
+        chips_layout.setContentsMargins(0, 0, 0, 0)
+        chips_layout.setSpacing(6)
+        for c in r["corners"]:
+            text = f"C{c['stable_corner_id']}"
+            if c["n_laps"] < analysed_lap_count:
+                text += f" ({c['n_laps']} lap{'s' if c['n_laps'] != 1 else ''})"
+            is_worst = c.get("worst_corner", False)
+            if is_worst:
+                text = f"! {text}"
+            chip = QLabel(text)
+            if is_worst:
+                # Driver flagged this corner "worst" -- the score boost
+                # (worst_corner_multiplier) must be visible, not silent.
+                chip.setStyleSheet(
+                    f"background-color: {PANEL_ALT}; color: {TEXT}; font-size: 10px; "
+                    f"font-weight: 600; padding: 2px 6px; border-radius: 3px; "
+                    f"border: 1px solid {ACCENT};"
+                )
+            else:
+                chip.setStyleSheet(
+                    f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 10px; "
+                    "padding: 2px 6px; border-radius: 3px;"
+                )
+            chips_layout.addWidget(chip)
+        chips_layout.addStretch()
+        card_layout.addWidget(chips_row)
+
+        if r["conflicts"]:
+            conflict_ids = ", ".join(f"C{c['stable_corner_id']}" for c in r["conflicts"])
+            conflict_label = QLabel(f"driver and data disagree at {conflict_ids}")
+            conflict_label.setStyleSheet(f"color: {WARN}; font-size: 10px;")
+            card_layout.addWidget(conflict_label)
+
+        btn_expand = QPushButton("▶ rationale")
+        btn_expand.setCheckable(True)
+        btn_expand.setChecked(False)
+        btn_expand.setStyleSheet(
+            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
+            "text-align: left; border: none; padding: 2px 0;"
+        )
+        card_layout.addWidget(btn_expand)
+
+        rationale_host = QWidget()
+        rationale_layout = QVBoxLayout(rationale_host)
+        rationale_layout.setContentsMargins(12, 2, 0, 0)
+        rationale_layout.setSpacing(2)
+        for rat in r["rationale"]:
+            line = QLabel(f"[{rat['rule_id']}] {rat['rationale']}")
+            line.setWordWrap(True)
+            line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+            rationale_layout.addWidget(line)
+        rationale_host.setVisible(False)
+        card_layout.addWidget(rationale_host)
+
+        def toggle_rationale(checked):
+            rationale_host.setVisible(checked)
+            btn_expand.setText("▼ rationale" if checked else "▶ rationale")
+        btn_expand.toggled.connect(toggle_rationale)
+
+        return card
 
     def _jump_plot_to_time(self, apex_t):
         if not self.parsed_data:
