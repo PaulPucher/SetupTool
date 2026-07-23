@@ -287,6 +287,81 @@ HOW TO USE:
   Engineering jargon ("collapse", "saturated", "loaded") tested and
   rejected — the tool speaks the language of the debrief.
 
+### Setup-parameter registry design [2026-07-23]
+- The parameter registry (config/setup_parameters.json, WP2b-1)
+  separates five concerns per tunable that a recommendation engine
+  would otherwise conflate into one opaque string: identity (mapping
+  to the real car.json field), value space (range/units), direction
+  semantics (what "increasing this value" physically means -- not
+  assumable from the field name alone, see below), physical mechanism
+  (one sentence, defensible on its own), and change_effort. Keeping
+  these as separate, independently-inspectable fields is what let a
+  systematic per-entry audit catch a real direction error (see next
+  point) instead of a plausible-sounding but wrong rule silently
+  shipping.
+- change_effort (seconds -> minutes -> garage_hours) creates a
+  natural recommendation hierarchy for free: electronic changes
+  (tc_lat/tc_lon/abs_position, seconds, driver-adjustable mid-session)
+  are cheaper to try than mechanical clicks (dampers/ARB, seconds-
+  minutes) which are cheaper than garage-level changes (springs,
+  diff package, hours). A recommendation engine can prefer the
+  cheapest lever that explains the evidence without any separate
+  cost model -- the ordering falls out of the registry's own field.
+- Registry entries were populated from a team-knowledge session;
+  reference tables (ARB stiffness curves, damper matrix, diff
+  locking-torque chart, wing legal set, ABS/TC per-position tables)
+  were digitised from manufacturer/team documents into
+  config/car_data.json and cited by key from the registry, rather
+  than re-transcribed inline -- one lookup table, multiple registry
+  entries can cite it (e.g. all four ARB positions cite the same
+  arb.front/arb.rear stiffness curve).
+- METHODOLOGICAL POINT: direction semantics were verified against the
+  digitised source table for every entry that had one, not assumed
+  from the parameter's plain-English description. This caught a real
+  inversion -- tc_lat/tc_lon's own settings-overview table shows
+  increasing position means LESS permitted rotation/wheel spin (more
+  TC intervention), the opposite of a naive reading -- and separately
+  showed abs_position is categorical (two dry-grip brackets plus an
+  ascending wet-severity bracket), not the single monotonic soft-hard
+  axis every other electronic parameter in the registry is. Both
+  would have been highest-damage errors specifically because every
+  future rule written against this registry inherits its direction
+  claim silently; the audit step is what makes the registry a source
+  of truth rather than a plausible-sounding guess.
+- SCOPE DISCIPLINE: config/car_data.json was deliberately restricted
+  to data with a named consumer (a registry entry, a WP5b work-plan
+  item, or a module) after an initial pass over-digitised several
+  smooth, unlabelled kinematic curves (toe/camber/antidive/roll-
+  centre vs. wheel travel) that shared a source image with data that
+  WAS needed, but had no consumer of their own. The manufacturer
+  images remain the permanent archive (docs/car_data/, gitignored);
+  the JSON only mirrors what the tool actually reads. One digitised
+  table (the steering-ratio lookup) was pruned and then restored with
+  a durable reason once a real consumer was named (WP5b(f), replacing
+  the Level 1 constant steering_ratio) -- the deciding question for
+  whether reference data belongs in a config file is "what reads
+  this", not "is it true" or "was it asked for".
+- ADDENDUM [2026-07-23, same session]: added a `value_source` field
+  ("setup_sheet" vs "logged_data") as a SIXTH, independent axis after
+  first modelling tc_lat/tc_lon/abs_position as ordinary setup-sheet
+  targets alongside ARB/dampers/springs -- wrong, because all three
+  (like brake_bias, already correctly modelled this way) are changed
+  by the driver mid-session from the steering wheel on feel, tyre
+  life and fuel load; the setup sheet never holds their true value,
+  a logged channel would. This is the same distinction the
+  recommendation engine already draws between data and driver
+  evidence sources (see "Data and driver as co-equal evidence
+  sources" above) applied one level down, to the PARAMETERS
+  themselves rather than the evidence about them: `value_source`
+  answers "where does this parameter's truth live" and is
+  deliberately orthogonal to `recommendation_target` ("should the
+  engine suggest changing it") -- a parameter can be driver-owned
+  and still worth recommending (tc_lat/tc_lon/abs_position all keep
+  recommendation_target=true), because the two questions have
+  different answers for different reasons: ownership is about WHO
+  sets the value, recommendability is about whether the engine has
+  anything useful to say about it.
+
 ## 3. Validation results (Dubai sample, 992 GT3R, 5 valid laps, 50 Hz)
 
 - beta: -4.29 to +2.91 deg, mean abs 0.87 deg — plausible GT magnitude.

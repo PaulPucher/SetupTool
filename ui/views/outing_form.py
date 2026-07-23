@@ -1855,6 +1855,36 @@ class OutingForm(QWidget):
             self._active_inputs["car"][param] = widget
             car_layout.addWidget(self._setup_row(label_text, widget))
 
+        arb_mount_combo = QComboBox()
+        arb_mount_combo.addItems(["P0", "P1", "P2"])
+        self._active_inputs["car"]["arb_front_mount"] = arb_mount_combo
+        car_layout.addWidget(self._setup_row("ARB Front Mount", arb_mount_combo))
+
+        diff_torque_label = QLabel("Diff Locking Torque (measured, Nm)")
+        diff_torque_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        car_layout.addWidget(diff_torque_label)
+
+        diff_torque_row = QWidget()
+        diff_torque_layout = QHBoxLayout(diff_torque_row)
+        diff_torque_layout.setContentsMargins(0, 0, 0, 0)
+        diff_torque_layout.setSpacing(4)
+        for pos in range(1, 6):
+            cell = QWidget()
+            cell_layout = QVBoxLayout(cell)
+            cell_layout.setContentsMargins(0, 0, 0, 0)
+            cell_layout.setSpacing(2)
+            lbl = QLabel(str(pos))
+            lbl.setStyleSheet("color: #555; font-size: 10px;")
+            widget = NoScrollSpinBox()
+            widget.setRange(0, 9999)
+            widget.setDecimals(0)
+            widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+            self._active_inputs["car"][f"differential_locking_torque_measured_{pos}"] = widget
+            cell_layout.addWidget(lbl)
+            cell_layout.addWidget(widget)
+            diff_torque_layout.addWidget(cell)
+        car_layout.addWidget(diff_torque_row)
+
         layout.addWidget(car_group)
         layout.addStretch()
         return center
@@ -1877,17 +1907,51 @@ class OutingForm(QWidget):
             for param, widget in fields.items():
                 if isinstance(widget, QDoubleSpinBox):
                     data[corner_key][param] = widget.value()
+                elif isinstance(widget, QComboBox):
+                    data[corner_key][param] = widget.currentText()
                 elif isinstance(widget, QLineEdit):
                     data[corner_key][param] = widget.text().strip()
                 elif isinstance(widget, QTextEdit):
                     data[corner_key][param] = widget.toPlainText().strip()
         return json.dumps(data)
 
+    def _reshape_diff_torque_out(self, json_string):
+        import json
+        data = json.loads(json_string)
+        car = data.get("car")
+        if isinstance(car, dict):
+            torque = {}
+            for pos in range(1, 6):
+                key = f"differential_locking_torque_measured_{pos}"
+                if key in car:
+                    torque[str(pos)] = car.pop(key)
+            if torque:
+                car["differential_locking_torque_measured"] = torque
+        return json.dumps(data)
+
+    def _reshape_diff_torque_in(self, json_string):
+        import json
+        if not json_string:
+            return json_string
+        try:
+            data = json.loads(json_string)
+        except (json.JSONDecodeError, TypeError):
+            return json_string
+        car = data.get("car")
+        if isinstance(car, dict):
+            torque = car.pop("differential_locking_torque_measured", None)
+            if isinstance(torque, dict):
+                for pos in range(1, 6):
+                    key = str(pos)
+                    if key in torque:
+                        car[f"differential_locking_torque_measured_{pos}"] = torque[key]
+        return json.dumps(data)
+
     def _collect_setup_data(self):
-        return self._collect_inputs(self.setup_inputs)
+        return self._reshape_diff_torque_out(self._collect_inputs(self.setup_inputs))
 
     def _collect_setdown_data(self):
-        return self._collect_inputs(self.setdown_inputs)
+        return self._reshape_diff_torque_out(self._collect_inputs(self.setdown_inputs))
 
     def _collect_feedback_data(self):
         import json
@@ -1956,22 +2020,25 @@ class OutingForm(QWidget):
                         widget.setValue(float(value) if value else 0.0)
                     except (ValueError, TypeError):
                         pass
+                elif isinstance(widget, QComboBox):
+                    if value:
+                        widget.setCurrentText(str(value))
                 elif isinstance(widget, QLineEdit):
                     widget.setText(str(value) if value else "")
                 elif isinstance(widget, QTextEdit):
                     widget.setPlainText(str(value) if value else "")
 
     def _load_setup_data(self, json_string):
-        self._load_inputs(self.setup_inputs, json_string)
+        self._load_inputs(self.setup_inputs, self._reshape_diff_torque_in(json_string))
 
     def _load_setdown_data(self, json_string):
-        self._load_inputs(self.setdown_inputs, json_string)
+        self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(json_string))
 
     def _prefill_setdown(self):
         if self.outing and self.outing.setdown_data:
-            self._load_inputs(self.setdown_inputs, self.outing.setdown_data)
+            self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(self.outing.setdown_data))
         else:
-            self._load_inputs(self.setdown_inputs, self._collect_setup_data())
+            self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(self._collect_setup_data()))
 
     def _print_sheet(self, sheet_type):
         from PyQt6.QtWidgets import QFileDialog, QMessageBox

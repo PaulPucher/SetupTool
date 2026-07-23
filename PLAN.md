@@ -1,13 +1,42 @@
 ## STATUS (update at every work stop)
-Current WP: baseline cleanup done, WP2 next. Last commit: <hash/date>.
-Next commit: baseline cleanup (diagnostics/ folder, dead-code removal,
-project.md/thesis_notes.md refresh) on top of WP1 close (cross-lap
-corner identity + detection robustness -- dual-criterion detection,
-compound-corner flag, lap selector toggle/clear, interval-overlap
-clustering with seeded splitting). Open threads: track_check naming
-verdict (T5-T6 region, user-confirmed two real corners = one load
-event); second-track clustering validation when new data arrives
-(also tests the overlap-fraction gap-vs-overlap assumption).
+Current WP: WP2b-1 complete (2026-07-23), WP2b-2 next. Last commit:
+f598e9b (Corner map next to feedback table, WP3b interim) -- this
+session's work (WP2b-1) is uncommitted, pending user review before
+the checkpoint commit.
+WP2b-1 this session: config/car_data.json (manufacturer reference
+data digitised from docs/car_data/, gitignored/local-only, consumer-
+scoped -- only tables with a named registry/WP5b/module consumer are
+digitised, everything else stays in the docs/car_data/ image archive
+undigitised); config/setup_parameters.json (46-entry tunable
+registry, direction_semantics cross-checked against car_data.json
+per entry -- caught and fixed a real tc_lat/tc_lon inversion and
+rewrote abs_position as categorical, not monotonic; gained a
+`value_source` field ("setup_sheet" default vs "logged_data",
+independent of recommendation_target) after tc_lat/tc_lon/
+abs_position/brake_bias were identified as driver-adjusted
+mid-session from the wheel, not setup-sheet targets -- their
+maps_to is null pending a channel-name identification pass, see the
+new "NEW DATA FILE — DIAGNOSTIC CHECKLIST" section above WP1);
+car.json gained arb_front_mount and
+differential_locking_torque_measured only (car dict, no new
+front_axle tier -- schema decision); outing_form.py renders those
+two new fields (QComboBox support added to the generic
+_collect_inputs/_load_inputs for arb_front_mount; flat-key<->nested
+reshape helpers for the diff torque table, round-trip verified,
+including an offscreen QComboBox collect/load smoke test). PLAN.md
+WP5b gained item (f) steering-ratio lookup as steering_ratio_table's
+registry consumer.
+Open threads: WP2b-2 (rewrite recommendations.json rules against the
+new registry keys); the new-data-file channel scan for
+tc_lat/tc_lon/abs_position/brake_bias (checklist above WP1); UI
+verification checklist (arb_front_mount dropdown + 5 diff-torque
+cells render in setup+setdown, save/reopen round-trip, setdown
+mirror, PDF export, test_stability) -- user to run manually per
+CLAUDE.md UI-change rule; track_check naming verdict (T5-T6 region,
+user-confirmed two real corners = one load event); second-track
+clustering validation when new data arrives (also tests the
+overlap-fraction gap-vs-overlap assumption); wing_position
+spinbox-vs-enum UI polish noted under WP4.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
@@ -50,6 +79,23 @@ Current state in one line: Modules 1-6 stability pipeline works end-to-end
 (CS_ratio + dMz/dbeta per corner per phase, kerb exclusion via log_acc_z),
 UI shows per-lap corner grid with severity colours; corner numbering is NOT
 yet consistent across laps — that is the first work package.
+
+---
+
+## NEW DATA FILE — DIAGNOSTIC CHECKLIST (run whenever a new log file arrives)
+- Second-track clustering validation: rerun stable-corner-id clustering,
+  check the overlap-fraction gap-vs-overlap assumption holds (see WP3b).
+- Channel scan for the four `value_source: "logged_data"` registry
+  parameters (config/setup_parameters.json: tc_lat, tc_lon, abs_position,
+  brake_bias) — these are driver-adjustable mid-session from the steering
+  wheel / brake balance bar, so their truth is a logged channel, not a
+  setup-sheet value, but the exact channel names are not yet known.
+  Identify and record: TC LAT switch-position channel, TC LON
+  switch-position channel, ABS switch-position channel, brake bias
+  channel. Once found, add to config/channels.json and update the four
+  registry entries' `notes` (channel name TBD -> confirmed).
+- Multi-stint in/out/stop-lap classification (see WP7 IDEAS item 9) if the
+  file spans more than one stint.
 
 ---
 
@@ -195,7 +241,7 @@ engineering content later; the pipe must work.
 
 ---
 
-## WP2b-1 — Setup-parameter registry [promoted from WP2 config note]
+## WP2b-1 — Setup-parameter registry [promoted from WP2 config note] [COMPLETE 2026-07-23]
 `config/recommendations.json` rule `suggestion.parameter` values (`front_arb`,
 `rear_arb`) are provisional labels, not yet tied to real setup-sheet fields.
 New file `config/setup_parameters.json`: one entry per tunable, defining --
@@ -205,6 +251,21 @@ a one-sentence physical mechanism, and an optional phase-affinity hint (which
 corner phases that parameter plausibly affects). Prerequisite for WP2b-2 --
 rules cannot cite real parameters until the registry defining them exists.
 Do after WP2 lands; not a blocker for the WP2 framework itself.
+
+Populated from a team-knowledge session: 46-entry registry (37
+mechanical / 3 electronic / 6 context), reference tables digitised
+from manufacturer data (docs/car_data/) into config/car_data.json as
+config lookups, consumer-scoped (only tables with a named registry/
+WP5b/module consumer got digitised). Registry gained a `value_source`
+field ("setup_sheet" vs "logged_data", independent of
+recommendation_target) -- tc_lat/tc_lon/abs_position/brake_bias are
+driver-adjusted mid-session from the wheel, so their truth is a
+logged channel, not a setup-sheet value; maps_to is null for these
+four pending a channel-name identification pass (see the new-data-
+file diagnostic checklist above WP1). Only arb_front_mount and
+differential_locking_torque_measured were added to car.json (car
+dict) with matching outing_form.py UI rows. WP2b-2 remains --
+rewrite recommendations.json rules against these registry keys.
 
 ## WP2b-2 — Rule engineering against the registry
 Rewrite `config/recommendations.json` rules to reference `config/
@@ -324,6 +385,14 @@ this toggle, silently, with a label that only mentions in/out. Decide:
 rename the toggle/label to something accurate ("Exclude Invalid Laps"), or
 split the concept into two independent filters (in/out vs validity).
 
+### UI polish note [2026-07-23]
+`outing_form.py`'s `wing_position` field renders as a `NoScrollSpinBox`
+(numeric), but WP2b-1's registry defines it as an enum -- legal set
+P8|P9|P10 only (config/car_data.json wing_position_table, GT3 R 2026
+column). A spinbox permits illegal intermediate values. Low priority,
+batch with the next UI pass (would follow the arb_front_mount QComboBox
+pattern added in WP2b-1 TASK 3).
+
 ---
 
 ## WP5 — Result persistence
@@ -367,6 +436,11 @@ d) Speed validation: log_gps_speed vs ecu_speed agreement report;
 e) After any of a-d lands: re-run the corner-distribution diagnostic
    and re-derive classification thresholds — they were tuned on
    Level 1 numbers and are not portable across accuracy levels.
+f) Level 4 steering ratio lookup — replace the constant steering_ratio
+   (Level 1, thesis limitation #3) with the digitised wheel-travel/
+   stroke/ratio table (config/car_data.json: steering_ratio_table,
+   source Steering.png). Consumer: prepare_vehicle_state's delta_f
+   computation.
 
 ## WP6 — Performance (do opportunistically, after WP1)
 

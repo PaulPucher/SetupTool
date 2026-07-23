@@ -1,0 +1,1265 @@
+{
+  "_comment": "WP2b-1 TASK 2 — setup-parameter registry. One entry per tunable: identity, value space, direction semantics, typical window, change effort, physical mechanism, optional phase affinity, notes, recommendation_target. 'maps_to' entries prefixed 'setup_parameters.car.*' for arb_front_mount/tc_lat/tc_lon/abs_position are NEW car.json fields, created in TASK 3 (not yet present). Every entry with a config/car_data.json lookup cites the exact section in 'notes' and had its direction_semantics cross-checked against that section's actual digitised values (not assumed from the original task wording) — see the tc_lat/tc_lon correction and the abs_position categorical rewrite as the two cases where the check changed the entry. 'value_source': 'setup_sheet' (default, maps_to is a real car.json path) vs 'logged_data' (maps_to is null -- the parameter's truth is a logged channel, not a setup-sheet field; value_source and recommendation_target are independent axes).",
+  "arb_fl": {
+    "key": "arb_fl",
+    "label": "Front-Left ARB Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.arb"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    },
+    "direction_semantics": {
+      "1": "softest",
+      "7": "stiffest",
+      "increasing": "stiffer"
+    },
+    "typical_window": {
+      "min": 3,
+      "max": 5,
+      "notes": "2/6 rare, 1/7 unused; rear usually a slightly lower position than front"
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets front-axle roll-stiffness share, which sets front lateral-load-transfer share, which sets front grip share relative to rear.",
+    "phase_affinity": null,
+    "notes": "Stiffness lookup: car_data.json arb.front (6.3..20.6 N/mm at drop link, ratio_to_wheel 1.07) -- verified: position 1->6.3 N/mm, position 7->20.6 N/mm, monotonic increasing, confirms 1=softest. Position-to-stiffness convention (linear vs squared) unresolved -- flagged convention_unresolved, resolve in WP5b. Four fully independent per-corner targets, no pairing concept.",
+    "recommendation_target": true
+  },
+  "arb_fr": {
+    "key": "arb_fr",
+    "label": "Front-Right ARB Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.arb"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    },
+    "direction_semantics": {
+      "1": "softest",
+      "7": "stiffest",
+      "increasing": "stiffer"
+    },
+    "typical_window": {
+      "min": 3,
+      "max": 5,
+      "notes": "2/6 rare, 1/7 unused; rear usually a slightly lower position than front"
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets front-axle roll-stiffness share, which sets front lateral-load-transfer share, which sets front grip share relative to rear.",
+    "phase_affinity": null,
+    "notes": "Stiffness lookup: car_data.json arb.front. Four fully independent per-corner targets, no pairing concept.",
+    "recommendation_target": true
+  },
+  "arb_rl": {
+    "key": "arb_rl",
+    "label": "Rear-Left ARB Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.arb"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    },
+    "direction_semantics": {
+      "1": "softest",
+      "7": "stiffest",
+      "increasing": "stiffer"
+    },
+    "typical_window": {
+      "min": 3,
+      "max": 5,
+      "notes": "usually a slightly lower position than front; 2/6 rare, 1/7 unused"
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets rear-axle roll-stiffness share, which sets rear lateral-load-transfer share, which sets rear grip share relative to front.",
+    "phase_affinity": null,
+    "notes": "Stiffness lookup: car_data.json arb.rear (26.9..80.1 N/mm at drop link, ratio_to_wheel 0.77) -- verified: position 1->26.9 N/mm, position 7->80.1 N/mm, monotonic increasing, confirms 1=softest. Same convention_unresolved flag as front.",
+    "recommendation_target": true
+  },
+  "arb_rr": {
+    "key": "arb_rr",
+    "label": "Rear-Right ARB Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.arb"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    },
+    "direction_semantics": {
+      "1": "softest",
+      "7": "stiffest",
+      "increasing": "stiffer"
+    },
+    "typical_window": {
+      "min": 3,
+      "max": 5,
+      "notes": "usually a slightly lower position than front; 2/6 rare, 1/7 unused"
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets rear-axle roll-stiffness share, which sets rear lateral-load-transfer share, which sets rear grip share relative to front.",
+    "phase_affinity": null,
+    "notes": "Stiffness lookup: car_data.json arb.rear.",
+    "recommendation_target": true
+  },
+  "arb_front_mount": {
+    "key": "arb_front_mount",
+    "label": "Front ARB Mount",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.car.arb_front_mount"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "enum",
+      "options": [
+        "P0",
+        "P1",
+        "P2"
+      ]
+    },
+    "direction_semantics": {
+      "P0": "softest coupling",
+      "increasing": "more direct/snappy turn-in"
+    },
+    "typical_window": null,
+    "change_effort": "minutes",
+    "mechanism": "Upright mount couples steering input to ARB preload -- higher position gives a more direct/snappy turn-in response.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "No source image digitises this parameter -- mechanism from team knowledge only, no car_data.json cross-check available. NEW car.json field, added to the existing 'car' dict (no separate front_axle tier -- schema decision, TASK 3) alongside differential_position/wing_position/splitter_offset.",
+    "recommendation_target": true
+  },
+  "springs_front": {
+    "key": "springs_front",
+    "label": "Front Springs",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.springs",
+      "setup_parameters.front_right.springs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "enum",
+      "options": [
+        220,
+        250,
+        280,
+        310
+      ],
+      "unit": "N/mm"
+    },
+    "direction_semantics": {
+      "increasing": "stiffer"
+    },
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Sets front-axle vertical (ride) stiffness independent of roll stiffness; conditions which damper window (car_data.json dampers.matrix_by_spring_pairing) is valid.",
+    "phase_affinity": null,
+    "notes": "Damper matrix conditions the recommended damper windows on the installed spring pairing -- see dampers.matrix_by_spring_pairing, cells keyed '{front}x{rear}'.",
+    "recommendation_target": true
+  },
+  "springs_rear": {
+    "key": "springs_rear",
+    "label": "Rear Springs",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.springs",
+      "setup_parameters.rear_right.springs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "enum",
+      "options": [
+        240,
+        260,
+        280,
+        300
+      ],
+      "unit": "N/mm"
+    },
+    "direction_semantics": {
+      "increasing": "stiffer"
+    },
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Sets rear-axle vertical (ride) stiffness independent of roll stiffness; conditions which damper window (car_data.json dampers.matrix_by_spring_pairing) is valid.",
+    "phase_affinity": null,
+    "notes": "Same matrix-conditioning relationship as springs_front.",
+    "recommendation_target": true
+  },
+  "damper_bump_ls_fl": {
+    "key": "damper_bump_ls_fl",
+    "label": "FL Bump Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.bump_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 10
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "Click semantics confirmed by car_data.json dampers.dyno_metadata.front.click_semantics (dyno chart's own '0-0-0-0'/'18-18-18-18' reference curves). Team practice: axle-symmetric values, 1-2 click changes, bump/rebound moved independently to counter specific effects.",
+    "recommendation_target": true
+  },
+  "damper_bump_hs_fl": {
+    "key": "damper_bump_hs_fl",
+    "label": "FL Bump High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.bump_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 14
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel motion over kerbs/bumps.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_blowoff_fl": {
+    "key": "damper_blowoff_fl",
+    "label": "FL Blowoff",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.blowoff"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "no relief -- deliberate platform priority",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 6
+    },
+    "change_effort": "seconds",
+    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; 0 means no relief is given, a deliberate platform-over-protection choice.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_rebound_ls_fl": {
+    "key": "damper_rebound_ls_fl",
+    "label": "FL Rebound Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.rebound_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 7
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls platform recovery speed after compression -- floating control.",
+    "phase_affinity": [
+      "entry_2_turnin",
+      "apex_3"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_rebound_hs_fl": {
+    "key": "damper_rebound_hs_fl",
+    "label": "FL Rebound High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.rebound_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 8
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_bump_ls_fr": {
+    "key": "damper_bump_ls_fr",
+    "label": "FR Bump Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.bump_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 10
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_bump_hs_fr": {
+    "key": "damper_bump_hs_fr",
+    "label": "FR Bump High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.bump_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 14
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel motion over kerbs/bumps.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_blowoff_fr": {
+    "key": "damper_blowoff_fr",
+    "label": "FR Blowoff",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.blowoff"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "no relief -- deliberate platform priority",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 6
+    },
+    "change_effort": "seconds",
+    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_rebound_ls_fr": {
+    "key": "damper_rebound_ls_fr",
+    "label": "FR Rebound Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.rebound_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 7
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls platform recovery speed after compression -- floating control.",
+    "phase_affinity": [
+      "entry_2_turnin",
+      "apex_3"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_rebound_hs_fr": {
+    "key": "damper_rebound_hs_fr",
+    "label": "FR Rebound High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.rebound_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 8
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
+    "recommendation_target": true
+  },
+  "damper_bump_ls_rl": {
+    "key": "damper_bump_ls_rl",
+    "label": "RL Bump Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.bump_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 10
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "Click semantics confirmed by car_data.json dampers.dyno_metadata.rear.click_semantics.",
+    "recommendation_target": true
+  },
+  "damper_bump_hs_rl": {
+    "key": "damper_bump_hs_rl",
+    "label": "RL Bump High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.bump_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 8
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel motion over kerbs/bumps.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_blowoff_rl": {
+    "key": "damper_blowoff_rl",
+    "label": "RL Blowoff",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.blowoff"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "no relief -- deliberate platform priority",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 0
+    },
+    "change_effort": "seconds",
+    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_rebound_ls_rl": {
+    "key": "damper_rebound_ls_rl",
+    "label": "RL Rebound Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.rebound_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 13
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls platform recovery speed after compression -- floating control.",
+    "phase_affinity": [
+      "entry_2_turnin",
+      "apex_3"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_rebound_hs_rl": {
+    "key": "damper_rebound_hs_rl",
+    "label": "RL Rebound High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.rebound_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 13
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_bump_ls_rr": {
+    "key": "damper_bump_ls_rr",
+    "label": "RR Bump Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.bump_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 10
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_bump_hs_rr": {
+    "key": "damper_bump_hs_rr",
+    "label": "RR Bump High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.bump_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 8
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel motion over kerbs/bumps.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_blowoff_rr": {
+    "key": "damper_blowoff_rr",
+    "label": "RR Blowoff",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.blowoff"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "no relief -- deliberate platform priority",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 0
+    },
+    "change_effort": "seconds",
+    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_rebound_ls_rr": {
+    "key": "damper_rebound_ls_rr",
+    "label": "RR Rebound Low-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.rebound_ls"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 13
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls platform recovery speed after compression -- floating control.",
+    "phase_affinity": [
+      "entry_2_turnin",
+      "apex_3"
+    ],
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "damper_rebound_hs_rr": {
+    "key": "damper_rebound_hs_rr",
+    "label": "RR Rebound High-Speed",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.rebound_hs"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 18,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "0": "fully closed = stiffest",
+      "18": "fully open = softest",
+      "increasing": "softer"
+    },
+    "typical_window": {
+      "reference_point_NBR": 13
+    },
+    "change_effort": "seconds",
+    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
+    "phase_affinity": null,
+    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
+    "recommendation_target": true
+  },
+  "ride_height_front": {
+    "key": "ride_height_front",
+    "label": "Front Ride Height",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.ride_height_fia",
+      "setup_parameters.front_left.ride_height_aero",
+      "setup_parameters.front_right.ride_height_fia",
+      "setup_parameters.front_right.ride_height_aero"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "unit": "mm",
+      "standard": 96
+    },
+    "direction_semantics": {
+      "decreasing": "lower to the ground",
+      "window_max": "~-2mm below standard (diffuser floor limit)"
+    },
+    "typical_window": {
+      "max_delta_from_standard": -2
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets front floor/splitter proximity to the ground -- aero platform height; FIA and aero conventions quoted at a constant offset, aero wears so the measured value is used to verify, not independently settable.",
+    "phase_affinity": null,
+    "notes": "Convention offsets: car_data.json ride_height_measuring_points (FIA/ADAC/Porsche-laser, per corner X/Y/Z). Not itself a free target -- both readings move together.",
+    "recommendation_target": true
+  },
+  "ride_height_rear": {
+    "key": "ride_height_rear",
+    "label": "Rear Ride Height",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.ride_height_fia",
+      "setup_parameters.rear_left.ride_height_aero",
+      "setup_parameters.rear_right.ride_height_fia",
+      "setup_parameters.rear_right.ride_height_aero"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "unit": "mm",
+      "standard": 134
+    },
+    "direction_semantics": {
+      "window": "+-5mm around standard"
+    },
+    "typical_window": {
+      "delta_from_standard": [
+        -5,
+        5
+      ]
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets rear floor/diffuser exit height -- aero platform height and rake (with ride_height_front); FIA and aero conventions quoted at a constant offset.",
+    "phase_affinity": null,
+    "notes": "Convention offsets: car_data.json ride_height_measuring_points.",
+    "recommendation_target": true
+  },
+  "diff_package": {
+    "key": "diff_package",
+    "label": "Differential Package",
+    "category": "context",
+    "maps_to": null,
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "fixed",
+      "value": "30-series"
+    },
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Selects the spring/ramp preload package that determines the diff's locking-torque-vs-position curve (see diff_position).",
+    "phase_affinity": null,
+    "notes": "Reference curve: car_data.json diff_locking_torque (installed_package '8304N_1372N_30-5'). ~2h to change; context only, not a session-level target.",
+    "recommendation_target": false
+  },
+  "diff_position": {
+    "key": "diff_position",
+    "label": "Differential Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.car.differential_position"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 5
+    },
+    "direction_semantics": {
+      "1": "least locking torque",
+      "5": "most locking torque",
+      "increasing": "more locking torque"
+    },
+    "typical_window": null,
+    "change_effort": "seconds",
+    "mechanism": "Sets clutch-pack preload/locking torque on the installed diff package -- more locking torque resists axle-speed difference under power, affecting exit rotation vs. traction.",
+    "phase_affinity": [
+      "exit_4",
+      "exit_5"
+    ],
+    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3.",
+    "recommendation_target": true
+  },
+  "wing_position": {
+    "key": "wing_position",
+    "label": "Wing Position",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.car.wing_position"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "enum",
+      "options": [
+        "P8",
+        "P9",
+        "P10"
+      ],
+      "angles_deg": [
+        7.3,
+        8.3,
+        9.3
+      ]
+    },
+    "direction_semantics": {
+      "increasing": "higher angle = more rear downforce"
+    },
+    "typical_window": null,
+    "change_effort": "minutes",
+    "mechanism": "Rear wing angle sets rear downforce -- affects high-speed balance (more angle = more rear grip/stability, less top speed).",
+    "phase_affinity": [
+      "high_speed_corners"
+    ],
+    "notes": "Legal set confirmed against car_data.json wing_position_table's 'GT3 R 2026' column: only 7.3/8.3/9.3 deg (P8/P9/P10) have an entry -- corrected from the original P9|P10|P11 draft.",
+    "recommendation_target": true
+  },
+  "toe_front": {
+    "key": "toe_front",
+    "label": "Front Toe",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.toe",
+      "setup_parameters.front_right.toe"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": -3,
+      "max": -1,
+      "step": 0.5,
+      "unit": "mm"
+    },
+    "direction_semantics": {
+      "more_negative": "more toe-out",
+      "near_zero": "used in extreme cases"
+    },
+    "typical_window": {
+      "min": -3,
+      "max": -1
+    },
+    "change_effort": "minutes",
+    "mechanism": "Front toe-out sharpens initial turn-in response at the cost of straight-line stability and tyre wear.",
+    "phase_affinity": [
+      "entry_2_turnin"
+    ],
+    "notes": "No digitised car_data table backs this parameter's direction (the toe-vs-wheel-travel kinematic curves were pruned as no-consumer) -- value space/direction from team knowledge only.",
+    "recommendation_target": true
+  },
+  "toe_rear": {
+    "key": "toe_rear",
+    "label": "Rear Toe",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.toe",
+      "setup_parameters.rear_right.toe"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": 1,
+      "max": 3,
+      "step": 0.5,
+      "unit": "mm"
+    },
+    "direction_semantics": {
+      "more_positive": "more toe-in",
+      "near_zero": "used in extreme cases"
+    },
+    "typical_window": {
+      "min": 1,
+      "max": 3
+    },
+    "change_effort": "minutes",
+    "mechanism": "Rear toe-in adds straight-line and corner-exit stability at the cost of some rear tyre wear.",
+    "phase_affinity": [
+      "exit_4",
+      "exit_5"
+    ],
+    "notes": "Team knowledge only, no car_data table backing (same as toe_front).",
+    "recommendation_target": true
+  },
+  "camber_fl": {
+    "key": "camber_fl",
+    "label": "FL Camber",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_left.camber"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": -4.8,
+      "max": -2.0,
+      "unit": "deg"
+    },
+    "direction_semantics": {
+      "more_negative": "more negative camber"
+    },
+    "typical_window": {
+      "base": -3.5
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
+    "phase_affinity": null,
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer).",
+    "recommendation_target": true
+  },
+  "camber_fr": {
+    "key": "camber_fr",
+    "label": "FR Camber",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.front_right.camber"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": -4.8,
+      "max": -2.0,
+      "unit": "deg"
+    },
+    "direction_semantics": {
+      "more_negative": "more negative camber"
+    },
+    "typical_window": {
+      "base": -3.5
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
+    "phase_affinity": null,
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing.",
+    "recommendation_target": true
+  },
+  "camber_rl": {
+    "key": "camber_rl",
+    "label": "RL Camber",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_left.camber"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": -4.8,
+      "max": -2.0,
+      "unit": "deg"
+    },
+    "direction_semantics": {
+      "more_negative": "more negative camber"
+    },
+    "typical_window": {
+      "base": -3.2
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
+    "phase_affinity": null,
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing.",
+    "recommendation_target": true
+  },
+  "camber_rr": {
+    "key": "camber_rr",
+    "label": "RR Camber",
+    "category": "mechanical",
+    "maps_to": [
+      "setup_parameters.rear_right.camber"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": {
+      "type": "float",
+      "min": -4.8,
+      "max": -2.0,
+      "unit": "deg"
+    },
+    "direction_semantics": {
+      "more_negative": "more negative camber"
+    },
+    "typical_window": {
+      "base": -3.2
+    },
+    "change_effort": "minutes",
+    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
+    "phase_affinity": null,
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing.",
+    "recommendation_target": true
+  },
+  "tc_lat": {
+    "key": "tc_lat",
+    "label": "Traction Control - Lateral",
+    "category": "electronic",
+    "maps_to": null,
+    "value_source": "logged_data",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": "position"
+    },
+    "direction_semantics": {
+      "0": "TC off",
+      "1": "driver modulation, minimal TC support (wording near-identical to 0; the scale is not cleanly monotonic between 0/1 and 2 -- see notes)",
+      "5": "normal conditions (baseline)",
+      "increasing_2_to_11": "LESS permitted car rotation under lateral load on power = MORE TC intervention/support"
+    },
+    "typical_window": {
+      "baseline": 5,
+      "notes": "5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation"
+    },
+    "change_effort": "seconds",
+    "mechanism": "Sets how much car rotation the TC system permits during the lateral-loaded cornering phase (power applied while cornering); higher position = less permitted rotation = more intervention.",
+    "phase_affinity": [
+      "apex_3",
+      "exit_4",
+      "exit_5"
+    ],
+    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value; switch-position channel name TBD, identify in next data file's channel scan. CORRECTED after review -- direction is the OPPOSITE of a naive 'higher position = more rotation allowed' reading. Verified against car_data.json tc (source TC_reference.png, current LAT/LON system): position 2 = 'even more rotation', 3 = 'increased rotation', 4 = 'slightly more rotation', 5 = 'normal conditions', 6 = 'less rotation', 8-9 = 'increased TC support', 10 = 'strongly increased TC support', 11 = 'lots of TC support' -- monotonically LESS rotation permitted from 2 through 11. Position 1's wording ('driver modulation, little TC support') is near-identical to 0's, i.e. the 0/1 pair reads as a low-intervention state adjacent to the numeric floor rather than continuing the 2-11 trend -- flagged, not smoothed over. Supersedes the 2023-25 single-switch TC_1.png system (not digitised).",
+    "recommendation_target": true
+  },
+  "tc_lon": {
+    "key": "tc_lon",
+    "label": "Traction Control - Longitudinal",
+    "category": "electronic",
+    "maps_to": null,
+    "value_source": "logged_data",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": "position"
+    },
+    "direction_semantics": {
+      "0": "driver modulation, little TC support -- NOTE: per project docs, TC LON at 0 does NOT disable TC (only TC LAT=0 does); wording matches position 1",
+      "1": "driver modulation, minimal TC support",
+      "5": "normal conditions (baseline)",
+      "increasing_2_to_11": "LESS permitted wheel spin under longitudinal load = MORE TC intervention/support"
+    },
+    "typical_window": {
+      "baseline": 5,
+      "notes": "5 = 'normal conditions' per source table"
+    },
+    "change_effort": "seconds",
+    "mechanism": "Sets how much wheel spin the TC system permits during high-torque longitudinal phases (1st/2nd gear power-down on exit); higher position = less permitted spin = more intervention, useful for managing rear-tyre degradation.",
+    "phase_affinity": [
+      "exit_4",
+      "exit_5"
+    ],
+    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value; switch-position channel name TBD, identify in next data file's channel scan. CORRECTED alongside tc_lat -- same direction check applied: verified against car_data.json tc, monotonically less wheel spin permitted from 2 through 11, 5 = baseline. TC LON=0-does-not-switch-off-TC is stated in the (non-digitised) TC_1.png introductory text and is architecturally still true for the current system (only TC LAT has an off state).",
+    "recommendation_target": true
+  },
+  "abs_position": {
+    "key": "abs_position",
+    "label": "ABS Position",
+    "category": "electronic",
+    "maps_to": null,
+    "value_source": "logged_data",
+    "value_space": {
+      "type": "int",
+      "min": 0,
+      "max": 11,
+      "unit": "position"
+    },
+    "direction_semantics": {
+      "type": "categorical, NOT a single monotonic soft/hard axis",
+      "0": "off",
+      "1_to_8": "dry maps -- 1-4 grouped 'High' overall grip level (1=baseline dry-high, 2/4=more stable FA/RA variants, 3=printed 'BL Medium grip map' despite its own row being categorised 'High' -- verified as printed, not a transcription error), 5-8 grouped 'Medium' overall grip level (5=baseline medium, 6=more stable, 7-8=add lateral support)",
+      "9_to_11": "wet maps ascending severity -- 9=baseline good-wet-grip, 10=rain tyres/heavy wet (limited deceleration), 11=monsoon emergency (highly limited deceleration)"
+    },
+    "typical_window": null,
+    "change_effort": "seconds",
+    "mechanism": "Selects the ABS intervention map; team practice is a sweet-spot search within the dry or wet bracket appropriate to conditions, not a linear soft-to-hard sweep.",
+    "phase_affinity": [
+      "entry_1_brake"
+    ],
+    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value; switch-position channel name TBD, identify in next data file's channel scan. Installed config V2 (verified: ABS_2.png header reads 'Map for ABS configuration option \"V2\"'). Full table: car_data.json abs. Monza2/CTMP/V4 not digitised (not installed) -- archived in docs/car_data/ only.",
+    "recommendation_target": true
+  },
+  "brake_bias": {
+    "key": "brake_bias",
+    "label": "Brake Bias",
+    "category": "context",
+    "maps_to": null,
+    "value_source": "logged_data",
+    "value_space": null,
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": null,
+    "mechanism": "Driver-exclusive in-corner adjustment; not a setup-sheet target.",
+    "phase_affinity": null,
+    "notes": "Value read from logged data, not set on the setup sheet -- brake bias channel name TBD, identify in next data file's channel scan.",
+    "recommendation_target": false
+  },
+  "splitter_offset": {
+    "key": "splitter_offset",
+    "label": "Splitter Offset",
+    "category": "context",
+    "maps_to": [
+      "setup_parameters.car.splitter_offset"
+    ],
+    "value_source": "setup_sheet",
+    "value_space": null,
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Front aero balance trim; context only in this WP.",
+    "phase_affinity": null,
+    "notes": "No car_data digitisation -- context entry per task scope.",
+    "recommendation_target": false
+  },
+  "kinematic_variants": {
+    "key": "kinematic_variants",
+    "label": "Kinematic Variants",
+    "category": "context",
+    "maps_to": null,
+    "value_source": "setup_sheet",
+    "value_space": null,
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Homologated suspension-geometry variants (front FS-series, rear RS-series); background context for interpreting damper ratio / roll centre / antidive-antisquat behaviour, not a session-level tunable.",
+    "phase_affinity": null,
+    "notes": "Reference: car_data.json kinematic_variants_front / kinematic_variants_rear.",
+    "recommendation_target": false
+  },
+  "gear_ratios": {
+    "key": "gear_ratios",
+    "label": "Gear Ratios",
+    "category": "context",
+    "maps_to": null,
+    "value_source": "setup_sheet",
+    "value_space": null,
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": "garage_hours",
+    "mechanism": "Fixed per-event gearbox setup; context only in this WP.",
+    "phase_affinity": null,
+    "notes": "Not digitised into car_data.json -- no near-term consumer (stub there, reason: context-only). Source: docs/car_data/Gear_ratio.png.",
+    "recommendation_target": false
+  },
+  "engine_curves": {
+    "key": "engine_curves",
+    "label": "Engine Power/Torque Curves",
+    "category": "context",
+    "maps_to": null,
+    "value_source": "setup_sheet",
+    "value_space": null,
+    "direction_semantics": null,
+    "typical_window": null,
+    "change_effort": null,
+    "mechanism": "Fixed engine characteristic; context only in this WP.",
+    "phase_affinity": null,
+    "notes": "Not digitised into car_data.json -- no near-term consumer (stubs there). Source: docs/car_data/Engine_1.png, Engine_2.png.",
+    "recommendation_target": false
+  }
+}
