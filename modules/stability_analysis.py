@@ -5,6 +5,7 @@
 import numpy as np
 from scipy.signal import butter, filtfilt
 import json
+from modules.geo import project_latlon_to_xy
 
 PARAMETERS_PATH = "config/parameters.json"
 
@@ -523,9 +524,6 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
     gps_lon = state.get("gps_lon")
     gps_origin_lat = state.get("gps_origin_lat")
     gps_origin_lon = state.get("gps_origin_lon")
-    meters_per_deg_lat = 111320.0
-    meters_per_deg_lon = (111320.0 * np.cos(np.radians(gps_origin_lat))
-                          if gps_origin_lat is not None else None)
 
     out = []
     for c in corners:
@@ -537,8 +535,11 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
         if gps_lat is not None:
             apex_idx = int(np.searchsorted(t, c["apex_time"]))
             apex_idx = min(max(apex_idx, 0), len(t) - 1)
-            apex_x = float((gps_lon[apex_idx] - gps_origin_lon) * meters_per_deg_lon)
-            apex_y = float((gps_lat[apex_idx] - gps_origin_lat) * meters_per_deg_lat)
+            apex_x, apex_y = project_latlon_to_xy(
+                gps_lat[apex_idx], gps_lon[apex_idx], gps_origin_lat, gps_origin_lon
+            )
+            apex_x = float(apex_x)
+            apex_y = float(apex_y)
 
         corner_summary = {
             "lap_number": c["lap_number"],

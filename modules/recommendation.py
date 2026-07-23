@@ -30,7 +30,7 @@ def _nanmedian_or_nan(values):
     return float(np.median(valid))
 
 
-def _aggregate_by_corner(summaries):
+def aggregate_by_corner(summaries):
     # Median-of-medians per stable_corner_id: each lap already reduces a
     # corner instance to a per-phase median (summarise_corners); taking
     # the median across laps of those medians privileges behaviour that
@@ -294,7 +294,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     """
     settings = config["settings"]
     source_balance = _resolve_source_balance(config, outing)
-    aggregated = _aggregate_by_corner(summaries)
+    aggregated = aggregate_by_corner(summaries)
 
     buckets = {}
     for rule in config["rules"]:

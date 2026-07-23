@@ -30,6 +30,7 @@
 
 import json
 import numpy as np
+from modules.geo import compute_gps_origin, project_latlon_to_xy
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -436,3 +437,52 @@ def assign_stable_corner_ids(corners, channels):
     for cluster_id, cluster in enumerate(final_clusters, start=1):
         for c in cluster:
             c["stable_corner_id"] = cluster_id
+
+
+def compute_stable_corner_positions(corners, channels):
+    """
+    Median GPS apex position (x/y metres, local projection) per
+    stable_corner_id, computed directly from raw channels -- no vehicle
+    state or stability analysis required. This is what lets the corner
+    map render its markers immediately after parsing, before Analyse has
+    ever run; only their severity colour needs the later stability pass.
+
+    Interpolates log_gps_lat/lon at each corner's own apex_time (each
+    channel's native time base, not a resampled common one), projects via
+    the shared modules.geo formula, then takes the per-axis median across
+    every lap contributing to that stable_corner_id -- the same
+    median-of-medians-style philosophy used elsewhere (a single lap's GPS
+    noise at the apex instant doesn't move the marker).
+
+    Returns {stable_corner_id: {"x_m", "y_m", "n_laps"}}. Empty dict if
+    GPS is missing/failed quality or no corner has a stable_corner_id.
+    """
+    gps_lat_ch = channels.get("log_gps_lat")
+    gps_lon_ch = channels.get("log_gps_lon")
+    origin_lat, origin_lon = compute_gps_origin(gps_lat_ch, gps_lon_ch)
+    if origin_lat is None:
+        return {}
+
+    lat_t, lat_d = gps_lat_ch["time"], gps_lat_ch["data"]
+    lon_t, lon_d = gps_lon_ch["time"], gps_lon_ch["data"]
+
+    by_id = {}
+    for c in corners:
+        cid = c.get("stable_corner_id")
+        if cid is None:
+            continue
+        apex_lat = np.interp(c["apex_time"], lat_t, lat_d)
+        apex_lon = np.interp(c["apex_time"], lon_t, lon_d)
+        x, y = project_latlon_to_xy(apex_lat, apex_lon, origin_lat, origin_lon)
+        by_id.setdefault(cid, {"x": [], "y": []})
+        by_id[cid]["x"].append(float(x))
+        by_id[cid]["y"].append(float(y))
+
+    return {
+        cid: {
+            "x_m": float(np.median(vals["x"])),
+            "y_m": float(np.median(vals["y"])),
+            "n_laps": len(vals["x"]),
+        }
+        for cid, vals in by_id.items()
+    }

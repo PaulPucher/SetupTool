@@ -97,6 +97,8 @@ class OutingForm(QWidget):
         self.parsed_data = None
         self.loaded_csv_path = None
         self.stability_result = None
+        self.corner_positions_cache = None
+        self.corner_map_trace_xy = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -117,6 +119,7 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._build_data_section())
         self.content_layout.addWidget(self._build_setup_section("setup"))
         self.content_layout.addWidget(self._build_setdown_toggle())
+        self.content_layout.addWidget(self._build_corner_map())
         self.content_layout.addWidget(self._build_stability_toggle())
         self.content_layout.addWidget(self._build_recommendations_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
@@ -764,6 +767,10 @@ class OutingForm(QWidget):
         self.progress.close()
         self.parsed_data = result
         self.loaded_csv_path = self.loader_thread.path
+        # A previous file's analysis/marker cache must never leak into a
+        # newly loaded file -- same bug class as stale UI widgets (WP4).
+        self.stability_result = None
+        self.corner_positions_cache = None
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -772,6 +779,8 @@ class OutingForm(QWidget):
         )
         self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
         self._populate_lap_table(laps)
+        self._update_corner_map_trace()
+        self._update_corner_map_markers()
         self.btn_analyse.setEnabled(True)
 
     def _on_csv_error(self, error_msg):
@@ -832,6 +841,7 @@ class OutingForm(QWidget):
         self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
+        self._update_corner_map_markers()
 
         self._clear_cards()
         if not summaries:
@@ -2013,6 +2023,163 @@ class OutingForm(QWidget):
                 self, "Save failed",
                 f"Could not save {os.path.basename(path)}.\nThe file may be open in another program."
             )
+
+    def _build_corner_map(self):
+        # WP3b interim: GPS outline of the reference lap + one marker per
+        # stable_corner_id, as the visual legend for the feedback table's
+        # row numbers below. Static v1 -- no click interaction; that's the
+        # WP3b follow-up (PLAN.md). Sits above Stability Analysis, not in
+        # Driver Feedback: this is the legend for the ANALYSIS layer
+        # (stable_corner_id, matching the grid/recommendations), not the
+        # human/official-name layer the driver feedback table and its
+        # separate image-loader track map use -- the two-layer corner
+        # identity design (thesis_notes.md) reflected directly in layout.
+        import pyqtgraph as pg
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        layout.addWidget(self._section_label("Corner Map"))
+
+        self.corner_map_plot = pg.PlotWidget()
+        self.corner_map_plot.setBackground(PANEL)
+        self.corner_map_plot.setMinimumHeight(280)
+        self.corner_map_plot.setAspectLocked(True)
+        self.corner_map_plot.hideAxis('left')
+        self.corner_map_plot.hideAxis('bottom')
+        self.corner_map_plot.getViewBox().setMouseEnabled(x=False, y=False)
+        self.corner_map_plot.getViewBox().wheelEvent = lambda event: None
+        layout.addWidget(self.corner_map_plot)
+
+        self.corner_map_trace_curve = None
+        self.corner_map_trace_xy = None
+        self.corner_map_markers = {}
+        self._show_corner_map_placeholder("Load a CSV to see the track map.")
+
+        return container
+
+    def _show_corner_map_placeholder(self, text):
+        import pyqtgraph as pg
+        self.corner_map_plot.clear()
+        self.corner_map_trace_curve = None
+        self.corner_map_trace_xy = None
+        self.corner_map_markers = {}
+        placeholder = pg.TextItem(text, color=TEXT_DIM, anchor=(0.5, 0.5))
+        self.corner_map_plot.addItem(placeholder)
+        self.corner_map_plot.setRange(xRange=(-1, 1), yRange=(-1, 1))
+
+    def _snap_to_trace(self, x, y):
+        # Cross-lap median apex position vs a single reference lap's drawn
+        # trace can float off the line (worst in compound corners, where
+        # the apex position itself is unstable lap-to-lap). Position
+        # estimate stays the cross-lap median; only the DISPLAYED point is
+        # snapped to the nearest vertex on the drawn polyline, so markers
+        # always sit on the line the driver/engineer is actually reading.
+        import numpy as np
+        if self.corner_map_trace_xy is None:
+            return x, y
+        tx, ty = self.corner_map_trace_xy
+        if len(tx) == 0:
+            return x, y
+        d2 = (tx - x) ** 2 + (ty - y) ** 2
+        idx = int(np.argmin(d2))
+        return float(tx[idx]), float(ty[idx])
+
+    def _update_corner_map_trace(self):
+        import numpy as np
+        import pyqtgraph as pg
+        from modules.geo import compute_gps_origin, project_latlon_to_xy
+
+        if not self.parsed_data:
+            self._show_corner_map_placeholder("Load a CSV to see the track map.")
+            return
+
+        channels = self.parsed_data.get("channels", {})
+        gps_lat_ch = channels.get("log_gps_lat")
+        gps_lon_ch = channels.get("log_gps_lon")
+        origin_lat, origin_lon = compute_gps_origin(gps_lat_ch, gps_lon_ch)
+        if origin_lat is None:
+            self._show_corner_map_placeholder("No GPS data in this file.")
+            return
+
+        laps = self.parsed_data.get("laps", [])
+        valid_laps = [l for l in laps if l.get("is_valid_for_analysis")]
+        target_lap = next((l for l in valid_laps if l.get("is_fastest")), None)
+        if target_lap is None and valid_laps:
+            target_lap = valid_laps[0]
+        if target_lap is None:
+            self._show_corner_map_placeholder("No valid lap to plot.")
+            return
+
+        t = gps_lat_ch["time"]
+        lat_d, lon_d = gps_lat_ch["data"], gps_lon_ch["data"]
+        mask = (t >= target_lap["start_time"]) & (t <= target_lap["end_time"])
+        if not mask.any():
+            self._show_corner_map_placeholder("No GPS samples in the reference lap.")
+            return
+
+        x, y = project_latlon_to_xy(lat_d[mask], lon_d[mask], origin_lat, origin_lon)
+
+        self.corner_map_plot.clear()
+        self.corner_map_markers = {}
+        self.corner_map_trace_xy = (np.asarray(x), np.asarray(y))
+        self.corner_map_trace_curve = self.corner_map_plot.plot(
+            x, y, pen=pg.mkPen(color=TEXT_MUTED, width=2)
+        )
+        self.corner_map_plot.enableAutoRange()
+
+    def _update_corner_map_markers(self):
+        import pyqtgraph as pg
+        from modules.corner_analysis import compute_stable_corner_positions
+
+        if not self.parsed_data or self.corner_map_trace_curve is None:
+            return  # no trace drawn -- no GPS, or nothing loaded yet
+
+        if self.corner_positions_cache is None:
+            corners = self.parsed_data.get("corners", [])
+            channels = self.parsed_data.get("channels", {})
+            self.corner_positions_cache = compute_stable_corner_positions(corners, channels)
+
+        positions = self.corner_positions_cache
+        if not positions:
+            return
+
+        colour_by_id = {}
+        if self.stability_result:
+            from modules.recommendation import aggregate_by_corner
+            aggregated = aggregate_by_corner(self.stability_result["summaries"])
+            for cid, agg in aggregated.items():
+                _severity, _short, _long, colour = self._classify_corner(agg)
+                colour_by_id[cid] = colour
+
+        # Drop markers for corners that no longer exist (new file loaded).
+        for cid in list(self.corner_map_markers.keys()):
+            if cid not in positions:
+                scatter, text = self.corner_map_markers.pop(cid)
+                self.corner_map_plot.removeItem(scatter)
+                self.corner_map_plot.removeItem(text)
+
+        for cid, pos in positions.items():
+            colour = colour_by_id.get(cid, NEUTRAL)
+            if cid in self.corner_map_markers:
+                scatter, _text = self.corner_map_markers[cid]
+                scatter.setBrush(pg.mkBrush(colour))
+            else:
+                snap_x, snap_y = self._snap_to_trace(pos["x_m"], pos["y_m"])
+                scatter = pg.ScatterPlotItem(
+                    [snap_x], [snap_y], size=26,
+                    brush=pg.mkBrush(colour), pen=pg.mkPen(None)
+                )
+                text = pg.TextItem(
+                    html=f'<b style="font-size: 13pt; color: #111111;">{cid}</b>',
+                    anchor=(0.5, 0.5)
+                )
+                text.setPos(snap_x, snap_y)
+                self.corner_map_plot.addItem(scatter)
+                self.corner_map_plot.addItem(text)
+                self.corner_map_markers[cid] = (scatter, text)
 
     def _build_feedback_section(self):
         section = QWidget()

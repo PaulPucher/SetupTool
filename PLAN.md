@@ -276,6 +276,28 @@ corner count, corner names, GPS positions once available).
   the analysis ground truth either way.
 Depends on: WP1 complete, GPS channels confirmed (Task 1 scan).
 
+### Corner map v1 landed [2026-07-22]
+The GPS outline + severity-coloured stable-corner markers described above
+now exist as a static widget
+(`OutingForm._build_corner_map` / `_update_corner_map_trace` /
+`_update_corner_map_markers` in `ui/views/outing_form.py`; position
+computed from parsed data alone via `modules.corner_analysis.
+compute_stable_corner_positions`, projection shared via `modules/geo.py`).
+Not yet built: click-to-highlight-row (click a marker -> scroll/highlight
+its feedback table row, and vice versa), and everything else in this WP3b
+section above (official-name template, engineer merge/split correction
+on the same screen) -- v1 is read-only, detected-corner-id labels only.
+
+Placement [2026-07-22, revised]: lives as its own labelled section
+directly above Stability Analysis, NOT inside Driver Feedback. Rationale:
+it is the legend for the ANALYSIS layer (stable_corner_id, matching the
+stability grid and recommendation engine's corner chips) -- the Driver
+Feedback section keeps its existing separate image-loader track map,
+since drivers work in official corner nomenclature (the HUMAN layer).
+Two-layer corner identity (see thesis_notes.md, "Analysis layer vs human
+layer for corner identity") reflected directly in where each map lives,
+not just in the data model.
+
 ## WP4 — Data lifecycle
 
 ### Scope
