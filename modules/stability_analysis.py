@@ -17,6 +17,15 @@ from modules.yaw_stability import calculate_filtered_yaw_acceleration, calculate
 
 PARAMETERS_PATH = "config/parameters.json"
 
+# WP5 persisted-analysis-cache version tag (models/outing.py analysis_data).
+# Bump whenever a change to Modules 1-6 would alter summarise_corners()'s
+# stored numeric output for the same input file (an estimator rebuild, a
+# Fy/Fz formula change, a new regressor) -- NOT for changes that only affect
+# how summaries are read or rendered (config-driven thresholds, UI, caching).
+# A stored value that doesn't match this one is treated as no cache at all
+# (see ui/views/outing_form.py's cache-hit check).
+ANALYSIS_SCHEMA_VERSION = 1
+
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
 # constants rather than config entries.

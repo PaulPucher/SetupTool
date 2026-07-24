@@ -149,6 +149,36 @@ verdict distribution moved from 1 strong/16 moderate/34 normal (post-B3)
 to 0/14/37, entirely via CS-branch movement -- Module 5's stability
 branch contribution unchanged (byte-identical output).
 
+WP5 (result persistence) + WP6 (lap-filter/pipeline cache) + wing_position
+rider (2026-07-25, currently uncommitted): analysis_data column added to
+Outing (models/outing.py) with an idempotent PRAGMA/ALTER migration in
+init_db (models/base.py) -- verified additive and idempotent against the
+real local DB (2 outings, backed up first, row data confirmed untouched).
+Cache-hit rendering on reopen ("cached (laps X-Y) - re-run Analyse to
+refresh"), write triggers on analysis completion (existing outings) and
+via _save_outing (new outings / untouched cache-hit re-saves). Guard A:
+verdicts are never persisted -- classification always runs live from
+current config at render time, now through a single shared
+_render_stability_summaries call site; verified a config threshold edit
+changes a cached corner's verdict only after a fresh process (lru_cache
+semantics), confirmed and config restored byte-identical afterward. Guard
+B: ANALYSIS_SCHEMA_VERSION=1 (modules/stability_analysis.py) with a
+bump-rule comment; version or csv_path mismatch (normalised via
+os.path.normcase/normpath) treated as no cache, both verified. WP6:
+_pipeline_cache stores {csv_path, corners, state, cs, stab} per
+loaded_csv_path -- a lap-filter-only re-Analyse reuses cached Modules 1-5
+output object-for-object (verified by identity, not just value equality),
+no corner-detection or Modules-1-5 recompute; invalidated in
+_on_csv_loaded's existing reset block; no cross-population between the
+WP5 DB cache and the WP6 in-memory cache. Rider: wing_position is now a
+QComboBox (P8/P9/P10), same pattern as arb_front_mount, in both setup and
+setdown forms. Surprise, corrected in code comment: a legacy stored value
+outside {P8,P9,P10} doesn't load as "nothing selected" -- QComboBox.
+setCurrentText() no-ops on unmatched text, so it silently shows P8;
+accepted by user decision (see UI polish note above). test_stability.py
+byte-identical (structural -- this WP touches no code test_stability.py
+imports).
+
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
 unless noted otherwise. Each package is self-contained for a smaller model.
@@ -503,6 +533,12 @@ P8|P9|P10 only (config/car_data.json wing_position_table, GT3 R 2026
 column). A spinbox permits illegal intermediate values. Low priority,
 batch with the next UI pass (would follow the arb_front_mount QComboBox
 pattern added in WP2b-1 TASK 3).
+
+### wing_position legacy-value decision [2026-07-24]
+wing_position combo defaults to P8; legacy pre-enum stored values
+render as P8 (setCurrentText no-op, verified 2026-07-24) -- accepted
+by user decision 2026-07-24, P8 is the standard position; old numeric
+values are not treated as trusted setup data.
 
 ---
 

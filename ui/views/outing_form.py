@@ -1,5 +1,6 @@
 # Outing form — full form for creating a new outing.
 
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QScrollArea, QPushButton,
@@ -20,6 +21,15 @@ from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM,
 # inherited from the original -200/-500 design so detail colours track the
 # verdict threshold automatically. [neutral engineering]
 STAB_COLOUR_WARN_FRACTION = 0.4
+
+
+def _norm_path(path):
+    # Shared csv_path comparison for both the WP5 DB cache and the WP6
+    # in-memory pipeline cache -- normalises case and separators so the
+    # same file picked via different casing/slashes still matches.
+    if not path:
+        return path
+    return os.path.normcase(os.path.normpath(path))
 
 
 class NoScrollSpinBox(QDoubleSpinBox):
@@ -53,10 +63,16 @@ class StabilityAnalysisThread(QThread):
     finished = pyqtSignal(object)
     error = pyqtSignal(str)
 
-    def __init__(self, parsed_data, lap_filter):
+    def __init__(self, parsed_data, lap_filter, pipeline_cache=None):
         super().__init__()
         self.parsed_data = parsed_data
         self.lap_filter = lap_filter
+        # WP6: {corners, state, cs, stab} from a prior full run on this same
+        # csv_path (matched by the caller before constructing this thread).
+        # When present, Modules 1-5 and corner detection are NOT re-run --
+        # only summarise_corners (Module 6) re-executes for the new
+        # lap_filter. None means run the full pipeline as before.
+        self.pipeline_cache = pipeline_cache
 
     def run(self):
         try:
@@ -66,17 +82,23 @@ class StabilityAnalysisThread(QThread):
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
                 summarise_corners,
             )
-            params = load_parameters()
-            state = prepare_vehicle_state(self.parsed_data["channels"], params)
-            if state is None:
-                self.error.emit("Required channels missing or failed")
-                return
-            beta = estimate_sideslip(state, params)
-            slip = estimate_slip_angles(state, beta, params)
-            forces = estimate_lateral_forces(state, params)
-            cs = estimate_cornering_stiffness(slip, forces, state, params)
-            stab = estimate_yaw_moment_stability(state, beta, params, self.parsed_data.get("laps", []))
-            corners = self.parsed_data.get("corners", [])
+            if self.pipeline_cache is not None:
+                corners = self.pipeline_cache["corners"]
+                state = self.pipeline_cache["state"]
+                cs = self.pipeline_cache["cs"]
+                stab = self.pipeline_cache["stab"]
+            else:
+                params = load_parameters()
+                state = prepare_vehicle_state(self.parsed_data["channels"], params)
+                if state is None:
+                    self.error.emit("Required channels missing or failed")
+                    return
+                beta = estimate_sideslip(state, params)
+                slip = estimate_slip_angles(state, beta, params)
+                forces = estimate_lateral_forces(state, params)
+                cs = estimate_cornering_stiffness(slip, forces, state, params)
+                stab = estimate_yaw_moment_stability(state, beta, params, self.parsed_data.get("laps", []))
+                corners = self.parsed_data.get("corners", [])
             summaries = summarise_corners(corners, cs, stab, state,
                                           lap_filter=self.lap_filter)
             self.finished.emit({
@@ -84,6 +106,7 @@ class StabilityAnalysisThread(QThread):
                 "state": state,
                 "cs": cs,
                 "stab": stab,
+                "corners": corners,
             })
         except Exception as e:
             self.error.emit(str(e))
@@ -104,6 +127,12 @@ class OutingForm(QWidget):
         self.stability_result = None
         self.corner_positions_cache = None
         self.corner_map_trace_xy = None
+        # WP6: {csv_path, corners, state, cs, stab} from the last full
+        # Modules-1-5 run this session, or None. WP5: JSON string mirroring
+        # whatever analysis_data should be persisted on next save (fresh
+        # analysis result, or an untouched cache-hit's raw string), or None.
+        self._pipeline_cache = None
+        self._analysis_data_json = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -784,6 +813,8 @@ class OutingForm(QWidget):
         # newly loaded file -- same bug class as stale UI widgets (WP4).
         self.stability_result = None
         self.corner_positions_cache = None
+        self._pipeline_cache = None
+        self._analysis_data_json = None
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -795,6 +826,9 @@ class OutingForm(QWidget):
         self._update_corner_map_trace()
         self._update_corner_map_markers()
         self.btn_analyse.setEnabled(True)
+        # WP5: render immediately from a matching persisted cache, if any --
+        # no lap-selector reconstruction, just the summaries as last analysed.
+        self._try_render_cached_analysis()
 
     def _on_csv_error(self, error_msg):
         self.progress.close()
@@ -840,17 +874,119 @@ class OutingForm(QWidget):
             f"Analysing laps {lap_filter}..."
         )
         self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
-        self.stab_thread = StabilityAnalysisThread(self.parsed_data, lap_filter)
+        # WP6: reuse the last full Modules-1-5 run if it's for this same
+        # file -- StabilityAnalysisThread then only re-runs summarise_corners.
+        pipeline_cache = None
+        if (self._pipeline_cache is not None
+                and self._pipeline_cache["csv_path"] == _norm_path(self.loaded_csv_path)):
+            pipeline_cache = self._pipeline_cache
+        self.stab_thread = StabilityAnalysisThread(self.parsed_data, lap_filter, pipeline_cache=pipeline_cache)
         self.stab_thread.finished.connect(self._on_stability_done)
         self.stab_thread.error.connect(self._on_stability_error)
         self.stab_thread.start()
 
     def _on_stability_done(self, result):
         self.stability_result = result
-        summaries = result["summaries"]
-        self.stability_status_label.setText(
-            f"Analysed {len(summaries)} corners. See Stability Analysis section."
+        # WP6: cache Modules 1-5's output for this file, self-contained
+        # (corners included -- fast path must never re-run corner detection).
+        self._pipeline_cache = {
+            "csv_path": _norm_path(self.loaded_csv_path),
+            "corners": result["corners"],
+            "state": result["state"],
+            "cs": result["cs"],
+            "stab": result["stab"],
+        }
+        # WP5: build (not yet write) the cache payload for this analysis;
+        # _save_outing uses whatever this holds, so a save after a cache-hit
+        # render (no fresh Analyse this session) still persists correctly.
+        lap_filter = self.stab_thread.lap_filter
+        self._analysis_data_json = self._build_analysis_data_json(result["summaries"], lap_filter)
+        if self.outing:
+            self._persist_analysis_cache()
+        self._render_stability_summaries(result["summaries"], cached=False)
+
+    def _format_lap_filter_label(self, lap_filter):
+        if not lap_filter:
+            return "no laps"
+        laps = sorted(lap_filter)
+        if len(laps) == 1:
+            return f"lap {laps[0]}"
+        if laps == list(range(laps[0], laps[-1] + 1)):
+            return f"laps {laps[0]}-{laps[-1]}"
+        return "laps " + ",".join(str(l) for l in laps)
+
+    def _build_analysis_data_json(self, summaries, lap_filter):
+        import json
+        import datetime
+        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
+        payload = {
+            "csv_path": _norm_path(self.loaded_csv_path),
+            "lap_filter": lap_filter,
+            "summaries": summaries,
+            "generated_at": datetime.datetime.now().isoformat(),
+            "schema_version": ANALYSIS_SCHEMA_VERSION,
+        }
+        return json.dumps(payload)
+
+    def _persist_analysis_cache(self):
+        # WP5 write trigger for an EXISTING outing: on analysis completion,
+        # independent of the Back-button save (_save_outing has its own
+        # symmetry addition for the new-outing / re-save cases).
+        if not self.outing or self._analysis_data_json is None:
+            return
+        from sqlalchemy import update
+        session = Session()
+        session.execute(
+            update(Outing).where(Outing.id == self.outing.id).values(
+                analysis_data=self._analysis_data_json
+            )
         )
+        session.commit()
+        session.close()
+        self.outing.analysis_data = self._analysis_data_json
+
+    def _try_render_cached_analysis(self):
+        # WP5 cache-hit path, called from _on_csv_loaded. Guards: existing
+        # outing, parseable JSON, matching schema_version (guard B -- a
+        # mismatch, e.g. from the pre-B1 estimator, is treated as no cache
+        # at all), matching csv_path (normalised). Verdicts are never part
+        # of the stored payload -- _render_stability_summaries always
+        # classifies live from current config (guard A).
+        if not self.outing or not self.outing.analysis_data:
+            return False
+        import json
+        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
+        try:
+            cached = json.loads(self.outing.analysis_data)
+        except (json.JSONDecodeError, TypeError):
+            return False
+        if cached.get("schema_version") != ANALYSIS_SCHEMA_VERSION:
+            return False
+        if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
+            return False
+        summaries = cached.get("summaries")
+        if not summaries:
+            return False
+        self.stability_result = {"summaries": summaries}
+        self._analysis_data_json = self.outing.analysis_data
+        self._render_stability_summaries(
+            summaries, cached=True, lap_filter=cached.get("lap_filter")
+        )
+        return True
+
+    def _render_stability_summaries(self, summaries, cached=False, lap_filter=None):
+        # Shared by the live analysis-finished path and the WP5 cache-hit
+        # path -- the ONLY place that builds cards/classifies from a
+        # summaries list, so a threshold re-derivation always shows up here
+        # on next render regardless of which path produced the summaries.
+        if cached:
+            self.stability_status_label.setText(
+                f"cached ({self._format_lap_filter_label(lap_filter)}) - re-run Analyse to refresh"
+            )
+        else:
+            self.stability_status_label.setText(
+                f"Analysed {len(summaries)} corners. See Stability Analysis section."
+            )
         self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
@@ -1856,7 +1992,6 @@ class OutingForm(QWidget):
         car_labels = {
             "differential_preload": "Diff Preload",
             "differential_position": "Diff Position",
-            "wing_position": "Wing Pos.",
             "splitter_offset": "Splitter",
         }
 
@@ -1872,6 +2007,20 @@ class OutingForm(QWidget):
         arb_mount_combo.addItems(["P0", "P1", "P2"])
         self._active_inputs["car"]["arb_front_mount"] = arb_mount_combo
         car_layout.addWidget(self._setup_row("ARB Front Mount", arb_mount_combo))
+
+        # Legal set is P8/P9/P10 only (config/setup_parameters.json
+        # wing_position registry entry, cross-checked against car_data.json
+        # wing_position_table's GT3 R 2026 column) -- was a free-range
+        # spinbox that permitted illegal intermediate values (WP4 UI-polish
+        # note). A pre-existing outing whose stored value isn't one of these
+        # three (from before this fix) silently falls back to this combo's
+        # first item (P8) on load -- QComboBox.setCurrentText() on a
+        # non-editable combo is a no-op for unmatched text, verified
+        # empirically, not "nothing selected" as originally assumed.
+        wing_position_combo = QComboBox()
+        wing_position_combo.addItems(["P8", "P9", "P10"])
+        self._active_inputs["car"]["wing_position"] = wing_position_combo
+        car_layout.addWidget(self._setup_row("Wing Pos.", wing_position_combo))
 
         diff_torque_label = QLabel("Diff Locking Torque (measured, Nm)")
         diff_torque_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
@@ -2605,6 +2754,7 @@ class OutingForm(QWidget):
                     setdown_data=self._collect_setdown_data(),
                     feedback_data=self._collect_feedback_data(),
                     csv_path=self.loaded_csv_path or "",
+                    analysis_data=self._analysis_data_json,
                 )
             )
         else:
@@ -2629,6 +2779,7 @@ class OutingForm(QWidget):
                 setdown_data=self._collect_setdown_data(),
                 feedback_data=self._collect_feedback_data(),
                 csv_path=self.loaded_csv_path or "",
+                analysis_data=self._analysis_data_json,
             )
             session.add(outing)
         session.commit()
