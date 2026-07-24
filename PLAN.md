@@ -77,6 +77,57 @@ byte-identical to the pre-session baseline throughout -- confirms the
 whole pass was attribution/documentation/config-location only, no
 logic changed.
 
+WP-ALIGN session (2026-07-24, B1-B3, currently uncommitted, lands as
+one combined commit with the two sessions above): chair-basis rebuild
+of Module 5 (yaw moment stability). New modules/yaw_stability.py
+(after the chair performance_analysis tooling, internal): rolling-mean
+yaw acceleration replaces the 5 Hz Butterworth filter; the stability
+regression is now s-anchored (lap_distance grid, Gaussian-weighted
+local ridge, pools samples across laps at the same track position)
+replacing the old time-anchored single-lap OLS. Three call-site
+adaptations layered on top of the chair-identical estimator: raw-yaw-
+rate path (forced -- chair's pre-smoothed-input filter list is out of
+reference scope), moving/kerb/in-out-lap masking wiring (neutral
+engineering), and structural in/out-lap exclusion (production, WP6-
+independent of the UI lap_filter) -- the exclusion's rationale turned
+out to be two separate legs on inspection (B2 diagnostic): the outlap
+leg is forced in character (lap_distance channel is frozen at s~0 for
+the whole outlap, a literal coordinate degeneracy, not a judgement
+call), the inlap leg is the original cold-tyre/stationarity domain
+improvement. Classification thresholds re-derived against the new
+estimator's output distribution and moved into config/parameters.json
+(new "classification" block, each entry with its own derived_from
+note): CS thresholds unchanged (still valid, different signal); the
+stability threshold moved from -500 to -50 Nm/deg (gap-selected
+between -99.2 and -18.5 in the new worst-phase-per-corner
+distribution), which now correctly flags all 4 laps of the one
+physical corner (stable_id 8) that -500 only caught on 1 lap under the
+old estimator. Verdict distribution on Dubai: 1 strong / 16 moderate /
+34 normal (51 instances) -- proportionally close to the 2026-06-29
+reference (0/23/49 over 72 instances, different lap composition) even
+though the corner population, the estimator, and the threshold all
+changed. A new CLAUDE.md/thesis_notes.md deviation taxonomy (FORCED
+ADAPTATION / DOMAIN IMPROVEMENT / NEUTRAL ENGINEERING, plus a "vehicle
+parameterization is not a deviation" clarification) now labels every
+chair-comparison deviation, present and future. ui/views/outing_form.py's
+_stability_colour also made config-derived (BAD boundary = the new
+classification threshold, WARN boundary = a named 0.4 ratio inherited
+from the original -200/-500 design) so detail-cell colours can't drift
+out of sync with the verdict threshold again. test_stability.py run at
+every step; Modules 1-4b confirmed byte-identical throughout B1-B3 --
+only Module 5's numbers and the classification/colour thresholds
+changed, exactly as intended.
+Open threads: CS-threshold re-derivation deferred to the vehicle-model-
+upgrade WP (bundled with the Fy yaw-term fix + WP5b a/b -- maps onto
+WP5b(e), re-run diagnostic + re-derive thresholds after a Level 2+ Fy
+split lands, since CS thresholds are tuned to the current static-
+weight-split Fy signal); valid_fraction_stab replacement metric
+deferred post-B3 (the field is non-discriminating under the new
+s-anchored estimator -- see thesis_notes.md -- but no replacement
+transparency metric has been designed yet, kerb_fraction covers the
+kerb case only); _stability_colour is now config-derived (done this
+session, listed here for visibility, not an open thread).
+
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
 unless noted otherwise. Each package is self-contained for a smaller model.

@@ -16,6 +16,11 @@ from models.outing import Outing
 from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
 
+# WARN boundary as a fraction of the BAD (stab_neg_thresh) boundary -- ratio
+# inherited from the original -200/-500 design so detail colours track the
+# verdict threshold automatically. [neutral engineering]
+STAB_COLOUR_WARN_FRACTION = 0.4
+
 
 class NoScrollSpinBox(QDoubleSpinBox):
     def wheelEvent(self, event):
@@ -70,7 +75,7 @@ class StabilityAnalysisThread(QThread):
             slip = estimate_slip_angles(state, beta, params)
             forces = estimate_lateral_forces(state, params)
             cs = estimate_cornering_stiffness(slip, forces, state, params)
-            stab = estimate_yaw_moment_stability(state, beta, params)
+            stab = estimate_yaw_moment_stability(state, beta, params, self.parsed_data.get("laps", []))
             corners = self.parsed_data.get("corners", [])
             summaries = summarise_corners(corners, cs, stab, state,
                                           lap_filter=self.lap_filter)
@@ -153,20 +158,28 @@ class OutingForm(QWidget):
                     return WARN
                 return BAD
         if kind == "stab":
-            if value > -200:
+            from modules.stability_analysis import load_parameters
+            bad_thresh = load_parameters()["classification"]["stab_neg_thresh_Nm_per_deg"]["value"]
+            warn_thresh = bad_thresh * STAB_COLOUR_WARN_FRACTION
+            if value > warn_thresh:
                 return OK
-            if value > -500:
+            if value > bad_thresh:
                 return WARN
             return BAD
         return TEXT_MUTED
 
     def _classify_corner(self, summary):
         # Returns (severity, short_verdict, long_verdict, colour).
-        STRONG_CSF = 0.10
-        STRONG_CSR = 0.20
-        MODERATE_CSF = 0.25
-        MODERATE_CSR = 0.35
-        STAB_NEG_THRESH = -500.0
+        # Thresholds are config-driven (config/parameters.json classification
+        # block); each carries its own derived_from note there. Values only,
+        # not the derivation history -- see thesis_notes.md for that.
+        from modules.stability_analysis import load_parameters
+        cls_cfg = load_parameters()["classification"]
+        STRONG_CSF = cls_cfg["STRONG_CSF"]["value"]
+        STRONG_CSR = cls_cfg["STRONG_CSR"]["value"]
+        MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
+        MODERATE_CSR = cls_cfg["MODERATE_CSR"]["value"]
+        STAB_NEG_THRESH = cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"]
 
         worst_f_phase = None
         worst_f_val = 1.0

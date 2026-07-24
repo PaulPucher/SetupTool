@@ -87,7 +87,7 @@ if state:
     print(f"  Front: {ref_f_implied:.0f} N/rad  (expected 80k-180k)")
     print(f"  Rear:  {ref_r_implied:.0f} N/rad  (expected 80k-180k)")
 
-    stab = estimate_yaw_moment_stability(state, beta, params)
+    stab = estimate_yaw_moment_stability(state, beta, params, data.get("laps", []))
 
     valid = stab["stability_valid"] & moving
     s_obs = stab["stability_observed_Nm_per_deg"][valid]

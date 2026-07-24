@@ -46,8 +46,12 @@ HOW TO USE:
   methodological novelty.
 
 ### Yaw moment stability dMz/dbeta [2026-06]
-- Mz_inertial = Iz * psi_ddot (yaw accel from differentiated, 5 Hz filtered
-  yaw rate). Local centred 2 s OLS of Mz over [1, beta, delta_f, v, ax].
+- ~~Mz_inertial = Iz * psi_ddot (yaw accel from differentiated, 5 Hz
+  filtered yaw rate). Local centred 2 s OLS of Mz over
+  [1, beta, delta_f, v, ax].~~ [SUPERSEDED 2026-07-24 -- see "Module 5
+  chair-basis alignment" below. The 5 Hz Butterworth yaw-accel filter and
+  the time-anchored single-lap 2 s OLS are both replaced; this entry kept
+  for the development narrative.]
 - ~~c_beta > 0 stabilising, < 0 destabilising (Suzuka convention).~~
   [CORRECTED 2026-07-24, primary source verified] "Suzuka convention"
   was an informal label with no literature basis found in the
@@ -56,7 +60,9 @@ HOW TO USE:
 - KEY DERIVATION for thesis: yaw rate EXCLUDED from the regressor set
   because of structural multicollinearity with beta via the kinematic
   identity beta_dot = ay/v - psi_dot. Including both makes the OLS
-  ill-conditioned and the coefficients uninterpretable.
+  ill-conditioned and the coefficients uninterpretable. Still holds for
+  the chair-basis regressor set below (beta, delta_f, v, ax, az) -- the
+  identity doesn't depend on which estimator evaluates it.
 - Catches a different failure mode than CS_ratio: tyre can be within grip
   while vehicle dynamics are unstable, and vice versa.
 
@@ -82,9 +88,208 @@ HOW TO USE:
 - Threshold derivation was DATA-DRIVEN: percentile analysis of worst-phase
   CS per corner (front p10=0.049, median=0.334; rear p10=0.186,
   median=0.749) -> STRONG_CSF=0.10, STRONG_CSR=0.20, MODERATE_CSF=0.25,
-  MODERATE_CSR=0.35, STAB_NEG_THRESH=-500 Nm/deg. Asymmetric front/rear
+  MODERATE_CSR=0.35, ~~STAB_NEG_THRESH=-500 Nm/deg.~~ [SUPERSEDED
+  2026-07-24 -- see "Stability-threshold re-derivation for the
+  chair-basis estimator" below. CS thresholds unchanged and still
+  valid -- only the stability threshold moved, and only because the
+  estimator producing that signal changed (B1).] Asymmetric front/rear
   thresholds because rear CS stays structurally higher on this car
   (57.2% rear weight) — when rear drops it means more.
+
+### Stability-threshold re-derivation for the chair-basis estimator [2026-07-24]
+- STAB_NEG_THRESH moves from -500 to -50 Nm/deg. Not a re-tightening of
+  the same gate -- the estimator underneath it changed (B1), so the old
+  value's meaning doesn't carry over; this is a fresh derivation against
+  the new distribution, same METHOD class as 2026-06-29 (percentile-
+  anchored, diagnostic-script-driven, re-validated against ground truth),
+  different number because the input distribution is different.
+- OLD (-500, time-anchored OLS estimator): sat close to the sample-level
+  p2.5 percentile of that estimator's output (p2.5 = -554.1); flagged
+  1 of 51 corner instances (stable_corner_id 8, lap 3 only).
+- NEW (-50, chair-basis s-anchored ridge estimator): gap-selected, not
+  percentile-anchored to a fixed rank -- the worst-phase-per-corner-
+  instance distribution (diagnostics/inspect_yaw_stability_b2.py) has a
+  clean, wide gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps)
+  and -18.5 Nm/deg (next-worst corner, a different physical corner).
+  -50.0 sits in that gap: it flags exactly the same single physical
+  corner as before, now correctly across all 4 of its laps instead of
+  1 (the old threshold only just crossed lap 3's value, missing the
+  other 3 laps of the same corner that were arguably worse). Sample-level
+  exceedance is 3.0% (new) vs 2.7% (old) -- comparable order of
+  magnitude despite the ~10x smaller absolute threshold, because the
+  new estimator's whole distribution is compressed by roughly the same
+  factor (see B1 report).
+- Ground-truth check: ground truth for Dubai is a balanced car with mild
+  understeer tendency and no reported yaw instability. A single
+  consistently-destabilising physical corner across all 4 laps, and
+  nothing else crossing the gate, is consistent with that -- the
+  re-derivation does not manufacture new instability findings, it just
+  restores the gate's sensitivity to the corner it was always meant to
+  catch, at the new estimator's scale.
+- Verification distribution (51 corner instances, new estimator +
+  re-derived thresholds): see B3 verdict-distribution report in the
+  session log / PLAN.md STATUS.
+
+### Module 5 chair-basis alignment: s-anchored ridge regression [2026-07-24]
+- Replaces both pieces of the old estimator: yaw acceleration now a
+  centred rolling mean (0.15 s window) over differentiated yaw rate,
+  not a 5 Hz Butterworth low-pass; the stability regression is now
+  s-anchored (grid in lap_distance, 2 m step, 55 m Gaussian half-width)
+  rather than time-anchored (2 s window, single lap). Regressors
+  beta, delta_f, v, ax, az (az optional, dropped cleanly if
+  log_acc_z is unavailable); ridge solve in per-regressor-standardised
+  space instead of plain OLS.
+- ATTRIBUTION SPLIT: the target relation (Mz = Iz*psidd + D_psi*psid,
+  dMz/dbeta sign convention) stays Werner (2021) S2.2.3/S4.5.2 Eq. 4.3
+  -- unchanged, see above. The ESTIMATOR construction (rolling-mean
+  filter, s-anchored grid, Gaussian weights, standardised ridge) is
+  after the chair performance_analysis tooling (internal); this is a
+  new adaptation layer, analogous to Module 4b's effective-Calpha
+  estimator being an adaptation of Werner's own tyre-model evaluation.
+- WHY s-anchoring changes the numbers, not just the noise floor: a
+  single lap's ~2 s window around a corner apex often has weak beta
+  excitation (closed-loop derivative limitation #7) -- the OLS
+  coefficient on beta is then poorly conditioned even though the
+  window "runs". Sorting all samples by lap_distance interleaves every
+  lap's pass through the same corner, so the local Gaussian window at
+  a given s pools 4 laps' worth of excitation instead of 1. This is a
+  genuine methodological improvement in conditioning, not a fitting
+  trick -- but it also means results are no longer directly comparable
+  to the old per-lap numbers; B1's before/after report in PLAN.md
+  quantifies the shift.
+- THREE SetupTool-specific adaptations, all at the call site, estimator
+  itself untouched (mirrors the CS_ratio adaptation-layer pattern):
+  (a) yaw acceleration is differentiated from the raw yaw-rate channel
+  only -- the chair function also accepts a pre-smoothed yaw-rate input
+  from a chair-external filter list that is outside this project's
+  reference scope, so only the raw-signal path is reproduced.
+  (b) the chair invokes its estimator unmasked on a full session,
+  relying on its own dropna handling for missing data; SetupTool feeds
+  it the same arrays with three sample-exclusion masks pre-applied as
+  NaN (moving, kerb, structural in/out-lap) -- the estimator's own
+  missing-data handling is what actually enforces the exclusion, no new
+  masking logic was added inside it.
+  (c) structural in/out-lap exclusion is the new one, added as a
+  PRODUCTION exclusion (not a report-only diagnostic): the local
+  s-window regression implicitly assumes the same underlying vehicle
+  condition recurs at a given track position across laps it pools.
+  ~~Cold tyres (in/out laps) violate that -- tyre stiffness is
+  temperature-dependent -- so an in/out-lap sample at the same s as a
+  hot-tyre racing lap is not "the same corner" in the sense the
+  regression needs.~~ [SUPERSEDED 2026-07-24, B2 diagnostic evidence --
+  see "In/out-lap exclusion: two-leg rationale" below. Cold-tyre
+  stationarity is still one real reason (the inlap leg), but B2 showed
+  a second, independent, and quantitatively dominant reason specific to
+  the outlap: not kept here because it understated the outlap case.]
+  Same epistemic category as the kerb mask (both exclude samples
+  unrepresentative of the condition being modelled), and deliberately
+  independent of the UI's is_valid_for_analysis display filter (WP6:
+  Module 5 must not depend on what the user is currently looking at).
+
+### In/out-lap exclusion: two-leg rationale [2026-07-24, B2 evidence]
+- The single "cold tyres" rationale above was correct but incomplete --
+  B2's out/inlap s_m degeneracy check (diagnostics/inspect_yaw_
+  stability_b2.py) found a second, separate, and larger effect specific
+  to the outlap. The exclusion is really two legs, not one:
+  - OUTLAP leg (data-validity necessity, FORCED in character): the
+    outlap's native lap_distance channel is frozen at s~0 for its
+    entire duration (min=0.0m, max=0.5m, std=0.0m over 17601 samples --
+    the channel simply hasn't started counting yet). Every outlap
+    sample therefore masquerades as being at track position s~0-50m
+    regardless of where the car actually is. Of the no-inout-exclusion
+    run's ~-97 Nm/deg artifact samples (9126 total), 8801 (96%) were
+    outlap samples piled onto one grid point (s=54m, window population
+    8301 of which 7563 were outlap). This is not a judgement call about
+    representativeness -- the s-coordinate itself is invalid for these
+    samples, so including them isn't "including a different vehicle
+    condition", it's regressing against a fabricated track position.
+    Excluding the outlap here is closer to FORCED ADAPTATION in
+    character: the s-anchored method cannot be applied validly to
+    samples whose s-coordinate doesn't mean anything.
+  - INLAP leg (stationarity assumption, the original DOMAIN IMPROVEMENT
+    reasoning): the inlap (lap 5, limiter-merged fragment) does NOT
+    have a degenerate lap_distance -- it spans nearly the full lap
+    (min=0.2m, max=5080.2m, std=1602.6m), so it contaminates every
+    corner a little rather than one grid point a lot. Here the cold-
+    tyre/stationarity argument is the only reason to exclude it, and it
+    remains a DOMAIN IMPROVEMENT: post-session analysis lets us identify
+    and remove a lap we know carries a different (cold) tyre condition,
+    which a continuous online tool [context claim, to verify with
+    chair] would have no equivalent opportunity to do.
+- CLASSIFICATION (updated): the exclusion as a whole stays DOMAIN
+  IMPROVEMENT (it is still a context-driven choice available to a
+  post-session tool), but the outlap leg specifically is noted as
+  FORCED in character -- excluding it isn't optional once the
+  coordinate degeneracy is known, whereas the inlap leg is a genuine
+  domain judgement call.
+
+### Pooled grid makes stability a per-corner, not per-lap-instance, property [2026-07-24]
+- Structural consequence of s-anchoring (B1): because the local
+  Gaussian window at a given grid point in s pools samples from every
+  lap that passes through it, the fitted slope at that grid point is
+  already a cross-lap quantity before it is ever assigned back to an
+  individual lap's corner instance. Interpolating the grid back onto
+  each sample's own timeline (B1) means two different laps' passes
+  through the same physical corner draw their stability value from
+  the SAME underlying grid points whenever their s-ranges for that
+  phase overlap -- which they do almost everywhere (grid coverage
+  99.7% in production, per B1).
+- Consequence for reading the per-lap corner grid in the UI: apparent
+  per-lap differences in a corner's stability value are therefore not
+  telling you the vehicle behaved differently lap to lap at that
+  corner -- under this estimator they can only arise from which grid
+  points a given lap's phase-boundary window happens to cover (phase
+  segmentation timing varies slightly lap to lap, per WP1), not from
+  a materially different regression result. This is different from
+  CS_ratio (Module 4b), which is still a genuinely per-sample,
+  per-lap quantity (windowed OLS on that lap's own alpha/Fy trace).
+- Why this is worth stating plainly rather than leaving implicit: a
+  reader comparing the per-lap stability column across laps for one
+  corner could otherwise mistake grid-coverage noise for a real
+  lap-to-lap driving difference. The median-of-medians aggregation the
+  recommendation engine already uses (see "Recommendation engine:
+  median-of-medians aggregation" above) is unaffected by this -- it
+  was designed to be robust to single-lap anomalies regardless of
+  their source, and this is simply a new, understood source of
+  small per-lap stability variance to be aware of, not a new failure
+  mode to guard against.
+- s_m channel-alignment note: lap_distance is SetupTool's own proxy for
+  the chair's native s_m, interpolated onto the common sample timeline;
+  guarded against fabricating a value across a lap-boundary reset
+  (linear interpolation between the last high-distance sample and the
+  first near-zero sample of the next lap would otherwise synthesise a
+  midpoint corresponding to no real track position). Tier B
+  channel-alignment necessity, not a method change.
+- CLASSIFICATION (deviation taxonomy, CLAUDE.md) [2026-07-24]: (a) the
+  raw-yaw-rate-only path = FORCED ADAPTATION (the chair's pre-smoothed-
+  input filter list is outside this reference's scope; no alternative
+  input is available to us). (b) the NaN-then-dropna masking wiring
+  itself = NEUTRAL ENGINEERING (no science content, just how the three
+  exclusions are fed into the chair's own missing-data handling). (c)
+  structural in/out-lap exclusion = DOMAIN IMPROVEMENT overall
+  [UPDATED 2026-07-24: see "In/out-lap exclusion: two-leg rationale"
+  above -- the outlap leg is FORCED in character (s-coordinate
+  degeneracy), the inlap leg is the original DOMAIN IMPROVEMENT
+  (cold-tyre stationarity, chair presumed continuous/online [context
+  claim, to verify with chair] vs. SetupTool's post-session analysis)].
+  The s_m reset-guard interpolation above = NEUTRAL ENGINEERING.
+
+### Moving-speed mask: domain-improvement classification [2026-07-24]
+- `moving_speed_min_mps` (state["moving_mask"] = v_mps > threshold)
+  excludes stationary/pit-lane samples from both Module 4b and Module
+  5. The chair's reference estimator has no equivalent explicit speed
+  gate; it relies on its own dropna handling for whatever is missing,
+  not on excluding low-speed driving.
+- CLASSIFICATION: DOMAIN IMPROVEMENT, same reasoning as the in/out-lap
+  exclusion above: the chair pipeline is presumed to run online/
+  continuously [context claim, to verify with chair], where a
+  low-speed sample is just the current state, not something to
+  discard; SetupTool's post-session analysis can identify and remove
+  standing/pit-lane samples that carry no cornering information and
+  would otherwise dilute the regression. Based on their version, which
+  is not wrong for their context -- this is a decision available to us
+  because of what SetupTool is (post-session), not a correction of an
+  error in theirs.
 
 ### Kerb/jump exclusion [2026-06-29]
 - Vertical accel (log_acc_z) deviation-from-baseline gate: |az - 1.0g| >
@@ -95,11 +300,40 @@ HOW TO USE:
   0.5-3%, plausible for moderate kerb usage).
 - Effect on results: stability valid samples 30813->29550, median
   2547->2676 Nm/deg (kerbs were biasing stability DOWN), CS_ratio means up
-  ~0.006. Per-corner: one apex phase dropped from 100% to 18% valid —
-  kerb transparency at exactly the right place.
+  ~0.006. ~~Per-corner: one apex phase dropped from 100% to 18% valid —
+  kerb transparency at exactly the right place.~~ [SUPERSEDED 2026-07-24,
+  B1 finding -- true of the time-windowed OLS estimator this was
+  measured against, not of the current one. The s-anchored estimator
+  (B1) computes validity at the GRID level (2 m step, 55 m window) and
+  interpolates back onto every sample; a phase with locally low sample
+  density or a kerb-affected pocket gets infilled from its clean local
+  neighbourhood in s by construction, because the grid point nearest
+  that phase can still draw on samples from every other lap at the same
+  track position. Re-measured on the new estimator: this same corner's
+  apex phase now reads valid_stab=100% (see B1 report), and the same is
+  true almost everywhere -- grid coverage was 99.7% in production.
+  valid_fraction_stab is therefore NON-DISCRIMINATING under the new
+  estimator and should not be read as a kerb-transparency signal any
+  more; kerb_fraction (a separate, untouched field, still computed
+  per-phase from the same kerb mask) remains the correct transparency
+  signal for "was this phase affected by a kerb". This is a documented
+  side-effect of the s-anchored/grid-based validity mechanism, not a
+  regression to fix -- see B1 report.]
 - LIMITATION (Level 1): static deviation threshold; sustained aero load
   (1.5g at 250 km/h) approaches the threshold. Rate-of-change (daz/dt)
   detection is the documented upgrade path.
+- CLASSIFICATION (deviation taxonomy, CLAUDE.md) [2026-07-24]: DOMAIN
+  IMPROVEMENT. The chair pipeline serves a vehicle class not expected
+  to ride kerbs regularly [context claim, to verify with chair]; a
+  GT3 car uses kerbs every lap as part of the racing line, so an
+  unmasked kerb transient corrupts exactly the samples (apex,
+  exit) that matter most to the regression. Based on their version,
+  which is not wrong for a vehicle class that doesn't need it -- the
+  threshold-gate MECHANISM itself (deviation-from-baseline gate,
+  dilation for ringdown) is standard Tier B practice, not the
+  contribution; the contribution being claimed is the domain analysis
+  (GT3 kerb usage pattern) and the decision to exclude, not the filter
+  construction.
 
 ### Dual-criterion corner detection [2026-07-22]
 - Original steering-threshold detection (25 deg entry / 15 deg exit
@@ -260,6 +494,47 @@ HOW TO USE:
   is not limited to numerical precision.
 
 ## 2. Design principles (architecture chapter material)
+
+### Deviation taxonomy for chair-comparison [2026-07-24]
+- Every place SetupTool's estimators differ from the chair
+  performance_analysis tooling (internal reference, docs/literature/,
+  read-only) carries exactly one of three class labels, defined in
+  CLAUDE.md: FORCED ADAPTATION (no alternative given the GT3R
+  sensor/data situation -- same method, different available inputs),
+  DOMAIN IMPROVEMENT (their version is correct for their context; ours
+  differs and we improve on it for ours -- "based on their version,
+  which is not wrong"), NEUTRAL ENGINEERING (no science content:
+  channel-alignment guards, config key naming, module boundaries).
+- Why a taxonomy and not just prose: an examiner's first question
+  about any difference from a cited reference is "why did you change
+  it, and does that weaken the reference anchor?" The three-way split
+  answers that up front and consistently -- forced vs chosen vs
+  cosmetic -- rather than requiring the same argument to be
+  reconstructed ad hoc for every deviation. Every current deviation
+  (kerb mask, moving mask, in/out-lap exclusion, the raw-yaw-rate path,
+  s_m interpolation) is labelled at its own thesis_notes.md entry; every
+  future one gets exactly one label when it's introduced, not
+  retrofitted later.
+
+### Vehicle parameterization is not a deviation [2026-07-24]
+- The chair tooling is vehicle-agnostic; every physical vehicle
+  quantity enters through config, not through the algorithm. SetupTool
+  parameterizes the identical algorithms for the Porsche 992 GT3R,
+  whose properties differ fundamentally from the chair's reference
+  vehicle (different vehicle class) -- "chair-identical" always means
+  the algorithm, never the vehicle numbers, so this is never a
+  deviation-taxonomy entry on its own. Three parameter categories, each
+  with its own provenance rule: (1) vehicle description (mass, Iz,
+  wheelbase, track widths, ...) differs from the chair BY NECESSITY --
+  provenance is the Level 1-4 accuracy system, not chair comparison.
+  (2) method calibration tunables (the six yaw_stability_* values,
+  cs_* values, ...) match the chair BY CHOICE -- they are the chair's
+  own dataclass defaults, adopted deliberately; changing any is an
+  estimator change and re-triggers threshold re-derivation. (3)
+  classification thresholds differ from any chair values BY RULE --
+  always re-derived from this car's own output distribution (see the
+  B1/B2 threshold-re-derivation workflow), never carried over from the
+  chair or from a prior estimator's distribution.
 
 ### Accuracy-level cascade [project-wide]
 - Every physical quantity: Level 1 config default -> 2 session

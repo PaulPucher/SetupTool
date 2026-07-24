@@ -75,6 +75,41 @@ IS, not how it's tuned) stay as named constants in code with a
 justifying comment, since moving them to config would misrepresent
 them as tunable.
 
+## Deviation taxonomy (chair performance_analysis comparison)
+Every place SetupTool's Module 4b/5 estimators differ from the chair's
+reference implementation (docs/literature/, read-only, never imported)
+carries exactly one of three class labels:
+
+1. FORCED ADAPTATION — the GT3R sensor/data situation leaves no
+   alternative (examples: kinematic beta, Level-1 Fy split, the
+   raw-yaw-rate path because the chair's pre-smoothed-input filter
+   list is outside this reference's scope). Framing: same method,
+   different available inputs.
+2. DOMAIN IMPROVEMENT — the chair version is correct for its own
+   context; our context differs and we improve on it for our use case.
+   Always framed as "based on their version, which is not wrong."
+3. NEUTRAL ENGINEERING — no science content (channel-alignment
+   guards, config key naming, module boundaries).
+
+VEHICLE PARAMETERIZATION IS NOT A DEVIATION. The chair tooling is
+vehicle-agnostic; all physical vehicle quantities enter through config
+(car.json / car_data.json / setup values). SetupTool parameterizes the
+identical algorithms for the Porsche 992 GT3R, whose properties differ
+fundamentally from the chair's reference vehicle (different vehicle
+class). "Chair-identical" always refers to the algorithm, never to
+vehicle numbers. Provenance of vehicle quantities is governed by the
+Level 1-4 accuracy system, not by chair comparison.
+
+Parameter categories, for clarity:
+- vehicle description (mass, Iz, wheelbase, track widths, ...): differ
+  from the chair BY NECESSITY; provenance = accuracy levels.
+- method calibration tunables (yaw_stability_* six, cs_* values, ...):
+  match the chair BY CHOICE; changing any is an estimator change and
+  re-triggers threshold re-derivation.
+- classification thresholds: differ from any chair values BY RULE;
+  always re-derived from this car's own distribution, never carried
+  over from the chair or from a prior estimator's distribution.
+
 ## Comment style rule (project-wide)
 Comments and docstrings must read like a capable engineering student
 wrote them for himself and his examiners:

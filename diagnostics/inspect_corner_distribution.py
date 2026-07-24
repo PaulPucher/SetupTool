@@ -18,7 +18,7 @@ beta = estimate_sideslip(state, params)
 slip = estimate_slip_angles(state, beta, params)
 forces = estimate_lateral_forces(state, params)
 cs = estimate_cornering_stiffness(slip, forces, state, params)
-stab = estimate_yaw_moment_stability(state, beta, params)
+stab = estimate_yaw_moment_stability(state, beta, params, data.get("laps", []))
 summaries = summarise_corners(data["corners"], cs, stab, state)
 
 worst_csf_per_corner = []

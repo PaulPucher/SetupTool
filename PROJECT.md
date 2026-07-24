@@ -78,10 +78,17 @@ config/images/ — logos and car photo
 - cs_min_slip_angle_span_rad = 0.02 (window growth target)
 - cs_linear_slip_threshold_rad = 0.021 (linear-zone gate)
 - beta_washout_cutoff_hz = 0.05 (β drift removal)
-- yaw_accel_filter_cutoff_hz = 5.0 (post-differentiation lowpass)
-- stability_min_beta_span_rad = 0.01 (Module 5 validity gate)
-- stability_regression_window_s = 2.0 (centred regression window)
 - yaw_rate_to_radps = 0.10472
+
+## Module 5 estimator parameters (config/parameters.json, modules/yaw_stability.py)
+After the chair performance_analysis tooling (internal) -- these are the
+values the chair pipeline actually runs (its own dataclass defaults).
+- yaw_stability_accel_window_s = 0.15 (centred rolling-mean window on ψ̈)
+- yaw_stability_grid_step_m = 2.0 (s-anchored regression grid spacing)
+- yaw_stability_window_m = 55.0 (Gaussian window half-width in track distance)
+- yaw_stability_min_samples = 90 (per-grid-point validity gate)
+- yaw_stability_min_beta_std_rad = 0.001 (weighted β-std validity gate)
+- yaw_stability_ridge = 1.0 (ridge penalty, standardised regressor space)
 
 ## CSV / Data file format
 Pi Toolbox ASCII format (.txt). Key properties:
@@ -144,7 +151,8 @@ loads planned (WP5b).
 ecu_speed + sclu_yaw_rate + log_asteer → slip angles α_f, α_r
 log_acc_y + mass + weight distribution → lateral forces Fy_f, Fy_r
 dFy/dα windowed OLS + section-blend → cornering stiffness Cα → CS ratio
-sclu_yaw_rate differentiated + Iz → Mz_inertial → local OLS → dMz/dβ stability
+sclu_yaw_rate differentiated (rolling-mean smoothed) + Iz → Mz_inertial →
+s-anchored local weighted ridge regression → dMz/dβ stability
 
 ### Modules built and verified
 Module 1 — prepare_vehicle_state(): unit conversions, common 50 Hz time base
@@ -159,11 +167,18 @@ Module 4b — estimate_cornering_stiffness(): Werner MA, full documented method
   - No undocumented gates, no EMA — the estimation machinery itself is
     this project's adaptation of Werner's approach, not a tyre-model
     evaluation (see thesis_notes.md §1)
-Module 5 — estimate_yaw_moment_stability(): Iz·ψ̈ → Mz_inertial,
-  local centred 2 s OLS over [1, β, δ_f, v, ax], yaw rate excluded
-  for multicollinearity with β via the kinematic identity β̇ = ay/v − ψ̇.
-  Sign convention per Werner (2021) §2.2.3: positive dMz/dbeta =
-  restoring = stable.
+Module 5 — estimate_yaw_moment_stability(): Iz·ψ̈ (rolling-mean filtered)
+  → Mz_inertial, then modules/yaw_stability.py's s-anchored Gaussian-
+  weighted local ridge regression over [β, δ_f, v, ax, az] (az optional),
+  pooling samples across laps at the same track position (lap_distance).
+  Estimator after the chair performance_analysis tooling (internal); yaw
+  rate excluded from the regressor set for multicollinearity with β via
+  the kinematic identity β̇ = ay/v − ψ̇ (same rationale as before, see
+  thesis_notes.md). Sample exclusions applied at the call site: moving
+  mask, kerb mask, and structural in/out-lap exclusion (production,
+  independent of the UI's lap_filter -- cold tyres break the pooling
+  assumption). Sign convention per Werner (2021) §2.2.3: positive
+  dMz/dbeta = restoring = stable.
 Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
   lap_filter argument (UI selector translates to lap numbers), apex_3 window
   expansion ±5 samples. apex_position_x_m/y_m filled from log_gps_lat/lon via

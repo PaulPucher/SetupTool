@@ -28,13 +28,17 @@
     "cs_min_slip_angle_span_rad": 0.02,
     "cs_linear_slip_threshold_rad": 0.021,
     "beta_washout_cutoff_hz": 0.05,
-    "yaw_accel_filter_cutoff_hz": 5.0,
-    "stability_min_beta_span_rad": 0.01,
-    "stability_regression_window_s": 2.0,
     "moving_speed_min_mps": 5.0,
     "cs_min_window_samples": 10,
-    "stability_min_window_samples": 20,
     "apex_half_window_samples": 5,
+
+    "_comment_yaw_stability": "Module 5 estimator (modules/yaw_stability.py), after the chair performance_analysis tooling (internal). These are the values the chair pipeline actually runs (its dataclass defaults / default invocation) -- changing any of the six re-triggers classification-threshold re-derivation (WP5b(e) pattern), since thresholds are tuned to this estimator's output distribution.",
+    "yaw_stability_accel_window_s": 0.15,
+    "yaw_stability_grid_step_m": 2.0,
+    "yaw_stability_window_m": 55.0,
+    "yaw_stability_min_samples": 90,
+    "yaw_stability_min_beta_std_rad": 0.001,
+    "yaw_stability_ridge": 1.0,
 
     "_comment_cs_fallback": "Fallback cornering stiffness references. Derived from axle normal load × C_alpha/Fz = 12 rad⁻¹ (Milliken & Milliken, RCVD, GT3 slick). Front: (290+290)*9.81*12 = 68268. Rear: (395+381)*9.81*12 = 91343. Used as C_linear_ref when OLS cannot resolve the linear stiffness from data (insufficient alpha excitation on rear axle). Accuracy Level 1.",
     "cs_front_fallback_reference_n_per_rad": 68268,
@@ -42,6 +46,29 @@
     "kerb_z_deviation_threshold_g": 1.2,
     "kerb_dilation_samples": 5,
     "kerb_baseline_g": 1.0
+    },
+    "classification": {
+        "_comment": "Corner-verdict thresholds for ui/views/outing_form.py's _classify_corner. Each entry's derived_from records the diagnostic run and estimator version it was picked against -- a threshold is only valid for the distribution it was derived from (CLAUDE.md deviation taxonomy: classification thresholds differ from the chair BY RULE, always re-derived per estimator/car).",
+        "STRONG_CSF": {
+            "value": 0.10,
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; front worst-phase-per-corner p10=0.049, median=0.334)."
+        },
+        "STRONG_CSR": {
+            "value": 0.20,
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; rear worst-phase-per-corner p10=0.186, median=0.749)."
+        },
+        "MODERATE_CSF": {
+            "value": 0.25,
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since)."
+        },
+        "MODERATE_CSR": {
+            "value": 0.35,
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since)."
+        },
+        "stab_neg_thresh_Nm_per_deg": {
+            "value": -50.0,
+            "derived_from": "2026-07-24, diagnostics/inspect_yaw_stability_b2.py, Module 5 chair-basis s-anchored ridge-regression estimator (B1). Percentile-anchored gap selection in the worst-phase-per-corner-instance distribution (51 instances): clean gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps) and -18.5 Nm/deg (next-worst corner); -50.0 sits in that gap. Flags the same single physical corner (stable_id 8) as the superseded -500.0 value did, now across all 4 of its laps instead of 1; sample exceedance 3.0% vs the old estimator's 2.7%. Supersedes -500.0 (time-anchored OLS estimator, removed B1, see thesis_notes.md). Re-derive if yaw_stability_* above changes."
+        }
     },
     "accuracy_levels": {
         "mass": 1,

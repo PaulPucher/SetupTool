@@ -1,14 +1,18 @@
 # Stability analysis module for SetupTool.
 # Pure Python/numpy/scipy. No Qt imports.
 # Units: SI throughout (m, s, rad, N, Nm, kg).
-# Cornering-stiffness (Module 4b) and yaw-moment-stability (Module 5)
-# estimation after Werner (2021) S2.2.2-2.2.3 / S4.5.2 Eq. 4.3-4.4;
-# effective-stiffness estimation adapted, see thesis_notes.md.
+# Cornering-stiffness (Module 4b) target relation and cross-lap yaw-moment-
+# stability target relation (Module 5) after Werner (2021) S2.2.2-2.2.3 /
+# S4.5.2 Eq. 4.3-4.4. Effective-stiffness estimation (Module 4b) is adapted;
+# Module 5's estimator (modules/yaw_stability.py) is after the chair
+# performance_analysis tooling (internal), not Werner's own construction.
+# See thesis_notes.md for both attribution splits.
 
 import numpy as np
 from scipy.signal import butter, filtfilt
 import json
 from modules.geo import project_latlon_to_xy
+from modules.yaw_stability import calculate_filtered_yaw_acceleration, calculate_observed_stability
 
 PARAMETERS_PATH = "config/parameters.json"
 
@@ -105,6 +109,38 @@ def _section_slopes(alpha, Fy, sections):
     return slopes, spans
 
 
+def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_ft):
+    # lap_distance resets to ~0 at every lap boundary. Linearly interpolating
+    # across that boundary sample pair (as plain np.interp would) fabricates
+    # a mid-range s value corresponding to no real track position, so any
+    # t_ref sample whose bracketing native-sample pair straddles a reset is
+    # set NaN instead. SetupTool-specific channel-alignment guard (Tier B):
+    # the chair receives s_m natively at its own timeline and never needs
+    # this interpolation step. [neutral engineering]
+    ld_data_m = ld_data_ft * 0.3048
+    s_m = np.interp(t_ref, ld_time, ld_data_m)
+
+    reset_after = np.zeros(len(ld_time), dtype=bool)
+    reset_after[:-1] = np.diff(ld_data_m) < 0
+    bracket_lo = np.clip(np.searchsorted(ld_time, t_ref, side="right") - 1, 0, len(ld_time) - 1)
+    return np.where(reset_after[bracket_lo], np.nan, s_m)
+
+
+def _build_inout_lap_mask(t_ref, laps):
+    # Module 5 production exclusion (independent of the UI's is_valid_for_
+    # analysis / lap_filter display toggle, per WP6/PLAN.md): cold-tyre in-
+    # and out-lap samples violate the local-regression assumption that the
+    # underlying vehicle condition is stationary across laps at the same
+    # track position (see thesis_notes.md). Same epistemic category as the
+    # kerb mask -- both exclude samples not representative of the racing
+    # condition being modelled. [domain improvement]
+    mask = np.zeros(len(t_ref), dtype=bool)
+    for lap in laps or []:
+        if lap.get("is_outlap") or lap.get("is_inlap"):
+            mask |= (t_ref >= lap["start_time"]) & (t_ref <= lap["end_time"])
+    return mask
+
+
 def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
     # Flag samples where vertical accel deviates more than threshold_g from baseline_g,
     # then dilate the mask by dilation_samples on each side to catch ringdown.
@@ -188,8 +224,17 @@ def prepare_vehicle_state(channels, params):
         gps_lat = None
         gps_lon = None
 
+    # Track-distance coordinate for Module 5's s-anchored regression (see
+    # modules/yaw_stability.py). Optional -- None if lap_distance is missing
+    # or invalid, same graceful-degradation pattern as az_g/GPS above.
+    s_m = None
+    ld_ch = channels.get("lap_distance")
+    if ld_ch is not None and ld_ch.get("quality") not in ("missing", "failed") and ld_ch.get("time") is not None:
+        s_m = _interp_lap_distance_guarded(t_ref, ld_ch["time"], ld_ch["data"])
+
     return {
         "time": t_ref,
+        "s_m": s_m,
         "sample_rate_hz": sr,
         "v_mps": v_mps,
         "yaw_rate_radps": yaw_rate_radps,
@@ -432,12 +477,28 @@ def estimate_cornering_stiffness(slip, forces, state, params):
     }
 
 
-def estimate_yaw_moment_stability(state, beta, params):
+def estimate_yaw_moment_stability(state, beta, params, laps=None):
     """Module 5: yaw moment stability dMz/dbeta.
 
-    After Werner (2021) S4.5.2 Eq. 4.3/4.4 (Mz = Iz*psidd + D_psi*psid).
-    D_psi term not yet computed (no wheel-load sensor); see
-    thesis_notes.md "Completing Werner Eq. 4.3" and WP5b.
+    Target relation after Werner (2021) S4.5.2 Eq. 4.3/4.4
+    (Mz = Iz*psidd + D_psi*psid); D_psi term not yet computed (no
+    wheel-load sensor); see thesis_notes.md "Completing Werner Eq. 4.3"
+    and WP5b. The estimator itself (yaw-accel rolling mean, s-anchored
+    Gaussian-weighted local ridge regression) is
+    modules.yaw_stability, after the chair performance_analysis tooling
+    (internal) -- see thesis_notes.md for the attribution split and the
+    call-site sample-exclusion adaptation notes below.
+
+    Sample exclusions (moving mask, kerb mask, structural in/out-lap
+    exclusion) are all applied HERE, at the call site, by NaN-ing
+    excluded samples before handing arrays to the chair-derived
+    estimator; the estimator itself runs unmasked on whatever it is
+    given, exactly as the chair's own tooling does on a full session.
+    [neutral engineering]
+    In/out-lap exclusion is production behaviour, independent of the
+    UI's display lap_filter (WP6): cold tyres change stiffness, which
+    would corrupt the cross-lap pooling this estimator relies on.
+    [domain improvement]
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -448,71 +509,47 @@ def estimate_yaw_moment_stability(state, beta, params):
     yaw_rate = state["yaw_rate_radps"]
     delta_f = state["delta_f_rad"]
     ax = state["ax_mps2"]
+    az_g = state.get("az_g")
+    s_m = state.get("s_m")
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
+    moving = moving & ~_build_inout_lap_mask(t, laps)
 
     Iz = vp["yaw_inertia_kgm2"]
-    cutoff_hz = se["yaw_accel_filter_cutoff_hz"]
-    window_s = se["stability_regression_window_s"]
-    beta_span_min = se["stability_min_beta_span_rad"]
+
+    yaw_accel_filt = calculate_filtered_yaw_acceleration(
+        yaw_rate, t, sr, se["yaw_stability_accel_window_s"]
+    )
+    Mz_inertial = Iz * yaw_accel_filt
 
     n = len(t)
-
-    psi_ddot_raw = np.gradient(yaw_rate, t)
-    psi_ddot_filt = _butterworth_lowpass(psi_ddot_raw, cutoff_hz, sr)
-    Mz_inertial = Iz * psi_ddot_filt
-
-    half_window = int(round(window_s * sr / 2))
-    min_samples = se["stability_min_window_samples"]
-
-    stability_radps = np.full(n, np.nan)
-    stability_valid = np.zeros(n, dtype=bool)
-
-    for i in range(n):
-        if not moving[i]:
-            continue
-
-        lo = max(0, i - half_window)
-        hi = min(n, i + half_window + 1)
-        win_mask = moving[lo:hi]
-        if win_mask.sum() < min_samples:
-            continue
-
-        b_win = beta[lo:hi][win_mask]
-        d_win = delta_f[lo:hi][win_mask]
-        v_win = v[lo:hi][win_mask]
-        ax_win = ax[lo:hi][win_mask]
-        m_win = Mz_inertial[lo:hi][win_mask]
-
-        if (b_win.max() - b_win.min()) < beta_span_min:
-            continue
-
-        X = np.column_stack([
-            np.ones_like(b_win),
-            b_win,
-            d_win,
-            v_win,
-            ax_win,
-        ])
-
-        try:
-            coeffs, *_ = np.linalg.lstsq(X, m_win, rcond=None)
-        except np.linalg.LinAlgError:
-            continue
-
-        c_beta = coeffs[1]
-        stability_radps[i] = c_beta
-        stability_valid[i] = True
-
-    stability_observed = stability_radps * (np.pi / 180.0)
+    if s_m is None:
+        stability_observed = np.full(n, np.nan)
+        stability_valid = np.zeros(n, dtype=bool)
+    else:
+        az_mps2 = az_g * 9.81 if az_g is not None else None
+        stability_observed, stability_valid, _diagnostics = calculate_observed_stability(
+            s_m=s_m,
+            beta_rad=beta,
+            delta_f_rad=delta_f,
+            v_mps=v,
+            ax_mps2=ax,
+            az_mps2=az_mps2,
+            mz_inertial_Nm=Mz_inertial,
+            valid_mask=moving,
+            grid_step_m=se["yaw_stability_grid_step_m"],
+            window_m=se["yaw_stability_window_m"],
+            min_samples=se["yaw_stability_min_samples"],
+            ridge=se["yaw_stability_ridge"],
+            min_beta_std_rad=se["yaw_stability_min_beta_std_rad"],
+        )
 
     return {
-        "yaw_accel_filtered_radps2": psi_ddot_filt,
+        "yaw_accel_filtered_radps2": yaw_accel_filt,
         "mz_inertial_Nm": Mz_inertial,
         "stability_observed_Nm_per_deg": stability_observed,
-        "stability_observed_radps": stability_radps,
         "stability_valid": stability_valid,
         "iz_used_kgm2": Iz,
     }
