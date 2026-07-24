@@ -51,23 +51,23 @@
         "_comment": "Corner-verdict thresholds for ui/views/outing_form.py's _classify_corner. Each entry's derived_from records the diagnostic run and estimator version it was picked against -- a threshold is only valid for the distribution it was derived from (CLAUDE.md deviation taxonomy: classification thresholds differ from the chair BY RULE, always re-derived per estimator/car).",
         "STRONG_CSF": {
             "value": 0.10,
-            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; front worst-phase-per-corner p10=0.049, median=0.334)."
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; front worst-phase-per-corner p10=0.049, median=0.334). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes."
         },
         "STRONG_CSR": {
             "value": 0.20,
-            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; rear worst-phase-per-corner p10=0.186, median=0.749)."
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; rear worst-phase-per-corner p10=0.186, median=0.749). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes."
         },
         "MODERATE_CSF": {
             "value": 0.25,
-            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since)."
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes."
         },
         "MODERATE_CSR": {
             "value": 0.35,
-            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since)."
+            "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes."
         },
         "stab_neg_thresh_Nm_per_deg": {
             "value": -50.0,
-            "derived_from": "2026-07-24, diagnostics/inspect_yaw_stability_b2.py, Module 5 chair-basis s-anchored ridge-regression estimator (B1). Percentile-anchored gap selection in the worst-phase-per-corner-instance distribution (51 instances): clean gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps) and -18.5 Nm/deg (next-worst corner); -50.0 sits in that gap. Flags the same single physical corner (stable_id 8) as the superseded -500.0 value did, now across all 4 of its laps instead of 1; sample exceedance 3.0% vs the old estimator's 2.7%. Supersedes -500.0 (time-anchored OLS estimator, removed B1, see thesis_notes.md). Re-derive if yaw_stability_* above changes."
+            "derived_from": "2026-07-24, diagnostics/inspect_yaw_stability_b2.py, Module 5 chair-basis s-anchored ridge-regression estimator (B1). Percentile-anchored gap selection in the worst-phase-per-corner-instance distribution (51 instances): clean gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps) and -18.5 Nm/deg (next-worst corner); -50.0 sits in that gap. Flags the same single physical corner (stable_id 8) as the superseded -500.0 value did, now across all 4 of its laps instead of 1; sample exceedance 3.0% vs the old estimator's 2.7%. Supersedes -500.0 (time-anchored OLS estimator, removed B1, see thesis_notes.md). Re-derive if yaw_stability_* above changes. Confirmed unchanged 2026-07-24 (Module 5 independent of Fy/Fz, distribution byte-identical)."
         }
     },
     "accuracy_levels": {

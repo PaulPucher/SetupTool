@@ -14,11 +14,8 @@ import json
 import numpy as np
 
 REPO_ROOT = "c:/UNI/Bachelorarbeit/Setuptool_local"
-# Pre-B1/B2/B3 commit is 4f19bc8200aba6e4628e1ca1dac97211a51a2879 (last
-# commit before this WP-ALIGN work started). OLD_REF="HEAD" is only correct
-# until this WP's own commit lands -- after that, set OLD_REF to the hash
-# above (still the pre-alignment estimator) rather than "HEAD".
-OLD_REF = "HEAD"
+# Pre-B1/B2/B3 commit: still the pre-chair-basis-alignment estimator.
+OLD_REF = "4f19bc8200aba6e4628e1ca1dac97211a51a2879"
 
 
 def _load_old_module():

@@ -8,6 +8,7 @@
 # performance_analysis tooling (internal), not Werner's own construction.
 # See thesis_notes.md for both attribution splits.
 
+import functools
 import numpy as np
 from scipy.signal import butter, filtfilt
 import json
@@ -24,6 +25,7 @@ SPAN_WEIGHT_EXPONENT = 4  # steep smooth-step so a section only counts once its 
 R2_WEIGHT_EXPONENT = 1  # linear R^2 blend between window- and section-slope estimates, no extra shaping
 
 
+@functools.lru_cache(maxsize=1)  # config only re-read after an app restart
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -326,6 +328,28 @@ def estimate_slip_angles(state, beta, params):
 
 
 def estimate_lateral_forces(state, params):
+    """Module 4a: axle lateral forces via 2-DOF planar force/moment
+    balance -- Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,
+    Fy_r = m*ay - Fy_f. Tier A: Milliken & Milliken, RCVD, 2-DOF planar
+    force/moment balance, p. TBD verify. Same construction as the
+    chair performance_analysis tooling's own fy_f_N/fy_r_N (internal);
+    no deviation, this is adopted as-is.
+
+    psidd is the RAW yaw acceleration (np.gradient of yaw_rate_radps),
+    computed here independently of Module 5's 0.15 s rolling-mean-
+    filtered signal (modules/yaw_stability.py) -- the chair keeps these
+    separate too: raw for this instantaneous per-sample force balance,
+    filtered only for the windowed stability regression. Pre-smoothing
+    psidd here with a different time constant before Module 4b's own
+    downstream Butterworth filter (cs_filter_cutoff_hz) would
+    double-filter with inconsistent time constants.
+
+    Method upgrade only, not an accuracy-level upgrade:
+    accuracy_levels.lateral_force_split stays 1 -- Iz and the static
+    corner-weight fractions are still Level 1, so the new yaw term
+    inherits their ~10-20% uncertainty rather than adding a
+    better-characterised signal.
+    """
     vp = params["vehicle"]
     se = params["stability_estimation"]
     sr = state["sample_rate_hz"]
@@ -339,9 +363,15 @@ def estimate_lateral_forces(state, params):
     front_fraction = W_f / W_total
     rear_fraction = W_r / W_total
 
+    Iz = vp["yaw_inertia_kgm2"]
+    wheelbase = vp["wheelbase_m"]
+    psidd_raw = np.gradient(state["yaw_rate_radps"], state["time"])
+
     Fy_total = m * state["ay_mps2"]
-    Fy_f = np.where(moving, Fy_total * front_fraction, 0.0)
-    Fy_r = np.where(moving, Fy_total * rear_fraction, 0.0)
+    Fy_f_full = Fy_total * front_fraction + Iz * psidd_raw / wheelbase
+    Fy_r_full = Fy_total - Fy_f_full
+    Fy_f = np.where(moving, Fy_f_full, 0.0)
+    Fy_r = np.where(moving, Fy_r_full, 0.0)
 
     cutoff = se["cs_filter_cutoff_hz"]
     Fy_f_filt = _butterworth_lowpass(Fy_f, cutoff, sr)

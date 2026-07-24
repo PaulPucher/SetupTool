@@ -128,6 +128,27 @@ transparency metric has been designed yet, kerb_fraction covers the
 kerb case only); _stability_colour is now config-derived (done this
 session, listed here for visibility, not an open thread).
 
+Vehicle-model-upgrade WP (2026-07-24, reduced scope, currently
+uncommitted): Fy yaw-moment term landed in Module 4a (exact 2-DOF
+planar force/moment balance, Fy_f = m*ay*front_fraction +
+Iz*psidd/wheelbase, Fy_r = m*ay - Fy_f; raw np.gradient psidd,
+deliberately not Module 5's filtered signal; Tier A, Milliken & Milliken
+RCVD, p. TBD verify; chair-identical construction, no deviation).
+WP5b(a)/(b) untangled: the original "roll stiffness needed for Fy" framing
+was a conflation -- Fy needs none of it; axle-Fz-for-CS-normalization and
+the per-tire/roll-stiffness-apportionment work (DOMAIN IMPROVEMENT vs the
+chair's simpler independent-per-axle split) both moved into WP5b(b),
+where they have an actual consumer. Housekeeping: OLD_REF hash fixed in
+inspect_yaw_stability_b2.py, load_parameters() now lru_cache'd (neutral
+engineering, not a chair-comparison item). Verification: Modules 1-3 and
+5 byte-identical throughout (confirmed twice); CS thresholds re-checked
+against the new distribution and kept unchanged (max flag-count shift
+2/51 instances; n=51 resolution argument in thesis_notes.md); a genuine,
+not-engineered-for CSr-tail repair observed (p10 -0.052 -> +0.082);
+verdict distribution moved from 1 strong/16 moderate/34 normal (post-B3)
+to 0/14/37, entirely via CS-branch movement -- Module 5's stability
+branch contribution unchanged (byte-identical output).
+
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
 unless noted otherwise. Each package is self-contained for a smaller model.
@@ -509,15 +530,70 @@ pattern added in WP2b-1 TASK 3).
 Deepens the physics of Modules 1-5. Do after WP2/WP3 structure exists;
 before heavy thesis validation runs, since these change the numbers.
 
-a) Level 2 Fy split: replace static weight split with dynamic axle load
+a) ~~Level 2 Fy split: replace static weight split with dynamic axle load
    transfer from roll stiffness balance (setup_data has spring/ARB
    values -> roll stiffness fraction; lateral load transfer per axle
    from ay, track width, CoG height). Config: cog_height_m,
    track_width_f/r_m, roll stiffness inputs. Expect front CS values to
-   shift; re-tune classify thresholds against new distribution.
-b) Level 4 Fy split (superset of a): wheel loads from damper forces
+   shift; re-tune classify thresholds against new distribution.~~
+   [SUPERSEDED 2026-07-24, vehicle-model-upgrade WP -- this conflated
+   two separable things. DONE: Fy_f/Fy_r now use the exact 2-DOF
+   planar force/moment balance (Fy_f = m*ay*front_fraction +
+   Iz*psidd/wheelbase, Fy_r = m*ay - Fy_f, modules/stability_analysis.py
+   estimate_lateral_forces) -- this needs NO roll stiffness, no track
+   width, no CoG height at all; those were never actually required for
+   Fy, only for a per-TIRE Fz split (see thesis_notes.md, dated entry).
+   REMAINING (axle-level Fz for CS normalization: static + aero +
+   longitudinal transfer, needs cog_height_m; and the per-tire Fz/
+   roll-stiffness-apportionment work) moves into (b) below, since its
+   only real consumer is the wheel-load work there -- building it
+   speculatively now with no reader would violate the project's own
+   scope-discipline principle (config/car_data.json's "what reads
+   this, not is it true" rule).]
+b) Level 4 Fy/Fz split: wheel loads from damper forces
    (log_dms_dam_fl/fr/rl/rr, 100 Hz, confirmed logged). Motion-ratio
-   lookup needed (config placeholder until real table available).
+   lookup needed (already digitised: config/car_data.json
+   motion_ratio_vs_wheel_travel). Scope now also includes, folded in
+   from (a) above (2026-07-24):
+   - Axle-level Fz_f/Fz_r (static split + aero + longitudinal load
+     transfer via ax/cog_height_m/wheelbase_m -- same construction as
+     the chair's own fz_f_N/fz_r_N) as the direct CS-normalization
+     consumer (fy_f_N/fz_f_N, fy_r_N/fz_r_N) -- Module 4b doesn't
+     compute this yet. New config: cog_height_m (Level 1, vehicle
+     description -- source not yet confirmed, check docs/car_data/ or
+     ask for a measured/homologated figure before implementing).
+     Aero term (air_density, lift_coeff/Cl*A, CoP-to-CoG distance) is
+     a further open question -- no evidence yet that GT3R aero
+     coefficients are digitised anywhere; if unavailable, launch
+     axle-Fz without the aero term as a documented Level 1 limitation
+     rather than block on it. [2026-07-24] Aero from damper-load v^2
+     regression on straights (Level 3, sensor-funded extension)
+     supersedes the no-aero-data limitation above as the preferred
+     path once WP5b(b)'s damper-force channels are in use -- fit
+     downforce-vs-speed-squared directly from logged damper load on a
+     straight, rather than sourcing a separate homologation Cl*A
+     figure. Setup-specific aero (ride-height coupling to downforce)
+     and the motion-ratio + spring/damper load path both need
+     verifying against the actual sensor installation before this is
+     trusted quantitatively.
+   - Per-tire Fz_fl/fr/rl/rr (needs track_width_front/rear_m, Level 1,
+     source tbc): DOMAIN IMPROVEMENT proposed over the chair's own
+     construction here -- the chair applies m*ay*h_cog/track_width
+     independently per axle (no true front/rear apportionment by roll
+     balance); SetupTool should instead derive a genuine roll-
+     stiffness fraction from setup spring/ARB values (ARB already
+     digitised: car_data.json arb.front/rear.positions x
+     ratio_to_wheel; spring-value units need confirming first) and
+     split total lateral transfer by that fraction -- Tier A, Milliken
+     & Milliken RCVD roll-stiffness-from-wheel-rate chapter, page TBD
+     verify. Justification: a GT3 team actively tunes this balance:
+     the chair's simplification is not wrong for its own context, but
+     a race-engineering tool should reflect what springs/ARB actually
+     do to load distribution. Real damper-force data in this same
+     sub-step gives a natural cross-check against the estimate.
+   D_psi completion of Werner Eq. 4.3 (thesis_notes.md "Completing
+   Werner Eq. 4.3") is gated by this sub-step's wheel loads and stays
+   sequenced after it, same WP.
 c) Level 3 sideslip: beta from log_gps_course (velocity vector) minus
    chassis heading estimate; replaces kinematic integration + washout.
    Validate against Module 2 output before switching default.

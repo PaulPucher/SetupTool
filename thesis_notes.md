@@ -45,6 +45,133 @@ HOW TO USE:
   — engineering robustness choices, explicitly NOT claimed as
   methodological novelty.
 
+### Fy yaw-moment term (Module 4a) [2026-07-24]
+- Replaces the pure static weight split (Fy_f = m*ay*front_fraction,
+  Fy_r = m*ay*rear_fraction) with the exact 2-DOF planar force/moment
+  balance: Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,
+  Fy_r = m*ay - Fy_f. Tier A: Milliken & Milliken, RCVD, 2-DOF planar
+  force/moment balance, p. TBD verify (same pending-citation pattern as
+  estimate_sideslip). Same construction as the chair performance_
+  analysis tooling's own fy_f_N/fy_r_N (internal) -- adopted as-is, no
+  deviation.
+- psidd is the RAW np.gradient(yaw_rate_radps, time), computed fresh in
+  Module 4a -- deliberately NOT Module 5's 0.15 s rolling-mean-filtered
+  signal. The chair itself keeps these separate (raw for the
+  instantaneous per-sample force balance, filtered only for the
+  windowed stability regression); reusing Module 5's filtered signal
+  here would double-filter with an inconsistent time constant ahead of
+  Module 4b's own downstream Butterworth stage.
+- Method upgrade only, not an accuracy-level upgrade: Iz and the static
+  corner-weight fractions are still Level 1, so the new term inherits
+  their ~10-20% uncertainty; accuracy_levels.lateral_force_split stays
+  1.
+- OBSERVED (Dubai, 51 corner instances, diagnostics/
+  inspect_vehicle_model_upgrade.py and inspect_corner_distribution.py):
+  - RMS(Iz*psidd/wheelbase) / RMS(m*ay) = 5.3% -- a modest, plausible
+    correction, not dominating the static term.
+  - Steady-state reproduction (smallest 10% |psidd| bucket, n=3939):
+    median relative |Fy_f_new-Fy_f_old|/|Fy_f_old| = 2.06%, confirming
+    the new formula collapses back to the old static split when the
+    car isn't rotating, as it must. (The bucket's MAX relative diff is
+    a large-looking 2399% -- this is a denominator artifact from a
+    sample where Fy_f_old is itself near zero, not a real error; the
+    median is the meaningful statistic here.)
+  - Worst-phase-per-corner CS percentiles moved as expected: CSf p50
+    0.337->0.367, p10 0.082->0.030; CSr p50 0.616->0.704, p10
+    -0.052->0.082 (rear no longer dips negative at p10 -- a plausible
+    improvement, not engineered for).
+  - PREDICTED-VS-OBSERVED MISMATCH, worth stating plainly: the
+    pre-registered expectation was "CS medians shift in entry_1/
+    entry_2, negligible in apex/exit" (largest |psidd| is at turn-in).
+    Observed is the opposite for the per-phase MEDIAN-across-51-
+    instances statistic: entry_1_brake and entry_2_turnin show exactly
+    zero median shift (both pinned at the 1.0 ceiling in old and new),
+    while apex_3 shows the largest shift (CSf 0.632->0.547) and exit_4
+    a small one. Explanation: CS_ratio is clipped at 1.0
+    (estimate_cornering_stiffness), and most entry-phase instances sit
+    AT that ceiling in both old and new (strong, clean alpha excitation
+    under braking/turn-in keeps C_alpha near the linear reference) --
+    the ceiling saturates the median regardless of the underlying Fy
+    perturbation. apex_3 (few samples, deep in the nonlinear regime,
+    rarely clipped) is where the ratio metric is actually sensitive to
+    the change. Individual corner instances DO shift at entry (e.g.
+    corner 3's entry_2_turnin CSf: 0.52->0.42) -- it is the
+    aggregate-median statistic specifically that hides this, not the
+    underlying signal. The worst-phase-per-corner percentiles above are
+    the more informative distribution for threshold re-derivation
+    purposes precisely because they are not this kind of per-phase
+    aggregate.
+  - Modules 1-3 and Module 5 confirmed byte-identical in test_stability.py
+    before/after (diffed line-by-line) -- only Module 4a/4b numbers
+    moved, as intended. Stability threshold distribution (worst-phase
+    percentiles) also confirmed unchanged, as expected (Module 5
+    consumes neither Fy nor Fz).
+- CLASSIFICATION thresholds NOT changed by this entry -- re-derivation
+  is the user's own decision from the reported percentiles (same
+  standing rule as B1-B3): I derive nothing, only report.
+
+### CS threshold re-confirmation after Fy yaw term [2026-07-24]
+- After the Fy yaw-moment term landed (see above), CS thresholds
+  (STRONG_CSF/CSR, MODERATE_CSF/CSR) were re-checked against the new
+  worst-phase-per-corner distribution rather than left stale. Decision:
+  KEEP the 2026-06-29 values unchanged -- the shift was real but small
+  enough that the existing thresholds still land in a sensible place.
+- Exceedance-rate comparison (51 instances, same diagnostics/
+  inspect_corner_distribution.py method as 2026-06-29): CSf<0.10 7->6,
+  CSf<0.25 18->16; CSr<0.20 7->6, CSr<0.35 12/51 (worst-phase CSr below
+  MODERATE_CSR -- not separately tracked before this check). Maximum
+  movement in any single flag-count bucket: 2 instances out of 51.
+- N=51 RESOLUTION ARGUMENT: at this sample size, "p10" corresponds to
+  roughly the 5th-ranked value out of 51 -- a percentile figure moving
+  by a few hundredths (e.g. CSf p10: 0.082->0.030 across the Fy
+  change) can be one or two instances re-ordering near a boundary,
+  not a meaningful distribution shift. Exceedance COUNTS (how many
+  corners actually cross a fixed threshold) are the more trustworthy
+  statistic to act on at this N than fine percentile arithmetic --
+  which is why the re-confirmation above is framed as flag-count
+  deltas, not as a fresh percentile-anchored derivation from scratch.
+- CSr-tail repair, worth noting as a genuine (not engineered-for)
+  improvement: worst-phase CSr p10 was -0.052 pre-Fy-fix (a negative
+  cornering-stiffness-ratio at the 10th percentile is physically
+  awkward -- it means the windowed OLS slope went the wrong sign for
+  at least ~5 of 51 instances); post-fix it is +0.082, no longer
+  negative at p10. The 2-DOF Fy correction was not tuned toward this
+  outcome -- it applies equally in both directions depending on
+  rotation sense -- so a directional improvement specifically in the
+  metric's most awkward tail is a plausibility point in favour of the
+  formula being applied correctly, not proof by itself.
+- VERDICT-DISTRIBUTION CONFIRMATION (config thresholds unchanged,
+  diagnostics/inspect_b3_verdict_distribution.py): 0 strong / 14
+  moderate / 37 normal (was 1/16/34 just after B3, before the Fy fix).
+  Two instances changed branch/severity without leaving the flagged
+  set: lap 1 corner 8 and lap 2 corner 8 (both stable_id 8) dropped
+  their CS-branch trigger as front CS improved, leaving each on
+  stability-only (lap 2's dropped from strong to moderate accordingly,
+  since strong required a concurrent CS trigger). Four instances left
+  the flagged set entirely (lap 2 corner 7 id 7, lap 2 corner 13 id 14,
+  lap 3 corner 2 id 2, lap 4 corner 12 id 14) as their worst-phase CS
+  improved past threshold. One new instance entered (lap 3 corner 4
+  id 4, CS branch, worst_CSf now -0.454) -- a reminder that the yaw
+  term is signed and can make a corner's CS reading worse as easily as
+  better, depending on rotation direction; it is not a one-directional
+  correction. Net: 17 non-normal instances -> 14, driven entirely by
+  CS-branch movement (stability-only/both counts for stable_id 8 are
+  internally consistent with the byte-identical Module 5 output).
+
+### Ground-truth alignment improved under the corrected Fy model [2026-07-24]
+- After the Fy yaw-moment term, the session's only "strong" verdict
+  disappeared (verdict distribution 1/16/34 -> 0/14/37). Not a
+  sensitivity loss: the corrected front Fy softens stable_corner_8's
+  apparent CS collapse, while the re-derived stability branch still
+  flags that corner on all 4 laps (3x stability-only, 1x both).
+- Against the June driver report ("balanced, mild understeer, no
+  instability"), 0 strong / 14 moderate is the more consistent
+  picture than the pre-correction 1 strong. Model upgrade moved the
+  tool TOWARD the driver's ground truth - validation argument for
+  the thesis, not just a numbers shift.
+- Caveat for the write-up: single session, single driver report,
+  n=51; alignment evidence, not proof.
+
 ### Yaw moment stability dMz/dbeta [2026-06]
 - ~~Mz_inertial = Iz * psi_ddot (yaw accel from differentiated, 5 Hz
   filtered yaw rate). Local centred 2 s OLS of Mz over

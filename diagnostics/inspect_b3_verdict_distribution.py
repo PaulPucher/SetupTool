@@ -80,14 +80,19 @@ def classify(summary):
 counts = {"strong": 0, "moderate": 0, "normal": 0}
 branch_counts = {"CS": 0, "stability": 0, "both": 0}
 non_normal = []
+csr_below_moderate = 0
 
 for s in summaries:
     severity, branch, wf, wr, wstab, wphase = classify(s)
     counts[severity] += 1
+    if wr == wr and wr < MODERATE_CSR:
+        csr_below_moderate += 1
     if branch:
         branch_counts[branch] += 1
         non_normal.append((s["lap_number"], s["corner_number"], s.get("stable_corner_id"),
                             severity, branch, wf, wr, wstab, wphase))
+
+print(f"\nWorst-phase CSr < MODERATE_CSR ({MODERATE_CSR}): {csr_below_moderate} / 51 instances")
 
 print(f"\nVerdict distribution (51 instances): "
       f"strong={counts['strong']}  moderate={counts['moderate']}  normal={counts['normal']}")
