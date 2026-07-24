@@ -14,8 +14,14 @@ RECOMMENDATIONS_CONFIG_PATH = "config/recommendations.json"
 PHASE_KEYS = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 PHASE_TO_FEEDBACK_KEY = dict(zip(PHASE_KEYS, ["e1", "e2", "a3", "x4", "x5"]))
 
+# Ordinal ordering of severity, not a magnitude -- defines the enum's
+# structure, so it stays a named constant rather than a config value.
 SEVERITY_RANK = {"normal": 0, "moderate": 1, "strong": 2}
-SEVERITY_FACTOR = {"normal": 0.0, "moderate": 1.0, "strong": 2.0}
+
+# Method-defining constants (CLAUDE.md grounding rule): these fix the shape
+# of the scoring formula, not a per-car/per-track calibration.
+SOURCE_BALANCE_NORMALISER = 2.0  # makes source_balance=0.5 exactly neutral (both multipliers = 1.0)
+FEEDBACK_SCALE_MAX = 5.0  # driver feedback is entered on a fixed -5..+5 scale (see PROJECT.md)
 
 
 def load_recommendations_config():
@@ -172,8 +178,8 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
     # vs driver-raised hypotheses carry. Neutral at source_balance=0.5
     # (both multipliers = 1.0); "both"-triggered matches are corroborated
     # by construction and are never discounted by this factor.
-    data_source_factor = (1.0 - source_balance) * 2.0
-    driver_source_factor = source_balance * 2.0
+    data_source_factor = (1.0 - source_balance) * SOURCE_BALANCE_NORMALISER
+    driver_source_factor = source_balance * SOURCE_BALANCE_NORMALISER
 
     for cid, corner in aggregated.items():
         fb_row = _feedback_row(feedback_data, cid)
@@ -188,7 +194,7 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             if SEVERITY_RANK[severity] < SEVERITY_RANK[min_sev]:
                 continue
             factor, conflict = _feedback_modulation(fb_value, condition, settings)
-            score = (rule["suggestion"]["weight"] * SEVERITY_FACTOR[severity]
+            score = (rule["suggestion"]["weight"] * settings["severity_factors"][severity]
                      * factor * data_source_factor)
 
         elif trigger == "driver":
@@ -203,7 +209,7 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             severity, short = _phase_verdict(corner, phases, classify_fn)
             factor, conflict = _classifier_modulation(
                 short, severity, condition["verdict"], settings)
-            score = (rule["suggestion"]["weight"] * (abs(fb_value) / 5.0)
+            score = (rule["suggestion"]["weight"] * (abs(fb_value) / FEEDBACK_SCALE_MAX)
                      * factor * driver_source_factor)
 
         elif trigger == "both":
@@ -224,7 +230,7 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             # Both conditions already independently confirm agreement --
             # score with the same agreement_bonus a "data" rule would earn
             # from matching feedback, not a further-inflated multiplier.
-            score = (rule["suggestion"]["weight"] * SEVERITY_FACTOR[severity]
+            score = (rule["suggestion"]["weight"] * settings["severity_factors"][severity]
                      * settings["agreement_bonus"])
 
         else:

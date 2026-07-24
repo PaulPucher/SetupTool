@@ -1,6 +1,9 @@
 # Stability analysis module for SetupTool.
 # Pure Python/numpy/scipy. No Qt imports.
 # Units: SI throughout (m, s, rad, N, Nm, kg).
+# Cornering-stiffness (Module 4b) and yaw-moment-stability (Module 5)
+# estimation after Werner (2021) S2.2.2-2.2.3 / S4.5.2 Eq. 4.3-4.4;
+# effective-stiffness estimation adapted, see thesis_notes.md.
 
 import numpy as np
 from scipy.signal import butter, filtfilt
@@ -9,13 +12,20 @@ from modules.geo import project_latlon_to_xy
 
 PARAMETERS_PATH = "config/parameters.json"
 
+# Method-defining constants (CLAUDE.md grounding rule): these fix what the
+# estimator IS, not how it is tuned to this car/track, so they stay as named
+# constants rather than config entries.
+BUTTERWORTH_ORDER = 4  # standard 4th-order digital filter; defines roll-off shape, not a physical threshold
+SPAN_WEIGHT_EXPONENT = 4  # steep smooth-step so a section only counts once its alpha span nears cs_min_slip_angle_span_rad
+R2_WEIGHT_EXPONENT = 1  # linear R^2 blend between window- and section-slope estimates, no extra shaping
+
 
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def _butterworth_lowpass(data, cutoff_hz, sample_rate_hz, order=4):
+def _butterworth_lowpass(data, cutoff_hz, sample_rate_hz, order=BUTTERWORTH_ORDER):
     nyq = 0.5 * sample_rate_hz
     normal_cutoff = cutoff_hz / nyq
     if normal_cutoff >= 1.0:
@@ -24,7 +34,7 @@ def _butterworth_lowpass(data, cutoff_hz, sample_rate_hz, order=4):
     return filtfilt(b, a, data)
 
 
-def _highpass_filter(data, cutoff_hz, sample_rate_hz, order=4):
+def _highpass_filter(data, cutoff_hz, sample_rate_hz, order=BUTTERWORTH_ORDER):
     nyq = 0.5 * sample_rate_hz
     normal_cutoff = cutoff_hz / nyq
     if normal_cutoff >= 1.0:
@@ -41,6 +51,10 @@ def _estimate_sample_rate(time_arr):
     return 1.0 / dt_median
 
 
+# Tier B signal conditioning for the Module 4b CS_alpha blend (see
+# thesis_notes.md "CS_ratio (cornering stiffness ratio)"): smooth-step
+# weighting, monotonic-section splitting, and per-section OLS slopes are
+# preprocessing on noisy measured data, not part of Werner's method itself.
 def _smooth_weight(value, lower, upper, order):
     v = np.clip(value, lower, upper)
     rng = upper - lower
@@ -158,7 +172,7 @@ def prepare_vehicle_state(channels, params):
     brake_f = interp_channel("log_pbrake_f")
     gear = interp_channel("ecu_gear")
 
-    moving_mask = v_mps > 5.0
+    moving_mask = v_mps > se["moving_speed_min_mps"]
 
     # GPS position (Level 3, optional). Used for apex_position_x/y_m via a
     # local equirectangular projection anchored at the first sample -- fine
@@ -204,6 +218,12 @@ def prepare_vehicle_state(channels, params):
 
 
 def estimate_sideslip(state, params):
+    """Kinematic identity ay = v*(beta_dot + psi_dot) after
+    Mitschke/Wallentowitz, Dynamik der Kraftfahrzeuge (single-track
+    lateral kinematics), p. TBD, verify. Washout integration below is
+    Tier B signal conditioning (drift correction), not part of the cited
+    identity itself.
+    """
     se = params["stability_estimation"]
     v = state["v_mps"]
     ay = state["ay_mps2"]
@@ -223,6 +243,9 @@ def estimate_sideslip(state, params):
 
 
 def estimate_slip_angles(state, beta, params):
+    """Single-track slip-angle relations after Werner (2021) S2.1.1 /
+    Milliken RCVD.
+    """
     vp = params["vehicle"]
     se = params["stability_estimation"]
 
@@ -291,6 +314,12 @@ def estimate_lateral_forces(state, params):
 
 
 def estimate_cornering_stiffness(slip, forces, state, params):
+    """Module 4b: effective cornering stiffness / CS ratio.
+
+    After Werner (2021) S2.2.2-2.2.3. Effective-stiffness estimation is
+    adapted (windowed regression from logged Fy/alpha in place of
+    Werner's Pacejka-model evaluation) -- see thesis_notes.md.
+    """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")
@@ -304,7 +333,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
     min_span = se["cs_min_slip_angle_span_rad"]
     linear_thresh = se["cs_linear_slip_threshold_rad"]
-    min_window = 10
+    min_window = se["cs_min_window_samples"]
 
     def compute_cs_for_axle(alpha, Fy):
         n = len(alpha)
@@ -357,7 +386,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
                 span_k = sec_spans[k]
                 if np.isnan(slope_k):
                     continue
-                w_k = _smooth_weight(span_k, 0.0, min_span, order=4)
+                w_k = _smooth_weight(span_k, 0.0, min_span, order=SPAN_WEIGHT_EXPONENT)
                 if w_k <= 0:
                     continue
                 weights.append(w_k)
@@ -372,7 +401,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
                 C_s = np.nan
 
             if not np.isnan(C_s):
-                w_r2 = _smooth_weight(R2_i, 0.0, 1.0, order=1)
+                w_r2 = _smooth_weight(R2_i, 0.0, 1.0, order=R2_WEIGHT_EXPONENT)
                 C_alpha[i] = w_r2 * C_w + (1.0 - w_r2) * C_s
             else:
                 C_alpha[i] = C_w
@@ -404,6 +433,12 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
 
 def estimate_yaw_moment_stability(state, beta, params):
+    """Module 5: yaw moment stability dMz/dbeta.
+
+    After Werner (2021) S4.5.2 Eq. 4.3/4.4 (Mz = Iz*psidd + D_psi*psid).
+    D_psi term not yet computed (no wheel-load sensor); see
+    thesis_notes.md "Completing Werner Eq. 4.3" and WP5b.
+    """
     vp = params["vehicle"]
     se = params["stability_estimation"]
 
@@ -430,7 +465,7 @@ def estimate_yaw_moment_stability(state, beta, params):
     Mz_inertial = Iz * psi_ddot_filt
 
     half_window = int(round(window_s * sr / 2))
-    min_samples = 20
+    min_samples = se["stability_min_window_samples"]
 
     stability_radps = np.full(n, np.nan)
     stability_valid = np.zeros(n, dtype=bool)
@@ -483,7 +518,9 @@ def estimate_yaw_moment_stability(state, beta, params):
     }
 
 
-def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_window_samples=5):
+def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_window_samples=None):
+    if apex_half_window_samples is None:
+        apex_half_window_samples = load_parameters()["stability_estimation"]["apex_half_window_samples"]
     t = state["time"]
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")

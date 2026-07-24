@@ -2,7 +2,7 @@
 # Reads only channels defined in config/channels.json.
 # Handles European decimal notation, variable sample rates,
 # lap splitting, and corner detection with speed classification.
-# Pure Python/numpy/pandas — no Qt imports.
+# Pure Python/numpy/pandas -- no Qt imports.
 
 import numpy as np
 import pandas as pd
@@ -78,6 +78,7 @@ def parse_csv(file_path):
 
     # Build result with quality flags
     channels_config = config["channels"]
+    quality_gates = config["channel_quality_gates"]
     result_channels = {}
 
     for ch_name, ch_config in channels_config.items():
@@ -101,9 +102,9 @@ def parse_csv(file_path):
             lo, hi = ch_config["range"]
             valid_mask = (data_arr >= lo) & (data_arr <= hi)
             valid_ratio = valid_mask.sum() / len(valid_mask)
-            if valid_ratio < 0.5:
+            if valid_ratio < quality_gates["failed_below"]:
                 quality = "failed"
-            elif valid_ratio < 0.95:
+            elif valid_ratio < quality_gates["partial_below"]:
                 quality = "partial"
             else:
                 quality = "valid"
@@ -246,9 +247,13 @@ def _split_laps(channels, config=None):
 
     _merge_trailing_pit_fragment(laps, channels, config)
     _attach_precise_lap_time(laps, channels, config)
-    _verify_laps(laps, channels)
+    _verify_laps(laps, channels, config)
 
-    valid = [l for l in laps if _effective_lap_time(l) > 10]
+    ls = config.get("lap_splitting", {})
+    lap_time_min_s = ls.get("lap_time_min_s", 10)
+    valid_lap_max_ratio = ls.get("valid_lap_max_ratio", 1.10)
+
+    valid = [l for l in laps if _effective_lap_time(l) > lap_time_min_s]
     if valid:
         fastest_lap = min(valid, key=_effective_lap_time)
         fastest_time = _effective_lap_time(fastest_lap)
@@ -257,15 +262,21 @@ def _split_laps(channels, config=None):
             l["is_valid_for_analysis"] = (
                 not l["is_outlap"]
                 and not l["is_inlap"]
-                and _effective_lap_time(l) <= fastest_time * 1.10
-                and _effective_lap_time(l) > 10
+                and _effective_lap_time(l) <= fastest_time * valid_lap_max_ratio
+                and _effective_lap_time(l) > lap_time_min_s
                 and len(l["warnings"]) == 0
             )
 
     return laps
 
 
-def _verify_laps(laps, channels):
+def _verify_laps(laps, channels, config=None):
+    config = config or {}
+    ls = config.get("lap_splitting", {})
+    time_disagreement_max_s = ls.get("lap_time_disagreement_max_s", 2.0)
+    distance_min_travelled_m = ls.get("lap_distance_min_travelled_m", 1000)
+    distance_check_min_duration_s = ls.get("lap_distance_check_min_duration_s", 30)
+
     file_lap_time = channels.get("lap_time")
     lap_distance = channels.get("lap_distance")
 
@@ -274,20 +285,20 @@ def _verify_laps(laps, channels):
         end_t = lap["end_time"]
         duration = lap["lap_time"]
 
-        # Check 1 — file's own lap_time channel agrees with our computed duration
+        # Check 1 -- file's own lap_time channel agrees with our computed duration
         if file_lap_time and file_lap_time["quality"] not in ("missing", "failed"):
             t = file_lap_time["time"]
             d = file_lap_time["data"]
             mask = (t >= start_t) & (t <= end_t)
             if mask.any():
                 file_max = float(d[mask].max())
-                if file_max > 5 and abs(file_max - duration) > 2.0:
+                if file_max > 5 and abs(file_max - duration) > time_disagreement_max_s:
                     lap["warnings"].append(
                         f"lap_time channel ({file_max:.1f}s) disagrees with "
                         f"computed duration ({duration:.1f}s)"
                     )
 
-                # Check 2 — lap_distance should ramp up within the lap (skip outlap)
+                # Check 2 -- lap_distance should ramp up within the lap (skip outlap)
         if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
             t = lap_distance["time"]
             d = lap_distance["data"]
@@ -297,7 +308,7 @@ def _verify_laps(laps, channels):
                 d_start = float(lap_d[0])
                 d_peak = float(lap_d.max())
                 d_traveled = d_peak - d_start
-                if d_traveled < 1000 and duration > 30:
+                if d_traveled < distance_min_travelled_m and duration > distance_check_min_duration_s:
                     lap["warnings"].append(
                         f"lap_distance only rose by {d_traveled:.0f} units "
                         f"despite {duration:.1f}s duration"

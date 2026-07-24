@@ -134,7 +134,11 @@ Saved as feedback_data JSON on Outing model.
 Module lives in modules/stability_analysis.py.
 Pure Python/numpy/scipy, no Qt imports.
 Scientific basis: kinematic derivation from logged signals, no tyre model required.
-Follows Werner MA pipeline for cornering stiffness estimation.
+Framework after Werner (2021) / Milliken, adapted for measurement-
+direct use on the 992 GT3R: effective cornering stiffness estimated
+from logged data in place of Werner's tyre-model evaluation (no
+validated Pacejka set available); yaw-damping completion via wheel
+loads planned (WP5b).
 
 ### Signal chain
 ecu_speed + sclu_yaw_rate + log_asteer → slip angles α_f, α_r
@@ -152,11 +156,14 @@ Module 4b — estimate_cornering_stiffness(): Werner MA, full documented method
   - Monotonic-section OLS slopes C_section, weighted by α-span
   - R²-weighted blend: C_α = w·C_window + (1-w)·C_section
   - Linear reference held unless window entirely inside ±0.021 rad
-  - No undocumented gates, no EMA — matches the Werner reference exactly
+  - No undocumented gates, no EMA — the estimation machinery itself is
+    this project's adaptation of Werner's approach, not a tyre-model
+    evaluation (see thesis_notes.md §1)
 Module 5 — estimate_yaw_moment_stability(): Iz·ψ̈ → Mz_inertial,
   local centred 2 s OLS over [1, β, δ_f, v, ax], yaw rate excluded
   for multicollinearity with β via the kinematic identity β̇ = ay/v − ψ̇.
-  Positive c_β = stabilising (Suzuka convention).
+  Sign convention per Werner (2021) §2.2.3: positive dMz/dbeta =
+  restoring = stable.
 Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
   lap_filter argument (UI selector translates to lap numbers), apex_3 window
   expansion ±5 samples. apex_position_x_m/y_m filled from log_gps_lat/lon via

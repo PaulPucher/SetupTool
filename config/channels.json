@@ -179,10 +179,21 @@
         "ay_entry_threshold_g": 0.6,
         "ay_exit_threshold_g": 0.35,
         "compound_corner_min_length_m": 300,
-        "bracket_overlap_min_fraction": 0.3
+        "bracket_overlap_min_fraction": 0.3,
+        "brake_throttle_max_pct": 95,
+        "steering_unwind_fraction": 0.5
+    },
+    "channel_quality_gates": {
+        "failed_below": 0.5,
+        "partial_below": 0.95
     },
     "lap_splitting": {
         "pit_fragment_max_duration_s": 20,
-        "lap_time_precise_max_delta_s": 1.0
+        "lap_time_precise_max_delta_s": 1.0,
+        "lap_time_min_s": 10,
+        "valid_lap_max_ratio": 1.10,
+        "lap_time_disagreement_max_s": 2.0,
+        "lap_distance_min_travelled_m": 1000,
+        "lap_distance_check_min_duration_s": 30
     }
 }

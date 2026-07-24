@@ -9,7 +9,12 @@
     "source_balance": 0.5,
     "worst_corner_multiplier": 1.5,
     "min_score_to_show": 0.5,
-    "max_recommendations": 8
+    "max_recommendations": 8,
+    "severity_factors": {
+      "normal": 0.0,
+      "moderate": 1.0,
+      "strong": 2.0
+    }
   },
   "rules": [
     {

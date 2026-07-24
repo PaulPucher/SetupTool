@@ -1,9 +1,8 @@
 ## STATUS (update at every work stop)
 Current WP: WP2b-1 complete (2026-07-23), WP2b-2 next. Last commit:
-f598e9b (Corner map next to feedback table, WP3b interim) -- this
-session's work (WP2b-1) is uncommitted, pending user review before
-the checkpoint commit.
-WP2b-1 this session: config/car_data.json (manufacturer reference
+8ec11c5 (WP2b-1: parameter registry, manufacturer reference data,
+car.json + setup UI extensions) -- committed and pushed.
+WP2b-1 that session: config/car_data.json (manufacturer reference
 data digitised from docs/car_data/, gitignored/local-only, consumer-
 scoped -- only tables with a named registry/WP5b/module consumer are
 digitised, everything else stays in the docs/car_data/ image archive
@@ -37,6 +36,46 @@ user-confirmed two real corners = one load event); second-track
 clustering validation when new data arrives (also tests the
 overlap-fraction gap-vs-overlap assumption); wing_position
 spinbox-vs-enum UI polish noted under WP4.
+
+Cross-cutting session (2026-07-24, not tied to a WP number, currently
+uncommitted): the Werner (2021) attribution pass never got committed
+on its own before the foundations-audit/cleanup pass started, so both
+now sit together in the working tree and will land as one combined
+commit. (1) Werner (2021) attribution pass after a primary-source
+verification -- full citation closed out
+in thesis_notes.md §6; framing corrected project-wide from "follows/
+matches Werner" to "adopts Werner's framework as-is, adapts only the
+effective-stiffness estimation (no validated tyre model), extends via
+the WP5b D_psi/wheel-load completion of his Eq. 4.3"; touched
+thesis_notes.md, PROJECT.md, modules/stability_analysis.py docstrings.
+(2) Two new CLAUDE.md standing rules: scientific grounding (Tier A/B/C
+per technical decision, Tier A needs a literature anchor, Tier B needs
+config-driven data-derived parameters, calibration tunables vs
+method-defining named constants) and comment style (WHY not WHAT,
+ASCII in .py files, no boilerplate/filler). (3) Read-only foundations
+audit against both new rules across stability_analysis.py,
+corner_analysis.py, csv_parser.py, recommendation.py, geo.py --
+reported per-function tier/anchor/config-driven status plus comment-
+style violations; user decided per item. (4) Applied those decisions:
+new docstring citations (estimate_sideslip: Mitschke/Wallentowitz,
+page TBD pending verify; estimate_slip_angles: Werner S2.1.1/Milliken);
+removed the unverified "Suzuka convention" label everywhere (thesis_
+notes.md struck through with a dated correction, PROJECT.md rewritten)
+and replaced with Werner (2021) S2.2.3's actual sign convention;
+corrected corner_analysis.py's speed-fallback header ("prominence
+threshold" -> the valley-depth check actually implemented) and gave it
+an explicit Tier B thesis_notes.md entry; moved 15 previously-hardcoded
+Tier B calibration values into config (parameters.json,
+channels.json x2 groups, recommendations.json) with zero behavioural
+change; named the method-defining constants that deliberately stayed
+in code (Butterworth order, CS blend exponents, source-balance
+normaliser, feedback scale) with one-line justifications; ASCII-fixed
+comments/docstrings in stability_analysis.py, corner_analysis.py,
+csv_parser.py (user-facing warning strings left untouched by design).
+test_stability.py run after every file in this pass (6 runs); output
+byte-identical to the pre-session baseline throughout -- confirms the
+whole pass was attribution/documentation/config-location only, no
+logic changed.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order

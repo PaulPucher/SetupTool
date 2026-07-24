@@ -23,19 +23,53 @@ HOW TO USE:
 - Interpretation: 1.0 = linear regime; ~0.5 = tyre working hard; <0.2 =
   saturated. Computed per axle -> identifies WHICH axle limits and WHEN
   (phase-resolved).
-- No tyre model required — everything from logged signals. This is the
-  central methodological claim: tyre-state estimation without tyre data.
+- ~~No tyre model required — everything from logged signals. This is
+  the central methodological claim: tyre-state estimation without tyre
+  data.~~
+- [FRAMING CORRECTION 2026-07-24, primary source verified] The project
+  ADOPTS Werner's framework as-is — derivative definitions incl.
+  dMz/dbeta stability (his §2.2.3 pp.15-16, after Milliken),
+  measurement-side Mz = Iz*psidd + D_psi*psid (his §4.5.2 Eq. 4.3/4.4),
+  linear-reference Calpha and effective-stiffness concepts. ONE
+  component is necessarily adapted, not adopted: Werner evaluates
+  effective stiffnesses from a Pacejka tyre model; no validated tyre
+  model exists for the 992 GT3R, so effective Calpha is estimated
+  directly from logged Fy/alpha by windowed local regression (section
+  blend, R^2 weighting, linear-reference hold, 0.021 rad gate — the
+  adaptation layer, specific to this project's sensor situation, not
+  present in Werner. Practical consequence of the adaptation: the
+  pipeline runs on logged signals alone, making it applicable for
+  customer teams without access to manufacturer tyre data). The
+  estimator's internal machinery (windowing, section blending, R^2
+  weighting, hold rule) is signal-conditioning for noisy measured data
+  — engineering robustness choices, explicitly NOT claimed as
+  methodological novelty.
 
 ### Yaw moment stability dMz/dbeta [2026-06]
 - Mz_inertial = Iz * psi_ddot (yaw accel from differentiated, 5 Hz filtered
   yaw rate). Local centred 2 s OLS of Mz over [1, beta, delta_f, v, ax].
-- c_beta > 0 stabilising, < 0 destabilising (Suzuka convention).
+- ~~c_beta > 0 stabilising, < 0 destabilising (Suzuka convention).~~
+  [CORRECTED 2026-07-24, primary source verified] "Suzuka convention"
+  was an informal label with no literature basis found in the
+  primary-source check; replaced. Sign convention per Werner (2021)
+  S2.2.3: positive dMz/dbeta = restoring = stable.
 - KEY DERIVATION for thesis: yaw rate EXCLUDED from the regressor set
   because of structural multicollinearity with beta via the kinematic
   identity beta_dot = ay/v - psi_dot. Including both makes the OLS
   ill-conditioned and the coefficients uninterpretable.
 - Catches a different failure mode than CS_ratio: tyre can be within grip
   while vehicle dynamics are unstable, and vice versa.
+
+### Completing Werner Eq. 4.3 — damping term via wheel loads [2026-07-24]
+- Werner could not evaluate the damping term D_psi (no wheel-load
+  sensors, his §4.5.2) and stopped measurement-side Mz analysis there.
+- This car logs damper forces (log_dms_dam_*) -> the WP5b wheel-load
+  upgrade funds computing D_psi and completing Eq. 4.3 with both
+  terms — the project's direct sensor-enabled extension of the
+  chair's prior work.
+- Until then, Iz*psidd-only is a shared, documented approximation
+  (limitation #6, same order of magnitude as Mz_inertial at race
+  speed).
 
 ### Two-signal AND-logic for severity classification [2026-06-29]
 - A corner is flagged "strong" only when CS collapse AND destabilising yaw
@@ -87,6 +121,16 @@ HOW TO USE:
   variance as cause).
 - Result: change was surgically confined — 69->64 corners, exactly -1 per
   lap, all at the target section; nothing else on track changed.
+
+### No-steering-channel fallback: Tier B heuristic, not part of the method [2026-07-24]
+- `_bracket_corners_by_speed` (used only when the steering channel is
+  missing) finds corners from speed minima, keeping one only if the
+  rise back to the surrounding local peak clears
+  `min_apex_speed_drop_kmh`. This is a valley-depth check, not a formal
+  peak-prominence algorithm -- the module header previously overclaimed
+  "prominence threshold"; corrected. Config-driven, data-derived
+  threshold, explicitly a Tier B fallback: never the primary detection
+  method above, which is the dual-criterion steering/ay logic.
 
 ### Compound-corner finding [2026-07-22]
 - AND-exit revealed a ~430 m double-apex complex (~1805-2237 m, T3-T7
@@ -411,10 +455,21 @@ HOW TO USE:
   coordinates of bracket start/peak/end vs track map — pending).
 - Second-track validation of clustering tolerance (50 m) once new data
   arrives.
-- Werner MA full citation + exact method name for the CS reference.
-- Suzuka convention citation for c_beta sign.
+- ~~Werner MA full citation + exact method name for the CS reference.~~
+  [RESOLVED 2026-07-24, primary source verified] Werner, F.: "Analyse
+  des Fahrverhaltens eines autonomen Rennfahrzeugs anhand eines
+  Giermomentdiagramms und echtzeitfähige Adaption an reale
+  Fahrzeugsensordaten", MA thesis, Hochschule München, 2021
+  (supervisors P. Pfeffer, HM; L. Hermansdorfer, TUM FTM), 122 pp.
+- ~~Suzuka convention citation for c_beta sign.~~ [RESOLVED 2026-07-24]
+  No citation existed to find -- the label itself was wrong; see the
+  dated correction under "Yaw moment stability dMz/dbeta" in section 1.
 - Confirm 992 GT3R official corner-weight/mass provenance for the
   constants table.
+- [ADDED 2026-07-24] Verify page numbers for the estimate_sideslip
+  citation (Mitschke/Wallentowitz, Dynamik der Kraftfahrzeuge,
+  single-track lateral kinematics) -- currently cited as "p. TBD,
+  verify" in the docstring pending access to the primary source.
 
 - Werner method-delta comparison: three-column table (adopted as-is /
   deliberately different + why / not implemented + upgrade path),

@@ -50,3 +50,43 @@ End every turn with a "RESULT:" block — 3-6 lines of plain-language summary of
   STATUS block in PLAN.md. Commit checkpoints are per work package
   (or per approved sub-issue if a WP spans days) — never leave a WP
   boundary uncommitted, never commit mid-implementation.
+
+## Scientific grounding rule (hard, project-wide)
+Three tiers govern every implementation decision:
+- Tier A (vehicle dynamics methods): only with a literature anchor
+  (Werner 2021, Milliken, standard textbooks). No unanchored
+  methods. Docstrings carry the reference.
+- Tier B (signal/data engineering: filters, segmentation,
+  clustering, exclusion masks, thresholds): standard techniques
+  only, parameters config-driven, documented and data-derived,
+  explicitly labelled as preprocessing — never presented as
+  methodological novelty.
+- Tier C (UI/product): free.
+When proposing anything technical, state its tier and anchor. If no
+anchor exists for a Tier A proposal, STOP and ask — never invent.
+Rationale: bachelor thesis defended before doctoral-level examiners;
+the author must understand and support every technical decision.
+Traceable science beats better results: a defensible method is
+always preferred over an unexplainable improvement.
+Calibration tunables (thresholds, cutoffs, gates tuned to data or
+hardware) go in config; METHOD-DEFINING constants (filter order,
+blend exponents, normalisers — values that define what the method
+IS, not how it's tuned) stay as named constants in code with a
+justifying comment, since moving them to config would misrepresent
+them as tunable.
+
+## Comment style rule (project-wide)
+Comments and docstrings must read like a capable engineering student
+wrote them for himself and his examiners:
+- Explain WHY (reasoning, units, references, pitfalls), not WHAT the
+  next line obviously does. Never restate code in prose.
+- Short where things are obvious; full sentences where a decision
+  needs justification. No comment is better than a filler comment.
+- No boilerplate docstrings on trivial helpers; substantial
+  docstrings only where method or contract needs stating.
+- No decorative headers, no emoji, no "This function is responsible
+  for..." filler, no exhaustive parameter lists that repeat obvious
+  names, no marketing adjectives.
+- Consistent plain English, ASCII in .py files.
+- When editing a file for any reason, bring touched comments up to
+  this standard; do not launch mass rewrites without instruction.

@@ -1,6 +1,6 @@
 # Corner segmentation and classification for parsed outing data.
-# Reads detection thresholds from config/channels.json — no hardcoded numbers.
-# Pure Python/numpy — no Qt imports.
+# Reads detection thresholds from config/channels.json -- no hardcoded numbers.
+# Pure Python/numpy -- no Qt imports.
 #
 # Algorithm:
 #   1. Bracket corners by steering angle OR lateral G threshold crossings
@@ -9,11 +9,11 @@
 #   3. Validate against lateral G threshold to filter lane changes and gentle bends
 #   4. Classify by apex speed (low/medium/high) from config thresholds
 #   5. Define phase boundaries:
-#        Entry 1 (Brake)  — last full throttle on preceding straight → turn-in
-#        Entry 2 (Turn-in)— turn-in → just before apex
-#        Apex 3           — apex point (single sample)
-#        Exit 4           — apex → 50% of steering unwind
-#        Exit 5           — 50% of steering unwind → steering exit threshold
+#        Entry 1 (Brake)   -- last full throttle on preceding straight -> turn-in
+#        Entry 2 (Turn-in) -- turn-in -> just before apex
+#        Apex 3            -- apex point (single sample)
+#        Exit 4            -- apex -> steering_unwind_fraction of steering unwind
+#        Exit 5            -- steering_unwind_fraction of unwind -> steering exit threshold
 #   6. Merge same-direction adjacent brackets separated by a short time gap
 #      (stabilises corners with a momentary mid-corner steering dip; opposite-
 #      direction pairs, i.e. chicanes, are left as separate brackets)
@@ -23,8 +23,11 @@
 #      by a deterministic seeded split where one lap's bracket straddles what
 #      other laps detect as two distinct corners
 #
-# Fallback chain:
-#   - No steering channel: use speed minima with prominence threshold
+# Fallback chain (Tier B heuristics, used only when a channel is missing --
+# see thesis_notes.md for the primary dual-criterion method):
+#   - No steering channel: use speed minima, keeping a minimum only if its
+#     rise back to the surrounding local peak clears min_apex_speed_drop_kmh
+#     (a valley-depth check, not a formal peak-prominence algorithm)
 #   - No lateral G channel: apex = speed minimum within bracket
 #   - No throttle channel: Entry 1 (Brake) collapses to start of bracket
 
@@ -55,7 +58,7 @@ def analyse_corners(parsed_data):
     Each corner dict contains:
         lap_number, corner_number, speed_class,
         apex_time, apex_speed, apex_lateral_g,
-        segments: dict of phase → (start_time, end_time)
+        segments: dict of phase -> (start_time, end_time)
         method: "steering" or "speed_fallback"
         warnings: list of strings
     """
@@ -269,7 +272,7 @@ def _build_corner(lap_number, corner_number, method,
         if thr_mask.any():
             thr_t = throttle["time"][thr_mask]
             thr_d = throttle["data"][thr_mask]
-            off_throttle = np.where(thr_d < 95)[0]
+            off_throttle = np.where(thr_d < cd["brake_throttle_max_pct"])[0]
             if len(off_throttle) > 0:
                 brake_start_t = float(thr_t[off_throttle[0]])
     else:
@@ -283,13 +286,13 @@ def _build_corner(lap_number, corner_number, method,
             post_steer = bracket_steer[post_apex_mask]
             post_t = bracket_t[post_apex_mask]
             peak_post = float(np.max(post_steer))
-            half_th = peak_post / 2
+            half_th = peak_post * cd["steering_unwind_fraction"]
             half_idx = np.argmax(post_steer <= half_th)
             half_t = float(post_t[half_idx]) if half_idx > 0 else float(post_t[-1])
         else:
             half_t = s_t_end
     else:
-        half_t = apex_t + (s_t_end - apex_t) / 2
+        half_t = apex_t + (s_t_end - apex_t) * cd["steering_unwind_fraction"]
 
     abs_start = speed["abs_start"]
     segments = {

@@ -32,3 +32,4 @@ diagnostics/*.png
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/
 config/car_data.json
+docs/literature/
