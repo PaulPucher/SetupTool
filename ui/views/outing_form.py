@@ -166,6 +166,12 @@ class OutingForm(QWidget):
         # analysis result, or an untouched cache-hit's raw string), or None.
         self._pipeline_cache = None
         self._analysis_data_json = None
+        # WP-small: the resolved_vehicle_snapshot (modules.accuracy_
+        # resolution.resolve_accuracy's "values") behind whatever is
+        # currently rendered in the stability section, or None if nothing
+        # is rendered -- lets an explicit Save compare newly-saved setup
+        # data against what the displayed analysis actually used.
+        self._displayed_resolved_vehicle_snapshot = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -368,10 +374,20 @@ class OutingForm(QWidget):
         btn_back.setStyleSheet("background-color: #252525; color: #888;")
         btn_back.clicked.connect(self._save_outing)
 
+        # Small WP: explicit Save, enabled in both new-outing and edit
+        # modes -- persists via the same _persist_outing() core Back uses,
+        # but stays on the page (see _on_save_clicked).
+        self.btn_save = QPushButton("Save")
+        self.btn_save.setFixedWidth(80)
+        self.btn_save.setStyleSheet("background-color: #252525; color: #888;")
+        self.btn_save.clicked.connect(self._on_save_clicked)
+
         title = QLabel(f"New Outing — {self.weekend.track}")
         title.setStyleSheet("font-size: 15px; font-weight: 500; color: #e0e0e0;")
 
         layout.addWidget(btn_back)
+        layout.addSpacing(8)
+        layout.addWidget(self.btn_save)
         layout.addSpacing(16)
         layout.addWidget(title)
         layout.addStretch()
@@ -859,6 +875,7 @@ class OutingForm(QWidget):
         self.corner_positions_cache = None
         self._pipeline_cache = None
         self._analysis_data_json = None
+        self._displayed_resolved_vehicle_snapshot = None
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -1229,6 +1246,9 @@ class OutingForm(QWidget):
         )
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
+        )
+        self._displayed_resolved_vehicle_snapshot = (
+            resolved_accuracy.get("values") if resolved_accuracy else None
         )
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
@@ -2979,58 +2999,106 @@ class OutingForm(QWidget):
             session.close()
         self.on_back()
 
-    def _save_outing(self):
+    def _persist_outing(self):
+        # Shared persistence core for both Back (_save_outing) and the
+        # explicit Save button (_on_save_clicked). Creates the row on the
+        # first call in new-outing mode and sets self.outing to it -- every
+        # later call (another Save, or Back) then takes the update path,
+        # so a new outing can never be inserted twice. Returns the just-
+        # written setup_data JSON string so a caller can react to it
+        # (e.g. the post-save stale-analysis check) without re-reading
+        # the DB.
         driver_id = self.driver_combo.currentData()
+        setup_data_json = self._collect_setup_data()
+        field_values = dict(
+            date_time=self.datetime_edit.dateTime().toPyDateTime(),
+            name=self.name_input.text().strip(),
+            driver_id=driver_id,
+            session_type=self.session_type_combo.currentText(),
+            tyre_type=self.tyre_type_combo.currentText(),
+            tyre_name=self.tyre_name_input.text().strip(),
+            tyre_age=self.tyre_age_input.value(),
+            fuel_level=self.fuel_load_input.value(),
+            air_temp=self.air_temp_input.value(),
+            track_temp=self.track_temp_input.value(),
+            track_condition=self.track_condition_combo.currentText(),
+            comments=self.comments_input.toPlainText().strip(),
+            setup_data=setup_data_json,
+            setdown_data=self._collect_setdown_data(),
+            feedback_data=self._collect_feedback_data(),
+            csv_path=self.loaded_csv_path or "",
+            analysis_data=self._analysis_data_json,
+        )
 
         session = Session()
         if self.outing:
             from sqlalchemy import update
             session.execute(
-                update(Outing).where(Outing.id == self.outing.id).values(
-                    date_time=self.datetime_edit.dateTime().toPyDateTime(),
-                    name=self.name_input.text().strip(),
-                    driver_id=driver_id,
-                    session_type=self.session_type_combo.currentText(),
-                    tyre_type=self.tyre_type_combo.currentText(),
-                    tyre_name=self.tyre_name_input.text().strip(),
-                    tyre_age=self.tyre_age_input.value(),
-                    fuel_level=self.fuel_load_input.value(),
-                    air_temp=self.air_temp_input.value(),
-                    track_temp=self.track_temp_input.value(),
-                    track_condition=self.track_condition_combo.currentText(),
-                    comments=self.comments_input.toPlainText().strip(),
-                    setup_data=self._collect_setup_data(),
-                    setdown_data=self._collect_setdown_data(),
-                    feedback_data=self._collect_feedback_data(),
-                    csv_path=self.loaded_csv_path or "",
-                    analysis_data=self._analysis_data_json,
-                )
+                update(Outing).where(Outing.id == self.outing.id).values(**field_values)
             )
+            outing = None
         else:
             outing_count = session.query(Outing).filter(
                 Outing.race_weekend_id == self.weekend.id).count()
             outing = Outing(
                 race_weekend_id=self.weekend.id,
-                date_time=self.datetime_edit.dateTime().toPyDateTime(),
                 number=outing_count + 1,
-                name=self.name_input.text().strip(),
-                driver_id=driver_id,
-                session_type=self.session_type_combo.currentText(),
-                tyre_type=self.tyre_type_combo.currentText(),
-                tyre_name=self.tyre_name_input.text().strip(),
-                tyre_age=self.tyre_age_input.value(),
-                fuel_level=self.fuel_load_input.value(),
-                air_temp=self.air_temp_input.value(),
-                track_temp=self.track_temp_input.value(),
-                track_condition=self.track_condition_combo.currentText(),
-                comments=self.comments_input.toPlainText().strip(),
-                setup_data=self._collect_setup_data(),
-                setdown_data=self._collect_setdown_data(),
-                feedback_data=self._collect_feedback_data(),
-                csv_path=self.loaded_csv_path or "",
-                analysis_data=self._analysis_data_json,
+                **field_values,
             )
             session.add(outing)
         session.commit()
+        if outing is not None:
+            # session.commit() expires every attribute on the object by
+            # default; refresh while the session is still open so id and
+            # every column are safely cached before the session closes --
+            # reading an expired attribute on an already-detached instance
+            # raises DetachedInstanceError (hit by the synthetic test this
+            # WP added, not by any prior code path, since every existing
+            # post-close use of self.outing only ever WRITES to it).
+            session.refresh(outing)
         session.close()
+
+        if outing is not None:
+            # First save in new-outing mode: the row now exists -- from
+            # here on this form behaves exactly like edit mode, so a
+            # later Save or Back updates this same row instead of
+            # inserting a second one.
+            self.outing = outing
+        else:
+            for key, value in field_values.items():
+                setattr(self.outing, key, value)
+
+        return setup_data_json
+
+    def _save_outing(self):
+        self._persist_outing()
         self.on_back()
+
+    def _on_save_clicked(self):
+        setup_data_json = self._persist_outing()
+        self.btn_save.setText("Saved")
+        QTimer.singleShot(1500, lambda: self.btn_save.setText("Save"))
+        self._warn_if_setup_data_changed_since_analysis(setup_data_json)
+
+    def _warn_if_setup_data_changed_since_analysis(self, setup_data_json):
+        # Post-save hint (no auto-rerun): only meaningful if a stability
+        # analysis is currently rendered at all -- _displayed_resolved_
+        # vehicle_snapshot is set exactly there (_render_stability_
+        # summaries), for both the live-run and cache-hit paths.
+        if self._displayed_resolved_vehicle_snapshot is None:
+            return
+        import json
+        from modules.stability_analysis import load_parameters
+        from modules.accuracy_resolution import resolve_accuracy
+        try:
+            setup_data = json.loads(setup_data_json)
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"[WARN] setup-data-changed check skipped, could not parse setup_data: {e!r}")
+            return
+        cap = self._get_accuracy_cap_from_selector()
+        current_resolved = resolve_accuracy(load_parameters(), setup_data, cap)
+        if current_resolved["values"] != self._displayed_resolved_vehicle_snapshot:
+            self.stability_status_label.setText(
+                "setup data changed - re-run Analyse to use it"
+            )
+            self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")

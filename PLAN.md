@@ -1,7 +1,12 @@
 ## STATUS (update at every work stop)
-Current WP: WP2b-1 complete (2026-07-23), WP2b-2 next. Last commit:
-8ec11c5 (WP2b-1: parameter registry, manufacturer reference data,
-car.json + setup UI extensions) -- committed and pushed.
+Current WP: Accuracy-registry arc complete (2026-07-26) -- WP-A
+(registry consolidation), WP-C (per-session resolver + global cap),
+small explicit-Save-button WP, WP-B (steering ratio Level 4), full
+channel census + targeted verification, and the chair-context marker
+cleanup, all currently uncommitted and landing as one combined commit
+per this project's bundled-session convention (see the new session
+paragraph below). WP2b-2 remains the next queued work-plan item once
+this lands. Last commit: 113c7d9 (clean up).
 WP2b-1 that session: config/car_data.json (manufacturer reference
 data digitised from docs/car_data/, gitignored/local-only, consumer-
 scoped -- only tables with a named registry/WP5b/module consumer are
@@ -191,10 +196,11 @@ Chair estimator has a time_s-anchored fallback mode (window/grid
 scaled /50) when s_m is unusable; SetupTool short-circuits to
 all-invalid instead (study doc §8c). Decide: port the fallback tier or
 document the short-circuit as deliberate. Moot for current data.
-Accuracy-level registry consolidation (rider WP): single source in
+~~Accuracy-level registry consolidation (rider WP): single source in
 config, wire the inline dict + the hardcoded duplicate, add beta +
 wheelbase entries, verify and apply the weakest-link semantics, re-tag
-accordingly; found 2026-07-26, study doc §11.
+accordingly; found 2026-07-26, study doc §11.~~ [DONE 2026-07-26, see
+the Accuracy-registry arc session below.]
 Repo handover procedure (decided 2026-07-26): docs/car_data images
 exist in main's HISTORY (untracked from the index 2026-07-26, prior
 commits unaffected). Therefore the showing branch MUST be an orphan
@@ -203,6 +209,93 @@ never grant access to the working remote. No history rewrite on main
 - keeps OLD_REF and all recorded commit hashes valid. Protected-set
 verification from now on: git ls-files on all protected paths must
 return empty, check-ignore alone is insufficient.
+
+Accuracy-registry arc (2026-07-26, WP-A through marker cleanup,
+currently uncommitted, lands as one combined commit): five pieces in
+sequence. (1) WP-A: config/parameters.json's accuracy_levels block
+consolidated to the single source for every per-quantity tag --
+extended to eleven then twelve nodes, each {level, source, capped_by};
+prepare_vehicle_state's inline accuracy dict and estimate_lateral_
+forces's hardcoded literal deleted, both now read the registry;
+resolved the yaw_rate=3-vs-steering_angle=1 weakest-link question with
+two named mechanisms (chained-constant vs provenance-assumption, not
+one); removed six stale VBOX_*/gpsa_* channels.json entries verified
+absent from the real Dubai file. Zero behaviour change throughout.
+(2) WP-C: new modules/accuracy_resolution.py -- per-session resolver
+for mass/corner_weights (leaf nodes, highest-available-wins, never
+blended) and cog_position (pure cascade); global accuracy-cap dropdown
+next to Analyse, plumbed as a plain value like lap_filter, never read
+from UI state inside modules/; both WP5 (Outing.analysis_data) and WP6
+(_pipeline_cache) identities extended with accuracy_cap + a resolved_
+vehicle_snapshot, ANALYSIS_SCHEMA_VERSION bumped 1->2; resolved-level
+footer + clipped-only "comparison run" tag with the threshold caveat
+text. Five-cap byte-identity regression on Dubai confirmed; synthetic
+acceptance proof (corner weights shifted +2.06pp front) confirmed
+Fy_f/CS_ratio_f respond correctly, CS_ratio_f's flat median explained
+by the pre-existing ceiling-clipping effect, not a defect.
+(3) Small WP: explicit Save button (Tier C) next to Back, factored
+_save_outing into a shared _persist_outing() core; first Save in
+new-outing mode now sets self.outing so the form becomes edit mode
+(no duplicate row on a later Back) -- found and fixed a real
+DetachedInstanceError (session.commit() expires attributes by default;
+session.refresh() before close fixes it) via a synthetic offscreen-Qt
+test against an isolated throwaway DB, never data/setuptool.db.
+Post-save WARN hint reuses the existing stability_status_label, no
+auto-rerun. One later hardening fix: the bare except TypeError around
+setup_data parsing now logs before returning, no behaviour change on
+the happy path.
+(4) WP-B: steering_ratio Level 1->4, config/car_data.json's
+steering_ratio_table (21 rows, monotonic, np.interp default clamp,
++/-291.5 deg domain vs log_asteer's actual -130.7/+113.9 deg on Dubai
+-- never clamps on this data). New leaf node (car_data.json presence-
+gated, no per-outing setup_data involvement) plus steering_angle as a
+fourth pure cascade. Graceful L1 fallback verified with car_data.json
+genuinely renamed away in a fresh process; test_stability.py's raw,
+un-resolved call path confirmed byte-identical. Diagnostic found and
+corrected the proposal's own claim: Module 5's stability regressand is
+NOT byte-identical (delta_f_rad is one of its five ridge regressors) --
+front-axle-only scoping verified directly (beta/Fy_f/Fy_r/alpha_r/
+CS_ratio_r byte-identical, alpha_f/CS_ratio_f/stability move). Sign
+dispute resolved by the diagnostic, not argument: the effect is signed
+with the steering direction (increases alpha_f one way, decreases the
+other), this session's data skews toward the decreasing side. Location
+prediction confirmed (low-speed corners shift most) with a nuance
+(medium/low separation weaker than pre-registered). Zero verdict flips
+under unchanged thresholds; all five classification thresholds
+re-confirmed unchanged after review (config/parameters.json
+derived_from fields, thesis_notes.md).
+(5) Full channel census (2622 channels, re-scanned with correct
+cp1252 decoding -- the existing scan_channels.py's utf-8/errors=
+"replace" read mangles every degree-sign unit) + targeted
+verification: no lateral-velocity/sideslip/optical-sensor channel
+exists anywhere in the log; the log_a_car heading hypothesis tested
+and REFUTED (r=-0.001 vs yaw rate); corner_radius confirmed as a live
+logged curvature channel (r=0.87 vs ay/v^2); TO_VBOX_01-05 confirmed
+constant/inert. Chair-context marker cleanup: all four "[to verify
+with chair]"/"[context claim, to verify with chair]" markers in
+thesis_notes.md removed, each surrounding claim reworded to rest on
+SetupTool's own post-session nature and documented physics/coordinate
+evidence rather than an unverified assumption about the chair
+pipeline's operating context; DOMAIN IMPROVEMENT taxonomy labels
+unchanged throughout (the classification never depended on the
+removed wording).
+Open threads: worst-phase selector sentinel -- all-phases-at-ceiling
+reports NaN in diagnostics while classifying as normal (found
+explaining the WP-B n=49->48 count; the sentinel starts at the ceiling
+and only updates on a strictly-lower value, so an instance with every
+phase exactly at 1.0 has no phase that reads as "the worst"); reconcile
+the representation someday, not urgent, no diagnostic or verdict was
+wrong because of it. Everything still open from before this arc stays
+open, unchanged by it: the new-data-file diagnostic checklist (tc_lat/
+tc_lon/abs_position/brake_bias channel-name scan) above WP1; WP2b-2
+(rule engineering against the setup_parameters registry); WP5b(c)
+(GPS-course beta) and WP5b(d) (speed cross-validation), both still
+gated on whitelisting log_gps_course/log_gps_speed (confirmed present
+in the real file, still not in channels.json); the small-decisions
+list -- cs_front/rear_fallback_reference wiring-or-removal decision,
+the chair's time_s-anchored Module 5 fallback tier (port or document-
+as-deliberate), and the corner_analysis.py:359 lap_distance reset-guard
+fix (needs a WP1-freeze before/after proof first).
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
@@ -663,11 +756,16 @@ d) Speed validation: log_gps_speed vs ecu_speed agreement report;
 e) After any of a-d lands: re-run the corner-distribution diagnostic
    and re-derive classification thresholds — they were tuned on
    Level 1 numbers and are not portable across accuracy levels.
-f) Level 4 steering ratio lookup — replace the constant steering_ratio
+~~f) Level 4 steering ratio lookup — replace the constant steering_ratio
    (Level 1, thesis limitation #3) with the digitised wheel-travel/
    stroke/ratio table (config/car_data.json: steering_ratio_table,
    source Steering.png). Consumer: prepare_vehicle_state's delta_f
-   computation.
+   computation.~~ [DONE 2026-07-26, WP-B: modules/accuracy_resolution.py
+   resolves steering_ratio to Level 4 from this table when
+   config/car_data.json is present and the cap allows it, graceful L1
+   fallback otherwise; diagnostic run, CS/stability thresholds
+   re-confirmed unchanged (config/parameters.json derived_from fields),
+   full session record in thesis_notes.md.]
 
 ## WP6 — Performance (do opportunistically, after WP1)
 

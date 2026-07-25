@@ -397,10 +397,12 @@ HOW TO USE:
     (min=0.2m, max=5080.2m, std=1602.6m), so it contaminates every
     corner a little rather than one grid point a lot. Here the cold-
     tyre/stationarity argument is the only reason to exclude it, and it
-    remains a DOMAIN IMPROVEMENT: post-session analysis lets us identify
-    and remove a lap we know carries a different (cold) tyre condition,
-    which a continuous online tool [context claim, to verify with
-    chair] would have no equivalent opportunity to do.
+    remains a DOMAIN IMPROVEMENT: analysing a complete recorded session
+    after the fact lets SetupTool identify and remove a lap known to
+    carry a different (cold) tyre condition at the same track position
+    other laps pool from -- a choice this post-session analysis has
+    the opportunity to make, not a claim about what any other tool's
+    own operating context does or doesn't allow.
 - CLASSIFICATION (updated): the exclusion as a whole stays DOMAIN
   IMPROVEMENT (it is still a context-driven choice available to a
   post-session tool), but the outlap leg specifically is noted as
@@ -475,8 +477,11 @@ HOW TO USE:
   [UPDATED 2026-07-24: see "In/out-lap exclusion: two-leg rationale"
   above -- the outlap leg is FORCED in character (s-coordinate
   degeneracy), the inlap leg is the original DOMAIN IMPROVEMENT
-  (cold-tyre stationarity, chair presumed continuous/online [context
-  claim, to verify with chair] vs. SetupTool's post-session analysis)].
+  (cold-tyre stationarity: a post-session tool can identify and
+  discard a lap known to carry a different, cold-tyre condition at
+  the same track position other laps pool from -- available because
+  of what SetupTool is, post-session, not a claim about the chair
+  pipeline's own operating context)].
   The s_m reset-guard interpolation above = NEUTRAL ENGINEERING.
 
 ### Moving-speed mask: domain-improvement classification [2026-07-24]
@@ -486,15 +491,13 @@ HOW TO USE:
   gate; it relies on its own dropna handling for whatever is missing,
   not on excluding low-speed driving.
 - CLASSIFICATION: DOMAIN IMPROVEMENT, same reasoning as the in/out-lap
-  exclusion above: the chair pipeline is presumed to run online/
-  continuously [context claim, to verify with chair], where a
-  low-speed sample is just the current state, not something to
-  discard; SetupTool's post-session analysis can identify and remove
-  standing/pit-lane samples that carry no cornering information and
-  would otherwise dilute the regression. Based on their version, which
-  is not wrong for their context -- this is a decision available to us
-  because of what SetupTool is (post-session), not a correction of an
-  error in theirs.
+  exclusion above: SetupTool's post-session analysis can identify and
+  remove standing/pit-lane samples that carry no cornering information
+  and would otherwise dilute the regression -- a decision available
+  because of what SetupTool is (post-session, analysing a complete
+  recorded file), not a correction of an error in the chair's own
+  tooling, and not a claim about what the chair pipeline's own
+  operating context does or doesn't require.
 
 ### Kerb/jump exclusion [2026-06-29]
 - Vertical accel (log_acc_z) deviation-from-baseline gate: |az - 1.0g| >
@@ -528,17 +531,16 @@ HOW TO USE:
   (1.5g at 250 km/h) approaches the threshold. Rate-of-change (daz/dt)
   detection is the documented upgrade path.
 - CLASSIFICATION (deviation taxonomy, CLAUDE.md) [2026-07-24]: DOMAIN
-  IMPROVEMENT. The chair pipeline serves a vehicle class not expected
-  to ride kerbs regularly [context claim, to verify with chair]; a
-  GT3 car uses kerbs every lap as part of the racing line, so an
-  unmasked kerb transient corrupts exactly the samples (apex,
-  exit) that matter most to the regression. Based on their version,
-  which is not wrong for a vehicle class that doesn't need it -- the
-  threshold-gate MECHANISM itself (deviation-from-baseline gate,
-  dilation for ringdown) is standard Tier B practice, not the
-  contribution; the contribution being claimed is the domain analysis
-  (GT3 kerb usage pattern) and the decision to exclude, not the filter
-  construction.
+  IMPROVEMENT. A GT3 car rides kerbs every lap as part of the racing
+  line; kerb transients violate the local regression's stationarity
+  assumption, and the unmasked transient corrupts exactly the samples
+  (apex, exit) that matter most to the regression -- exclusion is
+  justified by our own data and physics rationale regardless of the
+  chair pipeline's original context. The threshold-gate MECHANISM
+  itself (deviation-from-baseline gate, dilation for ringdown) is
+  standard Tier B practice, not the contribution; the contribution
+  being claimed is the domain analysis (GT3 kerb usage pattern) and
+  the decision to exclude, not the filter construction.
 
 ### Dual-criterion corner detection [2026-07-22]
 - Original steering-threshold detection (25 deg entry / 15 deg exit
@@ -857,6 +859,32 @@ HOW TO USE:
   no cache at all on first open, same as any other schema-version
   mismatch.
 
+### WP-C resolver end-to-end acceptance proof [2026-07-26]
+- Synthetic outing, real Dubai file, full production path (resolve_
+  accuracy -> apply_resolved_vehicle -> Modules 1-4b), three runs:
+  baseline (no setup_data), cap=1 with synthetic corner weights, cap=
+  Best-available with the same synthetic corner weights. Corner
+  weights shifted +2.06 percentage points front of the config split,
+  summed to exactly the config mass (1356.0 kg) so the test isolates
+  the front/rear split from any mass-magnitude effect.
+- cap=1 output is exactly equal to the no-setup-data baseline: Fy_f
+  median -128.9731 N in both runs (float-identical) -- confirms a
+  capped run genuinely discards the synthetic data rather than just
+  relabelling it.
+- Best-available picks up the measured split: Fy_f median -135.5190 N,
+  delta -6.5458 N from the cap=1/baseline value -- confirms the
+  resolved corner-weight split actually reaches estimate_lateral_
+  forces through the effective-params override.
+- Whole-session CS_ratio_f median stayed flat at 1.000000 across all
+  three runs -- not a resolver defect, the known ceiling-clipping
+  insensitivity of this exact statistic (CS_ratio is capped at 1.0 and
+  most moving samples across a whole session sit at that ceiling
+  regardless of the underlying Fy perturbation, same mechanism already
+  documented for the Fy yaw-term work and for WP-B's steering-ratio
+  upgrade -- a worst-phase-per-corner or per-phase statistic, not a
+  flat whole-session median, is where this kind of perturbation
+  actually shows up).
+
 ### Full channel census + targeted verification (2622 channels) [2026-07-26]
 - Complete channel inventory of the raw Dubai log, re-scanned with correct
   cp1252 decoding (the existing diagnostics/scan_channels.py's utf-8/
@@ -891,6 +919,161 @@ HOW TO USE:
   session -- per-wheel speeds differ from ecu_speed by tens of km/h
   through a high-speed corner, abs_Slip shows hundreds of distinct
   values -- but neither is consumed anywhere in modules/.
+
+### Steering ratio Level 1 -> Level 4 lookup (WP-B) [2026-07-26]
+- prepare_vehicle_state's delta_f_rad computation now sources
+  steering_ratio from config/car_data.json's manufacturer steering_ratio_
+  table (21 rows, steering_wheel_angle_deg strictly monotonic, linear
+  np.interp with default clamp outside +/-291.5 deg -- never triggered on
+  Dubai, log_asteer stays within -130.7/+113.9 deg all session) when that
+  local-only file is present and the accuracy cap allows it (Level 4);
+  falls back to the 15.7 deg/deg constant (Level 1) otherwise --
+  modules/accuracy_resolution.py's third dynamically-wired leaf node
+  (mass, corner_weights, steering_ratio), with steering_angle added as a
+  fourth pure cascade (cog_position, steering_angle) alongside the
+  existing method-ceilinged ones. Graceful degradation verified directly:
+  a fresh process with config/car_data.json renamed away resolves
+  steering_ratio to Level 1 with the exact config constant, cap<=3 forces
+  Level 1 even with the file present (a free ablation lever), and
+  test_stability.py's direct, un-resolved call path (raw params, no
+  steering_ratio_table key) is byte-identical before/after this WP.
+- PARAMETERIZATION, NOT DEVIATION: the 15.7 constant was never a chair
+  scientific position -- it is this car's own mechanical steering
+  geometry, and the table is manufacturer-digitised data for the same
+  car, not an adopted/adapted chair method. No CLAUDE.md deviation-
+  taxonomy entry applies, same as mass/corner_weights/wheelbase.
+- MODULE 5 REGRESSOR CORRECTION, found verifying the proposal's own claim
+  against the code rather than trusting it: the proposal stated "Modules
+  1-2 and 5 must remain byte-identical (steering feeds slip angles/4b,
+  not beta or the stability regressand)". Half right. delta_f_rad IS one
+  of Module 5's five regressors (yaw_stability.py _PREDICTOR_COLUMNS =
+  beta_rad, delta_f_rad, v_mps, ax_mps2, az_mps2; stability_analysis.py's
+  estimate_yaw_moment_stability passes delta_f=state["delta_f_rad"]
+  straight into the ridge fit) -- changing delta_f_rad's values changes
+  the fitted dMz/dbeta coefficient even though beta itself never enters
+  the computation, because a multi-regressor ridge solve's fitted
+  coefficient on one variable depends on every co-regressor's values.
+  Verified directly: beta, Fy_f_filt, Fy_r_filt, alpha_r_filt, and
+  CS_ratio_r are BYTE-IDENTICAL old (cap=1, L1 constant) vs new (Best
+  available, L4 table) -- confirms Module 2, Module 4a, and the REAR
+  half of Modules 3/4b are genuinely untouched. delta_f_rad, alpha_f
+  (front only), CS_ratio_f (front only), and stability_observed_Nm_per_
+  deg all move measurably -- the front-only scoping is a real
+  refinement over "Module 4b changes", and the stability regressand
+  moving is a real correction over the proposal's own stated
+  expectation, not a defect.
+- SIGN DISPUTE, resolved by the diagnostic rather than by argument, per
+  instruction: neither the original proposal's "reduces alpha_f" nor the
+  amendment's "increases alpha_f" is a complete, sign-independent
+  statement -- both were oversimplified. The actual mechanism: a lower
+  table ratio at high |steering angle| increases delta_f_rad's
+  MAGNITUDE in the SAME sign as the steering input (confirmed: raw
+  delta_f_rad's tails widen both ways, p5 -0.0870->-0.0889,
+  p95 0.0646->0.0651), so alpha_f = delta_f - arctan(...) shifts in that
+  same signed direction -- INCREASING at positive-steer samples,
+  DECREASING at negative-steer samples, exactly as the amendment argued
+  for one sign and the original proposal argued for the other, each
+  correct for half the steering range. On this specific session, high-
+  steer samples (|steer_sw_deg|>80, n=2643) skew toward the negative
+  side (log_asteer's own observed range is -130.7/+113.9 deg, more
+  negative-side magnitude available) -- so the AGGREGATE median shift is
+  negative: median(alpha_f_new-alpha_f_old) = -0.0028 rad, only 32% of
+  high-steer samples show an increase. CS_ratio_f's aggregate median
+  shift at the same samples is also negative (-0.0020, 51.9% of samples
+  decrease) -- a near coin-flip per-sample, but net downward, consistent
+  with the amendment's predicted CONSEQUENCE (CS_ratio_f pushed down)
+  even though its stated MECHANISM ("increases alpha_f") was only half
+  the story.
+- LOCATION PREDICTION (pre-registered, stood as proposed): CONFIRMED.
+  Speed-class shift in worst-phase CS_ratio_f median: low corners
+  (n=10) -0.0556, medium (n=30) -0.0454, high (n=11) -0.0011 -- low
+  shifts most, high shifts least, exactly as predicted. NUANCE: the
+  ordering (low > medium > high) is confirmed, but the low/medium
+  separation is weaker than the pre-registered prediction implied --
+  -0.0556 vs -0.0454 is a modest gap, not the clean step the phase-shift
+  finding shows (apex_3 vs entry/exit). Medium-speed corners carry a
+  real part of this effect too, not just low; the prediction was
+  directionally right but the speed-class boundary is softer than
+  "low only" would suggest. Phase shift:
+  apex_3's aggregate CS_ratio_f median moves -0.0907 (the largest of any
+  phase), exit_4 -0.0120, while entry_1_brake/entry_2_turnin/exit_5 show
+  exactly zero aggregate shift -- the same ceiling-clipping mechanism
+  already documented for the Fy yaw-term work (most entry/exit-phase
+  instances sit pinned at the CS_ratio=1.0 ceiling in both old and new,
+  so an aggregate median can't show movement there regardless of the
+  underlying perturbation; apex_3, rarely clipped, is where the ratio
+  metric is actually sensitive). worst_f_phase itself stays exit_4/
+  apex_3-dominated in both old and new (21/15 of 51 each), consistent
+  with a real but second-order shift, not a restructuring of which
+  phase is worst.
+- VERDICT FLIPS under UNCHANGED thresholds: zero, across all 51
+  instances (37 normal->normal, 14 moderate->moderate). The underlying
+  distributions did shift measurably (see percentiles below), but no
+  shift in this specific session crosses a classification threshold
+  boundary. Byte-identity of the rear axle and Module 2 (above) means
+  the flip-free result is not from lack of a real effect -- the front-
+  axle effect is real and measured, it simply doesn't happen to cross a
+  boundary in today's data.
+- RE-DERIVATION INPUT (percentiles, p5/10/25/50/75/90/95, worst-phase-
+  per-corner-instance, the exact statistic thresholds were derived
+  against -- reviewer re-derives, nothing re-derived here):
+  worst-phase CS_ratio_f OLD (n=49): p5=-0.2526 p10=-0.0162 p25=0.2232
+  p50=0.3452 p75=0.5756 p90=0.8342 p95=0.9230. NEW (n=48): p5=-0.2340
+  p10=-0.1639 p25=0.2119 p50=0.2900 p75=0.5234 p90=0.8171 p95=0.8842.
+  worst-phase stability_observed OLD (n=51): p5=-231.18 p10=7.92
+  p25=195.54 p50=431.64 p75=586.95 p90=631.21 p95=706.70. NEW (n=51):
+  p5=-231.39 p10=7.90 p25=213.09 p50=428.39 p75=587.55 p90=631.50
+  p95=709.03. p10 of worst-phase CS_ratio_f moves the most of any
+  percentile (-0.0162->-0.1639) while p5 moves the opposite way
+  (-0.2526->-0.2340) -- non-monotonic across percentile levels, expected
+  at n=51 (same N=51 resolution argument already documented for the CS-
+  threshold re-confirmation after the Fy yaw-term work: individual
+  corner instances re-ordering near a rank boundary can move one
+  percentile without a real distribution-wide shift). No threshold
+  value changed by this entry -- re-derivation is the standing separate
+  stop, same rule as every prior estimator-input change.
+
+### CS/stability thresholds re-confirmed after steering-ratio L4 upgrade [2026-07-26]
+- The re-derivation stop closed: all five classification thresholds
+  checked against the WP-B old-vs-new distribution, none changed.
+- STRONG_CSF/MODERATE_CSF: +2/51 exceedance at both boundaries (0.10:
+  6->8; 0.25: 16->18) -- within the standing N=51 resolution argument
+  (a couple of instances re-ordering near a rank/count boundary is not
+  a distribution-wide shift at this sample size). SCALE-VS-INPUT-
+  ACCURACY ARGUMENT for keeping the values unchanged rather than
+  re-deriving fresh ones: this upgrade improves an INPUT's accuracy
+  (steering ratio, Level 1->4) inside an otherwise-unchanged estimator,
+  it does not rescale the estimator's own output distribution the way
+  the B1 estimator rebuild did (that moved the stability threshold from
+  -500 to -50 because the ESTIMATOR changed). A threshold surviving a
+  better-measured input with only marginal exceedance movement means
+  those +2 flagged instances are the improved input surfacing real
+  signal that a slightly-wrong constant was previously masking, not
+  drift the threshold needs to chase.
+- STRONG_CSR/MODERATE_CSR: rear byte-identical under the steering
+  upgrade (verified directly, see the WP-B entry's byte-identity
+  proof) -- no re-check needed, there is nothing for the rear-axle
+  threshold to have moved against.
+- stab_neg_thresh_Nm_per_deg: exceedances identical at all three
+  levels checked (< 0: 5/5, < -50: 4/4, < -100: 3/3). The id-8 cluster
+  (all 4 laps still occupy the 4 most-negative worst-phase-stability
+  slots) and the gap the threshold sits in (-99.3 to -18.8, essentially
+  unchanged from the original -99.2/-18.5 B1 derivation) are both
+  confirmed intact under the new steering-ratio resolution.
+- ONE CEILING-TIED INSTANCE MIGRATION, found while explaining the
+  n=49->48 worst-phase-CS_ratio_f count from the WP-B diagnostic:
+  lap 3/corner 1 (stable_id 1, medium speed) moved from a valid worst
+  value (0.9937, at exit_4) under the old constant to NaN under the
+  new table -- not a data loss. exit_4's median CS_ratio_f rounds up
+  to exactly 1.0 under the new delta_f, so all 5 phases now tie at the
+  ceiling and the worst-phase selector's strict "<" comparison (mirrors
+  _classify_corner exactly: starts from a ceiling sentinel, only
+  updates on a strictly-lower value) can no longer identify any phase
+  as "the worst" -- the same sentinel-artifact mechanism as the two
+  pre-existing all-ceiling instances (lap 1/corner 7, lap 2/corner 10,
+  unaffected by this upgrade, NaN in both old and new). NaN here means
+  "every phase tied at the ceiling", not "missing data" -- see the new
+  PLAN.md open-thread note on this representation gap.
 
 ### Analysis layer vs human layer for corner identity [2026-07-22]
 - The tool detects LOAD EVENTS (anything stressing tyres, incl. flat-out

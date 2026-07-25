@@ -16,6 +16,7 @@ from modules.geo import project_latlon_to_xy
 from modules.yaw_stability import calculate_filtered_yaw_acceleration, calculate_observed_stability
 
 PARAMETERS_PATH = "config/parameters.json"
+CAR_DATA_PATH = "config/car_data.json"
 
 # WP5 persisted-analysis-cache version tag (models/outing.py analysis_data).
 # Bump whenever a change to Modules 1-6 would alter summarise_corners()'s
@@ -44,6 +45,21 @@ R2_WEIGHT_EXPONENT = 1  # linear R^2 blend between window- and section-slope est
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+@functools.lru_cache(maxsize=1)  # same re-read-after-restart convention as load_parameters
+def load_car_data():
+    # config/car_data.json is gitignored/local-only digitised manufacturer
+    # reference data (WP2b-1) -- not guaranteed to exist on every machine
+    # this tool runs on, so a missing or malformed file degrades to None
+    # rather than raising, mirroring core.config_loader.load_car_config's
+    # existing convention for car.json. Never log this file's contents --
+    # local-only means local-only, including in stdout/print debugging.
+    try:
+        with open(CAR_DATA_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
 
 
 def _butterworth_lowpass(data, cutoff_hz, sample_rate_hz, order=BUTTERWORTH_ORDER):
@@ -202,7 +218,19 @@ def prepare_vehicle_state(channels, params):
 
     steer_sw_deg = interp_channel("log_asteer")
     steer_sw_rad = steer_sw_deg * np.pi / 180.0
-    i_s = vp["steering_ratio"]
+    # steering_ratio_table (WP-B, Level 4): present only when modules.
+    # accuracy_resolution resolved it there (car_data.json's manufacturer
+    # steering_ratio_table available and cap allows it) -- absent on any
+    # raw, un-resolved params dict (e.g. test_stability.py's direct call),
+    # which keeps the plain constant division below byte-identical to
+    # before this WP. np.interp clamps outside the table's own domain by
+    # default -- the deliberate choice (config/car_data.json's table spans
+    # +/-291 deg full-lock, well beyond any steering angle actually seen).
+    steering_ratio_table = vp.get("steering_ratio_table")
+    if steering_ratio_table is not None:
+        i_s = np.interp(steer_sw_deg, steering_ratio_table["angle_deg"], steering_ratio_table["ratio"])
+    else:
+        i_s = vp["steering_ratio"]
     delta_f_rad = steer_sw_rad / i_s
 
     ay_mps2 = interp_channel("log_acc_y") * 9.81
