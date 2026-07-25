@@ -71,12 +71,68 @@
         }
     },
     "accuracy_levels": {
-        "mass": 1,
-        "cog_position": 1,
-        "yaw_inertia": 1,
-        "steering_ratio": 1,
-        "lateral_force_split": 1,
-        "sideslip_angle": 1,
-        "note": "1=config default, 2=session measurement, 3=logged sensor, 4=lookup table. Upgrade each node independently."
+        "_comment": "Single source of truth for per-quantity accuracy (1=config default, 2=session measurement, 3=logged sensor, 4=lookup table; upgrade each node independently, CLAUDE.md/thesis_notes.md). Each node: level (current STATIC/default tier, what a run with no session data resolves to), source (what currently provides the value), capped_by (why it isn't higher: 'chained-constant: <name>' when a Level-1 config constant sits in the node's own derivation chain, 'provenance-assumption: <name>' when no such constant exists but a documented, unverifiable assumption about the channel's own measurement caps it anyway, or null when neither mechanism applies). Consolidated 2026-07-26 -- see thesis_notes.md for the yaw_rate=3 vs steering_angle=1 resolution evidence. WP-C (2026-07-26) adds per-session dynamic resolution on top of this static registry, in modules/accuracy_resolution.py: leaf nodes (mass, corner_weights, and in future WPs steering_ratio/speed/sideslip_angle) carry a real ordered source list there and resolve independently per outing; derived nodes have no source list of their own and instead cascade from the nodes named in capped_by -- either a PURE cascade (resolved level = input's resolved level exactly, e.g. cog_position from corner_weights) or a METHOD-CEILINGED cascade bounded by an explicit method_ceiling field below (the derivation is itself an approximation whose error a better-measured input cannot shrink, e.g. yaw_inertia's m*a*b formula). Every node not dynamically wired yet stays single-source at its level below regardless of any global cap, until its own future WP gives it a second source.",
+        "mass": {
+            "level": 1,
+            "source": "config default (vehicle.mass_kg)",
+            "capped_by": null
+        },
+        "corner_weights": {
+            "level": 1,
+            "source": "config default (vehicle.corner_weights)",
+            "capped_by": null
+        },
+        "cog_position": {
+            "level": 1,
+            "source": "derived from vehicle.corner_weights static split (vehicle.cog_note)",
+            "capped_by": "chained-constant: corner_weights"
+        },
+        "yaw_inertia": {
+            "level": 1,
+            "source": "m*a*b bicycle-model estimate (vehicle.yaw_inertia_note)",
+            "capped_by": "chained-constant: mass_kg, cog_position",
+            "method_ceiling": 1
+        },
+        "steering_ratio": {
+            "level": 1,
+            "source": "config default, constant across steering travel (vehicle.steering_ratio_note)",
+            "capped_by": null
+        },
+        "lateral_force_split": {
+            "level": 1,
+            "source": "Fy_f/Fy_r 2-DOF force/moment balance (estimate_lateral_forces)",
+            "capped_by": "chained-constant: yaw_inertia_kgm2, corner_weights"
+        },
+        "sideslip_angle": {
+            "level": 1,
+            "source": "kinematic integration + washout (estimate_sideslip)",
+            "capped_by": "chained-constant: kinematic-integration inputs"
+        },
+        "speed": {
+            "level": 1,
+            "source": "ecu_speed logged channel",
+            "capped_by": "provenance-assumption: opaque ECU wheel-speed calibration (thesis_notes.md limitations register item 10)"
+        },
+        "yaw_rate": {
+            "level": 3,
+            "source": "sclu_yaw_rate logged channel, exact rpm-to-radps unit conversion",
+            "capped_by": null
+        },
+        "steering_angle": {
+            "level": 1,
+            "source": "log_asteer logged channel, converted via steering_ratio",
+            "capped_by": "chained-constant: steering_ratio"
+        },
+        "lateral_acc": {
+            "level": 1,
+            "source": "log_acc_y logged channel, exact g-to-mps2 unit conversion",
+            "capped_by": "provenance-assumption: IMU-not-at-CoG (thesis_notes.md limitations register item 5)"
+        },
+        "wheelbase_m": {
+            "level": 1,
+            "source": "config default (vehicle.wheelbase_m)",
+            "capped_by": null,
+            "note": "Fixed chassis dimension, known to design tolerance; not expected to move enough to justify a dedicated remeasurement -- kept at Level 1 by convention, not as a live upgrade target."
+        }
     }
 }

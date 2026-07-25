@@ -96,9 +96,10 @@ Pi Toolbox ASCII format (.txt). Key properties:
 - European decimal notation (comma → period)
 - Channel names include unit suffix — parser strips before matching
 - Variable sample rates per channel
-- Currently 26 channels configured, including sclu_yaw_rate and the real GPS
-  position channels (log_gps_lat/log_gps_lon); gpsa_lat/gpsa_long/VBOX_* are
-  configured but absent from the current sample file
+- Currently 21 channels configured, including sclu_yaw_rate and the real GPS
+  position channels (log_gps_lat/log_gps_lon). gpsa_lat/gpsa_long/VBOX_* were
+  removed from the whitelist 2026-07-26 (WP-A registry-consolidation rider) --
+  verified absent from every channel actually present in the sample file
 
 ## Data pipeline
 1. Parser reads file, loads only channels in channels.json
@@ -211,7 +212,8 @@ Module 6 — summarise_corners(): per-corner per-phase median + IQR aggregation,
 8. Bicycle model: identical slip per axle
 
 ### Upgrade paths defined
-- Level 3: GPS heading for β (VBOX_Heading — channel in config, not in current file)
+- Level 3: GPS heading for β (log_gps_course — present in the real file, not
+  yet in the channels.json whitelist; WP5b(c))
 - Level 2: load transfer correction for Fy split (next refinement)
 - Level 4: steering ratio lookup table (2D: wheel travel × steering stroke)
 - Level 4: damper force for actual wheel loads (channels expected in future data)

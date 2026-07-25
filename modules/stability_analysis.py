@@ -21,10 +21,16 @@ PARAMETERS_PATH = "config/parameters.json"
 # Bump whenever a change to Modules 1-6 would alter summarise_corners()'s
 # stored numeric output for the same input file (an estimator rebuild, a
 # Fy/Fz formula change, a new regressor) -- NOT for changes that only affect
-# how summaries are read or rendered (config-driven thresholds, UI, caching).
-# A stored value that doesn't match this one is treated as no cache at all
-# (see ui/views/outing_form.py's cache-hit check).
-ANALYSIS_SCHEMA_VERSION = 1
+# how summaries are read or rendered (config-driven thresholds, UI, caching)
+# -- OR whenever the analysis_data payload's own SHAPE changes (new fields
+# the cache-hit check now requires), since an older payload has nothing to
+# compare against for those fields either. A stored value that doesn't
+# match this one is treated as no cache at all (see ui/views/outing_form.py's
+# cache-hit check). Bumped 1->2 (WP-C): payload gained accuracy_cap/
+# resolved_levels/resolved_vehicle_snapshot/resolved_clipped/resolved_
+# warnings; a pre-WP-C payload has none of these and must not be read as a
+# hit against the new cap/snapshot check.
+ANALYSIS_SCHEMA_VERSION = 2
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
@@ -265,10 +271,10 @@ def prepare_vehicle_state(channels, params):
         "gps_origin_lon": gps_origin_lon,
         "steering_ratio": i_s,
         "accuracy_level": {
-            "speed": 1,
-            "yaw_rate": 3,
-            "steering_angle": 1,
-            "lateral_acc": 1,
+            "speed": params["accuracy_levels"]["speed"]["level"],
+            "yaw_rate": params["accuracy_levels"]["yaw_rate"]["level"],
+            "steering_angle": params["accuracy_levels"]["steering_angle"]["level"],
+            "lateral_acc": params["accuracy_levels"]["lateral_acc"]["level"],
         }
     }
 
@@ -393,7 +399,7 @@ def estimate_lateral_forces(state, params):
         "Fy_r_filt": Fy_r_filt,
         "front_fraction": front_fraction,
         "rear_fraction": rear_fraction,
-        "accuracy_level": 1
+        "accuracy_level": params["accuracy_levels"]["lateral_force_split"]["level"]
     }
 
 

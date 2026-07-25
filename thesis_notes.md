@@ -755,6 +755,143 @@ HOW TO USE:
   125.19999999999993s) demonstrated the need, not as a speculative
   upgrade.
 
+### Accuracy-level registry consolidated [2026-07-26]
+- config/parameters.json's accuracy_levels block is now the single
+  source for every per-quantity accuracy tag -- extended from six
+  entries to the full eleven-node set (mass, cog_position,
+  yaw_inertia, steering_ratio, lateral_force_split, sideslip_angle,
+  speed, yaw_rate, steering_angle, lateral_acc, wheelbase_m), each
+  {level, source, capped_by}. prepare_vehicle_state's inline
+  {speed:1, yaw_rate:3, steering_angle:1, lateral_acc:1} dict and
+  estimate_lateral_forces's hardcoded accuracy_level:1 are deleted;
+  both now read the registry at call time. Zero behaviour change --
+  every level value is unchanged, only its source moved from a
+  hardcoded literal to config.
+- Two distinct capped_by mechanisms, not one, resolving the study
+  document's open weakest-link question with code evidence rather
+  than speculation: "chained-constant: <name>" when a Level-1 config
+  constant sits in the node's own derivation (steering_angle <-
+  steering_ratio: delta_f_rad = steer_sw_rad / steering_ratio, a
+  config constant explicitly noted "treated as constant at Level 1";
+  lateral_force_split <- yaw_inertia_kgm2 + corner_weights, both
+  Level 1); "provenance-assumption: <name>" when no such constant
+  exists in the code but a documented, unverifiable assumption about
+  the channel's own measurement caps it anyway (lateral_acc <-
+  IMU-not-at-CoG, limitations register item 5; speed <- opaque
+  ECU-internal wheel-speed calibration, limitations register item 10
+  -- neither ay_mps2 nor v_mps passes through any local Level-1
+  constant, both are exact unit conversions only).
+- yaw_rate=3 vs steering_angle=1, resolved: yaw_rate_radps is an
+  exact rpm-to-radps unit conversion with no config constant in its
+  chain and no documented weakening assumption -- neither mechanism
+  applies, so it alone keeps the raw logged-sensor tier. steering_
+  angle is chain-limited by steering_ratio. Confirms the weakest-link
+  hypothesis holds, but only in this two-mechanism form -- the single
+  "chained through a constant" reading alone does not explain
+  lateral_acc or speed, which needed the second, provenance-assumption
+  mechanism instead.
+- Whitelist hygiene, same session: config/channels.json's VBOX_
+  Lateral_acc/VBOX_Velocity/VBOX_Heading/gpsa_lat/gpsa_long/VBOX_
+  Longitudinal_acc entries removed -- verified absent from every
+  channel actually present in the real Dubai file (grep of the raw
+  log's Time/<channel> blocks). The real file's own log_gps_course
+  and log_gps_speed, which WP5b(c)/(d) actually need, are deliberately
+  NOT added here -- they land together with their consumers in those
+  work packages, not speculatively ahead of them.
+
+### Per-session accuracy resolution + global level cap [2026-07-26]
+- modules/accuracy_resolution.py resolves the registry's static mass/
+  corner_weights/cog_position nodes against per-outing setup_data
+  (Outing.setup_data.car.total_weight and .corner_weight_fl/fr/rl/rr),
+  plus an optional global cap (int 1-4, or None for "best available").
+  Highest-available-wins, never blended: mass has three source tiers
+  (config default; sum of resolved-L2 corner weights, "sum(corner_
+  weights)"; explicit setup_data.total_weight, priority above the
+  derived sum) and corner_weights has two (config default; all-four-
+  present session measurement, never a partial 3-of-4 promotion, to
+  avoid mixing a measured corner with a defaulted one in the same
+  front/rear fraction split). cog_position is a pure cascade from
+  corner_weights' own resolved level, not an independent source list.
+- Two node kinds this makes explicit: PURE cascades (cog_position --
+  the derived value is nothing but a geometric consequence of the
+  input, no ceiling of its own) vs METHOD-CEILINGED cascades
+  (yaw_inertia, method_ceiling=1 in the registry -- the m*a*b estimate
+  is itself an approximation whose error doesn't shrink just because
+  mass/cog_position get better-measured). lateral_force_split inherits
+  yaw_inertia's ceiling transitively, which is precisely why session-
+  measuring corner weights alone can never lift it past Level 1 --
+  Iz remains the binding constraint, not the input data.
+- Consistency check (not a blocking gate): when both an explicit
+  setup_data.total_weight and all four corner weights are available
+  and disagree by >1% relative, a footer warning fires ("session mass
+  inconsistent: total X vs corner sum Y") but the explicit total still
+  wins per the source-priority order -- no averaging, no refusal.
+- ACCURACY CAP IS A VIEWING CHOICE, NOT A REFERENCE-CONFIGURATION
+  CHANGE -- the load-bearing distinction for threshold interaction.
+  The reference configuration for classification-threshold derivation
+  is cap=Best-available with all currently-wired production sources
+  active (not every node forced to a theoretical Level 4 -- some,
+  e.g. yaw_inertia, may never move past their own method ceiling).
+  Selecting a lower cap to compare against a historical run never
+  touches what best-available itself yields, so it never triggers the
+  standing re-derivation rule (CLAUDE.md, config/parameters.json's own
+  classification._comment); only a change to the reference
+  configuration itself does -- a new source wired (WP5b(c)/(d)/(f)),
+  or real corner weights entered for the first time at an already-
+  wired source. On today's real outings (both all-zero setup_data),
+  every node resolves identically regardless of cap, so this
+  distinction has no live consequence yet -- it is recorded now so the
+  first setup_data fill or the first GPS-source WP doesn't have to
+  re-derive this reasoning from scratch.
+- Both cache identities (WP5 Outing.analysis_data, WP6 in-memory
+  _pipeline_cache) gained accuracy_cap + a resolved_vehicle_snapshot
+  (resolved values, not just levels -- two different real corner-
+  weight measurements could both resolve to Level 2 with different
+  numbers, so level alone is not a sufficient identity token). A cap
+  change or a setup_data edit since the cache was written invalidates
+  the entire Modules-1-5 cache, the same way a csv_path change already
+  does -- not a lap-filter-only Module-6 recompute, since mass/corner_
+  weights/cog_position feed Module 1 and Module 4a directly.
+  ANALYSIS_SCHEMA_VERSION bumped 1->2 for this payload-shape change; a
+  pre-WP-C cached payload has none of the new fields and is treated as
+  no cache at all on first open, same as any other schema-version
+  mismatch.
+
+### Full channel census + targeted verification (2622 channels) [2026-07-26]
+- Complete channel inventory of the raw Dubai log, re-scanned with correct
+  cp1252 decoding (the existing diagnostics/scan_channels.py's utf-8/
+  errors="replace" read mangles every degree-sign unit into U+FFFD).
+  RESULT: no lateral-velocity, sideslip, or optical-sensor channel exists
+  anywhere in the log -- vy/v_lat/lateral_vel/vel_y/beta/sideslip/drift/
+  attitude/heading/yaw_angle/Correvit/Kistler/optical/math/derived all
+  return zero matches. Closes the "is there a hidden measured beta"
+  question with direct evidence rather than absence-of-mention.
+- log_a_car heading hypothesis tested and REFUTED: d(log_a_car)/dt
+  (unwrapped, rad/s) vs sclu_yaw_rate-derived yaw_rate_radps over 3 racing
+  laps gives r=-0.001 (median ratio -0.008, should be ~1 if it were
+  heading); log_gps_course - log_a_car (angle-wrapped) spreads +-135 deg
+  even on straights (|ay|<0.1g) and matches our kinematic beta's sign in
+  only 1 of 3 known corners. Channel unidentified, deprioritized -- not a
+  usable heading/attitude source.
+- corner_radius confirmed as a live, already-logged curvature math
+  channel: correlation of 1/corner_radius against ay/v^2 = 0.87, median
+  ratio 0.95 (kinematic identity ay=v^2/R essentially confirmed
+  end-to-end from the logger's own onboard computation). Raw channel
+  stays live everywhere (including straights, where it blows up to
+  near-infinite magnitude); corner_radius_filtered is gated OFF entirely
+  on straights (zero samples present, not just smoothed) and stays
+  physically sane (tens-hundreds of metres) through corners. Both noted
+  as future cross-validation candidates for WP1/chair-style corner
+  detection -- not wired into anything yet.
+- TO_VBOX_01-05: constant 1.0 for the entire session, zero variance,
+  inert -- confirms the WP-A whitelist-removal finding rather than hiding
+  a disguised computed channel.
+- Per-wheel speeds (log_speed_fl/fr/rl/rr, 50 Hz, same rate as ecu_speed)
+  and abs_Slip_FL/FR/RL/RR (100 Hz) are both live and dynamic this
+  session -- per-wheel speeds differ from ecu_speed by tens of km/h
+  through a high-speed corner, abs_Slip shows hundreds of distinct
+  values -- but neither is consumed anywhere in modules/.
+
 ### Analysis layer vs human layer for corner identity [2026-07-22]
 - The tool detects LOAD EVENTS (anything stressing tyres, incl. flat-out
   kinks); humans think in NAMED corners (the track map in every driver's

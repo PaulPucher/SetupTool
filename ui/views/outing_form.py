@@ -63,16 +63,28 @@ class StabilityAnalysisThread(QThread):
     finished = pyqtSignal(object)
     error = pyqtSignal(str)
 
-    def __init__(self, parsed_data, lap_filter, pipeline_cache=None):
+    def __init__(self, parsed_data, lap_filter, pipeline_cache=None,
+                 cap=None, resolved_accuracy=None):
         super().__init__()
         self.parsed_data = parsed_data
         self.lap_filter = lap_filter
-        # WP6: {corners, state, cs, stab} from a prior full run on this same
-        # csv_path (matched by the caller before constructing this thread).
-        # When present, Modules 1-5 and corner detection are NOT re-run --
-        # only summarise_corners (Module 6) re-executes for the new
-        # lap_filter. None means run the full pipeline as before.
+        # WP6: {corners, state, cs, stab, accuracy_cap, resolved_vehicle_
+        # snapshot} from a prior full run on this same csv_path AND the same
+        # cap/resolved-vehicle-snapshot (matched by the caller before
+        # constructing this thread -- a cap or resolved-value change behaves
+        # like a csv_path change, full Modules-1-5 recompute, not a
+        # lap-filter-only Module-6 recompute). When present, Modules 1-5 and
+        # corner detection are NOT re-run -- only summarise_corners
+        # (Module 6) re-executes for the new lap_filter. None means run the
+        # full pipeline as before.
         self.pipeline_cache = pipeline_cache
+        # WP-C: the global accuracy-level cap (None = "best available", or
+        # int 1-4) and the already-resolved per-session accuracy (modules.
+        # accuracy_resolution.resolve_accuracy's output), both computed once
+        # by the caller so the same resolution backs both the pipeline-cache
+        # identity check and the actual computation below.
+        self.cap = cap
+        self.resolved_accuracy = resolved_accuracy
 
     def run(self):
         # TEMPORARY perf instrumentation (WP6 timing verification) -- one
@@ -86,6 +98,7 @@ class StabilityAnalysisThread(QThread):
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
                 summarise_corners,
             )
+            from modules.accuracy_resolution import apply_resolved_vehicle
             pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
@@ -94,15 +107,22 @@ class StabilityAnalysisThread(QThread):
                 stab = self.pipeline_cache["stab"]
             else:
                 params = load_parameters()
-                state = prepare_vehicle_state(self.parsed_data["channels"], params)
+                # WP-C: substitute the resolved (and cap-clipped) mass/
+                # corner_weights/cog values wherever Modules 1-5 read
+                # params["vehicle"] -- neither function's own body changes,
+                # they read the same keys as always, just off this
+                # deep-copied effective dict instead of the shared
+                # lru_cache'd one.
+                effective_params = apply_resolved_vehicle(params, self.resolved_accuracy)
+                state = prepare_vehicle_state(self.parsed_data["channels"], effective_params)
                 if state is None:
                     self.error.emit("Required channels missing or failed")
                     return
-                beta = estimate_sideslip(state, params)
-                slip = estimate_slip_angles(state, beta, params)
-                forces = estimate_lateral_forces(state, params)
-                cs = estimate_cornering_stiffness(slip, forces, state, params)
-                stab = estimate_yaw_moment_stability(state, beta, params, self.parsed_data.get("laps", []))
+                beta = estimate_sideslip(state, effective_params)
+                slip = estimate_slip_angles(state, beta, effective_params)
+                forces = estimate_lateral_forces(state, effective_params)
+                cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+                stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
                 corners = self.parsed_data.get("corners", [])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
@@ -116,6 +136,8 @@ class StabilityAnalysisThread(QThread):
                 "cs": cs,
                 "stab": stab,
                 "corners": corners,
+                "cap": self.cap,
+                "resolved_accuracy": self.resolved_accuracy,
             })
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
@@ -475,6 +497,16 @@ class OutingForm(QWidget):
         self.btn_analyse.clicked.connect(self._run_stability_analysis)
         self.btn_analyse.setEnabled(False)
 
+        # WP-C: global accuracy-level cap. A plain UI-selected value threaded
+        # into the analysis call like lap_filter -- modules/ never reads this
+        # combo box directly, only the int (or None for "best available")
+        # _get_accuracy_cap_from_selector() returns.
+        self.accuracy_cap_combo = QComboBox()
+        self.accuracy_cap_combo.addItems(
+            ["Best available", "Level 1", "Level 2", "Level 3", "Level 4"]
+        )
+        self.accuracy_cap_combo.setFixedWidth(130)
+
         self.csv_status_label = QLabel("No file loaded")
         self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
@@ -483,6 +515,7 @@ class OutingForm(QWidget):
 
         btn_layout.addWidget(btn_load)
         btn_layout.addWidget(self.btn_analyse)
+        btn_layout.addWidget(self.accuracy_cap_combo)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
         layout.addWidget(btn_row)
@@ -865,6 +898,28 @@ class OutingForm(QWidget):
             return all_laps
         return [int(selected_value)]
 
+    def _get_accuracy_cap_from_selector(self):
+        # WP-C: None means "Best available" -- no ceiling. Otherwise the
+        # plain int (1-4) crossing the UI/modules boundary like lap_filter.
+        text = self.accuracy_cap_combo.currentText()
+        if text == "Best available":
+            return None
+        return int(text.replace("Level ", ""))
+
+    def _get_setup_data_dict(self):
+        # WP-C resolver input: the PERSISTED setup_data for this outing, not
+        # any unsaved live form edits -- same convention core.pdf_export
+        # already uses. A brand-new unsaved outing (self.outing is None) or
+        # an outing with no setup_data yet resolves at Level 1 everywhere,
+        # same as today.
+        if not self.outing or not self.outing.setup_data:
+            return None
+        import json
+        try:
+            return json.loads(self.outing.setup_data)
+        except (json.JSONDecodeError, TypeError):
+            return None
+
     def _run_stability_analysis(self):
         if not self.parsed_data:
             return
@@ -889,13 +944,34 @@ class OutingForm(QWidget):
             f"Analysing laps {lap_filter}..."
         )
         self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
+
+        # WP-C: resolve accuracy once per Analyse click -- backs both the
+        # pipeline-cache identity check below and the thread's own
+        # computation, so the cache decision and the computation can never
+        # disagree about which values were used.
+        from modules.stability_analysis import load_parameters
+        from modules.accuracy_resolution import resolve_accuracy
+        cap = self._get_accuracy_cap_from_selector()
+        setup_data = self._get_setup_data_dict()
+        params = load_parameters()
+        resolved_accuracy = resolve_accuracy(params, setup_data, cap)
+
         # WP6: reuse the last full Modules-1-5 run if it's for this same
-        # file -- StabilityAnalysisThread then only re-runs summarise_corners.
+        # file AND the same cap/resolved-vehicle-snapshot -- a cap change or
+        # a setup_data edit invalidates this exactly like a csv_path change
+        # would (full Modules-1-5 recompute), not like a lap-filter-only
+        # change (Module-6-only recompute). StabilityAnalysisThread then
+        # only re-runs summarise_corners on a genuine hit.
         pipeline_cache = None
         if (self._pipeline_cache is not None
-                and self._pipeline_cache["csv_path"] == _norm_path(self.loaded_csv_path)):
+                and self._pipeline_cache["csv_path"] == _norm_path(self.loaded_csv_path)
+                and self._pipeline_cache.get("accuracy_cap") == cap
+                and self._pipeline_cache.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]):
             pipeline_cache = self._pipeline_cache
-        self.stab_thread = StabilityAnalysisThread(self.parsed_data, lap_filter, pipeline_cache=pipeline_cache)
+        self.stab_thread = StabilityAnalysisThread(
+            self.parsed_data, lap_filter, pipeline_cache=pipeline_cache,
+            cap=cap, resolved_accuracy=resolved_accuracy,
+        )
         self.stab_thread.finished.connect(self._on_stability_done)
         self.stab_thread.error.connect(self._on_stability_error)
         self.stab_thread.start()
@@ -904,24 +980,33 @@ class OutingForm(QWidget):
         self.stability_result = result
         # WP6: cache Modules 1-5's output for this file, self-contained
         # (corners included -- fast path must never re-run corner detection).
+        # WP-C: accuracy_cap + resolved_vehicle_snapshot join this identity --
+        # see the hit-check in _run_stability_analysis.
         self._pipeline_cache = {
             "csv_path": _norm_path(self.loaded_csv_path),
             "corners": result["corners"],
             "state": result["state"],
             "cs": result["cs"],
             "stab": result["stab"],
+            "accuracy_cap": result["cap"],
+            "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
         }
         # WP5: build (not yet write) the cache payload for this analysis;
         # _save_outing uses whatever this holds, so a save after a cache-hit
         # render (no fresh Analyse this session) still persists correctly.
         lap_filter = self.stab_thread.lap_filter
-        self._analysis_data_json = self._build_analysis_data_json(result["summaries"], lap_filter)
+        self._analysis_data_json = self._build_analysis_data_json(
+            result["summaries"], lap_filter, result["cap"], result["resolved_accuracy"]
+        )
         if self.outing:
             self._persist_analysis_cache()
         # TEMPORARY perf instrumentation (WP6 timing verification).
         import time
         t_render0 = time.perf_counter()
-        self._render_stability_summaries(result["summaries"], cached=False)
+        self._render_stability_summaries(
+            result["summaries"], cached=False,
+            cap=result["cap"], resolved_accuracy=result["resolved_accuracy"],
+        )
         t_render1 = time.perf_counter()
         print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
         if hasattr(self, "_analyse_click_time"):
@@ -981,7 +1066,7 @@ class OutingForm(QWidget):
             self.exclude_inout_btn.setChecked(want_exclude)
         return True
 
-    def _build_analysis_data_json(self, summaries, lap_filter):
+    def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -991,6 +1076,18 @@ class OutingForm(QWidget):
             "summaries": summaries,
             "generated_at": datetime.datetime.now().isoformat(),
             "schema_version": ANALYSIS_SCHEMA_VERSION,
+            # WP-C: the cap this run was generated under, the resolved
+            # per-node levels (footer display), the resolved vehicle
+            # snapshot (WP5/WP6 cache identity -- level alone is not a
+            # sufficient identity token, two different real corner-weight
+            # measurements could both resolve to L2 with different numbers),
+            # whether the cap actually clipped anything, and any resolver
+            # warnings (e.g. the mass/corner-sum consistency check).
+            "accuracy_cap": cap,
+            "resolved_levels": resolved_accuracy["levels"],
+            "resolved_vehicle_snapshot": resolved_accuracy["values"],
+            "resolved_clipped": resolved_accuracy["clipped"],
+            "resolved_warnings": resolved_accuracy["warnings"],
         }
         return json.dumps(payload)
 
@@ -1015,16 +1112,22 @@ class OutingForm(QWidget):
         # WP5 cache-hit path, called from _on_csv_loaded. Guards: existing
         # outing, parseable JSON, matching schema_version (guard B -- a
         # mismatch, e.g. from the pre-B1 estimator, is treated as no cache
-        # at all), matching csv_path (normalised). Verdicts are never part
-        # of the stored payload -- _render_stability_summaries always
-        # classifies live from current config (guard A).
+        # at all), matching csv_path (normalised), and (WP-C) a matching
+        # accuracy_cap + a freshly-recomputed resolved_vehicle_snapshot --
+        # this is what catches "setup_data was edited since this cache was
+        # written" without needing a separate content hash: recomputing the
+        # resolution is cheap (plain field reads/compares), not a Modules-1-5
+        # recompute. Verdicts are never part of the stored payload --
+        # _render_stability_summaries always classifies live from current
+        # config (guard A).
         # TEMPORARY perf instrumentation (WP6 timing verification).
         import time
         t0 = time.perf_counter()
         if not self.outing or not self.outing.analysis_data:
             return False
         import json
-        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
+        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION, load_parameters
+        from modules.accuracy_resolution import resolve_accuracy
         try:
             cached = json.loads(self.outing.analysis_data)
         except (json.JSONDecodeError, TypeError):
@@ -1033,6 +1136,12 @@ class OutingForm(QWidget):
             return False
         if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
             return False
+        cap = self._get_accuracy_cap_from_selector()
+        if cached.get("accuracy_cap") != cap:
+            return False
+        current_resolved = resolve_accuracy(load_parameters(), self._get_setup_data_dict(), cap)
+        if current_resolved["values"] != cached.get("resolved_vehicle_snapshot"):
+            return False
         summaries = cached.get("summaries")
         if not summaries:
             return False
@@ -1040,25 +1149,87 @@ class OutingForm(QWidget):
         self._sync_lap_selector_to_filter(lap_filter)
         self.stability_result = {"summaries": summaries}
         self._analysis_data_json = self.outing.analysis_data
-        self._render_stability_summaries(summaries, cached=True, lap_filter=lap_filter)
+        cached_resolved_accuracy = {
+            "levels": cached.get("resolved_levels"),
+            "values": cached.get("resolved_vehicle_snapshot"),
+            "clipped": cached.get("resolved_clipped"),
+            "warnings": cached.get("resolved_warnings") or [],
+        }
+        self._render_stability_summaries(
+            summaries, cached=True, lap_filter=lap_filter,
+            cap=cap, resolved_accuracy=cached_resolved_accuracy,
+        )
         t1 = time.perf_counter()
         print(f"[PERF] db_cache_hit=True  render+sync total: {t1 - t0:.3f}s")
         return True
 
-    def _render_stability_summaries(self, summaries, cached=False, lap_filter=None):
+    # WP-C: short display labels for the resolved-level footer -- not every
+    # registry node name is worth spelling out in a compact one-line strip.
+    _ACCURACY_FOOTER_LABELS = [
+        ("mass", "mass"),
+        ("corner_weights", "corners"),
+        ("cog_position", "cog"),
+        ("yaw_inertia", "Iz"),
+        ("steering_ratio", "steer_ratio"),
+        ("lateral_force_split", "Fy_split"),
+        ("sideslip_angle", "beta"),
+        ("speed", "speed"),
+        ("yaw_rate", "yaw_rate"),
+        ("steering_angle", "steer_ang"),
+        ("lateral_acc", "ay"),
+        ("wheelbase_m", "wheelbase"),
+    ]
+
+    def _format_accuracy_footer(self, levels):
+        if not levels:
+            return ""
+        parts = [
+            f"{label} L{levels[node]}"
+            for node, label in self._ACCURACY_FOOTER_LABELS
+            if node in levels
+        ]
+        return " | ".join(parts)
+
+    def _render_stability_summaries(self, summaries, cached=False, lap_filter=None,
+                                     cap=None, resolved_accuracy=None):
         # Shared by the live analysis-finished path and the WP5 cache-hit
         # path -- the ONLY place that builds cards/classifies from a
         # summaries list, so a threshold re-derivation always shows up here
         # on next render regardless of which path produced the summaries.
+        #
+        # WP-C comparison-run tag: fires only when the cap actually clipped
+        # a dynamically-resolved node below its own best-available level for
+        # this setup_data -- selecting a non-default cap that happens not to
+        # bind on today's data must not read as a comparison run. Thresholds
+        # themselves are never re-derived for a capped run (see thesis_notes.
+        # md "Accuracy cap is a viewing choice, not a reference-configuration
+        # change") -- the caveat that verdicts still come from the reference-
+        # configuration thresholds surfaces here, next to the same label a
+        # capped run's own numbers are shown under.
+        comparison_tag = ""
+        if resolved_accuracy and resolved_accuracy.get("clipped"):
+            cap_label = f"Level<={cap}" if cap is not None else "Level<=?"
+            comparison_tag = (
+                f" -- COMPARISON RUN ({cap_label}): verdicts use thresholds "
+                f"derived at the reference configuration; not directly "
+                f"comparable to a production run."
+            )
         if cached:
             self.stability_status_label.setText(
-                f"cached ({self._format_lap_filter_label(lap_filter)}) - re-run Analyse to refresh"
+                f"cached ({self._format_lap_filter_label(lap_filter)}) - "
+                f"re-run Analyse to refresh{comparison_tag}"
             )
         else:
             self.stability_status_label.setText(
-                f"Analysed {len(summaries)} corners. See Stability Analysis section."
+                f"Analysed {len(summaries)} corners. See Stability Analysis "
+                f"section.{comparison_tag}"
             )
-        self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+        self.stability_status_label.setStyleSheet(
+            f"color: {WARN if comparison_tag else TEXT_MUTED}; font-size: 12px;"
+        )
+        self.accuracy_footer_label.setText(
+            self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
+        )
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
         self._update_corner_map_markers()
@@ -1361,6 +1532,13 @@ class OutingForm(QWidget):
         )
         self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.stability_summary_label)
+
+        # WP-C: compact per-node resolved-accuracy footer, always rendered
+        # alongside the summary line above (live analysis or cache-hit).
+        self.accuracy_footer_label = QLabel("")
+        self.accuracy_footer_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        self.accuracy_footer_label.setWordWrap(True)
+        panel_layout.addWidget(self.accuracy_footer_label)
 
         self.cards_scroll = QScrollArea()
         self.cards_scroll.setWidgetResizable(True)
