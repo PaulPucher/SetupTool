@@ -45,6 +45,34 @@ HOW TO USE:
   — engineering robustness choices, explicitly NOT claimed as
   methodological novelty.
 
+### Module 4b vs. the chair estimator: method-identical, not implementation-identical [2026-07-26]
+- Line-by-line verification against `docs/literature/cornering_
+  stiffness_estimator.py` (study document §7) found all method-
+  defining parameters and mathematical operations equal (2 Hz BW4
+  input filter, 0.02 rad adaptive window span, 0.021 rad linear-hold
+  threshold, weighting orders 1 overall / 4 section-wise, the ratio
+  construction itself) but the implementation independent: eight
+  structural differences (windowing algorithm, concurrency, slope/R2
+  computation path, filter-application module boundary, and four
+  others, see study doc §7). Precise framing going forward: METHOD-
+  IDENTICAL, not "source-verified identical" -- the latter overclaims
+  what line-by-line code comparison actually supports.
+- Two of the eight differences can alter outputs in edge regimes, not
+  just code shape: the minimum-window-sample floor
+  (`cs_min_window_samples=10`, config-documented Tier B hardening,
+  no chair-side equivalent beyond the mathematical >1-sample minimum)
+  and the `_smooth_weight` input-clipping SetupTool added on top of an
+  otherwise identical weighting formula. Both classed NEUTRAL
+  ENGINEERING / Tier B hardening, not method changes -- they change
+  robustness at the margins, not what the method computes in the
+  normal operating range.
+- Also found during the same pass, unrelated to the identical-vs-
+  independent framing: `cs_front_fallback_reference_n_per_rad`/
+  `cs_rear_fallback_reference_n_per_rad` (config/parameters.json,
+  commented as Milliken & Milliken RCVD GT3-slick fallback values for
+  when OLS cannot resolve linear stiffness from data) are defined but
+  consumed nowhere in `modules/` -- see PLAN.md open thread.
+
 ### Fy yaw-moment term (Module 4a) [2026-07-24]
 - Replaces the pure static weight split (Fy_f = m*ay*front_fraction,
   Fy_r = m*ay*rear_fraction) with the exact 2-DOF planar force/moment
@@ -193,6 +221,22 @@ HOW TO USE:
 - Catches a different failure mode than CS_ratio: tyre can be within grip
   while vehicle dynamics are unstable, and vice versa.
 
+### Front/rear saturation and saddle-node concept anchors closed [2026-07-26]
+- Hoffman, R.C., Stein, J.L., Louca, L.S., Huh, K. (2008), "Using the
+  Milliken Moment Method and dynamic simulation to evaluate vehicle
+  stability and controllability," Int. J. Vehicle Design, Vol. 48,
+  Nos. 1/2, pp. 132-148 -- front-axle saturation as loss of
+  directional control vs. rear-axle saturation as loss of stability,
+  and the front/rear -> controllability/stability pairing, at p. 136,
+  Section 2. Verified against the primary source by the reviewer,
+  2026-07-26; added to the Module 5 docstring
+  (`estimate_yaw_moment_stability`, `modules/stability_analysis.py`).
+- Saddle-node bifurcation framing: Ono et al. (1998), cited after
+  Hoffman et al. (2008, p. 136) until the primary Ono source is
+  obtained directly. Cited as motivation for the stability-derivative
+  framing only -- SetupTool implements no bifurcation analysis, no
+  phase-plane computation, nowhere in `modules/`.
+
 ### Completing Werner Eq. 4.3 — damping term via wheel loads [2026-07-24]
 - Werner could not evaluate the damping term D_psi (no wheel-load
   sensors, his §4.5.2) and stopped measurement-side Mz analysis there.
@@ -243,9 +287,15 @@ HOW TO USE:
   1 (the old threshold only just crossed lap 3's value, missing the
   other 3 laps of the same corner that were arguably worse). Sample-level
   exceedance is 3.0% (new) vs 2.7% (old) -- comparable order of
-  magnitude despite the ~10x smaller absolute threshold, because the
+  magnitude despite the ~10x smaller absolute threshold, ~~because the
   new estimator's whole distribution is compressed by roughly the same
-  factor (see B1 report).
+  factor~~ [SUPERSEDED 2026-07-26, study document §8d: compression is
+  QUANTILE-DEPENDENT, not a single uniform factor applied to the whole
+  distribution -- ~5x at the median (2676->561 Nm/deg) vs ~10x at p2.5
+  (-554.1->-50); the tails compress more than the centre. The p2.5/
+  threshold-level ~10x figure above is still correct as far as it
+  goes; "the whole distribution... by roughly the same factor" is the
+  part that overstated it] (see B1 report).
 - Ground-truth check: ground truth for Dubai is a balanced car with mild
   understeer tendency and no reported yaw instability. A single
   consistently-destabilising physical corner across all 4 laps, and
@@ -286,10 +336,18 @@ HOW TO USE:
   quantifies the shift.
 - THREE SetupTool-specific adaptations, all at the call site, estimator
   itself untouched (mirrors the CS_ratio adaptation-layer pattern):
-  (a) yaw acceleration is differentiated from the raw yaw-rate channel
+  (a) ~~yaw acceleration is differentiated from the raw yaw-rate channel
   only -- the chair function also accepts a pre-smoothed yaw-rate input
   from a chair-external filter list that is outside this project's
-  reference scope, so only the raw-signal path is reproduced.
+  reference scope, so only the raw-signal path is reproduced.~~
+  [SUPERSEDED 2026-07-26, study document §8b, direct read of the chair
+  file: the chair's function is not a raw-path-vs-one-pre-smoothed-
+  alternative choice but a FOUR-TIER fallback chain (pre-smoothed
+  accel column, pre-smoothed rate column, raw-but-precomputed accel
+  column, then raw yaw-rate+time as the last resort). SetupTool's path
+  is confirmed to be exactly the chair's own last-resort tier, not a
+  simplification invented for this project -- see study doc §8b for
+  the full chain and file:line citations.]
   (b) the chair invokes its estimator unmasked on a full session,
   relying on its own dropna handling for missing data; SetupTool feeds
   it the same arrays with three sample-exclusion masks pre-applied as
@@ -350,6 +408,22 @@ HOW TO USE:
   coordinate degeneracy is known, whereas the inlap leg is a genuine
   domain judgement call.
 
+### B1 exclusion ablation numbers (from the B1 diagnostic report, 2026-07-24)
+- With in/out-lap exclusion applied: 94.8% of valid samples stabilising.
+  Without exclusion: 73.1%.
+- CAVEAT, load-bearing: B2 (see "In/out-lap exclusion: two-leg
+  rationale" above) attributed the without-exclusion run's negative
+  tail overwhelmingly to the outlap coordinate artifact (the -97
+  Nm/deg plateau, 96% outlap samples at one grid point) -- not to a
+  genuine cold-tyre destabilising signal. This ablation therefore
+  quantifies the DATA-VALIDITY leg of the exclusion rationale (the
+  outlap's fabricated s-coordinate corrupting the local regression),
+  not the cold-tyre/stationarity leg (the inlap's genuine but
+  unquantified-by-this-number representativeness argument). Do not
+  cite 73.1% as evidence that cold tyres are destabilising -- B2
+  already showed the shortfall is dominated by a coordinate artifact,
+  not a physical effect.
+
 ### Pooled grid makes stability a per-corner, not per-lap-instance, property [2026-07-24]
 - Structural consequence of s-anchoring (B1): because the local
   Gaussian window at a given grid point in s pools samples from every
@@ -388,9 +462,13 @@ HOW TO USE:
   midpoint corresponding to no real track position). Tier B
   channel-alignment necessity, not a method change.
 - CLASSIFICATION (deviation taxonomy, CLAUDE.md) [2026-07-24]: (a) the
-  raw-yaw-rate-only path = FORCED ADAPTATION (the chair's pre-smoothed-
+  raw-yaw-rate-only path = FORCED ADAPTATION ~~(the chair's pre-smoothed-
   input filter list is outside this reference's scope; no alternative
-  input is available to us). (b) the NaN-then-dropna masking wiring
+  input is available to us)~~ [SUPERSEDED 2026-07-26, see the dated
+  correction above and study document §8b -- the classification itself
+  (FORCED ADAPTATION) is unchanged; only the "filter list"/single-
+  alternative parenthetical is imprecise, since the chair path is a
+  four-tier fallback chain, not one alternative]. (b) the NaN-then-dropna masking wiring
   itself = NEUTRAL ENGINEERING (no science content, just how the three
   exclusions are fed into the chair's own missing-data handling). (c)
   structural in/out-lap exclusion = DOMAIN IMPROVEMENT overall
@@ -820,6 +898,32 @@ HOW TO USE:
 - Rule-implementation caveat: valid for understeer WITH throttle
   involvement (apex-on-power, exit), not off-throttle push - phase
   detection can scope this via throttle/ax.
+
+### Reference-grid choice reviewed against the chair's fixed-rate resampling [2026-07-26]
+- `ecu_speed`'s time base as the common resampling grid (`prepare_
+  vehicle_state`) was a pragmatic early-development choice with no
+  documented reasoning; reviewed against the chair's fixed 100 Hz
+  resampling grid and deliberately retained, since `ecu_speed` is
+  required and measured near-uniform on Dubai (median dt 20.0000 ms,
+  p95 jitter 0.0000 ms, ~50.000 Hz over 40800 samples), making it
+  functionally equivalent to a fixed grid without re-triggering
+  threshold re-derivation project-wide.
+- The measured 50 Hz differs from the chair's 100 Hz default; this is
+  immaterial -- upsampling native 50 Hz data adds no information, and
+  every downstream filter parameter derives from the measured rate,
+  not a hardcoded one -- the chair-exact yaw-accel window formula
+  yields a 9-sample (~0.18 s) window at this rate, identical to what
+  the chair code would produce on the same data.
+
+### Observer/Kalman-filter beta estimation reviewed and not adopted [2026-07-26]
+- No observer/Kalman estimator was considered at implementation time
+  (early AI-assisted choice); reviewed 2026-07-26 and deliberately
+  retained: the kinematic route is the minimal-assumption method using
+  only directly-logged IMU channels, consistent with the project's
+  measurement-side no-vehicle-model principle -- an observer would
+  require exactly the tyre/vehicle model parameters this project
+  deliberately does not claim. Observer-based estimation is future
+  work conditional on a validated vehicle model.
 
 ## 3. Validation results (Dubai sample, 992 GT3R, 5 valid laps, 50 Hz)
 

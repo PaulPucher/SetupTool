@@ -33,3 +33,6 @@ diagnostics/*.png
 docs/car_data/
 config/car_data.json
 docs/literature/
+
+# Study document — local only, LaTeX conversion pass stays out of the repo
+docs/study/

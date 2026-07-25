@@ -178,6 +178,31 @@ setCurrentText() no-ops on unmatched text, so it silently shows P8;
 accepted by user decision (see UI polish note above). test_stability.py
 byte-identical (structural -- this WP touches no code test_stability.py
 imports).
+Open threads: corner_analysis.py:359 lap_distance interpolation lacks
+the lap-boundary reset guard that stability_analysis has (found
+2026-07-25 during study doc stage 2). Fix requires WP1-freeze proof:
+before/after identical stable_corner_id assignment and corner count on
+Dubai. Small targeted WP after study document.
+cs_front/rear_fallback_reference config keys defined+commented but
+consumed nowhere (found 2026-07-26). Decision needed: wire per comment
+(estimator change, triggers re-derivation -- bundle with WP5b(b)) or
+remove. Do not wire casually.
+Chair estimator has a time_s-anchored fallback mode (window/grid
+scaled /50) when s_m is unusable; SetupTool short-circuits to
+all-invalid instead (study doc §8c). Decide: port the fallback tier or
+document the short-circuit as deliberate. Moot for current data.
+Accuracy-level registry consolidation (rider WP): single source in
+config, wire the inline dict + the hardcoded duplicate, add beta +
+wheelbase entries, verify and apply the weakest-link semantics, re-tag
+accordingly; found 2026-07-26, study doc §11.
+Repo handover procedure (decided 2026-07-26): docs/car_data images
+exist in main's HISTORY (untracked from the index 2026-07-26, prior
+commits unaffected). Therefore the showing branch MUST be an orphan
+branch (no parent history) pushed to a separate submission remote;
+never grant access to the working remote. No history rewrite on main
+- keeps OLD_REF and all recorded commit hashes valid. Protected-set
+verification from now on: git ls-files on all protected paths must
+return empty, check-ignore alone is insufficient.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
@@ -703,6 +728,15 @@ after caching (measure first, ask the user).
    MID-lap `ecu_B_speedlimit_en` engagement (already whitelisted in
    `config/channels.json` for this reason) rather than a trailing-fragment
    merge. Deferred until such a file is available to validate against.
+10. **Aggregate force-balance Mz cross-check** is computable from
+    existing axle Fy (chair's aggregate tier needs no wheel forces) —
+    candidate diagnostic, not method. Found 2026-07-26 (study document
+    §8): the chair's own force-balance Mz function has an aggregate
+    fallback tier, `mz = lf*Fy_f - lr*Fy_r`, needing only axle-level
+    lateral forces and CoG-to-axle distances — SetupTool's Module 4a
+    already computes `Fy_f`/`Fy_r`. Unlike the chair's full per-wheel
+    tier (needs per-wheel tyre forces this project doesn't have), this
+    aggregate cross-check could be wired without new sensor data.
 
 ---
 

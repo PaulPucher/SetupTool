@@ -528,6 +528,12 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     (internal) -- see thesis_notes.md for the attribution split and the
     call-site sample-exclusion adaptation notes below.
 
+    Front/rear saturation as controllability-loss vs stability-loss:
+    Hoffman, Stein, Louca, Huh (2008), Int. J. Vehicle Design, Vol. 48,
+    Nos. 1/2, pp. 132-148, p. 136 Section 2. Saddle-node framing
+    (motivation only, no bifurcation analysis implemented): Ono et al.
+    (1998), cited after Hoffman et al. (2008, p. 136).
+
     Sample exclusions (moving mask, kerb mask, structural in/out-lap
     exclusion) are all applied HERE, at the call site, by NaN-ing
     excluded samples before handing arrays to the chair-derived
