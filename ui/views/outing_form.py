@@ -75,6 +75,10 @@ class StabilityAnalysisThread(QThread):
         self.pipeline_cache = pipeline_cache
 
     def run(self):
+        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
+        # manual timing run, then keep or remove per user decision.
+        import time
+        t0 = time.perf_counter()
         try:
             from modules.stability_analysis import (
                 load_parameters, prepare_vehicle_state, estimate_sideslip,
@@ -82,6 +86,7 @@ class StabilityAnalysisThread(QThread):
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
                 summarise_corners,
             )
+            pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
                 state = self.pipeline_cache["state"]
@@ -99,8 +104,12 @@ class StabilityAnalysisThread(QThread):
                 cs = estimate_cornering_stiffness(slip, forces, state, params)
                 stab = estimate_yaw_moment_stability(state, beta, params, self.parsed_data.get("laps", []))
                 corners = self.parsed_data.get("corners", [])
+            t_modules = time.perf_counter()
+            print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
             summaries = summarise_corners(corners, cs, stab, state,
                                           lap_filter=self.lap_filter)
+            t_summarise = time.perf_counter()
+            print(f"[PERF] summarise_corners: {t_summarise - t_modules:.3f}s")
             self.finished.emit({
                 "summaries": summaries,
                 "state": state,
@@ -108,6 +117,8 @@ class StabilityAnalysisThread(QThread):
                 "stab": stab,
                 "corners": corners,
             })
+            t_total = time.perf_counter()
+            print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
         except Exception as e:
             self.error.emit(str(e))
 
@@ -857,6 +868,10 @@ class OutingForm(QWidget):
     def _run_stability_analysis(self):
         if not self.parsed_data:
             return
+        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
+        # manual timing run, then keep or remove per user decision.
+        import time
+        self._analyse_click_time = time.perf_counter()
         lap_filter = self._get_lap_filter_from_selector()
         all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
         exclude_state = self.exclude_inout_btn.isChecked()
@@ -903,7 +918,14 @@ class OutingForm(QWidget):
         self._analysis_data_json = self._build_analysis_data_json(result["summaries"], lap_filter)
         if self.outing:
             self._persist_analysis_cache()
+        # TEMPORARY perf instrumentation (WP6 timing verification).
+        import time
+        t_render0 = time.perf_counter()
         self._render_stability_summaries(result["summaries"], cached=False)
+        t_render1 = time.perf_counter()
+        print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
+        if hasattr(self, "_analyse_click_time"):
+            print(f"[PERF] total (click-to-rendered): {t_render1 - self._analyse_click_time:.3f}s")
 
     def _format_lap_filter_label(self, lap_filter):
         if not lap_filter:
@@ -914,6 +936,50 @@ class OutingForm(QWidget):
         if laps == list(range(laps[0], laps[-1] + 1)):
             return f"laps {laps[0]}-{laps[-1]}"
         return "laps " + ",".join(str(l) for l in laps)
+
+    def _sync_lap_selector_to_filter(self, lap_filter):
+        # Reverses the earlier "no lap-selector reconstruction" decision: on
+        # a DB cache-hit render, the selector should match what's shown, not
+        # just the label. Only syncs when the stored filter corresponds to a
+        # state the selector UI can actually produce (a single in-file lap,
+        # exactly all laps, or exactly the valid-for-analysis laps) --
+        # anything else, including a filter referencing laps not present in
+        # the current file, is left alone; the "cached (...)" label stays
+        # the only indicator in that case.
+        if not lap_filter or not self.parsed_data:
+            return False
+        laps_data = self.parsed_data.get("laps", [])
+        all_laps = sorted({l["lap_number"] for l in laps_data})
+        valid_laps = sorted(l["lap_number"] for l in laps_data if l.get("is_valid_for_analysis", False))
+        target = sorted(lap_filter)
+
+        if any(lap not in all_laps for lap in target):
+            return False
+
+        def select_userrole(value):
+            for row in range(self.lap_table.rowCount()):
+                item = self.lap_table.item(row, 0)
+                if item is not None and item.data(Qt.ItemDataRole.UserRole) == value:
+                    self.lap_table.selectRow(row)
+                    return True
+            return False
+
+        if len(target) == 1:
+            if self.exclude_inout_btn.isChecked():
+                self.exclude_inout_btn.setChecked(False)
+            return select_userrole(target[0])
+
+        if target == all_laps:
+            want_exclude = False
+        elif valid_laps and target == valid_laps:
+            want_exclude = True
+        else:
+            return False
+
+        select_userrole("all")
+        if self.exclude_inout_btn.isChecked() != want_exclude:
+            self.exclude_inout_btn.setChecked(want_exclude)
+        return True
 
     def _build_analysis_data_json(self, summaries, lap_filter):
         import json
@@ -952,6 +1018,9 @@ class OutingForm(QWidget):
         # at all), matching csv_path (normalised). Verdicts are never part
         # of the stored payload -- _render_stability_summaries always
         # classifies live from current config (guard A).
+        # TEMPORARY perf instrumentation (WP6 timing verification).
+        import time
+        t0 = time.perf_counter()
         if not self.outing or not self.outing.analysis_data:
             return False
         import json
@@ -967,11 +1036,13 @@ class OutingForm(QWidget):
         summaries = cached.get("summaries")
         if not summaries:
             return False
+        lap_filter = cached.get("lap_filter")
+        self._sync_lap_selector_to_filter(lap_filter)
         self.stability_result = {"summaries": summaries}
         self._analysis_data_json = self.outing.analysis_data
-        self._render_stability_summaries(
-            summaries, cached=True, lap_filter=cached.get("lap_filter")
-        )
+        self._render_stability_summaries(summaries, cached=True, lap_filter=lap_filter)
+        t1 = time.perf_counter()
+        print(f"[PERF] db_cache_hit=True  render+sync total: {t1 - t0:.3f}s")
         return True
 
     def _render_stability_summaries(self, summaries, cached=False, lap_filter=None):

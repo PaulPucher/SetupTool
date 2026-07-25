@@ -808,6 +808,19 @@ HOW TO USE:
   sets the value, recommendability is about whether the engine has
   anything useful to say about it.
 
+### TC LAT for power-induced understeer - engineer rationale resolved [2026-07-25]
+- Questionnaire S3-Med escalation "TC LAT +1" for apex understeer
+  initially flagged as contradicting the stated convention (higher =
+  less rotation). Resolved via load-transfer mechanism (engineer +
+  project lead): earlier lateral-TC intervention cuts torque sooner,
+  reducing acceleration squat and keeping load on the front axle -
+  "more reserves on the front". The convention text describes the
+  anti-rotation effect on an oversteering car; this use case is a
+  pushing car under power.
+- Rule-implementation caveat: valid for understeer WITH throttle
+  involvement (apex-on-power, exit), not off-throttle push - phase
+  detection can scope this via throttle/ax.
+
 ## 3. Validation results (Dubai sample, 992 GT3R, 5 valid laps, 50 Hz)
 
 - beta: -4.29 to +2.91 deg, mean abs 0.87 deg — plausible GT magnitude.
