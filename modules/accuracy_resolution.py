@@ -266,16 +266,36 @@ def resolve_accuracy(params, setup_data=None, cap=None):
     registry node mirrors its static declared level unchanged.
 
     Returns {"levels": {node: level}, "values": {mass_kg, corner_weights,
-    cog_to_front_axle_m, cog_to_rear_axle_m, steering_ratio}, "clipped":
-    bool, "warnings": [str, ...]}. "values" is JSON-serialisable (plain
+    cog_to_front_axle_m, cog_to_rear_axle_m, steering_ratio, plus the
+    static section-1 physics constants below}, "clipped": bool,
+    "warnings": [str, ...]}. "values" is JSON-serialisable (plain
     floats/lists/dicts, no numpy arrays) since it flows directly into the
     WP5 cache payload and the WP6 identity check. "clipped" is true iff
     the cap actually lowered a dynamically-resolved node below its own
     best-available level -- selecting a cap that happens not to bind on
     today's data (or today's car_data.json availability) must not read
     as a comparison run.
+
+    PART B amendment (2026-07-27): "values" also carries cog_height_m,
+    track_width_front_m, track_width_rear_m, wheelbase_m,
+    yaw_inertia_kgm2, and the four aero.* fields -- straight passthrough
+    from params["vehicle"], no per-session resolution logic of their own
+    (unlike the five dynamically-wired fields above). They exist in this
+    dict SOLELY so the WP5/WP6 cache identity checks (both compare this
+    whole dict for equality) notice a settings-window edit to any of
+    them -- apply_resolved_vehicle below never reads these keys, so
+    adding them cannot change what Modules 1-5 compute, only whether a
+    cached result is judged reusable. A settings save that changes one of
+    these values makes this dict compare unequal to any previously
+    cached/persisted snapshot; an OLD snapshot recorded before this
+    amendment simply lacks these keys entirely, which is already unequal
+    to a dict that has them -- no ANALYSIS_SCHEMA_VERSION bump needed,
+    same "no cache" fallback Guard B already provides for a schema
+    mismatch.
     """
     registry = params["accuracy_levels"]
+    vehicle = params["vehicle"]
+    aero = vehicle["aero"]
 
     corner_weights = _resolve_corner_weights(params, setup_data, cap)
     mass, mass_warnings = _resolve_mass(params, setup_data, cap, corner_weights)
@@ -303,6 +323,17 @@ def resolve_accuracy(params, setup_data=None, cap=None):
         "cog_to_front_axle_m": cog_position["value"]["cog_to_front_axle_m"],
         "cog_to_rear_axle_m": cog_position["value"]["cog_to_rear_axle_m"],
         "steering_ratio": steering_ratio["value"],
+        # PART B amendment: static passthrough, cache-identity only (see
+        # docstring above) -- never read by apply_resolved_vehicle.
+        "cog_height_m": vehicle["cog_height_m"],
+        "track_width_front_m": vehicle["track_width_front_m"],
+        "track_width_rear_m": vehicle["track_width_rear_m"],
+        "wheelbase_m": vehicle["wheelbase_m"],
+        "yaw_inertia_kgm2": vehicle["yaw_inertia_kgm2"],
+        "aero_air_density_kgm3": aero["air_density_kgm3"],
+        "aero_lift_coeff": aero["lift_coeff"],
+        "aero_cross_track_area_m2": aero["cross_track_area_m2"],
+        "aero_diff_cog_x_m": aero["diff_cog_x_m"],
     }
 
     return {

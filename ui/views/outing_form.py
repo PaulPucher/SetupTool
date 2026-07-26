@@ -1,6 +1,7 @@
 # Outing form — full form for creating a new outing.
 
 import os
+import weakref
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QScrollArea, QPushButton,
@@ -30,6 +31,16 @@ def _norm_path(path):
     if not path:
         return path
     return os.path.normcase(os.path.normpath(path))
+
+
+def invalidate_all_pipeline_caches():
+    # PART B amendment: called by the settings page after a section-1 save.
+    # Redundant safety net, not the primary defense -- see OutingForm.
+    # _open_instances' comment. Forces every currently-alive OutingForm's
+    # next Analyse click to recompute Modules 1-5 from scratch, regardless
+    # of whether resolved_vehicle_snapshot happens to have changed.
+    for form in list(OutingForm._open_instances):
+        form._pipeline_cache = None
 
 
 class NoScrollSpinBox(QDoubleSpinBox):
@@ -151,8 +162,19 @@ class StabilityAnalysisThread(QThread):
 
 
 class OutingForm(QWidget):
+    # PART B amendment: every live OutingForm registers itself here so a
+    # settings save (a separate top-level page, no direct reference to any
+    # currently-open outing form) can still reach in and null each one's
+    # _pipeline_cache -- redundant safety alongside the structural fix
+    # (resolved_vehicle_snapshot now carries the section-1 constants, see
+    # modules/accuracy_resolution.py). WeakSet so an orphaned instance
+    # (OutingsView's own internal stack never removes closed forms) doesn't
+    # get kept alive artificially by this registry.
+    _open_instances = weakref.WeakSet()
+
     def __init__(self, weekend, on_back, outing=None):
         super().__init__()
+        OutingForm._open_instances.add(self)
         self.weekend = weekend
         self.on_back = on_back
         self.outing = outing
@@ -165,6 +187,9 @@ class OutingForm(QWidget):
         self.stability_result = None
         self.corner_positions_cache = None
         self.corner_map_trace_xy = None
+        # PART C: lazily-created, reused per-corner trace window (see
+        # ui/views/corner_trace_dialog.py) -- None until first opened.
+        self._corner_trace_dialog = None
         # WP6: {csv_path, corners, state, cs, stab} from the last full
         # Modules-1-5 run this session, or None. WP5: JSON string mirroring
         # whatever analysis_data should be persisted on next save (fresh
@@ -881,6 +906,8 @@ class OutingForm(QWidget):
         self._pipeline_cache = None
         self._analysis_data_json = None
         self._displayed_resolved_vehicle_snapshot = None
+        if self._corner_trace_dialog is not None:
+            self._corner_trace_dialog.hide()
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -1477,10 +1504,19 @@ class OutingForm(QWidget):
         btn_jump.clicked.connect(lambda _, t=summary["apex_time"]:
                                  self._jump_plot_to_time(t))
 
+        btn_trace = QPushButton("↕ trace")
+        btn_trace.setFixedWidth(70)
+        btn_trace.setStyleSheet(
+            f"background-color: {PANEL}; color: {TEXT_MUTED}; "
+            "font-size: 10px; padding: 2px 6px;"
+        )
+        btn_trace.clicked.connect(lambda _, s=summary: self._open_corner_trace(s))
+
         h_layout.addWidget(title)
         h_layout.addWidget(verdict_badge)
         h_layout.addStretch()
         h_layout.addWidget(btn_jump)
+        h_layout.addWidget(btn_trace)
         layout.addWidget(header)
 
         # Per-phase table
@@ -1688,10 +1724,11 @@ class OutingForm(QWidget):
         feedback_data = json.loads(self._collect_feedback_data())
         setup_data = json.loads(self._collect_setup_data())
         config = load_recommendations_config()
+        driving_level = self._resolve_current_driving_level()
 
         results = generate_recommendations(
             summaries, self._classify_corner, feedback_data, setup_data, config,
-            outing=self.outing
+            outing=self.outing, driving_level=driving_level,
         )
 
         rule_status = {r["id"]: r.get("status", "seed") for r in config["rules"]}
@@ -1709,11 +1746,25 @@ class OutingForm(QWidget):
 
         insert_pos = self.recommendations_host_layout.count() - 1
         for r in results:
-            row = self._build_recommendation_row(r, rule_status, analysed_lap_count)
+            row = self._build_recommendation_row(r, rule_status, analysed_lap_count, driving_level)
             self.recommendations_host_layout.insertWidget(insert_pos, row)
             insert_pos += 1
 
-    def _build_recommendation_row(self, r, rule_status, analysed_lap_count):
+    def _resolve_current_driving_level(self):
+        # PART A: resolved from the currently selected driver in the combo,
+        # not self.outing.driver_id -- a new, not-yet-saved outing has no
+        # outing.driver_id yet even though a driver may already be selected
+        # here. Same read _save_outing itself uses for driver_id (below).
+        driver_id = self.driver_combo.currentData()
+        if driver_id is None:
+            return None
+        session = Session()
+        driver = session.get(Driver, driver_id)
+        level = driver.driving_level if driver else None
+        session.close()
+        return level
+
+    def _build_recommendation_row(self, r, rule_status, analysed_lap_count, driving_level=None):
         card = QWidget()
         card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         card_layout = QVBoxLayout(card)
@@ -1831,7 +1882,12 @@ class OutingForm(QWidget):
 
         if r["conflicts"]:
             conflict_ids = ", ".join(f"C{c['stable_corner_id']}" for c in r["conflicts"])
-            conflict_label = QLabel(f"driver and data disagree at {conflict_ids}")
+            # PART A: level context is one value for the whole outing (one
+            # driver), so it's appended once to the label rather than
+            # repeated per corner or threaded back through the engine's
+            # per-corner conflicts list.
+            level_note = f" (driver level {driving_level}/10)" if driving_level is not None else ""
+            conflict_label = QLabel(f"driver and data disagree at {conflict_ids}{level_note}")
             conflict_label.setStyleSheet(f"color: {WARN}; font-size: 10px;")
             card_layout.addWidget(conflict_label)
 
@@ -1911,6 +1967,17 @@ class OutingForm(QWidget):
                         padding=0
                     )
                 break
+
+    def _open_corner_trace(self, summary):
+        # PART C: reused, non-modal per-corner trace window (ui/views/
+        # corner_trace_dialog.py) -- created lazily, replotted in place on
+        # every click rather than spawned per corner.
+        from ui.views.corner_trace_dialog import CornerTraceDialog
+        if self._corner_trace_dialog is None:
+            self._corner_trace_dialog = CornerTraceDialog(self)
+        self._corner_trace_dialog.show_corner(
+            summary, self.stability_result or {}, self.parsed_data or {}
+        )
 
     def _on_stability_error(self, msg):
         self.stability_status_label.setText(f"Analysis failed: {msg}")

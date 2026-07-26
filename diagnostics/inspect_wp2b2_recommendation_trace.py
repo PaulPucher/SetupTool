@@ -1,7 +1,10 @@
 # Read-only trace of the WP2b-2 recommendation engine against the real,
 # persisted Dubai outing (data/setuptool.db, outing id=1: Sample_Dubai.txt,
-# real setup_data from the setup sheet, feedback_data all-zero -- no driver
-# feedback was ever entered for this outing). Default view: lap_filter=None
+# real setup_data from the setup sheet). feedback_data was all-zero when
+# this script was first written -- no longer true, the user has since
+# entered real feedback for this outing (see the printed source-echo line
+# below, added for exactly this reason: a stale assumption here could
+# otherwise silently mislead a future reader). Default view: lap_filter=None
 # (matches the app's own default -- "Exclude In/Out Laps" unchecked, all 7
 # laps 0-6 included), not the 5-valid-lap subset. No accuracy resolution
 # override (plain load_parameters(), consistent with other diagnostics/*.py
@@ -55,6 +58,20 @@ any_feedback = any(
     c["worst"] or any(c[k] != 0 for k in ("e1", "e2", "a3", "x4", "x5"))
     for c in feedback_data["corners"]
 )
+# Explicit source echo (added after this script's own header comment was
+# found to be stale -- it used to say feedback_data was "all-zero", which
+# stopped being true once the user actually entered feedback for this
+# outing). generate_recommendations() itself has two possible feedback
+# sources depending on the caller: the running app's live-form widgets
+# (ui/views/outing_form.py _generate_recommendations, via
+# self._collect_feedback_data()) or a persisted-db read like this one.
+# This script has no live QWidget state to read from -- it can ONLY ever
+# be "persisted-db" mode, never "live-form" -- so a future run's numbers
+# reflect the last SAVED state, not necessarily what's currently typed
+# into an open form. See diagnostics/inspect_recommendation_eligibility_
+# trace.py for the fuller live-form-vs-persisted-db explanation.
+print("feedback source: persisted-db (data/setuptool.db, outing id=1) "
+      "-- NOT live-form; this script cannot read an open form's widgets.")
 print(f"Persisted feedback_data: corner_count={feedback_data['corner_count']}, "
       f"any non-zero/worst entry: {any_feedback}")
 

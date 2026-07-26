@@ -672,6 +672,118 @@ HOW TO USE:
   sees in the grid for the same corner and phase, because both read
   the same classifier.
 
+### Consistency-gate feedback override [2026-07-27]
+- The per-lap consistency gate (`_consistency_gate_ok`, modules/
+  recommendation.py) normally requires a "data"/"both"-trigger verdict
+  to repeat on >= min_repeat_laps (2) AND >= min_repeat_fraction (0.4)
+  of a corner's analysed laps before it can fire at all -- a genuine
+  single-lap data flag, however severe, was structurally unable to
+  produce a recommendation on its own, even when the driver's own
+  feedback strongly corroborated it (see the PART A driver-level
+  feedback-weighting work: scaling fb_value only ever modulates score/
+  corroboration for an ALREADY-firing match, it cannot substitute for
+  a verdict that never clears the gate in the first place -- found
+  during the recommendation eligibility trace against the real Dubai
+  outing's own driver feedback, where a single-lap understeer verdict
+  at C9 was blocked purely by this gate, feedback aside).
+- Override (project-lead-elicited 2026-07-27): a candidate passes the
+  gate with an effective min_repeat_laps of 1 -- bypassing BOTH the
+  laps floor AND the fraction check, not just the former, since a
+  0.4-of-4-laps fraction would still reject a single repeat -- when
+  BOTH raw |feedback| >= feedback_override_raw_min (4) AND scaled
+  |feedback| >= feedback_override_scaled_min (4.0) (scaled = raw x the
+  driver_level_weighting multiplier, PART A). Two independent floors,
+  not one: the raw floor keys directly off the elicited driver
+  feedback-scale semantics -- +-2..3 is "clearly felt", +-4..5 is
+  "approaching undrivable" -- so raw>=4 specifically means the driver
+  is reporting the car is nearly undrivable at that phase, not merely
+  noticeable; the scaled floor exists independently to stop a LOW
+  driving_level's raw complaint from piercing the gate on weighting
+  alone (a raw-4 complaint from a level-1 driver, weight 0.6, scales
+  to 2.4, well under 4.0, and is correctly refused the override).
+- Rationale: a strong, unprompted driver complaint on a corner already
+  showing a moderate+ data verdict is itself consistency evidence -- a
+  capable driver will not provoke the same imbalance repeatedly across
+  laps just to make the data repeat, so demanding multi-lap repetition
+  on top of a near-undrivable complaint asks the data to double-
+  confirm what the driver has already reported directly.
+- Verified via synthetic checks (raw/level combinations against a
+  controlled single-lap-repeat corner): raw 4 / level 10 (scaled 6.0)
+  -> RECOMMENDED; raw 4 / level 2 (scaled 2.8, below the scaled floor)
+  -> no override, normal gate correctly rejects; raw 2 / level 10
+  (scaled 3.0, raw itself below the raw floor regardless of scaling)
+  -> no override. Also confirmed against the real, persisted Dubai
+  outing: the override does not change that outing's actual result
+  (still zero recommendations) -- none of its data-flagged corners
+  combine a qualifying feedback magnitude with a verdict that clears
+  the earlier severity/verdict gates the consistency check sits
+  behind.
+
+### Repair turn: feedback encoding unification + severity floor [2026-07-27]
+- CANONICAL DRIVER-FEEDBACK ENCODING, formalised (project-lead + reviewer
+  decision, same day): signed-bipolar per the recorded scale already shown
+  to the driver (ui/views/outing_form.py's feedback-table caption) --
+  negative=understeer, positive=oversteer, magnitude bands roughly |2..3|
+  "clearly felt", |4..5| "approaching undrivable"/"undrivable". Audited the
+  full ruleset against this map (`modules/recommendation.py`
+  `VERDICT_EXPECTED_FEEDBACK_SIGN`): all 26 non-retired rules and the 7
+  retired seeds already had condition.verdict <-> condition.feedback_sign
+  pairs agreeing with it -- no rule needed changing. The encoding itself
+  was correct everywhere it had been applied; what needed fixing was one
+  place it had NOT been applied at all (below).
+- BUG FOUND AND FIXED: the consistency-gate feedback override (added the
+  previous session) checked feedback MAGNITUDE only (`abs(raw_fb_value) >=
+  feedback_override_raw_min`), never direction. A strong complaint in the
+  WRONG direction -- e.g. +5 (oversteer-direction) on an understeer-verdict
+  rule, or -5 on an oversteer-verdict rule -- would have cleared the
+  override's magnitude floor and incorrectly bypassed the consistency gate
+  regardless of whether the driver actually agreed with that rule's
+  verdict. Fixed via `_override_direction_ok(verdict, raw_fb_value,
+  raw_min)`: understeer needs `raw <= -raw_min`, oversteer needs
+  `raw >= +raw_min`, any other verdict (unstable_yaw included -- no
+  feedback-sign axis at all, same as `_feedback_modulation`) never
+  qualifies. Verified directly: a synthetic oversteer-flagged corner with
+  +5 feedback now fires via the override (RECOMMENDED, single-lap repeat
+  that would otherwise fail the 2-lap floor); the same corner with -5
+  (magnitude equally >=4, wrong direction) correctly does NOT fire --
+  before this fix it would have.
+- SEVERITY FLOOR FIX: the four held escalation rules under a CS-only
+  (understeer) verdict -- US-BRK-low-esc, US-BRK-med-esc, US-BRK-high-esc,
+  US-APX-med-esc -- carried `min_severity: "strong"`, structurally
+  unreachable from their own single-phase evaluation: `_classify_corner`'s
+  "strong" branch requires strong-CS AND destabilising yaw on the SAME
+  restricted phase these rules test, but these rules exist purely to
+  escalate a WORSENING CS-only reading, unrelated to yaw instability.
+  Corrected to `min_severity: "moderate"` -- the advisory/recommended
+  split and provenance caps (settings.action_class) are the intended
+  proportionality mechanism, not an accidentally-unreachable severity
+  gate. No behavioural change today (all four are status="held", which
+  already excludes them from firing) -- this closes a landmine that would
+  otherwise have made all four permanently inert even after a future WP
+  promotes them out of "held".
+- VERIFIED END-TO-END, the user's exact scenario: C12, driving_level=10,
+  real persisted feedback (-5 on every phase) -- `generate_recommendations`
+  still returns zero results for this outing, confirmed against the real
+  data, not assumed. The reason is unchanged by either fix above: C12's
+  aggregate severity is "normal" on every phase (moderate-band front CS at
+  apex, CSf=0.122, without accompanying destabilising yaw -- the AND-logic
+  never promotes past "normal" on CS-alone), so every candidate rule fails
+  at `severity_ok` before the code ever reaches the consistency gate where
+  the (now-corrected) override lives. Neither fix could have changed this
+  outcome; the blocker is upstream of both.
+- FINDING, verified and stated (not silently changed): the assumption that
+  the standard corroboration floor (`condition.min_feedback_abs`) sits at
+  >=2, keeping the "benign"/"slight" |1| zone from ever corroborating, is
+  WRONG for the current config -- every matrix rule's `min_feedback_abs`
+  is 1, and `_feedback_modulation`'s check is `abs(fb_value) < min_abs`
+  (strict `<`), so a magnitude-exactly-1 complaint ("slight" on the
+  recorded scale) DOES count as full corroboration today (confirmed:
+  `abs(-1)=1 >= 1` clears the floor, `agreement_bonus` applied). This is
+  independent of the override (which has its own, much higher floor of 4
+  and is unaffected) -- it is the ORIGINAL WP2b-2 corroboration path. Not
+  changed here: raising `min_feedback_abs` is a calibration decision, not
+  made unilaterally without being asked. Flagged for a decision.
+
 ### Limiter-based inlap reclassification [2026-07-22]
 - Duration-window lap validity (`is_valid_for_analysis`: lap_time <=
   1.10x fastest) had ACCEPTED the pre-merge "lap 5" (129.2s, well

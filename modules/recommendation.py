@@ -30,6 +30,21 @@ PHASE_TO_FEEDBACK_KEY = dict(zip(PHASE_KEYS, ["e1", "e2", "a3", "x4", "x5"]))
 # structure, so it stays a named constant rather than a config value.
 SEVERITY_RANK = {"normal": 0, "moderate": 1, "strong": 2}
 
+# Canonical driver-feedback encoding (project-lead + reviewer decision,
+# 2026-07-27; recorded scale definition: ui/views/outing_form.py's own
+# feedback-table caption, "-5 undrivable understeer ... +5 undrivable
+# oversteer" -- signed-bipolar, negative=understeer, positive=oversteer,
+# |4..5|="approaching undrivable"/"undrivable"). Every rule's condition.
+# verdict <-> condition.feedback_sign pairing must agree with this map --
+# verified 2026-07-27 against the full ruleset (all 26 non-retired rules,
+# plus the 7 retired seeds): every existing rule already agrees, no rule
+# needed changing. This map is also what the consistency-gate feedback
+# override (_consistency_gate_ok) uses to decide which SIGN of feedback
+# corroborates which verdict; unstable_yaw (and any other verdict not
+# listed) has no feedback-sign axis at all (see _feedback_modulation's own
+# comment) and the override never applies to it.
+VERDICT_EXPECTED_FEEDBACK_SIGN = {"understeer": "negative", "oversteer": "positive"}
+
 # Ordinal ordering of a corner's speed_class (modules/corner_analysis.py,
 # config/channels.json corner_speed_thresholds) -- enum structure, not a
 # per-car tunable.
@@ -227,19 +242,74 @@ def _classifier_modulation(short, severity, agreement_ref, settings):
 def _resolve_source_balance(config, outing=None):
     # Single resolution point for settings.source_balance -- callers must
     # never read config["settings"]["source_balance"] directly. Today this
-    # is just the global default; WP2b-2 may extend the order to
-    # per-driver feedback weighting > outing override > global default
-    # (see PLAN.md). `outing` is accepted now so call sites don't need to
-    # change signature when that resolution order lands.
+    # is just the global default; `outing` is accepted so call sites don't
+    # need to change signature if a future per-outing override lands.
+    # Per-driver weighting (the other half of the WP2b-2 note this
+    # docstring used to point at) is now handled separately by
+    # _resolve_feedback_weight below, not folded into source_balance --
+    # the two are orthogonal (source_balance is data-vs-driver, this is
+    # driver-vs-driver).
     return config["settings"]["source_balance"]
 
 
-def _consistency_gate_ok(cid, by_corner_laps, phases, verdict, min_severity, classify_fn, settings):
+def _resolve_feedback_weight(config, driving_level):
+    # PART A: config-resident driving_level -> feedback_weight mapping
+    # (config/recommendations.json settings.driver_level_weighting).
+    # driving_level is a plain int (Driver.driving_level, 1-10) or None --
+    # resolved by the UI caller from Outing.driver_id, never read from a
+    # live DB session here (modules/ stays a plain-value boundary, same
+    # convention as the WP-C accuracy_cap). None or an out-of-table level
+    # falls back to default_weight (1.0 -- today's unweighted behaviour).
+    dlw = config["settings"].get("driver_level_weighting")
+    if dlw is None or driving_level is None:
+        return 1.0 if dlw is None else dlw.get("default_weight", 1.0)
+    return dlw["weights"].get(str(driving_level), dlw.get("default_weight", 1.0))
+
+
+def _override_direction_ok(verdict, raw_fb_value, raw_min):
+    # Repair (2026-07-27): the override previously checked abs(raw_fb_value)
+    # only -- a +5 (oversteer-direction) complaint could override an
+    # UNDERSTEER rule's consistency gate, since magnitude alone doesn't
+    # know which direction the rule actually wants. Direction now comes
+    # from VERDICT_EXPECTED_FEEDBACK_SIGN: "understeer" needs raw <= -min
+    # (negative AND at least raw_min in magnitude), "oversteer" needs
+    # raw >= +min. A verdict with no sign axis (unstable_yaw, or any
+    # future verdict not in the map) never qualifies -- there's no
+    # direction to corroborate.
+    expected_sign = VERDICT_EXPECTED_FEEDBACK_SIGN.get(verdict)
+    if expected_sign == "negative":
+        return raw_fb_value <= -raw_min
+    if expected_sign == "positive":
+        return raw_fb_value >= raw_min
+    return False
+
+
+def _consistency_gate_ok(cid, by_corner_laps, phases, verdict, min_severity, classify_fn, settings,
+                          raw_fb_value=0.0, scaled_fb_value=0.0):
     # Global decision-matrix policy: no recommendation unless the
     # triggering verdict repeats across laps. Re-evaluates classify_fn
     # per lap (not just on the median-of-medians aggregate already tested
     # by the caller) and requires BOTH an absolute floor and a fraction of
     # this corner's analysed laps to show the verdict at/above min_severity.
+    #
+    # Feedback override (project-lead-elicited 2026-07-27, see config/
+    # recommendations.json settings.consistency_gate.feedback_override and
+    # thesis_notes.md): a strong, unprompted driver complaint on a corner
+    # already showing a moderate+ data verdict is itself corroborating
+    # evidence of repeatability -- a capable driver will not provoke the
+    # same imbalance repeatedly just to make the data repeat. Fires only
+    # when the feedback's DIRECTION matches the rule's own verdict
+    # (_override_direction_ok, VERDICT_EXPECTED_FEEDBACK_SIGN -- repaired
+    # 2026-07-27, previously magnitude-only: a +5 complaint could not have
+    # overridden an understeer rule's gate before this fix, since abs()
+    # doesn't see sign) AND the scaled (post-driver-level-weighting)
+    # magnitude also clears its own floor. When both hold, a single
+    # matching lap is sufficient (bypasses BOTH the absolute-laps floor and
+    # the fraction check below, not just the laps floor in isolation --
+    # with only 1 of typically 4 laps required, the 0.4 fraction default
+    # would otherwise still reject it). raw_fb_value/scaled_fb_value
+    # default to 0.0 (never overrides) for any caller that doesn't pass
+    # them.
     gate = settings.get("consistency_gate")
     if not gate:
         return True
@@ -251,6 +321,13 @@ def _consistency_gate_ok(cid, by_corner_laps, phases, verdict, min_severity, cla
         severity, short = _phase_verdict(lap_summary, phases, classify_fn)
         if _verdict_present(short, verdict) and SEVERITY_RANK[severity] >= SEVERITY_RANK[min_severity]:
             repeat += 1
+
+    override = gate.get("feedback_override")
+    if (override
+            and _override_direction_ok(verdict, raw_fb_value, override["feedback_override_raw_min"])
+            and abs(scaled_fb_value) >= override["feedback_override_scaled_min"]):
+        return repeat >= 1
+
     return (repeat >= gate["min_repeat_laps"]) and (repeat / len(laps) >= gate["min_repeat_fraction"])
 
 
@@ -325,7 +402,8 @@ def _match_is_recommended(match, rule, settings):
     return (match["severity"] in rec_severities) or match["corroborated"]
 
 
-def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn, settings, source_balance):
+def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn, settings,
+                    source_balance, feedback_weight=1.0):
     condition = rule["condition"]
     trigger = condition["trigger"]
     phases = rule["phases"]
@@ -349,7 +427,15 @@ def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn,
             continue
 
         fb_row = _feedback_row(feedback_data, cid)
-        fb_value = _feedback_value(fb_row, phases)
+        # PART A: single insertion point -- every downstream trigger branch
+        # (data/driver/both) reuses this one fb_value, so scaling it here
+        # by the driver's resolved feedback_weight is sufficient to weight
+        # both the driver-trigger score AND the data/both-trigger
+        # corroboration criterion (_feedback_modulation's min_feedback_abs/
+        # sign check runs against this weighted magnitude). See
+        # config/recommendations.json settings.driver_level_weighting.
+        raw_fb_value = _feedback_value(fb_row, phases)
+        fb_value = raw_fb_value * feedback_weight
         conflict = False
         corroborated = False
         severity = None
@@ -363,7 +449,8 @@ def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn,
             if SEVERITY_RANK[severity] < SEVERITY_RANK[min_sev]:
                 continue
             if not _consistency_gate_ok(cid, by_corner_laps, phases, condition["verdict"],
-                                         min_sev, classify_fn, settings):
+                                         min_sev, classify_fn, settings,
+                                         raw_fb_value=raw_fb_value, scaled_fb_value=fb_value):
                 continue
             factor, conflict, corroborated = _feedback_modulation(fb_value, condition, settings)
             score = (rule["weight"] * settings["severity_factors"][severity]
@@ -400,7 +487,8 @@ def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn,
             if not agrees_sign:
                 continue
             if not _consistency_gate_ok(cid, by_corner_laps, phases, condition["verdict"],
-                                         min_sev, classify_fn, settings):
+                                         min_sev, classify_fn, settings,
+                                         raw_fb_value=raw_fb_value, scaled_fb_value=fb_value):
                 continue
             corroborated = True
             # Both conditions already independently confirm agreement --
@@ -587,7 +675,8 @@ def _apply_change_budget(results, settings):
     return results
 
 
-def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, config, outing=None):
+def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, config,
+                              outing=None, driving_level=None):
     """
     Turn per-lap-per-corner stability summaries + driver feedback into a
     ranked list of setup direction suggestions, each with a full evidence
@@ -602,7 +691,12 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     aggregated corner against the rule's condition, including the matrix's
     speed_class gate and a per-lap consistency gate (verdict must repeat on
     >= min_repeat_laps AND >= min_repeat_fraction of that corner's laps,
-    settings["consistency_gate"]) -- "data"/"both" rules fire from
+    settings["consistency_gate"] -- OR a single repeat lap is sufficient
+    when the feedback DIRECTION agrees with the rule's own verdict
+    (VERDICT_EXPECTED_FEEDBACK_SIGN) and both the raw and scaled
+    feedback-magnitude floors in settings["consistency_gate"]
+    ["feedback_override"] are cleared, see `_consistency_gate_ok`/
+    `_override_direction_ok`) -- "data"/"both" rules fire from
     `classify_fn` (the same per-corner classifier the stability grid uses);
     "driver" rules fire from the feedback table. Every match is scaled by
     `source_balance`, `worst_corner_multiplier`, and (for "data" rules)
@@ -637,6 +731,12 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     config/setup_parameters.json registry loaded internally here) now backs
     the feasibility pass. `outing` is reserved for a future per-driver/
     per-outing source_balance override (see `_resolve_source_balance`).
+    `driving_level` (PART A) is the outing's driver's plain Driver.
+    driving_level int (1-10) or None -- resolved by the UI caller from
+    Outing.driver_id, never queried from a DB session here -- and is
+    resolved to a feedback_weight multiplier (`_resolve_feedback_weight`,
+    config/recommendations.json settings.driver_level_weighting) applied
+    once where fb_value is computed in `_evaluate_rule`.
 
     Returns a list of dicts: {actions, parameter, direction (convenience
     fields, single-action buckets only), score, severity_rank, corners
@@ -650,6 +750,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     """
     settings = config["settings"]
     source_balance = _resolve_source_balance(config, outing)
+    feedback_weight = _resolve_feedback_weight(config, driving_level)
     aggregated = aggregate_by_corner(summaries)
     by_corner_laps = _group_by_corner(summaries)
     registry = load_setup_parameters_registry()
@@ -668,7 +769,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
         if rule.get("status") in _NON_FIRING_STATUSES:
             continue
         matches = _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data,
-                                  classify_fn, settings, source_balance)
+                                  classify_fn, settings, source_balance, feedback_weight)
         if not matches:
             continue
         actions = _normalise_actions(rule["suggestion"])

@@ -56,7 +56,12 @@ class OutingsView(QWidget):
         btn_edit.setFixedWidth(80)
         btn_edit.setStyleSheet("background-color: #252525; color: #888;")
         btn_edit.clicked.connect(self._open_edit_dialog)
-        
+
+        btn_export_pdf = QPushButton("Export PDF")
+        btn_export_pdf.setFixedWidth(90)
+        btn_export_pdf.setStyleSheet("background-color: #252525; color: #888;")
+        btn_export_pdf.clicked.connect(self._open_export_pdf_dialog)
+
         btn_new = QPushButton("+ New")
         btn_new.setFixedWidth(80)
         btn_new.clicked.connect(self._open_new_outing)
@@ -66,6 +71,8 @@ class OutingsView(QWidget):
         layout.addWidget(self.title)
         layout.addStretch()
         layout.addWidget(btn_edit)
+        layout.addSpacing(8)
+        layout.addWidget(btn_export_pdf)
         layout.addSpacing(8)
         layout.addWidget(btn_new)
 
@@ -124,6 +131,11 @@ class OutingsView(QWidget):
         form = OutingForm(self.weekend, on_back=self._show_list)
         self.stack.addWidget(form)
         self.stack.setCurrentWidget(form)
+
+    def _open_export_pdf_dialog(self):
+        from ui.views.weekend_pdf_dialog import WeekendPdfDialog
+        dialog = WeekendPdfDialog(self, self.weekend)
+        dialog.exec()
 
     def _open_edit_outing(self, row, column):
         outing_id = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)

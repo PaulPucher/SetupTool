@@ -845,6 +845,43 @@ else.
   which matrix v2 answered by making it situational (both levers
   listed) rather than picking one -- arguably resolved, but flagged in
   case you intended a single answer instead.
+- [2026-07-27, PART A driver-level feedback weighting] The
+  `driver_level_weighting` table (config/recommendations.json
+  settings, driving_level 1-10 -> feedback_weight 0.6-1.5, neutral at
+  level 5, default 1.0) is project-lead-elicited, not derived from any
+  session data -- confirm the curve (linear, 0.1 per level, neutral
+  midpoint) is the right shape, or state a different one.
+- [2026-07-27, consistency-gate feedback override] Two elicited
+  thresholds (config/recommendations.json settings.consistency_gate.
+  feedback_override): `feedback_override_raw_min` = 4 and
+  `feedback_override_scaled_min` = 4.0. Both project-lead-elicited,
+  not data-derived -- confirm both numbers, and the driver
+  feedback-scale semantics they rest on (+-2..3 = "clearly felt",
+  +-4..5 = "approaching undrivable", recorded in the config comment
+  and thesis_notes.md) are the intended reading before this override
+  is exercised on a real (non-synthetic) recommendation.
+- [2026-07-27, repair turn] Two follow-ups from the feedback-encoding
+  repair:
+  - The driver feedback-table caption (ui/views/outing_form.py,
+    `scale_desc` label, "Scale: -5 undrivable understeer ... +5
+    undrivable oversteer") still ends with "Placeholder — full
+    description to be added per value." This is the canonical scale
+    recording every rule's sign convention now formally rests on
+    (`modules/recommendation.py` `VERDICT_EXPECTED_FEEDBACK_SIGN`,
+    config/recommendations.json's `_comment_feedback_encoding`) --
+    worth finishing properly (a one-line meaning for each of -5/-3/-1/
+    0/+1/+3/+5, not just the current endpoints-and-midpoint shorthand)
+    now that code/config both cite it as the source of truth. Tier C
+    UI polish, not urgent, batch with the legend-readability pass.
+  - `condition.min_feedback_abs` is 1 for every matrix rule (config/
+    recommendations.json) -- verified during the repair turn that this
+    means a magnitude-exactly-1 ("slight" on the recorded scale)
+    complaint DOES fully corroborate a matching data verdict today
+    (`_feedback_modulation`'s `abs(fb_value) < min_abs` is a strict
+    `<`, so 1 clears a floor of 1). If the intent is that only >=2
+    ("clearly felt" or stronger) should corroborate, this floor needs
+    raising -- not changed here, since it's a calibration decision,
+    not a bug fix; confirm the intended floor.
 
 ---
 

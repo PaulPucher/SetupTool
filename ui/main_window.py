@@ -8,6 +8,7 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
 from ui.views.weekends import WeekendsView
 from ui.views.drivers import DriversView
+from ui.views.settings_view import SettingsView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -98,14 +99,7 @@ class MainWindow(QMainWindow):
     
 
     def _build_pages(self):
-        self.stack.addWidget(WeekendsView())   
+        self.stack.addWidget(WeekendsView())
         self.stack.addWidget(DriversView())
-
-        page = QWidget()
-        layout = QVBoxLayout(page)
-        placeholder = QLabel("Settings")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setStyleSheet("color: #444; font-size: 18px;")
-        layout.addWidget(placeholder)
-        self.stack.addWidget(page)
+        self.stack.addWidget(SettingsView())
         
