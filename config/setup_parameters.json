@@ -1,9 +1,10 @@
 {
-  "_comment": "WP2b-1 TASK 2 — setup-parameter registry. One entry per tunable: identity, value space, direction semantics, typical window, change effort, physical mechanism, optional phase affinity, notes, recommendation_target. 'maps_to' entries prefixed 'setup_parameters.car.*' for arb_front_mount/tc_lat/tc_lon/abs_position are NEW car.json fields, created in TASK 3 (not yet present). Every entry with a config/car_data.json lookup cites the exact section in 'notes' and had its direction_semantics cross-checked against that section's actual digitised values (not assumed from the original task wording) — see the tc_lat/tc_lon correction and the abs_position categorical rewrite as the two cases where the check changed the entry. 'value_source': 'setup_sheet' (default, maps_to is a real car.json path) vs 'logged_data' (maps_to is null -- the parameter's truth is a logged channel, not a setup-sheet field; value_source and recommendation_target are independent axes).",
+  "_comment": "WP2b-1 TASK 2 \u2014 setup-parameter registry. One entry per tunable: identity, value space, direction semantics, typical window, change effort, physical mechanism, optional phase affinity, notes, recommendation_target. 'maps_to' entries prefixed 'setup_parameters.car.*' for arb_front_mount/tc_lat/tc_lon/abs_position are NEW car.json fields, created in TASK 3 (not yet present). Every entry with a config/car_data.json lookup cites the exact section in 'notes' and had its direction_semantics cross-checked against that section's actual digitised values (not assumed from the original task wording) \u2014 see the tc_lat/tc_lon correction and the abs_position categorical rewrite as the two cases where the check changed the entry. 'value_source': 'setup_sheet' (default, maps_to is a real car.json path) vs 'logged_data' (maps_to is null -- the parameter's truth is a logged channel, not a setup-sheet field; value_source and recommendation_target are independent axes).",
   "arb_fl": {
     "key": "arb_fl",
     "label": "Front-Left ARB Position",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.arb"
     ],
@@ -34,6 +35,7 @@
     "key": "arb_fr",
     "label": "Front-Right ARB Position",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.arb"
     ],
@@ -64,6 +66,7 @@
     "key": "arb_rl",
     "label": "Rear-Left ARB Position",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.arb"
     ],
@@ -94,6 +97,7 @@
     "key": "arb_rr",
     "label": "Rear-Right ARB Position",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.arb"
     ],
@@ -124,6 +128,7 @@
     "key": "arb_front_mount",
     "label": "Front ARB Mount",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.arb_front_mount"
     ],
@@ -153,6 +158,7 @@
     "key": "springs_front",
     "label": "Front Springs",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_left.springs",
       "setup_parameters.front_right.springs"
@@ -182,6 +188,7 @@
     "key": "springs_rear",
     "label": "Rear Springs",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_left.springs",
       "setup_parameters.rear_right.springs"
@@ -211,6 +218,7 @@
     "key": "damper_bump_ls_fl",
     "label": "FL Bump Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.bump_ls"
     ],
@@ -241,6 +249,7 @@
     "key": "damper_bump_hs_fl",
     "label": "FL Bump High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.bump_hs"
     ],
@@ -269,6 +278,7 @@
     "key": "damper_blowoff_fl",
     "label": "FL Blowoff",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.blowoff"
     ],
@@ -297,6 +307,7 @@
     "key": "damper_rebound_ls_fl",
     "label": "FL Rebound Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.rebound_ls"
     ],
@@ -328,6 +339,7 @@
     "key": "damper_rebound_hs_fl",
     "label": "FL Rebound High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.rebound_hs"
     ],
@@ -356,6 +368,7 @@
     "key": "damper_bump_ls_fr",
     "label": "FR Bump Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.bump_ls"
     ],
@@ -386,6 +399,7 @@
     "key": "damper_bump_hs_fr",
     "label": "FR Bump High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.bump_hs"
     ],
@@ -414,6 +428,7 @@
     "key": "damper_blowoff_fr",
     "label": "FR Blowoff",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.blowoff"
     ],
@@ -442,6 +457,7 @@
     "key": "damper_rebound_ls_fr",
     "label": "FR Rebound Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.rebound_ls"
     ],
@@ -473,6 +489,7 @@
     "key": "damper_rebound_hs_fr",
     "label": "FR Rebound High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.rebound_hs"
     ],
@@ -501,6 +518,7 @@
     "key": "damper_bump_ls_rl",
     "label": "RL Bump Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.bump_ls"
     ],
@@ -531,6 +549,7 @@
     "key": "damper_bump_hs_rl",
     "label": "RL Bump High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.bump_hs"
     ],
@@ -559,6 +578,7 @@
     "key": "damper_blowoff_rl",
     "label": "RL Blowoff",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.blowoff"
     ],
@@ -587,6 +607,7 @@
     "key": "damper_rebound_ls_rl",
     "label": "RL Rebound Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.rebound_ls"
     ],
@@ -618,6 +639,7 @@
     "key": "damper_rebound_hs_rl",
     "label": "RL Rebound High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.rebound_hs"
     ],
@@ -646,6 +668,7 @@
     "key": "damper_bump_ls_rr",
     "label": "RR Bump Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.bump_ls"
     ],
@@ -676,6 +699,7 @@
     "key": "damper_bump_hs_rr",
     "label": "RR Bump High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.bump_hs"
     ],
@@ -704,6 +728,7 @@
     "key": "damper_blowoff_rr",
     "label": "RR Blowoff",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.blowoff"
     ],
@@ -732,6 +757,7 @@
     "key": "damper_rebound_ls_rr",
     "label": "RR Rebound Low-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.rebound_ls"
     ],
@@ -763,6 +789,7 @@
     "key": "damper_rebound_hs_rr",
     "label": "RR Rebound High-Speed",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.rebound_hs"
     ],
@@ -791,6 +818,7 @@
     "key": "ride_height_front",
     "label": "Front Ride Height",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.ride_height_fia",
       "setup_parameters.front_left.ride_height_aero",
@@ -820,6 +848,7 @@
     "key": "ride_height_rear",
     "label": "Rear Ride Height",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.ride_height_fia",
       "setup_parameters.rear_left.ride_height_aero",
@@ -869,6 +898,7 @@
     "key": "diff_position",
     "label": "Differential Position",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.car.differential_position"
     ],
@@ -897,6 +927,7 @@
     "key": "wing_position",
     "label": "Wing Position",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.wing_position"
     ],
@@ -930,6 +961,7 @@
     "key": "toe_front",
     "label": "Front Toe",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.toe",
       "setup_parameters.front_right.toe"
@@ -962,6 +994,7 @@
     "key": "toe_rear",
     "label": "Rear Toe",
     "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.toe",
       "setup_parameters.rear_right.toe"
@@ -995,6 +1028,7 @@
     "key": "camber_fl",
     "label": "FL Camber",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_left.camber"
     ],
@@ -1003,7 +1037,8 @@
       "type": "float",
       "min": -4.8,
       "max": -2.0,
-      "unit": "deg"
+      "unit": "deg",
+      "step": 0.1
     },
     "direction_semantics": {
       "more_negative": "more negative camber"
@@ -1014,13 +1049,14 @@
     "change_effort": "minutes",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer).",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer). WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
     "recommendation_target": true
   },
   "camber_fr": {
     "key": "camber_fr",
     "label": "FR Camber",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_right.camber"
     ],
@@ -1029,7 +1065,8 @@
       "type": "float",
       "min": -4.8,
       "max": -2.0,
-      "unit": "deg"
+      "unit": "deg",
+      "step": 0.1
     },
     "direction_semantics": {
       "more_negative": "more negative camber"
@@ -1040,13 +1077,14 @@
     "change_effort": "minutes",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
     "recommendation_target": true
   },
   "camber_rl": {
     "key": "camber_rl",
     "label": "RL Camber",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_left.camber"
     ],
@@ -1055,7 +1093,8 @@
       "type": "float",
       "min": -4.8,
       "max": -2.0,
-      "unit": "deg"
+      "unit": "deg",
+      "step": 0.1
     },
     "direction_semantics": {
       "more_negative": "more negative camber"
@@ -1066,13 +1105,14 @@
     "change_effort": "minutes",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
     "recommendation_target": true
   },
   "camber_rr": {
     "key": "camber_rr",
     "label": "RR Camber",
     "category": "mechanical",
+    "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_right.camber"
     ],
@@ -1081,7 +1121,8 @@
       "type": "float",
       "min": -4.8,
       "max": -2.0,
-      "unit": "deg"
+      "unit": "deg",
+      "step": 0.1
     },
     "direction_semantics": {
       "more_negative": "more negative camber"
@@ -1092,13 +1133,14 @@
     "change_effort": "minutes",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
     "recommendation_target": true
   },
   "tc_lat": {
     "key": "tc_lat",
     "label": "Traction Control - Lateral",
     "category": "electronic",
+    "escalation_tier": "cockpit",
     "maps_to": null,
     "value_source": "logged_data",
     "value_space": {
@@ -1131,6 +1173,7 @@
     "key": "tc_lon",
     "label": "Traction Control - Longitudinal",
     "category": "electronic",
+    "escalation_tier": "cockpit",
     "maps_to": null,
     "value_source": "logged_data",
     "value_space": {
@@ -1162,6 +1205,7 @@
     "key": "abs_position",
     "label": "ABS Position",
     "category": "electronic",
+    "escalation_tier": "cockpit",
     "maps_to": null,
     "value_source": "logged_data",
     "value_space": {
@@ -1182,7 +1226,7 @@
     "phase_affinity": [
       "entry_1_brake"
     ],
-    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value; switch-position channel name TBD, identify in next data file's channel scan. Installed config V2 (verified: ABS_2.png header reads 'Map for ABS configuration option \"V2\"'). Full table: car_data.json abs. Monza2/CTMP/V4 not digitised (not installed) -- archived in docs/car_data/ only.",
+    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value; switch-position channel name TBD, identify in next data file's channel scan. Installed config V2 (verified: ABS_2.png header reads 'Map for ABS configuration option \"V2\"'). Full table: car_data.json abs. Monza2/CTMP/V4 not digitised (not installed) -- archived in docs/car_data/ only. SUPERSEDED-IN-PRACTICE ANNOTATION 2026-07-26 (matrix v2, project-lead review) -- NOT a deletion of the direction_semantics finding above, which remains true (abs_position is categorical, not one monotonic axis, and jumping across grip-level brackets, e.g. position 4 to 9, is still nonsensical). What is superseded in practice: WITHIN one grip-level bracket, an ordinal +1/+2 step IS used as a practical stability lever by the matrix v2 rules (see config/recommendations.json US-BRK-low-esc, INST-BRK-low) -- 'try-and-error' nudges toward the front- or rear-axle-stable variant, not a claim that the whole 0-11 range is monotonic. See those rules' rationale for the elicitation context.",
     "recommendation_target": true
   },
   "brake_bias": {

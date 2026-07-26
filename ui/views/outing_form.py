@@ -1455,7 +1455,7 @@ class OutingForm(QWidget):
         h_layout.setSpacing(10)
 
         title = QLabel(
-            f"Lap {summary['lap_number']} · Corner {summary['corner_number']}  "
+            f"Lap {summary['lap_number']} · C{summary['stable_corner_id']}  "
             f"<span style='color:{TEXT_DIM};'>({summary['speed_class']}, "
             f"{summary['apex_speed']:.0f} km/h, t={summary['apex_time']:.1f}s)</span>"
         )
@@ -1725,7 +1725,17 @@ class OutingForm(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(10)
 
-        badge = QLabel(f"{r['parameter']} · {r['direction']}")
+        # WP2b-2: a package/axle-symmetric-pair suggestion has no single
+        # parameter/direction -- badge falls back to listing every action.
+        if r["parameter"] is not None:
+            badge_text = f"{r['parameter']} · {r['direction']}"
+        else:
+            badge_text = " + ".join(
+                f"{a['parameter']} -> {a['target']}" if "target" in a
+                else f"{a['parameter']} {a['direction']}"
+                for a in r["actions"]
+            )
+        badge = QLabel(badge_text)
         badge.setStyleSheet(
             f"background-color: {ACCENT}; color: #111; font-size: 11px; "
             "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
@@ -1740,9 +1750,43 @@ class OutingForm(QWidget):
         trigger_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
         header_layout.addWidget(trigger_label)
 
+        if r["cell_ids"]:
+            cell_label = QLabel(" / ".join(r["cell_ids"]))
+            cell_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+            header_layout.addWidget(cell_label)
+
+        # WP2b-2 amendment 7: advisory matches are an observation, never a
+        # mandate -- mild understeer is this car's deliberate stable
+        # baseline. Visually distinct from a budget-eligible recommendation.
+        if r["action_class"] == "advisory":
+            class_label = QLabel("ADVISORY")
+            class_label.setStyleSheet(
+                f"color: {TEXT_MUTED}; font-size: 10px; font-weight: 600;"
+            )
+            header_layout.addWidget(class_label)
+        elif r["selected"]:
+            selected_label = QLabel("SELECTED (within budget)")
+            selected_label.setStyleSheet(
+                f"color: {ACCENT}; font-size: 10px; font-weight: 600;"
+            )
+            header_layout.addWidget(selected_label)
+
+        # WP2b-2 amendment 6: feasibility against the outing's current
+        # setup sheet, checked at generate time -- never silently applied
+        # past a registry limit, never silently hidden when unchecked.
+        if r["limit_status"] == "at_limit":
+            limit_label = QLabel(f"AT LIMIT ({', '.join(r['at_limit_parameters'])})")
+            limit_label.setStyleSheet(f"color: {BAD}; font-size: 10px; font-weight: 600;")
+            header_layout.addWidget(limit_label)
+        elif r["limit_status"] == "unchecked":
+            limit_label = QLabel("limit not checked (setup sheet unfilled)")
+            limit_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
+            header_layout.addWidget(limit_label)
+
         # Mandatory per WP2: a placeholder rule must never look like
         # engineering truth. Shown whenever ANY contributing rule is still
-        # status:"seed" (all seven seed rules are, until WP2b-2 promotes them).
+        # status:"seed" (retired in WP2b-2 -- dead code path kept in case a
+        # future experimental rule ever ships as "seed" again).
         has_seed = any(
             rule_status.get(rule_id, "seed") == "seed" for rule_id in r["rules_fired"]
         )
@@ -1791,6 +1835,37 @@ class OutingForm(QWidget):
             conflict_label.setStyleSheet(f"color: {WARN}; font-size: 10px;")
             card_layout.addWidget(conflict_label)
 
+        # WP2b-2: a DIFFERENT conflict from the one above -- two rules
+        # recommend opposite directions for the same registry parameter.
+        # Never netted/averaged; BAD (not WARN) since this is a harder stop
+        # than a driver/data disagreement on a single rule.
+        if r["parameter_conflict"]:
+            pc_label = QLabel(
+                f"CONFLICT with another recommendation on: {', '.join(r['conflict_parameters'])}"
+            )
+            pc_label.setStyleSheet(f"color: {BAD}; font-size: 10px; font-weight: 600;")
+            card_layout.addWidget(pc_label)
+
+        if r["observation_lines"]:
+            obs_host = QWidget()
+            obs_layout = QVBoxLayout(obs_host)
+            obs_layout.setContentsMargins(0, 0, 0, 0)
+            obs_layout.setSpacing(2)
+            for line in r["observation_lines"]:
+                obs_label = QLabel(line)
+                obs_label.setWordWrap(True)
+                obs_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+                obs_layout.addWidget(obs_label)
+            card_layout.addWidget(obs_host)
+
+        # Task 4 (second-choice visibility): a held escalation is context,
+        # not a recommendation -- it never fires, this is display only.
+        for note in r["escalation_notes"]:
+            esc_label = QLabel(note)
+            esc_label.setWordWrap(True)
+            esc_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
+            card_layout.addWidget(esc_label)
+
         btn_expand = QPushButton("▶ rationale")
         btn_expand.setCheckable(True)
         btn_expand.setChecked(False)
@@ -1805,7 +1880,8 @@ class OutingForm(QWidget):
         rationale_layout.setContentsMargins(12, 2, 0, 0)
         rationale_layout.setSpacing(2)
         for rat in r["rationale"]:
-            line = QLabel(f"[{rat['rule_id']}] {rat['rationale']}")
+            tag = rat["cell_id"] or rat["rule_id"]
+            line = QLabel(f"[{tag}] {rat['rationale']}")
             line.setWordWrap(True)
             line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
             rationale_layout.addWidget(line)

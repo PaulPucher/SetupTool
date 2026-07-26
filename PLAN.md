@@ -1,20 +1,39 @@
 ## STATUS (update at every work stop)
-Current WP: WP5b(b) phase 1 (chair-parity Fz, placeholder coefficients)
-+ WP5b(c) (GPS-course beta, two iterations, SHELVED) + small-decisions
-sweep (three items, all closed) arc complete (2026-07-26) -- landing
-on top of the still-uncommitted Accuracy-registry arc below (WP-A
-registry consolidation, WP-C per-session resolver + global cap, small
-explicit-Save-button WP, WP-B steering ratio Level 4, full channel
-census + targeted verification, chair-context marker cleanup) as one
-combined commit per this project's bundled-session convention (see the
-session paragraphs below, newest last). Queue once this lands: the
-new-data-file diagnostic checklist (runs automatically when a new log
-arrives), WP2b-2 (rule engineering against the setup_parameters
-registry), WP5b(d) (speed cross-validation, log_gps_speed already
-confirmed present but not yet whitelisted), WP5b(b) phase 2 (damper-
-derived Level 4 wheel loads + the roll-stiffness DOMAIN IMPROVEMENT
-split), and sourcing the three reviewer-placeholder figures
-(cog_height_m, track_width_front/rear_m, lift_coeff/Cl) from the team.
+Current WP: WP1 consolidation (canonical corner/phase realization +
+Turn 3 boundary partition + Turn 4 threshold re-confirmation) DONE with
+watch items (2026-07-27, this session -- see "WP1 consolidation" section
+below for the four-turn detail and thesis_notes.md's "WP1 arc closeout"
+for the full narrative), landing on top of WP2b-2 + the matrix v2/
+provenance review round (both complete 2026-07-26, see their own sections
+below) -- landing on top of the still-uncommitted WP5b(b)/(c)/(d) arc
+(chair-parity Fz, GPS-course beta SHELVED, speed cross-validation) and the
+still-uncommitted Accuracy-registry arc (WP-A registry consolidation,
+WP-C per-session resolver + global cap, small explicit-Save-button WP,
+WP-B steering ratio Level 4, full channel census + targeted verification,
+chair-context marker cleanup), all as one combined commit per this
+project's bundled-session convention (see the session paragraphs below,
+newest last) -- user has not committed yet, stopped before commit every
+turn this session per instruction.
+
+Queue once this lands, confirmed still accurate: the new-data-file
+diagnostic checklist (runs automatically when a new log arrives -- also
+the reproduction check WP5b(d)'s k-application decision is gated on);
+the WP2b-2 engineer follow-up questions (headroom-ranking, rake-package
+magnitude, TC-LAT-escalation throttle scoping -- see WP2b-2 section) PLUS
+the matrix v2 tick-through (dagger-marked/project-lead-reviewed cells,
+ABS direction semantics, the three situational OS-APX cells -- see
+"Matrix v2 review round" section); WP5b(b) phase 2 (damper-derived Level 4
+wheel loads + the roll-stiffness DOMAIN IMPROVEMENT split); sourcing the
+three reviewer-placeholder figures (cog_height_m, track_width_front/
+rear_m, lift_coeff/Cl) from the team; the WP5b(d) k-application decision
+itself (apply the measured k=1.01211 rolling-radius correction to
+ecu_speed, or not) -- gated on the second-track reproduction check above,
+its own re-derivation stop, not taken this session. New this close-out:
+WP1's two open watch items (C10 corner_radius_filtered overlap 0.60 vs.
+the 0.67 pre-WP1 baseline; C9's inter-lap agreement dip + the C9-lap1
+CS_r=-0.721 flag, both tracing to C9's own start boundary never having
+been independently examined) -- see thesis_notes.md "WP1 open watch
+items, carried forward".
 Last commit:
 113c7d9 (clean up).
 WP2b-1 that session: config/car_data.json (manufacturer reference
@@ -336,7 +355,9 @@ beta) is no longer open -- SHELVED after two implementation iterations,
 see WP5b section (c) and thesis_notes.md for the full validation
 record and reopen condition (denser anchor data). log_gps_course IS
 now whitelisted (config/channels.json), unlike log_gps_speed above,
-which stays deliberately unwhitelisted pending WP5b(d).]
+which stays deliberately unwhitelisted pending WP5b(d). [FURTHER
+UPDATE 2026-07-26: WP5b(d) itself is now DONE too -- log_gps_speed IS
+now whitelisted, see WP5b section (d) for the verdict (b) record.]
 
 WP5b(b) phase 1 + WP5b(c) session (2026-07-26, currently uncommitted,
 lands with the Accuracy-registry arc above as one combined commit):
@@ -511,6 +532,87 @@ C) UI grid alignment in `ui/views/outing_form.py`:
 
 ---
 
+## WP1 consolidation — canonical corner realization
+
+### Turn 1 [COMPLETE 2026-07-26]
+Two-pass split (pass 1 unchanged, pass 2 new -- confident-member canonical-
+window reassignment for `straddles_adjacent_corners`-tagged brackets) +
+canonical bracket/phase-boundary derivation (median per boundary, reset-
+guarded, closes the bracket-edge guard gap WP1 left open) + re-realization
+over every valid lap (`canonical_quiet` tagging for previously-missing
+laps) + canonical `speed_class` once per stable corner. Full detail,
+including a real edge-effect bug caught and fixed during implementation
+and the C10/C11 before/after result, in thesis_notes.md "WP1
+consolidation, Turn 1" [2026-07-26]. `modules/corner_analysis.py` only;
+detection code (`_analyse_lap`/`_bracket_corners_by_steering`/
+`_bracket_corners_by_speed`/`_build_corner`) untouched, verified by
+source hash. `test_stability.py` clean; Modules 1-5 sample-level outputs
+verified numerically unchanged.
+
+### Turn 2 — validation + re-derivation inputs [COMPLETE 2026-07-26]
+Read-only diagnostics, no thresholds/code changed. Added a canonical
+overlap matrix (new): C9<->C10 overlap 88% of the smaller window, 99.4%
+sample-sharing every lap, traced to one pass-1 connected component (lap 2
+uniquely contributes 2 brackets there); C11<->C12 overlap 32%.
+corner_radius_filtered overlap regressed for C10 (0.67 pre-WP1 baseline ->
+0.55) -- a third independent method converging on the same pair.
+Inter-lap stability agreement tightened 10-100x for 13/14 corners
+(confirms the pooled-grid mechanism). Full detail, thesis_notes.md "WP1
+consolidation, Turn 2". Handed the C9/C10 merge-vs-partition question to
+the reviewer rather than resolving it -- resolved in Turn 3 below.
+
+### Turn 3 — canonical boundary resolution [COMPLETE 2026-07-26, reviewer decision: partition not merge]
+New post-pass `_resolve_canonical_overlaps` (modules/corner_analysis.py):
+any canonical-window pair overlapping more than `canonical_overlap_max`
+(new config key, 0.10) is truncated to a shared boundary at the pooled
+(cross-lap median) |ay| minimum between the two apex positions -- the
+"split a compound at an ay minimum" idea named as an open refinement in
+thesis_notes.md's original 2026-07-22 compound-corner finding, implemented
+six months later for canonical windows specifically. Phase boundaries
+re-clamped into the truncated range; an absent phase (its defining event
+outside the sub-window, e.g. C10 has no brake phase now) collapses to a
+degenerate zero-length phase -- summarise_corners/_classify_corner already
+read that as "no signal" with no code change needed to either. Result:
+zero overlap, zero sample-sharing for both pairs; C11 reclassifies from
+"medium" to "high" (152-162 km/h) -- it was genuinely mis-classified
+before, not just noisy; C10's corner_radius overlap improves 0.55->0.60
+(short of the original 0.67 baseline); C9's inter-lap agreement worsens
+slightly (std 6.7->12.0, still small absolute) -- reported plainly, not
+spun. C8/C3's six-most-negative-stability finding is now IDENTICAL to the
+original pre-WP1 result -- the most reassuring cross-check this session,
+since nothing about canonical realization should touch C8 or C3 at all.
+Full detail, thesis_notes.md "WP1 consolidation, Turn 3".
+
+### Turn 4 — threshold re-derivation [COMPLETE 2026-07-27: RE-CONFIRMED UNCHANGED, user's own call]
+Decision: keep all five values (STRONG_CSF/STRONG_CSR/MODERATE_CSF/
+MODERATE_CSR/stab_neg_thresh_Nm_per_deg unchanged) -- `derived_from`
+strings in config/parameters.json each gained a dated append recording
+the argument (stability's six-most-negative distribution and its
+exceedance counts are tri-state-invariant across pre-WP1/post-Turn-1/
+post-Turn-3; CS-side moderate-count movement traces to repaired
+realization defects, C11's misclassification and window jitter, not
+estimator drift). No value changes. Full detail and the verdict-
+distribution re-check (0/15/41 of 56, 26.8% flagged, vs. the historical
+~33% and ~27.5% points and the June driver report) in thesis_notes.md
+"Threshold re-confirmation after WP1 consolidation" and "Verdict-
+distribution re-check after WP1 consolidation". Blocking gate from
+CLAUDE.md's grounding rule is now closed for this arc.
+
+### WP1 open watch items (carried forward, not blocking)
+Two threads deliberately left open rather than chased further this
+session, both tracing to the same unexamined variable (C9's own start
+boundary, never touched by the Turn 3 partition and never independently
+re-examined the way the shared C9/C10 boundary was): (1) C10's
+corner_radius_filtered overlap (0.60 post-partition) hasn't fully
+recovered to the original pre-WP1 baseline (0.67); (2) C9's inter-lap
+stability agreement worsened slightly post-partition (std 6.7->12.0) and
+its canonical_quiet lap-1 instance's CS_r=-0.721 flag persists unresolved.
+Neither blocks anything currently planned; revisit if C9/C10 become
+load-bearing for a recommendation-engine rule. See thesis_notes.md "WP1
+open watch items, carried forward".
+
+---
+
 ## WP2 — Recommendation engine framework  [core deliverable]
 
 ### Goal
@@ -617,21 +719,132 @@ differential_locking_torque_measured were added to car.json (car
 dict) with matching outing_form.py UI rows. WP2b-2 remains --
 rewrite recommendations.json rules against these registry keys.
 
-## WP2b-2 — Rule engineering against the registry
-Rewrite `config/recommendations.json` rules to reference `config/
-setup_parameters.json` keys instead of provisional strings; replace the seed
-weights/conditions with tuned, engineering-reviewed values; promote each
-rule's `status` from `"seed"` to `"reviewed"` as it is validated. Depends on
-WP2b-1.
+## WP2b-2 — Rule engineering against the registry [COMPLETE 2026-07-26]
+Rewrote `config/recommendations.json` against an external engineer decision
+matrix (scenario x speed-class grid, supplied as an authoritative input, not
+derived in-repo): 7 WP2 ARB-only seeds retired in place (status field, kept
+for history); 26 rules elicited 1:1 from the matrix's live cells; 3 held
+escalation rules (fully specified, zero-firing, pending an applied-
+recommendations history log to activate); 2 dropped cells (OS-BRK-low,
+INST-ENT) recorded for traceability with no action, per the matrix's own
+"none"/scope-drop. Every rule carries a `cell_id` back-reference.
 
-Optional scope addition: per-driver feedback weighting (NOT "driver level")
-— an optional field on the `Driver` model letting a driver's reported
-feedback carry more or less weight in `source_balance` resolution.
-`modules/recommendation.py` already isolates this behind a single helper,
-`_resolve_source_balance(config, outing)`, which today just returns
-`config["settings"]["source_balance"]`; extend it to resolve in order
-feedback-weighting override (driver) > outing override > global default
-rather than reading `settings["source_balance"]` inline anywhere else.
+`modules/recommendation.py` gained: speed_class matrix gate (modal
+aggregation across a corner's laps, config/channels.json thresholds);
+per-lap consistency gate (verdict must repeat on >= min_repeat_laps AND >=
+min_repeat_fraction of analysed laps, both config); a `suggestion` schema
+that accepts a package/axle-symmetric-pair action list, not just one
+parameter (registry has no combined axle-level ARB/camber/damper key);
+escalation_tier ranking (new setup_parameters.json field, deliberately
+separate from change_effort -- see thesis_notes.md); a parameter_conflict
+post-pass (two rules recommending opposite directions/targets for the same
+registry parameter surface to the engineer, never netted); a feasibility
+post-pass (current setup-sheet value + action delta against the registry's
+range, "at_limit"/"unchecked"/"ok", `setup_data` now actually read); and an
+action_class split (advisory vs. recommended, config-driven boundary --
+see thesis_notes.md "ACTION-CLASS SPLIT"). `config/setup_parameters.json`
+gained `escalation_tier` on every recommendation_target entry and a `step`
+field (0.3 deg) on the four camber entries. UI (`ui/views/outing_form.py`
+`_build_recommendation_row`) renders cell_id(s), the ADVISORY/SELECTED
+tag, AT LIMIT / limit-not-checked markers, the new parameter_conflict
+badge (BAD, distinct from the existing driver/data WARN conflict), and
+advisory buckets' observation lines.
+
+Verified via a synthetic script (not yet a committed test file -- see
+follow-up list below): all 31 matrix cells + the 1 dropped combined-entry
+cell round-trip 1:1 into the rule file; a verdict repeating on only 1 of 5
+laps produces zero recommendations for that corner; two corners with
+opposite-direction rear-ARB matrix cells both surface `parameter_conflict`
+and neither gets auto-selected; ranking is identical across repeat calls
+with identical input; an infeasible toe change renders AT LIMIT and is
+excluded from the change budget, an unchecked tc_lon change is not;
+a moderate data-only match renders advisory with zero budget selections,
+the same corner with corroborating driver feedback renders recommended and
+selected. `test_stability.py` (Modules 1-5, does not call the
+recommendation engine) unaffected, clean run.
+
+Optional scope addition NOT done this session: per-driver feedback
+weighting (NOT "driver level") -- an optional field on the `Driver` model
+letting a driver's reported feedback carry more or less weight in
+`source_balance` resolution. `modules/recommendation.py` still isolates
+this behind `_resolve_source_balance(config, outing)`, which today just
+returns `config["settings"]["source_balance"]`; extend it to resolve in
+order feedback-weighting override (driver) > outing override > global
+default rather than reading `settings["source_balance"]` inline anywhere
+else.
+
+### Engineer follow-up questions (answers needed before further WP2b work)
+- [2026-07-26, WP2b-2 amendment 6] Should a recommended change's remaining
+  headroom against its registry limit (not just a binary in-range/at-limit)
+  influence ranking -- e.g. rank a change with lots of room below a change
+  that's nearly at its limit, all else equal? Not elicited from the
+  decision matrix; deliberately NOT implemented this session (no
+  comfort-zone/headroom ranking) pending your answer.
+- The "rake forward"/"rake reduction" ride_height_front/rear package
+  magnitude was set to the matrix's stated 1-2mm window's minimum (1mm) as
+  a conservative first-change default, since the matrix gave a range, not
+  a single value -- confirm 1mm is the right choice, or state a different
+  default.
+- The held US-APX-med-esc (TC LAT) escalation's scoping caveat from
+  thesis_notes.md ("valid for understeer WITH throttle involvement... not
+  off-throttle push") is not yet encoded as a phase/throttle condition on
+  the rule itself -- needed before promoting that rule out of "held", not
+  before (it never fires while held).
+- [2026-07-26, WP2b-2 amendment: elicitation_provenance, RESOLVED same day]
+  Full markup supplied and applied to `config/recommendations.json`: 12
+  engineer-verbatim cells (US-BRK-med, US-TIN-low/med, US-APX-med,
+  US-EXIT-low/med/high, OS-BRK-med, OS-EXIT-low/high, INST-BRK-med,
+  US-BRK-high's base package) + 2 held escalations inheriting it
+  (US-BRK-med-esc, US-APX-med-esc); 8 project-default (asterisked) cells
+  (US-BRK-low, US-TIN-high, US-APX-low, US-APX-high, OS-BRK-high,
+  OS-EXIT-med -- the sign-corrected "S8-Med" case, INST-BRK-low/high) + 1
+  held escalation overridden to project-default (US-BRK-high-esc, bump-HS
+  direction defaulted, NOT inherited from its verbatim base US-BRK-high);
+  6 mirror-derived cells (OS-TIN-low/med/high, OS-APX-low/med/high,
+  unchanged from the prior pass). Verified: 12/8/6 split on the 26
+  elicited-status rules, dropped/retired rules null. Confirmation list is
+  exactly the 8 project-default + 6 mirror-derived cells (all capped to
+  ADVISORY under `settings.action_class.cap_non_verbatim_to_advisory`
+  until individually promoted to status "reviewed") -- these 14 cells are
+  the concrete engineer follow-up: OS-APX-low (front ARB +1 vs. rear ARB
+  -1, see the prior question below, still open), and the other 13:
+  US-BRK-low (ABS map -- which literal position was meant), US-TIN-high
+  (wing direction), US-APX-low (which axle "ARB" meant), US-APX-high
+  (camber step magnitude), OS-BRK-high (rear ARB direction), OS-EXIT-med
+  (whether the sign correction from the engineer's stated "+1" to the
+  ruleset's soften/-1 is right), INST-BRK-low (ABS map), INST-BRK-high
+  (front vs. rear axle), OS-TIN-low/med/high and OS-APX-med/high (whether
+  the US-side mirror actually holds for the OS-side scenario), and
+  US-BRK-high-esc (bump-HS direction, held -- moot until promoted out of
+  "held" anyway).
+- [2026-07-26, matrix v2 review round, PARTIALLY RESOLVES the above] All
+  8 project-default cells and 3 of the 6 mirror-derived cells (OS-TIN-
+  low/med/high) confirmed by project-lead review and promoted to a new
+  grade, `project-lead-reviewed` (action-eligible, between engineer-
+  verbatim and the capped grades) -- see thesis_notes.md "Matrix v2
+  review round". US-BRK-low and INST-BRK-low's ABS-map answers, decoded
+  as garbled-then-defaulted, are REWRITTEN (front toe / try-and-error
+  ABS nudge, no more literal position target) rather than simply
+  confirmed. Camber step corrected 0.3->0.1deg. OS-APX-low/med/high
+  instead got a `situational: true` flag (permanently advisory,
+  alternatives listed verbatim in rationale) rather than a provenance
+  promotion -- the matrix's own review concluded these three
+  specifically don't have one confirmable answer (axle-grip load-
+  sensitivity, see thesis_notes.md), so "confirm which lever" is the
+  wrong question for them; nothing further to tick off there.
+  Tick-through interpretation (flagging where I inferred rather than
+  was told directly -- confirm or correct): "the dagger-marked cells"
+  is read as the 11 newly project-lead-reviewed cells (this session
+  introduced no other new markup tier); "the three remaining verbatim-
+  pending items" is read as OS-APX-low/med/high, the only cells left
+  short of engineer-verbatim after this round (now situational rather
+  than pending, per the point above -- if you meant three different
+  cells, say which). Remaining open, unambiguous: US-BRK-high-esc
+  (bump-HS direction, held, project-default, untouched by this round)
+  and the original OS-APX-low front-ARB-vs-rear-ARB question above,
+  which matrix v2 answered by making it situational (both levers
+  listed) rather than picking one -- arguably resolved, but flagged in
+  case you intended a single answer instead.
 
 ---
 
@@ -882,10 +1095,28 @@ c) ~~Level 3 sideslip: beta from log_gps_course (velocity vector) minus
    beta (estimate_sideslip) remains production, untouched throughout.
    accuracy_levels.sideslip_angle carries this outcome as an inactive
    registry note (config/parameters.json).]
-d) Speed validation: log_gps_speed vs ecu_speed agreement report;
+d) ~~Speed validation: log_gps_speed vs ecu_speed agreement report;
    promote speed source if GPS proves cleaner. log_gps_speed confirmed
    present in the real file but still not in channels.json -- lands
-   with this consumer, not whitelisted speculatively ahead of it.
+   with this consumer, not whitelisted speculatively ahead of it.~~
+   [DONE 2026-07-26: log_gps_speed whitelisted (config/channels.json),
+   isolated channels-direct comparison (diagnostics/inspect_gps_speed_
+   validation.py), ecu_speed untouched as production source and
+   pipeline time-anchor throughout. VERDICT (b), not a source switch:
+   GPS speed retained as a permanent cross-check; k=1.01211 measured
+   (origin-regression scale factor, tight across speed classes, k
+   range 0.0057; residual spread collapses post-correction, raw median
+   +0.506 m/s -> post-k +0.002 m/s; no slip sign-flip under braking or
+   traction, arguing for a constant calibration factor over a slip
+   artifact) as a CANDIDATE rolling-radius correction to ecu_speed's
+   own conversion -- measuring k is not an estimator-input change,
+   APPLYING it would be (v feeds Modules 2-5 + the WP5b(b) aero-Fz
+   term). Application deferred pending a second-track reproduction
+   check (k must hold up on a new data file, not just Dubai) plus its
+   own re-derivation stop, both not yet done. accuracy_levels.speed
+   carries this outcome as an inactive registry note (config/
+   parameters.json). thesis_notes.md: "WP5b(d): GPS speed
+   cross-validation (validation only)".]
 e) After any of a-d lands: re-run the corner-distribution diagnostic
    and re-derive classification thresholds — they were tuned on
    Level 1 numbers and are not portable across accuracy levels.

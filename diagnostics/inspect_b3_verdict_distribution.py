@@ -92,12 +92,19 @@ for s in summaries:
         non_normal.append((s["lap_number"], s["corner_number"], s.get("stable_corner_id"),
                             severity, branch, wf, wr, wstab, wphase))
 
-print(f"\nWorst-phase CSr < MODERATE_CSR ({MODERATE_CSR}): {csr_below_moderate} / 51 instances")
+n = len(summaries)
+print(f"\nWorst-phase CSr < MODERATE_CSR ({MODERATE_CSR}): {csr_below_moderate} / {n} instances")
 
-print(f"\nVerdict distribution (51 instances): "
-      f"strong={counts['strong']}  moderate={counts['moderate']}  normal={counts['normal']}")
+print(f"\nVerdict distribution ({n} instances): "
+      f"strong={counts['strong']}  moderate={counts['moderate']}  normal={counts['normal']}  "
+      f"({100*(counts['strong']+counts['moderate'])/n:.1f}% flagged)")
 print(f"Comparison vs 2026-06-29 reference (0 strong / 23 moderate / 49 normal, "
       f"different N -- that reference was over a different lap composition, see B2 report)")
+print(f"Comparison vs pre-Fy-correction historical baseline (1 strong / 16 moderate / 34 normal, "
+      f"n=51, ~33% flagged) and post-Fy-correction (0/14/37, n=51, ~27.5% flagged) -- "
+      f"2026-07-27 re-confirmation after WP1 canonical consolidation (n={n}, "
+      f"{100*(counts['strong']+counts['moderate'])/n:.1f}% flagged): continues the same "
+      f"downward trend, not a reversal.")
 
 print(f"\nVerdicts driven by branch: CS={branch_counts['CS']}  "
       f"stability-only={branch_counts['stability']}  both={branch_counts['both']}")

@@ -874,6 +874,65 @@ HOW TO USE:
   file, as expected (no apex sits near a reset). `bracket_start_m`/
   `bracket_end_m` stay unguarded, explicitly out of scope.
 
+### WP5b(d): GPS speed cross-validation (validation only) [2026-07-26]
+- Whitelisted `log_gps_speed` (config/channels.json, 10 Hz, confirmed
+  live on Dubai, kph). Kept channels-direct and isolated
+  (diagnostics/inspect_gps_speed_validation.py reads the raw channel
+  itself, same pattern as `estimate_sideslip_gps`, WP5b(c)) -- no new
+  field on `prepare_vehicle_state`'s shared state dict, since this
+  comparison has exactly one reader. `ecu_speed` stays the production
+  speed source and the pipeline's own time-anchor (`t_ref`) throughout;
+  zero call sites into any Module 2-5 function, verified by grep;
+  `test_stability.py` byte-identical.
+- LATENCY: cross-correlating GPS speed against ecu_speed (racing laps,
+  moving samples) peaks at lag=+0.320s, r=0.9997 (r=0.9926 at zero
+  lag) -- within 2 samples of `gps_course_latency_s` (0.32s, WP5b(c)).
+  Reused that key rather than adding a new one -- the "same GPS
+  pipeline, same latency" plausibility argument from the proposal held
+  up empirically, not just assumed.
+- SCALE FACTOR: origin-regression k (v_gps = k*v_ecu) = 1.01211 --
+  ecu_speed reads ~1.2% low vs GPS. Consistent across speed classes
+  (k=1.0156 low / 1.0099 medium / 1.0128 high, range 0.0057, whole-
+  session k=1.01211) -- a tight, condition-independent ratio, the
+  signature of a constant rolling-radius/calibration offset rather
+  than a speed-dependent effect. Residual spread tightens sharply once
+  k is applied: raw (v_gps-v_ecu) median +0.506 m/s, std 0.383, MAD
+  0.272; post-k median +0.002 m/s (near-zero), std 0.319, MAD 0.186 --
+  the scale correction removes almost the entire systematic offset.
+- SLIP PREDICTION, more carefully than the diagnostic script's own
+  crude zero-relative CONFIRMED/REFUTED labels suggest: read against
+  the whole-session baseline (+0.506 m/s), not against zero. Heavy-
+  braking median +0.417 m/s is SMALLER than baseline (closer to
+  agreement, opposite of the wheel-lock-makes-it-worse expectation);
+  heavy-traction median +0.706 m/s is LARGER than baseline, but in the
+  SAME direction (ecu still reads low) rather than flipping negative
+  as wheelspin would predict (wheelspin should make ecu read HIGH vs
+  GPS). Neither regime shows the classic sign-flip signature of wheel-
+  speed slip corruption; kerb samples show no meaningful difference
+  either (on-kerb median +0.494 vs off-kerb +0.506 m/s). Most
+  consistent explanation: this GT3 car's traction/ABS systems keep
+  slip small enough on this session that it isn't the dominant driver
+  of the ecu/GPS gap -- strengthening, not weakening, the case that k
+  is a genuine constant calibration factor rather than a slip
+  artifact.
+- DECISION: (b) -- keep GPS speed as a permanent cross-check; k=1.012
+  is a strong, well-evidenced candidate rolling-radius correction to
+  `ecu_speed`'s own conversion, IMPROVING THE EXISTING L1 CONSTANT IN
+  PLACE rather than switching sources. Not (a): the prior from WP5b(c)
+  (beta_gps shelved on this exact GPS receiver/logger) was not
+  contradicted here, but GPS speed itself looks materially cleaner
+  than GPS course did (r=0.9997 vs beta_gps's r=-0.24) -- speed is a
+  scalar, geometrically much simpler than a drift-integrated heading,
+  so this is not a surprise, just a difference worth naming. Not (c):
+  nothing here looks troubled enough to shelve.
+  CORRECTION carried through from the proposal review: measuring k is
+  NOT an estimator-input change (pure diagnostic); APPLYING it to
+  ecu_speed's conversion WOULD be one -- v_mps feeds Modules 2-5 and
+  the WP5b(b) aero-Fz term, so applying the correction triggers the
+  standing re-derivation stop and is a separate, not-yet-taken future
+  decision. accuracy_levels.speed's registry note (config/
+  parameters.json) states this distinction explicitly.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
@@ -1418,6 +1477,417 @@ HOW TO USE:
   require exactly the tyre/vehicle model parameters this project
   deliberately does not claim. Observer-based estimation is future
   work conditional on a validated vehicle model.
+
+### WP2b-2: decision-matrix rule engineering [2026-07-26]
+- The 7 WP2 seed rules (ARB-only, provisional parameter labels) were
+  retired in place (status field, never deleted -- kept for history)
+  and superseded by 26 rules elicited from an external engineer
+  decision matrix (scenario x speed-class grid, maintained outside
+  the repo, supplied as an authoritative input rather than derived
+  here). Every matrix cell -- including the two the matrix defines no
+  action for, and the escalation cells not yet automated -- got
+  exactly one traceable rule entry (`cell_id` field, document leads
+  code), verified by a synthetic round-trip check against all 31
+  scenario x speed-class cells plus the one dropped combined-entry
+  cell.
+- SEVERITY-CLASSIFICATION NUANCE (caught while writing synthetic test
+  data, not previously documented): `_classify_corner`'s severity
+  logic does NOT reach "moderate" from moderate-band CS collapse
+  alone. Re-reading the actual branch order: `"moderate"` requires
+  EITHER a strong CS collapse alone (front or rear, independent of
+  yaw stability), OR a moderate CS collapse combined with a
+  destabilising yaw moment, OR a destabilising yaw moment alone --
+  moderate CS collapse with a stable yaw moment stays "normal" and
+  never fires any severity-gated rule. This is existing, unchanged
+  classifier behaviour (not touched by WP2b-2), but it was easy to
+  misread from the threshold names alone; worth stating explicitly
+  since every matrix rule's `min_severity: "moderate"` gate depends on
+  it.
+- ESCALATION-ORDER TIER is a new, deliberately separate axis from
+  `change_effort` in the registry: change_effort measures literal
+  time-to-change (seconds/minutes/garage_hours), while the matrix's
+  cockpit -> pitlane -> garage escalation order measures who decides
+  and how disruptive the change is -- they disagree for real
+  parameters (`diff_position` is change_effort "seconds" but matrix-
+  "garage", a driver-preference domain change; `camber_*` is
+  change_effort "minutes" but also matrix-"garage"). Collapsing them
+  into one field would have silently misranked recommendations by the
+  wrong notion of "cheap".
+- ACTION-CLASS SPLIT (advisory vs. recommended, WP2b-2 amendment 7):
+  a "data"-trigger match at moderate severity with no corroborating
+  driver feedback on the same phases renders as an ADVISORY
+  observation (non-imperative rationale, never budget-eligible)
+  rather than a RECOMMENDED, budget-eligible suggestion. Grounding:
+  mild understeer is this car's deliberate stable baseline (June
+  driver-report precedent, predating this session) and the matrix
+  elicitation's own bias is against unnecessary changes when the
+  driver is inconsistent with the data -- an uncorroborated moderate
+  verdict is diagnosis, not mandate. The class boundary (which
+  severity/trigger combinations are action-eligible) is a config
+  value (`recommendations.json settings.action_class`), not a
+  hardcoded threshold, consistent with the Tier B config-driven
+  principle. This is a product/process design choice (Tier C).
+- CONSISTENCY GATE (Tier B, config-documented): no recommendation
+  fires unless its triggering verdict repeats on both an absolute
+  floor (`min_repeat_laps`) AND a fraction (`min_repeat_fraction`) of
+  that corner's analysed laps, evaluated per-lap rather than only on
+  the existing median-of-medians aggregate. Standard exclusion-mask
+  practice, not a novel method; parameters are config values, not
+  named constants, since they tune to outing length rather than
+  defining what the aggregation method is.
+- FEASIBILITY LIMITATION (WP2b-2 amendment 6, worth stating plainly
+  for the limitations register): checking a recommended change against
+  the outing's current setup sheet requires knowing the current value,
+  but numeric setup-sheet fields default to 0 in the UI until filled,
+  and several registry parameters (damper clicks, min=0) treat 0 as a
+  legitimate real setting. There is no way to distinguish a genuine
+  0 from an unfilled default without an explicit "was this field ever
+  touched" flag, which does not exist. The engine accepts this
+  ambiguity rather than guessing: any stored 0 is treated as "current
+  value unknown" uniformly, for every parameter, and the affected
+  recommendation renders "limit not checked" rather than silently
+  asserting feasibility. A rare genuine 0 setting on a zero-legitimate
+  parameter is the one case this reads as unknown when it could have
+  been checked -- accepted, not fixed, since fixing it needs new data
+  the setup sheet doesn't currently capture.
+
+### WP1 consolidation, Turn 1: canonical corner realization [2026-07-26]
+- Replaces per-lap-only corner/phase realization with a post-pass over
+  the existing (unchanged) detection + connected-components clustering:
+  one canonical bracket + set of phase boundaries per stable_corner_id
+  (median per boundary across cluster members, s_m-anchored, reset-
+  guarded), re-realized onto every valid lap by inverting that lap's own
+  guarded s_m(t) -- including laps that detected no bracket there at all
+  (tagged `canonical_quiet`, real telemetry, informative not an error).
+  Closes the bracket-edge reset-guard gap explicitly left open in the
+  WP1-freeze-proof entry above (`bracket_start_m`/`end_m` now use the
+  same `_interp_lap_distance_guarded` helper apex distance already did).
+- TWO-PASS SPLIT: pass 1 (seeded split, unchanged) still assigns
+  straggler brackets to their best-overlap SEED LAP. Pass 2 (new)
+  re-checks only pass-1's `straddles_adjacent_corners`-tagged brackets
+  against each candidate cluster's CONFIDENT-member canonical window
+  instead -- a once-per-corner-pair decision instead of a per-lap race.
+  On Dubai, pass 2 found 0 reassignments: the confident-member windows
+  it compared against happened to agree with pass 1's own seed-based
+  assignment for every straddling bracket in this file. The stability
+  improvement documented below therefore came from the canonical-bracket-
+  median step (item 1), not from pass 2 changing membership -- both
+  mechanisms ran, only one changed the outcome on this data; a second
+  track could exercise pass 2 differently.
+- REAL BUG CAUGHT AND FIXED during implementation, worth recording as a
+  methods note: an early version sliced each lap's speed/lat_g channel
+  down to the bracket window BEFORE smoothing, instead of smoothing the
+  full lap first (as `_build_corner` already did) and slicing after.
+  Convolution's "same"-mode edge behaviour on a short array attenuates
+  values toward the boundary (kernel taps with nothing to multiply
+  against still count toward the fixed-length normaliser), which biased
+  every corner's re-realized apex_speed low and, since severity/
+  speed_class both key off it, would have silently corrupted every
+  downstream verdict. Caught by comparing before/after apex speeds on
+  real Dubai data (C3/C4 read "high" ~160-185 km/h before, implausibly
+  "medium" ~88-98 km/h after) rather than trusting the diff looked
+  reasonable -- the fix hoists the full-lap smooth outside the per-
+  corner loop, both correcting and de-duplicating the computation.
+- RESULT on the two corners this session's diagnostics flagged as
+  unstable (C10/C11, bracket-width bimodality -- a lap-2 short/high-
+  speed bracket vs. a lap-1 wide/low-speed compound bracket for the same
+  cluster): both now realize consistently across all 4 valid laps at
+  ~80-91 km/h, classified "medium" uniformly -- markedly tighter than
+  the pre-canonical 75.8-151.7 km/h (C10) / 76.6-162.9 km/h (C11)
+  swings. This DIFFERS from the proposal's own prediction (that the
+  low-speed ~76-79 km/h compound realization would likely win a vote
+  across instances) -- the canonical bracket is a median over ALL final
+  members' geometry, not a vote over classified instances, and a median
+  window between a wide-slow and a narrow-fast bracket produces a
+  moderate reading distinct from either extreme. Recorded as the actual
+  outcome, not retrofitted to match the prediction.
+- Per-lap corner counts are now equal across every stable corner id
+  (14 stable corners x 4 valid laps = 56 instances, 5 of them
+  `canonical_quiet` -- previously-missing laps that now materialize with
+  real, quiet telemetry, e.g. C9's lap 1). C10's canonical bracket
+  (175m) no longer clears the compound_corner threshold (300m) that its
+  widest per-lap realization used to; C11's (380m) still does.
+- Modules 1-5 sample-level outputs are unaffected by construction (they
+  read `channels`/`params`/`laps` only, never `corners`/segments) --
+  verified numerically identical pre/post this turn on Dubai (state,
+  beta, CS_ratio_f, stability_observed_Nm_per_deg all unchanged).
+  `test_stability.py` clean.
+- STANDING GATE, not yet done: per CLAUDE.md's grounding rule, this is
+  an estimator-INPUT change (the phase-window distribution feeding
+  classify_fn's thresholds has moved) even though estimator code hasn't.
+  WP1 Turn 2 (validation + re-derivation inputs) is the next step, not
+  yet started this turn -- current classify_fn verdicts on canonical
+  data should be read with that pending, not as newly-validated.
+
+### WP1 consolidation, Turn 2: validation findings that motivated Turn 3 [2026-07-26]
+- Read-only diagnostics (no thresholds/code changed) traced the C9/C10
+  pairing to its root: pass 1's own union-find puts both in ONE
+  connected component (5 brackets across laps [1,2,2,3,4] -- lap 2
+  uniquely contributes two separate brackets, which is what triggers
+  the seeded split at all). C9<->C10 canonical windows overlapped 88%
+  of the smaller window; 99.4% of C10's samples were also inside C9's
+  window, every lap. `corner_radius_filtered` overlap (an independent
+  channel) regressed for C10 specifically (0.67 pre-WP1 baseline ->
+  0.55) -- a third, independent method converging on the same pair.
+  True local apex positions (peak |lat_g|, independent of the canonical
+  median) were nonetheless 58m apart with different speed signatures
+  (C9 ~76 km/h, C10 ~87-90 km/h) -- evidence pointed both ways, handed
+  to the reviewer rather than resolved here.
+- Inter-lap stability agreement (the "pooled grid" mechanism's own
+  predicted effect) tightened dramatically for 13 of 14 corners after
+  Turn 1's canonical phasing, several by 10-100x (C8: std 124.4->0.6;
+  C10: 192.0->0.8; C11: 209.5->2.2) -- strong independent confirmation
+  the canonical-phase mechanism works as designed, C9/C10/C11/C12
+  aside.
+
+### WP1 consolidation, Turn 3: canonical boundary resolution [2026-07-26, reviewer decision: partition not merge]
+- New post-pass (`_resolve_canonical_overlaps`, `modules/corner_
+  analysis.py`): any pair of canonical windows overlapping more than
+  `canonical_overlap_max` (config, 0.10) is truncated to a shared
+  boundary placed at the |ay| minimum of the pooled (cross-lap median,
+  s-anchored) lateral-g profile between the two apex positions --
+  Tier B geometric post-pass, config-documented (`canonical_overlap_
+  max`, `canonical_boundary_grid_step_m`, both new config/channels.json
+  corner_detection keys). This is the same "split a compound at an ay
+  minimum" idea already named as an open, undone refinement in this
+  file's original compound-corner finding (2026-07-22) -- implemented
+  here for canonical WINDOW resolution, not per-lap phase display, six
+  months after being first named.
+- Phase boundaries (brake/turnin/half -- apex is never touched, the
+  search region is defined between the two apex positions by
+  construction) are re-clamped into each truncated window afterward. A
+  boundary whose defining event no longer sits inside its sub-window
+  collapses to a degenerate (zero-length) phase there --
+  `summarise_corners`/`_classify_corner` already read that as "no
+  signal" (empty slice -> n_samples=0 -> NaN stats -> skipped by the
+  worst-value search); NEITHER function needed a code change for this
+  to be handled honestly, confirming the existing degenerate-phase
+  convention (already used by `apex_3` and by the throttle-missing
+  brake-phase fallback) generalises cleanly to a case it wasn't
+  originally written for.
+- RESULT on Dubai: C9<->C10 and C11<->C12 both resolve to exactly 0.0%
+  overlap and 0.0% sample-sharing (was 88%/99.4% for C9/C10). C11's
+  canonical realization changes qualitatively, not just numerically:
+  its apex speed jumps from ~81-85 km/h ("medium") to 152-162 km/h
+  ("high") once no longer contaminated by neighbouring C12's slow
+  apex in its own min-speed search -- C11 was genuinely mis-classified
+  before this turn, not just noisily classified. `corner_radius_
+  filtered` overlap for C10 improves from 0.55 to 0.60 (mean 0.78->
+  0.84) -- better, but still short of the original pre-WP1 0.67
+  baseline; C11 reaches a perfect 1.000 on every lap (was 1.000
+  already, unaffected before, now confirmed unaffected after too since
+  its OWN window only lost contaminated territory, not real signal).
+- NOT uniformly positive, reported plainly: C9's inter-lap stability
+  agreement WORSENED slightly post-partition (std 6.7 -> 12.0 Nm/deg --
+  still small in absolute terms next to corners like C10's pre-
+  canonical 192.0, but a real, honest non-improvement, not spun as
+  one). C9-L1's CS_r=-0.721 flag (Turn 2) persists unchanged post-
+  partition -- C9's start boundary wasn't touched by this turn, so this
+  finding is independent of the C9/C10 question and remains open.
+- The six-most-negative-stability / C8-cluster finding is now IDENTICAL
+  to the original pre-WP1 (pre-canonical) result: C8 (4 of 6, ~-398
+  Nm/deg) + C3 (2 of 6, now positive, +24.7/+27.1) -- the single most
+  load-bearing distribution fact in this diagnostic (which corner
+  triggers the strong destabilising-yaw threshold) is unchanged across
+  all three states measured this session (before WP1, after Turn 1,
+  after Turn 3) -- the most reassuring stability result of the whole
+  consolidation, precisely because nothing about the canonical-
+  realization work should have touched C8 or C3 at all.
+- Re-derivation input handed to the user for WP1 Turn 4 (thresholds are
+  the user's own call, not derived here): worst-phase CS_f/CS_r/
+  stability percentiles, exceedance counts at the current thresholds,
+  and the inter-lap-agreement table, all over the final post-partition
+  56-instance set.
+
+### WP1 arc closeout [2026-07-27]
+- Full arc, four turns, one method: per-lap-independent corner/phase
+  detection (unchanged throughout, verified by source hash every
+  turn) now feeds a canonical realization layer -- one bracket + one
+  set of phase boundaries per stable_corner_id (median per boundary
+  across laps, reset-guarded), re-realized onto every valid lap
+  (`canonical_quiet` for a lap that reached the window without
+  independently detecting it, absent only for a lap that never
+  reached it at all), with a boundary-partition post-pass (Turn 3) for
+  any pair of canonical windows still overlapping more than 10% after
+  that -- resolved at the pooled |ay| minimum between the two apex
+  positions, non-overlapping by construction, reviewer's call
+  (partition, not merge) executed exactly as decided.
+- A real implementation bug was caught and fixed before any of this
+  was trustworthy (Turn 1): smoothing a short bracket slice instead of
+  the full lap first biased every apex speed low via convolution edge
+  effects. Caught by comparing before/after numbers against physical
+  plausibility, not by assuming a diff looked reasonable -- the
+  methodological point (verify against ground truth, not internal
+  consistency) is worth keeping for the thesis write-up regardless of
+  the specific bug.
+- C11 was genuinely MIS-classified before this arc (medium, ~81-85
+  km/h) and is genuinely a high-speed corner (152-162 km/h) once its
+  canonical window stopped drawing samples from neighbouring C10's
+  slow apex -- not a borderline call resolved either way, a real
+  correction with a traced mechanism.
+- Inter-lap stability agreement collapsed 10-100x for the large
+  majority of corners after canonical phasing (e.g. C8 std 124.4->0.6,
+  C10 192.0->0.8, C11 209.5->2.2) -- the strongest, cleanest
+  confirmation that the "pooled grid makes stability a per-corner
+  property" mechanism (2026-07-24 finding, unchanged) behaves exactly
+  as that finding predicted once the phase-jitter source it named is
+  actually closed.
+- TRI-STATE INVARIANCE, the single most reassuring cross-check this
+  session: the six-most-negative-stability distribution's corner
+  attribution -- C8 (4 of 6) + C3 (2 of 6) -- is IDENTICAL across all
+  three states measured (pre-WP1 baseline, post-Turn-1 canonical
+  realization, post-Turn-3 boundary partition). Nothing about this
+  arc's work should have touched C8 or C3, and by this measure,
+  nothing did. A large, multi-turn structural change to how corners
+  and phases are realized left the project's most safety-relevant
+  classification signal (which corner triggers the destabilising-yaw
+  threshold) completely undisturbed -- exactly what "the canonical
+  layer only changes realization, never detection or classification
+  logic" should look like when checked, not just claimed.
+
+### Threshold re-confirmation after WP1 consolidation [2026-07-27]
+- All five classification thresholds (STRONG_CSF/STRONG_CSR/
+  MODERATE_CSF/MODERATE_CSR/stab_neg_thresh_Nm_per_deg,
+  config/parameters.json) re-confirmed UNCHANGED -- values kept, only
+  each `derived_from` string gained a dated append recording the
+  argument, per this project's standing convention of never silently
+  re-deriving without a paper trail.
+- The argument: stability's six-most-negative distribution is now
+  -398/+25 (C8-only negative population, tri-state-invariant per the
+  closeout entry above) with exceedance counts 4/4/4 unchanged across
+  the pre-WP1, post-Turn-1, and post-Turn-3 states alike (stab<-50,
+  stab<-100 both hold at their historical counts). The CS-side moderate
+  counts (11 CS-branch flags now, see the verdict-distribution
+  re-check below) shift, but traceably to REPAIRED realization defects
+  (C11's speed misclassification, window-boundary jitter for the
+  C9/C10/C11/C12 region) rather than to any change in the underlying
+  physical signal or estimator -- a realization-ACCURACY upgrade, not
+  drift in what's being measured. Keeping the values means the
+  improved realization's marginal flag movements read as signal
+  (corners now measured correctly that weren't before), not as
+  threshold decay requiring a re-derivation. Same reasoning already
+  applied twice before in this file (Fy yaw-term upgrade, steering-
+  ratio L4 upgrade) -- this is the third confirmation under the same
+  standing argument, now against the largest single change (canonical
+  realization) any of the three has been checked against.
+
+### Verdict-distribution re-check after WP1 consolidation [2026-07-27]
+- `diagnostics/inspect_b3_verdict_distribution.py` (updated to report
+  its own instance count dynamically rather than a stale hardcoded 51,
+  since realization now legitimately changes it) re-run over the final
+  56-instance canonical set: 0 strong / 15 moderate / 41 normal, 26.8%
+  flagged. Branch split: CS=11, stability-only=4, both=0.
+- Against the historical pre-Fy-correction baseline (1 strong / 16
+  moderate / 34 normal, n=51, ~33% flagged) and the post-Fy-correction
+  point (0/14/37, n=51, ~27.5% flagged): 26.8% continues the SAME
+  downward trend both prior corrections already established, not a
+  reversal or a new regime -- three independent changes (Fy yaw term,
+  steering-ratio L4, WP1 canonical realization), one consistent
+  direction.
+- Against the June driver report ("balanced, mild understeer, no
+  instability"): 0 strong (matches "no instability" as the most severe
+  category) and a CS-branch-dominated moderate population (11 of 15,
+  understeer/oversteer flags) rather than stability-branch (4 of 15) --
+  consistent with "mild understeer" being the dominant real pattern,
+  not yaw instability. Same validation argument already made after the
+  Fy correction (2026-07-24): each independent upgrade moves the tool
+  further toward the driver's own characterisation, not away from it.
+- Two of the moderate flags are the canonical_quiet instances this
+  session's diagnostics already tracked in detail (C9-lap1, worst_CSr
+  =-0.721; C12-lap4, worst_CSf=0.046) -- both correctly flagged here as
+  real, moderate-severity CS-branch instances, not silently dropped or
+  inflated by being quiet realizations. C8 remains 4/4 laps, stability-
+  only, exactly as every other check this session found it.
+
+### WP1 open watch items, carried forward [2026-07-27]
+- `corner_radius_filtered` overlap for C10: 0.60 (post-partition) vs.
+  the original pre-WP1 baseline of 0.67 -- improved from Turn 2's 0.55
+  but not fully recovered. Not re-investigated further this session;
+  a candidate for another look if C10 is ever load-bearing for a
+  recommendation-engine rule.
+- C9's inter-lap stability agreement (std 6.7 -> 12.0 Nm/deg
+  post-partition) and the C9-lap1 (canonical_quiet) CS_r=-0.721 flag,
+  unchanged since first noticed in Turn 2 and confirmed to persist in
+  Turn 3 and again in this closeout's verdict-distribution re-check.
+  Both trace to the SAME unexamined variable: C9's start boundary was
+  never touched by the Turn 3 partition (only its end moved) and was
+  never independently re-examined on its own terms the way the C9/C10
+  shared boundary was. Flagged as the one genuinely open thread of
+  this arc, not resolved here -- a candidate for a future dedicated
+  look, not a known defect with a known fix.
+
+### Corner-numbering display bug: wrong field, not wrong indexing [2026-07-26]
+- Reported as "C14 shows 13" (and similar off-by-some mismatches for
+  other corners): clicking stable-corner grid cell C14 opened a details
+  panel reading "Corner 13". Root cause was NOT zero-vs-one-based
+  indexing, as first hypothesised -- it was two legitimately different
+  fields on the same summary dict being conflated at one display site:
+  `stable_corner_id` (the cross-lap cluster identity every other
+  surface -- grid cells, corner-map markers, recommendation-engine
+  corner chips -- already keys off) vs. `corner_number` (the raw, per-
+  lap sequential detection index, which legitimately drifts from the
+  cluster id whenever a corner's bracket splits/merges differently lap
+  to lap, e.g. C14's own raw corner_number was 13,13,13,12 across its
+  four laps). `ui/views/outing_form.py`'s `_build_corner_details`
+  header was the only production call site reading the wrong one
+  (grepped `corner_number` project-wide to confirm -- every other hit
+  is either module internals where it's the correct field, or a
+  diagnostics/*.py script using it for its own stated purpose). One-
+  line fix: read `stable_corner_id`, formatted identically to the grid
+  (`C<n>`). Tier C (UI display only, no analysis-layer change).
+
+### Matrix v2 review round [2026-07-26, project-lead review]
+- Provenance grade added between engineer-verbatim and the capped
+  grades: `project-lead-reviewed` -- action-eligible unless also marked
+  `situational`. All 8 cells that were `project-default` (elicited-
+  session defaults, no clean engineer statement) and 3 of the 6
+  `mirror-derived` cells (OS-TIN-low/med/high) were confirmed by
+  project-lead review and promoted; OS-APX-low/med/high remain
+  mirror-derived (see situational note below).
+- TWO DECODES: US-BRK-low and INST-BRK-low's original v1 answers were
+  ABS-map literals (targets 2 and 4) built from what turned out to be a
+  garbled engineer response, defaulted rather than confirmed. Decoded:
+  US-BRK-low's real first change is front toe +0.5mm more toe-out; the
+  ABS-map idea survives only as a held (never-firing) escalation,
+  try-and-error 1-2 positions toward the front-axle-stable variant.
+  INST-BRK-low's real first change is the same try-and-error pattern,
+  rear-axle-stable variant, no literal target. Both cases: a literal,
+  precise-looking value (position 2, position 4) had actually encoded
+  low confidence, not high -- precision is not the same as confirmation,
+  worth remembering when reading any elicited value that looks exact.
+- ABS DIRECTION SEMANTICS, annotated not rewritten (config/
+  setup_parameters.json abs_position notes): the "categorical, not one
+  monotonic axis" finding (WP2b-1) stays true at the FULL 0-11 range
+  (jumping grip-level brackets is still nonsensical) -- what changes is
+  that WITHIN one bracket, an ordinal +1/+2 nudge IS a real, project-
+  lead-confirmed stability lever (the two try-and-error rules above).
+  Both statements coexist; the annotation says so explicitly rather
+  than one silently overwriting the other.
+- CAMBER STEP CORRECTED: 0.3deg (WP2b-2 elicited-default, always
+  flagged as pending review) -> 0.1deg (project-lead review). Typical
+  field practice is 0.2deg (two 0.1deg clicks); a tyre-surface/wear-
+  pattern inspection precedes any camber change, and a one-sided
+  (single-corner) change is sometimes preferred over the symmetric
+  FL+FR pair the rules encode -- both now stated in the citing rules'
+  rationale, since neither is capturable as a single numeric field.
+- SITUATIONAL CLASS (engineering principle, not just a config flag):
+  OS-APX-low/med/high are the three apex-oversteer cells where the
+  matrix v2 review explicitly declines to name one first lever --
+  front ARB +1 OR rear ARB -1 (low speed), diff +1 or clear via toe/
+  camber/ARB (medium), springs or rear ARB -1 or camber (high). The
+  AXLE-GRIP LOAD-SENSITIVITY PRINCIPLE this elicits: at the apex, which
+  axle is actually closer to its own grip limit at that moment decides
+  which lever helps, and that isn't determinable from the verdict alone
+  (front vs rear CS ratio) the way it is at other phases -- the matrix's
+  silence on a single answer here is itself elicited engineering
+  knowledge, not a gap to be filled by picking one arbitrarily. Encoded
+  as `situational: true` -- permanently advisory regardless of
+  provenance/severity/corroboration, alternatives listed verbatim in the
+  rationale, engineer decides. US-APX-low (the understeer-side, non-
+  situational sibling) gains its own noted alternative (rear ARB +1)
+  without losing action-eligibility on its primary lever -- the
+  asymmetry (US-side has one clear answer, OS-side doesn't) is the
+  interesting part, not an inconsistency.
 
 ## 3. Validation results (Dubai sample, 992 GT3R, 5 valid laps, 50 Hz)
 

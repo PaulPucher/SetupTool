@@ -2,11 +2,23 @@
 # Pure Python. No Qt imports. Converts per-lap-per-corner stability
 # summaries + driver feedback + a rule table (config/recommendations.json)
 # into a ranked, evidence-backed list of setup direction suggestions.
+#
+# WP2b-2: rules are now sourced from an external engineer decision matrix
+# (scenario x speed-class grid, config/recommendations.json rule.cell_id),
+# referencing real config/setup_parameters.json registry keys instead of
+# the WP2 placeholder front_arb/rear_arb labels. Mild understeer is this
+# car's deliberate stable baseline (June driver-report precedent) and the
+# elicitation's own bias is against unnecessary changes when the driver is
+# inconsistent with the data -- see the action_class split below, which
+# keeps unsubstantiated moderate-severity data-only matches as ADVISORY
+# (observation, non-imperative, never budget-eligible) rather than
+# RECOMMENDED (ranked, budget-eligible).
 
 import json
 import numpy as np
 
 RECOMMENDATIONS_CONFIG_PATH = "config/recommendations.json"
+SETUP_PARAMETERS_CONFIG_PATH = "config/setup_parameters.json"
 
 # Must match the phase_keys list in modules/stability_analysis.py
 # summarise_corners(), and the e1..x5 feedback columns collected in
@@ -18,15 +30,38 @@ PHASE_TO_FEEDBACK_KEY = dict(zip(PHASE_KEYS, ["e1", "e2", "a3", "x4", "x5"]))
 # structure, so it stays a named constant rather than a config value.
 SEVERITY_RANK = {"normal": 0, "moderate": 1, "strong": 2}
 
+# Ordinal ordering of a corner's speed_class (modules/corner_analysis.py,
+# config/channels.json corner_speed_thresholds) -- enum structure, not a
+# per-car tunable.
+SPEED_CLASS_ORDER = ["low", "medium", "high"]
+
+# Escalation-order tier from the decision matrix (cockpit -> pitlane ->
+# garage): a distinct axis from setup_parameters.json's change_effort
+# (time-to-change) -- e.g. diff_position is change_effort "seconds" but
+# matrix-"garage" (driver-preference domain). Enum structure, not tunable.
+ESCALATION_TIER_RANK = {"cockpit": 0, "pitlane": 1, "garage": 2}
+
 # Method-defining constants (CLAUDE.md grounding rule): these fix the shape
 # of the scoring formula, not a per-car/per-track calibration.
 SOURCE_BALANCE_NORMALISER = 2.0  # makes source_balance=0.5 exactly neutral (both multipliers = 1.0)
 FEEDBACK_SCALE_MAX = 5.0  # driver feedback is entered on a fixed -5..+5 scale (see PROJECT.md)
 
+# Rule statuses that never fire. "retired": superseded (old ARB-only seeds).
+# "held": escalation rule, fully specified for 1:1 cell traceability but not
+# yet automated (no applied-recommendations history to know the base change
+# was tried). "dropped": matrix cell deliberately defines no action.
+_NON_FIRING_STATUSES = ("retired", "held", "dropped")
+
 
 def load_recommendations_config():
     with open(RECOMMENDATIONS_CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_setup_parameters_registry():
+    with open(SETUP_PARAMETERS_CONFIG_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return {k: v for k, v in data.items() if not k.startswith("_comment")}
 
 
 def _nanmedian_or_nan(values):
@@ -36,19 +71,49 @@ def _nanmedian_or_nan(values):
     return float(np.median(valid))
 
 
-def aggregate_by_corner(summaries):
-    # Median-of-medians per stable_corner_id: each lap already reduces a
-    # corner instance to a per-phase median (summarise_corners); taking
-    # the median across laps of those medians privileges behaviour that
-    # repeats every lap. A single-lap anomaly washes out and cannot by
-    # itself drive a recommendation -- setup changes should address
-    # repeatable patterns, not one-off excursions.
+def _group_by_corner(summaries):
     by_id = {}
     for s in summaries:
         cid = s.get("stable_corner_id")
         if cid is None:
             continue
         by_id.setdefault(cid, []).append(s)
+    return by_id
+
+
+def _aggregate_speed_class(lap_summaries):
+    # Tier B (standard aggregation choice, config-documented -- CLAUDE.md
+    # grounding rule): modal speed_class across the corner's laps, so a
+    # corner sitting near a config/channels.json threshold doesn't flip a
+    # rule's speed-class gate lap to lap. Tie-break prefers the class
+    # closest to "medium"; a residual tie (e.g. a low/high split with no
+    # medium instance at all) breaks toward the lower class -- deterministic,
+    # not a physically-loaded choice.
+    counts = {}
+    for s in lap_summaries:
+        sc = s.get("speed_class")
+        if sc is None:
+            continue
+        counts[sc] = counts.get(sc, 0) + 1
+    if not counts:
+        return None
+    max_n = max(counts.values())
+    tied = [c for c, n in counts.items() if n == max_n]
+    mid = SPEED_CLASS_ORDER.index("medium")
+    tied.sort(key=lambda c: (abs(SPEED_CLASS_ORDER.index(c) - mid), SPEED_CLASS_ORDER.index(c)))
+    return tied[0]
+
+
+def aggregate_by_corner(summaries):
+    # Median-of-medians per stable_corner_id: each lap already reduces a
+    # corner instance to a per-phase median (summarise_corners); taking
+    # the median across laps of those medians privileges behaviour that
+    # repeats every lap. A single-lap anomaly washes out and cannot by
+    # itself drive a recommendation -- setup changes should address
+    # repeatable patterns, not one-off excursions. (The consistency gate in
+    # _evaluate_rule additionally requires the verdict itself to repeat
+    # across a minimum count/fraction of laps, evaluated per-lap below.)
+    by_id = _group_by_corner(summaries)
 
     aggregated = {}
     for cid, corner_summaries in by_id.items():
@@ -70,6 +135,7 @@ def aggregate_by_corner(summaries):
         aggregated[cid] = {
             "stable_corner_id": cid,
             "n_laps": len(corner_summaries),
+            "speed_class": _aggregate_speed_class(corner_summaries),
             "phases": phases,
         }
     return aggregated
@@ -129,18 +195,19 @@ def _feedback_value(feedback_row, phases):
 def _feedback_modulation(fb_value, condition, settings):
     # "data"-triggered rules: phase-scoped feedback modulates the score
     # symmetrically. A rule whose condition omits feedback_sign (the yaw
-    # rule -- no natural feedback axis) is never modulated.
+    # rules -- no natural feedback axis) is never modulated, and can never
+    # be reported as driver-corroborated.
     feedback_sign = condition.get("feedback_sign")
     if feedback_sign is None:
-        return 1.0, False
+        return 1.0, False, False
     min_abs = condition.get("min_feedback_abs", 0)
     if abs(fb_value) < min_abs:
-        return 1.0, False
+        return 1.0, False, False
     agrees = ((feedback_sign == "negative" and fb_value < 0)
               or (feedback_sign == "positive" and fb_value > 0))
     if agrees:
-        return settings["agreement_bonus"], False
-    return settings["conflict_penalty"], True
+        return settings["agreement_bonus"], False, True
+    return settings["conflict_penalty"], True, False
 
 
 def _classifier_modulation(short, severity, agreement_ref, settings):
@@ -167,10 +234,102 @@ def _resolve_source_balance(config, outing=None):
     return config["settings"]["source_balance"]
 
 
-def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, source_balance):
+def _consistency_gate_ok(cid, by_corner_laps, phases, verdict, min_severity, classify_fn, settings):
+    # Global decision-matrix policy: no recommendation unless the
+    # triggering verdict repeats across laps. Re-evaluates classify_fn
+    # per lap (not just on the median-of-medians aggregate already tested
+    # by the caller) and requires BOTH an absolute floor and a fraction of
+    # this corner's analysed laps to show the verdict at/above min_severity.
+    gate = settings.get("consistency_gate")
+    if not gate:
+        return True
+    laps = by_corner_laps.get(cid, [])
+    if not laps:
+        return False
+    repeat = 0
+    for lap_summary in laps:
+        severity, short = _phase_verdict(lap_summary, phases, classify_fn)
+        if _verdict_present(short, verdict) and SEVERITY_RANK[severity] >= SEVERITY_RANK[min_severity]:
+            repeat += 1
+    return (repeat >= gate["min_repeat_laps"]) and (repeat / len(laps) >= gate["min_repeat_fraction"])
+
+
+def _normalise_actions(suggestion):
+    return suggestion if isinstance(suggestion, list) else [suggestion]
+
+
+def _action_key(action):
+    return action.get("direction") or f"target={action.get('target')}"
+
+
+def _bucket_key(rule, actions):
+    # A package (or an axle-symmetric FL+FR/RL+RR pair -- the registry has
+    # no combined axle-level ARB/camber/damper key, see arb_fl notes in
+    # setup_parameters.json) is applied and budgeted atomically: it gets
+    # its own bucket, never merged with anything else, keyed by the rule's
+    # own cell_id so two different packages never collide.
+    if len(actions) == 1:
+        a = actions[0]
+        return (a["parameter"], _action_key(a))
+    return ("__package__", rule.get("cell_id") or rule["id"])
+
+
+def _provenance_note(rule, settings):
+    # WP2b-2: surfaces WHY a rule is capped to advisory regardless of
+    # severity/corroboration -- "mirror-derived" states which cell it was
+    # mirrored from (OS-* cells mirror the equivalent US-* cell), so the
+    # engineer knows exactly what to confirm. Matrix v2: "project-lead-
+    # reviewed" is action-eligible (between engineer-verbatim and the
+    # capped grades), so it never gets this note.
+    ac = settings.get("action_class", {})
+    eligible = set(ac.get("action_eligible_provenances", ["engineer-verbatim", "project-lead-reviewed"]))
+    prov = rule.get("elicitation_provenance")
+    if prov is None or prov in eligible or rule.get("status") == "reviewed":
+        return None
+    cell_id = rule.get("cell_id") or ""
+    if prov == "mirror-derived" and cell_id.startswith("OS-"):
+        source = "US-" + cell_id[len("OS-"):]
+        return f" [PROVENANCE: mirror-derived from {source} -- engineer confirmation pending, capped to ADVISORY]"
+    return f" [PROVENANCE: {prov} -- engineer confirmation pending, capped to ADVISORY]"
+
+
+def _match_is_recommended(match, rule, settings):
+    # WP2b-2 amendment 7: which severity/trigger combos are action-eligible
+    # is config, not hardcoded (settings["action_class"]).
+    ac = settings.get("action_class", {})
+    # Matrix v2: a "situational" rule (the matrix itself lists more than one
+    # valid lever, grip-level-dependent, and declines to pick one) is
+    # PERMANENTLY advisory -- an observation with alternatives listed in its
+    # rationale, never budget-eligible, regardless of provenance grade,
+    # severity, or corroboration.
+    if rule.get("situational"):
+        return False
+    # WP2b-2 provenance cap, extended by matrix v2: only a cell stated
+    # verbatim by the engineer OR project-lead-reviewed (a step below full
+    # verbatim confirmation, but still action-eligible per the matrix v2
+    # review) counts as recommended -- anything else (mirror-derived,
+    # project-default) stays capped until that specific cell is confirmed
+    # (status promoted to "reviewed"), a per-cell override independent of
+    # the global policy switch.
+    eligible = set(ac.get("action_eligible_provenances", ["engineer-verbatim", "project-lead-reviewed"]))
+    prov = rule.get("elicitation_provenance")
+    if (ac.get("cap_non_verbatim_to_advisory", True)
+            and prov not in eligible
+            and prov is not None
+            and rule.get("status") != "reviewed"):
+        return False
+    always = set(ac.get("always_recommended_triggers", ["both", "driver"]))
+    if match["trigger"] in always:
+        return True
+    rec_severities = set(ac.get("data_trigger_recommended_severities", ["strong"]))
+    return (match["severity"] in rec_severities) or match["corroborated"]
+
+
+def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn, settings, source_balance):
     condition = rule["condition"]
     trigger = condition["trigger"]
     phases = rule["phases"]
+    required_speed_class = condition.get("speed_class")
     matches = []
 
     # Global multiplier on top of the per-trigger score (applied after
@@ -182,9 +341,19 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
     driver_source_factor = source_balance * SOURCE_BALANCE_NORMALISER
 
     for cid, corner in aggregated.items():
+        # Matrix speed-class gate: this scenario x speed-class cell only
+        # applies to corners whose (modal, lap-aggregated) speed_class
+        # matches. Rules that don't specify speed_class (e.g. any future
+        # non-matrix rule) skip this check entirely.
+        if required_speed_class is not None and corner.get("speed_class") != required_speed_class:
+            continue
+
         fb_row = _feedback_row(feedback_data, cid)
         fb_value = _feedback_value(fb_row, phases)
         conflict = False
+        corroborated = False
+        severity = None
+        short = None
 
         if trigger == "data":
             severity, short = _phase_verdict(corner, phases, classify_fn)
@@ -193,8 +362,11 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             min_sev = condition.get("min_severity", "normal")
             if SEVERITY_RANK[severity] < SEVERITY_RANK[min_sev]:
                 continue
-            factor, conflict = _feedback_modulation(fb_value, condition, settings)
-            score = (rule["suggestion"]["weight"] * settings["severity_factors"][severity]
+            if not _consistency_gate_ok(cid, by_corner_laps, phases, condition["verdict"],
+                                         min_sev, classify_fn, settings):
+                continue
+            factor, conflict, corroborated = _feedback_modulation(fb_value, condition, settings)
+            score = (rule["weight"] * settings["severity_factors"][severity]
                      * factor * data_source_factor)
 
         elif trigger == "driver":
@@ -207,9 +379,9 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             if not agrees_sign:
                 continue
             severity, short = _phase_verdict(corner, phases, classify_fn)
-            factor, conflict = _classifier_modulation(
-                short, severity, condition["verdict"], settings)
-            score = (rule["suggestion"]["weight"] * (abs(fb_value) / FEEDBACK_SCALE_MAX)
+            factor, conflict = _classifier_modulation(short, severity, condition["verdict"], settings)
+            corroborated = True  # driver is the trigger; always_recommended_triggers covers eligibility
+            score = (rule["weight"] * (abs(fb_value) / FEEDBACK_SCALE_MAX)
                      * factor * driver_source_factor)
 
         elif trigger == "both":
@@ -227,11 +399,14 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
                            or (feedback_sign == "positive" and fb_value > 0))
             if not agrees_sign:
                 continue
+            if not _consistency_gate_ok(cid, by_corner_laps, phases, condition["verdict"],
+                                         min_sev, classify_fn, settings):
+                continue
+            corroborated = True
             # Both conditions already independently confirm agreement --
             # score with the same agreement_bonus a "data" rule would earn
             # from matching feedback, not a further-inflated multiplier.
-            score = (rule["suggestion"]["weight"] * settings["severity_factors"][severity]
-                     * settings["agreement_bonus"])
+            score = rule["weight"] * settings["severity_factors"][severity] * settings["agreement_bonus"]
 
         else:
             continue
@@ -251,83 +426,293 @@ def _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, sourc
             "score": score,
             "conflict": conflict,
             "worst_corner": worst_flag,
+            "severity": severity,
+            "severity_rank": SEVERITY_RANK.get(severity, 0),
+            "corroborated": corroborated,
+            "trigger": trigger,
+            "short_verdict": short,
         })
 
     return matches
+
+
+def _describe_actions(actions):
+    parts = []
+    for a in actions:
+        if "target" in a:
+            parts.append(f"{a['parameter']} -> {a['target']}")
+        else:
+            parts.append(f"{a['parameter']} {a['direction']} ({a['delta']:+g})")
+    return " + ".join(parts)
+
+
+def _numeric_bounds(entry):
+    # Most parameters carry min/max directly on value_space. ride_height_*
+    # instead states a "standard" value plus a typical_window delta (see
+    # setup_parameters.json) -- derive the equivalent bounds from that.
+    vs = entry["value_space"]
+    if vs is None:
+        return None, None
+    if "min" in vs and "max" in vs:
+        return vs["min"], vs["max"]
+    tw = entry.get("typical_window") or {}
+    standard = vs.get("standard")
+    if standard is None:
+        return None, None
+    if "max_delta_from_standard" in tw:
+        return standard + tw["max_delta_from_standard"], standard
+    if "delta_from_standard" in tw:
+        lo, hi = tw["delta_from_standard"]
+        return standard + lo, standard + hi
+    return None, None
+
+
+def _check_feasible(entry, current_value, delta_value):
+    # Returns True/False (checked) or None (not checked -- no bounds known
+    # for this parameter, distinct from "current value unknown").
+    vs = entry["value_space"]
+    if vs and vs.get("type") == "enum" and "options" in vs:
+        options = vs["options"]
+        if current_value not in options:
+            return None
+        idx = options.index(current_value) + int(delta_value)
+        return 0 <= idx < len(options)
+    lo, hi = _numeric_bounds(entry)
+    if lo is None or hi is None:
+        return None
+    try:
+        new_value = float(current_value) + delta_value
+    except (TypeError, ValueError):
+        return None
+    return lo <= new_value <= hi
+
+
+def _current_setup_value(setup_data, entry):
+    # "Real current value" test: present AND nonzero. Every matrix-touched
+    # numeric setup field either can't legitimately be 0 (arb/toe/camber/
+    # ride_height/diff_position -- 0 is out of range, so a stored 0 can only
+    # be an untouched QDoubleSpinBox default) or CAN legitimately be 0
+    # (damper clicks, min=0) -- for the latter we cannot distinguish a real
+    # 0 from the same default, so we accept the ambiguity and treat 0 as
+    # unknown uniformly rather than guess (WP2b-2 amendment 6). A nonzero
+    # stored value is never a default, for any parameter.
+    maps_to = entry.get("maps_to")
+    if not maps_to or not setup_data:
+        return None
+    parts = maps_to[0].split(".")[1:]  # drop the "setup_parameters" prefix
+    node = setup_data
+    for p in parts:
+        if not isinstance(node, dict) or p not in node:
+            return None
+        node = node[p]
+    if node is None or node == "":
+        return None
+    if isinstance(node, (int, float)) and node == 0:
+        return None
+    return node
+
+
+def _apply_feasibility(results, setup_data, registry):
+    # WP2b-2 amendment 6: current + delta against the registry's min/max.
+    # Target-style actions (abs_position) are absolute, not relative to a
+    # current value -- always feasible, never checked.
+    for r in results:
+        for action in r["actions"]:
+            if "target" in action:
+                continue
+            entry = registry.get(action["parameter"])
+            if entry is None:
+                action["feasible"] = None
+                continue
+            current = _current_setup_value(setup_data, entry)
+            action["feasible"] = (None if current is None
+                                   else _check_feasible(entry, current, action["delta"]))
+        delta_statuses = [a["feasible"] for a in r["actions"] if "target" not in a]
+        if any(s is False for s in delta_statuses):
+            r["limit_status"] = "at_limit"
+        elif any(s is None for s in delta_statuses):
+            r["limit_status"] = "unchecked"
+        else:
+            r["limit_status"] = "ok"
+        r["at_limit_parameters"] = [a["parameter"] for a in r["actions"]
+                                     if a.get("feasible") is False]
+    return results
+
+
+def _apply_parameter_conflicts(results):
+    # A conflict is any two DIFFERENT direction/target values recommended
+    # for the SAME registry parameter across different buckets (matching
+    # directions already merged into one bucket by _bucket_key, so this can
+    # only fire across buckets) -- surfaced, never netted/averaged into a
+    # false middle value.
+    param_keys = {}
+    for r in results:
+        for action in r["actions"]:
+            param_keys.setdefault(action["parameter"], set()).add(_action_key(action))
+    conflicted_params = {p for p, keys in param_keys.items() if len(keys) > 1}
+    for r in results:
+        touched = sorted({a["parameter"] for a in r["actions"]} & conflicted_params)
+        r["parameter_conflict"] = bool(touched)
+        r["conflict_parameters"] = touched
+    return results
+
+
+def _rank_key(result, tier_map):
+    # Ranking per WP2b-2 approval: severity first, then corner count
+    # (breadth of evidence), then escalation-order cheapness (cockpit <
+    # pitlane < garage), then cell_id lexical order as a final deterministic
+    # tie-break. A package/pair uses its most expensive action's tier.
+    tiers = [ESCALATION_TIER_RANK.get(tier_map.get(a["parameter"]), ESCALATION_TIER_RANK["pitlane"])
+             for a in result["actions"]]
+    tier_rank = max(tiers) if tiers else ESCALATION_TIER_RANK["pitlane"]
+    cell_key = min(result["cell_ids"]) if result["cell_ids"] else ""
+    return (-result["severity_rank"], -len(result["corners"]), tier_rank, cell_key)
+
+
+def _apply_change_budget(results, settings):
+    # Tool never auto-applies -- this only marks which ranked, non-
+    # conflicted, feasible results fit the engineer's change budget for
+    # this run. absolute_cap is exposed for a future manual-override UI;
+    # the tool itself never auto-selects past default_max.
+    budget = settings.get("change_budget", {"default_max": 1, "absolute_cap": 2})
+    remaining = budget.get("default_max", 1)
+    for r in results:
+        eligible = (r["action_class"] == "recommended"
+                    and not r["parameter_conflict"]
+                    and r["limit_status"] != "at_limit"
+                    and remaining > 0)
+        r["selected"] = eligible
+        if eligible:
+            remaining -= 1
+    return results
 
 
 def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, config, outing=None):
     """
     Turn per-lap-per-corner stability summaries + driver feedback into a
     ranked list of setup direction suggestions, each with a full evidence
-    trail (which corners, which rules, any driver/data conflicts).
+    trail (which corners, which rules/cell_ids, any driver/data conflicts,
+    any cross-rule parameter conflicts, feasibility against the outing's
+    current setup sheet).
 
     Pipeline: (1) aggregate `summaries` per stable_corner_id via
-    median-of-medians across laps, so a single-lap anomaly cannot drive a
-    recommendation. (2) For each rule in `config["rules"]`, test every
-    aggregated corner against the rule's condition -- "data" rules fire
-    from `classify_fn` (the same per-corner classifier the stability grid
-    uses, sliced to the rule's own phases) with feedback as a symmetric
-    modulator; "driver" rules fire from the feedback table (e1..x5, mapped
-    onto the five phase keys, max-|value| across a multi-phase rule) with
-    the classifier as the modulator instead; "both" rules require the data
-    and driver conditions to hold independently, with no further
-    modulation. Every match is then scaled by a global data/driver
-    `source_balance` factor (resolved once via `_resolve_source_balance`,
-    neutral at the 0.5 default -- see `_comment_source_balance` in
-    config/recommendations.json), and again by `worst_corner_multiplier`
-    if the driver flagged that corner "worst" in the feedback table --
-    applied once, uniformly, regardless of which trigger produced the
-    match (see `_comment_worst_corner`). (3) Matches are summed per
-    (parameter, direction), sorted by score, and results under
-    `config["settings"]["min_score_to_show"]` or beyond
-    `max_recommendations` are dropped.
+    median-of-medians across laps (`aggregate_by_corner`), including a modal
+    speed_class per corner. (2) For each non-firing-excluded rule in
+    `config["rules"]` (status retired/held/dropped never fire), test every
+    aggregated corner against the rule's condition, including the matrix's
+    speed_class gate and a per-lap consistency gate (verdict must repeat on
+    >= min_repeat_laps AND >= min_repeat_fraction of that corner's laps,
+    settings["consistency_gate"]) -- "data"/"both" rules fire from
+    `classify_fn` (the same per-corner classifier the stability grid uses);
+    "driver" rules fire from the feedback table. Every match is scaled by
+    `source_balance`, `worst_corner_multiplier`, and (for "data" rules)
+    agreement/conflict against driver feedback on the same phases -- see
+    `_comment_source_balance`/`_comment_worst_corner`/`_comment_trigger` in
+    config/recommendations.json. (3) Matches are grouped into buckets by
+    parameter+direction (or, for a package/axle-symmetric-pair suggestion,
+    one bucket per rule, keyed by cell_id -- `_bucket_key`); buckets under
+    `min_score_to_show` are dropped. (4) Each bucket is classified
+    "recommended" (ranked, budget-eligible) or "advisory" (observation only,
+    never budget-eligible) per settings["action_class"] -- a "data"-trigger
+    match at moderate severity with no driver corroboration on the same
+    phases stays advisory; "driver"/"both" triggers and strong severity are
+    always recommended (WP2b-2 amendment 7: mild understeer is this car's
+    deliberate stable baseline, data-only moderate verdicts are diagnosis,
+    not mandate). (5) A parameter_conflict pass flags any two buckets that
+    recommend different directions/targets for the same registry parameter
+    (never auto-resolved). (6) A feasibility pass checks current setup-sheet
+    value (from `setup_data`) + each action's delta against the registry's
+    value range, marking `limit_status` "at_limit" / "unchecked" / "ok"
+    (WP2b-2 amendment 6). (7) Results are ranked (severity, corner count,
+    escalation_tier, cell_id -- `_rank_key`) and the top
+    `change_budget.default_max` recommended, non-conflicted, feasible
+    results are marked `selected` (`_apply_change_budget`) -- distinct from
+    `max_recommendations`, the display cap applied last.
 
     `classify_fn` is the caller's corner classifier (in the UI thread,
     `self._classify_corner`) -- reusing it rather than reimplementing the
-    thresholds here guarantees a recommendation can never disagree with
-    the verdict the stability grid displays for the same corner and phase.
-    `setup_data` is accepted per the WP2 interface but not yet read by any
-    seed rule (see WP2b-1/WP2b-2 in PLAN.md). `outing` is accepted for the
-    same forward-compatibility reason as `_resolve_source_balance` -- not
-    read yet, reserved for a future per-driver/per-outing source_balance
-    override.
+    thresholds here guarantees a recommendation can never disagree with the
+    verdict the stability grid displays for the same corner and phase.
+    `setup_data` (the outing's own setup-sheet values, distinct from the
+    config/setup_parameters.json registry loaded internally here) now backs
+    the feasibility pass. `outing` is reserved for a future per-driver/
+    per-outing source_balance override (see `_resolve_source_balance`).
 
-    Returns a list of dicts: {parameter, direction, score, corners
-    ([{stable_corner_id, n_laps, worst_corner}, ...]), rules_fired,
-    trigger_source, conflicts ([{stable_corner_id, n_laps}, ...]),
-    rationale ([{rule_id, rationale}, ...])}.
+    Returns a list of dicts: {actions, parameter, direction (convenience
+    fields, single-action buckets only), score, severity_rank, corners
+    ([{stable_corner_id, n_laps, worst_corner, short_verdict}, ...]),
+    rules_fired, cell_ids, trigger_source, conflicts (driver/data
+    disagreement, per corner), parameter_conflict, conflict_parameters,
+    action_class ("recommended"|"advisory"), observation_lines (advisory
+    buckets only), escalation_notes (second-choice visibility -- display
+    only, never fires: the held escalation's action, for any base rule that
+    has one), limit_status, at_limit_parameters, selected, rationale}.
     """
     settings = config["settings"]
     source_balance = _resolve_source_balance(config, outing)
     aggregated = aggregate_by_corner(summaries)
+    by_corner_laps = _group_by_corner(summaries)
+    registry = load_setup_parameters_registry()
+    tier_map = {k: v.get("escalation_tier", "pitlane") for k, v in registry.items()}
+    advisory_prefix = settings.get("action_class", {}).get("advisory_rationale_prefix", "")
+    # Second-choice visibility (display only -- these rules never fire,
+    # _NON_FIRING_STATUSES already excludes "held" from the match loop
+    # below): base cell_id -> its held escalation rule, if any.
+    escalation_by_base_cell = {
+        r["escalation_of"]: r for r in config["rules"]
+        if r.get("status") == "held" and r.get("escalation_of")
+    }
 
     buckets = {}
     for rule in config["rules"]:
-        matches = _evaluate_rule(rule, aggregated, feedback_data, classify_fn, settings, source_balance)
+        if rule.get("status") in _NON_FIRING_STATUSES:
+            continue
+        matches = _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data,
+                                  classify_fn, settings, source_balance)
         if not matches:
             continue
-        key = (rule["suggestion"]["parameter"], rule["suggestion"]["direction"])
+        actions = _normalise_actions(rule["suggestion"])
+        key = _bucket_key(rule, actions)
         bucket = buckets.setdefault(key, {
-            "parameter": key[0],
-            "direction": key[1],
+            "actions": actions,
             "score": 0.0,
+            "escalation_notes": [],
+            "severity_rank": 0,
+            "is_recommended": False,
             "corners": {},
             "rules_fired": [],
+            "cell_ids": [],
             "trigger_source": set(),
             "conflicts": {},
             "rationale": [],
         })
         bucket["rules_fired"].append(rule["id"])
+        if rule.get("cell_id"):
+            bucket["cell_ids"].append(rule["cell_id"])
         bucket["trigger_source"].add(rule["condition"]["trigger"])
-        bucket["rationale"].append({"rule_id": rule["id"], "rationale": rule["rationale"]})
+        provenance_note = _provenance_note(rule, settings)
+        bucket["rationale"].append({
+            "rule_id": rule["id"], "cell_id": rule.get("cell_id"),
+            "rationale": rule["rationale"] + (provenance_note or ""),
+        })
+        held_escalation = escalation_by_base_cell.get(rule.get("cell_id"))
+        if held_escalation is not None:
+            esc_lever = _describe_actions(_normalise_actions(held_escalation["suggestion"]))
+            bucket["escalation_notes"].append(
+                f"engineer's escalation if insufficient: {esc_lever} "
+                f"[held - applied-history tracking pending]"
+            )
         for m in matches:
             bucket["score"] += m["score"]
+            bucket["severity_rank"] = max(bucket["severity_rank"], m["severity_rank"])
+            if _match_is_recommended(m, rule, settings):
+                bucket["is_recommended"] = True
             cid = m["stable_corner_id"]
             bucket["corners"][cid] = {
                 "stable_corner_id": cid,
                 "n_laps": m["n_laps"],
                 "worst_corner": m["worst_corner"],
+                "short_verdict": m["short_verdict"],
             }
             if m["conflict"]:
                 bucket["conflicts"][cid] = {"stable_corner_id": cid, "n_laps": m["n_laps"]}
@@ -336,16 +721,40 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     for bucket in buckets.values():
         if bucket["score"] < settings["min_score_to_show"]:
             continue
+        actions = bucket["actions"]
+        single = actions[0] if len(actions) == 1 else None
+        action_class = "recommended" if bucket["is_recommended"] else "advisory"
+        rationale = bucket["rationale"]
+        observation_lines = []
+        if action_class == "advisory":
+            rationale = [{**x, "rationale": advisory_prefix + x["rationale"]} for x in rationale]
+            lever = _describe_actions(actions)
+            cell = bucket["cell_ids"][0] if bucket["cell_ids"] else bucket["rules_fired"][0]
+            observation_lines = [
+                f"C{c['stable_corner_id']}: slight {c['short_verdict']} -- "
+                f"most likely lever if addressed: {lever} [{cell}]"
+                for c in sorted(bucket["corners"].values(), key=lambda c: c["stable_corner_id"])
+            ]
         results.append({
-            "parameter": bucket["parameter"],
-            "direction": bucket["direction"],
+            "actions": actions,
+            "parameter": single["parameter"] if single else None,
+            "direction": single.get("direction") if single else None,
             "score": round(bucket["score"], 3),
+            "severity_rank": bucket["severity_rank"],
             "corners": sorted(bucket["corners"].values(), key=lambda c: c["stable_corner_id"]),
             "rules_fired": bucket["rules_fired"],
+            "cell_ids": sorted(bucket["cell_ids"]),
             "trigger_source": sorted(bucket["trigger_source"]),
             "conflicts": sorted(bucket["conflicts"].values(), key=lambda c: c["stable_corner_id"]),
-            "rationale": bucket["rationale"],
+            "rationale": rationale,
+            "action_class": action_class,
+            "observation_lines": observation_lines,
+            "escalation_notes": sorted(set(bucket["escalation_notes"])),
         })
 
-    results.sort(key=lambda r: r["score"], reverse=True)
+    results = _apply_parameter_conflicts(results)
+    results = _apply_feasibility(results, setup_data, registry)
+    results.sort(key=lambda r: _rank_key(r, tier_map))
+    results = _apply_change_budget(results, settings)
+
     return results[: settings["max_recommendations"]]

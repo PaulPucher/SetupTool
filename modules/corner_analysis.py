@@ -20,8 +20,24 @@
 #   7. Cross-lap identity (assign_stable_corner_ids): link corners across laps
 #      by bracket-span overlap fraction along lap_distance; connected
 #      components are candidate clusters, with same-lap exclusivity enforced
-#      by a deterministic seeded split where one lap's bracket straddles what
-#      other laps detect as two distinct corners
+#      by a TWO-PASS deterministic split: pass 1 seeds sub-clusters from the
+#      lap with the most brackets and assigns every straggler to its best-
+#      overlap seed LAP; pass 2 (_reassign_straddlers_pass2, WP1 Turn 1)
+#      re-checks only the straggler brackets pass 1 flagged as ambiguous
+#      ("straddles_adjacent_corners") against each candidate cluster's
+#      CONFIDENT-member canonical window instead of one seed lap's own
+#      bracket -- a once-per-corner-pair decision, not a per-lap race.
+#   8. Canonical realization (_realize_canonical_corners, WP1 Turn 1): once
+#      stable_corner_id membership is fixed (steps 1-7, untouched by this
+#      step), derive one canonical bracket + set of phase boundaries per
+#      stable corner (median per boundary across members) and re-realize
+#      every valid lap's instance over that SAME window by inverting its
+#      own lap_distance(t) -- including laps that detected no bracket there
+#      at all (tagged "canonical_quiet": real telemetry, a quiet pass, not
+#      an error) and excluding only laps whose own lap_distance range never
+#      reaches the window (a genuine absence). Canonical speed_class is
+#      then assigned once per stable corner from the median of these
+#      re-realized per-lap apex speeds.
 #
 # Fallback chain (Tier B heuristics, used only when a channel is missing --
 # see thesis_notes.md for the primary dual-criterion method):
@@ -78,6 +94,7 @@ def analyse_corners(parsed_data):
         corners.extend(lap_corners)
 
     assign_stable_corner_ids(corners, channels)
+    corners = _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds)
 
     return corners
 
@@ -366,8 +383,14 @@ def assign_stable_corner_ids(corners, channels):
 
         bracket_start_t, _ = c["segments"]["entry_2_turnin"]
         _, bracket_end_t = c["segments"]["exit_5"]
-        c["bracket_start_m"] = float(np.interp(bracket_start_t, ld_time, ld_data)) * 0.3048
-        c["bracket_end_m"] = float(np.interp(bracket_end_t, ld_time, ld_data)) * 0.3048
+        # WP1 Turn 1: closes the gap the reset-guard fix explicitly left
+        # open (corner_analysis.py notes above, thesis_notes.md WP1-freeze-
+        # proof entry) -- bracket edges now use the same guard as
+        # apex_lap_distance_m. _interp_lap_distance_guarded already returns
+        # metres (converts internally), unlike the plain np.interp this
+        # replaces.
+        c["bracket_start_m"] = float(_interp_lap_distance_guarded(bracket_start_t, ld_time, ld_data))
+        c["bracket_end_m"] = float(_interp_lap_distance_guarded(bracket_end_t, ld_time, ld_data))
         if (c["bracket_end_m"] - c["bracket_start_m"]) > compound_min_len:
             c["warnings"].append("compound_corner")
 
@@ -442,10 +465,373 @@ def assign_stable_corner_ids(corners, channels):
 
         final_clusters.extend(sub_clusters)
 
+    _reassign_straddlers_pass2(final_clusters, min_frac)
+
     final_clusters.sort(key=lambda cluster: min(c["bracket_start_m"] for c in cluster))
     for cluster_id, cluster in enumerate(final_clusters, start=1):
         for c in cluster:
             c["stable_corner_id"] = cluster_id
+
+
+def _reassign_straddlers_pass2(final_clusters, min_frac):
+    """
+    WP1 Turn 1: pass 2 of the two-pass canonical split. Pass 1 above (the
+    connected-components + seeded split) is unchanged by this function --
+    it assigns each straggler bracket to whichever seed LAP's own raw
+    bracket it best-overlaps, a per-lap decision sensitive to that one
+    lap's own bracket geometry. Real evidence this matters (Dubai,
+    2026-07-26 diagnostics): a lap detecting only a short, late, high-speed
+    sub-feature of a compound complex (45.7 m, 151.7 km/h apex) vs. another
+    lap detecting the whole sustained low-speed complex (305 m, 75.8 km/h
+    apex) landed in different stable_corner_ids despite the short bracket
+    sitting almost entirely inside the wide one -- exactly the C10/C11
+    speed-class straddling and the corner_radius_filtered overlap
+    disagreement this session's diagnostics flagged.
+
+    Pass 2 instead compares every straddle-tagged corner against each
+    candidate cluster's CONFIDENT-member canonical window (median bracket
+    over members NOT tagged "straddles_adjacent_corners" -- always >=1,
+    since a split's seed corner is never itself straddle-tagged) -- a
+    stable, once-per-corner-pair decision instead of a per-lap race.
+    Clusters with no straddle-tagged member (the common case) are
+    untouched. Mutates `final_clusters` in place; called just before the
+    existing sort+enumerate step, so no separate renumbering pass is
+    needed -- that step already consumes whatever membership pass 2
+    leaves behind.
+    """
+    def canonical_window(members):
+        confident = [m for m in members if "straddles_adjacent_corners" not in m["warnings"]]
+        if not confident:
+            confident = members
+        return (float(np.median([m["bracket_start_m"] for m in confident])),
+                float(np.median([m["bracket_end_m"] for m in confident])))
+
+    canon = [canonical_window(cluster) for cluster in final_clusters]
+    straddlers = [(idx, c) for idx, cluster in enumerate(final_clusters) for c in cluster
+                  if "straddles_adjacent_corners" in c["warnings"]]
+
+    for cur_idx, c in straddlers:
+        best_idx, best_frac = cur_idx, -1.0
+        for idx, (start_m, end_m) in enumerate(canon):
+            ov = min(c["bracket_end_m"], end_m) - max(c["bracket_start_m"], start_m)
+            if ov <= 0:
+                continue
+            frac = ov / min(c["bracket_end_m"] - c["bracket_start_m"], end_m - start_m)
+            if frac > best_frac:
+                best_frac, best_idx = frac, idx
+        if best_idx == cur_idx or best_frac < min_frac:
+            continue
+        collision = any(m["lap_number"] == c["lap_number"] for m in final_clusters[best_idx])
+        if collision:
+            # Not auto-resolved -- same convention as pass 1's residual
+            # same-lap-collision guard above (needs manual review).
+            c["warnings"].append("pass2_reassignment_blocked_by_collision")
+            continue
+        final_clusters[cur_idx].remove(c)
+        final_clusters[best_idx].append(c)
+        c["warnings"].append("canonical_split_reassigned")
+
+
+def _slice_channel_abs(ch, start_t, end_t):
+    # Same quality/window checks as _slice_channel, but keeps ABSOLUTE
+    # time (no shift to lap-relative) -- needed here because canonical
+    # s-positions are inverted against lap_distance's own absolute time
+    # base, matching apex_time/bracket_start_m elsewhere in this module.
+    if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None:
+        return None
+    t, d = ch["time"], ch["data"]
+    mask = (t >= start_t) & (t <= end_t)
+    if not mask.any():
+        return None
+    return {"time": t[mask], "data": d[mask]}
+
+
+def _invert_s_to_t(target_s_m, lap_start_t, lap_end_t, ld_time, ld_data_ft):
+    # Inverse of _interp_lap_distance_guarded: given a target track
+    # position, find the time within this lap's own span at which its
+    # lap_distance channel crosses it. lap_distance is physically
+    # monotonic increasing within one lap (distance travelled cannot
+    # decrease); np.maximum.accumulate is a Tier B numerical-safety guard
+    # against small sensor noise before inversion, not a science claim.
+    # Returns NaN if target_s_m falls outside this lap's own covered
+    # range -- a genuine absence (e.g. a shortened lap that never reached
+    # this track position), distinct from a lap that reached it quietly.
+    mask = (ld_time >= lap_start_t) & (ld_time <= lap_end_t)
+    if not mask.any():
+        return float("nan")
+    t = ld_time[mask]
+    s_m = np.maximum.accumulate(ld_data_ft[mask] * 0.3048)
+    if target_s_m < s_m[0] or target_s_m > s_m[-1]:
+        return float("nan")
+    return float(np.interp(target_s_m, s_m, t))
+
+
+def _pooled_median_ay_profile(apex_lo, apex_hi, valid_laps, ld_time, ld_data, lat_g_smoothed, grid_step):
+    # Cross-lap median |ay| vs track position, s-anchored, between two apex
+    # positions -- the same "sort samples by track position, pool across
+    # laps" idea Module 5's stability regression already uses (thesis_
+    # notes.md, "Module 5 chair-basis alignment"), reused here as a Tier B
+    # geometric post-pass, not a science claim. grid_step is a config
+    # tunable (default 2 m, matching that existing s-grid convention).
+    n_steps = max(2, int(round((apex_hi - apex_lo) / grid_step)) + 1)
+    grid = np.linspace(apex_lo, apex_hi, n_steps)
+    pooled = np.full(n_steps, np.nan)
+    for i, s in enumerate(grid):
+        vals = []
+        for lap_number, lap in valid_laps.items():
+            if lap_number not in lat_g_smoothed:
+                continue
+            t = _invert_s_to_t(s, lap["start_time"], lap["end_time"], ld_time, ld_data)
+            if np.isnan(t):
+                continue
+            g_t, sm_g = lat_g_smoothed[lap_number]
+            vals.append(float(np.interp(t, g_t, np.abs(sm_g))))
+        if vals:
+            pooled[i] = float(np.median(vals))
+    return grid, pooled
+
+
+def _resolve_canonical_overlaps(canon_by_id, valid_laps, ld_time, ld_data, lat_g_smoothed,
+                                 overlap_max, grid_step):
+    """
+    WP1 Turn 3 (reviewer decision: partition, not merge). Any pair of
+    canonical windows overlapping more than `overlap_max` (fraction of the
+    smaller window) is resolved by placing a shared boundary at the |ay|
+    minimum of the pooled (cross-lap median) lateral-g profile between the
+    two apex positions, then truncating both windows to it -- non-
+    overlapping by construction. Tier B geometric post-pass (the same
+    "split a compound at an ay minimum" idea already named as an open
+    refinement in thesis_notes.md's original compound-corner finding,
+    applied here to canonical WINDOWS, not a per-lap phase display).
+
+    Phase-internal boundaries (brake_s/turnin_s/half_s) are re-clamped into
+    the truncated range afterward -- a boundary whose defining event no
+    longer sits inside its sub-window collapses to a degenerate (zero-
+    length) phase at the window edge. summarise_corners/_classify_corner
+    already read that as "no signal" (empty time slice -> n_samples=0 ->
+    NaN stats -> skipped by the worst-value search) -- no change needed to
+    either of those functions for this to be handled honestly.
+
+    Mutates and returns `canon_by_id`; also returns the list of resolved
+    (lo_id, hi_id, boundary_s, overlap_fraction_before) tuples for
+    traceability.
+    """
+    ids = sorted(canon_by_id)
+    resolved = []
+    for i, a in enumerate(ids):
+        for b in ids[i + 1:]:
+            wa, wb = canon_by_id[a], canon_by_id[b]
+            ov = min(wa["end"], wb["end"]) - max(wa["start"], wb["start"])
+            if ov <= 0:
+                continue
+            frac = ov / min(wa["end"] - wa["start"], wb["end"] - wb["start"])
+            if frac <= overlap_max:
+                continue
+            lo, hi = (a, b) if wa["apex"] <= wb["apex"] else (b, a)
+            apex_lo, apex_hi = canon_by_id[lo]["apex"], canon_by_id[hi]["apex"]
+            if apex_hi <= apex_lo:
+                continue  # degenerate (coincident/inverted apexes) -- should not occur
+            grid, pooled = _pooled_median_ay_profile(
+                apex_lo, apex_hi, valid_laps, ld_time, ld_data, lat_g_smoothed, grid_step)
+            if np.all(np.isnan(pooled)):
+                boundary = (apex_lo + apex_hi) / 2.0  # documented fallback: no lap covers the gap
+            else:
+                boundary = float(grid[np.nanargmin(pooled)])
+            canon_by_id[lo]["end"] = min(canon_by_id[lo]["end"], boundary)
+            canon_by_id[hi]["start"] = max(canon_by_id[hi]["start"], boundary)
+            for cid in (lo, hi):
+                w = canon_by_id[cid]
+                w["brake_s"] = float(np.clip(w["brake_s"], w["start"], w["end"]))
+                w["turnin_s"] = float(np.clip(w["turnin_s"], w["start"], w["end"]))
+                w["half_s"] = float(np.clip(w["half_s"], w["start"], w["end"]))
+            resolved.append((lo, hi, boundary, frac))
+    return resolved
+
+
+def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds):
+    """
+    WP1 Turn 1: canonical bracket + phase realization. Everything above
+    (per-lap detection, connected-components clustering, the two-pass
+    split) is finished and untouched by this function -- stable_corner_id
+    membership is already fixed. This only decides how big each stable
+    corner's window is and applies it identically to every valid lap.
+
+    For each stable_corner_id: canonical bracket_start_m/end_m and the
+    phase-internal boundaries (brake_start_s, turnin_s, half_s -- apex_s
+    reuses the already-guarded apex_lap_distance_m) are each the MEDIAN
+    across cluster members, independently per boundary (robust to one lap
+    being atypical on a single boundary without importing its other
+    boundaries too -- same reasoning as the project's existing median-of-
+    medians aggregations elsewhere). Every valid lap is then re-realized
+    over this canonical window by inverting its own guarded s_m(t): a lap
+    that detected no bracket there at all still gets an instance (tagged
+    "canonical_quiet" -- real telemetry, a quiet pass, informative, not an
+    error); a lap whose own lap_distance range never reaches the window is
+    the only case left absent, consistent with the existing "missing
+    corner = empty grid cell" convention.
+
+    apex_speed/apex_lateral_g stay genuinely per-lap (min speed / max
+    |lat_g| within that lap's own canonical window -- real signal). Only
+    speed_class is made canonical: assigned once per stable_corner_id from
+    the median of these per-lap apex speeds, then written identically onto
+    every instance (previously each instance classified from its own,
+    per-lap-jittered apex speed -- see this session's speed-class-
+    boundary diagnostic for why that was unstable for a borderline
+    corner).
+
+    WP1 Turn 3: before per-lap realization, _resolve_canonical_overlaps
+    truncates any pair of canonical windows overlapping more than
+    canonical_overlap_max to a shared, ay-minimum-derived boundary
+    (reviewer decision: partition, not merge) -- see that function's
+    docstring. Instances whose stable corner was truncated are tagged
+    "canonical_boundary_resolved".
+    """
+    lap_distance = channels.get("lap_distance")
+    if (lap_distance is None or lap_distance.get("time") is None
+            or lap_distance.get("quality") in ("missing", "failed")):
+        return corners  # no spatial anchor -- leave per-lap realization as-is
+
+    ld_time, ld_data = lap_distance["time"], lap_distance["data"]
+    compound_min_len = cd["compound_corner_min_length_m"]
+    sw = cd["smoothing_window_samples"]
+    low_max, medium_max = speed_thresholds["low_max"], speed_thresholds["medium_max"]
+
+    by_id = {}
+    for c in corners:
+        by_id.setdefault(c["stable_corner_id"], []).append(c)
+    valid_laps = {l["lap_number"]: l for l in laps if l.get("is_valid_for_analysis", False)}
+
+    # Smooth each lap's FULL speed/lat_g trace once, then slice the window
+    # out of the already-smoothed array -- matching _build_corner's order
+    # of operations. Slicing to a short bracket window BEFORE smoothing
+    # would run the convolution on a short array, where "same"-mode edge
+    # effects (fewer real taps near the boundary, kernel weights not
+    # renormalised) bias the smoothed value toward zero right at the
+    # window edges -- exactly where a min/max search would wrongly lock on.
+    lap_speed_smoothed = {}
+    lap_lat_g_smoothed = {}
+    for lap_number, lap in valid_laps.items():
+        speed_full = _slice_channel_abs(channels.get("ecu_speed"), lap["start_time"], lap["end_time"])
+        if speed_full is not None:
+            lap_speed_smoothed[lap_number] = (speed_full["time"], _smooth(speed_full["data"], sw))
+        lat_g_full = _slice_channel_abs(channels.get("log_acc_y"), lap["start_time"], lap["end_time"])
+        if lat_g_full is not None:
+            lap_lat_g_smoothed[lap_number] = (lat_g_full["time"], _smooth(lat_g_full["data"], sw))
+
+    canon_by_id = {}
+    for cid, members in by_id.items():
+        brake_s, turnin_s, half_s = [], [], []
+        for m in members:
+            brake_t, turnin_t = m["segments"]["entry_1_brake"][0], m["segments"]["entry_2_turnin"][0]
+            half_t = m["segments"]["exit_4"][1]
+            brake_s.append(float(_interp_lap_distance_guarded(brake_t, ld_time, ld_data)))
+            turnin_s.append(float(_interp_lap_distance_guarded(turnin_t, ld_time, ld_data)))
+            half_s.append(float(_interp_lap_distance_guarded(half_t, ld_time, ld_data)))
+        canon_by_id[cid] = {
+            "start": float(np.median([m["bracket_start_m"] for m in members])),
+            "end": float(np.median([m["bracket_end_m"] for m in members])),
+            "apex": float(np.median([m["apex_lap_distance_m"] for m in members])),
+            "brake_s": float(np.nanmedian(brake_s)),
+            "turnin_s": float(np.nanmedian(turnin_s)),
+            "half_s": float(np.nanmedian(half_s)),
+        }
+
+    # WP1 Turn 3 (reviewer decision: partition, not merge) -- resolves any
+    # pair of canonical windows overlapping more than canonical_overlap_max
+    # by truncating both to a shared boundary. Mutates canon_by_id in
+    # place; must run before compound_corner is decided below, since
+    # truncation can shrink a window below the compound-length threshold.
+    overlap_max = cd["canonical_overlap_max"]
+    grid_step = cd["canonical_boundary_grid_step_m"]
+    resolved_pairs = _resolve_canonical_overlaps(
+        canon_by_id, valid_laps, ld_time, ld_data, lap_lat_g_smoothed, overlap_max, grid_step)
+    boundary_resolved_ids = {cid for pair in resolved_pairs for cid in pair[:2]}
+
+    realized = []
+    for cid, members in by_id.items():
+        canon_start_m = canon_by_id[cid]["start"]
+        canon_end_m = canon_by_id[cid]["end"]
+        canon_apex_m = canon_by_id[cid]["apex"]
+        canon_brake_s = canon_by_id[cid]["brake_s"]
+        canon_turnin_s = canon_by_id[cid]["turnin_s"]
+        canon_half_s = canon_by_id[cid]["half_s"]
+        is_compound = (canon_end_m - canon_start_m) > compound_min_len
+
+        quiet_laps = set(valid_laps) - {m["lap_number"] for m in members}
+        cluster_method = members[0]["method"]
+
+        instances = []
+        for lap_number, lap in valid_laps.items():
+            lap_start_t, lap_end_t = lap["start_time"], lap["end_time"]
+            t_brake = _invert_s_to_t(canon_brake_s, lap_start_t, lap_end_t, ld_time, ld_data)
+            t_turnin = _invert_s_to_t(canon_turnin_s, lap_start_t, lap_end_t, ld_time, ld_data)
+            t_apex = _invert_s_to_t(canon_apex_m, lap_start_t, lap_end_t, ld_time, ld_data)
+            t_half = _invert_s_to_t(canon_half_s, lap_start_t, lap_end_t, ld_time, ld_data)
+            t_end = _invert_s_to_t(canon_end_m, lap_start_t, lap_end_t, ld_time, ld_data)
+            if any(np.isnan(v) for v in (t_brake, t_turnin, t_apex, t_half, t_end)):
+                continue  # genuine absence: this lap never reached the canonical window
+
+            if lap_number not in lap_speed_smoothed:
+                continue
+            speed_t, sm_speed_full = lap_speed_smoothed[lap_number]
+            window_mask = (speed_t >= t_turnin) & (speed_t <= t_end)
+            if not window_mask.any():
+                continue
+            apex_speed = float(np.min(sm_speed_full[window_mask]))
+
+            apex_g = None
+            if lap_number in lap_lat_g_smoothed:
+                g_t, sm_g_full = lap_lat_g_smoothed[lap_number]
+                g_mask = (g_t >= t_turnin) & (g_t <= t_end)
+                if g_mask.any():
+                    apex_g = float(np.max(np.abs(sm_g_full[g_mask])))
+
+            warnings = ["compound_corner"] if is_compound else []
+            if lap_number in quiet_laps:
+                warnings.append("canonical_quiet")
+            if cid in boundary_resolved_ids:
+                warnings.append("canonical_boundary_resolved")
+
+            instances.append({
+                "lap_number": lap_number,
+                "corner_number": next((m["corner_number"] for m in members
+                                       if m["lap_number"] == lap_number), None),
+                "speed_class": None,  # filled in below, canonical per stable_corner_id
+                "apex_time": t_apex,
+                "apex_speed": apex_speed,
+                "apex_lateral_g": apex_g,
+                "segments": {
+                    "entry_1_brake":  (t_brake, t_turnin),
+                    "entry_2_turnin": (t_turnin, t_apex),
+                    "apex_3":         (t_apex, t_apex),
+                    "exit_4":         (t_apex, t_half),
+                    "exit_5":         (t_half, t_end),
+                },
+                "method": cluster_method,
+                "warnings": warnings,
+                "stable_corner_id": cid,
+                "bracket_start_m": canon_start_m,
+                "bracket_end_m": canon_end_m,
+                "apex_lap_distance_m": canon_apex_m,
+            })
+
+        if instances:
+            canon_apex_speed = float(np.median([i["apex_speed"] for i in instances]))
+            if canon_apex_speed < low_max:
+                canon_class = "low"
+            elif canon_apex_speed < medium_max:
+                canon_class = "medium"
+            else:
+                canon_class = "high"
+            for i in instances:
+                i["speed_class"] = canon_class
+
+        realized.append((cid, instances))
+
+    out = []
+    for _cid, instances in realized:
+        out.extend(instances)
+    return out
 
 
 def compute_stable_corner_positions(corners, channels):

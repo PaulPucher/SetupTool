@@ -1,169 +1,245 @@
 {
-    "channels": {
-        "ecu_speed": {
-            "label": "Speed",
-            "unit": "km/h",
-            "range": [0, 350],
-            "required": true
-        },
-        "lap_number": {
-            "label": "Lap Number",
-            "unit": "",
-            "range": [0, 999],
-            "required": true
-        },
-        "lap_time": {
-            "label": "Lap Time",
-            "unit": "s",
-            "range": [0, 600],
-            "required": false
-        },
-        "lap_distance": {
-            "label": "Lap Distance",
-            "unit": "ft",
-            "range": [0, 70000],
-            "required": false
-        },
-        "ecu_B_speedlimit_en": {
-            "label": "Pit Speed Limiter Engaged",
-            "unit": "",
-            "range": [0, 1],
-            "required": false
-        },
-        "ecu_aps": {
-            "label": "Throttle",
-            "unit": "%",
-            "range": [0, 100],
-            "required": false
-        },
-        "log_pbrake_f": {
-            "label": "Brake Pressure Front",
-            "unit": "bar",
-            "range": [0, 200],
-            "required": false
-        },
-        "log_pbrake_r": {
-            "label": "Brake Pressure Rear",
-            "unit": "bar",
-            "range": [0, 200],
-            "required": false
-        },
-        "log_asteer": {
-            "label": "Steering Angle",
-            "unit": "deg",
-            "range": [-720, 720],
-            "required": false
-        },
-        "ecu_nmot": {
-            "label": "RPM",
-            "unit": "rpm",
-            "range": [0, 10000],
-            "required": false
-        },
-        "ecu_gear": {
-            "label": "Gear",
-            "unit": "",
-            "range": [0, 7],
-            "required": false
-        },
-        "log_acc_x": {
-            "label": "Longitudinal G",
-            "unit": "g",
-            "range": [-5, 5],
-            "required": false
-        },
-        "log_acc_y": {
-            "label": "Lateral G",
-            "unit": "g",
-            "range": [-5, 5],
-            "required": false
-        },
-        "log_acc_z": {
-            "label": "Vertical G",
-            "unit": "g",
-            "range": [-5, 5],
-            "required": false
-        },
-        "log_rideheight_fl": {
-            "label": "Ride Height FL",
-            "unit": "mm",
-            "range": [0, 150],
-            "required": false
-        },
-        "log_rideheight_fr": {
-            "label": "Ride Height FR",
-            "unit": "mm",
-            "range": [0, 150],
-            "required": false
-        },
-        "log_rideheight_rl": {
-            "label": "Ride Height RL",
-            "unit": "mm",
-            "range": [0, 150],
-            "required": false
-        },
-        "log_rideheight_rr": {
-            "label": "Ride Height RR",
-            "unit": "mm",
-            "range": [0, 150],
-            "required": false
-        },
-        "sclu_yaw_rate": {
-            "label": "Yaw Rate",
-            "unit": "rpm",
-            "range": [-300, 300],
-            "required": false
-        },
-        "log_gps_lat": {
-            "label": "GPS Latitude",
-            "unit": "deg",
-            "range": [-90, 90],
-            "required": false
-        },
-        "log_gps_lon": {
-            "label": "GPS Longitude",
-            "unit": "deg",
-            "range": [-180, 180],
-            "required": false
-        },
-        "log_gps_course": {
-            "label": "GPS Course over Ground",
-            "unit": "deg",
-            "range": [0, 360],
-            "required": false
-        }
-
+  "channels": {
+    "ecu_speed": {
+      "label": "Speed",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": true
     },
-    "corner_speed_thresholds": {
-        "low_max": 80,
-        "medium_max": 150
+    "lap_number": {
+      "label": "Lap Number",
+      "unit": "",
+      "range": [
+        0,
+        999
+      ],
+      "required": true
     },
-    "corner_detection": {
-        "steering_entry_threshold_deg": 25,
-        "steering_exit_threshold_deg": 15,
-        "min_corner_duration_s": 0.8,
-        "smoothing_window_samples": 10,
-        "lateral_g_apex_threshold": 0.3,
-        "min_apex_speed_drop_kmh": 10,
-        "bracket_merge_gap_s": 0.6,
-        "ay_entry_threshold_g": 0.6,
-        "ay_exit_threshold_g": 0.35,
-        "compound_corner_min_length_m": 300,
-        "bracket_overlap_min_fraction": 0.3,
-        "brake_throttle_max_pct": 95,
-        "steering_unwind_fraction": 0.5
+    "lap_time": {
+      "label": "Lap Time",
+      "unit": "s",
+      "range": [
+        0,
+        600
+      ],
+      "required": false
     },
-    "channel_quality_gates": {
-        "failed_below": 0.5,
-        "partial_below": 0.95
+    "lap_distance": {
+      "label": "Lap Distance",
+      "unit": "ft",
+      "range": [
+        0,
+        70000
+      ],
+      "required": false
     },
-    "lap_splitting": {
-        "pit_fragment_max_duration_s": 20,
-        "lap_time_precise_max_delta_s": 1.0,
-        "lap_time_min_s": 10,
-        "valid_lap_max_ratio": 1.10,
-        "lap_time_disagreement_max_s": 2.0,
-        "lap_distance_min_travelled_m": 1000,
-        "lap_distance_check_min_duration_s": 30
+    "ecu_B_speedlimit_en": {
+      "label": "Pit Speed Limiter Engaged",
+      "unit": "",
+      "range": [
+        0,
+        1
+      ],
+      "required": false
+    },
+    "ecu_aps": {
+      "label": "Throttle",
+      "unit": "%",
+      "range": [
+        0,
+        100
+      ],
+      "required": false
+    },
+    "log_pbrake_f": {
+      "label": "Brake Pressure Front",
+      "unit": "bar",
+      "range": [
+        0,
+        200
+      ],
+      "required": false
+    },
+    "log_pbrake_r": {
+      "label": "Brake Pressure Rear",
+      "unit": "bar",
+      "range": [
+        0,
+        200
+      ],
+      "required": false
+    },
+    "log_asteer": {
+      "label": "Steering Angle",
+      "unit": "deg",
+      "range": [
+        -720,
+        720
+      ],
+      "required": false
+    },
+    "ecu_nmot": {
+      "label": "RPM",
+      "unit": "rpm",
+      "range": [
+        0,
+        10000
+      ],
+      "required": false
+    },
+    "ecu_gear": {
+      "label": "Gear",
+      "unit": "",
+      "range": [
+        0,
+        7
+      ],
+      "required": false
+    },
+    "log_acc_x": {
+      "label": "Longitudinal G",
+      "unit": "g",
+      "range": [
+        -5,
+        5
+      ],
+      "required": false
+    },
+    "log_acc_y": {
+      "label": "Lateral G",
+      "unit": "g",
+      "range": [
+        -5,
+        5
+      ],
+      "required": false
+    },
+    "log_acc_z": {
+      "label": "Vertical G",
+      "unit": "g",
+      "range": [
+        -5,
+        5
+      ],
+      "required": false
+    },
+    "log_rideheight_fl": {
+      "label": "Ride Height FL",
+      "unit": "mm",
+      "range": [
+        0,
+        150
+      ],
+      "required": false
+    },
+    "log_rideheight_fr": {
+      "label": "Ride Height FR",
+      "unit": "mm",
+      "range": [
+        0,
+        150
+      ],
+      "required": false
+    },
+    "log_rideheight_rl": {
+      "label": "Ride Height RL",
+      "unit": "mm",
+      "range": [
+        0,
+        150
+      ],
+      "required": false
+    },
+    "log_rideheight_rr": {
+      "label": "Ride Height RR",
+      "unit": "mm",
+      "range": [
+        0,
+        150
+      ],
+      "required": false
+    },
+    "sclu_yaw_rate": {
+      "label": "Yaw Rate",
+      "unit": "rpm",
+      "range": [
+        -300,
+        300
+      ],
+      "required": false
+    },
+    "log_gps_lat": {
+      "label": "GPS Latitude",
+      "unit": "deg",
+      "range": [
+        -90,
+        90
+      ],
+      "required": false
+    },
+    "log_gps_lon": {
+      "label": "GPS Longitude",
+      "unit": "deg",
+      "range": [
+        -180,
+        180
+      ],
+      "required": false
+    },
+    "log_gps_course": {
+      "label": "GPS Course over Ground",
+      "unit": "deg",
+      "range": [
+        0,
+        360
+      ],
+      "required": false
+    },
+    "log_gps_speed": {
+      "label": "GPS Speed",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
     }
+  },
+  "corner_speed_thresholds": {
+    "low_max": 80,
+    "medium_max": 150
+  },
+  "corner_detection": {
+    "steering_entry_threshold_deg": 25,
+    "steering_exit_threshold_deg": 15,
+    "min_corner_duration_s": 0.8,
+    "smoothing_window_samples": 10,
+    "lateral_g_apex_threshold": 0.3,
+    "min_apex_speed_drop_kmh": 10,
+    "bracket_merge_gap_s": 0.6,
+    "ay_entry_threshold_g": 0.6,
+    "ay_exit_threshold_g": 0.35,
+    "compound_corner_min_length_m": 300,
+    "bracket_overlap_min_fraction": 0.3,
+    "brake_throttle_max_pct": 95,
+    "steering_unwind_fraction": 0.5,
+    "canonical_overlap_max": 0.1,
+    "canonical_boundary_grid_step_m": 2.0
+  },
+  "channel_quality_gates": {
+    "failed_below": 0.5,
+    "partial_below": 0.95
+  },
+  "lap_splitting": {
+    "pit_fragment_max_duration_s": 20,
+    "lap_time_precise_max_delta_s": 1.0,
+    "lap_time_min_s": 10,
+    "valid_lap_max_ratio": 1.1,
+    "lap_time_disagreement_max_s": 2.0,
+    "lap_distance_min_travelled_m": 1000,
+    "lap_distance_check_min_duration_s": 30
+  }
 }
