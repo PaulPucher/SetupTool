@@ -30,8 +30,12 @@ CAR_DATA_PATH = "config/car_data.json"
 # cache-hit check). Bumped 1->2 (WP-C): payload gained accuracy_cap/
 # resolved_levels/resolved_vehicle_snapshot/resolved_clipped/resolved_
 # warnings; a pre-WP-C payload has none of these and must not be read as a
-# hit against the new cap/snapshot check.
-ANALYSIS_SCHEMA_VERSION = 2
+# hit against the new cap/snapshot check. Bumped 2->3 (WP5b(b) phase 1 turn
+# (b)): each phase dict inside summaries now carries fz_f_N/fz_r_N/
+# fy_f_norm_N/fy_r_norm_N stat blocks; a pre-turn-(b) payload has none of
+# these and must fall to no-cache, not render a details panel expecting
+# keys that aren't there.
+ANALYSIS_SCHEMA_VERSION = 3
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
@@ -332,6 +336,153 @@ def estimate_sideslip(state, params):
     return beta
 
 
+def _interp_circular_deg(t_query, t_src, deg_src):
+    """Circular-safe interpolation of an angle in degrees onto a new time
+    base. Naive linear interpolation across the 0/360 wrap corrupts values
+    near the wrap point (e.g. 359 -> 1 deg reads as a -358 deg jump); the
+    sin/cos components are interpolated separately and the angle recovered
+    via atan2 instead -- standard technique for circular quantities.
+    Returns radians, wrapped to (-pi, pi].
+    """
+    rad_src = np.radians(deg_src)
+    sin_i = np.interp(t_query, t_src, np.sin(rad_src))
+    cos_i = np.interp(t_query, t_src, np.cos(rad_src))
+    return np.arctan2(sin_i, cos_i)
+
+
+def estimate_sideslip_gps(state, channels, params):
+    """WP5b(c): GPS-course-based sideslip estimate (beta_gps), a Level-3
+    validation candidate. VALIDATION ONLY in this phase -- not called from
+    any pipeline or UI path; production beta stays estimate_sideslip's
+    kinematic integration + washout, unchanged. See diagnostics/inspect_
+    beta_gps_validation.py for the comparison report and thesis_notes.md
+    for the full write-up.
+
+    Concept, Tier A: beta = course-over-ground minus vehicle heading, the
+    GPS-aided kinematic sideslip estimation family (thesis_notes.md
+    limitations register item 4; primary source to verify before citing).
+    Heading is not logged (log_a_car refuted as a heading channel,
+    thesis_notes.md channel census); reconstructed here by integrating
+    yaw_rate_radps and periodically re-anchoring the drift to
+    log_gps_course at trustworthy low-slip samples -- the same "linear
+    reference held while inside a small window" pattern already used in
+    estimate_cornering_stiffness's cs_linear_slip_threshold_rad. Tier B,
+    standard drift-correction/bias-resync technique.
+
+    ROTATION CONVENTION (empirical finding, diagnostics/inspect_beta_gps_
+    validation.py, WP5b(c), laps 1-4 (valid-for-analysis), n=5014 moving
+    samples): log_gps_course is a compass bearing (0-360 deg, clockwise-
+    positive from North -- standard GPS/NMEA course-over-ground
+    convention). Correlating wrap-safe d(course)/dt against +yaw_rate_radps
+    gives r=-0.9548; against -yaw_rate_radps gives r=+0.9548.
+    -yaw_rate_radps is adopted below (the strong positive correlation) --
+    i.e. yaw_rate_radps in this project's convention is counter-clockwise-
+    positive, the OPPOSITE rotational sense from the compass bearing. This
+    does not follow from the z-down accelerometer convention already
+    established for kerb detection (thesis_notes.md) -- tested
+    independently here, not assumed from that precedent.
+
+    GPS LATENCY (same diagnostic, cross-correlation over lags -1..+1 s):
+    peak r=0.9898 at lag=+0.32 s -- course-derived rate lags yaw_rate by
+    ~0.32 s, a real, measurable GPS pipeline delay (zero-lag r was only
+    0.9575). CORRECTED as of iteration 2 (WP5b(c)): course is sampled
+    gps_course_latency_s seconds ahead of each query time (config,
+    derived_from the cross-correlation evidence above) before anchoring or
+    subtraction -- a stale course reading recorded at time t describes the
+    vehicle's true state at t - latency, so querying it at t + latency
+    recovers the value that actually corresponds to "now".
+
+    Anchor gate (Tier B, data-derived, diagnostics/inspect_beta_gps_
+    validation.py): a sample qualifies once gps_course_anchor_smooth_
+    window_s-smoothed |ay| stays below gps_course_anchor_max_ay_g for a
+    contiguous run of at least gps_course_anchor_min_duration_s (smoothing
+    was necessary -- the raw per-sample gate produced only sub-0.1 s runs
+    on Dubai, too brittle to anchor anything). Each qualifying run
+    contributes one anchor point (its time midpoint, its median course-
+    minus-gyro offset, unwrapped within the run first) -- 6 anchors,
+    20.4 s total anchor time, found on the Dubai sample.
+
+    DRIFT ALLOCATION (iteration 2, WP5b(c)): iteration 1 interpolated the
+    anchor offset linearly in ELAPSED TIME between anchors and produced a
+    large, poorly-correlated beta_gps (see thesis_notes.md). A closed-loop
+    per-lap check (diagnostics/inspect_beta_gps_validation.py Section 1b)
+    diagnosed why: the ~6 deg/lap gyro-integration shortfall is a
+    scale-type error that accumulates in proportion to ROTATION
+    (concentrated in the laps' ~15 corners), not in proportion to clock
+    time, so a time-linear correction under-corrected exactly where
+    cornering (and beta) happens. Fixed here: the offset is interpolated
+    in proportion to accumulated |yaw_rate| integral between the anchor
+    pair instead -- a monotonic "rotation clock" replaces the time axis
+    for this one interpolation, still via np.interp, no new machinery.
+    """
+    se = params["stability_estimation"]
+    t_ref = state["time"]
+    sr = state["sample_rate_hz"]
+    moving = state["moving_mask"]
+
+    course_ch = channels.get("log_gps_course")
+    if course_ch is None or course_ch.get("quality") in ("missing", "failed") or course_ch.get("time") is None:
+        return np.full_like(t_ref, np.nan)
+
+    latency_s = se.get("gps_course_latency_s", 0.0)
+    course_rad = _interp_circular_deg(t_ref + latency_s, course_ch["time"], course_ch["data"])
+
+    # Open-loop heading from yaw rate, sign per the rotation-convention
+    # finding above (matches course's clockwise-from-North sense).
+    psi_gyro_dot = -state["yaw_rate_radps"]
+    dt = 1.0 / sr
+    psi_gyro = np.cumsum(psi_gyro_dot) * dt
+
+    ay_g = np.abs(state["ay_mps2"]) / 9.81
+    smooth_win = max(1, int(round(se["gps_course_anchor_smooth_window_s"] * sr)))
+    if smooth_win > 1:
+        kernel = np.ones(smooth_win) / smooth_win
+        ay_g_smooth = np.convolve(ay_g, kernel, mode="same")
+    else:
+        ay_g_smooth = ay_g
+    candidate = moving & (ay_g_smooth < se["gps_course_anchor_max_ay_g"])
+
+    d = np.diff(candidate.astype(int))
+    starts = list(np.where(d == 1)[0] + 1)
+    ends = list(np.where(d == -1)[0] + 1)
+    if candidate[0]:
+        starts = [0] + starts
+    if candidate[-1]:
+        ends = ends + [len(candidate)]
+
+    min_run_samples = se["gps_course_anchor_min_duration_s"] * sr
+    raw_offset = np.arctan2(np.sin(course_rad - psi_gyro), np.cos(course_rad - psi_gyro))
+
+    anchor_times = []
+    anchor_offsets = []
+    for s_idx, e_idx in zip(starts, ends):
+        if (e_idx - s_idx) < min_run_samples:
+            continue
+        anchor_times.append(float(t_ref[(s_idx + e_idx) // 2]))
+        anchor_offsets.append(float(np.median(np.unwrap(raw_offset[s_idx:e_idx]))))
+
+    if len(anchor_times) == 0:
+        # No qualifying straight-line window in this file -- drift is
+        # unresolved, beta_gps is not trustworthy anywhere. Degenerate
+        # case, not exercised by the Dubai sample (6 anchors found there).
+        return np.full_like(t_ref, np.nan)
+
+    anchor_offsets_unwrapped = np.unwrap(np.array(anchor_offsets))
+    # Iteration 2: allocate the correction by accumulated |rotation|, not
+    # elapsed time -- a monotonic "rotation clock" (cumulative |yaw_rate|
+    # integral) replaces the time axis for this one interpolation, still
+    # via np.interp (holds the boundary value outside the anchored range,
+    # same as the time-linear version did).
+    yaw_abs_cum = np.cumsum(np.abs(state["yaw_rate_radps"])) * dt
+    anchor_rotation = np.interp(anchor_times, t_ref, yaw_abs_cum)
+    drift_offset = np.interp(yaw_abs_cum, anchor_rotation, anchor_offsets_unwrapped)
+
+    psi_hat = psi_gyro + drift_offset
+    beta_gps = np.arctan2(np.sin(course_rad - psi_hat), np.cos(course_rad - psi_hat))
+    beta_gps = np.where(moving, beta_gps, np.nan)
+    return beta_gps
+
+
 def estimate_slip_angles(state, beta, params):
     """Single-track slip-angle relations after Werner (2021) S2.1.1 /
     Milliken RCVD.
@@ -428,6 +579,89 @@ def estimate_lateral_forces(state, params):
         "front_fraction": front_fraction,
         "rear_fraction": rear_fraction,
         "accuracy_level": params["accuracy_levels"]["lateral_force_split"]["level"]
+    }
+
+
+def estimate_vertical_loads(state, forces, params):
+    """WP5b(b) phase 1: axle and per-wheel vertical tyre loads (Fz), plus
+    the normalised-force diagnostic fy_f_norm_N/fy_r_norm_N.
+
+    Tier A: Milliken & Milliken, RCVD, static/aero/longitudinal-transfer
+    load decomposition, p. TBD verify. Same construction as the chair
+    performance_analysis tooling's own fz_f_N/fz_r_N/fz_fl_N/fz_fr_N/
+    fz_rl_N/fz_rr_N and fy_f_norm_N/fy_r_norm_N
+    (docs/literature/data_handler.py:1548-1621, internal) -- adopted as-is,
+    no deviation. The per-wheel split is the chair's own independent-
+    per-axle lateral-transfer split, NOT a roll-stiffness apportionment
+    (that stays a documented later DOMAIN IMPROVEMENT, damper-validated,
+    PLAN.md WP5b(b)).
+
+    fy_f_norm_N/fy_r_norm_N = Fy_f_filt/fz_f_N, Fy_r_filt/fz_r_N -- a
+    diagnostic only in phase 1 turn (b): read-only, surfaced in Module 6/
+    the UI details panel, feeds no classification (_classify_corner is
+    untouched). It is a separate quantity from CS_ratio (Module 4b's
+    Calpha-ratio metric), not a replacement.
+
+    accuracy_levels.vertical_load_split / per_wheel_load_split stay at
+    Level 1: cog_height_m, track_width_front/rear_m and the aero
+    coefficients are all unsourced placeholders (config/parameters.json
+    notes).
+    """
+    vp = params["vehicle"]
+    aero = vp["aero"]
+
+    m = vp["mass_kg"]
+    g = 9.81
+    wb = vp["wheelbase_m"]
+    l_f_cog = vp["cog_to_front_axle_m"]
+    l_r_cog = vp["cog_to_rear_axle_m"]
+    h_cog = vp["cog_height_m"]
+
+    # --- 1. Static load distribution (positive downwards) ---
+    fz_static_f_N = m * g * l_r_cog / wb
+    fz_static_r_N = m * g * l_f_cog / wb
+
+    # --- 2. Aerodynamic load component (positive for downforce) ---
+    rho = aero["air_density_kgm3"]
+    cl = aero["lift_coeff"]
+    a_aero = aero["cross_track_area_m2"]
+    x_cp_cog = aero["diff_cog_x_m"]
+    fz_aero_total_N = -0.5 * rho * state["v_mps"] ** 2 * a_aero * cl
+    dfz_aero_f_N = fz_aero_total_N * (l_r_cog - x_cp_cog) / wb
+    dfz_aero_r_N = fz_aero_total_N * (l_f_cog + x_cp_cog) / wb
+
+    # --- 3. Longitudinal load transfer component ---
+    dfz_long_transfer_N = m * state["ax_mps2"] * h_cog / wb
+
+    fz_f_N = fz_static_f_N + dfz_aero_f_N - dfz_long_transfer_N
+    fz_r_N = fz_static_r_N + dfz_aero_r_N + dfz_long_transfer_N
+
+    # --- 4. Per-wheel split: independent per-axle lateral-transfer, chair-identical ---
+    front_track = vp["track_width_front_m"]
+    rear_track = vp["track_width_rear_m"]
+    lateral_transfer_front = m * state["ay_mps2"] * h_cog / front_track
+    lateral_transfer_rear = m * state["ay_mps2"] * h_cog / rear_track
+
+    fz_fl_N = fz_f_N / 2 - lateral_transfer_front / 2
+    fz_fr_N = fz_f_N / 2 + lateral_transfer_front / 2
+    fz_rl_N = fz_r_N / 2 - lateral_transfer_rear / 2
+    fz_rr_N = fz_r_N / 2 + lateral_transfer_rear / 2
+
+    # --- 5. Normalised-force diagnostic, chair's own fy_*_norm_N construction ---
+    fy_f_norm_N = forces["Fy_f_filt"] / fz_f_N
+    fy_r_norm_N = forces["Fy_r_filt"] / fz_r_N
+
+    return {
+        "fz_f_N": fz_f_N,
+        "fz_r_N": fz_r_N,
+        "fz_fl_N": fz_fl_N,
+        "fz_fr_N": fz_fr_N,
+        "fz_rl_N": fz_rl_N,
+        "fz_rr_N": fz_rr_N,
+        "fy_f_norm_N": fy_f_norm_N,
+        "fy_r_norm_N": fy_r_norm_N,
+        "accuracy_level_axle": params["accuracy_levels"]["vertical_load_split"]["level"],
+        "accuracy_level_wheel": params["accuracy_levels"]["per_wheel_load_split"]["level"],
     }
 
 
@@ -578,6 +812,13 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     UI's display lap_filter (WP6): cold tyres change stiffness, which
     would corrupt the cross-lap pooling this estimator relies on.
     [domain improvement]
+
+    The chair estimator carries a time-anchored fallback mode when s_m
+    is unusable; SetupTool deliberately does not port it: the fallback
+    is a differently-behaving estimator (time-local, no cross-lap
+    pooling) whose output the s-grid-derived thresholds could not
+    classify meaningfully -- no stability verdict is more honest than
+    a silently degraded one.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -634,7 +875,12 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     }
 
 
-def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_window_samples=None):
+def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_half_window_samples=None):
+    # fz (modules.stability_analysis.estimate_vertical_loads's output) is
+    # optional and additive only: passing it adds fz_f_N/fz_r_N/
+    # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
+    # diagnostics/*.py call sites predating WP5b(b)) reproduces the exact
+    # pre-turn-(b) summary shape, no behaviour change for those callers.
     if apex_half_window_samples is None:
         apex_half_window_samples = load_parameters()["stability_estimation"]["apex_half_window_samples"]
     t = state["time"]
@@ -645,6 +891,10 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
     cs_r = cs["CS_ratio_r"]
     stab_obs = stab["stability_observed_Nm_per_deg"]
     stab_valid = stab["stability_valid"]
+    fz_f = fz["fz_f_N"] if fz is not None else None
+    fz_r = fz["fz_r_N"] if fz is not None else None
+    fy_f_norm = fz["fy_f_norm_N"] if fz is not None else None
+    fy_r_norm = fz["fy_r_norm_N"] if fz is not None else None
 
     phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 
@@ -741,6 +991,11 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
                     "cs_ratio_r": _stats(np.array([])),
                     "stability_observed_Nm_per_deg": _stats(np.array([])),
                 }
+                if fz is not None:
+                    corner_summary["phases"][phase]["fz_f_N"] = _stats(np.array([]))
+                    corner_summary["phases"][phase]["fz_r_N"] = _stats(np.array([]))
+                    corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(np.array([]))
+                    corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(np.array([]))
                 continue
 
             stab_valid_phase = stab_valid[idx]
@@ -754,6 +1009,11 @@ def summarise_corners(corners, cs, stab, state, lap_filter=None, apex_half_windo
                 "cs_ratio_r": _stats(cs_r[idx]),
                 "stability_observed_Nm_per_deg": _stats(stab_obs[idx]),
             }
+            if fz is not None:
+                corner_summary["phases"][phase]["fz_f_N"] = _stats(fz_f[idx])
+                corner_summary["phases"][phase]["fz_r_N"] = _stats(fz_r[idx])
+                corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(fy_f_norm[idx])
+                corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(fy_r_norm[idx])
 
         out.append(corner_summary)
 

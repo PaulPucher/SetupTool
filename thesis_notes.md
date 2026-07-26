@@ -700,6 +700,180 @@ HOW TO USE:
   could not detect in principle -- the accuracy-level cascade's value
   is not limited to numerical precision.
 
+### WP5b(b) phase 1: chair-parity vertical loads (Fz) [2026-07-26]
+- Construction, chair-identical (docs/literature/data_handler.py:1548-
+  1621, internal, adopted as-is, no deviation): axle-level Fz_f/Fz_r
+  from a static weight split plus an aero term plus longitudinal load
+  transfer (m*ax*h_cog/wheelbase); per-wheel Fz_fl/fr/rl/rr from an
+  INDEPENDENT-per-axle lateral-transfer split (m*ay*h_cog/track_width,
+  applied separately front and rear). Roll-stiffness apportionment
+  (splitting total lateral transfer by actual front/rear roll
+  stiffness rather than independently per axle) is EXPLICITLY DEFERRED
+  to phase 2, damper-validated -- not built speculatively here. Tier A:
+  Milliken & Milliken, RCVD, load-transfer chapter, p. TBD verify (same
+  pending-citation pattern as the Fy yaw-moment term and
+  estimate_sideslip).
+- EMPIRICAL SIGN-CONVENTION CHECKS, both run against real Dubai data,
+  neither assumed -- the same discipline the kerb-detection az
+  discovery established (a wrong sign assumption there flagged 100% of
+  samples before the real z-down convention was found empirically):
+  - ax (longitudinal-transfer direction): heavy-braking samples
+    (log_pbrake_f > p90) give median ax_mps2 = -11.79; heavy-
+    acceleration samples give +3.97. The chair's formula
+    (dfz_long_transfer_N = m*ax*h_cog/wb, fz_f_N = static_f + aero_f -
+    transfer) needs ax negative under braking to load the front --
+    MATCH, no sign flip needed.
+  - ay (left/right loading): the corner with the largest |apex_
+    lateral_g| in the file was independently verified as a genuine
+    right-hander via a GPS-trace heading-change check (net -101.9 deg,
+    a ground-truth measure from the vehicle's own path, independent of
+    any onboard sensor's sign convention) -- mean ay_mps2 over that
+    corner's window was -6.75, which per the chair's fz_fl/fz_fr
+    formula loads the LEFT (physically-correct outside) tire in a
+    right turn -- MATCH, no sign flip needed.
+  - Both checks could have failed (as the az kerb-baseline assumption
+    once did); they didn't, but the result is evidence, not something
+    assumed correct because the formula "looked right."
+- PLACEHOLDER PROVENANCE, every one explicitly reviewer-supplied and
+  NOT sourced from a team figure: cog_height_m=0.30, track_width_
+  front_m=1.66, track_width_rear_m=1.64 (config/parameters.json notes
+  read "reviewer-supplied order-of-magnitude placeholder, NOT sourced,
+  replace with team figure"); aero.lift_coeff (Cl) = 0.0, with a
+  documented physical zero-meaning (the aero term evaluates to exactly
+  zero at every speed -- Fz reduces to the static+longitudinal-only
+  estimate, a known underestimate of axle load at speed, not a
+  front/rear balance error). The Cl-NEGATIVE-for-downforce sign
+  convention (inferred from the chair's own formula+comment pairing,
+  fz_aero_total_N = -0.5*rho*v^2*A*Cl commented "positive for
+  downforce") is flagged in config as UNCONFIRMED -- no numeric Cl
+  default exists in the shared reference files to check against
+  directly, so the config note requires the first real Cl entry to be
+  validated empirically (Fz rising with v^2, not falling) before it is
+  trusted, the same "verify, don't assume" standard as the ax/ay checks
+  above.
+- TURN (b), consumer wiring: estimate_vertical_loads joins
+  StabilityAnalysisThread's pipeline and the WP6 pipeline-cache
+  identity; summarise_corners gained an additive-only fz= parameter
+  (fz_f_N/fz_r_N/fy_f_norm_N/fy_r_norm_N per-phase stat blocks).
+  fy_f_norm_N/fy_r_norm_N = Fy_filt/fz axle is the chair's OWN
+  normalised-force construction (data_handler.py:1619-1621) -- the
+  actual named consumer Fz was built for, distinct from and not
+  replacing CS_ratio (Module 4b's Calpha-ratio metric). ADDITIVE-ONLY
+  PROOF: a before/after diff of one corner's summary dict showed
+  exactly 20 new keys (4 fields x 5 phases) added and ZERO pre-existing
+  values changed. ANALYSIS_SCHEMA_VERSION bumped 2->3 for the payload-
+  shape change. Nothing feeds _classify_corner -- read-only diagnostic
+  throughout, per-phase Fz medians surfaced in the corner-details UI
+  table only (fy_norm computed but not yet displayed, deferred, does
+  not fit the panel width cleanly alongside CSf/CSr/Stab).
+
+### GPS-course sideslip (beta_gps, WP5b(c)) attempted and shelved [2026-07-26]
+- Goal: a Level-3 sideslip candidate, beta = course-over-ground minus
+  vehicle heading (GPS-aided kinematic sideslip estimation family;
+  primary source still to verify), reconstructing heading by
+  integrating yaw_rate_radps and periodically re-anchoring the drift
+  to log_gps_course at trustworthy low-slip (near-straight) samples.
+  Whitelisted log_gps_course (config/channels.json, 10 Hz, confirmed
+  live on Dubai); new isolated sibling function
+  `estimate_sideslip_gps` (modules/stability_analysis.py) -- VALIDATION
+  ONLY throughout both iterations, never called from any pipeline/UI
+  path, zero effect on production beta (`estimate_sideslip`, kinematic
+  integration + washout) or on `test_stability.py` (byte-identical
+  after every step, both iterations).
+- Rotation-convention finding (empirical, not assumed): log_gps_course
+  is a compass bearing (clockwise-positive from North); correlating
+  wrap-safe d(course)/dt against yaw_rate_radps over racing laps gives
+  r=-0.9548 for +yaw_rate and r=+0.9548 for -yaw_rate, so
+  -yaw_rate_radps was adopted. This does NOT follow from the z-down
+  accelerometer convention already established for kerb detection --
+  tested independently, a different sensor axis can have a different
+  convention. Same check doubled as a latency probe: cross-correlation
+  peaks at r=0.9898 at lag=+0.32s (course lags yaw_rate), vs r=0.9575
+  at zero lag -- a real, measurable GPS pipeline delay.
+- ITERATION 1 (time-linear drift allocation, latency uncorrected):
+  correlation r(beta_gps, beta_kinematic)=-0.12; per-corner sign
+  agreement 130/255=51.0% (barely above chance, though still better in
+  absolute count than the earlier log_a_car probe's 1-of-3); straight-
+  line near-zero check: kinematic 0.40deg vs gps 1.47deg; the
+  Amendment-2 lever-arm probe (regressing beta_gps-beta_kinematic
+  against yaw_rate/v) returned an antenna-offset slope of 9.34m --
+  physically impossible for a GT3 car, signalling a construction
+  problem rather than a real finding.
+- ROOT-CAUSE DIAGNOSIS (falsifiable, not just descriptive): a
+  closed-loop per-lap check (net gyro-integrated heading change vs net
+  GPS-course change over one lap) found a consistent ~6deg/lap
+  shortfall (~1.7% of the ~354-360deg net rotation) across all 4 laps
+  -- a small, systematic gyro-integration scale-type error, not
+  random noise. Because this drift accumulates in proportion to
+  ROTATION (concentrated in the ~15 corners/lap) rather than elapsed
+  time, iteration 1's time-linear interpolation of the anchor
+  correction under-corrected exactly during cornering (where beta is
+  measured) and over-corrected on the straights between anchors --
+  diagnosed as the specific cause of the large, poorly-correlated
+  errors above.
+- ITERATION 2 (two targeted fixes, same anchors, no new machinery):
+  (1) the drift correction is now interpolated in proportion to
+  accumulated |yaw_rate| integral between anchors (a monotonic
+  "rotation clock" substituted for the time axis in the same
+  np.interp call) instead of elapsed time; (2) course is now sampled
+  gps_course_latency_s=0.32s (config, derived_from the cross-
+  correlation evidence above) ahead of each query time before
+  anchoring/subtraction, correcting the measured GPS latency.
+  FALSIFIABLE CHECK ON THE DIAGNOSIS: the lever-arm probe was
+  re-run unchanged and the phantom antenna offset shrank from 9.34m
+  to 1.325m (an 86% reduction, now in a physically plausible range)
+  -- the diagnosis's own prediction held. The long-corner washout
+  probe also improved qualitatively: beta_gps now decays toward zero
+  through a long corner (as beta_kinematic's washout also does),
+  where iteration 1 showed it growing instead.
+  DECISION-CRITERIA METRICS DID NOT MATERIALLY IMPROVE, however:
+  correlation r=-0.24 (iteration 1: -0.12, no better); per-corner sign
+  agreement 133/255=52.2% (iteration 1: 51.0%, essentially flat);
+  straight-line bias unchanged in character (gps still ~4x worse than
+  kinematic).
+- VERDICT: STILL NOT MET. This line is SHELVED -- both iterations
+  documented here. beta_gps as constructed is not a usable Level-3
+  candidate; production beta stays kinematic, no consumer touched at
+  any point. The diagnosis is corroborated (a passed falsifiable
+  check is stronger evidence than a plausible-sounding explanation
+  alone would have been) but the identified drift mechanism was not
+  the dominant error source for the headline metrics -- a further
+  attempt would need to address something beyond allocation scheme
+  and latency, most plausibly the anchor count itself (6 total across
+  one 4-lap session is a data-availability limit of this specific
+  file, not obviously fixable by construction alone). Full validation
+  reports for both iterations: diagnostics/inspect_beta_gps_
+  validation.py (script always reflects the current/iteration-2
+  construction; iteration-1 numbers are quoted here and in the
+  script's own before/after comparison, not separately reproducible
+  without reverting the two fixes).
+
+### Small-decisions sweep [2026-07-26]
+- cs fallback reference constants deleted (small-decisions sweep):
+  `cs_front_fallback_reference_n_per_rad`/`cs_rear_fallback_reference_
+  n_per_rad` removed from config/parameters.json -- defined, commented,
+  consumed nowhere, verified 2026-07-26. The no-linear-reference case
+  has never occurred on real data; if it ever does, the corner reports
+  invalid, more honest than silently filling from an unvalidated
+  constant.
+- s_m short-circuit documented as deliberate (small-decisions sweep):
+  the chair's time-anchored fallback mode for when s_m is unusable is
+  NOT ported -- `estimate_yaw_moment_stability`'s docstring now states
+  why: the fallback is a differently-behaving estimator (time-local,
+  no cross-lap pooling) whose output the s-grid-derived classification
+  thresholds could not classify meaningfully. No stability verdict is
+  more honest than a silently degraded one.
+- corner_analysis.py:359 reset-guard fix (small-decisions sweep):
+  apex_lap_distance_m now routes through the shared
+  `_interp_lap_distance_guarded` helper (modules/stability_analysis.py)
+  instead of plain `np.interp`, closing the lap-boundary-reset gap
+  found 2026-07-25. WP1-freeze proof (diagnostics/inspect_wp1_reset_
+  guard_freeze_proof.py): per-lap corner counts, every apex_lap_
+  distance_m (10 dp), and every stable_corner_id byte-identical
+  before/after on Dubai -- confirms the fix is a genuine no-op on this
+  file, as expected (no apex sits near a reset). `bracket_start_m`/
+  `bracket_end_m` stay unguarded, explicitly out of scope.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]

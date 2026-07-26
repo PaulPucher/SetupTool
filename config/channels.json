@@ -125,6 +125,12 @@
             "unit": "deg",
             "range": [-180, 180],
             "required": false
+        },
+        "log_gps_course": {
+            "label": "GPS Course over Ground",
+            "unit": "deg",
+            "range": [0, 360],
+            "required": false
         }
 
     },

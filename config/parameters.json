@@ -18,7 +18,22 @@
         "steering_ratio_note": "Read from steering ratio lookup table at centre wheel travel and zero steering stroke. Treated as constant at Level 1.",
         "cog_to_front_axle_m": 1.433,
         "cog_to_rear_axle_m": 1.072,
-        "cog_note": "Derived from static weight distribution. a = L * rear_fraction, b = L * front_fraction."
+        "cog_note": "Derived from static weight distribution. a = L * rear_fraction, b = L * front_fraction.",
+        "cog_height_m": 0.30,
+        "cog_height_note": "Reviewer-supplied order-of-magnitude placeholder, NOT sourced, replace with team figure.",
+        "track_width_front_m": 1.66,
+        "track_width_rear_m": 1.64,
+        "track_width_note": "Reviewer-supplied order-of-magnitude placeholder, NOT sourced, replace with team figure.",
+        "aero": {
+            "air_density_kgm3": 1.225,
+            "air_density_note": "ISA sea-level standard value. Kept at Level 1 by convention like wheelbase_m -- not a sourced-vs-placeholder distinction, a fixed physical constant that would only move for a session weather correction (not implemented).",
+            "lift_coeff": 0.0,
+            "lift_coeff_note": "Sign convention verified against the chair's own formula (docs/literature/data_handler.py:1559, fz_aero_total_N = -0.5*rho*v^2*A*Cl, commented 'positive for downforce'): since -0.5*rho*v^2*A is never positive, Cl must be NEGATIVE for a downforce-generating car under this convention -- standard aerodynamic lift-coefficient sign (positive=lift, negative=downforce), not a 'downforce coefficient' convention where downforce would read positive. No numeric Cl default exists in the shared reference files to confirm against directly; this is inferred from the formula+comment pairing alone, not an assumed value. Placeholder 0.0: the aero term evaluates to exactly zero at every speed, i.e. Fz reduces to the static+longitudinal-only estimate -- a documented underestimate of both axles' load at speed, not a front/rear balance error. When populated with a real (negative) Cl, re-verify sign against a high-speed straight-line sample (fz_f_N+fz_r_N should exceed the static sum, not fall below it). This sign convention is INFERRED from the formula+comment pairing, not confirmed against a real value -- the first real Cl entry must be validated empirically (Fz increasing with v^2, not decreasing) before being trusted.",
+            "cross_track_area_m2": 0.0,
+            "cross_track_area_note": "Not sourced -- inert while lift_coeff=0.0 (multiplies to zero regardless). Must be sourced together with a real lift_coeff before either has a numeric effect.",
+            "diff_cog_x_m": 0.0,
+            "diff_cog_x_note": "CoP-to-CoG longitudinal offset. Not sourced, inert while lift_coeff=0.0. 0.0 also has a standalone physical meaning if ever populated alone: aero centre of pressure coincides with CoG, i.e. no front/rear aero balance shift."
+        }
     },
 
     "stability_estimation": {
@@ -29,6 +44,13 @@
     "cs_linear_slip_threshold_rad": 0.021,
     "beta_washout_cutoff_hz": 0.05,
     "moving_speed_min_mps": 5.0,
+
+    "_comment_gps_course_anchor": "WP5b(c), estimate_sideslip_gps (validation-only, no pipeline call site). Drift-correction anchor gate: a sample qualifies once a short-window-smoothed |ay| stays below max_ay_g for a contiguous run of at least min_duration_s. Data-derived on Dubai (diagnostics/inspect_beta_gps_validation.py): raw per-sample |ay| is too noisy for a literal unbroken-run test (2267 candidate runs at the chosen threshold, longest ~0.1s) -- smooth_window_s=0.3 first was necessary to get physically-sized runs (6 runs >=1.5s, 20.4s total anchor time across 4 laps). max_ay_g=0.05 sits at the moving-sample |ay| p10 (0.044g), a natural low-|ay| population before the distribution rises steeply toward cornering values (p20=0.109g).",
+    "gps_course_anchor_max_ay_g": 0.05,
+    "gps_course_anchor_min_duration_s": 1.5,
+    "gps_course_anchor_smooth_window_s": 0.3,
+    "gps_course_latency_s": 0.32,
+    "gps_course_latency_s_derived_from": "diagnostics/inspect_beta_gps_validation.py, WP5b(c) iteration 1 Section 0: cross-correlation of wrap-safe d(course)/dt against -yaw_rate_radps over lags -1..+1s (racing laps, moving samples) peaks at r=0.9898 at lag=+0.32s, vs r=0.9575 at zero lag -- course-derived rotation consistently lags yaw_rate by this much. A stale course reading recorded at time t describes the vehicle's true state at (t - latency); querying it at (t + latency) recovers the value that actually corresponds to the query instant.",
     "cs_min_window_samples": 10,
     "apex_half_window_samples": 5,
 
@@ -40,9 +62,6 @@
     "yaw_stability_min_beta_std_rad": 0.001,
     "yaw_stability_ridge": 1.0,
 
-    "_comment_cs_fallback": "Fallback cornering stiffness references. Derived from axle normal load × C_alpha/Fz = 12 rad⁻¹ (Milliken & Milliken, RCVD, GT3 slick). Front: (290+290)*9.81*12 = 68268. Rear: (395+381)*9.81*12 = 91343. Used as C_linear_ref when OLS cannot resolve the linear stiffness from data (insufficient alpha excitation on rear axle). Accuracy Level 1.",
-    "cs_front_fallback_reference_n_per_rad": 68268,
-    "cs_rear_fallback_reference_n_per_rad": 91343,
     "kerb_z_deviation_threshold_g": 1.2,
     "kerb_dilation_samples": 5,
     "kerb_baseline_g": 1.0
@@ -106,7 +125,8 @@
         "sideslip_angle": {
             "level": 1,
             "source": "kinematic integration + washout (estimate_sideslip)",
-            "capped_by": "chained-constant: kinematic-integration inputs"
+            "capped_by": "chained-constant: kinematic-integration inputs",
+            "note": "GPS-course L3 path investigated (WP5b(c), two iterations, 2026-07-26): NOT viable on this dataset - diagnosed scale-drift corrected and corroborated, remaining error not dominated by it; shelved pending denser anchor data (longer session / more straights). See thesis_notes. Kinematic beta remains production."
         },
         "speed": {
             "level": 1,
@@ -133,6 +153,18 @@
             "source": "config default (vehicle.wheelbase_m)",
             "capped_by": null,
             "note": "Fixed chassis dimension, known to design tolerance; not expected to move enough to justify a dedicated remeasurement -- kept at Level 1 by convention, not as a live upgrade target."
+        },
+        "vertical_load_split": {
+            "level": 1,
+            "source": "axle Fz static + aero + longitudinal-transfer decomposition (estimate_vertical_loads), chair-identical construction (docs/literature/data_handler.py, internal)",
+            "capped_by": "chained-constant: cog_height_m, aero.lift_coeff/cross_track_area_m2/diff_cog_x_m",
+            "note": "WP5b(b) phase 1 (2026-07-26). Not yet wired into any consumer (Module 6/UI wiring is phase 1 turn (b), separate)."
+        },
+        "per_wheel_load_split": {
+            "level": 1,
+            "source": "per-axle independent lateral-transfer split (estimate_vertical_loads), the chair's own construction (docs/literature/data_handler.py, internal) -- NOT the roll-stiffness apportionment scoped as a later DOMAIN IMPROVEMENT in PLAN.md WP5b(b)",
+            "capped_by": "chained-constant: cog_height_m, track_width_front_m, track_width_rear_m, aero.lift_coeff/cross_track_area_m2/diff_cog_x_m",
+            "note": "WP5b(b) phase 1 (2026-07-26). Not yet wired into any consumer (Module 6/UI wiring is phase 1 turn (b), separate)."
         }
     }
 }

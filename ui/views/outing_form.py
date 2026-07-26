@@ -96,7 +96,7 @@ class StabilityAnalysisThread(QThread):
                 load_parameters, prepare_vehicle_state, estimate_sideslip,
                 estimate_slip_angles, estimate_lateral_forces,
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
-                summarise_corners,
+                estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
             pipeline_cache_hit = self.pipeline_cache is not None
@@ -105,6 +105,7 @@ class StabilityAnalysisThread(QThread):
                 state = self.pipeline_cache["state"]
                 cs = self.pipeline_cache["cs"]
                 stab = self.pipeline_cache["stab"]
+                fz = self.pipeline_cache["fz"]
             else:
                 params = load_parameters()
                 # WP-C: substitute the resolved (and cap-clipped) mass/
@@ -123,10 +124,13 @@ class StabilityAnalysisThread(QThread):
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
+                # WP5b(b) phase 1 turn (b): read-only Fz/fy_norm diagnostic,
+                # feeds Module 6/UI only -- no classify_fn input.
+                fz = estimate_vertical_loads(state, forces, effective_params)
                 corners = self.parsed_data.get("corners", [])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
-            summaries = summarise_corners(corners, cs, stab, state,
+            summaries = summarise_corners(corners, cs, stab, state, fz=fz,
                                           lap_filter=self.lap_filter)
             t_summarise = time.perf_counter()
             print(f"[PERF] summarise_corners: {t_summarise - t_modules:.3f}s")
@@ -135,6 +139,7 @@ class StabilityAnalysisThread(QThread):
                 "state": state,
                 "cs": cs,
                 "stab": stab,
+                "fz": fz,
                 "corners": corners,
                 "cap": self.cap,
                 "resolved_accuracy": self.resolved_accuracy,
@@ -1005,6 +1010,11 @@ class OutingForm(QWidget):
             "state": result["state"],
             "cs": result["cs"],
             "stab": result["stab"],
+            # WP5b(b) phase 1 turn (b): fz (estimate_vertical_loads output)
+            # joins the WP6 in-memory cache identity alongside state/cs/stab
+            # -- a lap-filter-only re-Analyse must reuse it, not recompute
+            # it, same as the other Modules-1-5 outputs it's cached with.
+            "fz": result["fz"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
         }
@@ -1483,6 +1493,12 @@ class OutingForm(QWidget):
             "exit_5": "Exit 5",
         }
 
+        # Fzf/Fzr columns: read-only diagnostic (WP5b(b) phase 1 turn (b)),
+        # no severity colour -- nothing here feeds _classify_corner. Shown
+        # in kN for table-width readability. fy_f_norm_N/fy_r_norm_N are
+        # computed (summarise_corners) but NOT shown here yet -- a further
+        # two-column pair does not fit this panel's width cleanly alongside
+        # CSf/CSr/Stab; deferred to a later UI pass rather than cramped in.
         rows_html = (
             f"<table cellpadding='2' style='font-size:10px;'>"
             f"<tr>"
@@ -1492,6 +1508,8 @@ class OutingForm(QWidget):
             f"<th style='color:{TEXT_DIM};'>CSf med [p25..p75]</th>"
             f"<th style='color:{TEXT_DIM};'>CSr med [p25..p75]</th>"
             f"<th style='color:{TEXT_DIM};'>Stab med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>Fzf med kN</th>"
+            f"<th style='color:{TEXT_DIM};'>Fzr med kN</th>"
             f"</tr>"
         )
         for phase in phase_keys:
@@ -1508,6 +1526,10 @@ class OutingForm(QWidget):
                        if csr["n"] > 0 else "—")
             sob_str = (f"{sob['median']:.0f} [{sob['p25']:.0f}..{sob['p75']:.0f}]"
                        if sob["n"] > 0 else "—")
+            fzf = p.get("fz_f_N")
+            fzr = p.get("fz_r_N")
+            fzf_str = f"{fzf['median']/1000:.1f}" if fzf and fzf["n"] > 0 else "—"
+            fzr_str = f"{fzr['median']/1000:.1f}" if fzr and fzr["n"] > 0 else "—"
             rows_html += (
                 f"<tr>"
                 f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
@@ -1516,6 +1538,8 @@ class OutingForm(QWidget):
                 f"<td style='color:{csf_colour}; width:160px;'>{csf_str}</td>"
                 f"<td style='color:{csr_colour}; width:160px;'>{csr_str}</td>"
                 f"<td style='color:{sob_colour}; width:180px;'>{sob_str}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzf_str}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzr_str}</td>"
                 f"</tr>"
             )
         rows_html += "</table>"

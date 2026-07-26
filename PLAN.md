@@ -1,12 +1,22 @@
 ## STATUS (update at every work stop)
-Current WP: Accuracy-registry arc complete (2026-07-26) -- WP-A
-(registry consolidation), WP-C (per-session resolver + global cap),
-small explicit-Save-button WP, WP-B (steering ratio Level 4), full
-channel census + targeted verification, and the chair-context marker
-cleanup, all currently uncommitted and landing as one combined commit
-per this project's bundled-session convention (see the new session
-paragraph below). WP2b-2 remains the next queued work-plan item once
-this lands. Last commit: 113c7d9 (clean up).
+Current WP: WP5b(b) phase 1 (chair-parity Fz, placeholder coefficients)
++ WP5b(c) (GPS-course beta, two iterations, SHELVED) + small-decisions
+sweep (three items, all closed) arc complete (2026-07-26) -- landing
+on top of the still-uncommitted Accuracy-registry arc below (WP-A
+registry consolidation, WP-C per-session resolver + global cap, small
+explicit-Save-button WP, WP-B steering ratio Level 4, full channel
+census + targeted verification, chair-context marker cleanup) as one
+combined commit per this project's bundled-session convention (see the
+session paragraphs below, newest last). Queue once this lands: the
+new-data-file diagnostic checklist (runs automatically when a new log
+arrives), WP2b-2 (rule engineering against the setup_parameters
+registry), WP5b(d) (speed cross-validation, log_gps_speed already
+confirmed present but not yet whitelisted), WP5b(b) phase 2 (damper-
+derived Level 4 wheel loads + the roll-stiffness DOMAIN IMPROVEMENT
+split), and sourcing the three reviewer-placeholder figures
+(cog_height_m, track_width_front/rear_m, lift_coeff/Cl) from the team.
+Last commit:
+113c7d9 (clean up).
 WP2b-1 that session: config/car_data.json (manufacturer reference
 data digitised from docs/car_data/, gitignored/local-only, consumer-
 scoped -- only tables with a named registry/WP5b/module consumer are
@@ -183,19 +193,45 @@ setCurrentText() no-ops on unmatched text, so it silently shows P8;
 accepted by user decision (see UI polish note above). test_stability.py
 byte-identical (structural -- this WP touches no code test_stability.py
 imports).
-Open threads: corner_analysis.py:359 lap_distance interpolation lacks
+~~Open threads: corner_analysis.py:359 lap_distance interpolation lacks
 the lap-boundary reset guard that stability_analysis has (found
 2026-07-25 during study doc stage 2). Fix requires WP1-freeze proof:
 before/after identical stable_corner_id assignment and corner count on
-Dubai. Small targeted WP after study document.
-cs_front/rear_fallback_reference config keys defined+commented but
+Dubai. Small targeted WP after study document.~~ [DONE 2026-07-26,
+small-decisions sweep item 3: corner_analysis.py's apex_lap_distance_m
+now routes through the shared _interp_lap_distance_guarded helper
+(modules/stability_analysis.py, imported directly, no duplication).
+WP1-freeze proof run: per-lap corner counts, every corner's
+apex_lap_distance_m (10 decimal places), and every stable_corner_id
+byte-identical before/after on Dubai (diagnostics/inspect_wp1_reset_
+guard_freeze_proof.py) -- confirms the fix is a no-op on this file, as
+expected (no apex sits near a lap-boundary reset). bracket_start_m/
+bracket_end_m stay unguarded, out of scope for this fix.
+thesis_notes.md: "corner_analysis.py:359 reset-guard fix (small-
+decisions sweep)".]
+~~cs_front/rear_fallback_reference config keys defined+commented but
 consumed nowhere (found 2026-07-26). Decision needed: wire per comment
 (estimator change, triggers re-derivation -- bundle with WP5b(b)) or
-remove. Do not wire casually.
-Chair estimator has a time_s-anchored fallback mode (window/grid
+remove. Do not wire casually.~~ [DONE 2026-07-26, small-decisions
+sweep item 1: DELETED (cs_front_fallback_reference_n_per_rad,
+cs_rear_fallback_reference_n_per_rad, and their explanatory comment,
+config/parameters.json) -- confirmed consumed nowhere in modules/.
+Rationale: the no-linear-reference case has never occurred on real
+data; if it ever does, the corner reports invalid, more honest than
+filling from an unvalidated constant. thesis_notes.md: "cs fallback
+reference constants deleted (small-decisions sweep)".]
+~~Chair estimator has a time_s-anchored fallback mode (window/grid
 scaled /50) when s_m is unusable; SetupTool short-circuits to
 all-invalid instead (study doc §8c). Decide: port the fallback tier or
-document the short-circuit as deliberate. Moot for current data.
+document the short-circuit as deliberate. Moot for current data.~~
+[DONE 2026-07-26, small-decisions sweep item 2: documented as
+deliberate, not ported -- one sentence added to estimate_yaw_moment_
+stability's docstring (modules/stability_analysis.py): the fallback is
+a differently-behaving estimator (time-local, no cross-lap pooling)
+whose output the s-grid-derived thresholds could not classify
+meaningfully; no verdict is more honest than a silently degraded one.
+thesis_notes.md: "s_m short-circuit documented as deliberate
+(small-decisions sweep)".]
 ~~Accuracy-level registry consolidation (rider WP): single source in
 config, wire the inline dict + the hardcoded duplicate, add beta +
 wheelbase entries, verify and apply the weakest-link semantics, re-tag
@@ -288,14 +324,69 @@ the representation someday, not urgent, no diagnostic or verdict was
 wrong because of it. Everything still open from before this arc stays
 open, unchanged by it: the new-data-file diagnostic checklist (tc_lat/
 tc_lon/abs_position/brake_bias channel-name scan) above WP1; WP2b-2
-(rule engineering against the setup_parameters registry); WP5b(c)
-(GPS-course beta) and WP5b(d) (speed cross-validation), both still
-gated on whitelisting log_gps_course/log_gps_speed (confirmed present
-in the real file, still not in channels.json); the small-decisions
-list -- cs_front/rear_fallback_reference wiring-or-removal decision,
-the chair's time_s-anchored Module 5 fallback tier (port or document-
-as-deliberate), and the corner_analysis.py:359 lap_distance reset-guard
-fix (needs a WP1-freeze before/after proof first).
+(rule engineering against the setup_parameters registry); WP5b(d)
+(speed cross-validation) -- log_gps_speed confirmed present in the
+real file but still not whitelisted, deliberately not added ahead of
+this consumer; the small-decisions list -- cs_front/rear_fallback_
+reference wiring-or-removal decision, the chair's time_s-anchored
+Module 5 fallback tier (port or document-as-deliberate), and the
+corner_analysis.py:359 lap_distance reset-guard fix (needs a WP1-freeze
+before/after proof first). [UPDATE 2026-07-26: WP5b(c) (GPS-course
+beta) is no longer open -- SHELVED after two implementation iterations,
+see WP5b section (c) and thesis_notes.md for the full validation
+record and reopen condition (denser anchor data). log_gps_course IS
+now whitelisted (config/channels.json), unlike log_gps_speed above,
+which stays deliberately unwhitelisted pending WP5b(d).]
+
+WP5b(b) phase 1 + WP5b(c) session (2026-07-26, currently uncommitted,
+lands with the Accuracy-registry arc above as one combined commit):
+two work packages, both chair-parity/validation work on Modules 4b/6.
+TURN (a) -- Fz compute function: new modules/stability_analysis.py
+estimate_vertical_loads(state, forces, params), chair-identical axle
+Fz (static + aero + longitudinal transfer) and per-wheel split
+(independent-per-axle lateral transfer, NOT the roll-stiffness
+DOMAIN IMPROVEMENT, which stays a later sub-step) plus fy_f_norm_N/
+fy_r_norm_N (Fy_filt/fz axle), Tier A (Milliken RCVD, p. TBD verify),
+docstring states no deviation from the chair construction. New config
+(vehicle.cog_height_m=0.30, track_width_front/rear_m=1.66/1.64, all
+reviewer placeholders "NOT sourced, replace with team figure";
+aero.air_density_kgm3=1.225 L1-by-convention; aero.lift_coeff=0.0,
+documented zero-meaning, sign convention inferred from the chair's own
+formula+comment -- not yet empirically confirmed, config note flags
+the first real Cl entry must validate Fz rising with v^2). Two new
+accuracy_levels registry nodes (vertical_load_split,
+per_wheel_load_split), both Level 1. Isolated: zero call sites,
+test_stability.py byte-identical. Sign-convention verification against
+real Dubai data (not assumed): braking loads the front (ax negative
+under braking, matching the chair's formula) and a GPS-derived
+right-hander loads the left (outside) tire -- both MATCH, no flip
+needed. TURN (b) -- consumer wiring: estimate_vertical_loads joins
+StabilityAnalysisThread's pipeline (after estimate_lateral_forces) and
+the WP6 _pipeline_cache identity (new "fz" key); summarise_corners
+gained an optional fz= parameter adding fz_f_N/fz_r_N/fy_f_norm_N/
+fy_r_norm_N per-phase stat blocks (additive only, old call sites
+unaffected); UI gained one Fzf/Fzr median column pair in the corner-
+details phase table (fy_norm computed but not displayed, doesn't fit
+the panel width cleanly, deferred); nothing feeds _classify_corner.
+ANALYSIS_SCHEMA_VERSION 2->3 (payload shape change, comment explains
+why). Verified additive-only: a before/after summary-dict diff showed
+zero pre-existing keys changed, only the new keys added; three sample
+Fz values reported physically plausible (5-8 kN/axle, static-dominated
+at low ax/ay, matching the static-split calculation almost exactly).
+WP5b(c) -- GPS-course beta, two iterations, SHELVED: see the WP5b
+section (c) above for the work-package-level summary and
+thesis_notes.md for the full validation record (rotation-convention
+and latency findings, iteration 1's numbers and diagnosed root cause,
+iteration 2's two fixes and the falsifiable lever-arm check that
+passed without moving the decision-criteria metrics). config/
+parameters.json's accuracy_levels.sideslip_angle gained an inactive
+registry note recording the outcome; production beta untouched
+throughout. Closeout pass (this session): registry note text finalised
+(above), this WP5b(b)/(c) STATUS paragraph and the WP5b section (b)/(c)
+markers added, Open threads paragraph corrected (WP5b(c) removed from
+the open/gated list). thesis_notes.md completeness checked against
+today's work -- see the session's own report for the verdict; nothing
+added beyond what was explicitly flagged.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
@@ -748,11 +839,53 @@ b) Level 4 Fy/Fz split: wheel loads from damper forces
    D_psi completion of Werner Eq. 4.3 (thesis_notes.md "Completing
    Werner Eq. 4.3") is gated by this sub-step's wheel loads and stays
    sequenced after it, same WP.
-c) Level 3 sideslip: beta from log_gps_course (velocity vector) minus
+
+   [PHASE 1 DONE 2026-07-26: chair-identical axle Fz_f/Fz_r (static +
+   aero + longitudinal transfer, estimate_vertical_loads) and the
+   chair's own independent-per-axle wheel split (fz_fl/fr/rl/rr) --
+   NOT the roll-stiffness-apportionment DOMAIN IMPROVEMENT above, which
+   stays open, damper-validated, its own later sub-step. fy_f_norm_N/
+   fy_r_norm_N (Fy_filt/fz axle) wired as the named consumer, surfaced
+   read-only in Module 6 + the corner-details UI table (Fzf/Fzr median
+   columns; fy_norm computed but not yet displayed, deferred, doesn't
+   fit the panel width cleanly); nothing feeds _classify_corner.
+   cog_height_m/track_width_front_m/track_width_rear_m are reviewer-
+   supplied order-of-magnitude PLACEHOLDERS (0.30m, 1.66m, 1.64m,
+   explicitly "NOT sourced, replace with team figure"); air_density is
+   an L1-by-convention physical constant; lift_coeff=0.0 (aero term
+   inert, documented zero-meaning, Cl sign convention inferred from the
+   chair's own formula+comment, not yet empirically confirmed -- first
+   real Cl entry must validate Fz rising with v^2 before trust).
+   PHASE 2 (damper-derived Level 4 wheel loads, the roll-stiffness
+   DOMAIN IMPROVEMENT split, aero-from-damper-v^2 regression, D_psi
+   completion) remains open, unchanged by phase 1.]
+c) ~~Level 3 sideslip: beta from log_gps_course (velocity vector) minus
    chassis heading estimate; replaces kinematic integration + washout.
-   Validate against Module 2 output before switching default.
+   Validate against Module 2 output before switching default.~~
+   [SHELVED 2026-07-26, two iterations, see thesis_notes.md: beta_gps
+   (GPS-course minus gyro-integrated, drift-anchored heading) built and
+   validated as estimate_sideslip_gps (validation-only, never wired to
+   any consumer). Iteration 1 (time-linear drift allocation) gave a
+   poorly-correlated, oversized result (r=-0.12, 51% per-corner sign
+   agreement, a physically-impossible 9.34m implied antenna offset);
+   root-cause diagnosed as a ~6deg/lap gyro scale-drift concentrated
+   during cornering, mismatched by time-linear correction allocation.
+   Iteration 2 (rotation-proportional allocation + measured +0.32s
+   latency correction) passed its own falsifiable check on that
+   diagnosis (implied antenna offset shrank 86% to 1.325m, physically
+   plausible) but the decision-criteria metrics did not materially
+   improve (r=-0.24, 52.2% sign agreement) -- NOT MET either iteration.
+   REOPEN CONDITION: denser anchor data (a longer session and/or more
+   straight-line sections than this single 4-lap file offers) --
+   6 anchors across ~530s was diagnosed as the likely remaining limit,
+   not the allocation scheme or latency, both already fixed. Kinematic
+   beta (estimate_sideslip) remains production, untouched throughout.
+   accuracy_levels.sideslip_angle carries this outcome as an inactive
+   registry note (config/parameters.json).]
 d) Speed validation: log_gps_speed vs ecu_speed agreement report;
-   promote speed source if GPS proves cleaner.
+   promote speed source if GPS proves cleaner. log_gps_speed confirmed
+   present in the real file but still not in channels.json -- lands
+   with this consumer, not whitelisted speculatively ahead of it.
 e) After any of a-d lands: re-run the corner-distribution diagnostic
    and re-derive classification thresholds — they were tuned on
    Level 1 numbers and are not portable across accuracy levels.

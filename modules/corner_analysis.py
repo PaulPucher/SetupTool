@@ -34,6 +34,7 @@
 import json
 import numpy as np
 from modules.geo import compute_gps_origin, project_latlon_to_xy
+from modules.stability_analysis import _interp_lap_distance_guarded
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -356,7 +357,12 @@ def assign_stable_corner_ids(corners, channels):
     min_frac = cd["bracket_overlap_min_fraction"]
 
     for c in corners:
-        c["apex_lap_distance_m"] = float(np.interp(c["apex_time"], ld_time, ld_data)) * 0.3048
+        # Reset-guard shared with prepare_vehicle_state's s_m interpolation
+        # (modules/stability_analysis.py) -- plain np.interp across a lap-
+        # boundary reset would fabricate a mid-range distance corresponding
+        # to no real track position. bracket_start_m/bracket_end_m below are
+        # NOT guarded (out of scope for this fix, PLAN.md/thesis_notes.md).
+        c["apex_lap_distance_m"] = float(_interp_lap_distance_guarded(c["apex_time"], ld_time, ld_data))
 
         bracket_start_t, _ = c["segments"]["entry_2_turnin"]
         _, bracket_end_t = c["segments"]["exit_5"]
