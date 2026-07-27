@@ -352,22 +352,18 @@ def _bucket_key(rule, actions):
 
 
 def _provenance_note(rule, settings):
-    # WP2b-2: surfaces WHY a rule is capped to advisory regardless of
-    # severity/corroboration -- "mirror-derived" states which cell it was
-    # mirrored from (OS-* cells mirror the equivalent US-* cell), so the
-    # engineer knows exactly what to confirm. Matrix v2: "project-lead-
-    # reviewed" is action-eligible (between engineer-verbatim and the
-    # capped grades), so it never gets this note.
+    # Fix turn (UI text humanization): screen text is now a short muted
+    # suffix only -- provenance grade, source cell, and the ADVISORY cap
+    # (already a separate header badge) are structured fields
+    # (elicitation_provenance, cell_id, status), machine/thesis-side, not
+    # screen-side. "project-lead-reviewed" is action-eligible, so it never
+    # gets this suffix.
     ac = settings.get("action_class", {})
     eligible = set(ac.get("action_eligible_provenances", ["engineer-verbatim", "project-lead-reviewed"]))
     prov = rule.get("elicitation_provenance")
     if prov is None or prov in eligible or rule.get("status") == "reviewed":
         return None
-    cell_id = rule.get("cell_id") or ""
-    if prov == "mirror-derived" and cell_id.startswith("OS-"):
-        source = "US-" + cell_id[len("OS-"):]
-        return f" [PROVENANCE: mirror-derived from {source} -- engineer confirmation pending, capped to ADVISORY]"
-    return f" [PROVENANCE: {prov} -- engineer confirmation pending, capped to ADVISORY]"
+    return " (engineer confirmation pending)"
 
 
 def _match_is_recommended(match, rule, settings):
@@ -400,6 +396,195 @@ def _match_is_recommended(match, rule, settings):
         return True
     rec_severities = set(ac.get("data_trigger_recommended_severities", ["strong"]))
     return (match["severity"] in rec_severities) or match["corroborated"]
+
+
+def _worst_feedback(fb_row):
+    # Undrivable-feedback tier: the corner's single strongest complaint
+    # across ALL five phases (not a rule's own phase subset -- the tier
+    # acts per corner, once, on whichever phase the driver actually rated
+    # worst). Same max-|value| convention as _feedback_value. Returns
+    # (phase, raw_value); (None, 0) if the row is empty/all-zero.
+    if not fb_row:
+        return None, 0
+    best_phase, best_val = None, 0
+    for phase in PHASE_KEYS:
+        val = fb_row.get(PHASE_TO_FEEDBACK_KEY[phase], 0)
+        if abs(val) > abs(best_val):
+            best_phase, best_val = phase, val
+    return best_phase, best_val
+
+
+def _escalation_config(settings):
+    gate = settings.get("consistency_gate") or {}
+    override = gate.get("feedback_override") or {}
+    return {
+        "enabled": bool(override.get("escalation_enabled", False)),
+        "raw_min": override.get("feedback_override_raw_min"),
+        "scaled_min": override.get("feedback_override_scaled_min"),
+    }
+
+
+def _rule_structurally_covers(rule, phase, verdict, speed_class):
+    # "Structural" coverage: this rule's own condition targets this
+    # phase/verdict/speed_class combination, independent of whether
+    # today's DATA severity actually clears its min_severity gate --
+    # deliberately broader than "this rule currently fires", since a
+    # structurally-covering rule that never fires (severity/consistency
+    # gate unmet) is exactly the case the synthetic gap row must catch.
+    if rule.get("status") in _NON_FIRING_STATUSES:
+        return False
+    condition = rule["condition"]
+    if condition.get("trigger") not in ("data", "both"):
+        return False
+    if condition.get("verdict") != verdict:
+        return False
+    if phase not in rule["phases"]:
+        return False
+    required_speed_class = condition.get("speed_class")
+    return required_speed_class is None or required_speed_class == speed_class
+
+
+_URGENT_TAG = "URGENT - driver reports near-undrivable"
+
+
+def _urgent_row(cid, n_laps, verdict, text, conflict=False):
+    # Shape matches a normal generate_recommendations() result closely
+    # enough that ui/views/outing_form.py's _build_recommendation_row
+    # renders it with only the small, explicit "urgent"/action_class
+    # branches added there -- no separate rendering path duplicated.
+    # n_laps must be the corner's real (int) lap count, not None -- the
+    # UI's chip label compares it against analysed_lap_count directly.
+    # limit_status is deliberately neither "at_limit" nor "unchecked":
+    # there is no setup-parameter action here for a limit to apply to.
+    return {
+        "actions": [],
+        "parameter": None,
+        "direction": None,
+        "score": None,
+        "severity_rank": SEVERITY_RANK["strong"],
+        "corners": [{"stable_corner_id": cid, "n_laps": n_laps,
+                     "worst_corner": False, "short_verdict": verdict}],
+        "rules_fired": [],
+        "cell_ids": [],
+        "trigger_source": ["driver"],
+        "conflicts": ([{"stable_corner_id": cid, "n_laps": n_laps}] if conflict else []),
+        "rationale": [{"rule_id": None, "cell_id": None, "rationale": text}],
+        "action_class": "urgent_gap",
+        "observation_lines": [],
+        "escalation_notes": [],
+        "parameter_conflict": False,
+        "conflict_parameters": [],
+        "limit_status": "not_applicable",
+        "at_limit_parameters": [],
+        "selected": False,
+        "urgent": True,
+        "urgent_tag": _URGENT_TAG,
+    }
+
+
+def _apply_undrivable_escalation(aggregated, feedback_data, classify_fn, config,
+                                  feedback_weight, buckets):
+    """Undrivable-feedback tier (design ruling, project-lead-elicited
+    2026-07-28): at |raw feedback| >= feedback_override_raw_min the tool
+    must never render silent emptiness for that corner -- honesty via
+    labeling, not suppression. Three exhaustive outcomes per corner
+    (using the corner's single strongest-|feedback| phase, _worst_feedback):
+
+    (a) PIERCE -- a structurally-covering rule (_rule_structurally_covers)
+    already produced a match in `buckets` for this corner, agreeing with
+    the feedback's own direction, AND the scaled feedback also clears its
+    own floor (the same double-floor discipline as the consistency-gate
+    override): that bucket's key is returned for the caller to force to
+    "recommended", bypassing min_score_to_show and the situational/
+    provenance advisory caps, tagged URGENT.
+
+    (b) SYNTHETIC GAP -- no bucket exists carrying an agreeing match for
+    this corner (whether because no rule structurally covers this verdict/
+    phase/speed_class at all, or one does but its own severity/consistency
+    gate never cleared): a standalone row naming the gap directly.
+
+    (c) CONTRADICTION -- the data's own verdict at this phase is the
+    OPPOSITE axle direction from what the feedback implies. If a bucket
+    already recorded this exact conflict (data-triggered rule matched with
+    conflict=True for this corner), it is pierced the same way as (a),
+    keeping its existing conflict badge. If no such bucket exists (the
+    data-side rule's own gate never cleared either), a standalone
+    contradiction row is emitted instead, carrying the conflict badge
+    itself.
+
+    Returns (pierced_bucket_keys: set, synthetic_rows: list).
+    """
+    settings = config["settings"]
+    esc_cfg = _escalation_config(settings)
+    if not esc_cfg["enabled"] or esc_cfg["raw_min"] is None:
+        return set(), []
+
+    raw_min = esc_cfg["raw_min"]
+    scaled_min = esc_cfg["scaled_min"]
+    pierced_keys = set()
+    synthetic_rows = []
+
+    for cid, corner in aggregated.items():
+        fb_row = _feedback_row(feedback_data, cid)
+        phase, raw_fb = _worst_feedback(fb_row)
+        if phase is None or abs(raw_fb) < raw_min:
+            continue
+        scaled_fb = raw_fb * feedback_weight
+        implied_verdict = "oversteer" if raw_fb > 0 else "understeer"
+
+        severity, short = _phase_verdict(corner, [phase], classify_fn)
+        axle = _axle_verdict(short)
+
+        if axle is not None and axle != implied_verdict:
+            # (c) direction contradiction.
+            conflicted_keys = [
+                key for key, bucket in buckets.items()
+                if cid in bucket["conflicts"]
+                and _axle_verdict(bucket["corners"].get(cid, {}).get("short_verdict") or "") == axle
+            ]
+            if conflicted_keys:
+                pierced_keys.update(conflicted_keys)
+            else:
+                synthetic_rows.append(_urgent_row(
+                    cid, corner["n_laps"], implied_verdict,
+                    f"C{cid}: driver reports near-undrivable ({implied_verdict}) but the "
+                    f"data shows {short} at this phase -- direction contradiction, "
+                    f"engineer attention required.",
+                    conflict=True,
+                ))
+            continue
+
+        covering_ids = {
+            r["id"] for r in config["rules"]
+            if _rule_structurally_covers(r, phase, implied_verdict, corner.get("speed_class"))
+        }
+        matching_keys = [
+            key for key, bucket in buckets.items()
+            if cid in bucket["corners"]
+            and (set(bucket["rules_fired"]) & covering_ids)
+            and _axle_verdict(bucket["corners"][cid]["short_verdict"] or "") == implied_verdict
+        ]
+
+        if not matching_keys:
+            # (b) no rule ever actually matched this corner for this
+            # verdict/phase/speed_class -- structurally absent, or present
+            # but never cleared its own severity/consistency gate.
+            synthetic_rows.append(_urgent_row(
+                cid, corner["n_laps"], implied_verdict,
+                f"Driver reports near-undrivable at C{cid} ({implied_verdict}) - no "
+                f"elicited rule covers this case, engineer attention required.",
+            ))
+            continue
+
+        if scaled_min is not None and abs(scaled_fb) >= scaled_min:
+            pierced_keys.update(matching_keys)
+        # else: a corroborated match already exists and is already visible
+        # through the normal recommended/advisory path (not silent) -- the
+        # scaled floor only gates forcing it to the URGENT/pierce-all-caps
+        # tier specifically, per the same double-floor discipline as the
+        # consistency-gate override.
+
+    return pierced_keys, synthetic_rows
 
 
 def _evaluate_rule(rule, aggregated, by_corner_laps, feedback_data, classify_fn, settings,
@@ -747,6 +932,24 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     buckets only), escalation_notes (second-choice visibility -- display
     only, never fires: the held escalation's action, for any base rule that
     has one), limit_status, at_limit_parameters, selected, rationale}.
+
+    (8) Undrivable-feedback tier (FIX 1, design ruling 2026-07-28,
+    `_apply_undrivable_escalation`): runs after buckets are built, before
+    results are constructed. A corner whose single strongest feedback
+    entry clears settings["consistency_gate"]["feedback_override"]'s
+    raw_min (and, only for the pierce case, scaled_min too) can never
+    render as silent emptiness -- exactly one of: pierced (a corroborated,
+    structurally-covering match already exists -- forced to "recommended",
+    `severity_rank` forced to "strong", `urgent`/`urgent_tag` set, every
+    situational/provenance advisory cap bypassed), a synthetic
+    action_class="urgent_gap" row (no rule structurally covers this
+    verdict/phase/speed_class combination for this corner), or a synthetic
+    contradiction row carrying the conflict badge (the feedback's own
+    direction opposes the data's verdict at that phase). Synthetic rows
+    are prepended to the returned list, outside `max_recommendations`'
+    display cap and never counted by `_apply_change_budget`. Gated
+    entirely by settings["consistency_gate"]["feedback_override"]
+    ["escalation_enabled"] -- false restores pre-2026-07-28 behaviour.
     """
     settings = config["settings"]
     source_balance = _resolve_source_balance(config, outing)
@@ -800,8 +1003,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
         if held_escalation is not None:
             esc_lever = _describe_actions(_normalise_actions(held_escalation["suggestion"]))
             bucket["escalation_notes"].append(
-                f"engineer's escalation if insufficient: {esc_lever} "
-                f"[held - applied-history tracking pending]"
+                f"If this isn't enough, the next step is: {esc_lever}."
             )
         for m in matches:
             bucket["score"] += m["score"]
@@ -818,22 +1020,41 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
             if m["conflict"]:
                 bucket["conflicts"][cid] = {"stable_corner_id": cid, "n_laps": m["n_laps"]}
 
+    # Undrivable-feedback tier (FIX 1, design ruling 2026-07-28): must run
+    # against the fully-built buckets (it needs to know which corners
+    # already have a corroborated, or conflicted, match) but before the
+    # results list is built, since a pierced bucket's action_class/
+    # severity_rank/urgent tag are decided at result-construction time.
+    pierced_keys, synthetic_rows = _apply_undrivable_escalation(
+        aggregated, feedback_data, classify_fn, config, feedback_weight, buckets,
+    )
+
     results = []
-    for bucket in buckets.values():
-        if bucket["score"] < settings["min_score_to_show"]:
+    for key, bucket in buckets.items():
+        pierced = key in pierced_keys
+        if bucket["score"] < settings["min_score_to_show"] and not pierced:
             continue
         actions = bucket["actions"]
         single = actions[0] if len(actions) == 1 else None
-        action_class = "recommended" if bucket["is_recommended"] else "advisory"
+        action_class = "recommended" if (bucket["is_recommended"] or pierced) else "advisory"
+        # Pierced buckets bypass the situational/provenance advisory caps
+        # entirely (design ruling) -- action_class is forced above, and
+        # severity_rank is forced to "strong" so the existing severity-
+        # first ranking (_rank_key) surfaces it near the top without a
+        # separate sort override.
+        severity_rank = SEVERITY_RANK["strong"] if pierced else bucket["severity_rank"]
         rationale = bucket["rationale"]
         observation_lines = []
         if action_class == "advisory":
             rationale = [{**x, "rationale": advisory_prefix + x["rationale"]} for x in rationale]
             lever = _describe_actions(actions)
-            cell = bucket["cell_ids"][0] if bucket["cell_ids"] else bucket["rules_fired"][0]
+            # Fix turn: cell_id is already shown as its own header badge,
+            # so it's dropped here rather than repeated in the observation
+            # line; "@" -> "at" reads as plain English, not the classifier's
+            # own short-verdict format.
             observation_lines = [
-                f"C{c['stable_corner_id']}: slight {c['short_verdict']} -- "
-                f"most likely lever if addressed: {lever} [{cell}]"
+                f"C{c['stable_corner_id']}: slight {c['short_verdict'].replace(' @ ', ' at ')} - "
+                f"likely lever if addressed: {lever}"
                 for c in sorted(bucket["corners"].values(), key=lambda c: c["stable_corner_id"])
             ]
         results.append({
@@ -841,7 +1062,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
             "parameter": single["parameter"] if single else None,
             "direction": single.get("direction") if single else None,
             "score": round(bucket["score"], 3),
-            "severity_rank": bucket["severity_rank"],
+            "severity_rank": severity_rank,
             "corners": sorted(bucket["corners"].values(), key=lambda c: c["stable_corner_id"]),
             "rules_fired": bucket["rules_fired"],
             "cell_ids": sorted(bucket["cell_ids"]),
@@ -851,6 +1072,8 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
             "action_class": action_class,
             "observation_lines": observation_lines,
             "escalation_notes": sorted(set(bucket["escalation_notes"])),
+            "urgent": pierced,
+            "urgent_tag": (_URGENT_TAG if pierced else None),
         })
 
     results = _apply_parameter_conflicts(results)
@@ -858,4 +1081,7 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     results.sort(key=lambda r: _rank_key(r, tier_map))
     results = _apply_change_budget(results, settings)
 
-    return results[: settings["max_recommendations"]]
+    # Synthetic gap/contradiction rows are never budget-counted as a setup
+    # change and never subject to max_recommendations' display cap --
+    # prepended after both, per the design ruling ("top of the list").
+    return synthetic_rows + results[: settings["max_recommendations"]]

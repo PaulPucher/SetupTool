@@ -8,6 +8,7 @@
 # entirely in modules/.
 
 import json
+import re
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
@@ -32,37 +33,47 @@ RECOMMENDATIONS_PATH = "config/recommendations.json"
 SECTION1_FIELDS = [
     {"path": ("vehicle", "mass_kg"), "label": "Mass", "unit": "kg",
      "decimals": 1, "min": 500.0, "max": 2000.0,
-     "note_path": ("vehicle", "mass_note"), "accuracy_key": "mass"},
+     "note_path": ("vehicle", "mass_note"), "accuracy_key": "mass",
+     "short_note": "Car weight, measured with driver and fuel reference weights."},
     {"path": ("vehicle", "cog_height_m"), "label": "CoG height", "unit": "m",
      "decimals": 3, "min": 0.05, "max": 1.0,
-     "note_path": ("vehicle", "cog_height_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "cog_height_note"), "accuracy_key": None,
+     "short_note": "Centre of gravity height. Estimate - replace with team figure."},
     {"path": ("vehicle", "track_width_front_m"), "label": "Track width front", "unit": "m",
      "decimals": 3, "min": 0.8, "max": 2.2,
-     "note_path": ("vehicle", "track_width_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "track_width_note"), "accuracy_key": None,
+     "short_note": "Front track width. Estimate - replace with team figure."},
     {"path": ("vehicle", "track_width_rear_m"), "label": "Track width rear", "unit": "m",
      "decimals": 3, "min": 0.8, "max": 2.2,
-     "note_path": ("vehicle", "track_width_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "track_width_note"), "accuracy_key": None,
+     "short_note": "Rear track width. Estimate - replace with team figure."},
     {"path": ("vehicle", "wheelbase_m"), "label": "Wheelbase", "unit": "m",
      "decimals": 3, "min": 1.5, "max": 3.5,
      "note_path": None, "accuracy_key": "wheelbase_m"},
     {"path": ("vehicle", "yaw_inertia_kgm2"), "label": "Yaw inertia (Iz)", "unit": "kg·m²",
      "decimals": 1, "min": 500.0, "max": 5000.0,
-     "note_path": ("vehicle", "yaw_inertia_note"), "accuracy_key": "yaw_inertia"},
+     "note_path": ("vehicle", "yaw_inertia_note"), "accuracy_key": "yaw_inertia",
+     "short_note": "Rotational inertia about the vertical axis. Estimated, ~10-20% error."},
     {"path": ("vehicle", "steering_ratio"), "label": "Steering ratio (constant)", "unit": "",
      "decimals": 2, "min": 5.0, "max": 25.0,
-     "note_path": ("vehicle", "steering_ratio_note"), "accuracy_key": "steering_ratio"},
+     "note_path": ("vehicle", "steering_ratio_note"), "accuracy_key": "steering_ratio",
+     "short_note": "Steering wheel to road wheel ratio, held constant."},
     {"path": ("vehicle", "aero", "air_density_kgm3"), "label": "Air density", "unit": "kg/m³",
      "decimals": 3, "min": 1.0, "max": 1.5,
-     "note_path": ("vehicle", "aero", "air_density_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "aero", "air_density_note"), "accuracy_key": None,
+     "short_note": "Standard sea-level air density."},
     {"path": ("vehicle", "aero", "lift_coeff"), "label": "Lift coefficient (Cl)", "unit": "",
      "decimals": 3, "min": -3.0, "max": 3.0,
-     "note_path": ("vehicle", "aero", "lift_coeff_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "aero", "lift_coeff_note"), "accuracy_key": None,
+     "short_note": "Aero lift coefficient. Not yet sourced - downforce term is inactive at 0."},
     {"path": ("vehicle", "aero", "cross_track_area_m2"), "label": "Cross x track area", "unit": "m²",
      "decimals": 3, "min": 0.0, "max": 5.0,
-     "note_path": ("vehicle", "aero", "cross_track_area_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "aero", "cross_track_area_note"), "accuracy_key": None,
+     "short_note": "Frontal area. Not yet sourced - inactive while Cl is 0."},
     {"path": ("vehicle", "aero", "diff_cog_x_m"), "label": "Aero CoP-CoG offset (x)", "unit": "m",
      "decimals": 3, "min": -2.0, "max": 2.0,
-     "note_path": ("vehicle", "aero", "diff_cog_x_note"), "accuracy_key": None},
+     "note_path": ("vehicle", "aero", "diff_cog_x_note"), "accuracy_key": None,
+     "short_note": "Aero centre-of-pressure offset from CoG. Not yet sourced - inactive while Cl is 0."},
 ]
 
 # --- Section 2: analysis tunables, three target files ----------------------
@@ -135,6 +146,22 @@ def _is_placeholder_note(note):
         return False
     lowered = note.lower()
     return "not sourced" in lowered or "placeholder" in lowered
+
+
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _short_derived_from(text):
+    # Fix turn: Section 3's derived_from strings are full re-derivation
+    # audit trails (every re-confirmation date and its reasoning) -- useful
+    # on hover, not as a wall of text under every threshold. The visible
+    # line keeps only the most recent date mentioned (these strings are
+    # append-only per CLAUDE.md's thesis_notes convention, so the last date
+    # is the last time this value was checked against fresh data).
+    dates = _DATE_RE.findall(text or "")
+    if dates:
+        return f"Derived from data, last confirmed {max(dates)} - read-only."
+    return "Derived from data - read-only."
 
 
 class SettingsView(QWidget):
@@ -213,7 +240,14 @@ class SettingsView(QWidget):
         line.setStyleSheet(f"color: {BORDER};")
         return line
 
-    def _field_row(self, spec, widget, note_text=None, accuracy_text=None):
+    def _field_row(self, spec, widget, note_text=None, short_note=None, accuracy_text=None):
+        # Fix turn (UI text humanization): the full audit-trail note_text
+        # (config-side provenance, e.g. car_data source, correction history)
+        # moves to a tooltip -- hover to read it, it's still there for the
+        # record. The visible label is short_note, one plain sentence: what
+        # the value is, its unit, and "estimate - replace with team figure"
+        # where it's a placeholder. Neither note_text nor short_note is
+        # written back on Save -- only the numeric leaves are ever edited.
         row = QWidget()
         row_layout = QVBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -236,12 +270,18 @@ class SettingsView(QWidget):
         row_layout.addWidget(top)
 
         is_placeholder = _is_placeholder_note(note_text)
-        if note_text:
-            note_label = QLabel(note_text)
+        if short_note:
+            note_label = QLabel(short_note)
             note_label.setWordWrap(True)
             note_colour = WARN if is_placeholder else TEXT_DIM
             note_label.setStyleSheet(f"color: {note_colour}; font-size: 10px; margin-left: 240px;")
             row_layout.addWidget(note_label)
+            if note_text:
+                note_label.setToolTip(note_text)
+
+        if note_text:
+            label.setToolTip(note_text)
+            widget.setToolTip(note_text)
 
         if is_placeholder:
             row.setStyleSheet(f"border-left: 2px solid {WARN};")
@@ -276,7 +316,10 @@ class SettingsView(QWidget):
                     capped = entry.get("capped_by")
                     accuracy_text = f"L{entry['level']} · {capped or entry.get('source', '')}"
 
-            layout.addWidget(self._field_row(spec, widget, note_text=note_text, accuracy_text=accuracy_text))
+            layout.addWidget(self._field_row(
+                spec, widget, note_text=note_text,
+                short_note=spec.get("short_note"), accuracy_text=accuracy_text,
+            ))
 
         return container
 
@@ -361,11 +404,12 @@ class SettingsView(QWidget):
         grid_layout.addStretch()
         row_layout.addWidget(grid)
 
-        note = QLabel(
+        note = QLabel("How much a driver's feedback counts, by experience level -- not yet validated.")
+        note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        note.setToolTip(
             "Project-lead-elicited 2026-07-27 -- see PLAN.md engineer follow-up list "
             "for the standing validation question on this curve's shape."
         )
-        note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         row_layout.addWidget(note)
 
         return row
@@ -457,7 +501,8 @@ class SettingsView(QWidget):
         for key, _label in SECTION3_FIELDS:
             entry = cls_cfg[key]
             self.section3_value_labels[key].setText(f"{entry['value']}")
-            self.section3_derived_labels[key].setText(entry["derived_from"])
+            self.section3_derived_labels[key].setText(_short_derived_from(entry["derived_from"]))
+            self.section3_derived_labels[key].setToolTip(entry["derived_from"])
 
         self.warning_label.setVisible(False)
         self.status_label.setText("")

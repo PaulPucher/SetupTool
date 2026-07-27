@@ -8,6 +8,7 @@
   "_comment_severity_floor_repair": "Repair (2026-07-27): the four held escalation rules under a CS-only verdict (understeer) -- US-BRK-low-esc, US-BRK-med-esc, US-BRK-high-esc, US-APX-med-esc -- previously carried min_severity='strong', which is structurally unreachable from their own single-phase evaluation: _classify_corner's severity='strong' branch requires BOTH strong-CS AND destabilising yaw on the SAME restricted phase slice these rules evaluate (their own phases list, e.g. just entry_1_brake), but these rules exist to escalate a WORSENING CS-only understeer reading, which has nothing to do with yaw instability. Left as 'strong', none of the four could ever fire even after promotion out of 'held' status (a future WP) -- corrected to min_severity='moderate' so the advisory/recommended split and provenance caps (settings.action_class), not an accidentally-unreachable severity gate, are what govern proportionality, which is their actual job.",
   "_comment_consistency_gate": "Global policy (decision matrix): no recommendation unless the triggering verdict repeats across laps for the same stable_corner_id. Evaluated per-lap (not just on the median-of-medians aggregate) for every 'data'/'both'-trigger rule: min_repeat_laps is an absolute floor, min_repeat_fraction is a fraction of that corner's analysed laps -- BOTH must hold (AND, not OR). 'driver'-trigger rules are exempt (driver feedback has no lap dimension, see _feedback_row).",
   "_comment_consistency_gate_feedback_override": "Feedback override (project-lead-elicited 2026-07-27, engineer-validation line added to PLAN.md; full rationale + scale semantics also in thesis_notes.md): a candidate passes the consistency gate with an effective min_repeat_laps of 1 (bypassing BOTH the normal min_repeat_laps AND min_repeat_fraction checks, not just the laps floor -- with only 1 of typically 4 laps required, the 0.4 fraction default would otherwise still reject it) when BOTH raw |feedback| >= feedback_override_raw_min AND scaled |feedback| >= feedback_override_scaled_min (scaled = raw * the driver_level_weighting multiplier, PART A). Two separate floors, not one, deliberately: the raw floor (4) keys off the elicited driver feedback-scale semantics -- +-2..3 is 'clearly felt', +-4..5 is 'approaching undrivable' -- so raw>=4 means the driver is reporting the car is nearly undrivable at that phase, not merely noticeable; the scaled floor (4.0, coincidentally the same number as the raw floor but a distinct, independently-configured value) exists specifically to stop a LOW driving_level's inflated-relative-to-skill raw complaint from piercing the gate on weight alone -- a raw-4 complaint from a level-1 driver (weight 0.6) scales to 2.4, well under 4.0, and is correctly refused the override; only a driver whose feedback is both objectively in the undrivable region AND whose level-weighted magnitude also clears the same bar gets the single-lap pass. Rationale: a strong, unprompted driver complaint on a corner already showing a moderate+ data verdict is itself consistency evidence -- a capable driver will not provoke the same imbalance repeatedly (across laps) just to make the data repeat, so demanding multi-lap repetition on top of a near-undrivable complaint is asking the data to double-confirm what the driver already has. See modules/recommendation.py _consistency_gate_ok.",
+  "_comment_escalation_enabled": "Undrivable-feedback tier (design ruling, project-lead-elicited 2026-07-28): 'escalation_enabled' reuses this SAME feedback_override block's raw_min/scaled_min pair (deliberately not a third, separately-tunable threshold -- |4| is one elicited undrivable boundary, not two) to drive a stronger, structural guarantee than the consistency-gate override above: at |raw feedback| >= feedback_override_raw_min the tool must never render silent emptiness for that corner, honesty via labeling rather than suppression. See modules/recommendation.py _apply_undrivable_escalation for the three exhaustive outcomes (pierce every soft cap when a corroborated, structurally-covered match already exists and the scaled floor also clears; a synthetic 'no elicited rule covers this case' row when no such match exists; an urgent contradiction row, carrying the existing conflict badge, when the feedback direction opposes the data's own verdict at that phase). Rationale for the scale's own top band, carried exactly as elicited: |5| is the driver reporting they are milliseconds from crashing -- a report at that magnitude must always reach the engineer, never wash out under a provenance cap, a situational rule's permanent-advisory status, or a low aggregate score. Set false to disable the whole tier and fall back to pre-2026-07-28 behaviour (the consistency-gate override above is unaffected either way).",
   "_comment_change_budget": "Distinct from max_recommendations (a DISPLAY cap, unchanged -- up to 8 ranked results still render for context). change_budget governs which results get the 'selected' marker: the tool marks the top default_max non-conflicted, feasible results as selected after ranking (severity, corner count, escalation_tier, cell_id -- see modules/recommendation.py ranking), walking further down the ranked list to fill the budget if a higher-ranked result is parameter_conflict or infeasible. absolute_cap is exposed for a future manual engineer override UI; the tool itself never auto-selects past default_max.",
   "_comment_action_class": "WP2b-2 amendment 7: a 'data'-trigger match at moderate severity with no driver corroboration on the same phases is ADVISORY (an observation + most likely lever, non-imperative rationale, never budget-eligible) rather than RECOMMENDED -- mild understeer is this car's deliberate stable baseline (June driver-report precedent) and the elicitation's own bias is against unnecessary changes when the driver is inconsistent with the data. A match is RECOMMENDED if its trigger is in always_recommended_triggers (driver/both are already corroborated by construction), or if trigger is 'data' and either severity is in data_trigger_recommended_severities (default: 'strong') or driver feedback on the same phases agrees with the data verdict (corroborated). A bucket is RECOMMENDED if ANY of its matches reach that bar, else ADVISORY -- advisory-only matches still contribute evidence/score, they just cannot carry the bucket to budget-eligible on their own.",
   "_comment_driver_level_weighting": "PART A (2026-07-27): Driver.driving_level (models/driver.py, Integer 1-10, DriverDialog's own '1 = lowest, 10 = highest' hint) resolves to a feedback_weight multiplier applied ONCE where fb_value is computed (modules/recommendation.py _evaluate_rule) -- before any trigger branch reads it. This scales the 'driver'-trigger score contribution directly (weight * |fb|/5 * factor * driver_source_factor) AND the 'data'/'both'-trigger corroboration criterion (_feedback_modulation's min_feedback_abs/sign check runs against the WEIGHTED value, so a higher-level driver's complaint clears the corroboration bar -- the one that lifts a moderate data-trigger match to RECOMMENDED -- more readily than the same raw feedback from a lower-level driver). neutral_level=5 keeps a driver with no strong level opinion assigned at exactly today's unweighted behaviour; default_weight covers driving_level=None or an out-of-table value. Stated consequence, not hidden: because this scales fb_value before a 'driver'-trigger rule's own firing gate (abs(fb_value) < min_feedback_abs), a low-level driver's borderline feedback can fail to fire a driver-trigger rule at all, not just score lower -- an intended effect of weighting driver-sourced contributions, not a bug. Table values are elicited content (project-lead-elicited 2026-07-27, not derived from data) -- see PLAN.md engineer follow-up list for the validation line.",
@@ -28,7 +29,8 @@
       "min_repeat_fraction": 0.4,
       "feedback_override": {
         "feedback_override_raw_min": 4,
-        "feedback_override_scaled_min": 4.0
+        "feedback_override_scaled_min": 4.0,
+        "escalation_enabled": true
       }
     },
     "change_budget": {
@@ -89,7 +91,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Front axle saturating at turn-in (understeer): softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle.",
+      "rationale": "Softens the front ARB to reduce front lateral load transfer and free up grip on the sliding front axle at turn-in.",
       "elicitation_provenance": null
     },
     {
@@ -114,7 +116,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Rear axle losing grip on power application (oversteer): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the sliding (rear) axle, restoring traction and stability on exit.",
+      "rationale": "Softens the rear ARB to reduce rear lateral load transfer and restore traction and stability under power on exit.",
       "elicitation_provenance": null
     },
     {
@@ -138,7 +140,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Sustained mid-corner understeer at peak lateral load: softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle through the apex.",
+      "rationale": "Softens the front ARB to reduce front lateral load transfer and free up front grip through a sustained, high-load apex.",
       "elicitation_provenance": null
     },
     {
@@ -161,7 +163,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Destabilising yaw moment while trail-braking into the corner (rear-limited rotation): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the rear axle, adding yaw damping on entry.",
+      "rationale": "Softens the rear ARB to free up rear grip and add yaw damping while trail-braking into the corner.",
       "elicitation_provenance": null
     },
     {
@@ -185,7 +187,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Driver reports strong oversteer on exit (|feedback| >= 3): softening the rear ARB lowers rear roll-stiffness share, which lowers rear lateral load transfer and frees grip on the sliding (rear) axle. Classifier agreement/conflict on the same phases modulates the score.",
+      "rationale": "Softens the rear ARB to free up rear grip and address the driver's reported exit oversteer.",
       "elicitation_provenance": null
     },
     {
@@ -209,7 +211,7 @@
         "direction": "soften"
       },
       "weight": 1.0,
-      "rationale": "Driver reports strong understeer on entry (|feedback| >= 3): softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle. Classifier agreement/conflict on the same phases modulates the score.",
+      "rationale": "Softens the front ARB to free up front grip and address the driver's reported entry understeer.",
       "elicitation_provenance": null
     },
     {
@@ -233,7 +235,7 @@
         "direction": "soften"
       },
       "weight": 2.0,
-      "rationale": "Classifier and driver independently confirm entry understeer: softening the front ARB lowers front roll-stiffness share, which lowers front lateral load transfer and frees grip on the sliding (front) axle. High-confidence tier since both sources corroborate.",
+      "rationale": "Data and driver agree on entry understeer: softening the front ARB frees up front grip at turn-in.",
       "elicitation_provenance": null
     },
     {
@@ -259,7 +261,7 @@
         "delta": -0.5
       },
       "weight": 1.0,
-      "rationale": "Matrix v2 decode (project-lead review, 2026-07-26): the original v1 transmission's ABS-map answer for this cell was garbled and had been defaulted (project-default) to a literal ABS position; decoded, the engineer's actual first change is front toe +0.5mm more toe-out (registry step) -- sharpens turn-in response, directly addressing front-axle understeer risk under braking at low corner speed. The ABS-map idea survives as a held escalation (see US-BRK-low-esc), not the first change.",
+      "rationale": "Add 0.5mm front toe-out to sharpen turn-in response and address front-axle understeer risk under braking at low speed. If that isn't enough, an ABS map change is the next lever (see the escalation note).",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -285,7 +287,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Held escalation for US-BRK-low (matrix v2, project-lead review): if front toe-out alone doesn't resolve it, try-and-error 1-2 ABS positions within the current dry grip-level bracket, targeting the front-axle-stable variant (see car_data.json abs table -- this is an ordinal nudge WITHIN a bracket, not a jump across grip levels; see config/setup_parameters.json abs_position notes, 'superseded-in-practice' annotation). Matrix v2 states a 1-2 position range, not a single value -- 1 chosen as the conservative default per this project's existing convention for stated ranges (cf. the rake package magnitude). Not automated -- held pending an applied-recommendations history log (future WP) that can confirm the base toe change was actually tried before escalating.",
+      "rationale": "If front toe-out alone doesn't resolve it, try 1-2 ABS positions toward the front-axle-stable map within the current dry grip bracket.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -318,7 +320,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Front-axle understeer under trail-braking, medium corner speed: opening front low-speed bump 3 clicks (both front corners, axle-symmetric per team practice, see damper_bump_ls_fl notes) softens nose-dive control into the corner, reducing front-axle load-transfer rate under trail braking.",
+      "rationale": "Open front low-speed bump damping 3 clicks (both corners) to soften nose-dive control and slow front-axle load transfer under trail-braking.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -361,7 +363,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Held escalation for US-BRK-med: softening front ARB 2 positions lowers front roll-stiffness share directly (car_data.json arb.front), while stiffening rear ARB 1 position redistributes roll stiffness rearward, jointly freeing front-axle grip under trail-braking if the damper change alone is not enough. Not automated -- held pending an applied-recommendations history log (future WP) that can confirm the base change was actually tried before escalating; promote status to 'elicited' once that WP lands.",
+      "rationale": "If the damper change alone isn't enough, soften front ARB 2 positions and stiffen rear ARB 1 position to shift roll stiffness rearward and free up front-axle grip under trail-braking.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -399,7 +401,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Front-axle understeer under braking at high corner speed, where aero balance dominates: one wing step up (car_data.json wing_position_table) adds rear downforce/stability headroom, and 1mm of forward rake (front ride height down, rear up -- WP2b-2 decision (1)) shifts the aero platform's pressure centre rearward. Both raise braking-phase stability so more front grip stays available for the understeer-limited axle. Applied atomically as one package (one change-budget slot, not two).",
+      "rationale": "One wing step up plus 1mm of forward rake (front ride height down, rear up) adds rear downforce and shifts the aero balance rearward, raising braking-phase stability so more front grip stays available. Applied together as one package.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -432,7 +434,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Held escalation for US-BRK-high: opening front high-speed bump 2 clicks adds kerb/bump compliance on top of the wing+rake package, for cases where the aero-platform change alone does not resolve high-speed braking understeer. Not automated -- held pending an applied-recommendations history log (future WP) that can confirm the base change was actually tried before escalating; promote status to 'elicited' once that WP lands.",
+      "rationale": "If the wing+rake package alone doesn't resolve it, open front high-speed bump damping 2 clicks for extra compliance.",
       "elicitation_provenance": "project-default"
     },
     {
@@ -458,7 +460,7 @@
         "delta": -0.5
       },
       "weight": 1.0,
-      "rationale": "Front-axle understeer at turn-in, low corner speed: 0.5mm more front toe-out (registry step) sharpens initial turn-in response, directly countering the front-axle-led verdict at this phase.",
+      "rationale": "Add 0.5mm front toe-out to sharpen initial turn-in response and counter front-axle understeer at low speed.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -484,7 +486,7 @@
         "delta": -1
       },
       "weight": 1.0,
-      "rationale": "Front-axle understeer at turn-in, medium speed: one less differential locking-torque position (car_data.json diff_locking_torque.positions) reduces the diff's resistance to axle-speed difference on turn-in trail-throttle, letting the front axle rotate into the corner more freely.",
+      "rationale": "Drop the differential one locking-torque position to let the front axle rotate more freely into the corner on turn-in trail-throttle.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -510,7 +512,7 @@
         "delta": -1
       },
       "weight": 1.0,
-      "rationale": "Front-axle understeer at turn-in, high speed: one wing step down reduces rear downforce, shifting the aero front/rear balance toward relatively more front grip at the speed where aero, not mechanical grip, dominates.",
+      "rationale": "Drop the wing one step to reduce rear downforce and shift the aero balance toward more front grip at turn-in speed.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -543,7 +545,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Sustained apex understeer, low corner speed, mechanical-grip-dominated: softening front ARB 1 position (both corners) lowers front roll-stiffness share, freeing mid-corner front grip. Alternative lever noted by matrix v2 (project-lead review 2026-07-26): rear ARB +1 (stiffening rear roll-stiffness share indirectly rotates the car more, easing understeer) -- this rule keeps front ARB soften as its primary, action-eligible lever; the rear-ARB alternative is not separately encoded.",
+      "rationale": "Soften the front ARB 1 position (both corners) to free up mid-corner front grip under sustained apex load. Alternative: stiffen the rear ARB 1 position instead, which rotates the car more and eases the same understeer.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -569,7 +571,7 @@
         "delta": -1
       },
       "weight": 1.0,
-      "rationale": "Apex understeer, medium speed, under partial throttle: one less diff locking-torque position reduces power-on axle-speed resistance through the apex, easing the understeer a locked diff can induce.",
+      "rationale": "Drop the differential one locking-torque position to ease the understeer a locked diff can induce through the apex under partial throttle.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -595,7 +597,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Held escalation, power-understeer rationale (thesis_notes.md, 'TC LAT for power-induced understeer - engineer rationale resolved' [2026-07-25]): raising TC LAT one position (car_data.json tc table) cuts torque sooner under lateral load, reducing acceleration squat and keeping load on the front axle -- 'more reserves on the front' for a pushing car under power, not the anti-rotation effect the LAT convention describes for an oversteering car. Scoping caveat from that same note: valid for understeer WITH throttle involvement (apex-on-power, exit), not off-throttle push -- this rule does not yet scope on throttle/ax, so promoting it out of 'held' should add that check. Not automated -- held pending an applied-recommendations history log (future WP) that can confirm the base change was actually tried before escalating; promote status to 'elicited' once that WP lands.",
+      "rationale": "If the diff change alone isn't enough, raise TC LAT one position -- cuts torque sooner under lateral load, keeping more reserve on the front axle. Only applies when throttle is involved (on-power understeer), not an off-throttle push.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -628,7 +630,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Apex understeer, high corner speed, sustained peak lateral load: 0.1deg more front negative camber (registry step, corrected 2026-07-26 project-lead review -- see config/setup_parameters.json camber_fl/fr notes) increases the front contact patch's effective camber gain under load, adding peak front lateral grip at the load level high-speed apex understeer occurs at. Typical field practice is a 0.2deg change (two 0.1deg clicks); confirm tyre surface/wear pattern before applying camber changes. A one-sided (single-corner, FL or FR only) change is sometimes preferred over this rule's symmetric FL+FR pair -- engineer's call, not encoded here.",
+      "rationale": "Add 0.1deg more front negative camber (both corners) to add peak front grip under sustained high-speed apex load. Typical practice is a 0.2deg step (two clicks); check tyre wear pattern first, and consider a one-sided change if only one corner needs it.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -655,7 +657,7 @@
         "delta": -1
       },
       "weight": 1.0,
-      "rationale": "Exit (power) understeer, low corner speed: one less TC LON position (car_data.json tc table) permits more wheel spin under longitudinal load, reducing the diff-locking-driven understeer that power-on TC intervention can aggravate at low exit speed.",
+      "rationale": "Drop TC LON one position to allow a touch more wheel spin, easing power-on understeer at low exit speed.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -689,7 +691,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Exit understeer, medium speed: stiffening rear ARB 1 position (both corners) lowers rear grip share relative to front, rotating the car more on exit and countering the understeer verdict.",
+      "rationale": "Stiffen the rear ARB 1 position (both corners) to rotate the car more on exit and counter the understeer.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -723,7 +725,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Exit understeer, high speed: same rear-ARB-stiffer action as US-EXIT-med -- the decision matrix specifies an identical first change at this cell, not a larger step; only the speed-class binding differs.",
+      "rationale": "Same fix as medium-speed exit understeer: stiffen the rear ARB 1 position (both corners) to rotate the car more on exit.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -743,7 +745,7 @@
       },
       "suggestion": null,
       "weight": null,
-      "rationale": "No first-change action defined by the decision matrix for oversteer under braking at low corner speed -- recorded for 1:1 cell traceability, never fires.",
+      "rationale": "No first-change action defined for this scenario; recorded for completeness, never fires.",
       "elicitation_provenance": null
     },
     {
@@ -776,7 +778,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Rear-axle oversteer under trail-braking, medium speed: softening rear ARB 1 position lowers rear roll-stiffness share, freeing rear-axle grip under brake-release yaw.",
+      "rationale": "Soften the rear ARB 1 position to free up rear grip under brake-release yaw.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -809,7 +811,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Rear-axle oversteer under trail-braking, high speed: same rear-ARB-softer action as OS-BRK-med -- the decision matrix specifies an identical first change at this cell; only the speed-class binding differs.",
+      "rationale": "Same fix as medium-speed braking oversteer: soften the rear ARB 1 position to free up rear grip.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -835,7 +837,7 @@
         "delta": 0.5
       },
       "weight": 1.0,
-      "rationale": "Rear-axle oversteer at turn-in, low speed (mirror of US-TIN-low): reducing front toe-out by 0.5mm toward zero calms the sharpened turn-in rotation toe-out otherwise adds, working against the oversteer verdict at this phase.",
+      "rationale": "Reduce front toe-out by 0.5mm toward zero to calm the extra turn-in rotation toe-out adds, easing oversteer at low speed.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -861,7 +863,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Rear-axle oversteer at turn-in, medium speed (mirror of US-TIN-med): one more diff locking-torque position increases resistance to axle-speed difference on turn-in trail-throttle, stabilising the rear axle.",
+      "rationale": "Add one differential locking-torque position to stabilise the rear axle on turn-in trail-throttle.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -887,7 +889,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Rear-axle oversteer at turn-in, high speed (mirror of US-TIN-high): one wing step up adds rear downforce, directly countering aero-balance-driven rear instability at turn-in speed.",
+      "rationale": "Add one wing step to add rear downforce and counter rear instability at turn-in speed.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -920,7 +922,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Sustained apex oversteer, low speed (mirror of US-APX-low). SITUATIONAL (matrix v2, project-lead review 2026-07-26): the matrix lists two valid levers here, grip-level dependent, and declines to pick one -- front ARB +1 (stiffening front roll-stiffness share, easing rear-axle load) OR rear ARB -1 (softening rear roll-stiffness share directly), depending on which axle is actually closer to its grip limit at the time. Always advisory: this is the engineer's judgment call, not an automatable first change.",
+      "rationale": "Under sustained apex load, two valid levers depending on which axle is closer to its limit: stiffen front ARB 1 position, or soften rear ARB 1 position instead. Engineer's call, not a fixed first change.",
       "elicitation_provenance": "mirror-derived",
       "situational": true
     },
@@ -947,7 +949,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Apex oversteer, medium speed, under partial throttle (mirror of US-APX-med). SITUATIONAL (matrix v2, project-lead review 2026-07-26): diff +1 (one more locking-torque position, stabilising the rear axle) OR clear the oversteer via toe/camber/ARB instead -- the matrix lists both without preference. Always advisory.",
+      "rationale": "Under partial throttle, add one diff locking-torque position to stabilise the rear axle, or address it through toe/camber/ARB instead -- engineer's call.",
       "elicitation_provenance": "mirror-derived",
       "situational": true
     },
@@ -981,7 +983,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Apex oversteer, high speed, sustained peak lateral load (mirror of US-APX-high). SITUATIONAL (matrix v2, project-lead review 2026-07-26): springs (platform-level stiffness change) OR rear ARB -1 OR front camber less negative (0.1deg, registry step corrected 2026-07-26) -- three valid levers, the matrix declines to pick one. Always advisory.",
+      "rationale": "Under sustained high-speed apex load, three possible levers: a spring change, softening rear ARB 1 position, or 0.1deg less front negative camber -- engineer's call on which fits the car at the time.",
       "elicitation_provenance": "mirror-derived",
       "situational": true
     },
@@ -1009,7 +1011,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Exit oversteer, low speed: one more TC LON position permits less wheel spin under longitudinal load, directly reducing power-on rear-axle oversteer.",
+      "rationale": "Add one TC LON position to cut wheel spin and reduce power-on rear-axle oversteer.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -1043,7 +1045,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Exit oversteer, medium speed: softening rear ARB 1 position lowers rear roll-stiffness share, freeing rear-axle grip on power application.",
+      "rationale": "Soften the rear ARB 1 position to free up rear grip on power application.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -1070,7 +1072,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Exit oversteer, high speed, aero-dominated: one wing step up adds rear downforce and stability on power application at high exit speed.",
+      "rationale": "Add one wing step to add rear downforce and stability on power application at high exit speed.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -1094,7 +1096,7 @@
         "delta": 1
       },
       "weight": 1.0,
-      "rationale": "Matrix v2 decode (project-lead review, 2026-07-26): the v1 literal ABS position-4 target (project-default) is replaced with the engineer's actual first change -- try-and-error 1-2 ABS positions within the current dry grip-level bracket, targeting the rear-axle-stable variant (car_data.json abs table). Ordinal nudge WITHIN a bracket, not a jump across grip levels -- see config/setup_parameters.json abs_position notes, 'superseded-in-practice' annotation, for the direction-semantics context this corrects. 1 chosen as the conservative default of the matrix's stated 1-2 range, per this project's existing convention (cf. the rake package magnitude).",
+      "rationale": "Try 1-2 ABS positions toward the rear-axle-stable map within the current dry grip bracket, to calm unstable yaw under braking at low speed.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -1125,7 +1127,7 @@
         }
       ],
       "weight": 1.0,
-      "rationale": "Destabilising yaw under braking, medium speed: 1mm of rake reduction (front ride height up, rear down -- WP2b-2 decision (1)) shifts the aero platform's pressure centre forward, calming the destabilising yaw moment while trail-braking. Opposite pairing from US-BRK-high's 'rake forward' package -- same two-parameter mechanism, reduction instead of addition.",
+      "rationale": "Reduce rake by 1mm (front ride height up, rear down) to shift the aero pressure centre forward and calm destabilising yaw while trail-braking.",
       "elicitation_provenance": "engineer-verbatim"
     },
     {
@@ -1149,7 +1151,7 @@
         "delta": -0.5
       },
       "weight": 1.0,
-      "rationale": "Destabilising yaw under braking, high corner speed: 0.5mm more front toe-out sharpens the front axle's response to counter-steer input while trail-braking, adding front-axle authority against the destabilising yaw moment. Elicitation fact (matrix v2, project-lead review 2026-07-26): rear toe-out is never run on this car -- front toe is the only axle this lever applies to.",
+      "rationale": "Add 0.5mm front toe-out to sharpen the front axle's response to counter-steer input, adding authority against destabilising yaw while trail-braking.",
       "elicitation_provenance": "project-lead-reviewed"
     },
     {
@@ -1170,7 +1172,7 @@
       },
       "suggestion": null,
       "weight": null,
-      "rationale": "Instability at combined entry (brake+turn-in) has no first-change action defined by the decision matrix -- deliberate scope drop, confirmed in WP2b-2 approval. INST-BRK (braking phase alone) is the only instability-scenario coverage in this ruleset; recorded here for 1:1 cell traceability, never fires.",
+      "rationale": "No first-change action defined for combined entry instability; recorded for completeness, never fires.",
       "elicitation_provenance": null
     }
   ],

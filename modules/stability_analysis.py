@@ -34,8 +34,13 @@ CAR_DATA_PATH = "config/car_data.json"
 # (b)): each phase dict inside summaries now carries fz_f_N/fz_r_N/
 # fy_f_norm_N/fy_r_norm_N stat blocks; a pre-turn-(b) payload has none of
 # these and must fall to no-cache, not render a details panel expecting
-# keys that aren't there.
-ANALYSIS_SCHEMA_VERSION = 3
+# keys that aren't there. Bumped 3->4 (fix turn): each corner summary now
+# carries bracket_start_m/bracket_end_m (the canonical, post-WP1-Turn-3-
+# partition corner window already computed in modules/corner_analysis.py,
+# previously only on the raw corner dicts, not the persisted summary) --
+# a pre-bump payload has neither key, so the trace window's margin
+# computation must not read them off a stale cache.
+ANALYSIS_SCHEMA_VERSION = 4
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
@@ -956,6 +961,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_h
             "apex_position_x_m": apex_x,
             "apex_position_y_m": apex_y,
             "stable_corner_id": c.get("stable_corner_id"),
+            "bracket_start_m": c.get("bracket_start_m"),
+            "bracket_end_m": c.get("bracket_end_m"),
             "phases": {},
         }
 

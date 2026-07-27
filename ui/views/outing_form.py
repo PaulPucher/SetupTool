@@ -1,7 +1,7 @@
 # Outing form — full form for creating a new outing.
 
+import collections
 import os
-import weakref
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QScrollArea, QPushButton,
@@ -35,12 +35,47 @@ def _norm_path(path):
 
 def invalidate_all_pipeline_caches():
     # PART B amendment: called by the settings page after a section-1 save.
-    # Redundant safety net, not the primary defense -- see OutingForm.
-    # _open_instances' comment. Forces every currently-alive OutingForm's
-    # next Analyse click to recompute Modules 1-5 from scratch, regardless
-    # of whether resolved_vehicle_snapshot happens to have changed.
-    for form in list(OutingForm._open_instances):
-        form._pipeline_cache = None
+    # Redundant safety net, not the primary defense (resolved_vehicle_
+    # snapshot already carries the section-1 constants, so a genuine
+    # physics edit is caught structurally by the identity check below
+    # regardless). FIX 2 moved the pipeline cache from per-OutingForm-
+    # instance to this module-level singleton, so clearing it here is the
+    # only thing this function needs to do now -- no per-instance loop.
+    _pipeline_cache_store.clear()
+
+
+# FIX 2 (session-persistent pipeline cache, 2026-07-28): previously an
+# OutingForm INSTANCE attribute, reset to None on every fresh CSV load --
+# closing an outing (discarding its OutingForm) and reopening it, or
+# opening a second outing that points at the SAME csv_path, always forced
+# a full Modules-1-5 recompute even though the exact same file had already
+# been analysed once this session. Keyed by the same normalised csv_path
+# _norm_path already produces; capped at _PIPELINE_CACHE_MAX_ENTRIES,
+# OLDEST-ACCESSED entry evicted first (collections.OrderedDict.move_to_end
+# on every hit, so "oldest" tracks recency of USE, not just of insertion)
+# -- bounded memory footprint regardless of how many different files get
+# analysed in one session. All existing identity fields (accuracy_cap,
+# resolved_vehicle_snapshot) are unchanged and still checked at read time
+# (_pipeline_cache_get's caller) -- only WHERE the entry lives changed,
+# not what makes an entry valid.
+_PIPELINE_CACHE_MAX_ENTRIES = 2
+_pipeline_cache_store = collections.OrderedDict()
+
+
+def _pipeline_cache_get(csv_path):
+    key = _norm_path(csv_path)
+    entry = _pipeline_cache_store.get(key)
+    if entry is not None:
+        _pipeline_cache_store.move_to_end(key)
+    return entry
+
+
+def _pipeline_cache_put(csv_path, entry):
+    key = _norm_path(csv_path)
+    _pipeline_cache_store[key] = entry
+    _pipeline_cache_store.move_to_end(key)
+    while len(_pipeline_cache_store) > _PIPELINE_CACHE_MAX_ENTRIES:
+        _pipeline_cache_store.popitem(last=False)
 
 
 class NoScrollSpinBox(QDoubleSpinBox):
@@ -162,19 +197,8 @@ class StabilityAnalysisThread(QThread):
 
 
 class OutingForm(QWidget):
-    # PART B amendment: every live OutingForm registers itself here so a
-    # settings save (a separate top-level page, no direct reference to any
-    # currently-open outing form) can still reach in and null each one's
-    # _pipeline_cache -- redundant safety alongside the structural fix
-    # (resolved_vehicle_snapshot now carries the section-1 constants, see
-    # modules/accuracy_resolution.py). WeakSet so an orphaned instance
-    # (OutingsView's own internal stack never removes closed forms) doesn't
-    # get kept alive artificially by this registry.
-    _open_instances = weakref.WeakSet()
-
     def __init__(self, weekend, on_back, outing=None):
         super().__init__()
-        OutingForm._open_instances.add(self)
         self.weekend = weekend
         self.on_back = on_back
         self.outing = outing
@@ -190,11 +214,18 @@ class OutingForm(QWidget):
         # PART C: lazily-created, reused per-corner trace window (see
         # ui/views/corner_trace_dialog.py) -- None until first opened.
         self._corner_trace_dialog = None
+        # Lap-trace-view work package: same lazy/reused convention as
+        # _corner_trace_dialog, a separate window/instance (LapTraceDialog
+        # shares CornerTraceDialog's base class but is its own dialog, not
+        # a mode switch on the same one) -- None until first opened.
+        self._lap_trace_dialog = None
         # WP6: {csv_path, corners, state, cs, stab} from the last full
-        # Modules-1-5 run this session, or None. WP5: JSON string mirroring
-        # whatever analysis_data should be persisted on next save (fresh
-        # analysis result, or an untouched cache-hit's raw string), or None.
-        self._pipeline_cache = None
+        # WP5: JSON string mirroring whatever analysis_data should be
+        # persisted on next save (fresh analysis result, or an untouched
+        # cache-hit's raw string), or None. FIX 2: the WP6 Modules-1-5
+        # pipeline cache itself is no longer instance state -- see the
+        # module-level _pipeline_cache_store/_pipeline_cache_get/_put
+        # near the top of this file.
         self._analysis_data_json = None
         # WP-small: the resolved_vehicle_snapshot (modules.accuracy_
         # resolution.resolve_accuracy's "values") behind whatever is
@@ -202,6 +233,15 @@ class OutingForm(QWidget):
         # is rendered -- lets an explicit Save compare newly-saved setup
         # data against what the displayed analysis actually used.
         self._displayed_resolved_vehicle_snapshot = None
+        # Fix turn: (stored_version, current_version) when
+        # _try_render_cached_analysis rejects a persisted cache purely for
+        # a schema_version mismatch -- lets _generate_recommendations (and
+        # any other stability_result consumer) tell that case apart from
+        # "never analysed" and say so instead of rendering nothing.
+        # Cleared in _render_stability_summaries, the single shared render
+        # call site both a fresh Analyse and a successful cache-hit go
+        # through.
+        self._cached_schema_mismatch = None
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -543,6 +583,15 @@ class OutingForm(QWidget):
         self.btn_analyse.clicked.connect(self._run_stability_analysis)
         self.btn_analyse.setEnabled(False)
 
+        # Lap-trace-view work package: enabled alongside Generate
+        # (_render_stability_summaries, the single shared render call site
+        # for both a fresh Analyse and a cache-hit) -- "an analysis
+        # exists" is the same precondition both features need.
+        self.btn_lap_traces = QPushButton("Lap traces")
+        self.btn_lap_traces.setFixedWidth(100)
+        self.btn_lap_traces.clicked.connect(self._open_lap_trace)
+        self.btn_lap_traces.setEnabled(False)
+
         # WP-C: global accuracy-level cap. A plain UI-selected value threaded
         # into the analysis call like lap_filter -- modules/ never reads this
         # combo box directly, only the int (or None for "best available")
@@ -561,6 +610,7 @@ class OutingForm(QWidget):
 
         btn_layout.addWidget(btn_load)
         btn_layout.addWidget(self.btn_analyse)
+        btn_layout.addWidget(self.btn_lap_traces)
         btn_layout.addWidget(self.accuracy_cap_combo)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
@@ -901,13 +951,19 @@ class OutingForm(QWidget):
         self.loaded_csv_path = self.loader_thread.path
         # A previous file's analysis/marker cache must never leak into a
         # newly loaded file -- same bug class as stale UI widgets (WP4).
+        # FIX 2: the WP6 pipeline cache itself is deliberately NOT reset
+        # here any more -- it is module-level and keyed by csv_path, so
+        # loading a different file simply looks up a different key (no
+        # leakage risk), and reloading THIS SAME file is exactly the case
+        # this fix exists to make fast.
         self.stability_result = None
         self.corner_positions_cache = None
-        self._pipeline_cache = None
         self._analysis_data_json = None
         self._displayed_resolved_vehicle_snapshot = None
         if self._corner_trace_dialog is not None:
             self._corner_trace_dialog.hide()
+        if self._lap_trace_dialog is not None:
+            self._lap_trace_dialog.hide()
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -1010,13 +1066,19 @@ class OutingForm(QWidget):
         # a setup_data edit invalidates this exactly like a csv_path change
         # would (full Modules-1-5 recompute), not like a lap-filter-only
         # change (Module-6-only recompute). StabilityAnalysisThread then
-        # only re-runs summarise_corners on a genuine hit.
+        # only re-runs summarise_corners on a genuine hit. FIX 2: the cache
+        # is now a module-level, session-persistent singleton keyed by
+        # csv_path (_pipeline_cache_get) -- so this hit-check can succeed
+        # even for an outing this OutingForm instance never analysed
+        # itself, as long as some instance analysed this same file earlier
+        # in the session. The cap/resolved_vehicle_snapshot identity check
+        # is unchanged.
         pipeline_cache = None
-        if (self._pipeline_cache is not None
-                and self._pipeline_cache["csv_path"] == _norm_path(self.loaded_csv_path)
-                and self._pipeline_cache.get("accuracy_cap") == cap
-                and self._pipeline_cache.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]):
-            pipeline_cache = self._pipeline_cache
+        cached_entry = _pipeline_cache_get(self.loaded_csv_path)
+        if (cached_entry is not None
+                and cached_entry.get("accuracy_cap") == cap
+                and cached_entry.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]):
+            pipeline_cache = cached_entry
         self.stab_thread = StabilityAnalysisThread(
             self.parsed_data, lap_filter, pipeline_cache=pipeline_cache,
             cap=cap, resolved_accuracy=resolved_accuracy,
@@ -1030,8 +1092,11 @@ class OutingForm(QWidget):
         # WP6: cache Modules 1-5's output for this file, self-contained
         # (corners included -- fast path must never re-run corner detection).
         # WP-C: accuracy_cap + resolved_vehicle_snapshot join this identity --
-        # see the hit-check in _run_stability_analysis.
-        self._pipeline_cache = {
+        # see the hit-check in _run_stability_analysis. FIX 2: stored in the
+        # module-level singleton (_pipeline_cache_put), not this instance --
+        # outliving this OutingForm so a later reopen of this same file, in
+        # this same session, from any OutingForm instance, still hits.
+        _pipeline_cache_put(self.loaded_csv_path, {
             "csv_path": _norm_path(self.loaded_csv_path),
             "corners": result["corners"],
             "state": result["state"],
@@ -1044,7 +1109,7 @@ class OutingForm(QWidget):
             "fz": result["fz"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
-        }
+        })
         # WP5: build (not yet write) the cache payload for this analysis;
         # _save_outing uses whatever this holds, so a save after a cache-hit
         # render (no fresh Analyse this session) still persists correctly.
@@ -1187,6 +1252,16 @@ class OutingForm(QWidget):
         except (json.JSONDecodeError, TypeError):
             return False
         if cached.get("schema_version") != ANALYSIS_SCHEMA_VERSION:
+            stored_v = cached.get("schema_version")
+            self._cached_schema_mismatch = (stored_v, ANALYSIS_SCHEMA_VERSION)
+            outdated_msg = (
+                f"analysis outdated (v{stored_v} vs v{ANALYSIS_SCHEMA_VERSION}) "
+                f"- re-run Analyse first"
+            )
+            self.stability_status_label.setText(outdated_msg)
+            self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
+            self.recommendations_summary_label.setText(outdated_msg)
+            self.recommendations_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             return False
         if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
             return False
@@ -1250,6 +1325,10 @@ class OutingForm(QWidget):
         # path -- the ONLY place that builds cards/classifies from a
         # summaries list, so a threshold re-derivation always shows up here
         # on next render regardless of which path produced the summaries.
+        # Reaching this call means a valid (version-matched) render is
+        # about to happen, so any earlier outdated-schema flag no longer
+        # applies.
+        self._cached_schema_mismatch = None
         #
         # WP-C comparison-run tag: fires only when the cap actually clipped
         # a dynamically-resolved node below its own best-available level for
@@ -1289,6 +1368,7 @@ class OutingForm(QWidget):
         )
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
+        self.btn_lap_traces.setEnabled(True)
         self._update_corner_map_markers()
 
         self._clear_cards()
@@ -1495,15 +1575,6 @@ class OutingForm(QWidget):
             "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
         )
 
-        btn_jump = QPushButton("→ plot")
-        btn_jump.setFixedWidth(70)
-        btn_jump.setStyleSheet(
-            f"background-color: {PANEL}; color: {TEXT_MUTED}; "
-            "font-size: 10px; padding: 2px 6px;"
-        )
-        btn_jump.clicked.connect(lambda _, t=summary["apex_time"]:
-                                 self._jump_plot_to_time(t))
-
         btn_trace = QPushButton("↕ trace")
         btn_trace.setFixedWidth(70)
         btn_trace.setStyleSheet(
@@ -1515,7 +1586,6 @@ class OutingForm(QWidget):
         h_layout.addWidget(title)
         h_layout.addWidget(verdict_badge)
         h_layout.addStretch()
-        h_layout.addWidget(btn_jump)
         h_layout.addWidget(btn_trace)
         layout.addWidget(header)
 
@@ -1716,6 +1786,23 @@ class OutingForm(QWidget):
         # Synchronous: aggregation + rule matching over ~15 corners and a
         # handful of rules is fast enough not to need a worker thread.
         if not self.stability_result:
+            # Fix turn: this must never render as silent emptiness. The
+            # button is normally disabled in this state (only enabled by
+            # _render_stability_summaries), but a stale schema-mismatch
+            # flag from a rejected cache-hit is the one case that can
+            # still reach here, so it gets its own explicit message; any
+            # other reason falls back to the panel's own default prompt.
+            if self._cached_schema_mismatch:
+                stored_v, current_v = self._cached_schema_mismatch
+                self.recommendations_summary_label.setText(
+                    f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first"
+                )
+                self.recommendations_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+            else:
+                self.recommendations_summary_label.setText(
+                    "Run Analyse in the Data section, then Generate."
+                )
+                self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
             return
         import json
         from modules.recommendation import generate_recommendations, load_recommendations_config
@@ -1778,7 +1865,13 @@ class OutingForm(QWidget):
 
         # WP2b-2: a package/axle-symmetric-pair suggestion has no single
         # parameter/direction -- badge falls back to listing every action.
-        if r["parameter"] is not None:
+        # FIX 1: a synthetic urgent row (action_class "urgent_gap") has no
+        # setup-parameter action at all -- the badge names the corner and
+        # verdict instead of a lever, since there isn't one to name.
+        if r["action_class"] == "urgent_gap":
+            c0 = r["corners"][0] if r["corners"] else None
+            badge_text = f"C{c0['stable_corner_id']}: {c0['short_verdict']}" if c0 else "engineer attention"
+        elif r["parameter"] is not None:
             badge_text = f"{r['parameter']} · {r['direction']}"
         else:
             badge_text = " + ".join(
@@ -1793,9 +1886,27 @@ class OutingForm(QWidget):
         )
         header_layout.addWidget(badge)
 
-        score_label = QLabel(f"score {r['score']:.2f}")
-        score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
-        header_layout.addWidget(score_label)
+        # FIX 1: synthetic rows carry no engine score (nothing was ranked
+        # against anything) -- the URGENT tag below is the signal instead.
+        if r["score"] is not None:
+            score_label = QLabel(f"score {r['score']:.2f}")
+            score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
+            header_layout.addWidget(score_label)
+
+        # FIX 1 (undrivable-feedback tier, design ruling 2026-07-28): a
+        # raw|feedback|>=4 corner must never render as silent emptiness --
+        # this tag is the one thing every one of the tier's three outcomes
+        # (pierced bucket, synthetic gap row, synthetic contradiction row)
+        # has in common, so it is checked once, ahead of the normal
+        # ADVISORY/SELECTED branch below (an urgent row can still also be
+        # "recommended"/"selected" -- the tag is additive, not exclusive).
+        if r.get("urgent"):
+            urgent_label = QLabel(r.get("urgent_tag") or "URGENT")
+            urgent_label.setStyleSheet(
+                f"background-color: {BAD}; color: #fff; font-size: 10px; "
+                "font-weight: 700; padding: 3px 8px; border-radius: 3px;"
+            )
+            header_layout.addWidget(urgent_label)
 
         trigger_label = QLabel(" / ".join(r["trigger_source"]))
         trigger_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
@@ -1936,8 +2047,9 @@ class OutingForm(QWidget):
         rationale_layout.setContentsMargins(12, 2, 0, 0)
         rationale_layout.setSpacing(2)
         for rat in r["rationale"]:
-            tag = rat["cell_id"] or rat["rule_id"]
-            line = QLabel(f"[{tag}] {rat['rationale']}")
+            # Fix turn: no [cell_id]/[rule_id] prefix here -- the cell_id(s)
+            # already show as their own header badge (chips_layout above).
+            line = QLabel(rat["rationale"])
             line.setWordWrap(True)
             line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
             rationale_layout.addWidget(line)
@@ -1951,23 +2063,6 @@ class OutingForm(QWidget):
 
         return card
 
-    def _jump_plot_to_time(self, apex_t):
-        if not self.parsed_data:
-            return
-        for lap in self.parsed_data.get("laps", []):
-            if lap["start_time"] <= apex_t <= lap["end_time"]:
-                rel_t = apex_t - lap["start_time"]
-                first_key = self.plot_channels[0]["key"]
-                if first_key in self.plot_items:
-                    self._update_plots(lap["lap_number"])
-                    span = 6.0
-                    self.plot_items[first_key].setXRange(
-                        max(0, rel_t - span / 2),
-                        rel_t + span / 2,
-                        padding=0
-                    )
-                break
-
     def _open_corner_trace(self, summary):
         # PART C: reused, non-modal per-corner trace window (ui/views/
         # corner_trace_dialog.py) -- created lazily, replotted in place on
@@ -1977,6 +2072,34 @@ class OutingForm(QWidget):
             self._corner_trace_dialog = CornerTraceDialog(self)
         self._corner_trace_dialog.show_corner(
             summary, self.stability_result or {}, self.parsed_data or {}
+        )
+
+    def _open_lap_trace(self):
+        # Lap-trace-view work package: reused, non-modal full-lap trace
+        # window -- same lazy-create/replot-in-place convention as
+        # _open_corner_trace, a separate instance/window (LapTraceDialog),
+        # not the corner dialog reused in a different mode. on_corner_click
+        # is bound to _open_corner_trace directly -- a band click reuses
+        # the exact same open path a corner card's own "trace" button does,
+        # nothing duplicated.
+        if not self.stability_result:
+            return
+        from ui.views.corner_trace_dialog import LapTraceDialog
+
+        lap_number = self._selected_lap_value
+        if not isinstance(lap_number, int):
+            valid_laps = sorted(
+                l["lap_number"] for l in (self.parsed_data or {}).get("laps", [])
+                if l.get("is_valid_for_analysis")
+            )
+            if not valid_laps:
+                return
+            lap_number = valid_laps[0]
+
+        if self._lap_trace_dialog is None:
+            self._lap_trace_dialog = LapTraceDialog(self, on_corner_click=self._open_corner_trace)
+        self._lap_trace_dialog.show_lap(
+            lap_number, self.stability_result or {}, self.parsed_data or {}, self._classify_corner,
         )
 
     def _on_stability_error(self, msg):
