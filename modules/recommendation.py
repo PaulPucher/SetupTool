@@ -424,24 +424,98 @@ def _escalation_config(settings):
     }
 
 
-def _rule_structurally_covers(rule, phase, verdict, speed_class):
-    # "Structural" coverage: this rule's own condition targets this
-    # phase/verdict/speed_class combination, independent of whether
-    # today's DATA severity actually clears its min_severity gate --
-    # deliberately broader than "this rule currently fires", since a
-    # structurally-covering rule that never fires (severity/consistency
-    # gate unmet) is exactly the case the synthetic gap row must catch.
-    if rule.get("status") in _NON_FIRING_STATUSES:
-        return False
+def _candidate_rules_for_verdict(config, verdict, speed_class):
+    # Every non-retired data/both rule whose own condition could plausibly
+    # cover this corner/verdict/speed_class combination, independent of
+    # whether today's aggregate severity actually clears its min_severity
+    # gate -- the undrivable tier (below) checks LAP-LEVEL evidence for
+    # each candidate itself, rather than relying on a pre-built bucket or
+    # restricting the search to a single phase.
+    for rule in config["rules"]:
+        if rule.get("status") in _NON_FIRING_STATUSES:
+            continue
+        condition = rule["condition"]
+        if condition.get("trigger") not in ("data", "both"):
+            continue
+        if condition.get("verdict") != verdict:
+            continue
+        required_speed_class = condition.get("speed_class")
+        if required_speed_class is not None and required_speed_class != speed_class:
+            continue
+        yield rule
+
+
+def _qualifying_laps_for_rule(rule, laps, classify_fn):
+    # Lap-level evidence for one rule's own verdict/min_severity, evaluated
+    # on the rule's own phases per lap -- replaces checking the median-of-
+    # medians aggregate, which can dilute a repeating per-lap pattern down
+    # to "normal" (see thesis_notes.md, "Undrivable tier: lap-level cell
+    # matching"). Returns a list of {"lap", "severity", "short"} dicts, one
+    # per qualifying lap.
     condition = rule["condition"]
-    if condition.get("trigger") not in ("data", "both"):
-        return False
-    if condition.get("verdict") != verdict:
-        return False
-    if phase not in rule["phases"]:
-        return False
-    required_speed_class = condition.get("speed_class")
-    return required_speed_class is None or required_speed_class == speed_class
+    min_sev = condition.get("min_severity", "normal")
+    hits = []
+    for lap_summary in laps:
+        severity, short = _phase_verdict(lap_summary, rule["phases"], classify_fn)
+        if not _verdict_present(short, condition["verdict"]):
+            continue
+        if SEVERITY_RANK[severity] < SEVERITY_RANK[min_sev]:
+            continue
+        hits.append({"lap": lap_summary, "severity": severity, "short": short})
+    return hits
+
+
+def _add_rule_matches_to_buckets(buckets, rule, matches, escalation_by_base_cell, settings):
+    # Shared between generate_recommendations' own bucket-building loop and
+    # the undrivable tier's lap-level re-fire (below) -- one construction
+    # path for every bucket, so a lap-level-triggered row carries exactly
+    # what a normally-fired row carries (suggestion, scoring, and eligible
+    # for the feasibility/parameter_conflict passes downstream).
+    actions = _normalise_actions(rule["suggestion"])
+    key = _bucket_key(rule, actions)
+    bucket = buckets.setdefault(key, {
+        "actions": actions,
+        "score": 0.0,
+        "escalation_notes": [],
+        "severity_rank": 0,
+        "is_recommended": False,
+        "corners": {},
+        "rules_fired": [],
+        "cell_ids": [],
+        "trigger_source": set(),
+        "conflicts": {},
+        "rationale": [],
+    })
+    bucket["rules_fired"].append(rule["id"])
+    if rule.get("cell_id"):
+        bucket["cell_ids"].append(rule["cell_id"])
+    bucket["trigger_source"].add(rule["condition"]["trigger"])
+    provenance_note = _provenance_note(rule, settings)
+    bucket["rationale"].append({
+        "rule_id": rule["id"], "cell_id": rule.get("cell_id"),
+        "rationale": rule["rationale"] + (provenance_note or ""),
+    })
+    held_escalation = escalation_by_base_cell.get(rule.get("cell_id"))
+    if held_escalation is not None:
+        esc_lever = _describe_actions(_normalise_actions(held_escalation["suggestion"]))
+        bucket["escalation_notes"].append(
+            f"If this isn't enough, the next step is: {esc_lever}."
+        )
+    for m in matches:
+        bucket["score"] += m["score"]
+        bucket["severity_rank"] = max(bucket["severity_rank"], m["severity_rank"])
+        if _match_is_recommended(m, rule, settings):
+            bucket["is_recommended"] = True
+        cid = m["stable_corner_id"]
+        bucket["corners"][cid] = {
+            "stable_corner_id": cid,
+            "n_laps": m["n_laps"],
+            "worst_corner": m["worst_corner"],
+            "short_verdict": m["short_verdict"],
+        }
+        if m["conflict"]:
+            bucket["conflicts"][cid] = {"stable_corner_id": cid, "n_laps": m["n_laps"]}
+    return key
 
 
 _URGENT_TAG = "URGENT - driver reports near-undrivable"
@@ -482,35 +556,52 @@ def _urgent_row(cid, n_laps, verdict, text, conflict=False):
     }
 
 
-def _apply_undrivable_escalation(aggregated, feedback_data, classify_fn, config,
-                                  feedback_weight, buckets):
+def _apply_undrivable_escalation(aggregated, by_corner_laps, feedback_data, classify_fn, config,
+                                  source_balance, feedback_weight, buckets, escalation_by_base_cell):
     """Undrivable-feedback tier (design ruling, project-lead-elicited
-    2026-07-28): at |raw feedback| >= feedback_override_raw_min the tool
-    must never render silent emptiness for that corner -- honesty via
-    labeling, not suppression. Three exhaustive outcomes per corner
-    (using the corner's single strongest-|feedback| phase, _worst_feedback):
+    2026-07-28; repaired 2026-07-28 turn 2 to match against LAP-LEVEL
+    verdict instances, not the median-of-medians aggregate -- see
+    thesis_notes.md, "Undrivable tier: lap-level cell matching"). At
+    |raw feedback| >= feedback_override_raw_min the tool must never render
+    silent emptiness for that corner -- honesty via labeling, not
+    suppression. Uses the corner's single strongest-|feedback| phase
+    (_worst_feedback) only to decide direction and whether the tier
+    activates at all; which DATA phase is checked is no longer restricted
+    to that same phase -- a driver's overall "near-undrivable" impression
+    of a corner need not localise to the exact phase column they rated
+    worst (verified against the real C12/apex_3 case: feedback recorded on
+    exit_4, the corner's actual repeating moderate-understeer pattern is
+    at apex_3). Three exhaustive outcomes per corner:
 
-    (a) PIERCE -- a structurally-covering rule (_rule_structurally_covers)
-    already produced a match in `buckets` for this corner, agreeing with
-    the feedback's own direction, AND the scaled feedback also clears its
-    own floor (the same double-floor discipline as the consistency-gate
-    override): that bucket's key is returned for the caller to force to
+    (a) PIERCE/SYNTHESIZE -- some non-retired data/both rule
+    (_candidate_rules_for_verdict) shows LAP-LEVEL evidence
+    (_qualifying_laps_for_rule: severity >= that rule's own min_severity,
+    axle matching the feedback's implied direction) on at least one of
+    this corner's analysed laps. If that rule already produced a real
+    match against the aggregate (a bucket exists), its key is pierced. If
+    it did not -- the aggregate diluted the same lap-level pattern to
+    "normal", which is exactly the bug this repair fixes -- the rule is
+    RE-EVALUATED through the identical _evaluate_rule/
+    _add_rule_matches_to_buckets path every other rule uses, substituting
+    the qualifying lap's own (real, unaggregated) phase data for the
+    rule's phases in place of the aggregate. Either way, if the scaled
+    feedback also clears its own floor (the same double-floor discipline
+    as the consistency-gate override), the bucket's key is forced to
     "recommended", bypassing min_score_to_show and the situational/
-    provenance advisory caps, tagged URGENT.
+    provenance advisory caps, tagged URGENT, with an added rationale line
+    naming the real per-lap pattern.
 
-    (b) SYNTHETIC GAP -- no bucket exists carrying an agreeing match for
-    this corner (whether because no rule structurally covers this verdict/
-    phase/speed_class at all, or one does but its own severity/consistency
-    gate never cleared): a standalone row naming the gap directly.
+    (b) CONTRADICTION -- no rule shows matching-direction lap-level
+    evidence anywhere for this corner, but at least one shows the OPPOSITE
+    axle direction. If a bucket already recorded this exact conflict
+    (data-triggered rule matched with conflict=True for this corner), it
+    is pierced the same way as (a), keeping its existing conflict badge.
+    If no such bucket exists, a standalone contradiction row is emitted
+    instead, carrying the conflict badge itself.
 
-    (c) CONTRADICTION -- the data's own verdict at this phase is the
-    OPPOSITE axle direction from what the feedback implies. If a bucket
-    already recorded this exact conflict (data-triggered rule matched with
-    conflict=True for this corner), it is pierced the same way as (a),
-    keeping its existing conflict badge. If no such bucket exists (the
-    data-side rule's own gate never cleared either), a standalone
-    contradiction row is emitted instead, carrying the conflict badge
-    itself.
+    (c) SYNTHETIC GAP -- no rule shows lap-level evidence in either
+    direction anywhere for this corner: a standalone row naming the gap
+    directly.
 
     Returns (pierced_bucket_keys: set, synthetic_rows: list).
     """
@@ -530,17 +621,72 @@ def _apply_undrivable_escalation(aggregated, feedback_data, classify_fn, config,
         if phase is None or abs(raw_fb) < raw_min:
             continue
         scaled_fb = raw_fb * feedback_weight
+        clears_scaled = scaled_min is None or abs(scaled_fb) >= scaled_min
         implied_verdict = "oversteer" if raw_fb > 0 else "understeer"
+        opposite_verdict = "understeer" if implied_verdict == "oversteer" else "oversteer"
+        laps = by_corner_laps.get(cid, [])
+        speed_class = corner.get("speed_class")
 
-        severity, short = _phase_verdict(corner, [phase], classify_fn)
-        axle = _axle_verdict(short)
+        fired_any = False
+        for rule in _candidate_rules_for_verdict(config, implied_verdict, speed_class):
+            hits = _qualifying_laps_for_rule(rule, laps, classify_fn)
+            if not hits:
+                continue
+            best = max(hits, key=lambda h: SEVERITY_RANK[h["severity"]])
+            evidence = (f"C{cid}: {len(hits)} of {corner['n_laps']} laps show {best['short']} "
+                        f"-- driver reports near-undrivable ({implied_verdict}).")
 
-        if axle is not None and axle != implied_verdict:
-            # (c) direction contradiction.
+            real_matches = _evaluate_rule(rule, {cid: corner}, {cid: laps}, feedback_data,
+                                           classify_fn, settings, source_balance, feedback_weight)
+            key = _bucket_key(rule, _normalise_actions(rule["suggestion"]))
+            if real_matches:
+                if key in buckets and cid in buckets[key]["corners"]:
+                    fired_any = True
+                    if clears_scaled:
+                        pierced_keys.add(key)
+                        buckets[key]["rationale"].append(
+                            {"rule_id": None, "cell_id": rule.get("cell_id"), "rationale": evidence})
+                continue
+
+            # Aggregate diluted this rule's own severity gate to below
+            # min_severity -- substitute the qualifying lap's real phase
+            # data for this rule's phases and re-fire through the normal
+            # path (by_corner_laps stays untouched real per-lap data, so
+            # the consistency gate below still checks genuine repetition).
+            escalated_corner = dict(corner)
+            escalated_corner["phases"] = dict(corner["phases"])
+            for p in rule["phases"]:
+                if p in best["lap"]["phases"]:
+                    escalated_corner["phases"][p] = best["lap"]["phases"][p]
+
+            synth_matches = _evaluate_rule(rule, {cid: escalated_corner}, {cid: laps}, feedback_data,
+                                            classify_fn, settings, source_balance, feedback_weight)
+            if not synth_matches:
+                continue
+            _add_rule_matches_to_buckets(buckets, rule, synth_matches, escalation_by_base_cell, settings)
+            fired_any = True
+            if clears_scaled:
+                pierced_keys.add(key)
+                buckets[key]["rationale"].append(
+                    {"rule_id": None, "cell_id": rule.get("cell_id"), "rationale": evidence})
+
+        if fired_any:
+            continue
+
+        contradiction = None
+        for rule in _candidate_rules_for_verdict(config, opposite_verdict, speed_class):
+            hits = _qualifying_laps_for_rule(rule, laps, classify_fn)
+            if hits:
+                contradiction = max(hits, key=lambda h: SEVERITY_RANK[h["severity"]])
+                break
+
+        if contradiction is not None:
+            # (b) direction contradiction, found at lap level across every
+            # phase rather than the aggregate at one feedback-named phase.
             conflicted_keys = [
                 key for key, bucket in buckets.items()
                 if cid in bucket["conflicts"]
-                and _axle_verdict(bucket["corners"].get(cid, {}).get("short_verdict") or "") == axle
+                and _axle_verdict(bucket["corners"].get(cid, {}).get("short_verdict") or "") == opposite_verdict
             ]
             if conflicted_keys:
                 pierced_keys.update(conflicted_keys)
@@ -548,41 +694,18 @@ def _apply_undrivable_escalation(aggregated, feedback_data, classify_fn, config,
                 synthetic_rows.append(_urgent_row(
                     cid, corner["n_laps"], implied_verdict,
                     f"C{cid}: driver reports near-undrivable ({implied_verdict}) but the "
-                    f"data shows {short} at this phase -- direction contradiction, "
+                    f"data shows {contradiction['short']} -- direction contradiction, "
                     f"engineer attention required.",
                     conflict=True,
                 ))
             continue
 
-        covering_ids = {
-            r["id"] for r in config["rules"]
-            if _rule_structurally_covers(r, phase, implied_verdict, corner.get("speed_class"))
-        }
-        matching_keys = [
-            key for key, bucket in buckets.items()
-            if cid in bucket["corners"]
-            and (set(bucket["rules_fired"]) & covering_ids)
-            and _axle_verdict(bucket["corners"][cid]["short_verdict"] or "") == implied_verdict
-        ]
-
-        if not matching_keys:
-            # (b) no rule ever actually matched this corner for this
-            # verdict/phase/speed_class -- structurally absent, or present
-            # but never cleared its own severity/consistency gate.
-            synthetic_rows.append(_urgent_row(
-                cid, corner["n_laps"], implied_verdict,
-                f"Driver reports near-undrivable at C{cid} ({implied_verdict}) - no "
-                f"elicited rule covers this case, engineer attention required.",
-            ))
-            continue
-
-        if scaled_min is not None and abs(scaled_fb) >= scaled_min:
-            pierced_keys.update(matching_keys)
-        # else: a corroborated match already exists and is already visible
-        # through the normal recommended/advisory path (not silent) -- the
-        # scaled floor only gates forcing it to the URGENT/pierce-all-caps
-        # tier specifically, per the same double-floor discipline as the
-        # consistency-gate override.
+        # (c) no rule shows lap-level evidence in either direction, anywhere.
+        synthetic_rows.append(_urgent_row(
+            cid, corner["n_laps"], implied_verdict,
+            f"Driver reports near-undrivable at C{cid} ({implied_verdict}) - no "
+            f"elicited rule covers this case, engineer attention required.",
+        ))
 
     return pierced_keys, synthetic_rows
 
@@ -933,23 +1056,35 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
     only, never fires: the held escalation's action, for any base rule that
     has one), limit_status, at_limit_parameters, selected, rationale}.
 
-    (8) Undrivable-feedback tier (FIX 1, design ruling 2026-07-28,
-    `_apply_undrivable_escalation`): runs after buckets are built, before
-    results are constructed. A corner whose single strongest feedback
-    entry clears settings["consistency_gate"]["feedback_override"]'s
-    raw_min (and, only for the pierce case, scaled_min too) can never
-    render as silent emptiness -- exactly one of: pierced (a corroborated,
-    structurally-covering match already exists -- forced to "recommended",
-    `severity_rank` forced to "strong", `urgent`/`urgent_tag` set, every
-    situational/provenance advisory cap bypassed), a synthetic
-    action_class="urgent_gap" row (no rule structurally covers this
-    verdict/phase/speed_class combination for this corner), or a synthetic
-    contradiction row carrying the conflict badge (the feedback's own
-    direction opposes the data's verdict at that phase). Synthetic rows
-    are prepended to the returned list, outside `max_recommendations`'
-    display cap and never counted by `_apply_change_budget`. Gated
-    entirely by settings["consistency_gate"]["feedback_override"]
-    ["escalation_enabled"] -- false restores pre-2026-07-28 behaviour.
+    (8) Undrivable-feedback tier (design ruling 2026-07-28, repaired
+    2026-07-28 turn 2, `_apply_undrivable_escalation`): runs after buckets
+    are built, before results are constructed. A corner whose single
+    strongest feedback entry clears settings["consistency_gate"]
+    ["feedback_override"]'s raw_min (and, only for the pierce/synthesize
+    case, scaled_min too) can never render as silent emptiness -- exactly
+    one of: pierced or synthesized (a rule shows LAP-LEVEL evidence --
+    severity >= the rule's own min_severity on at least one analysed lap,
+    checked across every phase/rule the driver's feedback direction could
+    plausibly cover, not just the phase the feedback happened to name --
+    forced to "recommended", `severity_rank` forced to "strong",
+    `urgent`/`urgent_tag` set, every situational/provenance advisory cap
+    bypassed, with an added rationale line naming the real per-lap
+    pattern), a synthetic action_class="urgent_gap" row (no rule shows
+    lap-level evidence in either direction anywhere for this corner), or a
+    synthetic contradiction row carrying the conflict badge (some rule's
+    lap-level evidence is the OPPOSITE axle direction from what the
+    feedback implies). The repair (turn 2) replaced an earlier version
+    that checked only the aggregate at the feedback's own named phase --
+    that version could report a spurious "no elicited rule covers this
+    case" gap for a corner whose real per-lap pattern (e.g. moderate
+    understeer on 2 of 4 laps) diluted to "normal" in the aggregate, or
+    that lived at a different phase than the one the feedback named (the
+    real C12 case this was verified against, thesis_notes.md "Undrivable
+    tier: lap-level cell matching"). Synthetic rows are prepended to the
+    returned list, outside `max_recommendations`' display cap and never
+    counted by `_apply_change_budget`. Gated entirely by
+    settings["consistency_gate"]["feedback_override"]["escalation_enabled"]
+    -- false restores pre-2026-07-28 behaviour.
     """
     settings = config["settings"]
     source_balance = _resolve_source_balance(config, outing)
@@ -975,58 +1110,20 @@ def generate_recommendations(summaries, classify_fn, feedback_data, setup_data, 
                                   classify_fn, settings, source_balance, feedback_weight)
         if not matches:
             continue
-        actions = _normalise_actions(rule["suggestion"])
-        key = _bucket_key(rule, actions)
-        bucket = buckets.setdefault(key, {
-            "actions": actions,
-            "score": 0.0,
-            "escalation_notes": [],
-            "severity_rank": 0,
-            "is_recommended": False,
-            "corners": {},
-            "rules_fired": [],
-            "cell_ids": [],
-            "trigger_source": set(),
-            "conflicts": {},
-            "rationale": [],
-        })
-        bucket["rules_fired"].append(rule["id"])
-        if rule.get("cell_id"):
-            bucket["cell_ids"].append(rule["cell_id"])
-        bucket["trigger_source"].add(rule["condition"]["trigger"])
-        provenance_note = _provenance_note(rule, settings)
-        bucket["rationale"].append({
-            "rule_id": rule["id"], "cell_id": rule.get("cell_id"),
-            "rationale": rule["rationale"] + (provenance_note or ""),
-        })
-        held_escalation = escalation_by_base_cell.get(rule.get("cell_id"))
-        if held_escalation is not None:
-            esc_lever = _describe_actions(_normalise_actions(held_escalation["suggestion"]))
-            bucket["escalation_notes"].append(
-                f"If this isn't enough, the next step is: {esc_lever}."
-            )
-        for m in matches:
-            bucket["score"] += m["score"]
-            bucket["severity_rank"] = max(bucket["severity_rank"], m["severity_rank"])
-            if _match_is_recommended(m, rule, settings):
-                bucket["is_recommended"] = True
-            cid = m["stable_corner_id"]
-            bucket["corners"][cid] = {
-                "stable_corner_id": cid,
-                "n_laps": m["n_laps"],
-                "worst_corner": m["worst_corner"],
-                "short_verdict": m["short_verdict"],
-            }
-            if m["conflict"]:
-                bucket["conflicts"][cid] = {"stable_corner_id": cid, "n_laps": m["n_laps"]}
+        _add_rule_matches_to_buckets(buckets, rule, matches, escalation_by_base_cell, settings)
 
-    # Undrivable-feedback tier (FIX 1, design ruling 2026-07-28): must run
-    # against the fully-built buckets (it needs to know which corners
-    # already have a corroborated, or conflicted, match) but before the
-    # results list is built, since a pierced bucket's action_class/
-    # severity_rank/urgent tag are decided at result-construction time.
+    # Undrivable-feedback tier (design ruling 2026-07-28, repaired 2026-07-28
+    # turn 2 -- lap-level cell matching): must run against the fully-built
+    # buckets (it needs to know which corners already have a corroborated,
+    # or conflicted, match) but before the results list is built, since a
+    # pierced bucket's action_class/severity_rank/urgent tag are decided at
+    # result-construction time. May itself add new buckets (a rule whose
+    # aggregate-level match never cleared its own severity gate, but whose
+    # lap-level evidence does) via the same _add_rule_matches_to_buckets
+    # helper the main loop above uses.
     pierced_keys, synthetic_rows = _apply_undrivable_escalation(
-        aggregated, feedback_data, classify_fn, config, feedback_weight, buckets,
+        aggregated, by_corner_laps, feedback_data, classify_fn, config,
+        source_balance, feedback_weight, buckets, escalation_by_base_cell,
     )
 
     results = []

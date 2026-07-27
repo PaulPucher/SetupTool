@@ -784,6 +784,86 @@ HOW TO USE:
   changed here: raising `min_feedback_abs` is a calibration decision, not
   made unilaterally without being asked. Flagged for a decision.
 
+### Undrivable tier: lap-level cell matching [2026-07-28]
+- BUG FOUND: the undrivable-feedback tier (`_apply_undrivable_escalation`,
+  design ruling 2026-07-28) checked the AGGREGATED (median-of-medians)
+  corner verdict at only the single phase the driver's worst-magnitude
+  feedback happened to name, then looked for a pre-built bucket agreeing
+  with it. For the real persisted Dubai outing's C12 (`x4=-5`, feedback
+  named exit_4) this produced a spurious "no elicited rule covers this
+  case" gap row, even though C12 shows a genuine, repeating moderate-
+  understeer pattern (2 of 4 laps, lap1/lap4) at apex_3 -- a DIFFERENT
+  phase, where recorded feedback is 0. Two separate effects compounded:
+  (1) the aggregate at apex_3 also dilutes that 2-of-4-laps pattern down
+  to "normal" by itself (the median-of-medians is doing exactly its
+  designed job of privileging repeatable behaviour -- it is simply the
+  wrong statistic for the undrivable tier's own "never render silent
+  emptiness" requirement); (2) the check never even looked at apex_3 at
+  all, being pinned to exit_4 by construction. Verified read-only before
+  any code changed (diagnostics/inspect_urgent_tier_lap_level_verify.py):
+  per-lap classify_fn verdicts printed for all 5 phases, confirming
+  exit_4 never reaches moderate severity on ANY lap or in aggregate (so
+  even a same-phase lap-level check would not have found it), while
+  apex_3 does, on exactly 2 of 4 laps.
+- RULING (project-lead + reviewer, same session): cell matching for this
+  tier now runs against LAP-LEVEL verdict instances, searched across
+  EVERY non-retired data/both rule whose condition could plausibly cover
+  the corner's implied direction and speed_class (`_candidate_rules_for_
+  verdict`), not just the phase the feedback named. For each candidate,
+  `_qualifying_laps_for_rule` checks every analysed lap against that
+  rule's OWN min_severity/verdict on its OWN phases. If a qualifying lap
+  exists and the rule already produced a real match against the
+  aggregate, that bucket is pierced (unchanged behaviour, generalised to
+  search every rule rather than one phase). If the rule did NOT produce a
+  real match (the aggregate diluted it, as at C12/apex_3), a second
+  architecture question followed: how does the resulting URGENT-
+  RECOMMENDED row get a real setup action rather than a placeholder? The
+  ruling: RE-EVALUATE the rule through the exact same `_evaluate_rule`/
+  bucket-construction path every other rule uses (`_add_rule_matches_to_
+  buckets`, factored out of the main loop for this reuse), substituting
+  the qualifying lap's own real (unaggregated) phase data for the rule's
+  phases in place of the aggregate -- `by_corner_laps` itself stays
+  untouched, so the rule's own consistency gate still checks genuine
+  repetition (or the feedback-override path, on its own real per-phase
+  feedback value) rather than being bypassed. This means exactly one code
+  path builds every action row in the engine; the undrivable tier is a
+  different ENTRY CONDITION into that path (lap-level trigger instead of
+  the aggregate), not a parallel renderer. The scaled-feedback floor
+  (`feedback_override_scaled_min`) still gates whether a found match gets
+  pierced to URGENT, same double-floor discipline as before; contradiction
+  detection (opposite-axle lap-level evidence, no matching-direction
+  evidence anywhere) and the true-gap fallback (no evidence in either
+  direction anywhere) both moved to the same lap-level, all-phase search,
+  keeping the three-way (pierce/contradiction/gap) outcome structure
+  unchanged.
+- VERIFIED against the real, persisted Dubai outing after implementing
+  (diagnostics/inspect_urgent_tier_lap_level_fix_check.py): three corners
+  carry feedback clearing the tier's raw_min floor (C8, C9, C12). C12 now
+  renders `action_class=recommended`, `urgent=True`, actions = soften
+  front ARB (both sides, US-APX-low), rationale including "C12: 2 of 4
+  laps show understeer @ apex -- driver reports near-undrivable
+  (understeer)" -- matching the ruling's own worked example verbatim,
+  confirming the fix against real data, not a synthetic scenario. C9 (a
+  second real corner with qualifying feedback, unrelated to this fix's
+  design) now also fires two urgent-recommended rows: one via genuine
+  2-of-4-lap repetition (TC LON increase), one via only 1 of 4 laps,
+  reachable only because that rule's OWN phase (apex_3) carries real
+  feedback (+5) clearing the consistency-gate's feedback-override floor
+  directly -- confirming the substituted-corner re-fire correctly
+  inherits the existing override mechanism rather than needing a second,
+  parallel one. The OS-APX-low situational cell (permanently-advisory by
+  design, matrix v2 review) correctly renders RECOMMENDED here, since
+  piercing bypasses the situational cap exactly as it already did for
+  normal pierces -- no special-casing needed. C8 -- genuinely no lap-
+  level evidence in either direction, anywhere, for its speed_class --
+  still renders the unchanged "no elicited rule covers this case" gap
+  row, confirming the true-gap path is untouched. `test_stability.py`
+  unaffected (this fix touches only modules/recommendation.py and
+  config/recommendations.json, neither of which Modules 1-6 read).
+- Config: no new tunables -- reuses settings.consistency_gate.
+  feedback_override's existing raw_min/scaled_min pair, documented in
+  config/recommendations.json's `_comment_escalation_enabled`.
+
 ### Limiter-based inlap reclassification [2026-07-22]
 - Duration-window lap validity (`is_valid_for_analysis`: lap_time <=
   1.10x fastest) had ACCEPTED the pre-merge "lap 5" (129.2s, well
