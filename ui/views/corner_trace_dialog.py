@@ -11,9 +11,9 @@
 
 import numpy as np
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QTabWidget, QWidget
 
-from ui.style import BAD, BORDER, NEUTRAL, PANEL, TEXT_DIM, TEXT_MUTED
+from ui.style import ACCENT, BAD, BORDER, NEUTRAL, PANEL, TEXT_DIM, TEXT_MUTED
 
 # Per-signal curve colours, fixed across laps (a lap is distinguished by
 # line width/style/opacity, not colour) -- literal hex, same convention as
@@ -52,6 +52,28 @@ LAP_BAND_LEGEND_TEXT = (
 )
 
 PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
+
+# WP-A item 3 (CS credibility bundle): tyre-curve scatter tab legend. Plot
+# design after chair performance_analysis tooling (internal, its
+# create_evaluation_plot scatter panel and create_scatter grouping-axis
+# pattern); no code copied.
+TYRE_CURVE_LEGEND_TEXT = (
+    "Slip angle (x) vs lateral force (y), this corner's own canonical "
+    "window only (no approach/coast-out margin). Muted grey dots: all "
+    "samples. 'x' markers: kerb-flagged samples. Gold line: the linear-"
+    "region reference cornering stiffness (Module 4b's C_linear_ref) -- "
+    "the slope the tyre held before its lateral force peak. Beyond-peak "
+    "(throwaway) operation shows as the cloud folding BACK over this line "
+    "-- Fy falling while |slip angle| keeps growing -- rather than "
+    "scattering evenly around it. The force axis autoranges per corner -- "
+    "compare cloud shape against the line's slope, not absolute force "
+    "levels or one corner's plot against another's. A constant VERTICAL "
+    "offset of the whole cloud from the line reflects the known "
+    "direction-dependent zero-slip offset in the Level-1 slip-angle "
+    "estimate (see thesis_notes.md, the C9 decomposition entry), not "
+    "tyre saturation -- judge slope and curvature relative to the line, "
+    "not the cloud's position above or below it."
+)
 
 
 def _phase_slice(t, start_t, end_t):
@@ -439,6 +461,55 @@ class CornerTraceDialog(_TraceDialogBase):
 
     WINDOW_TITLE = "Corner Trace"
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        import pyqtgraph as pg
+
+        # WP-A item 3: wrap the existing s_m-trace scaffold (self.pg_layout,
+        # built by the base class) as one tab, add a second tab for the
+        # tyre-curve scatter -- reparented in place rather than restructuring
+        # _TraceDialogBase, so LapTraceDialog (the other subclass) is
+        # untouched. self.plots (stab/cs/speed) stays exactly what
+        # _add_kerb_bands/_add_notmoving_bands/_add_threshold_line iterate
+        # over; the tyre-curve panels live in their own self.tyre_plots so
+        # those s_m-axis-shaped helpers never see them.
+        outer_layout = self.layout()
+        pg_index = outer_layout.indexOf(self.pg_layout)
+        outer_layout.removeWidget(self.pg_layout)
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.pg_layout, "Traces")
+
+        tyre_tab = QWidget()
+        tyre_layout = QVBoxLayout(tyre_tab)
+        tyre_layout.setContentsMargins(0, 0, 0, 0)
+        tyre_layout.setSpacing(4)
+
+        self.tyre_legend_label = QLabel(TYRE_CURVE_LEGEND_TEXT)
+        self.tyre_legend_label.setWordWrap(True)
+        self.tyre_legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        tyre_layout.addWidget(self.tyre_legend_label)
+
+        self.tyre_pg_layout = pg.GraphicsLayoutWidget()
+        self.tyre_pg_layout.setBackground(PANEL)
+        tyre_layout.addWidget(self.tyre_pg_layout)
+
+        self.tyre_plots = {}
+        for axle, title in (("front", "Front axle"), ("rear", "Rear axle")):
+            plot = self.tyre_pg_layout.addPlot()
+            plot.setTitle(title, color=TEXT_MUTED, size='9pt')
+            plot.setLabel('left', 'Lateral force Fy (N)', color='#888', size='8pt')
+            plot.setLabel('bottom', 'Slip angle (deg)', color='#888', size='8pt')
+            plot.showGrid(x=True, y=True, alpha=0.15)
+            # Equal-axis scaling deliberately OFF (WP-A item 3 spec) -- alpha
+            # is a few degrees' range, Fy a few thousand newtons; forcing a
+            # 1:1 pixel scale would make the reference slope unreadable.
+            self.tyre_plots[axle] = plot
+            self.tyre_pg_layout.nextRow()
+
+        self.tabs.addTab(tyre_tab, "Tyre Curves")
+        outer_layout.insertWidget(pg_index, self.tabs)
+
     def _add_phase_bands(self, corner, t, s_m, worst_phase):
         import pyqtgraph as pg
 
@@ -462,6 +533,114 @@ class CornerTraceDialog(_TraceDialogBase):
                 )
                 plot.addItem(apex_line)
 
+    def _clear_tyre_curves(self):
+        for plot in self.tyre_plots.values():
+            plot.clear()
+
+    def _render_tyre_curves(self, instances, laps_by_number, bracket_start_m, bracket_end_m,
+                             t, s_m, slip, forces, cs, kerb_mask):
+        """Tyre Curves tab: per-axle slip-angle-vs-lateral-force scatter for
+        this corner's own canonical window (bracket_start_m/end_m, no
+        approach/coast-out margin -- unlike the Traces tab). Plot design
+        after chair performance_analysis tooling (internal, its
+        create_evaluation_plot scatter panel and create_scatter grouping-
+        axis pattern); no code copied.
+
+        Beyond-peak (throwaway) tyre operation shows as the point cloud
+        folding BACK over the reference slope line -- Fy falling while
+        |slip angle| keeps growing -- rather than scattering around it,
+        which is what ordinary measurement noise around a stable linear
+        relation looks like.
+
+        The reference line uses ONE value per axle (median of
+        C_linear_ref_f/r over every valid sample pooled across all shown
+        laps' canonical windows), not a per-lap or per-sample line -- same
+        "compute once, checkboxes only toggle visibility" convention the
+        existing CS/stability threshold lines already use in the Traces
+        tab. C_linear_ref is already NaN at any kerb-flagged or non-moving
+        sample (estimate_cornering_stiffness only writes it past that
+        gate), so no separate kerb exclusion is needed for this median.
+        """
+        import pyqtgraph as pg
+
+        self._clear_tyre_curves()
+        if slip is None or forces is None:
+            return
+
+        axle_specs = (
+            ("front", slip.get("alpha_f_filt"), forces.get("Fy_f_filt"),
+             cs.get("C_linear_ref_f") if cs is not None else None),
+            ("rear", slip.get("alpha_r_filt"), forces.get("Fy_r_filt"),
+             cs.get("C_linear_ref_r") if cs is not None else None),
+        )
+
+        for axle, alpha_arr, Fy_arr, ref_arr in axle_specs:
+            plot = self.tyre_plots[axle]
+            if alpha_arr is None or Fy_arr is None:
+                continue
+
+            pooled_alpha_rad = []
+            pooled_ref = []
+
+            for c in instances:
+                lap = laps_by_number.get(c["lap_number"])
+                if lap is None:
+                    continue
+                sl, _start_s, _end_s = _extend_slice_with_margin(
+                    t, s_m, lap["start_time"], lap["end_time"],
+                    bracket_start_m, bracket_end_m, 0.0, 0.0,
+                )
+                if sl.stop <= sl.start:
+                    continue
+
+                lap_alpha = alpha_arr[sl]
+                lap_Fy = Fy_arr[sl]
+                lap_kerb = kerb_mask[sl] if kerb_mask is not None else np.zeros(sl.stop - sl.start, dtype=bool)
+
+                valid = np.isfinite(lap_alpha) & np.isfinite(lap_Fy)
+                clean = valid & ~lap_kerb
+                kerbed = valid & lap_kerb
+                if not valid.any():
+                    continue
+                pooled_alpha_rad.append(lap_alpha[valid])
+
+                items = []
+                if clean.any():
+                    items.append(plot.plot(
+                        np.degrees(lap_alpha[clean]), lap_Fy[clean],
+                        pen=None, symbol='o', symbolSize=4,
+                        symbolBrush=pg.mkBrush(TEXT_MUTED), symbolPen=None,
+                    ))
+                if kerbed.any():
+                    items.append(plot.plot(
+                        np.degrees(lap_alpha[kerbed]), lap_Fy[kerbed],
+                        pen=None, symbol='x', symbolSize=6,
+                        symbolBrush=None, symbolPen=pg.mkPen(NEUTRAL, width=1.5),
+                    ))
+                if items:
+                    visible = self.lap_visible.get(c["lap_number"], True)
+                    for item in items:
+                        item.setVisible(visible)
+                    self.lap_curve_items.setdefault(c["lap_number"], []).extend(items)
+
+                if ref_arr is not None:
+                    lap_ref = ref_arr[sl][valid]
+                    finite_ref = lap_ref[np.isfinite(lap_ref)]
+                    if finite_ref.size:
+                        pooled_ref.append(finite_ref)
+
+            if pooled_ref:
+                ref_slope = float(np.median(np.concatenate(pooled_ref)))
+                if pooled_alpha_rad and ref_slope > 0:
+                    max_abs_alpha = float(np.max(np.abs(np.concatenate(pooled_alpha_rad))))
+                    if max_abs_alpha > 0:
+                        x_line_rad = np.array([-max_abs_alpha, max_abs_alpha])
+                        y_line = ref_slope * x_line_rad
+                        plot.plot(
+                            np.degrees(x_line_rad), y_line,
+                            pen=pg.mkPen(color=ACCENT, width=2, style=Qt.PenStyle.SolidLine),
+                        )
+
     def show_corner(self, summary, stability_result, parsed_data):
         """Repopulate in place for `summary`'s stable_corner_id. `summary`
         is the single lap's corner-detail summary the trace button was
@@ -474,6 +653,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
         for plot in self.plots.values():
             plot.clear()
+        self._clear_tyre_curves()
         self.lap_curve_items = {}
 
         stable_corner_id = summary["stable_corner_id"]
@@ -481,6 +661,14 @@ class CornerTraceDialog(_TraceDialogBase):
         cs = stability_result.get("cs")
         stab = stability_result.get("stab")
         corners = stability_result.get("corners")
+        # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt) -- Tyre Curves
+        # tab only; None on any render path that predates their addition to
+        # the pipeline cache/result dict (ui/views/outing_form.py), handled
+        # by _render_tyre_curves degrading to an empty tab, same as the
+        # existing state/cs/stab-missing guard just above does for the
+        # whole dialog.
+        slip = stability_result.get("slip")
+        forces = stability_result.get("forces")
         if state is None or cs is None or stab is None or corners is None:
             self.header_label.setText(
                 f"C{stable_corner_id}: raw sample arrays aren't available for this render "
@@ -593,6 +781,18 @@ class CornerTraceDialog(_TraceDialogBase):
                 ),
             ]
             self.lap_curve_items[c["lap_number"]] = curve_items
+
+        # Tyre Curves tab: runs AFTER the loop above, which does a plain
+        # (overwriting) assignment to self.lap_curve_items[lap_number] --
+        # calling this any earlier would have its scatter items wiped out
+        # by that assignment. _render_tyre_curves appends to whatever the
+        # loop just built instead, so one checkbox toggles both tabs' items
+        # for that lap.
+        if bracket_start_m is not None and bracket_end_m is not None:
+            self._render_tyre_curves(
+                instances, laps_by_number, bracket_start_m, bracket_end_m,
+                t, s_m, slip, forces, cs, kerb_mask,
+            )
 
         cls_cfg = load_parameters()["classification"]
         self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], BAD)

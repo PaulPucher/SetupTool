@@ -700,6 +700,10 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         R2 = np.full(n, np.nan)
         CS_ratio = np.full(n, np.nan)
         C_linear_ref = np.nan
+        # Per-sample record of the linear-region reference slope in effect
+        # at each index (CS_ratio's denominator) -- exposed for the
+        # tyre-curve audit plot (WP-A item 3), not used elsewhere.
+        C_linear_ref_arr = np.full(n, np.nan)
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -770,10 +774,12 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             if not np.isnan(C_linear_ref) and C_linear_ref > 0:
                 CS_ratio[i] = min(C_alpha[i] / C_linear_ref, 1.0)
 
-        return C_alpha, C_window, C_section, R2, CS_ratio
+            C_linear_ref_arr[i] = C_linear_ref
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r = compute_cs_for_axle(alpha_r, Fy_r)
+        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr
+
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     return {
         "C_alpha_f": C_f,
@@ -786,6 +792,8 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         "R2_r": R2_r,
         "CS_ratio_f": CS_ratio_f,
         "CS_ratio_r": CS_ratio_r,
+        "C_linear_ref_f": Clr_f,
+        "C_linear_ref_r": Clr_r,
     }
 
 

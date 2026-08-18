@@ -2008,6 +2008,146 @@ HOW TO USE:
   this arc, not resolved here -- a candidate for a future dedicated
   look, not a known defect with a known fix.
 
+### CS credibility diagnostics: kerb audit + filter sensitivity [2026-08-17]
+- WP-A item 1 (kerb audit, diagnostics/inspect_cs_kerb_window_audit.py):
+  checked whether Module 4b's extreme negative worst-phase CS ratios are
+  kerb artifacts. Reconstructed the actual regression window for the 10
+  most negative worst-phase CS_ratio_f and CS_ratio_r instances on Dubai
+  (56 corners), verifying window-reconstruction parity against
+  production's own C_window_f/r (21/21 matched to 1e-6 relative
+  tolerance). Result: extreme negatives on both axles are predominantly
+  kerb-clean -- the single most negative instance on each axle (front:
+  C4 lap 3, -0.552; rear: C9 lap 1, -0.721) sits at 0% kerb fraction
+  inside its regression window, 0.6-3.1 s from the nearest kerb flag.
+  Where kerb-coincidence does occur (2/10 front, 3/10 rear instances),
+  it clusters at the MILD end of each ranked list (CS_ratio closer to
+  0, window kerb fraction 9-60%), not at the extremes. Kerb
+  contamination of Module 4b's inputs is real and structurally possible
+  (the fitting window only gates on the endpoint sample's moving/kerb
+  mask, not every sample inside the window body, and the upstream
+  Butterworth filtering is zero-phase/acausal, so a kerb transient can
+  leak beyond the dilated kerb_mask band) -- but it is a secondary
+  effect, not the mechanism producing the extreme negative tail.
+- WP-A item 2 (filter sensitivity, diagnostics/
+  inspect_cs_filter_sensitivity.py): swept cs_filter_cutoff_hz over
+  {2.0, 1.5, 1.0, 0.7} Hz in an in-memory copy of the params dict only
+  -- config/parameters.json untouched throughout. Front and rear
+  negative tails behave oppositely. FRONT is filter-dependent: p5 of
+  the worst-phase distribution crosses from negative to positive
+  between 1.5 Hz and 1.0 Hz (-0.007 -> 0.061), and the single worst
+  front instance (C4 lap 3, -0.552 at 2 Hz) is negative ONLY at 2 Hz,
+  flipping to +0.52/+0.82/+0.57 at 1.5/1.0/0.7 Hz. REAR is filter-
+  robust in SIGN and confined almost entirely to one physical corner,
+  C9: lap 1 and lap 2 stay negative at all four cutoffs (lap 1:
+  -0.721/-1.070/-2.379/-2.437; lap 2: -0.361/-0.445/-2.315/-2.650),
+  and lap 4 joins the negative set only at the lowest cutoff tested,
+  0.7 Hz (0.326/0.298/0.183/-0.833 across the same four cutoffs). In
+  all three C9 rear instances, magnitude GROWS monotonically as cutoff
+  drops -- the opposite of the front tail's behaviour.
+- MECHANISM BEHIND THE MAGNITUDE GROWTH: UNRESOLVED, stated explicitly
+  so it is not silently assumed either way. Heavier low-pass filtering
+  attenuates transients, so a real, correctly-measured throwaway/
+  beyond-peak event getting LARGER as cutoff drops is not what a
+  shrinking-artifact-under-filtering picture would predict -- but it is
+  also not proof of a larger real physical event. CS_ratio is a ratio
+  of two filtered-signal-derived quantities (windowed-OLS slope C_alpha
+  over the linear-reference slope C_linear_ref), and numerator and
+  denominator are not guaranteed to respond identically to a filter-
+  cutoff change: a denominator shrinking faster than the numerator
+  under heavier filtering would produce exactly this monotonic-growth
+  signature with no change in the underlying physical event. Not
+  checked either way yet. Open question, to be examined visually once
+  the tyre-curve scatter plot (WP-A item 3, not yet implemented) can
+  show the actual Fy-vs-alpha point cloud at each cutoff instead of the
+  single collapsed ratio number.
+- Overlap with the WP1 watch items above: the C9-lap1 CS_r=-0.721 flag
+  investigated here is the SAME flag first noted in Turn 2, confirmed
+  to persist through the Turn 3 partition and the B3 verdict-
+  distribution re-check, and already carried forward as an open watch
+  item ("C9's inter-lap stability agreement... C9's start boundary was
+  never touched by the Turn 3 partition (only its end moved)", above).
+  This diagnostic pass adds evidence but does not close that thread:
+  kerb-clean and filter-robust-in-sign rules out two candidate artifact
+  explanations, but does not distinguish genuine beyond-peak tyre
+  physics at C9 from an unexamined realization defect at C9's own start
+  boundary -- exit_4, the phase carrying this flag, abuts the Turn 3
+  partition's moved end boundary. Both remain open until C9's start
+  boundary gets the dedicated look the watch item above already calls
+  for.
+- Production cs_filter_cutoff_hz stays at 2 Hz (chair-identical,
+  config/parameters.json), now on record as a deliberate, evidence-
+  backed choice rather than an unexamined default: this pass found no
+  cutoff-independent case for lowering it (the front tail needs it
+  lowered below 1.5 Hz to read negative at all, and even then flips
+  sign per corner; the rear C9 finding is unaffected by cutoff choice
+  either way, since it already persists at the production value) and
+  it is not being changed here.
+
+### C9 negative-CS decomposition + zero-slip offset finding [2026-08-17]
+- WINDOW DECOMPOSITION (diagnostics/inspect_c9_negative_cs.py): the two
+  candidate artifact explanations for C9's rear negative-CS windows
+  (laps 1, 2, 4, all three found negative at the production 2 Hz
+  cutoff) are both refuted by direct inspection. Sign-inconsistency:
+  0.0% of samples show sign(alpha_r) != sign(Fy_r) in any of the three
+  windows -- alpha_r and Fy_r stay same-sign (both negative) throughout
+  every window, a physically coherent single-tyre-curve relation, not
+  noisy or contradictory data. Boundary contamination: every window
+  ends 71-85 m before C9's own canonical bracket end (out of a ~172 m
+  bracket), nowhere near the C9/C10 partition boundary the WP1 watch
+  item above flags as unexamined. The windows ARE clean; the negative
+  ratio comes from the window's own regression slope going negative
+  (Fy_r's magnitude not keeping pace with, or reversing against,
+  growing |alpha_r|) -- the "beyond-peak, cloud folds back" signature
+  the tyre-curve plot's own docstring names, not a data-quality defect.
+  Bonus finding while reconciling this against the tyre-curve plot's
+  visual "alpha sweeps through zero while Fy stays negative": that
+  zero-crossing is real, but happens 67-92 samples (~1.3-1.8 s) AFTER
+  each window's extreme sample, near exit_4's own boundary -- a later,
+  distinct part of the same corner pass, not inside the window that
+  produces the negative CS_ratio extreme.
+- ZERO-SLIP Fy OFFSET, GLOBAL AND DIRECTION-CORRELATED: median Fy_f/
+  Fy_r over samples with |slip angle| < 0.2 deg, computed per stable
+  corner over each corner's own canonical window, is nonzero at every
+  corner with enough near-zero-slip samples to measure (typically
+  several thousand N) -- C9 is NOT an outlier (rank 7 of 13 front,
+  8 of 14 rear by |median|; several corners, e.g. C1/C3/C13/C14, show
+  comparable or larger offsets). Extended the same script with a
+  turn-direction correlation check: direction taken as sign(median
+  ay_mps2) over each corner's whole canonical window (ay, not yaw rate
+  -- this codebase's own established cornering-direction signal, the
+  dual-criterion corner detector's |ay| > 0.6g entry gate). Result:
+  the offset sign matches the turn-direction sign at EVERY corner with
+  a valid median -- 13/13 front, 14/14 rear, no exceptions.
+- IMPLICATION: a bias that flips sign in lockstep with turn direction,
+  at the instant the kinematic slip-angle estimate reads zero, is not
+  random noise or a fixed sensor tare -- it means the KINEMATIC
+  (Level 1) sideslip estimate beta itself carries a direction-
+  dependent error large enough that "zero slip angle" by that estimate
+  does not correspond to a real zero-lateral-force physical state.
+  Since Module 4b's linear-reference gate (C_linear_ref, the CS_ratio
+  denominator) is defined by exactly this near-zero-slip region, any
+  systematic error there propagates into every CS_ratio value computed
+  from it. Practical consequence: a CS_ratio < 0 cannot currently be
+  safely read as "genuine beyond-peak tyre saturation" until this
+  sideslip-estimate error is characterised or corrected -- the sign
+  could in principle be doing some of that work by coincidence, but
+  that is not the same as the estimator being trustworthy at the
+  precision a beyond-peak claim would need.
+- WP-A item 5 (the beyond-peak verdict tier proposed at the start of
+  the CS credibility bundle) is SHELVED, not abandoned or redesigned
+  around this finding. Reopen condition: a validated sideslip estimate
+  (beta) that has been checked against this direction-dependent-offset
+  failure mode and shown not to carry it, or shown to carry a
+  characterised, correctable version of it. Implementing a beyond-peak
+  verdict on top of the current Level 1 kinematic beta would be
+  building a classification tier on a denominator this finding shows
+  is not yet trustworthy at the required precision.
+- EXPLICIT LINK: this is the empirical motivation for the sideslip
+  methods-comparison framework, Open Board item B (supervisor-
+  mandated) -- not a coincidental side-finding but the concrete,
+  data-grounded case for why that comparison needs to happen before
+  any beyond-peak/saturation claim can be built on top of beta.
+
 ### Corner-numbering display bug: wrong field, not wrong indexing [2026-07-26]
 - Reported as "C14 shows 13" (and similar off-by-some mismatches for
   other corners): clicking stable-corner grid cell C14 opened a details

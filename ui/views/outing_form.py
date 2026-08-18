@@ -23,6 +23,12 @@ from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM,
 # verdict threshold automatically. [neutral engineering]
 STAB_COLOUR_WARN_FRACTION = 0.4
 
+# Corner-map marker click hit-test radius, px -- matches the marker dot's
+# own on-screen size (size=26 in _update_corner_map_markers) so the click
+# target feels like "the dot", not a much larger or smaller invisible zone.
+# Converted to view (data) coordinates at click time via viewPixelSize().
+CORNER_MARKER_CLICK_RADIUS_PX = 26
+
 
 def _norm_path(path):
     # Shared csv_path comparison for both the WP5 DB cache and the WP6
@@ -152,6 +158,14 @@ class StabilityAnalysisThread(QThread):
                 cs = self.pipeline_cache["cs"]
                 stab = self.pipeline_cache["stab"]
                 fz = self.pipeline_cache["fz"]
+                # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt) join the
+                # cache alongside cs/stab/fz -- same precedent as fz's own
+                # WP5b(b) addition. Only the corner-trace dialog's tyre-curve
+                # tab reads these; .get() so an entry cached by an older
+                # session (before this key existed) degrades to None there
+                # instead of KeyError.
+                slip = self.pipeline_cache.get("slip")
+                forces = self.pipeline_cache.get("forces")
             else:
                 params = load_parameters()
                 # WP-C: substitute the resolved (and cap-clipped) mass/
@@ -186,6 +200,8 @@ class StabilityAnalysisThread(QThread):
                 "cs": cs,
                 "stab": stab,
                 "fz": fz,
+                "slip": slip,
+                "forces": forces,
                 "corners": corners,
                 "cap": self.cap,
                 "resolved_accuracy": self.resolved_accuracy,
@@ -1107,6 +1123,12 @@ class OutingForm(QWidget):
             # -- a lap-filter-only re-Analyse must reuse it, not recompute
             # it, same as the other Modules-1-5 outputs it's cached with.
             "fz": result["fz"],
+            # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt), same
+            # cache-reuse reasoning as fz above -- the corner-trace dialog's
+            # tyre-curve tab needs them and they must survive a lap-filter-
+            # only re-Analyse exactly like every other Modules-1-5 output.
+            "slip": result["slip"],
+            "forces": result["forces"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
         })
@@ -2839,11 +2861,21 @@ class OutingForm(QWidget):
         self.corner_map_plot.hideAxis('bottom')
         self.corner_map_plot.getViewBox().setMouseEnabled(x=False, y=False)
         self.corner_map_plot.getViewBox().wheelEvent = lambda event: None
+        # Corner click-through: one shared scene-click handler, same pattern
+        # as LapTraceDialog._on_scene_clicked (corner_trace_dialog.py) --
+        # hit-tests against stored marker positions rather than per-item
+        # signals, so a click on either the dot or its text label counts.
+        self.corner_map_plot.scene().sigMouseClicked.connect(self._on_corner_map_clicked)
         layout.addWidget(self.corner_map_plot)
+
+        self.corner_map_hint_label = QLabel("")
+        self.corner_map_hint_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        layout.addWidget(self.corner_map_hint_label)
 
         self.corner_map_trace_curve = None
         self.corner_map_trace_xy = None
         self.corner_map_markers = {}
+        self.corner_map_marker_xy = {}  # stable_corner_id -> (x_m, y_m), for click hit-testing
         self._show_corner_map_placeholder("Load a CSV to see the track map.")
 
         return container
@@ -2854,6 +2886,8 @@ class OutingForm(QWidget):
         self.corner_map_trace_curve = None
         self.corner_map_trace_xy = None
         self.corner_map_markers = {}
+        self.corner_map_marker_xy = {}
+        self.corner_map_hint_label.setText("")
         placeholder = pg.TextItem(text, color=TEXT_DIM, anchor=(0.5, 0.5))
         self.corner_map_plot.addItem(placeholder)
         self.corner_map_plot.setRange(xRange=(-1, 1), yRange=(-1, 1))
@@ -2912,6 +2946,8 @@ class OutingForm(QWidget):
 
         self.corner_map_plot.clear()
         self.corner_map_markers = {}
+        self.corner_map_marker_xy = {}
+        self.corner_map_hint_label.setText("")
         self.corner_map_trace_xy = (np.asarray(x), np.asarray(y))
         self.corner_map_trace_curve = self.corner_map_plot.plot(
             x, y, pen=pg.mkPen(color=TEXT_MUTED, width=2)
@@ -2948,6 +2984,7 @@ class OutingForm(QWidget):
                 scatter, text = self.corner_map_markers.pop(cid)
                 self.corner_map_plot.removeItem(scatter)
                 self.corner_map_plot.removeItem(text)
+                self.corner_map_marker_xy.pop(cid, None)
 
         for cid, pos in positions.items():
             colour = colour_by_id.get(cid, NEUTRAL)
@@ -2956,6 +2993,9 @@ class OutingForm(QWidget):
                 scatter.setBrush(pg.mkBrush(colour))
             else:
                 snap_x, snap_y = self._snap_to_trace(pos["x_m"], pos["y_m"])
+                # Marker dot size, px -- CORNER_MARKER_CLICK_RADIUS_PX (top
+                # of file, used by _on_corner_map_clicked) matches this
+                # value so the click target tracks the dot's own footprint.
                 scatter = pg.ScatterPlotItem(
                     [snap_x], [snap_y], size=26,
                     brush=pg.mkBrush(colour), pen=pg.mkPen(None)
@@ -2968,6 +3008,83 @@ class OutingForm(QWidget):
                 self.corner_map_plot.addItem(scatter)
                 self.corner_map_plot.addItem(text)
                 self.corner_map_markers[cid] = (scatter, text)
+                self.corner_map_marker_xy[cid] = (snap_x, snap_y)
+
+    def _on_corner_map_clicked(self, event):
+        # Same scene-click + hit-test pattern as LapTraceDialog.
+        # _on_scene_clicked (ui/views/corner_trace_dialog.py) -- one shared
+        # handler against stored positions, not a signal per marker item
+        # (pg.TextItem has no native click signal, so a per-item-signal
+        # approach would miss clicks on the label half of each marker).
+        pos = event.scenePos()
+        if not self.corner_map_plot.sceneBoundingRect().contains(pos):
+            return
+        if not self.corner_map_marker_xy:
+            return
+
+        view_box = self.corner_map_plot.getViewBox()
+        view_pos = view_box.mapSceneToView(pos)
+        x, y = view_pos.x(), view_pos.y()
+
+        px_w, px_h = view_box.viewPixelSize()
+        radius = CORNER_MARKER_CLICK_RADIUS_PX * max(px_w, px_h)
+        radius_sq = radius * radius
+
+        best_cid, best_d2 = None, None
+        for cid, (mx, my) in self.corner_map_marker_xy.items():
+            d2 = (mx - x) ** 2 + (my - y) ** 2
+            if d2 <= radius_sq and (best_d2 is None or d2 < best_d2):
+                best_cid, best_d2 = cid, d2
+
+        if best_cid is None:
+            return
+        self._open_corner_trace_from_map(best_cid)
+
+    def _resolve_worst_lap_summary_for_corner(self, stable_corner_id):
+        # Mirrors ui/views/corner_trace_dialog.py's _aggregate_worst_severity
+        # (the logic that already decides this same marker's colour) but
+        # returns the SUMMARY that produced the worst rank, not just the
+        # colour -- the map marker is per-stable_corner_id, but
+        # CornerTraceDialog.show_corner needs one specific lap's instance.
+        if not self.stability_result:
+            return None
+        summaries = self.stability_result.get("summaries")
+        if not summaries:
+            return None
+        laps_by_number = {l["lap_number"]: l for l in (self.parsed_data or {}).get("laps", [])}
+        candidates = [
+            s for s in summaries
+            if s["stable_corner_id"] == stable_corner_id
+            and laps_by_number.get(s["lap_number"], {}).get("is_valid_for_analysis")
+        ]
+        if not candidates:
+            return None
+
+        from modules.recommendation import SEVERITY_RANK
+        ranked = [(SEVERITY_RANK[self._classify_corner(s)[0]], s) for s in candidates]
+        max_rank = max(rank for rank, _s in ranked)
+        worst = [s for rank, s in ranked if rank == max_rank]
+
+        # A single genuine worst-severity instance wins outright. A tie
+        # (>1 candidate sharing the worst rank) or no spread at all (every
+        # lap "normal" -- the same case the marker's own colour shows as
+        # NEUTRAL) falls back to the fastest valid lap, same is_fastest
+        # flag _update_corner_map_trace already uses for the map's own
+        # reference lap.
+        if len(worst) == 1 and max_rank > SEVERITY_RANK["normal"]:
+            return worst[0]
+
+        fastest = next((s for s in candidates
+                         if laps_by_number.get(s["lap_number"], {}).get("is_fastest")), None)
+        return fastest or candidates[0]
+
+    def _open_corner_trace_from_map(self, stable_corner_id):
+        summary = self._resolve_worst_lap_summary_for_corner(stable_corner_id)
+        if summary is None:
+            self.corner_map_hint_label.setText("Run Analyse to open corner details")
+            return
+        self.corner_map_hint_label.setText("")
+        self._open_corner_trace(summary)
 
     def _build_feedback_section(self):
         section = QWidget()
