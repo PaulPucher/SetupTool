@@ -154,6 +154,44 @@ degrading even if steady-state measures improve.
   transient responsiveness that motivated choosing the interior ratio
   0.3162 over that zone.
 
+### Saturation-detection critical check (`diagnostics/inspect_observer_
+slip_angle_circularity.py`) — the decisive finding
+What it measures: whether cornering-stiffness ratios (CS_ratio, the
+production signal used to detect tyre saturation) computed from the
+observer's slip angles still carry independent information, or have
+collapsed into a restatement of lateral force through the observer's own
+fixed stiffness assumption.
+- The observer's slip angle explains 99.8% (rear, R²=0.9979) and 99.7%
+  (front, R²=0.9971) of lateral-force variance as a straight line, with
+  best-fit slopes within 11-12% of the fixed stiffness priors used inside
+  the observer (rear: fitted 101055 N/rad vs 91343 N/rad prior; front:
+  fitted 60070 N/rad vs 68268 N/rad prior) and residual scatter under 6%
+  of the force's own spread.
+- CS_ratio compresses toward 1 at both axles when computed from observer
+  slip angles (corner-sample p5: rear 0.211→0.716, front 0.107→0.587,
+  kinematic→observer).
+- Under the CURRENT production thresholds, worst-phase-per-corner-instance
+  flagged counts fall from 7 strong + 4 moderate (front) and 5 strong + 4
+  moderate (rear), out of 56 instances, to **zero at both axles** using
+  observer-derived CS_ratio.
+- Mechanism: the observer's measurement equation ties lateral acceleration
+  to sideslip through the fixed stiffness prior, and lateral acceleration
+  is one of only two correcting measurements — so the state is pulled onto
+  the assumed linear tyre relationship regardless of what the tyre is
+  actually doing. The measured steering angle enters as a control input,
+  not a correcting measurement, which is why the front axle was expected
+  to retain more independent content than the rear but did not (0.9971 vs
+  0.9979 — essentially the same collapse). General statement: a state
+  observer built on a linear tyre model cannot detect departure from tyre
+  linearity, because saturation does not exist in its model.
+- What this does not invalidate: the diagnosis of the kinematic estimate's
+  own failures (sections 1 and 3 above) and the observer's validated
+  properties tested by the other checks in this section (sign correctness,
+  order-of-magnitude steady-state recovery) — those test direction and
+  magnitude, not local linearity, so they are unaffected by this finding.
+  Full write-up: `thesis_notes.md`, "Observer saturation-detection
+  failure: the decisive finding".
+
 ## 4. Honest limits
 
 - **No ground truth for sideslip exists anywhere in this log.** Every check
@@ -182,6 +220,12 @@ degrading even if steady-state measures improve.
   C9, or C12 does not indict either estimator on its own.
 
 ## 5. What each decision would trigger
+
+**UPDATE (section 7 below): the decision has been made — NO-WIN, on the
+strength of the saturation-detection finding in section 3. The WIN scope
+below is kept for the record as what WOULD have been required; none of it
+follows from the actual outcome. No production wiring, no threshold
+re-derivation, no schema change happens as a result of this comparison.**
 
 **A WIN decision** (the observer replaces the kinematic estimate as the
 production sideslip source, or is wired in alongside it) would require, as
@@ -222,3 +266,35 @@ This report deliberately stops short of recommending a decision. The
 evidence above is presented for the user and their supervisor to weigh —
 the win/no-win call, and any follow-on scope from section 5, belongs to
 them.
+
+## 7. Decision recorded: NO-WIN [2026-08-20]
+
+The observer is **not adopted into production**. Decisive reasoning: the
+saturation-detection critical check (section 3) found that CS_ratio
+computed from the observer's slip angles collapses to a near-constant
+value at both axles (R²>0.997 against a straight line through the fixed
+stiffness prior at both axles, zero flagged instances under current
+thresholds versus a real population of 7 strong + 4 moderate front and 5
+strong + 4 moderate rear from the production kinematic path). Since
+cornering-stiffness-ratio and saturation/tyre-limit detection are a core
+part of what this pipeline uses sideslip-derived quantities for, an
+estimator that structurally cannot support that use case is not a viable
+production replacement, independent of its other validated properties
+(sign correctness, steady-state order-of-magnitude recovery).
+
+The kinematic estimate remains the production sideslip source, with its
+own known limitation (the washout-suppressed zero-slip offset, sections 1
+and 3) documented and unresolved. The observer remains a documented
+diagnostic instrument (`diagnostics/sideslip_kalman_observer.py`), useful
+for the purpose that motivated building it — locating where and roughly
+how large the kinematic estimate's steady-state suppression is — but not
+usable as a CS_ratio input as currently constructed. No production wiring,
+threshold re-derivation, before/after verdict comparison, accuracy-
+registry update, or schema version bump follows from this comparison (see
+section 5's update above). Future work that could in principle restore
+saturation detection (a nonlinear-tyre observer, or an adaptively
+estimated rather than fixed stiffness prior) is named but not pursued —
+both carry their own circularity problem (slip angles are needed to fit
+the tyre curve that in turn produces slip angles) needing explicit
+resolution first. Full write-up: `thesis_notes.md`, "Observer saturation-
+detection failure: the decisive finding".

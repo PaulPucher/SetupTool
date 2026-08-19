@@ -1,57 +1,93 @@
 ## STATUS - rewritten at every work stop, never appended
 
 ### NOW
-Track A (numbers correct): sideslip methods-comparison arc, tuning
-and reporting COMPLETE this session (WP-S1 through WP-S6). Kalman
-observer tuned via a corrected ratio sweep (WP-S5b, diagnostics/
-inspect_kalman_qr_ratio_sweep.py, after finding the original 3x3
-Q/R grid tested only 3 distinct settings -- a linear KF's gain
-depends only on the Q/R ratio, confirmed both algebraically and
-empirically): ratio=0.3162 chosen from the interior, not the
-steady-state-optimal extreme (ratio~0.007-0.05), because that zone
-measurably degrades a new transient-tracking check (d(beta)/dt vs
-d(ay)/dt during corner entry/exit: -0.70 to -0.91 there vs -0.99 at
-the chosen ratio) -- full trade-off record in thesis_notes.md's
-WP-S5b entry. Applied to diagnostics/sideslip_kalman_observer.py
-(Q scaled by 0.3162, R unchanged); harness re-run confirms both
-mandatory sanity/regression gates still pass and the physical sign
-result stays 11/11 racing-speed corners (14/14 overall) unchanged.
-WP-S6 comparison report written: sideslip_comparison_report.md
-(repo root, not docs/ -- docs/ has zero git-tracked files outside
-the protected car_data/literature/study/ set, see the report's own
-header note). Reports the five harness metrics, the force-balance
-steady-state check, the physical sign check, and the transient-
-tracking check for all three candidates (kinematic production, GPS
-negative control, tuned observer), plus the honest limits (no
-ground truth, self-consistency != accuracy, slide-preservation
-unverifiable on this data, low-speed corners ambiguous on sign) and
-what a win/no-win decision would each trigger. Deliberately makes NO
-recommendation -- the win/no-win call belongs to the user and
-supervisor, not taken here.
-AWAITING: the win/no-win decision. Nothing in this arc is wired to
-production regardless of outcome; a WIN decision would still require
-separate follow-on work (production wiring, threshold re-derivation,
-before/after verdict comparison, accuracy-registry update, schema
-version bump -- listed in the report's own section 5, none of it
-started).
-Last commit: e223aba (Corner points clickable). Local main is one
-commit ahead of origin/main. Uncommitted: the sideslip arc's
-diagnostics scripts (comparison harness, Kalman observer now tuned,
-chain-decomposition/washout/self-consistency/sign-check/Q-R-sweep
-diagnostics, two labelled plot scripts + diagnostics/plots/ output,
-gitignored), config/parameters.json additions (Iz placeholder,
-re-introduced CS fallback references), modules/stability_analysis.py
-(estimate_sideslip docstring now pointer-only per the citation-
-location rule), sideslip_comparison_report.md (new, repo root),
-thesis_notes.md entries, and this PLAN.md restructure.
+Track A (numbers correct): sideslip methods-comparison arc
+CONTINUES -- NOT closed. The linear-tyre Kalman observer (WP-S4/S5/
+S5b/S6) is REJECTED for production, reason recorded; rejection
+defines the next work package rather than ending the arc.
+Rejection reasoning: a critical check (diagnostics/inspect_observer_
+slip_angle_circularity.py) found the linear observer's slip angle
+collapses into a near-restatement of lateral force through its own
+fixed cornering-stiffness prior -- R^2>0.997 against a straight line
+at BOTH axles (not just the rear, where the concern was first raised
+against a plot), best-fit slopes within 11-12% of the fixed priors,
+residual scatter under 6% of the force's own spread. Flagged corner
+instances under current thresholds fall from a real 7 strong + 4
+moderate (front) / 5 strong + 4 moderate (rear), out of 56, to ZERO
+at both axles using observer-derived CS_ratio. A state observer built
+on a linear tyre model cannot detect departure from tyre linearity --
+saturation does not exist in its model, so it cannot appear in its
+output. Does NOT invalidate the observer's other validated properties
+(physical sign correctness at 11/11 racing-speed corners, WP-S5;
+steady-state order-of-magnitude recovery, WP-S4/S4b) -- those test
+direction/magnitude, not local linearity. Kinematic estimate
+(production, unchanged) remains the sideslip source meanwhile.
+Full reasoning: thesis_notes.md "Linear observer saturation-detection
+failure: why the tyre model must be nonlinear" -- supersedes (dated
+correction note added, original not struck) the immediately prior
+entry's "arc closed" framing. sideslip_comparison_report.md's own
+section 7 "NO-WIN"/"decision recorded" framing is now stale the same
+way but NOT edited this turn (out of scope for this pass) -- flagged
+here so it isn't mistaken for current status; needs a follow-up pass.
+NEXT WORK PACKAGE (supervisor-directed): a NONLINEAR single-track
+Kalman filter, tyre curve IDENTIFIED FROM THIS CAR'S OWN DATA (no
+published curve exists for these tyres; the car may run different
+compounds between events, so a published curve would not necessarily
+apply anyway). Circularity problem named in advance: slip angles are
+needed to fit the tyre curve that in turn produces slip angles.
+Intended resolution: fit the curve initially from low-slip samples
+only (near-linear regime, where the current linear-observer estimate
+is least wrong); run the observer with that fitted curve; refit the
+curve from the resulting improved slip angles; iterate to
+convergence. Known limitation recorded in advance: a fitted curve is
+only valid over the slip range the data actually visits --
+extrapolation beyond it is not supported and must not be presented as
+such. Intended by-product: a measured tyre curve for this car,
+plottable as its own deliverable independent of the production
+decision.
+OPEN DESIGN DECISIONS this work package carries, none resolved yet:
+  (1) which NONLINEAR TYRE MODEL FORM to fit (e.g. Pacejka Magic
+      Formula, a simpler saturating polynomial/arctan form, or a
+      non-parametric/piecewise fit) -- not chosen;
+  (2) how the low-slip-first iteration is INITIALISED (which samples
+      count as "low-slip enough" for the first fit) and when it is
+      considered CONVERGED (a stopping criterion on successive
+      curve-fit or slip-angle changes) -- neither defined;
+  (3) how the VALID SLIP RANGE of the fitted curve is REPORTED (so
+      the curve is never presented as extrapolated beyond the range
+      the data actually visited) -- reporting mechanism not designed.
+Track A's OTHER open item, unrelated to the estimator question and
+unaffected by any of the above: vehicle-parameter provenance
+(wheelbase, Iz, cog height, track widths, Cl reviewer placeholders ->
+team figures).
+Plot folders relabelled this session for tyre-model traceability
+(diagnostics/plots/, gitignored): untuned -> untuned_linear_tyre,
+tuned -> tuned_linear_tyre, qr_ratio_sweep -> qr_ratio_sweep_
+linear_tyre, slip_angles_tuned -> slip_angles_tuned_linear_tyre; each
+run_info.txt gained a "tyre model:" line; the three plot scripts now
+auto-suffix future run labels with _linear_tyre and record the tyre
+model in their own manifests automatically.
+Last commit: 4b1b548 (Sideslip observer arc: comparison harness,
+Kalman candidate, tuning, report). Local main up to date with
+origin/main. Uncommitted: this session's continuation --
+thesis_notes.md (correction note + new entry), this PLAN.md rewrite,
+three plot scripts (tyre-model auto-labelling), the four renamed
+(gitignored, untracked) plot folders, plus two diagnostics scripts
+from the immediately preceding turn (plot_slip_angle_comparison.py,
+inspect_observer_slip_angle_circularity.py).
 
 ### BACKLOG (ordered)
-A - Numbers correct: observer tuning; comparison report + decision;
-    if it wins, production wiring + threshold re-derivation + a
-    before/after verdict comparison; vehicle-parameter provenance
-    (wheelbase, Iz, cog height, track widths, Cl) + team figures.
-    Done when: sideslip has a defensible source and verdicts are
-    recomputed on it.
+A - Numbers correct: nonlinear single-track Kalman filter with a
+    data-identified tyre curve (linear observer rejected for
+    production on saturation-detection failure, see NOW above --
+    this replaces the prior "observer tuning; comparison report +
+    decision" item, does not close it); vehicle-parameter provenance
+    (wheelbase, Iz, cog height, track widths, Cl reviewer
+    placeholders) + team figures, unrelated to the estimator
+    question. Done when: sideslip has a defensible source (linear or
+    nonlinear, whichever survives scrutiny) and verdicts are
+    recomputed on it, or the nonlinear attempt is itself rejected
+    with reasons recorded the same way the linear one was.
 C - Decision-matrix depth: elicitation question set (own file, to
     be created in a later session, sorted by who answers - user or
     engineer); matrix expansion incl. the beyond-peak gap; cost

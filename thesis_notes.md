@@ -1585,6 +1585,144 @@ HOW TO USE:
   Added to the new-data-file diagnostic checklist (PLAN.md) as an item
   to attempt when a longer log arrives.
 
+### Observer saturation-detection failure: the decisive finding [2026-08-20]
+- TEST: cornering-stiffness ratios (CS_ratio_f/CS_ratio_r) recomputed
+  from the observer's slip angles, compared against the production
+  kinematic path -- diagnostics/inspect_observer_slip_angle_
+  circularity.py, raised against the rear force-vs-slip plot
+  (diagnostics/plot_slip_angle_comparison.py) showing a suspiciously
+  clean, near-linear cloud.
+- RESULT: observer slip angle explains 99.8% (rear, R^2=0.9979) and
+  99.7% (front, R^2=0.9971) of lateral force variance as a straight
+  line, with best-fit slopes within 11-12% of the fixed stiffness
+  priors (rear: fitted 101055 N/rad vs Car_prior=91343; front: fitted
+  60070 N/rad vs Caf_prior=68268) and residual scatter under 6% of the
+  force's own spread (rear 4.6%, front 5.4%). The CS_ratio distribution
+  compresses toward 1 at both axles (rear p5 0.211 -> 0.716; front p5
+  0.107 -> 0.587, corner samples). Under current thresholds, worst-
+  phase-per-corner-instance flagged counts fall from 7 strong + 4
+  moderate (front) and 5 strong + 4 moderate (rear), out of 56
+  instances, to ZERO at both axles using observer-derived CS_ratio.
+- MECHANISM: the filter's measurement equation ties lateral
+  acceleration to sideslip through the fixed cornering-stiffness prior
+  (ay = -(Caf+Car)/m*beta - (Caf*lf-Car*lr)/(m*Vx)*yaw_rate + Caf/m*
+  delta_f, thesis_notes.md WP-S4 entry), and lateral acceleration is
+  one of only two correcting measurements (the other is yaw_rate
+  directly) -- so the Kalman gain pulls the state estimate onto the
+  assumed linear tyre relationship regardless of what the tyre is
+  actually doing. The measured steering angle (delta_f) enters as a
+  control input (via B*u), not as a correcting measurement, which is
+  why the expected front-axle independence did not materialise: the
+  a priori structural argument (WP-S6's circularity check write-up)
+  predicted the front would retain more independent content than the
+  rear; the measured R^2 (0.9971 front vs 0.9979 rear) shows this
+  essentially did not happen -- worth recording as a case where a
+  reasonable-sounding structural argument was tested and refuted by
+  the numbers, not assumed correct.
+- THE GENERAL STATEMENT: a state observer built on a LINEAR tyre model
+  cannot detect departure from tyre linearity. Saturation does not
+  exist in its model, so it cannot appear in its output. This is not a
+  tuning defect (WP-S5b's Q/R sweep already searched a wide range
+  without touching this) or an implementation bug -- it is a structural
+  consequence of circularity option 2's own choice (WP-S4: a FIXED
+  Caf/Car prior, chosen specifically to avoid the alpha-derived
+  circularity in the production C_linear_ref) that was flagged at the
+  time as trading one circularity problem for a different limitation,
+  whose full downstream consequence (saturation detection specifically)
+  is only established with this check.
+- WHAT THIS DOES NOT INVALIDATE: the diagnosis of the kinematic
+  estimate's own failures (steady-state suppression traced to the
+  washout filter, wrong sign at C6/C10, the implausible ~4x corner-to-
+  corner cornering-stiffness spread traced to the kinematic alpha's own
+  error, WP-S3/S3b/S3c/S4b) and the observer's own validated properties
+  (physical sign correctness at all 14/11 corners, WP-S5; order-of-
+  magnitude steady-state recovery against the force-balance expectation,
+  WP-S4/S4b). Those tested different properties -- direction and
+  magnitude of a steady-state quantity -- that do not depend on local
+  linearity being violated, unlike CS_ratio, which specifically measures
+  deviation from local linearity.
+- DECISION RECORDED: the observer is NOT adopted into production. It
+  remains a documented diagnostic instrument (diagnostics/sideslip_
+  kalman_observer.py), validated on sign, useful for the specific
+  diagnostic purpose that motivated building it (locating WHERE and
+  roughly how large the kinematic estimate's steady-state suppression
+  is), but not usable as a CS_ratio/saturation-detection input as
+  currently constructed.
+- FUTURE WORK, named honestly, not pursued here: a nonlinear-tyre
+  observer (in the spirit of Kiencke & Nielsen's own nonlinear two-
+  track construction, already named in WP-S4's thesis_notes.md entry as
+  the future nonlinear ablation) or an adaptively-estimated rather than
+  fixed stiffness prior could in principle preserve saturation
+  detection. Both carry a circularity problem of their own -- slip
+  angles are needed to fit the tyre curve that in turn produces slip
+  angles -- that would need an explicit resolution before either is
+  attempted. Out of scope here; not started.
+- [2026-08-20] CORRECTION, status: the "DECISION RECORDED" bullet above
+  ("the arc is closed") is SUPERSEDED, not struck -- it correctly
+  recorded the linear observer's own rejection, but the arc itself
+  continues: the supervisor's own direction is to pursue the nonlinear
+  observer named as future work above, not to stop here. See the new
+  entry immediately below ("Linear observer saturation-detection
+  failure: why the tyre model must be nonlinear") for the corrected
+  status and next work package. PLAN.md's STATUS block is rewritten in
+  place, not superseded, so it always carries the current state --
+  check there for the live status rather than this entry going forward.
+
+### Linear observer saturation-detection failure: why the tyre model must be nonlinear [2026-08-20]
+- TEST: cornering-stiffness ratios recomputed from the linear
+  observer's slip angles, compared against the production kinematic
+  path -- same test and script as the entry above (diagnostics/
+  inspect_observer_slip_angle_circularity.py); this entry restates the
+  result under the corrected forward-looking framing established after
+  the entry above was written.
+- RESULT: the observer's slip angle explains 99.8% (rear) and 99.7%
+  (front) of lateral force variance as a straight line; best-fit
+  slopes within 11-12% of the fixed stiffness priors; residual scatter
+  under 6% of the force's own spread. CS_ratio distributions compress
+  toward 1 at both axles (rear p5 0.211 -> 0.716, front p5 0.107 ->
+  0.587). Under current thresholds, flagged instances fall from 7
+  strong + 4 moderate (front) and 5 strong + 4 moderate (rear) to ZERO
+  at both axles.
+- MECHANISM: the filter's measurement equation ties lateral
+  acceleration to sideslip through the FIXED cornering-stiffness prior,
+  and lateral acceleration is one of only two correcting measurements,
+  so the state estimate is pulled onto the assumed linear tyre
+  relationship. Steering angle enters as a control input, not a
+  correcting measurement, which is why the expected front-axle
+  independence did not appear.
+- GENERAL STATEMENT: a state observer built on a linear tyre model
+  cannot detect departure from tyre linearity -- saturation does not
+  exist in its model, so it cannot appear in its output.
+- WHAT THIS DOES NOT INVALIDATE: the diagnosis of the kinematic
+  estimate's failures (steady-state suppression, wrong sign at C6/C10,
+  implausible fourfold stiffness spread) and the observer's validated
+  properties (physical sign correctness at all racing-speed corners,
+  order-of-magnitude steady-state recovery). Those test properties that
+  do not depend on local linearity.
+- STATUS (corrects the prior entry's "arc closed" framing): the linear
+  observer is NOT adopted into production, and the arc is NOT closed.
+  It establishes the requirement for the next step: a NONLINEAR
+  single-track Kalman filter, per the supervisor's own suggestion, with
+  the tyre curve IDENTIFIED FROM THIS CAR'S OWN DATA rather than taken
+  from a published curve -- no published curve exists for these tyres,
+  and the car may run different compounds between events, so a
+  published reference would not necessarily be valid anyway.
+- CIRCULARITY PROBLEM AND INTENDED RESOLUTION, recorded before any
+  implementation starts: slip angles are needed to fit the tyre curve
+  that in turn produces slip angles. Intended approach -- fit the curve
+  initially from low-slip samples only, where the tyre is genuinely
+  near-linear and the CURRENT (linear-observer) estimate is least
+  wrong; run the observer with that fitted curve; refit the curve from
+  the resulting improved slip angles; iterate to convergence. KNOWN
+  LIMITATION, recorded in advance: a fitted curve is only valid over
+  the slip range the data actually visits -- extrapolation beyond the
+  visited range is not supported by this method and must not be
+  presented as such.
+- INTENDED BY-PRODUCT: a measured tyre curve for this car, plottable as
+  a deliverable in its own right, independent of whatever the
+  nonlinear-observer iteration ultimately concludes about production
+  adoption.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]

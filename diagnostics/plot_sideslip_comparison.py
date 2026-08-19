@@ -33,12 +33,24 @@ from diagnostics.sideslip_kalman_observer import (
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# The observer's tyre model as of this WP (linear, fixed Caf/Car prior --
+# see thesis_notes.md "Linear observer saturation-detection failure").
+# Every plot this script produces used this model; the run label and the
+# manifest both record it explicitly so a future nonlinear-tyre observer's
+# plots are never mistaken for these, without needing tyre-model text
+# burned into the figures themselves.
+TYRE_MODEL_TAG = "linear_tyre"
+TYRE_MODEL_DESC = ("linear (fixed stiffness prior, Caf/Car from config/parameters.json "
+                    "cs_front/rear_fallback_reference_n_per_rad)")
+
 if len(sys.argv) > 1:
     RUN_LABEL = sys.argv[1]
 else:
     RUN_LABEL = datetime.date.today().isoformat()
     print(f"No run label given on the command line -- using today's date as the "
           f"folder name: {RUN_LABEL}")
+if not RUN_LABEL.endswith(f"_{TYRE_MODEL_TAG}"):
+    RUN_LABEL = f"{RUN_LABEL}_{TYRE_MODEL_TAG}"
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "plots", RUN_LABEL)
 
@@ -82,6 +94,7 @@ with open(run_info_path, "w", encoding="utf-8") as f:
     f.write(f"run label: {RUN_LABEL}\n")
     f.write(f"date: {datetime.date.today().isoformat()}\n")
     f.write(f"git commit: {_git_commit_info()}\n")
+    f.write(f"tyre model: {TYRE_MODEL_DESC}\n")
     f.write("observer Q/R settings (diagnostics/sideslip_kalman_observer.py):\n")
     f.write(f"  Q_BETA_VAR = {float(Q_BETA_VAR):.6e} rad^2\n")
     f.write(f"  Q_YAW_RATE_VAR = {float(Q_YAW_RATE_VAR):.6e} (rad/s)^2\n")
