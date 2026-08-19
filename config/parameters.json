@@ -67,6 +67,10 @@
     "kerb_dilation_samples": 5,
     "kerb_baseline_g": 1.0
   },
+  "tyre_model_fit": {
+    "_comment": "WP-N1 (diagnostics/fit_dugoff_first_pass.py only -- no modules/ consumer yet). Calibration tunable defining the low-|ay| population treated as the near-linear tyre regime for the Dugoff c_alpha first-pass fit (Fy vs kinematic alpha, through the origin). Not yet re-derived from a data-driven gap-selection pass -- 0.3g is the WP's stated default, carried forward from the WP-N0 saturation-coverage diagnostic's own candidate-threshold list.",
+    "ay_linear_threshold_g": 0.3
+  },
   "corner_trace_display": {
     "_comment": "Tier C UI display parameter (PLAN.md PART C usability follow-up, Task 2a) -- how far beyond a corner's own phase bracket (entry_1_brake start to exit_5 end) the per-corner trace window's plotted s-range extends, so brake/approach and coast-out context is visible. Not a science/analysis parameter, purely a plotting-window default; clamped at each lap's own s_m extent in ui/views/corner_trace_dialog.py, never fabricates data before/after what that lap actually recorded. Phase-tint bands are unaffected -- still drawn only over the 5 named phases, never over this margin.",
     "margin_before_m": 100.0,

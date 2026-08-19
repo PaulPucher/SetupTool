@@ -1723,6 +1723,169 @@ HOW TO USE:
   nonlinear-observer iteration ultimately concludes about production
   adoption.
 
+### WP-N1: Dugoff tyre model chosen + first-pass fit, identifiability finding [2026-08-20]
+- MODEL CHOICE: Dugoff pure-lateral tyre model (Rajamani, Vehicle Dynamics
+  and Control, 2nd ed., Ch. 13.10, eqs. 13.72-13.76, page TBD verify --
+  chapter/eq. numbers only, not yet checked against the printed edition).
+  Two-parameter form (c_alpha, mu_fz), analytic in both force and
+  dFy/dalpha (modules/tyre_model.py) -- the EKF the next WP builds needs
+  the derivative in closed form, not just the force curve.
+- ALTERNATIVES CONSIDERED AND REJECTED: a simple ad-hoc saturating form
+  (e.g. a raw arctan or polynomial saturation with no friction-circle
+  meaning) was rejected in favour of Dugoff -- same parameter count, but
+  Dugoff has both a literature anchor and a physical interpretation for
+  each parameter (c_alpha = linear cornering stiffness, mu_fz = friction
+  force ceiling), where an unanchored ad-hoc form would have neither.
+  Magic Formula (Pacejka) recorded as the fallback if Dugoff's two-
+  parameter form proves insufficient once the EKF is running (more
+  parameters, better shape fidelity far from the fit population, but no
+  literature anchor exists yet for THIS car's tyres regardless of which
+  form is used -- see identification-loop rationale below).
+- SIGN CONVENTION: the literature Dugoff formula is Fy =
+  -c_alpha*tan(alpha)*f(lambda) (force opposes slip, standard SAE
+  framing). This codebase's own slip-angle definitions already produce a
+  POSITIVE Fy-vs-alpha slope (empirically confirmed on Dubai data both
+  axles: corr(alpha, Fy_filt) = +0.85 front, +0.59 rear, matching Module
+  4b's own positive C_alpha throughout) -- modules/tyre_model.py drops
+  the literature minus sign to match this pipeline's established
+  convention (Werner (2021) S2.2.3, same convention already used
+  throughout stability_analysis.py). Shape unaffected, sign only.
+- OBSERVER-LINE ANCHORS (for the next WP, recorded now so the EKF starts
+  with citations already in hand): Ulsoy, Peng, Cakmakci, "Automotive
+  Control Systems" (observer input/measurement structure) -- CHAPTER NOT
+  VERIFIED: nobody has opened this book and confirmed which chapter
+  covers this; "Ch. 14" is an unconfirmed guess carried from a prior
+  reference, not a checked citation, and must not be recorded as one
+  until someone actually opens the source. Rajamani Ch. 14 (Kalman
+  filter treatment, page TBD verify) -- chapter-level anchor already
+  confirmed visually by the user, PLAN.md ANCHORS ("Ch. 14 Kalman
+  application"), only the exact page within it is unverified. Kiencke &
+  Nielsen, "Automotive Control Systems", 2nd ed., "Vehicle Body Side
+  Slip Angle Observer" section (observer-based sideslip estimation as
+  established practice) -- section TOPIC/title already confirmed
+  visually by the user, PLAN.md ANCHORS; only the numeric section
+  reference is unverified. See section 6 open-questions entry.
+- IDENTIFICATION-LOOP DESIGN (own project design, not from a cited
+  source): no published tyre curve exists for these tyres, and the car
+  may run different compounds between events, so a published curve would
+  not necessarily apply even if one existed. Planned iteration: fit the
+  curve from low-slip samples first (near-linear regime, where the
+  current kinematic estimate is least wrong), run the observer, refit
+  from the resulting slip angles, repeat to convergence. Rationale
+  recorded in the prior entry ("Linear observer saturation-detection
+  failure"); this WP is the first concrete step (the curve-fitting
+  machinery), not the loop itself.
+~~- FIRST-PASS FIT (diagnostics/fit_dugoff_first_pass.py, Dubai, laps 1-4,
+  24183 masked samples): c_alpha_front=18034 N/rad, c_alpha_rear=9206
+  N/rad (OLS slope through the origin, |ay|<0.3g population only, n=7240
+  each). Both values are roughly 6-10x BELOW the production Module 4b
+  C_alpha figures (test_stability.py: mean 114617 N/rad front, 190532
+  N/rad rear) and below the config fallback references (68268/91343
+  N/rad). Diagnosed cause, checked directly: the low-|ay| population has
+  low alpha/Fy correlation (r=0.37 front, r=0.13 rear) -- near zero slip,
+  both alpha and Fy are small and noise-dominated, and this fit (a single
+  direct OLS pass) has none of Module 4b's safeguards against exactly
+  this (minimum window span, R^2-weighted section blending). Forcing the
+  regression through the origin was checked and ruled out as the cause
+  (allowing a free intercept gives slope within 0.5% of the through-
+  origin value, intercept near zero).
+- CEILING FIT DID NOT CONVERGE TO AN INTERIOR OPTIMUM: mu_fz_front and
+  mu_fz_rear both landed at exactly 100.0% of their search bracket's
+  upper bound (bracket = [1, 5x max observed |Fy|] N) -- the objective is
+  monotonically improving toward larger mu_fz given this fit's low
+  c_alpha, so the "fit" mu_fz values (48905 N front, 67878 N rear;
+  implied effective mu ~8.7-8.8, physically implausible for a race
+  slick) are a boundary artifact, not an identified parameter. This is
+  the WP-N0 gating question answered directly: with THIS c_alpha, the
+  ceiling is not identifiable from this data -- not because the data
+  never approaches the friction limit (WP-N0 found |Fy|/Fz up to 2.25 at
+  p99=1.73, well above what a mu~1-2 slick should sustain, which is
+  itself informative), but because the low-slip stiffness fit that feeds
+  the ceiling fit is itself unreliable. The two problems compound: a
+  understated c_alpha forces an overstated mu_fz to span the same
+  observed force range. FIX IS NOT ATTEMPTED THIS SESSION (out of WP-N1
+  scope, "no filter, no UI changes this turn") -- candidates for the next
+  pass: reuse Module 4b's own windowed/R^2-weighted stiffness estimate
+  as c_alpha's source instead of a raw low-ay OLS pass, or widen/
+  reweight the linear-regime population.~~ [SUPERSEDED 2026-08-20,
+  WP-N1b: the diagnosis above was correct (errors-in-variables
+  attenuation, confirmed) but the fix was not yet applied when this
+  paragraph was written. See "WP-N1b: c_alpha refit from Module 4b"
+  entry below for the corrected fit -- interior-optimum mu_fz, physically
+  plausible effective mu.]
+- SCOPE: modules/tyre_model.py has zero call sites in modules/ or ui/
+  this session -- diagnostics-only, no production wiring, no accuracy-
+  level registry entry (nothing to register: not consumed).
+  config/parameters.json gained one new block, tyre_model_fit
+  (ay_linear_threshold_g=0.3, calibration tunable, WP-N0's candidate-
+  threshold list carried forward as the default, not yet re-derived from
+  a gap-selection pass of its own). test_stability.py confirmed
+  byte-identical (no modules/stability_analysis.py change this session).
+
+### WP-N1b: c_alpha refit from Module 4b [2026-08-20]
+- DIAGNOSIS (why the WP-N1 fit failed): the low-|ay| OLS slope is a
+  textbook errors-in-variables attenuation case. Near zero slip, both
+  the regressor (kinematic alpha) and the response (Fy) are dominated by
+  their own measurement/estimation noise rather than by genuine tyre
+  signal -- alpha near zero is itself the hardest regime for the
+  kinematic sideslip estimate (small denominators, integrated-drift
+  sensitivity) and Fy near zero is likewise close to the force balance's
+  own noise floor. Classical errors-in-variables theory: OLS slope bias
+  is attenuated toward zero in proportion to the regressor's noise-to-
+  signal ratio, which is exactly worst where |alpha| is smallest --
+  matching the observed 6-10x understatement and the low correlation
+  (r=0.37 front, r=0.13 rear) at that population. This is a property of
+  the ESTIMATOR (single unweighted OLS pass on a noise-dominated
+  regime), not of the tyre.
+- DECISION: source c_alpha from Module 4b's own per-sample effective
+  stiffness (estimate_cornering_stiffness) instead of refitting a
+  better-behaved OLS. Module 4b's window-growth-until-sufficient-span
+  and R^2-weighted section-blending machinery exists precisely to resist
+  this same attenuation risk across the whole session, not just at low
+  slip -- reusing it is not a new estimator, it is deferring to the one
+  already trusted throughout the rest of this pipeline (CS_ratio,
+  classification thresholds, all of it). c_alpha taken as the median of
+  C_alpha_f/C_alpha_r restricted to CS_ratio==1.0 (Module 4b's own
+  operational linear-regime indicator: window stiffness at or above the
+  currently-known linear reference) within this script's base mask
+  (valid-lap, moving, kerb-excluded).
+- RESULT: c_alpha_front=132798 N/rad (n=13408), c_alpha_rear=174217
+  N/rad (n=16688) -- both now close to Module 4b's own session-wide
+  means (114617/190532 N/rad, test_stability.py; different population,
+  median-over-linear-regime vs mean-over-all-valid, so not expected to
+  match exactly, only to be in the same neighbourhood -- confirmed). The
+  mu_fz ceiling refit now converges to an INTERIOR optimum for both
+  axles: mu_fz_front=10653 N (21.8% of a widened [1,48905] N bracket),
+  mu_fz_rear=15819 N (23.3% of [1,67878] N) -- neither hit the bound.
+  Implied effective mu: 1.90 front, 2.06 rear -- physically plausible
+  for a GT3 race slick (vs. WP-N1's implausible ~8.7-8.8). RMS residual
+  on the full masked population: 2753 N front, 5793 N rear (both fits
+  use n=24183, the same full session population as WP-N1, not just the
+  linear-regime subset).
+- CIRCULARITY STATUS (recorded now, before the EKF is built): both this
+  WP's c_alpha and, through it, Module 4b's own C_alpha are KNOWINGLY
+  INITIALIZED from the kinematic slip-angle
+  estimate, which is already documented elsewhere (thesis_notes.md,
+  "Linear observer" entries) to under-read mid-corner. This first-pass
+  Dugoff fit therefore inherits that same known weakness -- it is a
+  first-round parameter set, not an independently-validated one. The
+  PLANNED loop (kinematic-seeded fit -> nonlinear observer -> refined
+  slip angles -> refit -> repeat, see "Linear observer saturation-
+  detection failure" entry) is INTENDED to break this dependence once it
+  runs. As of this session THE OBSERVER DOES NOT YET EXIST -- nothing
+  has been fused, nothing has been refined, and no iteration has
+  happened. Whether the loop actually converges, and whether convergence
+  removes the kinematic estimate's bias rather than just relocating it,
+  WILL BE VERIFIED EMPIRICALLY when the observer is built and run (per
+  open design decision (2) in PLAN.md) -- it is not verified now and
+  must not be described as verified or as already broken.
+- SCOPE: diagnostics/fit_dugoff_first_pass.py only, modified in place
+  (no new file). No modules/ or config/ change this turn beyond what
+  WP-N1 already introduced. test_stability.py confirmed byte-identical
+  (Module 4b's estimate_cornering_stiffness is now also CALLED by this
+  diagnostic script, but the function itself is untouched -- same
+  computation test_stability.py already exercises, reused not modified).
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
@@ -2895,6 +3058,24 @@ HOW TO USE:
   location rule change (thesis_notes.md "WP-S4: Kalman sideslip
   observer" entry, [2026-08-19] RULE CHANGE bullet); no author/title/
   page in code.
+
+- [ADDED 2026-08-20, WP-N1] Verify page numbers for citations added this
+  session, none checked against a primary source yet: Rajamani Ch. 13.10
+  (Dugoff tyre model, eqs. 13.72-13.76 -- modules/tyre_model.py, page
+  TBD verify -- chapter/topic not previously anchored, unlike the two
+  below); Rajamani Ch. 14 (Kalman filter treatment, page TBD verify --
+  chapter itself already confirmed, WP-S4/PLAN.md ANCHORS, only the page
+  is new); Kiencke & Nielsen "Automotive Control Systems" 2nd ed.,
+  "Vehicle Body Side Slip Angle Observer" section (exact section number
+  TBD verify -- the section's TOPIC is already confirmed, WP-S4/PLAN.md
+  ANCHORS, only its numeric reference is new). Ulsoy, Peng, Cakmakci
+  "Automotive Control Systems" is a SEPARATE, MORE SEVERE case, not just
+  a page/number gap: no part of this source -- book, chapter, or
+  section -- has been opened or confirmed by anyone this session or
+  before. "Ch. 14" as recorded in the WP-N1 entry above is an unverified
+  guess, not a checked citation, and must not be treated as one (or used
+  in any written text) until the actual chapter is located and confirmed
+  against the primary source.
 
 - Werner method-delta comparison: three-column table (adopted as-is /
   deliberately different + why / not implemented + upgrade path),

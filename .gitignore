@@ -28,6 +28,7 @@ generate_handover.py
 # Diagnostic script outputs — reproducible, not source
 diagnostics/*.txt
 diagnostics/*.png
+diagnostics/*.json
 diagnostics/plots/
 
 # Manufacturer reference data — proprietary team/car data, local only

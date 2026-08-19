@@ -45,21 +45,79 @@ extrapolation beyond it is not supported and must not be presented as
 such. Intended by-product: a measured tyre curve for this car,
 plottable as its own deliverable independent of the production
 decision.
-OPEN DESIGN DECISIONS this work package carries, none resolved yet:
-  (1) which NONLINEAR TYRE MODEL FORM to fit (e.g. Pacejka Magic
-      Formula, a simpler saturating polynomial/arctan form, or a
-      non-parametric/piecewise fit) -- not chosen;
+OPEN DESIGN DECISIONS this work package carries:
+  (1) which NONLINEAR TYRE MODEL FORM to fit -- RESOLVED this session
+      (WP-N1): Dugoff pure-lateral (Rajamani Ch. 13.10), two
+      parameters (c_alpha, mu_fz), analytic force + dFy/dalpha in
+      modules/tyre_model.py. Chosen over an unanchored ad-hoc
+      saturating form (same parameter count, no anchor, no
+      friction-circle meaning); Magic Formula recorded as fallback if
+      Dugoff proves insufficient once the EKF runs. Sign convention:
+      this pipeline's positive Fy-vs-alpha slope (confirmed
+      empirically both axles), literature minus sign dropped, see
+      thesis_notes.md "WP-N1" entry for the full derivation and the
+      observer-line anchors recorded for the next WP: Rajamani Ch. 14
+      and Kiencke & Nielsen's slip-angle-observer section (both
+      chapter/topic already confirmed, WP-S4/PLAN.md ANCHORS, only
+      exact page/section numbers still TBD) plus Ulsoy et al.
+      (UNVERIFIED -- no chapter confirmed, "Ch. 14" is an unchecked
+      guess, corrected 2026-08-20 after initially being recorded too
+      confidently; see thesis_notes.md section 6);
   (2) how the low-slip-first iteration is INITIALISED (which samples
       count as "low-slip enough" for the first fit) and when it is
       considered CONVERGED (a stopping criterion on successive
-      curve-fit or slip-angle changes) -- neither defined;
-  (3) how the VALID SLIP RANGE of the fitted curve is REPORTED (so
-      the curve is never presented as extrapolated beyond the range
-      the data actually visited) -- reporting mechanism not designed.
-Track A's OTHER open item, unrelated to the estimator question and
-unaffected by any of the above: vehicle-parameter provenance
-(wheelbase, Iz, cog height, track widths, Cl reviewer placeholders ->
-team figures).
+      curve-fit or slip-angle changes) -- PARTIALLY advanced this
+      session (WP-N1b): c_alpha's SOURCE is now settled (Module 4b's
+      own median over its own CS_ratio==1.0 linear-regime samples, not
+      a raw low-ay OLS pass -- see finding below), which unblocks the
+      question but does not fully answer it; the EKF-iteration-level
+      questions (how the FIRST fit before any observer exists gets
+      initialised, and the convergence stopping criterion across
+      refit rounds) are still open, now with a working single-round
+      fit to iterate from instead of a broken one;
+  (3) how the VALID SLIP RANGE of the fitted curve is REPORTED --
+      still not designed as a mechanism (WP-N1/N1b's fit script prints
+      visited range as plain values, which is reporting-for-a-
+      diagnostic, not the production reporting mechanism this item
+      asks for).
+FINDING, WP-N1 then WP-N1b (diagnostics/fit_dugoff_first_pass.py):
+WP-N1's first-pass fit used a raw low-|ay| OLS slope for c_alpha and
+got a value 6-10x below Module 4b's own production C_alpha (front
+18034 vs 114617 N/rad; rear 9206 vs 190532 N/rad), diagnosed as
+errors-in-variables attenuation -- near-zero-slip samples are noise-
+dominated in both alpha and Fy (correlation r=0.37 front / 0.13 rear),
+and a single unweighted OLS pass has none of Module 4b's own
+safeguards against exactly this. Consequence: the mu_fz ceiling fit
+did NOT converge to an interior optimum, landing at exactly 100% of
+its search bracket both axles (implied effective mu ~8.7-8.8,
+physically implausible) -- an understated c_alpha forces an
+overstated mu_fz to span the same observed force range.
+FIX (WP-N1b, this session): c_alpha now sourced from Module 4b's own
+per-sample C_alpha (estimate_cornering_stiffness), median over
+CS_ratio==1.0 samples (Module 4b's own linear-regime indicator) within
+the same base mask. Result: c_alpha_front=132798 N/rad,
+c_alpha_rear=174217 N/rad -- now in the right neighbourhood of Module
+4b's own session means (114617/190532 N/rad; different population,
+median-over-linear-regime vs mean-over-all-valid, so not expected to
+match exactly). The mu_fz refit now converges to an INTERIOR optimum
+both axles: mu_fz_front=10653 N (21.8% of a widened [1,48905] N
+bracket), mu_fz_rear=15819 N (23.3% of [1,67878] N). Implied effective
+mu: 1.90 front, 2.06 rear -- physically plausible for a GT3 race
+slick. This answers WP-N0's gating question: the ceiling IS
+identifiable from this data once fed a trustworthy c_alpha. Full
+numbers, RMS residuals, unit/sign check, and the circularity status
+(c_alpha is knowingly seeded from the kinematic estimate's known
+mid-corner under-read; the planned observer loop is INTENDED to break
+that dependence but does not exist yet this session -- nothing fused,
+nothing refined, no iteration run; convergence will be verified
+empirically once it does, not assumed now) in thesis_notes.md "WP-N1b"
+entry; the superseded WP-N1 paragraphs are struck through there, not
+deleted.
+WP-N0 (this session, before WP-N1/N1b): diagnostics/inspect_
+saturation_coverage.py -- |Fy|/Fz distribution both axles (front
+p99=1.727 max=2.253; rear p99=1.665 max=1.899) and |ay| low-slip
+sample budget (29.9%/33.8%/37.4% of 24183 masked samples below
+0.3/0.4/0.5g). Values only, no interpretation at the time.
 Plot folders relabelled this session for tyre-model traceability
 (diagnostics/plots/, gitignored): untuned -> untuned_linear_tyre,
 tuned -> tuned_linear_tyre, qr_ratio_sweep -> qr_ratio_sweep_
@@ -70,11 +128,20 @@ model in their own manifests automatically.
 Last commit: 4b1b548 (Sideslip observer arc: comparison harness,
 Kalman candidate, tuning, report). Local main up to date with
 origin/main. Uncommitted: this session's continuation --
-thesis_notes.md (correction note + new entry), this PLAN.md rewrite,
-three plot scripts (tyre-model auto-labelling), the four renamed
-(gitignored, untracked) plot folders, plus two diagnostics scripts
-from the immediately preceding turn (plot_slip_angle_comparison.py,
-inspect_observer_slip_angle_circularity.py).
+thesis_notes.md (correction note + WP-N1 entry with its superseded-
+paragraph strikethrough + WP-N1b entry + three section-6
+open-question items), this PLAN.md rewrite, three plot scripts
+(tyre-model auto-labelling), the four renamed (gitignored, untracked)
+plot folders, two diagnostics scripts from the immediately preceding
+turn (plot_slip_angle_comparison.py, inspect_observer_slip_angle_
+circularity.py), plus this turn's WP-N0/WP-N1/WP-N1b additions:
+diagnostics/inspect_saturation_coverage.py, modules/tyre_model.py,
+diagnostics/fit_dugoff_first_pass.py (WP-N1b modified this file in
+place, no new file that turn), config/parameters.json (new
+tyre_model_fit block), .gitignore (diagnostics/*.json added -- the fit
+manifest, diagnostics/fit_dugoff_first_pass_manifest.json, is
+reproducible output, not source, same convention as the existing
+.txt/.png/plots/ entries).
 
 ### BACKLOG (ordered)
 A - Numbers correct: nonlinear single-track Kalman filter with a
