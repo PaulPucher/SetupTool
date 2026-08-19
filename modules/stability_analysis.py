@@ -317,11 +317,10 @@ def prepare_vehicle_state(channels, params):
 
 
 def estimate_sideslip(state, params):
-    """Kinematic identity ay = v*(beta_dot + psi_dot) after
-    Mitschke/Wallentowitz, Dynamik der Kraftfahrzeuge (single-track
-    lateral kinematics), p. TBD, verify. Washout integration below is
-    Tier B signal conditioning (drift correction), not part of the cited
-    identity itself.
+    """Kinematic identity ay = v*(beta_dot + psi_dot). Method anchor
+    recorded in thesis_notes.md, WP-S4 entry. Washout integration below
+    is Tier B signal conditioning (drift correction), not part of the
+    cited identity itself.
     """
     se = params["stability_estimation"]
     v = state["v_mps"]

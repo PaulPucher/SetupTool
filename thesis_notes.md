@@ -1039,6 +1039,25 @@ HOW TO USE:
   construction; iteration-1 numbers are quoted here and in the
   script's own before/after comparison, not separately reproducible
   without reverting the two fixes).
+- RE-BASELINE NOTE [2026-08-18, WP-S2 sanity-gate re-run]: the
+  per-corner sign-agreement figure above (133/255=52.2%) was frozen
+  BEFORE commit 0bdff87 ("lap segmentation big improve", 2026-07-26)
+  landed WP1's canonical corner realization, which moved corner-phase
+  boundaries. Re-running the unchanged original
+  inspect_beta_gps_validation.py script against the current
+  realization now prints 127/257=49.4% -- confirmed by direct
+  re-execution, not recomputed differently. The old number was
+  correct FOR ITS OWN realization at the time it was recorded; it is
+  not wrong, only realization-dependent, and is superseded here by
+  the current canonical realization's figure rather than struck. r
+  is unchanged (-0.24, matches within rounding on re-run). Shelving
+  VERDICT is unaffected: both 52.2% and 49.4% are barely-above-chance
+  per-corner sign agreement, and the diagnosis (weak/near-chance
+  cross-method agreement, not a usable Level-3 candidate) does not
+  depend on which of the two numbers is read. diagnostics/
+  inspect_sideslip_methods_comparison.py's Metric 2 sanity gate now
+  checks against 127/257=49.4%, with the same re-baseline reasoning
+  in its own comment.
 
 ### Small-decisions sweep [2026-07-26]
 - cs fallback reference constants deleted (small-decisions sweep):
@@ -1048,6 +1067,18 @@ HOW TO USE:
   has never occurred on real data; if it ever does, the corner reports
   invalid, more honest than silently filling from an unvalidated
   constant.
+- [2026-08-18] Clarifying note on the deletion above: the sideslip
+  methods-comparison observer framework (Open Board item B,
+  circularity option 2 -- beta-independent tyre-stiffness prior, WP-S1)
+  will RE-introduce `cs_front_fallback_reference_n_per_rad`/
+  `cs_rear_fallback_reference_n_per_rad` into config/parameters.json,
+  this time with a named consumer (the prior itself). This supersedes
+  the deletion's rationale going forward without contradicting it --
+  the constants were correctly removed on 2026-07-26 for the reason
+  given then ("consumed nowhere"); a new consumer arriving later is a
+  new decision, not evidence the deletion was wrong. Re-introduction
+  happens under item B's own review and re-derivation stop, not taken
+  here -- no config change made by this note.
 - s_m short-circuit documented as deliberate (small-decisions sweep):
   the chair's time-anchored fallback mode for when s_m is unusable is
   NOT ported -- `estimate_yaw_moment_stability`'s docstring now states
@@ -1124,6 +1155,435 @@ HOW TO USE:
   standing re-derivation stop and is a separate, not-yet-taken future
   decision. accuracy_levels.speed's registry note (config/
   parameters.json) states this distinction explicitly.
+
+### Wheel-speed source characterization (WP-S1) [2026-08-18]
+- Report-only channel-quality diagnostic (diagnostics/inspect_wheel_
+  speed_sources.py), Tier B, standard signal-QA technique (NaN/frozen/
+  dropout fractions, straight-line agreement vs production ecu_speed,
+  L/R consistency). Nothing whitelisted, nothing consumed by any
+  Module 2-5 path; ecu_speed stays the production speed source.
+  Motivation: the raw Dubai log carries four redundant wheel-speed
+  channel families, none whitelisted -- worth characterizing once
+  before any of them becomes a consumer, same "establish the ground
+  truth before building on it" pattern as WP5b(d)'s GPS-speed
+  cross-validation above.
+- TWO INDEPENDENT FAMILIES, not four: log_speed_* and ecu_speed_
+  wheels_* are byte-identical (same time base, max abs diff = 0.0,
+  Section 2). abs_speed_* (a fixed-ratio mph rescale of Team_nWheel*,
+  confirmed by matching relative-deviation and L/R-spread numbers
+  across the two Section 2/3) is the second family. Two channel
+  families on the wire, not four independently-sourced ones.
+- FRONT/REAR SPLIT, not a uniform scale offset: on straight-line
+  samples (moving & valid-lap & |ay|<=0.15g & |yaw rate|<=3.0 deg/s,
+  n=5171), front axle (log_speed_fl/fr) tracks production ecu_speed
+  at median -0.03% (essentially exact agreement); rear axle
+  (log_speed_rl/rr) reads +1.41% high. The rear offset is CONSTANT
+  and throttle-independent: median +1.44% under throttle-on
+  (ecu_aps>20%) vs +1.41% across all straight-line samples -- a
+  driven-axle traction-slip signature would shrink or reverse off-
+  throttle; it does not move. Diagnosis: a rolling-radius difference
+  (rear tyre circumference vs the ECU's per-wheel radius constant),
+  not traction slip.
+- BRAKING-ONLY FRONT EFFECT, separate from the above: under braking
+  (log_pbrake_f>5bar, n=643) front reads -1.38% (vs -0.03% off-
+  braking) while rear stays flat (-0.09%, matching its all-condition
+  baseline). This is the classic signature of front-wheel slip under
+  braking (this car carries more front brake bias), layered on top of
+  the constant rear rolling-radius offset -- two distinct effects on
+  two distinct channels, not one confound.
+- CROSS-REFERENCE: the rolling-radius-difference reading here is
+  corroborated, not duplicated, by WP5b(d)'s GPS-speed finding above
+  (k=1.01211, ecu_speed reads ~1.2% low vs GPS, condition-independent
+  across speed classes) -- both point independently to a rolling-
+  radius/calibration-scale story rather than a slip artifact, from two
+  unrelated measurement chains (wheel-speed cross-family comparison
+  here vs GPS-speed comparison there).
+- DESIGNATION: log_speed_* is the designated candidate family for any
+  future wheel-speed consumer (byte-identical to ecu_speed_wheels_*,
+  the cleaner of the two families on median deviation and L/R std).
+  No config whitelist change made here -- per the project's no-
+  consumer convention, whitelisting is deferred until a concrete
+  consumer exists; this entry documents the characterization work so
+  that future consumer does not have to repeat it.
+
+### Zero-slip offset: chain decomposition + mechanism search (WP-S3b/S3c) [2026-08-18]
+- Follow-up to Metric 5's direction-locked zero-slip Fy offset (WP-S3,
+  diagnostics/inspect_sideslip_methods_comparison.py), which persists at
+  comparable magnitude under both the kinematic and GPS-course beta
+  candidates despite the two being nearly uncorrelated (r=-0.24). WP-S3b/
+  S3c (diagnostics/inspect_offset_chain_decomposition.py, diagnostics/
+  inspect_washout_mechanism.py) traced the effect to its construction and
+  tested candidate mechanisms.
+- REFRAMING: the near-zero-alpha condition at high ay is a GEOMETRIC
+  CANCELLATION in the slip-angle construction itself, not evidence of an
+  Fy-side offset per se. At the rear, alpha_r's small-angle form is
+  yaw_geom_r - beta; near-zero alpha_r means beta and the yaw-rate
+  geometry term (lr*psidot/v) are nearly equal (confirmed: mean |median
+  beta|=0.625 deg vs mean |median yaw_geom_r|=0.612 deg across 14
+  corners, ratio 1.02). At the front, alpha_f's small-angle form is
+  delta_f - (beta + yaw_geom_f); near-zero alpha_f means steering is
+  matched by the sum of the other two terms (mean |median delta_f|=1.560
+  deg vs mean |median (beta+yaw_geom_f)|=1.559 deg across 13 corners).
+  Both hold while ay stays large throughout (mean |ay|~10 m/s^2) -- so
+  the correct framing is that this is an ALPHA-ERROR proxy (the
+  estimated slip angle reads near zero when it should not), not
+  primarily an Fy-construction artifact; Fy_f/Fy_r (estimate_lateral_
+  forces) do not depend on beta at all, so the Fy side was never the
+  natural place to look for the root cause.
+- FORCE-BALANCE CHECK quantifies the same alpha-error directly, in slip-
+  angle terms rather than force terms: alpha_r_ss = Fy_r_needed / Cr,
+  Fy_r_needed = m*ay*lf/L (steady-state 2-DOF moment balance, Milliken &
+  Milliken RCVD, diagnostic use only, not implemented), Cr = the current
+  linear-reference cornering stiffness (C_linear_ref_r) at the same
+  samples. Cr's own numerator/denominator are alpha_r/Fy_r-derived --
+  circular for an independent magnitude claim, though the underlying OLS
+  slope naturally demeans a roughly-constant per-window Fy offset, which
+  limits (does not remove) that circularity; treated as informative for
+  order-of-magnitude and sign only. Result: every one of 14 corners
+  demands 0.9-5.8 deg of steady-state rear slip to support the observed
+  ay via Cr, while the estimated alpha_r reads ~0 deg at those same
+  samples -- a large, systematic under-read, always signed with ay (same
+  direction-lock Metric 5 found on the Fy side).
+- MECHANISMS TESTED:
+  - IMU longitudinal lever-arm (ay_imu = ay_cog + x_imu*psiddot, standard
+    rigid-body kinematics, diagnostic fit only): position is UNKNOWN
+    in-repo (config/parameters.json's accuracy_levels.lateral_acc
+    capped_by note and limitations register item 5 record only the
+    assumption "accelerometer at CoG", no measured or estimated offset
+    anywhere). A diagnostic (non-calibration) least-squares fit of the
+    near-zero-slip Fy offset against mass*fraction*psidd returned
+    x_imu=-8.42 m (front) / -8.71 m (rear), R^2=0.087-0.123 -- over 3x
+    this car's 2.505 m wheelbase and a weak fit. REJECTED as the
+    dominant mechanism.
+  - Static front/rear weight-split mis-apportionment (Fy_f = m*ay*
+    front_fraction + ..., Level 1 static split, thesis_notes.md
+    limitations register item 1): REJECTED on physics grounds (reviewer
+    decision, 2026-08-18) -- an incorrect static/dynamic split
+    apportions a given total Fy_total=m*ay between axles differently,
+    but cannot make either axle's OWN Fy read near zero while that
+    axle is genuinely carrying several kN of load; mis-apportionment
+    changes the SPLIT, not whether an axle's force is offset from zero
+    at its own zero-slip point. Not tested computationally here --
+    excluded on the force-balance argument alone.
+  - Washout ablation (per-corner beta re-anchored to zero at the last
+    straight-line sample before corner entry, raw beta_dot = ay/v -
+    yaw_rate integrated with the 0.05 Hz high-pass removed): UNINFORMATIVE,
+    neither confirms nor refutes. Median beta shifted substantially per
+    corner (1-6.5 deg) when the washout was removed, and the near-zero-
+    alpha_r sample count thinned in aggregate (1965 -> 1299), but not
+    consistently per corner (several corners' counts grew instead), and
+    the direction-locked Fy offset did not shrink toward zero under
+    re-anchoring -- it flipped sign and stayed comparably large (+6197 N
+    -> -4684 N globally). The re-anchored construction's own empirical
+    residual drift (measured at the first straight-line sample after
+    corner exit, where true beta should read ~0: median 5.7 deg, mean
+    6.1 deg, p90 10.8 deg, max 14.3 deg over a single corner's span) is
+    comparable to or larger than the effect under test, so its near-
+    zero-slip selection cannot be trusted as clean ground truth. This
+    result is also consistent with (not merely compatible with) Metric
+    5's cross-beta-source finding: GPS-course beta uses a completely
+    different, non-washout drift-correction mechanism (periodic
+    re-anchoring to log_gps_course) and still shows a comparable
+    direction-locked offset, so a washout-specific explanation was
+    already in tension with that result before this ablation ran.
+- STANDING SYNTHESIS: the kinematic sideslip estimate lacks any low-
+  frequency truth source for steady-state sideslip -- the washout
+  high-pass strips steady-state content by construction (that is its
+  job, correcting integration drift), and the GPS-course candidate's
+  anchor density was too sparse to supply it instead (its own shelving
+  record, WP5b(c) above: 6 anchors across one 4-lap session). This is
+  consistent with the offset persisting under both candidates (Metric
+  5) rather than being specific to either beta construction. WP-S4's
+  observer target is therefore explicit, not open-ended: recover
+  steady-state sideslip via a model-based (force-balance) correction
+  path, and its success should be judged primarily against Metric 5 (the
+  direction-locked Fy offset) and this entry's Section-2 steady-state
+  gap, not against correlation with the kinematic candidate alone (which
+  shares the same blind spot).
+- SEPARATE DATA POINT, not folded into the mechanism verdicts above: the
+  raw-integration residual-drift finding (median 5.7 deg over a single
+  corner's span, from beta_dot = ay/v - yaw_rate integrated with no
+  high-pass) shows beta_dot itself carries a systematic bias large
+  enough to matter at single-corner timescales. Worth revisiting once
+  the WP5b(d) GPS-speed scale question (k=1.01211) and the ay-provenance
+  question (WP-S3b's IMU-lever-arm/weight-split threads) settle, since
+  either an uncorrected speed scale or an ay bias would feed directly
+  into beta_dot's own construction.
+
+### WP-S4: Kalman sideslip observer (diagnostics candidate) [2026-08-19]
+- METHOD: discrete-time linear Kalman filter on the linear single-track
+  (bicycle) model in yaw-rate/slip-angle state-space form. States
+  x = [beta, yaw_rate]. Input u = delta_f (front steering angle, existing
+  Level-4 steering_ratio path). Measurements z = [yaw_rate, ay]
+  (sclu_yaw_rate, log_acc_y). Speed v enters as a time-varying model
+  parameter (production ecu_speed), not a state. Standard time-update/
+  measurement-update recursion; first-order (Euler) discretization of the
+  continuous-time A/B matrices at each sample's own Vx (Tier B numerical
+  simplification, not a modelling claim). Diagnostics-only: diagnostics/
+  sideslip_kalman_observer.py, pure function, no Qt, no production wiring,
+  registered as the third CANDIDATES entry (C_kalman_observer) in
+  diagnostics/inspect_sideslip_methods_comparison.py.
+- Q/R: named constants in the observer script itself (Q_BETA_VAR,
+  Q_YAW_RATE_VAR, R_YAW_RATE_VAR, R_AY_VAR, plus P0_BETA_VAR/
+  P0_YAW_RATE_VAR for the post-stationary reset covariance), each with a
+  one-line comment stating they are hand-tuned initial values -- no
+  ground-truth beta, yaw-rate-error, or ay-error signal exists on this
+  dataset to tune against.
+- Iz PLACEHOLDER: vehicle.yaw_inertia_kalman_kgm2 = 1800.0 kg m^2,
+  config/parameters.json, "NOT sourced, reviewer placeholder, replace
+  with team figure" (same convention as cog_height_m). LOCATION NOTE:
+  the original work order specified config/car.json's vehicle section;
+  car.json has no vehicle section (it is per-session setup data only,
+  loaded via core.config_loader, structurally distinct from parameters.
+  json's vehicle-constants section that already holds cog_height_m and
+  the production yaw_inertia_kgm2). Resolved (user decision, 2026-08-19)
+  to use parameters.json's existing vehicle section instead, under a
+  distinct key (yaw_inertia_kalman_kgm2, not yaw_inertia_kgm2) so this
+  diagnostic's placeholder cannot silently collide with or shadow the
+  production Iz value (2082.0, Modules 4a/5's m*a*b estimate). A matching
+  accuracy_levels registry node (yaw_inertia_kalman, Level 1) was added
+  alongside it, not chained to the production yaw_inertia node.
+- CIRCULARITY OPTION 2 (beta-independent tyre-stiffness prior): Caf/Car
+  use config/parameters.json stability_estimation.cs_front/rear_
+  fallback_reference_n_per_rad -- fixed reference values (axle normal
+  load x C_alpha/Fz = 12 rad^-1, Milliken & Milliken RCVD GT3-slick),
+  RE-INTRODUCED verbatim (same values 68268/91343, same original
+  comment) after their 2026-07-26 deletion (thesis_notes.md "Small-
+  decisions sweep": deleted then as consumed nowhere in modules/). This
+  observer is the first real consumer; still not consumed by any
+  modules/ production path, diagnostics-only. Chosen specifically
+  because production's own C_linear_ref (windowed OLS on alpha/Fy) is
+  itself alpha-derived -- using it as this observer's tyre-stiffness
+  prior would make the observer circular against the very kinematic-
+  beta-alpha construction it exists to cross-check.
+- ANCHORS: vehicle model = Rajamani, Vehicle Dynamics and Control, 2nd
+  ed., Springer 2012, ISBN 978-1-4614-1432-2, Ch. 2 "Lateral Vehicle
+  Dynamics", section 2.6 "Dynamic Model in Terms of Yaw Rate and Slip
+  Angle", p. 37 (also 2.3 Bicycle Model, p. 27) -- section titles/pages
+  read from the book's contents listing, user to confirm visually at the
+  page. Kalman algorithm = [user's lecture, course/semester/chapter TO
+  VERIFY by user], with Rajamani Ch. 14 (accelerometer/GPS Kalman
+  fusion, KF recursion equations around p. 413-414) as a worked
+  automotive application. Observer-based sideslip estimation as
+  established practice = Kiencke & Nielsen, Automotive Control Systems,
+  2nd ed., Springer 2005, ISBN 3-540-23139-0, section "Vehicle Body Side
+  Slip Angle Observer" (subsections: Basic Theory of a Nonlinear
+  Observer; Observer Design; Validation), page TO VERIFY by user.
+- EXPLICITLY NOT CLAIMED: no source prescribes this exact linear single-
+  track Kalman sideslip estimator; the model comes from Rajamani, the
+  estimator (KF recursion) from the lecture, composed here for this
+  project. K&N's own sideslip estimator is a nonlinear two-track
+  observer -- named here as the future nonlinear ablation, not
+  implemented. K&N's Kalman-filter material in the vehicle chapter
+  concerns velocity estimation, not sideslip.
+- [2026-08-19] RULE CHANGE, citation location: from this WP onward, full
+  Tier A citations (author, title, edition, ISBN, section, page) live in
+  thesis_notes.md only; production/diagnostic code docstrings carry a
+  single pointer line ("method anchors recorded in thesis_notes.md,
+  WP-<id> entry") rather than repeating author/title/page inline.
+  Applied here first (diagnostics/sideslip_kalman_observer.py's
+  docstring carries the model/state-space definition and the pointer
+  line only, no author/title/page).
+- [2026-08-20] CORRECTION, citation set: the lecture anchor listed above
+  as "TO VERIFY by user" for the Kalman algorithm has been DROPPED by
+  user decision and is no longer part of this entry's citation set. The
+  Kalman algorithm now rests instead on Rajamani, Vehicle Dynamics and
+  Control, 2nd ed., Springer 2012, Ch. 14 (worked automotive Kalman
+  filter application) -- already named above as a supporting anchor,
+  now the SOLE algorithm anchor rather than a secondary one alongside
+  the lecture. The vehicle model anchor is unchanged: Rajamani sec. 2.6
+  (p. 37) and 2.3 (p. 27), same book. Kiencke & Nielsen's "Vehicle Body
+  Side Slip Angle Observer" section stands unchanged as textbook support
+  for observer-based sideslip estimation being established practice, not
+  as a source for this specific estimator. The EXPLICITLY NOT CLAIMED
+  paragraph above stands unchanged by this correction: no source
+  prescribes this exact linear single-track Kalman sideslip estimator;
+  model and estimator are composed here.
+
+### WP-S4b: observer self-consistency and the Cr_A inflation finding [2026-08-19]
+- The 2-3x alpha_r_ss overshoot reported in WP-S4 traced to the
+  REFERENCE, not the observer: Cr_A (C_linear_ref_r, the windowed-OLS
+  linear-reference stiffness fitted against the washout-suppressed
+  kinematic alpha) is inflated, most severely at C3/C11/C13 (Cr_C/Cr_A =
+  0.264/0.526/0.384) -- the same three corners that showed the worst
+  apparent overshoot in WP-S4. Recomputed with Cr_C (the identical
+  windowed-OLS logic, fed the observer's own alpha instead), alpha_r_ss
+  matches the observer's own alpha_r within a few percent at every
+  corner except thin-sample C4 (n=3). diagnostics/inspect_observer_
+  self_consistency.py, new sibling script (not a harness extension --
+  a one-off cross-check, not a metric every future candidate needs,
+  same reasoning as WP-S3b/S3c).
+- SECOND FINDING, recorded in its own right, independent of the
+  overshoot resolution above: Cr_A spans roughly 79k-337k N/rad across
+  the 14 stable corners (a factor of ~4 for one tyre on one car), while
+  Cr_C's spread over the same samples is much tighter (~97k-101k N/rad).
+  A four-fold corner-to-corner swing in rear cornering stiffness is not
+  physically plausible -- this is evidence that the kinematic alpha's
+  error propagates into the PRODUCTION cornering-stiffness estimate
+  itself (Module 4b, CS_ratio's own C_linear_ref/C_alpha machinery), not
+  only into beta as previously framed. IMPLICATION, not yet acted on: a
+  future beta fix (whichever form the observer or a successor takes) is
+  expected to move CS_ratio values and therefore verdicts -- the
+  standing threshold re-derivation rule (CLAUDE.md deviation taxonomy)
+  applies at that point, not before; nothing re-derived here, this
+  entry only records that the trigger condition now has direct evidence
+  behind it.
+- EPISTEMIC LIMITS, stated explicitly rather than left implicit:
+  self-consistency is NOT accuracy -- Cr_C is regressed FROM alpha_r_C
+  (the same windowed-OLS logic, just fed the observer's own alpha), so
+  the near-1.0 agreement between alpha_r_ss(Cr_C) and alpha_r_C is close
+  to circular wherever that regression is well-conditioned; a wrong-but-
+  smoothly-varying alpha estimate would pass the same test. The
+  Cr_C-vs-RCVD-fallback-prior agreement (median Cr_C within 9% of
+  Car_prior=91343 N/rad) is a NUMERICAL SANITY CHECK on the Kalman
+  filter's own implementation (confirms the discretization/recursion/
+  measurement-matrix construction behaves as designed, no coding bug
+  driving wild divergence from the intended physics) -- not independent
+  physical confirmation that 91343 N/rad is this car's true rear
+  stiffness, since the observer's own dynamics are built around that
+  same prior and would structurally tend to reproduce it regardless. No
+  ground truth for sideslip exists anywhere in this log; every check in
+  this WP-S3/S4 arc is internal-consistency or cross-candidate
+  agreement, never an independent measurement.
+
+### Sideslip sign check: physical validation of the observer [2026-08-19]
+- TEST: in steady cornering at racing speed, vehicle sideslip signs
+  OPPOSITE the turn direction (the rear of the car points to the
+  outside of the corner) -- standard bicycle-model result, same
+  Rajamani sec. 2.3/2.6 anchor as the observer's own vehicle model.
+  Turn direction taken from the sign of median lateral acceleration in
+  each corner's canonical window (this codebase's own established
+  convention). This is an EXTERNAL physical check -- not a comparison
+  against another estimate (WP-S3's Metric 2/5) and not a self-
+  consistency check (WP-S4b) -- the first such check in this arc.
+  diagnostics/inspect_sideslip_sign_check.py, new sibling script.
+- RESULT: the observer's sign matches the physical expectation at all
+  14 corners. The kinematic estimate matches at 8, is clearly wrong at
+  5 (C6, C7, C9, C10, C12), and is a near-zero borderline case at one
+  (C11, +0.022 deg -- too small to read as a decisive sign either way).
+- NUANCE, recorded honestly rather than left as a clean 14-vs-8
+  scoreline: sideslip sign genuinely reverses at low speed (the lr/R
+  kinematic term dominates over the speed-scaled term), and three of
+  the five kinematic mismatches (C7, C9, C12) are this dataset's only
+  low-speed-class corners -- at those three, the kinematic sign is
+  actually CONSISTENT with the low-speed-reversed expectation (same
+  sign as ay), not simply wrong. Neither method is demonstrably wrong
+  at those three corners with this check alone. The defensible claim is
+  therefore that the observer is correct at the eleven racing-speed
+  corners while the kinematic estimate is wrong at two of them -- C6
+  (130.6 km/h) and C10 (150.5 km/h), both well above the reversal
+  threshold (config/channels.json corner_speed_thresholds.low_max=80
+  km/h, reused rather than a new threshold invented for this check), no
+  low-speed explanation available for either.
+- VISUAL COMPARISON EVIDENCE, also recorded here (diagnostics/
+  plot_sideslip_comparison.py): the two methods agree closely on
+  straights (median |difference|=0.59 deg, n=8627) and diverge sharply
+  in corners (median 4.16 deg, n=15556 -- roughly sevenfold); the
+  kinematic-vs-observer scatter shows the kinematic estimate compressed
+  within about +/-3 deg even inside corner brackets, while the observer
+  spreads to about +/-8 deg, visually the clearest single piece of
+  evidence in this whole comparison thread that the kinematic estimate
+  stays compressed in corners in a way the observer does not.
+- UNEXPLAINED, noted as an observation only: the five sign-mismatch
+  corners cluster positionally in the C6-C12 middle stretch of the lap
+  numbering, while C1-C5 and C13-C14 are clean matches for both
+  methods. No mechanism established for this clustering and no further
+  diagnostic planned against it this session.
+
+### WP-S5b: Kalman observer tuning outcome [2026-08-20]
+- RATIO INVARIANCE CONFIRMED: a discrete linear Kalman filter's gain
+  K = P_pred @ C.T @ inv(C@P_pred@C.T + R) is invariant under uniform
+  rescaling (Q,R,P) -> (lambda*Q, lambda*R, lambda*P) -- verified both
+  algebraically (the lambda cancels in K's own construction) and
+  empirically (the original 3x3 (Q_scale, R_scale) grid, diagnostics/
+  inspect_kalman_qr_sweep.py, produced byte-identical summary
+  statistics for every pair sharing a ratio, e.g. Q=0.1/R=1.0 exactly
+  equalled Q=1.0/R=10.0, both ratio=0.1). PRACTICAL CONSEQUENCE: that
+  9-point grid tested only 3 distinct settings; the absolute Q/R values
+  were never separately meaningful, only their ratio was. Corrected
+  sweep: diagnostics/inspect_kalman_qr_ratio_sweep.py, a single ratio
+  parameter over np.logspace(-3, 2, 7) with R held fixed.
+- INTERIOR TURNING POINTS, not edge-monotonic trends: straight-line
+  sideslip (target 1) has a genuine minimum at ratio~0.007-0.05, NOT at
+  either grid extreme -- pushing further toward ratio->0 makes it worse
+  again (median 0.242 deg at ratio=0.001 vs 0.192 deg at the interior
+  minimum). Large-excursion count/max|beta| (target 3) shows the same
+  interior-minimum shape, and the low-ratio extreme is markedly worse
+  (n=544 samples beyond 10 deg at ratio=0.001, vs n=0-1 near the
+  interior minimum) -- a LAG-INDUCED artefact (the heaviest-smoothing
+  setting has enough delay relative to genuinely fast corner-entry/exit
+  dynamics to overshoot on transients, not a noise effect). Between-
+  corner spread (target 2b) appears to improve monotonically toward the
+  same low-ratio extreme (std 6.584 deg at ratio=0.001, vs a plateau of
+  ~4.25 deg from ratio~2 onward) -- FLAGGED EXPLICITLY as the warning
+  sign the work order asked to watch for, not treated as evidence for
+  that extreme: this apparent gain is confounded with the same lag
+  artefact producing target 3's failure at that identical point (same
+  setting simultaneously worst on straight-line noise, excursion count,
+  AND transient tracking below), not genuine preserved corner-to-corner
+  physical signal. The measure never collapses toward zero anywhere in
+  the tested range, so target 2's "must not collapse" failure mode did
+  not occur regardless of ratio.
+- TRANSIENT-TRACKING TENSION, the new check this round added
+  specifically to catch smoothing winning by default: corr(d(beta)/dt,
+  d(ay)/dt) during corner entry/exit phases (n=21859 transient samples)
+  rises from -0.38 (ratio=0.001) to a genuine asymptotic plateau near
+  -0.998 from ratio~2 onward (a well-behaved bounded approach, not a
+  runaway-extreme warning sign, since a correlation cannot exceed
+  magnitude 1). At the zone that looked steady-state-optimal in
+  isolation (ratio 0.007-0.05), this correlation is only -0.70 to
+  -0.91 -- a real, measurable loss of transient responsiveness that the
+  steady-state measures alone would not have revealed.
+- WHY RATIO 0.3162 OVER THE STEADY-STATE-OPTIMAL ZONE: ratio=0.3162
+  achieves transient-tracking correlation -0.9896, within ~1 percentage
+  point of the asymptotic ceiling, while giving up only a small, real
+  amount of steady-state polish relative to the ratio~0.007-0.05 zone
+  (straight-line median 0.259 deg vs 0.192-0.215 deg there; excursion
+  count n=4 vs n=0-1). Chosen specifically to avoid trading genuine
+  corner-entry/exit responsiveness for a marginal steady-state gain --
+  consistent with the agreed target 2 framing ("over-smoothing is a
+  failure, not a success"). Applied: diagnostics/sideslip_kalman_
+  observer.py's Q_BETA_VAR/Q_YAW_RATE_VAR scaled by QR_RATIO=0.3162; R
+  left unchanged (the sweep held R fixed throughout, consistent with
+  the ratio-invariance finding above). Re-ran the comparison harness
+  (diagnostics/inspect_sideslip_methods_comparison.py) once after
+  applying the tuned values: both mandatory sanity/regression gates
+  (Metric 2 A-vs-B, Metric 5 A regression check) still PASSED,
+  unaffected by C's retune as expected (neither gate depends on C).
+- SIGN RESULT ROBUST AT EVERY TESTED SETTING: the WP-S5 physical sign
+  check (observer sign matches the racing-speed bicycle-model
+  expectation) held at 11/11 racing-speed corners at all 7 ratios in
+  this sweep, including the chosen 0.3162 and re-confirmed directly
+  with the tuned observer wired in (diagnostics/inspect_sideslip_sign_
+  check.py, re-run after the code change: 14/14 overall, unchanged).
+  Sign robustness was never in tension with the tuning trade-offs
+  above -- only the steady-state-vs-transient trade-off was real.
+- Full numeric sweep, both the invariance-confirming grid and the
+  corrected ratio sweep, plus their visual companions (measures-vs-
+  ratio panel and the multi-ratio lap-trace overlay showing the
+  heavy/light smoothing contrast directly): diagnostics/inspect_kalman_
+  qr_sweep.py (superseded methodology, kept for the record), inspect_
+  kalman_qr_ratio_sweep.py, plot_kalman_qr_ratio_sweep.py (diagnostics/
+  plots/qr_ratio_sweep/, gitignored). Full candidate comparison closing
+  out this arc: sideslip_comparison_report.md (repo root -- see its own
+  header note on why not docs/), the WP-S6 deliverable for the win/
+  no-win decision.
+
+### GPS-course sideslip as a potential arbiter -- not usable yet [2026-08-20]
+- The GPS-course method (B, shelved) is recorded here as a POTENTIAL
+  independent arbiter between the kinematic estimate and the Kalman
+  observer -- but NOT usable as such on the current data. Its shelving
+  record (r=-0.24 with the kinematic estimate, sign agreement at
+  chance level, thesis_notes.md WP5b(c)) means it cannot distinguish
+  itself from noise on this session, so agreement with either
+  candidate would carry no evidential weight either way.
+- Its existing reopen condition (denser straight-line anchor data, a
+  longer session) is therefore also the condition under which it could
+  serve as an arbiter -- specifically at the two racing-speed corners
+  where the kinematic estimate and the observer disagree in sign (C6,
+  C10, WP-S5 sign check) and neither has independent confirmation.
+  Added to the new-data-file diagnostic checklist (PLAN.md) as an item
+  to attempt when a longer log arrives.
 
 ## 2. Design principles (architecture chapter material)
 
@@ -2281,10 +2741,22 @@ HOW TO USE:
   dated correction under "Yaw moment stability dMz/dbeta" in section 1.
 - Confirm 992 GT3R official corner-weight/mass provenance for the
   constants table.
-- [ADDED 2026-07-24] Verify page numbers for the estimate_sideslip
+- ~~[ADDED 2026-07-24] Verify page numbers for the estimate_sideslip
   citation (Mitschke/Wallentowitz, Dynamik der Kraftfahrzeuge,
   single-track lateral kinematics) -- currently cited as "p. TBD,
-  verify" in the docstring pending access to the primary source.
+  verify" in the docstring pending access to the primary source.~~
+  [RESOLVED 2026-08-20, WP-S4 citation cleanup] The Mitschke/
+  Wallentowitz page was never verified and is REPLACED, not sourced:
+  estimate_sideslip's anchor is now Rajamani, Vehicle Dynamics and
+  Control, 2nd ed., Springer 2012, sec. 2.6 "Dynamic Model in Terms of
+  Yaw Rate and Slip Angle" (p. 37) and sec. 2.3 "Bicycle Model" (p. 27)
+  -- the same book already anchoring WP-S4's Kalman observer vehicle
+  model, both sections user-confirmed visually. modules/stability_
+  analysis.py's docstring now carries a pointer line only ("method
+  anchor recorded in thesis_notes.md, WP-S4 entry"), per the citation-
+  location rule change (thesis_notes.md "WP-S4: Kalman sideslip
+  observer" entry, [2026-08-19] RULE CHANGE bullet); no author/title/
+  page in code.
 
 - Werner method-delta comparison: three-column table (adopted as-is /
   deliberately different + why / not implemented + upgrade path),

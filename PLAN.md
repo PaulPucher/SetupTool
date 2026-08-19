@@ -1,19 +1,142 @@
+## STATUS - rewritten at every work stop, never appended
+
+### NOW
+Track A (numbers correct): sideslip methods-comparison arc, tuning
+and reporting COMPLETE this session (WP-S1 through WP-S6). Kalman
+observer tuned via a corrected ratio sweep (WP-S5b, diagnostics/
+inspect_kalman_qr_ratio_sweep.py, after finding the original 3x3
+Q/R grid tested only 3 distinct settings -- a linear KF's gain
+depends only on the Q/R ratio, confirmed both algebraically and
+empirically): ratio=0.3162 chosen from the interior, not the
+steady-state-optimal extreme (ratio~0.007-0.05), because that zone
+measurably degrades a new transient-tracking check (d(beta)/dt vs
+d(ay)/dt during corner entry/exit: -0.70 to -0.91 there vs -0.99 at
+the chosen ratio) -- full trade-off record in thesis_notes.md's
+WP-S5b entry. Applied to diagnostics/sideslip_kalman_observer.py
+(Q scaled by 0.3162, R unchanged); harness re-run confirms both
+mandatory sanity/regression gates still pass and the physical sign
+result stays 11/11 racing-speed corners (14/14 overall) unchanged.
+WP-S6 comparison report written: sideslip_comparison_report.md
+(repo root, not docs/ -- docs/ has zero git-tracked files outside
+the protected car_data/literature/study/ set, see the report's own
+header note). Reports the five harness metrics, the force-balance
+steady-state check, the physical sign check, and the transient-
+tracking check for all three candidates (kinematic production, GPS
+negative control, tuned observer), plus the honest limits (no
+ground truth, self-consistency != accuracy, slide-preservation
+unverifiable on this data, low-speed corners ambiguous on sign) and
+what a win/no-win decision would each trigger. Deliberately makes NO
+recommendation -- the win/no-win call belongs to the user and
+supervisor, not taken here.
+AWAITING: the win/no-win decision. Nothing in this arc is wired to
+production regardless of outcome; a WIN decision would still require
+separate follow-on work (production wiring, threshold re-derivation,
+before/after verdict comparison, accuracy-registry update, schema
+version bump -- listed in the report's own section 5, none of it
+started).
+Last commit: e223aba (Corner points clickable). Local main is one
+commit ahead of origin/main. Uncommitted: the sideslip arc's
+diagnostics scripts (comparison harness, Kalman observer now tuned,
+chain-decomposition/washout/self-consistency/sign-check/Q-R-sweep
+diagnostics, two labelled plot scripts + diagnostics/plots/ output,
+gitignored), config/parameters.json additions (Iz placeholder,
+re-introduced CS fallback references), modules/stability_analysis.py
+(estimate_sideslip docstring now pointer-only per the citation-
+location rule), sideslip_comparison_report.md (new, repo root),
+thesis_notes.md entries, and this PLAN.md restructure.
+
+### BACKLOG (ordered)
+A - Numbers correct: observer tuning; comparison report + decision;
+    if it wins, production wiring + threshold re-derivation + a
+    before/after verdict comparison; vehicle-parameter provenance
+    (wheelbase, Iz, cog height, track widths, Cl) + team figures.
+    Done when: sideslip has a defensible source and verdicts are
+    recomputed on it.
+C - Decision-matrix depth: elicitation question set (own file, to
+    be created in a later session, sorted by who answers - user or
+    engineer); matrix expansion incl. the beyond-peak gap; cost
+    function with elicited weights; feasibility/conflict logic.
+    Gated on elicitation answers.
+B - Forces: damper-derived Level-4 wheel loads; roll-stiffness
+    apportionment; Fy split upgrade -> CS threshold re-derivation.
+    Gated on damper data arriving (no date).
+D - Output artifacts: weekend PDF expansion; per-corner CS overlay
+    and g-g plots.
+E - Cleanup (after track A closes): diagnostics inventory + README,
+    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
+    protected-set audit and push readiness.
+
+### PARKED (decided, not forgotten)
+Beyond-peak verdict tier - shelved, reopens only with a validated
+sideslip estimate. Kerb-gap interpolation - optional cleanup.
+Compound-corner curvature detection - not worth destabilizing the
+realization. Worst-phase sentinel NaN quirk and valid_fraction_stab
+replacement metric - cosmetic, left alone. k=1.01211 application -
+gated on second-track data. New-data-file checklist - runs when a
+log arrives.
+
+### PROCESS RULES
+- One step at a time; proposal and implementation never combined;
+  every turn ends at a stop point; user runs git.
+- Every WP names its artifact up front (changed number, UI element,
+  config, or documented decision). Knowledge-only work is a
+  diagnostic, capped at one per question, and must state which
+  decision it unblocks.
+- Estimator-input changes trigger threshold re-derivation.
+- Tier A methods need a verified anchor; full citations live in
+  thesis_notes.md, code carries a pointer only.
+- STATUS is rewritten at every work stop; history goes below.
+
+### ANCHORS (verified)
+Rajamani, Vehicle Dynamics and Control, 2nd ed. 2012 - Ch. 2,
+sec. 2.3 bicycle model p. 27, sec. 2.6 yaw-rate/slip-angle model
+p. 37; Ch. 14 Kalman application. Kiencke & Nielsen, Automotive
+Control Systems, 2nd ed. 2005 - "Vehicle Body Side Slip Angle
+Observer" section. Both confirmed visually by the user. Lecture
+anchor: dropped by decision. Open: Mitschke/Wallentowitz "p. TBD"
+in estimate_sideslip to be REPLACED by Rajamani 2.6/2.3, not
+deleted (not yet done).
+
+## STATUS HISTORY (superseded, newest last)
+Its "still-uncommitted" claims are OUTDATED -- that work was committed in 82bc49c, f37053f, e6ef209, 0bdff87, 5f44688, b96d59a, 2d3346f; read it as historical narrative only, never as current repo state.
+
 ## STATUS (update at every work stop)
-Current WP: WP1 consolidation (canonical corner/phase realization +
-Turn 3 boundary partition + Turn 4 threshold re-confirmation) DONE with
-watch items (2026-07-27, this session -- see "WP1 consolidation" section
-below for the four-turn detail and thesis_notes.md's "WP1 arc closeout"
-for the full narrative), landing on top of WP2b-2 + the matrix v2/
-provenance review round (both complete 2026-07-26, see their own sections
-below) -- landing on top of the still-uncommitted WP5b(b)/(c)/(d) arc
-(chair-parity Fz, GPS-course beta SHELVED, speed cross-validation) and the
-still-uncommitted Accuracy-registry arc (WP-A registry consolidation,
-WP-C per-session resolver + global cap, small explicit-Save-button WP,
-WP-B steering ratio Level 4, full channel census + targeted verification,
-chair-context marker cleanup), all as one combined commit per this
-project's bundled-session convention (see the session paragraphs below,
-newest last) -- user has not committed yet, stopped before commit every
-turn this session per instruction.
+Current WP: WP-S4b (observer self-consistency check) DONE (2026-08-19,
+this session -- see thesis_notes.md "WP-S4b: observer self-consistency
+and the Cr_A inflation finding" for full detail), closing out this
+session's Open Board item B (sideslip methods comparison) sequence:
+WP-S1 (wheel-speed source characterization), WP-S2 (comparison harness,
+Metrics 1-4), WP-S3 (Metric 5, zero-slip Fy offset + direction-match),
+WP-S3b (chain decomposition: geometric-cancellation reframing,
+force-balance steady-state gap, IMU-lever-arm/weight-split mechanisms
+rejected), WP-S3c (washout-mechanism ablation, uninformative -- own
+drift too large to trust), WP-S4 (linear Kalman sideslip observer
+registered as third diagnostics-only candidate C_kalman_observer;
+confirms real steady-state slip where the kinematic candidate reads
+~0, at every corner, in sign), WP-S4b (this turn). OUTCOME: the 2-3x
+alpha_r_ss overshoot reported at WP-S4 traced to an inflated reference
+stiffness (Cr_A, fitted against the washout-suppressed kinematic
+alpha) rather than a flaw in the observer -- worst at exactly the
+corners (C3/C11/C13) that showed the worst apparent overshoot.
+Separately, Cr_A's own ~4x corner-to-corner spread (79k-337k N/rad) is
+new evidence the kinematic alpha's error reaches the PRODUCTION
+cornering-stiffness estimate itself (Module 4b), not only beta -- a
+live finding, not yet acted on; the standing CS threshold re-derivation
+rule applies once/if a beta fix is wired to production, not before.
+Entire arc is diagnostics-only: no production/UI/pipeline wiring
+changed; the only config changes are two re-introduced fallback-
+stiffness keys and one new Iz placeholder, both diagnostics-only
+consumers, test_stability.py confirmed byte-identical after every
+step. Next steps: Q/R tuning for the Kalman observer (currently hand-
+tuned initial placeholders with no ground truth to tune against), then
+the WP-S6 comparison report closing out Open Board item B. User has
+not committed yet, stopped before commit every turn this session per
+instruction -- this WP-S1..S4b arc lands on top of the prior sessions'
+still-uncommitted work described below (WP1 consolidation, WP2b-2 +
+matrix v2 review, WP5b(b)/(c)/(d), the Accuracy-registry arc), unless
+those have since been committed separately (this block was stale
+relative to git log before this update; check `git log` before relying
+on "still-uncommitted" claims below for anything predating 2026-08-19).
 
 Queue once this lands, confirmed still accurate: the new-data-file
 diagnostic checklist (runs automatically when a new log arrives -- also
@@ -467,6 +590,12 @@ yet consistent across laps — that is the first work package.
   registry entries' `notes` (channel name TBD -> confirmed).
 - Multi-stint in/out/stop-lap classification (see WP7 IDEAS item 9) if the
   file spans more than one stint.
+- Re-attempt GPS-course sideslip (shelved, thesis_notes.md WP5b(c)) as an
+  independent arbiter at C6/C10 (the two racing-speed corners where the
+  kinematic estimate and the Kalman observer disagree in sign, WP-S5) --
+  only meaningful once the denser anchor data / longer session reopen
+  condition is met, see thesis_notes.md "GPS-course sideslip as a
+  potential arbiter" entry.
 
 ---
 

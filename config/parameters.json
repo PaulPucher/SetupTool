@@ -14,6 +14,8 @@
     },
     "yaw_inertia_kgm2": 2082.0,
     "yaw_inertia_note": "Estimated from Iz = m*a*b bicycle model approximation. Error ~10-20%. Replace with homologation value when available.",
+    "yaw_inertia_kalman_kgm2": 1800.0,
+    "yaw_inertia_kalman_note": "NOT sourced, reviewer placeholder, replace with team figure (same convention as cog_height_m below). WP-S4 diagnostics-only Kalman sideslip observer candidate (diagnostics/sideslip_kalman_observer.py) -- deliberately a separate value from vehicle.yaw_inertia_kgm2 (2082.0, production Modules 4a/5's m*a*b bicycle estimate) so this diagnostic does not silently inherit or couple to the production Iz figure. Not consumed by any modules/ production path.",
     "steering_ratio": 15.7,
     "steering_ratio_note": "Read from steering ratio lookup table at centre wheel travel and zero steering stroke. Treated as constant at Level 1.",
     "cog_to_front_axle_m": 1.433,
@@ -58,6 +60,9 @@
     "yaw_stability_min_samples": 90,
     "yaw_stability_min_beta_std_rad": 0.001,
     "yaw_stability_ridge": 1.0,
+    "_comment_cs_fallback": "Fallback cornering stiffness references. Derived from axle normal load × C_alpha/Fz = 12 rad⁻¹ (Milliken & Milliken, RCVD, GT3 slick). Front: (290+290)*9.81*12 = 68268. Rear: (395+381)*9.81*12 = 91343. Used as C_linear_ref when OLS cannot resolve the linear stiffness from data (insufficient alpha excitation on rear axle). Accuracy Level 1. RE-INTRODUCED 2026-08-19 (WP-S4): deleted 2026-07-26 as consumed nowhere in modules/ (thesis_notes.md 'Small-decisions sweep'); re-added verbatim (same values, same original comment above) as the tyre-stiffness prior for diagnostics/sideslip_kalman_observer.py's Kalman sideslip observer candidate (circularity option 2, beta-independent prior -- a fixed, non-alpha-derived Caf/Car instead of the alpha-circular windowed OLS stiffness). Still not consumed by any modules/ production path, diagnostics-only.",
+    "cs_front_fallback_reference_n_per_rad": 68268,
+    "cs_rear_fallback_reference_n_per_rad": 91343,
     "kerb_z_deviation_threshold_g": 1.2,
     "kerb_dilation_samples": 5,
     "kerb_baseline_g": 1.0
@@ -112,6 +117,12 @@
       "source": "m*a*b bicycle-model estimate (vehicle.yaw_inertia_note)",
       "capped_by": "chained-constant: mass_kg, cog_position",
       "method_ceiling": 1
+    },
+    "yaw_inertia_kalman": {
+      "level": 1,
+      "source": "config default (vehicle.yaw_inertia_kalman_kgm2), reviewer placeholder",
+      "capped_by": null,
+      "note": "WP-S4 diagnostics-only Kalman sideslip observer candidate (diagnostics/sideslip_kalman_observer.py); not consumed by any production Module 2-6 path. Distinct node from yaw_inertia (production, vehicle.yaw_inertia_kgm2) -- deliberately not chained to it."
     },
     "steering_ratio": {
       "level": 1,
