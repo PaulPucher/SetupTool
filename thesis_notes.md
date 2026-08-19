@@ -1384,7 +1384,7 @@ HOW TO USE:
   Applied here first (diagnostics/sideslip_kalman_observer.py's
   docstring carries the model/state-space definition and the pointer
   line only, no author/title/page).
-- [2026-08-20] CORRECTION, citation set: the lecture anchor listed above
+- [2026-08-19] CORRECTION, citation set: the lecture anchor listed above
   as "TO VERIFY by user" for the Kalman algorithm has been DROPPED by
   user decision and is no longer part of this entry's citation set. The
   Kalman algorithm now rests instead on Rajamani, Vehicle Dynamics and
@@ -1490,7 +1490,7 @@ HOW TO USE:
   methods. No mechanism established for this clustering and no further
   diagnostic planned against it this session.
 
-### WP-S5b: Kalman observer tuning outcome [2026-08-20]
+### WP-S5b: Kalman observer tuning outcome [2026-08-19]
 - RATIO INVARIANCE CONFIRMED: a discrete linear Kalman filter's gain
   K = P_pred @ C.T @ inv(C@P_pred@C.T + R) is invariant under uniform
   rescaling (Q,R,P) -> (lambda*Q, lambda*R, lambda*P) -- verified both
@@ -1569,7 +1569,7 @@ HOW TO USE:
   header note on why not docs/), the WP-S6 deliverable for the win/
   no-win decision.
 
-### GPS-course sideslip as a potential arbiter -- not usable yet [2026-08-20]
+### GPS-course sideslip as a potential arbiter -- not usable yet [2026-08-19]
 - The GPS-course method (B, shelved) is recorded here as a POTENTIAL
   independent arbiter between the kinematic estimate and the Kalman
   observer -- but NOT usable as such on the current data. Its shelving
@@ -1585,7 +1585,7 @@ HOW TO USE:
   Added to the new-data-file diagnostic checklist (PLAN.md) as an item
   to attempt when a longer log arrives.
 
-### Observer saturation-detection failure: the decisive finding [2026-08-20]
+### Observer saturation-detection failure: the decisive finding [2026-08-19]
 - TEST: cornering-stiffness ratios (CS_ratio_f/CS_ratio_r) recomputed
   from the observer's slip angles, compared against the production
   kinematic path -- diagnostics/inspect_observer_slip_angle_
@@ -1657,7 +1657,7 @@ HOW TO USE:
   angles are needed to fit the tyre curve that in turn produces slip
   angles -- that would need an explicit resolution before either is
   attempted. Out of scope here; not started.
-- [2026-08-20] CORRECTION, status: the "DECISION RECORDED" bullet above
+- [2026-08-19] CORRECTION, status: the "DECISION RECORDED" bullet above
   ("the arc is closed") is SUPERSEDED, not struck -- it correctly
   recorded the linear observer's own rejection, but the arc itself
   continues: the supervisor's own direction is to pursue the nonlinear
@@ -1668,7 +1668,7 @@ HOW TO USE:
   place, not superseded, so it always carries the current state --
   check there for the live status rather than this entry going forward.
 
-### Linear observer saturation-detection failure: why the tyre model must be nonlinear [2026-08-20]
+### Linear observer saturation-detection failure: why the tyre model must be nonlinear [2026-08-19]
 - TEST: cornering-stiffness ratios recomputed from the linear
   observer's slip angles, compared against the production kinematic
   path -- same test and script as the entry above (diagnostics/
@@ -1723,7 +1723,7 @@ HOW TO USE:
   nonlinear-observer iteration ultimately concludes about production
   adoption.
 
-### WP-N1: Dugoff tyre model chosen + first-pass fit, identifiability finding [2026-08-20]
+### WP-N1: Dugoff tyre model chosen + first-pass fit, identifiability finding [2026-08-19]
 - MODEL CHOICE: Dugoff pure-lateral tyre model (Rajamani, Vehicle Dynamics
   and Control, 2nd ed., Ch. 13.10, eqs. 13.72-13.76, page TBD verify --
   chapter/eq. numbers only, not yet checked against the printed edition).
@@ -1750,7 +1750,7 @@ HOW TO USE:
   the literature minus sign to match this pipeline's established
   convention (Werner (2021) S2.2.3, same convention already used
   throughout stability_analysis.py). Shape unaffected, sign only.
-- OBSERVER-LINE ANCHORS (for the next WP, recorded now so the EKF starts
+~~- OBSERVER-LINE ANCHORS (for the next WP, recorded now so the EKF starts
   with citations already in hand): Ulsoy, Peng, Cakmakci, "Automotive
   Control Systems" (observer input/measurement structure) -- CHAPTER NOT
   VERIFIED: nobody has opened this book and confirmed which chapter
@@ -1764,7 +1764,34 @@ HOW TO USE:
   Slip Angle Observer" section (observer-based sideslip estimation as
   established practice) -- section TOPIC/title already confirmed
   visually by the user, PLAN.md ANCHORS; only the numeric section
-  reference is unverified. See section 6 open-questions entry.
+  reference is unverified. See section 6 open-questions entry.~~
+  [CORRECTED 2026-08-19: the "Ulsoy... CHAPTER NOT VERIFIED" framing above
+  was itself wrong, not merely cautious -- the citation is now confirmed
+  by TWO independent readings of the primary text. Confirmed content:
+  Ulsoy, Peng, Cakmakci, "Automotive Control Systems" anchors the
+  NONLINEAR SINGLE-TRACK VEHICLE MODEL (sec. 14.3, p. 263 -- section
+  header reads "14.3 Nonlinear Vehicle Model", read directly) and the
+  OPERATIONAL SIGNIFICANCE OF SIDESLIP (sec. 14.1, p. 258ff, also read
+  directly) -- it does NOT cover observer input/measurement structure,
+  so it does not belong in an "observer-line anchors" bullet at all;
+  moved to the WP-N2 EKF-proposal entry's model-equations anchors
+  instead, alongside Rajamani sec. 2.3/2.6. FURTHER CONFIRMED (WP-N2
+  implementation turn): Ulsoy Eq. 14.8 is a term-by-term match for this
+  EKF's force and moment balances (beta_dot, r_dot equations, WP-N2
+  entry below), with two documented simplifications on this project's
+  side: (a) the roll degree of freedom is dropped -- Ulsoy's mRh*p_dot
+  and Ixz*p_dot terms have no counterpart here, this project's
+  single-track model carries no roll state; (b) pure-lateral Dugoff
+  (modules/tyre_model.py) is used where Ulsoy uses a combined-slip Magic
+  Formula tyre model. Remaining observer-line anchors, unchanged:
+  Rajamani Ch. 14 (Kalman filter treatment, page TBD verify -- chapter
+  itself already confirmed, WP-S4/PLAN.md ANCHORS) and Kiencke &
+  Nielsen's "Vehicle Body Side Slip Angle Observer" section (section
+  number TBD verify, and likely to STAY TBD: the source PDF's body text
+  does not survive text extraction -- broken font encoding produces
+  systematically substituted glyphs, not the actual characters -- so its
+  exact section/page numbers can only ever be confirmed from the printed
+  copy, not by searching the digitised file).]
 - IDENTIFICATION-LOOP DESIGN (own project design, not from a cited
   source): no published tyre curve exists for these tyres, and the car
   may run different compounds between events, so a published curve would
@@ -1807,7 +1834,7 @@ HOW TO USE:
   scope, "no filter, no UI changes this turn") -- candidates for the next
   pass: reuse Module 4b's own windowed/R^2-weighted stiffness estimate
   as c_alpha's source instead of a raw low-ay OLS pass, or widen/
-  reweight the linear-regime population.~~ [SUPERSEDED 2026-08-20,
+  reweight the linear-regime population.~~ [SUPERSEDED 2026-08-19,
   WP-N1b: the diagnosis above was correct (errors-in-variables
   attenuation, confirmed) but the fix was not yet applied when this
   paragraph was written. See "WP-N1b: c_alpha refit from Module 4b"
@@ -1822,7 +1849,7 @@ HOW TO USE:
   a gap-selection pass of its own). test_stability.py confirmed
   byte-identical (no modules/stability_analysis.py change this session).
 
-### WP-N1b: c_alpha refit from Module 4b [2026-08-20]
+### WP-N1b: c_alpha refit from Module 4b [2026-08-19]
 - DIAGNOSIS (why the WP-N1 fit failed): the low-|ay| OLS slope is a
   textbook errors-in-variables attenuation case. Near zero slip, both
   the regressor (kinematic alpha) and the response (Fy) are dominated by
@@ -1885,6 +1912,646 @@ HOW TO USE:
   (Module 4b's estimate_cornering_stiffness is now also CALLED by this
   diagnostic script, but the function itself is untouched -- same
   computation test_stability.py already exercises, reused not modified).
+
+### WP-N2: nonlinear Dugoff EKF, pass 0 (frozen parameters, no refit) [2026-08-19]
+- MODEL: states x=[beta, yaw_rate], input u=delta_f, Vx scheduled
+  (production ecu_speed, floored). Slip angles use this codebase's own
+  small-angle definitions (modules/stability_analysis.py estimate_slip_
+  angles): alpha_f = delta_f - beta - a*r/Vx, alpha_r = -beta + b*r/Vx.
+  Tyre forces from modules/tyre_model.py's Dugoff model, frozen WP-N1b
+  parameters. Dynamics: beta_dot = (Fy_f+Fy_r)/(m*Vx) - r, r_dot =
+  (a*Fy_f - b*Fy_r)/Iz -- a convention-agnostic Newtonian force/moment
+  balance (holds regardless of the Fy-vs-alpha sign convention in use,
+  as long as Fy_f/Fy_r are the actual signed physical force). Anchors:
+  Rajamani sec. 2.3/2.6 (same equations already anchoring the kinematic
+  estimator) and Ulsoy, Peng, Cakmakci sec. 14.1/14.3 -- see the
+  corrected WP-N1 entry bullet above for the citation-correction record
+  and the Eq. 14.8 term-by-term match (two documented simplifications:
+  no roll DOF, pure-lateral Dugoff vs. combined-slip Magic Formula).
+  Measurement set identical to the rejected linear observer (yaw rate +
+  ay) -- h1=r (direct), h2=(Fy_f+Fy_r)/m (nonlinear in x through the
+  tyre law, same structure the rejected filter used with Caf/Car in
+  place of the Dugoff terms).
+- JACOBIANS: F=df/dx and H=dh/dx, both built exclusively from modules/
+  tyre_model.py's analytic dugoff_lateral_stiffness (Cf_eff, Cr_eff) --
+  no numerical differencing. F evaluated at the prior state estimate
+  (predict step), H at the predicted state (update step) -- standard EKF
+  convention. State propagation integrates the true nonlinear f(x,u)
+  directly (explicit Euler); F/Ad are used ONLY to propagate the
+  covariance P, never to propagate the state itself -- the mechanical
+  difference from the rejected filter, which was fully linear so state
+  and covariance propagation used the same Ad@x operation throughout.
+- JACOBIAN-COLLAPSE SANITY CHECK (diagnostics/inspect_ekf_dugoff_sanity_
+  checks.py, section 1): at alpha=0 exactly, F/H reduce to the rejected
+  filter's own A/C matrices (diagnostics/sideslip_kalman_observer.py)
+  bit-for-bit when the same fixed Caf/Car are substituted in (max|F-A|=
+  max|H-C|=0.0 exactly) -- confirms the hand-derived Jacobian formulas
+  are algebraically correct. At a small nonzero alpha (0.02 rad, ~1.15
+  deg, within the visited kinematic range) the match degrades slightly
+  (max|F-A|=1.8e-3, max|H-C|=4.7e-2) because Dugoff's Fy=C*tan(alpha)*
+  f(lambda) is not linear in alpha even before saturation (tan(alpha) !=
+  alpha) -- exact collapse holds only in the alpha->0 limit, as expected
+  and as the check's own docstring states in advance.
+- Fy-AXLE DEPENDENCY IDENTITY (amendment, verified numerically on Dubai
+  data, section 3 of the same sanity-check script): a*Fy_f - b*Fy_r ==
+  Iz*psidd_raw IDENTICALLY, given a/b computed live from wheelbase*
+  corner-weight-fraction (max abs deviation 7.3e-12 Nm across 39464
+  moving samples -- floating-point noise only, not approximation). Using
+  config's own STORED (3-decimal-rounded) cog_to_front/rear_axle_m
+  instead gives a small nonzero residual (max 21.1 Nm, mean 5.4 Nm,
+  median relative deviation 0.43% against a 645 Nm floor) fully
+  explained by that 0.54mm rounding gap, not by any additional
+  independent measurement. CONSEQUENCE, stated plainly because it
+  changes how every downstream result must be read: Fy_f and Fy_r
+  (modules/stability_analysis.py estimate_lateral_forces, the forces
+  WP-N1b's frozen c_alpha/mu_fz were fit against) carry exactly TWO
+  independent measured quantities between them -- ay and yaw-rate-
+  derivative (psidd) -- not four independent per-axle numbers. A fit
+  against "both axle forces" is therefore a fit against a fixed linear
+  transform of two raw signals, not two independently-corroborating
+  channels; recorded in config/parameters.json tyre_model_ekf.pass_0.
+  fy_axle_dependency_note for permanence.
+- Fy_f/Fy_r AND MEASURED ay -- CONFIRMED FROM CODE, QUOTED (modules/
+  stability_analysis.py estimate_lateral_forces): `Fy_total = m *
+  state["ay_mps2"]`, then `Fy_f_full = Fy_total * front_fraction + Iz *
+  psidd_raw / wheelbase`, `Fy_r_full = Fy_total - Fy_f_full`. Both axle
+  forces are built directly from MEASURED ay (via Fy_total) plus
+  measured yaw acceleration -- there is no independent per-axle force
+  measurement anywhere in this pipeline. This is exactly what the
+  Fy-axle dependency identity above proves algebraically: two measured
+  scalars in, two "independent-looking" axle forces out.
+- h2-vs-ay SIGN/UNIT CONSISTENCY CHECK, NOT VALIDATION (same script,
+  section 2, explicitly labelled as such in its own docstring because it
+  is PARTLY CIRCULAR: the axle forces used to fit c_alpha/mu_fz, WP-N1b,
+  themselves derive from measured ay, so a close match here partly
+  reflects that shared ancestry, not independent confirmation -- must
+  never be cited later as evidence the model is correct). Population:
+  471 samples, each corner's apex_3 phase (expanded +/- apex_half_
+  window_samples the same way summarise_corners does, since apex_3 is a
+  zero-width instant otherwise), valid-lap/moving/kerb-excluded.
+  Residual (h2_pred - ay_meas): p10=-9.55, median=+1.50, p90=+8.53 m/s^2
+  against an ay_meas range of -19.7 to +23.1 m/s^2 at these samples --
+  real, non-trivial scatter (roughly consistent with WP-N1b's own fit
+  RMS residuals, ~2-4 m/s^2-equivalent per axle), not a tight match;
+  reported plainly, not spun, per the check's own stated purpose (catch
+  a gross sign/unit error, nothing stronger).
+- Iz CHOICE: vehicle.yaw_inertia_kgm2 (2082.0), NOT vehicle.yaw_inertia_
+  kalman_kgm2 (1800.0) -- estimate_lateral_forces built the training-data
+  forces using 2082.0, so using 1800.0 in this filter's r_dot would make
+  its own moment balance inconsistent with its training data's Iz by
+  ~14%. Both remain Level-1 estimates in their own right (2082.0: m*a*b
+  bicycle-model approximation, ~10-20% error; 1800.0: unsourced reviewer
+  placeholder) -- 2082.0 is chosen for training-data self-consistency,
+  not claimed as the more accurate of the two. Recorded in config/
+  parameters.json tyre_model_ekf.pass_0.Iz_provenance.
+- DIVERGENCE MONITORING: windowed NIS against a chi-square bound
+  (df=2, two measurements) plus a hard 15 deg |beta| ceiling -- the
+  ceiling is physically anchored, deliberately NOT derived from the
+  kinematic estimate's own observed beta range (that estimate under-
+  reads mid-corner, so its range would clip the very signal this filter
+  exists to recover). NIS window width, chi2 bound and flag fraction
+  (20 samples, 5.99, 0.5) are PLACEHOLDER defaults, not yet data-derived
+  -- explicitly deferred to the validation work package, not this pass
+  (config note: nis_tuning_note). Fallback on either trigger is FIXED,
+  not optional: beta -> kinematic estimate at that instant, yaw-rate
+  state -> measured yaw rate at that instant, P -> P0. Raw (pre-
+  fallback) EKF output is still returned alongside the fallback-
+  corrected series and the diverged_mask flag -- never a silent
+  substitution.
+- SCOPE: diagnostics/sideslip_ekf_dugoff.py (new) and diagnostics/
+  inspect_ekf_dugoff_sanity_checks.py (new) this turn; config/
+  parameters.json gained one new additive block, tyre_model_ekf.pass_0
+  (frozen Dugoff parameters + Q/R/P0 seeded from the tuned linear
+  observer + divergence tunables, all with provenance notes) --
+  tyre_model_fit untouched. No modules/ or ui/ file changed; the new
+  filter imports modules/tyre_model.py and modules/stability_analysis.py
+  estimate_sideslip, nothing more. The filter has NOT been run on real
+  data this turn, and the validation script (sign-check equivalent,
+  reframed saturation/circularity check, steady-state magnitude check,
+  divergence-monitor summary) is explicitly the NEXT work package, not
+  this one. test_stability.py confirmed byte-identical.
+
+### WP-N2 pass-0 run: NIS baseline, saturation coverage, and three convergent lines of evidence for slip-angle under-read [2026-08-19]
+
+ESTABLISHED (measured this run, diagnostics/run_ekf_dugoff_pass0.py,
+24,183 masked samples -- valid-lap, moving, kerb-excluded):
+- Raw EKF beta: p1=-5.15, p25=-1.01, median=+0.06, p75=+1.38,
+  p99=+5.17 deg; max |beta| 14.12 deg; ZERO samples hit the 15 deg
+  hard bound -- the filter does not physically diverge.
+- NIS exceedance against the 95% chi-square bound: yaw-rate channel
+  85.8%, ay channel 71.9%, combined 93.4%. Percentiles: yaw rate
+  p50=156.2 / p90=2108.1 / p99=7206.0; ay p50=15.0 / p90=181.7 /
+  p99=1850.5.
+- Divergence-monitor clustering under the placeholder thresholds
+  (nis_window_samples=25, nis_flag_fraction=1.0): 6,730 of 24,183
+  samples flagged, 240 contiguous episodes, 92% of flagged samples
+  in C14 and 86% in the entry_1_brake phase.
+- Dugoff adhesion/sliding onset from the frozen pass-0 parameters,
+  tan(alpha)=mu_fz/(2*c_alpha): front 2.297 deg, rear 2.599 deg.
+  Coverage against kinematic |alpha|: front 34.0% of samples past
+  onset (p50 1.47, p90 3.84, p99 5.06 deg); rear 6.95% past onset
+  (p50 0.81, p90 2.37, p99 3.36 deg).
+- h2-vs-ay: corr(h2_pred, ay_meas) = +0.887, regression slope
+  0.582, intercept 0.438, n=471. Sign convention confirmed correct;
+  magnitude systematically damped by roughly 40%.
+
+REASONING (analysis of the above, not separate measurement):
+- The NIS baseline is dominated by MODEL error, not tuning. R for
+  the ay channel assumes a measurement standard deviation of
+  0.05 m/s^2 while the fit's own RMS residuals are several m/s^2
+  (WP-N1b: 2753 N front / 5793 N rear over 1356 kg = 2.0 and
+  4.3 m/s^2). A residual two orders of magnitude above the assumed
+  sensor noise produces NIS in the thousands by itself. Inflating R
+  would conceal this rather than correct it.
+- Consequence, stated as the reason this is not simply a bad
+  result: large, structured innovations are the raw material the
+  planned refit iteration needs. A near-perfect NIS would mean the
+  innovations carry no information about the tyre parameters and
+  the loop would have nothing to converge on. Note also that the
+  rejected linear observer was never NIS-checked, so it may well
+  have carried the same disagreement unmeasured.
+- Rear mu_fz identifiability is now a measured concern, not a
+  worry: under 7% of rear samples reach the saturating branch and
+  even p99 sits barely past onset. If the rear refit fails to
+  settle across passes, this is the first explanation to test.
+- The entry_1_brake / C14 concentration of divergence flags is
+  CONSISTENT WITH the documented pure-lateral Dugoff simplification
+  (no combined-slip coupling, where Ulsoy's own reference model
+  uses combined-slip Magic Formula), since heavy braking is
+  precisely where longitudinal-lateral coupling matters. NOT
+  isolated from the Q/R miscalibration above; both may contribute.
+  CAVEAT on the phase attribution itself: entry_1_brake's start
+  (modules/corner_analysis.py _build_corner, brake_start_t) is found
+  by an off-throttle lookback that searches back across the entire
+  prior time history for the last sample below brake_throttle_max_pct
+  -- this window can extend up the preceding straight and overlap
+  neighbouring corners' own brackets (first found doing WP-N0's
+  own per-corner masking, diagnostics/inspect_saturation_coverage.py).
+  The 86% entry_1_brake figure above is therefore INDICATIVE of where
+  divergence concentrates, not an exact phase attribution.
+
+EXPECTED, CONDITIONAL, NOT YET CONFIRMED:
+- If the h2 check used the pipeline's KINEMATIC slip angles (open
+  question, to be answered from the code next turn), then the 0.582
+  slope is consistent with the kinematic estimate's known
+  mid-corner under-read propagating through: suppressed sideslip ->
+  slip angles too small -> Dugoff evaluated at too-small angles
+  predicts too little force -> h2 under-swings ay. If instead it
+  used the EKF's own slip angles, this interpretation does not
+  hold and the slope indicates a genuine curve-shape deficiency.
+  Record both branches; do not assert either.
+- Falsifiable prediction for the refit passes: if the EKF recovers
+  the missing steady-state sideslip, slip angles should grow and
+  the h2 regression slope should move toward 1.0. If they do not
+  move, the under-read explanation is wrong.
+
+UNVERIFIED, recorded as a lead not a fact:
+- Team hearsay (source: told to the author, no datasheet, not
+  checked): these tyres peak near 8 deg slip angle. Peak slip angle
+  varies with compound, temperature and load, so this is indicative
+  at best. IF approximately right, the session's measured maxima
+  (4.8 deg front, 3.4 deg rear kinematic) are roughly half what a
+  GT3 driven at the limit should reach, which is a third
+  independent line pointing at the same slip-angle under-read as
+  the force-balance gap (WP-S3c: 0.9-5.8 deg rear slip demanded
+  where the estimate reads ~0) and the h2 slope above. Mark
+  TODO-verify.
+- Model-shape limitation worth stating alongside it: the Dugoff
+  form has NO peak. It rises and asymptotes toward a ceiling and
+  never falls. A real tyre stays linear longer, peaks, then loses
+  force. So Dugoff necessarily bends earlier and more gently than
+  an 8-deg-peak tyre would. This does not invalidate pass 0, but if
+  the fitted curve keeps disagreeing with the data in that specific
+  direction, the Magic Formula fallback (already recorded in WP-N1)
+  is the indicated next step.
+
+OPEN ITEM for PLAN.md's PARKED section (not added there this turn --
+recorded here only, per instruction):
+- beta_washout_cutoff_hz has never been swept. Production sits at
+  0.05 Hz (~3 s time constant) against 2-5 s corners, which is why
+  steady-state sideslip is suppressed. WP-S3c established that
+  removing the washout entirely gives 5.7 deg median residual drift
+  over a single corner (p90 10.8, max 14.3), i.e. larger than the
+  0.9-5.8 deg signal being sought -- so "no filter" is not viable.
+  But the intermediate range (e.g. 0.02, 0.01 Hz) was never tested.
+  Cheap to run, judged against the existing sign check and
+  force-balance expectation, and could improve the PRODUCTION
+  estimate independently of whether the EKF survives. Sequenced
+  after the EKF so the EKF's own beta can serve as the yardstick.
+
+#### Circularity check: pass-0 EKF vs the rejected linear observer [2026-08-19]
+
+ESTABLISHED (diagnostics/inspect_observer_slip_angle_circularity.py,
+same script and quantities used to condemn the linear observer):
+- R^2 of alpha vs Fy against a straight line: front 0.9739, rear
+  0.9710. Linear observer reference: 0.9971 / 0.9979.
+- Best-fit slope vs the frozen pass-0 prior: front 86,013 vs
+  132,798 N/rad (ratio 0.648); rear 163,367 vs 174,217 (ratio
+  0.938). Linear observer reference: within 11-12% of its own
+  fixed priors at both axles.
+- Residual scatter as a fraction of Fy's own spread: front 16.1%,
+  rear 17.0%. Linear observer reference: under 6% both axles.
+- Worst-phase-per-corner-instance flagged counts, out of 56, under
+  current thresholds: front 0 strong + 10 moderate, rear 4 strong
+  + 29 moderate. Linear observer reference: ZERO at both axles.
+  Production kinematic baseline: 7 strong + 4 moderate front,
+  5 + 4 rear.
+- CS_ratio medians: front 0.525 (EKF) vs 0.757 (kinematic); rear
+  0.518 (EKF) vs 1.000 (kinematic).
+- New check, frozen pass-0 curve evaluated at the EKF's OWN slip
+  angles vs measured Fy: front R^2 0.9872, RMS residual 750 N
+  (p10 -934, p50 +239, p90 +992); rear R^2 0.9916, RMS 812 N
+  (p10 -1100, p50 -231, p90 +981). Residuals are roughly 9-12% of
+  each axle's Fy standard deviation (6,600-8,900 N).
+- Onset coverage using the EKF's own alpha: front 53.7% past
+  2.297 deg (kinematic: 34.0%), p50 2.638 / p90 5.823 / p99 7.632
+  deg; rear 36.8% past 2.599 deg (kinematic: 6.95%), p50 1.877 /
+  p90 4.017 / p99 5.826 deg.
+
+ASSESSMENT:
+- The structural failure that condemned the linear observer is
+  ABSENT here. That observer could not represent saturation and
+  flagged zero instances at either axle; this one flags 4 strong +
+  29 moderate rear and 10 moderate front. Saturation exists in the
+  model and appears in the output.
+- Independence is PARTIAL and FRONT-DOMINANT, not established. The
+  front slope ratio of 0.648 means the EKF's own slip angles imply
+  a stiffness only 65% of the prior they were given -- a
+  substantial departure from restatement (the linear observer sat
+  at 0.88-0.89 of its priors). The rear ratio of 0.938 is much
+  closer to a restatement.
+- That asymmetry is COHERENT rather than random, which is itself
+  evidence the mechanism is real: the front covers the saturating
+  branch (34% past onset kinematically) while the rear barely does
+  (6.95%). Where the data carries information about the curve, the
+  estimate moves away from the prior; where it does not, the
+  estimate echoes the prior.
+- The frozen-curve check does NOT read as clearly non-circular.
+  R^2 of 0.987-0.992 means most of the variance is the model
+  recovering its own assumed shape. The 9-12% residual is real
+  departure and is not negligible, but the headline number leans
+  toward the EKF's alpha being close to a deterministic inverse of
+  the assumed curve.
+- CAUTION on the rear coverage jump (6.95% -> 36.8%): the rear is
+  simultaneously the axle whose slip angles are most tied to their
+  prior. The most likely reading is that rear slip angles grew
+  largely because the assumed curve implies they should have, not
+  because the data demanded it. Do not cite the rear coverage
+  improvement as independent evidence.
+
+STANDING SUMMARY going into the tuning package: partial
+independence, front-dominant, rear weak. Not the linear observer's
+failure mode; not yet a demonstrated saturation detector.
+
+#### Combined-slip limitation: rear exit-traction and front entry-braking false negatives [2026-08-19]
+
+PHYSICS (Tier A, anchor already in hand):
+- A tyre has one friction budget shared between longitudinal and
+  lateral use. Under a friction-circle construction, a tyre using
+  a fraction x of its capacity longitudinally retains
+  sqrt(1 - x^2) laterally: 13% lateral loss at x=0.5, 29% at
+  x=0.7, 56% at x=0.9.
+- Consequence for this car: on corner exit the rear axle of a
+  rear-engined RWD car spends heavily on traction, so its
+  REMAINING lateral capacity can be roughly half its
+  neutral-throttle value -- meaning the rear reaches its limit at a
+  much SMALLER slip angle than a pure-lateral model implies. A rear
+  reading 2 deg of slip is not necessarily inside the linear range.
+- Mirror case on entry: front brake bias means the fronts spend
+  longitudinal capacity under braking, cutting lateral capacity
+  exactly when turn-in demands it.
+- LIMITATION STATED PLAINLY: modules/tyre_model.py implements the
+  PURE-LATERAL Dugoff reduction. It therefore cannot represent
+  either case, and will produce FALSE NEGATIVES -- reporting an
+  axle as unsaturated when it is at its combined limit -- in
+  precisely the two situations a race engineer cares most about
+  (power-down oversteer on exit; entry limitation under braking).
+
+ANCHOR (no new citation needed):
+- Rajamani Ch. 13.10's Dugoff formulation is ALREADY combined-slip:
+  its lambda term includes both the longitudinal slip ratio and the
+  slip angle, and is exactly the friction-circle construction above.
+  Extending modules/tyre_model.py to combined slip means using LESS
+  of that section's simplification, not adopting a new source. The
+  pure-lateral reduction is documented as this project's own choice
+  in the WP-N1 entry.
+
+SUPPORTING EVIDENCE ALREADY ON RECORD (cross-reference, not new
+measurement):
+- WP-S1 (wheel-speed source characterization) designated log_speed_*
+  as the candidate wheel-speed family, byte-identical to
+  ecu_speed_wheels_*, deliberately not whitelisted because no
+  consumer existed. A combined-slip model would be that consumer.
+- WP-S1 found a BRAKING-SPECIFIC front effect: front wheel speed
+  reads -1.38% under braking (log_pbrake_f > 5 bar) versus -0.03%
+  off-braking, while the rear stays flat at -0.09% -- the signature
+  of front-wheel slip under braking on a front-brake-biased car.
+- WP-S1 also established the rear's constant +1.41% offset as a
+  rolling-radius difference, NOT traction slip (throttle-independent:
+  +1.44% under throttle vs +1.41% overall). A constant offset is
+  correctable; a slip-dependent one would not be. This is what makes
+  a wheel-speed-derived slip ratio plausibly usable here.
+- WP-N2 pass-0's divergence flags concentrate 86% in the
+  entry_1_brake phase (indicative, see the phase-overlap caveat
+  already recorded) -- consistent with, though not isolated from,
+  missing longitudinal-lateral coupling.
+
+STATUS: EXPECTED, not established. Two specific unknowns before any
+implementation: (1) whether the rear actually reaches meaningful
+longitudinal utilisation on this session's data, which has not been
+measured; (2) whether a wheel-speed-derived slip ratio is clean
+enough to use once the rolling-radius offset is corrected.
+Deliberately NOT started now -- the EKF arc has three open problems
+ahead of it (R calibration, divergence-monitor design, refit
+passes), and layering a combined-slip model onto a miscalibrated
+filter would entangle two investigations.
+
+#### Max-|beta| excursion and the divergence monitor's short-run blind spot [2026-08-19]
+
+ESTABLISHED -- the C2 excursion:
+- The session's largest raw EKF sideslip at pass 0, -14.119 deg,
+  sits at lap 4, t=884.224s, s_m=868.0m, inside C2's canonical
+  bracket -- NOT in the C14 divergence cluster.
+- The excursion spans roughly 12 consecutive samples (~0.24s,
+  t=884.204-884.324) with beta_raw between -11 and -14 deg,
+  coincident with ay of 24.9-26.0 m/s^2 (2.5-2.65 g) and yaw rate
+  of 18-25 deg/s.
+- Steering (delta_f) stays small and smooth throughout at
+  ~1.7-2.0 deg -- no correction input of the kind a genuine
+  -14 deg slide at 153 km/h would normally produce.
+- At t=884.344s beta_raw moves from -7.76 to +3.06 deg in a single
+  20 ms sample: a 10.8 deg sign-flipping discontinuity.
+- nis_ay across the peak window: 22,060 / 27,239 / 3,826, against
+  a df=1 95% bound of 3.84 -- four to five orders of magnitude over.
+- diverged_mask is FALSE at the peak sample despite that NIS, and
+  only trips a few samples later.
+
+ASSESSMENT, with its own uncertainty stated:
+- The single-sample 10.8 deg sign flip falsifies a genuine
+  coherent slide: vehicle sideslip cannot change by that much in
+  20 ms. Combined with the near-flat steering trace, the evidence
+  points to a numerical excursion.
+- Not fully clean, and recorded as such: the underlying ay
+  measurement does show a real, unusually large spike (2.65 g)
+  plausibly reflecting a physical event -- kerb strike, bump, or
+  extreme load moment. Best reading is a real but extreme
+  measurement input to which a poorly-calibrated filter,
+  consistent with pass 0's 93.4% NIS baseline, responds with an
+  unstable, self-inconsistent state estimate. It is not a clean
+  instrumentation glitch with no physical basis.
+- SUPERSEDED IN OUTCOME by the pass 1 recalibration (see that
+  entry): at the calibrated setting the max single-step jump in
+  the same window falls to 1.913 deg and stays same-sign, and max
+  |beta| in-window falls from 14.119 to 4.327 deg. The pathology
+  does not survive calibration. The characterisation above is kept
+  because it is what identified the problem and set the pass 1
+  acceptance gate.
+
+ESTABLISHED -- blind-spot quantification, WITH ITS THRESHOLD
+PROVENANCE STATED:
+- Measured against a PROPOSED threshold pair that was never
+  implemented: nis_window_samples=25 with nis_flag_fraction=1.0.
+- Over pass 0's 24,183-sample masked population: 22,590 samples
+  (93.4%) exceed the combined df=2 95% bound (5.99), forming 1,303
+  contiguous runs. 1,148 runs / 11,568 samples fall in runs
+  SHORTER than 25 samples (p50=9, p90=19, max=24) and are
+  therefore invisible to that proposed rule at any severity. 155
+  runs / 11,022 samples are >= 25 samples (p50=58, p90=148.6,
+  max=232).
+
+CORRECTION, same date, recorded rather than silently fixed:
+- The thresholds actually in config/parameters.json, for both
+  pass_0 and pass_1, are nis_window_samples=20,
+  nis_chi2_bound=5.99, nis_flag_fraction=0.5. Those are what drive
+  diverged_mask everywhere it appears, including the shading on
+  the plot outputs.
+- The blind-spot figures above therefore describe the PROPOSED
+  25/1.0 rule, not the implemented 20/0.5 one. Expected direction
+  without claiming the number: a 0.5 flag fraction requires only
+  half the window above the bound, so the implemented rule should
+  be LESS blind than those figures suggest. By how much has NOT
+  been measured.
+- The STRUCTURAL finding is unaffected by which pair is in use: a
+  purely windowed rule cannot detect bursts shorter than its
+  window at any severity, so any usable monitor needs a per-sample
+  severity trigger alongside the windowed one.
+- Provenance of the error, recorded because it is a process
+  lesson: the proposed threshold values were carried forward in a
+  review instruction as though they had been implemented. It was
+  caught when a plot run_info.txt was written against config
+  directly rather than against the instruction. Chat reports are
+  not the record; config and this notebook are.
+
+### WP-N2 pass 1: noise-model recalibration, derivation and 2-D sweep [2026-08-19]
+
+DECISION RATIFIED, recorded as a deliberate modelling choice:
+R for the measurement channels represents TOTAL INNOVATION
+UNCERTAINTY -- sensor noise plus model error -- not sensor noise
+alone. Rationale: the pass-0 value assumed 0.05 m/s^2 for ay, a
+fair claim about the accelerometer, but the filter's ay prediction
+also carries the frozen Dugoff curve's own error, measured at
+2.0 m/s^2 front and 4.3 m/s^2 rear RMS (WP-N1b). Telling the filter
+to trust its prediction to sensor precision while the model is
+wrong by two orders of magnitude more is what produced the 93.4%
+NIS baseline and the unstable state response at the C2 excursion.
+Setting R to total innovation uncertainty is standard Kalman
+practice; it is recorded here because it is a chosen modelling
+position, not a knob turned until diagnostics improved.
+
+ESTABLISHED -- derivation:
+- Front/rear Dugoff fit residuals are strongly correlated,
+  rho = 0.8999 over WP-N1b's own fit population (n=24,183). The
+  independence assumption was CHECKED AND REJECTED, not flagged:
+  independent-assumption combined std 4.7197 m/s^2 (R_ay_var
+  22.28) vs correlation-corrected 6.1516 m/s^2 (R_ay_var 37.84).
+  This correlation is the expected consequence of the identity
+  already recorded (a*Fy_f - b*Fy_r == Iz*psidd): both axle forces
+  are a deterministic transform of the same two measured signals.
+- The knock-on from ay miscalibration into the yaw-rate channel is
+  real and partial, now measured rather than assumed: yaw-rate
+  innovation std 3.1709 deg/s at pass 0, falling to 2.2278 deg/s
+  after fixing R_ay alone. Roughly half the yaw-rate inflation was
+  downstream of the ay problem; a substantial independent residual
+  remains. This is why the two R values were derived sequentially
+  rather than simultaneously.
+- The single-shot derivation FAILED its own pre-registered gate in
+  opposite directions per channel: ay over-corrected to 0.04%
+  exceedance with the K_ay gain collapsed ~180x, yaw rate still
+  under-corrected at 30.1%. A scalar rescale of R could not fix
+  both; the channels' relative weighting had to move.
+
+ESTABLISHED -- 2-D sweep:
+- Parameterisation: R_ay_scale and R_yaw_rate_scale as independent
+  multipliers on the single-shot values (37.8418 and 0.001511889),
+  anchored at those values rather than restarted. Q held FIXED --
+  nothing in the pass_1 evaluation implicated Q (both the NIS
+  improvement and the C2 fix came from R alone), so a third free
+  dimension would have widened the search without a diagnosed
+  reason. Q's own dimension is explicitly OPEN, not dropped.
+- Grid 5x5 = 25 points, R_ay_scale in {1.0, 0.3, 0.1, 0.03, 0.01},
+  R_yaw_rate_scale in {1.0, 2.0, 4.0, 8.0, 16.0}. Behaviour
+  monotonic in both directions as expected.
+- Exactly one grid point put BOTH channels inside the
+  pre-registered 3-15% band: R_ay_scale 0.1 (R_ay_var 3.7842,
+  9.18% exceedance) and R_yaw_rate_scale 4.0 (R_yaw_rate_var
+  0.0060476, 10.01%). The point sits in the grid INTERIOR, not at
+  an edge -- a mild indication it is not a knife-edge artifact,
+  though only this coarse grid was tested, not a finer one around
+  it.
+- CROSS-CHECK worth recording honestly: R_ay_var 3.7842 lands
+  within 9% of Method B's empirical estimate (3.475), which had
+  been demoted for circularity because it was measured from a
+  filter running with wrong R. The demotion remains methodologically
+  correct -- a filter's settings cannot be derived from its own
+  miscalibrated output -- but the contamination did not, in this
+  instance, distort the number much.
+
+ESTABLISHED -- acceptance criteria at the recommended setting
+(pass 0 -> pass 1 sweep-refined):
+- NIS exceedance, GATE: yaw rate 85.8% -> 10.01%, ay 71.9% ->
+  9.18%. Both PASS. Combined mean NIS 903.6 -> 2.907 against a
+  theoretical 2.
+- C2 excursion, GATE: max |beta| in the t=883-885.5s window
+  14.119 -> 4.327 deg; max single-step jump 10.826 -> 1.913 deg.
+  PASS. Note the interpretation explicitly: the over-corrected
+  single-shot derivation gave a SMALLER jump (0.553 deg) but for
+  the wrong reason -- a filter ignoring its accelerometer looks
+  smooth. The gate was never "small jumps" but "no sign-flipping
+  discontinuity": pass 0's jump flipped sign (-7.76 -> +3.06 deg),
+  this one stays same-sign (+2.05 -> +0.14 deg).
+- Sign check, median, GATE: 14/14 all corners, 13/13 racing-speed,
+  unchanged across all passes. PASS. Caveat retained: the median
+  is robust to local instability, so this gate measures central
+  tendency rather than filter health -- pass 0 scored 13/13 while
+  containing the C2 pathology.
+- Sign check, per-sample pooled, REPORTED: 98.93% -> 99.63%
+  (14460/14513) at racing-speed corners. This is the
+  pre-registered prediction that FAILED at the over-corrected
+  setting (98.37%, a slight regression) and now holds. Recorded as
+  both a failure and a subsequent success, not only the latter.
+- Circularity, REPORTED not gated: front slope ratio 0.648 ->
+  0.557, rear 0.938 -> 0.771 -- both continuing toward independence
+  from the prior. Flagged counts front 0+10 -> 21+11 (32/56), rear
+  4+29 -> 20+7 (27/56).
+- K_ay gain magnitude: median -4.416e-3 -> -1.933e-4, a ~23x
+  reduction, far more moderate than the single-shot derivation's
+  ~180x collapse, consistent with the NIS band being satisfied
+  rather than overshot.
+- h2-vs-ay correlation, population-matched at last: 0.9808 over
+  the full masked population (n=24,183) and 0.9682 over the same
+  n=471 apex-phase subset that produced the 0.887 kinematic
+  reference. At IDENTICAL samples, the EKF's own slip angles
+  explain measured lateral acceleration better than the production
+  kinematic estimate's do.
+
+OPEN, explicitly not resolved by this work:
+- The flagged-count increase (front 32/56, rear 27/56) is not
+  attributed. It could be genuine saturation detection or noise;
+  this turn's evidence does not distinguish them.
+- The circularity improvement was measured at a setting that has
+  since changed twice. It should be re-read once the configuration
+  is stable, not treated as settled.
+- Q was never swept. Its dimension is open, deliberately deferred
+  for want of a diagnosed reason to move it, not because it was
+  judged unimportant.
+- The 3-15% band was satisfied by exactly one point on a coarse
+  5x5 grid. No finer search was run around it.
+
+#### Circularity and flag attribution at the calibrated setting [2026-08-19]
+
+ESTABLISHED -- circularity, four-way comparison:
+- R^2 of alpha vs Fy against a straight line: front 0.9707, rear
+  0.9812. References: linear observer 0.9971/0.9979; pass_0
+  0.9739/0.9710.
+- Best-fit slope as a ratio of the frozen prior: front 0.557, rear
+  0.771. References: linear observer ~0.88-0.89 of its own fixed
+  priors; pass_0 0.648/0.938; pass_1 mid-sweep 0.570/0.795.
+- Residual scatter as a fraction of Fy's own spread: front 17.1%,
+  rear 13.7%. Linear observer reference: under 6% at both axles.
+- CS_ratio percentiles, EKF: front p5 -0.208, p25 0.288, median
+  0.597, p75 0.953; rear p5 0.002, p25 0.409, median 0.697, p75
+  1.000.
+- Flagged worst-phase-per-instance counts out of 56: front 21
+  strong + 11 moderate, rear 20 strong + 7 moderate. Linear
+  observer reference: ZERO at both axles.
+
+ESTABLISHED -- frozen-curve check, and why it is the decisive
+number:
+- Frozen pass-0 Dugoff curve evaluated at pass_1's own slip angles
+  vs measured Fy: front R^2 0.9526, RMS residual 1443 N (p10
+  -1908, p50 +429, p90 +1886); rear R^2 0.9822, RMS 1185 N (p10
+  -1575, p50 +139, p90 +1582).
+- Against pass_0's readings (front 0.9872 / 750 N, rear 0.9916 /
+  812 N), the CALIBRATED filter's slip angles depart FURTHER from
+  the assumed curve than the uncalibrated filter's did, at both
+  axles: lower R^2, roughly doubled front RMS residual.
+- REASONING, stated because this is the load-bearing inference of
+  the arc: if the filter were substantially inverting its own
+  assumed curve, improving its calibration would tighten that
+  inversion and drive R^2 toward 1. The opposite happened.
+  Increasing the weight the filter places on its measurements
+  pushed the estimate AWAY from the model rather than into it,
+  which is the signature of genuine measurement information
+  entering the estimate. This is the opposite of the behaviour
+  that condemned the linear observer, whose slip angles collapsed
+  onto its own fixed stiffness prior.
+- Corroborating: front slope ratio 0.557 means the stiffness
+  implied by the filter's own slip angles is barely half the prior
+  it was given; front residual scatter at 17.1% against the linear
+  observer's under 6%.
+
+ESTABLISHED -- onset coverage using pass_1's own alpha:
+- front 59.04% beyond the 2.297 deg onset, |alpha| p50 3.194 /
+  p90 6.611 / p99 8.153 deg.
+- rear 48.84% beyond 2.599 deg, p50 2.525 / p90 4.869 / p99
+  5.622 deg.
+- Monotone across every setting measured: kinematic 34.0%/6.95%
+  -> pass_0 53.7%/36.8% -> pass_1 calibrated 59.04%/48.84%. The
+  rear-identifiability concern recorded at pass 0 (under 7% of
+  rear samples past onset) is resolved at this setting.
+- WATCH ITEM, recorded rather than dismissed: front p99 of
+  8.153 deg sits essentially at the unverified ~8 deg tyre-peak
+  figure. Plausible, but not comfortably inside it. If later
+  passes push slip angles further, over-growth becomes a live
+  concern rather than a hypothetical.
+
+ESTABLISHED -- flag attribution (attribution only; physical
+correctness is NOT assessed here and requires the driver report):
+- Front, 32 instances across 13 distinct stable_corner_ids: C1(3),
+  C2(2), C3(2), C4(4), C5(3), C6(1), C7(2), C8(2), C9(3), C10(1),
+  C12(2), C13(3), C14(4).
+- Rear, 27 instances across 11 ids: C1(2), C2(2), C3(3), C4(4),
+  C5(1), C8(3), C9(3), C10(1), C12(1), C13(3), C14(4).
+- C4 and C14 are flagged on ALL FOUR laps at BOTH axles.
+- Worst phase is overwhelmingly apex_3 or exit_4 (roughly 14 and
+  13 of the 32 front instances); exit_5 occasional (4);
+  entry_1_brake and entry_2_turnin never appear as the worst phase
+  at the front. Rear pattern is similar.
+- Speed classes span low, medium and high with no concentration.
+- CLUSTER, not scatter, at both axles: 13 corners carry 32 front
+  instances (average 2.46 each), 11 carry 27 rear instances
+  (average 2.45). This is not a many-corners-flagged-once pattern.
+
+REASONING on the two phase signatures, recorded because they were
+at risk of being conflated:
+- The NIS-divergence flags concentrate in entry_1_brake (86%,
+  indicative). The CS_ratio saturation flags concentrate in
+  apex_3/exit_4 with entry phases essentially absent. Two
+  different checks producing two different phase signatures
+  suggests two different underlying causes -- filter instability
+  under braking, tyre saturation at apex and exit -- rather than
+  one shared artifact. Not proven; recorded as the more likely
+  reading, to be revisited if either signature moves.
+- The entry_1_brake overlap caveat (off-throttle lookback,
+  modules/corner_analysis.py _build_corner) does not materially
+  affect the CS_ratio attribution above, since entry_1_brake
+  barely appears in that flagged set.
+
+OPEN:
+- Whether the flagged corners are the CORRECT ones is not
+  addressed. The specific testable claim is C4 and C14 flagged
+  4/4 laps at both axles: either genuine problem corners or an
+  artifact concentrated there. Requires the June driver report.
 
 ## 2. Design principles (architecture chapter material)
 
@@ -3046,7 +3713,7 @@ HOW TO USE:
   citation (Mitschke/Wallentowitz, Dynamik der Kraftfahrzeuge,
   single-track lateral kinematics) -- currently cited as "p. TBD,
   verify" in the docstring pending access to the primary source.~~
-  [RESOLVED 2026-08-20, WP-S4 citation cleanup] The Mitschke/
+  [RESOLVED 2026-08-19, WP-S4 citation cleanup] The Mitschke/
   Wallentowitz page was never verified and is REPLACED, not sourced:
   estimate_sideslip's anchor is now Rajamani, Vehicle Dynamics and
   Control, 2nd ed., Springer 2012, sec. 2.6 "Dynamic Model in Terms of
@@ -3059,7 +3726,7 @@ HOW TO USE:
   observer" entry, [2026-08-19] RULE CHANGE bullet); no author/title/
   page in code.
 
-- [ADDED 2026-08-20, WP-N1] Verify page numbers for citations added this
+- [ADDED 2026-08-19, WP-N1] ~~Verify page numbers for citations added this
   session, none checked against a primary source yet: Rajamani Ch. 13.10
   (Dugoff tyre model, eqs. 13.72-13.76 -- modules/tyre_model.py, page
   TBD verify -- chapter/topic not previously anchored, unlike the two
@@ -3074,8 +3741,21 @@ HOW TO USE:
   section -- has been opened or confirmed by anyone this session or
   before. "Ch. 14" as recorded in the WP-N1 entry above is an unverified
   guess, not a checked citation, and must not be treated as one (or used
-  in any written text) until the actual chapter is located and confirmed
-  against the primary source.
+  in any written text) until the actual chapter is located and
+  confirmed against the primary source.~~ [RESOLVED 2026-08-19, WP-N2
+  implementation turn: Ulsoy, Peng, Cakmakci CONFIRMED by two
+  independent readings of the primary text -- sec. 14.3 p. 263
+  ("Nonlinear Vehicle Model" header, read directly), sec. 14.1 p. 258ff
+  (read directly), and Eq. 14.8 confirmed as a term-by-term match for
+  this project's EKF force/moment balances (two documented
+  simplifications: no roll DOF, pure-lateral Dugoff vs. Ulsoy's
+  combined-slip Magic Formula) -- see the corrected WP-N1 entry bullet
+  above and the WP-N2 entry below for full detail. STILL OPEN: Rajamani
+  Ch. 13.10 and Ch. 14 exact page numbers; Kiencke & Nielsen's exact
+  section number -- the last of these likely PERMANENTLY open by normal
+  means, since the source PDF's body text does not survive text
+  extraction (broken font encoding, systematically substituted glyphs)
+  and can only be checked from the printed copy.]
 
 - Werner method-delta comparison: three-column table (adopted as-is /
   deliberately different + why / not implemented + upgrade path),

@@ -14,6 +14,14 @@
 # slick reference, not sourced to a specific tyre) to see how far each
 # method's slip angles reach and whether either method's force-vs-slip
 # cloud shows the expected bend near the peak.
+#
+# Optional second command-line argument selects the
+# observer plotted as method "C" -- "linear" (default, unchanged
+# behaviour) or "dugoff_pass0" (nonlinear Dugoff EKF, frozen pass-0
+# parameters; alpha_f/alpha_r derived from its RAW beta output via the
+# same production estimate_slip_angles used for the kinematic/linear
+# cases, for a like-for-like comparison, not the EKF's own internal
+# slip-angle helper).
 
 import datetime
 import os
@@ -34,20 +42,11 @@ from diagnostics.sideslip_kalman_observer import (
     estimate_sideslip_kalman,
     Q_BETA_VAR, Q_YAW_RATE_VAR, R_YAW_RATE_VAR, R_AY_VAR,
 )
+from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TYRE_PEAK_DEG = 8.0
-
-# The observer's tyre model as of this WP (linear, fixed Caf/Car prior --
-# see thesis_notes.md "Linear observer saturation-detection failure").
-# Every plot this script produces used this model; the run label and the
-# manifest both record it explicitly so a future nonlinear-tyre observer's
-# plots are never mistaken for these, without needing tyre-model text
-# burned into the figures themselves.
-TYRE_MODEL_TAG = "linear_tyre"
-TYRE_MODEL_DESC = ("linear (fixed stiffness prior, Caf/Car from config/parameters.json "
-                    "cs_front/rear_fallback_reference_n_per_rad)")
 
 if len(sys.argv) > 1:
     RUN_LABEL = sys.argv[1]
@@ -55,6 +54,38 @@ else:
     RUN_LABEL = datetime.date.today().isoformat()
     print(f"No run label given on the command line -- using today's date as the "
           f"folder name: {RUN_LABEL}")
+
+OBSERVER_MODE = sys.argv[2] if len(sys.argv) > 2 else "linear"
+if OBSERVER_MODE not in ("linear", "dugoff_pass0", "dugoff_pass1"):
+    raise SystemExit(f"unknown observer mode {OBSERVER_MODE!r}, expected "
+                      f"'linear', 'dugoff_pass0', or 'dugoff_pass1'")
+
+# The observer's tyre model. Every plot this script produces used this
+# model; the run label and run_info.txt both record it explicitly so
+# the observers' plots are never mistaken for each other, without
+# needing tyre-model text burned into the figures themselves.
+if OBSERVER_MODE == "linear":
+    TYRE_MODEL_TAG = "linear_tyre"
+    TYRE_MODEL_DESC = ("linear (fixed stiffness prior, Caf/Car from config/parameters.json "
+                        "cs_front/rear_fallback_reference_n_per_rad) -- see thesis_notes.md "
+                        "'Linear observer saturation-detection failure'")
+    METHOD_C_LABEL = "C_kalman_observer"
+elif OBSERVER_MODE == "dugoff_pass0":
+    TYRE_MODEL_TAG = "dugoff_pass0"
+    TYRE_MODEL_DESC = ("nonlinear Dugoff EKF, pass 0 (frozen WP-N1b parameters, "
+                        "config/parameters.json tyre_model_ekf.pass_0, no refit) -- "
+                        "RAW beta plotted (pre-fallback), diverged_mask shaded red")
+    METHOD_C_LABEL = "C_dugoff_ekf_pass0"
+else:
+    TYRE_MODEL_TAG = "dugoff_pass1"
+    TYRE_MODEL_DESC = ("nonlinear Dugoff EKF, pass 1 (frozen pass-0 Dugoff parameters, "
+                        "config/parameters.json tyre_model_ekf.pass_1, noise-model-only "
+                        "recalibration -- 2-D sweep-refined R_ay/R_yaw_rate) -- RAW beta "
+                        "plotted (pre-fallback), diverged_mask shaded red")
+    METHOD_C_LABEL = "C_dugoff_ekf_pass1"
+
+EKF_PASS_ID = "pass_0" if OBSERVER_MODE == "dugoff_pass0" else "pass_1"
+
 if not RUN_LABEL.endswith(f"_{TYRE_MODEL_TAG}"):
     RUN_LABEL = f"{RUN_LABEL}_{TYRE_MODEL_TAG}"
 
@@ -72,24 +103,59 @@ def _git_commit_info():
         return f"unavailable ({exc})"
 
 
+data = parse_csv(RAW_FILE)
+params = load_parameters()
+state = prepare_vehicle_state(data["channels"], params)
+
 run_info_path = os.path.join(OUTPUT_DIR, "run_info.txt")
 with open(run_info_path, "w", encoding="utf-8") as f:
     f.write(f"run label: {RUN_LABEL}\n")
     f.write(f"date: {datetime.date.today().isoformat()}\n")
     f.write(f"git commit: {_git_commit_info()}\n")
     f.write("script: diagnostics/plot_slip_angle_comparison.py\n")
+    f.write(f"observer mode: {OBSERVER_MODE}\n")
     f.write(f"tyre model: {TYRE_MODEL_DESC}\n")
     f.write(f"tyre-peak reference line: {TYRE_PEAK_DEG} deg (approximate, not sourced to a specific tyre)\n")
-    f.write("observer Q/R settings (diagnostics/sideslip_kalman_observer.py) at time of this run:\n")
-    f.write(f"  Q_BETA_VAR = {float(Q_BETA_VAR):.6e} rad^2\n")
-    f.write(f"  Q_YAW_RATE_VAR = {float(Q_YAW_RATE_VAR):.6e} (rad/s)^2\n")
-    f.write(f"  R_YAW_RATE_VAR = {float(R_YAW_RATE_VAR):.6e} (rad/s)^2\n")
-    f.write(f"  R_AY_VAR = {float(R_AY_VAR):.6e} (m/s^2)^2\n")
+    if OBSERVER_MODE == "linear":
+        f.write("observer Q/R settings (diagnostics/sideslip_kalman_observer.py) at time of this run:\n")
+        f.write(f"  Q_BETA_VAR = {float(Q_BETA_VAR):.6e} rad^2\n")
+        f.write(f"  Q_YAW_RATE_VAR = {float(Q_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+        f.write(f"  R_YAW_RATE_VAR = {float(R_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+        f.write(f"  R_AY_VAR = {float(R_AY_VAR):.6e} (m/s^2)^2\n")
+    else:
+        cfg = params["tyre_model_ekf"][EKF_PASS_ID]
+        f.write("plotted series: RAW EKF beta (pre-fallback, result['beta']), NOT beta_with_fallback -- "
+                "slip angles derived from it via the production estimate_slip_angles\n")
+        f.write(f"diverged_mask: shaded red on the per-lap time-series plots below, computed from THIS "
+                f"run's own config values -- nis_window_samples={cfg['nis_window_samples']}, "
+                f"nis_chi2_bound={cfg['nis_chi2_bound']}, nis_flag_fraction={cfg['nis_flag_fraction']} "
+                f"(config tyre_model_ekf.{EKF_PASS_ID}.nis_*) -- these are PLACEHOLDER defaults, not "
+                f"data-derived or validated. NOTE: an earlier, separate analysis (diagnostics/"
+                f"inspect_nis_short_run_blindspot.py) explored a DIFFERENT, proposed-but-never-applied "
+                f"threshold (window=25, flag_fraction=1.0) and found the monitor at THAT threshold "
+                f"structurally blind to exceedance runs shorter than the window -- roughly half of all "
+                f"NIS-exceeding pass-0 samples, median burst length 9 -- but that finding is about the "
+                f"25/1.0 threshold, NOT the {cfg['nis_window_samples']}/{cfg['nis_flag_fraction']} "
+                f"threshold actually driving the shading in this plot; whether the same blind spot "
+                f"holds at this threshold, or at the calibrated pass-1 setting, has not been "
+                f"re-measured.\n")
+        if EKF_PASS_ID == "pass_1":
+            f.write("Dugoff c_alpha/mu_fz: UNCHANGED from pass_0 (noise-model-only recalibration, "
+                    "see config tyre_model_ekf.pass_1.changed_from_previous).\n")
+        f.write(f"frozen {EKF_PASS_ID} parameters (config/parameters.json tyre_model_ekf.{EKF_PASS_ID}):\n")
+        f.write(f"  c_alpha_front_n_per_rad = {cfg['c_alpha_front_n_per_rad']:.4f}\n")
+        f.write(f"  c_alpha_rear_n_per_rad = {cfg['c_alpha_rear_n_per_rad']:.4f}\n")
+        f.write(f"  mu_fz_front_N = {cfg['mu_fz_front_N']:.4f}\n")
+        f.write(f"  mu_fz_rear_N = {cfg['mu_fz_rear_N']:.4f}\n")
+        f.write(f"  Q_beta_var = {cfg['Q_beta_var']:.6e} rad^2\n")
+        f.write(f"  Q_yaw_rate_var = {cfg['Q_yaw_rate_var']:.6e} (rad/s)^2\n")
+        f.write(f"  R_yaw_rate_var = {cfg['R_yaw_rate_var']:.6e} (rad/s)^2\n")
+        f.write(f"  R_ay_var = {cfg['R_ay_var']:.6e} (m/s^2)^2\n")
+        f.write(f"  beta_hard_bound_deg = {cfg['beta_hard_bound_deg']}\n")
+        f.write(f"  nis_window_samples = {cfg['nis_window_samples']} (placeholder)\n")
+        f.write(f"  nis_chi2_bound = {cfg['nis_chi2_bound']} (placeholder)\n")
+        f.write(f"  nis_flag_fraction = {cfg['nis_flag_fraction']} (placeholder)\n")
 written.append(run_info_path)
-
-data = parse_csv(RAW_FILE)
-params = load_parameters()
-state = prepare_vehicle_state(data["channels"], params)
 
 t_ref = state["time"]
 s_m = state.get("s_m")
@@ -116,7 +182,13 @@ for c in corners:
 stable_ids = sorted(corners_by_stable_id)
 
 beta_a = estimate_sideslip(state, params)
-beta_c = estimate_sideslip_kalman(state, params)
+if OBSERVER_MODE == "linear":
+    beta_c = estimate_sideslip_kalman(state, params)
+    diverged_mask_full = None
+else:
+    ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id=EKF_PASS_ID)
+    beta_c = ekf_result["beta"]  # RAW, pre-fallback -- see header note
+    diverged_mask_full = ekf_result["diverged_mask"]
 slip_a = estimate_slip_angles(state, beta_a, params)
 slip_c = estimate_slip_angles(state, beta_c, params)
 forces = estimate_lateral_forces(state, params)
@@ -195,6 +267,23 @@ def _shade_corners(ax, lap_number, lap_start_t):
                     fontsize=6, ha="center", color="dimgray")
 
 
+def _shade_diverged(ax, t_rel, diverged_lap):
+    # dugoff_pass0 only -- see plot_sideslip_comparison.py's copy of this
+    # helper for the rationale (kept duplicated, same reasoning as this
+    # file's own header note about not factoring small shared patterns
+    # into a helper module for a second/third consumer).
+    if diverged_lap is None or not diverged_lap.any():
+        return
+    idx = np.where(diverged_lap)[0]
+    breaks = np.where(np.diff(idx) > 1)[0]
+    starts = np.concatenate(([idx[0]], idx[breaks + 1]))
+    ends = np.concatenate((idx[breaks], [idx[-1]]))
+    for k, (s_i, e_i) in enumerate(zip(starts, ends)):
+        e_i_incl = min(e_i + 1, len(t_rel) - 1)
+        ax.axvspan(t_rel[s_i], t_rel[e_i_incl], color="red", alpha=0.20, lw=0, zorder=0,
+                   label="diverged_mask (NIS/beta-bound flagged)" if k == 0 else None)
+
+
 for lap in valid_laps:
     lap_no = lap["lap_number"]
     lo = int(np.searchsorted(t_ref, lap["start_time"], side="left"))
@@ -203,17 +292,19 @@ for lap in valid_laps:
         continue
     t_rel = t_ref[lo:hi] - lap["start_time"]
     ayg = ay_g[lo:hi]
+    diverged_lap = diverged_mask_full[lo:hi] if diverged_mask_full is not None else None
 
     for axle_name, axle in AXLES.items():
         fig, ax1 = plt.subplots(figsize=(12, 5))
         ax1.plot(t_rel, axle["a"][lo:hi], label="A_kinematic alpha", color="tab:blue", linewidth=1.0)
-        ax1.plot(t_rel, axle["c"][lo:hi], label="C_kalman_observer alpha", color="tab:orange", linewidth=1.0)
+        ax1.plot(t_rel, axle["c"][lo:hi], label=f"{METHOD_C_LABEL} alpha", color="tab:orange", linewidth=1.0)
         ax1.set_xlabel("time since lap start (s)")
         ax1.set_ylabel(f"{axle_name} slip angle alpha (deg)")
         ax2 = ax1.twinx()
         ax2.plot(t_rel, ayg, color="tab:gray", alpha=0.4, linewidth=0.8, label="ay (g)")
         ax2.set_ylabel("lateral acceleration ay (g)")
         _shade_corners(ax1, lap_no, lap["start_time"])
+        _shade_diverged(ax1, t_rel, diverged_lap)
         l1, la1 = ax1.get_legend_handles_labels()
         l2, la2 = ax2.get_legend_handles_labels()
         ax1.legend(l1 + l2, la1 + la2, loc="upper right", fontsize=8)
@@ -231,7 +322,7 @@ for axle_name, axle in AXLES.items():
     corner_stats[axle_name] = {}
     fig, ax = plt.subplots(figsize=(9, 5))
     bins = np.linspace(0, 14, 57)
-    for method, key, color in (("A_kinematic", "a", "tab:blue"), ("C_kalman_observer", "c", "tab:orange")):
+    for method, key, color in (("A_kinematic", "a", "tab:blue"), (METHOD_C_LABEL, "c", "tab:orange")):
         vals = np.abs(axle[key][corner_valid_mask])
         vals = vals[np.isfinite(vals)]
         ax.hist(vals, bins=bins, alpha=0.55, color=color, label=method, density=True)
@@ -275,7 +366,7 @@ for axle_name, axle in AXLES.items():
     width = 0.35
     fig, (ax_med, ax_p95) = plt.subplots(2, 1, figsize=(14, 9), sharex=True)
     ax_med.bar(x - width / 2, med_a, width, label="A_kinematic", color="tab:blue")
-    ax_med.bar(x + width / 2, med_c, width, label="C_kalman_observer", color="tab:orange")
+    ax_med.bar(x + width / 2, med_c, width, label=METHOD_C_LABEL, color="tab:orange")
     ax_med.axhline(TYRE_PEAK_DEG, color="black", linestyle="--", linewidth=0.8,
                    label=f"~{TYRE_PEAK_DEG:.0f} deg (known approximate tyre peak)")
     ax_med.set_ylabel("median |alpha| (deg)")
@@ -300,7 +391,7 @@ for axle_name, axle in AXLES.items():
 
 for axle_name, axle in AXLES.items():
     fig, (ax_a, ax_c) = plt.subplots(1, 2, figsize=(13, 6), sharey=True)
-    for ax, key, method in ((ax_a, "a", "A_kinematic"), (ax_c, "c", "C_kalman_observer")):
+    for ax, key, method in ((ax_a, "a", "A_kinematic"), (ax_c, "c", METHOD_C_LABEL)):
         x_vals = axle[key][corner_valid_mask]
         y_vals = axle["Fy"][corner_valid_mask]
         finite = np.isfinite(x_vals) & np.isfinite(y_vals)
@@ -328,7 +419,7 @@ for f in written:
 print()
 print("Slip-angle magnitude over corner samples, per axle per method (deg):")
 for axle_name in AXLES:
-    for method in ("A_kinematic", "C_kalman_observer"):
+    for method in ("A_kinematic", METHOD_C_LABEL):
         s = corner_stats[axle_name][method]
         print(f"  {axle_name:6s} {method:18s} n={s['n']:6d}  median={s['median']:.3f}  "
               f"p95={s['p95']:.3f}  max={s['max']:.3f}")

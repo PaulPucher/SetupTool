@@ -12,6 +12,16 @@
 # (e.g. before/after Q/R tuning) can be told apart later. No label text
 # is ever drawn into the figures themselves -- the folder name is the
 # only marker. Defaults to today's date if no label is given.
+#
+# Optional second command-line argument selects the
+# observer plotted as method "C" -- "linear" (default, unchanged
+# behaviour) or "dugoff_pass0" (nonlinear Dugoff EKF, frozen pass-0
+# parameters). dugoff_pass0 plots the RAW EKF beta (pre-fallback, not
+# beta_with_fallback) and additionally shades diverged_mask regions in
+# red on the per-lap time-series plots -- the 27.8% of samples the
+# divergence monitor flags stay visible rather than hidden by a silent
+# fallback substitution, matching diagnostics/sideslip_ekf_dugoff.py's
+# own "never silently" design.
 
 import datetime
 import os
@@ -29,19 +39,10 @@ from diagnostics.sideslip_kalman_observer import (
     estimate_sideslip_kalman,
     Q_BETA_VAR, Q_YAW_RATE_VAR, R_YAW_RATE_VAR, R_AY_VAR, P0_BETA_VAR, P0_YAW_RATE_VAR,
 )
+from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# The observer's tyre model as of this WP (linear, fixed Caf/Car prior --
-# see thesis_notes.md "Linear observer saturation-detection failure").
-# Every plot this script produces used this model; the run label and the
-# manifest both record it explicitly so a future nonlinear-tyre observer's
-# plots are never mistaken for these, without needing tyre-model text
-# burned into the figures themselves.
-TYRE_MODEL_TAG = "linear_tyre"
-TYRE_MODEL_DESC = ("linear (fixed stiffness prior, Caf/Car from config/parameters.json "
-                    "cs_front/rear_fallback_reference_n_per_rad)")
 
 if len(sys.argv) > 1:
     RUN_LABEL = sys.argv[1]
@@ -49,6 +50,36 @@ else:
     RUN_LABEL = datetime.date.today().isoformat()
     print(f"No run label given on the command line -- using today's date as the "
           f"folder name: {RUN_LABEL}")
+
+OBSERVER_MODE = sys.argv[2] if len(sys.argv) > 2 else "linear"
+if OBSERVER_MODE not in ("linear", "dugoff_pass0", "dugoff_pass1"):
+    raise SystemExit(f"unknown observer mode {OBSERVER_MODE!r}, expected "
+                      f"'linear', 'dugoff_pass0', or 'dugoff_pass1'")
+
+# The observer's tyre model. Every plot this script produces used this
+# model; the run label and run_info.txt both record it explicitly so
+# the observers' plots are never mistaken for each other, without
+# needing tyre-model text burned into the figures themselves.
+if OBSERVER_MODE == "linear":
+    TYRE_MODEL_TAG = "linear_tyre"
+    TYRE_MODEL_DESC = ("linear (fixed stiffness prior, Caf/Car from config/parameters.json "
+                        "cs_front/rear_fallback_reference_n_per_rad) -- see thesis_notes.md "
+                        "'Linear observer saturation-detection failure'")
+    METHOD_C_LABEL = "C_kalman_observer"
+elif OBSERVER_MODE == "dugoff_pass0":
+    TYRE_MODEL_TAG = "dugoff_pass0"
+    TYRE_MODEL_DESC = ("nonlinear Dugoff EKF, pass 0 (frozen WP-N1b parameters, "
+                        "config/parameters.json tyre_model_ekf.pass_0, no refit) -- "
+                        "RAW beta plotted (pre-fallback), diverged_mask shaded red")
+    METHOD_C_LABEL = "C_dugoff_ekf_pass0"
+else:
+    TYRE_MODEL_TAG = "dugoff_pass1"
+    TYRE_MODEL_DESC = ("nonlinear Dugoff EKF, pass 1 (frozen pass-0 Dugoff parameters, "
+                        "config/parameters.json tyre_model_ekf.pass_1, noise-model-only "
+                        "recalibration -- 2-D sweep-refined R_ay/R_yaw_rate) -- RAW beta "
+                        "plotted (pre-fallback), diverged_mask shaded red")
+    METHOD_C_LABEL = "C_dugoff_ekf_pass1"
+
 if not RUN_LABEL.endswith(f"_{TYRE_MODEL_TAG}"):
     RUN_LABEL = f"{RUN_LABEL}_{TYRE_MODEL_TAG}"
 
@@ -80,7 +111,14 @@ kerb_mask = state.get("kerb_mask")
 moving = moving_raw & ~kerb_mask if kerb_mask is not None else moving_raw
 
 beta_a_deg = np.degrees(estimate_sideslip(state, params))
-beta_c_deg = np.degrees(estimate_sideslip_kalman(state, params))
+if OBSERVER_MODE == "linear":
+    beta_c_deg = np.degrees(estimate_sideslip_kalman(state, params))
+    diverged_mask_full = None
+else:
+    ekf_pass_id = "pass_0" if OBSERVER_MODE == "dugoff_pass0" else "pass_1"
+    ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id=ekf_pass_id)
+    beta_c_deg = np.degrees(ekf_result["beta"])  # RAW, pre-fallback -- see header note
+    diverged_mask_full = ekf_result["diverged_mask"]
 
 laps = data.get("laps", [])
 valid_laps = [l for l in laps if l.get("is_valid_for_analysis")]
@@ -94,14 +132,49 @@ with open(run_info_path, "w", encoding="utf-8") as f:
     f.write(f"run label: {RUN_LABEL}\n")
     f.write(f"date: {datetime.date.today().isoformat()}\n")
     f.write(f"git commit: {_git_commit_info()}\n")
+    f.write(f"observer mode: {OBSERVER_MODE}\n")
     f.write(f"tyre model: {TYRE_MODEL_DESC}\n")
-    f.write("observer Q/R settings (diagnostics/sideslip_kalman_observer.py):\n")
-    f.write(f"  Q_BETA_VAR = {float(Q_BETA_VAR):.6e} rad^2\n")
-    f.write(f"  Q_YAW_RATE_VAR = {float(Q_YAW_RATE_VAR):.6e} (rad/s)^2\n")
-    f.write(f"  R_YAW_RATE_VAR = {float(R_YAW_RATE_VAR):.6e} (rad/s)^2\n")
-    f.write(f"  R_AY_VAR = {float(R_AY_VAR):.6e} (m/s^2)^2\n")
-    f.write(f"  P0_BETA_VAR = {float(P0_BETA_VAR):.6e} rad^2\n")
-    f.write(f"  P0_YAW_RATE_VAR = {float(P0_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+    if OBSERVER_MODE == "linear":
+        f.write("observer Q/R settings (diagnostics/sideslip_kalman_observer.py):\n")
+        f.write(f"  Q_BETA_VAR = {float(Q_BETA_VAR):.6e} rad^2\n")
+        f.write(f"  Q_YAW_RATE_VAR = {float(Q_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+        f.write(f"  R_YAW_RATE_VAR = {float(R_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+        f.write(f"  R_AY_VAR = {float(R_AY_VAR):.6e} (m/s^2)^2\n")
+        f.write(f"  P0_BETA_VAR = {float(P0_BETA_VAR):.6e} rad^2\n")
+        f.write(f"  P0_YAW_RATE_VAR = {float(P0_YAW_RATE_VAR):.6e} (rad/s)^2\n")
+    else:
+        cfg = params["tyre_model_ekf"][ekf_pass_id]
+        f.write("plotted series: RAW EKF beta (pre-fallback, result['beta']), NOT beta_with_fallback\n")
+        f.write(f"diverged_mask: shaded red on the per-lap time-series plots below, computed from THIS "
+                f"run's own config values -- nis_window_samples={cfg['nis_window_samples']}, "
+                f"nis_chi2_bound={cfg['nis_chi2_bound']}, nis_flag_fraction={cfg['nis_flag_fraction']} "
+                f"(config tyre_model_ekf.{ekf_pass_id}.nis_*) -- these are PLACEHOLDER defaults, not "
+                f"data-derived or validated (nis_tuning_note in config). NOTE: an earlier, separate "
+                f"analysis (diagnostics/inspect_nis_short_run_blindspot.py) explored a DIFFERENT, "
+                f"proposed-but-never-applied threshold (window=25, flag_fraction=1.0) and found the "
+                f"monitor at THAT threshold structurally blind to exceedance runs shorter than the "
+                f"window -- roughly half of all NIS-exceeding pass-0 samples, median burst length 9 -- "
+                f"but that finding is about the 25/1.0 threshold, NOT the 20/0.5 threshold actually "
+                f"driving the shading in this plot; whether the same blind spot holds at 20/0.5, or at "
+                f"the calibrated pass-1 setting, has not been re-measured.\n")
+        if ekf_pass_id == "pass_1":
+            f.write("Dugoff c_alpha/mu_fz: UNCHANGED from pass_0 (noise-model-only recalibration, "
+                    "see config tyre_model_ekf.pass_1.changed_from_previous).\n")
+        f.write(f"frozen {ekf_pass_id} parameters (config/parameters.json tyre_model_ekf.{ekf_pass_id}):\n")
+        f.write(f"  c_alpha_front_n_per_rad = {cfg['c_alpha_front_n_per_rad']:.4f}\n")
+        f.write(f"  c_alpha_rear_n_per_rad = {cfg['c_alpha_rear_n_per_rad']:.4f}\n")
+        f.write(f"  mu_fz_front_N = {cfg['mu_fz_front_N']:.4f}\n")
+        f.write(f"  mu_fz_rear_N = {cfg['mu_fz_rear_N']:.4f}\n")
+        f.write(f"  Q_beta_var = {cfg['Q_beta_var']:.6e} rad^2\n")
+        f.write(f"  Q_yaw_rate_var = {cfg['Q_yaw_rate_var']:.6e} (rad/s)^2\n")
+        f.write(f"  R_yaw_rate_var = {cfg['R_yaw_rate_var']:.6e} (rad/s)^2\n")
+        f.write(f"  R_ay_var = {cfg['R_ay_var']:.6e} (m/s^2)^2\n")
+        f.write(f"  P0_beta_var = {cfg['P0_beta_var']:.6e} rad^2\n")
+        f.write(f"  P0_yaw_rate_var = {cfg['P0_yaw_rate_var']:.6e} (rad/s)^2\n")
+        f.write(f"  beta_hard_bound_deg = {cfg['beta_hard_bound_deg']}\n")
+        f.write(f"  nis_window_samples = {cfg['nis_window_samples']} (placeholder)\n")
+        f.write(f"  nis_chi2_bound = {cfg['nis_chi2_bound']} (placeholder)\n")
+        f.write(f"  nis_flag_fraction = {cfg['nis_flag_fraction']} (placeholder)\n")
 written.append(run_info_path)
 
 
@@ -142,6 +215,23 @@ def _shade_corners(ax, lap_number, lap_start_t):
                     fontsize=6, ha="center", color="dimgray")
 
 
+def _shade_diverged(ax, t_rel, diverged_lap):
+    # dugoff_pass0 only -- makes the divergence-monitor-flagged samples
+    # visible on the trace instead of hiding them behind the silently
+    # fallback-corrected series (this script deliberately plots the RAW
+    # beta, see header note).
+    if diverged_lap is None or not diverged_lap.any():
+        return
+    idx = np.where(diverged_lap)[0]
+    breaks = np.where(np.diff(idx) > 1)[0]
+    starts = np.concatenate(([idx[0]], idx[breaks + 1]))
+    ends = np.concatenate((idx[breaks], [idx[-1]]))
+    for k, (s_i, e_i) in enumerate(zip(starts, ends)):
+        e_i_incl = min(e_i + 1, len(t_rel) - 1)
+        ax.axvspan(t_rel[s_i], t_rel[e_i_incl], color="red", alpha=0.20, lw=0, zorder=0,
+                   label="diverged_mask (NIS/beta-bound flagged)" if k == 0 else None)
+
+
 # --- Plots 1 & 2: per-lap time-series overlay + difference -----------------
 
 for lap in valid_laps:
@@ -154,20 +244,22 @@ for lap in valid_laps:
     ba = beta_a_deg[lo:hi]
     bc = beta_c_deg[lo:hi]
     ayg = ay_g[lo:hi]
+    diverged_lap = diverged_mask_full[lo:hi] if diverged_mask_full is not None else None
 
     fig, ax1 = plt.subplots(figsize=(12, 5))
     ax1.plot(t_rel, ba, label="A_kinematic beta", color="tab:blue", linewidth=1.0)
-    ax1.plot(t_rel, bc, label="C_kalman_observer beta", color="tab:orange", linewidth=1.0)
+    ax1.plot(t_rel, bc, label=f"{METHOD_C_LABEL} beta", color="tab:orange", linewidth=1.0)
     ax1.set_xlabel("time since lap start (s)")
     ax1.set_ylabel("sideslip beta (deg)")
     ax2 = ax1.twinx()
     ax2.plot(t_rel, ayg, color="tab:gray", alpha=0.4, linewidth=0.8, label="ay (g)")
     ax2.set_ylabel("lateral acceleration ay (g)")
     _shade_corners(ax1, lap_no, lap["start_time"])
+    _shade_diverged(ax1, t_rel, diverged_lap)
     l1, la1 = ax1.get_legend_handles_labels()
     l2, la2 = ax2.get_legend_handles_labels()
     ax1.legend(l1 + l2, la1 + la2, loc="upper right", fontsize=8)
-    ax1.set_title(f"Lap {lap_no}: kinematic vs Kalman-observer sideslip (shaded = corner brackets)")
+    ax1.set_title(f"Lap {lap_no}: kinematic vs {METHOD_C_LABEL} sideslip (shaded = corner brackets)")
     fig.tight_layout()
     fname = os.path.join(OUTPUT_DIR, f"lap{lap_no}_timeseries.png")
     fig.savefig(fname, dpi=120)
@@ -184,10 +276,11 @@ for lap in valid_laps:
     ax2.plot(t_rel, ayg, color="tab:gray", alpha=0.4, linewidth=0.8, label="ay (g)")
     ax2.set_ylabel("lateral acceleration ay (g)")
     _shade_corners(ax1, lap_no, lap["start_time"])
+    _shade_diverged(ax1, t_rel, diverged_lap)
     l1, la1 = ax1.get_legend_handles_labels()
     l2, la2 = ax2.get_legend_handles_labels()
     ax1.legend(l1 + l2, la1 + la2, loc="upper right", fontsize=8)
-    ax1.set_title(f"Lap {lap_no}: observer minus kinematic sideslip difference (shaded = corner brackets)")
+    ax1.set_title(f"Lap {lap_no}: {METHOD_C_LABEL} minus kinematic sideslip difference (shaded = corner brackets)")
     fig.tight_layout()
     fname = os.path.join(OUTPUT_DIR, f"lap{lap_no}_difference.png")
     fig.savefig(fname, dpi=120)
@@ -245,13 +338,13 @@ x = np.arange(len(cids))
 width = 0.35
 fig, ax = plt.subplots(figsize=(14, 6))
 ax.bar(x - width / 2, med_a, width, label="A_kinematic", color="tab:blue")
-ax.bar(x + width / 2, med_c, width, label="C_kalman_observer", color="tab:orange")
+ax.bar(x + width / 2, med_c, width, label=METHOD_C_LABEL, color="tab:orange")
 ax.axhline(0, color="black", linewidth=0.5)
 ax.set_xticks(x)
 ax.set_xticklabels([f"C{c}" for c in cids])
 ax.set_xlabel("stable corner id")
 ax.set_ylabel("median sideslip beta (deg)")
-ax.set_title("Per-corner median sideslip: kinematic vs Kalman observer "
+ax.set_title(f"Per-corner median sideslip: kinematic vs {METHOD_C_LABEL} "
              "(top labels: turn direction by ay sign, not verified L/R)")
 ax.legend(fontsize=8)
 ymax, ymin = max(med_a + med_c), min(med_a + med_c)
@@ -288,7 +381,7 @@ lims = [
 ]
 ax.plot(lims, lims, color="black", linewidth=0.8, linestyle="--", label="y = x (perfect agreement)")
 ax.set_xlabel("A_kinematic sideslip beta (deg)")
-ax.set_ylabel("C_kalman_observer sideslip beta (deg)")
+ax.set_ylabel(f"{METHOD_C_LABEL} sideslip beta (deg)")
 ax.set_title("Kinematic vs observer sideslip, all valid-lap moving samples")
 ax.legend(fontsize=8, markerscale=3)
 fig.tight_layout()
