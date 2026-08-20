@@ -39,8 +39,15 @@ CAR_DATA_PATH = "config/car_data.json"
 # partition corner window already computed in modules/corner_analysis.py,
 # previously only on the raw corner dicts, not the persisted summary) --
 # a pre-bump payload has neither key, so the trace window's margin
-# computation must not read them off a stale cache.
-ANALYSIS_SCHEMA_VERSION = 4
+# computation must not read them off a stale cache. Bumped 4->5 (WP-N2 Step
+# 1b): payload gained sideslip_source (which beta the analysis ran under --
+# "kinematic" or "ekf_pass_1", config/parameters.json stability_estimation.
+# sideslip_source), so a persisted run is never silently re-read under a
+# different estimator after a config-switch flip and app restart. Bumped
+# regardless of the default ("kinematic") producing byte-identical numbers --
+# the payload SHAPE changed, which this version tag also covers per the rule
+# above.
+ANALYSIS_SCHEMA_VERSION = 5
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named

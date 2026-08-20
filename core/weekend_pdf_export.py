@@ -113,6 +113,22 @@ def _classify_corner(summary):
     return OutingForm._classify_corner(None, summary)
 
 
+def _sideslip_source_calibrated():
+    # WP-N2 Step 1b: mirrors ui/views/outing_form.py's OutingForm.
+    # _sideslip_source_calibrated exactly (same two config keys, same
+    # comparison) -- not imported from there because that method reads
+    # self only implicitly (never touches it), so duplicating the two-line
+    # comparison here avoids pulling a QWidget-bound method into a
+    # non-Qt-instance PDF-generation context for no benefit.
+    from modules.stability_analysis import load_parameters
+    params = load_parameters()
+    active = params["stability_estimation"].get("sideslip_source", "kinematic")
+    calibrated_for = params["classification"].get(
+        "thresholds_calibrated_for_sideslip_source", "kinematic"
+    )
+    return active == calibrated_for
+
+
 def _accuracy_footer_text(levels):
     from ui.views.outing_form import OutingForm
     if not levels:
@@ -193,7 +209,21 @@ def _verdict_flowables(summaries, styles):
         severity, _short, long_v, _colour = _classify_corner(agg)
         rows.append([f"C{cid}", agg.get("speed_class") or "—", severity, long_v])
     w = CONTENT_W
-    return [_table(rows, [w * 0.12, w * 0.16, w * 0.16, w * 0.56], styles)]
+    flow = []
+    # WP-N2 Step 1b: same gate as OutingForm._sideslip_source_calibrated's
+    # banner -- individual verdict cells above already carry the
+    # "[UNCAL]" marker (inherited from _classify_corner unmodified), this
+    # is the persistent, can't-scroll-past caveat for the printed page.
+    # Placeholder wording, pending review.
+    if not _sideslip_source_calibrated():
+        flow.append(Paragraph(
+            "PLACEHOLDER: sideslip estimator changed, verdict thresholds not "
+            "re-derived -- read traces, not verdict colours.",
+            styles["warn"],
+        ))
+        flow.append(Spacer(1, 1.5 * mm))
+    flow.append(_table(rows, [w * 0.12, w * 0.16, w * 0.16, w * 0.56], styles))
+    return flow
 
 
 def _recommendations_flowables(outing, summaries, driving_level, styles):

@@ -3811,6 +3811,385 @@ STANDING NOTE: this entry is the citable reference point for
 combined-slip comparison work. It freezes already-established facts;
 it does not supersede or reinterpret any of them.
 
+### WP-N2 Step 1a: pass-1 EKF wall-clock timing, before any wiring
+[2026-08-20]
+
+PURPOSE: PLAN.md STEP 1 sub-step 1a -- time the pass-1 EKF (a
+per-sample Python loop with a 2x2 matrix inversion each step) against
+the production pipeline before any wiring decision, per the standing
+rule "do not wire in a slow path and fix it later." Measurement only;
+no config or production code changed. diagnostics/inspect_pass1_ekf_
+timing.py (new, read-only), 5 repetitions, Dubai sample, n=40800
+samples (full file, not the moving/racing-masked subset used
+elsewhere in this arc).
+
+MACHINE: Windows-10-10.0.26200-SP0 (Windows 11 build number; the
+platform module reports it under the legacy "Windows-10" family
+name), AMD64 Family 25 Model 116 Stepping 1 AuthenticAMD (Zen 4
+generation), Python 3.10.9, numpy 2.2.6.
+
+RESULT, mean over 5 reps: production full-outing total (parse_csv
+through summarise_corners, the same sequence test_stability.py
+exercises) = 123.27 s (std 8.66 s, range 114.55-138.82 s). pass_1 EKF
+alone = 4.66 s (std 0.14 s, range 4.51-4.91 s) -- 0.114 ms/sample.
+Projected full-outing total with the EKF substituted for the
+kinematic estimate_sideslip call = production_mean -
+kinematic_mean + ekf_mean = 127.93 s, a +3.8% increase.
+
+UNEXPECTED FINDING, not what this measurement set out to check: the
+EKF is NOT the pipeline's cost driver. Per-module breakdown (mean,
+seconds): parse_csv 16.62, load_parameters 0.0002, prepare_vehicle_
+state 0.015, estimate_sideslip (kinematic) 0.0025, estimate_slip_
+angles 0.005, estimate_lateral_forces 0.004, estimate_cornering_
+stiffness 106.22, estimate_yaw_moment_stability 0.275, summarise_
+corners 0.129. estimate_cornering_stiffness alone is 86% of the
+existing production total and is already ~23x more expensive than
+the EKF loop this sub-step exists to evaluate. Consistent with PLAN.md
+NOW's description of the chair's CS method as a sliding-window
+least-squares fit evaluated per sample -- itself a per-sample loop,
+just not the one this sub-step was asked to time. Recorded here as a
+finding, not acted on: STEP 1a's mandate is measurement only, and
+this observation is about a different module's cost, not the EKF's.
+
+STABILITY ACROSS REPS: the EKF's own timing is tight (std/mean =
+3.0%). The production total's variance (std/mean = 7.0%) traces
+almost entirely to estimate_cornering_stiffness (std 8.41 s) and
+parse_csv (std 0.59 s), not to the EKF.
+
+JUDGEMENT (relative to the existing pipeline, per PLAN.md's own
+framing, not an abstract interactive-app standard): ACCEPTABLE. The
+EKF adds under 4 seconds to a pipeline that already takes upward of
+two minutes, a ~4% relative increase that will not be perceptible
+against the pre-existing wait. The pipeline's actual interactivity
+problem, if there is one to raise, sits in estimate_cornering_
+stiffness, a pre-existing cost this sub-step was not asked to
+evaluate and did not change.
+
+STEP 1a's own gate ("if it materially degrades the user experience,
+vectorise or cache before proceeding") reads as NOT TRIGGERED on this
+evidence -- a decision for the user to confirm, not this diagnostic to
+assume.
+
+USER-CONFIRMED (2026-08-20, approving Step 1b): the timing gate is not
+triggered and the projection needs no correction -- estimate_sideslip
+runs once inside estimate_sideslip_ekf_dugoff before its per-sample
+loop (line 131), so the kinematic call is already inside the 4.66 s
+pass_1 figure, not an addition on top of it.
+
+### WP-N2 Step 1b: wiring proposal, approval, and implementation
+[2026-08-20]
+
+PURPOSE: wire the pass-1 EKF as a selectable sideslip source behind a
+config switch, defaulted off, with the traces-vs-verdicts split (STEP
+1c) made visible wherever a verdict renders. Proposed in full (7
+points: substitution site, config control, cache/schema, banner
+mechanism, downstream-consumer audit, verification plan, scope
+exclusions), approved with one addition (empirically verify the
+resolved-parameter claim rather than reason about it) and one
+measurement requirement (the yaw-stability gate shift), both executed
+before the final comparison -- see below.
+
+IMPLEMENTATION, file by file:
+- config/parameters.json: stability_estimation.sideslip_source
+  ("kinematic" default, "ekf_pass_1" alternative) and classification.
+  thresholds_calibrated_for_sideslip_source ("kinematic") -- both new
+  keys, own explanatory comments, no existing key touched.
+- modules/stability_analysis.py: ANALYSIS_SCHEMA_VERSION 4->5, bump
+  comment extended in place (existing bump-policy text unchanged,
+  matches the documented rule: payload shape changed regardless of
+  the default producing byte-identical numbers).
+- ui/views/outing_form.py (StabilityAnalysisThread.run()): the
+  estimate_sideslip call becomes a branch on effective_params[
+  "stability_estimation"]["sideslip_source"] -- "ekf_pass_1" calls
+  diagnostics.sideslip_ekf_dugoff.estimate_sideslip_ekf_dugoff(state,
+  effective_params, pass_id="pass_1") and takes beta_with_fallback
+  (never the raw pre-fallback series, commented at the call site: raw
+  keeps diverged-window artifacts, production must not feed a
+  silently-diverged state downstream); "kinematic" (default) keeps the
+  original estimate_sideslip call unchanged. sideslip_source threads
+  through the finished-signal payload, the WP6 in-memory pipeline-
+  cache identity (_pipeline_cache_put and the pre-emptive hit-check in
+  _run_stability_analysis, same pattern as accuracy_cap), the WP5
+  persisted analysis_data payload (_build_analysis_data_json), and the
+  WP5 cache-hit guard (_try_render_cached_analysis) -- this last one
+  goes slightly beyond the literal ask ("in-memory... same pattern as
+  accuracy_cap") because accuracy_cap's own precedent already spans
+  both cache layers (outing_form.py:1327's check exists specifically
+  for this reason), so sideslip_source follows the same precedent at
+  both layers for consistency, not as a scope addition.
+  _classify_corner (called unmodified by both the UI and weekend_pdf_
+  export.py) now reads both config keys and appends a placeholder "
+  [UNCAL]" marker to short_verdict/long_verdict whenever they
+  disagree -- single source of truth for the per-verdict marker,
+  inherited automatically by every consumer that already reuses this
+  method (recommendation.py's rule-matching does plain substring
+  checks for "understeer"/"oversteer"/"unstable yaw", confirmed safe
+  against a trailing suffix by reading _axle_verdict/_verdict_present
+  directly). New _sideslip_source_calibrated() helper (pure config
+  comparison, independent of which data is currently rendered since
+  the cache-identity checks above already guarantee rendered data
+  matches the live config) backs two new persistent banner labels
+  (calibration_banner_label in the stability panel,
+  recommendations_calibration_banner_label in the recommendations
+  panel), toggled in _render_stability_summaries and
+  _generate_recommendations respectively -- deliberately separate from
+  the per-verdict marker because a top banner can scroll out of view
+  on a long corner grid and the instruction was that it must not be
+  possible to read a verdict colour and assume calibration.
+- core/weekend_pdf_export.py: a duplicated two-line
+  _sideslip_source_calibrated() (not imported from OutingForm --
+  that method never touches self, but pulling a QWidget-bound method
+  into a non-Qt PDF-generation context for a two-line comparison
+  seemed the wrong trade) gates a placeholder warn-styled paragraph
+  before the verdict table in _verdict_flowables. Per-verdict markers
+  in the printed table are already inherited for free via the
+  unmodified _classify_corner reuse.
+All wording is explicitly placeholder ("PLACEHOLDER: ..." / "
+[UNCAL]"), per instruction -- final text pending visual review.
+
+VERIFICATION 1 -- resolved-parameter claim, empirically checked, not
+reasoned about (diagnostics/inspect_step1b_wiring_verification.py
+Section 0). The Step 1b proposal's verification plan had assumed
+"apply_resolved_vehicle's resolved values equal the raw config
+defaults for this dataset" under cap="Best available" -- checked by
+diffing effective_params against the diagnostic script's raw params,
+key by key. RESULT: the claim was WRONG. Under cap=None ("Best
+available"), vehicle.steering_ratio_table appears in effective_params
+and is absent from raw params -- the WP-B Level-4 steering-ratio
+lookup (config/car_data.json steering_ratio_table, done 2026-07-26)
+resolves at Level 4 whenever car_data.json is present and the cap
+doesn't ceiling it below 4, which "Best available" never does. Every
+other vehicle key matched exactly (mass, corner_weights, cog
+position); stability_estimation/tyre_model_ekf/classification blocks
+were byte-identical throughout (apply_resolved_vehicle never touches
+them). Re-run under cap=1 (forces the same Level-1 scalar the
+diagnostic's raw params uses): steering_ratio_table no longer appears,
+and the only remaining "difference" was a documentation string
+(corner_weights.note) absent from the resolver's returned value shape
+-- not a computational input. CONCLUSION: exact reproduction is the
+correct expectation only under cap<=3 (or any cap that ceilings
+steering_ratio below its Level-4 availability); under "Best available"
+specifically, a small, already-approved, already-documented numeric
+difference is expected and is not evidence of a wiring defect.
+
+VERIFICATION 2 -- yaw-stability min_beta_std_rad gate shift, measured
+directly via modules.yaw_stability.calculate_observed_stability's own
+diagnostics dict (Section 1), not inferred from stability_valid alone.
+Grid: 2625 s-anchored Gaussian-ridge-regression points total, under
+effective_params (cap=None). Kinematic: 2618/2625 valid, 7 skipped on
+the beta_std gate specifically (skip_counts["min_samples"]=0,
+["linalg_error"]=0). ekf_pass_1: 2625/2625 valid, 0 skipped on any
+gate -- the EKF's larger-amplitude beta clears min_beta_std_rad=0.001
+at every grid point the kinematic path already reached, plus the 7 it
+didn't. Per-sample stability_valid population (post-interpolation)
+was UNCHANGED at 31997/40800 both ways -- the 7 extra grid points sit
+close enough to already-valid neighbours that np.interp's masked
+query population doesn't move, even though the underlying regression
+computed 7 more genuine values. Reported as measured: the predicted
+STRUCTURAL shift (more windows clearing the gate) is real and
+directionally as expected, but on this dataset it does not translate
+into a stability_valid population change -- a finding, not a
+conclusion generalised beyond this run.
+
+VERIFICATION 3 -- full comparison against the frozen pass-1 baseline
+(diagnostics/pass1_final_validation_manifest.json, git commit
+76fc57673f4c2c618363809ba7c09aca226be4ba, 2026-08-20T09:12:21Z),
+reusing that script's own section methodology (diagnostics/
+inspect_step1b_wiring_verification.py Section 2), switch flipped to
+ekf_pass_1 on disk before running (fresh process, matching the
+"config only re-read after an app restart" semantics the switch
+itself relies on).
+
+Under cap=None ("Best available", the plan's originally stated
+condition): every section DIFFERED from the frozen manifest, all by
+small amounts -- NIS exceedances shifted by <0.3 percentage points,
+self-consistency R^2 moved +0.003/+0.001 (front/rear), the h2-vs-ay
+correlation moved 0.0002, and the sign-check per-sample fraction
+dropped from 99.63% to 98.80%. Sample counts that don't depend on
+corner-bracket geometry matched exactly (h2-vs-ay apex_3 population
+n=471 both runs; sign-check corner counts 14/14 and 13/13 both runs).
+Attributed to Verification 1's finding: the steering-ratio Level-4
+lookup changes delta_f_rad slightly versus the frozen manifest's
+Level-1-only run.
+
+Re-run under cap=1 (isolating the steering-ratio effect, per
+Verification 1): NIS figures now matched the manifest to the
+precision it was recorded at (e.g. yaw_rate_exceedance 0.1001 vs
+0.10011164...; the earlier "DIFFERS" flag on these was the
+verification script's own comparison tolerance being tighter than its
+own rounding, not a real difference -- noted here so it is not
+mistaken for a second finding). But a genuine, smaller residual
+persisted in the corner-bracket-keyed statistics: sign-check
+per-sample fraction 98.85% (vs 99.63%), front R^2 0.9558 (vs 0.9526),
+rear R^2 0.9832 (vs 0.9822). INVESTIGATED, not left unexplained: `git
+log --oneline 76fc576..HEAD -- modules/corner_analysis.py` returns
+exactly one commit, 0b296ce ("Fix entry_1_brake phase boundary;
+record CS_ratio aggregation finding" -- PLAN.md NOW's own first
+bullet, already committed, already verified against brake pressure).
+The frozen manifest predates this fix; every section keyed on
+bracket_start_m/bracket_end_m via _canonical_window_slice (sign
+check, self-consistency R^2) inherits the entry_1_brake phase's
+corrected, much narrower span (85%->5.5% of the dataset, per PLAN.md),
+which is why those sections moved while h2-vs-ay's apex_3-only window
+(unaffected by the entry_1_brake boundary) stayed essentially frozen
+(n=471 exact, correlation drift 0.0005).
+
+CONCLUSION: no numeric drift found traces to the sideslip-source
+wiring itself. Every observed difference from the frozen manifest is
+fully attributed to one of two already-committed, already-approved
+prior changes -- the WP-B steering-ratio Level-4 upgrade (cap-
+dependent) and the entry_1_brake phase-boundary fix (baseline
+staleness, independent of cap) -- confirmed by direct comparison and
+git history, not asserted. Both external checks (sign check against
+measured ay direction; h2-vs-ay correlation against measured ay) still
+land solidly (98.8%+, r=0.968+) under every condition tested; no sign
+flips, no qualitative change, no evidence of a wiring defect.
+
+POST-VERIFICATION: config/parameters.json stability_estimation.
+sideslip_source set back to "kinematic" (the capability ships
+defaulted off, per instruction). test_stability.py re-run after the
+revert -- full corner-by-corner output (CS ratio front/rear
+descriptives, stability observed descriptives, all 14 stable-corner
+clusters, first three corners' phase-by-phase tables) byte-identical
+to the pre-Step-1b baseline; the new branch's default path is a pure
+pass-through to the original unconditional estimate_sideslip call, as
+expected from an additive if/else with no change to the existing
+branch's own line.
+
+New files: diagnostics/inspect_step1b_wiring_verification.py
+(read-only except for reading whatever sideslip_source the caller set
+on disk). Config touched only for the two new keys plus the two
+temporary flips (ekf_pass_1 for verification, back to kinematic
+after) -- no other config value changed.
+
+### Regression test suite established (tests/) [2026-08-20]
+
+PURPOSE: a real, automated regression test suite alongside test_
+stability.py (left untouched -- that file stays the smoke test it
+always was, zero assertions, confirms the pipeline does not crash).
+FRAMING, stated in every test module's own docstring, not just here:
+these are REGRESSION tests, not correctness tests. Passing means
+"nothing changed unintentionally since the snapshot/invariant was
+written", never "the numbers are correct" -- PLAN.md's own open
+questions (kinematic beta circularity, un-re-derived thresholds, the
+CS_ratio cross-lap aggregation ceiling problem) are exactly the kind of
+thing this suite happily pins without endorsing.
+
+SCOPE, five phases, 49 tests total, ~81s full-suite runtime (dominated
+by one session-scoped pipeline computation shared across every test
+file via pytest fixtures -- see tests/conftest.py; estimate_cornering_
+stiffness alone is ~106s of that on a cold, non-fixture-shared run per
+the WP-N2 Step 1a timing entry, not re-measured or optimised here, per
+instruction not to touch production code):
+
+1. tests/test_golden_pipeline.py + tests/generate_golden.py + tests/
+   golden/*.json (2 files) -- full-pipeline and recommendation-engine
+   golden-value regression, Dubai outing, sideslip_source="kinematic"
+   (asserted live against config, not assumed), accuracy cap=1 (NOT
+   "Best available" -- chosen for reproducibility independent of the
+   gitignored, machine-local config/car_data.json, see conftest.py's
+   own comment). Float tolerance: combined relative+absolute
+   (rtol=1e-6, atol=1e-9, tests/_json_utils.py), NaN==NaN passes,
+   NaN-vs-number fails. Golden files record git commit hash,
+   generation timestamp, and the full config snapshot used.
+2. tests/test_phase_boundary_invariants.py -- 7 tests on corner
+   phase-boundary structure, reproducing diagnostics/inspect_
+   entry1_brake_fix_verification.py's own methodology (same
+   BRAKE_RISE_BAR=5.0 bar, same inherited-lookback sort/compare) as a
+   standing, re-run-on-every-change suite instead of a one-off
+   diagnostic. ALL 7 PASSED against current (post-fix) behaviour --
+   no invariant violation found this run. Framing note carried into
+   the file itself: a failure here would be a genuine finding, not
+   just "something changed", and must never be weakened to pass.
+3. tests/test_pure_functions.py -- 16 tests (15 passed, 1 xfailed by
+   design) covering slip-angle sign conventions at hand-derived
+   inputs, the a*Fy_f-b*Fy_r==Iz*psidd moment-balance identity, the
+   Dugoff force/stiffness model (zero-slip collapse, small-slip linear
+   limit, odd/even symmetry, finite-difference stiffness check), the
+   EKF's process/measurement Jacobians against finite-difference
+   Jacobians of the actual nonlinear f(x,u)/h(x), the yaw_rate rpm-to-
+   radps unit constant, and edge cases (empty arrays, single-sample
+   window, zero speed while moving).
+4. tests/test_config_schema_integrity.py -- 11 tests: every config key
+   read by the specific functions this session read in full (stated
+   as a scope limit, not exhaustive static analysis of every params[
+   ...] access in the codebase -- judged too fragile to trust without
+   real alias-tracking, see "chose not to do" below); ANALYSIS_SCHEMA_
+   VERSION=5 matches the payload shape summarise_corners/_build_
+   analysis_data_json actually produce; the accuracy_levels registry's
+   own documented format (level in {1,2,3,4}, capped_by follows its
+   own "chained-constant:"/"provenance-assumption:" convention); both
+   cache-identity checks (WP6 in-memory, WP5 persisted) carry all
+   three fields (accuracy_cap, resolved_vehicle_snapshot,
+   sideslip_source) on both their write and read sides.
+5. tests/test_nan_empty_paths.py -- 7 tests confirming summarise_
+   corners, aggregate_by_corner, _classify_corner, and generate_
+   recommendations all handle a zero-sample phase / all-NaN input /
+   empty summaries list without raising, against REAL production data
+   (the entry_1_brake fix's own 22-of-56-instances zero-length-phase
+   population, not synthetic stand-ins, for the summarise_corners and
+   recommendation-engine checks specifically).
+
+ONE FINDING surfaced while building Phase 3, not from a production bug
+but from a test-authoring error worth recording because it corrects a
+prior claim on this same page: the WP-N2 pass-0 entry's "a*Fy_f -
+b*Fy_r == Iz*psidd_raw IDENTICALLY, max deviation 7.3e-12 Nm" used
+"live a/b" that were (evidently) re-derived from front_fraction at
+full precision, NOT config's own stored cog_to_front_axle_m/cog_to_
+rear_axle_m (1.433/1.072) -- those are rounded to 3 decimals (already
+documented separately in modules/accuracy_resolution.py's _resolve_
+cog_position docstring) and produce a genuine ~21 Nm max deviation
+against the identity at this car's force magnitudes, not a rounding
+artifact so small it can be ignored by coincidence. tests/test_pure_
+functions.py's test_lateral_force_split_moment_identity now checks
+BOTH: the true identity at full precision (re-derives a/b from front_
+fraction, matches the historical near-zero figure) and the config's
+stored a/b against that re-derivation, bounded to one 3-decimal
+rounding step (1e-3 m) -- not a bug, but worth this correction so a
+future reader does not assume the STORED a/b satisfy the tight
+identity directly.
+
+CHOSE NOT TO DO, and why:
+- Exhaustive static-analysis coverage of every params[...]/cfg[...]/
+  se[...] config-key access across the whole codebase (Phase 4's
+  "every config key the code reads" taken literally) -- a regex sweep
+  cannot reliably track which local variable alias (params, se, cd,
+  cfg, cls_cfg, ...) maps to which config block without real static
+  analysis; a wrong mapping would produce confident-looking false
+  positives/negatives, worse than the honest, narrower, directly-
+  verified scope actually implemented (Phase 4 test docstrings state
+  this limit explicitly).
+- Invoking ui/views/outing_form.py's StabilityAnalysisThread directly
+  (via QThread.run(), bypassing .start()/the Qt event loop) to test
+  the WP-N2 Step 1b config-switch branch end-to-end -- judged not
+  worth the fragility for a two-line dispatch; covered instead by (a)
+  Phase 3/4's direct-function-call tests of what the branch calls, and
+  (b) Phase 4's source-scan tests of the branch's own cache-identity
+  wiring. OutingForm._classify_corner IS imported directly (self=None,
+  the same production precedent core/weekend_pdf_export.py already
+  uses) since it never touches self or any Qt object.
+- A dedicated golden test for the corner-detection/clustering stage in
+  isolation (modules/corner_analysis.py's analyse_corners output) --
+  implicitly covered end-to-end by the full-pipeline golden test and
+  directly by every Phase 2 invariant test, judged sufficient without
+  a third, narrower golden snapshot of the same data.
+- Re-measuring or optimising estimate_cornering_stiffness's ~106s
+  runtime (the pipeline's actual cost driver, WP-N2 Step 1a) -- out of
+  scope by explicit instruction; this suite's own runtime (~81s full
+  session, sharing one pipeline computation across every test file)
+  is reported as observed, not treated as something to fix here.
+
+NOT DONE, deliberately left to the user: pytest was pip-installed into
+.venv (not in the committed requirements.txt -- a separate tests/
+requirements-test.txt lists it as a test-only dependency) since no
+test framework existed in this repo before this session; this is an
+environment change, not a production-code change, but is called out
+here explicitly rather than left implicit. No config value differs
+from before this session started (sideslip_source confirmed back at
+"kinematic" -- see the WP-N2 Step 1b entry above); no production file
+under modules/, ui/, or core/ was touched this session; nothing was
+committed.
+
 ### Combined-slip premise test: does the rear reach meaningful
 longitudinal utilisation on exit? [2026-08-20]
 

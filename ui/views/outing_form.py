@@ -151,6 +151,12 @@ class StabilityAnalysisThread(QThread):
                 estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
+            # WP-N2 Step 1b: config switch, not a UI selector -- see
+            # config/parameters.json stability_estimation.sideslip_source's
+            # own comment. Import kept unconditional (cheap, matches this
+            # block's existing all-up-front style) even though only the
+            # "ekf_pass_1" branch below calls it.
+            from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
             pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
@@ -166,6 +172,7 @@ class StabilityAnalysisThread(QThread):
                 # instead of KeyError.
                 slip = self.pipeline_cache.get("slip")
                 forces = self.pipeline_cache.get("forces")
+                sideslip_source = self.pipeline_cache.get("sideslip_source", "kinematic")
             else:
                 params = load_parameters()
                 # WP-C: substitute the resolved (and cap-clipped) mass/
@@ -179,7 +186,20 @@ class StabilityAnalysisThread(QThread):
                 if state is None:
                     self.error.emit("Required channels missing or failed")
                     return
-                beta = estimate_sideslip(state, effective_params)
+                sideslip_source = effective_params["stability_estimation"].get(
+                    "sideslip_source", "kinematic"
+                )
+                if sideslip_source == "ekf_pass_1":
+                    # beta_with_fallback, never the raw pre-fallback series: raw
+                    # keeps diverged-window artifacts for diagnostics (see that
+                    # function's own docstring) -- production must never feed a
+                    # silently-diverged state into the rest of the pipeline.
+                    ekf_result = estimate_sideslip_ekf_dugoff(
+                        state, effective_params, pass_id="pass_1"
+                    )
+                    beta = ekf_result["beta_with_fallback"]
+                else:
+                    beta = estimate_sideslip(state, effective_params)
                 slip = estimate_slip_angles(state, beta, effective_params)
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
@@ -205,6 +225,7 @@ class StabilityAnalysisThread(QThread):
                 "corners": corners,
                 "cap": self.cap,
                 "resolved_accuracy": self.resolved_accuracy,
+                "sideslip_source": sideslip_source,
             })
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
@@ -293,6 +314,22 @@ class OutingForm(QWidget):
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
 
+    def _sideslip_source_calibrated(self):
+        # WP-N2 Step 1b: single source of truth for the traces-vs-verdicts
+        # gate, shared by the stability banner, the recommendations banner,
+        # and (indirectly, via _classify_corner) every per-verdict marker
+        # and the PDF export. Pure config comparison -- independent of which
+        # data is currently rendered, since the WP5/WP6 cache identity
+        # checks already guarantee rendered data matches the live config's
+        # sideslip_source.
+        from modules.stability_analysis import load_parameters
+        params = load_parameters()
+        active = params["stability_estimation"].get("sideslip_source", "kinematic")
+        calibrated_for = params["classification"].get(
+            "thresholds_calibrated_for_sideslip_source", "kinematic"
+        )
+        return active == calibrated_for
+
     def _stability_colour(self, kind, value, axle="f"):
         # Align with _classify_corner thresholds so details colours match verdicts.
         # CS thresholds differ front vs rear because rear normally stays stiffer.
@@ -328,7 +365,21 @@ class OutingForm(QWidget):
         # block); each carries its own derived_from note there. Values only,
         # not the derivation history -- see thesis_notes.md for that.
         from modules.stability_analysis import load_parameters
-        cls_cfg = load_parameters()["classification"]
+        params = load_parameters()
+        cls_cfg = params["classification"]
+        # WP-N2 Step 1b: thresholds below are only known-valid for the
+        # sideslip source named in thresholds_calibrated_for_sideslip_source
+        # (re-derived only at Step 4, deliberately deferred -- PLAN.md
+        # PARKED). A mismatch means the CS_ratio/stability distribution
+        # feeding this classification has shifted out from under thresholds
+        # fitted to a different source; the verdict below is not wrong, but
+        # its severity boundaries are unvalidated for this data. Placeholder
+        # marker text -- wording to be finalised after visual review.
+        active_sideslip_source = params["stability_estimation"].get(
+            "sideslip_source", "kinematic"
+        )
+        calibrated_for = cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic")
+        uncalibrated_marker = "" if active_sideslip_source == calibrated_for else " [UNCAL]"
         STRONG_CSF = cls_cfg["STRONG_CSF"]["value"]
         STRONG_CSR = cls_cfg["STRONG_CSR"]["value"]
         MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
@@ -443,8 +494,8 @@ class OutingForm(QWidget):
         colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
         return (
             severity,
-            " · ".join(short_parts),
-            " · ".join(long_parts),
+            " · ".join(short_parts) + uncalibrated_marker,
+            " · ".join(long_parts) + uncalibrated_marker,
             colour_map[severity],
         )
 
@@ -1076,6 +1127,11 @@ class OutingForm(QWidget):
         setup_data = self._get_setup_data_dict()
         params = load_parameters()
         resolved_accuracy = resolve_accuracy(params, setup_data, cap)
+        # WP-N2 Step 1b: the config switch (not per-click UI state, but still
+        # part of the run's identity -- a config flip + app restart between
+        # sessions must not let a stale in-memory entry serve a different
+        # estimator's numbers).
+        sideslip_source = params["stability_estimation"].get("sideslip_source", "kinematic")
 
         # WP6: reuse the last full Modules-1-5 run if it's for this same
         # file AND the same cap/resolved-vehicle-snapshot -- a cap change or
@@ -1088,12 +1144,14 @@ class OutingForm(QWidget):
         # even for an outing this OutingForm instance never analysed
         # itself, as long as some instance analysed this same file earlier
         # in the session. The cap/resolved_vehicle_snapshot identity check
-        # is unchanged.
+        # is unchanged; sideslip_source joins it (WP-N2 Step 1b), same
+        # pattern as accuracy_cap.
         pipeline_cache = None
         cached_entry = _pipeline_cache_get(self.loaded_csv_path)
         if (cached_entry is not None
                 and cached_entry.get("accuracy_cap") == cap
-                and cached_entry.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]):
+                and cached_entry.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]
+                and cached_entry.get("sideslip_source") == sideslip_source):
             pipeline_cache = cached_entry
         self.stab_thread = StabilityAnalysisThread(
             self.parsed_data, lap_filter, pipeline_cache=pipeline_cache,
@@ -1131,13 +1189,17 @@ class OutingForm(QWidget):
             "forces": result["forces"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
+            # WP-N2 Step 1b: joins the WP6 identity alongside accuracy_cap --
+            # see the hit-check in _run_stability_analysis.
+            "sideslip_source": result["sideslip_source"],
         })
         # WP5: build (not yet write) the cache payload for this analysis;
         # _save_outing uses whatever this holds, so a save after a cache-hit
         # render (no fresh Analyse this session) still persists correctly.
         lap_filter = self.stab_thread.lap_filter
         self._analysis_data_json = self._build_analysis_data_json(
-            result["summaries"], lap_filter, result["cap"], result["resolved_accuracy"]
+            result["summaries"], lap_filter, result["cap"], result["resolved_accuracy"],
+            result["sideslip_source"],
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1207,7 +1269,8 @@ class OutingForm(QWidget):
             self.exclude_inout_btn.setChecked(want_exclude)
         return True
 
-    def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy):
+    def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
+                                   sideslip_source="kinematic"):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1229,6 +1292,9 @@ class OutingForm(QWidget):
             "resolved_vehicle_snapshot": resolved_accuracy["values"],
             "resolved_clipped": resolved_accuracy["clipped"],
             "resolved_warnings": resolved_accuracy["warnings"],
+            # WP-N2 Step 1b: which beta this run used -- schema v5 identity
+            # field, see ANALYSIS_SCHEMA_VERSION's own bump comment.
+            "sideslip_source": sideslip_source,
         }
         return json.dumps(payload)
 
@@ -1292,6 +1358,14 @@ class OutingForm(QWidget):
             return False
         current_resolved = resolve_accuracy(load_parameters(), self._get_setup_data_dict(), cap)
         if current_resolved["values"] != cached.get("resolved_vehicle_snapshot"):
+            return False
+        # WP-N2 Step 1b: same guard family as accuracy_cap/resolved_vehicle_
+        # snapshot above -- a config-switch flip since this payload was
+        # written must not silently render numbers from the other estimator.
+        current_sideslip_source = load_parameters()["stability_estimation"].get(
+            "sideslip_source", "kinematic"
+        )
+        if cached.get("sideslip_source") != current_sideslip_source:
             return False
         summaries = cached.get("summaries")
         if not summaries:
@@ -1385,6 +1459,16 @@ class OutingForm(QWidget):
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
         )
+        # WP-N2 Step 1b: placeholder wording, pending review.
+        if self._sideslip_source_calibrated():
+            self.calibration_banner_label.setVisible(False)
+            self.calibration_banner_label.setText("")
+        else:
+            self.calibration_banner_label.setVisible(True)
+            self.calibration_banner_label.setText(
+                "PLACEHOLDER: sideslip estimator changed, verdict thresholds not "
+                "re-derived -- read traces, not verdict colours."
+            )
         self._displayed_resolved_vehicle_snapshot = (
             resolved_accuracy.get("values") if resolved_accuracy else None
         )
@@ -1705,6 +1789,19 @@ class OutingForm(QWidget):
         self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.stability_summary_label)
 
+        # WP-N2 Step 1b: persistent, does-not-scroll-away caveat -- shown
+        # whenever config/parameters.json stability_estimation.sideslip_
+        # source doesn't match classification.thresholds_calibrated_for_
+        # sideslip_source (_sideslip_source_calibrated below). Complements
+        # the per-verdict "[UNCAL]" marker _classify_corner appends -- that
+        # marker can scroll out of view on a long corner grid, this banner
+        # cannot. Hidden (empty text) when calibrated. Placeholder wording.
+        self.calibration_banner_label = QLabel("")
+        self.calibration_banner_label.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: bold;")
+        self.calibration_banner_label.setWordWrap(True)
+        self.calibration_banner_label.setVisible(False)
+        panel_layout.addWidget(self.calibration_banner_label)
+
         # WP-C: compact per-node resolved-accuracy footer, always rendered
         # alongside the summary line above (live analysis or cache-hit).
         self.accuracy_footer_label = QLabel("")
@@ -1774,6 +1871,18 @@ class OutingForm(QWidget):
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
 
+        # WP-N2 Step 1b: same mechanism as calibration_banner_label in the
+        # stability panel -- rules key on _classify_corner's verdict text
+        # (which already carries the "[UNCAL]" marker), so a top-of-panel
+        # caveat here covers the whole recommendations list at a glance.
+        self.recommendations_calibration_banner_label = QLabel("")
+        self.recommendations_calibration_banner_label.setStyleSheet(
+            f"color: {WARN}; font-size: 11px; font-weight: bold;"
+        )
+        self.recommendations_calibration_banner_label.setWordWrap(True)
+        self.recommendations_calibration_banner_label.setVisible(False)
+        panel_layout.addWidget(self.recommendations_calibration_banner_label)
+
         self.recommendations_summary_label = QLabel(
             "Run Analyse in the Data section, then Generate."
         )
@@ -1807,6 +1916,20 @@ class OutingForm(QWidget):
     def _generate_recommendations(self):
         # Synchronous: aggregation + rule matching over ~15 corners and a
         # handful of rules is fast enough not to need a worker thread.
+        # WP-N2 Step 1b: set regardless of the early-return paths below --
+        # rules key on _classify_corner's verdict text (which already
+        # carries the "[UNCAL]" marker), so this banner must reflect the
+        # live config every time this method runs, not only on a full
+        # regeneration. Placeholder wording, pending review.
+        if self._sideslip_source_calibrated():
+            self.recommendations_calibration_banner_label.setVisible(False)
+            self.recommendations_calibration_banner_label.setText("")
+        else:
+            self.recommendations_calibration_banner_label.setVisible(True)
+            self.recommendations_calibration_banner_label.setText(
+                "PLACEHOLDER: sideslip estimator changed, recommendation rules key on "
+                "unrecalibrated verdict thresholds -- treat as indicative only."
+            )
         if not self.stability_result:
             # Fix turn: this must never render as silent emptiness. The
             # button is normally disabled in this state (only enabled by

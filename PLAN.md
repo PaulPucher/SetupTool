@@ -26,6 +26,18 @@ WHERE THE PROJECT STANDS
   a known, documented circularity. This is a stated limitation of
   the method, not a resolved issue, and must appear as such in the
   write-up.
+- A real regression test suite now exists (tests/, 49 tests, ~81s
+  runtime), alongside test_stability.py (unchanged, still a
+  zero-assertion smoke test). REGRESSION not correctness -- pins
+  current behaviour, does not validate it. 5 phases: golden-value
+  pipeline/recommendation snapshots (cap=1, sideslip_source=
+  kinematic -- see tests/conftest.py for why not "Best available"),
+  phase-boundary invariants (all passed against current, post-fix
+  behaviour -- no violation found), unit tests on pure functions
+  (hand-derived slip-angle/Dugoff/EKF-Jacobian checks), config/schema
+  integrity, NaN/empty-path coverage. Full record: thesis_notes.md
+  "Regression test suite established". No production file touched
+  building it; pytest installed into .venv only (not requirements.txt).
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -63,23 +75,40 @@ PLAN, in order
 
 STEP 1 -- Wire the pass-1 EKF beta into the pipeline so results
 are visible in the app.
-  1a. TIME IT FIRST, before any wiring. The EKF is a per-sample
-      Python loop with a 2x2 inversion each step over ~24k-40k
-      samples, in a pipeline where everything around it is
-      vectorised. Report wall-clock time for a full outing
-      analysis before and after. If it materially degrades the
-      user experience, vectorise or cache before proceeding --
-      do not wire in a slow path and fix it later.
-  1b. Wire behind the existing cache with a schema-version bump so
-      cached results are not silently stale.
-  1c. CRITICAL SPLIT, must be stated in the app or the notes so it
-      is not misread: with new beta, the TRACES (CS_ratio through
-      a corner, the tyre curve, stability) are immediately
-      meaningful, because they do not depend on thresholds. The
-      VERDICTS and RECOMMENDATIONS are NOT, because those
-      thresholds were derived against the kinematic CS_ratio
-      distribution. Until thresholds are re-derived, read the
-      traces and ignore the verdict colours.
+  1a. DONE (2026-08-20). TIME IT FIRST, before any wiring. Result:
+      pass_1 EKF alone 4.66s (0.114 ms/sample, n=40800); production
+      full-outing total 123.27s; projected total with EKF substituted
+      127.93s (+3.8%). Gate NOT TRIGGERED -- user confirmed, proceed.
+      Unplanned finding: estimate_cornering_stiffness (106.22s, 86% of
+      total), not the EKF, is the pipeline's actual cost driver; not
+      acted on, out of this sub-step's scope. Full record: thesis_
+      notes.md "WP-N2 Step 1a: pass-1 EKF wall-clock timing".
+  1b. DONE (2026-08-20), SHIPPED DEFAULTED OFF. Wired behind config/
+      parameters.json stability_estimation.sideslip_source
+      ("kinematic" default / "ekf_pass_1"), ANALYSIS_SCHEMA_VERSION
+      4->5 (both cache layers carry sideslip_source in their identity
+      check), verified against the frozen pass-1 baseline under both
+      cap=None and cap=1 -- all residual drift from the frozen
+      manifest traced to two already-approved prior changes (WP-B
+      steering-ratio L4 lookup; the entry_1_brake phase-boundary fix
+      postdating the manifest's freeze commit), not to the wiring.
+      Switch left at "kinematic" after verification -- turning it on
+      is a separate decision. Full record: thesis_notes.md "WP-N2 Step
+      1b: wiring proposal, approval, and implementation".
+  1c. MECHANISM IMPLEMENTED (2026-08-20), PLACEHOLDER WORDING. A
+      config-driven flag (classification.thresholds_calibrated_for_
+      sideslip_source, "kinematic") gates a persistent banner in both
+      the stability and recommendations panels plus a per-verdict "
+      [UNCAL]" marker (_classify_corner, inherited by the PDF export
+      unmodified) whenever the active sideslip_source doesn't match
+      it. Wording is placeholder pending visual review -- CRITICAL
+      SPLIT still to state once reviewed: with new beta, the TRACES
+      (CS_ratio through a corner, the tyre curve, stability) are
+      immediately meaningful, because they do not depend on
+      thresholds. The VERDICTS and RECOMMENDATIONS are NOT, because
+      those thresholds were derived against the kinematic CS_ratio
+      distribution. Until thresholds are re-derived, read the traces
+      and ignore the verdict colours.
 
 STEP 2 -- Verify the result plots against the chair's output.
   Axis decisions, fixed: tyre-curve slip angle in DEGREES

@@ -1,0 +1,5 @@
+# Test-only dependency, not merged into the project's own requirements.txt
+# (that file is the production/app dependency manifest; this suite's own
+# tooling is kept separate). Install with:
+#   pip install -r tests/requirements-test.txt
+pytest>=8.0
