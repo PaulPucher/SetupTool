@@ -118,15 +118,22 @@ def _analyse_lap(lap, channels, cd, speed_thresholds):
         brackets, method = _bracket_corners_by_speed(speed, cd), "speed_fallback"
 
     corners = []
+    prev_corner_end_t = None
     for i, (b_start_idx, b_end_idx) in enumerate(brackets, start=1):
         corner = _build_corner(
             lap_number, i, method,
             b_start_idx, b_end_idx,
             steering, speed, lat_g, throttle,
-            cd, speed_thresholds
+            cd, speed_thresholds,
+            prev_corner_end_t
         )
         if corner is not None:
             corners.append(corner)
+            # Bound for the NEXT corner's own brake-phase lookback -- see
+            # _build_corner. A rejected bracket (corner is None) leaves this
+            # unchanged, so the bound tracks the last ACCEPTED corner, not
+            # every raw steering bracket.
+            prev_corner_end_t = corner["segments"]["exit_5"][1]
 
     return corners
 
@@ -235,7 +242,8 @@ def _bracket_corners_by_speed(speed, cd):
 def _build_corner(lap_number, corner_number, method,
                   b_start_idx, b_end_idx,
                   steering, speed, lat_g, throttle,
-                  cd, speed_thresholds):
+                  cd, speed_thresholds,
+                  prev_corner_end_t=None):
     warnings = []
     sw = cd["smoothing_window_samples"]
 
@@ -286,13 +294,34 @@ def _build_corner(lap_number, corner_number, method,
 
     brake_start_t = s_t_start
     if throttle is not None:
-        thr_mask = (throttle["time"] < s_t_start)
+        # Lookback floor: the preceding corner's own bracket end, so the
+        # search for this corner's lift-off cannot reach back into a
+        # different corner's exit (found occurring on corner 5 every lap,
+        # 2026-08-20, see thesis_notes.md "entry_1_brake phase-boundary
+        # bug"). No preceding corner (first of the lap) -> no floor beyond
+        # what throttle's own lap-slice already gives. prev_corner_end_t is
+        # ABSOLUTE (built with abs_start added, see segments below) while
+        # throttle["time"] is lap-relative (_slice_channel) -- convert
+        # before comparing, same lap so the same abs_start applies.
+        lookback_floor_t = (prev_corner_end_t - speed["abs_start"]
+                             if prev_corner_end_t is not None else -np.inf)
+        thr_mask = (throttle["time"] < s_t_start) & (throttle["time"] >= lookback_floor_t)
         if thr_mask.any():
             thr_t = throttle["time"][thr_mask]
             thr_d = throttle["data"][thr_mask]
-            off_throttle = np.where(thr_d < cd["brake_throttle_max_pct"])[0]
-            if len(off_throttle) > 0:
-                brake_start_t = float(thr_t[off_throttle[0]])
+            # Last sample still at/above full throttle before turn-in -- the
+            # lift-off transition itself ("last full throttle on preceding
+            # straight", see module docstring). NOT the last off-throttle
+            # sample: if the driver coasts continuously into the corner, that
+            # sample sits right next to turn-in and collapses the phase to
+            # near-zero (found and corrected 2026-08-20, see thesis_notes.md
+            # "entry_1_brake phase-boundary bug"). If no sample reaches full
+            # throttle within the (now bounded) lookback window, brake_start_t
+            # keeps its s_t_start default above (zero-length phase) rather
+            # than reaching past the floor or crashing.
+            on_throttle = np.where(thr_d >= cd["brake_throttle_max_pct"])[0]
+            if len(on_throttle) > 0:
+                brake_start_t = float(thr_t[on_throttle[-1]])
     else:
         warnings.append("throttle missing — brake phase = turn-in start")
 

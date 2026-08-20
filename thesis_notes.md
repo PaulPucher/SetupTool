@@ -129,6 +129,11 @@ HOW TO USE:
     the more informative distribution for threshold re-derivation
     purposes precisely because they are not this kind of per-phase
     aggregate.
+    [2026-08-20: the "clean alpha excitation under braking" reading of
+    entry_1_brake's ceiling-pinning has an ALTERNATIVE explanation not
+    considered here -- see "entry_1_brake phase-boundary bug" below.
+    Unresolved in either direction, not declared wrong; recorded as an
+    open alternative reading, not a correction.]
   - Modules 1-3 and Module 5 confirmed byte-identical in test_stability.py
     before/after (diffed line-by-line) -- only Module 4a/4b numbers
     moved, as intended. Stability threshold distribution (worst-phase
@@ -2089,6 +2094,17 @@ REASONING (analysis of the above, not separate measurement):
   own per-corner masking, diagnostics/inspect_saturation_coverage.py).
   The 86% entry_1_brake figure above is therefore INDICATIVE of where
   divergence concentrates, not an exact phase attribution.
+  [2026-08-20, superseding this caveat's wording: the mechanism and
+  its magnitude are now fully quantified -- see "entry_1_brake
+  phase-boundary bug: mechanism, blast radius, and fix" below.
+  entry_1_brake covers 85.35% of the base population; the 86%
+  flagged-sample figure is NOT meaningfully distinguishable from
+  that population footprint once the flags' 240-contiguous-episode
+  clustering is accounted for (effective sample size far below the
+  6,730 raw count a naive binomial check would assume). "Indicative
+  of where divergence concentrates" overstates it -- the figure may
+  carry close to zero independent information about phase
+  concentration, not merely imprecise attribution.]
 
 EXPECTED, CONDITIONAL, NOT YET CONFIRMED:
 - If the h2 check used the pipeline's KINEMATIC slip angles (open
@@ -3795,6 +3811,768 @@ STANDING NOTE: this entry is the citable reference point for
 combined-slip comparison work. It freezes already-established facts;
 it does not supersede or reinterpret any of them.
 
+### Combined-slip premise test: does the rear reach meaningful
+longitudinal utilisation on exit? [2026-08-20]
+
+PURPOSE: PLAN.md PARKED item "Combined-slip tyre model" names two
+unknowns before any implementation: (1) whether the rear actually
+reaches meaningful longitudinal utilisation on this session, (2)
+whether a wheel-speed-derived slip ratio is clean enough to use.
+This entry is measurement-only, read-only -- no config change, no
+whitelisting, no model work. diagnostics/inspect_combined_slip_
+premise.py (new).
+
+METHOD: provisional per-axle slip ratio kappa = (v_axle_corrected -
+v_ecu) / v_ecu, using log_speed_fl/fr/rl/rr (WP-S1's designated
+candidate family, byte-identical to ecu_speed_wheels_*) read directly
+from the raw log, bypassing the whitelist -- same pattern as WP-S1's
+own script. v_ecu (production ecu_speed) chosen as reference because
+WP-S1's own offsets were already measured against it, so this
+continues the same chain rather than introducing GPS speed as a
+second, separately-caveated reference. Rear corrected for WP-S1's
+constant +1.41% rolling-radius offset (v_rear/1.0141); front left
+uncorrected, since its off-braking offset is ~0% and its braking-
+specific -1.38% deviation IS WP-S1's diagnosed front-slip-under-
+braking signature, not something to subtract out. Masked population:
+moving & ~kerb & valid-lap racing time, n=24183, matching the WP-N2
+pass-1 final-validation baseline exactly (cross-checked, reproduces
+n=24183).
+
+RESULT -- distribution, |kappa| percent, base population (n=24183):
+front p50=0.225, p90=1.897, p99=4.912, max=14.209. rear p50=1.263,
+p90=3.012, p99=5.278, max=13.470. By phase (exit_4+exit_5 combined,
+n=7450): rear p50=2.026, p90=4.116, p99=6.667, max=13.470. Front
+under braking (log_pbrake_f>5bar, n=5060, chosen over entry_1_brake
+-- see bug note below): p50=1.822, p90=3.892, p99=7.479, max=14.209.
+
+THRESHOLD AND ANSWER: proposed utilisation threshold kappa>=5%
+(Tier B, literature-informed not fitted -- peak longitudinal mu for a
+racing slick typically falls near kappa=0.08-0.15, Rajamani Ch. 2
+characteristic curve shape; half that value is past the near-linear
+small-slip region). Rear, exit phase: 3.97% of 7450 samples exceed
+it. Front, braking (pbrake_f>5bar): 4.58% of 5060 samples exceed it.
+READ PLAINLY: this is a minority-but-non-negligible, tail-weighted
+phenomenon, not a dominant regime -- most exit-phase and braking-
+phase samples stay under 5% slip, but a real fraction (p99 in the
+6.7-7.5% range for both) sits well past it. Does NOT falsify the
+arc's premise; also does not show a dramatic, unambiguous saturation
+regime -- the honest reading is "present and worth modelling, not
+overwhelming."
+
+BUG FOUND, INCIDENTAL to this measurement: entry_1_brake phase
+durations (modules/corner_analysis.py _build_corner, segments dict)
+run up to 98-107s for later corners in a lap (checked directly:
+corner_number 12/13 lap 1-4, all four laps agree closely) -- physically
+impossible for a braking zone. Root cause: brake_start_t is set to
+`thr_t[off_throttle[0]]` (corner_analysis.py line 295), the FIRST
+off-throttle sample anywhere earlier in the lap (thr_mask only bounds
+time < s_t_start, not a local window), not the LAST one before
+turn-in. Consequence: for lap-cumulative corners the "brake phase"
+balloons to include almost everything since the previous lift, so
+entry_1_brake covers 20641/24183 (85%) of the whole masked population
+-- consistent with the corner-by-corner duration sequence measured
+per lap (1.9s, 7.1s, 10.2s, 17.0s, 19.9s, 31.1s, 56.9s, 62.8s, 98.2s,
+106.8s -- roughly monotonic growth through the lap). This affects
+EVERY existing consumer of the entry_1_brake phase key (CS_ratio_f/
+stability/Fz phase stats in summarise_corners, and by extension the
+WP-N2 pass-0 divergence-flag concentration claim "86% in
+entry_1_brake phase", already flagged there as "indicative... not
+isolated from" other factors) -- this bug is a specific, concrete
+reason for that caveat, not previously identified. NOT FIXED this
+turn (measurement-only scope; this script substitutes a raw
+log_pbrake_f>5bar mask, same convention WP-S1 already used, for the
+front-braking numbers above). Needs a decision: fix (`off_throttle
+[-1]`, the closest prior off-throttle sample, is the likely correct
+read) vs. document as a known limitation, and how far its blast
+radius reaches into already-reported Module 6 phase statistics --
+open, not resolved here.
+
+### Rolling circumference: three disagreeing numbers, none resolved
+[2026-08-20]
+
+CONTEXT: team-supplied static tyre circumferences, front 2140mm /
+rear 2210mm (source: team-supplied, no datasheet seen, TODO-verify),
+ratio rear/front=1.0327 (3.27%). config/car.json, config/car_data.json,
+config/parameters.json hold NO tyre radius or circumference value
+anywhere (grepped directly; parameters.json's only nearby text is
+accuracy_levels.speed's note describing WP5b(d)'s k=1.012 GPS-speed
+scale factor as "a candidate rolling-radius correction", not a stored
+radius).
+
+NEW CHANNEL FOUND: the raw log carries abs_circ_f[m] and abs_circ_r[m]
+(ABS unit's own per-axle rolling circumference), not in the
+channels.json whitelist, nothing whitelisted here. Both are CONSTANT
+for the full session (checked start/middle/end of each block, 1Hz,
+t=314-1129s): abs_circ_f=2.121m, abs_circ_r=2.218m -- ratio
+rear/front=1.0457 (4.57%). Confirmed NUMERICALLY, not by name alone,
+that these are the constants the ABS unit itself uses to convert raw
+wheel rotation to linear speed: abs_speed_fl[mph] reproduces
+Team_nWheelFL[rpm] * abs_circ_f * 60/1000 to within 2.6e-8 relative
+error (n=78855 compared, straight-line and cornering both, no
+masking). So within the ABS domain: Team_nWheel* is raw rotational
+speed (rpm), abs_speed_* is linear speed already converted using
+PER-AXLE (not shared) circumference constants.
+
+~~THREE DIFFERENT NUMBERS now on record, deliberately not reconciled
+this turn: (1) team-supplied static ratio 3.27%, (2) ABS-programmed
+ratio 4.57% (LARGER than the static figure, not smaller -- opposite
+of what a load-compression hypothesis on its own would predict), (3)
+WP-S1's measured residual on the log_speed_*/ecu_speed_wheels_*
+family (the ECU domain, NOT the ABS domain -- confirmed a separate,
+byte-identical-to-itself family, WP-S1) of +1.41% (rear vs ecu_speed,
+front ~0%). Whether the ECU-domain family (the one actually used in
+the slip-ratio computation above) uses the SAME 2.121/2.218 pair, a
+different pair, or none at all is NOT determined by anything gathered
+this turn -- only the ABS-domain conversion was verified directly. If
+it used the same pair, a roughly 4.57-point front/rear split would be
+expected upstream of any load effect; the observed split is 1.43
+points, smaller than either the static or the ABS-programmed ratio,
+which argues AGAINST simply assuming the ECU domain shares the ABS
+domain's constants, but does not by itself identify what it does use.
+WHY THIS MATTERS (restated per the standing instruction): a 1-4%
+class of systematic offset is the same order of magnitude as the
+traction slip this arc measures above: if the correction folded into
+that measurement is off by even a fraction of a percent, the reported
+rear slip-ratio numbers carry a comparable bias. The combined-slip
+premise-test result above is CONDITIONAL on this correction's
+provenance and is reported as such.~~
+
+[2026-08-20, superseding the framing above] The "three disagreeing
+numbers" framing is withdrawn. It rested on a false premise:
+abs_circ_f/r are CONFIGURED ABS control parameters, set by the team
+and retuned in the field (the car is reset for wet conditions), not
+observations of tyre geometry; and the team-supplied static
+circumferences are manufacturer-nominal, varying between individual
+tyre sets of the same compound, so they need not describe the tyres
+fitted at Dubai. Neither is a measurement of this session's tyres.
+Only WP-S1's measured +1.41% ECU-domain rear offset derives from
+this session's own data. There is no discrepancy to reconcile -- a
+configured parameter and a nominal specification are not expected to
+agree with a measured offset, and the earlier reasoning that treated
+their disagreement as evidence about load compression or centrifugal
+growth is withdrawn along with it.
+
+SEPARATE CHANNEL FOUND, not analysed this turn: abs_Slip_FL/FR/RL/
+RR[%] -- the ABS unit's own computed per-wheel slip percentage,
+present in the raw log, not whitelisted. A directly relevant
+independent candidate for validating or replacing the provisional
+slip ratio above; out of scope for this measurement-only turn since
+the user's brief asked for a slip ratio computed from wheel speed
+directly, not for adopting the ABS unit's own value untested. Also
+present: abs_vVeh_absRef[mph], the ABS unit's own reference vehicle
+speed (its own slip-rejecting fusion, provenance unexamined) -- a
+second unexamined candidate reference speed, alongside GPS speed and
+ecu_speed.
+
+### Combined-slip Dugoff: longitudinal stiffness (C_sigma) estimation
+method availability [2026-08-20]
+
+Rajamani Ch. 13.10's combined-slip Dugoff needs a longitudinal tyre
+stiffness parameter alongside cornering stiffness (c_alpha). Checked
+docs/literature/ (chair performance_analysis tooling, internal,
+read-only, never imported) for an existing method: YES, present --
+docs/literature/longitudinal_stiffness_estimator.py,
+estimate_longitudinal_stiffness(). NOT a single fitted scalar
+constant -- a locally-linearised, TIME-VARYING empirical estimator:
+low-pass filters slip ratio and longitudinal force (4th-order
+Butterworth, 8Hz), then computes a sliding-window (0.45s) local
+least-squares slope dFx/dKappa at each sample (min 25 samples, min
+0.004 slip span per window), and reports it as a RATIO against a
+low-slip (|kappa|<=0.015) reference stiffness, clipped to <=1.0. This
+needs per-axle longitudinal tyre FORCE (Fx_f/Fx_r) as an input
+alongside slip ratio -- SetupTool currently computes Fy_f/Fy_r
+(estimate_lateral_forces) but has no Fx_f/Fx_r estimator anywhere.
+The chair's own calculate_longitudinal_axle_forces() has three
+fallback tiers (direct per-wheel Fx channels; direct aggregate Fx
+channels; estimated from ax_mps2 + brake-bias split + a rear-drive-
+only fraction assumption) -- the third tier is the one that would
+apply here (no direct Fx channels exist), and is a genuinely new
+estimator this project does not have, not a config-value gap. NO
+METHOD PROPOSED this turn per instruction -- reported as availability
+only.
+
+### Rolling-radius offset: speed-dependence check [2026-08-20]
+
+QUESTION: is WP-S1's measured wheel-speed offset (log_speed_* vs
+ecu_speed) flat across speed, or does something speed-dependent sit
+on top of it. diagnostics/inspect_rolling_radius_speed_dependence.py
+(new), WP-S1's own straight-line population (moving & valid-lap &
+|ay|<=0.15g & |yaw rate|<=3.0 deg/s), front further restricted to
+log_pbrake_f>5bar. No attribution to a physical cause attempted.
+
+REAR (n=5171, 8 bins across 107.7-250.5 km/h): mean/median offset is
+essentially flat from ~161 km/h up (93% of the population, 4792/5171
+samples): median 1.72/1.56/1.41/1.35/1.28% across the top five bins,
+std shrinking from 1.01% to 0.34% as speed rises. The three
+lowest-speed bins (107.7-161.3 km/h, n=55/105/219, smaller and
+noisier) read higher and noisier: median 3.12/2.07/1.31%, std
+1.61/1.49/1.37%. Linear fit: slope -0.00292%/(km/h), predicting only
+a -0.417 pct-pt swing across the full observed range -- small next to
+the bin-to-bin std. READ: mostly flat at the higher speeds that carry
+most of the population; the low-speed departure is present but
+sits inside noisier, lower-count bins and is not resolved further
+here -- reported as observed, not forced into either a flat or a
+trending verdict.
+
+FRONT, braking only (n=643, 8 bins across 120.1-250.5 km/h): offset
+ranges from -3.34% to -1.00%, NOT monotonic (a dip at 152.7-169.0
+km/h, -3.34%, sits between two smaller-magnitude neighbours,
+-1.76% and -1.69%). Linear fit: slope +0.01557%/(km/h), +2.031
+pct-pt swing across the range -- directionally toward less front
+slip at higher speed, but per-bin std (1.17-2.85%) is comparable to
+or larger than the swing itself, and bin counts are modest (32-126).
+READ: INCONCLUSIVE -- a directional trend exists in the linear fit
+but the bin pattern does not confirm it cleanly; not enough evidence
+either way, and not forced.
+
+### abs_Slip_FL/FR/RL/RR[%]: examined, does NOT sidestep the
+reconciliation question [2026-08-20]
+
+QUESTION: whether the ABS unit's own logged per-wheel slip channels
+are internally consistent within their own domain (which would make
+them a usable Level-3 logged slip source regardless of abs_circ_f/r
+being a configured, field-retuned parameter, see the supersede note
+above). diagnostics/inspect_abs_slip_channels.py (new), base_mask
+population n=24183 (reproduces exactly), nothing whitelisted.
+
+CHECK 1, magnitude: abs_Slip_* is TWO ORDERS OF MAGNITUDE smaller
+than either WP-S1's measured offset or the provisional kappa from the
+combined-slip premise entry above. p50 near zero all four wheels
+(-0.006 to -0.023%), p90 0.035-0.088%, p99 0.065-0.148%, max
+0.207-0.341%. For comparison, the provisional kappa's p50 alone was
+0.225-1.263% and p99 4.912-5.278% (combined-slip premise entry
+above) -- roughly 20-40x larger at every percentile. Whatever
+abs_Slip_* represents, it is not reading in the same numeric range as
+a directly-computed (v_wheel-v_ref)/v_ref kinematic slip ratio.
+
+CHECK 2, internal reconstruction: tested whether abs_Slip_FL/FR/RL/RR
+matches (abs_speed_wheel - abs_vVeh_absRef)/abs_vVeh_absRef (the
+naive kinematic-slip formula, using the ABS domain's OWN speed and
+reference channels). It does NOT: correlation is NEGATIVE at every
+wheel (FL -0.534, FR -0.472, RL -0.819, RR -0.827) and the mean
+difference is not a small residual (rear wheels +2.36 to +2.58
+pct-pts, comparable to the signal itself). A naive kinematic
+reconstruction from channels already in hand does not explain
+abs_Slip_*.
+
+CHECK 3, comparison against the provisional kappa: correlation
+between the log_speed_*-derived provisional kappa (combined-slip
+premise entry above) and abs_Slip_* is likewise NEGATIVE (front
+-0.547, rear -0.899) -- strongly negative for the rear. As the
+provisional kappa rises, abs_Slip_* tends to fall, the opposite of
+what a shared underlying slip phenomenon read two different ways
+would produce.
+
+~~READ PLAINLY, per instruction: this does NOT sidestep the
+reconciliation question the way the queued framing hoped. abs_Slip_*
+is not simply a validated, ready-to-use alternative to the
+provisional kappa -- it moves in the wrong direction to serve as a
+cross-check, and does not reconstruct from the other ABS-domain
+channels already verified this session (abs_speed_*, abs_circ_*,
+abs_vVeh_absRef).~~ Two explanations are consistent with this and
+NEITHER is established here: abs_Slip_* may be a filtered/clamped
+ABS control-loop signal (built for threshold decisions, not reporting
+open-loop kinematic slip) rather than a physical slip measurement; or
+its "%" unit may not mean percent-of-reference-speed at all (e.g.
+normalised against a different internal range). No datasheet is in
+hand to resolve which. STATUS: examined and found NOT USABLE as
+proposed, not merely unexamined -- a negative result, recorded as
+one.
+
+[2026-08-20, partial correction] The -100x/sign-inversion hypothesis
+was tested directly (regression, kappa vs abs_Slip per wheel) and
+FAILS as a clean proportionality: slopes are -25 (front: FL -24.98,
+FR -24.24) / -45 (rear: RL -45.48, RR -45.19), not -100. However,
+"unrelated noise" overstates the front-only case -- the rear shows a
+real, moderate relationship (R^2=0.578 RL, 0.570 RR) that the front
+does not (R^2=0.094 FL, 0.068 FR). The practical conclusion stands
+(abs_Slip_* is not a usable validated slip source, and is now
+superseded in relevance by ecu_slip_act/ecu_B_tc_act, see "Combined-
+slip arc: logged ECU slip and TC channels found" below), but "moves
+in the wrong direction to serve as a cross-check" is too strong a
+characterization of the rear channel specifically -- the -100x
+hypothesis was proposed, tested, and rejected, not confirmed;
+recorded here as a rejected hypothesis, not a dropped one.
+
+### Rolling-radius correction: session-portability limitation
+[2026-08-20]
+
+Recorded per standing instruction. abs_circ_f/r (and, by the same
+logic, any ABS-domain constant this session verified, e.g. the
+per-axle circumference pair used to convert Team_nWheel* to
+abs_speed_*) are CONFIGURED ABS control parameters, set by the team
+and retuned in the field (the car is reset for wet conditions) -- not
+fixed physical constants. Any slip ratio, offset, or correction
+derived through them (or through the ECU-domain log_speed_*/
+ecu_speed_wheels_* family, whose own internal conversion constants
+are unverified, see the supersede note above) is valid only within
+the configuration of the SINGLE SESSION it was measured in, and
+cannot be assumed to carry over to a different session or event
+without independently re-verifying the constants did not move
+between them. This bounds the portability of anything built on this
+signal family and must be stated as a limitation wherever the
+combined-slip work is written up, not treated as a one-off caveat.
+
+### Combined-slip arc: logged ECU slip and TC channels found;
+premise supported but weak [2026-08-20]
+
+ESTABLISHED -- logged slip source: ecu_slip_act[%] exists in the raw
+log, unwhitelisted, range [0.0, 34.7], base-population (n=24183)
+p50=1.4%, p90=3.1%, p99=4.7%, max=7.4%. ecu_slip_nom[%] range
+[2.1, 25.5] reads as the TC's own target setpoint. ecu_B_tc_act is a
+TC-active flag at 50 Hz. Found via diagnostics/inspect_slip_channel_
+sweep.py's full-inventory keyword sweep (301 matches total, most
+irrelevant -- error/diagnostic/refuel/clutch channels, not slip-
+related despite matching "err"/"ref"/"diff"); examined in diagnostics/
+inspect_slip_hypothesis_and_driven_axle.py.
+
+INTERNAL CONSISTENCY, three independent checks agreeing: on the 68
+TC-active samples, ecu_slip_act p50=4.1%/max=6.0% matches
+ecu_slip_nom p50=4.2%/max=6.1% -- actual slip tracking its own target
+while intervening, the signature of a working closed loop; the
+magnitude range is physically sane throughout (unlike abs_Slip_*'s
+two-orders-too-small range, see the corrected entry above); and
+corr(ecu_slip_act, kappa_driven_corrected) = +0.676.
+
+SIGNIFICANCE: this is a LEVEL 3 logged source. It sidesteps the
+rolling-radius reconciliation entirely -- no derived constants, no
+session-bound correction, no dependence on the field-retuned ABS or
+ECU circumference values whose portability limitation is recorded
+above.
+
+LIMITATION: no per-axle breakdown exists. It reads as a single
+driven-axle aggregate. INFERRED from TC's physical role on this RWD
+car, not confirmed by any channel-name or documentation evidence.
+
+ESTABLISHED -- driven-vs-undriven construction, as cross-check:
+kappa_driven = (v_rear - v_front)/v_front, the RWD traction-control
+definition (rear against front, not against a vehicle reference).
+WP-S1-corrected (rear /1.0141): base p50=0.61%, p90=3.42%, p99=5.98%;
+exit phase (4+5) p50=2.26%, p90=4.53%, p99=7.21%; throttle>20%
+p50=0.92%. The corrected version is the trustworthy one: raw carries
+a +2.03% baseline median that is the rolling-radius artifact WP-S1
+already diagnosed, which would misread ordinary constant-radius
+rolling as slip at every sample. Corrected shows a near-zero baseline
+with a clear rise under exit and throttle -- signal riding on a
+removed offset, not artifact. Still provisional: the correction is a
+single constant from WP-S1's own straight-line measurement, itself
+now flagged with the session-portability limitation above. corr with
+the provisional kappa_rear (combined-slip premise entry) = +0.797
+(shared construction, expected); corr with abs_Slip rear avg =
+-0.804, reinforcing that abs_Slip_* behaves oppositely to every other
+slip proxy examined this arc, not just one.
+
+ESTABLISHED -- TC intervention: ecu_B_tc_act active on 0.28% of the
+base population (68 of 24183). Concentration by phase: exit 0.87%,
+braking 0.33%, baseline 0.28%.
+
+ASSESSMENT, and it must not be overread in either direction. The
+phase concentration is DIRECTIONALLY what the arc's premise predicts
+-- roughly 3x more TC intervention on exit than baseline, less under
+braking -- and it is INDEPENDENT of any slip-ratio construction,
+resting only on the car's own flag. But 0.28% is 68 samples, roughly
+25 exit events against 8 under braking -- suggestive, not
+established; too few to carry a conclusion on its own. AND IT CUTS
+BOTH WAYS, recorded plainly: if the car's own traction control
+intervened on 0.28% of a session, the rear axle was rarely at its
+traction limit. That WEAKENS "the rear saturates longitudinally
+rather than laterally" as the explanation for the refit loop's rear
+degeneracy (PLAN.md NOW, WP-N2 refit-loop entry above). The effect is
+real and in the predicted direction, but small. Consistent with the
+earlier measurement that only ~4% of exit samples exceed 5%
+longitudinal slip (combined-slip premise entry above) -- two
+independent routes agree the longitudinal effect exists and is
+modest.
+
+OPEN, not resolved here: whether ecu_slip_act is rear-only or a
+mixed aggregate; whether a modest, tail-weighted longitudinal effect
+is sufficient to explain the rear identifiability failure, or whether
+that failure has another cause.
+
+### TC LAT / TC LON channel-name candidates found (registry thread,
+not combined-slip) [2026-08-20]
+
+log_tc_lat_pos / log_tc_lon_pos and stw_rt01_tc_lat / stw_rt01_tc_
+lat_raw / stw_rt03_tc_lon / stw_rt03_tc_lon_raw, found via the same
+full-inventory keyword sweep as the combined-slip entry above, appear
+to be the TC LAT / TC LON steering-wheel rotary-switch channels
+PLAN.md's NEW DATA FILE diagnostic checklist has had open since the
+WP2b-1 registry work (config/setup_parameters.json's tc_lat/tc_lon
+entries, value_source "logged_data", channel name previously TBD).
+Identified BY NAME ONLY -- not examined, not whitelisted, not cross-
+checked against setup-sheet values or driver report. Recorded as a
+candidate identification requiring confirmation before config/
+channels.json or the registry notes are touched.
+
+### entry_1_brake phase-boundary bug: mechanism, blast radius, and
+fix [2026-08-20]
+
+ESTABLISHED -- mechanism: modules/corner_analysis.py line 293 builds
+off_throttle from thr_d < brake_throttle_max_pct (config value 95,
+read live from config/channels.json corner_detection), and line 295
+takes off_throttle[0] -- the chronologically FIRST off-throttle
+sample in the lap-so-far, not the last before turn-in. Line 289's
+thr_mask is unbounded below and throttle (modules/corner_analysis.py
+_analyse_lap) is sliced to the whole lap, so for corner N the
+boundary can anchor back to corner 1's own lift point. The 95%
+threshold is loose: any coast, shift blip, or partial lift earlier in
+the lap qualifies as "off-throttle". Result: entry_1_brake spans
+20,641 of 24,183 masked samples (85.35%), with durations growing
+roughly monotonically through each lap (1.9s -> 106.8s, measured
+directly per corner). EVERY other phase boundary was checked and is
+CORRECT: s_t_start/s_t_end are direct bracket-index lookups; apex_t
+uses argmax/argmin over a bracket-bounded mask; half_t/exit_4/exit_5
+slice to the bracket itself, where first-crossing is the semantically
+right target and the window cannot run away; entry_2_turnin and
+apex_3 derive from already-bounded values. Only entry_1_brake is
+affected.
+
+ESTABLISHED -- blast radius: summarise_corners computes every
+entry_1_brake phase-keyed stat -- cs_ratio_f, cs_ratio_r,
+stability_observed_Nm_per_deg, and when fz is passed fz_f_N/fz_r_N/
+fy_f_norm_N/fy_r_norm_N. For corners beyond the first one or two per
+lap these are effectively meaningless as braking-phase statistics,
+not merely imprecise: the window can be dominated by straight-line
+and other-corner samples. PRODUCTION recommendation path: 15 of 39
+rules (38%) key on entry_1_brake -- the whole braking matrix
+(matrix_us_brk_low/med/high plus 3 escalations, matrix_os_brk_low/
+med/high, matrix_inst_brk_low/med/high, matrix_inst_ent,
+yaw_entry_unstable, driver_us_entry). aggregate_by_corner pulls the
+per-lap phase median, takes a median-of-medians across laps, and
+evaluates the rule against it. LIKELY DIRECTION of the error, stated
+as reasoning not measurement: off-braking samples sit at CS_ratio's
+1.0 ceiling, so dilution biases toward FALSE NEGATIVES -- real
+braking-phase understeer or instability washed toward "fine" by
+surrounding ceiling-pinned samples. Not quantified. Corner 1 of each
+lap is comparatively unaffected (short lookback); severity grows with
+corner position in the lap. UI: ui/views/outing_form.py renders a
+"Brake" phase column showing these diluted stats to the engineer as
+the braking zone; ui/views/corner_trace_dialog.py shades an
+entry_1_brake band that for a late corner would visibly span most of
+the lap.
+
+RECORDED FINDINGS AT RISK: WP-N2 pass-0's "86% of divergence flags in
+entry_1_brake" already carried a caveat dated 2026-08-19, one day
+before this arc, describing the same lookback mechanism
+qualitatively -- superseded with a dated note pointing here (see
+above). This entry quantifies it and goes further: entry_1_brake
+covers 85.35% of the base population, the flagged set shows 86%, and
+because the flags form 240 contiguous episodes rather than 6,730
+independent draws the effective sample size is far below what a
+naive binomial assumes. The figure is NOT meaningfully
+distinguishable from the phase's own population footprint and may
+carry close to zero independent information about where divergence
+concentrates. The Fy yaw-moment term entry (Module 4a, 2026-07-24,
+NOT previously caveated) explains entry-phase ceiling-pinning as
+"strong, clean alpha excitation under braking/turn-in keeps C_alpha
+near the linear reference" -- given this bug, an equally or more
+plausible explanation is dilution by long non-cornering stretches
+with near-zero lateral demand, sitting at the ceiling for an entirely
+different reason. Recorded as an ALTERNATIVE READING, unresolved in
+either direction -- the original is not declared wrong, see the
+dated pointer added above. The WP-B steering-ratio section
+(2026-07-26) restates the same ceiling-clipping explanation and
+inherits the same risk, same dated pointer added. NOT at risk: the
+CS_ratio saturation-flag analysis and the apex_3/exit_4 worst-phase
+findings rest on confirmed-correct boundaries; this session's TC
+exit-phase concentration (see "Combined-slip arc: logged ECU slip
+and TC channels found" above) uses exit_4/exit_5, also confirmed
+sound.
+
+STANDING LIMITATION, recorded because it is general rather than
+specific to this bug: test_stability.py prints per-corner per-phase
+medians to stdout for human inspection and has ZERO assertions, no
+golden-output comparison, and no duration checks. It is a smoke test
+confirming the pipeline does not crash. It passed cleanly throughout
+this investigation, before and after -- that tells us nothing about
+correctness. Any fix in this area would pass it whether right or
+wrong. Phase-boundary correctness has no automated coverage.
+
+FIX APPLIED, this same turn (see PLAN.md STATUS for the commit-
+boundary decision): modules/corner_analysis.py line 295,
+off_throttle[0] -> off_throttle[-1], the last off-throttle sample
+before s_t_start, matching the docstring's own stated intent ("last
+full throttle on preceding straight -> turn-in"). A bounded-backward-
+search hardening (do not search further back than the previous
+corner's own bracket) was considered and deliberately NOT bundled in
+-- reasonable defensive measure for near-flat-out corners with only a
+brief lift, but a second change with its own behaviour that would
+make verification ambiguous. Parked in PLAN.md PARKED section
+instead. Verification: see the four checks immediately following
+this entry.
+SUPERSEDED -- see the dated failure record and correction directly
+below; the off_throttle[-1] construction above was WRONG and has been
+replaced.
+
+FIRST FIX ATTEMPT, FAILED, AND CORRECTED [2026-08-20, same session]:
+off_throttle[-1] (applied above) reads as "last off-throttle sample
+before turn-in" and was approved on that basis, matching the
+docstring's "last full throttle on preceding straight" against the
+wrong end of the window: off_throttle holds OFF-throttle indices, so
+its last (chronologically closest-to-turn-in) entry is the sample
+NEAREST turn-in that happens to be under threshold -- not the lift-off
+transition. When a driver coasts continuously from lift-off through to
+turn-in (the normal case for a real braking zone), that sample sits
+essentially adjacent to s_t_start, collapsing the phase to ~1 sample
+(~0.01s) instead of capturing the actual brake-zone duration.
+DURATIONS (check a) and POPULATION SHARE (check c) both looked
+healthy under this construction -- bounded (max 3.87s), non-monotonic,
+population share down from 85.35% to 7.62% -- and would have been
+accepted as a working fix on those two checks alone. The MANDATORY
+brake-pressure cross-check (check b) is what caught it: offset (brake
+pressure rise - brake_start_t) had median ~0.004s for both channels,
+statistically indistinguishable from zero, when the expected signature
+of a genuine lift-then-coast-then-brake sequence is a small but clearly
+POSITIVE median. Spot-check (check d) confirmed the mechanism directly:
+corner 1 lap 1 showed brake_start_t=501.090s, 0.010s before turn-in
+(501.100s), with throttle reading a constant 0.0% for a full second on
+BOTH sides of that point -- proof the true lift-off was well earlier
+and the construction had picked the wrong end of the coast. 16 of 56
+corner instances (corners 1/5/7/13, stable_ids 1/5/7/14, reproducible
+across all 4 laps) showed this collapse.
+CORRECTED CONSTRUCTION, applied this turn: on_throttle = where(thr_d
+>= brake_throttle_max_pct), brake_start_t = thr_t[on_throttle[-1]] --
+the LAST sample still at or above the throttle threshold before
+turn-in, i.e. the lift-off transition itself, which is what the
+docstring actually specifies. EMPTY-CASE handling: if on_throttle is
+empty (no full-throttle sample anywhere in the lookback window), the
+pre-existing brake_start_t=s_t_start default (set before this block)
+is left untouched -- same degrade-safely pattern the original code
+already used for its own empty-off_throttle case, zero-length phase
+rather than a crash or an unbounded reach-back. Measured this session:
+0 of 56 corner instances hit the empty case (does not mean the guard
+is unnecessary -- it protects against a session where it does occur).
+RE-VERIFICATION, all four checks repeated against the corrected
+construction:
+(a) durations: n=56, mean=0.637s, median=0.015s, max=3.421s. The four
+    previously-collapsed corners now show 1.4-3.4s, reproducible
+    across all 4 laps (corner 1: 1.95-2.17s; corner 5: 2.04-2.13s;
+    corner 7: 3.01-3.42s; corner 13: 1.36-1.40s). Several other corners
+    remain near-zero (corners 2/3/4/6/12: 0.010-0.097s) -- plausible
+    late-braking/minimal-coast style at those specific corners, not
+    re-inspected individually beyond the spot-check below.
+(b) MANDATORY cross-check, log_pbrake_f: n=36, p10=0.003s, p50=0.135s,
+    p90=2.563s, mean=0.816s, max=3.173s, 0% negative. log_pbrake_r:
+    p10=0.003s, p50=0.130s, p90=2.548s, mean=0.808s, max=3.163s, 0%
+    negative. Median moved from ~0.004s (statistically zero, the
+    failure signature) to ~0.13s (small, clearly positive, matching the
+    expected lift-coast-brake signature) with zero negative instances
+    either construction. The p90/max spread (2.5-3.2s) reflects genuine
+    corner-to-corner coast-length variation across 14 different
+    corners, not re-examined per-corner for whether any individual
+    value is itself still suspect.
+(c) population share: 6.98% (1688/24183), consistent with the first
+    attempt's 7.62% -- both constructions bound the runaway growth;
+    only (b) and (d) distinguish which one is semantically right.
+(d) spot-check, corner 1 lap 1 (the exposing case): brake_start_t now
+    499.146s (was 501.090s under the failed construction), 1.95s before
+    turn-in, and well before the 500.09s bound the failure implied --
+    throttle 2s before ranges 40-105% (still transitioning down from
+    full throttle) and 1s after drops to 0-7% (fully lifted),
+    consistent with a genuine transition, not a coincidence of the
+    corrected index landing near the old one. Corner 13 lap 1 similarly
+    moved from 605.931s to 604.542s (1.40s before turn-in, was 0.010s).
+INHERITED-LOOKBACK RISK, MEASURED not assumed: the corrected
+construction has the same unbounded backward search in principle. Found
+occurring: corner 5, ALL 4 laps, brake_start_t reaches back 1.2-1.3s
+into corner 4's own bracket (e.g. lap 1: brake_start_t=517.031s vs
+corner 4's own bracket end at 518.266s, overlap 1.235s) -- corners 4
+and 5 are evidently linked closely enough that throttle never returns
+to the 95% threshold between them, so the search for "last full
+throttle" reaches past corner 5's own approach into corner 4's exit
+acceleration. Reproducible across all 4 laps for this corner pair
+specifically (not a one-off). THIS MEANS the PARKED bounded-search
+hardening (PLAN.md) is REQUIRED, not merely a defensive nice-to-have --
+recorded as a finding, not treated as a failure of this turn's fix
+(the fix is still a correctness improvement over both the original bug
+and the failed first attempt; the hardening is the next, separate
+step).
+GENERAL LESSON, recorded because it generalises beyond this bug: for
+phase-boundary work, an external physical reference channel is a
+stronger check than distributional plausibility. Duration bounds and
+population-share numbers looked completely healthy under the failed
+construction and would have passed as "fixed" on those grounds alone
+-- only the brake-pressure cross-check, an independent physical
+signal with its own expected sign and rough magnitude, exposed that
+the boundary was measuring the wrong event. A fix that looks right on
+its own output distribution can still be wrong; prefer a check against
+an unrelated channel over one derived from the same computation being
+verified.
+
+BOUNDED-SEARCH HARDENING, applied and re-verified [2026-08-20, same
+session]: the PARKED item was promoted to required after the corner 5
+finding (all 4 laps, brake_start_t reaching 1.2-1.3s into corner 4's
+own bracket). PROPOSED BOUND, stated before applying: brake_start_t's
+backward search is floored at the PRECEDING corner's own bracket end
+(segments["exit_5"][1]), no added margin -- that boundary already
+represents where lateral-G-based corner analysis considers the
+previous corner's cornering behaviour finished, so it is a
+data-derived boundary already in hand, not a new invented constant;
+adding a margin would be an unjustified tunable. First corner of a
+lap has no preceding corner -- no additional floor beyond what
+throttle's own lap-slice already gives (matches existing behaviour,
+unchanged). Empty-window case (bound truncates to nothing left to
+search): brake_start_t keeps its s_t_start default, same
+degrade-safely pattern as the empty-on_throttle case already in the
+corrected construction, not a new pattern.
+IMPLEMENTATION BUG FOUND AND FIXED WITHIN THIS SAME TURN, before
+verification, recorded because it is itself an instance of the
+general lesson above: the first implementation compared
+prev_corner_end_t (ABSOLUTE session time, since segments are built
+with abs_start added) directly against throttle["time"] (LAP-RELATIVE,
+_slice_channel subtracts the lap's own start_t) without converting
+frames. Since absolute time is always much larger than lap-relative
+time, this silently truncated nearly every corner's lookback window to
+empty, collapsing 53 of 56 instances to 0.000s duration (caught by
+re-running check (a) immediately after applying the bound, before
+check (b) or (d) were even attempted -- this particular bug was
+duration-check-visible, unlike the off_throttle[-1] failure). Fixed by
+subtracting speed["abs_start"] (the current lap's own start_t, always
+identical for the previous corner since both are in the same lap) from
+prev_corner_end_t before the comparison.
+RE-VERIFICATION, all four checks, after both the bound and its
+frame-conversion fix:
+(a) durations: n=56, mean=0.484s, median=0.013s, max=3.421s. Every
+    corner except 5 reproduces EXACTLY its pre-bound value (1/7/13
+    unchanged: 1.95-2.17s / 3.01-3.42s / 1.36-1.40s across laps) --
+    confirms the bound is a no-op except where the crossing actually
+    occurred. Corner 5 alone changed: 2.04-2.13s (pre-bound) -> 0.000s
+    (post-bound) on all 4 laps.
+(b) MANDATORY cross-check: log_pbrake_f p10=0.002s p50=0.018s
+    p90=2.563s max=3.173s; log_pbrake_r p10=0.002s p50=0.009s
+    p90=2.548s max=3.163s; 0% negative both channels -- signature
+    essentially unchanged from the pre-bound corrected construction,
+    confirming the bound did not disturb the fix's own correctness for
+    the corners it left alone. Corner 5 specifically: brake-pressure
+    offset 0.001-0.010s across all 4 laps (duration 0.000s, turn-in
+    essentially coincides with brake_start_t) -- pressure was already
+    at/near threshold right at turn-in, consistent with corner 5
+    genuinely having no separate pre-turn-in brake phase the method can
+    isolate, not a defect.
+(c) population share: 5.50% (1331/24183), down slightly from the
+    unbounded corrected construction's 6.98% -- the bound removes
+    exactly the corner-5 overlap and nothing else, as expected.
+(d) inherited-lookback risk, re-checked: NONE found -- no corner's
+    brake_start_t now precedes the preceding corner's own bracket end,
+    confirmed directly (not inferred from duration numbers alone).
+NEAR-ZERO CORNERS (2, 3, 4, 6, 8, 12; stable_ids 2/3/4/6/8/13),
+INDIVIDUALLY VERIFIED: 20 of 56 instances (stable_ids 2, 3, 8, 10, 13)
+have no computable brake-pressure offset in check (b) -- in every
+missing case the reason is "no rise above 5 bar found in the search
+window", not a coverage or channel-quality gap; the check (b) method
+itself cannot speak to a corner that genuinely isn't braked hard
+enough to cross 5 bar. Near-zero corners ARE disproportionately among
+these: 4 of the 5 originally-flagged near-zero corners (2, 3, 8, 12)
+have no offset at all; only 4 and 6 do. For all six near-zero corners,
+sample-resolution throttle and brake-pressure traces were printed for
+3s before turn-in, one lap each (lap 1): EVERY ONE shows the same
+clean, unambiguous, and CONSISTENT signature -- throttle ramps up
+through the window and reaches/holds >=100% continuously through
+brake_start_t and turn-in (corner 2: 0% at window start ramping to
+105% by t-0.3s, held through turn-in; corner 3: 105% held for the
+entire 3s window, only drops AFTER turn-in; corner 4: ramps 60%->104.5%
+by ~1.3s before turn-in, held through; corner 6: ramps 71.5%->105.5%,
+held through; corner 8: ramps 20%->104.5%, held through, drops only
+after turn-in; corner 12: ramps 20.5%->104.5%, held through) -- and
+brake pressure (both f/r) reads 0.00 bar for the entire pre-turn-in
+window in all six cases, with no exception. This is qualitatively the
+opposite of the failure signature that exposed the first fix attempt
+(corner 1 under off_throttle[-1]: throttle at a CONSTANT 0% for a full
+second on both sides of the wrongly-placed boundary, i.e. continuous
+coasting misread as adjacent-to-turn-in). Here the driver is
+ACCELERATING to and maintaining full throttle right through turn-in --
+these six corners are genuinely taken without a distinguishable
+pre-turn-in brake phase this session (flat, minimum-lift, or braking
+deferred to just after turn-in, outside entry_1_brake's own
+definition by construction). VERDICT: GENUINE for all six, not a
+residual defect -- consistent evidence across all six meant no
+corner required an inconclusive verdict, per instruction not to force
+one where the data doesn't settle it; here it did settle, cleanly.
+Scope stated precisely: one lap (lap 1) inspected per corner, not all
+four -- matches the instruction's own scope, not extended further.
+DISTINCT from the pre-existing WP1 Turn-3 canonical-partition
+degenerate-zero mechanism (stable_ids 9/10/11/12, exactly 0.000s from
+bracket truncation, unrelated to throttle): the near-zero corners here
+are throttle-driven and mostly nonzero (0.010-0.045s), a different,
+independently-verified-genuine mechanism, not to be conflated with the
+WP1 one despite both producing small numbers.
+
+### Production impact of the fix, and a structural finding about
+CS_ratio aggregation [2026-08-20]
+
+ESTABLISHED -- what the fix moved: baseline for comparison was a
+recomputation using the ORIGINAL pre-session bug (off_throttle[0],
+unbounded), not either failed intermediate attempt, since nothing this
+session was committed. The comparison mirrors the production call
+chain exactly (diagnostics/inspect_entry1_brake_production_impact.py).
+Per-instance entry_1_brake n_samples fell from ~350-5,420 to 1-171,
+with many at 0. 39 material per-instance shifts (|dCS|>=0.05 or
+|dStab|>=50 Nm/deg). Largest and most consistent at the AGGREGATE
+level (median-of-medians across laps, what the rules actually see):
+stability C3 658->1522, C4 718->-22 (sign flip, 3 of 4 laps), C6
+712->427, C7 680->266, C8 624->253, C13 572->523, C14 572->1228. ZERO
+verdict changes across all 15 braking-matrix rules at every stable
+corner. Why, precisely: every post-fix aggregate stability value
+stays above STAB_NEG_THRESH=-50.0 (least negative is C4's -21.8), so
+even the sign flip does not reach "destabilizing". The fix moved real
+statistics substantially; none of the movement crossed a threshold on
+this dataset -- materially different from "the bug had no
+consequences".
+
+STRUCTURAL FINDING, more significant than the bug itself: CS_ratio_f
+and CS_ratio_r stay pinned at ~1.000 at the aggregate level for EVERY
+corner checked (3, 4, 6, 7, 8, 13, 14), both before and after the
+fix. Corner 6 lap 1 showed a dramatic single-instance collapse
+(CS_ratio_r 1.000 -> 0.219) which the median-of-laps washed out
+completely. Two mechanisms combine: CS_ratio is clipped at 1.0 and
+entry-phase instances mostly sit at that ceiling, and
+aggregate_by_corner then takes a median across four laps, which
+discards any single lap departing from it. The aggregation behaves
+exactly as its own design comment describes ("a single-lap anomaly
+washes out") -- but with a ceiling-pinned metric and only four laps,
+that design makes one lap of real signal indistinguishable from
+noise. CONSEQUENCE: most of the 15 braking rules key on CS_ratio, so
+on this dataset those rules have essentially ZERO aggregate
+sensitivity to the underlying data -- independent of the entry_1_brake
+bug and would not have been visible without this comparison. The
+stability channel does NOT share this problem: its movements survive
+aggregation cleanly. The two metric families behave differently and
+should not be assumed equivalent.
+
+ESTABLISHED -- empty-phase handling, safe but silent: chain traced by
+reading code, not assuming: summarise_corners emits the phase with
+n_samples 0 and NaN medians (never absent, never raises);
+aggregate_by_corner's _nanmedian_or_nan drops NaN across laps and
+returns NaN only if all laps are NaN; _classify_corner guards with
+"if csf == csf" before every comparison, so a fully-NaN phase never
+becomes "worst" and the rule evaluates to "ok". No crash risk. But a
+genuinely hard-braked corner with no computable signal is classified
+IDENTICALLY to a corner that is actually fine under braking -- quiet
+degradation, not failure. This confirms the false-negative
+hypothesis's MECHANISM structurally in the code, independent of the
+inconclusive data result below. 22 of 56 instances (39.3%) now have
+entry_1_brake n_samples==0, so this path is live for a substantial
+minority of instances, not an edge case.
+
+FALSE-NEGATIVE HYPOTHESIS, tested and INCONCLUSIVE: at verdict level,
+no evidence either way, nothing crossed a threshold. At raw-statistic
+level, mixed: four corners moved toward destabilizing (4, 6, 7, 8,
+consistent with the dilution story), two moved the other way (3, 14).
+Inconclusive for an IDENTIFIABLE STRUCTURAL REASON -- the CS_ratio
+aggregation washing described above -- not merely through noise.
+
+UI: the per-corner phase table already renders zero-length phases as
+an em-dash via an explicit n>0 guard, and _stability_colour has its
+own NaN guard returning NEUTRAL. Both render sensibly by existing
+design. NOT checked: corner_trace_dialog.py's shaded band for a
+zero-width phase -- flagged unchecked rather than assumed.
+
+OPEN, not addressed here: whether the CS_ratio aggregation should
+change (percentile rather than median across laps, or worst-lap, or
+reporting lap-to-lap spread alongside the median). That is a
+production behaviour change affecting verdicts and belongs with the
+deferred threshold work, not here -- see PLAN.md PARKED.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
@@ -4101,6 +4879,9 @@ it does not supersede or reinterpret any of them.
   apex_3-dominated in both old and new (21/15 of 51 each), consistent
   with a real but second-order shift, not a restructuring of which
   phase is worst.
+  [2026-08-20: this restates the Fy yaw-term entry's ceiling-clipping
+  explanation and inherits the same alternative-reading caveat -- see
+  "entry_1_brake phase-boundary bug" below. Unresolved, not corrected.]
 - VERDICT FLIPS under UNCHANGED thresholds: zero, across all 51
   instances (37 normal->normal, 14 moderate->moderate). The underlying
   distributions did shift measurably (see percentiles below), but no

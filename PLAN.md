@@ -138,6 +138,33 @@ because re-derivation is the step that commits to the EKF as the
 production sideslip source. Pass_1 flagged counts are NOT
 comparable to production verdicts in the meantime. Reasoning:
 thesis_notes.md "Threshold re-derivation deliberately deferred".
+entry_1_brake bounded-backward-search hardening: the 2026-08-20 fix
+(off_throttle[0] -> [-1], modules/corner_analysis.py) corrects
+which off-throttle sample is picked but the backward search itself
+is still unbounded -- for a corner taken nearly flat-out with only
+a brief lift, brake_start_t could still reach back further than
+intended if no clear off-throttle sample sits close to turn-in.
+Bounding the lookback (e.g. not searching past the previous
+corner's own bracket) is a reasonable defensive measure but is a
+second change with its own behaviour; bundling it with the index
+fix would have made verification ambiguous, so it was deliberately
+left out of that fix. Reopens if a spot-check or production use
+surfaces an implausibly long entry_1_brake window post-fix.
+CS_ratio aggregation-sensitivity: aggregate_by_corner's median-of-
+medians across four laps washes out a single lap's real signal on a
+ceiling-pinned metric (found 2026-08-20 comparing entry_1_brake
+before/after its phase-boundary fix -- CS_ratio stayed pinned at
+~1.000 at the aggregate level for every corner checked despite a
+dramatic single-lap collapse at one). Most of the 15 braking-matrix
+rules key on CS_ratio, so they carry near-zero aggregate sensitivity
+on this dataset independent of any phase-boundary correctness.
+Candidate directions (percentile instead of median, worst-lap,
+reporting lap-to-lap spread) not evaluated. Gated on the same
+decision point as the deferred classification-threshold
+re-derivation above -- changing the aggregation is itself a
+production behaviour change affecting verdicts. Reasoning:
+thesis_notes.md "Production impact of the fix, and a structural
+finding about CS_ratio aggregation".
 
 ### PROCESS RULES
 - One step at a time; proposal and implementation never combined;
