@@ -125,6 +125,13 @@ already combined-slip, so no new anchor is needed; log_speed_* is
 the designated wheel-speed source (WP-S1, not yet whitelisted).
 Gated on the EKF arc closing. Full reasoning and evidence:
 thesis_notes.md WP-N2 combined-slip subsection.
+Classification-threshold re-derivation against the EKF's CS_ratio
+distribution: deliberately deferred until the estimator is
+finalised (refit passes complete, combined-slip comparison done),
+because re-derivation is the step that commits to the EKF as the
+production sideslip source. Pass_1 flagged counts are NOT
+comparable to production verdicts in the meantime. Reasoning:
+thesis_notes.md "Threshold re-derivation deliberately deferred".
 
 ### PROCESS RULES
 - One step at a time; proposal and implementation never combined;

@@ -2553,6 +2553,1096 @@ OPEN:
   4/4 laps at both axles: either genuine problem corners or an
   artifact concentrated there. Requires the June driver report.
 
+### WP-N2 pass 1: CS_ratio interpretability, linear-reference
+staleness hypothesis DISPROVED, and the WP-S4b reference-spread
+improvement [2026-08-20]
+
+CONTEXT: pass_1's flagged worst-phase-per-instance counts rose
+sharply (front 32/56, rear 27/56, against the kinematic path's 11
+and 9). This entry records what was checked to decide whether
+those flags are interpretable, and the answer is not yet.
+
+ESTABLISHED -- flag interpretability:
+- Demand ranking of all 14 stable corners by median |ay| over
+  valid laps: C12 1.377g, C3 1.368g, C13 1.281g, C1 1.279g,
+  C5 1.241g, C6 1.205g, C8 1.185g, C14 1.182g, C2 1.124g,
+  C4 1.109g, C9 1.087g, C7 1.009g, C11 0.981g, C10 0.487g.
+  corner_radius_filtered was unavailable, so radius fell back to
+  kinematic v^2/ay.
+- CAVEAT on that ranking, recorded so it is not over-read: median
+  lateral g is a weak proxy for tyre demand. Aerodynamic
+  downforce means a fast corner generates more grip as well as
+  more load, so a slower corner at lower g can sit closer to the
+  tyre's limit than a faster one above it. Statements about
+  "the most demanding corners" below are correspondingly weak.
+- Flag distribution is near-universal: front 32 instances across
+  13 of 14 corners (only C11 clean), rear 27 across 11 of 14
+  (C6, C7, C11 clean). With flagging this widespread, demand rank
+  cannot discriminate.
+- C4 and C14 are the only corners flagged 4/4 laps at both axles,
+  yet rank #10 and #8 of 14 by median |ay|. The two top-ranked
+  corners are only partially flagged (C12 front 2/4, rear 1/4;
+  C3 front 2/4, rear 3/4). C10, the clear low-demand outlier at
+  0.487g, is flagged weakly (one moderate front, one moderate
+  rear, never strong); C11 is flagged nowhere.
+- Threshold comparability: the classification thresholds
+  (STRONG_CSF 0.10, STRONG_CSR 0.20, MODERATE_CSF 0.25,
+  MODERATE_CSR 0.35) were derived and every subsequent
+  re-confirmation performed against KINEMATIC CS_ratio
+  distributions, never against an EKF distribution.
+  Worst-phase-per-instance percentiles (p5/10/25/50/75/90/95):
+    front kinematic -0.041/0.064/0.268/0.389/0.647/0.915/1.000
+    front pass_1    -0.818/-0.677/-0.159/0.188/0.475/0.689/0.750
+    rear  kinematic  0.188/0.312/0.395/0.757/1.000/1.000/1.000
+    rear  pass_1    -0.270/-0.136/0.080/0.366/0.631/0.857/0.951
+  Every band moved, not only the tail: front median roughly
+  halved, rear median roughly halved, and the kinematic path's
+  ceiling-clipped p90-p95 (pinned near 1.0 at both axles) opened
+  up under pass_1.
+- Flagged-set overlap: front kinematic 11 -> pass_1 32 (10 shared,
+  1 lost, 22 new); rear 9 -> 27 (7 shared, 2 lost, 20 new).
+
+REASONING: because the shift spans the whole distribution rather
+than concentrating near the old boundary, the count jump is
+substantially shift-driven. This diagnostic cannot separate
+"distribution moved because the thresholds were fitted to a
+different signal" from "pass_1 detects genuine additional
+saturation". No threshold was re-derived or applied -- that is a
+separate stop under the standing rule.
+
+STANDING CONCLUSION: pass_1's CS_ratio flags are NOT YET
+INTERPRETABLE. Deliberately weaker than "artifact": the metric has
+not been shown wrong, it has been shown unreadable against
+thresholds fitted to a different distribution.
+
+ESTABLISHED -- staleness hypothesis, DISPROVED:
+- Hypothesis under test: Module 4b updates C_linear_ref only when
+  the entire regression window sits inside
+  cs_linear_slip_threshold_rad (0.021 rad, ~1.2 deg, read from
+  config). Pass_1's slip angles run far larger than the kinematic
+  path's, so fewer windows qualify, the held reference goes stale,
+  and CS_ratio is divided by a reference no longer describing the
+  current linear stiffness.
+- PREMISE CONFIRMED: update rate front 29.21% (kinematic) ->
+  25.27% (pass_1); rear 45.96% -> 25.79%, nearly halved. Updates
+  are bursty rather than evenly spaced (p50 and p90 gap = 1 sample
+  in all four combinations: long runs of qualifying windows on
+  straights, droughts through corners). Worst-case drought: front
+  788 -> 779 samples (essentially unchanged); rear 490 -> 755
+  samples, 50% longer under pass_1.
+- CONSEQUENCE CONTRADICTED, by every value-distribution measure:
+  pass_1's held reference is MORE stable, not less.
+    global p95/p5 spread: front 6.39 -> 3.11; rear kinematic p5 is
+      NEGATIVE (-17,265 N/rad, a physically nonsensical stiffness)
+      while pass_1's p5 stays positive at 66,695
+    per-corner median spread: front 4.00 -> 2.44; rear 6.27 -> 2.12
+- WP-S4b REPRODUCTION, methodology verified rather than asserted:
+  over the identical near-zero-alpha_r(A) sample set WP-S4b used,
+  the kinematic path reproduces its recorded finding almost
+  exactly (79,523-337,111 N/rad, ratio 4.24, against the recorded
+  79k-337k). Pass_1 over those same samples: 78,117-177,550 N/rad,
+  ratio 2.27.
+- SIGNIFICANCE, stated because it reaches beyond this entry:
+  WP-S4b recorded that fourfold rear reference swing as evidence
+  the kinematic slip-angle error propagates into the PRODUCTION
+  cornering-stiffness estimate itself, not only into beta. Pass_1
+  roughly halves that swing and removes the negative-stiffness
+  tail. The EKF measurably improves a production metric that has
+  been on record as defective since 2026-08-19.
+
+ESTABLISHED -- what does explain the sign instability:
+- Four phase-median sign flips exist across C4 and C14: C4 front
+  lap4, C4 rear lap3, C14 front lap1, C14 rear lap3.
+- Three of the four coincide with a near-degenerate regression
+  window at the phase's own worst sample: R^2 = 0.147, 0.035 and
+  0.005 respectively, against 0.77-1.00 on the same corner's
+  non-flipping laps. The mechanism is poor conditioning of the
+  NUMERATOR (C_alpha) at individual instants, not staleness of
+  the denominator.
+- Staleness does NOT track with which laps flip: flip and
+  non-flip laps for the same corner and axle show comparable
+  elapsed samples since the last reference update (C4 front
+  63-77 samples across all four laps; C4 rear 53-65).
+- The fourth flip, C4 rear lap 3, resists that explanation: its
+  worst single sample is well-conditioned (R^2 0.935) and
+  negative, while the phase median came out positive, so enough
+  of the rest of the phase is positive to pull the median past
+  zero. INCONCLUSIVE -- this check cannot distinguish genuine
+  within-phase boundary-crossing from noise spread across many
+  samples. Recorded as unresolved in either direction.
+- FRAMING, recorded to prevent a later misreading: the car is
+  driven by a human over four laps, so magnitude variation lap to
+  lap is EXPECTED and is not itself evidence of a defective
+  metric -- a driver explores line, entry speed and brake release,
+  and identical values every lap would be the suspicious outcome.
+  What driver variation does not explain is a SIGN change in
+  CS_ratio, which is a categorical claim (past the tyre's lateral
+  peak or not) rather than a matter of degree. That is why the
+  sign flips specifically, not the scatter, were investigated.
+
+METHODOLOGICAL FINDING, useful beyond this entry: window |alpha|
+span is structurally uninformative as a conditioning measure. It
+clusters at 1.15-1.29 deg in every row, both axles, both paths,
+all laps, because estimate_cornering_stiffness's window-growth
+loop stops as soon as span first clears
+cs_min_slip_angle_span_rad. Sample count (13-152) and window R^2
+are the variables that actually move; span is a constant by
+construction and must not be read as a quality proxy.
+
+**Threshold re-derivation deliberately deferred [2026-08-20]**
+- DECISION: classification thresholds are NOT re-derived against
+  the pass_1 distribution at this time. This is a considered
+  deferral, not an oversight.
+- REASONING: re-deriving the thresholds is the step that commits
+  to the EKF as the production sideslip source, since the tool's
+  verdicts change the moment it happens. That commitment should
+  follow, not precede, (a) finishing the estimator -- the refit
+  passes have not run, so the tyre curve is still the one fitted
+  from kinematic slip angles -- and (b) the planned comparison
+  against a combined-slip formulation. Committing now would fix
+  the thresholds to an intermediate estimator.
+- CONSEQUENCE, stated so it cannot be misread later: any flagged
+  count computed from pass_1 output is NOT comparable to the
+  production verdict distribution (historically 0 strong / 15
+  moderate / 41 normal over 56 instances) and must not be cited
+  as evidence the tool is finding more or fewer problems. The
+  distribution shifted across every percentile band; the counts
+  are measured on a scale that no longer matches the thresholds.
+- SEPARATELY, and importantly: the EKF's own quality does NOT
+  depend on this. The three results establishing it -- that
+  calibration moved its slip angles further from its own assumed
+  curve rather than closer; that its slip angles explain measured
+  ay better than the kinematic estimate's at identical samples
+  (0.968 vs 0.887, n=471); and that it roughly halves the
+  reference-stiffness swing WP-S4b recorded as defective, while
+  removing a negative-stiffness tail -- are all measured upstream
+  of CS_ratio and are unaffected by which thresholds are in use.
+
+Diagnostics: inspect_corner_demand_ranking.py,
+inspect_pass1_flagged_attribution.py,
+inspect_threshold_comparability.py,
+inspect_cs_linear_ref_staleness.py (all read-only, in
+diagnostics/).
+
+### WP-N2 pass 2: EKF-sourced Dugoff refit -- proposal and
+pre-registered predictions [2026-08-20]
+
+PURPOSE: pass 0/pass_1 froze a Dugoff curve fitted from KINEMATIC
+slip angles (WP-N1b) -- the documented circularity named when this
+arc began. Pass 2 is the first pass that refits the curve from the
+EKF's OWN slip angles (pass_1's, the calibrated configuration),
+then reruns the filter with the refitted curve. This entry records
+the design and the predictions BEFORE any pass-2 number exists.
+
+DESIGN, approved with two changes from the original proposal:
+
+- SLIP SOURCE: the EKF's own alpha_f/alpha_r from pass_1 (not
+  pass_0, which is known-miscalibrated in R). Same base_mask as
+  every fit in this arc (valid-lap, moving, kerb-excluded,
+  n=24183).
+- FIT STRUCTURE: WP-N1b's two-step shape retained (median c_alpha
+  over a linear-regime subset, then bounded 1-D least-squares
+  mu_fz over the full population with c_alpha fixed). The
+  linear-regime indicator is NOT reused from the kinematic path
+  (CS_ratio==1.0 there is itself a kinematic-alpha-derived flag,
+  and reusing it would launder the kinematic under-read into the
+  refit's own sample selection). Replacement: estimate_cornering_
+  stiffness recomputed with the EKF's OWN alpha/Fy (identical
+  function, different input array, already exercised this session
+  in inspect_threshold_comparability.py and inspect_cs_linear_ref_
+  staleness.py) -- its own CS_ratio==1.0 flag is the linear-regime
+  indicator, introducing zero kinematic dependency.
+- Q/R/P0 HELD at pass_1's values. Re-deriving R against the new
+  curve's residuals in the same pass would change curve and noise
+  model together, making pass 2's behaviour impossible to attribute
+  to either alone -- the same one-variable-at-a-time discipline
+  pass_1 itself used ("noise model only"). The resulting formal
+  mis-specification (R_ay_var=3.78418 was derived from the residuals
+  of the curve pass 2 replaces) is recorded, not hidden.
+  Re-derivation is deferred to a later pass.
+- CONVERGENCE CRITERION: relative change |theta_N - theta_(N-1)| /
+  theta_(N-1) for each of the four curve parameters (c_alpha_front,
+  c_alpha_rear, mu_fz_front, mu_fz_rear), converged when ALL FOUR
+  fall under 5% for TWO CONSECUTIVE passes (guards against a
+  coincidental single-pass near-match). Corroborating check: the
+  EKF's own |alpha| distribution pass-over-pass.
+- UPPER BOUND ON ITERATION [added at approval, deliberately
+  arbitrary]: MAXIMUM FOUR REFIT PASSES, pass 2 through pass 5. An
+  open-ended "small step, one more pass" rule has no natural stop if
+  the sequence drifts slowly rather than genuinely converging. If
+  the criterion above is not met by pass 5, that is recorded as a
+  NON-CONVERGENCE FINDING in its own dated entry naming which of the
+  three failure modes below occurred, and iteration stops there.
+  This cap bounds the exercise; it is not derived from anything
+  about the estimator or the data.
+- FAILURE MODES: (1) OSCILLATION -- a parameter alternates between
+  distinct value sets pass-over-pass (relative-change sign flips).
+  (2) MONOTONIC DRIFT WITHOUT SETTLING -- same direction every pass,
+  relative-change magnitude not shrinking. (3) PHYSICALLY
+  IMPLAUSIBLE VALUES -- effective mu moving away from the already-
+  flagged 1.90/2.06 range with no plausibility anchor, or the onset
+  boundary crossing outside the range bounded by observed slip
+  angles and the ~8 deg hearsay peak figure (TODO-verify, used only
+  as an order-of-magnitude fence). On any of these: stop, do not
+  keep iterating hoping it self-resolves, record which mode
+  occurred. A non-converging loop is itself a legitimate finding
+  about whether this iteration can break its own circularity.
+
+PRE-REGISTERED PREDICTIONS, recorded before any pass-2 number
+exists, so convergence and correctness are demonstrated rather than
+narrated afterward. Any prediction that fails is recorded as a
+failed prediction, not quietly dropped.
+
+1. c_alpha per axle FALLS at both axles. Rough magnitude anchor:
+   pass_1's own circularity check already measured the EKF alpha's
+   best-fit slope as a fraction of the frozen prior -- front 0.557x,
+   rear 0.771x (132798 -> ~74k N/rad front, 174217 -> ~134k N/rad
+   rear). Expect the refit's linear-regime-median c_alpha to move in
+   the same direction and rough order of magnitude, not to land on
+   these exact numbers (a linear-regime-restricted median is a
+   different statistic than a whole-population best-fit slope).
+2. mu_fz / effective mu -- FALSIFIABLE BAND [added at approval]:
+   HOLDS if mu_fz stays within +/-25% of pass_0's values at BOTH
+   axles (front 10653.12 N: band [7989.84, 13316.40]; rear
+   15818.77 N: band [11864.08, 19773.46]). FAILS outside that band
+   at either axle. Rationale for the band's centre: mu_fz sets the
+   asymptotic force ceiling, set by the data's peak Fy level, which
+   this refit does not touch (only the alpha-Fy pairing moves, not
+   the underlying Fz/Fy data). If this prediction fails, that
+   reasoning -- not the band width -- is what gets revisited.
+3. Onset boundary tan(alpha)=mu_fz/(2*c_alpha) MOVES OUTWARD
+   (increases) at both axles, following from (1) with (2) roughly
+   flat. First-order estimate from the 0.557/0.771 ratios: front
+   toward roughly 3.4-4.1 deg, rear toward roughly 3.1-3.5 deg --
+   explicitly derived from already-measured ratios, contingent on
+   (2) holding.
+4. Onset coverage FALLS from 59.04% front / 48.84% rear (pass_1's
+   own alpha against the frozen boundary). Coherent outcome, not a
+   regression: the boundary moving out is expected to dominate over
+   any second-order shift in the alpha distribution itself.
+5. Frozen-curve R^2 self-consistency -- the REFIT curve evaluated at
+   PASS 2's OWN resulting alpha (from running the EKF with the new
+   curve, not the alpha it was fit from): expect a RISE from
+   pass_1's 0.9526 front / 0.9822 rear, and this rise is EXPECTED,
+   not itself a warning sign (a curve fit to describe its own
+   generating alpha-Fy relationship should fit it better than an
+   increasingly stale frozen curve did). WARNING SIGNATURE, the
+   CONJUNCTION specifically, not a rise alone: R^2 approaching the
+   linear observer's ~0.997 level WHILE c_alpha simultaneously snaps
+   back toward the pass_0/pass_1 prior (132798/174217) -- that
+   combination would mean the loop re-derived its own starting
+   point. A moderate rise (toward 0.97-0.98) alongside a c_alpha
+   genuinely below the prior is the healthy, expected outcome and
+   must not be misread as the warning sign.
+6. h2-vs-ay regression slope: NOT expected to move much from pass_1's
+   own already-high 0.9682 (measured at n=471 identical apex
+   samples, superseding the stale 0.582 kinematic-alpha figure as
+   the relevant baseline). h2's ay-match is driven largely by the
+   filter's own ay measurement-update pulling the estimate toward
+   agreement -- a property of the filter structure, not primarily
+   the curve shape -- so this is predicted to be an insensitive
+   discriminator of refit quality, not a strong directional call.
+
+SCOPE OF THIS ENTRY: predictions and design only, recorded before
+the fit runs. Results, HELD/FAILED verdicts and convergence status
+follow in a separate dated entry once the fit has been run.
+
+### WP-N2 pass 2: refit results, prediction verdicts, convergence
+status [2026-08-20]
+
+REFITTED PARAMETERS (diagnostics/fit_dugoff_pass2_refit.py,
+diagnostics/fit_dugoff_pass2_refit_manifest.json, timestamp
+2026-08-20T07:53:48Z; config/parameters.json tyre_model_ekf.pass_2):
+c_alpha_front=66647.5 N/rad (-49.81% vs pass_0/1's 132797.9),
+c_alpha_rear=118993.1 N/rad (-31.70% vs 174217.3), mu_fz_front=
+13577.4 N (+27.45% vs 10653.1), mu_fz_rear=19924.5 N (+25.95% vs
+15818.8). Effective mu: 2.42 front, 2.59 rear (up from 1.90/2.06 --
+moving FURTHER from plausible, not toward it).
+
+PREDICTION VERDICTS, against the pre-registration above:
+
+1. c_alpha falls at both axles -- HELD. Actual ratios: front 0.502x
+   prior (predicted ~0.557x), rear 0.683x prior (predicted ~0.771x).
+   Same direction and same rough order of magnitude at both axles;
+   both landed somewhat more aggressive (further from the prior)
+   than the circularity-check proxy suggested.
+2. mu_fz within +/-25% of pass_0 at both axles -- FAILED at BOTH
+   axles (front +27.45%, rear +25.95%, both just outside the band).
+   REVISITING THE REASONING as required by the pre-registration: the
+   stated assumption ("mu_fz is set by the data's peak Fy level,
+   which the refit does not touch") treated mu_fz as fit
+   independently of c_alpha. It is not -- WP-N1b's two-step
+   procedure fixes the ORDER (c_alpha first) but the mu_fz
+   least-squares step still runs over the SAME Fy/Fz data using the
+   NEW, much smaller c_alpha. Since Fy=c_alpha*tan(alpha)*f(lambda)
+   and lambda=mu_fz/(2*c_alpha*|tan(alpha)|), shrinking c_alpha
+   shifts lambda at fixed alpha, and the least-squares fit
+   compensates by raising mu_fz to keep predicted Fy matched to the
+   (Fz/Fy data-derived, unchanged) measured Fy at the alpha values
+   the EKF now visits. The two parameters are coupled through the
+   shared fitting objective, not independently identified by the
+   two-step ordering -- the original reasoning conflated "sequential
+   fitting" with "independent identification."
+3. Onset boundary moves outward at both axles -- HELD on direction
+   (front 2.297 -> 5.816 deg, rear 2.599 -> 4.786 deg, both clearly
+   increased), but the stated magnitude estimate (front ~3.4-4.1,
+   rear ~3.1-3.5 deg) was EXCEEDED at both axles. This was flagged
+   as contingent on prediction 2 holding; prediction 2 failed (mu_fz
+   rose rather than staying flat), which pushes the boundary out
+   further than a c_alpha-only shift would -- the magnitude miss is
+   a direct, expected consequence of prediction 2's failure, not an
+   independent surprise.
+4. Onset coverage falls from 59.04%/48.84% -- HELD clearly. Under
+   pass_2's own boundary and own alpha (diagnostics/inspect_ekf_
+   dugoff_circularity.py pass_2, Section 6): front 24.60%, rear
+   16.40% -- a large drop in the predicted direction.
+5. Self-consistency R^2 (refit curve at pass_2's OWN resulting
+   alpha, from running the EKF with the new curve) -- HELD. Front
+   0.9526 -> 0.9704 (a moderate rise, as predicted and expected);
+   rear 0.9822 -> 0.9824 (essentially flat). The CONJUNCTION warning
+   signature is CLEARLY ABSENT: R^2 sits nowhere near the linear
+   observer's ~0.997 (front 0.9704, rear 0.9824), and c_alpha moved
+   SHARPLY AWAY from the pass_0/1 prior (49.81%/31.70% below it),
+   not back toward it. This is the healthy, expected outcome the
+   prediction described.
+6. h2-vs-ay slope/correlation -- HELD, precisely. Full masked
+   population (n=24183): corr=+0.9809 (pass_1's reference: 0.9808,
+   a 0.0001 difference). Apex_3 population (n=471): corr=+0.9686
+   (pass_1's reference: 0.9682). CORRECTION to the pre-registration's
+   own wording, recorded rather than silently fixed: 0.9682/0.9808
+   were CORRELATION values, not a "regression slope" as prediction 6
+   labelled them -- diagnostics/inspect_ekf_pass2_evaluation.py
+   Section 3 reports both explicitly (apex-population regression
+   slope of h2_pred on ay_meas = 0.9018, intercept -0.5102) so this
+   imprecision is not repeated. The metric is confirmed insensitive
+   to the curve refit either way it is read.
+
+ADDITIONAL FINDING, not among the six pre-registered predictions,
+recorded because it bears directly on the "flags not yet
+interpretable" standing conclusion above: worst-phase-per-corner-
+instance flagged counts under CURRENT (kinematic-derived)
+thresholds, out of 56, sample-level CS_ratio distribution (diagnostics/
+inspect_ekf_dugoff_circularity.py pass_2, Sections 3-4) -- front
+strong 8 + moderate 8 = 16 (pass_1: 21+11=32; kinematic: 7+4=11);
+rear strong 7 + moderate 2 = 9 (pass_1: 20+7=27; kinematic: 5+4=9,
+now EQUAL). Pass 2's flagged counts sit BETWEEN kinematic and
+pass_1 at the front and land exactly on the kinematic count at the
+rear -- the flagged-count inflation identified in "Threshold
+re-derivation deliberately deferred" above has substantially
+receded under this refit, without any threshold change. This is
+read as corroborating, not conclusive: the deferred re-derivation
+decision stands unchanged (thresholds are still kinematic-fitted,
+and this is a different sample-level statistic than that entry's
+worst-phase-per-instance percentiles, not a direct re-check of it),
+but it is a positive sign the pass-1 flag inflation was at least
+partly a distribution-shift artifact of an unrefit curve rather than
+a stable property of the EKF approach.
+
+OTHER MEASURED QUANTITIES:
+- NIS exceedance (diagnostics/inspect_ekf_pass2_evaluation.py,
+  R KNOWINGLY MIS-SPECIFIED -- held at pass_1's value, derived from
+  the residuals of the curve pass 2 replaces): yaw_rate 2.31% (just
+  under the 3-15% band), ay 5.65%, combined 5.37% (both inside),
+  combined mean NIS 1.624 (target ~2). Direction is coherent with
+  the known mis-specification: pass_2's own fit residuals (RMS
+  1078.7 N front / 1346.2 N rear) are roughly 2.5-4x smaller than
+  the residuals R_ay was derived from (2752.7/5793.2 N), so R is now
+  too generous for this curve -- concrete evidence, not just
+  expectation, that R re-derivation (deferred to a later pass) would
+  tighten these figures further.
+- Sign check: median gate 14/14 all corners, 13/13 racing-speed
+  (unchanged from every prior pass). Per-sample pooled fraction
+  99.77% (14480/14513) -- a further improvement on pass_1's 99.63%.
+
+CONVERGENCE STATUS after this pass: NOT CONVERGED, as expected for a
+first refit iteration -- none of the four relative changes (49.81%,
+31.70%, 27.45%, 25.95%) are remotely close to the 5% gate, and the
+gate requires two consecutive passes under it regardless. 1 of the
+maximum 4 refit passes (pass 2-5) used; 3 remain. Only one data
+point exists so oscillation vs. monotonic drift cannot yet be
+distinguished -- that needs pass 3. EARLY WATCH ITEM for pass 3,
+not a verdict: effective mu moved AWAY from the already-flagged-as-
+high 1.90/2.06 toward 2.42/2.59, the wrong direction for failure
+mode 3 (physically implausible values) if it continues.
+
+Diagnostics: fit_dugoff_pass2_refit.py, inspect_ekf_pass2_
+evaluation.py (both new, this pass), inspect_ekf_dugoff_
+circularity.py (existing, parameterised by pass_id, run with
+"pass_2"). test_stability.py confirmed unaffected (tyre_model_ekf
+has no production consumer).
+
+### WP-N2 pass 3: pre-registered predictions, carrying forward the
+c_alpha/mu_fz coupling finding [2026-08-20]
+
+CARRIED FORWARD FROM PASS 2's FAILED PREDICTION: c_alpha and mu_fz
+are COUPLED through the fit, not independently identified by the
+two-step ORDER. lambda = mu_fz/(2*c_alpha*|tan(alpha)|) -- a change
+in c_alpha shifts lambda at fixed alpha, and the mu_fz least-squares
+step (run over the same Fy/Fz data, c_alpha fixed from step 1)
+compensates by moving mu_fz to keep predicted Fy matched. Fitting
+c_alpha before mu_fz sequences the computation; it does not make
+mu_fz's optimum insensitive to c_alpha's value. This is why pass 2's
+mu_fz prediction failed (+27.45% front / +25.95% rear against a
++/-25% band) even though the stated mechanism (data's peak Fy level
+unchanged) is true in itself -- the fit's SENSITIVITY to c_alpha was
+the missing piece, not the Fy data changing.
+
+RIDGE CHECK, added this pass rather than assumed: watching the four
+parameters independently may not detect a loop where c_alpha and
+mu_fz slide together along a ridge of near-equivalent fits (many
+(c_alpha, mu_fz) pairs could give similar predicted Fy if they move
+together in the right proportion) -- the parameter-wise 5% rule
+would keep reporting "not converged" indefinitely in that case even
+if the FIT ITSELF has stabilised. Tracked via mu_fz/c_alpha per axle
+at pass_0, pass_2 and pass_3 (pass_1 carries pass_0's curve
+unchanged, so it contributes no new ratio point). CHECKED, NOT YET
+PRESENT as of pass_0->pass_2: front ratio 0.08022 (pass_0) ->
+0.20372 (pass_2), a 2.540x change; rear 0.09080 -> 0.16744, a 1.844x
+change. The ratio moved substantially at both axles, not less than
+the individual parameters -- pass_0->pass_2 shows no sign of
+ridge-sliding (a stabilising ratio while the raw parameters keep
+moving); it shows a genuine, non-stabilised shift in both the
+parameters AND their ratio. Pass 3 is the first point that can test
+whether the ratio's OWN step size is shrinking (ridge convergence,
+even if the raw parameters keep moving) or continuing to move by a
+similar or larger amount (no ridge convergence either).
+
+PRE-REGISTERED PREDICTIONS, before any pass-3 number exists:
+
+1. c_alpha per axle: CONTINUES TO FALL at both axles (same direction
+   as pass_0->pass_2, since the EKF's own alpha distribution grew
+   larger under pass_2's curve -- pass_2's own resulting |alpha| p99
+   is 8.582 deg front / 5.880 deg rear, larger than pass_1's alpha
+   the pass-2 fit was trained on). FALSIFIABLE, tied to the
+   convergence question directly: the MAGNITUDE of the pass2->pass3
+   relative change should be SMALLER than pass2's own step (49.81%
+   front / 31.70% rear) if this is genuinely damping. A step equal
+   to or larger than pass 2's is recorded as evidence of non-decaying
+   drift (failure mode 2), not quietly noted as "still moving."
+2. mu_fz per axle: CONTINUES TO RISE (informed by the coupling --
+   c_alpha predicted to keep falling, which the fit compensates for
+   by raising mu_fz). Same shrinking-step falsifiability as (1): the
+   pass2->pass3 percentage step should be SMALLER than pass 2's own
+   (+27.45% front / +25.95% rear). Equal or larger is evidence
+   against damping.
+3. Effective mu per axle: CONTINUES TO RISE from pass_2's 2.42
+   front / 2.59 rear. Band, held with LOWER confidence than the
+   others (extrapolating a two-point trend): [2.3, 3.2] at both
+   axles. Two live explanations, stated explicitly per instruction:
+   (a) Level-1 Fz with Cl=0 omits downforce entirely, a documented
+   conditional since WP-N1b that would underestimate axle Fz at
+   speed and inflate effective mu as a roughly CONSTANT bias across
+   every pass; (b) the c_alpha/mu_fz coupling letting the pair drift
+   along the ridge, which would produce a bias that GROWS pass over
+   pass as the pair keeps sliding. EXPECTED: (b) dominates, because
+   Fz estimation has been unchanged pass_0->pass_2 while effective mu
+   still grew substantially (1.90/2.06 -> 2.42/2.59) -- a constant
+   Fz-driven bias cannot by itself explain a pass-to-pass increase
+   when the thing it depends on (Fz) did not change. If effective mu
+   keeps climbing at pass 3, that is further evidence for (b); if it
+   plateaus while c_alpha/mu_fz still move (a stabilising ratio),
+   that would point toward the ridge settling with the Fz bias as
+   the remaining, roughly-constant residual offset.
+4. Onset boundary and coverage per axle: boundary CONTINUES TO MOVE
+   OUTWARD at both axles from 5.816/4.786 deg, following from (1)+(2)
+   both continuing in the same direction. Coverage CONTINUES TO FALL
+   from 24.60%/16.40% (pass_2's own boundary and alpha), same
+   reasoning as pass 2's coverage prediction -- the boundary moving
+   out is expected to dominate any shift in the alpha distribution
+   itself.
+5. Self-consistency R^2 (refit curve at pass_3's OWN resulting
+   alpha): front CONTINUES A MODEST RISE toward the 0.97-0.98
+   neighbourhood (from 0.9704); rear STAYS ROUGHLY FLAT near 0.98
+   (from 0.9824), consistent with pass_1->pass_2's own pattern.
+   CONJUNCTION WARNING SIGNATURE RESTATED: would require R^2
+   approaching the linear observer's ~0.997 level WHILE c_alpha
+   snaps back toward the pass_0/pass_1 prior (132798/174217) --
+   predicted ABSENT again, since prediction 1 has c_alpha continuing
+   to fall AWAY from that prior, not toward it.
+6. Per-sample sign fraction: CONTINUES TO HOLD OR RISE from pass_2's
+   99.77% (pass_1: 99.63%, pass_2: 99.77% -- a two-point rising
+   trend). Falsifiable floor: predicted to stay at or above 99.5% at
+   racing-speed corners; a drop below that would be a genuine
+   reversal of the trend, not noise.
+7. NIS per channel, R held at pass_1's value throughout (mis-
+   specified for whichever curve is current): predicted to stay in
+   a similar low range to pass_2's (yaw_rate 2.31%, ay 5.65%,
+   combined 5.37%), since R has not moved and the curve keeps
+   adapting toward smaller residuals each pass. Band: yaw_rate under
+   5%, ay under 10%, combined under 10%. A jump outside this band
+   would mean the curve's own residual behaviour changed character
+   pass2->pass3, not just magnitude.
+
+Any prediction that fails is recorded as a failed prediction, not
+quietly dropped, same standing rule as pass 2.
+
+### WP-N2 pass 3: refit results, prediction verdicts, ridge check,
+convergence status [2026-08-20]
+
+REFITTED PARAMETERS (diagnostics/fit_dugoff_pass3_refit.py,
+diagnostics/fit_dugoff_pass3_refit_manifest.json, timestamp
+2026-08-20T08:10:25Z; config/parameters.json tyre_model_ekf.pass_3):
+c_alpha_front=72905.3 N/rad, c_alpha_rear=118729.5 N/rad,
+mu_fz_front=12069.8 N, mu_fz_rear=19383.4 N. Effective mu: 2.15
+front (down from pass_2's 2.42), 2.52 rear (down from 2.59) --
+REVERSED toward plausibility this pass, not away from it.
+
+RELATIVE CHANGE, pass2->pass3, vs the pass0->pass2 step (diagnostics/
+inspect_ekf_pass3_evaluation.py Section 0, shrinking-step check):
+- c_alpha_front: -49.81% (pass0->2) -> +9.39% (pass2->3) --
+  OSCILLATION (sign flip), magnitude shrank (49.81 -> 9.39).
+- c_alpha_rear: -31.70% -> -0.22% -- SAME DIRECTION, magnitude
+  collapsed to near zero. The smallest step either axle has taken.
+- mu_fz_front: +27.45% -> -11.10% -- OSCILLATION (sign flip),
+  magnitude shrank (27.45 -> 11.10).
+- mu_fz_rear: +25.95% -> -2.72% -- OSCILLATION (sign flip), but the
+  magnitude is now small (under the 5% gate).
+
+RATIO TREND (mu_fz/c_alpha, ridge check, Section 0b): front 0.08022
+(pass_0) -> 0.20372 (pass_2, +153.95%) -> 0.16555 (pass_3, -18.73%);
+rear 0.09080 -> 0.16744 (+84.41%) -> 0.16326 (-2.50%). PATTERN
+CHECK, stated plainly per instruction: ridge-sliding (a stabilising
+ratio while the raw parameters keep moving) is NOT observed at
+either axle as of pass_3. Front's ratio is STILL moving by a large
+amount (-18.73%), in step with its still-large raw-parameter moves
+-- no dissociation. Rear's ratio moved only slightly (-2.50%), but
+so did its raw parameters (-0.22%/-2.72%) -- again no dissociation,
+just everything becoming small together, which reads as ordinary
+settling rather than the specific ridge-sliding failure mode.
+
+PREDICTION VERDICTS:
+
+1. c_alpha per axle, direction+magnitude -- MIXED, reported
+   precisely rather than forced. Front FAILED the stated
+   falsifiability (predicted the pass2->3 step would be SMALLER in
+   magnitude than pass0->2's AND continue falling; it continued
+   falling in the sense that... no, it ROSE, i.e. the DIRECTION
+   itself reversed, which the prediction did not anticipate --
+   FAILED). Rear HELD on the shrinking-step falsifiability (-0.22%
+   is smaller in magnitude than -31.70%, same direction) though the
+   step is now near-zero rather than merely smaller.
+2. mu_fz per axle, direction+band informed by coupling -- FAILED at
+   both axles on direction (predicted continued rise; both fell).
+   Magnitude did shrink at both (27.45->11.10 front, 25.95->2.72
+   rear), satisfying the secondary shrinking-step criterion even
+   though the primary direction call was wrong.
+3. Effective mu, band [2.3, 3.2] -- FAILED at both axles: front
+   2.15 and rear 2.52 both fell BELOW the band's own floor of 2.3,
+   the opposite of the predicted continued climb. REVISITING per
+   the pre-registration's own instruction: the prediction favoured
+   explanation (b) (c_alpha/mu_fz ridge drift) over (a) (Level-1 Fz
+   omission) BECAUSE effective mu had only ever risen so far
+   (1.90/2.06 -> 2.42/2.59); a reversal is more evidence for (b),
+   not against it -- a roughly-constant Fz-driven bias (a) cannot
+   produce a DROP any more than it could have produced the earlier
+   rise on its own, since Fz estimation is unchanged throughout.
+   The reversal is consistent with (b): the SAME oscillating
+   c_alpha/mu_fz pair that flipped direction on its own raw
+   parameters flipped effective mu's direction too, for the same
+   reason (mu_fz fell while mean Fz over the fit population is
+   unchanged pass-to-pass). The band width, not the mechanism
+   argument, is what failed here -- (b) predicted correctly that
+   mu_fz's own movement would dominate; the two-point-trend
+   extrapolation that set the band's location was too confident
+   given only one prior data point.
+4. Onset boundary (outward) and coverage (falling) -- FAILED at
+   both axles, both quantities, as a DIRECT, EXPECTED consequence of
+   predictions 1+2 failing (this prediction was explicitly stated as
+   contingent on those continuing in the same direction). Boundary:
+   front 5.816 -> 4.732 deg (moved INWARD), rear 4.786 -> 4.667 deg
+   (also inward, smaller move). Coverage: front 24.60% -> 41.49%
+   (ROSE), rear 16.40% -> 26.17% (ROSE) -- both the shrinking
+   boundary and continued alpha growth (front |alpha| p99 8.582 ->
+   8.509 deg, roughly flat; p50 3.510 -> 3.817 deg, up) combine to
+   raise coverage sharply. A clean, well-explained failure cascade,
+   not a surprise once 1+2's reversal is known.
+5. Self-consistency R^2 with the conjunction warning -- HELD on the
+   primary claim (rise continues, conjunction absent), magnitude
+   miss on both axles (predicted "modest"/"roughly flat", actual
+   rose more): front 0.9704 -> 0.9833 (predicted toward 0.97-0.98,
+   landed just above that range); rear 0.9822 -> 0.9885 (predicted
+   roughly flat, actual +0.6pp, a real rise not flatness).
+   CONJUNCTION CHECK, restated and confirmed absent: R^2 (0.9833/
+   0.9885) sits well below the linear observer's ~0.997, AND c_alpha
+   is nowhere near snapping back to the pass_0/1 prior -- front sits
+   at 54.9% of the original prior (72905/132798), rear at 68.2%
+   (118729/174217), both far from the ~100% a "restated prior" would
+   show. Rising R^2 alongside genuinely-displaced c_alpha remains the
+   healthy pattern the prediction described.
+6. Per-sample sign fraction, floor >=99.5% -- HELD on the floor
+   (99.72%, comfortably above it) though the DIRECTION reversed
+   rather than continued rising: 99.63% (pass_1) -> 99.77% (pass_2)
+   -> 99.72% (pass_3), a small dip. Read as noise around a
+   consistently-high plateau, not a trend break -- the floor is what
+   was pre-registered as falsifiable, and it held.
+7. NIS per channel, band yaw<5%/ay<10%/combined<10% -- HELD clearly.
+   yaw_rate 1.58% (pass_2: 2.31%), ay 3.93% (5.65%), combined 3.26%
+   (5.37%), mean NIS 1.315 (target ~2, moving further below it as R
+   grows more stale relative to the shrinking fit residuals -- pass_3
+   fit RMS 812.1 N front / 1042.2 N rear, smaller again than pass_2's
+   1078.7/1346.2 N). R re-derivation remains deferred; this is
+   further, larger evidence it would matter when taken.
+
+SCORECARD: 2 of 7 predictions HELD cleanly (5 with a magnitude
+caveat, 7 cleanly), 1 HELD on its falsifiable floor despite a
+direction miss (6), 1 mixed (1, front failed / rear held), 3 FAILED
+outright (2, 3, 4) -- with 3 and 4 both traceable to the SAME
+upstream cause (the front-axle oscillation flipping mu_fz's
+direction), not three independent surprises. The exercise did what
+pre-registration is for: several genuinely falsifiable claims broke,
+and the reason each broke is now on record rather than narrated
+after the fact.
+
+FLAGGED COUNTS, reported for continuity only -- NOT comparable to
+production verdicts (thresholds remain kinematic-fitted, re-
+derivation still deliberately deferred): front strong 8 + moderate 4
+= 12 (pass_2: 16; kinematic: 11); rear strong 3 + moderate 4 = 7
+(pass_2: 9; kinematic: 9 -- pass_3 now sits BELOW the kinematic
+count at the rear). Continuing pass_2's pattern of moving toward,
+and now past, the kinematic baseline without any threshold change.
+
+CONVERGENCE STATUS after this pass: NOT CONVERGED. No parameter is
+under the 5% gate for two consecutive passes (rear's two parameters
+ARE under 5% this single pass -- c_alpha -0.22%, mu_fz -2.72% -- but
+that is one data point, not two consecutive ones, and front remains
+far over the gate on both parameters). 2 of the maximum 4 refit
+passes (pass 2-5) used; 2 remain.
+- FRONT: one sign flip observed on both parameters, WITH SHRINKING
+  MAGNITUDE (c_alpha 49.81% -> 9.39%, mu_fz 27.45% -> 11.10%). Too
+  early to call this failure mode 1 (oscillation as defined requires
+  a repeating, NON-decaying pattern) -- a single decaying flip is
+  also consistent with a converging oscillatory fixed-point
+  iteration, a legitimate numerical behaviour, not itself a failure.
+  Pass 4 is the discriminating test: a further flip with continued
+  shrinking magnitude supports convergence-via-oscillation; a further
+  flip with similar or larger magnitude confirms failure mode 1;
+  continuing pass_3's direction with growing magnitude would instead
+  be failure mode 2 (monotonic drift).
+- REAR: c_alpha held direction with a collapsing step; mu_fz flipped
+  sign but at small (under-5%) magnitude. Reads as settling, the most
+  convergence-consistent behaviour seen so far in this arc, though
+  still only one small step, not two.
+- Ridge check: NOT PRESENT at either axle, as stated above -- no
+  dissociation between ratio stability and raw-parameter movement.
+
+Diagnostics: fit_dugoff_pass3_refit.py, inspect_ekf_pass3_
+evaluation.py (both new, this pass), inspect_ekf_dugoff_circularity.py
+(existing, run with "pass_3"). test_stability.py confirmed exit 0,
+unaffected (tyre_model_ekf has no production consumer).
+
+### WP-N2 pass 4: pre-registered predictions, the front-axle
+discriminating test [2026-08-20]
+
+RULE CLARIFICATION, decided BEFORE pass 4 runs: the convergence
+criterion stands exactly as originally written -- ALL FOUR
+parameters (c_alpha_front/rear, mu_fz_front/rear) under 5% relative
+change for TWO CONSECUTIVE passes. PER-AXLE convergence is not
+convergence. If rear satisfies the gate while front does not, that
+is reported as a distinct finding (one axle settling, the other
+not), and the loop is NOT declared converged on that basis. This
+closes off a way the criterion could otherwise be read generously
+after the fact, now that rear's pass_3 step (c_alpha -0.22%, mu_fz
+-2.72%) already sits under 5% while front's does not.
+
+PASS 4 IS THE DISCRIMINATING TEST FOR THE FRONT AXLE. Front c_alpha
+and mu_fz both flipped sign at pass 3 with sharply shrinking
+magnitude (c_alpha 49.81% -> 9.39%; mu_fz 27.45% -> 11.10%). Decision
+rule fixed in advance, before pass 4's numbers exist:
+- DAMPING (converging oscillation) if pass 4 flips sign again with
+  magnitude continuing to fall substantially -- roughly 2-4% or
+  lower.
+- FAILURE MODE 1 (oscillation) if the sign flips again while
+  magnitude stops shrinking or grows.
+- AMBIGUOUS MIDDLE, a legitimate third outcome, not forced into
+  either: sign flip with magnitude falling only slightly (say
+  6-8%).
+EXPECTED: DAMPING, held as the primary prediction rather than a
+neutral toss-up -- a >5x shrink in one step (49.81% -> 9.39% for
+c_alpha) is the textbook signature of a converging oscillatory
+fixed-point iteration, not typically what a genuinely non-convergent
+bounce looks like at its first reversal. This is a real, checkable
+call, not a hedge: front c_alpha and mu_fz are both predicted to flip
+sign again at pass 4, with magnitude in the 2-4%-or-lower range.
+
+PRE-REGISTERED PREDICTIONS. Where pass 3 already failed by
+over-extrapolating a single prior data point (predictions 2/3/4
+there), this entry predicts DIRECTION with magnitude stated as
+unpredicted wherever only one relevant data point exists, and only
+gives a numeric band where a multi-pass trend actually supports one.
+
+1. c_alpha per axle: FRONT -- flips sign again (falls), magnitude
+   2-4% or lower under the damping reading (see discriminating test
+   above; this IS the falsifiable claim, not a separate one). REAR --
+   continues its established two-step pattern (two consecutive
+   same-direction, shrinking steps: -31.70% then -0.22%): direction
+   uncertain at this magnitude (could tip either way near a settling
+   point) but MAGNITUDE predicted small, under 5%, continuing the
+   shrinking trend rather than reopening it.
+2. mu_fz per axle: FRONT -- flips sign again (rises), magnitude
+   2-4% or lower, via the same coupling mechanism established at
+   pass 2/3 (c_alpha and mu_fz move oppositely as the fit
+   compensates). REAR -- magnitude predicted small (under 5%,
+   informed by pass_3's already-small -2.72% step and c_alpha_rear's
+   own near-flat behaviour), direction unpredicted with confidence.
+3. Effective mu per axle: trajectory front 1.90 -> 2.42 -> 2.15,
+   rear 2.06 -> 2.59 -> 2.52. PREDICT CONTINUED MOVEMENT TOWARD THE
+   PASS_0 RANGE (front further down from 2.15, rear roughly flat to
+   slightly down from 2.52), NOT a further reversal upward. Reasoning
+   stated plainly: this is the same mechanism as prediction 1/2's
+   damping call -- if front's c_alpha/mu_fz oscillation is genuinely
+   damping, mu_fz_front's swing amplitude shrinks each pass, so any
+   pass-4 overshoot past pass_0's value should be smaller than
+   pass_2's overshoot was, pulling effective mu back toward (not
+   further from) the pass_0 anchor even without landing on it exactly.
+   No numeric band given -- only the trajectory's two prior points
+   inform this, same caution as pass 3's over-confident band that
+   failed.
+4. mu_fz/c_alpha ratio, ridge check continued: FRONT predicted to
+   move by LESS than pass_2->3's -18.73% step, consistent with the
+   damping call above, still with no ridge-sliding dissociation
+   expected (ratio and raw parameters should keep moving together,
+   not one stabilising while the other doesn't). REAR predicted to
+   again move very little (under 5%), continuing the "everything
+   small together" pattern rather than a distinctive ridge signature.
+5. Onset boundary and coverage per axle: FRONT -- if prediction 1/2's
+   damping call holds, onset REVERSES AGAIN, moving back outward from
+   4.732 deg (partial retrace toward, not necessarily reaching,
+   5.816 deg), and coverage falls back from 41.49% toward a lower
+   value. REAR -- boundary and coverage both predicted to stay close
+   to pass_3's 4.667 deg / 26.17%, small movement only, tracking
+   rear's own near-flat raw parameters.
+6. Self-consistency R^2 with the conjunction signature restated:
+   R^2 has risen EVERY pass so far regardless of which direction the
+   raw parameters moved (front 0.9526 -> 0.9704 -> 0.9833; rear
+   0.9822 -> 0.9824 -> 0.9885) -- predict this monotonic rise
+   CONTINUES: front toward roughly 0.985-0.99, rear toward roughly
+   0.988-0.992, both still comfortably below the linear observer's
+   ~0.997. CONJUNCTION CHECK RESTATED: would require R^2 approaching
+   ~0.997 WHILE c_alpha snaps back toward the pass_0/1 prior
+   (132798/174217) -- c_alpha is currently at 54.9% front / 68.2%
+   rear of that prior; predicted ABSENT again, since prediction 1
+   has c_alpha_front falling FURTHER from the prior this pass (a
+   damping flip means falling again from 72905, moving further below
+   both pass_2's 66647 and further still below the prior), not toward
+   it.
+7. Per-sample sign fraction: has oscillated in a narrow high band
+   (99.63 -> 99.77 -> 99.72%). Predict it stays in that same
+   99.5-99.9% neighbourhood -- same falsifiable floor as before
+   (>=99.5%), direction not predicted with confidence given the last
+   two passes already moved in opposite directions by similar small
+   amounts.
+8. NIS per channel: UNLIKE predictions 1-5 above, this one rests on
+   a genuine multi-pass trend, not a single point -- fit RMS
+   residuals have shrunk EVERY pass regardless of the c_alpha/mu_fz
+   oscillation direction (WP-N1b's original 2752.7/5793.2 N -> pass
+   2's 1078.7/1346.2 N -> pass 3's 812.1/1042.2 N, monotonic both
+   axles across three measurements). R remains held at pass_1's
+   value throughout. Predict NIS exceedance continues LOWER than
+   pass_3's already-low readings (yaw_rate 1.58%, ay 3.93%, combined
+   3.26%): band yaw_rate<3%, ay<7%, combined<7% -- tighter than pass
+   3's own pre-registered band, because this is extrapolating an
+   established trend rather than a single point.
+
+Any prediction that fails is recorded as a failed prediction, same
+standing rule as every prior pass.
+
+### WP-N2 pass 4: rear mu_fz fit failure (failure mode 3), front
+oscillation verdict, arc STOPPED [2026-08-20]
+
+REFITTED PARAMETERS (diagnostics/fit_dugoff_pass4_refit.py,
+diagnostics/fit_dugoff_pass4_refit_manifest.json, timestamp
+2026-08-20T08:34:44Z; config/parameters.json tyre_model_ekf.pass_4):
+c_alpha_front=65134.4 N/rad, c_alpha_rear=114873.3 N/rad,
+mu_fz_front=13141.8 N. mu_fz_rear=8,484,797.3 N -- effective mu
+1102.5. THIS IS NOT A NORMAL RESULT, recorded verbatim per the
+project's own "a numbered pass records what the fit actually
+produced" principle, not corrected or discarded.
+
+REAR mu_fz FIT FAILURE (failure mode 3, physically implausible
+values, exactly as pre-registered as a possible outcome when this
+arc began): the bounded least-squares search hit its own widened
+bracket ceiling after 4 widen attempts (mu_fz_bound_fraction=
+0.99999998, "STILL HIT BOUND, not an interior optimum" per the
+refit script's own printed diagnostic). DIAGNOSIS: the mu_fz
+objective is only constrained by samples where the Dugoff model
+actually saturates (lambda=mu_fz/(2*c_alpha*|tan(alpha)|) < 1).
+c_alpha_rear this pass (114873.3) is close to pass_3's (118729.5,
+essentially unchanged, -3.25%), but this pass's own EKF alpha
+population apparently leaves too few or no samples demanding
+saturation at any mu_fz the search bracket could represent before
+widening ran out -- the optimizer drove mu_fz to the bracket edge
+instead of finding a minimum. CONFIRMED, not just inferred, by
+Section 6 of diagnostics/inspect_ekf_dugoff_circularity.py pass_4:
+onset boundary = 88.449 deg (a physically meaningless angle -- no
+real tyre slip range approaches this) and coverage = 0.0000 --
+LITERALLY ZERO of 24183 masked samples exceed this pass's rear
+onset. The rear Dugoff curve this pass is PURE LINEAR
+(Fy_r=c_alpha_rear*tan(alpha_r), no representable saturation
+anywhere in the visited data) -- structurally the SAME failure mode
+that condemned the linear Kalman observer at the start of this arc
+(WP-S4/S5/S5b/S6, "a state observer built on a linear tyre model
+cannot detect departure from tyre linearity"), arrived at here via a
+degenerate fit rather than a deliberate linear model choice. The
+irony is exact: the refit loop, designed specifically to escape the
+linear observer's structural blind spot, produced a rear axle that
+is once again linear, this time by construction failure rather than
+design.
+
+FRONT-AXLE DISCRIMINATING TEST VERDICT, against the three-way rule
+fixed in advance: c_alpha_front flipped sign again (pass2->3 +9.39%,
+pass3->4 -10.66%) with magnitude GROWING (9.39 -> 10.66), not
+shrinking -- by the pre-registered rule this is unambiguously
+FAILURE MODE 1 (oscillation), not damping. mu_fz_front also flipped
+sign (pass2->3 -11.10%, pass3->4 +8.88%) with magnitude shrinking
+somewhat (11.10 -> 8.88) but not into the damping range (2-4%) and
+just outside the pre-registered ambiguous-middle band (6-8%) --
+closer to ambiguous than to clean failure-mode-1, but not a match
+for either boundary. VERDICT, not forced into false unanimity: the
+two coupled parameters give SLIGHTLY DIFFERENT readings this pass
+(c_alpha clearly failure-mode-1, mu_fz borderline-ambiguous), and
+c_alpha's reading is treated as the more decisive of the two (a
+clean, unambiguous non-shrink against the pre-registered numeric
+bands, vs mu_fz's own reading which sits in a genuinely grey zone).
+Overall front-axle reading: FAILURE MODE 1, or at best an unresolved
+muddle -- NOT the damping outcome predicted as primary.
+
+RATIO TREND (ridge check, four points now): front 0.08022 -> 0.20372
+-> 0.16555 -> 0.20177 (step pass3->4 = +21.87%, still moving by a
+large amount, no ridge-sliding dissociation from the raw parameters,
+which also moved by a large amount). Rear 0.09080 -> 0.16744 ->
+0.16326 -> 73.86225 (step pass3->4 = +45142.87%) -- the ratio's own
+blowup, mechanically identical to and fully explained by the rear
+mu_fz fit failure above, not a separate finding.
+
+PREDICTION VERDICTS (8 pre-registered):
+
+1. c_alpha direction/magnitude -- FRONT FAILED (predicted damping,
+   2-4% magnitude; got failure-mode-1, magnitude grew to 10.66%).
+   REAR the falsifiable claim (small magnitude, under 5%) HELD
+   (-3.25%), though direction classification is GROWING not
+   shrinking relative to pass_2->3's own -0.22% step -- a small but
+   real departure from rear's prior settling pattern, plausibly
+   contaminated by the rear mu_fz blowup changing which samples
+   qualify as rear's own linear-regime population this pass
+   (c_alpha_source_mask_n jumped to 13066 from pass_3's 10517).
+2. mu_fz direction/magnitude -- FRONT FAILED on the damping claim
+   (see discriminating-test verdict above). REAR CATASTROPHICALLY
+   FAILED -- predicted small movement under 5%; actual step
+   +43673.42%, the fit failure itself.
+3. Effective mu trajectory -- FRONT HELD on direction (2.15 -> 2.34,
+   continued movement, though UP not further down as predicted --
+   partial miss: predicted "further down from 2.15" specifically,
+   actual rose to 2.34, still well inside the historical 1.90-2.59
+   range and consistent with the mechanism argument (b) even though
+   the specific direction call was wrong this pass, since the front
+   oscillation's own sign flip naturally moves effective mu with it).
+   REAR MOOT/FAILED -- 1102.5 is not a value the prediction's
+   trajectory-continuation framing anticipated or could have; this
+   is the fit failure, not an effective-mu finding in its own right.
+4. mu_fz/c_alpha ratio -- FRONT the "moves by less than -18.73%"
+   claim FAILED (actual +21.87%, comparable magnitude, opposite
+   sign -- consistent with, not independent of, prediction 1/2's
+   front failure). REAR FAILED entirely (the fit-failure blowup).
+5. Onset/coverage -- FRONT HELD, precisely: predicted onset
+   "reverses again, moving back outward... partial retrace toward,
+   not necessarily reaching, 5.816 deg" -- actual landed at 5.761
+   deg, almost exactly at that ceiling. Coverage predicted to fall
+   back from 41.49% toward a lower value -- actual 27.08%, HELD on
+   direction. REAR NOT MEANINGFULLY EVALUABLE -- onset 88.449 deg /
+   coverage 0.0000 are the fit failure's signature, not a
+   coverage-trend result.
+6. Self-consistency R^2 with conjunction -- THE MONOTONIC-RISE
+   CLAIM FAILED at both axles: front 0.9704 -> 0.9833 -> 0.9712 (the
+   pass_2->3 rise did NOT continue, it reversed back down to
+   essentially pass_2's level); rear 0.9822 -> 0.9885 -> 0.9824
+   (also reversed down). CONJUNCTION CHECK ITSELF HELD (the more
+   important half of this prediction): R^2 stays well below the
+   linear observer's ~0.997 at both axles (0.9712/0.9824), and
+   c_alpha_front is now FURTHER from the original prior (49.05% of
+   132798, vs pass_3's 54.9%) not closer -- the danger signature
+   remains absent. NOTE on rear's interpretability: rear's curve is
+   now the degenerate pure-linear fit, so its R^2 this pass measures
+   a straight-line fit's quality, not a saturating Dugoff curve's --
+   not directly comparable to prior passes' rear R^2 in kind, only
+   in the narrow sense of "still not approaching 0.997."
+7. Per-sample sign fraction, floor >=99.5% -- HELD (99.76%,
+   14478/14513), continuing the narrow 99.5-99.9% band every pass
+   has shown.
+8. NIS per channel, band yaw<3%/ay<7%/combined<7% -- HELD clearly:
+   2.02%/5.67%/5.09%, mean NIS 1.583. Worth noting explicitly: this
+   was the one prediction built on a genuine multi-pass trend rather
+   than a single point, and it is also the one prediction category
+   that held cleanly through a pass where three raw-parameter
+   predictions failed outright -- the state-estimation/NIS behaviour
+   is evidently more robust to the curve's own instability than the
+   curve's own parameters are to each other.
+
+SCORECARD: 1 held cleanly (8), 1 held on its floor (7), 2 partially
+held (5 held cleanly at front/moot at rear; 6's conjunction-absence
+half held, monotonic-rise half failed), 4 failed outright or were
+rendered moot by the rear fit failure (1 mixed-toward-fail, 2, 3
+mixed-toward-fail, 4). The predictions that survived are exactly
+the ones NOT mechanically downstream of the c_alpha/mu_fz pair's own
+behaviour (NIS, sign fraction, the conjunction-absence check) --
+everything directly reading the pair's own trajectory failed or
+degenerated this pass, which is itself informative: the coupling
+identified after pass 2 is not a minor wrinkle, it is now the
+dominant source of this arc's instability.
+
+CONVERGENCE STATUS: NOT CONVERGED. Per the rule clarification fixed
+before this pass ran, per-axle convergence does not count -- but no
+axle converges anyway this pass: front fails the 5% gate on both
+parameters (10.66%, 8.88%) and rear's mu_fz is not merely over the
+gate but not a real fitted value at all. 3 of the maximum 4 refit
+passes (pass 2-5) used; 1 (pass 5) remains under the numeric cap.
+
+RECOMMENDATION, not a unilateral decision: STOP HERE, do not run
+pass 5. Two independent grounds, either alone sufficient under the
+standing rule ("on any of these: stop, do not keep iterating hoping
+it self-resolves"): (a) failure mode 3 has unambiguously triggered
+at the rear -- refitting pass 5 from a curve whose rear axle
+represents zero saturation anywhere in the data has no principled
+reason to self-correct, and continuing would mean feeding a known-
+degenerate alpha population into another refit; (b) the front axle's
+own discriminating test came back FAILURE MODE 1 (or at best
+unresolved), not the damping outcome that would have justified
+continuing to look for a settling point. This is recorded as a
+recommendation for the next turn to act on or override, not as an
+autonomous decision to skip pass 5 -- the pass-count cap itself
+still permits one more pass; the failure-mode criteria are the
+reason to stop short of it.
+
+EFFECTIVE-MU TRAJECTORY: front 1.90 -> 2.42 -> 2.15 -> 2.34 (bouncing
+within a band, not trending toward either extreme); rear 2.06 ->
+2.59 -> 2.52 -> 1102.5 (the fit failure, not a trajectory point).
+Failure mode 3 is not "receding" as hoped after pass 3 -- it has now
+OCCURRED, at the rear, decisively. Front alone shows no clear drift
+toward implausibility (bouncing in the 2.15-2.42 neighbourhood, well
+short of anything alarming on its own).
+
+FLAGGED COUNTS, continuity only, NOT comparable to production
+verdicts: front strong 10 + moderate 5 = 15 (pass_3: 12; pass_2: 16;
+kinematic: 11); rear strong 4 + moderate 3 = 7 (pass_3: 7, unchanged;
+pass_2: 9; kinematic: 9). Rear's count is computed from the
+degenerate linear curve this pass -- reported for continuity, not
+read as a meaningful saturation-detection result.
+
+Diagnostics: fit_dugoff_pass4_refit.py, inspect_ekf_pass4_
+evaluation.py (both new, this pass), inspect_ekf_dugoff_
+circularity.py (existing, run with "pass_4"). test_stability.py
+confirmed exit 0, unaffected (tyre_model_ekf has no production
+consumer).
+
+### WP-N2 refit loop: NON-CONVERGENCE, rear degeneracy to a
+pure-linear curve, and the identifiability limit [2026-08-20]
+
+DECISION: the refit iteration is STOPPED at pass 4, one pass short
+of the arbitrary four-pass cap. Stopped on the pre-registered
+failure criteria, not on the cap. Both grounds triggered
+independently:
+- Rear: failure mode 3. The bounded mu_fz search hit its widened
+  bracket ceiling after 4 widen attempts, landing at mu_fz_rear =
+  8,484,797 N, effective mu 1102.5. Confirmed directly rather than
+  inferred: the onset boundary is 88.449 deg and coverage is
+  exactly 0.0000 -- not one of 24,183 samples exceeds it. The rear
+  Dugoff curve has degenerated to pure-linear
+  (Fy_r = c_alpha_rear * tan(alpha_r)) with no representable
+  saturation anywhere in the data.
+- Front: failure mode 1. Against the three-way rule fixed in
+  advance, c_alpha_front flipped sign with magnitude GROWING
+  (9.39% -> 10.66%), which the rule designates as oscillation, not
+  damping. mu_fz_front shrank only slightly (11.10% -> 8.88%),
+  outside the ambiguous-middle band and closer to ambiguous than
+  to either boundary. Weighting c_alpha's cleaner signal: front is
+  failure mode 1, or at best unresolved.
+
+ESTABLISHED -- parameter trajectory across the loop:
+- c_alpha_front (N/rad): 132797.9 -> 66647.5 -> 72905.3 ->
+  65134.4. Relative steps: -49.81%, +9.39%, -10.66%.
+- c_alpha_rear: 174217.3 -> 118993.1 -> 118729.5 -> 114873.3.
+  Steps: -31.70%, -0.22%, -3.25%.
+- mu_fz_front (N): 10653.1 -> 13577.4 -> 12069.8 -> 13141.8.
+  Steps: +27.45%, -11.10%, +8.88%.
+- mu_fz_rear: 15818.8 -> 19924.5 -> 19383.4 -> 8,484,797.3.
+- mu_fz/c_alpha ratio, front: 0.08022 -> 0.20372 -> 0.16555 ->
+  0.20177. Ridge-sliding was checked at every pass and was NOT
+  present -- the ratio kept moving as much as the raw parameters,
+  so the parameters were not dissociating along a ridge of
+  near-equivalent fits.
+- Effective mu, front: 1.90 -> 2.42 -> 2.15 -> 2.34, bouncing
+  within a band rather than drifting. Rear: 2.06 -> 2.59 -> 2.52
+  -> 1102.5, the failure rather than a trajectory point.
+- Rear onset coverage across the arc: kinematic 6.95%, pass_0
+  36.8%, pass_1 48.84%, pass_2 16.40%, pass_4 0.0000%.
+
+MECHANISM -- self-starvation, and it was pre-registered as a risk:
+- Each refit lowers c_alpha, which pushes the onset boundary
+  tan(alpha) = mu_fz/(2*c_alpha) OUTWARD, which leaves a smaller
+  fraction of samples in the saturating region, which weakens
+  mu_fz's identifiability, which allows mu_fz to drift upward,
+  which pushes onset further out. Positive feedback terminating in
+  degeneracy.
+- The risk was recorded at pass 0, before any refit ran: the
+  saturation-coverage check found only 6.95% of rear samples past
+  onset and flagged rear mu_fz identifiability as a measured
+  concern, naming it as the first explanation to test if the rear
+  refit failed to settle across passes. It failed to settle, and
+  this is why. A pre-registered risk that materialised, not a
+  surprise.
+
+SIGNIFICANCE -- what the rear degeneracy says:
+- The rear curve collapsed to pure-linear: structurally the SAME
+  blind spot that condemned the linear Kalman observer at the
+  start of this arc, arrived at here by fit degeneracy rather than
+  by deliberate model choice.
+- SECOND READING, recorded as the more likely explanation and
+  directly connected to the parked combined-slip item: the rear
+  axle of a rear-engined RWD car does not principally saturate
+  LATERALLY. It saturates under traction on corner exit. Its
+  pure-lateral slip angle therefore stays modest precisely because
+  its limit is being reached longitudinally. A pure-lateral model
+  searching for rear saturation in slip angle finds little to
+  identify -- not because the car never reaches the limit, but
+  because the model is looking in the wrong dimension. On this
+  reading the rear fit did not fail from a poor search; it failed
+  because there is genuinely little pure-lateral rear saturation
+  in this data. Marked EXPECTED, not established -- it is
+  consistent with the coverage trajectory and with the WP-S1
+  wheel-speed evidence already recorded, but has not been tested.
+
+WHAT IS NOT INVALIDATED, stated plainly so the scope of the
+failure is not overread:
+- This is a finding about PARAMETER IDENTIFIABILITY, not about
+  whether the filter works. Every result established upstream of
+  the curve stands: calibration moved the filter's slip angles
+  FURTHER from its own assumed curve rather than closer; its slip
+  angles explain measured ay better than the kinematic estimate's
+  at identical samples (0.968 vs 0.887, n=471); and it roughly
+  halves the reference-stiffness swing WP-S4b recorded as
+  defective (rear per-corner spread 6.27 -> 2.12; the WP-S4b
+  sample set 4.24x -> 2.27x) while removing a negative-stiffness
+  tail (kinematic rear p5 -17,265 N/rad, pass_1 +66,695).
+- CORROBORATING PATTERN worth recording: at pass 4, every
+  prediction that survived (per-sample sign fraction 99.76%, NIS
+  2.02%/5.67%/5.09%, and the conjunction-absence half of the R^2
+  check) is one that does NOT mechanically depend on the
+  c_alpha/mu_fz pair. Every prediction reading that pair directly
+  failed or degenerated. The instability is localised to curve
+  identification.
+
+OPEN, not decided here:
+- Which pass, if any, is carried forward as the estimator. That
+  choice must NOT be made by selecting whichever pass looks best
+  in hindsight -- it requires a criterion stated before the
+  candidates are compared. Its own decision.
+- Whether the combined-slip formulation (PARKED, see its own
+  entry) resolves the rear identifiability limit. The mechanism
+  above is the strongest argument yet for attempting it.
+- R re-derivation, deliberately deferred through the refit loop,
+  is now measurably stale: pass 4's fit residuals are far below
+  the 2752.7 / 5793.2 N the current R was derived from, and NIS
+  has drifted under its band accordingly.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
