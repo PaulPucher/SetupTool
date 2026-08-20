@@ -6205,3 +6205,903 @@ pit-approach driving. Two lessons: (1) the accuracy-level cascade can
 correct structural misclassifications, not just refine numbers;
 (2) data-quality fixes propagate — a lap-model correction changed the
 corner-identity result without touching the clustering algorithm.
+
+## 3. WP-N3 (per-session-fittable, self-checking sideslip): unsupervised package [2026-08-20]
+
+Package run while the user was away, per PLAN.md's rewritten NOW
+section (WP-N2 carry-forward decision closed the prior arc). Hard
+constraints: no existing production file touched except as permitted
+per phase; config additive-only under new namespaces; no commit; no
+threshold re-derivation (still deferred, PARKED); the regression
+suite (tests/) must pass unchanged at every phase boundary.
+
+### Phase 1: washout cutoff sweep -- pre-registration [2026-08-20]
+
+BACKGROUND: production beta_washout_cutoff_hz=0.05 (config/
+parameters.json stability_estimation, read live, not from memory).
+WP-S3c (thesis_notes.md "Zero-slip offset: chain decomposition +
+mechanism search") found that REMOVING the washout entirely (per-
+corner beta re-anchored to zero at the last straight-line sample
+before corner entry, raw beta_dot integrated with no high-pass, drift
+read at the first straight-line sample after corner exit) gives
+median 5.7 deg / p90 10.8 deg residual drift -- worse than the 0.9-5.8
+deg force-balance-demanded signal (WP-S3b) the washout is suspected of
+suppressing. The intermediate cutoff range between 0.05 Hz and 0 was
+never tested. This phase tests it, read-only (diagnostics/, no
+config/production change).
+
+DESIGN (stated before running, since the exact construction affects
+comparability): two distinct beta constructions per cutoff, not one --
+1. GLOBAL: production's own estimate_sideslip formula
+   (cumsum(beta_dot)*dt, then _highpass_filter at the swept cutoff),
+   run over the whole session exactly as production does, only
+   beta_washout_cutoff_hz varied. cutoff=0 special-cased (skip the
+   filter step entirely -- scipy.signal.butter rejects a literal 0 Hz
+   critical frequency) to give the raw, globally-accumulated integral.
+   Used for mid-corner recovery (metric 1), sign check (metric 3), and
+   the EKF correlation/RMS (metric 4) -- these need a genuine session-
+   length candidate signal to evaluate at arbitrary sample positions.
+2. LOCAL RE-ANCHORED: WP-S3c's own Section 3 construction, reused
+   verbatim (diagnostics/inspect_washout_mechanism.py's anchor-finding
+   and per-corner integration code), generalised only by applying
+   _highpass_filter at the swept cutoff to the local re-anchored
+   segment instead of always skipping it. Used for the drift metric
+   (metric 2) only, per the work order's own "WP-S3c's own
+   methodology" instruction. At cutoff=0 this reduces exactly to
+   WP-S3c's own no-high-pass construction, which is the basis for the
+   reproduction check below.
+   Justification for the split: metric 2's drift is a RELATIVE
+   quantity (change in beta across one corner's span) -- for a raw,
+   unfiltered global integral, evaluating that relative quantity via
+   the GLOBAL signal would additionally contain the accumulated drift
+   since session start (unbounded over a multi-lap session), which is
+   not what WP-S3c measured or what "worse than the 0.9-5.8 deg
+   signal" refers to. Re-anchoring (or, equivalently, differencing two
+   nearby global-signal samples under a purely linear operator) removes
+   that irrelevant offset. This equivalence is exact for cutoff=0 (raw
+   integration is linear, so a constant offset cancels in any
+   difference) -- the reproduction check below verifies it holds in
+   practice for this script's own implementation.
+
+REPRODUCTION CHECK (must pass before trusting the sweep, per the work
+order): cutoff=0 through construction 2 must reproduce WP-S3c's
+recorded median=5.7 deg / p90=10.8 deg (thesis_notes.md "Zero-slip
+offset" entry) to within rounding. If it does not, STOP and
+investigate before reporting the rest of the sweep.
+
+PRE-REGISTERED PREDICTION: lowering the cutoff (0.05 -> 0.03 -> 0.02
+-> 0.01 -> 0.005 -> 0) monotonically increases mid-corner |beta|
+recovery at apex phases (moves toward the 0.9-5.8 deg force-balance
+band and toward pass-1 EKF beta) AND monotonically increases post-
+corner drift (moves toward WP-S3c's 5.7/10.8 deg no-filter figures).
+The two effects trade off; "no cutoff dominates 0.05" (better recovery
+AND acceptable drift, simultaneously) is treated as a legitimate
+finding, not a failure of the sweep.
+
+PRE-REGISTERED DISQUALIFYING DRIFT BOUND, justified before seeing
+results: a cutoff is DISQUALIFIED (cannot be recommended as a
+production replacement for 0.05, regardless of its recovery numbers)
+if EITHER (a) its median per-corner drift (metric 2) is >= 0.9 deg,
+the LOWER end of the force-balance-demanded signal band, because at
+that point drift alone is large enough to fully explain the smallest
+demanded true signal -- an observed mid-corner |beta| increase under
+that cutoff cannot be distinguished from uncorrected drift, not
+genuine recovery; OR (b) its p90 drift is >= 5.8 deg, the UPPER end of
+the same band, mirroring WP-S3c's own "worse than the 0.9-5.8 deg
+signal" comparison for the no-filter anchor case, generalised to every
+swept cutoff. Either condition alone disqualifies. This bound is fixed
+now, before any cutoff besides the known no-filter anchor (0) has been
+run.
+
+New script: diagnostics/inspect_washout_cutoff_sweep.py (read-only,
+no config/production change).
+
+### Phase 1: washout cutoff sweep -- results [2026-08-20]
+
+REPRODUCTION CHECK: PASSED. cutoff=0 through the local re-anchored
+construction gives median=5.718 deg, p90=10.765 deg against WP-S3c's
+recorded 5.70/10.80 -- within the pre-declared tolerance (0.05/0.1
+deg), confirming the sweep's two-construction design (global signal
+for metrics 1/3/4, local re-anchored for metric 2) is equivalent to
+WP-S3c's own methodology at the shared cutoff=0 anchor. Sweep trusted.
+
+CORRECTION DURING THIS PHASE: the first sweep run classified corners
+as racing-speed/low-speed by recomputing median v_mps pooled over each
+corner's full canonical bracket window (entry-to-exit, including the
+braking zone) against corner_speed_thresholds.low_max -- this gave 13
+racing / 1 low-speed corner, not the "11 racing-speed corners" this
+arc has used since the WP-S4b sign-check entry. Root cause: that
+recomputation does not match modules/corner_analysis.py's own
+canonical speed_class field, which classifies on median APEX speed
+only (the minimum speed inside the apex_3 window, medianed across a
+stable corner's lap instances, corner_analysis.py lines 288-293/
+848-856) -- a materially different statistic from a whole-bracket
+median that includes braking-zone speeds. Fixed by reading corners[i]
+["speed_class"] directly (the exact field summarise_corners already
+surfaces) instead of re-deriving it; this recovered 11 racing / 3
+low-speed (C7 plus two others), consistent with the established
+figure. Recorded because it is a reusable caution: "racing-speed
+corner" in this codebase means corner_analysis.py's canonical
+speed_class, not a fresh recomputation from any window statistic that
+happens to be available.
+
+RESULTS (base_mask n=24183; apex-phase racing-corner population
+n=438 -- both fixed across the sweep; racing-speed corner ids
+1,2,3,4,5,6,8,10,11,13,14, low-speed 7,9,12):
+
+Force-balance demand, recomputed restricted to the 11 racing-speed
+corners only (kinematic candidate, same alpha_r_ss=Fy_r_needed/Cr
+method as WP-S3b, informative reference, not independent): range
+-5.53 to +4.32 deg (|.|<=5.53), consistent with the established
+0.9-5.8 deg figure (which pooled all 14 corners including the 3
+low-speed ones).
+
+Per cutoff (median/p90 apex |beta| deg -- EKF median/p90 at the same
+samples -- drift median/p90 deg -- sign-check racing median-gate --
+racing per-sample pooled fraction -- corr vs pass-1 EKF -- RMS diff
+deg -- disqualified):
+- 0.05 (current): 0.954 / 2.511 -- EKF 3.443 / 4.917 -- drift 0.162 /
+  0.691 -- gate 8/11 -- per-sample 0.5400 -- corr 0.2137 -- RMS 2.560
+  -- disqualified=False
+- 0.03: 1.663 / 3.100 -- EKF 3.443 / 4.917 -- drift 0.242 / 0.733 --
+  gate 8/11 -- per-sample 0.6091 -- corr 0.2349 -- RMS 2.804 --
+  disqualified=False
+- 0.02: 1.638 / 3.343 -- EKF 3.443 / 4.917 -- drift 0.249 / 0.784 --
+  gate 9/11 -- per-sample 0.6800 -- corr 0.2400 -- RMS 3.037 --
+  disqualified=False
+- 0.01: 1.962 / 3.852 -- EKF 3.443 / 4.917 -- drift 0.218 / 0.876 --
+  gate 8/11 -- per-sample 0.6948 -- corr 0.2655 -- RMS 3.162 --
+  disqualified=False
+- 0.005: 1.801 / 7.573 -- EKF 3.443 / 4.917 -- drift 0.211 / 0.933 --
+  gate 9/11 -- per-sample 0.7329 -- corr 0.2718 -- RMS 4.218 --
+  disqualified=False
+- 0 (no filter, known-bad anchor): 63.357 / 94.856 -- EKF 3.443 /
+  4.917 -- drift 5.718 / 10.765 -- gate 5/11 -- per-sample 0.4363 --
+  corr 0.0643 -- RMS 71.463 -- disqualified=True
+
+VERDICT: four cutoffs (0.03, 0.02, 0.01, 0.005) survive the
+pre-registered disqualifying drift bound (median<0.9, p90<5.8 deg at
+every one of them -- drift stays two to three orders of magnitude
+below the bound across the whole tested range short of the cutoff=0
+anchor) AND all improve apex-phase mid-corner |beta| recovery over
+0.05 Hz's 0.954 deg median, moving toward (not reaching) both the
+force-balance-demanded band and the pass-1 EKF reference. PRE-
+REGISTERED PREDICTION CONFIRMED for the recovery direction (lower
+cutoff -> more mid-corner signal) and for drift increasing with lower
+cutoff, but the trade-off never reaches the disqualifying bound inside
+the tested range -- "no cutoff dominates 0.05" did NOT occur; multiple
+cutoffs dominate it on this comparison.
+
+0.02 Hz stands out as a reasonable candidate within the surviving set:
+the largest jump in the racing per-sample sign-check fraction
+relative to its drift cost (0.54->0.68 vs a drift p90 rise of only
+0.09 deg), still comfortably under both bounds, with EKF correlation
+(0.24) and RMS difference (3.04 deg) close to 0.03 Hz's. Diminishing/
+reversing returns appear below that: 0.005 Hz's apex p90 balloons to
+7.573 deg (versus 3.1-4.1 deg at 0.03-0.01 Hz) despite its median
+looking unremarkable, and its RMS difference against the EKF (4.218
+deg) is the worst of the five non-zero cutoffs -- consistent with
+low-frequency noise amplification starting to dominate as the cutoff
+approaches the corner-timescale itself (a corner takes several
+seconds; 0.005 Hz's ~200 s time constant leaves very little of the
+per-corner content actually washed out, so noise below the cutoff
+that would have been suppressed at 0.05 Hz now passes through too).
+
+NOT A THRESHOLD DECISION: this phase is read-only per its own design
+and PLAN.md's hard constraint (no production/config change permitted
+outside the phases that explicitly allow it). No cutoff was changed in
+config/parameters.json. This is evidence for a future WP to weigh
+against the accompanying cost (classification-threshold re-derivation,
+since CS_ratio/Module 4b would move if beta's washout construction
+changes) -- not a decision made here.
+
+#### Drift re-examined over time: single-checkpoint verdict superseded [2026-08-2X]
+
+Phase 1's disqualifying-bound check (median/p90 drift, above)
+evaluated drift at ONE causal checkpoint per corner exit -- the
+post-corner straight-line anchor sample itself, immediately after the
+corner. The follow-up plotting task (diagnostics/plot_washout_
+sweep.py, drift_post_corner_straights.png) plotted the same local
+re-anchored drift construction as a function of TIME PAST that
+checkpoint, using a series of causal checkpoints (never filtering on
+future data -- see the method note below) rather than the single
+point. Result: 0.03, 0.02, and 0.01 Hz all continue drifting well
+past the checkpoint Phase 1 actually measured. 0.02 Hz grows from
+~0.25 deg at the checkpoint to ~1.6 deg within 4 s, crossing the
+pre-registered 0.9 deg median bound at roughly the 1.5 s mark.
+Production 0.05 Hz is the only cutoff that stays flat and low across
+the whole 4 s window.
+
+SUPERSEDED, not deleted (notebook convention -- struck through with
+this dated note rather than rewritten): the Phase 1 verdict "four
+cutoffs (0.03, 0.02, 0.01, 0.005) survive the pre-registered
+disqualifying drift bound... multiple cutoffs dominate [0.05]" is
+~~SUPERSEDED~~ as a standalone conclusion. It was not WRONG given
+what it measured (the checkpoint values reproduce exactly, see the
+plotting task's reproduction check) -- it was INCOMPLETE, because the
+disqualifying bound was only ever checked at one instant, and that
+instant turns out to be the best point in time for every one of the
+three lower cutoffs, not a representative one.
+
+CORRECTED STATEMENT: lower washout cutoffs trade genuine mid-corner
+signal recovery (Phase 1's own metric 1, confirmed real and still
+standing) for post-corner drift that continues GROWING for several
+seconds after the corner, not a one-off bump that Phase 1's single
+checkpoint would have caught. The original checkpoint was measured
+at the most favourable possible instant (immediately at corner exit,
+before the growing-window drift has had time to accumulate), so it
+systematically understated the true cost of every cutoff below 0.05 Hz.
+
+CONSEQUENCE: the recovery-vs-drift trade is CORNER-SPACING DEPENDENT.
+A cutoff that looks acceptable on this session's data (Dubai, where
+some corners have a long following straight before the drift curve
+is ever tested by another corner) can fail on a track where corners
+follow closely -- the drifting signal from one corner's exit would
+still be rising when the next corner's entry arrives, contaminating
+that corner's own mid-corner reading rather than settling first. A
+single track-independent washout cutoff may therefore not exist at
+all -- this is new evidence, not previously stated in this arc, and
+it strengthens the case for the auto-fit EKF (modules/tyre_fit_
+auto.py, Phase 2/3) as the PRIMARY sideslip source going forward,
+with kinematic beta retained as a fallback rather than pursued as a
+better-tuned primary. Any future washout-cutoff change must be
+justified against a full drift-vs-time curve (per corner, per
+candidate track), not a single checkpoint value.
+
+METHOD NOTE, GENERAL -- applies beyond this one plot: modules/
+stability_analysis.py's _highpass_filter uses scipy.signal.filtfilt,
+which is zero-phase and ACAUSAL -- every output sample depends on the
+ENTIRE input segment, including samples that come after it in time,
+not just before. A diagnostic that filters a different-length segment
+than production would (e.g. extending a local window forward to see
+"what happens next") changes the filtered value at every point in
+that segment, including points that already existed in the shorter
+segment -- found and worked through while building drift_post_corner_
+straights.png (see that plot's own run_info.txt and the chat report
+from that session for the concrete numeric mismatch that exposed it).
+Any future diagnostic that makes a drift, boundary, or edge-effect
+claim about a filtfilt-based signal (this washout filter, or
+estimate_slip_angles'/estimate_lateral_forces' Butterworth low-pass)
+must evaluate it via CAUSAL CHECKPOINTS -- filtering only the data
+available up to each evaluated instant -- not by reading arbitrary
+points out of one long filtered array and assuming they match what a
+shorter or differently-bounded run would have produced.
+
+### Phase 2: one-shot per-session Dugoff fit + EKF chain [2026-08-20]
+
+New file: modules/tyre_fit_auto.py (fit_session(data, params,
+data_file_path=None) -> manifest dict), automating the recorded pass-0
+(WP-N1b, diagnostics/fit_dugoff_first_pass.py) and pass-1 (config
+tyre_model_ekf.pass_1 comments, diagnostics/inspect_ekf_pass1_rQ_
+sweep.py, diagnostics/inspect_pass1_final_validation.py) procedure as
+a reusable function. NOT wired into the UI or the production analysis
+thread. New additive config namespace tyre_fit_auto (mu_fz search-
+bracket tunables, Q/P0 seeds copied from tyre_model_ekf.pass_1, the
+2-D R sweep grid, NIS acceptance band, and the proposed status
+thresholds) -- marked experimental, all existing keys/blocks
+untouched. New acceptance script diagnostics/inspect_tyre_fit_auto_
+acceptance.py.
+
+DEPENDENCY NOTE, stated up front: modules/tyre_fit_auto.py imports
+diagnostics/sideslip_ekf_dugoff.py for the EKF recursion itself,
+inverting the project's usual one-way diagnostics-depends-on-modules
+direction. Deliberate, not an oversight -- the alternative was
+duplicating ~150 lines of Jacobian/update code with a real risk of the
+two copies silently diverging. Documented in the new module's own
+docstring; no existing config comment's "no modules/ consumer" note
+was edited (those describe historical fact as of when written, and
+CLAUDE.md's config rule keeps existing keys/comments untouched).
+
+ACCEPTANCE CHECK RESULT (diagnostics/inspect_tyre_fit_auto_acceptance.py,
+tolerances: 1e-6 relative for c_alpha/mu_fz -- identical deterministic
+optimizer over identical inputs, an exact match is expected; 1e-3
+relative for everything downstream of the EKF recursion, justified in
+the script's own header):
+- c_alpha_n_per_rad and mu_fz_N, BOTH AXLES: exact match to pass-0's
+  manifest (relative difference < 1e-6). onset_deg (a pure function of
+  c_alpha/mu_fz) also matched exactly. The fully-scripted half of the
+  procedure reproduces bit-for-bit.
+- R sweep: chosen grid point (r_ay_scale=0.1, r_yaw_scale=4.0,
+  found_in_band=True) matches pass_1's recorded choice exactly. The
+  chosen R_ay_var/R_yaw_rate_var themselves sit ~0.37%/0.28% off
+  (3.798 vs 3.784, 0.006065 vs 0.006048) -- outside the 1e-3 tolerance,
+  investigated rather than shrugged off (see below).
+- Downstream validation figures (NIS exceedances, combined mean NIS,
+  rear coverage_fraction) show the same small (~0.2-0.4%) residual
+  gap, consistent with propagating through the EKF from the R
+  difference above. ay_exceedance, front coverage_fraction, and
+  h2_vs_ay_apex correlation (0.9678 vs 0.9679) all land inside 1e-3
+  regardless. Sign check: median gate 14/14 (all corners) and 11/11
+  (racing-speed, canonical speed_class) both perfect; per-sample
+  fraction 0.9958 vs the historical script's 0.9963 -- not a gated
+  comparison (see the racing-population note below), but close.
+
+INVESTIGATION of the R_ay_var gap, per the work order's "find why, do
+not shrug": pass_1's config comment (R_ay_derivation) documents its
+own Method-A inputs -- front/rear RMS residual converted to
+acceleration (2.030, 4.272 m/s^2) and inter-axle correlation (0.8999)
+-- and its own combined-variance formula (var_f + var_r +
+2*rho*std_f*std_r). Hand-applying that exact formula to those exact
+documented inputs gives 37.979, not the archived 37.8418 the config
+comment states as the result (verified by direct calculation, not
+estimated). This module's own automation, run on Dubai, independently
+computes std_f=2.02998, std_r=4.27229, rho=0.899881 (matching the
+documented inputs to their own stated precision) and a combined value
+of 37.982 -- consistent with the hand-check of the documented formula,
+not with the archived 37.8418. CONCLUSION: the ~0.37% gap traces to
+the archived pass_1 config value's own one-off derivation (which,
+unlike every numbered pass's curve fit or the 2-D sweep, was never
+saved as a standalone diagnostics/ script and cannot be re-run to find
+its exact intermediate arithmetic) containing a small inherited
+inconsistency relative to its own documented formula and inputs -- NOT
+a divergence in this module's methodology, which reproduces the
+documented formula exactly. Everything gated on the deterministic,
+previously-scripted half of the chain (c_alpha, mu_fz, onset, chosen
+grid coordinates) matches exactly; only the one un-scripted historical
+number and its small downstream propagation do not.
+
+SEPARATE FINDING, also from this acceptance run: pass1_final_
+validation.py's own "racing-speed corner" population (13 corners, an
+ad-hoc per-corner window-median-speed classification computed inline
+in that script) disagrees with corner_analysis.py's canonical
+speed_class field (11 corners, median APEX speed only) -- the SAME
+inconsistency this package's own Phase 1 already found and corrected
+(see the Phase 1 correction entry above). modules/tyre_fit_auto.py
+uses the canonical speed_class field, consistent with Phase 1 and with
+the "11 racing-speed corners" convention used everywhere else in this
+arc; pass1_final_validation.py itself (an existing file, not touched
+by this package) still carries the older ad-hoc convention. Not fixed
+here (out of scope -- pass1_final_validation.py is an existing
+diagnostics file, this package only reads its manifest for comparison,
+never edits it); flagged for a future small cleanup.
+
+VERDICT: the acceptance check does NOT pass at the declared 1e-3
+tolerance on every field, but the automation is judged TRUSTWORTHY --
+every field that depends only on the previously-scripted parts of the
+procedure (c_alpha, mu_fz, onset, the 2-D sweep's chosen grid
+coordinates) reproduces exactly, and the small remaining gaps are
+fully traced to one archived, never-scripted historical number rather
+than to any divergence in this module's own logic. Status field on
+this Dubai run: "ok" (sign_check_marginal_fraction and nis_gross_
+miscalibration_fraction both cleared; an in-band R grid point was
+found).
+
+STATUS THRESHOLDS (proposed, not yet reviewed -- restated here from
+the module docstring for visibility): DEGENERATE if either axle's
+c_alpha sign check fails, either axle's mu_fz fit hits its widened
+search-bracket ceiling (the pass-4 rear failure mode -- this is the
+one case the work order explicitly requires never be silently
+accepted), the racing-speed sign-check median-gate fraction falls
+below 0.5 (no better than chance), or the best R grid point still
+leaves either NIS channel's exceedance above 0.5 (an order of
+magnitude beyond the 3-15% target band). MARGINAL if not degenerate
+but the sweep found no genuinely in-band grid point, or the racing
+sign-check median-gate fraction sits below 0.7 (the frozen pass-1
+baseline's own 8/11=0.727 was used as the reference point for this
+boundary). OK otherwise.
+
+### Phase 3: Pacejka variant -- pre-registration [2026-08-20]
+
+New files (all new, no existing production file touched): modules/
+tyre_model_pacejka.py (reduced 4-parameter Magic Formula, Fy = D*sin(
+C*arctan(B*alpha - E*(B*alpha - arctan(B*alpha)))), cited as "chair
+performance_analysis tooling (internal)"; published general form in
+Rajamani Ch. 13 Magic Formula section, page TBD verify), its analytic
+dFy/dalpha (chain rule through the arctan-of-arctan composition,
+transcribed then verified against central-difference numerical
+differentiation, tests/test_pacejka_model.py, 10 tests, max relative
+error < 1e-6 at every tested slip angle plus odd/even symmetry and
+positive-origin-stiffness checks); diagnostics/sideslip_ekf_pacejka.py
+(structural mirror of diagnostics/sideslip_ekf_dugoff.py, Pacejka
+force/stiffness substituted in both Jacobians and the state
+propagation, everything else identical -- NEW code path, the existing
+Dugoff EKF file is untouched); modules/tyre_fit_auto.py gains
+fit_session_pacejka (Powell optimizer, chair's starting guess
+[B,C,D,E]=[12, 1.9, 8000, 0.97], same base_mask/R-derivation/2-D-
+sweep/validation structure as fit_session's Dugoff chain).
+
+PRE-REGISTERED PREDICTION, stated before running either fit: Dugoff's
+own rear-axle history in this arc is one of REPEATED DEGENERACY under
+refit (passes 2-4, mu_fz_rear drifting outward each iteration until
+pass 4's fit hit the search-bracket ceiling and the curve collapsed to
+pure-linear -- WP-N2 refit-loop entry). The diagnosed mechanism was a
+self-starving feedback: low rear saturation coverage under the
+kinematic-sourced alpha (6.95% beyond onset, WP-N1 entry) leaves too
+few samples demanding a nonlinear (saturating) shape for the fit to
+identify one, so any model whose only route to representing
+saturation is a SINGLE ceiling parameter (Dugoff's mu_fz) is
+structurally exposed to this failure mode on this axle's data.
+Pacejka's fit is NOT staged the same way -- all four parameters (B,
+C, D, E) are fit jointly by a general optimizer against the same
+data, not "c_alpha fixed, then mu_fz alone must explain saturation
+with nothing else able to move". PREDICTION: on THIS SAME kinematic-
+sourced rear data (same low-coverage population, same underlying
+signal-starvation problem that caused Dugoff's degeneracy), Pacejka's
+joint 4-parameter fit is expected to converge to SOME set of (B,C,D,E)
+without hitting an explicit bound (Powell has no boundary to hit the
+way the Dugoff mu_fz search does), but the fitted curve's PEAK
+location and shape are expected to be POORLY CONSTRAINED by the same
+starved rear population -- i.e. convergence in the optimizer's sense
+is expected, genuine identifiability is not. This is a prediction
+about IDENTIFIABILITY, not merely optimizer success, and the
+comparison below is designed to expose it (fit RMS alone would not --
+an unidentified peak can still fit the LINEAR-REGIME bulk of the data
+well). A rear RMS residual comparable to or better than Dugoff's,
+combined with a peak location outside or far beyond the visited alpha
+range (extrapolated, not observed), would count as this prediction
+CONFIRMED, not refuted -- the failure mode this time is silent (no
+bound to hit) rather than an explicit degenerate flag, which is
+itself the more concerning outcome the comparison should surface.
+
+New script: diagnostics/inspect_tyre_variant_comparison.py (read-only,
+no config/production change; runs both fit_session and
+fit_session_pacejka on Dubai and compares).
+
+### Phase 3: Pacejka variant -- results [2026-08-20]
+
+Both variants converged (status="ok" for both, no degenerate flag on
+either axle for either model). Full results, diagnostics/
+inspect_tyre_variant_comparison.py, Dubai, base_mask n=24183 (shared
+across every metric below unless noted):
+
+FIT RMS RESIDUAL (N): front Dugoff=2752.7 vs Pacejka=2738.4 (Pacejka
+0.5% lower); rear Dugoff=5793.2 vs Pacejka=5785.1 (Pacejka 0.1%
+lower). Pacejka's extra two free parameters buy only a marginal RMS
+improvement on the BULK of the fit population -- consistent with the
+pre-registration's own warning that fit RMS alone would not expose an
+identifiability problem, since the linear-regime bulk of the data
+dominates the sum of squares either way.
+
+ONSET (Dugoff) / PEAK (Pacejka) LOCATION: front Dugoff onset=2.297
+deg (coverage 0.5905) vs Pacejka peak=6.281 deg (coverage 0.0419,
+OUTSIDE the visited alpha range, p99=5.059 deg); rear Dugoff
+onset=2.599 deg (coverage 0.4893) vs Pacejka peak=3.809 deg (coverage
+0.1100, also OUTSIDE the visited range, p99=3.355 deg). Both axles'
+Pacejka peaks are extrapolated beyond what the data actually visited,
+not interpolated within it.
+
+VALIDATION METRICS: NIS combined exceedance Dugoff=0.1369 (inside the
+3-15% band) vs Pacejka=0.1054 (also inside, closer to band centre);
+combined mean NIS Dugoff=2.899 vs Pacejka=2.713 (both near the
+calibrated-filter expectation of ~2); sign check racing median gate
+11/11 for both, per-sample fraction Dugoff=0.9958 vs Pacejka=0.9975;
+h2-vs-ay apex correlation Dugoff=0.9678 vs Pacejka=0.9680 (equal to
+four figures). On every one of these headline validation numbers
+Pacejka is marginally better than or equal to Dugoff -- consistent
+with a strictly more flexible model fitting slightly better, not
+evidence by itself that the extra flexibility is well-identified.
+
+SELF-CONSISTENCY R^2 AT EACH FILTER'S OWN ALPHA (corner-window
+population, n=15556, same methodology as pass-1's validation Section
+3): front Dugoff R^2=0.9524 (RMS 1445 N) vs Pacejka R^2=0.9589 (RMS
+1342 N) -- Pacejka better; REAR Dugoff R^2=0.9820 (RMS 1190 N) vs
+Pacejka R^2=0.9750 (RMS 1404 N) -- Dugoff BETTER here, the one metric
+in this whole comparison where Dugoff wins outright. This reversal at
+the rear, right where the identifiability concern was pre-registered,
+is itself informative: Pacejka's extra flexibility does not pay off
+once the alpha is drawn from Pacejka's OWN (different, less
+constrained) EKF beta rather than from the bulk kinematic-sourced fit
+population.
+
+REAR-AXLE IDENTIFIABILITY CHECK -- PRE-REGISTERED PREDICTION
+CONFIRMED: Powell reports convergence on the rear axle (powell_
+converged=True, no explicit bound analogous to Dugoff's mu_fz ceiling
+to hit) YET the fitted peak (3.809 deg) sits beyond the visited alpha
+range (p99=3.355 deg) -- an extrapolated, not observed, peak location.
+This is exactly the silent-failure pattern predicted: unlike Dugoff's
+overt pass-4 degeneracy (an explicit bound-hit flag), Pacejka's
+rear-axle fit reports success while its peak shape is not actually
+constrained by data. NOT PRE-REGISTERED but observed and recorded
+honestly: the SAME pattern holds at the FRONT axle too (peak 6.281 deg
+vs visited p99 5.059 deg) -- the prediction singled out the rear
+because of its specific degeneracy history, but the underlying
+mechanism (a genuine peak-and-decline shape needs samples that
+actually decline, and this session's racing-speed corners may simply
+not visit large enough slip angles at either axle) is not rear-
+specific. This should be read as a LIMITATION OF THIS SESSION'S DATA
+for identifying either model's saturated/post-peak shape, not a
+rear-specific finding as originally framed -- worth flagging in any
+future re-run on a session with a wider visited slip-angle range.
+
+VERDICT: Pacejka validates marginally better than Dugoff on every
+aggregate/global metric (fit RMS, NIS, sign check, h2-vs-ay), but
+WORSE on the one metric that isolates each model's behaviour at
+alpha values its OWN EKF actually produces at the rear axle (self-
+consistency R^2, the metric closest to "does this curve reflect what
+the filter is doing", not "does it fit the bulk training population").
+Combined with the peak-location extrapolation finding at both axles,
+the honest reading is: this session's data does not clearly separate
+the two models' SHAPE beyond the linear regime -- Dugoff's extra
+constraint (a single saturation-ceiling parameter, structurally
+limited to asymptote rather than genuinely peak-and-decline) may be a
+feature, not a limitation, on data this sparse in high-slip-angle
+samples, since it has one fewer free parameter to leave unconstrained.
+No winner is declared here (per the work order); this is a comparison
+for the record, not a config change -- neither variant is wired into
+config's tyre_model_ekf.* or any production path.
+
+### Phase 4: NIS tyre-mismatch gate -- pre-registration [2026-08-20]
+
+DESIGN: a health score answering "does the fitted curve match this
+session's data well enough to trust EKF beta?", built directly from
+"the windowed NIS machinery that already exists" (the EKF's own
+rolling-window exceedance check, config nis_window_samples/nis_chi2_
+bound, diagnostics/sideslip_ekf_dugoff.py) rather than a new
+statistic invented from scratch. Generalises the per-sample binary
+divergence trigger (window exceedance fraction > 0.5 -> diverged) into
+a continuous, session-level score using the SAME acceptance band
+(3-15% per-window exceedance) already load-bearing throughout Phase 2
+(the R-sweep's own "both channels in band" gate):
+  1. For each masked sample i, compute the trailing-window (width
+     nis_window_samples) combined-NIS exceedance fraction ending at i
+     (same rolling-window construction as the EKF's own divergence
+     monitor, computed here as a diagnostic over the full nis array,
+     not gated on window_flag's cruder 50% trigger).
+  2. in_band_i = nis_band_low <= exceedance_fraction_i <= nis_band_high
+     (0.03/0.15, the same values used throughout Phase 2).
+  3. health_score = fraction of masked samples with in_band_i True.
+A score near 1.0 means the filter behaves like a correctly-calibrated
+estimator (its own uncertainty model matches its actual error) across
+almost the whole session; a low score means the fitted curve and the
+data disagree often enough that the filter's own NIS statistics stop
+looking calibrated -- exactly the observable a tyre-curve mismatch (a
+session-fit curve applied on a track/compound/setup it was not fit
+against) is expected to produce, since the EKF's h(x) becomes
+systematically wrong and residuals grow relative to what R expects.
+
+SYNTHETIC MISMATCH CASES (as directed): starting from a Dugoff config
+with an R already NIS-gated to be healthy (Phase 2's fit_session "ok"
+result on Dubai, final_config), four single-parameter-family
+mismatches, both axles scaled together per scenario: c_alpha x0.5,
+c_alpha x2.0, mu_fz x0.5, mu_fz x2.0. R/Q/P0 held FIXED at the healthy
+run's own values in every mismatch scenario -- the point is to
+simulate "the fitted curve doesn't match this session" while
+everything else about the filter's own tuning stays the noise model
+that assumed a correct curve, which is exactly the deployment scenario
+this gate exists to catch (a stale/wrong curve carried into a session
+whose R was never re-derived for it).
+
+PRE-REGISTERED PREDICTION: the healthy baseline's health_score should
+sit close to the ~85% ceiling a correctly 3-15%-band-gated R implies
+by construction (most windows should be in-band, since that is what
+the R sweep was gated on in aggregate -- though the windowed,
+LOCAL version of the same check is a stricter, non-identical test and
+some shortfall from a very high score is expected even in the healthy
+case). All four mismatch scenarios should score MEASURABLY lower than
+the healthy baseline; c_alpha mismatches are pre-registered to hurt
+scoring MORE than mu_fz mismatches, because c_alpha sets the filter's
+LINEAR-REGIME response (the great majority of samples, per Phase 1's
+own apex-recovery numbers, sit well inside the linear regime for this
+session), while mu_fz only matters for the smaller saturated-regime
+population (Dugoff onset coverage 49-59% at these thresholds, but many
+of those samples are only marginally past onset where f(lambda) is
+close to 1 anyway) -- a wrong c_alpha therefore corrupts a larger
+share of the filter's moment-to-moment predictions than a wrong mu_fz
+does on this dataset.
+
+New script: diagnostics/inspect_nis_tyre_mismatch_gate.py (prototype,
+nothing wired -- read-only, no config/production change). Thresholds
+(use-EKF / warn / fall-back-to-kinematic) are a PROPOSAL for the
+user's decision, not applied anywhere.
+
+### Phase 4: NIS tyre-mismatch gate -- results [2026-08-20]
+
+RESULTS (Dubai, window=20 samples, band=[0.03, 0.15], healthy config =
+Phase 2's fit_session "ok" final_config): healthy=0.1622, c_alpha_
+x0.5=0.1501, c_alpha_x2.0=0.1318, mu_fz_x0.5=0.1122, mu_fz_x2.0=0.0674.
+
+PREDICTION 1 (ceiling near the R-sweep's own aggregate gate) FAILED,
+recorded as failed: the healthy baseline scored 0.1622, nowhere near
+the "~85%" region implied by treating the whole-session 3-15%
+aggregate gate as if it applied window-by-window. DIAGNOSIS (worked
+through, not just noted as a surprise): the windowed score's band
+check operates on COUNTS out of only window=20 samples -- for a
+combined-NIS chi-square df=2 bound, a truly well-calibrated filter
+exceeds it exactly 5% of the time per sample, so a window of 20 has an
+expected exceedance count of 1.0, and simple binomial arithmetic
+(Binom(20, 0.05), P(count in {1,2,3}) = P(win_frac in [0.05,0.15])
+approx 0.626) already caps the BEST any correctly-calibrated filter
+could plausibly score at this window width around 60-65%, well short
+of 100% -- and that is before accounting for any real temporal
+clustering of exceedances (bursty error, not i.i.d.), which would push
+the achievable ceiling lower still. The observed 0.1622 sits well
+under even that theoretical i.i.d. ceiling, meaning either the healthy
+run's LOCAL exceedance rate is not uniformly 5% (plausible -- NIS
+inflates specifically inside corners where the tyre model's local
+error is largest, not uniformly across the session) or the 20-sample
+window is simply too small relative to the band's own width for this
+score construction to reach a high absolute value even when the
+filter genuinely fits well. RECORDED LIMITATION for any future
+refinement of this prototype: a wider window, a proper chi-square
+goodness-of-fit test on the window's exceedance count (rather than a
+band-membership check), or reporting deviation-from-expected-rate
+directly would all be more statistically principled next steps than
+what this prototype implements.
+
+PREDICTION 2 (c_alpha mismatches hurt scoring more than mu_fz
+mismatches) FAILED, recorded as failed -- the observed order is the
+opposite: mu_fz mismatches (0.1122, 0.0674) score markedly lower than
+c_alpha mismatches (0.1501, 0.1318). ROOT CAUSE OF THE FAILED
+PREDICTION, traced rather than shrugged off: the prediction's own
+premise was wrong. It argued mu_fz "only matters for the smaller
+saturated-regime population", but Phase 2/3's own onset_coverage
+figures on this exact dataset (recorded earlier in this same package)
+already show front coverage=0.59 and rear coverage=0.49 -- roughly
+HALF of all masked samples sit beyond the Dugoff onset boundary, not a
+small minority. mu_fz therefore governs Fy for a comparably large
+share of the session as c_alpha's linear-regime dominance was assumed
+to, and scaling it materially changes the filter's predicted Fy (and
+hence its measurement residual) for close to half the data -- a wrong
+premise inside this session's own already-recorded numbers, not a
+new inconsistency requiring further investigation.
+
+CORE REQUIREMENT MET: despite both specific numeric predictions
+failing, the score DOES cleanly separate healthy from every mismatch
+scenario -- healthy (0.1622) is strictly the highest of all five
+scores, and all four mismatches fall below it, confirming the design's
+central claim (a tyre-curve mismatch is detectable via this windowed-
+NIS statistic) even though the absolute scale and the relative
+severity ordering both differ from what was pre-registered.
+
+PROPOSED THRESHOLDS (gap-selected between the healthy score and the
+worst mismatch score, same percentile-gap-selection convention used
+elsewhere in this project for classification thresholds -- e.g.
+config/parameters.json classification.stab_neg_thresh_Nm_per_deg's own
+derived_from note): gap [0.0674, 0.1622]. USE_EKF if health_score >=
+0.1385; WARN if 0.1006 <= health_score < 0.1385; FALL_BACK_TO_
+KINEMATIC if health_score < 0.1006. EXPLICITLY CAVEATED, not
+minimised: this is FIVE data points from ONE session (one healthy
+config, four synthetic mismatches), an extremely thin evidence base
+for a threshold that would gate production trust in EKF beta -- a
+genuine proposal for the user's review per the work order, not a
+recommendation to apply as-is. A real threshold-derivation pass would
+need multiple sessions/tracks (to see genuine cross-session curve
+mismatch, not only synthetic parameter scaling) and should revisit the
+window-size/statistic critique from the failed ceiling prediction
+above before being trusted for a production fallback decision.
+
+### Phase 5: consolidated report [2026-08-20]
+
+PER-PHASE SUMMARY:
+
+Phase 1 (washout cutoff sweep). Built: diagnostics/inspect_washout_
+cutoff_sweep.py. Found: reproduction check PASSED (cutoff=0 reproduces
+WP-S3c's 5.70/10.80 deg drift figures exactly, validating the sweep's
+two-construction design). Four intermediate cutoffs (0.03, 0.02, 0.01,
+0.005 Hz) all survive the pre-registered disqualifying drift bound and
+improve apex-phase mid-corner |beta| recovery over the production
+0.05 Hz default -- "no cutoff dominates 0.05" did NOT occur, the
+opposite of the plan's stated "legitimate finding" fallback. 0.02 Hz
+flagged as a reasonable candidate within the surviving set (best
+sign-check-improvement-per-unit-drift-cost). Also found and corrected
+a racing-speed-corner classification bug in the sweep's own first
+draft (window-median-speed vs corner_analysis.py's canonical
+speed_class field) -- documented because the SAME bug recurred,
+independently, in Phase 2's acceptance check against an EXISTING file
+(pass1_final_validation.py), suggesting this ad-hoc-vs-canonical
+speed-classification inconsistency is a small latent issue worth a
+future cleanup pass across the diagnostics/ directory, not fixed here
+(out of scope, existing files untouched). Tests added: 0 (read-only
+diagnostic). No config/production change.
+
+Phase 2 (one-shot per-session Dugoff fit + EKF chain). Built: modules/
+tyre_fit_auto.py (fit_session), config/parameters.json's new
+tyre_fit_auto namespace (additive), diagnostics/inspect_tyre_fit_auto_
+acceptance.py. Found: the fully-scripted half of the recorded
+procedure (c_alpha, mu_fz, onset, the R-sweep's chosen grid
+coordinates) reproduces the pass-0/pass-1 record EXACTLY; the
+un-scripted half (the one-off Method-A R_ay_var derivation, never
+saved as a standalone script) shows a small (~0.37%) internal
+arithmetic inconsistency in the ARCHIVED figure itself, verified by
+hand-applying its own documented formula to its own documented inputs
+-- this module's automation is judged trustworthy, the small residual
+gap traces to the historical record, not to a divergence in this
+module's logic. Tests added: 0 (acceptance check is a diagnostic
+script, not a pytest suite member -- see "chose not to do" note
+below). No existing production file touched; new namespace additive.
+
+Phase 3 (Pacejka variant). Built: modules/tyre_model_pacejka.py
+(reduced 4-parameter Magic Formula + analytic derivative),
+diagnostics/sideslip_ekf_pacejka.py (new EKF code path, Dugoff's own
+file untouched), modules/tyre_fit_auto.py gained fit_session_pacejka,
+tests/test_pacejka_model.py (10 tests, finite-difference verification
+of the analytic derivative plus odd/even-symmetry and positive-
+origin-stiffness checks). Found: Pacejka validates marginally better
+than Dugoff on every AGGREGATE metric (fit RMS, NIS, sign check,
+h2-vs-ay) but WORSE on rear-axle self-consistency R^2 (0.9750 vs
+Dugoff's 0.9820) -- the one metric that isolates behaviour at each
+model's OWN EKF-produced alpha rather than the bulk fit population.
+Pre-registered rear-axle-identifiability prediction CONFIRMED (Powell
+converges without hitting any explicit bound, yet the fitted peak
+extrapolates beyond the visited alpha range) -- and found, honestly,
+NOT to be rear-specific after all: the front axle shows the identical
+extrapolated-peak pattern, a correction to the pre-registration's own
+framing, recorded as such rather than quietly narrowed to fit. No
+winner declared in config; neither variant wired into any production
+path. Tests added: 10.
+
+Phase 4 (NIS tyre-mismatch gate). Built: diagnostics/inspect_nis_
+tyre_mismatch_gate.py (prototype, nothing wired). Found: the score
+cleanly separates the healthy Dubai baseline from all four synthetic
+mismatch scenarios (core requirement met), but BOTH pre-registered
+numeric predictions failed and were recorded as failed with traced
+causes -- the absolute-ceiling prediction ignored small-window
+binomial noise (a Binom(20,0.05) i.i.d. ceiling of ~63% already falls
+well short of the ~85% predicted, and the observed 16% falls short of
+even that, suggesting real temporal clustering of NIS exceedance
+inside corners); the c_alpha-vs-mu_fz relative-severity prediction
+inverted because its own premise (mu_fz affecting only a "small"
+saturated population) contradicted onset_coverage figures (49-59%)
+already on record earlier in this SAME package. Thresholds proposed
+via gap-selection, explicitly caveated as five-data-point, one-session
+evidence -- a proposal, not a recommendation. Tests added: 0
+(prototype diagnostic, not reusable production code).
+
+TEST COUNTS: 49 -> 59 (48 passed + 1 xfailed at package start, per
+PLAN.md STATUS; 58 passed + 1 xfailed at package end, confirmed by
+direct pytest run after every phase). All 10 new tests are Phase 3's
+Pacejka finite-difference/symmetry checks.
+
+FAILED PREDICTIONS, consolidated (per the work order's "failed
+predictions stay recorded as failed"): Phase 4's health-score ceiling
+prediction (expected ~85%, observed 16%) and its c_alpha-vs-mu_fz
+relative-severity prediction (expected c_alpha worse, observed mu_fz
+worse) both failed, with causes traced above. Phase 3's rear-only
+framing of the peak-extrapolation prediction was also not fully
+correct (the front axle showed the same pattern) -- the qualitative
+prediction (silent, bound-free failure mode exists) was confirmed, but
+its scope was narrower than the actual finding, corrected in the
+Phase 3 results entry rather than left as originally framed.
+
+SKIPPED OR STOPPED, and why: none of the five phases were stopped or
+judged impossible/ill-posed -- every phase produced a result and
+completed its own acceptance/reproduction check. Deliberately NOT
+done, stated up front rather than discovered by omission: (1) no
+pytest coverage was added for modules/tyre_fit_auto.py's fit_session/
+fit_session_pacejka themselves (only for the new pure Pacejka math) --
+the acceptance/comparison scripts already exercise the full chain
+against recorded references on real Dubai data every time they are
+run, and a synthetic-fixture pytest test would either duplicate that
+real-data check or violate CLAUDE.md's "real data only" rule by
+inventing synthetic channel arrays for a ~100s-runtime full-pipeline
+function; judged not worth the mismatch. (2) Phase 2's acceptance
+script does not edit pass1_final_validation.py's ad-hoc racing-speed-
+corner classification to match the canonical field -- that file is an
+existing diagnostics/ script this package's hard constraints do not
+authorise touching casually; flagged as a small future cleanup instead
+(also surfaced independently in Phase 1). (3) Phase 4's health-score
+statistic was not redesigned after its own ceiling-prediction failure
+diagnosed a window-size/statistic weakness -- the work order asked for
+a prototype and a proposal, not a finished, re-iterated metric; the
+weakness is recorded explicitly as a limitation for whoever picks this
+up next, not silently patched over.
+
+CONFIRMATIONS (Phase 5 checklist, per the work order):
+- Full regression suite green: confirmed by direct run after every
+  phase boundary (Phase 1: 48 passed/1 xfailed; Phase 2: 48/1 xfailed,
+  no test file changed yet; Phase 3: 58 passed/1 xfailed, +10 new
+  Pacejka tests; Phase 4: 58 passed/1 xfailed, unchanged). Final run:
+  58 passed, 1 xfailed, 84.57s.
+- git status shows only new files plus thesis_notes.md/config/
+  parameters.json edits, no commit made: confirmed (`git status
+  --porcelain`) -- modified: config/parameters.json (+24/-0, the new
+  additive tyre_fit_auto namespace only), thesis_notes.md (append-only
+  content, the one "-1" line in `git diff --stat` is a trailing-
+  newline artifact at the point of insertion, verified by inspection,
+  not a content deletion). Untracked (new files only): diagnostics/
+  inspect_washout_cutoff_sweep.py, diagnostics/inspect_tyre_fit_auto_
+  acceptance.py, diagnostics/sideslip_ekf_pacejka.py, diagnostics/
+  inspect_tyre_variant_comparison.py, diagnostics/inspect_nis_tyre_
+  mismatch_gate.py, modules/tyre_fit_auto.py, modules/tyre_model_
+  pacejka.py, tests/test_pacejka_model.py. No PLAN.md edit was made
+  before this Phase 5 pass (made now, see below). No commit run at any
+  point.
+- Protected set untouched: confirmed, `git ls-files docs/literature/
+  docs/car_data/ config/car_data.json HANDOVER.md docs/study/` returns
+  empty.
+- sideslip_source still "kinematic": confirmed, read live from
+  config/parameters.json.
+
+DECISIONS WAITING FOR THE USER (carried into PLAN.md's NOW section):
+1. Phase 1's washout-cutoff finding: whether to move beta_washout_
+   cutoff_hz off 0.05 (candidates 0.02-0.01 Hz look promising on this
+   comparison) -- gated on the standing classification-threshold
+   re-derivation rule, since CS_ratio/Module 4b would shift if beta's
+   construction changes.
+2. Phase 2/3's fit-variant choice: Dugoff vs Pacejka as the EKF's
+   internal tyre model -- no winner declared, comparison only; the
+   rear/front peak-extrapolation finding argues for caution either way
+   pending a session with a wider visited slip-angle range.
+3. Phase 4's proposed NIS health-score thresholds (USE_EKF >= 0.1385,
+   WARN [0.1006, 0.1385), FALLBACK < 0.1006) -- explicitly thin
+   evidence, needs either more sessions or a redesigned statistic (see
+   the ceiling-prediction failure diagnosis) before being trusted.
+4. Whether to fix the ad-hoc-vs-canonical racing-speed-corner
+   classification inconsistency found independently in both Phase 1
+   and Phase 2 (pass1_final_validation.py's own inline window-median
+   method vs corner_analysis.py's canonical speed_class field) -- a
+   small, low-risk cleanup, not done here since it touches an existing
+   file outside this package's explicit permissions.
+5. All prior carry-forward decisions from before this package (pass_2-
+   4 block deletion, dead-diagnostics cleanup, the NIS threshold this
+   package's Phase 4 now feeds into, the UI switch design for
+   sideslip_source) remain open, unchanged by this package.
+
+### Repo cleanup: pass_2-4 block deletion + dead-diagnostics sweep [2026-08-20]
+
+Deleted (working tree only, not committed -- last commit still
+containing every file listed below: b0e7aa0c8f2b0f7a4b259fa993a21c2c4722802e):
+- config/parameters.json: tyre_model_ekf.pass_2 and .pass_4 blocks
+  (numbers preserved verbatim in the "WP-N2 pass 2"/"WP-N2 pass 4"
+  entries above and the refit-loop non-convergence entry). Keys
+  replaced with "_comment_pass_2_removed"/"_comment_pass_4_removed"
+  marker strings (not blank deletion) so a stray params["tyre_model_
+  ekf"]["pass_2"] lookup raises a clean KeyError instead of silently
+  finding nothing or a wrong-typed value.
+- diagnostics/fit_dugoff_pass2_refit.py, diagnostics/fit_dugoff_
+  pass3_refit.py, diagnostics/inspect_ekf_pass2_evaluation.py,
+  diagnostics/inspect_ekf_pass3_evaluation.py, diagnostics/inspect_
+  ekf_pass4_evaluation.py.
+
+NOT deleted, deliberately, per the work order's own stop condition
+("grep the entire repo... if anything does [read a block], stop and
+report instead"): config/parameters.json's tyre_model_ekf.pass_3
+block. diagnostics/fit_dugoff_pass4_refit.py (KEPT -- not in the
+explicit deletion list) reads pass_3 as its own EKF source
+(pass_id="pass_3"); deleting pass_3 would have left that script
+silently broken (KeyError on next run) without deleting the script
+itself, which the work order did not authorise. fit_dugoff_pass4_
+refit.py's own docstring pointer to the now-deleted fit_dugoff_
+pass3_refit.py was fixed in place ("removed 2026-08-2X, see git
+history") rather than rewritten. Recommendation for a future pass:
+either explicitly authorise deleting fit_dugoff_pass4_refit.py (its
+sibling evaluation script, inspect_ekf_pass4_evaluation.py, is
+already gone) to make pass_3 safe to remove too, or keep both
+pass_3 and fit_dugoff_pass4_refit.py intentionally as the one
+remaining artifact of the refit loop's actual failure mode (WP-N2
+pass 4's rear mu_fz non-convergence) -- both are defensible, neither
+decided here.
+
+Verification performed: grep across the whole repo for the deleted
+files' names found the deletions clean (no import statements
+anywhere reference any of the five); config/parameters.json's own
+frozen_from pointers for the KEPT pass_0/pass_1 blocks do not name
+any deleted file. Full regression suite: 58 passed, 1 xfailed
+(unchanged from before the deletions). test_stability.py smoke test:
+unchanged, runs clean.
+
+Candidate list (29 diagnostics/*.py scripts recommended for a future
+deletion pass, produced a recorded finding now fully preserved in
+this file, no incoming references found anywhere in the repo) and
+the full 68-file classification are in this session's chat report,
+not duplicated here in full -- summary: inspect_abs_slip_channels.py,
+inspect_b3_verdict_distribution.py, inspect_corner_demand_ranking.py,
+inspect_cs_filter_sensitivity.py, inspect_entry1_brake_fix_
+verification.py, inspect_entry1_brake_production_impact.py, inspect_
+fz_sign_conventions.py, inspect_gps_speed_validation.py, inspect_h2_
+ay_dual_population.py, inspect_kerb_signal.py, inspect_max_beta_
+excursion.py, inspect_observer_self_consistency.py, inspect_offset_
+chain_decomposition.py, inspect_pass1_flagged_attribution.py,
+inspect_recommendation_eligibility_trace.py, inspect_rolling_radius_
+speed_dependence.py, inspect_sideslip_sign_check.py, inspect_slip_
+hypothesis_and_driven_axle.py, inspect_speed_class_boundary.py,
+inspect_step1b_wiring_verification.py, inspect_threshold_
+comparability.py, inspect_urgent_tier_lap_level_fix_check.py,
+inspect_urgent_tier_lap_level_verify.py, inspect_vehicle_model_
+upgrade.py, inspect_wp1_canonical_realization.py, inspect_wp1_reset_
+guard_freeze_proof.py, inspect_wp1_turn2_validation.py, plot_kalman_
+qr_ratio_sweep.py, run_ekf_dugoff_pass0.py. Plus three now-orphaned
+manifest JSONs (fit_dugoff_pass2_refit_manifest.json, fit_dugoff_
+pass3_refit_manifest.json, fit_dugoff_pass4_refit_manifest.json,
+outputs of already-deleted or candidate-listed scripts). NOT
+deleted this pass (rule: when in doubt, leave it) -- listed as
+candidates only, awaiting explicit authorisation.
+
+TWO FILES INITIALLY LOOKED LIKE ORDINARY ONE-OFFS BUT ARE LOAD-
+BEARING, caught during classification rather than after a wrong
+deletion: inspect_corner_distribution.py and inspect_yaw_stability_
+b2.py are the actual derived_from source, re-confirmed by name
+multiple times through 2026-07-27, for the LIVE production
+classification thresholds (STRONG_CSF/CSR, MODERATE_CSF/CSR,
+stab_neg_thresh_Nm_per_deg in config/parameters.json) -- both
+correctly withheld from the candidate list.

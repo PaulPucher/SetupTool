@@ -69,6 +69,30 @@
     "kerb_dilation_samples": 5,
     "kerb_baseline_g": 1.0
   },
+  "tyre_fit_auto": {
+    "_comment": "EXPERIMENTAL, additive-only namespace (PLAN.md unsupervised package, Phase 2). Tunables for modules/tyre_fit_auto.py, the one-shot per-session Dugoff fit + EKF validation chain that automates the pass-0/pass-1 procedure (WP-N1b c_alpha/mu_fz fit, pass-1 fit-residual R derivation + NIS-gated 2-D sweep). NOT wired into the UI or the production analysis thread. Q/P0/beta_hard_bound/nis_window/nis_chi2_bound copied verbatim from tyre_model_ekf.pass_1 (see that block's own seeded_from/frozen_from notes for full provenance) -- 'Q from config' per the work order, not re-derived per session. r_yaw_rate_interim_seed_var copied from tyre_model_ekf.pass_0/pass_1's own frozen R_yaw_rate_var, used only as the fixed placeholder for the interim EKF run that derives R_ay first (mirrors the historical sequencing recorded in tyre_model_ekf.pass_1.R_yaw_rate_derivation: R_ay fixed before R_yaw_rate is touched, to avoid conflating yaw-rate's own model error with a knock-on effect of the ay miscalibration). r_sweep_ay_scales/r_sweep_yaw_scales and nis_band_low/high reproduce inspect_ekf_pass1_rQ_sweep.py's own grid and acceptance band exactly.",
+    "mu_fz_hi_bound_initial_multiplier": 5.0,
+    "mu_fz_hi_bound_widen_multiplier": 5.0,
+    "mu_fz_max_widen_attempts": 4,
+    "mu_fz_bound_fraction_degenerate_threshold": 0.95,
+    "q_beta_var": 9.632002813655727e-07,
+    "q_yaw_rate_var": 2.4080007034139316e-07,
+    "p0_beta_var": 0.00030461741978670857,
+    "p0_yaw_rate_var": 0.00030461741978670857,
+    "r_yaw_rate_interim_seed_var": 3.046174197867086e-06,
+    "beta_hard_bound_deg": 15.0,
+    "nis_window_samples": 20,
+    "nis_chi2_bound": 5.99,
+    "nis_flag_fraction": 0.5,
+    "r_sweep_ay_scales": [1.0, 0.3, 0.1, 0.03, 0.01],
+    "r_sweep_yaw_scales": [1.0, 2.0, 4.0, 8.0, 16.0],
+    "nis_band_low": 0.03,
+    "nis_band_high": 0.15,
+    "_comment_status": "Status boundaries (ok/marginal/degenerate), proposed and justified in modules/tyre_fit_auto.py's module docstring and thesis_notes.md Phase 2 entry -- not yet reviewed/approved, PROPOSAL pending user decision per the work order.",
+    "sign_check_degenerate_fraction": 0.5,
+    "sign_check_marginal_fraction": 0.7,
+    "nis_gross_miscalibration_fraction": 0.5
+  },
   "tyre_model_fit": {
     "_comment": "WP-N1 (diagnostics/fit_dugoff_first_pass.py only -- no modules/ consumer yet). Calibration tunable defining the low-|ay| population treated as the near-linear tyre regime for the Dugoff c_alpha first-pass fit (Fy vs kinematic alpha, through the origin). Not yet re-derived from a data-driven gap-selection pass -- 0.3g is the WP's stated default, carried forward from the WP-N0 saturation-coverage diagnostic's own candidate-threshold list.",
     "ay_linear_threshold_g": 0.3
@@ -124,29 +148,7 @@
       "Iz_provenance": "Unchanged from pass_0 -- see pass_0.Iz_provenance.",
       "fy_axle_dependency_note": "Unchanged from pass_0 -- see pass_0.fy_axle_dependency_note; this is the same identity R_ay_derivation's correlation finding is consistent with (Fy_f/Fy_r share two measured quantities, so correlated fit residuals are the expected outcome, not an anomaly)."
     },
-    "pass_2": {
-      "changed_from_previous": "tyre curve only -- Dugoff c_alpha/mu_fz refit from the EKF's OWN pass_1 slip angles (closing one iteration of the kinematic-seeded-fit -> observer -> refit loop named in WP-N1b); Q/R/P0/Iz/beta_hard_bound/NIS placeholders all unchanged from pass_1, carried forward unmodified to isolate the curve's own effect before any R re-derivation.",
-      "c_alpha_front_n_per_rad": 66647.52273519618,
-      "c_alpha_rear_n_per_rad": 118993.09911054469,
-      "mu_fz_front_N": 13577.413709071348,
-      "mu_fz_rear_N": 19924.495116731727,
-      "frozen_from": "WP-N2 pass 2, diagnostics/fit_dugoff_pass2_refit.py, diagnostics/fit_dugoff_pass2_refit_manifest.json (timestamp 2026-08-20T07:53:48Z). Same two-step fit shape as WP-N1b (Module-4b-median c_alpha over a linear-regime subset, then interior-optimum mu_fz), but c_alpha's linear-regime indicator is estimate_cornering_stiffness RE-RUN on the EKF pass_1's OWN alpha/Fy, not the kinematic path's CS_ratio flag -- see thesis_notes.md WP-N2 pass 2 entry for the circularity reasoning.",
-      "Q_beta_var": 9.632002813655727e-07,
-      "Q_yaw_rate_var": 2.4080007034139316e-07,
-      "R_yaw_rate_var": 0.0060475560000000005,
-      "R_ay_var": 3.78418,
-      "P0_beta_var": 0.00030461741978670857,
-      "P0_yaw_rate_var": 0.00030461741978670857,
-      "seeded_from": "Q/R/P0 copied UNCHANGED from pass_1, deliberately -- isolates the curve refit's own effect from any noise-model change, same one-variable-at-a-time discipline pass_1 itself used against pass_0. KNOWN CONSEQUENCE, recorded not hidden: R_ay_var=3.78418 was derived from the fit residuals of the pass_0/pass_1 curve THIS pass replaces (WP-N1b, front 2752.7 N / rear 5793.2 N RMS) -- pass 2 therefore runs with a formally mis-specified R relative to its own new curve's residuals (front 1078.7 N / rear 1346.2 N RMS, WP-N2 pass 2 fit). Re-derivation against the new curve's own residuals is deferred to a later pass, thesis_notes.md WP-N2 pass 2 entry.",
-      "beta_hard_bound_deg": 15.0,
-      "beta_hard_bound_note": "Unchanged from pass_0/pass_1 -- physically anchored, not a curve or noise-model quantity.",
-      "nis_window_samples": 20,
-      "nis_chi2_bound": 5.99,
-      "nis_flag_fraction": 0.5,
-      "nis_tuning_note": "Unchanged from pass_0/pass_1 -- still PLACEHOLDER defaults, divergence-monitor threshold tuning is separate from this curve refit and not addressed this pass.",
-      "Iz_provenance": "Unchanged from pass_0/pass_1 -- see pass_0.Iz_provenance. estimate_lateral_forces's Fy_f/Fy_r (which this Iz choice keeps self-consistent with) has no Dugoff/tyre-curve dependency at all, so a curve refit gives no reason to revisit it.",
-      "fy_axle_dependency_note": "Unchanged from pass_0/pass_1 -- see pass_0.fy_axle_dependency_note."
-    },
+    "_comment_pass_2_removed": "pass_2 block REMOVED 2026-08-2X (WP-N2 refit-loop cleanup) -- see git history for the block (Dugoff curve refit from pass_1's own EKF alpha; superseded, non-converging refit loop, not carried forward). Full numbers preserved in thesis_notes.md 'WP-N2 pass 2' entries and the carry-forward decision entry. diagnostics/fit_dugoff_pass2_refit.py and diagnostics/inspect_ekf_pass2_evaluation.py (its consumers) were removed in the same cleanup. Key renamed from 'pass_2' to this comment key deliberately, so params['tyre_model_ekf']['pass_2'] raises a clean KeyError if anything still references it, instead of returning a string.",
     "pass_3": {
       "changed_from_previous": "tyre curve only -- Dugoff c_alpha/mu_fz refit from the EKF's OWN pass_2 slip angles, continuing the kinematic-seeded-fit -> observer -> refit loop; Q/R/P0/Iz/beta_hard_bound/NIS placeholders all unchanged from pass_1/pass_2, still isolating the curve refit's own effect. c_alpha and mu_fz REVERSED DIRECTION at the front axle this pass relative to the pass_0->pass_2 step (c_alpha rose instead of continuing to fall, mu_fz fell instead of continuing to rise) -- an oscillation signature under the pre-registered convergence rule, thesis_notes.md WP-N2 pass 3 entry. Rear moved only slightly in both parameters, the smallest step either axle has taken so far.",
       "c_alpha_front_n_per_rad": 72905.34819611195,
@@ -170,30 +172,7 @@
       "Iz_provenance": "Unchanged from pass_0/pass_1/pass_2 -- see pass_0.Iz_provenance.",
       "fy_axle_dependency_note": "Unchanged from pass_0/pass_1/pass_2 -- see pass_0.fy_axle_dependency_note."
     },
-    "pass_4": {
-      "changed_from_previous": "tyre curve only -- Dugoff c_alpha/mu_fz refit from the EKF's OWN pass_3 slip angles. FRONT is a normal refit step (both parameters flipped sign again relative to pass_2->pass_3, magnitude did not clearly shrink -- see thesis_notes.md WP-N2 pass 4 entry for the discriminating-test verdict). REAR mu_fz FIT DID NOT CONVERGE TO AN INTERIOR OPTIMUM -- the bounded least-squares search hit its widened bracket ceiling after 4 widen attempts (mu_fz_bound_fraction=0.99999998), landing at mu_fz_rear=8484797 N, effective mu=1102.5 -- PHYSICALLY IMPLAUSIBLE, failure mode 3 as pre-registered in the WP-N2 pass 2 proposal. Recorded verbatim, not corrected or discarded -- a numbered pass records what the fit actually produced. Q/R/P0/Iz/beta_hard_bound/NIS placeholders unchanged from pass_1-3 as in every prior pass.",
-      "c_alpha_front_n_per_rad": 65134.35928916551,
-      "c_alpha_rear_n_per_rad": 114873.26010580116,
-      "mu_fz_front_N": 13141.837311211733,
-      "mu_fz_rear_N": 8484797.329059327,
-      "frozen_from": "WP-N2 pass 4, diagnostics/fit_dugoff_pass4_refit.py, diagnostics/fit_dugoff_pass4_refit_manifest.json (timestamp 2026-08-20T08:34:44Z). REAR mu_fz_rear is a NON-INTERIOR-OPTIMUM fit result (bound_fraction 0.99999998 after 4 bracket-widen attempts) -- see mu_fz_rear_fit_failure_note. Front is a normal two-step fit, same shape as every prior pass.",
-      "mu_fz_rear_fit_failure_note": "The mu_fz least-squares objective only constrains mu_fz through samples where the Dugoff model actually saturates (lambda=mu_fz/(2*c_alpha*|tan(alpha)|) < 1); c_alpha_rear this pass (114873, close to pass_3's 118729, essentially unchanged) combined with this pass's alpha population apparently leaves few or no samples demanding saturation at any mu_fz the search bracket could represent before widening ran out, so the optimizer drove mu_fz to the bracket ceiling instead of finding a true minimum. Consequence: the rear Dugoff curve this pass is effectively PURE LINEAR (Fy_r = c_alpha_rear*tan(alpha_r), no representable saturation) across the visited alpha range -- structurally the same failure mode (cannot represent saturation) that condemned the linear Kalman observer earlier in this arc, arrived at here via a degenerate fit rather than a deliberately linear model choice. See thesis_notes.md WP-N2 pass 4 entry for the full diagnosis and the decision to stop iteration here.",
-      "Q_beta_var": 9.632002813655727e-07,
-      "Q_yaw_rate_var": 2.4080007034139316e-07,
-      "R_yaw_rate_var": 0.0060475560000000005,
-      "R_ay_var": 3.78418,
-      "P0_beta_var": 0.00030461741978670857,
-      "P0_yaw_rate_var": 0.00030461741978670857,
-      "seeded_from": "Q/R/P0 copied UNCHANGED from pass_1-3, deliberately -- isolates the curve refit's own effect. Same known R mis-specification as every prior pass, now against an even more different (and in the rear's case degenerate) curve. Re-derivation remains deferred; moot for the rear axle until the mu_fz fit failure above is addressed, not before.",
-      "beta_hard_bound_deg": 15.0,
-      "beta_hard_bound_note": "Unchanged from pass_0-3 -- physically anchored, not a curve or noise-model quantity.",
-      "nis_window_samples": 20,
-      "nis_chi2_bound": 5.99,
-      "nis_flag_fraction": 0.5,
-      "nis_tuning_note": "Unchanged from pass_0-3 -- still PLACEHOLDER defaults, divergence-monitor threshold tuning is separate from this curve refit and not addressed this pass.",
-      "Iz_provenance": "Unchanged from pass_0-3 -- see pass_0.Iz_provenance.",
-      "fy_axle_dependency_note": "Unchanged from pass_0-3 -- see pass_0.fy_axle_dependency_note."
-    }
+    "_comment_pass_4_removed": "pass_4 block REMOVED 2026-08-2X (WP-N2 refit-loop cleanup) -- see git history for the block (rear mu_fz fit FAILED to converge to an interior optimum, curve degenerated to pure-linear -- the failure that stopped the refit loop; NOT carried forward). Full numbers and the failure diagnosis preserved in thesis_notes.md 'WP-N2 pass 4' entries and the refit-loop non-convergence entry. diagnostics/inspect_ekf_pass4_evaluation.py (its consumer) was removed in the same cleanup. diagnostics/fit_dugoff_pass4_refit.py (the script that PRODUCED these now-removed numbers) is intentionally KEPT for now -- it still reads pass_3 (below, kept for the same reason) as its own EKF source; see thesis_notes.md repo-cleanup entry for the dependency this created. Key renamed from 'pass_4' to this comment key deliberately, same KeyError-safety reasoning as _comment_pass_2_removed above."
   },
   "corner_trace_display": {
     "_comment": "Tier C UI display parameter (PLAN.md PART C usability follow-up, Task 2a) -- how far beyond a corner's own phase bracket (entry_1_brake start to exit_5 end) the per-corner trace window's plotted s-range extends, so brake/approach and coast-out context is visible. Not a science/analysis parameter, purely a plotting-window default; clamped at each lap's own s_m extent in ui/views/corner_trace_dialog.py, never fabricates data before/after what that lap actually recorded. Phase-tint bands are unaffected -- still drawn only over the 5 named phases, never over this margin.",

@@ -26,18 +26,74 @@ WHERE THE PROJECT STANDS
   a known, documented circularity. This is a stated limitation of
   the method, not a resolved issue, and must appear as such in the
   write-up.
-- A real regression test suite now exists (tests/, 49 tests, ~81s
-  runtime), alongside test_stability.py (unchanged, still a
-  zero-assertion smoke test). REGRESSION not correctness -- pins
-  current behaviour, does not validate it. 5 phases: golden-value
-  pipeline/recommendation snapshots (cap=1, sideslip_source=
-  kinematic -- see tests/conftest.py for why not "Best available"),
-  phase-boundary invariants (all passed against current, post-fix
-  behaviour -- no violation found), unit tests on pure functions
-  (hand-derived slip-angle/Dugoff/EKF-Jacobian checks), config/schema
-  integrity, NaN/empty-path coverage. Full record: thesis_notes.md
-  "Regression test suite established". No production file touched
-  building it; pytest installed into .venv only (not requirements.txt).
+- A real regression test suite now exists (tests/, 59 tests -- 49 at
+  session start, +10 Phase-3 Pacejka finite-difference/symmetry tests
+  from the unsupervised package below -- ~85s runtime), alongside
+  test_stability.py (unchanged, still a zero-assertion smoke test).
+  REGRESSION not correctness -- pins current behaviour, does not
+  validate it. 5 phases: golden-value pipeline/recommendation
+  snapshots (cap=1, sideslip_source=kinematic -- see tests/conftest.py
+  for why not "Best available"), phase-boundary invariants (all passed
+  against current, post-fix behaviour -- no violation found), unit
+  tests on pure functions (hand-derived slip-angle/Dugoff/EKF-
+  Jacobian/Pacejka checks), config/schema integrity, NaN/empty-path
+  coverage. Full record: thesis_notes.md "Regression test suite
+  established". No production file touched building it; pytest
+  installed into .venv only (not requirements.txt).
+- UNSUPERVISED PACKAGE COMPLETED (2026-08-20, per-session-fittable
+  self-checking sideslip, all 5 phases -- full record: thesis_notes.md
+  "WP-N3 (per-session-fittable, self-checking sideslip): unsupervised
+  package" and its Phase 1-5 entries). Entirely additive/read-only:
+  no existing production file (modules/, ui/, core/) touched; the only
+  config change is the new additive tyre_fit_auto namespace;
+  sideslip_source unchanged at "kinematic"; no commit made. New files:
+  modules/tyre_fit_auto.py (reusable one-shot per-session Dugoff/
+  Pacejka fit + EKF validation chain, NOT wired to production),
+  modules/tyre_model_pacejka.py, diagnostics/sideslip_ekf_pacejka.py,
+  diagnostics/inspect_washout_cutoff_sweep.py, diagnostics/inspect_
+  tyre_fit_auto_acceptance.py, diagnostics/inspect_tyre_variant_
+  comparison.py, diagnostics/inspect_nis_tyre_mismatch_gate.py,
+  tests/test_pacejka_model.py. Headline findings: (1) washout cutoffs
+  0.03-0.005 Hz all beat the production 0.05 Hz default on mid-corner
+  recovery without crossing the pre-registered drift-disqualification
+  bound; (2) the automated fit chain reproduces the recorded pass-0/
+  pass-1 procedure exactly on its scripted half, with a small (~0.37%)
+  gap traced to an inconsistency in the archived, never-scripted R
+  derivation itself, not to this package's automation; (3) Pacejka
+  validates marginally better than Dugoff in aggregate but both axles
+  (not just the pre-registered rear) show an extrapolated, poorly-
+  identified peak on this session's data -- no winner declared; (4) a
+  prototype NIS-based tyre-mismatch health score cleanly separates
+  healthy from synthetically-mismatched runs, though both of its own
+  pre-registered numeric predictions failed (recorded as failed, causes
+  traced) and its proposed thresholds rest on five data points from one
+  session only. Five decisions now waiting for the user (washout-cutoff
+  decision -- BLOCKED, see below, not a live candidate list; fit-variant
+  choice; NIS-gate thresholds; a small speed-classification cleanup
+  found independently in two phases; and the standing pre-package
+  carry-forward items below) -- see thesis_notes.md Phase 5 entry for
+  the full list with reasoning.
+- WASHOUT-CUTOFF DECISION BLOCKED (2026-08-2X, thesis_notes.md "Drift
+  re-examined over time: single-checkpoint verdict superseded",
+  under the Phase 1 washout entry) -- SUPERSEDES finding (1) two
+  bullets above. Phase 1's drift-disqualification check evaluated
+  only ONE causal checkpoint per corner exit; re-plotting drift as a
+  function of time past that checkpoint shows 0.03/0.02/0.01 Hz all
+  keep drifting for several more seconds (0.02 Hz: ~0.25 -> ~1.6 deg
+  within 4s, crossing the 0.9 deg bound at ~1.5s) -- production 0.05
+  Hz alone stays flat. The checkpoint was the single most favourable
+  instant for every lower cutoff, not a representative one. DO NOT
+  present 0.03/0.02 Hz as candidates without this caveat. The trade
+  is corner-spacing dependent (a cutoff survivable on Dubai's spacing
+  may not survive tighter corner sequences elsewhere) -- a single
+  track-independent cutoff may not exist. Blocked pending EITHER
+  multi-track data or a proper drift-vs-time acceptance criterion
+  (not a checkpoint). Strengthens the auto-fit EKF (modules/tyre_
+  fit_auto.py) as the PRIMARY sideslip-source candidate over a
+  retuned kinematic cutoff, kinematic retained as fallback. General
+  method note also recorded there: _highpass_filter (scipy filtfilt)
+  is zero-phase/acausal -- any future drift or boundary claim about
+  it must use causal checkpoints, not arbitrary segment lengths.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost

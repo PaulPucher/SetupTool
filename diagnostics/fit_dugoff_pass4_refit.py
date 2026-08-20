@@ -1,8 +1,14 @@
 # WP-N2 pass 4: Dugoff curve refit from the EKF's OWN slip angles
 # (pass_3), continuing the kinematic-seeded-fit -> observer -> refit
-# loop. Structurally identical to fit_dugoff_pass3_refit.py -- only
-# EKF_SOURCE_PASS_ID and the manifest path differ -- same reproducibility
-# reasoning as every prior pass in this sequence.
+# loop. Structurally identical to fit_dugoff_pass3_refit.py (removed
+# 2026-08-2X repo-cleanup, see git history -- its own pass_2 EKF
+# source and config/parameters.json's pass_2 block were removed in the
+# same pass) -- only EKF_SOURCE_PASS_ID and the manifest path differed
+# -- same reproducibility reasoning as every prior pass in this
+# sequence. This script itself is KEPT: it still reads config's
+# tyre_model_ekf.pass_3 block as its own EKF source, which is why
+# pass_3 was kept in the cleanup instead of being removed alongside
+# pass_2/pass_4 (thesis_notes.md repo-cleanup entry).
 #
 # This is the discriminating pass for the front axle's oscillation
 # (thesis_notes.md WP-N2 pass 4 pre-registration): front c_alpha/mu_fz
