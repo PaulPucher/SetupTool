@@ -1,90 +1,170 @@
 ## STATUS - rewritten at every work stop, never appended
 
 ### NOW
-Track A (numbers correct): sideslip methods-comparison arc CONTINUES --
-NOT closed. Linear-tyre Kalman observer (WP-S4/S5/S5b/S6) REJECTED for
-production (saturation-detection failure). Kinematic estimate remains
-production. WP-N0/N1/N1b DONE (Dugoff model chosen, c_alpha refit from
-Module 4b, mu_fz interior optimum both axles): frozen pass-0/pass-1
-Dugoff parameters c_alpha_front=132798, c_alpha_rear=174217 N/rad,
-mu_fz_front=10653, mu_fz_rear=15819 N (read exact values from config --
-do not trust these).
 
-WP-N2, nonlinear single-track EKF, Dugoff tyre model. Pass 0 built and
-run (frozen WP-N1b curve, Q/R/P0 seeded from the tuned linear observer):
-NIS baseline poor (93.4% combined exceedance -- expected, since R
-assumed sensor-only noise while the curve's own fit residuals are two
-orders of magnitude larger), but three convergent lines of evidence for
-kinematic slip-angle under-read. Pass 1: noise-model recalibration only
-(curve unchanged), R redefined as total innovation uncertainty, 2-D
-sweep found one interior grid point inside the pre-registered NIS band
--- NIS/sign/C2-excursion gates all PASSED. Pass 1's flagged CS_ratio
-counts jumped sharply (front 32/56, rear 27/56 vs kinematic 11/9);
-investigated and found NOT YET INTERPRETABLE -- thresholds are
-kinematic-fitted and the whole pass_1 distribution shifted across every
-percentile band, not just the tail. THRESHOLD RE-DERIVATION
-DELIBERATELY DEFERRED (see PARKED) until the estimator is finalised.
+WHERE THE PROJECT STANDS
 
-Passes 2-4: refit loop, attempting to break the kinematic-sourced
-curve's circularity by refitting c_alpha/mu_fz from the EKF's own
-converged slip angles each pass, Q/R/P0 held fixed to isolate the
-curve's effect, predictions pre-registered before every pass (thesis_
-notes.md WP-N2 pass 2/3/4 entries). OUTCOME: NON-CONVERGED, STOPPED at
-pass 4 (one short of the pre-registered 4-pass cap) on the
-pre-registered failure criteria, not the cap. FRONT axle oscillated
-with GROWING (not shrinking) magnitude at pass 4 -- failure mode 1.
-REAR axle's mu_fz fit diverged to its search bracket's ceiling at pass
-4 (8.48e6 N, effective mu 1102.5, onset 88.4 deg, coverage exactly
-0.0000) -- failure mode 3, the curve degenerating to pure-linear, the
-same structural blind spot that condemned the linear observer, arrived
-at here by fit failure rather than design. MECHANISM: a self-starving
-positive feedback (lower c_alpha -> onset moves outward -> fewer
-saturating samples -> mu_fz less identifiable -> drifts up -> onset
-moves out further), pre-registered as a risk at pass 0 (rear only 6.95%
-of samples past onset) and confirmed as the cause. SECOND READING,
-EXPECTED not established: the rear axle of this RWD car may saturate
-principally under longitudinal traction on exit, not laterally, so a
-pure-lateral model has genuinely little rear saturation to identify in
-this data -- connects directly to the PARKED combined-slip item. Full
-trajectory, mechanism and scorecard: thesis_notes.md "WP-N2 refit loop:
-NON-CONVERGENCE, rear degeneracy to a pure-linear curve, and the
-identifiability limit".
+- The production tool works and is unchanged except for one fix:
+  modules/corner_analysis.py's entry_1_brake phase boundary, which
+  previously spanned 85% of the dataset and now spans 5.5%,
+  verified against brake pressure. Committed.
+- The sideslip estimator arc is CLOSED. A linear-tyre Kalman
+  observer was built and rejected (could not represent saturation).
+  A nonlinear single-track EKF with a Dugoff tyre model replaced
+  it. Its carried-forward configuration is PASS 1, with a frozen
+  validation baseline (diagnostics/inspect_pass1_final_validation.py
+  plus its manifest and notes entry). That baseline is the
+  reference any future estimator work is compared against.
+- The refit loop (passes 2-4) was STOPPED as non-converging on
+  pre-registered criteria. The rear axle degenerated: each refit
+  pushed the Dugoff onset boundary outward until zero of 24,183
+  samples sat beyond it and the rear curve collapsed to
+  pure-linear. Passes 2-4 are NOT carried forward.
+- Pass 1's curve was fitted from KINEMATIC slip angles, which
+  under-read. The refit loop existed to break that dependency and
+  did not succeed. The carried-forward estimator therefore retains
+  a known, documented circularity. This is a stated limitation of
+  the method, not a resolved issue, and must appear as such in the
+  write-up.
 
-CARRY-FORWARD DECISION (thesis_notes.md "WP-N2 carry-forward decision:
-pass 1"): the estimator carried forward is PASS 1's configuration
-(pass_0's Dugoff curve, pass_1's calibrated noise model) -- chosen by a
-PROVENANCE RULE stated before any outcome comparison (pass 1 is the
-last configuration not produced by the non-converging refit loop), not
-by comparing which pass scored best, which would be retrofitting.
-CARRIED-FORWARD LIMITATION, not resolved: pass 1's curve is still
-fitted from KINEMATIC slip angles -- the exact circularity the refit
-loop existed to break, and the loop failed to break it. Stated
-limitation of the carried-forward method, not a solved problem.
+WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
+must not be lost
 
-R RE-DERIVATION DECIDED NOT NEEDED (2026-08-20, thesis_notes.md "WP-N2
-pass 1: final validation baseline"): pass 1's R was derived from and
-NIS-gated against this exact curve and filter configuration -- the
-acceptance figures (yaw_rate 10.01%, ay 9.18%, combined mean NIS
-2.907) are already a direct measurement of the carried-forward
-estimator, not an inference from provenance. The staleness found in
-passes 2-4 was specific to refitted curves, none of which are carried
-forward. No change made. Two refinement opportunities remain open,
-not defects: Q was never swept, and the accepted R is one interior
-point on a coarse 5x5 grid with no finer search run around it.
+- CS_ratio IS the utilisation measure. The chair's own docstring
+  defines it as the axle's SATURATION LEVEL: 1 = linear region,
+  0 = at the peak, below 0 = beyond the peak. It needs NO friction
+  coefficient and NO vertical load -- saturation is read off the
+  shape of the measured curve. An earlier framing in this session
+  that utilisation requires sqrt(Fx^2+Fy^2)/(mu*Fz), and that a
+  downforce figure was therefore a blocker, is WITHDRAWN. Cl stays
+  a Level-1 placeholder like every other unsourced quantity, to be
+  upgraded when damper-derived load arrives.
+- The chair's PRIMARY cornering-stiffness method is MODEL-FREE:
+  sliding-window least squares over measured slip angle and
+  measured lateral force, no tyre model at all. Its Pacejka fit
+  appears only inside an evaluation plot as a reference overlay.
+- This project's Dugoff curve occupies a THIRD role, distinct from
+  both: it is the internal model of the EKF, the thing that lets
+  the filter produce beta. Pacejka and Dugoff are not competing
+  choices for the same slot.
+- The chair receives lateral velocity (or beta) as an INPUT
+  CHANNEL and computes beta as arctan2(vy, vx). They never
+  estimate it. The GT3R has no such sensor. This is precisely the
+  documented adaptation in the method lineage: adopt the chair's
+  model-free CS estimation as-is, adapt only where the sensor
+  situation forces it.
+- Pure-lateral CS_ratio is NOT blind to combined slip. Module 4b
+  measures a slope from data, and a tyre spending grip
+  longitudinally genuinely has a flatter lateral curve. What it
+  cannot do is say WHY the slope dropped. That is what a
+  longitudinal ratio adds: disambiguation, not new sensitivity.
 
-NEXT STEP: the classification-threshold re-derivation (deferred, see
-PARKED), and the combined-slip comparison the rear degeneracy now
-motivates more strongly than before.
+PLAN, in order
 
-Last commit: 4b1b548 (Sideslip observer arc: comparison harness, Kalman
-candidate, tuning, report). Local main up to date with origin/main.
-Uncommitted: everything from the WP-N0/N1/N1b turn plus the full WP-N2
-arc this session -- pass 0/1/2/3/4 filter runs and their config blocks
-(tyre_model_ekf.pass_0 through pass_4), diagnostics/sideslip_ekf_
-dugoff.py and every inspect_ekf_*/fit_dugoff_pass*_refit.py/*_manifest.
-json script and file this arc produced, the carry-forward decision, and
-every corresponding thesis_notes.md entry (see thesis_notes.md for the
-full, dated file-by-file record of each pass). This PLAN.md rewrite.
+STEP 1 -- Wire the pass-1 EKF beta into the pipeline so results
+are visible in the app.
+  1a. TIME IT FIRST, before any wiring. The EKF is a per-sample
+      Python loop with a 2x2 inversion each step over ~24k-40k
+      samples, in a pipeline where everything around it is
+      vectorised. Report wall-clock time for a full outing
+      analysis before and after. If it materially degrades the
+      user experience, vectorise or cache before proceeding --
+      do not wire in a slow path and fix it later.
+  1b. Wire behind the existing cache with a schema-version bump so
+      cached results are not silently stale.
+  1c. CRITICAL SPLIT, must be stated in the app or the notes so it
+      is not misread: with new beta, the TRACES (CS_ratio through
+      a corner, the tyre curve, stability) are immediately
+      meaningful, because they do not depend on thresholds. The
+      VERDICTS and RECOMMENDATIONS are NOT, because those
+      thresholds were derived against the kinematic CS_ratio
+      distribution. Until thresholds are re-derived, read the
+      traces and ignore the verdict colours.
+
+STEP 2 -- Verify the result plots against the chair's output.
+  Axis decisions, fixed: tyre-curve slip angle in DEGREES
+  (readability), lateral force in N, cornering stiffness reported
+  in N/rad (standard unit), all labels explicit.
+  TRAP: with slip angle in degrees the visual slope is N/deg, not
+  N/rad. A tangent drawn from an N/rad value on a degrees axis is
+  wrong by 180/pi ~ 57.3. Convert: slope_per_deg = CS_N_per_rad *
+  pi/180. The chair plots radians; state how numerical
+  comparability is preserved despite the axis difference.
+  Chair's plot structure to match, for comparability: velocity vs
+  distance; instantaneous CS in N/rad vs distance with both the
+  online estimate and a reference-model derivative; track map with
+  the current corner and estimation window highlighted; and the
+  tyre curve (slip angle vs lateral force) with the lap scatter,
+  the current corner, the estimation window, and a tangent whose
+  slope is the local CS estimate.
+  The purpose of this step is to find out whether the strange
+  CS values that started this whole arc were caused by the beta
+  error or by something else.
+
+STEP 3 -- Implement the longitudinal stiffness ratio (LS_ratio),
+following the chair's estimator structure.
+  Inputs: slip ratio, and longitudinal axle force from the chair's
+  fallback tier (mass*ax plus drag and rolling resistance, split
+  front/rear by measured brake pressure when decelerating,
+  assigned entirely to the rear when accelerating).
+  Chair defaults: cutoff 8 Hz, window 0.45 s, min 25 samples, min
+  slip span 0.004, linear slip threshold 0.015, min speed 5 m/s.
+  Slip-ratio source options already characterised: log_speed_*
+  wheel speeds (unwhitelisted; rear carries a constant +1.41%
+  rolling-radius offset needing correction) or the logged
+  ecu_slip_act channel (Level 3, no derived constants, but no
+  per-axle breakdown -- reads as a driven-axle aggregate,
+  INFERRED not confirmed).
+  REASON TO EXPECT THIS TO WORK: the chair's longitudinal low-slip
+  threshold is 1.5% and this session's measured rear slip ratio
+  has p50 ~1.26%, so roughly half of samples would populate the
+  reference. By contrast the lateral threshold is 1.2 deg while
+  the EKF's front |alpha| has p50 3.19 deg, so the lateral
+  reference is comparatively starved. This is a prediction, not
+  yet tested.
+  Output on the same 1/0/negative scale as CS_ratio, plotted on
+  the same basis.
+
+STEP 4 -- Decision-matrix cleanup (the recommendation rules).
+  Prerequisites that must land first, and why:
+   - threshold re-derivation against the new CS_ratio
+     distribution, per the standing rule that thresholds encode
+     the current estimator's distribution and are re-derived after
+     any estimator change, never carried over;
+   - the CS_ratio cross-lap aggregation problem (see PARKED): at
+     the aggregate level CS_ratio is pinned at ~1.000 for every
+     corner, because the metric is clipped at 1.0 and
+     median-across-four-laps discards single-lap excursions. A
+     measured example: corner 6 lap 1 collapsed to 0.219 and was
+     washed out entirely. Re-deriving thresholds against a metric
+     that does not vary would be pointless, so this must be
+     settled inside the threshold step.
+   - 15 of 39 rules key on entry_1_brake, whose statistics changed
+     substantially with the phase fix; and 22 of 56 corner
+     instances (39.3%) now have a zero-length braking phase, where
+     a corner with no computable signal is currently classified
+     identically to a corner that is genuinely fine (safe, no
+     crash, but silent).
+
+STANDING WARNINGS -- carry these into every future session
+
+- NEVER state a config value from memory or from an instruction.
+  Read it from config and quote it. Two errors this week came from
+  exactly that.
+- test_stability.py has ZERO assertions. It is a smoke test that
+  confirms the pipeline does not crash. It passed cleanly through
+  two separate broken phase-boundary fixes. Phase-boundary and
+  numerical correctness have no automated coverage.
+- For boundary and numerical work, verify against an EXTERNAL
+  physical reference channel. Distributional plausibility is not
+  verification: both broken fixes produced healthy-looking
+  durations and population shares, and only the brake-pressure
+  cross-check caught them.
+- Findings go into thesis_notes.md in the SAME turn they are
+  produced. Chat reports are not the record.
+- Protected set, never committed: docs/literature/, docs/car_data/,
+  config/car_data.json, HANDOVER.md, docs/study/. Verify with
+  git ls-files returning empty.
 
 ### BACKLOG (ordered)
 A - Numbers correct: nonlinear single-track Kalman filter with a
@@ -115,6 +195,14 @@ D - Output artifacts: weekend PDF expansion; per-corner CS overlay
 E - Cleanup (after track A closes): diagnostics inventory + README,
     archive dead one-offs; HANDOVER regeneration incl. diagnostics;
     protected-set audit and push readiness.
+F - (optional thesis figure, not a work item) Rear Dugoff curve
+    plotted at pass 0, 2, 3 and 4 on shared axes, showing the
+    pass-4 rear curve as a straight line. A single figure
+    communicating the refit loop's identifiability failure -- the
+    onset boundary moving outward until it reaches 88.4 deg and
+    coverage falls to exactly zero of 24,183 samples. Not a result
+    plot; the passes are not carried forward. Purely a figure for
+    the write-up.
 
 ### PARKED (decided, not forgotten)
 Beyond-peak verdict tier - shelved, reopens only with a validated
@@ -665,6 +753,94 @@ filter's state-dependent Jacobian; how the fitted curve's valid slip
 range gets reported as a production-facing mechanism (still not
 designed -- unchanged open item, now inherited by whichever future WP
 revisits production wiring).
+
+### NOW section archived [superseded 2026-08-20, replaced by the
+entry_1_brake production-fix / method-lineage-correction / plan
+rewrite below the current STATUS block]
+Track A (numbers correct): sideslip methods-comparison arc CONTINUES --
+NOT closed. Linear-tyre Kalman observer (WP-S4/S5/S5b/S6) REJECTED for
+production (saturation-detection failure). Kinematic estimate remains
+production. WP-N0/N1/N1b DONE (Dugoff model chosen, c_alpha refit from
+Module 4b, mu_fz interior optimum both axles): frozen pass-0/pass-1
+Dugoff parameters c_alpha_front=132798, c_alpha_rear=174217 N/rad,
+mu_fz_front=10653, mu_fz_rear=15819 N (read exact values from config --
+do not trust these).
+
+WP-N2, nonlinear single-track EKF, Dugoff tyre model. Pass 0 built and
+run (frozen WP-N1b curve, Q/R/P0 seeded from the tuned linear observer):
+NIS baseline poor (93.4% combined exceedance -- expected, since R
+assumed sensor-only noise while the curve's own fit residuals are two
+orders of magnitude larger), but three convergent lines of evidence for
+kinematic slip-angle under-read. Pass 1: noise-model recalibration only
+(curve unchanged), R redefined as total innovation uncertainty, 2-D
+sweep found one interior grid point inside the pre-registered NIS band
+-- NIS/sign/C2-excursion gates all PASSED. Pass 1's flagged CS_ratio
+counts jumped sharply (front 32/56, rear 27/56 vs kinematic 11/9);
+investigated and found NOT YET INTERPRETABLE -- thresholds are
+kinematic-fitted and the whole pass_1 distribution shifted across every
+percentile band, not just the tail. THRESHOLD RE-DERIVATION
+DELIBERATELY DEFERRED (see PARKED) until the estimator is finalised.
+
+Passes 2-4: refit loop, attempting to break the kinematic-sourced
+curve's circularity by refitting c_alpha/mu_fz from the EKF's own
+converged slip angles each pass, Q/R/P0 held fixed to isolate the
+curve's effect, predictions pre-registered before every pass (thesis_
+notes.md WP-N2 pass 2/3/4 entries). OUTCOME: NON-CONVERGED, STOPPED at
+pass 4 (one short of the pre-registered 4-pass cap) on the
+pre-registered failure criteria, not the cap. FRONT axle oscillated
+with GROWING (not shrinking) magnitude at pass 4 -- failure mode 1.
+REAR axle's mu_fz fit diverged to its search bracket's ceiling at pass
+4 (8.48e6 N, effective mu 1102.5, onset 88.4 deg, coverage exactly
+0.0000) -- failure mode 3, the curve degenerating to pure-linear, the
+same structural blind spot that condemned the linear observer, arrived
+at here by fit failure rather than design. MECHANISM: a self-starving
+positive feedback (lower c_alpha -> onset moves outward -> fewer
+saturating samples -> mu_fz less identifiable -> drifts up -> onset
+moves out further), pre-registered as a risk at pass 0 (rear only 6.95%
+of samples past onset) and confirmed as the cause. SECOND READING,
+EXPECTED not established: the rear axle of this RWD car may saturate
+principally under longitudinal traction on exit, not laterally, so a
+pure-lateral model has genuinely little rear saturation to identify in
+this data -- connects directly to the PARKED combined-slip item. Full
+trajectory, mechanism and scorecard: thesis_notes.md "WP-N2 refit loop:
+NON-CONVERGENCE, rear degeneracy to a pure-linear curve, and the
+identifiability limit".
+
+CARRY-FORWARD DECISION (thesis_notes.md "WP-N2 carry-forward decision:
+pass 1"): the estimator carried forward is PASS 1's configuration
+(pass_0's Dugoff curve, pass_1's calibrated noise model) -- chosen by a
+PROVENANCE RULE stated before any outcome comparison (pass 1 is the
+last configuration not produced by the non-converging refit loop), not
+by comparing which pass scored best, which would be retrofitting.
+CARRIED-FORWARD LIMITATION, not resolved: pass 1's curve is still
+fitted from KINEMATIC slip angles -- the exact circularity the refit
+loop existed to break, and the loop failed to break it. Stated
+limitation of the carried-forward method, not a solved problem.
+
+R RE-DERIVATION DECIDED NOT NEEDED (2026-08-20, thesis_notes.md "WP-N2
+pass 1: final validation baseline"): pass 1's R was derived from and
+NIS-gated against this exact curve and filter configuration -- the
+acceptance figures (yaw_rate 10.01%, ay 9.18%, combined mean NIS
+2.907) are already a direct measurement of the carried-forward
+estimator, not an inference from provenance. The staleness found in
+passes 2-4 was specific to refitted curves, none of which are carried
+forward. No change made. Two refinement opportunities remain open,
+not defects: Q was never swept, and the accepted R is one interior
+point on a coarse 5x5 grid with no finer search run around it.
+
+NEXT STEP: the classification-threshold re-derivation (deferred, see
+PARKED), and the combined-slip comparison the rear degeneracy now
+motivates more strongly than before.
+
+Last commit: 4b1b548 (Sideslip observer arc: comparison harness, Kalman
+candidate, tuning, report). Local main up to date with origin/main.
+Uncommitted: everything from the WP-N0/N1/N1b turn plus the full WP-N2
+arc this session -- pass 0/1/2/3/4 filter runs and their config blocks
+(tyre_model_ekf.pass_0 through pass_4), diagnostics/sideslip_ekf_
+dugoff.py and every inspect_ekf_*/fit_dugoff_pass*_refit.py/*_manifest.
+json script and file this arc produced, the carry-forward decision, and
+every corresponding thesis_notes.md entry (see thesis_notes.md for the
+full, dated file-by-file record of each pass). This PLAN.md rewrite.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
