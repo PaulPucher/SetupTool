@@ -3643,6 +3643,158 @@ OPEN, not decided here:
   the 2752.7 / 5793.2 N the current R was derived from, and NIS
   has drifted under its band accordingly.
 
+### WP-N2 carry-forward decision: pass 1 [2026-08-20]
+
+DECISION: the estimator carried forward is PASS 1's configuration --
+the pass_0 Dugoff curve (c_alpha_front 132797.9, c_alpha_rear
+174217.3, mu_fz_front 10653.1, mu_fz_rear 15818.8 N/rad and N
+respectively; read exact values from config/parameters.json
+tyre_model_ekf.pass_1, not from this prose) with pass 1's calibrated
+noise model (R redefined as total innovation uncertainty, 2-D
+sweep-refined R_ay_var/R_yaw_rate_var).
+
+RULE, stated before any comparison, and why it is not
+hindsight-selected: pass 1 is the LAST configuration whose
+parameters were NOT produced by the refit iteration. Passes 2, 3 and
+4 are all outputs of a loop that has since been established as
+non-converging (thesis_notes.md "WP-N2 refit loop: NON-CONVERGENCE,
+rear degeneracy to a pure-linear curve, and the identifiability
+limit"), and pass 4's rear curve is degenerate outright (mu_fz_rear
+8.48e6 N, onset 88.449 deg, coverage exactly zero). The rule turns on
+the PROVENANCE of the parameters, not on how any pass scored -- it
+would select pass 1 regardless of which pass happened to produce the
+best numbers on any given metric. This is recorded explicitly because
+the alternative -- choosing by comparing outcomes now that all four
+passes are known -- would be retrofitting, which the numbered-pass
+design (each pass fully reproducible from its own recorded
+parameters, changed_from_previous stating exactly what moved) exists
+to prevent. A provenance rule fixed before comparison is the same
+discipline this whole arc has applied to predictions: state the
+criterion first, then let the data satisfy or fail it, never the
+reverse.
+
+CARRIED-FORWARD LIMITATION, recorded alongside the decision rather
+than buried in a later entry: pass 1's curve was fitted from
+KINEMATIC slip angles (WP-N1b), which are documented elsewhere in
+this notebook to under-read mid-corner. That circularity is exactly
+what the refit loop (passes 2-4) was built to break, and it was NOT
+broken -- the loop failed on its own pre-registered failure criteria
+before producing a curve independent of the kinematic estimate. The
+carried-forward estimator therefore retains a known, documented
+dependency on the very estimate it was meant to improve upon. This is
+a STATED LIMITATION of the method going forward, not a resolved
+issue, and must be presented as such wherever pass 1's configuration
+is described or used -- including in the thesis write-up, where it
+is the honest boundary of what this arc achieved: a better-calibrated
+noise model on a still-kinematic-sourced curve, with the
+saturation-detection improvement over the linear observer intact
+(pass 1 flags real instances where the linear observer flagged none)
+but the curve-identification half of the original ambition unmet.
+
+### WP-N2 pass 1: final validation baseline for combined-slip
+comparison [2026-08-20]
+
+PURPOSE: consolidates checks already established at various points
+this session into ONE run, ONE timestamp, ONE manifest, for the
+carried-forward estimator (pass 1's configuration -- pass_0's Dugoff
+curve, pass_1's calibrated noise model). Introduces NO new findings;
+every section below states where its result was first established.
+Diagnostics/inspect_pass1_final_validation.py (new, read-only),
+diagnostics/pass1_final_validation_manifest.json (new, machine-
+readable copy of every number below). Run against commit
+76fc57673f4c2c618363809ba7c09aca226be4ba, 2026-08-20T09:12:21Z.
+
+R RE-DERIVATION: decided NOT NEEDED (see PLAN.md NOW for the full
+reasoning). Pass 1's R was derived from and NIS-gated against this
+exact curve and configuration -- Section 1 below reproduces those
+same acceptance figures directly, confirming the empirical grounds
+rather than merely restating the provenance argument. Two refinement
+opportunities remain open, recorded here so they are not silently
+forgotten: Q was never swept (nothing has diagnosed a reason to move
+it), and the accepted R is one interior point on a coarse 5x5 grid
+with no finer search run around it. Neither is a defect -- pass 1's R
+already satisfies its own pre-registered gate at the values in hand.
+
+0. CONFIG, read live: c_alpha_front=132797.90, c_alpha_rear=
+   174217.33, mu_fz_front=10653.12, mu_fz_rear=15818.77;
+   Q_beta_var=9.632e-7, Q_yaw_rate_var=2.408e-7; R_ay_var=3.78418,
+   R_yaw_rate_var=0.0060476.
+1. NIS PER CHANNEL (first established: WP-N2 pass 1 "acceptance
+   criteria" entry). yaw_rate exceedance=10.01%, ay=9.18%, combined=
+   13.77%, combined mean NIS=2.907 (target ~2). All inside the
+   pre-registered 3-15% band; the combined exceedance figure (13.77%)
+   was not separately quoted before, recorded here for completeness.
+2. SIGN CHECK (first established: same entry). Median gate 14/14 all
+   corners, 13/13 racing-speed. Per-sample pooled fraction 99.63%
+   (14460/14513), reproduces exactly.
+3. SELF-CONSISTENCY R^2, simplified conjunction framing (first
+   established: "Circularity and flag attribution at the calibrated
+   setting"). Front R^2=0.9526, RMS=1443 N; rear R^2=0.9822, RMS=
+   1185 N -- both well below the linear observer's ~0.997. SIMPLIFIED
+   FRAMING, stated in the script's own output: pass 1 never refit
+   c_alpha, so the two-part conjunction signature used in the pass
+   2-4 refit-loop entries (R^2 near 0.997 AND c_alpha snapping back
+   to a prior) does not apply -- there is no prior/posterior
+   distinction to snap back to. The single relevant comparison is R^2
+   against ~0.997, and pass_1 sits well clear of it -- the original
+   load-bearing evidence that calibration moved the filter's slip
+   angles away from restating its own assumed curve, not toward it.
+4. ONSET AND COVERAGE (first established: "Circularity check: pass-0
+   EKF vs the rejected linear observer" / calibrated-setting
+   follow-up). Front onset=2.297 deg, coverage=59.04%; rear onset=
+   2.599 deg, coverage=48.84%. Kinematic reference: front 34.0%,
+   rear 6.95%.
+5. h2-VS-ay, APEX_3 POPULATION (first established: WP-N2 pass-0-run
+   entry, kinematic reference 0.887; re-measured with pass_1's own
+   alpha in the pass 1 acceptance entry as 0.9682). This run: n=471,
+   corr=+0.9679 -- a 0.0003 reproduction variance against the prior
+   0.9682 figure, not a discrepancy of substance; recorded plainly
+   rather than silently rounded to match.
+6. WP-S4b REFERENCE-SPREAD COMPARISON (first established: "WP-S4b:
+   observer self-consistency and the Cr_A inflation finding";
+   re-measured for pass_1 specifically in "WP-N2 pass 2: proposal and
+   pre-registered predictions"). Kinematic: 79,523-337,111 N/rad
+   (ratio 4.24x). Pass_1: 78,117-177,550 N/rad (ratio 2.27x).
+   Reproduces exactly.
+7. FILTER STABILITY (new consolidation -- these were pre-registered
+   gates at pass 1 and the baseline was incomplete without them).
+   C2 excursion window, t=883.0-885.5s: pass_0 reference max|beta|=
+   14.119 deg, max single-step=10.826 deg, SIGN-FLIPPING; pass_1
+   (this run) max|beta|=4.327 deg, max single-step=1.913 deg, at
+   t=883.004s (+2.053 -> +0.140 deg) -- SAME-SIGN, reproduces the
+   pass_1 acceptance entry's C2 gate exactly. NUANCE, checked and
+   reported precisely rather than left ambiguous: a separate,
+   smaller single-step sign crossing (1 flip) exists elsewhere in
+   the 2.5s window -- NOT at the max-step location, and NOT itself
+   flagged as anomalous by any check (the max-step statistic already
+   captures the window's largest discontinuity, and that one is
+   same-sign). Consistent with ordinary beta oscillation across a
+   corner sequence rather than a second discontinuity; the exact
+   sample was not printed by this run and is not otherwise
+   characterised here. diverged_mask fraction over the full masked
+   population: 0.79% (192/24183) -- a new figure, not previously
+   recorded as a direct pass_1 statistic. THRESHOLDS, read live:
+   nis_window_samples=20, nis_chi2_bound=5.99, nis_flag_fraction=0.5
+   -- CAVEAT, stated in the script's own output: these remain the
+   ORIGINAL PLACEHOLDER defaults, never validated against a real run.
+   The short-run blind-spot quantification already on record
+   (thesis_notes.md "blind-spot quantification") was measured
+   against a DIFFERENT, never-implemented threshold pair
+   (nis_window_samples=25, nis_flag_fraction=1.0) and does NOT
+   describe the monitor actually running here -- that validation
+   remains undone.
+8. DESCRIPTIVES AND PROVENANCE (new consolidation, so this baseline
+   is interpretable without reconstructing the session). Beta (deg,
+   masked population): p1=-4.747, p25=-1.593, p50=+0.249, p75=+2.080,
+   p99=+5.090, max|beta|=6.843. Masked population n=24183 (moving &
+   ~kerb & valid-lap racing time). Git commit at run time:
+   76fc57673f4c2c618363809ba7c09aca226be4ba. Run timestamp:
+   2026-08-20T09:12:21Z.
+
+STANDING NOTE: this entry is the citable reference point for
+combined-slip comparison work. It freezes already-established facts;
+it does not supersede or reinterpret any of them.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
