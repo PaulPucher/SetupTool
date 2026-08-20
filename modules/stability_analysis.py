@@ -46,8 +46,21 @@ CAR_DATA_PATH = "config/car_data.json"
 # different estimator after a config-switch flip and app restart. Bumped
 # regardless of the default ("kinematic") producing byte-identical numbers --
 # the payload SHAPE changed, which this version tag also covers per the rule
-# above.
-ANALYSIS_SCHEMA_VERSION = 5
+# above. Bumped 5->6 (fresh-session work package: per-session tyre auto-fit
+# + NIS gate wired into production): sideslip_source gained two new values
+# ("ekf_auto_dugoff", "ekf_auto_pacejka"); the payload gained fit_manifest
+# (a stripped/JSON-safe summary of modules.tyre_fit_auto's fit result --
+# axle parameters, R-sweep choice, validation numbers -- present only for
+# the two auto modes, null otherwise), gate_verdict (modules.nis_gate's
+# verdict dict, same null-elsewhere rule), and fallback_used/fallback_reason
+# (whether the auto mode's gate failed/fit degenerated and kinematic beta
+# was substituted, and why -- False/None for every other mode). A pre-bump
+# payload has none of these keys; falling to no-cache on a version mismatch
+# is the existing rule (ui/views/outing_form.py's cache-hit check), not a
+# new one. kinematic and ekf_pass_1 modes' own OWN numeric content
+# (summaries, sideslip_source, every pre-existing key) is byte-identical --
+# only the payload's shape gained new, always-present-but-often-null keys.
+ANALYSIS_SCHEMA_VERSION = 6
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named

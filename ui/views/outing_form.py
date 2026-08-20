@@ -116,10 +116,15 @@ class StabilityAnalysisThread(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, parsed_data, lap_filter, pipeline_cache=None,
-                 cap=None, resolved_accuracy=None):
+                 cap=None, resolved_accuracy=None, csv_path=None):
         super().__init__()
         self.parsed_data = parsed_data
         self.lap_filter = lap_filter
+        # Fresh-session work package (auto-fit modes): passed through to
+        # modules.tyre_fit_auto's fit_session(s) as data_file_path, purely
+        # for manifest traceability (git hash/timestamp are the real
+        # reproducibility anchors) -- never read for control flow.
+        self.csv_path = csv_path
         # WP6: {corners, state, cs, stab, accuracy_cap, resolved_vehicle_
         # snapshot} from a prior full run on this same csv_path AND the same
         # cap/resolved-vehicle-snapshot (matched by the caller before
@@ -145,18 +150,17 @@ class StabilityAnalysisThread(QThread):
         t0 = time.perf_counter()
         try:
             from modules.stability_analysis import (
-                load_parameters, prepare_vehicle_state, estimate_sideslip,
+                load_parameters, prepare_vehicle_state,
                 estimate_slip_angles, estimate_lateral_forces,
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
                 estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
-            # WP-N2 Step 1b: config switch, not a UI selector -- see
-            # config/parameters.json stability_estimation.sideslip_source's
-            # own comment. Import kept unconditional (cheap, matches this
-            # block's existing all-up-front style) even though only the
-            # "ekf_pass_1" branch below calls it.
-            from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+            # WP-N2 Step 1b / fresh-session work package: which beta a given
+            # sideslip_source produces (kinematic, ekf_pass_1, or the two
+            # auto-fit modes) is modules.tyre_fit_auto.resolve_sideslip_
+            # beta's job now, called below -- estimate_sideslip and the
+            # Dugoff EKF are imported there, not here.
             pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
@@ -173,6 +177,18 @@ class StabilityAnalysisThread(QThread):
                 slip = self.pipeline_cache.get("slip")
                 forces = self.pipeline_cache.get("forces")
                 sideslip_source = self.pipeline_cache.get("sideslip_source", "kinematic")
+                # Fresh-session work package: fit_manifest/gate_verdict/
+                # fallback_used/fallback_reason join the cache alongside
+                # slip/forces above, same reasoning -- a lap-filter-only
+                # re-Analyse under an auto mode must not lose the estimator-
+                # status line just because Modules 1-5 were reused rather
+                # than recomputed. .get() with None/False defaults so a
+                # pre-this-package cached entry degrades gracefully instead
+                # of KeyError.
+                fit_manifest = self.pipeline_cache.get("fit_manifest")
+                gate_verdict = self.pipeline_cache.get("gate_verdict")
+                fallback_used = self.pipeline_cache.get("fallback_used", False)
+                fallback_reason = self.pipeline_cache.get("fallback_reason")
             else:
                 params = load_parameters()
                 # WP-C: substitute the resolved (and cap-clipped) mass/
@@ -189,17 +205,29 @@ class StabilityAnalysisThread(QThread):
                 sideslip_source = effective_params["stability_estimation"].get(
                     "sideslip_source", "kinematic"
                 )
-                if sideslip_source == "ekf_pass_1":
-                    # beta_with_fallback, never the raw pre-fallback series: raw
-                    # keeps diverged-window artifacts for diagnostics (see that
-                    # function's own docstring) -- production must never feed a
-                    # silently-diverged state into the rest of the pipeline.
-                    ekf_result = estimate_sideslip_ekf_dugoff(
-                        state, effective_params, pass_id="pass_1"
-                    )
-                    beta = ekf_result["beta_with_fallback"]
-                else:
-                    beta = estimate_sideslip(state, effective_params)
+                # Fresh-session work package: dispatch (ekf_pass_1 / the two
+                # auto-fit modes / kinematic) lives in modules/tyre_fit_auto.
+                # resolve_sideslip_beta, not inline here -- keeps this QThread
+                # a thin caller and makes the dispatch logic directly
+                # testable without Qt (tests/test_auto_fit_wiring.py calls
+                # the exact same function). Timed separately from the rest
+                # of Modules 1-5 so the fit chain's own wall-clock is visible
+                # regardless of which mode is active (near-zero for
+                # kinematic/ekf_pass_1, the actual fit+sweep cost for the
+                # two auto modes).
+                from modules.tyre_fit_auto import resolve_sideslip_beta
+                t_fit0 = time.perf_counter()
+                beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
+                    state, effective_params, self.parsed_data, sideslip_source, csv_path=self.csv_path
+                )
+                t_fit1 = time.perf_counter()
+                fit_time_s = t_fit1 - t_fit0
+                if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
+                    print(f"[PERF] {sideslip_source} fit chain: {fit_time_s:.3f}s")
+                    if fit_time_s > 30.0:
+                        print(f"[PERF] *** WARNING: {sideslip_source} fit chain took {fit_time_s:.3f}s, "
+                              f"exceeds the 30s budget (production performance NOT optimised for this "
+                              f"per the work order -- reported, not fixed) ***")
                 slip = estimate_slip_angles(state, beta, effective_params)
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
@@ -226,6 +254,10 @@ class StabilityAnalysisThread(QThread):
                 "cap": self.cap,
                 "resolved_accuracy": self.resolved_accuracy,
                 "sideslip_source": sideslip_source,
+                "fit_manifest": fit_manifest,
+                "gate_verdict": gate_verdict,
+                "fallback_used": fallback_used,
+                "fallback_reason": fallback_reason,
             })
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
@@ -669,16 +701,65 @@ class OutingForm(QWidget):
         )
         self.accuracy_cap_combo.setFixedWidth(130)
 
+        # Fresh-session work package, Phase 3a: sideslip-estimator mode
+        # selector. Replaces config-file-only switching -- selecting an
+        # item WRITES config/parameters.json's stability_estimation.
+        # sideslip_source directly (imitates ui/views/settings_view.py's
+        # own _on_save_clicked persistence pattern: full read-modify-
+        # write of the JSON file, then load_parameters.cache_clear() +
+        # invalidate_all_pipeline_caches() -- investigated first, see
+        # thesis_notes.md for why this pattern was chosen over an
+        # ephemeral per-session QComboBox value like accuracy_cap_combo:
+        # accuracy_cap_combo has NO cross-restart persistence at all
+        # (verified by reading _prefill/_carryon_from_last, neither
+        # touches it), which fails this phase's explicit "persists across
+        # restarts" requirement, whereas config-file persistence already
+        # exists for this exact field and is restart-persistent by
+        # construction). Participates in cache identity exactly as the
+        # config key does today because it IS the config key -- no new
+        # identity field needed anywhere.
+        self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
+            "Kinematic": "kinematic",
+            "EKF (frozen Dubai fit)": "ekf_pass_1",
+            "EKF auto Dugoff": "ekf_auto_dugoff",
+            "EKF auto Pacejka": "ekf_auto_pacejka",
+        }
+        self._SIDESLIP_MODE_VALUE_TO_DISPLAY = {
+            v: k for k, v in self._SIDESLIP_MODE_DISPLAY_TO_VALUE.items()
+        }
+        self.sideslip_mode_combo = QComboBox()
+        self.sideslip_mode_combo.addItems(list(self._SIDESLIP_MODE_DISPLAY_TO_VALUE.keys()))
+        self.sideslip_mode_combo.setFixedWidth(170)
+        from modules.stability_analysis import load_parameters as _load_params_for_init
+        _current_mode = _load_params_for_init()["stability_estimation"].get(
+            "sideslip_source", "kinematic"
+        )
+        self.sideslip_mode_combo.setCurrentText(
+            self._SIDESLIP_MODE_VALUE_TO_DISPLAY.get(_current_mode, "Kinematic")
+        )
+        # Connected AFTER the initial setCurrentText above, so populating
+        # the widget at construction time never triggers a config write.
+        self.sideslip_mode_combo.currentTextChanged.connect(self._on_sideslip_mode_changed)
+
         self.csv_status_label = QLabel("No file loaded")
         self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
         self.stability_status_label = QLabel("")
         self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
+        # Fresh-session work package, Phase 3b: which estimator actually
+        # produced beta (auto modes can fall back!), fit status, gate
+        # verdict, fallback reason -- see _format_estimator_status.
+        self.estimator_status_label = QLabel("")
+        self.estimator_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        self.estimator_status_label.setWordWrap(True)
+        self.estimator_status_label.setVisible(False)
+
         btn_layout.addWidget(btn_load)
         btn_layout.addWidget(self.btn_analyse)
         btn_layout.addWidget(self.btn_lap_traces)
         btn_layout.addWidget(self.accuracy_cap_combo)
+        btn_layout.addWidget(self.sideslip_mode_combo)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
         layout.addWidget(btn_row)
@@ -689,6 +770,13 @@ class OutingForm(QWidget):
         status_layout.addWidget(self.stability_status_label)
         status_layout.addStretch()
         layout.addWidget(status_row)
+
+        estimator_status_row = QWidget()
+        estimator_status_layout = QHBoxLayout(estimator_status_row)
+        estimator_status_layout.setContentsMargins(0, 0, 0, 0)
+        estimator_status_layout.addWidget(self.estimator_status_label)
+        estimator_status_layout.addStretch()
+        layout.addWidget(estimator_status_row)
 
         self.exclude_inout_btn = QPushButton("Exclude In/Out Laps")
         self.exclude_inout_btn.setCheckable(True)
@@ -1078,6 +1166,32 @@ class OutingForm(QWidget):
             return None
         return int(text.replace("Level ", ""))
 
+    def _on_sideslip_mode_changed(self, display_text):
+        # Fresh-session work package, Phase 3a: writes config/parameters.
+        # json directly, same read-modify-write + cache-clear + pipeline-
+        # invalidate pattern as ui/views/settings_view.py's _on_save_
+        # clicked -- see the sideslip_mode_combo construction comment for
+        # why this pattern (not an ephemeral UI value) was chosen.
+        new_value = self._SIDESLIP_MODE_DISPLAY_TO_VALUE.get(display_text)
+        if new_value is None:
+            return
+        import json
+        from modules.stability_analysis import PARAMETERS_PATH, load_parameters
+        with open(PARAMETERS_PATH, encoding="utf-8") as f:
+            params = json.load(f)
+        if params["stability_estimation"].get("sideslip_source", "kinematic") == new_value:
+            return
+        params["stability_estimation"]["sideslip_source"] = new_value
+        with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
+            json.dump(params, f, indent=2)
+            f.write("\n")
+        load_parameters.cache_clear()
+        invalidate_all_pipeline_caches()
+        self.stability_status_label.setText(
+            f"Estimator mode changed to {display_text} -- re-run Analyse to apply."
+        )
+        self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
+
     def _get_setup_data_dict(self):
         # WP-C resolver input: the PERSISTED setup_data for this outing, not
         # any unsaved live form edits -- same convention core.pdf_export
@@ -1155,7 +1269,7 @@ class OutingForm(QWidget):
             pipeline_cache = cached_entry
         self.stab_thread = StabilityAnalysisThread(
             self.parsed_data, lap_filter, pipeline_cache=pipeline_cache,
-            cap=cap, resolved_accuracy=resolved_accuracy,
+            cap=cap, resolved_accuracy=resolved_accuracy, csv_path=self.loaded_csv_path,
         )
         self.stab_thread.finished.connect(self._on_stability_done)
         self.stab_thread.error.connect(self._on_stability_error)
@@ -1192,6 +1306,15 @@ class OutingForm(QWidget):
             # WP-N2 Step 1b: joins the WP6 identity alongside accuracy_cap --
             # see the hit-check in _run_stability_analysis.
             "sideslip_source": result["sideslip_source"],
+            # Fresh-session work package: NOT new identity fields (sideslip_
+            # source alone already differentiates auto modes from each other
+            # and from kinematic/ekf_pass_1) -- cached alongside slip/forces
+            # above purely so a lap-filter-only re-Analyse doesn't lose the
+            # estimator-status line.
+            "fit_manifest": result["fit_manifest"],
+            "gate_verdict": result["gate_verdict"],
+            "fallback_used": result["fallback_used"],
+            "fallback_reason": result["fallback_reason"],
         })
         # WP5: build (not yet write) the cache payload for this analysis;
         # _save_outing uses whatever this holds, so a save after a cache-hit
@@ -1199,7 +1322,9 @@ class OutingForm(QWidget):
         lap_filter = self.stab_thread.lap_filter
         self._analysis_data_json = self._build_analysis_data_json(
             result["summaries"], lap_filter, result["cap"], result["resolved_accuracy"],
-            result["sideslip_source"],
+            result["sideslip_source"], fit_manifest=result["fit_manifest"],
+            gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
+            fallback_reason=result["fallback_reason"],
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1209,6 +1334,9 @@ class OutingForm(QWidget):
         self._render_stability_summaries(
             result["summaries"], cached=False,
             cap=result["cap"], resolved_accuracy=result["resolved_accuracy"],
+            sideslip_source=result["sideslip_source"], fit_manifest=result["fit_manifest"],
+            gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
+            fallback_reason=result["fallback_reason"],
         )
         t_render1 = time.perf_counter()
         print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
@@ -1270,7 +1398,8 @@ class OutingForm(QWidget):
         return True
 
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
-                                   sideslip_source="kinematic"):
+                                   sideslip_source="kinematic", fit_manifest=None,
+                                   gate_verdict=None, fallback_used=False, fallback_reason=None):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1295,6 +1424,16 @@ class OutingForm(QWidget):
             # WP-N2 Step 1b: which beta this run used -- schema v5 identity
             # field, see ANALYSIS_SCHEMA_VERSION's own bump comment.
             "sideslip_source": sideslip_source,
+            # Fresh-session work package: schema v6. fit_manifest/gate_
+            # verdict are None for kinematic/ekf_pass_1 (no fit chain runs
+            # for those modes); fallback_used/fallback_reason are always
+            # present (False/None outside the two auto modes) -- "a saved
+            # outing carries the curve it was analysed under", including
+            # the never-silent fallback record when the gate didn't pass.
+            "fit_manifest": fit_manifest,
+            "gate_verdict": gate_verdict,
+            "fallback_used": fallback_used,
+            "fallback_reason": fallback_reason,
         }
         return json.dumps(payload)
 
@@ -1383,6 +1522,11 @@ class OutingForm(QWidget):
         self._render_stability_summaries(
             summaries, cached=True, lap_filter=lap_filter,
             cap=cap, resolved_accuracy=cached_resolved_accuracy,
+            sideslip_source=current_sideslip_source,
+            fit_manifest=cached.get("fit_manifest"),
+            gate_verdict=cached.get("gate_verdict"),
+            fallback_used=cached.get("fallback_used", False),
+            fallback_reason=cached.get("fallback_reason"),
         )
         t1 = time.perf_counter()
         print(f"[PERF] db_cache_hit=True  render+sync total: {t1 - t0:.3f}s")
@@ -1415,8 +1559,52 @@ class OutingForm(QWidget):
         ]
         return " | ".join(parts)
 
+    # Fresh-session work package, Phase 3b: which estimator actually
+    # produced beta, plus fit/gate status -- separate from the [UNCAL]
+    # calibration banner (that answers "are verdict thresholds valid for
+    # this estimator", this answers "what estimator, and did the auto
+    # chain fall back"). Pure formatting, no state -- testable without Qt.
+    _ESTIMATOR_LABELS = {
+        "kinematic": "kinematic (production default)",
+        "ekf_pass_1": "EKF (frozen pass-1 Dugoff fit)",
+        "ekf_auto_dugoff": "EKF auto-fit (Dugoff, this session)",
+        "ekf_auto_pacejka": "EKF auto-fit (Pacejka, this session)",
+    }
+
+    def _format_estimator_status(self, sideslip_source, fit_manifest, gate_verdict,
+                                  fallback_used, fallback_reason):
+        # Class attribute accessed via the class, not self -- self is None
+        # under the same reuse convention _classify_corner/core/weekend_
+        # pdf_export.py's _estimator_status_text already rely on (found by
+        # tests/test_auto_fit_wiring.py: self._ESTIMATOR_LABELS raised
+        # AttributeError on None, which would have crashed real PDF
+        # generation on any fallback render, not just this test).
+        label = OutingForm._ESTIMATOR_LABELS.get(sideslip_source, sideslip_source)
+        if fallback_used:
+            # Deliberately loud and impossible to mistake for a real EKF
+            # render: the requested mode is named, but the word KINEMATIC
+            # (capitalised, WARN colour) is what actually produced beta.
+            text = (
+                f"Estimator: KINEMATIC (fallback -- requested {label} could not be trusted: "
+                f"{fallback_reason})"
+            )
+            return text, WARN
+        if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
+            fit_status = fit_manifest.get("status") if fit_manifest else "?"
+            if gate_verdict:
+                gate_text = (
+                    f"gate={gate_verdict['verdict']} "
+                    f"(score={gate_verdict['health_score']:.4f}, provisional threshold)"
+                )
+            else:
+                gate_text = "gate=?"
+            return f"Estimator: {label} -- fit={fit_status}, {gate_text}", TEXT_MUTED
+        return f"Estimator: {label}", TEXT_MUTED
+
     def _render_stability_summaries(self, summaries, cached=False, lap_filter=None,
-                                     cap=None, resolved_accuracy=None):
+                                     cap=None, resolved_accuracy=None, sideslip_source=None,
+                                     fit_manifest=None, gate_verdict=None,
+                                     fallback_used=False, fallback_reason=None):
         # Shared by the live analysis-finished path and the WP5 cache-hit
         # path -- the ONLY place that builds cards/classifies from a
         # summaries list, so a threshold re-derivation always shows up here
@@ -1472,6 +1660,22 @@ class OutingForm(QWidget):
         self._displayed_resolved_vehicle_snapshot = (
             resolved_accuracy.get("values") if resolved_accuracy else None
         )
+        # Fresh-session work package, Phase 3b: estimator/fit/gate/fallback
+        # status line -- always rendered (even for kinematic/ekf_pass_1,
+        # where it just names the estimator) so "which estimator produced
+        # this" is never ambiguous regardless of mode.
+        if sideslip_source is not None:
+            status_text, status_color = self._format_estimator_status(
+                sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
+            )
+            self.estimator_status_label.setText(status_text)
+            self.estimator_status_label.setStyleSheet(
+                f"color: {status_color}; font-size: 11px;"
+                + ("font-weight: bold;" if fallback_used else "")
+            )
+            self.estimator_status_label.setVisible(True)
+        else:
+            self.estimator_status_label.setVisible(False)
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
         self.btn_lap_traces.setEnabled(True)

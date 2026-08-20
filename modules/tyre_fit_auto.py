@@ -52,6 +52,7 @@ from modules.stability_analysis import (
 )
 from modules.tyre_model import dugoff_lateral_force
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
+from modules.nis_gate import evaluate_gate
 from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from diagnostics.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
@@ -382,6 +383,15 @@ def fit_session(data, params, data_file_path=None):
     innovation = final_result["innovation"][base_mask]
     nis_combined = final_result["nis"][base_mask]
     S_diag = final_result["S_diag"][base_mask]
+    # Production consumer note (fresh-session work package, Phase 1): the
+    # raw "beta"/"nis" arrays above are for THIS module's own validation
+    # figures only. Production callers must use beta_ekf_with_fallback,
+    # never beta_ekf -- the raw series keeps diverged-window artifacts by
+    # design (see diagnostics/sideslip_ekf_dugoff.py's own header), the
+    # same "never feed a silently-diverged state downstream" rule the
+    # existing ekf_pass_1 production path already follows. base_mask and
+    # the full-length nis array are exposed so a caller can run modules.
+    # nis_gate.evaluate_gate without re-deriving the masking logic.
     nis_yaw = innovation[:, 0] ** 2 / S_diag[:, 0]
     nis_ay = innovation[:, 1] ** 2 / S_diag[:, 1]
     f_yaw = float((nis_yaw > CHI2_DF1_95).mean())
@@ -447,6 +457,9 @@ def fit_session(data, params, data_file_path=None):
         manifest["status"] = "ok"
 
     manifest["beta_ekf"] = beta_ekf  # not JSON-serialisable directly -- caller's responsibility to strip/summarise
+    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
+    manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
+    manifest["base_mask"] = base_mask
     return manifest
 
 
@@ -682,4 +695,68 @@ def fit_session_pacejka(data, params, data_file_path=None):
         manifest["status"] = "ok"
 
     manifest["beta_ekf"] = beta_ekf
+    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
+    manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
+    manifest["base_mask"] = base_mask
     return manifest
+
+
+def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
+    """Fresh-session work package, Phase 1: single source of truth for
+    "which beta does this sideslip_source actually produce", used by
+    ui/views/outing_form.py's StabilityAnalysisThread. Extracted into
+    modules/ (not left inline in the QThread) so it is directly
+    testable without any Qt dependency -- tests/test_auto_fit_wiring.py
+    calls this exact function, not a reimplementation, matching this
+    project's "no business logic in ui/" rule slightly more strictly
+    than the pre-existing ekf_pass_1 branch did.
+
+    Returns (beta, fit_manifest, gate_verdict, fallback_used,
+    fallback_reason). fit_manifest is the JSON-safe subset of fit_
+    session's/fit_session_pacejka's manifest (numpy-array keys
+    stripped) -- None for every sideslip_source except the two auto
+    modes. gate_verdict is modules.nis_gate.evaluate_gate's return
+    dict, None outside the auto modes or when the fit itself degenerated
+    (the gate never runs against a curve already known unusable).
+    fallback_used/fallback_reason are False/None unless an auto mode's
+    fit degenerated or its gate verdicted 'fail' -- in either case beta
+    falls back to kinematic (estimate_sideslip), the reason is recorded
+    as text, never silent. Never mutates params.
+    """
+    if sideslip_source == "ekf_pass_1":
+        # beta_with_fallback, never the raw pre-fallback series: raw keeps
+        # diverged-window artifacts for diagnostics (see diagnostics/
+        # sideslip_ekf_dugoff.py's own docstring) -- production must never
+        # feed a silently-diverged state into the rest of the pipeline.
+        ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_1")
+        return ekf_result["beta_with_fallback"], None, None, False, None
+
+    if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
+        fit_fn = fit_session if sideslip_source == "ekf_auto_dugoff" else fit_session_pacejka
+        raw_fit_manifest = fit_fn(data, params, data_file_path=csv_path)
+        fit_status = raw_fit_manifest.get("status")
+        fallback_used = False
+        fallback_reason = None
+        gate_verdict = None
+        if fit_status == "degenerate":
+            fallback_used = True
+            fallback_reason = f"fit status 'degenerate': {raw_fit_manifest.get('degenerate_reason')}"
+            beta = estimate_sideslip(state, params)
+        else:
+            gate_verdict = evaluate_gate(raw_fit_manifest["nis_full"], raw_fit_manifest["base_mask"], params)
+            if gate_verdict["verdict"] == "fail":
+                fallback_used = True
+                fallback_reason = (
+                    f"NIS gate verdict 'fail' (health_score={gate_verdict['health_score']!r}, "
+                    f"threshold_warn={gate_verdict['threshold_warn']})"
+                )
+                beta = estimate_sideslip(state, params)
+            else:
+                beta = raw_fit_manifest["beta_ekf_with_fallback"]
+        fit_manifest = {
+            k: v for k, v in raw_fit_manifest.items()
+            if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask")
+        }
+        return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason
+
+    return estimate_sideslip(state, params), None, None, False, None

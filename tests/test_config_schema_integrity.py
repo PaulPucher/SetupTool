@@ -93,15 +93,30 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     history documents (modules/stability_analysis.py:21-51) as having
     been added, version by version: v4 added bracket_start_m/
     bracket_end_m on each corner summary and fz_f_N/fz_r_N/fy_f_norm_N/
-    fy_r_norm_N on each phase; v5 (this session, WP-N2 Step 1b) added
-    sideslip_source to the persisted payload (a payload-builder field,
-    not a summarise_corners field -- checked in the outing_form.py
-    source scan below instead, since summarise_corners itself does not
-    take or emit sideslip_source).
+    fy_r_norm_N on each phase; v5 (WP-N2 Step 1b) added sideslip_source
+    to the persisted payload (a payload-builder field, not a
+    summarise_corners field -- checked in the outing_form.py source scan
+    below instead, since summarise_corners itself does not take or emit
+    sideslip_source); v6 (fresh-session work package: per-session tyre
+    auto-fit + NIS gate wired into production) added fit_manifest/
+    gate_verdict/fallback_used/fallback_reason to the same payload,
+    same "payload-builder field, not a summarise_corners field" scoping
+    -- summarise_corners's own OUTPUT shape (what this fixture actually
+    exercises) is unchanged since v4; only outing_form.py's payload
+    wrapper gained keys, checked in the source-scan tests below.
+
+    DELIBERATE UPDATE, not a weakening: this assertion's own prior text
+    said "update this test deliberately if the version was bumped
+    again" -- exactly what happened here. Every other check in this
+    function (bracket_start_m/bracket_end_m, fz_*/fy_*_norm_N keys)
+    is unchanged and still runs at full strength against the SAME
+    kinematic-mode pipeline_result fixture; only the version literal
+    moved from 5 to 6 to match the now-current, deliberately-bumped
+    production constant.
     """
-    assert ANALYSIS_SCHEMA_VERSION == 5, (
+    assert ANALYSIS_SCHEMA_VERSION == 6, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 5 -- update this test deliberately if the version was bumped again"
+        "written for 6 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
@@ -129,6 +144,24 @@ def test_analysis_data_payload_includes_sideslip_source():
         "_build_analysis_data_json's payload dict no longer includes sideslip_source -- "
         "ANALYSIS_SCHEMA_VERSION 5's own bump rationale depends on this field existing"
     )
+
+
+def test_analysis_data_payload_includes_auto_fit_fields():
+    """NEW test (fresh-session work package) -- does not alter the
+    sideslip_source check above. _build_analysis_data_json must
+    reference all four v6-bumped fields in its payload dict, same
+    source-scan rationale as the sideslip_source check.
+    """
+    with open("ui/views/outing_form.py", "r", encoding="utf-8") as f:
+        src = f.read()
+    start = src.index("def _build_analysis_data_json")
+    end = src.index("\n    def ", start + 1)
+    body = src[start:end]
+    for field in ('"fit_manifest"', '"gate_verdict"', '"fallback_used"', '"fallback_reason"'):
+        assert field in body, (
+            f"_build_analysis_data_json's payload dict no longer includes {field} -- "
+            "ANALYSIS_SCHEMA_VERSION 6's own bump rationale depends on this field existing"
+        )
 
 
 # --- 3. accuracy-level registry internal consistency --------------------------

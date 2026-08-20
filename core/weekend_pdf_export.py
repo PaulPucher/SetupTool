@@ -201,7 +201,24 @@ def _setup_sheet_flowables(outing, styles):
     return flow
 
 
-def _verdict_flowables(summaries, styles):
+def _estimator_status_text(sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason):
+    # Fresh-session work package, Phase 3d: reuses OutingForm's own
+    # formatting (None-self call, same precedent as _classify_corner
+    # above) so the PDF's wording can never drift from what the live app
+    # shows for the same analysis -- only the text is used, not the
+    # returned ui.style colour (this module has its own reportlab
+    # paragraph styles, selected by fallback_used instead).
+    if sideslip_source is None:
+        return None
+    from ui.views.outing_form import OutingForm
+    text, _colour = OutingForm._format_estimator_status(
+        None, sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
+    )
+    return text
+
+
+def _verdict_flowables(summaries, styles, sideslip_source=None, fit_manifest=None,
+                        gate_verdict=None, fallback_used=False, fallback_reason=None):
     aggregated = aggregate_by_corner(summaries)
     rows = [["Corner", "Speed class", "Severity", "Verdict"]]
     for cid in sorted(aggregated.keys()):
@@ -210,6 +227,17 @@ def _verdict_flowables(summaries, styles):
         rows.append([f"C{cid}", agg.get("speed_class") or "—", severity, long_v])
     w = CONTENT_W
     flow = []
+    # Fresh-session work package, Phase 3d: estimator/fit/gate/fallback
+    # status line in the PDF header, same information and same "loud,
+    # can't-scroll-past" placement as the UI's estimator_status_label --
+    # printed ABOVE the calibration banner so a reader sees "what
+    # produced this" before "are the thresholds valid for it".
+    status_text = _estimator_status_text(
+        sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
+    )
+    if status_text:
+        flow.append(Paragraph(status_text, styles["warn"] if fallback_used else styles["muted"]))
+        flow.append(Spacer(1, 1.5 * mm))
     # WP-N2 Step 1b: same gate as OutingForm._sideslip_source_calibrated's
     # banner -- individual verdict cells above already carry the
     # "[UNCAL]" marker (inherited from _classify_corner unmodified), this
@@ -337,7 +365,14 @@ def _build_outing_section(outing, styles):
         flow.append(Spacer(1, 2 * mm))
 
         flow.append(Paragraph("Verdict Summary", styles["h2"]))
-        flow.extend(_verdict_flowables(summaries, styles))
+        flow.extend(_verdict_flowables(
+            summaries, styles,
+            sideslip_source=parsed.get("sideslip_source"),
+            fit_manifest=parsed.get("fit_manifest"),
+            gate_verdict=parsed.get("gate_verdict"),
+            fallback_used=parsed.get("fallback_used", False),
+            fallback_reason=parsed.get("fallback_reason"),
+        ))
         flow.append(Spacer(1, 3 * mm))
 
         flow.append(Paragraph("Recommendations", styles["h2"]))

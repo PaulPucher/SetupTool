@@ -26,10 +26,14 @@ WHERE THE PROJECT STANDS
   a known, documented circularity. This is a stated limitation of
   the method, not a resolved issue, and must appear as such in the
   write-up.
-- A real regression test suite now exists (tests/, 59 tests -- 49 at
-  session start, +10 Phase-3 Pacejka finite-difference/symmetry tests
-  from the unsupervised package below -- ~85s runtime), alongside
-  test_stability.py (unchanged, still a zero-assertion smoke test).
+- A real regression test suite now exists (tests/, 95 tests -- 49 at
+  the suite's own start, +10 Phase-3 Pacejka tests (WP-N3 package),
+  +35 from the fresh-session auto-fit/NIS-gate wiring package below
+  (20 gate unit tests, 7 wiring-validation tests, 8 new golden-file
+  tests for the two auto modes) -- full suite now ~26 min, driven
+  almost entirely by the wiring/golden tests' real fit-chain runs, not
+  the original pipeline), alongside test_stability.py (unchanged,
+  still a zero-assertion smoke test).
   REGRESSION not correctness -- pins current behaviour, does not
   validate it. 5 phases: golden-value pipeline/recommendation
   snapshots (cap=1, sideslip_source=kinematic -- see tests/conftest.py
@@ -94,6 +98,51 @@ WHERE THE PROJECT STANDS
   method note also recorded there: _highpass_filter (scipy filtfilt)
   is zero-phase/acausal -- any future drift or boundary claim about
   it must use causal checkpoints, not arbitrary segment lengths.
+- FRESH-SESSION WORK PACKAGE COMPLETED (2026-08-2X: per-session tyre
+  auto-fit + NIS gate wired into production -- full record: thesis_
+  notes.md "4. Fresh-session work package: per-session tyre auto-fit +
+  NIS gate wired into production" and its Phase 1-4 entries). Two new
+  sideslip_source values now live: "ekf_auto_dugoff"/"ekf_auto_pacejka"
+  run modules/tyre_fit_auto.py's fit chain on the SESSION'S OWN data
+  (not a frozen prior curve), gated by new modules/nis_gate.py (ported
+  from the WP-N3 prototype, thresholds still PROVISIONAL) -- gate
+  fail/fit degenerate falls back to kinematic beta, recorded in the
+  analysis payload and shown in the UI/PDF, never silently. Existing
+  modes' behaviour perfectly preserved (regression suite green in
+  kinematic/ekf_pass_1 throughout, confirmed by the same golden files
+  unchanged); default stays "kinematic", nothing auto-enabled; no
+  commit. ANALYSIS_SCHEMA_VERSION 5->6 (payload gained fit_manifest/
+  gate_verdict/fallback_used/fallback_reason, null outside the two
+  auto modes). New production-adjacent files: modules/nis_gate.py;
+  new UI: sideslip_mode_combo (Data section, writes config directly --
+  same restart-persistent pattern as ui/views/settings_view.py, chosen
+  over accuracy_cap_combo's pattern because that one does NOT persist
+  across restarts, verified before choosing) and estimator_status_label
+  (which estimator actually produced beta, loud KINEMATIC-fallback
+  wording); PDF export (core/weekend_pdf_export.py) carries the same
+  status line -- FLAGGED: this file was not in Phase 3's own stated
+  permitted-file list, edited anyway because sub-item (d) could not be
+  satisfied otherwise; see thesis_notes.md for the full reasoning, this
+  is worth a second look. TWO REAL BUGS found and fixed during this
+  package, before shipping: fit_session/fit_session_pacejka were
+  exposing the raw pre-fallback EKF beta instead of beta_with_fallback
+  (would have violated the same "never feed a silently-diverged state
+  downstream" rule the existing ekf_pass_1 path already followed);
+  _format_estimator_status's self-attribute access broke the None-self
+  reuse convention core/weekend_pdf_export.py's own PDF code depends on
+  (would have crashed real PDF generation on any fallback render).
+  Architecture note: the dispatch logic was extracted into modules.
+  tyre_fit_auto.resolve_sideslip_beta (not left inline in the QThread)
+  specifically so Phase 4's wiring validation could run without a Qt
+  event loop -- StabilityAnalysisThread.run() is now a thin caller.
+  Decisions now live for the user: banner/status-line wording (still
+  functional-but-plain, not polished copy); NIS-gate threshold
+  maturation (still five-data-points-one-session provisional, same
+  caveat as WP-N3); whether to also authorise deleting core/weekend_
+  pdf_export.py from Phase 3's permitted-file list retroactively (or
+  flag the edit for reversion) given the file-list gap found above;
+  the same standing washout-cutoff/fit-variant/speed-classification
+  decisions carried over from the prior package, now joined by these.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
