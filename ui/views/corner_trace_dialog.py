@@ -13,7 +13,7 @@ import numpy as np
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QTabWidget, QWidget
 
-from ui.style import ACCENT, BAD, BORDER, NEUTRAL, PANEL, TEXT_DIM, TEXT_MUTED
+from ui.style import ACCENT, BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT_DIM, TEXT_MUTED
 
 # Per-signal curve colours, fixed across laps (a lap is distinguished by
 # line width/style/opacity, not colour) -- literal hex, same convention as
@@ -24,11 +24,46 @@ CSF_COLOR = "#4FC3F7"
 CSR_COLOR = "#FFB74D"
 STAB_COLOR = "#B39DDB"
 SPEED_COLOR = "#C0A060"  # matches ecu_speed's colour in the channel-strip plot
+# UI cleanup package: fitted-curve overlay colour (tyre curve tab, auto
+# modes only) -- distinct from ACCENT (the existing linear-reference
+# line's colour) so the two curves never read as the same line, and
+# distinct from CSF_COLOR/CSR_COLOR/STAB_COLOR/SPEED_COLOR/TEXT_MUTED/
+# NEUTRAL (the tab's other colours) so it cannot be confused with any
+# existing element either.
+FITTED_CURVE_COLOR = "#E040FB"
 
 SELECTED_WIDTH = 2.5
 NORMAL_WIDTH = 1.5
 ALPHA_SELECTED = 255
 ALPHA_FAINT = 90  # non-selected, still-visible laps -- out of 255
+
+# UI cleanup package: ONE consistent in-plot legend style for every plot
+# this dialog family builds (item 3 -- "apply one consistent style,
+# don't restyle per-plot ad hoc"). Font bumped visibly above pyqtgraph's
+# own default ('9pt', itself already larger than this file's 8pt axis-
+# label convention) so a first-time user does not have to lean in to
+# read it. Legends are built ONCE per plot at construction time (see
+# _TraceDialogBase.__init__ and CornerTraceDialog.__init__) and updated
+# automatically thereafter by pyqtgraph itself whenever a named curve is
+# added/removed via plot.clear()/plot.plot(..., name=...) -- calling
+# addLegend() again on every show_corner()/show_lap() render would stack
+# duplicate legend boxes, so it must stay a one-time construction call.
+LEGEND_FONT_PT = "10pt"
+LEGEND_OFFSET = (10, 10)  # px from the plot's top-right corner
+
+
+def _style_new_legend(plot):
+    """Attach ONE styled legend to `plot`, call exactly once per plot
+    object (see LEGEND_FONT_PT's own comment for why). Semi-opaque
+    background (not fully solid) so it stays readable over a busy trace
+    without fully hiding whatever data happens to sit behind its corner.
+    """
+    import pyqtgraph as pg
+    legend = plot.addLegend(offset=LEGEND_OFFSET, labelTextSize=LEGEND_FONT_PT)
+    legend.setBrush(pg.mkBrush(PANEL_ALT))
+    legend.setLabelTextColor(TEXT_MUTED)
+    return legend
+
 
 # Fix turn: plain-English legend, no internal field/code names (CSf/CSr,
 # etc.) -- every curve, threshold line and shaded band gets a wording an
@@ -59,20 +94,24 @@ PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 # pattern); no code copied.
 TYRE_CURVE_LEGEND_TEXT = (
     "Slip angle (x) vs lateral force (y), this corner's own canonical "
-    "window only (no approach/coast-out margin). Muted grey dots: all "
-    "samples. 'x' markers: kerb-flagged samples. Gold line: the linear-"
-    "region reference cornering stiffness (Module 4b's C_linear_ref) -- "
-    "the slope the tyre held before its lateral force peak. Beyond-peak "
-    "(throwaway) operation shows as the cloud folding BACK over this line "
-    "-- Fy falling while |slip angle| keeps growing -- rather than "
-    "scattering evenly around it. The force axis autoranges per corner -- "
-    "compare cloud shape against the line's slope, not absolute force "
-    "levels or one corner's plot against another's. A constant VERTICAL "
-    "offset of the whole cloud from the line reflects the known "
-    "direction-dependent zero-slip offset in the Level-1 slip-angle "
-    "estimate (see thesis_notes.md, the C9 decomposition entry), not "
-    "tyre saturation -- judge slope and curvature relative to the line, "
-    "not the cloud's position above or below it."
+    "window only (no approach/coast-out margin). Each line/marker's exact "
+    "meaning is named in the plot's own legend (top-right of each panel). "
+    "The gold reference line is the LINEAR-region slope only (Module 4b's "
+    "C_linear_ref, the slope the tyre held before its lateral force peak) "
+    "-- beyond-peak (throwaway) operation shows as the cloud folding BACK "
+    "over this line, Fy falling while |slip angle| keeps growing, rather "
+    "than scattering evenly around it. When an EKF auto-fit mode analysed "
+    "this session, a second (magenta) FITTED curve also appears -- the "
+    "actual nonlinear model (Dugoff or Pacejka) the EKF used, which CAN "
+    "represent that peak-and-fold shape directly, unlike the linear "
+    "reference. The force axis autoranges per corner -- compare cloud "
+    "shape against either line's slope, not absolute force levels or one "
+    "corner's plot against another's. A constant VERTICAL offset of the "
+    "whole cloud from the reference line reflects the known direction-"
+    "dependent zero-slip offset in the Level-1 slip-angle estimate (see "
+    "thesis_notes.md, the C9 decomposition entry), not tyre saturation -- "
+    "judge slope and curvature relative to the lines, not the cloud's "
+    "position above or below them."
 )
 
 
@@ -316,8 +355,13 @@ class _TraceDialogBase(QDialog):
         # Rebuilt in full by show_corner()/show_lap() every call (only
         # mentions kerb/not-moving bands when the plotted range actually
         # has one) -- this is just the pre-first-click placeholder.
+        # UI cleanup package: 10px -> 12px. This prose caption explains WHY
+        # (threshold meaning, beyond-peak fold-back, etc) -- content an
+        # in-plot legend can't carry -- so it stays, just larger; WHICH
+        # LINE IS WHICH is now the in-plot legends' job (item 3).
         self.legend_label = QLabel(BASE_LEGEND_TEXT)
-        self.legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        self.legend_label.setWordWrap(True)
+        self.legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         layout.addWidget(self.legend_label)
 
         titles = [("Stability (Nm/deg)", "stab"), ("CS ratio", "cs"), ("Speed (km/h)", "speed")]
@@ -337,6 +381,12 @@ class _TraceDialogBase(QDialog):
                 plot.getAxis('bottom').setLabel('Track position s (m)', color='#888', size='8pt')
             else:
                 plot.getAxis('bottom').setStyle(showValues=False)
+            # UI cleanup package: one legend per plot, styled consistently
+            # -- see _style_new_legend/LEGEND_FONT_PT. "stab"/"speed" plot
+            # only one named series each today (still worth a legend: it
+            # states the line's name instead of requiring the prose
+            # caption below to be read first); "cs" plots two.
+            _style_new_legend(plot)
             self.plots[key] = plot
             self.pg_layout.nextRow()
 
@@ -487,7 +537,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
         self.tyre_legend_label = QLabel(TYRE_CURVE_LEGEND_TEXT)
         self.tyre_legend_label.setWordWrap(True)
-        self.tyre_legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        self.tyre_legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")  # UI cleanup: 10px -> 12px
         tyre_layout.addWidget(self.tyre_legend_label)
 
         self.tyre_pg_layout = pg.GraphicsLayoutWidget()
@@ -504,6 +554,7 @@ class CornerTraceDialog(_TraceDialogBase):
             # Equal-axis scaling deliberately OFF (WP-A item 3 spec) -- alpha
             # is a few degrees' range, Fy a few thousand newtons; forcing a
             # 1:1 pixel scale would make the reference slope unreadable.
+            _style_new_legend(plot)  # UI cleanup package: names the scatter/reference/fitted-curve items below
             self.tyre_plots[axle] = plot
             self.tyre_pg_layout.nextRow()
 
@@ -538,7 +589,8 @@ class CornerTraceDialog(_TraceDialogBase):
             plot.clear()
 
     def _render_tyre_curves(self, instances, laps_by_number, bracket_start_m, bracket_end_m,
-                             t, s_m, slip, forces, cs, kerb_mask):
+                             t, s_m, slip, forces, cs, kerb_mask,
+                             sideslip_source=None, fit_manifest=None):
         """Tyre Curves tab: per-axle slip-angle-vs-lateral-force scatter for
         this corner's own canonical window (bracket_start_m/end_m, no
         approach/coast-out margin -- unlike the Traces tab). Plot design
@@ -560,6 +612,19 @@ class CornerTraceDialog(_TraceDialogBase):
         tab. C_linear_ref is already NaN at any kerb-flagged or non-moving
         sample (estimate_cornering_stiffness only writes it past that
         gate), so no separate kerb exclusion is needed for this median.
+
+        UI cleanup package: when `sideslip_source` is one of the two
+        auto-fit modes and `fit_manifest` carries that session's own
+        fitted curve parameters, the FITTED model curve (Dugoff or
+        Pacejka, whichever ran) is drawn over the same cloud, evaluated
+        across this corner's own visited slip-angle range -- unlike the
+        reference line (a single linear slope through the origin, the
+        LINEAR-REGIME estimate only), the fitted curve is the actual
+        nonlinear model the EKF used, and can show the saturation/peak
+        the linear reference cannot. sideslip_source/fit_manifest are
+        None for kinematic/ekf_pass_1 (and for kinematic, fit_manifest
+        genuinely does not exist -- no fit chain ran) -- current
+        (reference-line-only) behaviour is unchanged in that case.
         """
         import pyqtgraph as pg
 
@@ -581,6 +646,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
             pooled_alpha_rad = []
             pooled_ref = []
+            named_clean = named_kerbed = False
 
             for c in instances:
                 lap = laps_by_number.get(c["lap_number"])
@@ -604,19 +670,26 @@ class CornerTraceDialog(_TraceDialogBase):
                     continue
                 pooled_alpha_rad.append(lap_alpha[valid])
 
+                # UI cleanup package: name= only on this axle's first
+                # clean/kerbed scatter series -- same one-row-per-name
+                # legend reasoning as the Traces tab loops above.
                 items = []
                 if clean.any():
                     items.append(plot.plot(
                         np.degrees(lap_alpha[clean]), lap_Fy[clean],
                         pen=None, symbol='o', symbolSize=4,
                         symbolBrush=pg.mkBrush(TEXT_MUTED), symbolPen=None,
+                        name=("Measured" if not named_clean else None),
                     ))
+                    named_clean = True
                 if kerbed.any():
                     items.append(plot.plot(
                         np.degrees(lap_alpha[kerbed]), lap_Fy[kerbed],
                         pen=None, symbol='x', symbolSize=6,
                         symbolBrush=None, symbolPen=pg.mkPen(NEUTRAL, width=1.5),
+                        name=("Kerb-flagged" if not named_kerbed else None),
                     ))
+                    named_kerbed = True
                 if items:
                     visible = self.lap_visible.get(c["lap_number"], True)
                     for item in items:
@@ -629,17 +702,55 @@ class CornerTraceDialog(_TraceDialogBase):
                     if finite_ref.size:
                         pooled_ref.append(finite_ref)
 
-            if pooled_ref:
+            max_abs_alpha = (float(np.max(np.abs(np.concatenate(pooled_alpha_rad))))
+                              if pooled_alpha_rad else 0.0)
+
+            if pooled_ref and max_abs_alpha > 0:
                 ref_slope = float(np.median(np.concatenate(pooled_ref)))
-                if pooled_alpha_rad and ref_slope > 0:
-                    max_abs_alpha = float(np.max(np.abs(np.concatenate(pooled_alpha_rad))))
-                    if max_abs_alpha > 0:
-                        x_line_rad = np.array([-max_abs_alpha, max_abs_alpha])
-                        y_line = ref_slope * x_line_rad
-                        plot.plot(
-                            np.degrees(x_line_rad), y_line,
-                            pen=pg.mkPen(color=ACCENT, width=2, style=Qt.PenStyle.SolidLine),
+                if ref_slope > 0:
+                    x_line_rad = np.array([-max_abs_alpha, max_abs_alpha])
+                    y_line = ref_slope * x_line_rad
+                    plot.plot(
+                        np.degrees(x_line_rad), y_line,
+                        pen=pg.mkPen(color=ACCENT, width=2, style=Qt.PenStyle.SolidLine),
+                        name="Linear-region reference (C_linear_ref)",
+                    )
+
+            # UI cleanup package: fitted model curve, auto modes only.
+            # Evaluated in RADIANS (the model's own natural unit, same as
+            # dugoff_lateral_force/pacejka_lateral_force's own contract)
+            # over a fine grid spanning this corner's own visited alpha
+            # range, THEN converted to degrees for the x-axis -- the same
+            # radians-in/degrees-for-display pattern the reference line
+            # above already uses (x_line_rad computed in radians, only
+            # np.degrees() at the plot() call) -- avoids the N/rad-vs-
+            # degrees tangent trap on record (thesis_notes.md): the
+            # model's Fy values themselves need no unit conversion at
+            # all (N stays N regardless of how alpha is displayed), only
+            # the x-axis representation changes.
+            if (sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka")
+                    and fit_manifest is not None and max_abs_alpha > 0):
+                axle_fit = fit_manifest.get("axles", {}).get(axle)
+                if axle_fit is not None:
+                    alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
+                    if sideslip_source == "ekf_auto_dugoff":
+                        from modules.tyre_model import dugoff_lateral_force
+                        fy_grid = dugoff_lateral_force(
+                            alpha_grid_rad, axle_fit["c_alpha_n_per_rad"], axle_fit["mu_fz_N"]
                         )
+                        model_name = "Dugoff"
+                    else:
+                        from modules.tyre_model_pacejka import pacejka_lateral_force
+                        fy_grid = pacejka_lateral_force(
+                            alpha_grid_rad, axle_fit["B"], axle_fit["C"], axle_fit["D"], axle_fit["E"]
+                        )
+                        model_name = "Pacejka"
+                    fit_date = fit_manifest.get("timestamp", "")[:10]  # YYYY-MM-DD prefix of the ISO timestamp
+                    plot.plot(
+                        np.degrees(alpha_grid_rad), fy_grid,
+                        pen=pg.mkPen(color=FITTED_CURVE_COLOR, width=2, style=Qt.PenStyle.SolidLine),
+                        name=f"Fitted {model_name} curve ({fit_date}, this session)",
+                    )
 
     def show_corner(self, summary, stability_result, parsed_data):
         """Repopulate in place for `summary`'s stable_corner_id. `summary`
@@ -762,22 +873,31 @@ class CornerTraceDialog(_TraceDialogBase):
                     any_not_moving = True
                     self._add_notmoving_bands(x, lap_not_moving)
 
+            # UI cleanup package: name= only on the FIRST plotted instance --
+            # every lap re-plots the same four series, and pyqtgraph's
+            # legend adds one row per named call, not one row per unique
+            # name (see LEGEND_FONT_PT's comment).
+            is_first = c is instances[0]
             curve_items = [
                 self.plots["stab"].plot(
                     x, stab_obs[sl][order], connect="finite",
                     pen=self._pen(STAB_COLOR, width, style, alpha),
+                    name="Yaw-moment stability" if is_first else None,
                 ),
                 self.plots["cs"].plot(
                     x, cs_f[sl][order], connect="finite",
                     pen=self._pen(CSF_COLOR, width, style, alpha),
+                    name="Front cornering stiffness" if is_first else None,
                 ),
                 self.plots["cs"].plot(
                     x, cs_r[sl][order], connect="finite",
                     pen=self._pen(CSR_COLOR, width, style, alpha),
+                    name="Rear cornering stiffness" if is_first else None,
                 ),
                 self.plots["speed"].plot(
                     x, v_kmh[sl][order], connect="finite",
                     pen=self._pen(SPEED_COLOR, width, style, alpha),
+                    name="Speed" if is_first else None,
                 ),
             ]
             self.lap_curve_items[c["lap_number"]] = curve_items
@@ -792,6 +912,8 @@ class CornerTraceDialog(_TraceDialogBase):
             self._render_tyre_curves(
                 instances, laps_by_number, bracket_start_m, bracket_end_m,
                 t, s_m, slip, forces, cs, kerb_mask,
+                sideslip_source=stability_result.get("sideslip_source"),
+                fit_manifest=stability_result.get("fit_manifest"),
             )
 
         cls_cfg = load_parameters()["classification"]
@@ -1060,6 +1182,7 @@ class LapTraceDialog(_TraceDialogBase):
 
         any_kerb = False
         any_not_moving = False
+        is_first_lap = True
         for ln in sorted(valid_lap_numbers):
             data = self._load_lap_data(ln, stability_result, parsed_data)
             if data is None:
@@ -1078,24 +1201,31 @@ class LapTraceDialog(_TraceDialogBase):
                 any_not_moving = True
                 self._add_notmoving_bands(data["x"], data["not_moving"])
 
+            # UI cleanup package: name= only on the first successfully-
+            # loaded lap -- same one-row-per-name reasoning as show_corner.
             curve_items = [
                 self.plots["stab"].plot(
                     data["x"], data["stab"], connect="finite",
                     pen=self._pen(STAB_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Yaw-moment stability" if is_first_lap else None,
                 ),
                 self.plots["cs"].plot(
                     data["x"], data["csf"], connect="finite",
                     pen=self._pen(CSF_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Front cornering stiffness" if is_first_lap else None,
                 ),
                 self.plots["cs"].plot(
                     data["x"], data["csr"], connect="finite",
                     pen=self._pen(CSR_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Rear cornering stiffness" if is_first_lap else None,
                 ),
                 self.plots["speed"].plot(
                     data["x"], data["speed"], connect="finite",
                     pen=self._pen(SPEED_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Speed" if is_first_lap else None,
                 ),
             ]
+            is_first_lap = False
             for item in curve_items:
                 item.setVisible(visible)
             self.lap_curve_items[ln] = curve_items

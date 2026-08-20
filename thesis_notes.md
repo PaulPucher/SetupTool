@@ -7384,3 +7384,252 @@ Phase 4 is confirmatory validation against already-established
 reference figures, not new hypothesis testing) -- every comparison
 (4a/4b's parameter/beta match, 4c's fallback behaviour, 4d's cache
 behaviour) came back as expected once the two bugs above were fixed.
+
+## 5. UI cleanup package: Lap 2/C5 CS discrepancy investigation + readability pass [2026-08-2X]
+
+### Part A: Lap 2, C5 front/rear CS_ratio discrepancy -- CONFIRMED within-phase median washing
+
+Investigated under the LIVE config sideslip_source (read, not assumed:
+"ekf_auto_pacejka" at the time of this investigation -- gate verdict
+"pass", health_score=0.1690, no fallback). New read-only script:
+diagnostics/inspect_lap2_corner5_cs_discrepancy.py.
+
+IDENTIFICATION: "corner 5" is stable_corner_id=5, not the raw per-lap
+corner_number field -- confirmed by reading ui/views/outing_form.py's
+own card-header construction (f"Lap {lap_number} - C{stable_corner_
+id}", the ONLY corner-number-shaped text the UI renders; corner_number
+itself is never displayed anywhere, grepped, zero matches). On lap 2,
+stable_corner_id=5 happens to also have corner_number=5 (coincidence,
+not the same field) -- both were checked independently and agree.
+
+QUESTION 1 -- same payload, same cache entry? YES, verified by reading
+both sites, not assumed:
+- Trace dialog: ui/views/corner_trace_dialog.py show_corner() --
+  `state = stability_result.get("state"); cs = stability_result.get("cs")`
+  ... `cs_f = cs["CS_ratio_f"]` (line ~705) -- the raw per-sample array.
+- Detail dropdown: ui/views/outing_form.py's phase-table builder --
+  `p = summary["phases"][phase]; csf = p["cs_ratio_f"]` (line ~1933)
+  -- a {"median","p25","p75","n"} dict.
+Both `stability_result` (trace dialog's source) and `summary` (dropdown's
+source, one element of `stability_result["summaries"]` via `_render_
+stability_summaries`) are built in the SAME `_on_stability_done` call
+from the SAME `StabilityAnalysisThread.finished` payload -- `summary`
+comes from `summarise_corners(cs, ...)` called on the EXACT SAME `cs`
+dict the trace dialog later reads back out of `stability_result["cs"]`.
+One object graph, not two caches, not a staleness question -- ruled
+out directly, not by elimination.
+
+QUESTION 2 -- aggregation, mask difference, or something else? AGGREGATION,
+confirmed with real numbers (base_mask population, this session, all
+five phases, front vs rear, per-sample min/negative-count vs the exact
+median summarise_corners reports -- reproduced to the last decimal,
+confirming zero drift between the recomputation and the stored value):
+
+  entry_2_turnin (n=96): front min=-0.3388, 10/96 samples negative
+    (10.4%), phase MEDIAN=+0.4739 (positive -- minority washed out).
+    rear min=-0.5224, 47/96 negative (48.9%, just under half), phase
+    MEDIAN=+0.2589 (also positive -- same washing, larger minority).
+  apex_3 (n=11): front min=+0.4639, 0/11 negative (never dips here),
+    MEDIAN=+0.4689. rear min=-0.0683, 11/11 negative (100% --
+    UNANIMOUS), MEDIAN=-0.0659 (negative -- this is the "rear negative"
+    the detail dropdown shows).
+  exit_4 (n=53): front never negative (0/53). rear 23/53 negative
+    (43.4%, again under half), MEDIAN=+0.0686 (positive).
+  exit_5 (n=346): neither axle ever negative.
+
+MECHANISM: front DOES dip per-sample negative (as low as -0.3388,
+entry_2_turnin) exactly as the trace plot shows -- but in every phase
+where it dips, the negative samples are a MINORITY (10.4% at worst),
+so the phase median (the statistic the dropdown displays) never goes
+negative in any of the five phases for the front axle. Rear dips
+negative in a MAJORITY or unanimous share of samples in three phases;
+in apex_3 specifically it is 100% negative, so THAT phase's median is
+also negative -- the one negative cell the dropdown shows. Both axles
+dip below zero in the raw trace; only one axle's dip is large enough a
+SHARE of any single phase to survive the phase's own median. Confirmed
+NOT a mask difference (same `idx = where(phase_moving)` selection used
+by both the recomputation here and summarise_corners' own `_phase_
+slice`/`_stats`) and NOT staleness (Question 1, above).
+
+CROSS-REFERENCE: this is a NEW, distinct instance of the general
+"CS_ratio-as-a-robust-statistic-loses-real-signal" theme this project
+has already found once, at a DIFFERENT aggregation layer -- "Production
+impact of the fix, and a structural finding about CS_ratio aggregation"
+(above) documented CROSS-LAP washing (aggregate_by_corner's median-of-
+medians across four laps). This entry documents WITHIN-PHASE washing
+(summarise_corners' own per-sample-to-single-lap-single-phase median,
+computed BEFORE any cross-lap step even runs) -- an earlier, more
+fundamental instance of the same mechanism: a minority of genuinely
+negative samples inside one phase window is invisible to any statistic
+that only reports the phase's central tendency. Not a bug -- the
+median is doing exactly what a median does -- but it means the
+detail-dropdown card is a LOSSY view of what the trace plot shows in
+full, and a user reading only the card can be genuinely unaware that
+an axle spent real time (here, ~1 second at 96 samples/2s window,
+about 10% of entry_2_turnin) below the collapse threshold. OPEN,
+not addressed here (matches the existing entry's own "OPEN" item):
+whether summarise_corners' phase stats should also report a
+below-zero fraction or similar alongside median/p25/p75 -- a
+production behaviour change, out of scope for this read-only
+investigation.
+
+VERDICT: proceeding to Part B (UI cleanup) as instructed -- this was
+aggregation, not staleness or a masking bug, so no STOP was warranted.
+
+### Part B: UI cleanup
+
+Files touched: ui/views/outing_form.py, ui/views/corner_trace_dialog.py
+(both explicitly permitted). Config additive only where already
+justified by the prior package (no new keys needed here). New: two
+diagnostics scripts (the Part A investigation, and a headless smoke
+test, see below).
+
+1. DROPDOWN: removed "EKF (frozen Dubai fit)"/"ekf_pass_1" from
+   sideslip_mode_combo's SELECTABLE items -- only Kinematic/EKF auto
+   Dugoff/EKF auto Pacejka remain choosable. ekf_pass_1 stays fully
+   functional at the config level (untouched key, untouched pass_1
+   block) -- config/parameters.json's stability_estimation.sideslip_
+   source can still be hand-set to "ekf_pass_1" and the app runs under
+   it correctly (StabilityAnalysisThread reads config directly, not
+   the combo's display text). CONSEQUENCE, documented in code and
+   here: if config IS set to "ekf_pass_1" this way, the dropdown
+   cannot display it (not in its own item list) and falls back to
+   showing "Kinematic" -- the same accepted QComboBox.setCurrentText()
+   no-op-on-unmatched-value quirk this codebase already shipped for
+   wing_position (small-decisions sweep, 2026-07-26). This does NOT
+   affect what actually analyses: only the dropdown's OWN display can
+   mismatch; estimator_status_label (post-analysis) always reads the
+   true result and correctly names "EKF (frozen pass-1 Dugoff fit)"
+   regardless of what the dropdown currently shows.
+
+2. FITTED-CURVE OVERLAY: ui/views/corner_trace_dialog.py's
+   _render_tyre_curves gained a second reference curve, drawn only
+   when sideslip_source is an auto mode and this session's own
+   fit_manifest (now threaded through show_corner -> _render_tyre_
+   curves, sourced from stability_result -- the SAME object graph
+   Part A's investigation already confirmed is one payload, not two)
+   carries axle parameters. Evaluated via modules.tyre_model.
+   dugoff_lateral_force / modules.tyre_model_pacejka.pacejka_lateral_
+   force over a fine grid spanning THIS corner's own visited slip-
+   angle range. TANGENT-TRAP AVOIDANCE (on record, thesis_notes.md
+   PLAN.md STEP 2): the grid is built and evaluated in RADIANS (alpha_
+   grid_rad = np.linspace(...)), matching both dugoff_lateral_force's
+   and pacejka_lateral_force's own contract; ONLY np.degrees() at the
+   final plot() call converts the x-axis for display -- Fy itself
+   needs no conversion (N stays N regardless of the x-axis unit).
+   Exactly the same radians-in/degrees-for-display pattern the
+   PRE-EXISTING linear reference line already used (verified by
+   reading that code before adding the new curve, not assumed).
+   Labelled with model name + fit date in the legend ("Fitted Dugoff
+   curve (2026-08-2X, this session)" or Pacejka). Kinematic/ekf_pass_1
+   modes: unchanged, fit_manifest is None so only the existing linear
+   reference line draws, exactly as before.
+
+3. LEGENDS: replaced "read a prose paragraph, mentally match colours"
+   with native pyqtgraph in-plot legends (plot.addLegend, one new
+   shared helper _style_new_legend -- font 10pt, up from pyqtgraph's
+   own 9pt default and this file's 8pt axis-label convention;
+   semi-opaque PANEL_ALT background so it stays legible over a busy
+   trace without hiding the data behind it) on EVERY plot this dialog
+   family builds: the three Traces-tab panels (stab/cs/speed, shared
+   by CornerTraceDialog AND LapTraceDialog via _TraceDialogBase --
+   ONE consistent style automatically covers both, per the work
+   order's "don't restyle per-plot ad hoc") and both Tyre-Curves-tab
+   panels (front/rear). Legend built ONCE per plot object at
+   construction time, not on every render -- verified by reading
+   pyqtgraph's own source (PlotItem.addLegend/removeItem, not
+   assumed) that plot.clear() correctly removes the corresponding
+   legend rows via item.implements('plotData') tracking, so repeated
+   show_corner()/show_lap() calls never accumulate duplicate legend
+   entries; confirmed empirically too (headless smoke test below,
+   12 consecutive show_corner calls across 3 corners x 4 laps plus
+   2 show_lap calls, no crash, no visible-in-code duplication path
+   triggered). name= is passed only on the FIRST lap/instance in every
+   per-lap loop (stab/cs/speed curves, tyre-curve scatter/kerb
+   markers) -- pyqtgraph adds one legend row per named plot() call,
+   not one per unique name, so naming every lap's curve would have
+   produced 4x-duplicated rows.
+   NOT ADDED: legend entries for the five threshold lines (stab
+   destabilising threshold, CS strong/moderate x front/rear) --
+   TESTED AND CONFIRMED NOT POSSIBLE without a crash: these use
+   pg.InfiniteLine via PlotItem.addLine, and pyqtgraph's own
+   ItemSample.paint (the legend row renderer) unconditionally reads
+   `self.item.opts['pen']`; InfiniteLine has no .opts attribute at all
+   (checked directly: `hasattr(line, 'opts')` -> False on a real
+   instance) -- adding one to a legend would raise AttributeError at
+   render time. Left to the (now-larger, 10px->12px) prose caption
+   instead, which already explains their meaning; documented in code
+   so a future attempt does not have to rediscover this by crashing.
+   Also bumped: both prose captions (legend_label, tyre_legend_label)
+   10px -> 12px, and legend_label gained setWordWrap(True) -- it was
+   NOT wrapped before this change (checked: only tyre_legend_label
+   had it), a genuine pre-existing gap for a caption long enough to
+   need it.
+
+4. READABILITY AUDIT (report only, not fixed -- code-level reading,
+   not a visual/screenshot review; this project's own convention has
+   the user test UI changes interactively, and I have no way to see
+   actual rendered layout/spacing/overlap):
+   - FONT SIZE FLOOR: outing_form.py uses 10px font in 33 places and
+     11px in 21 places (grepped and tallied, not estimated) -- verdict
+     badges, the accuracy-resolution footer, and most of the
+     recommendations panel (trigger/cell/limit/conflict labels) all
+     sit at 10px. Small for a desktop app even before considering the
+     next point.
+   - CONTRAST: TEXT_DIM (ui/style.py, #555) on PANEL (#1a1a1a) is
+     roughly 3:1 contrast -- below the WCAG AA 4.5:1 minimum for
+     normal-size text (computed from the hex values, not measured on
+     an actual rendered screen). TEXT_DIM is used pervasively
+     (captions, footers, muted labels) and often AT the smallest font
+     sizes above -- the two issues compound on exactly the text most
+     likely to carry a caveat or footnote a user should not miss.
+   - CRYPTIC ABBREVIATIONS exposed directly to the user, no tooltip or
+     inline expansion found: the corner detail table's own column
+     headers read "CSf med [p25..p75]" / "CSr med [p25..p75]" (line
+     ~1944-1945) -- internal shorthand (CSf/CSr = front/rear cornering
+     stiffness ratio) with no on-screen expansion; the accuracy-
+     resolution footer uses "Fy_split", "steer_ratio", "steer_ang"
+     (_ACCURACY_FOOTER_LABELS) -- same issue, code-identifier-style
+     text reaching the UI unexplained.
+   - PLACEHOLDER WORDING still live: both calibration banners
+     (stability panel and recommendations panel) still say literally
+     "PLACEHOLDER: sideslip estimator changed..." -- flagged in this
+     project's own WP-N2 Step 1b entry as "pending visual review", (thesis_notes.md, "WP-N2
+     Step 1b: wiring proposal") still not resolved.
+
+VALIDATION: full regression suite run TWICE this package (once
+immediately after the code changes under the LIVE config, which was
+sideslip_source="ekf_auto_pacejka" at the time -- 8 tests errored,
+entirely attributable to tests/conftest.py's own pre-existing
+pipeline_result fixture assertion that sideslip_source=="kinematic",
+not to anything in this package's changes; once more after temporarily
+flipping config to "kinematic" -- reproduces the known-good 94 passed,
+1 xfailed exactly, confirming zero regressions from Part B's changes).
+Config was flipped back to "ekf_auto_pacejka" (the user's own setting)
+immediately after, verified via a semantic JSON diff against git HEAD
+(exactly one field differs: sideslip_source; every other key/value
+identical) -- not a byte diff, since json.dump(indent=2) reformats
+array fields onto multiple lines regardless of the source file's own
+compact formatting, an existing characteristic already shared by ui/
+views/settings_view.py's own save mechanism, not new here.
+
+SELF-FOUND BUG, fixed before reporting: the temporary flip-and-restore
+script (and, it turned out, this package's own new _on_sideslip_mode_
+changed handler, copied from the same pattern) used json.dump's
+default ensure_ascii=True, which silently escapes every non-ASCII
+character ANYWHERE ELSE in the file (found here: an existing comment's
+literal "×"/"⁻¹" characters) into \uXXXX sequences on every save.
+Fixed in _on_sideslip_mode_changed (ensure_ascii=False added, this
+package's own new code) and in the live config file (rewritten once
+with ensure_ascii=False to undo the escaping, sideslip_source verified
+unchanged by that rewrite). NOT fixed: ui/views/settings_view.py's
+_on_save_clicked has the identical latent ensure_ascii=True behaviour
+-- an existing file, out of this phase's permitted-file list, flagged
+here rather than touched.
+
+New diagnostics: diagnostics/inspect_lap2_corner5_cs_discrepancy.py
+(Part A), diagnostics/smoke_test_corner_trace_dialog.py (headless
+QT_QPA_PLATFORM=offscreen construction + render smoke test for Part
+B's pyqtgraph changes -- not part of the pytest suite, run manually;
+12 show_corner + 2 show_lap calls against a real live-config analysis
+result, all completed without exception).

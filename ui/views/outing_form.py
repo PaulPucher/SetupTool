@@ -718,9 +718,18 @@ class OutingForm(QWidget):
         # construction). Participates in cache identity exactly as the
         # config key does today because it IS the config key -- no new
         # identity field needed anywhere.
+        # UI cleanup package: "EKF (frozen Dubai fit)" / "ekf_pass_1"
+        # REMOVED from the SELECTABLE items -- it is the validated
+        # baseline (the frozen pass-1 manifest tests/diagnostics compare
+        # against) and stays fully reachable by editing config/parameters.
+        # json's stability_estimation.sideslip_source directly, which is
+        # why it must not be deleted from _ESTIMATOR_LABELS above (that
+        # mapping is still used for the status line/PDF whenever ekf_
+        # pass_1 IS the active mode, config-selected). Only the DROPDOWN's
+        # own selectable set shrinks to the three modes users are meant
+        # to choose day to day.
         self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
             "Kinematic": "kinematic",
-            "EKF (frozen Dubai fit)": "ekf_pass_1",
             "EKF auto Dugoff": "ekf_auto_dugoff",
             "EKF auto Pacejka": "ekf_auto_pacejka",
         }
@@ -734,6 +743,17 @@ class OutingForm(QWidget):
         _current_mode = _load_params_for_init()["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
+        # If config is currently "ekf_pass_1" (config-level selection,
+        # not reachable from this dropdown any more), the lookup below
+        # misses and falls back to "Kinematic" -- the combo cannot
+        # display a value outside its own item list (same accepted,
+        # already-shipped QComboBox.setCurrentText() no-op-on-unmatched-
+        # value behaviour as wing_position's own legacy-value handling).
+        # This does NOT affect what actually runs: Analyse always reads
+        # sideslip_source from config, never from the combo's current
+        # display text, and estimator_status_label (post-analysis)
+        # correctly names "EKF (frozen pass-1 Dugoff fit)" regardless of
+        # what the dropdown shows. Documented, not silently accepted.
         self.sideslip_mode_combo.setCurrentText(
             self._SIDESLIP_MODE_VALUE_TO_DISPLAY.get(_current_mode, "Kinematic")
         )
@@ -1182,8 +1202,16 @@ class OutingForm(QWidget):
         if params["stability_estimation"].get("sideslip_source", "kinematic") == new_value:
             return
         params["stability_estimation"]["sideslip_source"] = new_value
+        # ensure_ascii=False: found during this package's own verification
+        # (thesis_notes.md) -- json.dump's default (True) silently escapes
+        # every non-ASCII character anywhere else in the file (e.g. this
+        # very file's own "×"/"⁻¹" in an unrelated comment)
+        # into \uXXXX sequences on every save. Same latent behaviour exists
+        # in ui/views/settings_view.py's _on_save_clicked (not fixed here,
+        # out of this phase's permitted files) -- fixed here since this is
+        # this package's own new code, not inherited silently.
         with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(params, f, indent=2)
+            json.dump(params, f, indent=2, ensure_ascii=False)
             f.write("\n")
         load_parameters.cache_clear()
         invalidate_all_pipeline_caches()
