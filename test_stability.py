@@ -95,15 +95,15 @@ if state:
     psi_dd = stab["yaw_accel_filtered_radps2"][moving]
 
     print(f"\nYaw acceleration filtered (moving):")
-    print(f"  Min: {np.min(psi_dd):.3f} rad/s²")
-    print(f"  Max: {np.max(psi_dd):.3f} rad/s²")
-    print(f"  Mean abs: {np.mean(np.abs(psi_dd)):.3f} rad/s²")
+    print(f"  Min: {np.min(psi_dd):.3f} rad/s^2")
+    print(f"  Max: {np.max(psi_dd):.3f} rad/s^2")
+    print(f"  Mean abs: {np.mean(np.abs(psi_dd)):.3f} rad/s^2")
 
     print(f"\nInertial yaw moment (moving):")
     print(f"  Min: {np.min(mz):.0f} Nm")
     print(f"  Max: {np.max(mz):.0f} Nm")
     print(f"  Mean abs: {np.mean(np.abs(mz)):.0f} Nm")
-    print(f"  Iz used: {stab['iz_used_kgm2']} kg·m²")
+    print(f"  Iz used: {stab['iz_used_kgm2']} kg*m^2")
 
     print(f"\nStability observed (valid samples: {valid.sum()} / {moving.sum()}):")
     if valid.sum() > 0:

@@ -23,7 +23,7 @@ _TAN_EPS = 1e-9  # guards the lambda division as alpha -> 0
 
 
 def dugoff_lateral_force(alpha_rad, c_alpha, mu_fz):
-    """Fy(alpha) for one axle. mu_fz is the friction force ceiling
+    """Compute Fy(alpha) for one axle. mu_fz is the friction force ceiling
     (mu * Fz, Newtons) -- a single lumped parameter here, not mu and Fz
     passed separately; the caller decides whether it's a fixed scalar or
     a per-sample array.
@@ -43,8 +43,8 @@ def dugoff_lateral_force(alpha_rad, c_alpha, mu_fz):
 
 
 def dugoff_lateral_stiffness(alpha_rad, c_alpha, mu_fz):
-    """dFy/dalpha, analytic, matching dugoff_lateral_force's sign
-    convention. Piecewise-continuous at lambda=1 by construction (the
+    """Compute dFy/dalpha analytically, matching dugoff_lateral_force's
+    sign convention. Piecewise-continuous at lambda=1 by construction (the
     Dugoff f(lambda) has a continuous first derivative there):
 
     lambda >= 1: dFy/dalpha = c_alpha / cos^2(alpha)

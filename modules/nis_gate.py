@@ -25,8 +25,8 @@ _CHI2_DF2_95 = float(chi2.ppf(0.95, df=2))
 
 
 def compute_health_score(nis_combined_full, mask, window_samples, band_low, band_high):
-    """Rolling trailing-window (width window_samples) combined-NIS
-    exceedance fraction, evaluated at every sample; returns the
+    """Compute the rolling trailing-window (width window_samples)
+    combined-NIS exceedance fraction at every sample; return the
     fraction of MASKED samples whose local window's exceedance
     fraction sits inside [band_low, band_high]. nis_combined_full is
     the EKF's full-length nis array (not pre-masked) so the rolling
@@ -53,8 +53,9 @@ def compute_health_score(nis_combined_full, mask, window_samples, band_low, band
 
 
 def classify_score(health_score, threshold_use_ekf, threshold_warn):
-    """Pure threshold classification, split out from compute_health_score
-    so boundary behaviour can be unit-tested without a real EKF run.
+    """Classify health_score by pure threshold logic, split out from
+    compute_health_score so boundary behaviour can be unit-tested without
+    a real EKF run.
     NaN (score != score) always classifies 'fail' -- never 'pass',
     matching the "never silently pass" requirement for degenerate
     inputs. Boundaries are >= on both sides (a score exactly at
@@ -70,11 +71,11 @@ def classify_score(health_score, threshold_use_ekf, threshold_warn):
 
 
 def evaluate_gate(nis_combined_full, mask, params):
-    """Top-level entry point: params is the raw or accuracy-resolved
-    parameters dict (reads params["nis_gate"] only). Returns a dict
-    with the verdict plus every number behind it, so a caller (the
-    production analysis thread, a diagnostic script) never has to
-    re-derive what produced the verdict.
+    """Evaluate the gate as the top-level entry point. params is the raw
+    or accuracy-resolved parameters dict (reads params["nis_gate"] only).
+    Returns a dict with the verdict plus every number behind it, so a
+    caller (the production analysis thread, a diagnostic script) never
+    has to re-derive what produced the verdict.
     """
     cfg = params["nis_gate"]
     window_samples = int(cfg["window_samples"])

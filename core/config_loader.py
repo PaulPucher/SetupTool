@@ -1,5 +1,5 @@
 # Loads and parses config files from the config/ directory.
-# Pure Python — no Qt imports allowed in core/.
+# Pure Python -- no Qt imports allowed in core/.
 
 import json
 import os

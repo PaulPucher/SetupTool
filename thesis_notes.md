@@ -8552,3 +8552,558 @@ radius, not discovered after the fact):
   change, never carried over.
 No widening was applied. This is a shared-mask production change with
 a real, quantified population cost, and it gets its own decision.
+
+## 6. Documentation/comment polish pass (text-only, no functional changes) [2026-08-30]
+
+Unsupervised package, 5 phases, scope: every .py file in modules/,
+ui/, core/, diagnostics/, tests/, plus test_stability.py -- comments,
+docstrings, and (Phase 2 only) user-facing UI strings, rewritten or
+removed against an "AI-sounding" removal list (narrated-the-obvious
+comments, filler/hedging words, conversational tone, emoji, decorative
+separators, stale TODOs). No number, threshold, config value, control
+flow, or function/class signature was changed. Full report delivered
+to the user in-session; summary here for the record.
+Phase 1 (modules/, 14 files): mostly docstring-mood tightening and
+filler-word removal; 6 private-helper-local variable renames (single-
+letter/misleading names only, never a signature/config key); found
+and fixed 2 ASCII violations (em-dashes in corner_analysis.py warning
+strings). Most files (accuracy_resolution.py, geo.py, recommendation.py)
+needed no changes -- already at the target style from prior sessions'
+own comment-discipline work.
+Phase 2 (ui/+core/, 17 files): same treatment plus a user-facing-
+string pass. 41 non-ASCII characters normalized to ASCII across
+ui/views/outing_form.py alone (em-dashes, degree signs, middot
+separators, arrow glyphs), dozens more across the other 16 files.
+The four already-decided protected texts (the "[UNCAL]" marker, both
+calibration PLACEHOLDER banners, _format_estimator_status's returned
+templates) were explicitly preserved everywhere they appear, verified
+by grep after editing. One field label improved (settings_view.py
+"Cross x track area" -> "Frontal area (cross-track)").
+Phase 3 (diagnostics/+tests/, 89 files): zero edits needed anywhere --
+every file was already at or above the target standard. tests/ was
+additionally checked against a hard no-touch-test-matching-content
+rule (assertions, golden literals, fixture names, the "regression not
+correctness" framing); confirmed nothing eligible for change existed.
+Phase 4 (consistency sweep): reconciled an ASCII-handling
+inconsistency that Phase 2's file-disjoint sub-agents introduced
+(some fixed em-dash/middot/degree-sign occurrences, others deliberately
+deferred pending a repo-wide decision) -- resolved by extending the
+same ASCII normalization to core/pdf_export.py and core/
+weekend_pdf_export.py, which also repaired a real regression the
+Phase 2 pass itself caused: core/pdf_export.py's CORNER_LABELS and
+ui/views/outing_form.py's CORNER_LABELS (a pre-existing hand-copied
+duplicate dict, not new to this pass) had briefly gone text-different
+("Camber (deg-sign)" vs "Camber (deg)") after independent per-file
+fixes with no shared visibility; now byte-identical again. Terminology
+sweep found and fixed 2 stray "tire" spellings (diagnostics/
+inspect_fz_sign_conventions.py print strings); "kerb" vs "curb",
+"sideslip" vs "side slip", and axle-naming conventions were already
+consistent repo-wide. Config comments (parameters.json, channels.json)
+and module headers were already complete and consistent; no changes
+needed.
+Verification: full regression suite run twice. The first run (8
+errors) was not caused by this pass -- config/parameters.json's
+sideslip_source was at the user's own live value (ekf_auto_pacejka)
+rather than "kinematic", which every golden fixture requires; this is
+the same temporarily-flip-and-restore step every prior full-suite run
+in this project's history has used (see NOW section above). Restored
+to kinematic, reran: 110 passed, 1 xfailed -- byte-identical to the
+recorded baseline. sideslip_source restored to the user's own live
+value afterward, verified byte-identical to git HEAD via diff. No
+commit made; protected set (docs/literature/, docs/car_data/,
+config/car_data.json, HANDOVER.md, docs/study/) confirmed empty via
+git ls-files.
+Items surfaced but deliberately not acted on (report-only, per this
+package's own work order): a possible aero downforce sign-convention
+question in estimate_vertical_loads's fz_aero_total_N formula (not
+verified against config's actual stored cl); the CORNER_LABELS
+hand-copy duplication itself (text now reconciled, but the structural
+duplication predates this pass and remains); one dead local variable
+in diagnostics/inspect_abs_slip_channels.py; four live "page/p. TBD
+verify" citation placeholders (Rajamani, Milliken & Milliken) that
+need the physical text to resolve, not touched.
+
+### Aero downforce sign convention verified computationally [2026-08-30]
+
+Follow-up to the polish pass's report-only flag above. Read-only
+check, plus one config comment (see below) -- no code changed.
+modules/stability_analysis.py estimate_vertical_loads:
+  fz_aero_total_N = -0.5 * rho * v^2 * a_aero * cl
+-0.5*rho*v^2*a_aero is never positive (rho, v^2, a_aero all >= 0), so
+fz_aero_total_N's sign is the OPPOSITE of cl's sign: cl < 0 gives a
+positive (downforce) contribution, cl > 0 gives a negative (lift)
+contribution -- the standard aerodynamic lift-coefficient convention
+(positive = lift, negative = downforce), not a "downforce is positive"
+convention. This matches config/parameters.json's own pre-existing
+lift_coeff_note exactly, which had already worked this out from the
+formula alone but flagged it as INFERRED, not confirmed against a
+real value (no numeric Cl default existed in the shared reference
+files to check against).
+Config's cl entry at the time of this check: "lift_coeff": 0.0, Level
+1 (config default, chained-constant into vertical_load_split/
+per_wheel_load_split's own Level-1 cap) -- a placeholder, not sourced,
+inert (multiplies to exactly zero at every speed regardless of sign,
+same reasoning as cross_track_area_m2's own note).
+Computational test (diagnostics-style one-off script, not committed
+to the repo, run directly against the live estimate_vertical_loads
+function with the real config's mass/wheelbase/cog values, isolating
+the aero term: ax=ay=0, v=200 km/h): static loads fz_f=5692.7 N
+(580.3 kgf), fz_r=7609.7 N (775.7 kgf). Test cl magnitude 2.335,
+a_aero=2.0 m^2 (ClA~4.67 m^2, ~900 kgf combined downforce at 200
+km/h) -- a public-domain motorsport-engineering ballpark for a
+GT3-class car, NOT a sourced team or literature figure; used only to
+pick a physically plausible magnitude for this sign test, not
+proposed as this car's real value.
+  cl = -2.335 (documented convention): fz_f +3778.0 N, fz_r +5050.3 N
+    -- BOTH INCREASE. Convention confirmed correct as documented.
+  cl = +2.335 (naive "positive = downforce" reading): fz_f -3778.0 N,
+    fz_r -5050.3 N -- both decrease, exactly the inverted-looking
+    result the naive reading would produce. This is not a second bug;
+    it is the same formula evaluated under the WRONG assumed sign,
+    demonstrating why the convention needs to be unmissable at the
+    config key, not just in a long paragraph note.
+CONCLUSION: the convention is correctly implemented and was already
+correctly documented in lift_coeff_note; the original polish-pass flag
+is RESOLVED, not a bug -- it surfaced a real ambiguity (a paragraph
+note easy to skim past) rather than a real defect. Added a new short
+config key, lift_coeff_sign_convention (config/parameters.json,
+one line, next to lift_coeff), stating the rule unmissably for
+whoever enters the first real Cl value; the original long note is
+preserved unedited underneath it. No code changed. No commit made.
+
+## 7. PDF layout rework: shared strip renderer [2026-08-30]
+
+Tier C (UI/product). Visual rework of the setup/setdown PDF and the
+weekend PDF's setup-sheet content -- layout only, same fields, same
+data sources, same calling contracts (ui/views/outing_form.py's
+_print_sheet and generate_weekend_pdf's signature both unchanged).
+Proposed as a 3-step inventory-then-sketch (Step 1 read core/pdf_
+export.py and core/weekend_pdf_export.py; Step 2 proposed the new
+layout against six fixed decisions -- landscape A4, four strips/page,
+bordered cells, front-up 2x2 wheel orientation, marked-position
+schematics, one shared renderer for both documents; Step 3 drew an
+ASCII strip sketch with the real 17-field-per-corner set and flagged
+where it would be tight), approved with clarifications, then built.
+
+INVENTORY FINDING (Step 1a), the reason for decision 1 below: the two
+documents' setup-sheet field sets had drifted apart. core/pdf_
+export.py's single-outing sheet printed 17 fields/corner (6 core +
+5 damper + 6 advanced) plus a 2x2 corner-weight grid; core/weekend_
+pdf_export.py's per-outing setup table printed only 12 fields/corner
+(core + advanced -- the 5 damper fields were never wired in) and no
+weight grid, and never read setdown_data at all. Decided: the single-
+outing 17-field set is canonical; the weekend PDF's narrower set was
+drift, not a deliberate choice.
+
+INVENTORY FINDING (Step 1b): "splitter and diffuser position
+schematics" as originally described did not match the code. Grepped
+the whole repo: splitter_offset is a plain numeric spinbox (mm
+offset) in both the UI and the old PDF, and no "diffuser" field
+exists anywhere -- it appears only as prose inside ride_height_
+rear's mechanism note. The only fields with a real, config-backed
+discrete position set are wing_position (P8/P9/P10, cross-checked
+against car_data.json's wing_position_table) and arb_front_mount
+(P0/P1/P2). Decided: schematics for wing_position/arb_front_mount
+only; splitter_offset stays a numeric cell; no diffuser field
+invented.
+
+IMPLEMENTATION. core/pdf_export.py gained: PositionSchematic, a
+Flowable subclass drawing marked-position boxes with plain reportlab
+canvas primitives (rect/drawCentredString) -- no new dependency, the
+module already imported reportlab.platypus.Flowable path; a two-
+style-preset system (_strip_styles('large'|'small')) so one set of
+layout functions serves both the full-page single-session print and
+the quarter-page weekend strip; _corner_box implementing the
+two-layer design (Decision 3: CORNER_LABELS at readable size as the
+core row, a new abbreviated DENSE_LABELS dict folding the former
+hardcoded damper row + ADVANCED_LABELS into one dense row); and
+build_session_strip, the one shared renderer, wrapped in
+KeepInFrame(mode='shrink') so a strip that runs long shrinks to fit
+its box rather than overflowing the four-strip grid -- addresses the
+tightness Step 3 flagged, and empirically turned out to have comfortable
+headroom to spare once the two-layer design was in place, not the
+tight fit originally feared.
+core/weekend_pdf_export.py gained a new _build_setup_sheets_section:
+iterates all outings, calls build_session_strip at 'small' scale
+once for setup_data and once for setdown_data per outing, four
+strips per landscape page (a page break every 2 outings so a pair is
+never split), inserted between the cover page and the existing per-
+outing analysis/recommendations/feedback pages. The old embedded
+"Setup Sheet" table inside each outing's analysis page was removed
+(not duplicated) since its content now lives in the dedicated strips
+section -- a structural call made during implementation, not
+separately re-confirmed with the user before building, flagged here
+for visibility. The whole weekend document is now landscape A4
+(previously portrait) since SimpleDocTemplate takes one page size
+for the whole document and the approved decision was "landscape A4
+both documents" without carving out the analysis pages; their
+existing table code needed no changes since column widths already
+derive proportionally from PAGE_W/CONTENT_W.
+arb_front_mount now prints (via its schematic box) for the first
+time -- it was collected in the UI but never printed before this
+package (Step 1a finding). differential_locking_torque_measured (the
+5-point table) remains unprinted, per instruction, as its own open
+decision.
+
+BUGS FOUND AND FIXED DURING BUILD, before delivery (report-only
+findings from generating and visually inspecting sample PDFs against
+the real Dubai outing, not from a golden test -- none exists for PDF
+output, confirmed by grep before assuming it): (1) the team logo was
+sized proportionally to the FULL strip height (logo_h = strip_h *
+0.35), which is correct intuition at 'small' scale but at 'large'
+scale (a whole landscape page, ~190mm) produced a logo wider than the
+page, overlapping the header -- fixed to a small fixed height per
+size preset (6mm large / 3mm small) instead of scaling with strip_h.
+(2) The Diff Preload/Position/Splitter numeric rows used a 55/45
+label/value column split sized for multi-line text, leaving a single
+digit stranded in a ~50mm-wide cell -- tightened to 75/25.
+Verification: full regression suite (110 passed, 1 xfailed, byte-
+identical to the recorded baseline) run under the same temporarily-
+flipped-kinematic-then-restored procedure as every other full-suite
+run in this project's history (sideslip_source has no bearing on PDF
+generation, but the golden pipeline/recommendation tests still
+require it); test_stability.py exit 0; three sample PDFs generated
+against the real Dubai weekend (outing 1 "Warmup", real CSV-backed,
+and outing 2 "Practice") and visually inspected page-by-page (a
+pymupdf render step, installed temporarily for this QA only and
+uninstalled immediately after -- never a project dependency); no
+commit made; protected set confirmed empty.
+
+## 8. Splitter/diffuser measurement points [2026-08-30]
+
+### Phase 1: data model and persistence pattern
+
+Tier C (UI/product). New feature: five nullable floor-referenced mm
+measurement points each for splitter and diffuser, distinct from and
+additive to the existing splitter_offset SETTING (car-referenced,
+unchanged). Investigated where setup/setdown data lives before
+writing anything: Outing.setup_data/setdown_data (models/outing.py)
+are plain String(10000) columns holding a JSON blob with no schema
+version field at all -- unlike analysis_data, which carries
+ANALYSIS_SCHEMA_VERSION specifically because it drives live verdict
+rendering and cache invalidation (a stricter requirement that doesn't
+apply here). The established migration pattern for this JSON blob is
+purely additive: ui/views/outing_form.py's _load_inputs only sets a
+widget from a saved key if that key exists in the saved JSON AND a
+widget for it exists in the current form -- no version bump, no
+migration script, ever, for any field added to this blob historically
+(arb_front_mount, wing_position, the diff-torque table). A prior
+addition, differential_locking_torque_measured, already solved the
+exact shape problem here: a structured multi-value group that doesn't
+fit the flat corner_key->param->widget model, handled by a pop-based
+reshape pair (_reshape_diff_torque_out/_in) that flattens to numbered
+widget keys for editing and folds back to the storage shape on save/
+load. Followed that pattern exactly rather than inventing a new one:
+_reshape_points_out/_reshape_points_in (ui/views/outing_form.py),
+generalised over both point groups via _POINT_GROUPS = [("splitter_
+point", "splitter_points", 5), ("diffuser_point", "diffuser_points",
+5)] since they share one shape (5 nullable floats) -- the diff-torque
+functions themselves stayed dedicated (not merged into this), since
+unifying three different call sites for a one-time historical field
+would be a bigger, unrequested change.
+Storage shape: car["splitter_points"] / car["diffuser_points"], each
+a plain JSON array of 5 elements, index 0..4 = point 1..5, empty/
+unparseable entries stored as null (not 0.0 and not omitted) --
+literally "nullable mm arrays" as specified, not the diff-torque
+precedent's nested {"1":val,...} dict (that shape was chosen for a
+dict keyed by physical position number for a different reason;
+arrays fit "point 1..5 in fixed physical order" more directly and
+the spec asked for arrays specifically).
+Widget type decided by precedent, not preference: the damper fields
+(bump_ls/bump_hs/blowoff/rebound_ls/rebound_hs) are QLineEdit, not
+QDoubleSpinBox, specifically because they're allowed to be blank
+(confirmed by reading _mirror_damper's .text() calls and the real
+Dubai outing's own stored JSON, which has "bump_ls": "10" as a
+string, "" for the unset rear corners) -- QDoubleSpinBox in this
+codebase always collects/loads a definite float (_collect_inputs:
+widget.value(); _load_inputs: float(value) if value else 0.0), never
+null, so it was never a candidate for a genuinely-nullable field.
+Splitter/diffuser points follow the damper precedent: QLineEdit per
+point, "" round-trips to None through the reshape functions, matching
+"all ten values nullable" without adding a new widget-type case to
+the generic _collect_inputs/_load_inputs dispatch at all.
+config/setup_parameters.json precedent checked and NOT followed here:
+differential_locking_torque_measured (also measured/check data, not
+an adjustable setting) has no registry entry there -- that registry
+is for recommendation-engine-relevant settings. Splitter/diffuser
+points are the same category (measured, not a target), so no
+setup_parameters.json entry was added for them either, consistent
+with the existing precedent rather than a new decision.
+No source paper-sheet image exists in docs/car_data/ for splitter or
+diffuser measurement points (checked before assuming a layout) --
+the exact physical point positions used in Phase 2's drawn widget are
+this session's own reasonable placement (4 spread + front-middle for
+splitter on a rounded nose outline; 4 corners + centre for diffuser
+on a rectangle), NOT digitised from a team source, flagged for the
+user's visual confirmation once rendered. This is the same "no source
+image digitises this parameter" situation setup_parameters.json
+already records for wing_position's mechanism note -- team-knowledge-
+only, not a chair/literature question.
+Verified before building further: reshape round-trip (ad hoc script,
+not yet the Phase 4 formal test) confirms (1) an old outing's JSON
+with no point keys at all loads with zero phantom keys added -- the
+existing "skip unknown param" path in _load_inputs then leaves new
+widgets at their default empty state, satisfying "old outings load
+unchanged with empty points" without any explicit migration step; (2)
+collected data with some points set and some blank correctly reshapes
+to an array with None in the blank slots, correct index order; (3)
+the array round-trips back to the correct flat keys; (4) splitter_
+offset is untouched throughout every step. No modules/ file touched;
+no DB column added (both point groups live inside the existing JSON
+blob columns); no commit.
+
+### Phase 2: setup form widget
+
+New file ui/views/measurement_points_widget.py: MeasurementPointsWidget
+(QWidget), one instance for splitter and one for diffuser, each holding
+5 real QLineEdit children positioned by fractional (fx, fy) coordinates
+over a hand-drawn outline (rounded blade for splitter, plain rectangle
+for diffuser) -- fy=0 is the front of the car, matching the 2x2 wheel-
+grid's front-up convention used everywhere else in this form. The
+QLineEdits are the actual widgets registered into self._active_inputs
+["car"]["splitter_point_N"] / ["diffuser_point_N"] in ui/views/outing_
+form.py's _build_car_center, exactly like every other field in this
+form -- no special-case added to the generic _collect_inputs/_load_
+inputs dispatch, confirmed by construction (the widget IS a QLineEdit,
+just positioned by the parent's paintEvent/resizeEvent instead of a
+QLayout). Called once per _build_setup_section(prefix) invocation, so
+setup and setdown each get their own independent widget instances
+automatically, same as every other car-level field -- no duplication
+logic needed. Added a tooltip to the existing Splitter (splitter_
+offset) row ("setting, vs car") and to each point box ("measured, vs
+floor") per the work order's visibility requirement; label headers
+above each diagram state the same distinction in text.
+No source paper-sheet image for splitter or diffuser exists in docs/
+car_data/ (checked, see Phase 1) -- the exact point layout used here
+(splitter: 4 spread + 1 front-middle above; diffuser: 4 corners + 1
+centre) is this session's own reasonable placement, NOT digitised,
+and needs the user's visual confirmation against the team's real sheet
+before being treated as final; the shapes/positions are trivial to
+adjust (two coordinate lists in the new file) once corrected.
+Verified by construction, not just import: a headless script (Qt
+offscreen platform, same technique as diagnostics/smoke_test_corner_
+trace_dialog.py) built a real OutingForm against the real Dubai
+"Warmup" outing (whose stored setup_data predates this feature) and
+screenshotted the result. Confirms (1) both widgets render with the
+correct shape/point layout/front-up arrow: (2) loading the real old
+outing leaves all 10 point boxes empty (text='') -- "old outings show
+empty boxes" holds in the actual form, not just in the reshape unit
+logic; (3) setup and setdown each got their own independent widget
+instances (4 total found via findChildren), both empty, confirming
+per-sheet duplication.
+One rendering artifact found and understood, not a code bug: the
+whole form's text renders as tofu boxes under Qt's offscreen platform
+without QT_QPA_FONTDIR pointed at a real font directory -- confirmed
+this affects EVERY label in the form, not just the new widget, so it
+is an environment default, not something this change introduced;
+fixed for screenshot purposes by setting QT_QPA_FONTDIR=C:/Windows/
+Fonts. Separately, the first render of the "Car" groupbox in isolation
+showed the Diffuser Points widget overlapping the ARB/Wing rows below
+it (groupbox actual size 350x330 against a sizeHint of 238x600) --
+forcing the groupbox to its own sizeHint before grabbing produced a
+correctly stacked, non-overlapping layout, so this reads as a headless-
+grab timing artifact (the widget hadn't been given a layout pass to
+grow to its natural height in that isolated grab) rather than a
+production bug -- QVBoxLayout/QScrollArea are supposed to give a
+child its full sizeHint and let the scroll area handle the rest. Not
+verified on a real display; flagged so the user's own manual QA
+(per this project's standing UI-change rule) specifically checks that
+the Car section scrolls/expands cleanly, not just that it looks right
+in the first visible screenful.
+
+### Phase 3: PDF
+
+core/pdf_export.py gained MeasurementDiagram (a Flowable, same canvas-
+primitive mechanism as the existing PositionSchematic) drawing the
+outline shape with each point's value in a small bordered box at its
+physical position, monochrome. SPLITTER_POINT_POSITIONS/DIFFUSER_
+POINT_POSITIONS duplicate ui/views/measurement_points_widget.py's
+fraction coordinates -- core/ cannot import that file (PyQt6-based;
+no PyQt6 import is allowed in core/ or modules/), so the two copies
+are kept in sync by hand, flagged in both files' own comments, the
+same NEUTRAL ENGINEERING duplication risk already recorded for
+CORNER_LABELS between core/pdf_export.py and ui/views/outing_form.py.
+Weekend (small) scale legibility, as required: rendered BOTH candidates
+against the real Dubai outing (in-memory-only synthetic point values,
+never saved -- 12.5/-/8.0/9.2/15.0 for splitter, 22.0/-/18.5/19.0/- for
+diffuser) and looked at both before choosing.
+- Variant A (kept): the same outline+value-box diagram at both scales,
+  just smaller. At weekend scale (4-per-page), a 4x-zoomed crop showed
+  every value legible (15, 12.5, -, 8, 9.2, 22, -, 18.5, 19) and the
+  diagram stayed correctly bounded inside its column.
+- Variant B (rejected): a values-only row (point-number header + value
+  cells, no outline), meant as a deliberate degrade path. Rendered
+  the same weekend page instead: the row overflowed its allotted
+  column width and visibly displaced/blanked the neighbouring Wing/
+  ARB schematic rendering in the same crop -- a real defect, not a
+  close call. Not debugged further since Variant A already worked
+  cleanly; removed from the code entirely after the comparison
+  (_measurement_list_row, the measurement_mode parameter threaded
+  through build_session_strip/_car_column, and weekend_pdf_export.py's
+  MEASUREMENT_MODE toggle) rather than leave a losing, broken path in
+  place -- one code path, not a flag nobody will use.
+Verification: sample PDFs regenerated from the real Dubai outing
+(synthetic in-memory point values as above, real everything else) for
+setup (points populated, values render correctly with None -> "-"),
+setdown (untouched, all ten boxes show "-", confirming old-data
+behaviour holds in the actual PDF too, not just the reshape logic),
+and the weekend document (both outings, both sheet types, four
+strips/page, values render correctly on the outing with points set,
+blank on the one without). No exception after the variant-B removal
+and re-render, confirming the cleanup was a pure subtraction.
+
+### Phase 4: targeted tests
+
+Extracted the reshape logic out of ui/views/outing_form.py into a new
+core/setup_data_points.py (pure JSON-string functions, no Qt) before
+writing tests, rather than testing it in place -- tests/conftest.py's
+own pipeline_result fixture already established the precedent that
+this suite deliberately keeps PyQt6 modules (outing_form.py) out of
+pytest entirely ("pulling Qt into a headless test run ... was judged
+not worth the fragility"). outing_form.py's own _reshape_points_out/
+_reshape_points_in are now two-line delegating wrappers; behaviour is
+unchanged, confirmed by the diagnostics smoke test below exercising
+them through the real form.
+tests/test_setup_data_points.py, 9 new tests, all passing, 0.20s:
+old-outing load is a no-op (no phantom keys); reshape_out with some/
+no points set; round trip recovers flat keys for one and both groups
+independently; splitter_offset survives untouched; an unparseable
+value degrades to null instead of raising; a hand-shortened array
+pads with blank on load instead of an IndexError; and a contract
+check that core/pdf_export.py's duplicated position lists (Phase 3)
+still have 5 entries each, matching POINT_GROUPS -- catches the two
+hand-kept copies silently diverging in count, though not in exact
+fractional position (that would need visual re-inspection, not a
+test).
+diagnostics/smoke_test_measurement_points_widget.py (new, Qt/
+offscreen, run manually, same precedent as smoke_test_corner_trace_
+dialog.py): constructs a real OutingForm against the real Dubai
+outing, confirms 4 MeasurementPointsWidget instances (2 splitter + 2
+diffuser, one pair per setup/setdown) with all 20 point boxes empty
+for this pre-existing outing, confirms setup's and setdown's widgets
+are independent objects (not the same instance reused), then drives
+the actual production path end to end: type into two point boxes,
+call the form's own _collect_setup_data(), assert the resulting JSON
+has the correct splitter_points array, clear the boxes, call the
+form's own _load_setup_data() on that JSON, and assert the boxes show
+the original text again. This is the "form binding" test target --
+distinct from the pure-logic tests above in that it exercises the
+real widget registration and the real _collect_inputs/_load_inputs
+dispatch, not a simulation of what they would produce.
+No golden file regenerated or touched. Full regression suite not run
+during this phase (standing testing policy for this work package --
+runs once, at the very end, before the Phase 5 report).
+
+### Position re-extraction against the user's annotated reference [2026-08-30]
+
+The user annotated a screenshot of the Phase 2 "Car" groupbox render
+(the same 238x600 image this session's own phase2_car_group_0.png
+produced) with pure-green dots marking the real desired point
+positions, and provided it by placing it at the repo root as image.png
+(deleted after use, per instruction -- never committed, confirmed via
+git status before and after).
+EXTRACTION (programmatic, not eyeballed): connected-component
+clustering (scipy.ndimage.label) of pixels where G > R+15 and G > B+15
+found exactly 10 blobs, ~66-78px each, centroids computed via
+ndimage.center_of_mass. Each shape's own bounding box was found the
+same way (dark-fill connected-component detection, threshold R,G,B <
+80): splitter x=[24,214] y=[140,260], diffuser x=[24,214] y=[318,458]
+in the source image's pixel space. Blobs were assigned to a shape by
+y-range membership (unambiguous, no blob straddled both ranges), then
+normalised to fx=(x-x0)/width, fy=(y-y0)/height within its own shape's
+box -- exactly the frame the widget/PDF renderers already use.
+NUMBERING (geometry, stated for confirmation per the work order):
+splitter's 4 spread points were sorted strictly by x (1=leftmost ..
+4=rightmost) as instructed, even though they sit at two different fy
+levels, not one row -- point 5 is the one isolated near fy~0, the
+front-middle reference. Diffuser had no stated rule; assigned natural
+reading order (upper pair left-to-right as 1,2; lower row of three
+left-to-right as 3,4,5) and flagged as a proposal, not a fact.
+Final values -- SPLITTER_POINT_POSITIONS = [(0.04,0.80), (0.18,0.26),
+(0.89,0.25), (0.95,0.74), (0.49,0.00)]; DIFFUSER_POINT_POSITIONS =
+[(0.01,0.37), (0.98,0.38), (0.02,0.96), (0.48,0.95), (0.96,0.95)].
+DE-DUPLICATION: moved both lists into core/setup_data_points.py (the
+one module both ui/views/measurement_points_widget.py and core/
+pdf_export.py can import without crossing the PyQt6 boundary) --
+resolves the Phase 4 contract test's own flagged risk; the position
+count check (test_point_groups_shape_matches_the_pdf_renderer) now
+also implicitly guards against the single source itself going out of
+sync with POINT_GROUPS' counts.
+SHAPE: splitter outline replaced the four-corner rounded-rect with a
+custom path -- straight rear edge and sides, one cubic-bezier arc
+across the front (SPLITTER_SIDE_FRACTION=0.45 of height is straight
+before the curve begins) -- implemented identically in both Qt
+(_splitter_path, QPainterPath) and reportlab (_splitter_path,
+canvas.beginPath) frames, mirrored across their opposite y-axis
+conventions (Qt y-down vs reportlab y-up) by construction, documented
+inline in both files so the mirroring isn't accidental-looking.
+Diffuser stayed a plain rectangle, per instruction. Front-up travel
+arrow kept unchanged.
+BUG FOUND AND FIXED mid-iteration (render-and-look caught it, as
+intended): the wider point spread (fx to 0.98, fy from 0.00 to 0.96 --
+several points sitting ON or past the outline's own edge, by design,
+matching the reference annotation) overflowed the PDF diagram's
+allotted column width and overlapped its own section title. Root
+cause: MeasurementDiagram's box positions were computed relative to
+the outline's box, but the Flowable's reported wrap() size didn't
+reserve room for a box centred exactly at fx=0/1 or fy=0/1 to extend
+past that box's edge. Fixed by having the Flowable reserve box_w/2 and
+box_h/2 of margin on every side (wrap() returns width+box_w,
+height+box_h; draw() translates by that margin before painting) and
+adjusting _measurement_diagram_boxes's own diagram_w calculation so
+diagram_w + box_w sums to exactly the allotted column width, not
+90-something percent of it as a rough guess. Applied the equivalent
+fix on the Qt side too (MARGIN raised from 16 to 20, since BOX_W/2=17
+was already technically tighter than the outer margin, just not
+visibly clipping yet at the sizes rendered so far) -- fixed
+proactively rather than waiting for it to surface as a visible bug at
+some other widget size.
+VERIFICATION: re-rendered the form widget (both car groupboxes) and
+all three PDFs (setup, setdown, weekend) after the position/shape
+change, then again after the margin fix -- confirmed no clipping/
+overflow at either scale, correct value-to-position mapping (spot-
+checked against the same synthetic 12.5/-/8.0/9.2/15.0 splitter and
+22.0/-/18.5/19.0/- diffuser values used in the Phase 3 render), old-
+outing blanks still render as "-" throughout. tests/test_setup_
+data_points.py (9/9) and diagnostics/smoke_test_measurement_points_
+widget.py both re-run clean after the refactor -- no suite run this
+turn (nothing outside the widget/PDF/position table was touched, per
+the standing testing policy). The Car section's scroll/expand
+behaviour on a real display remains flagged from Phase 2 -- still not
+verifiable headlessly, still needs the user's own manual QA.
+
+### Position symmetrization [2026-08-30]
+
+The user pointed out the raw extracted positions carried hand-jitter
+from manual dot placement, and the car is left/right symmetric, so the
+diagram should be too. Symmetrized both mirror pairs per shape (average
+x_offset = (x_left + (1-x_right))/2 applied as (x_offset, 1-x_offset),
+shared y = mean of the pair's y) and snapped each shape's centre point's
+x to exactly 0.5 (y unchanged) -- computed via a short one-off script,
+not by hand, to avoid a transcription error at this stage.
+Raw extracted (pre-symmetrization, recorded here since core/setup_
+data_points.py's own comment states only the final values):
+  splitter raw: P1=(0.04,0.80) P2=(0.18,0.26) P3=(0.89,0.25)
+    P4=(0.95,0.74) P5=(0.49,0.00)
+  diffuser raw: P1=(0.01,0.37) P2=(0.98,0.38) P3=(0.02,0.96)
+    P4=(0.48,0.95) P5=(0.96,0.95)
+Symmetrized (now the literal constants in core/setup_data_points.py):
+  SPLITTER_POINT_POSITIONS = [(0.045,0.77), (0.145,0.255), (0.855,0.255),
+    (0.955,0.77), (0.5,0.0)]  -- pairs 1&4, 2&3; centre 5
+  DIFFUSER_POINT_POSITIONS = [(0.015,0.375), (0.985,0.375), (0.03,0.955),
+    (0.5,0.95), (0.97,0.955)]  -- pairs 1&2, 3&5; centre 4
+Stored as plain literals, no runtime symmetrization logic -- this was a
+one-time cleanup of the extracted constants, not a general capability.
+Re-rendered the form widget and all three PDFs (setup, setdown,
+weekend) after the change: visually symmetric at both scales, no
+clipping/overflow (the margin fix from the prior pass already covers
+these positions, all still within the same [0,1] extremes). Cross-
+checked one shape's rendered box positions against the exact literal
+values via pixel-space bounding-box detection -- matched the expected
+mirror-symmetric offsets exactly (guaranteed by the averaging
+construction, this was a sanity check against a transcription error,
+not evidence of anything that could have differed). tests/test_setup_
+data_points.py (9/9) and diagnostics/smoke_test_measurement_points_
+widget.py both re-run clean. No suite run, per the standing testing
+policy for this work package (nothing outside the position table was
+touched).

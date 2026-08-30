@@ -1,12 +1,15 @@
 # Weekend PDF export (Tier C UI feature, approved proposal + three
-# corrections). One multi-page document covering a user-selected subset of
-# a race weekend's outings: a cover summary page, then one section per
-# outing (setup sheet, resolved accuracy footer, verdict summary,
-# recommendations, driver feedback). reportlab tables throughout -- no
-# corner-grid card layout (that style is core/pdf_export.py's single-
-# outing setup sheet, a different document with a different purpose;
-# CORNER_LABELS/ADVANCED_LABELS/CAR_LABELS/WEIGHT_TOTALS_LABELS/_fmt are
-# reused from there so the parameter-label mapping has one source).
+# corrections; PDF layout rework package: shared strip renderer, see
+# thesis_notes.md). One multi-page document covering a user-selected
+# subset of a race weekend's outings: a cover summary page, a dedicated
+# Setup/Setdown sheets section (landscape strips, core/pdf_export.py's
+# build_session_strip at 'small' scale, four strips/page = two outings'
+# Setup+Setdown pairs, chronological, page break between pairs), then one
+# section per outing for what setup sheets don't cover: resolved accuracy
+# footer, verdict summary, recommendations, driver feedback. reportlab
+# tables throughout for the non-strip sections -- CORNER_LABELS/
+# CAR_LABELS/WEIGHT_TOTALS_LABELS/_fmt are reused from core/pdf_export.py
+# so the parameter-label mapping has one source.
 #
 # Verdict trust rule (Guard-A/B consistency): a verdict is only ever
 # printed for an outing whose cached analysis_data.schema_version matches
@@ -16,13 +19,13 @@
 # cache. This mirrors exactly how ui/views/outing_form.py's own render
 # path works (Guard A: verdicts never persisted, always classified live;
 # Guard B: a schema-version mismatch is treated as no cache at all). A
-# stale-schema or missing analysis prints "not analysed under current
-# version - re-run Analyse" instead of any verdict/recommendation section.
+# stale-schema or missing analysis prints "Not analysed under current
+# version -- re-run Analyse." instead of any verdict/recommendation section.
 
 import json
 from xml.sax.saxutils import escape
 
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -36,9 +39,12 @@ from modules.recommendation import (
 from models.base import Session
 from models.driver import Driver
 
-PAGE_W, PAGE_H = A4
+PAGE_W, PAGE_H = landscape(A4)
 MARGIN = 14 * mm
 CONTENT_W = PAGE_W - 2 * MARGIN
+STRIPS_PER_PAGE = 4
+STRIP_GAP = 2 * mm
+STRIP_H = (PAGE_H - 2 * MARGIN - (STRIPS_PER_PAGE - 1) * STRIP_GAP) / STRIPS_PER_PAGE
 
 ACCENT_HEX = "#2d6a35"
 ACCENT = colors.HexColor(ACCENT_HEX)
@@ -74,7 +80,7 @@ def _styles():
 
 def _p(value, style):
     if value is None:
-        value = "—"
+        value = "-"
     return Paragraph(escape(str(value)), style)
 
 
@@ -177,27 +183,42 @@ _STATUS_LABELS = {
 }
 
 
-def _setup_sheet_flowables(outing, styles):
-    from core.pdf_export import CORNER_LABELS, ADVANCED_LABELS, CAR_LABELS, WEIGHT_TOTALS_LABELS, _fmt
-
-    setup = _load_json(outing.setup_data)
-    corners = {
-        "FL": setup.get("front_left", {}) or {}, "FR": setup.get("front_right", {}) or {},
-        "RL": setup.get("rear_left", {}) or {}, "RR": setup.get("rear_right", {}) or {},
+def _session_meta(outing, driver_name, sheet_label, weekend):
+    return {
+        "number": outing.number or outing.id,
+        "name": outing.name or "",
+        "session_type": outing.session_type or "",
+        "date_str": outing.date_time.strftime("%d.%m.%Y %H:%M") if outing.date_time else "",
+        "driver_name": driver_name or "",
+        "sheet_label": f"{weekend.track} - {sheet_label}",
     }
-    rows = [["Parameter", "FL", "FR", "RL", "RR"]]
-    for key, label in list(CORNER_LABELS.items()) + list(ADVANCED_LABELS.items()):
-        rows.append([label] + [_fmt(corners[c].get(key, "")) for c in ("FL", "FR", "RL", "RR")])
-    w = CONTENT_W
-    flow = [_table(rows, [w * 0.34, w * 0.165, w * 0.165, w * 0.165, w * 0.165], styles)]
 
-    car = setup.get("car", {}) or {}
-    if car:
-        car_rows = [["Car parameter", "Value"]]
-        for key, label in list(CAR_LABELS.items()) + list(WEIGHT_TOTALS_LABELS.items()):
-            car_rows.append([label, _fmt(car.get(key, ""))])
-        flow.append(Spacer(1, 2 * mm))
-        flow.append(_table(car_rows, [w * 0.6, w * 0.4], styles))
+
+def _build_setup_sheets_section(weekend, outings, styles):
+    """Dedicated Setup/Setdown strips section (PDF layout rework package):
+    core/pdf_export.py's build_session_strip at 'small' scale, four strips
+    per landscape page = two outings' Setup+Setdown pairs, chronological
+    (outings arrive pre-sorted from generate_weekend_pdf). A page break is
+    inserted every 2 outings so a pair is never split across pages -- an
+    outing's Setdown always sits directly under its own Setup.
+    """
+    from core.pdf_export import build_session_strip
+
+    flow = []
+    for i, outing in enumerate(outings):
+        if i > 0 and i % 2 == 0:
+            flow.append(PageBreak())
+        driver_name, _level = _driver_name_and_level(outing.driver_id)
+        setup = _load_json(outing.setup_data)
+        setdown = _load_json(outing.setdown_data)
+        strip_w = CONTENT_W
+        flow.append(build_session_strip(
+            _session_meta(outing, driver_name, "SETUP", weekend), setup, "small", strip_w, STRIP_H))
+        flow.append(Spacer(1, STRIP_GAP))
+        flow.append(build_session_strip(
+            _session_meta(outing, driver_name, "SETDOWN", weekend), setdown, "small", strip_w, STRIP_H))
+        if i % 2 == 0:
+            flow.append(Spacer(1, STRIP_GAP))
     return flow
 
 
@@ -224,7 +245,7 @@ def _verdict_flowables(summaries, styles, sideslip_source=None, fit_manifest=Non
     for cid in sorted(aggregated.keys()):
         agg = aggregated[cid]
         severity, _short, long_v, _colour = _classify_corner(agg)
-        rows.append([f"C{cid}", agg.get("speed_class") or "—", severity, long_v])
+        rows.append([f"C{cid}", agg.get("speed_class") or "-", severity, long_v])
     w = CONTENT_W
     flow = []
     # Fresh-session work package, Phase 3d: estimator/fit/gate/fallback
@@ -283,7 +304,7 @@ def _recommendations_flowables(outing, summaries, driving_level, styles):
                 else f"{a['parameter']} {a['direction']}"
                 for a in r["actions"]
             )
-        provenances = sorted({(rule_provenance.get(rid) or "—") for rid in r["rules_fired"]})
+        provenances = sorted({(rule_provenance.get(rid) or "-") for rid in r["rules_fired"]})
         situational = any(rule_situational.get(rid) for rid in r["rules_fired"])
         action_class_text = "ADVISORY" if r["action_class"] == "advisory" else "RECOMMENDED"
 
@@ -300,11 +321,11 @@ def _recommendations_flowables(outing, summaries, driving_level, styles):
 
         rows.append([
             action_text, f"{r['score']:.2f}", "/".join(r["trigger_source"]),
-            "/".join(r["cell_ids"]) or "—", "/".join(provenances),
+            "/".join(r["cell_ids"]) or "-", "/".join(provenances),
             "yes" if situational else "no",
             ("SELECTED" if r["selected"] else action_class_text),
             "yes" if r["selected"] else "no",
-            "; ".join(notes) or "—",
+            "; ".join(notes) or "-",
         ])
     w = CONTENT_W
     return [_table(rows, [w * 0.18, w * 0.06, w * 0.07, w * 0.09, w * 0.11,
@@ -342,19 +363,15 @@ def _outing_meta_line(outing, driver_name):
 def _build_outing_section(outing, styles):
     flow = []
     driver_name, driving_level = _driver_name_and_level(outing.driver_id)
-    title = f"Outing {outing.number or outing.id}" + (f" — {outing.name}" if outing.name else "")
+    title = f"Outing {outing.number or outing.id}" + (f" -- {outing.name}" if outing.name else "")
     flow.append(Paragraph(escape(title), styles["h1"]))
     flow.append(Paragraph(escape(_outing_meta_line(outing, driver_name)), styles["muted"]))
     flow.append(Spacer(1, 2 * mm))
 
-    flow.append(Paragraph("Setup Sheet", styles["h2"]))
-    flow.extend(_setup_sheet_flowables(outing, styles))
-    flow.append(Spacer(1, 3 * mm))
-
     status = analysis_status(outing)
     flow.append(Paragraph("Analysis", styles["h2"]))
     if status != "current":
-        flow.append(Paragraph("not analysed under current version - re-run Analyse",
+        flow.append(Paragraph("Not analysed under current version -- re-run Analyse.",
                                styles["warn"]))
     else:
         parsed = _load_json(outing.analysis_data)
@@ -387,13 +404,13 @@ def _build_outing_section(outing, styles):
 def _cover_page_flowables(weekend, outings, styles):
     flow = []
     header_bits = [weekend.track, f"{weekend.series} {weekend.year}"]
-    flow.append(Paragraph(escape(" — ".join(b for b in header_bits if b)), styles["title"]))
+    flow.append(Paragraph(escape(" -- ".join(b for b in header_bits if b)), styles["title"]))
     sub_bits = [f"Car #{weekend.car_number}"]
     if weekend.type:
         sub_bits.append(weekend.type)
     if weekend.date:
         sub_bits.append(weekend.date.strftime("%d.%m.%Y"))
-    flow.append(Paragraph(escape(" · ".join(sub_bits)), styles["subtitle"]))
+    flow.append(Paragraph(escape(" | ".join(sub_bits)), styles["subtitle"]))
     flow.append(Spacer(1, 4 * mm))
 
     driver_names = []
@@ -412,9 +429,9 @@ def _cover_page_flowables(weekend, outings, styles):
     for o in outings:
         name, _level = _driver_name_and_level(o.driver_id)
         rows.append([
-            str(o.number or "—"), o.name or "(unnamed)",
-            o.date_time.strftime("%d.%m.%Y %H:%M") if o.date_time else "—",
-            name or "—", o.session_type or "—",
+            str(o.number or "-"), o.name or "(unnamed)",
+            o.date_time.strftime("%d.%m.%Y %H:%M") if o.date_time else "-",
+            name or "-", o.session_type or "-",
             _STATUS_LABELS[analysis_status(o)],
         ])
     w = CONTENT_W
@@ -426,25 +443,33 @@ def generate_weekend_pdf(weekend, outings, output_path):
     """Build the multi-outing weekend PDF at output_path.
 
     `outings` is the user's selected subset (Outing ORM rows, any order --
-    re-sorted here by date_time). Each outing's section is built inside its
-    own try/except: one outing's malformed data (bad JSON, a corrupted
-    summaries payload) renders as an inline error note for that outing only
-    and the rest of the document still builds -- a single bad outing must
-    never abort the whole export. An empty or all-stale/absent selection
-    still produces a valid PDF (cover page + per-outing "not analysed"
-    sections), since nothing here assumes at least one outing has a
-    current analysis.
+    re-sorted here by date_time). Structure: cover page, then a dedicated
+    Setup/Setdown strips section (landscape, four strips/page, one page
+    break per two outings), then one page per outing for analysis/
+    recommendations/feedback -- unchanged from before except the page is
+    now landscape like the rest of the document. Each outing's analysis
+    section is built inside its own try/except: one outing's malformed
+    data (bad JSON, a corrupted summaries payload) renders as an inline
+    error note for that outing only and the rest of the document still
+    builds -- a single bad outing must never abort the whole export. An
+    empty or all-stale/absent selection still produces a valid PDF (cover
+    page + setup strips + per-outing "not analysed" sections), since
+    nothing here assumes at least one outing has a current analysis.
     """
     styles = _styles()
     ordered = sorted(outings, key=lambda o: o.date_time or o.id)
 
     doc = SimpleDocTemplate(
-        output_path, pagesize=A4,
+        output_path, pagesize=(PAGE_W, PAGE_H),
         leftMargin=MARGIN, rightMargin=MARGIN, topMargin=MARGIN, bottomMargin=MARGIN,
     )
     story = []
     story.extend(_cover_page_flowables(weekend, ordered, styles))
     story.append(PageBreak())
+
+    if ordered:
+        story.extend(_build_setup_sheets_section(weekend, ordered, styles))
+        story.append(PageBreak())
 
     for outing in ordered:
         try:

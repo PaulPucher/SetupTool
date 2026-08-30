@@ -211,14 +211,14 @@ def _build_inout_lap_mask(t_ref, laps):
 
 
 def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
-    # Flag samples where vertical accel deviates more than threshold_g from baseline_g,
-    # then dilate the mask by dilation_samples on each side to catch ringdown.
+    # Threshold flags the impact itself; dilating the mask catches the
+    # ringdown oscillation on either side that the raw threshold misses.
     if az_g is None:
         return None
     raw = np.abs(az_g - baseline_g) > threshold_g
     if dilation_samples <= 0:
         return raw
-    # Simple symmetric dilation using a rolling-OR
+    # Symmetric dilation: OR the mask with itself shifted +/-1..dilation_samples.
     n = len(raw)
     out = raw.copy()
     for shift in range(1, dilation_samples + 1):
@@ -272,7 +272,7 @@ def prepare_vehicle_state(channels, params):
     ay_mps2 = interp_channel("log_acc_y") * 9.81
     ax_mps2 = interp_channel("log_acc_x") * 9.81
 
-    # Vertical accel (g) for kerb detection. Optional channel -- graceful degradation.
+    # Vertical accel (g) for kerb detection; optional -- stays None if the channel is missing/failed/untimed.
     az_g = None
     az_ch = channels.get("log_acc_z")
     if az_ch is not None and az_ch.get("quality") not in ("missing", "failed") and az_ch.get("time") is not None:
@@ -307,7 +307,7 @@ def prepare_vehicle_state(channels, params):
 
     # Track-distance coordinate for Module 5's s-anchored regression (see
     # modules/yaw_stability.py). Optional -- None if lap_distance is missing
-    # or invalid, same graceful-degradation pattern as az_g/GPS above.
+    # or invalid, same missing-channel-degrades-to-None pattern as az_g/GPS above.
     s_m = None
     ld_ch = channels.get("lap_distance")
     if ld_ch is not None and ld_ch.get("quality") not in ("missing", "failed") and ld_ch.get("time") is not None:

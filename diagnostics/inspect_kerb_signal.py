@@ -47,7 +47,7 @@ if kerb is not None:
     flagged = int(kerb_mov.sum())
     print(f"\nCurrent kerb mask (baseline {params['stability_estimation']['kerb_baseline_g']:.1f}g, "
           f"threshold {params['stability_estimation']['kerb_z_deviation_threshold_g']:.2f}g, "
-          f"dilation ±{params['stability_estimation']['kerb_dilation_samples']} samples):")
+          f"dilation +/-{params['stability_estimation']['kerb_dilation_samples']} samples):")
     print(f"  Flagged moving samples: {flagged} / {moving.sum()} ({flagged/moving.sum()*100:.1f}%)")
 else:
     print("\nkerb_mask is None")

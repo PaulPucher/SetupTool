@@ -69,8 +69,9 @@ def _smooth(arr, window):
 
 def analyse_corners(parsed_data):
     """
-    Top-level entry point. Takes parsed_data from csv_parser.parse_csv
-    and returns a list of corner dicts, one per detected corner per lap.
+    Detect and classify corners across all valid laps in parsed_data
+    (csv_parser.parse_csv output); one corner dict per detected corner
+    per lap.
 
     Each corner dict contains:
         lap_number, corner_number, speed_class,
@@ -269,7 +270,7 @@ def _build_corner(lap_number, corner_number, method,
         else:
             return None
     else:
-        warnings.append("lateral G missing — apex from speed minimum")
+        warnings.append("lateral G missing -- apex from speed minimum")
         mask = (speed_t >= s_t_start) & (speed_t <= s_t_end)
         sub_speed = sm_speed[mask]
         sub_t = speed_t[mask]
@@ -323,7 +324,7 @@ def _build_corner(lap_number, corner_number, method,
             if len(on_throttle) > 0:
                 brake_start_t = float(thr_t[on_throttle[-1]])
     else:
-        warnings.append("throttle missing — brake phase = turn-in start")
+        warnings.append("throttle missing -- brake phase = turn-in start")
 
     if steering is not None:
         bracket_steer = np.abs(_smooth(steering["data"][b_start_idx:b_end_idx + 1], sw))

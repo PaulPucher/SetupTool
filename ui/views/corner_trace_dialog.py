@@ -231,8 +231,8 @@ def _worst_stab_phase(summary):
     # function to match, or the tint and the badge will silently drift
     # apart.
     worst_phase, worst_val = None, float("inf")
-    for phase, p in summary["phases"].items():
-        val = p["stability_observed_Nm_per_deg"]["median"]
+    for phase, phase_data in summary["phases"].items():
+        val = phase_data["stability_observed_Nm_per_deg"]["median"]
         if val == val and val < worst_val:  # NaN-safe (NaN != NaN)
             worst_val = val
             worst_phase = phase
@@ -264,10 +264,10 @@ def _contiguous_runs(x, mask):
     runs = []
     in_run = False
     start_idx = None
-    for i, m in enumerate(mask):
-        if m and not in_run:
+    for i, flag in enumerate(mask):
+        if flag and not in_run:
             in_run, start_idx = True, i
-        elif not m and in_run:
+        elif not flag and in_run:
             in_run = False
             runs.append((x[start_idx], x[i - 1]))
     if in_run:
@@ -289,8 +289,8 @@ def _aggregate_worst_severity(corner_summaries, classify_fn):
 
     worst_rank = -1
     worst_colour = None
-    for s in corner_summaries:
-        severity, _short, _long, colour = classify_fn(s)
+    for corner_summary in corner_summaries:
+        severity, _short, _long, colour = classify_fn(corner_summary)
         rank = SEVERITY_RANK[severity]
         if rank > worst_rank:
             worst_rank = rank

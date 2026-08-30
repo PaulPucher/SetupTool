@@ -1,7 +1,7 @@
 # Global application stylesheet.
 # All colors and styles are defined here and applied once at startup.
 
-# Colour palette — used by stylesheet and by widget code for status colouring.
+# Colour palette -- used by stylesheet and by widget code for status colouring.
 # Keep all colour literals here so the app has one source of truth.
 
 # Base

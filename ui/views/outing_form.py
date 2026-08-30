@@ -1,4 +1,4 @@
-# Outing form — full form for creating a new outing.
+# Outing form -- full form for creating a new outing.
 
 import collections
 import os
@@ -17,6 +17,7 @@ from models.driver import Driver
 from models.outing import Outing
 from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
+from ui.views.measurement_points_widget import MeasurementPointsWidget
 
 # WARN boundary as a fraction of the BAD (stab_neg_thresh) boundary -- ratio
 # inherited from the original -200/-500 design so detail colours track the
@@ -194,8 +195,8 @@ class StabilityAnalysisThread(QThread):
                 # re-Analyse under an auto mode must not lose the estimator-
                 # status line just because Modules 1-5 were reused rather
                 # than recomputed. .get() with None/False defaults so a
-                # pre-this-package cached entry degrades gracefully instead
-                # of KeyError.
+                # pre-this-package cached entry degrades to None/False
+                # instead of KeyError.
                 fit_manifest = self.pipeline_cache.get("fit_manifest")
                 gate_verdict = self.pipeline_cache.get("gate_verdict")
                 fallback_used = self.pipeline_cache.get("fallback_used", False)
@@ -542,8 +543,8 @@ class OutingForm(QWidget):
         colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
         return (
             severity,
-            " · ".join(short_parts) + uncalibrated_marker,
-            " · ".join(long_parts) + uncalibrated_marker,
+            " | ".join(short_parts) + uncalibrated_marker,
+            " | ".join(long_parts) + uncalibrated_marker,
             colour_map[severity],
         )
 
@@ -554,7 +555,7 @@ class OutingForm(QWidget):
         layout = QHBoxLayout(header)
         layout.setContentsMargins(20, 0, 20, 0)
 
-        btn_back = QPushButton("← Back")
+        btn_back = QPushButton("< Back")
         btn_back.setFixedWidth(80)
         btn_back.setStyleSheet("background-color: #252525; color: #888;")
         btn_back.clicked.connect(self._save_outing)
@@ -567,7 +568,7 @@ class OutingForm(QWidget):
         self.btn_save.setStyleSheet("background-color: #252525; color: #888;")
         self.btn_save.clicked.connect(self._on_save_clicked)
 
-        title = QLabel(f"New Outing — {self.weekend.track}")
+        title = QLabel(f"New Outing - {self.weekend.track}")
         title.setStyleSheet("font-size: 15px; font-weight: 500; color: #e0e0e0;")
 
         layout.addWidget(btn_back)
@@ -651,12 +652,12 @@ class OutingForm(QWidget):
         self.fuel_load_input.setRange(0, 200)
 
         self.air_temp_input = NoScrollSpinBox()
-        self.air_temp_input.setSuffix(" °C")
+        self.air_temp_input.setSuffix(" degC")
         self.air_temp_input.setRange(-20, 80)
         self.air_temp_input.setDecimals(1)
 
         self.track_temp_input = NoScrollSpinBox()
-        self.track_temp_input.setSuffix(" °C")
+        self.track_temp_input.setSuffix(" degC")
         self.track_temp_input.setRange(-20, 80)
         self.track_temp_input.setDecimals(1)
 
@@ -946,7 +947,7 @@ class OutingForm(QWidget):
             {"key": "log_pbrake_f", "label": "Brake (bar)",  "color": "#e74c3c"},
             {"key": "ecu_nmot",     "label": "RPM",          "color": "#00bcd4"},
             {"key": "ecu_gear",     "label": "Gear",         "color": "#f1c40f"},
-            {"key": "log_asteer",   "label": "Steer (°)",    "color": "#9b59b6"},
+            {"key": "log_asteer",   "label": "Steer (deg)",    "color": "#9b59b6"},
         ]
 
         self.pg_layout = pg.GraphicsLayoutWidget()
@@ -1159,7 +1160,7 @@ class OutingForm(QWidget):
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
         self.csv_status_label.setText(
-            f"{filename} — {len(laps)} laps, {len(available)} channels"
+            f"{filename} - {len(laps)} laps, {len(available)} channels"
         )
         self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
         self._populate_lap_table(laps)
@@ -1221,7 +1222,7 @@ class OutingForm(QWidget):
         # ensure_ascii=False: found during this package's own verification
         # (thesis_notes.md) -- json.dump's default (True) silently escapes
         # every non-ASCII character anywhere else in the file (e.g. this
-        # very file's own "×"/"⁻¹" in an unrelated comment)
+        # very file's own "x"/"^-1" in an unrelated comment)
         # into \uXXXX sequences on every save. Same latent behaviour exists
         # in ui/views/settings_view.py's _on_save_clicked (not fixed here,
         # out of this phase's permitted files) -- fixed here since this is
@@ -1755,9 +1756,9 @@ class OutingForm(QWidget):
                 n_normal += 1
 
         self.stability_summary_label.setText(
-            f"{len(summaries)} corners · "
-            f"<span style='color:{BAD};'>{n_strong} strong</span> · "
-            f"<span style='color:{WARN};'>{n_moderate} moderate</span> · "
+            f"{len(summaries)} corners | "
+            f"<span style='color:{BAD};'>{n_strong} strong</span> | "
+            f"<span style='color:{WARN};'>{n_moderate} moderate</span> | "
             f"<span style='color:{OK};'>{n_normal} normal</span>"
         )
         self.stability_summary_label.setTextFormat(Qt.TextFormat.RichText)
@@ -1887,7 +1888,7 @@ class OutingForm(QWidget):
 
     def _build_placeholder_cell(self):
         # Dim, non-interactive cell for a lap with no corner at this stable id.
-        cell = QPushButton("—")
+        cell = QPushButton("-")
         cell.setEnabled(False)
         cell.setStyleSheet(
             f"QPushButton {{"
@@ -1920,7 +1921,7 @@ class OutingForm(QWidget):
         h_layout.setSpacing(10)
 
         title = QLabel(
-            f"Lap {summary['lap_number']} · C{summary['stable_corner_id']}  "
+            f"Lap {summary['lap_number']} | C{summary['stable_corner_id']}  "
             f"<span style='color:{TEXT_DIM};'>({summary['speed_class']}, "
             f"{summary['apex_speed']:.0f} km/h, t={summary['apex_time']:.1f}s)</span>"
         )
@@ -1933,7 +1934,7 @@ class OutingForm(QWidget):
             "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
         )
 
-        btn_trace = QPushButton("↕ trace")
+        btn_trace = QPushButton("trace")
         btn_trace.setFixedWidth(70)
         btn_trace.setStyleSheet(
             f"background-color: {PANEL}; color: {TEXT_MUTED}; "
@@ -1993,21 +1994,21 @@ class OutingForm(QWidget):
             csr_colour = self._stability_colour("cs", csr["median"], axle="r")
             sob_colour = self._stability_colour("stab", sob["median"])
             csf_str = (f"{csf['median']:.2f} [{csf['p25']:.2f}..{csf['p75']:.2f}]"
-                       if csf["n"] > 0 else "—")
+                       if csf["n"] > 0 else "-")
             csr_str = (f"{csr['median']:.2f} [{csr['p25']:.2f}..{csr['p75']:.2f}]"
-                       if csr["n"] > 0 else "—")
+                       if csr["n"] > 0 else "-")
             sob_str = (f"{sob['median']:.0f} [{sob['p25']:.0f}..{sob['p75']:.0f}]"
-                       if sob["n"] > 0 else "—")
+                       if sob["n"] > 0 else "-")
             fzf = p.get("fz_f_N")
             fzr = p.get("fz_r_N")
-            fzf_str = f"{fzf['median']/1000:.1f}" if fzf and fzf["n"] > 0 else "—"
-            fzr_str = f"{fzr['median']/1000:.1f}" if fzr and fzr["n"] > 0 else "—"
+            fzf_str = f"{fzf['median']/1000:.1f}" if fzf and fzf["n"] > 0 else "-"
+            fzr_str = f"{fzr['median']/1000:.1f}" if fzr and fzr["n"] > 0 else "-"
             lsf = p.get("ls_ratio_f")
             lsr = p.get("ls_ratio_r")
             lsf_str = (f"{lsf['median']:.2f} [{lsf['p25']:.2f}..{lsf['p75']:.2f}]"
-                       if lsf and lsf["n"] > 0 else "—")
+                       if lsf and lsf["n"] > 0 else "-")
             lsr_str = (f"{lsr['median']:.2f} [{lsr['p25']:.2f}..{lsr['p75']:.2f}]"
-                       if lsr and lsr["n"] > 0 else "—")
+                       if lsr and lsr["n"] > 0 else "-")
             rows_html += (
                 f"<tr>"
                 f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
@@ -2037,7 +2038,7 @@ class OutingForm(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        btn_toggle = QPushButton("▶ Stability Analysis")
+        btn_toggle = QPushButton("> Stability Analysis")
         btn_toggle.setStyleSheet(
             f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
             "padding: 8px 14px; text-align: left;"
@@ -2096,7 +2097,7 @@ class OutingForm(QWidget):
 
         btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
             self.stability_panel.setVisible(checked),
-            btn.setText("▼ Stability Analysis" if checked else "▶ Stability Analysis")
+            btn.setText("v Stability Analysis" if checked else "> Stability Analysis")
         ))
 
         return container
@@ -2114,7 +2115,7 @@ class OutingForm(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        btn_toggle = QPushButton("▶ Recommendations")
+        btn_toggle = QPushButton("> Recommendations")
         btn_toggle.setStyleSheet(
             f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
             "padding: 8px 14px; text-align: left;"
@@ -2169,7 +2170,7 @@ class OutingForm(QWidget):
 
         btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
             self.recommendations_panel.setVisible(checked),
-            btn.setText("▼ Recommendations" if checked else "▶ Recommendations")
+            btn.setText("v Recommendations" if checked else "> Recommendations")
         ))
 
         return container
@@ -2285,7 +2286,7 @@ class OutingForm(QWidget):
             c0 = r["corners"][0] if r["corners"] else None
             badge_text = f"C{c0['stable_corner_id']}: {c0['short_verdict']}" if c0 else "engineer attention"
         elif r["parameter"] is not None:
-            badge_text = f"{r['parameter']} · {r['direction']}"
+            badge_text = f"{r['parameter']} | {r['direction']}"
         else:
             badge_text = " + ".join(
                 f"{a['parameter']} -> {a['target']}" if "target" in a
@@ -2446,7 +2447,7 @@ class OutingForm(QWidget):
             esc_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
             card_layout.addWidget(esc_label)
 
-        btn_expand = QPushButton("▶ rationale")
+        btn_expand = QPushButton("> rationale")
         btn_expand.setCheckable(True)
         btn_expand.setChecked(False)
         btn_expand.setStyleSheet(
@@ -2471,7 +2472,7 @@ class OutingForm(QWidget):
 
         def toggle_rationale(checked):
             rationale_host.setVisible(checked)
-            btn_expand.setText("▼ rationale" if checked else "▶ rationale")
+            btn_expand.setText("v rationale" if checked else "> rationale")
         btn_expand.toggled.connect(toggle_rationale)
 
         return card
@@ -2683,12 +2684,12 @@ class OutingForm(QWidget):
         layout.addWidget(notes_widget)
 
         if prefix == "setup":
-            btn_print = QPushButton("⎙ Print Setup")
+            btn_print = QPushButton("Print Setup")
             btn_print.setFixedWidth(140)
             btn_print.clicked.connect(lambda: self._print_sheet("setup"))
             layout.addWidget(btn_print)
         else:
-            btn_print = QPushButton("⎙ Print Setdown")
+            btn_print = QPushButton("Print Setdown")
             btn_print.setFixedWidth(140)
             btn_print.clicked.connect(lambda: self._print_sheet("setdown"))
             layout.addWidget(btn_print)
@@ -2701,7 +2702,7 @@ class OutingForm(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        btn_toggle = QPushButton("▶ Add Setdown")
+        btn_toggle = QPushButton("> Add Setdown")
         btn_toggle.setStyleSheet("background-color: #1a1a1a; color: #888; font-size: 12px; padding: 8px 14px; text-align: left;")
         btn_toggle.setCheckable(True)
         btn_toggle.setChecked(False)
@@ -2713,7 +2714,7 @@ class OutingForm(QWidget):
 
         btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
             self.setdown_widget.setVisible(checked),
-            btn.setText("▼ Add Setdown" if checked else "▶ Add Setdown"),
+            btn.setText("v Add Setdown" if checked else "> Add Setdown"),
             self._prefill_setdown() if checked else None
         ))
 
@@ -2748,7 +2749,7 @@ class OutingForm(QWidget):
         advanced_fields = ["packer", "preload", "total_travel", "free_length", "static_droop", "gap_on_gnd"]
 
         labels = {
-            "toe": "Toe (mm)", "camber": "Camber (°)",
+            "toe": "Toe (mm)", "camber": "Camber (deg)",
             "ride_height_fia": "Ride Ht. FIA (mm)", "ride_height_aero": "Ride Ht. Aero (mm)",
             "arb": "ARB (pos.)", "springs": "Springs (N/mm)",
             "bump_ls": "Bump LS", "bump_hs": "Bump HS",
@@ -2821,12 +2822,12 @@ class OutingForm(QWidget):
 
         if corner_label in ("FL", "RL"):
             mirror_target = "FR" if corner_label == "FL" else "RR"
-            btn_mirror = QPushButton(f"↔ mirror damper to {mirror_target}")
+            btn_mirror = QPushButton(f"<-> mirror damper to {mirror_target}")
             btn_mirror.setStyleSheet("background-color: #1e1e1e; color: #888; font-size: 10px; padding: 3px 8px;")
             btn_mirror.clicked.connect(lambda checked, cl=corner_label, inp=self._active_inputs: self._mirror_damper(cl, inp))
             layout.addWidget(btn_mirror)
 
-        btn_advanced = QPushButton("▶ Damper Advanced")
+        btn_advanced = QPushButton("> Damper Advanced")
         btn_advanced.setStyleSheet("background-color: #1a1a1a; color: #555; font-size: 10px; padding: 3px 8px; text-align: left;")
         btn_advanced.setCheckable(True)
         btn_advanced.setChecked(False)
@@ -2850,7 +2851,7 @@ class OutingForm(QWidget):
 
         btn_advanced.toggled.connect(lambda checked, aw=advanced_widget, btn=btn_advanced: (
             aw.setVisible(checked),
-            btn.setText("▼ Damper Advanced" if checked else "▶ Damper Advanced")
+            btn.setText("v Damper Advanced" if checked else "> Damper Advanced")
         ))
 
         return group
@@ -2972,8 +2973,31 @@ class OutingForm(QWidget):
             widget.setRange(-9999, 9999)
             widget.setDecimals(2)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+            if param == "splitter_offset":
+                # Distinguishes the SETTING (this field, car-referenced) from
+                # the floor-referenced CHECK points added below -- both
+                # coexist, neither replaces the other.
+                widget.setToolTip("Splitter offset -- setting, vs car")
             self._active_inputs["car"][param] = widget
             car_layout.addWidget(self._setup_row(label_text, widget))
+
+        splitter_label = QLabel("Splitter Points (measured, vs floor, mm)")
+        splitter_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        splitter_label.setToolTip("Floor-referenced check measurements -- distinct from the Splitter setting above.")
+        car_layout.addWidget(splitter_label)
+        splitter_widget = MeasurementPointsWidget("splitter")
+        for i, edit in enumerate(splitter_widget.point_widgets, start=1):
+            self._active_inputs["car"][f"splitter_point_{i}"] = edit
+        car_layout.addWidget(splitter_widget)
+
+        diffuser_label = QLabel("Diffuser Points (measured, vs floor, mm)")
+        diffuser_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        diffuser_label.setToolTip("Floor-referenced check measurements.")
+        car_layout.addWidget(diffuser_label)
+        diffuser_widget = MeasurementPointsWidget("diffuser")
+        for i, edit in enumerate(diffuser_widget.point_widgets, start=1):
+            self._active_inputs["car"][f"diffuser_point_{i}"] = edit
+        car_layout.addWidget(diffuser_widget)
 
         arb_mount_combo = QComboBox()
         arb_mount_combo.addItems(["P0", "P1", "P2"])
@@ -3081,11 +3105,32 @@ class OutingForm(QWidget):
                         car[f"differential_locking_torque_measured_{pos}"] = torque[key]
         return json.dumps(data)
 
+    # Splitter/diffuser measurement points (mm, floor-referenced -- distinct
+    # from the existing splitter_offset SETTING, which is car-referenced
+    # and untouched). Reshape logic lives in core/setup_data_points.py (pure
+    # JSON transform, no Qt) rather than here, so it's testable without
+    # importing this PyQt6 module -- same reason tests/conftest.py's own
+    # pipeline_result fixture keeps this file out of the regression suite.
+    # Same pop-based mechanism as the diff-torque reshape above; widgets
+    # bind to flat splitter_point_1.._5 / diffuser_point_1.._5 keys
+    # (ui/views/measurement_points_widget.py), folded to/from a plain array
+    # under car[...] on save/load so a missing array (any outing saved
+    # before this feature) leaves the flat keys entirely absent -- the
+    # normal _load_inputs "skip unknown param" path then leaves those
+    # widgets at their default empty state, no explicit migration needed.
+    def _reshape_points_out(self, json_string):
+        from core.setup_data_points import reshape_points_out
+        return reshape_points_out(json_string)
+
+    def _reshape_points_in(self, json_string):
+        from core.setup_data_points import reshape_points_in
+        return reshape_points_in(json_string)
+
     def _collect_setup_data(self):
-        return self._reshape_diff_torque_out(self._collect_inputs(self.setup_inputs))
+        return self._reshape_points_out(self._reshape_diff_torque_out(self._collect_inputs(self.setup_inputs)))
 
     def _collect_setdown_data(self):
-        return self._reshape_diff_torque_out(self._collect_inputs(self.setdown_inputs))
+        return self._reshape_points_out(self._reshape_diff_torque_out(self._collect_inputs(self.setdown_inputs)))
 
     def _collect_feedback_data(self):
         import json
@@ -3163,16 +3208,18 @@ class OutingForm(QWidget):
                     widget.setPlainText(str(value) if value else "")
 
     def _load_setup_data(self, json_string):
-        self._load_inputs(self.setup_inputs, self._reshape_diff_torque_in(json_string))
+        self._load_inputs(self.setup_inputs, self._reshape_points_in(self._reshape_diff_torque_in(json_string)))
 
     def _load_setdown_data(self, json_string):
-        self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(json_string))
+        self._load_inputs(self.setdown_inputs, self._reshape_points_in(self._reshape_diff_torque_in(json_string)))
 
     def _prefill_setdown(self):
         if self.outing and self.outing.setdown_data:
-            self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(self.outing.setdown_data))
+            self._load_inputs(self.setdown_inputs,
+                               self._reshape_points_in(self._reshape_diff_torque_in(self.outing.setdown_data)))
         else:
-            self._load_inputs(self.setdown_inputs, self._reshape_diff_torque_in(self._collect_setup_data()))
+            self._load_inputs(self.setdown_inputs,
+                               self._reshape_points_in(self._reshape_diff_torque_in(self._collect_setup_data())))
 
     def _print_sheet(self, sheet_type):
         from PyQt6.QtWidgets import QFileDialog, QMessageBox
@@ -3584,9 +3631,9 @@ class OutingForm(QWidget):
         layout.addWidget(split)
 
         scale_desc = QLabel(
-            "Scale: −5 undrivable understeer · −3 strong understeer · −1 slight understeer · "
-            "0 neutral · +1 slight oversteer · +3 strong oversteer · +5 undrivable oversteer\n"
-            "Placeholder — full description to be added per value."
+            "Scale: -5 undrivable understeer | -3 strong understeer | -1 slight understeer | "
+            "0 neutral | +1 slight oversteer | +3 strong oversteer | +5 undrivable oversteer\n"
+            "Placeholder -- full description to be added per value."
         )
         scale_desc.setStyleSheet("color: #444; font-size: 10px; margin-top: 4px;")
         scale_desc.setWordWrap(True)

@@ -111,9 +111,9 @@ else:
         print(
             "\nChair formula: lateral_transfer_front = m*ay*h_cog/front_track; "
             "fz_fl_N = fz_f_N/2 - transfer/2, fz_fr_N = fz_f_N/2 + transfer/2 "
-            "(positive ay -> RIGHT tire loads more). "
-            "Physically, in a right turn the LEFT (outside) tires load more; "
-            "in a left turn the RIGHT (outside) tires load more."
+            "(positive ay -> RIGHT tyre loads more). "
+            "Physically, in a right turn the LEFT (outside) tyres load more; "
+            "in a left turn the RIGHT (outside) tyres load more."
         )
         loaded_side_by_formula = "RIGHT" if mean_ay > 0 else "LEFT"
         expected_loaded_side = "LEFT" if "RIGHT" in turn else "RIGHT"
@@ -122,7 +122,7 @@ else:
             print("  -> MATCH: fz_fl_N/fz_fr_N as written load the physically-correct (outside) side. No sign flip needed.")
         else:
             print(
-                "  -> MISMATCH: fz_fl_N/fz_fr_N as written load the INSIDE tire under load, "
+                "  -> MISMATCH: fz_fl_N/fz_fr_N as written load the INSIDE tyre under load, "
                 "the opposite of physical expectation. ay_mps2's sign convention (or the "
                 "formula's L/R assignment) must be flipped before per-wheel Fz is trusted."
             )

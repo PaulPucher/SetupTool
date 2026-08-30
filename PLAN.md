@@ -251,6 +251,121 @@ WHERE THE PROJECT STANDS
   afterward, verified byte-identical to git HEAD via diff); git status
   clean; protected set empty; sideslip_source restored to the user's
   own live value; no commit.
+- DOCUMENTATION/COMMENT POLISH PASS DONE (2026-08-30, same day,
+  unsupervised package, all 5 phases -- full record: thesis_notes.md
+  "6. Documentation/comment polish pass"). Text-only sweep across
+  every .py file in modules/, ui/, core/, diagnostics/, tests/, plus
+  test_stability.py: comments, docstrings, and (ui/core only)
+  user-facing strings rewritten or removed against an AI-slop removal
+  list; zero numbers/thresholds/config values/control-flow/signatures
+  changed. 41 non-ASCII characters normalized in ui/views/outing_
+  form.py alone, dozens more repo-wide; the four already-decided
+  protected texts ([UNCAL] marker, both calibration banners,
+  _format_estimator_status templates) verified untouched. diagnostics/
+  and tests/ (89 files) needed zero edits -- already at the target
+  standard. Regression suite CONFIRMED green (110 passed, 1 xfailed,
+  0 failed, 0 errors -- byte-identical to the recorded baseline), run
+  under the same temporarily-flipped-kinematic-then-restored procedure
+  as every prior full-suite run this project has done; git status
+  clean; protected set empty; sideslip_source restored to the user's
+  own live value; no commit. Items surfaced, not acted on (report
+  only): a possible aero downforce sign-convention question in
+  estimate_vertical_loads; the pre-existing core/pdf_export.py vs
+  outing_form.py CORNER_LABELS hand-copy duplication (text
+  reconciled, structural duplication remains); one dead local in
+  diagnostics/inspect_abs_slip_channels.py; four live citation
+  page-TBD placeholders needing the physical text to resolve.
+- AERO DOWNFORCE SIGN CONVENTION VERIFIED, NOT A BUG (2026-08-30,
+  same day -- full record: thesis_notes.md "Aero downforce sign
+  convention verified computationally"). The polish pass's report-
+  only flag on estimate_vertical_loads's fz_aero_total_N formula is
+  RESOLVED: computational test against the real config/live code
+  confirms cl < 0 correctly increases both axle loads (downforce),
+  cl > 0 decreases them (lift) -- exactly as config's own pre-existing
+  lift_coeff_note had already worked out from the formula alone, now
+  confirmed rather than inferred. Added config/parameters.json's
+  lift_coeff_sign_convention (one line, unmissable at the key) so a
+  future real Cl entry can't get the sign backwards silently. No code
+  changed, no commit.
+- PDF LAYOUT REWORK DONE (2026-08-30, same day, propose-then-implement,
+  approved with 3 clarifying decisions -- full record: thesis_notes.md
+  "7. PDF layout rework: shared strip renderer"). Both the single-
+  session setup/setdown sheet (core/pdf_export.py) and the weekend
+  PDF's setup-sheet content (core/weekend_pdf_export.py) now share one
+  renderer (build_session_strip), landscape A4, four strips/page on
+  the weekend document (a chronological Setup/Setdown pair per outing,
+  page break every 2 outings), monochrome, every value bordered,
+  front-up 2x2 wheel orientation, two-layer corner boxes (readable
+  core row + abbreviated dense damper/advanced row), marked-position
+  schematics (custom reportlab Flowable, no new dependency) for
+  wing_position/arb_front_mount only -- splitter_offset stays numeric,
+  no diffuser field exists so none was invented. Canonical field set
+  decided as the single-outing sheet's fuller 17-fields/corner set
+  (the weekend PDF's narrower set, missing damper fields and the
+  corner-weight grid, was drift, not a decision) -- the weekend PDF
+  gains those fields plus Setdown strips it never printed before, and
+  its old embedded per-outing "Setup Sheet" table was removed (not
+  duplicated) now that the dedicated strips section covers it.
+  arb_front_mount now prints for the first time (previously collected,
+  never shown); the diff locking-torque table stays unprinted, its
+  own open decision. Two real bugs found and fixed before delivery,
+  from visually inspecting sample PDFs (no golden PDF test exists,
+  confirmed by grep): the team logo was sized proportional to full
+  strip height, blowing up to page-width at full-page scale; and the
+  car-parameter value column was oversized (55/45 split) for single-
+  digit values. No new dependency in the shipped code; pymupdf was
+  installed only transiently for this session's own visual QA and
+  uninstalled immediately after. Regression suite CONFIRMED green
+  (110 passed, 1 xfailed, byte-identical), same temporarily-flipped-
+  kinematic-then-restored procedure as every prior run; sideslip_
+  source restored to the user's own live value; git status clean
+  otherwise; protected set empty; no commit. Sample PDFs generated
+  against the real Dubai weekend, not synthetic data.
+- SPLITTER/DIFFUSER MEASUREMENT POINTS DONE (2026-08-30, same day, all
+  5 phases -- full record: thesis_notes.md "8. Splitter/diffuser
+  measurement points"). New feature: 5 nullable floor-referenced mm
+  check points each for splitter and diffuser, additive to and
+  distinct from the existing splitter_offset SETTING (untouched).
+  Phase 1: investigated setup_data/setdown_data's persistence pattern
+  first -- no schema version exists on that JSON blob at all; the
+  established migration pattern is purely additive (_load_inputs
+  skips unknown keys). Followed the pre-existing differential_
+  locking_torque_measured reshape precedent exactly: new core/
+  setup_data_points.py (pure functions, no Qt) folds flat widget keys
+  (splitter_point_1.._5 / diffuser_point_1.._5) to/from car[
+  "splitter_points"]/car["diffuser_points"] arrays on save/load.
+  Phase 2: new ui/views/measurement_points_widget.py, a custom-painted
+  QWidget (rounded blade outline for splitter, rectangle for diffuser)
+  with 5 real QLineEdit boxes positioned at physical coordinates,
+  front-up orientation; wired into outing_form.py's existing car
+  section with no change to the generic widget-collect/load dispatch.
+  No source paper-sheet image exists for either shape (checked) --
+  point layout is this session's own placement, flagged for the
+  user's visual confirmation. Tooltips distinguish "setting, vs car"
+  (splitter_offset) from "measured, vs floor" (the new points), per
+  the work order's visibility requirement. Screenshotted headlessly
+  against the real Dubai outing: old data loads with all 20 point
+  boxes empty, setup/setdown each get independent widget instances.
+  Phase 3: core/pdf_export.py's shared strip renderer gained
+  MeasurementDiagram (outline + value boxes, same mechanism as the
+  existing PositionSchematic) at both scales. Rendered two weekend-
+  scale legibility candidates and picked by looking, as required: the
+  outline+boxes design (kept) stayed legible and bounded; a values-
+  only-row alternative (rejected, removed from the code entirely)
+  overflowed its column and displaced the neighbouring Wing/ARB
+  schematic. Phase 4: 9 new targeted tests (tests/test_setup_data_
+  points.py, persistence round-trip with/without points, old-outing
+  load, a hand-shortened-array defensive case, a cross-file position-
+  count contract check) plus a new Qt-based diagnostics smoke test
+  (diagnostics/smoke_test_measurement_points_widget.py, "form
+  binding" -- drives the real widget/collect/save/reload path end to
+  end) -- no golden regeneration. Testing policy for this package:
+  no full-suite/golden runs during iteration (render-and-look plus
+  targeted tests only), full suite exactly once at the end. Final run:
+  119 passed (110 baseline + 9 new), 1 xfailed, byte-identical
+  otherwise -- same temporarily-flipped-kinematic-then-restored
+  procedure; sideslip_source restored to the user's own live value;
+  protected set empty; no commit. 4 new files, all uncommitted.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost

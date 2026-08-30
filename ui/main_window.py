@@ -1,9 +1,9 @@
-# Main application window. Defines the overall layout — topbar, sidebar, content area.
+# Main application window. Defines the overall layout -- topbar, sidebar, content area.
 # No business logic here, only layout and navigation.
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, # QH for horizontal, QV for vertical
-    QLabel, QListWidget, QStackedWidget,QListWidgetItem  )           # QList is Sidebar, Stackwidget holds the pages
+    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+    QLabel, QListWidget, QStackedWidget,QListWidgetItem  )
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QSize
 from ui.views.weekends import WeekendsView
@@ -14,22 +14,22 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SetupTool")
-        self.resize(1100, 680)                           # can choose size freely when running
+        self.resize(1100, 680)
 
         central = QWidget()
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
-        root_layout.setContentsMargins(0, 0, 0, 0)       # 0 for no gaps     
+        root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        root_layout.addWidget(self._build_topbar())      # topbar build
+        root_layout.addWidget(self._build_topbar())
 
-        body = QWidget()                                 # body build below topbar
+        body = QWidget()
         body_layout = QHBoxLayout(body)
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(0)
 
-        self.nav = self._build_sidebar()                 # safesidebar and stack as instance variables
+        self.nav = self._build_sidebar()                 # kept as instance attrs: needed below for setCurrentRow and the row-changed connection
         self.stack = QStackedWidget()
 
         body_layout.addWidget(self.nav)
@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
 
         self._build_pages()
         self.nav.setCurrentRow(0)
-        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)  # sidebar logic
+        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)  # selecting a sidebar row switches the visible page
 
     def _build_topbar(self):
         bar = QWidget()
@@ -84,13 +84,13 @@ class MainWindow(QMainWindow):
         nav.setSpacing(4)
         nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        icon = [                        # icons in seperate svg file. make better later
+        icon_paths = [                  # icons in separate svg files -- TODO: replace with a proper icon set
             "ui/icons/weekends.svg",
             "ui/icons/drivers.svg",
             "ui/icons/settings.svg"
         ]
 
-        for icon_path in icon:
+        for icon_path in icon_paths:
             item = QListWidgetItem()
             item.setIcon(QIcon(icon_path))
             nav.addItem(item)

@@ -1,4 +1,4 @@
-# Dialog for creating a new driver.
+# Dialog for creating or editing a driver.
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,

@@ -93,10 +93,10 @@ def _plausibility_exclude_mask(kappa_raw, az_g, se, ls, window_s, sample_rate_hz
     investigation entry warned against when it recommended AGAINST a
     general-purpose hybrid kerb detector for exactly this reason.
 
-    az_g is optional (state['az_g'], graceful degradation elsewhere in
-    the pipeline) -- when absent, az-coincidence cannot be confirmed,
-    so nothing is excluded (fails toward the pre-guard behaviour,
-    never toward over-exclusion on kappa alone).
+    az_g is optional (state['az_g'] can be None; other pipeline stages
+    already handle its absence) -- when absent, az-coincidence cannot
+    be confirmed, so nothing is excluded (fails toward the pre-guard
+    behaviour, never toward over-exclusion on kappa alone).
 
     Caller applies this mask in TWO places, not one -- see
     estimate_longitudinal_stiffness's compute_for_axle: (1) the
@@ -158,9 +158,9 @@ def _centered_slopes(slip, force, valid_mask, sample_rate_hz, se):
     finite = np.isfinite(slip) & np.isfinite(force) & valid_mask
     x = np.where(finite, slip, 0.0)
     y = np.where(finite, force, 0.0)
-    one = finite.astype(float)
+    finite_flag = finite.astype(float)
 
-    count = _window_sum(_prefix_sum(one), start, stop)
+    count = _window_sum(_prefix_sum(finite_flag), start, stop)
     sx = _window_sum(_prefix_sum(x), start, stop)
     sy = _window_sum(_prefix_sum(y), start, stop)
     sxx = _window_sum(_prefix_sum(x * x), start, stop)

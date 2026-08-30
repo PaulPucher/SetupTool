@@ -50,7 +50,7 @@ SECTION1_FIELDS = [
     {"path": ("vehicle", "wheelbase_m"), "label": "Wheelbase", "unit": "m",
      "decimals": 3, "min": 1.5, "max": 3.5,
      "note_path": None, "accuracy_key": "wheelbase_m"},
-    {"path": ("vehicle", "yaw_inertia_kgm2"), "label": "Yaw inertia (Iz)", "unit": "kg·m²",
+    {"path": ("vehicle", "yaw_inertia_kgm2"), "label": "Yaw inertia (Iz)", "unit": "kg*m^2",
      "decimals": 1, "min": 500.0, "max": 5000.0,
      "note_path": ("vehicle", "yaw_inertia_note"), "accuracy_key": "yaw_inertia",
      "short_note": "Rotational inertia about the vertical axis. Estimated, ~10-20% error."},
@@ -58,7 +58,7 @@ SECTION1_FIELDS = [
      "decimals": 2, "min": 5.0, "max": 25.0,
      "note_path": ("vehicle", "steering_ratio_note"), "accuracy_key": "steering_ratio",
      "short_note": "Steering wheel to road wheel ratio, held constant."},
-    {"path": ("vehicle", "aero", "air_density_kgm3"), "label": "Air density", "unit": "kg/m³",
+    {"path": ("vehicle", "aero", "air_density_kgm3"), "label": "Air density", "unit": "kg/m^3",
      "decimals": 3, "min": 1.0, "max": 1.5,
      "note_path": ("vehicle", "aero", "air_density_note"), "accuracy_key": None,
      "short_note": "Standard sea-level air density."},
@@ -66,7 +66,7 @@ SECTION1_FIELDS = [
      "decimals": 3, "min": -3.0, "max": 3.0,
      "note_path": ("vehicle", "aero", "lift_coeff_note"), "accuracy_key": None,
      "short_note": "Aero lift coefficient. Not yet sourced - downforce term is inactive at 0."},
-    {"path": ("vehicle", "aero", "cross_track_area_m2"), "label": "Cross x track area", "unit": "m²",
+    {"path": ("vehicle", "aero", "cross_track_area_m2"), "label": "Frontal area (cross-track)", "unit": "m^2",
      "decimals": 3, "min": 0.0, "max": 5.0,
      "note_path": ("vehicle", "aero", "cross_track_area_note"), "accuracy_key": None,
      "short_note": "Frontal area. Not yet sourced - inactive while Cl is 0."},
@@ -127,17 +127,17 @@ SECTION3_FIELDS = [
 ]
 
 
-def _get_path(d, path):
-    node = d
-    for p in path:
-        node = node[p]
+def _get_path(data, path):
+    node = data
+    for key in path:
+        node = node[key]
     return node
 
 
-def _set_path(d, path, value):
-    node = d
-    for p in path[:-1]:
-        node = node[p]
+def _set_path(data, path, value):
+    node = data
+    for key in path[:-1]:
+        node = node[key]
     node[path[-1]] = value
 
 
@@ -314,7 +314,7 @@ class SettingsView(QWidget):
                 entry = accuracy_levels.get(spec["accuracy_key"])
                 if entry:
                     capped = entry.get("capped_by")
-                    accuracy_text = f"L{entry['level']} · {capped or entry.get('source', '')}"
+                    accuracy_text = f"L{entry['level']} - {capped or entry.get('source', '')}"
 
             layout.addWidget(self._field_row(
                 spec, widget, note_text=note_text,
@@ -407,8 +407,8 @@ class SettingsView(QWidget):
         note = QLabel("How much a driver's feedback counts, by experience level -- not yet validated.")
         note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         note.setToolTip(
-            "Project-lead-elicited 2026-07-27 -- see PLAN.md engineer follow-up list "
-            "for the standing validation question on this curve's shape."
+            "Elicited from the project lead on 2026-07-27 -- see PLAN.md's engineer "
+            "follow-up list for the standing validation question on this curve's shape."
         )
         row_layout.addWidget(note)
 
@@ -565,7 +565,7 @@ class SettingsView(QWidget):
 
         if section1_changed:
             self.warning_label.setText(
-                "Physics constants changed — results will differ. Re-run Analyse. "
+                "Physics constants changed - results will differ. Re-run Analyse. "
                 "Section-1 changes are tracked by the resolved-vehicle-snapshot cache "
                 "check (modules/accuracy_resolution.py); threshold re-derivation may "
                 "apply per CLAUDE.md's deviation taxonomy."

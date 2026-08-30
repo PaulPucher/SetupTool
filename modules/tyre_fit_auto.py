@@ -102,9 +102,9 @@ def _fit_axle(alpha, Fy, Fz, C_alpha, CS_ratio, base_mask, cfg):
             "residuals": None, "mean_axle_fz_N": float("nan"),
         }
 
-    def _sse(mu_fz, a=a2, f=f2, c=c_alpha_used):
-        pred = dugoff_lateral_force(a, c, mu_fz)
-        return float(np.sum((pred - f) ** 2))
+    def _sse(mu_fz, alpha_arr=a2, fy_arr=f2, c_alpha_fixed=c_alpha_used):
+        pred = dugoff_lateral_force(alpha_arr, c_alpha_fixed, mu_fz)
+        return float(np.sum((pred - fy_arr) ** 2))
 
     hi_bound = cfg["mu_fz_hi_bound_initial_multiplier"] * float(np.max(np.abs(f2)))
     widen_mult = cfg["mu_fz_hi_bound_widen_multiplier"]

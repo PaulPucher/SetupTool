@@ -23,7 +23,7 @@ def _interp_channel(channels, ch_name, t_ref):
 
 
 def estimate_longitudinal_forces(state, channels, params):
-    """Axle longitudinal force Fx_f/Fx_r -- fallback tier only (no direct
+    """Compute axle longitudinal force Fx_f/Fx_r -- fallback tier only (no direct
     per-wheel or per-axle Fx channel exists in the Cosworth log).
 
     Tier A: Rajamani, Vehicle Dynamics and Control, 2nd ed., Ch. 2
@@ -91,7 +91,7 @@ def estimate_longitudinal_forces(state, channels, params):
 
 
 def estimate_slip_ratio(state, channels, params):
-    """Per-axle kinematic slip ratio kappa = (v_axle_corrected - v_ref) /
+    """Compute per-axle kinematic slip ratio kappa = (v_axle_corrected - v_ref) /
     v_ref, v_ref = ecu_speed. Tier B (signal/data engineering -- standard
     slip-ratio construction, Rajamani Ch. 2 sec. 2.2 kappa definition;
     no per-corner kinematic correction, a wheel-speed-vs-vehicle-speed

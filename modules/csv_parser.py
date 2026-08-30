@@ -191,21 +191,21 @@ def _attach_precise_lap_time(laps, channels, config):
     # channel sample interval, which is well inside the gate.
     max_delta = config.get("lap_splitting", {}).get("lap_time_precise_max_delta_s", 1.0)
     lt_ch = channels.get("lap_time")
-    for l in laps:
-        l["lap_time_precise"] = None
+    for lap in laps:
+        lap["lap_time_precise"] = None
         if lt_ch is None or lt_ch.get("quality") in ("missing", "failed") or lt_ch.get("time") is None:
             continue
         t, v = lt_ch["time"], lt_ch["data"]
-        mask = (t >= l["start_time"]) & (t <= l["end_time"])
+        mask = (t >= lap["start_time"]) & (t <= lap["end_time"])
         if not mask.any():
             continue
         candidate = float(v[mask].max())
-        if abs(candidate - l["lap_time"]) <= max_delta:
-            l["lap_time_precise"] = candidate
+        if abs(candidate - lap["lap_time"]) <= max_delta:
+            lap["lap_time_precise"] = candidate
 
 
-def _effective_lap_time(l):
-    return l["lap_time_precise"] if l.get("lap_time_precise") is not None else l["lap_time"]
+def _effective_lap_time(lap):
+    return lap["lap_time_precise"] if lap.get("lap_time_precise") is not None else lap["lap_time"]
 
 
 def _split_laps(channels, config=None):
@@ -253,18 +253,18 @@ def _split_laps(channels, config=None):
     lap_time_min_s = ls.get("lap_time_min_s", 10)
     valid_lap_max_ratio = ls.get("valid_lap_max_ratio", 1.10)
 
-    valid = [l for l in laps if _effective_lap_time(l) > lap_time_min_s]
+    valid = [lap for lap in laps if _effective_lap_time(lap) > lap_time_min_s]
     if valid:
         fastest_lap = min(valid, key=_effective_lap_time)
         fastest_time = _effective_lap_time(fastest_lap)
-        for l in laps:
-            l["is_fastest"] = (l is fastest_lap)
-            l["is_valid_for_analysis"] = (
-                not l["is_outlap"]
-                and not l["is_inlap"]
-                and _effective_lap_time(l) <= fastest_time * valid_lap_max_ratio
-                and _effective_lap_time(l) > lap_time_min_s
-                and len(l["warnings"]) == 0
+        for lap in laps:
+            lap["is_fastest"] = (lap is fastest_lap)
+            lap["is_valid_for_analysis"] = (
+                not lap["is_outlap"]
+                and not lap["is_inlap"]
+                and _effective_lap_time(lap) <= fastest_time * valid_lap_max_ratio
+                and _effective_lap_time(lap) > lap_time_min_s
+                and len(lap["warnings"]) == 0
             )
 
     return laps
@@ -298,7 +298,7 @@ def _verify_laps(laps, channels, config=None):
                         f"computed duration ({duration:.1f}s)"
                     )
 
-                # Check 2 -- lap_distance should ramp up within the lap (skip outlap)
+        # Check 2 -- lap_distance should ramp up within the lap (skip outlap)
         if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
             t = lap_distance["time"]
             d = lap_distance["data"]

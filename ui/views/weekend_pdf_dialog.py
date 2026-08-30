@@ -29,7 +29,7 @@ class WeekendPdfDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(8)
 
-        title = QLabel(f"Select outings to include — {weekend.track} {weekend.year}")
+        title = QLabel(f"Select outings to include - {weekend.track} {weekend.year}")
         layout.addWidget(title)
 
         hint = QLabel(f"Outings from the last {RECENT_DAYS} days are pre-checked; adjust freely.")
@@ -60,8 +60,8 @@ class WeekendPdfDialog(QDialog):
         self.checkboxes = {}
         cutoff = datetime.now() - timedelta(days=RECENT_DAYS)
         for outing_id, number, name, date_time in self._outing_rows:
-            date_str = date_time.strftime("%d.%m.%Y %H:%M") if date_time else "—"
-            label = f"#{number or '-'}  {name or '(unnamed)'}  —  {date_str}"
+            date_str = date_time.strftime("%d.%m.%Y %H:%M") if date_time else "-"
+            label = f"#{number or '-'}  {name or '(unnamed)'}  -  {date_str}"
             cb = QCheckBox(label)
             cb.setChecked(bool(date_time and date_time >= cutoff))
             self.checkboxes[outing_id] = cb
@@ -78,7 +78,7 @@ class WeekendPdfDialog(QDialog):
         btn_cancel = QPushButton("Cancel")
         btn_cancel.setStyleSheet("background-color: #252525; color: #888;")
         btn_cancel.clicked.connect(self.reject)
-        btn_export = QPushButton("Export…")
+        btn_export = QPushButton("Export...")
         btn_export.clicked.connect(self._on_export)
         btn_row.addStretch()
         btn_row.addWidget(btn_cancel)

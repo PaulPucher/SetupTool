@@ -1,4 +1,4 @@
-# Outings view — list of all outings for a specific race weekend.
+# Outings view - list of all outings for a specific race weekend.
 
 
 from PyQt6.QtWidgets import (
@@ -44,12 +44,12 @@ class OutingsView(QWidget):
         layout = QHBoxLayout(header)
         layout.setContentsMargins(20, 0, 20, 0)
 
-        btn_back = QPushButton("← Back")
+        btn_back = QPushButton("< Back")
         btn_back.setFixedWidth(80)
         btn_back.setStyleSheet("background-color: #252525; color: #888;")
         btn_back.clicked.connect(self.on_back)
 
-        self.title = QLabel(f"{self.weekend.track} — {self.weekend.series} {self.weekend.year}")
+        self.title = QLabel(f"{self.weekend.track} - {self.weekend.series} {self.weekend.year}")
         self.title.setStyleSheet("font-size: 15px; font-weight: 500; color: #e0e0e0;")
 
         btn_edit = QPushButton("Edit")
@@ -125,7 +125,7 @@ class OutingsView(QWidget):
         dialog = WeekendDialog(self, weekend=self.weekend)
         if dialog.exec():
             self.weekend = Session().get(RaceWeekend, self.weekend.id)
-            self.title.setText(f"{self.weekend.track} — {self.weekend.series} {self.weekend.year}")
+            self.title.setText(f"{self.weekend.track} - {self.weekend.series} {self.weekend.year}")
 
     def _open_new_outing(self):
         form = OutingForm(self.weekend, on_back=self._show_list)

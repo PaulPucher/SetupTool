@@ -51,7 +51,7 @@ def calculate_observed_stability(
     s_m, beta_rad, delta_f_rad, v_mps, ax_mps2, az_mps2, mz_inertial_Nm,
     valid_mask, grid_step_m, window_m, min_samples, ridge, min_beta_std_rad,
 ):
-    """Local weighted-ridge dMz/dbeta [Nm/deg] in track-distance space
+    """Compute local weighted-ridge dMz/dbeta [Nm/deg] in track-distance space
     (after the chair performance_analysis tooling, internal).
 
     s_m is SetupTool's lap_distance channel converted to metres --

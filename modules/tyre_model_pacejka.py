@@ -25,7 +25,7 @@ import numpy as np
 
 
 def pacejka_lateral_force(alpha_rad, B, C, D, E):
-    """Fy(alpha) for one axle, reduced 4-parameter Magic Formula."""
+    """Compute Fy(alpha) for one axle, reduced 4-parameter Magic Formula."""
     alpha_rad = np.asarray(alpha_rad, dtype=float)
     b_alpha = B * alpha_rad
     u = b_alpha - E * (b_alpha - np.arctan(b_alpha))
@@ -33,7 +33,7 @@ def pacejka_lateral_force(alpha_rad, B, C, D, E):
 
 
 def pacejka_lateral_stiffness(alpha_rad, B, C, D, E):
-    """dFy/dalpha, analytic. u = B*alpha*(1-E) + E*arctan(B*alpha) is
+    """Compute dFy/dalpha analytically. u = B*alpha*(1-E) + E*arctan(B*alpha) is
     the Magic Formula's own inner argument; by the chain rule,
 
       dFy/dalpha = D*C*cos(C*arctan(u)) * (du/dalpha) / (1 + u^2)

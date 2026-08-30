@@ -1,4 +1,4 @@
-# Drivers view — list of all drivers with name and driving level.
+# Drivers view -- list of all drivers with name and driving level.
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,

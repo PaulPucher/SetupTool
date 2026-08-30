@@ -1,4 +1,4 @@
-# Race Weekends & Tests view — main list showing all events, sortable by column.
+# Race Weekends & Tests view -- main list showing all events, sortable by column.
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
