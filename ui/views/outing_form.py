@@ -156,6 +156,12 @@ class StabilityAnalysisThread(QThread):
                 estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
+            # PLAN.md STEP 3 (LS_ratio) Phase 3: longitudinal counterpart to
+            # estimate_lateral_forces/estimate_cornering_stiffness above,
+            # same "read-only diagnostic, feeds Module 6/UI only" status Fz
+            # had at its own Phase-3-equivalent turn -- no classify_fn input.
+            from modules.longitudinal_forces import estimate_longitudinal_forces, estimate_slip_ratio
+            from modules.longitudinal_stiffness import estimate_longitudinal_stiffness
             # WP-N2 Step 1b / fresh-session work package: which beta a given
             # sideslip_source produces (kinematic, ekf_pass_1, or the two
             # auto-fit modes) is modules.tyre_fit_auto.resolve_sideslip_
@@ -168,6 +174,11 @@ class StabilityAnalysisThread(QThread):
                 cs = self.pipeline_cache["cs"]
                 stab = self.pipeline_cache["stab"]
                 fz = self.pipeline_cache["fz"]
+                # PLAN.md STEP 3 Phase 3: .get() so a pipeline-cache entry
+                # written by a pre-this-package session (no "ls" key)
+                # degrades to None instead of KeyError -- same convention
+                # as slip/forces below.
+                ls = self.pipeline_cache.get("ls")
                 # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt) join the
                 # cache alongside cs/stab/fz -- same precedent as fz's own
                 # WP5b(b) addition. Only the corner-trace dialog's tyre-curve
@@ -235,10 +246,14 @@ class StabilityAnalysisThread(QThread):
                 # WP5b(b) phase 1 turn (b): read-only Fz/fy_norm diagnostic,
                 # feeds Module 6/UI only -- no classify_fn input.
                 fz = estimate_vertical_loads(state, forces, effective_params)
+                # PLAN.md STEP 3 Phase 3: same read-only-diagnostic status.
+                long_forces = estimate_longitudinal_forces(state, self.parsed_data["channels"], effective_params)
+                slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)
+                ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
                 corners = self.parsed_data.get("corners", [])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
-            summaries = summarise_corners(corners, cs, stab, state, fz=fz,
+            summaries = summarise_corners(corners, cs, stab, state, fz=fz, ls=ls,
                                           lap_filter=self.lap_filter)
             t_summarise = time.perf_counter()
             print(f"[PERF] summarise_corners: {t_summarise - t_modules:.3f}s")
@@ -248,6 +263,7 @@ class StabilityAnalysisThread(QThread):
                 "cs": cs,
                 "stab": stab,
                 "fz": fz,
+                "ls": ls,
                 "slip": slip,
                 "forces": forces,
                 "corners": corners,
@@ -1323,6 +1339,10 @@ class OutingForm(QWidget):
             # -- a lap-filter-only re-Analyse must reuse it, not recompute
             # it, same as the other Modules-1-5 outputs it's cached with.
             "fz": result["fz"],
+            # PLAN.md STEP 3 Phase 3: ls (estimate_longitudinal_stiffness
+            # output) joins the WP6 in-memory cache identity alongside fz --
+            # same lap-filter-only-reuse reasoning.
+            "ls": result["ls"],
             # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt), same
             # cache-reuse reasoning as fz above -- the corner-trace dialog's
             # tyre-curve tab needs them and they must survive a lap-filter-
@@ -1943,6 +1963,12 @@ class OutingForm(QWidget):
         # computed (summarise_corners) but NOT shown here yet -- a further
         # two-column pair does not fit this panel's width cleanly alongside
         # CSf/CSr/Stab; deferred to a later UI pass rather than cramped in.
+        # LSf/LSr columns: PLAN.md STEP 3 Phase 3, DISPLAY ONLY -- formatted
+        # identically to CSf/CSr (median [p25..p75], same 2-decimal
+        # precision, same scale) but rendered with the Fz columns' neutral
+        # TEXT_MUTED colour, not _stability_colour -- no CS-style severity
+        # thresholds exist for LS_ratio in this package, and none should be
+        # implied by colour-coding it as if they did.
         rows_html = (
             f"<table cellpadding='2' style='font-size:10px;'>"
             f"<tr>"
@@ -1954,6 +1980,8 @@ class OutingForm(QWidget):
             f"<th style='color:{TEXT_DIM};'>Stab med [p25..p75]</th>"
             f"<th style='color:{TEXT_DIM};'>Fzf med kN</th>"
             f"<th style='color:{TEXT_DIM};'>Fzr med kN</th>"
+            f"<th style='color:{TEXT_DIM};'>LSf med [p25..p75]</th>"
+            f"<th style='color:{TEXT_DIM};'>LSr med [p25..p75]</th>"
             f"</tr>"
         )
         for phase in phase_keys:
@@ -1974,6 +2002,12 @@ class OutingForm(QWidget):
             fzr = p.get("fz_r_N")
             fzf_str = f"{fzf['median']/1000:.1f}" if fzf and fzf["n"] > 0 else "—"
             fzr_str = f"{fzr['median']/1000:.1f}" if fzr and fzr["n"] > 0 else "—"
+            lsf = p.get("ls_ratio_f")
+            lsr = p.get("ls_ratio_r")
+            lsf_str = (f"{lsf['median']:.2f} [{lsf['p25']:.2f}..{lsf['p75']:.2f}]"
+                       if lsf and lsf["n"] > 0 else "—")
+            lsr_str = (f"{lsr['median']:.2f} [{lsr['p25']:.2f}..{lsr['p75']:.2f}]"
+                       if lsr and lsr["n"] > 0 else "—")
             rows_html += (
                 f"<tr>"
                 f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
@@ -1984,6 +2018,8 @@ class OutingForm(QWidget):
                 f"<td style='color:{sob_colour}; width:180px;'>{sob_str}</td>"
                 f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzf_str}</td>"
                 f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzr_str}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:160px;'>{lsf_str}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:160px;'>{lsr_str}</td>"
                 f"</tr>"
             )
         rows_html += "</table>"

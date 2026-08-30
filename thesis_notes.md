@@ -7633,3 +7633,922 @@ QT_QPA_PLATFORM=offscreen construction + render smoke test for Part
 B's pyqtgraph changes -- not part of the pytest suite, run manually;
 12 show_corner + 2 show_lap calls against a real live-config analysis
 result, all completed without exception).
+
+### PLAN.md STEP 3 (LS_ratio): unsupervised package, Phase 1 -- inputs
+[2026-08-30]
+
+PURPOSE: PLAN.md STEP 3's inputs -- axle longitudinal force Fx_f/Fx_r
+and per-axle slip ratio kappa -- built as new modules/longitudinal_
+forces.py, mirroring the chair performance_analysis tooling's own
+calculate_longitudinal_axle_forces() third fallback tier (docs/
+literature/longitudinal_stiffness_estimator.py, internal; availability
+already recorded, "Combined-slip Dugoff: longitudinal stiffness
+(C_sigma) estimation method availability" above). Config additions
+under a new additive-only "longitudinal_stiffness" namespace
+(config/parameters.json) plus one whitelist addition (config/
+channels.json: log_speed_fl/fr/rl/rr, the WP-S1-designated candidate
+family, now has its first real consumer).
+
+Fx_f_N/Fx_r_N: fx_total = m*ax + drag + rolling (drag/rolling both
+0.0-placeholder and documented as such, same "not sourced, inert/
+negligible" convention as vehicle.aero.lift_coeff), split by measured
+log_pbrake_f/log_pbrake_r fraction under braking, assigned entirely to
+the rear axle under acceleration (rear-wheel-drive GT3R, chair-
+identical drive_front_fraction=0.0). kappa_f/kappa_r: kappa_axle =
+(v_axle_corrected - v_ecu)/v_ecu, using log_speed_fl/fr (front, mean)
+and log_speed_rl/rr (rear, mean, WP-S1's +1.41% rolling-radius
+correction applied) -- the exact formula and correction diagnostics/
+inspect_combined_slip_premise.py already used and recorded percentiles
+for.
+
+VALIDATION (external, per the standing rule -- not plausibility-only):
+ran the new module against Sample_Dubai.txt under the same base_mask
+(moving & ~kerb & valid-lap racing time) diagnostics/inspect_combined_
+slip_premise.py used, and reproduced its recorded figures EXACTLY:
+- base_mask n=24183 (matches the recorded n=24183 exactly).
+- kappa, base population: front p50=0.225%, rear p50=1.263% (recorded:
+  front p50=0.225, rear p50=1.263 -- exact digit match, thesis_notes.md
+  "Combined-slip arc, premise test" entry above, RESULT paragraph).
+- kappa, rear exit_4+exit_5: p50=2.026%, p90=4.116%, p99=6.667%,
+  max=13.470% (recorded: identical to 3 decimal places).
+- Fx sign/magnitude sanity (new checks, not previously recorded):
+  corr(fx_total, ax)=1.000000 across all moving samples (fx_total
+  reduces to m*ax exactly while drag/rolling are 0.0-placeholders, as
+  expected); under braking (ax<-0.5 m/s^2, n=11582) mean Fx_f=-4220 N,
+  mean Fx_r=-4486 N, both negative as expected; under acceleration
+  (ax>0.5 m/s^2, n=24096) mean Fx_f=0.0 N exactly (rear-drive
+  assumption), mean Fx_r=+5294 N, positive as expected.
+READ: both stated Phase 1 validation criteria held. This is a
+reproduction of an already-measured provisional kappa under the same
+formula, not a new independent confirmation that the formula itself is
+correct -- the same PROVISIONAL caveat the original combined-slip
+premise entry carries (ecu_speed's own provenance is opaque,
+accuracy_levels.speed.capped_by) applies unchanged to this module's
+output.
+
+NOT DONE this phase, deliberately out of scope: no Fx/kappa filtering
+(Phase 2's own Butterworth stage), no wiring into modules/stability_
+analysis.py or the UI (Phase 3), no per-axle Fx/kappa external
+validation beyond the sign/correlation checks above (a dedicated Fx
+literature cross-check, e.g. against logged brake-line pressure
+converted to caliper force, was not attempted -- no such conversion
+constant exists in config, out of this phase's scope to derive).
+
+### PLAN.md STEP 3 (LS_ratio): unsupervised package, Phase 2 --
+estimator [2026-08-30]
+
+PRE-REGISTRATION, BEFORE running modules/longitudinal_stiffness.py
+against real data: PLAN.md's STEP 3 records the expectation that
+"roughly half of samples would populate the reference" given the
+chair's linear_slip_threshold=1.5% and this session's measured rear
+kappa p50~1.26%. Computed directly from Phase 1's own validated kappa
+output (base_mask & speed>=min_speed_mps population, n=24183, RAW
+i.e. pre-Butterworth-filter kappa, since that is the only figure
+available before this phase's estimator exists): rear |kappa_raw|<=
+1.5% fraction = 61.37%, front = 86.78%.
+
+EXACT PREDICTION for the estimator's own linear-reference update rate
+(the per-sample linear_mask inside calculate_longitudinal_stiffness_
+ratio: valid window AND stiffness>0 AND |kappa_filtered|<=1.5%): rear
+approximately 61% (centered on the raw figure above), front
+approximately 87%, with a wide +/-15 percentage-point tolerance band
+before calling the prediction failed -- the window-validity
+requirement (min_samples=25, min_slip_span=0.004) and the Butterworth
+8Hz filter both modify this figure in ways not quantified in advance,
+so a wide band is registered honestly rather than a false-precision
+point estimate.
+
+MEASURED (diagnostics run against Sample_Dubai.txt, base_mask
+population): PREDICTION FAILED for both axles -- not close, not a
+band miss. n_valid=0 samples at BOTH axles, unconditionally. LS_ratio
+is all-NaN across the whole session under the chair's own literal
+defaults.
+
+ROOT CAUSE, proven analytically (not just observed empirically) --
+this is a STRUCTURAL config/sample-rate mismatch, not a data-quality
+problem or an implementation bug: _centered_slopes's half_window =
+round(regression_window_s * sample_rate_hz / 2.0) = round(0.45 * 50 /
+2.0) = round(11.25) = 11 samples. The window itself (start=i-
+half_window, stop=i+half_window+1) therefore has AT MOST
+2*11+1 = 23 samples at any interior index, on ANY input data -- a
+hard ceiling independent of what the session actually recorded.
+min_samples=25 > 23 means the `count >= min_samples` gate inside
+`valid` can never be satisfied, anywhere, by construction. Confirmed
+directly: this session's Cosworth log runs at 50.0 Hz (state[
+"sample_rate_hz"], _estimate_sample_rate); the chair's own six
+defaults (cutoff_hz=8.0, regression_window_s=0.45, min_samples=25,
+min_slip_span=0.004, linear_slip_threshold=0.015, min_speed_mps=5.0)
+were carried over verbatim per the work order ("chair defaults... all
+read from config at runtime"), and were not themselves re-derived
+against this car's actual sample rate -- CLAUDE.md's parameter-
+category rule ("method calibration tunables... match the chair BY
+CHOICE; changing any is an estimator change and re-triggers threshold
+re-derivation") is exactly why this was not silently corrected here.
+The chair's own performance_analysis tooling comment ("Sliding min/max
+is not worth a dependency here; windows are small at 100 Hz")
+is suggestive that its own source data samples faster than 50 Hz, but
+this is not confirmed -- the chair's own actual sample rate is not
+known from anything read this session, and is not asserted as fact.
+
+DECISION NEEDED, not taken here: whether to scale min_samples (and/or
+regression_window_s) to this car's 50 Hz log -- e.g. a min_samples
+value proportionally reduced to fit inside the ~23-sample maximum
+window this rate allows (a candidate, not a proposal: e.g. 12-15
+samples) -- versus a different config-level resolution. This is a
+real estimator change under the deviation taxonomy's own rule (a
+method calibration tunable, "match the chair BY CHOICE"), triggers
+threshold re-derivation, and is the user's call, not assumed here.
+
+CONSEQUENCE for the rest of this package: LS_ratio_f/LS_ratio_r are
+implemented correctly (verified by the unit tests below, which use
+controlled synthetic sample rates chosen to exercise both the
+sufficient- and insufficient-window paths deliberately) but produce
+all-NaN output on THIS car's real log under the current, unmodified
+chair defaults. Phase 3's wiring proceeds anyway (the plumbing is
+correct and config-driven; a future min_samples decision would then
+immediately start producing real numbers with no further UI work).
+Phase 4's disambiguation check is expected to be ill-posed as a
+result -- flagged in advance here, resolved (or not) when that phase
+actually runs.
+
+Unit tests: tests/test_longitudinal_stiffness.py (new) -- hand-computed
+slopes at known synthetic slip/force inputs (exact linear dFx/dkappa
+recovered from a noiseless synthetic ramp, at a sample rate chosen so
+the window comfortably exceeds min_samples), NaN/short-window
+degradation (empty array, all-NaN array, an array whose window can
+never reach min_samples -- reproducing this exact 50 Hz finding as a
+standing regression test -- never crashes, never silently returns a
+plausible-looking wrong number), the 1.0 clip (a synthetic stiffness
+rising above the linear reference clips exactly at 1.0, does not
+report >1.0), and the below-threshold linear-reference-update rule (a
+synthetic case with no sample under the linear threshold correctly
+falls back to the all-positive-stiffness median, matching
+calculate_longitudinal_stiffness_ratio's own documented fallback
+branch).
+
+### PLAN.md STEP 3 (LS_ratio): unsupervised package, Phase 3 -- pipeline
+and UI [2026-08-30]
+
+Wired LS_ratio into production, DISPLAY ONLY as instructed -- no
+verdict/classification logic reads it anywhere.
+
+modules/stability_analysis.py: summarise_corners gained an optional
+ls= parameter (mirrors fz=, additive-only, identical _stats()
+treatment) adding ls_ratio_f/ls_ratio_r per phase. ANALYSIS_SCHEMA_
+VERSION 6->7, with the same bump-history-comment convention every
+prior bump used. Outdated-cache WARN path verified to trigger: a
+direct check against the live ANALYSIS_SCHEMA_VERSION (now 7)
+confirms any persisted result stored under version 5 or 6 compares
+unequal and would hit ui/views/outing_form.py's
+_try_render_cached_analysis WARN branch (source already quoted/
+verified structurally by tests/test_config_schema_integrity.py's
+existing source-scan tests); only a stored version 7 would render as
+a cache hit.
+
+ui/views/outing_form.py: StabilityAnalysisThread.run() gained
+estimate_longitudinal_forces/estimate_slip_ratio/estimate_
+longitudinal_stiffness calls (cache-miss branch) alongside the
+existing estimate_vertical_loads call, same read-only-diagnostic
+status Fz has (no classify_fn input); the WP6 in-memory pipeline
+cache gained an "ls" key parallel to "fz"; the corner-detail card's
+per-phase table gained LSf/LSr columns, formatted identically to
+CSf/CSr (median [p25..p75], 2 decimals) but coloured with the Fz
+columns' neutral TEXT_MUTED, not _stability_colour -- no LS
+thresholds exist, none should be implied by colouring it as if they
+did.
+
+ui/views/corner_trace_dialog.py: the shared _TraceDialogBase panel
+scaffold gained a 4th "LS ratio" panel between "CS ratio" and
+"Speed" (both CornerTraceDialog.show_corner and LapTraceDialog.
+show_lap/_load_lap_data plot it, same graceful-degradation-to-no-
+curves pattern already used for slip/forces when absent). New
+LSF_COLOR/LSR_COLOR constants, distinct from every existing curve
+colour. No threshold lines added to the LS panel (CS's panel has
+four, from classification config -- LS intentionally has none).
+BASE_LEGEND_TEXT extended with one plain-English LS sentence,
+explicitly stating "shown for context only, no threshold lines (no
+verdict currently depends on it)".
+
+VERIFICATION, two passes -- the first overstated what it covered,
+corrected here rather than left standing (same discipline as Phase
+2's own self-caught error above):
+1. existing diagnostics/smoke_test_corner_trace_dialog.py (headless,
+   QT_QPA_PLATFORM=offscreen, pre-existing script, run read-only/
+   unmodified) re-run against this session's changes: constructed
+   both CornerTraceDialog and LapTraceDialog under the live config
+   (sideslip_source=ekf_auto_pacejka), called show_corner 12 times
+   and show_lap twice -- ALL PASSED. CAUGHT ON REVIEW: this script
+   builds its stability_result dict BY HAND, calling Modules 1-6
+   directly and never including an "ls" key -- it exercises only the
+   graceful-degradation path (ls absent), NOT the new estimate_
+   longitudinal_forces/estimate_slip_ratio/estimate_longitudinal_
+   stiffness call sites, NOT the "ls" cache key, and NOT the LSf/LSr
+   detail-card table columns (a different method, never called by
+   this script). An earlier draft of this entry claimed it did --
+   that claim was wrong and is withdrawn.
+2. NEW throwaway script (scratchpad, not committed to the repo --
+   this package's own file-list does not include a Phase 3
+   diagnostics/ file, and none was needed once corrected), headless/
+   offscreen: reproduces StabilityAnalysisThread.run()'s cache-miss
+   branch function-for-function INCLUDING the three new Phase 3 call
+   sites, under sideslip_source="kinematic". Confirmed: summaries[0]'s
+   phase dicts carry ls_ratio_f/ls_ratio_r; CornerTraceDialog.
+   show_corner against 3 stable corners x 4 laps populated the "ls"
+   plot with 8 real curve items (front+rear across the laps that
+   passed the margin-extension slice check); LapTraceDialog.show_lap
+   likewise populated 8 "ls" curve items; OutingForm._build_corner_
+   details (the LSf/LSr table-column method, constructed via
+   OutingForm.__new__(OutingForm) to avoid the heavy DB-backed
+   __init__, the same None/uninitialised-self convention core/
+   weekend_pdf_export.py's own code already depends on) built its
+   returned QWidget without exception. ALL CHECKS PASSED -- this is
+   the actual end-to-end confirmation the withdrawn claim above should
+   have been.
+
+### PLAN.md STEP 3 (LS_ratio): unsupervised package, Phase 4 --
+disambiguation check [2026-08-30]
+
+PURPOSE, restated: the first empirical test of the combined-slip
+rationale on record -- for corner instances where rear CS_ratio is
+low, does rear LS_ratio say "traction-limited" (also low) or
+"cornering-limited" (still high)?
+
+PRE-REGISTRATION, before running diagnostics/inspect_ls_cs_
+disambiguation.py (new): three evidence sources on record, quoted
+directly, each with what it implies for this check's expected
+cluster split.
+1. TC-intervention concentration in exit phases (thesis_notes.md
+   "Combined-slip arc: logged ECU slip and TC channels found",
+   ESTABLISHED -- TC intervention entry): "ecu_B_tc_act active on
+   0.28% of the base population (68 of 24183). Concentration by
+   phase: exit 0.87%, braking 0.33%, baseline 0.28%" -- roughly 3x
+   exit-vs-baseline, but that same entry's own ASSESSMENT paragraph
+   already cautions "68 samples, roughly 25 exit events... suggestive,
+   not established" and states plainly "if the car's own traction
+   control intervened on 0.28% of a session, the rear axle was rarely
+   at its traction limit." IMPLICATION: a real but SMALL traction-
+   limited population is expected -- most low-CS instances should NOT
+   cluster as traction-limited on this evidence alone.
+2. Measured exit-phase rear slip (thesis_notes.md "Combined-slip arc,
+   FIRST TASK" entry, THRESHOLD AND ANSWER paragraph): "Rear, exit
+   phase: 3.97% of 7450 samples exceed" the kappa>=5% utilisation
+   threshold -- also a minority-but-non-negligible, tail-weighted
+   population, the same entry's own words. IMPLICATION: consistent
+   with (1) -- traction-limited samples exist but are a minority of
+   exit-phase samples, not the norm.
+3. C4/C14 attribution history (thesis_notes.md "WP-N2 pass 1:
+   CS_ratio interpretability" entry): "C4 and C14 are flagged on ALL
+   FOUR laps at BOTH axles" -- CAVEAT, stated plainly here because it
+   changes how much weight this carries: that flagging was against the
+   EKF pass_1 CS_ratio distribution, not the KINEMATIC CS_ratio this
+   phase's own diagnostic must use (PLAN.md's own sideslip_source-
+   default constraint). It is cited only as a directional hint that
+   SOME specific corners repeat across laps/axles more than others,
+   not as a claim those same corners will repeat here.
+
+EXACT PREDICTION: among rear-CS_ratio-below-p25 corner instances
+(kinematic CS_ratio, this session), I expect the MAJORITY to cluster
+"low CS + high LS" (cornering-limited), with only a SMALL minority
+(order 1-4 instances, roughly matching evidence source 1's ~25-exit-
+event scale relative to this session's total corner-instance count)
+clustering "low CS + low LS" (traction-limited) -- and if any
+instances land in the traction-limited cluster, C4/C14 are named here
+in advance as the most likely candidates given evidence source 3,
+while explicitly flagging that prediction as weak (different
+estimator).
+
+CAVEAT REGISTERED BEFORE RUNNING, per Phase 2's own finding: LS_ratio
+is currently all-NaN for the entire session under the chair's
+unmodified defaults (thesis_notes.md Phase 2 entry, ROOT CAUSE
+paragraph -- the 50 Hz/min_samples=25 structural mismatch). This
+prediction may therefore be UNTESTABLE rather than held or failed --
+recorded as a live possibility here, not decided in advance.
+
+MEASURED (diagnostics/inspect_ls_cs_disambiguation.py, run against
+Sample_Dubai.txt under sideslip_source="kinematic" -- the production
+default, independent of the live config's own current experimental
+value, per PLAN.md's own hard constraint): rear CS_ratio (worst-
+phase-per-instance) population n=56, p25=0.3931. 14 corner instances
+fall below p25 (stable_corner_id 2, 3x3, 2x5, 6, 2x13, 14, 3x9 --
+full list with lap numbers in the script's own output). Of those 14,
+n=0 have a finite rear LS_ratio -- CAVEAT REGISTERED ABOVE HELD: the
+prediction is UNTESTABLE, exactly as anticipated, not held or failed
+in the ordinary sense. Every low-CS instance reports LS_r=NaN. The
+clustering step (median split into traction-/cornering-limited
+candidates) never executes -- there is nothing to cluster.
+
+READ, per the standing instruction to record the result plainly
+either way: this is a direct, structural consequence of Phase 2's
+own finding, not a new failure discovered here -- Phase 2 predicted
+exactly this outcome in its own CONSEQUENCE paragraph before Phase 3
+or Phase 4 ran. STOPPING Phase 4 here, per the standing instruction
+("if a phase proves ill-posed, STOP it, record why, continue to the
+next") -- the disambiguation check as specified cannot produce a
+result until the Phase 2 DECISION NEEDED item (min_samples/
+regression_window_s re-derivation for this car's 50 Hz log) is
+resolved. One incidental observation worth recording: NEITHER C4
+NOR C14 (thesis_notes.md's own pre-registered candidates from the
+EKF-context attribution history) appears in this session's kinematic-
+CS_ratio low-p25 population at all -- stable_corner_id 4 does not
+appear among the 14 instances above, and stable_corner_id 14 appears
+only once (lap 2), not 4/4 laps. This is consistent with the
+pre-registration's own explicit caveat that the C4/C14 evidence came
+from a different estimator (EKF pass_1) and might not transfer to
+kinematic CS_ratio -- it did not transfer here. Not itself evidence
+about LS_ratio (which never became available to test either
+candidate), but a data point on record for whoever next revisits the
+C4/C14 story under kinematic CS_ratio specifically.
+
+diagnostics/inspect_ls_cs_disambiguation.py is left in place, fully
+correct and re-runnable as-is -- it will start producing real
+clusters the moment the Phase 2 min_samples decision lands, with no
+script changes needed.
+
+### PLAN.md STEP 3: 50 Hz min_samples adaptation [2026-08-30]
+
+DECISION (user's, recorded verbatim): the chair's min_samples=25 with
+a 0.45 s regression_window_s is unsatisfiable at 50 Hz (proven in the
+Phase 2 entry above -- max window 2*half_window+1 = 23 samples at any
+data). The adaptation keeps the chair's PHYSICAL window (0.45 s) and
+derives the sample minimum from the actual log rate instead of
+transplanting the count literally.
+
+FORCING FACT, restated once more at the point of the actual code
+change: this car's Cosworth log runs at 50.0 Hz (state[
+"sample_rate_hz"], _estimate_sample_rate) -- not a property of this
+session's file alone, this is the logger's fixed sample rate, so the
+mismatch is structural to this car's data acquisition, not a one-off.
+
+IMPLEMENTATION: modules/longitudinal_stiffness.py's _centered_slopes
+now computes min_samples = max(min_samples_floor, half_window+1)
+at runtime, using half_window (already computed there from
+regression_window_s and the ACTUAL sample_rate_hz passed in --
+regression_window_s itself is untouched, still 0.45 s, still the
+chair's own value). half_window+1 samples span at least from the
+window's centre to one edge inclusive -- a natural, non-arbitrary
+minimum for a centred regression slope at ANY log rate, not reverse-
+engineered from the chair's own (unconfirmed) assumed rate. config/
+parameters.json's longitudinal_stiffness.min_samples key is REMOVED,
+replaced by min_samples_floor=15 (a genuine floor, not the effective
+value at every rate -- see its own config comment for the full
+derivation and the deviation-taxonomy classification: FORCED
+ADAPTATION, was "match the chair BY CHOICE", re-triggers threshold
+re-derivation like any estimator change).
+
+AT THIS CAR'S 50 HZ: half_window=11, max window=23, derived
+min_samples=max(15, 12)=15 -- the FLOOR binds (12 < 15), so the
+floor is doing real, load-bearing work at this exact rate, not merely
+decorative. 15 <= 23, so validation is now structurally possible.
+
+VERIFIED IMMEDIATELY, external not just analytic: re-ran the same
+validation script Phase 2 used (base_mask population, Sample_
+Dubai.txt) against the adapted estimator --
+  front: n_valid=11299, update_rate=36.47% (of valid), LS_ratio
+    median=0.000, p10=-1.837, p25=-0.348, p75=0.965,
+    linear_reference=21910.9 N
+  rear: n_valid=18450, update_rate=40.85% (of valid), LS_ratio
+    median=0.527, p10=-0.770, p25=-0.078, p75=1.000,
+    linear_reference=152877.6 N
+LS_ratio is no longer all-NaN -- both axles now produce real,
+non-degenerate output across a large fraction of the session (front
+11299/24183=46.7% of the base population has a valid window at all,
+rear 18450/24183=76.3%).
+
+Unit tests updated (tests/test_longitudinal_stiffness.py): the
+retired test_real_config_at_50hz_never_reaches_min_samples replaced
+by test_real_config_at_50hz_now_validates_with_rate_derived_min_
+samples (pins the new rule: 50 Hz validates now); test_window_
+shorter_than_min_samples_never_validates renamed test_window_below_
+floor_still_never_validates and rewritten to provoke the same
+structural non-validation via a very low sample rate (5 Hz) instead
+of a literal min_samples value, since min_samples is no longer freely
+settable by a caller -- the underlying guarantee (a too-short window
+never validates, regardless of data) is unchanged, only how it's
+provoked; every other test's _se() helper calls updated from
+min_samples= to min_samples_floor=. All 8 tests pass. Full record and
+reasoning for each specific test change: see the test file's own
+module docstring and each test's own docstring, not duplicated here.
+
+### PLAN.md STEP 3 Phase 2, re-run against the adapted estimator
+[2026-08-30]
+
+The Phase 2 pre-registered prediction (thesis_notes.md "PLAN.md STEP
+3 (LS_ratio): unsupervised package, Phase 2 -- estimator" entry,
+EXACT PREDICTION paragraph) predates this adaptation -- stated
+plainly, per the work order, before reporting whether it held: rear
+approximately 61%, front approximately 87%, both +/-15 percentage
+points, for the estimator's own linear-reference update rate (valid
+window AND stiffness>0 AND |kappa_filtered|<=1.5%).
+
+MEASURED (same validation script, base_mask population, now against
+real non-NaN output): front update_rate=36.47%, rear update_rate=
+40.85% (figures above, this entry's companion adaptation entry).
+
+VERDICT: FAILED at both axles, not a near miss. Front: predicted band
+[72%, 102%], measured 36.47% -- roughly 35 percentage points below
+the band's own lower edge, the larger miss of the two. Rear:
+predicted band [46%, 76%], measured 40.85% -- also below the band,
+by about 5 points.
+
+REASONING on why, recorded rather than left as a bare numeric miss:
+the pre-registered prediction was built from Phase 1's RAW
+(unfiltered) kappa's fraction below the 1.5% threshold (front 86.78%,
+rear 61.37%, base population) -- a single per-sample threshold check
+with no windowing at all. The estimator's actual linear-reference
+update rate additionally requires (a) the sliding window to satisfy
+min_samples/min_slip_span (a real constraint even now that it is
+satisfiable, not automatically met at every index) AND (b) the
+windowed OLS slope to come out POSITIVE (stiffness>0) -- a
+non-trivial physical requirement the raw-threshold prediction did not
+model at all. The Butterworth 8 Hz filter on kappa also changes which
+samples sit inside +/-1.5% relative to the unfiltered figure. The
+pre-registration's own text anticipated some of this ("the window-
+validity requirement... and the Butterworth filter both modify this
+figure in ways not quantified in advance") but the registered +/-15pp
+band did not turn out wide enough to cover the actual gap -- the
+window-validity and stiffness-sign requirements together removed
+substantially more of the population than the band anticipated,
+especially at the front axle.
+
+NOT re-registering a new prediction here -- the work order asked for
+an honest held/failed report against the EXISTING pre-registration,
+not a fresh one.
+
+### PLAN.md STEP 3 Phase 4, run for real -- the first empirical
+answer to the combined-slip question [2026-08-30]
+
+PRE-REGISTRATION ON RECORD (thesis_notes.md "PLAN.md STEP 3 (LS_
+ratio): unsupervised package, Phase 4" entry, EXACT PREDICTION
+paragraph, quoted for the verdict below): "among rear-CS_ratio-below-
+p25 corner instances..., I expect the MAJORITY to cluster 'low CS +
+high LS' (cornering-limited), with only a SMALL minority (order 1-4
+instances...) clustering 'low CS + low LS' (traction-limited) -- and
+if any instances land in the traction-limited cluster, C4/C14 are
+named here in advance as the most likely candidates..., while
+explicitly flagging that prediction as weak."
+
+MEASURED (diagnostics/inspect_ls_cs_disambiguation.py, re-run against
+the adapted estimator, sideslip_source="kinematic" as before): rear
+CS_ratio population n=56, p25=0.3931 (unchanged from the prior,
+ill-posed run -- CS_ratio is untouched by this adaptation). 14
+instances below p25 -- now ALL 14 have a finite rear LS_ratio (100%
+coverage, vs 0/14 before the adaptation). LS_ratio median among them:
+-0.1545.
+
+'low CS + low LS' (traction-limited candidates), n=7:
+  lap=1 corner=3  stable_id=3  CS_r=0.345  LS_r=-0.572
+  lap=2 corner=3  stable_id=3  CS_r=0.359  LS_r=-1.012
+  lap=3 corner=3  stable_id=3  CS_r=0.386  LS_r=-1.073
+  lap=4 corner=3  stable_id=3  CS_r=0.385  LS_r=-1.301
+  lap=4 corner=5  stable_id=5  CS_r=0.195  LS_r=-0.233
+  lap=1 corner=12 stable_id=13 CS_r=0.337  LS_r=-0.258
+  lap=3 corner=12 stable_id=13 CS_r=0.196  LS_r=-0.550
+
+'low CS + high LS' (cornering-limited candidates), n=7:
+  lap=4 corner=2  stable_id=2  CS_r=0.386  LS_r=0.125
+  lap=1 corner=5  stable_id=5  CS_r=0.298  LS_r=-0.076
+  lap=1 corner=6  stable_id=6  CS_r=0.219  LS_r=1.000
+  lap=2 corner=13 stable_id=14 CS_r=0.165  LS_r=0.034
+  lap=1 corner=None stable_id=9 CS_r=-0.721 LS_r=0.103
+  lap=2 corner=9  stable_id=9  CS_r=-0.361  LS_r=-0.044
+  lap=4 corner=9  stable_id=9  CS_r=0.326  LS_r=-0.037
+
+VERDICT: FAILED, on every clause of the pre-registration, recorded
+verbatim per the work order regardless.
+- "MAJORITY cornering-limited, SMALL minority (1-4) traction-limited"
+  -- FAILED. The actual split is EVEN, 7/7, not a majority either
+  way, and the traction-limited count (7) is well above the
+  registered 1-4 range.
+- "C4/C14 named as the most likely traction-limited candidates" --
+  FAILED. C4 (stable_corner_id 4) does not appear in the low-CS
+  population at all, at either cluster. C14 (stable_corner_id 14)
+  appears once and lands in the CORNERING-limited cluster, the
+  opposite of the named prediction.
+- The pre-registration's own weak-evidence caveats (TC intervention
+  "small... 68 samples total"; exit-phase kappa>=5% "minority... not
+  a dominant regime") are NOT contradicted by this result -- a small,
+  rare traction-limited population was never ruled OUT by that
+  evidence, only ruled unlikely to DOMINATE; an even split is a
+  bigger traction-limited signal than that evidence alone would have
+  suggested, but not a proof the evidence was wrong (kappa/TC
+  aggregates were session-wide, not corner-specific -- they cannot
+  rule a handful of specific corners in or out).
+
+GENUINE NEW FINDING, the actual payoff of running this for real:
+stable_corner_id 3 (C3) is the ONLY corner that is traction-limited
+on ALL FOUR of its valid laps, with a consistently negative (beyond-
+peak) rear LS_ratio each time (-0.57, -1.01, -1.07, -1.30) alongside a
+consistently moderate-low rear CS_ratio (0.345-0.386, all four laps
+essentially the same value). This is a genuinely new candidate the
+prior EKF-context C4/C14 attribution history never surfaced (C3 is
+not mentioned there) -- a real, repeatable, both-axles-of-evidence
+signal for "this corner's rear tyre is doing real longitudinal work
+while also reading a flattened lateral curve," exactly the physical
+story the combined-slip rationale was built to detect. Stable_id 13
+(2 of its 4 laps) is a secondary, weaker candidate. Everything else in
+the traction-limited cluster is a single-lap occurrence. NOT
+independently cross-checked against per-corner TC-intervention or
+kappa data this turn (the session-wide TC/kappa aggregates on record
+have no per-corner breakdown) -- a natural next diagnostic, not run
+here, out of this phase's own scope (report, not investigate further,
+per the work order).
+
+READ PLAINLY: this is the first empirical test of the combined-slip
+rationale on record, and it does NOT cleanly vindicate the pre-
+registered expectation -- the traction-limited population is larger
+and differently distributed than predicted, and the specific named
+candidates were wrong. It ALSO does not falsify the combined-slip
+rationale itself (that pure-lateral CS_ratio conflates cornering-
+and traction-limitation) -- it demonstrates the disambiguation
+actually WORKS and finds a real split, with C3 as a concrete,
+repeatable example of exactly the phenomenon the method was designed
+to catch. The pre-registration's specific numeric/nominal guesses
+were wrong; the underlying premise that some low-CS corners are
+traction-limited and some are not is, on this one session, upheld.
+
+### Kerb-strike wheel-speed spikes: investigation [2026-08-30]
+
+PURPOSE: log_speed_fl/fr/rl/rr are now the LS_ratio estimator's kappa
+input (PLAN.md STEP 3). Kerb strikes visibly spike wheel speed on
+real data; this needed characterising before trusting LS results.
+Read-only, Tier B, new diagnostics/inspect_kerb_wheel_speed_spikes.py
+(matplotlib PNGs to diagnostics/plots/2026-08-30_kerb_wheel_speed_
+spikes/, gitignored). No config change, no production path touched.
+
+KERB DETECTION MECHANISM, quoted from the actual code/config (not
+memory): modules/stability_analysis.py _compute_kerb_mask_from_az
+computes raw = |az_g - kerb_baseline_g| > kerb_z_deviation_
+threshold_g, dilated by kerb_dilation_samples on each side (rolling-
+OR). Live config: kerb_z_deviation_threshold_g=1.2, kerb_baseline_g=
+1.0, kerb_dilation_samples=5 (100ms each side at this session's
+50.0 Hz). A pure vertical-acceleration detector -- no wheel-speed
+input at all, which is exactly the gap this investigation probes.
+
+### PART 0/1 -- kerb event inventory and spike characterisation
+
+73 kerb-flagged runs in the file, 57 overlapping the racing
+population (moving & valid-lap, n=25074). Duration: min=0.220s
+median=0.240s max=0.860s. 3.55% of the racing population is kerb-
+flagged.
+
+10-event stratified sample (shortest/longest/median-duration + 8
+spread evenly by time), per-wheel peak kappa and post-event settle
+time (first point after the event's own end where |kappa|<2% holds
+continuously for >=100ms) -- full per-event detail and plots in the
+script's own output, headline pattern: REAR wheels spike larger and
+ring down far longer than front. Examples: event #48 (t=936.0s)
+rr peak=+13.76%, settled after 2380ms; event #35 (t=860.3s) rl
+settled after 1720ms, rr after 1700ms; event #24 (t=756.0s) rl
+settled after 620ms, rr after 640ms. Front is NOT always small
+though -- event #32 (t=805.3s) fl peak=-13.66%, fr peak=-9.72% (a
+harder hit that spikes both axles), event #43 fl peak=-12.47%.
+
+PART 1b, settle-time distribution across ALL 57 racing kerb events
+(not just the 10-event sample), separately per axle -- the number
+that actually justifies a widening recommendation:
+  front (fl+fr): n=114 settled-within-3s (0 never-settled), p50=0ms
+    p75=0ms p90=396ms max=2640ms
+  rear (rl+rr): n=112 settled-within-3s (2 NEVER settled within the
+    3s window), p50=160ms p75=560ms p90=2116ms max=2860ms
+  current kerb_dilation_samples=5 -> 100ms each side.
+READ: front settling is mostly fine relative to the current 100ms
+dilation (median 0ms, i.e. usually already settled by the event's
+own end) but has a real tail (p90=396ms, max=2.64s). REAR IS THE
+PROBLEM: the median alone (160ms) already exceeds the current 100ms
+dilation -- more than half of rear-wheel kerb ringdown outlasts the
+mask -- and the tail is severe (p90=2.1s, two events never settled
+inside a 3s window at all).
+
+### PART 2 -- anomaly threshold and mask alignment
+
+|kappa_wheel| distribution, racing population, pooled across all 4
+wheels: outside the kerb mask n=96732, p50=0.870% p99=6.144%
+p99.9=11.444% max=24.049%; inside the kerb mask n=3564, p50=1.395%
+p99=11.391% p99.9=15.482% max=22.931%.
+
+ANOMALY THRESHOLD, gap-selected (Tier B, data-derived, this
+diagnostic only, NOT written to config): the non-kerb population's
+own p99.9 (11.444%), rounded up to 12.0% -- everything above it is
+rarer than 1-in-1000 among samples the mask does not already flag, a
+defensible "clearly abnormal" floor derived from this session's own
+distribution, same gap-selection convention already used for the
+classification thresholds elsewhere in this project.
+
+Axle-mean |kappa_f| or |kappa_r| (the ACTUAL LS estimator input, not
+per-wheel) exceeding 12.0% in the racing population: n=9. Of those,
+OUTSIDE the kerb mask ("leaked"): n=7 (77.8% of the anomalous
+population). 0.45s LS regression windows containing >=1 leaked
+sample: n=117 (0.47% of the racing population). High-kappa population
+(|kappa|>=5%, the same utilisation threshold already established in
+the combined-slip premise entry): n=681; of those, window contains a
+leaked sample: n=47 (6.9% of the high-kappa population) -- a small
+but non-trivial slice of exactly the tail LS_ratio's low/negative
+values (traction-limited signal, per Phase 4's C3 finding) come from.
+CAVEAT: contamination checked against RAW (pre-Butterworth) kappa in
+each window; the production estimator's 8Hz filter SMEARS a raw
+spike across neighbouring samples rather than removing it, so this
+number likely UNDERSTATES true contamination, not modelled further
+here.
+
+### PART 3 -- impact on the regression slope, 5 contaminated
+high-kappa windows
+
+  t=519.30s (front): slope WITH leaked sample -28,158 N/kappa,
+    WITHOUT -29,575 N/kappa (+4.8%)
+  t=575.20s (rear): WITH -11,713, WITHOUT -18,544 (+36.8%)
+  t=605.56s (front): WITH -1,793, WITHOUT -5,082 (+64.7%)
+  t=770.76s (front): WITH +8,128, WITHOUT +18,809 (-56.8%)
+  t=826.14s (rear): WITH +22,664, WITHOUT +20,228 (+12.0%)
+READ: NOT noise-level. Three of five cases move by >10%, two by
+>35%, one flips magnitude by more than half while keeping sign. A
+leaked kerb-adjacent sample materially moves the local slope in the
+majority of the cases checked -- this is a real, not hypothetical,
+risk to trust in LS_ratio values near these windows.
+
+### PART 4 -- wheel-speed anomaly as an alternative kerb detector,
+the reverse question
+
+Same 12.0% threshold, max over the 4 wheels, same 5-sample dilation
+(fair comparison against the az detector). Wheel-speed-based events:
+n=40 vs az-based n=57 (racing population). Overlap: only 15/57
+(26.3%) of az events have ANY wheel-speed counterpart. az-ONLY: 42.
+wheel-speed-ONLY: 25.
+
+Examples, az-ONLY (az fires, wheel-speed stays quiet): t=507.30s
+az_peak=1.427g but max_wheel_kappa_peak only 3.70%; t=514.06s
+az_peak=1.334g, wheel_kappa_peak=8.76% (below the 12% threshold).
+READ: many real, physically-confirmed kerb touches (clear az
+signature) do not perturb wheel speed enough to cross the anomaly
+threshold -- kerb severity varies, and az is picking up genuine mild
+kerb contact the wheel-speed channel doesn't register strongly.
+
+Examples, wheel-speed-ONLY (wheel-speed fires, az stays quiet):
+t=519.34s az_peak=0.485g (well under the 1.2g threshold) yet
+max_wheel_kappa_peak=21.70% -- this is the SAME window Part 3's first
+impact example sits inside; t=555.28s az_peak=0.680g, wheel_kappa_
+peak=12.50%; t=571.32s az_peak=0.576g, wheel_kappa_peak=17.36%.
+IMPORTANT NUANCE, not to be glossed over: a low az signature alongside
+a large wheel-speed anomaly is NOT necessarily a missed kerb strike --
+it is equally consistent with a genuine high-slip driving event
+(wheelspin on exit, lock-up under braking) that has nothing to do
+with a kerb at all. This was not resolved here (would need per-event
+corner-phase/brake-pressure cross-referencing, out of this
+diagnostic's scope) -- flagged explicitly as an open question, not
+assumed either way.
+
+### RECOMMENDATION (recorded, NOT implemented, per the work order)
+
+The numbers do not support a single clean category -- they support a
+combination, and explicitly rule out one tempting option:
+
+1. MASK WIDENING, axle-asymmetric, data-derived: rear dilation should
+   widen substantially (current 100ms is already below the rear
+   MEDIAN settle time of 160ms; a value in the 500-600ms range, near
+   the measured p75, would resolve the majority of rear leakage
+   without reaching into the extreme multi-second tail). Front can
+   stay close to current (median settle 0ms) with at most a modest
+   increase to cover its own smaller tail (p90=396ms). Well-supported
+   by PART 1b directly.
+2. A LS-ESTIMATOR-SCOPED plausibility guard (NOT a change to the
+   general-purpose kerb_mask used elsewhere -- corner detection, CS
+   estimation, etc.): given PART 3's demonstrated slope impact (up to
+   64.7%) and that 77.8% of the most extreme anomalies currently leak
+   past the mask, a targeted check inside modules/longitudinal_
+   stiffness.py's own windowing (e.g. excluding or flagging a sample
+   whose raw kappa exceeds a physically-implausible single-sample
+   threshold before the regression runs) would catch what mask
+   widening alone might still miss, without touching every other
+   kerb_mask consumer's behaviour.
+3. EXPLICITLY NOT RECOMMENDED: a naive hybrid detector that ORs the
+   wheel-speed-anomaly mask into the general kerb_mask. PART 4's own
+   wheel-speed-ONLY examples show this would flag genuine high-slip
+   driving events (indistinguishable, without further work, from real
+   kerb strikes) as "kerb" -- and the high-kappa tail is EXACTLY where
+   Phase 4's real finding lives (C3's traction-limited signal, all
+   four laps). A general-purpose hybrid kerb detector risks silently
+   erasing the very signal the whole STEP 3 package exists to surface.
+   If a wheel-speed-based signal is used at all, it belongs scoped to
+   the LS estimator's own input hygiene (point 2), not broadened into
+   the shared kerb_mask.
+4. "No action needed" is NOT supported -- PART 3's measured slope
+   swings are real, not noise-level, in a majority of the cases
+   checked.
+
+Neither of the two recommended actions (1, 2) was implemented this
+turn, per the work order -- read-only investigation and
+recommendation only.
+
+### PLAN.md STEP 3 follow-up: C3 verified clean, LS plausibility
+guard implemented, mask widening quantified [2026-08-30]
+
+### PART 1 -- C3, checked FIRST, before any change
+
+New diagnostics/inspect_c3_leaked_windows.py (read-only). For each of
+C3's 4 valid-lap instances, found the worst phase (the one that
+produced the reported worst-phase-median rear LS_ratio) and checked
+every valid rear-LS sample in that phase's time window against the
+kerb-investigation's own "leaked" definition (axle-mean |kappa| >
+12.0% AND outside kerb_mask):
+
+  lap=1: phase=exit_5, reported LS_r=-0.572, n=19 valid samples, 0 contaminated (0.0%)
+  lap=2: phase=exit_4, reported LS_r=-1.012, n=45 valid samples, 0 contaminated (0.0%)
+  lap=3: phase=exit_5, reported LS_r=-1.073, n=19 valid samples, 0 contaminated (0.0%)
+  lap=4: phase=exit_4, reported LS_r=-1.301, n=45 valid samples, 0 contaminated (0.0%)
+
+VERDICT: C3's finding needs NO asterisk. Zero leaked-window
+contamination across all 4 laps and both recurring worst phases
+(exit_4/exit_5, consistent with an exit-traction story, not an
+artifact concentrated in one phase). The reported medians equal the
+all-samples medians exactly (nothing to exclude). C3 stands as
+recorded in the Phase 4 entry.
+
+### PART 2 -- LS plausibility guard, implemented
+
+Files: modules/longitudinal_stiffness.py, config/parameters.json
+(additive, longitudinal_stiffness namespace).
+
+DESIGN: a sample is excluded from the LS regression windows (both
+axles independently) only when BOTH hold: |kappa_raw| exceeds
+plausibility_kappa_bound (0.12, same gap-selected value as the kerb
+investigation's ANOMALY_THRESHOLD) AND the az channel shows kerb-like
+disturbance (same raw flag _compute_kerb_mask_from_az itself uses)
+within a TRAILING window ending at that sample -- axle-specific,
+sized from the measured ringdown distribution: plausibility_az_
+window_front_s=0.15, plausibility_az_window_rear_s=0.6 (config
+provenance comments cite the kerb investigation entry's PART 1b
+percentiles directly). LOAD-BEARING DESIGN CONSTRAINT, stated in the
+code and honoured throughout: az-coincidence is REQUIRED, kappa alone
+is NEVER sufficient -- a high kappa with no nearby az disturbance is
+presumed genuine traction signal (exactly C3's own signature) and
+must pass through untouched.
+
+MECHANISM DETAIL worth recording: the exclude mask is applied in TWO
+places, not one. An EARLIER version of this guard only gated the
+post-filter window-sum stage (valid_mask) and left the excluded raw
+sample inside the Butterworth pre-filter step -- this FAILED its own
+integration test (the filtered signal near the excluded index stayed
+corrupted, since filtfilt is a whole-array zero-phase operation that
+smears an outlier's energy into neighbouring FILTERED samples
+regardless of any later masking). Fixed by NaN-ing the excluded raw
+sample BEFORE filtering (so _filtered's own existing interpolate-over-
+NaN step bridges over it cleanly) in addition to excluding it from the
+window-sum valid_mask afterward. Recorded here because it is a real
+lesson about zero-phase filters and point-masking, not just an
+implementation detail: masking AFTER a whole-signal filter does not
+undo what the filter already did to nearby values.
+
+UNIT TESTS (tests/test_longitudinal_stiffness.py, 8 new, all pass): a
+synthetic kerb-coincident spike is excluded; an identical excursion
+WITHOUT az disturbance is kept; a real az disturbance OUTSIDE the
+trailing window does not exclude (confirms the window is bounded, not
+"any disturbance ever"); az_g=None excludes nothing (graceful
+degradation, never falls back to kappa-alone); NaN kappa/az never
+registers as implausible-and-disturbed; empty-array input does not
+crash (this exposed and fixed a real bug in the first draft of _az_
+disturbed_recently -- np.convolve's 'valid'-mode output length
+depends on BOTH operand lengths and silently returns a MISMATCHED
+shape for empty/short inputs when window_samples exceeds them; fixed
+by switching to the same prefix-sum windowed-sum primitive _centered_
+slopes already uses, which always returns exactly len(input)); and an
+end-to-end integration test confirming the guarded pipeline recovers
+close to the true synthetic slope while an unguarded (no az
+disturbance) identical outlier is left to distort it.
+
+### PART 3 -- re-run with the guard active
+
+PRE-REGISTRATION: since Part 1 found zero contamination in C3's own
+windows, the guard is predicted to leave C3's classification AND
+values unchanged. Stated before running.
+
+MEASURED: HELD, exactly. Re-ran diagnostics/inspect_ls_cs_
+disambiguation.py (guard now live inside modules/longitudinal_
+stiffness.py, no script change needed) -- the 14-instance split is
+UNCHANGED, still 7 traction-limited / 7 cornering-limited, same
+instances in each cluster. C3's four LS_r values are BYTE-IDENTICAL
+to the pre-guard run (-0.572, -1.012, -1.073, -1.301). Across the
+whole 14-instance population exactly ONE value moved at all, and only
+in the fourth decimal: stable_id 9 lap 4, LS_r -0.037 -> -0.023 (still
+cornering-limited before and after, no reclassification anywhere).
+
+THE 5 PREVIOUSLY-CHECKED CONTAMINATED WINDOWS: proper apples-to-apples
+check this time (production pipeline, guard active vs guard
+neutralised via plausibility_kappa_bound=999 -- NOT compared against
+the earlier ad-hoc raw-single-window OLS demonstration from the kerb
+investigation entry, a different computational context that was never
+a fair baseline for this specific check). RESULT: all 5 show EXACTLY
+ZERO change (guarded == unguarded to full precision). Traced why for
+each, since a null result deserves the same scrutiny as a positive
+one:
+  t=519.30s (f): kappa_raw at this exact index=-5.80% (below the 12%
+    bound -- this index's OWN kappa isn't implausible; the earlier
+    "leaked" flag came from a NEIGHBOUR inside its 0.45s window, and
+    evidently that neighbour didn't meet both guard criteria either)
+  t=575.20s (r): kappa_raw=10.30% (below 12% bound), max|az-baseline|
+    in trailing 0.6s=1.172g (below the 1.2g threshold -- just under)
+  t=605.56s (f): kappa_raw=-14.21% (ABOVE the 12% bound -- implausible
+    on its own), but max|az-baseline| in trailing 0.15s=0.494g (well
+    below 1.2g -- no az coincidence at all)
+  t=770.76s (f): kappa_raw=-12.95% (above bound), az max=0.645g
+    (below threshold -- no coincidence)
+  t=826.14s (r): kappa_raw=8.10% (below bound), az max=0.813g (below
+    threshold)
+READ: two of five (605.56, 770.76) have implausible kappa at that
+exact index but NO az disturbance anywhere nearby -- per the strict
+design constraint, these correctly stay UNEXCLUDED, and this is
+consistent with (not contradicted by) PART 4 of the kerb investigation
+entry's own finding that some high-kappa events show essentially no
+az signature at all and may be genuine driving events, not sensor
+artifacts. The other three simply weren't implausible AT that exact
+index (the window-level "leaked" flag came from elsewhere in their
+window). This is the guard working exactly as designed -- narrowly
+scoped, conservative, and NOT a proxy for "every anomaly the kerb
+investigation flagged."
+
+WHOLE-SESSION QUANTIFICATION of the guard's actual effect (not just
+the 5 spot-checked windows), guarded vs unguarded production pipeline,
+racing population: FRONT axle excluded n=0 samples -- zero effect,
+this session. REAR axle excluded n=2 samples -- small, but with real
+downstream reach: 182 windows' stiffness value differs at all (any
+window whose regression span includes one of the 2 excluded samples),
+44 of those by more than 1% relative, max relative change 3827.6% at
+one specific window (a small-denominator case, consistent with PART
+3 of the kerb investigation's own finding that a leaked sample CAN
+swing a slope dramatically when it truly coincides with az
+disturbance). LS_ratio_r itself technically differs at 13,389 racing-
+population samples, but the overwhelming majority of those are
+4th-decimal-place shifts (e.g. 0.6905->0.6906) -- an expected
+knock-on effect of the population-wide linear-reference median moving
+fractionally once 2 fewer samples contribute to it, not 13,389
+independent corrections.
+READ, honestly, not spun either direction: on THIS session's data,
+the guard (as specifically scoped: az-coincidence required, these
+window sizes, this bound) has a NARROW footprint -- 2 samples excluded
+outright, one axle untouched entirely. This does not mean kerb-spike
+contamination is a non-issue (PART 2/3 of the kerb investigation
+entry already established real leakage and real slope impact); it
+means that MOST of what that investigation flagged as "leaked" does
+not, on closer inspection, show BOTH an implausible kappa value AND
+genuine az coincidence at the same instant -- consistent with a
+meaningful fraction of the flagged population being real high-slip
+driving events rather than missed kerb strikes, exactly the
+ambiguity PART 4 of that entry already flagged as unresolved. The
+guard is conservative by design and is correctly declining to guess
+on ambiguous cases.
+
+### PART 4 -- mask widening, QUANTIFIED ONLY, NOT applied
+
+CURRENT (kerb_dilation_samples=5, 100ms symmetric, the ONLY dilation
+value that exists -- kerb_mask is a single shared, non-axle-specific
+mask): racing population n=24183 (confirmed, matches every prior
+figure in this session exactly).
+
+Widening scenarios (uniform dilation of the SAME shared mask -- it
+cannot be split per-axle without restructuring every consumer, which
+is exactly why this needs its own decision):
+  150ms (front-motivated):  n=23862  delta=-321  (-1.33%)   kerb-flagged fraction of moving&racing: 4.83%
+  500ms (rear floor):       n=22326  delta=-1857 (-7.68%)   kerb-flagged fraction: 10.96%
+  550ms (rear p75-ish):     n=22074  delta=-2109 (-8.72%)   kerb-flagged fraction: 11.96%
+  600ms (rear recommended): n=21906  delta=-2277 (-9.42%)   kerb-flagged fraction: 12.63%
+
+READ: the tension is exactly what the work order anticipated. A
+front-appropriate widening (150ms) costs relatively little (-1.33%
+of the whole racing population). Widening enough to properly cover
+REAR ringdown (500-600ms) costs 7.7-9.4% of the ENTIRE population --
+front and rear alike, since one shared mask cannot discriminate --
+nearly an order of magnitude more population loss than the front-only
+case, to fix a problem that is specifically a REAR phenomenon (PART
+1b of the kerb investigation entry: front settle p50=0ms, rear
+p50=160ms already exceeding the current 100ms dilation).
+
+FROZEN-BASELINE STATISTICS THAT WOULD SHIFT if any widening were
+applied (not recomputed here -- quantify-only per the work order;
+listed so the decision is made with full knowledge of its blast
+radius, not discovered after the fact):
+- The WP-N2 pass-1 final validation baseline (diagnostics/inspect_
+  pass1_final_validation.py, PLAN.md NOW: "the reference any future
+  estimator work is compared against") is anchored to the CURRENT
+  base_mask population (n=24183) -- a widened kerb mask changes that
+  population, invalidating direct comparison without re-freezing.
+- Every percentile figure this session recorded against base_mask
+  n=24183 (Phase 1's kappa validation, the combined-slip premise
+  entry's kappa distributions, the kerb investigation's own |kappa_
+  wheel| percentiles) would shift and need re-measuring -- the
+  population they were measured against would no longer exist.
+- tests/golden/pipeline_dubai_kinematic_cap1.json and tests/golden/
+  recommendations_dubai_kinematic_cap1.json (the regression suite's
+  own golden files) would almost certainly stop matching -- kerb_mask
+  feeds estimate_cornering_stiffness's own moving-sample exclusion
+  directly, so CS_ratio, phase stats, and recommendation output would
+  all shift. This IS the "never regenerate old goldens... without
+  saying so explicitly" case CLAUDE.md's own rule anticipates --
+  applying mask widening would require a deliberate, flagged golden
+  regeneration, not a silent one.
+- The classification thresholds (STRONG_CSF/CSR etc., config/
+  parameters.json) were gap-selected against a CS_ratio distribution
+  that already excludes kerb-masked samples under the CURRENT
+  dilation -- a materially different population (up to -9.42% of
+  samples) could shift where those gaps fall, per CLAUDE.md's own
+  rule that thresholds are re-derived per estimator/population
+  change, never carried over.
+No widening was applied. This is a shared-mask production change with
+a real, quantified population cost, and it gets its own decision.

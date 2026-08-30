@@ -206,6 +206,42 @@
         350
       ],
       "required": false
+    },
+    "log_speed_fl": {
+      "label": "Wheel Speed FL",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "log_speed_fr": {
+      "label": "Wheel Speed FR",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "log_speed_rl": {
+      "label": "Wheel Speed RL",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "log_speed_rr": {
+      "label": "Wheel Speed RR",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
     }
   },
   "corner_speed_thresholds": {

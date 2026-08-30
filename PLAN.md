@@ -143,6 +143,114 @@ WHERE THE PROJECT STANDS
   flag the edit for reversion) given the file-list gap found above;
   the same standing washout-cutoff/fit-variant/speed-classification
   decisions carried over from the prior package, now joined by these.
+- STEP 3 (LS_ratio) UNSUPERVISED PACKAGE COMPLETED (2026-08-30, all 5
+  phases -- full record: thesis_notes.md "PLAN.md STEP 3 (LS_ratio):
+  unsupervised package" Phase 1-4 entries; STEP 3 itself marked DONE
+  below with the same summary). Entirely additive/read-only outside
+  the three named production files: no existing estimator's numeric
+  output changed (test_config_schema_integrity.py's own
+  ANALYSIS_SCHEMA_VERSION assertion literal was also updated, FLAGGED
+  as outside this phase's stated file list, same precedent as the
+  fresh-session package's core/weekend_pdf_export.py edit above); the
+  only config changes are the new additive longitudinal_stiffness
+  namespace and the log_speed_fl/fr/rl/rr whitelist addition;
+  sideslip_source unchanged at the user's own live value throughout
+  (temporarily flipped to "kinematic" for the final regression-suite
+  verification run only, restored exactly afterward, verified by
+  diff); no commit made. New files: modules/longitudinal_forces.py,
+  modules/longitudinal_stiffness.py, tests/test_longitudinal_
+  stiffness.py, diagnostics/inspect_ls_cs_disambiguation.py. Headline
+  finding: LS_ratio is fully implemented and wired end-to-end
+  (pipeline, WP5/WP6 caches, corner-detail card, both trace dialogs)
+  but produces all-NaN output on this car's real 50 Hz log under the
+  chair's own unmodified defaults -- a proven structural config/
+  sample-rate mismatch (max window 23 samples vs min_samples=25),
+  not a data problem or implementation bug. Phase 4's disambiguation
+  check was attempted per its own pre-registration and correctly
+  returned zero clusterable instances as a result, not a shortcut.
+  Decision now live for the user: the min_samples/regression_window_s
+  re-derivation for 50 Hz (STEP 3's own close-out note below) -- until
+  it lands, this is real, tested, dormant infrastructure, not a
+  finished result.
+- STEP 3 FOLLOW-UP: 50 HZ ADAPTATION AND REAL PHASE 4 COMPLETED
+  (2026-08-30, same day, user decision -- full record: thesis_notes.md
+  "PLAN.md STEP 3: 50 Hz min_samples adaptation", "...Phase 2, re-run
+  against the adapted estimator", "...Phase 4, run for real"). The
+  min_samples decision above landed: min_samples is now derived at
+  runtime (max(min_samples_floor, half_window+1)) instead of
+  transplanting the chair's literal 25, keeping the chair's own 0.45 s
+  physical window unchanged -- config/parameters.json's min_samples
+  key REMOVED, min_samples_floor=15 added (a real, load-bearing floor
+  at 50 Hz: derived value would be 12, floor lifts it to 15). LS_ratio
+  now produces real output (front n_valid=11299/24183, rear n_valid=
+  18450/24183). tests/test_longitudinal_stiffness.py: one test
+  RETIRED (test_real_config_at_50hz_never_reaches_min_samples, pinned
+  now-obsolete pre-adaptation behaviour) and REPLACED (test_real_
+  config_at_50hz_now_validates_with_rate_derived_min_samples); one
+  test renamed and reworked to provoke the same structural guarantee
+  via a low sample rate instead of a literal min_samples value (that
+  lever no longer exists); every other test's helper call updated
+  min_samples= to min_samples_floor=; all 8 pass. Phase 2's own
+  update-rate prediction, re-checked against real output: FAILED both
+  axles (measured 36.47% front/40.85% rear vs predicted ~87%/~61%
+  +/-15pp) -- the raw-kappa-threshold basis didn't model the window-
+  validity/stiffness-sign requirements, recorded as a miss. Phase 4
+  run for real: 14/14 low-rear-CS instances now have a finite
+  LS_ratio (0/14 before); split 7 traction-limited/7 cornering-
+  limited -- the pre-registered "majority cornering-limited, 1-4
+  traction-limited, C4/C14 candidates" prediction FAILED on every
+  clause. Genuine new finding: C3 (stable_corner_id 3) is traction-
+  limited on all 4 of its valid laps, a new candidate no prior
+  evidence surfaced -- the combined-slip disambiguation's first real,
+  working empirical result, even though the specific pre-registered
+  guesses were wrong. Full regression suite CONFIRMED green (102
+  passed, 1 xfailed, 0 failed, 0 errors -- identical count to the
+  prior turn's own confirmation, run under a temporarily-flipped
+  kinematic config restored exactly afterward, verified byte-
+  identical to git HEAD via diff); git status clean; protected set
+  empty; sideslip_source restored to the user's own live value; no
+  commit.
+- STEP 3 FOLLOW-UP 2: C3 VERIFIED CLEAN, LS PLAUSIBILITY GUARD BUILT,
+  MASK WIDENING QUANTIFIED (2026-08-30, same day -- full record:
+  thesis_notes.md "PLAN.md STEP 3 follow-up: C3 verified clean, LS
+  plausibility guard implemented, mask widening quantified"). (1) C3,
+  checked first, read-only: zero leaked-window contamination across
+  all 4 laps' worst phases (exit_4/exit_5 both times) -- the headline
+  finding needs no asterisk. (2) LS plausibility guard built
+  (modules/longitudinal_stiffness.py, config additive): excludes a
+  sample from the LS regression windows only when BOTH an implausible
+  kappa (>12%, same gap-selected bound as the kerb investigation) AND
+  a recent az kerb-like disturbance (axle-specific trailing window,
+  150ms front/600ms rear, sized from the measured ringdown) hold --
+  never on kappa alone, the load-bearing design constraint. A real
+  bug caught and fixed during implementation: guarding only the post-
+  filter window sums left the Butterworth-filtered signal itself
+  still corrupted near an excluded sample (filtfilt smears an
+  outlier's energy into neighbours regardless of later masking) --
+  fixed by NaN-ing the excluded raw sample BEFORE filtering too. 8
+  new unit tests, all pass. (3) Re-run with the guard active: C3
+  unchanged (byte-identical LS_r values), the 14-instance 7/7 split
+  unchanged, only one value anywhere shifted (4th decimal place).
+  Whole-session guard footprint quantified: front axle 0 samples
+  excluded, rear axle 2 -- narrow but real (up to 3827% relative
+  slope change at the windows it does touch). The 5 originally-
+  flagged contaminated windows individually show zero change under
+  the guard -- traced and explained (most don't have BOTH implausible
+  kappa AND az coincidence at the exact same sample), not a defect.
+  (4) Mask widening quantified, NOT applied: current racing
+  population n=24183; widening to 150ms costs -1.33%; widening to
+  500-600ms (needed to properly cover rear ringdown) costs -7.7% to
+  -9.4% of the ENTIRE population, since kerb_mask is one shared, non-
+  axle-specific mask. Frozen-baseline statistics that would need
+  re-deriving if applied: the WP-N2 pass-1 validation baseline, every
+  percentile figure this session recorded against n=24183, the golden
+  test files, and the classification thresholds. Full regression suite
+  CONFIRMED green (110 passed, 1 xfailed, 0 failed, 0 errors --
+  exactly the prior 102 plus the 8 new plausibility-guard tests, run
+  under a temporarily-flipped kinematic config restored exactly
+  afterward, verified byte-identical to git HEAD via diff); git status
+  clean; protected set empty; sideslip_source restored to the user's
+  own live value; no commit.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -235,29 +343,49 @@ STEP 2 -- Verify the result plots against the chair's output.
   CS values that started this whole arc were caused by the beta
   error or by something else.
 
-STEP 3 -- Implement the longitudinal stiffness ratio (LS_ratio),
-following the chair's estimator structure.
-  Inputs: slip ratio, and longitudinal axle force from the chair's
-  fallback tier (mass*ax plus drag and rolling resistance, split
-  front/rear by measured brake pressure when decelerating,
-  assigned entirely to the rear when accelerating).
-  Chair defaults: cutoff 8 Hz, window 0.45 s, min 25 samples, min
-  slip span 0.004, linear slip threshold 0.015, min speed 5 m/s.
-  Slip-ratio source options already characterised: log_speed_*
-  wheel speeds (unwhitelisted; rear carries a constant +1.41%
-  rolling-radius offset needing correction) or the logged
-  ecu_slip_act channel (Level 3, no derived constants, but no
-  per-axle breakdown -- reads as a driven-axle aggregate,
-  INFERRED not confirmed).
-  REASON TO EXPECT THIS TO WORK: the chair's longitudinal low-slip
-  threshold is 1.5% and this session's measured rear slip ratio
-  has p50 ~1.26%, so roughly half of samples would populate the
-  reference. By contrast the lateral threshold is 1.2 deg while
-  the EKF's front |alpha| has p50 3.19 deg, so the lateral
-  reference is comparatively starved. This is a prediction, not
-  yet tested.
-  Output on the same 1/0/negative scale as CS_ratio, plotted on
-  the same basis.
+STEP 3 -- DONE (2026-08-30, unsupervised package, all 5 phases, plus a
+2026-08-30 follow-up turn that unblocked and completed Phase 4 for
+real -- full record: thesis_notes.md "PLAN.md STEP 3 (LS_ratio):
+unsupervised package" Phase 1-4 entries, "PLAN.md STEP 3: 50 Hz
+min_samples adaptation", "PLAN.md STEP 3 Phase 2, re-run against the
+adapted estimator", "PLAN.md STEP 3 Phase 4, run for real"). LS_ratio
+implemented and wired into production DISPLAY ONLY (no verdict/
+classifier reads it) -- modules/longitudinal_forces.py (axle Fx + slip
+ratio kappa, externally validated against diagnostics/inspect_
+combined_slip_premise.py's already-recorded figures, exact digit
+match) and modules/longitudinal_stiffness.py (the chair's windowed
+dFx/dkappa estimator).
+RESOLVED FINDING: the chair's literal min_samples=25 with a 0.45 s
+window was structurally incompatible with this session's 50 Hz
+Cosworth log (proven: max window 23 samples). DECIDED AND ADAPTED
+(user decision, follow-up turn): min_samples is now derived at
+runtime as max(min_samples_floor, half_window+1), keeping the chair's
+own PHYSICAL window (0.45 s, unchanged) and deriving the count from
+the actual log rate instead of transplanting it -- FORCED ADAPTATION
+under the deviation taxonomy, config/parameters.json's min_samples_
+floor=15 replaces the removed min_samples=25 key. LS_ratio now
+produces real, non-NaN output (front n_valid=11299/24183, rear
+n_valid=18450/24183, base population). The Phase 2 pre-registered
+update-rate prediction (~61% rear/~87% front) FAILED against the now-
+real output (measured 40.85% rear/36.47% front) -- the raw-kappa-
+threshold basis for that prediction did not model the window-validity
+and stiffness-sign requirements, recorded honestly as a miss, not
+adjusted after the fact.
+PHASE 4 RUN FOR REAL: 14 low-rear-CS-p25 corner instances, all 14 now
+with a finite LS_ratio (0/14 before the adaptation). Split 7
+traction-limited / 7 cornering-limited -- the pre-registered
+"majority cornering-limited, 1-4 traction-limited, C4/C14 as likely
+candidates" prediction FAILED on every clause (even split, not a
+majority; C4 absent from the population entirely; C14 landed
+cornering-limited, the opposite of predicted). GENUINE NEW FINDING:
+stable_corner_id 3 (C3) is traction-limited on ALL FOUR of its valid
+laps, a new candidate the prior EKF-context attribution history never
+surfaced -- the first concrete, repeatable empirical example of the
+combined-slip disambiguation working as intended, even though the
+pre-registered numeric guesses were wrong. The combined-slip premise
+itself (some low-CS corners are traction-limited, some are not) is
+upheld on this one session; the specific predictions about WHICH ones
+and how many were not.
 
 STEP 4 -- Decision-matrix cleanup (the recommendation rules).
   Prerequisites that must land first, and why:
@@ -279,6 +407,21 @@ STEP 4 -- Decision-matrix cleanup (the recommendation rules).
      a corner with no computable signal is currently classified
      identically to a corner that is genuinely fine (safe, no
      crash, but silent).
+   - NEW (STEP 3 close-out): whether LS_ratio enters the
+     recommendation rules at all is UNDECIDED -- STEP 3 shipped it
+     DISPLAY ONLY, deliberately, per its own work order. If/when it
+     does, threshold re-derivation above must cover BOTH ratios
+     together (CS_ratio and LS_ratio), not CS_ratio alone as
+     originally scoped, since any rule combining them needs
+     thresholds derived from the same estimator run. The min_samples/
+     50 Hz gate that used to block this is LIFTED (2026-08-30 follow-
+     up turn, min_samples now rate-derived) -- LS_ratio has a real
+     distribution now (front n_valid=11299/24183, rear n_valid=
+     18450/24183, base population; see thesis_notes.md "PLAN.md STEP
+     3: 50 Hz min_samples adaptation"). Nothing else about this
+     prerequisite has changed: still gated on the same threshold-
+     re-derivation step as CS_ratio, still undecided whether LS_ratio
+     should be a recommendation input at all.
 
 STANDING WARNINGS -- carry these into every future session
 

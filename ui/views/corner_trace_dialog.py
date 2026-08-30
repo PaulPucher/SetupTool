@@ -1,7 +1,8 @@
 # Per-corner and full-lap trace windows (PLAN.md, Tier C UI work package
 # "PART C" + usability follow-up "Task 2", extended by the lap-trace-view
-# work package). Both plot stability_observed / CS_ratio_f,r / speed
-# against track position (s_m); the corner window covers one stable
+# work package). Both plot stability_observed / CS_ratio_f,r / LS_ratio_f,r
+# (PLAN.md STEP 3 Phase 3) / speed against track position (s_m); the
+# corner window covers one stable
 # corner's phase bracket plus a config-resident approach/coast-out margin,
 # the lap window covers a full lap's own 0..s_max range with a labeled,
 # severity-tinted band per stable corner. Pure display: every array plotted
@@ -24,6 +25,11 @@ CSF_COLOR = "#4FC3F7"
 CSR_COLOR = "#FFB74D"
 STAB_COLOR = "#B39DDB"
 SPEED_COLOR = "#C0A060"  # matches ecu_speed's colour in the channel-strip plot
+# PLAN.md STEP 3 Phase 3: LS ratio curve colours -- distinct from every
+# colour above (and from FITTED_CURVE_COLOR below) so the new panel's two
+# curves are never confused with an existing signal at a glance.
+LSF_COLOR = "#81C784"
+LSR_COLOR = "#F06292"
 # UI cleanup package: fitted-curve overlay colour (tyre curve tab, auto
 # modes only) -- distinct from ACCENT (the existing linear-reference
 # line's colour) so the two curves never read as the same line, and
@@ -71,10 +77,14 @@ def _style_new_legend(plot):
 BASE_LEGEND_TEXT = (
     "Top panel: yaw-moment stability (purple); red dashed line = "
     "destabilising-yaw threshold, below it the car is flagged unstable. "
-    "Middle panel: front cornering stiffness (blue) and rear cornering "
+    "Second panel: front cornering stiffness (blue) and rear cornering "
     "stiffness (orange); dashed lines = strong-collapse threshold, "
     "dotted lines = moderate-collapse threshold, same colour per axle. "
-    "Bottom panel: speed (tan), shown for context only."
+    "Third panel: front longitudinal stiffness (green) and rear "
+    "longitudinal stiffness (pink), same 1/0/negative scale as cornering "
+    "stiffness above -- shown for context only, no threshold lines (no "
+    "verdict currently depends on it). Bottom panel: speed (tan), shown "
+    "for context only."
 )
 
 # Lap-trace-view work package: corner-band legend sentence, appended to
@@ -312,7 +322,9 @@ def _fastest_lap(lap_numbers, laps_by_number):
 
 class _TraceDialogBase(QDialog):
     """Shared scaffold for the per-corner and full-lap trace windows: the
-    3-panel pyqtgraph layout, per-lap visibility checkboxes, legend, and
+    4-panel pyqtgraph layout (stability/CS ratio/LS ratio/speed,
+    PLAN.md STEP 3 Phase 3 added the LS panel), per-lap visibility
+    checkboxes, legend, and
     the pen/threshold-line/masked-span drawing helpers. Subclasses add
     only what differs -- show_corner (a windowed single-corner view) or
     show_lap (an unwindowed full-lap view with corner bands) -- neither
@@ -364,7 +376,11 @@ class _TraceDialogBase(QDialog):
         self.legend_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         layout.addWidget(self.legend_label)
 
-        titles = [("Stability (Nm/deg)", "stab"), ("CS ratio", "cs"), ("Speed (km/h)", "speed")]
+        # PLAN.md STEP 3 Phase 3: "ls" panel added alongside "cs", same
+        # scaffold, same per-plot legend treatment -- DISPLAY ONLY (no
+        # threshold lines are drawn on it, see _add_threshold_line call
+        # sites in show_corner/show_lap: none target "ls").
+        titles = [("Stability (Nm/deg)", "stab"), ("CS ratio", "cs"), ("LS ratio", "ls"), ("Speed (km/h)", "speed")]
         self.plots = {}
         first_plot = None
         for i, (label, key) in enumerate(titles):
@@ -390,13 +406,16 @@ class _TraceDialogBase(QDialog):
             self.plots[key] = plot
             self.pg_layout.nextRow()
 
-        # Task 2b: panel 3 (speed, context only) gets less vertical room
-        # than panels 1-2 (the two panels the verdict/threshold lines
-        # actually live in) -- row stretch factors, not a fixed pixel cap,
-        # so the ratio holds as the (resizable) window is resized.
+        # Task 2b: the speed panel (context only) gets less vertical room
+        # than the other panels -- row stretch factors, not a fixed pixel
+        # cap, so the ratio holds as the (resizable) window is resized.
+        # PLAN.md STEP 3 Phase 3: "ls" (row 2) gets the same stretch as
+        # "stab"/"cs" -- a primary data panel, not a context-only one,
+        # even though DISPLAY ONLY (no threshold lines).
         self.pg_layout.ci.layout.setRowStretchFactor(0, 3)
         self.pg_layout.ci.layout.setRowStretchFactor(1, 3)
-        self.pg_layout.ci.layout.setRowStretchFactor(2, 1)
+        self.pg_layout.ci.layout.setRowStretchFactor(2, 3)
+        self.pg_layout.ci.layout.setRowStretchFactor(3, 1)
 
     def _build_lap_checkbox_container(self):
         from PyQt6.QtWidgets import QWidget
@@ -780,6 +799,13 @@ class CornerTraceDialog(_TraceDialogBase):
         # whole dialog.
         slip = stability_result.get("slip")
         forces = stability_result.get("forces")
+        # PLAN.md STEP 3 Phase 3: ls (estimate_longitudinal_stiffness
+        # output) -- same optional-graceful-degradation pattern as slip/
+        # forces above, not part of the state/cs/stab/corners guard below
+        # (a render predating this package, or an in-memory pipeline-cache
+        # entry from before this session's own reload, simply shows no LS
+        # curves rather than erroring).
+        ls = stability_result.get("ls")
         if state is None or cs is None or stab is None or corners is None:
             self.header_label.setText(
                 f"C{stable_corner_id}: raw sample arrays aren't available for this render "
@@ -815,6 +841,8 @@ class CornerTraceDialog(_TraceDialogBase):
         v_kmh = state["v_mps"] * 3.6
         cs_f = cs["CS_ratio_f"]
         cs_r = cs["CS_ratio_r"]
+        ls_f = ls["LS_ratio_f"] if ls is not None else None
+        ls_r = ls["LS_ratio_r"] if ls is not None else None
         stab_obs = stab["stability_observed_Nm_per_deg"]
         kerb_mask = state.get("kerb_mask")
         moving_mask = state.get("moving_mask")
@@ -900,6 +928,17 @@ class CornerTraceDialog(_TraceDialogBase):
                     name="Speed" if is_first else None,
                 ),
             ]
+            if ls_f is not None and ls_r is not None:
+                curve_items.append(self.plots["ls"].plot(
+                    x, ls_f[sl][order], connect="finite",
+                    pen=self._pen(LSF_COLOR, width, style, alpha),
+                    name="Front longitudinal stiffness" if is_first else None,
+                ))
+                curve_items.append(self.plots["ls"].plot(
+                    x, ls_r[sl][order], connect="finite",
+                    pen=self._pen(LSR_COLOR, width, style, alpha),
+                    name="Rear longitudinal stiffness" if is_first else None,
+                ))
             self.lap_curve_items[c["lap_number"]] = curve_items
 
         # Tyre Curves tab: runs AFTER the loop above, which does a plain
@@ -966,7 +1005,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
 class LapTraceDialog(_TraceDialogBase):
     """Reusable, non-modal full-lap trace window: the outing's problem
-    map. Same 3-panel scaffold as CornerTraceDialog (shared base class),
+    map. Same 4-panel scaffold as CornerTraceDialog (shared base class),
     unwindowed over the shown lap's own 0..s_max range, with one labeled
     background band per stable corner tinted by that corner's WORST
     verdict across all its valid-lap instances (not just this lap's own
@@ -978,9 +1017,15 @@ class LapTraceDialog(_TraceDialogBase):
     WINDOW_SIZE = (1100, 680)
 
     # Order matches the curve_items list built in show_lap (stab/csf/csr/
-    # speed) -- used by _restyle_lap_curves to rebuild each item's pen
-    # without needing to remember its colour separately.
-    _CURVE_COLOR_ORDER = (STAB_COLOR, CSF_COLOR, CSR_COLOR, SPEED_COLOR)
+    # speed/lsf/lsr) -- used by _restyle_lap_curves to rebuild each item's
+    # pen without needing to remember its colour separately. PLAN.md
+    # STEP 3 Phase 3: lsf/lsr appended at the END, not inserted -- a
+    # render with no "ls" data in stability_result builds a 4-item
+    # curve_items list, and zip(items, _CURVE_COLOR_ORDER) still pairs
+    # those 4 correctly against this tuple's first 4 entries (zip stops
+    # at the shorter sequence), so the graceful-degradation case needs no
+    # special-casing here.
+    _CURVE_COLOR_ORDER = (STAB_COLOR, CSF_COLOR, CSR_COLOR, SPEED_COLOR, LSF_COLOR, LSR_COLOR)
 
     def __init__(self, parent=None, on_corner_click=None):
         super().__init__(parent)
@@ -1033,6 +1078,10 @@ class LapTraceDialog(_TraceDialogBase):
         state = stability_result.get("state")
         cs = stability_result.get("cs")
         stab = stability_result.get("stab")
+        # PLAN.md STEP 3 Phase 3: optional, same graceful-degradation
+        # pattern as show_corner's own ls handling -- not part of the
+        # state/cs/stab/lap guard below.
+        ls = stability_result.get("ls")
         laps_by_number = {l["lap_number"]: l for l in parsed_data.get("laps", [])}
         lap = laps_by_number.get(lap_number)
         if state is None or cs is None or stab is None or lap is None:
@@ -1055,6 +1104,8 @@ class LapTraceDialog(_TraceDialogBase):
             "csf": cs["CS_ratio_f"][sl][order],
             "csr": cs["CS_ratio_r"][sl][order],
             "speed": state["v_mps"][sl][order] * 3.6,
+            "lsf": ls["LS_ratio_f"][sl][order] if ls is not None else None,
+            "lsr": ls["LS_ratio_r"][sl][order] if ls is not None else None,
             "kerb": kerb_mask[sl][order] if kerb_mask is not None else None,
             "not_moving": ~moving_mask[sl][order] if moving_mask is not None else None,
         }
@@ -1225,6 +1276,17 @@ class LapTraceDialog(_TraceDialogBase):
                     name="Speed" if is_first_lap else None,
                 ),
             ]
+            if data["lsf"] is not None and data["lsr"] is not None:
+                curve_items.append(self.plots["ls"].plot(
+                    data["x"], data["lsf"], connect="finite",
+                    pen=self._pen(LSF_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Front longitudinal stiffness" if is_first_lap else None,
+                ))
+                curve_items.append(self.plots["ls"].plot(
+                    data["x"], data["lsr"], connect="finite",
+                    pen=self._pen(LSR_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
+                    name="Rear longitudinal stiffness" if is_first_lap else None,
+                ))
             is_first_lap = False
             for item in curve_items:
                 item.setVisible(visible)

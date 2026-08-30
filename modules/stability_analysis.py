@@ -60,7 +60,14 @@ CAR_DATA_PATH = "config/car_data.json"
 # new one. kinematic and ekf_pass_1 modes' own OWN numeric content
 # (summaries, sideslip_source, every pre-existing key) is byte-identical --
 # only the payload's shape gained new, always-present-but-often-null keys.
-ANALYSIS_SCHEMA_VERSION = 6
+# Bumped 6->7 (PLAN.md STEP 3, Phase 3): summarise_corners's optional ls=
+# argument, when passed, adds ls_ratio_f/ls_ratio_r stat blocks to each
+# phase dict (same _stats() shape as cs_ratio_f/cs_ratio_r) -- a
+# pre-bump payload has neither key, so a persisted result predating this
+# change must fall to no-cache, not render an LS trace/detail-card
+# column against data that was never computed. DISPLAY ONLY: no
+# classification/recommendation logic reads ls_ratio_f/r.
+ANALYSIS_SCHEMA_VERSION = 7
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
@@ -907,12 +914,17 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     }
 
 
-def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_half_window_samples=None):
+def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None, apex_half_window_samples=None):
     # fz (modules.stability_analysis.estimate_vertical_loads's output) is
     # optional and additive only: passing it adds fz_f_N/fz_r_N/
     # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
     # diagnostics/*.py call sites predating WP5b(b)) reproduces the exact
     # pre-turn-(b) summary shape, no behaviour change for those callers.
+    # ls (modules.longitudinal_stiffness.estimate_longitudinal_stiffness's
+    # output, PLAN.md STEP 3 Phase 3) is the same additive-optional
+    # pattern: passing it adds ls_ratio_f/ls_ratio_r stat blocks per
+    # phase, same _stats() treatment as cs_ratio_f/cs_ratio_r; omitting
+    # it reproduces the exact pre-Phase-3 summary shape.
     if apex_half_window_samples is None:
         apex_half_window_samples = load_parameters()["stability_estimation"]["apex_half_window_samples"]
     t = state["time"]
@@ -927,6 +939,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_h
     fz_r = fz["fz_r_N"] if fz is not None else None
     fy_f_norm = fz["fy_f_norm_N"] if fz is not None else None
     fy_r_norm = fz["fy_r_norm_N"] if fz is not None else None
+    ls_f = ls["LS_ratio_f"] if ls is not None else None
+    ls_r = ls["LS_ratio_r"] if ls is not None else None
 
     phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 
@@ -1030,6 +1044,9 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_h
                     corner_summary["phases"][phase]["fz_r_N"] = _stats(np.array([]))
                     corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(np.array([]))
                     corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(np.array([]))
+                if ls is not None:
+                    corner_summary["phases"][phase]["ls_ratio_f"] = _stats(np.array([]))
+                    corner_summary["phases"][phase]["ls_ratio_r"] = _stats(np.array([]))
                 continue
 
             stab_valid_phase = stab_valid[idx]
@@ -1048,6 +1065,9 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None, apex_h
                 corner_summary["phases"][phase]["fz_r_N"] = _stats(fz_r[idx])
                 corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(fy_f_norm[idx])
                 corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(fy_r_norm[idx])
+            if ls is not None:
+                corner_summary["phases"][phase]["ls_ratio_f"] = _stats(ls_f[idx])
+                corner_summary["phases"][phase]["ls_ratio_r"] = _stats(ls_r[idx])
 
         out.append(corner_summary)
 

@@ -100,23 +100,38 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     sideslip_source); v6 (fresh-session work package: per-session tyre
     auto-fit + NIS gate wired into production) added fit_manifest/
     gate_verdict/fallback_used/fallback_reason to the same payload,
-    same "payload-builder field, not a summarise_corners field" scoping
-    -- summarise_corners's own OUTPUT shape (what this fixture actually
-    exercises) is unchanged since v4; only outing_form.py's payload
-    wrapper gained keys, checked in the source-scan tests below.
+    same "payload-builder field, not a summarise_corners field" scoping;
+    v7 (PLAN.md STEP 3 Phase 3) added an OPTIONAL ls_ratio_f/ls_ratio_r
+    pair per phase, populated only when summarise_corners is called with
+    ls= -- this fixture's own pipeline_result (tests/conftest.py) does
+    NOT pass ls= (conftest.py is outside every phase's permitted-file
+    list in that package, deliberately not touched), so the v7 keys are
+    NOT asserted present here, unlike v4's fz_*/fy_*_norm_N keys below
+    -- summarise_corners's OUTPUT shape for a caller that omits ls= is
+    unchanged since v4; only its capability (and outing_form.py's own
+    payload wrapper) gained keys, checked in the source-scan tests below.
 
     DELIBERATE UPDATE, not a weakening: this assertion's own prior text
     said "update this test deliberately if the version was bumped
-    again" -- exactly what happened here. Every other check in this
-    function (bracket_start_m/bracket_end_m, fz_*/fy_*_norm_N keys)
-    is unchanged and still runs at full strength against the SAME
-    kinematic-mode pipeline_result fixture; only the version literal
-    moved from 5 to 6 to match the now-current, deliberately-bumped
-    production constant.
+    again" -- exactly what happened here, twice now (5->6, 6->7). Every
+    other check in this function (bracket_start_m/bracket_end_m,
+    fz_*/fy_*_norm_N keys) is unchanged and still runs at full strength
+    against the SAME kinematic-mode pipeline_result fixture; only the
+    version literal moved from 6 to 7 to match the now-current,
+    deliberately-bumped production constant. FLAGGED, same as the
+    fresh-session work package's own core/weekend_pdf_export.py
+    precedent: this file was not in PLAN.md STEP 3 Phase 3's own stated
+    permitted-file list (modules/stability_analysis.py, ui/views/
+    outing_form.py, ui/views/corner_trace_dialog.py); edited anyway
+    because the version-literal assertion this test's own docstring
+    explicitly invites updating would otherwise fail against the very
+    bump Phase 3 was instructed to make, and no phase in this package
+    named tests/test_config_schema_integrity.py explicitly. Worth a
+    second look, per that same precedent.
     """
-    assert ANALYSIS_SCHEMA_VERSION == 6, (
+    assert ANALYSIS_SCHEMA_VERSION == 7, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 6 -- update this test deliberately if the version was bumped again"
+        "written for 7 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
