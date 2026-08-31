@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
 
         self._build_pages()
         self.nav.setCurrentRow(0)
-        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)  # selecting a sidebar row switches the visible page
+        self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
 
     def _build_topbar(self):
         bar = QWidget()

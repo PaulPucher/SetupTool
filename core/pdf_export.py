@@ -55,6 +55,8 @@ CAR_LABELS = {
     "differential_preload": "Diff Preload", "differential_position": "Diff Position",
     "splitter_offset": "Splitter",
 }
+DIFF_TORQUE_LABEL = "Diff Locking Torque (measured, Nm)"
+DIFF_TORQUE_POSITIONS = ["1", "2", "3", "4", "5"]
 WEIGHT_TOTALS_LABELS = {
     "total_weight": "Total (kg)", "cross_percentage": "Cross %",
 }
@@ -335,6 +337,18 @@ def _corner_box(label, data, styles, width):
     return elements
 
 
+def _diff_torque_row(car, styles, width):
+    """Five bordered cells, one per measured locking-torque position --
+    same collected-but-previously-unprinted data as the setup form's own
+    diff_torque_row (ui/views/outing_form.py), same 1-5 position order.
+    """
+    torque = car.get("differential_locking_torque_measured") or {}
+    cell_w = width / len(DIFF_TORQUE_POSITIONS)
+    row = [[Paragraph(pos, styles["table_head"]), Paragraph(_fmt(torque.get(pos, "")), styles["car_value"])]
+           for pos in DIFF_TORQUE_POSITIONS]
+    return _bordered_table([row], [cell_w] * len(DIFF_TORQUE_POSITIONS), styles)
+
+
 def _weight_grid(car, styles, width):
     rows = [
         [Paragraph("FL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fl", "")), styles["car_value"]),
@@ -414,6 +428,10 @@ def _car_column(car, styles, width):
     param_rows = [[Paragraph(label, styles["car_label"]), Paragraph(_fmt(car.get(key, "")), styles["car_value"])]
                   for key, label in CAR_LABELS.items()]
     elements.append(_bordered_table(param_rows, [label_w, val_w], styles))
+    elements.append(Spacer(1, 1.5 * mm))
+
+    elements.append(Paragraph(DIFF_TORQUE_LABEL, styles["car_label"]))
+    elements.append(_diff_torque_row(car, styles, width))
     elements.append(Spacer(1, 1.5 * mm))
 
     splitter_points = car.get("splitter_points") or [None] * len(SPLITTER_POINT_POSITIONS)

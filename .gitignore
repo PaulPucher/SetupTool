@@ -30,6 +30,7 @@ diagnostics/*.txt
 diagnostics/*.png
 diagnostics/*.json
 diagnostics/plots/
+diagnostics/plots_step2/
 
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/
@@ -38,3 +39,12 @@ docs/literature/
 
 # Study document — local only, LaTeX conversion pass stays out of the repo
 docs/study/
+
+# Raw telemetry exports dropped at repo root (team data, large, local
+# only) — GT3_PRC_MLA.txt was the first one found sitting untracked here.
+# Two root .txt files are legitimate tracked source, not telemetry:
+# excepted explicitly rather than moving them, so this stays a pure
+# addition with no path changes elsewhere.
+/*.txt
+!/channel_list.txt
+!/requirements.txt

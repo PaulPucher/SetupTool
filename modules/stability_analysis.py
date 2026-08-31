@@ -178,7 +178,27 @@ def _section_slopes(alpha, Fy, sections):
     return slopes, spans
 
 
-def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_ft):
+def _normalize_lap_distance_to_metres(data, unit_raw):
+    # lap_distance's own [unit] varies by export -- Dubai logs feet,
+    # a real Paul Ricard export logs metres already (2026-08-31
+    # investigation). The parser never validates a channel's actual file
+    # unit against what code assumes (config's "unit" field is a display
+    # label only, never checked against the file) -- this is the one
+    # place a wrong assumption would silently scale every distance-
+    # derived quantity (corner brackets, apex positions, Module 5's
+    # s-anchored regression) by ~3.28x, so it is the one place that must
+    # check the file's own claim before converting.
+    if unit_raw == "ft":
+        return data * 0.3048
+    if unit_raw == "m":
+        return data
+    raise ValueError(
+        f"lap_distance unit {unit_raw!r} not recognised (expected 'ft' or 'm') -- "
+        "add explicit handling before trusting this export's distance values"
+    )
+
+
+def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
     # lap_distance resets to ~0 at every lap boundary. Linearly interpolating
     # across that boundary sample pair (as plain np.interp would) fabricates
     # a mid-range s value corresponding to no real track position, so any
@@ -186,7 +206,10 @@ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_ft):
     # set NaN instead. SetupTool-specific channel-alignment guard (Tier B):
     # the chair receives s_m natively at its own timeline and never needs
     # this interpolation step. [neutral engineering]
-    ld_data_m = ld_data_ft * 0.3048
+    # ld_data_m is already in metres -- callers normalise via
+    # _normalize_lap_distance_to_metres before reaching here (2026-08-31,
+    # the unit is a per-file fact, not something this shared helper can
+    # know on its own).
     s_m = np.interp(t_ref, ld_time, ld_data_m)
 
     reset_after = np.zeros(len(ld_time), dtype=bool)
@@ -239,6 +262,26 @@ def prepare_vehicle_state(channels, params):
 
     t_ref = channels["ecu_speed"]["time"]
     sr = _estimate_sample_rate(t_ref)
+
+    # Rate guard (2026-08-31, GT3 Paul Ricard investigation): every
+    # estimator window, the NIS window, kerb dilation, and LS_ratio's
+    # min_samples were validated at 50 Hz only (see config's own
+    # provenance comment on expected_sample_rate_hz). A different rate
+    # is not a smaller/larger version of the same analysis -- it is an
+    # unvalidated one. Refuse outright rather than silently run
+    # calibrated-for-50-Hz logic against, e.g., a 20 Hz export; this is
+    # the earliest point prepare_vehicle_state itself knows the real
+    # rate, before anything downstream is computed. No resampling, no
+    # silent tolerance beyond rounding to the nearest whole Hz (floating-
+    # point interval measurement jitter, not a real rate difference).
+    expected_rate = se.get("expected_sample_rate_hz")
+    if expected_rate is not None and round(sr) != round(expected_rate):
+        raise ValueError(
+            f"Sample rate mismatch: measured {sr:.1f} Hz, expected {expected_rate:.0f} Hz. "
+            "Every estimator window in this pipeline was validated at the expected rate only -- "
+            "analysis is refused rather than silently run at the wrong scale. "
+            "See config/parameters.json stability_estimation.expected_sample_rate_hz."
+        )
 
     def interp_channel(ch_name):
         ch = channels.get(ch_name)
@@ -311,7 +354,8 @@ def prepare_vehicle_state(channels, params):
     s_m = None
     ld_ch = channels.get("lap_distance")
     if ld_ch is not None and ld_ch.get("quality") not in ("missing", "failed") and ld_ch.get("time") is not None:
-        s_m = _interp_lap_distance_guarded(t_ref, ld_ch["time"], ld_ch["data"])
+        ld_data_m = _normalize_lap_distance_to_metres(ld_ch["data"], ld_ch.get("unit_raw"))
+        s_m = _interp_lap_distance_guarded(t_ref, ld_ch["time"], ld_data_m)
 
     return {
         "time": t_ref,

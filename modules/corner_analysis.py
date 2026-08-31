@@ -50,7 +50,7 @@
 import json
 import numpy as np
 from modules.geo import compute_gps_origin, project_latlon_to_xy
-from modules.stability_analysis import _interp_lap_distance_guarded
+from modules.stability_analysis import _interp_lap_distance_guarded, _normalize_lap_distance_to_metres
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -397,7 +397,7 @@ def assign_stable_corner_ids(corners, channels):
         return
 
     ld_time = lap_distance["time"]
-    ld_data = lap_distance["data"]
+    ld_data = _normalize_lap_distance_to_metres(lap_distance["data"], lap_distance.get("unit_raw"))
 
     cd = _load_config()["corner_detection"]
     compound_min_len = cd["compound_corner_min_length_m"]
@@ -576,7 +576,7 @@ def _slice_channel_abs(ch, start_t, end_t):
     return {"time": t[mask], "data": d[mask]}
 
 
-def _invert_s_to_t(target_s_m, lap_start_t, lap_end_t, ld_time, ld_data_ft):
+def _invert_s_to_t(target_s_m, lap_start_t, lap_end_t, ld_time, ld_data_m):
     # Inverse of _interp_lap_distance_guarded: given a target track
     # position, find the time within this lap's own span at which its
     # lap_distance channel crosses it. lap_distance is physically
@@ -586,11 +586,13 @@ def _invert_s_to_t(target_s_m, lap_start_t, lap_end_t, ld_time, ld_data_ft):
     # Returns NaN if target_s_m falls outside this lap's own covered
     # range -- a genuine absence (e.g. a shortened lap that never reached
     # this track position), distinct from a lap that reached it quietly.
+    # ld_data_m is already in metres -- callers normalise via
+    # _normalize_lap_distance_to_metres before reaching here.
     mask = (ld_time >= lap_start_t) & (ld_time <= lap_end_t)
     if not mask.any():
         return float("nan")
     t = ld_time[mask]
-    s_m = np.maximum.accumulate(ld_data_ft[mask] * 0.3048)
+    s_m = np.maximum.accumulate(ld_data_m[mask])
     if target_s_m < s_m[0] or target_s_m > s_m[-1]:
         return float("nan")
     return float(np.interp(target_s_m, s_m, t))
@@ -721,7 +723,8 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds):
             or lap_distance.get("quality") in ("missing", "failed")):
         return corners  # no spatial anchor -- leave per-lap realization as-is
 
-    ld_time, ld_data = lap_distance["time"], lap_distance["data"]
+    ld_time = lap_distance["time"]
+    ld_data = _normalize_lap_distance_to_metres(lap_distance["data"], lap_distance.get("unit_raw"))
     compound_min_len = cd["compound_corner_min_length_m"]
     sw = cd["smoothing_window_samples"]
     low_max, medium_max = speed_thresholds["low_max"], speed_thresholds["medium_max"]

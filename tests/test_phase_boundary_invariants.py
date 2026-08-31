@@ -45,7 +45,7 @@ MAX_PLAUSIBLE_BRAKE_PHASE_S = 8.0
 # before it approaches anything a real corner geometry could produce.
 MAX_PHASE_FRACTION_OF_LAP = 0.25
 
-BRAKE_RISE_BAR = 5.0  # matches diagnostics/inspect_entry1_brake_fix_verification.py exactly
+BRAKE_RISE_BAR = 5.0  # matches diagnostics/inspect_entry1_brake_fix_verification.py exactly (removed 2026-08-30, see git history)
 
 
 def _phase_span(corner, phase):
@@ -166,6 +166,7 @@ def test_brake_start_never_precedes_prior_corner_bracket(valid_lap_corners):
     """Invariant 4: within a lap, sorted by apex_time, no corner's
     entry_1_brake start may precede the PRECEDING corner's own exit_5 end
     -- reproduces diagnostics/inspect_entry1_brake_fix_verification.py's
+    (removed 2026-08-30, see git history)
     "(3) INHERITED-LOOKBACK RISK" check exactly (same sort key, same
     comparison), which that diagnostic ran once, post-fix, and found zero
     violations. This test makes that a standing, re-run-on-every-change
@@ -199,7 +200,8 @@ def test_brake_start_precedes_brake_pressure_rise(valid_lap_corners, parsed_data
     rise (log_pbrake_f/log_pbrake_r crossing BRAKE_RISE_BAR) wherever a
     rise is found in the search window, reproducing diagnostics/
     inspect_entry1_brake_fix_verification.py check (b) EXACTLY (same
-    5.0 bar threshold, same window logic) -- this is the check that
+    5.0 bar threshold, same window logic; script removed 2026-08-30,
+    see git history) -- this is the check that
     caught the first, subtly-wrong fix attempt (median offset ~0.004s,
     statistically indistinguishable from zero) when two other checks
     (bounded, non-monotonic) both looked healthy. This is a real sensor

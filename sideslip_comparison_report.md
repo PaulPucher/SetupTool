@@ -42,7 +42,8 @@ the vehicle's sideslip actually does mid-corner.
   Dynamics and Control*, 2nd ed., sec. 2.3/2.6; Kalman recursion: Rajamani
   Ch. 14 as a worked automotive application — full citations in
   `thesis_notes.md`). Q/R process/measurement-noise ratio tuned via a
-  7-point logarithmic sweep (`diagnostics/inspect_kalman_qr_ratio_sweep.py`)
+  7-point logarithmic sweep (`diagnostics/inspect_kalman_qr_ratio_sweep.py`,
+  removed 2026-08-30, see git history)
   to ratio=0.3162, an interior point chosen to preserve transient response
   rather than the steady-state-optimal extreme (detail in section 3 below).
 
@@ -94,7 +95,8 @@ sane tyre curve, and its sign (if nonzero) is checked against turn
 direction.
 - A: global median Fy_f=-3801N, Fy_r=+6197N; direction match front 13/13,
   rear 14/14 (mandatory regression gate, reproduces the on-record
-  `inspect_c9_negative_cs.py` report — PASSED). This is the original
+  `inspect_c9_negative_cs.py` report -- removed 2026-08-30, see git
+  history -- PASSED). This is the original
   finding described in section 1: large, direction-locked force at
   supposedly-zero slip.
 - B: global median Fy_f=+4616N, Fy_r=-9647N; direction match front 7/7,
@@ -108,7 +110,7 @@ direction.
 
 ### Force-balance steady-state check (not a harness metric — a physics
 cross-check, `diagnostics/inspect_offset_chain_decomposition.py` /
-`inspect_observer_self_consistency.py`)
+`inspect_observer_self_consistency.py`, both removed 2026-08-30, see git history)
 What it measures: the slip angle a standard tyre-force-balance model
 demands to support the observed lateral acceleration, compared against
 what each estimator reports at the same samples.
@@ -124,7 +126,8 @@ what each estimator reports at the same samples.
   reference from the observer's own alpha brought the overshoot to within
   a few percent everywhere except one 3-sample corner).
 
-### Physical sign check (`diagnostics/inspect_sideslip_sign_check.py`) —
+### Physical sign check (`diagnostics/inspect_sideslip_sign_check.py`,
+removed 2026-08-30, see git history) —
 the arc's only EXTERNAL validation, not a comparison against another
 estimate or a self-consistency check
 What it measures: standard bicycle-model physics says sideslip signs
@@ -141,7 +144,8 @@ corner.
   150.5 km/h) and one near-zero borderline case (C11, +0.022°, too small
   to read as a decisive sign either way).
 
-### Transient-tracking check (`diagnostics/inspect_kalman_qr_ratio_sweep.py`)
+### Transient-tracking check (`diagnostics/inspect_kalman_qr_ratio_sweep.py`,
+removed 2026-08-30, see git history)
 What it measures: correlation between the rate of change of sideslip and
 the rate of change of lateral acceleration during corner entry/exit phases
 — a setting that smooths away genuine transient response should show this

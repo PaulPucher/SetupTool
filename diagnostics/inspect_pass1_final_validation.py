@@ -123,7 +123,7 @@ f_comb = float((nis_combined > chi2_df2).mean())
 mean_nis_comb = float(np.mean(nis_combined))
 
 print("=" * 100)
-print("SECTION 1 -- NIS per channel (methodology: inspect_ekf_pass1_evaluation.py Section 1)")
+print("SECTION 1 -- NIS per channel (methodology: inspect_ekf_pass1_evaluation.py Section 1, removed 2026-08-30, see git history)")
 print("=" * 100)
 print(f"  chi-square 95% bounds: df=1={chi2_df1:.4f}  df=2={chi2_df2:.4f}   "
       f"acceptance band (both ends gate): 3%-15%")
@@ -188,7 +188,7 @@ for cid in stable_ids:
 pooled_frac = per_sample_frac_pooled_num / per_sample_frac_pooled_den if per_sample_frac_pooled_den else float("nan")
 
 print("=" * 100)
-print("SECTION 2 -- sign check (methodology: inspect_ekf_pass1_evaluation.py Section 3)")
+print("SECTION 2 -- sign check (methodology: inspect_ekf_pass1_evaluation.py Section 3, removed 2026-08-30, see git history)")
 print("=" * 100)
 print(f"  MEDIAN GATE: {n_match_median}/{n_total} all corners, {n_match_median_racing}/{n_racing} racing-speed")
 print(f"  PER-SAMPLE (racing-speed pooled, reported not gated): {pooled_frac:.4f} "
@@ -220,7 +220,7 @@ for cid in stable_ids:
 corner_valid_mask = moving & racing_mask & in_corner_mask
 
 print("=" * 100)
-print("SECTION 3 -- self-consistency R^2 (methodology: inspect_ekf_dugoff_circularity.py Section 5)")
+print("SECTION 3 -- self-consistency R^2 (methodology: inspect_ekf_dugoff_circularity.py Section 5, removed 2026-08-30, see git history)")
 print("=" * 100)
 print("SIMPLIFIED CONJUNCTION FRAMING: pass 1 never refit c_alpha (the curve is pass_0's,")
 print("unchanged), so the two-part conjunction signature used in the pass 2-4 refit-loop")
@@ -255,7 +255,7 @@ manifest["self_consistency_r2"] = r2_section3
 # --- Section 4: onset and coverage per axle ---------------------------------
 
 print("=" * 100)
-print("SECTION 4 -- onset and coverage per axle (methodology: inspect_ekf_dugoff_circularity.py Section 6)")
+print("SECTION 4 -- onset and coverage per axle (methodology: inspect_ekf_dugoff_circularity.py Section 6, removed 2026-08-30, see git history)")
 print("=" * 100)
 
 onset_section4 = {}

@@ -125,3 +125,23 @@ wrote them for himself and his examiners:
 - Consistent plain English, ASCII in .py files.
 - When editing a file for any reason, bring touched comments up to
   this standard; do not launch mass rewrites without instruction.
+
+## diagnostics/ disposal rule (standing, 2026-08-30)
+A diagnostic script is disposable by default. Investigation scripts
+are scaffolding, not deliverables. Once a script's finding is
+recorded in thesis_notes.md and its work package commits, DELETE the
+script in that same commit unless it qualifies as one of:
+- **Referenced** — cited by exact filename from outside diagnostics/:
+  a docstring/comment pointer in modules/ui/core, a config
+  `derived_from`/provenance string, or a PLAN.md entry.
+- **Reproduces** — live tooling still needed: a golden-value
+  generator, the frozen pass-1 validation baseline, a reusable
+  headless Qt smoke test, or (rare, flag it) a script something in
+  modules/ actually imports from.
+- **Dependency** — imported by another diagnostics script that itself
+  qualifies as Referenced or Reproduces.
+Do not accumulate a growing pile of "might be useful later" one-offs
+between cleanup passes — dispose at commit time, not in a later batch
+sweep. diagnostics/README.md must list every surviving script's
+specific keep-reason; a script with no stated reason there is a bug
+in the README, not license to leave the next one uncommented.

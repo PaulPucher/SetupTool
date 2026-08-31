@@ -307,8 +307,10 @@ WHERE THE PROJECT STANDS
   its old embedded per-outing "Setup Sheet" table was removed (not
   duplicated) now that the dedicated strips section covers it.
   arb_front_mount now prints for the first time (previously collected,
-  never shown); the diff locking-torque table stays unprinted, its
-  own open decision. Two real bugs found and fixed before delivery,
+  never shown); the diff locking-torque table joined the PDF in the
+  2026-08-30 ship-readiness cleanup package's Phase 4 (thesis_notes.md
+  "9. Ship-readiness cleanup"), closing this open item. Two real bugs
+  found and fixed before delivery,
   from visually inspecting sample PDFs (no golden PDF test exists,
   confirmed by grep): the team logo was sized proportional to full
   strip height, blowing up to page-width at full-page scale; and the
@@ -366,6 +368,158 @@ WHERE THE PROJECT STANDS
   otherwise -- same temporarily-flipped-kinematic-then-restored
   procedure; sideslip_source restored to the user's own live value;
   protected set empty; no commit. 4 new files, all uncommitted.
+- SHIP-READINESS CLEANUP DONE (2026-08-30, same day, unsupervised
+  package, all 6 phases -- full record: thesis_notes.md "9. Ship-
+  readiness cleanup"). Deleted the 29-file dead-diagnostics candidate
+  list plus 2 of 3 orphaned manifest JSONs (the third, fit_dugoff_
+  pass3_refit_manifest.json, kept -- live provenance pointer for the
+  still-kept pass_3 config block, a deliberate deviation from the
+  literal list); fixed every dangling reference the deletion left
+  behind. Placeholder/TODO/TBD sweep: zero stale markers found, every
+  live one already tracked to a real open item; one non-ASCII
+  character fixed (config/parameters.json rad^-1). Second-round
+  comment tightening pass (modules/, ui/, core/): 9 edits across 2
+  files, the rest already at standard from the prior polish pass.
+  Diff locking-torque table (differential_locking_torque_measured,
+  5 points, collected since the arb_front_mount/diff-torque schema
+  addition but never printed) now renders in core/pdf_export.py's
+  shared strip renderer's car column at both scales -- render-and-
+  look confirmed it fits cleanly, no degradation needed; this
+  package's one authorised functional change. Ship-readiness audit
+  (report only): all 4 sideslip_source modes complete a full analyze-
+  and-export cycle with no traceback; all 14 dialog/window classes
+  instantiate cleanly headless; several raw-exception-string and
+  silent-failure UI risks catalogued for a future pass (thesis_notes.md
+  Phase 5 entry has the full list with file:line pointers); config-key
+  comment audit found essentially zero gaps, already closed by prior
+  polish passes.
+  OUT-OF-BAND FIX, user-authorised mid-package (thesis_notes.md
+  "Out-of-scope emergency fix"): core/config_loader.py had a one-
+  character SyntaxError that broke the entire application's startup
+  -- an uncommitted working-tree corruption that appeared DURING this
+  session (git HEAD was always clean; an earlier note here and to the
+  user misattributed it to a commit, corrected same day in thesis_
+  notes.md). Fixed on explicit user approval, the one deviation from
+  this package's own "no functional changes outside Phase 4" rule.
+  Full regression suite run exactly once at the end: 119 passed, 1
+  xfailed -- the pre-registered baseline, confirmed. Protected set
+  empty, no commit, sideslip_source restored to the user's own live
+  value (ekf_auto_pacejka).
+- SECOND DIAGNOSTICS SWEEP DONE (2026-08-30, same day, full-inventory
+  reclassification -- full record: thesis_notes.md "10. Second
+  diagnostics sweep: full-inventory classification"). All 54 files in
+  diagnostics/ reclassified (not just the prior candidate list): 23
+  more scripts deleted (each finding already traced to a real thesis_
+  notes.md record), plus 4 gitignored stale artifacts and the orphaned
+  diagnostics/plots/ directory (198 PNGs from 5 now-deleted plot
+  scripts). One near-miss caught before it broke anything: inspect_
+  wheel_speed_sources.py was initially deleted, then restored after a
+  follow-up internal-import grep found inspect_washout_cutoff_sweep.py
+  depends on it -- reclassified [dependency] rather than [keep-
+  referenced]. New CLAUDE.md standing rule added (diagnostics/
+  disposal rule: Referenced/Reproduces/Dependency categories, dispose
+  at commit time, not in a later sweep); diagnostics/README.md
+  rewritten to state every survivor's specific keep-reason (previously
+  covered only 2 of the then-many files, silently stale since 2026-07).
+  26 scripts + 4 non-py artifacts + README.md survive. Targeted pytest
+  run on the 5 tests touching diagnostics/ imports/citations: 65
+  passed, 1 xfailed, 2 errors traced to a conftest.py fixture guard
+  unrelated to the sweep (confirmed via a temporary kinematic flip,
+  both pass, then restored); sideslip_source restored to the user's
+  own live value, byte-identical to the pre-sweep state via git diff.
+  No full suite run (not required by this package).
+- CHANNEL-REQUIREMENTS GENERATOR ADDED (2026-08-30, same day --
+  diagnostics/generate_channel_requirements.py, [keep-reproduces] per
+  diagnostics/README.md). Regenerates two committed deliverables,
+  docs/channel_requirements.md (the telemetry-export checklist for a
+  new event, with per-channel WHY) and docs/channel_list.txt (the same
+  channels, bare one-per-line, for a literal tick-off), from config/
+  channels.json plus real read-site greps of modules/core/ui and the
+  repo-root channel_list.txt (the real Dubai channel inventory). Both
+  outputs come from one run, so they can never disagree with each
+  other; re-run whenever channels.json or a channel-consuming module
+  changes. A reusable generator, kept by design, not a one-off
+  investigation.
+- GT3 PAUL RICARD EXPORT PARSED (2026-08-31 -- full record: thesis_
+  notes.md "11. GT3 Paul Ricard export: diagnosis and fix"). GT3_
+  PRC_MLA.txt (534 MB, team telemetry, found untracked at repo root)
+  diagnosed and fixed: modules/csv_parser.py now branches on header
+  shape to also parse Pi Toolbox's WIDE-TABLE export layout (Paul
+  Ricard) alongside the existing NARROW layout (Dubai, byte-identical/
+  unaffected). A second, more dangerous problem found in the same
+  diagnosis: lap_distance was unconditionally assumed to be in feet in
+  two places (modules/stability_analysis.py, modules/corner_
+  analysis.py) -- fixed with a new unit-aware _normalize_lap_distance_
+  to_metres, sourced from each channel's own captured unit_raw string;
+  both call sites lost their independent hardcoded *0.3048. Latin-1
+  encoding confirmed and documented (both real exports -- Dubai and
+  Paul Ricard -- are single-byte Pi Toolbox text). 14 new tests (tests/
+  test_csv_parser_formats.py, synthetic fixtures only; the real file
+  deliberately excluded from any test/validation per the user's own
+  instruction). Full regression suite: 133 passed, 1 xfailed, 0
+  failed, 0 errors (35m32s) -- the prior 119 plus these 14, zero
+  regressions. GT3_PRC_MLA.txt remains gitignored (/*.txt pattern) and
+  untracked, parser-test-only -- never an analysis or validation
+  target, per the user's own explicit instruction (not this project's
+  native 50 Hz rate, a partial session).
+- GT3 PAUL RICARD SAMPLE-RATE GUARD ADDED, CENSUS CONFIRMS NO FASTER
+  CHANNEL (2026-08-31, same package). config/parameters.json gained
+  stability_estimation.expected_sample_rate_hz=50 (provenance comment
+  naming every 50-Hz-calibrated consumer); modules/csv_parser.py now
+  measures and exposes measured_sample_rate_hz; prepare_vehicle_state
+  raises immediately, naming both rates, on any mismatch (Paul
+  Ricard's real 20 Hz vs this project's 50 Hz calibration). KNOWN
+  RESIDUAL GAP, not fixed: corner detection runs inside parse_csv,
+  before the guard's own check point, so a non-50-Hz file's corner
+  markers could still render with mis-scaled smoothing even though the
+  full Analyse pipeline is correctly refused -- a deliberate scope
+  decision (parse_csv measures/exposes, prepare_vehicle_state
+  refuses), not an oversight. Follow-up per-channel census (diagnostics/
+  inspect_prc_sample_rates.py, read-only, streamed three file windows
+  rather than loading the 534 MB file) RE-RUN this turn to verify
+  before writing this status, rather than trusting the prior session's
+  summary blindly: the row-grid rate is consistently 20.000 Hz across
+  start/middle/end windows (no cross-window disagreement); of 267
+  channel-window combinations checked, only one channel differs from
+  the grid rate by more than 1 Hz -- Math_Wheel_LockRL, a sparse
+  wheel-lock EVENT marker (n=3-77 non-missing samples in a ~2000-row
+  window), not a continuous sensor; no whitelisted analysis channel or
+  damper/wheel-speed-family channel runs faster than the 20 Hz grid
+  anywhere in the file. DECISION: keep the hard rate guard as
+  implemented, no adaptive-rate work; a 50 Hz re-export has been
+  requested from the team. Census script deleted this turn (diagnostics/
+  inspect_prc_sample_rates.py) now that its one decision has landed --
+  ITS FINDING IS RECORDED HERE ONLY, NOT in thesis_notes.md (this
+  status-rewrite turn was explicitly text-only/PLAN.md-only and
+  instructed not to touch thesis_notes.md; flagged for a future thesis_
+  notes.md entry if this census result is wanted there for the write-up).
+- STEP 2 (chair-comparable result plots) DONE (2026-08-31 -- full
+  record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result
+  plots, kinematic vs ekf_pass_1"). diagnostics/inspect_step2_chair_
+  plots.py ([keep-reproduces] in diagnostics/README.md, thesis-figure
+  source), 28 PNGs (14 stable corners x kinematic/ekf_pass_1 sources)
+  in diagnostics/plots_step2/ (gitignored). HEADLINE FINDING: the rear
+  CS extremes that opened the estimator arc are largely BETA
+  ARTIFACTS -- C9 rear worst-phase CS improves from -362508 to -74581
+  N/rad and C6 rear from -311382 to -13064 N/rad under ekf_pass_1 vs
+  kinematic, both with visibly cleaner near-monotonic tyre curves under
+  ekf_pass_1. C4's front saturation is NOT a beta artifact -- CS stays
+  large and negative under both sources (-98372 kinematic / -95027
+  ekf_pass_1) with the same peak-and-fold shape at a similar slip angle
+  both times, read as genuine saturation, not estimator noise. No
+  production/config file changed; sideslip_source never read from or
+  written to config throughout.
+  PROJECT DIRECTION (decided 2026-08-31): estimator/method work is
+  FROZEN for now. STEP 4 (decision-matrix cleanup) and the STEP 3/4
+  threshold-re-derivation prerequisites below remain open but are NOT
+  the next work. Next priorities, in order: (1) commit the large
+  uncommitted working tree (many sessions' worth -- see git status),
+  (2) reliability passes (the ship-readiness audit's catalogued raw-
+  exception-string/silent-failure UI risks, thesis_notes.md "9. Ship-
+  readiness cleanup" Phase 5, still uncatalogued-into-fixes), (3)
+  thesis writing. STEP 4 and further method work resume only when the
+  user reopens it -- the prerequisites list below is preserved exactly
+  as scoped, not abandoned.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -438,7 +592,17 @@ are visible in the app.
       distribution. Until thresholds are re-derived, read the traces
       and ignore the verdict colours.
 
-STEP 2 -- Verify the result plots against the chair's output.
+STEP 2 -- DONE (2026-08-31, standalone diagnostic, single session --
+  full record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable
+  result plots, kinematic vs ekf_pass_1"; summary: NOW above).
+  diagnostics/inspect_step2_chair_plots.py, 28 PNGs in diagnostics/
+  plots_step2/ (gitignored). ANSWERED the purpose question below:
+  the rear CS extremes (C6, C9) that opened the estimator arc are
+  largely beta artifacts (both improve sharply under ekf_pass_1 vs
+  kinematic); C4's front saturation is NOT a beta artifact (large and
+  negative under both beta sources, same fold shape both times) --
+  read as genuine saturation. No production/config file changed.
+  Verify the result plots against the chair's output.
   Axis decisions, fixed: tyre-curve slip angle in DEGREES
   (readability), lateral force in N, cornering stiffness reported
   in N/rad (standard unit), all labels explicit.
@@ -581,7 +745,10 @@ C - Decision-matrix depth: elicitation question set (own file, to
     Gated on elicitation answers.
 B - Forces: damper-derived Level-4 wheel loads; roll-stiffness
     apportionment; Fy split upgrade -> CS threshold re-derivation.
-    Gated on damper data arriving (no date).
+    Gated on damper data arriving (no date). Science prep done
+    externally (Segers Ch. 9/10 anchors, method fixed; open items:
+    roll center heights, gauge calibration check) -- still gated on
+    50 Hz damper data arriving.
 D - Output artifacts: weekend PDF expansion; per-corner CS overlay
     and g-g plots.
 E - Cleanup (after track A closes): diagnostics inventory + README,
@@ -1233,6 +1400,23 @@ dugoff.py and every inspect_ekf_*/fit_dugoff_pass*_refit.py/*_manifest.
 json script and file this arc produced, the carry-forward decision, and
 every corresponding thesis_notes.md entry (see thesis_notes.md for the
 full, dated file-by-file record of each pass). This PLAN.md rewrite.
+
+## SUPERSEDED NOW-BLOCK CLOSING TEXT (2026-08-31 STATUS rewrite)
+The following closing paragraph stood at the end of ### NOW's "WHERE
+THE PROJECT STANDS" bullet list from the 2026-08-30 ship-readiness
+cleanup entry until the 2026-08-31 STATUS rewrite replaced it with the
+PROJECT DIRECTION paragraph (method work frozen; commit/reliability/
+thesis-writing priorities) now in ### NOW. Preserved here verbatim,
+not because its content is wrong -- STEP 4's prerequisites listed below
+are still exactly as scoped -- but because "next substantive work" is
+no longer an accurate framing of what happens next:
+  NEXT: STEP 4 below (decision-matrix cleanup) is the next substantive
+  work -- its prerequisites are unchanged by this cleanup package and
+  already listed in full under STEP 4's own entry (threshold re-
+  derivation for CS_ratio AND LS_ratio together, the CS_ratio cross-
+  lap aggregation problem under PARKED, the entry_1_brake rule-base
+  implications, and whether LS_ratio enters the recommendation rules
+  at all).
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order

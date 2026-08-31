@@ -9107,3 +9107,945 @@ data_points.py (9/9) and diagnostics/smoke_test_measurement_points_
 widget.py both re-run clean. No suite run, per the standing testing
 policy for this work package (nothing outside the position table was
 touched).
+
+## 9. Ship-readiness cleanup [2026-08-30]
+
+### Phase 1: dead-diagnostics deletion
+
+Deleted the 29-script candidate list recorded in this file's "Repo
+cleanup: pass_2-4 block deletion + dead-diagnostics sweep" entry
+(2026-08-20), plus 2 of the 3 orphaned manifest JSONs named there.
+Before deleting, re-grepped the whole repo for every candidate name
+(scripts and manifests together, one pass); both threshold-provenance
+files (inspect_corner_distribution.py, inspect_yaw_stability_b2.py)
+confirmed present and NOT on the list, as required.
+
+Deleted (last commit each was tracked at; working tree was clean
+before this pass, so this is also the last commit each still exists
+in): inspect_abs_slip_channels.py (0b296ce), inspect_b3_verdict_
+distribution.py (0bdff87), inspect_corner_demand_ranking.py (76fc576),
+inspect_cs_filter_sensitivity.py (e223aba), inspect_entry1_brake_fix_
+verification.py (0b296ce), inspect_entry1_brake_production_impact.py
+(0b296ce), inspect_fz_sign_conventions.py (39c88a4), inspect_gps_
+speed_validation.py (0bdff87), inspect_h2_ay_dual_population.py
+(6fcdeb0), inspect_kerb_signal.py (39c88a4), inspect_max_beta_
+excursion.py (6fcdeb0), inspect_observer_self_consistency.py
+(4b1b548), inspect_offset_chain_decomposition.py (4b1b548), inspect_
+pass1_flagged_attribution.py (6fcdeb0), inspect_recommendation_
+eligibility_trace.py (5f44688), inspect_rolling_radius_speed_
+dependence.py (0b296ce), inspect_sideslip_sign_check.py (4b1b548),
+inspect_slip_hypothesis_and_driven_axle.py (0b296ce), inspect_speed_
+class_boundary.py (0bdff87), inspect_step1b_wiring_verification.py
+(b0e7aa0), inspect_threshold_comparability.py (76fc576), inspect_
+urgent_tier_lap_level_fix_check.py (2d3346f), inspect_urgent_tier_
+lap_level_verify.py (2d3346f), inspect_vehicle_model_upgrade.py
+(86e16b3), inspect_wp1_canonical_realization.py (0bdff87), inspect_
+wp1_reset_guard_freeze_proof.py (e6ef209), inspect_wp1_turn2_
+validation.py (0bdff87), plot_kalman_qr_ratio_sweep.py (9f67f3a),
+run_ekf_dugoff_pass0.py (6fcdeb0) -- all in diagnostics/. Plus
+diagnostics/fit_dugoff_pass2_refit_manifest.json and diagnostics/
+fit_dugoff_pass4_refit_manifest.json, both gitignored generated
+artifacts (diagnostics/*.json), never tracked, no commit hash
+applicable.
+
+DEVIATION FROM THE LITERAL CANDIDATE LIST, flagged rather than
+silently followed: diagnostics/fit_dugoff_pass3_refit_manifest.json
+was NOT deleted, though it was on the original 3-manifest candidate
+list. config/parameters.json line 181's frozen_from field for the
+still-KEPT tyre_model_ekf.pass_3 block names this exact file as its
+provenance record ("WP-N2 pass 3, diagnostics/fit_dugoff_pass3_refit.py,
+diagnostics/fit_dugoff_pass3_refit_manifest.json (timestamp
+2026-08-20T08:10:25Z)"). Unlike the pass_2/pass_4 manifests (whose
+producing scripts and config blocks are both already gone), pass_3's
+config block is live and its own producing script (fit_dugoff_pass4_
+refit.py, which reads pass_3 as its EKF source) still exists per the
+2026-08-20 pass's own explicit decision to keep both. Deleting the
+manifest would have orphaned a live provenance pointer for no
+config-size benefit; the "when unsure, keep it and list it" rule
+applies squarely. Confirmed via git ls-files that this manifest was
+never tracked either -- gitignored like its two siblings, so leaving
+it costs nothing.
+
+Post-deletion dangling-reference sweep (full-repo grep for all 29+2
+names): 6 files matched. Two are the historical record itself
+(thesis_notes.md, PLAN.md's STATUS/NOW narrative) and were correctly
+left untouched, per CLAUDE.md's "never delete or rewrite existing
+entries" rule -- these are dated journal entries describing what was
+true when written, not live pointers guiding future action. Four were
+live citation/catalog pointers and were fixed in place, annotated
+"removed 2026-08-30, see git history" without deleting the surrounding
+evidence claim (matching the 2026-08-20 precedent set by fit_dugoff_
+pass4_refit.py's own docstring fix): diagnostics/README.md (removed
+the now-nonexistent inspect_kerb_signal.py catalog entry outright,
+since a README of runnable scripts should not list one that no longer
+runs); sideslip_comparison_report.md (2 edits: the force-balance
+steady-state section header and the physical-sign-check section
+header, both citing now-deleted scripts); diagnostics/inspect_wheel_
+speed_sources.py (1 comment citing inspect_gps_speed_validation.py's
+regression technique); tests/test_phase_boundary_invariants.py (3
+citations of inspect_entry1_brake_fix_verification.py -- the
+BRAKE_RISE_BAR constant comment and two docstrings -- annotated, not
+rewritten, so the regression framing CLAUDE.md requires stays intact).
+diagnostics/fit_dugoff_pass4_refit.py's own MANIFEST_PATH match is
+self-referential (its own write-target path) and needed no change.
+
+The Phase-2-flagged dead local variable in inspect_abs_slip_
+channels.py is now moot -- the file is deleted.
+
+Verification: tests/test_phase_boundary_invariants.py (the only
+targeted suite touched by this phase's edits) re-run clean, 7/7
+passed. Per this package's testing policy, the full suite runs once
+at the very end, not here.
+
+### Phase 2: placeholder and stale-text sweep
+
+Repo-wide grep for PLACEHOLDER/TODO/FIXME/XXX/TBD (case-sensitive,
+matching CLAUDE.md's own marker vocabulary). Every hit classified;
+nothing found warranted deletion as stale -- every live marker traces
+to a real, currently-open decision, and the two apparent XXX hits
+(ui/views/outing_form.py, this file, both "\uXXXX" describing a
+Unicode escape sequence) are false positives of the regex, not
+markers, confirmed by reading context, no action.
+
+STAYS, as pre-authorized: both calibration banner PLACEHOLDER texts
+("PLACEHOLDER: sideslip estimator changed, verdict thresholds not
+..." in core/weekend_pdf_export.py and ui/views/outing_form.py;
+"...recommendation rules key on..." in ui/views/outing_form.py) --
+final wording is its own pending decision, not invented here. The
+icon-set TODO (ui/main_window.py: "icons in separate svg files --
+TODO: replace with a proper icon set"). The page-TBD literature
+citations needing the physical books (modules/tyre_model.py,
+modules/tyre_model_pacejka.py, modules/stability_analysis.py x2,
+plus their PLAN.md/thesis_notes.md ANCHORS-section tracking) --
+unchanged, per the standing PLAN.md ANCHORS note these get replaced
+when the physical text is checked, not deleted now.
+
+STAYS, newly classified this phase (live, tied to a real open item,
+listed here for visibility): config/setup_parameters.json's four
+"switch-position channel name TBD, identify in next data file's
+channel scan" notes (tc_lat, tc_lon, abs_position, brake_bias) --
+this is PLAN.md's own tracked open thread (the new-data-file channel
+scan), not a leftover. config/parameters.json's three nis_tuning_note
+PLACEHOLDER-defaults comments (pass_0/1/2) -- tracks the live,
+still-provisional NIS-gate threshold decision (PLAN.md NOW section,
+"five-data-points-one-session provisional"). diagnostics/plot_
+sideslip_comparison.py and diagnostics/plot_slip_angle_comparison.py's
+matching NIS PLACEHOLDER-defaults print strings -- same live config
+state, read at runtime, not hardcoded duplication. diagnostics/
+inspect_pass1_final_validation.py's "ORIGINAL PLACEHOLDER defaults"
+caveat print -- this is the frozen pass-1 validation baseline script
+(PLAN.md NOW section), the caveat is an accurate, still-true statement
+about its own noise-model tuning, not stale text.
+
+Historical narrative (PLAN.md STATUS/NOW section, this file's own
+dated entries) was left untouched by design -- these are journal
+entries recording what was TBD/PLACEHOLDER AT THE TIME, governed by
+the same "never rewrite existing entries" rule as everything else in
+this file; scrubbing the word out of history would falsify the
+record, not clean it up.
+
+Excluded from this sweep as out-of-scope: Nürburgring_Outing1_
+Practice_Setup2.pdf (repo-root, untracked, unignored -- a binary PDF
+sample-export artifact from an earlier session's visual QA, not
+source text; the grep hit is bytes inside the binary, not a
+readable marker. Flagged for Phase 5/6 reporting as loose untracked
+state, not acted on here since deleting or moving it is outside this
+phase's placeholder-sweep scope).
+
+config/parameters.json's rad^-1 fix: line 67's cs_fallback comment
+had a literal "rad⁻¹" (Unicode superscript minus-one) where every
+other unit string in the file uses plain ASCII notation elsewhere
+(e.g. "N/rad", "rad/s"). Replaced with "rad^-1", JSON comment text
+only (the "_comment_cs_fallback" key, never parsed as a number),
+zero functional effect -- confirmed by re-loading the file with
+json.load after the edit. The adjacent "×" (multiplication sign, same
+comment) was left alone: explicitly out of this phase's stated scope
+(only the rad^-1 character was named), and the general non-ASCII
+normalization sweep already ran repo-wide in the documentation polish
+pass (this file, section 6).
+
+The dead unused variable in diagnostics/inspect_abs_slip_channels.py
+(Phase 1's own item to verify): moot, confirmed -- the file no longer
+exists after Phase 1's deletion.
+
+No suite run this phase (JSON comment edit only, no code/logic
+touched); config validity confirmed directly via json.load.
+
+### Phase 4: diff locking-torque table printed
+
+This package's only authorized functional change: the 5-point
+differential_locking_torque_measured data (car[
+"differential_locking_torque_measured"] = {"1".."5": Nm or null},
+collected by the setup form since the arb_front_mount/diff-torque
+schema addition but never rendered) now prints in core/pdf_export.py's
+shared strip renderer's car column, at both scales, since weekend_
+pdf_export.py fully reuses build_session_strip with no car-column
+code of its own to touch.
+
+Design: a new DIFF_TORQUE_LABEL ("Diff Locking Torque (measured,
+Nm)") and _diff_torque_row() helper, following "5 bordered cells"
+literally rather than the splitter/diffuser MeasurementDiagram
+pattern -- diff locking torque has no physical floor position to draw
+an outline against, so the UI form's own visual structure (position
+number stacked above value, in a bordered cell) was mirrored instead:
+one reportlab Table row, 5 columns, each cell a two-Paragraph stack
+(position number via the existing table_head style, value via the
+existing car_value style), GRID-bordered like every other table on
+the sheet -- reuses _bordered_table exactly as every other car-column
+element does, no new styling primitives. Placed directly under the
+Diff Preload/Position/Splitter parameter table (both are diff-related,
+grouped together) and before the Splitter Pts diagram.
+
+Render-and-look iteration, as required: generated real setup/setdown/
+weekend PDFs against the actual Dubai outings in data/setuptool.db
+(outing #1, both sheet types, plus the two-outing weekend document),
+via a scratchpad script replicating ui/views/outing_form.py's own
+_print_sheet calling convention (a lightweight temp object carrying
+setup_data/setdown_data under the one attribute name generate_
+setup_pdf expects). Real stored values are all 0.0 (the widget's
+default, never actually measured on this car yet) -- legitimate real
+data per the project's real-data-only rule, and still a valid render
+check for cell borders/label legibility even though every value is
+identical. pymupdf installed transiently to rasterize both documents
+to PNG for visual inspection, uninstalled immediately after (same
+precedent as the PDF layout rework session) -- confirmed removed via
+pip show and absent from requirements.txt.
+
+OUTCOME: fits cleanly at both scales on first attempt, no degradation
+needed. At "large" (single-session) scale the table reads as five
+clearly separated, legible cells. At "small" (weekend, four-strips-
+per-page) scale -- the car column being, per the work order's own
+description, already the densest area on the sheet -- an 8x zoom crop
+confirmed clean borders, no overlap with the Diff Preload/Position/
+Splitter table above it or the Splitter Pts diagram below it, and no
+displacement of anything else in the column (the same failure mode
+that sank the splitter/diffuser values-only-row alternative in the
+prior PDF session). No values-only-row or single-document-only
+degradation was needed; the straightforward design was rendered and
+looked at, not assumed.
+
+PLAN.md's "diff locking-torque table stays unprinted, its own open
+decision" line (PDF layout rework session entry) updated to record
+this closes that open item, pointing here.
+
+No suite run this phase (PDF rendering + one new car-column helper,
+no analysis/estimator/classification code touched); the render-and-
+look check above is this phase's own verification method, per the
+work order.
+
+### Out-of-scope emergency fix: app-breaking SyntaxError in core/config_loader.py [2026-08-30]
+
+Found incidentally, not by this package's own Phase 5 audit (that
+audit was still running) but by a background agent doing this
+package's Phase 3 comment pass, which noticed and correctly declined
+to touch a stray trailing character it had no mandate to fix.
+core/config_loader.py line 21 read
+`return config.get("setup_parameters", {})c` -- a bare `c` after the
+closing paren. This is a SyntaxError, not a logic bug: confirmed by
+direct import that it broke the ENTIRE application -- `python main.py`
+-> ui.main_window -> ui.views.weekends -> ui.views.outings ->
+ui.views.outing_form -> `from core.config_loader import
+get_setup_parameters` fails to import at all.
+
+~~PROVENANCE CLAIM, WRONG, struck through same day: originally
+recorded here as "introduced in commit 39c88a4 ... predates this
+package entirely" and reported to the user that way.~~ CORRECTED
+(2026-08-30, same day, caught during Phase 6 final verification): a
+git diff-direction misread. `git show HEAD:core/config_loader.py` is
+clean -- the file was NEVER committed with this bug. `git diff HEAD
+-- core/config_loader.py`, read correctly, has HEAD (clean) on the
+`-` side and the then-current corrupted working tree on the `+` side;
+the earlier note had this backwards. The corruption was an
+UNCOMMITTED working-tree change that appeared DURING this session --
+the session's own recorded git status was clean at the very start, so
+it cannot have predated this package. Its exact origin is unresolved:
+neither this session's own direct edits nor the Phase 3 background
+agent's verified diff (git-diff-checked, ui/main_window.py and
+ui/views/outing_form.py only) touched this file. The Phase 5 audit
+agent's own report (see its Phase 5 entry below) independently flagged
+concurrent, not-self-authored working-tree changes during its ~15-
+minute run window -- consistent with some other concurrent process
+touching the repo, though this remains unconfirmed, not a diagnosed
+root cause. User told the corrected version directly, not just here.
+
+tests/ never caught this because the suite exercises modules/core
+logic directly, never ui/ (PyQt6 layer is deliberately untested that
+way, per CLAUDE.md's module boundary rule) -- this is exactly the
+blind spot the standing "UI changes: I run the app manually" rule
+exists for. Whatever its origin, had this reached a commit un-noticed,
+nobody could have opened the app until caught.
+
+This package's own hard constraints ("No functional changes EXCEPT
+the one explicitly authorised in Phase 4", Phase 5 "report only, fix
+nothing") explicitly forbid this fix. Surfaced to the user directly,
+out of band, rather than silently fixed or silently deferred to the
+Phase 6 report -- a completely non-launchable app is not something to
+sit on until a report the user reads at the end. User explicitly
+authorised fixing it immediately (over leaving it for the report),
+recommended option, given via AskUserQuestion.
+
+Fix: removed the stray `c`, one character, restoring `return
+config.get("setup_parameters", {})`. Verified by direct import
+(`import ui.main_window` -- previously SyntaxError, now succeeds) --
+no dedicated test exists for this function/module (grep confirmed).
+No other change to the file or anywhere else. This is the one
+deviation from this package's "no functional changes outside Phase 4"
+rule, made with explicit contemporaneous user authorisation, recorded
+here rather than folded silently into any other phase's entry.
+
+### Phase 3: comment humanization pass, second round
+
+Second, tighter tightening pass over modules/, ui/ (incl. ui/views/),
+core/, and test_stability.py, against the prior "documentation/comment
+polish pass" baseline (this file, section 6) which had already brought
+diagnostics/ and tests/ to standard with zero edits needed -- this
+round deliberately excluded both directories again, plus config/*.json,
+per its own scope. Bar: "a capable student wrote it, and wrote less."
+
+Result: the prior pass had already done the heavy lifting -- 30 of 32
+files in scope needed zero further edits. Two files, both restatement-
+only: ui/views/outing_form.py (8 edits -- "Severity logic", "Build
+verdict strings from the simple vocabulary", "Group by lap, classify
+each corner", "Index each lap's entries by stable_corner_id", "Build
+one lap row per lap, in lap order", "Inline details placeholder,
+hidden by default", "Clear any previous details", "Two lines: stable
+corner id, then short verdict" -- every one immediately followed by
+the single line of code it named) and ui/main_window.py (1 edit -- a
+trailing comment restating a one-line signal connect). Verified by
+diff: every removed line was pure WHAT-restatement, no WHY-content
+lost, files still compile clean (py_compile) after the edits.
+
+11 borderline cases were considered and kept, not deleted -- full list
+in the agent's own report, spot-checked here rather than reproduced
+verbatim: several one-line comments serving as informal docstrings on
+otherwise-undocumented Qt-construction helper methods (kept, rule 3
+allows one-line summaries); a few structural section dividers inside
+long (~50-80 line) UI-construction methods with no formal docstring
+of their own (kept, navigation aids in genuinely long functions, not
+restatement of the adjacent line); one comment in modules/
+longitudinal_stiffness.py restating a load-bearing cross-file
+invariant (_plausibility_exclude_mask's two-call-site contract,
+already stated in that function's own docstring) at its actual call
+site (kept -- restating an invariant where it is USED, not restating
+what adjacent code does, is exactly the kind of WHY-adjacent aid rule
+2 protects).
+
+One incidental finding, not part of this phase's own mandate and NOT
+acted on by it (correctly -- a comment-only pass has no mandate to
+change code): a stray character in core/config_loader.py, noticed but
+left for the orchestrating session to triage. See the emergency-fix
+entry immediately above -- that stray character turned out to be an
+app-breaking SyntaxError, found because this phase's agent read the
+file carefully enough to notice one out-of-place letter, even though
+fixing it was correctly outside its own scope.
+
+No suite run this phase (comment/docstring-only, no logic touched).
+
+### Phase 5: ship-readiness audit (report only, nothing else fixed)
+
+Report-only, per the work order -- everything below is a finding, not
+an action, EXCEPT the config_loader.py SyntaxError already handled
+above as its own explicitly user-authorised, out-of-band exception.
+
+**Task 1 -- full analyze-and-export cycle, all 4 sideslip_source
+modes, no traceback.** Verified two ways: this session's own direct
+sweep (modules.tyre_fit_auto.resolve_sideslip_beta called with each
+mode as a plain argument -- confirmed this never reads config's own
+stored sideslip_source, so the sweep never needed to touch config/
+parameters.json at all) through estimate_slip_angles/estimate_
+lateral_forces/estimate_cornering_stiffness/estimate_yaw_moment_
+stability/summarise_corners; and independently, a background agent's
+more complete replication of the exact production chain (StabilityAnalysisThread.run(),
+ui/views/outing_form.py:147-282) including estimate_vertical_loads,
+longitudinal forces/stiffness, the real _classify_corner, and PDF
+export via both core/pdf_export.generate_setup_pdf and core/weekend_
+pdf_export.generate_weekend_pdf, against the real Dubai outing in
+data/setuptool.db. Both approaches agree: all 4 modes (kinematic,
+ekf_pass_1, ekf_auto_dugoff, ekf_auto_pacejka) complete without
+exception; the two auto modes' NIS gate verdicts both 'pass' on this
+session's data (health_score 0.1638 dugoff / 0.1751 pacejka), no
+fallback triggered in either. 56 corner summaries produced in every
+mode.
+
+Process note on the second (agent) run: it DID at one point corrupt
+config/parameters.json's sideslip_source via a crude json.load/
+json.dump round-trip (collateral damage -- ensure_ascii=True re-
+escaped the file's one non-ASCII character and dropped the trailing
+newline, on top of leaving sideslip_source on a non-original value
+when its own run was interrupted mid-sweep by an intermediate status
+checkpoint). Caught and fixed directly during Phase 6 verification:
+config/parameters.json restored via git checkout + reapplication of
+this package's own single intentional edit (the rad^-1 fix, Phase 2),
+confirmed via git diff to carry ONLY that one line change from HEAD.
+4 stray evidence PDFs the agent also left in diagnostics/ were
+deleted; confirmed via git status that no untracked files remain.
+Lesson for future agent-authored config edits: targeted string
+replacement, never a full json.load/json.dump round-trip on a file
+carrying non-ASCII content or no trailing newline, or json.dump's
+ensure_ascii default silently rewrites everything around the one key
+that was meant to change.
+
+**Task 2 -- every dialog/main window instantiates cleanly, headless
+(QT_QPA_PLATFORM=offscreen).** All 14 attempted: DriverDialog (new+
+edit), WeekendDialog (new+edit), WeekendPdfDialog, CornerTraceDialog,
+LapTraceDialog, _TraceDialogBase, MainWindow, DriversView,
+SettingsView, WeekendsView, OutingsView, OutingForm (new+edit) --
+all instantiate cleanly, real DB objects used throughout (RaceWeekend
+id=1, Outing id=1, Driver id=1), no fabricated data. Skipped:
+MeasurementPointsWidget (not a standalone top-level target, always
+constructed as an OutingForm child with specific args -- already
+exercised by OutingForm's own 4 successful constructions).
+
+**Incidental first-time-user-risk findings (exploratory, not
+exhaustive):**
+- Raw exception strings reaching the UI directly, no friendly
+  wrapping: ui/views/outing_form.py's CsvLoaderThread error path
+  (~1172-1175, "Error loading file: {error_msg}"), StabilityAnalysisThread's
+  error path (~2511-2514, "Analysis failed: {msg}"), and ui/views/
+  weekend_pdf_dialog.py (~141-146, QMessageBox.critical shows a raw
+  `{e!r}`).
+- Silent/partial failure: core/pdf_export.py's generate_setup_pdf
+  (~563-567) has a bare `except Exception: pass` around
+  json.loads(outing.setup_data) -- a corrupt setup_data silently
+  renders as an all-blank PDF with zero indication anywhere that
+  parsing failed. core/weekend_pdf_export.py's analogous per-outing
+  failure path (~474-481) is better (prints a visible inline error
+  note in the generated PDF itself) but still surfaces a raw `{e!r}`
+  to the end user rather than a friendly message.
+- ui/views/outing_form.py's _print_sheet (~3259-3265) only catches
+  PermissionError around generate_setup_pdf -- any other exception
+  (e.g. a deeper KeyError on malformed setup data) propagates
+  unhandled out of a Qt slot with no dialog telling the user the
+  export failed.
+- Confusing first-time state: the "Analysing laps {lap_filter}..."
+  status label (~1272-1275) is set once and never updates while
+  StabilityAnalysisThread runs. The ekf_auto_dugoff/ekf_auto_pacejka
+  modes' fit chain (a 5x5 R-scale grid sweep, modules/tyre_fit_auto.py)
+  measured taking several minutes in this audit's own run -- the only
+  progress indication is a print() (~239-242), invisible in a packaged
+  app. A first-time user watching this has no way to tell the app
+  apart from frozen.
+
+**Config-key comment audit (this session's own pass, all 5 non-
+protected config/*.json files -- config/car_data.json excluded,
+protected/gitignored per the standing protected-set rule, not a
+tunable-parameter file in the same sense).** Essentially zero genuine
+violations found. config/parameters.json is exhaustively commented
+(nearly every tunable carries an adjacent _comment_*/_note key; the
+handful without one -- cs_min_window_samples, apex_half_window_samples,
+cs_filter_cutoff_hz -- have fully self-evident names and sit inside a
+commented group). config/car.json's setup-parameter schema uses
+standard racing-engineering terms throughout (toe, camber, arb,
+springs, etc.), no comments needed. config/channels.json is self-
+documenting via its own per-channel "label" field. config/setup_
+parameters.json and config/recommendations.json are structured
+registries: every STRUCTURAL field is explained once in a top-level
+_comment block, and every per-entry record self-documents via label/
+mechanism/notes (setup_parameters.json) or condition/suggestion/
+rationale (recommendations.json). This item is already effectively
+closed by the prior documentation/comment polish pass and this
+session's own Phase 2; nothing further to list.
+
+**Concurrent-modification caveat, both this session's Task 1 runs and
+the config_loader.py provenance correction above:** something touched
+the working tree during this session that neither this session's
+direct edits nor its background agents' own verified diffs account
+for (the config_loader.py stray-character corruption; one agent's own
+report independently flagging 39 files it did not author). Origin
+unresolved -- flagged, not diagnosed, not acted on beyond the direct
+fixes already recorded above.
+
+This list is tomorrow's raw material, not this package's work, per
+the work order's own framing.
+
+### Phase 6: close-out
+
+Full regression suite run exactly once, per this package's testing
+policy -- targeted tests freely during iteration (Phase 1's affected
+test re-run, this session's own direct Task-1 pipeline sweep), no
+other full-suite/golden run before this point. Standard temporarily-
+flipped-kinematic-then-restored procedure: sideslip_source flipped
+from the user's own live value (ekf_auto_pacejka) to kinematic
+(golden fixtures require it), suite run, restored -- git diff
+confirmed config/parameters.json carries ONLY this package's one
+intentional edit (rad^-1, Phase 2) against HEAD afterward, byte for
+byte. Result: 119 passed, 1 xfailed, 0 failed, 0 errors (44m33s) --
+exactly the pre-registered baseline this package's own work order
+predicted, and matches the prior session's last recorded full-suite
+count exactly (thesis_notes.md "8. Splitter/diffuser measurement
+points", Phase 4). No golden fixture touched, no test file behaviour
+changed by this package (tests/test_phase_boundary_invariants.py's
+3 edits were comment-only pointer annotations, confirmed by its own
+7/7 targeted re-run in Phase 1 and now folded into this full green
+run).
+
+Protected set (docs/literature/, docs/car_data/, config/car_data.json,
+HANDOVER.md, docs/study/) confirmed empty via git ls-files. git status
+final footprint: 11 files modified (PLAN.md, config/parameters.json,
+core/pdf_export.py, diagnostics/README.md, diagnostics/inspect_wheel_
+speed_sources.py, sideslip_comparison_report.md, tests/test_phase_
+boundary_invariants.py, thesis_notes.md, ui/main_window.py, ui/views/
+outing_form.py -- core/config_loader.py shows NO diff, confirming its
+mid-session corruption and this package's own fix both left it exactly
+matching clean HEAD), 29 diagnostics/*.py files deleted, 0 untracked
+files remaining. No commit made, per the work order.
+
+One retrospective note on process, not this package's science: two
+background agents (Phase 3's comment pass, Phase 5's headless audit)
+both did real, independently-verified work, but the harness's own
+"completed" notification fired at least once for each before either
+had actually finished (Phase 5's agent's first "completion" was
+literally the text "waiting for..."), and the Phase 5 agent
+transiently corrupted config/parameters.json in ways its own
+final report did not fully catch (see the Phase 5 entry's process
+note above). Every deliverable from both agents was independently
+verified before being trusted -- git diff on every file either agent
+touched, direct re-execution of the Task 1 sweep, git-diff
+confirmation of config file state -- rather than taken on the
+agent's own say-so. This caught real problems (config corruption,
+premature-completion reports) that would otherwise have gone into
+this record uncaught.
+
+## 10. Second diagnostics sweep: full-inventory classification [2026-08-30]
+
+Full reclassification of every file in diagnostics/ (not the stored
+candidate list from the 2026-08-20 sweep) -- 54 real files (56 dir
+entries minus __pycache__/plots, both directories not classified as
+files). Standard: same as 2026-08-20 -- grep the repo for incoming
+references per file before deleting; when genuinely unsure, keep and
+list. Method: two full-repo grep sweeps covering all 54 basenames,
+followed by path-scoped searches against PLAN.md/config/*.json/tests/
+modules/ui/core specifically (the sites the work order's own three
+categories name), individual header reads for methodology
+understanding, and a targeted internal-dependency check across
+diagnostics/*.py itself for `from diagnostics.X import` statements
+(missed on the first pass, see the near-miss below).
+
+DELETED, 23 scripts (last commit each was tracked at; working tree
+was clean before this sweep): inspect_wp2b2_recommendation_trace.py,
+inspect_cs_kerb_window_audit.py, inspect_c9_negative_cs.py, inspect_
+lap2_corner5_cs_discrepancy.py, inspect_corner_radius_overlap.py,
+inspect_pass1_ekf_timing.py, inspect_tyre_variant_comparison.py,
+inspect_nis_short_run_blindspot.py, inspect_ekf_dugoff_circularity.py,
+inspect_ekf_pass1_evaluation.py, plot_sideslip_comparison.py, plot_
+slip_angle_comparison.py, inspect_cs_linear_ref_staleness.py, inspect_
+observer_slip_angle_circularity.py, inspect_kalman_qr_sweep.py,
+inspect_kalman_qr_ratio_sweep.py, inspect_sideslip_methods_
+comparison.py, inspect_washout_mechanism.py, plot_washout_sweep.py,
+plot_washout_sweep_slipangle.py, plot_estimator_comparison.py, _plot_
+common.py, inspect_wheel_speed_sources.py (see near-miss below --
+deleted then restored). Every deletion's finding traced to a real
+thesis_notes.md record, sometimes by WP name/content rather than exact
+filename (spot-checked: inspect_pass1_ekf_timing.py -> "WP-N2 Step 1a:
+pass-1 EKF wall-clock timing" section exists; inspect_corner_radius_
+overlap.py -> corner_radius_filtered findings recorded at multiple
+dates; inspect_wp2b2_recommendation_trace.py -> the "real, persisted
+Dubai outing" verification entries; inspect_ekf_pass1_evaluation.py ->
+the C2-excursion/acceptance-criteria entries spanning ~1500 lines).
+
+Also deleted, 4 gitignored stale artifacts (zero git footprint either
+way, deleted for working-directory hygiene per the work order's own
+"contain ONLY things with a stated reason to exist" goal):
+channels_in_file.txt (stale regenerable output of the KEPT scan_
+channels.py), step1b_wiring_verification_output.txt and step1b_
+wiring_verification_cap1_output.txt (orphaned outputs of inspect_
+step1b_wiring_verification.py, already deleted in the 2026-08-20
+sweep), test_stability_after_step1b_output.txt (one-off manually-
+redirected log capture, no producer script). Also deleted: diagnostics/
+plots/ (198 gitignored PNG files across several dated subfolders,
+entirely orphaned once all 5 plot-generating scripts -- plot_
+sideslip_comparison.py, plot_slip_angle_comparison.py, plot_washout_
+sweep.py, plot_washout_sweep_slipangle.py, plot_estimator_
+comparison.py -- were deleted).
+
+NEAR-MISS, caught and fixed before it became a real breakage:
+inspect_wheel_speed_sources.py was initially deleted as an (a)
+candidate (no PLAN.md/config/test/production reference found by the
+first-pass search) -- but a follow-up internal-dependency check
+(grep for `^from diagnostics\.` across the surviving files) found
+diagnostics/inspect_washout_cutoff_sweep.py (a KEPT, PLAN.md-
+referenced script) has a hard import: `from diagnostics.inspect_
+wheel_speed_sources import AY_STRAIGHT_MAX_G, YAW_STRAIGHT_MAX_DEGPS`.
+Restored via `git checkout` (the file was tracked, unmodified at
+that point in the sweep) and its one prior-session comment fix
+(the inspect_gps_speed_validation.py pointer annotation from the
+2026-08-20 sweep) reapplied by hand since checkout reverts to the
+last commit. Reclassified [dependency] in the README rather than
+[keep-referenced] -- it has no independent external reference of its
+own, it survives purely because inspect_washout_cutoff_sweep.py needs
+it. Lesson, folded into the new CLAUDE.md standing rule's "Dependency"
+category and this sweep's own method: checking a script's OWN
+external references is not sufficient before deleting it inside a
+folder with internal cross-imports -- the dependents' import
+statements must be checked too, not just assumed absent from an
+early exploratory grep that used the wrong pattern (searched for
+`from <name> import`, missed the actual `from diagnostics.<name>
+import` form used everywhere in this codebase).
+
+KEPT, 26 scripts + 4 non-py artifacts + README.md -- full reasons in
+diagnostics/README.md, rewritten this sweep to state each survivor's
+specific keep-reason (previously listed only 2 of the then-many
+files, silently stale since 2026-07). Two production-adjacent
+findings worth flagging even though out of this sweep's scope to fix:
+sideslip_ekf_dugoff.py and sideslip_ekf_pacejka.py are NOT diagnostics-
+only despite their location -- modules/tyre_fit_auto.py imports
+estimate_sideslip_ekf_dugoff/estimate_sideslip_ekf_pacejka from them
+directly, as do tests/test_pure_functions.py and tests/test_nis_
+gate.py. A real production dependency living in diagnostics/ by
+historical accident, not by design.
+
+BORDERLINE, kept per "when unsure, keep, list": inspect_slip_channel_
+sweep.py (Rolling-radial/combined-slip follow-up, QUEUED ITEM 2+4,
+keyword scan for slip/traction-control channels). No exact-filename
+citation found anywhere, and its own specific finding could not be
+conclusively distinguished from the earlier, more general WP2b-1 "Full
+channel census + targeted verification" entry (2026-07-26, which
+independently found and documented log_speed_fl/fr/rl/rr and abs_
+Slip_FL/FR/RL/RR). Given the ambiguity, not deleted.
+
+Dangling-reference healing (same "removed [date], see git history"
+convention as the 2026-08-20 sweep): sideslip_comparison_report.md (3
+citations: inspect_kalman_qr_ratio_sweep.py x2, inspect_c9_negative_
+cs.py x1); diagnostics/inspect_washout_cutoff_sweep.py (1 comment
+citing inspect_washout_mechanism.py's WP-S3c construction);
+diagnostics/inspect_pass1_final_validation.py (4 print()-string
+section-header citations of inspect_ekf_pass1_evaluation.py/inspect_
+ekf_dugoff_circularity.py -- these are runtime output strings, not
+comments, but carry no numeric/frozen content, so annotating them
+does not touch the frozen baseline's actual manifest data). thesis_
+notes.md's own historical mentions left untouched by design, same
+rule as every prior sweep.
+
+Verification: full compile check (py_compile) on every surviving
+diagnostics/*.py file, clean. Direct import check confirming modules.
+tyre_fit_auto still imports cleanly from diagnostics/sideslip_ekf_
+dugoff.py and diagnostics/sideslip_ekf_pacejka.py. Targeted pytest run
+(tests/test_pure_functions.py, test_nis_gate.py, test_auto_fit_
+wiring.py, test_config_schema_integrity.py, test_setup_data_
+points.py -- the five tests touching diagnostics/ imports or
+citations): 65 passed, 1 xfailed, 2 errors (0:30:23) -- both errors
+a conftest.py fixture guard (test_lateral_force_split_moment_identity,
+test_schema_version_matches_pipeline_result_shape) asserting sideslip_
+source=="kinematic" for golden-adjacent tests, tripped because this
+targeted run used the live config value (ekf_auto_pacejka) rather than
+the full-suite-only flip-and-restore procedure -- confirmed NOT a
+sweep-caused regression by re-running both under a temporary kinematic
+flip (both pass, 100.52s), then restoring sideslip_source to ekf_auto_
+pacejka again, verified byte-identical to the pre-sweep state via git
+diff (one line changed: this session's own earlier rad^-1 fix,
+nothing else). Per this package's own instruction, no full suite run.
+
+## 11. GT3 Paul Ricard export: diagnosis and fix [2026-08-31]
+
+### Diagnosis (read-only investigation turn)
+
+GT3_PRC_MLA.txt (534 MB, team telemetry) was found sitting untracked
+at the repo root. Step 0: added to .gitignore (/*.txt with explicit
+!/channel_list.txt and !/requirements.txt exceptions, the only two
+legitimate tracked root .txt files) before any further work -- verified
+via git status/check-ignore/ls-files.
+
+Full characterisation (size, encoding ISO-8859/latin-1, CRLF, header
+block, sample interval, time span, completeness) plus channel
+completeness against docs/channel_requirements.md (all REQUIRED
+channels present by exact name -- the earlier "lap report" claiming
+sclu_yaw_rate/lap_distance missing was simply wrong, not reflective of
+this raw export) plus a units cross-check against Dubai's own raw
+strings (one real mismatch found: lap_distance is [m] here vs Dubai's
+[ft]) -- full detail already reported to the user in that turn's own
+response, not duplicated here in full.
+
+ROOT CAUSE, reproduced directly (modules.csv_parser.parse_csv on the
+real file, no exception, 2.53s, silent all-missing result -- 0/27
+channels, 0 laps, 0 corners): this file uses Pi Toolbox's WIDE-TABLE
+export layout (one {ChannelBlock} section, header row = Time + 4176
+channel names as columns, one data row per timestamp) where Dubai uses
+the NARROW layout (one {ChannelBlock} section per channel). csv_
+parser.py's `if len(header_parts) == 2` check (the line that used to
+be line 50) only recognised the narrow layout; a wide header fails
+that check, falls through a do-nothing branch, and the outer loop then
+steps through all 13,735 data rows one at a time without ever
+recognising any of them as channel data. Every downstream consumer
+(_on_csv_loaded, _update_corner_map_trace, StabilityAnalysisThread)
+already has a missing-data guard and degrades gracefully with a status
+message rather than crashing -- "the app cannot open" describes a
+silently empty, unusable load, not a crash dialog.
+
+A second, independent, more dangerous problem was found in the course
+of this diagnosis and would have fired the moment the structural
+parsing gap was fixed without also fixing it: modules/stability_
+analysis.py's _interp_lap_distance_guarded (and modules/corner_
+analysis.py's _invert_s_to_t, a second independent copy of the same
+assumption) unconditionally multiplied lap_distance by 0.3048 assuming
+feet -- the parser never validated a channel's actual file unit
+against that assumption anywhere. This file's lap_distance is genuinely
+in metres; had it been fixed to parse without also fixing the unit
+handling, every distance-derived quantity (corner brackets, apex
+positions, Module 5's s-anchored regression, cross-lap clustering)
+would have been silently corrupted by ~3.28x, with no exception
+anywhere -- a worse failure mode than the original silent-empty one,
+because it would have looked like a real (wrong) result rather than an
+obviously broken one.
+
+Also found and reported, not part of the parse failure itself: this
+file's sample rate is 20 Hz, not this project's 50 Hz -- confirmed
+real (measured directly from consecutive timestamps), not a parsing
+artifact. Every estimator window, the NIS window, kerb dilation, and
+LS_ratio's min_samples were validated at 50 Hz only (PLAN.md STEP 3's
+own min_samples_floor rate-derivation, thesis_notes.md "PLAN.md STEP 3:
+50 Hz min_samples adaptation" -- rate-DERIVED, but never rate-VALIDATED
+at any rate other than 50 Hz). The user's own framing after this
+report: "rate is NOT native... partial session... do NOT run any
+analysis on this file for validation purposes" -- this file was never
+going to be a real analysis target regardless of the parse/unit fixes.
+
+### Fix, implemented same session on explicit authorisation
+
+Three coordinated changes plus an encoding fix, all additive/branch-
+gated so Dubai's own parse is unaffected:
+
+**A -- wide-table parsing** (modules/csv_parser.py): the `{ChannelBlock}`
+handler now branches on header shape. `len(header_parts) == 2` ->
+unchanged narrow-format code path (byte-identical for Dubai, which
+never produces any other shape). `len(header_parts) > 2` and the first
+column is "Time" -> new wide-table path: builds a column-index map
+restricted to config/channels.json's whitelist (a 4176-column row is
+expensive to fully materialise per sample otherwise), then reads every
+subsequent row once, pulling only the wanted columns. A `_split_name_
+unit` helper (name/unit extraction, shared by both branches) replaces
+the old narrow-only inline slice.
+
+Addendum, added after real-file review surfaced three more cases the
+wide branch needed to tolerate, all real observed shapes (not
+malformed data): (1) comma AND dot decimal separators, in the TIME
+column too, not just values -- Dubai logs commas, Paul Ricard logs
+dots, this is locale, already handled by the existing `.replace(",",
+".")` idiom, just needed the wide branch to use it consistently, which
+it did from the first draft; (2) "nan" tokens -- Python's `float()`
+parses "nan" successfully (unlike "-nan(ind)", MSVC's textual NaN,
+which raises ValueError and was already caught) -- added an explicit
+`v != v` / `t != t` NaN check so both are treated as a missing CELL
+for that one channel/sample, not silently included as a NaN value or
+allowed to fail the whole row; (3) short/partial rows, including a
+bare-timestamp-only row (`len(parts) == 1`) -- already tolerated by
+the existing `col_idx < len(parts)` per-column bound and the `len(
+parts) > 1` row-level gate, no additional code needed, just confirmed
+and covered by a test.
+
+The pre-existing NARROW branch's own parsing loop was deliberately
+NOT touched by the nan-token fix -- it has the identical latent gap
+(float("nan") would parse and silently become a NaN sample there too),
+but touching it carries real risk to Dubai's byte-identical golden-
+fixture guarantee for zero benefit within this session's actual scope
+(nothing established Dubai's file contains any such token). Flagged
+here as a known, deliberately out-of-scope observation, not fixed.
+
+**B -- unit-aware lap_distance conversion**: new modules/stability_
+analysis.py function `_normalize_lap_distance_to_metres(data,
+unit_raw)` -- `"ft"` -> `*0.3048` (Dubai's own path, unchanged
+numerically), `"m"` -> unchanged, anything else -> raises rather than
+guessing. `_interp_lap_distance_guarded` and corner_analysis.py's
+`_invert_s_to_t` both lost their own independent internal `*0.3048` --
+both now assume an already-metric array, normalised once at each of
+the three real extraction sites (prepare_vehicle_state's own lap_
+distance handling, plus corner_analysis.py's two: `assign_stable_
+corner_ids` and `_realize_canonical_boundaries`) rather than pushed
+down into the shared interpolation/inversion helpers themselves. csv_
+parser.py now captures each channel's raw `[unit]` string into a new
+`unit_raw` key on every channel dict (both missing and present cases,
+both narrow and wide branches) -- confirmed via a golden-fixture check
+that this addition does not appear anywhere in the serialised
+pipeline_result/golden JSON (conftest.py's `pipeline_result` fixture
+only carries `beta/slip/forces/cs/stab/fz/corners/summaries`, never
+the raw channel dicts), so adding the key carries zero golden-fixture
+risk.
+
+**C -- sample-rate guard**: config/parameters.json gained `stability_
+estimation.expected_sample_rate_hz = 50` with a provenance comment
+naming every 50-Hz-calibrated consumer (yaw_stability_* window/grid/
+min_samples, nis_gate/tyre_fit_auto's nis_window_samples, kerb_
+dilation_samples, longitudinal_stiffness.min_samples_floor's own rate-
+derivation). modules.csv_parser.parse_csv now measures and exposes
+`measured_sample_rate_hz` (from ecu_speed's own timeline, the same
+reference prepare_vehicle_state uses, via the existing `_estimate_
+sample_rate` helper -- None if ecu_speed is missing/unusable, never
+silently treated as a match). prepare_vehicle_state -- the earliest
+point inside the analysis pipeline that has both the real measured
+rate and the config's expectation, chosen over an earlier gate inside
+parse_csv itself per the work order's own explicit separation of
+"parse_csv measures and exposes" from "prepare_vehicle_state refuses"
+-- raises ValueError immediately after computing `sr`, naming both the
+measured and expected rate, if `round(sr) != round(expected_rate)`
+(rounding absorbs floating-point interval-measurement jitter only, not
+a real tolerance band -- 20 vs 50 Hz was never going to round-collide).
+The existing StabilityAnalysisThread.run() already wraps its entire
+body in `except Exception as e: self.error.emit(str(e))` -> a status
+label read "Analysis failed: {msg}" -- raising a clear, specific
+message was sufficient to satisfy "surfaced in the UI as a clear
+status, not a traceback" with zero changes to ui/views/outing_form.py.
+
+KNOWN RESIDUAL GAP, not fixed, flagged honestly: corner detection
+(modules.corner_analysis.analyse_corners) runs INSIDE parse_csv,
+before prepare_vehicle_state is ever called -- a rate mismatch is
+therefore NOT caught before corner brackets get computed with rate-
+dependent, sample-COUNT-based smoothing windows (corner_detection.
+smoothing_window_samples=10, a fixed sample count, not a duration) at
+whatever rate the file actually has. The corner map UI widget (_update_
+corner_map_markers) reads parsed_data["corners"] directly, independent
+of the StabilityAnalysisThread/prepare_vehicle_state path the rate
+guard protects -- so a non-50-Hz file's corner markers could still
+render (with mis-scaled smoothing) even though the full Analyse
+pipeline is correctly refused. This was a deliberate scope decision,
+not an oversight: the work order's own design explicitly assigned
+"measure and expose" to parse_csv and "refuse" to prepare_vehicle_
+state, and moving the gate earlier (into parse_csv, before analyse_
+corners runs) would need parse_csv to depend on config/parameters.json
+in addition to config/channels.json, a real architectural change beyond
+what was asked. Reported for a future decision, not acted on.
+
+### Verification
+
+New tests/test_csv_parser_formats.py, 14 tests, all synthetic fixtures
+(hand-built minimal Pi Toolbox snippets -- testing parser/format-
+handling LOGIC, not a real-vehicle-behaviour claim, same category as
+test_pure_functions.py's hand-derived checks, not the real-data-only
+rule's actual target). Covers: narrow format still parses (regression
+check against the pre-existing behaviour); wide format parses and is
+NOT all-missing (the original bug, reproduced and fixed at fixture
+scale); the empty-cell-tolerance case from the real file's own last
+row; comma AND dot decimal separators including in the time column;
+"nan" tokens treated as a missing cell, not a row failure or a
+silently-included NaN; a bare-timestamp-only row tolerated without
+crashing; unit_raw captured correctly in both formats;
+_normalize_lap_distance_to_metres's three cases (ft, m, unrecognised
+-> raises); an end-to-end wide-format + metres check (confirms s_m
+lands near the raw metre values, not scaled down ~3.28x, which is what
+would happen if the old unconditional *0.3048 had survived); the rate
+guard's three cases (20 Hz raises with both rates named in the
+message, 50 Hz passes, the message contains both "20.0" and "50").
+The real GT3_PRC_MLA.txt was deliberately NOT used in any test or
+verification step this session, per the user's own explicit
+instruction (not native rate, partial session, not for analysis
+validation) -- every fixture above is hand-built specifically to avoid
+that file's own problems contaminating what a pass/fail means.
+
+Full regression suite run once at the end (standard temporarily-
+flipped-kinematic-then-restored procedure): **133 passed, 1 xfailed,
+0 failed, 0 errors (35m32s)** -- exactly the prior 119-passed baseline
+plus this session's 14 new tests, zero regressions anywhere. sideslip_
+source restored to the user's own live value (ekf_auto_pacejka)
+afterward, confirmed via git diff to carry only this session's two
+intentional config edits (the earlier rad^-1 fix, and the new
+expected_sample_rate_hz block) against HEAD, nothing else. Dubai's
+golden pipeline output is confirmed unaffected by every change this
+session made (wide-table branch never triggered for Dubai's own narrow
+format; unit normalisation is a no-op for Dubai's own "ft" channel;
+the rate guard passes cleanly at Dubai's real 50 Hz).
+
+GT3_PRC_MLA.txt remains gitignored and untracked throughout (re-
+verified at the end of this turn); git status shows only the intended
+source changes (modules/csv_parser.py, modules/stability_analysis.py,
+modules/corner_analysis.py, config/parameters.json, tests/
+test_csv_parser_formats.py, .gitignore, thesis_notes.md). No commit
+made, per the work order.
+
+## 12. PLAN.md STEP 2: chair-comparable result plots, kinematic vs ekf_pass_1 [2026-08-31]
+
+Standalone diagnostic (diagnostics/inspect_step2_chair_plots.py, output
+diagnostics/plots_step2/, gitignored), no production/UI/config file
+changed, no commit. Purpose (PLAN.md STEP 2): find out whether the
+strange CS values that opened the estimator arc (see "C9 negative-CS
+decomposition + zero-slip offset finding" above, 2026-08-17) trace to
+the kinematic beta error or to something else. Renders one PNG per
+stable corner per sideslip source (14 corners x 2 sources = 28 figures)
+on the chair's own plot structure (docs/literature/plotting_methods.py,
+matched in structure only -- that reference is interactive Plotly, this
+is static matplotlib): velocity vs lap distance, instantaneous CS (N/rad)
+vs lap distance, a track map with the corner bracket and each axle's
+"worst-phase" estimation window highlighted, and per-axle tyre curves
+(slip angle in degrees, Fy in N, session scatter in the background,
+corner samples highlighted, the estimation window marked, and a tangent
+whose slope is CS_N_per_rad * pi/180 -- preserving numerical
+comparability with the chair's radians-axis plots despite the degrees
+display). "Worst phase" (the sample with the lowest CS_ratio inside a
+corner's bracket, pooled across its valid laps) reuses the concept
+already established in the CS-credibility diagnostics above, not a new
+metric. kinematic beta via estimate_sideslip, ekf_pass_1 beta via
+diagnostics/sideslip_ekf_dugoff.py's estimate_sideslip_ekf_dugoff --
+both called directly, bypassing the config-driven sideslip_source
+dispatch entirely, so the user's live config value was never read or
+written.
+
+OBSERVATIONS (visual, not verdicts -- 4 corners inspected in detail):
+- C9 (the corner that opened the CS-anomaly thread): under kinematic
+  beta the whole-session tyre-curve scatter is a compressed, tangled
+  cloud (matches the already-recorded +/-3 deg kinematic compression),
+  and the rear worst-phase window shows a visible fold-back (Fy
+  magnitude decreasing as |alpha| grows), giving CS=-362508 N/rad. Under
+  ekf_pass_1 the session scatter opens into a much cleaner near-linear
+  band (matches the already-recorded +/-8 deg observer spread), and the
+  rear worst-phase CS is still negative but far smaller in magnitude,
+  -74581 N/rad, with a visually straighter local curve. Front CS at C9
+  is comparatively small under both sources (-65168 kinematic / -61709
+  ekf_pass_1) -- the anomaly here reads as rear-specific and
+  beta-sensitive, consistent with the WP-S4b Cr_A finding above.
+- C4 (front worst-phase instance on record, -0.552 at the production 2
+  Hz filter cutoff): front CS stays large and negative under BOTH
+  sources (-98372 kinematic / -95027 ekf_pass_1), and both sources' front
+  tyre curves show the same rounded peak-and-fold shape at a similar
+  slip angle (~7-8 deg) -- visually this looks like a genuine, beta-
+  source-independent saturation event, not a beta artifact. Rear at C4
+  improves in magnitude under ekf_pass_1 (-131476 -> -53357) but stays
+  negative and still shows a milder fold in the highlighted window under
+  both sources.
+- C2 (the pass_1 filter-stability excursion window, t=883-885.5s):
+  both axles, under BOTH sources, show a tight self-crossing "knot" in
+  the tyre curve at the worst-phase window rather than a clean fold --
+  visually distinct from C9's and C4's smoother folds. Present
+  regardless of beta source, so this looks like a genuine transient
+  (a real turn-in event, or a beta-independent measurement artifact in
+  Fy/alpha themselves) rather than a beta-sourced effect. Not
+  investigated further here; flagged, not diagnosed.
+- C6 (one of the two racing-speed sign-mismatch corners from the
+  sideslip sign check above): the largest source-sensitivity seen in
+  this pass. Rear worst-phase CS goes from -311382 N/rad (kinematic) to
+  -13064 N/rad (ekf_pass_1) -- nearly flat rather than sharply negative
+  -- and front from -152128 to -32805. The ekf_pass_1 tyre curves for
+  both axles are visually clean, near-monotonic bands with no obvious
+  fold at the highlighted window; the kinematic curves show a clear
+  negative-slope tangent region. This is the single clearest visual case
+  in the sample for "the beta error, not axle physics, was producing the
+  extreme negative CS reading."
+- Net visual impression across all 4: the two rear-anomaly corners tied
+  to the original CS-credibility finding (C9, C6) show large, source-
+  dependent improvement under ekf_pass_1, while C4's front saturation
+  and C2's knot persist under both sources -- consistent with the
+  standing WP-S4b conclusion that the kinematic beta error propagates
+  into Module 4b's CS estimate, without this pass claiming to separate
+  "real saturation" from "beta artifact" at every corner (that remains
+  a verdict, not an observation, and is explicitly out of scope here).
+
+PLOT-STRUCTURE DEVIATIONS FROM THE CHAIR: (1) static matplotlib PNGs,
+not interactive Plotly -- structure matched, not code, per the work
+order. (2) the chair's CS-vs-distance panel shows "both the online
+estimate and a reference-model derivative" (PLAN.md's original STEP 2
+wording); this session's work order fixed a simplified 4-item structure
+without the reference-model derivative, followed as given. (3) front and
+rear axles are rendered as separate tyre-curve panels (2 of the 5 total
+panels) rather than one combined panel, since CS_ratio and the fold
+signature are axle-specific and the investigation concerns both axles;
+this is a design choice made in this diagnostic, not a chair structure
+element, called out here for transparency.
+
+SURPRISING, FLAGGED NOT INTERPRETED: the instantaneous-CS-vs-distance
+panel is extremely noisy at both sources (values swinging between
+roughly -400k and +800k N/rad within a single corner pass, sign flips
+common) -- consistent with the already-recorded "CS_ratio aggregation-
+sensitivity" finding (median-of-medians washing out single-lap swings)
+but visually far more volatile sample-to-sample than that finding's own
+framing suggested. Not diagnosed further here.
+
+No production file changed, no config value changed, sideslip_source
+never read from or written to config/parameters.json. No regression
+suite run (not required by the work order for a read-only diagnostic
+adding an ignored output folder); nothing importable by tests/ changed.

@@ -241,7 +241,8 @@ for fam_key, fam in FAMILIES.items():
         # to km/h directly. Least-squares scale factor k (rpm_avg = k *
         # v_ecu, fit through the origin on straight-line samples only) --
         # same regression technique already used in
-        # inspect_gps_speed_validation.py Section 1 -- lets us report a
+        # inspect_gps_speed_validation.py Section 1 (removed 2026-08-30,
+        # see git history) -- lets us report a
         # relative deviation without inventing a radius. k itself is NOT a
         # rolling radius (units rpm per km/h, not m); reported for
         # completeness only, no config consequence.

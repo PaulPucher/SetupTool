@@ -2,6 +2,14 @@
 # Reads only channels defined in config/channels.json.
 # Handles European decimal notation, variable sample rates,
 # lap splitting, and corner detection with speed classification.
+# Two ChannelBlock layouts, both real Pi Toolbox exports (2026-08-31,
+# GT3 Paul Ricard investigation): NARROW, one {ChannelBlock} section per
+# channel with its own Time/Value pairs (Dubai's own export); WIDE, a
+# single {ChannelBlock} section whose header row is Time followed by
+# every channel name as a column, one data row per timestamp. Detected
+# per file from the header row's own column count -- both may in
+# principle appear in the same file (untested, no such export seen),
+# handled independently per {ChannelBlock} section either way.
 # Pure Python/numpy/pandas -- no Qt imports.
 
 import numpy as np
@@ -9,6 +17,7 @@ import pandas as pd
 import json
 import os
 from modules.corner_analysis import analyse_corners
+from modules.stability_analysis import _estimate_sample_rate
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -16,6 +25,19 @@ CHANNELS_CONFIG_PATH = "config/channels.json"
 def load_channels_config():
     with open(CHANNELS_CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _split_name_unit(raw_name):
+    # "log_asteer[deg]" -> ("log_asteer", "deg"); "lap_number" (no
+    # brackets) -> ("lap_number", None). unit_raw is the FILE's own
+    # claim, never validated against config's "unit" label anywhere in
+    # this parser -- consumers that convert by unit (e.g. lap_distance's
+    # ft/m normalisation) must check unit_raw themselves, not assume it
+    # matches config.
+    raw_name = raw_name.strip()
+    if "[" in raw_name and raw_name.endswith("]"):
+        return raw_name[:raw_name.index("[")].strip(), raw_name[raw_name.index("[") + 1:-1].strip()
+    return raw_name, None
 
 
 def parse_csv(file_path):
@@ -26,7 +48,14 @@ def parse_csv(file_path):
     metadata = {}
     raw_channels = {}
 
-    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+    # latin-1 (ISO-8859-1): both real exports seen (Dubai, Paul Ricard)
+    # are single-byte Pi Toolbox text, confirmed via `file`. latin-1
+    # maps every byte 0x00-0xFF to a character, so it never raises and
+    # never needs errors="replace" -- the previous utf-8+replace combination
+    # silently turned every degree sign (and any other non-ASCII byte) into
+    # U+FFFD, which would have defeated a unit check like lap_distance's
+    # ft/m normalisation the day a unit string needed a real symbol.
+    with open(file_path, "r", encoding="latin-1") as f:
         lines = f.readlines()
 
     i = 0
@@ -48,8 +77,8 @@ def parse_csv(file_path):
             if i < n:
                 header_parts = lines[i].strip().split("\t")
                 if len(header_parts) == 2:
-                    raw_name = header_parts[1].strip()
-                    channel_name = raw_name[:raw_name.index('[')].strip() if '[' in raw_name else raw_name
+                    # NARROW: this section is one channel.
+                    channel_name, unit_raw = _split_name_unit(header_parts[1])
                     i += 1
                     if channel_name in wanted_channels:
                         times, values = [], []
@@ -66,11 +95,65 @@ def parse_csv(file_path):
                             i += 1
                         raw_channels[channel_name] = {
                             "time": np.array(times),
-                            "data": np.array(values)
+                            "data": np.array(values),
+                            "unit_raw": unit_raw,
                         }
                     else:
                         while i < n and not lines[i].strip().startswith("{"):
                             i += 1
+                elif len(header_parts) > 2 and header_parts[0].strip() == "Time":
+                    # WIDE: this section is every channel, one row per
+                    # timestamp. Only build column->channel for the ones
+                    # this app actually wants -- a 4000+-column row is
+                    # expensive to fully materialise per sample otherwise.
+                    wanted_cols = {}
+                    for col_idx, raw in enumerate(header_parts[1:], start=1):
+                        name, unit_raw = _split_name_unit(raw)
+                        if name in wanted_channels:
+                            wanted_cols[col_idx] = (name, unit_raw)
+                    col_times = {idx: [] for idx in wanted_cols}
+                    col_values = {idx: [] for idx in wanted_cols}
+                    i += 1
+                    while i < n and not lines[i].strip().startswith("{"):
+                        # Tolerate short/partial rows (a bare timestamp with
+                        # no values at all is a real thing seen in a real
+                        # export, not malformed data) -- len(parts) > 1 just
+                        # means "at least a timestamp plus something", every
+                        # per-column read below already tolerates parts
+                        # being shorter than the header via the col_idx <
+                        # len(parts) bound, so a row with only some columns
+                        # present degrades per-channel, not row-by-row.
+                        parts = lines[i].rstrip("\r\n").split("\t")
+                        if len(parts) > 1:
+                            try:
+                                t = float(parts[0].replace(",", "."))
+                            except ValueError:
+                                i += 1
+                                continue
+                            if t != t:  # NaN timestamp -- positionally meaningless, skip the row
+                                i += 1
+                                continue
+                            for col_idx in wanted_cols:
+                                if col_idx < len(parts) and parts[col_idx] != "":
+                                    try:
+                                        v = float(parts[col_idx].replace(",", "."))
+                                    except ValueError:
+                                        # covers non-Python-parseable tokens
+                                        # like "-nan(ind)" (MSVC's textual
+                                        # NaN) -- a missing cell for this one
+                                        # channel/sample, not a row failure.
+                                        continue
+                                    if v != v:  # NaN idiom -- "nan" DOES parse via float(), unlike "-nan(ind)"
+                                        continue
+                                    col_times[col_idx].append(t)
+                                    col_values[col_idx].append(v)
+                        i += 1
+                    for col_idx, (name, unit_raw) in wanted_cols.items():
+                        raw_channels[name] = {
+                            "time": np.array(col_times[col_idx]),
+                            "data": np.array(col_values[col_idx]),
+                            "unit_raw": unit_raw,
+                        }
                 else:
                     i += 1
         else:
@@ -86,6 +169,7 @@ def parse_csv(file_path):
             result_channels[ch_name] = {
                 "label": ch_config["label"],
                 "unit": ch_config["unit"],
+                "unit_raw": None,
                 "time": None,
                 "data": None,
                 "quality": "missing"
@@ -112,6 +196,7 @@ def parse_csv(file_path):
         result_channels[ch_name] = {
             "label": ch_config["label"],
             "unit": ch_config["unit"],
+            "unit_raw": raw.get("unit_raw"),
             "time": time_arr,
             "data": data_arr,
             "quality": quality
@@ -119,11 +204,25 @@ def parse_csv(file_path):
 
     laps = _split_laps(result_channels, config)
 
+    # Measured, not assumed -- modules.stability_analysis.prepare_vehicle_
+    # state's rate guard (config stability_estimation.expected_sample_
+    # rate_hz) reads this rather than re-deriving it, so a file whose
+    # primary time reference (ecu_speed) is missing/unusable is reported
+    # as "rate unknown" (None) here, not silently treated as matching.
+    measured_rate = None
+    speed_ch = result_channels.get("ecu_speed")
+    if speed_ch is not None and speed_ch["time"] is not None and len(speed_ch["time"]) > 1:
+        try:
+            measured_rate = _estimate_sample_rate(speed_ch["time"])
+        except ValueError:
+            measured_rate = None
+
     result = {
         "metadata": metadata,
         "channels": result_channels,
         "laps": laps,
-        "corners": []
+        "corners": [],
+        "measured_sample_rate_hz": measured_rate,
     }
 
     result["corners"] = analyse_corners(result)

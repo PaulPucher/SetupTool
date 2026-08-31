@@ -16,6 +16,7 @@
 #      metrics 1 (mid-corner recovery), 3 (sign check), 4 (EKF
 #      correlation/RMS).
 #   2. LOCAL RE-ANCHORED -- diagnostics/inspect_washout_mechanism.py's
+#      (removed 2026-08-30, see git history)
 #      WP-S3c Section 3 construction, reused verbatim (same anchor-
 #      finding helpers, same straight-line mask), generalised to apply
 #      _highpass_filter at the swept cutoff to the local re-anchored

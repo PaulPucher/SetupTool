@@ -508,7 +508,6 @@ class OutingForm(QWidget):
             primary, primary_phase, primary_val, primary_axle = (
                 "understeer", worst_f_phase, worst_f_val, "f")
 
-        # Severity logic
         if (front_strong_cs or rear_strong_cs) and destabilising:
             severity = "strong"
         elif front_strong_cs or rear_strong_cs:
@@ -519,7 +518,6 @@ class OutingForm(QWidget):
             severity = "moderate"
         # else stays "normal"
 
-        # Build verdict strings from the simple vocabulary
         if primary is not None:
             short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}")
             cs_label = "CSf" if primary_axle == "f" else "CSr"
@@ -1735,7 +1733,6 @@ class OutingForm(QWidget):
             self.stability_summary_label.setText("No corners in selected laps.")
             return
 
-        # Group by lap, classify each corner
         by_lap = {}
         n_strong = n_moderate = n_normal = 0
         for s in summaries:
@@ -1771,13 +1768,11 @@ class OutingForm(QWidget):
             if s.get("stable_corner_id") is not None
         })
 
-        # Index each lap's entries by stable_corner_id
         for lap_num in by_lap:
             by_lap[lap_num] = {
                 e["summary"]["stable_corner_id"]: e for e in by_lap[lap_num]
             }
 
-        # Build one lap row per lap, in lap order
         insert_pos = self.cards_host_layout.count() - 1
         for lap_num in sorted(by_lap.keys()):
             lap_row = self._build_lap_row(lap_num, by_lap[lap_num], all_stable_ids)
@@ -1806,7 +1801,6 @@ class OutingForm(QWidget):
         )
         row_layout.addWidget(lap_label)
 
-        # Inline details placeholder, hidden by default
         details_host = QWidget()
         details_layout = QVBoxLayout(details_host)
         details_layout.setContentsMargins(0, 4, 0, 0)
@@ -1817,7 +1811,6 @@ class OutingForm(QWidget):
         state = {"active_corner": None, "details_widget": None}
 
         def show_details(entry):
-            # Clear any previous details
             while details_layout.count() > 0:
                 item = details_layout.takeAt(0)
                 w = item.widget()
@@ -1863,7 +1856,6 @@ class OutingForm(QWidget):
         cell = QPushButton()
         cell.setCheckable(False)
         cell.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Two lines: stable corner id, then short verdict
         cell.setText(f"C{stable_id}\n{short}")
         cell.setStyleSheet(
             f"QPushButton {{"
