@@ -493,33 +493,37 @@ WHERE THE PROJECT STANDS
   status-rewrite turn was explicitly text-only/PLAN.md-only and
   instructed not to touch thesis_notes.md; flagged for a future thesis_
   notes.md entry if this census result is wanted there for the write-up).
-- STEP 2 (chair-comparable result plots) DONE (2026-08-31 -- full
-  record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result
-  plots, kinematic vs ekf_pass_1"). diagnostics/inspect_step2_chair_
-  plots.py ([keep-reproduces] in diagnostics/README.md, thesis-figure
-  source), 28 PNGs (14 stable corners x kinematic/ekf_pass_1 sources)
-  in diagnostics/plots_step2/ (gitignored). HEADLINE FINDING: the rear
-  CS extremes that opened the estimator arc are largely BETA
-  ARTIFACTS -- C9 rear worst-phase CS improves from -362508 to -74581
-  N/rad and C6 rear from -311382 to -13064 N/rad under ekf_pass_1 vs
-  kinematic, both with visibly cleaner near-monotonic tyre curves under
-  ekf_pass_1. C4's front saturation is NOT a beta artifact -- CS stays
-  large and negative under both sources (-98372 kinematic / -95027
-  ekf_pass_1) with the same peak-and-fold shape at a similar slip angle
-  both times, read as genuine saturation, not estimator noise. No
-  production/config file changed; sideslip_source never read from or
-  written to config throughout.
-  PROJECT DIRECTION (decided 2026-08-31): estimator/method work is
-  FROZEN for now. STEP 4 (decision-matrix cleanup) and the STEP 3/4
-  threshold-re-derivation prerequisites below remain open but are NOT
-  the next work. Next priorities, in order: (1) commit the large
-  uncommitted working tree (many sessions' worth -- see git status),
-  (2) reliability passes (the ship-readiness audit's catalogued raw-
-  exception-string/silent-failure UI risks, thesis_notes.md "9. Ship-
-  readiness cleanup" Phase 5, still uncatalogued-into-fixes), (3)
-  thesis writing. STEP 4 and further method work resume only when the
-  user reopens it -- the prerequisites list below is preserved exactly
-  as scoped, not abandoned.
+- STEP 2 DONE (2026-08-31, thesis_notes.md "12. PLAN.md STEP 2"):
+  rear CS extremes (C6, C9) that opened the estimator arc are largely
+  BETA ARTIFACTS, resolved under ekf_pass_1; C4's front saturation is
+  genuine, not an artifact, unchanged under both beta sources. No
+  production/config file changed. PROJECT DIRECTION since: estimator/
+  method work FROZEN; standing priorities are (1) commit the large
+  uncommitted working tree, (2) reliability passes, (3) thesis writing
+  -- STEP 4 and further method work resume only when reopened.
+- TRACE-DIALOG/PDF/DECISIONS PACKAGE, still fully uncommitted
+  (2026-09-01, two rounds -- full record: thesis_notes.md entries dated
+  2026-09-01). Round 1 (corrections + Phases 0-5): redesigned the
+  corner/verdict trace exports (uniform lap colour/width, front-rear
+  panel split, per-lap tyre-curve legibility fixes), the PDF setup
+  sheet's three-column car-centric layout, five decisions (Tier-A
+  citation-pointer sweep, lap-filter-choice removal from the Data
+  section, PROJECT.md deletion, a Clear Data button, a real weekend-PDF
+  crash found and fixed), and a new LS_ratio-vs-span diagnostic
+  supporting the min_slip_span gate. Regression suite confirmed green
+  once (138 passed, 1 xfailed) under the standard flip-restore
+  procedure. Round 2 follow-up (targeted smoke tests only, no second
+  full suite run -- no estimator/module numerics touched): every QDialog
+  now has native minimise/maximise; the corner export's track map is
+  back as a narrow row (tyre-curve panels now 5.90cm square, down from
+  round 1's 6.49cm, to share the fixed 24cm height budget); the setup
+  sheet's car_label font now equals the value font at both scales; the
+  weekend PDF is two strips/page (one outing's own pair) instead of
+  four, cutting the small-scale KeepInFrame shrink from ~45% to ~12%;
+  a recommendation-shape audit confirmed the one real PDF crash risk
+  (the urgent_gap case) was already fixed and found no other gap. OPEN:
+  whether the ~12% small-scale shrink and the 5.90cm tyre panels need
+  further chasing, or are accepted as they stand.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -1417,6 +1421,157 @@ no longer an accurate framing of what happens next:
   lap aggregation problem under PARKED, the entry_1_brake rule-base
   implications, and whether LS_ratio enters the recommendation rules
   at all).
+
+STEP 2 and the TRACE-DIALOG/PDF/DECISIONS PACKAGE bullets folded into
+the ### NOW standing summary at the 2026-09-01 follow-up's own STATUS
+rewrite (item 7 of that work order: "rewritten at every work stop, not
+appended" -- these two had grown to 142 lines of dated narrative
+sitting in NOW instead of a short standing-summary line). Full verbatim
+text preserved below exactly as it read in NOW before the fold; nothing
+summarised away here, only condensed in NOW itself (thesis_notes.md has
+the same detail on permanent record regardless):
+
+- STEP 2 (chair-comparable result plots) DONE (2026-08-31 -- full
+  record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result
+  plots, kinematic vs ekf_pass_1"). diagnostics/inspect_step2_chair_
+  plots.py ([keep-reproduces] in diagnostics/README.md, thesis-figure
+  source), 28 PNGs (14 stable corners x kinematic/ekf_pass_1 sources)
+  in diagnostics/plots_step2/ (gitignored). HEADLINE FINDING: the rear
+  CS extremes that opened the estimator arc are largely BETA
+  ARTIFACTS -- C9 rear worst-phase CS improves from -362508 to -74581
+  N/rad and C6 rear from -311382 to -13064 N/rad under ekf_pass_1 vs
+  kinematic, both with visibly cleaner near-monotonic tyre curves under
+  ekf_pass_1. C4's front saturation is NOT a beta artifact -- CS stays
+  large and negative under both sources (-98372 kinematic / -95027
+  ekf_pass_1) with the same peak-and-fold shape at a similar slip angle
+  both times, read as genuine saturation, not estimator noise. No
+  production/config file changed; sideslip_source never read from or
+  written to config throughout.
+  PROJECT DIRECTION (decided 2026-08-31): estimator/method work is
+  FROZEN for now. STEP 4 (decision-matrix cleanup) and the STEP 3/4
+  threshold-re-derivation prerequisites below remain open but are NOT
+  the next work. Next priorities, in order: (1) commit the large
+  uncommitted working tree (many sessions' worth -- see git status),
+  (2) reliability passes (the ship-readiness audit's catalogued raw-
+  exception-string/silent-failure UI risks, thesis_notes.md "9. Ship-
+  readiness cleanup" Phase 5, still uncatalogued-into-fixes), (3)
+  thesis writing. STEP 4 and further method work resume only when the
+  user reopens it -- the prerequisites list below is preserved exactly
+  as scoped, not abandoned.
+- TRACE-DIALOG VISIBILITY/COLOUR REDESIGN AND PDF/DECISIONS/DIAGNOSTIC
+  PACKAGE DONE (2026-09-01, unsupervised package, Phases 0-3 -- full
+  record: thesis_notes.md entries dated 2026-09-01, one per phase/
+  decision below; Phases 4-5 are this bullet and the suite run closing
+  it out). Continues directly from the already-committed trace-dialog
+  Part A/B/addendum work (commits 3a114cb, 1117ecf: one-visibility-rule,
+  legend/click fixes, per-lap dynamic colour, LS display mask) -- this
+  package is the post-visual-review CORRECTIONS pass on that redesign
+  plus four independent decisions and one diagnostic, still uncommitted.
+  PHASE 0 (corrections after visual review, core/plot_style.py, core/
+  figure_render.py, ui/views/corner_trace_dialog.py): removed the bold/
+  faint emphasis distinction entirely (SCREEN_LAP_WIDTH/PRINT_LAP_WIDTH
+  now uniform per lap, no is_emphasized concept left anywhere); Tyre
+  Curves tab legend text collapsed to one line; CS/LS panels split
+  front/rear in BOTH the interactive dialog and the PRINT export (no
+  solid/dashed axle encoding); corner-figure PRINT export layout
+  redesigned for tyre-curve legibility (dedicated legend sub-axes via
+  GridSpec.subgridspec -- a bbox_to_anchor legend was silently
+  collapsing sibling axes to near-zero width under constrained_layout
+  when sharing a row with row-spanning axes, root-caused and fixed;
+  final tyre-curve panel width 6.92 cm against a 7 cm target, accepted
+  as close enough); tyre-curve readability re-tuned (session-cloud/lap-
+  sample/window-ring sizes and alphas, kN y-axis formatting); ls_
+  display_min_ax_mps2=1.0 confirmed and reported (derived from this
+  car's own |ax_mps2| distribution, ~0.1g rule-of-thumb, config/
+  parameters.json note has the full percentile record). Four
+  deliverables re-rendered and inspected (C5 both tabs at 4 laps and at
+  1 lap, both PRINT exports) before proceeding.
+  PHASE 1 (core/pdf_export.py, three-column car-centric weekend-strip
+  layout): FL/RL left, Car middle, FR/RR right, real spacer COLUMNS for
+  inter-column gaps (not LEFTPADDING/RIGHTPADDING carved out of the car
+  column, which was silently causing an internal width-vs-content
+  mismatch); large-scale fonts unified (core_label=value=table_label=
+  car_label=9.5pt, satisfying "value >= label"); verified via pymupdf
+  render at both scales against real Dubai data -- large scale improved
+  from an initial ~73%/96% (width/height fill) to 93.5%/94.4%; small
+  scale improved modestly (pad/diagram_scale tuning) but hit a genuine
+  CONTENT-DENSITY CEILING, not a tunable-constant problem -- the car
+  column's own non-diagram tables alone already exceed the small-scale
+  strip's ~37mm height budget. OPEN, needs a user decision: fewer
+  strips per page, taller strips, or trimming which car-column blocks
+  appear at small scale.
+  PHASE 2 DECISIONS BATCH: (2a) CLAUDE.md's Tier A citation rule changed
+  -- code now carries a one-line pointer to a named thesis_notes.md
+  entry, never inline author/title/page; swept modules/stability_
+  analysis.py, tyre_model.py, tyre_model_pacejka.py, longitudinal_
+  forces.py, longitudinal_stiffness.py, yaw_stability.py and converted
+  every remaining inline citation (estimate_sideslip already done
+  2026-08-19); one thesis_notes.md cross-reference bullet added for two
+  Rajamani Ch. 2 anchors (longitudinal_forces.py) that had never been
+  named as their own bullet; no citation content changed or lost.
+  (2b) The Data section's "Exclude In/Out Laps" toggle and single-lap-
+  selection-drives-analysis coupling REMOVED from ui/views/outing_
+  form.py -- analysis now always covers every is_valid_for_analysis lap
+  (falls back to every lap only if none are valid); the lap table
+  itself and its row-click-scopes-the-raw-channel-plot behaviour are
+  UNTOUCHED (a second, independent purpose the removal did not touch).
+  _try_render_cached_analysis gained a stale-lap_filter guard: a saved
+  analysis whose lap_filter does not match what the new policy would
+  compute today is now a cache miss, not a silent stale render -- this
+  matters for any outing analysed and saved under the old UI. (2c)
+  PROJECT.md deleted (stale since ~WP1/WP2, PLAN.md+CLAUDE.md+thesis_
+  notes.md are the live sources of truth); its one live reference
+  (modules/recommendation.py's FEEDBACK_SCALE_MAX comment) fixed, its
+  historical PLAN.md STATUS HISTORY mentions left untouched. (2d) New
+  "Clear Data" button + OutingForm._reset_data_state() (Data section,
+  QMessageBox-confirmed): clears parsed_data/loaded_csv_path/stability_
+  result/analysis caches and every dependent status widget back to
+  construction state; deliberately writes nothing to the database
+  itself -- loaded_csv_path=None is exactly what a subsequent Save
+  already persists as csv_path="", same stage-in-memory convention
+  every other form field follows. (2e) Weekend PDF status check found
+  a REAL bug while confirming Phase 1's layout survives inside the
+  weekend PDF (it does): core/weekend_pdf_export.py's _recommendations_
+  flowables crashed with "TypeError: unsupported format string passed
+  to NoneType.__format__" on any "urgent_gap" driver/data-contradiction
+  recommendation (score=None, parameter=None, actions=[] by design) --
+  invisible in normal use because the existing per-outing try/except
+  (correct, kept as-is) silently swallowed it into a generic ERROR note,
+  meaning that outing's entire analysis section (verdict summary,
+  corner table, feedback) never rendered. Fixed to mirror ui/views/
+  outing_form.py's own already-documented "FIX 1" handling for this
+  exact recommendation shape (corner+verdict badge, no score, URGENT
+  class) instead of assuming every recommendation has a numeric score.
+  Confirmed against the real local database (weekend 1 "Dubai") before
+  and after the fix.
+  PHASE 3: new read-only diagnostic diagnostics/inspect_ls_ratio_span_
+  dependence.py ([keep-referenced], diagnostics/README.md) -- does
+  LS_ratio depend on the sliding regression window's own kappa span,
+  independent of config's longitudinal_stiffness.min_slip_span=0.004
+  gate? Independent re-derivation cross-checked exactly against
+  production output on the gate-kept population (np.allclose, both
+  axles) before trusting its extended (below-gate) population.
+  RESULT: a clear, visually obvious cliff at the gate -- below it,
+  LS_ratio explodes to implausible values (front to roughly -200, rear
+  to roughly -27) from small-span-denominator noise amplification;
+  above it, both axles compress into the plausible <=1.0-capped band
+  production actually reports. Supports the GENERAL SHAPE of the gate
+  being necessary; does not establish that 0.004 SPECIFICALLY (vs a
+  nearby value) is optimal. diagnostics/plots_step2/ls_ratio_span_
+  dependence.png, thesis_notes.md has the full record.
+  HARD CONSTRAINTS HELD: no estimator/threshold/config numerics changed
+  beyond the named additions above (CLAUDE.md's citation rule text,
+  PROJECT.md's deletion, and the pdf_export.py font/layout constants
+  are all Tier C/documentation, not method numerics); no commit.
+  PHASE 5: full regression suite run exactly once (temporarily flipped
+  sideslip_source to "kinematic", ran, restored to the user's own live
+  value "ekf_auto_pacejka" exactly afterward, verified via git diff --
+  config/parameters.json's diff against HEAD is byte-identical to the
+  pre-Phase-5 state, exactly this package's own named additions above
+  and nothing else). RESULT: 138 passed, 1 xfailed, 0 failed, 0 errors
+  (27m29s), zero failures or errors of any kind. git status clean
+  otherwise (exactly this package's own file list, unchanged before/
+  after the suite run); protected set empty; no commit.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order

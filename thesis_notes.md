@@ -10123,3 +10123,354 @@ Y-range clip (ui/views/corner_trace_dialog.py, this same package) to
 keep the panel readable without touching the underlying numbers. LS_ratio
 remains DISPLAY ONLY (no verdict/classifier reads it, PLAN.md STEP 3),
 so this is a legibility question, not (yet) a correctness-of-verdicts one.
+
+DISPLAY NOTE, Part A item A4 (2026-09-01, same package, trace-dialog
+bugfix/redesign work order): a second, independent display gate added on
+top of Phase 1's Y-range clip -- the corner-trace LS panel now only draws
+a sample where |ax_mps2| exceeds a new config value corner_trace_display.
+ls_display_min_ax_mps2 (default 1.0 m/s^2, ~0.1g). Motivation differs from
+Phase 1's: that clip bounds the AXIS RANGE against LS_ratio's numerical-
+instability tail; this one hides samples where the car is near-constant-
+speed, where LS_ratio (a longitudinal-stiffness ratio) has nothing
+meaningful to measure regardless of numerical conditioning -- the panel
+was showing noise in cruise/apex-coast sections that a reader could
+mistake for signal. Default derived from this session's own |ax_mps2|
+distribution over the same base racing population as this section's own
+LS_ratio stats above (moving & ~kerb & valid-lap racing time, n=24183):
+p5=0.474, p10=0.947, p20=1.807, median=3.970 m/s^2 -- this track's laps
+spend most of their time under real braking/traction demand (94.8% of
+samples exceed 0.5 m/s^2), so even a modest cutoff excludes only the
+genuinely flat segments; 1.0 m/s^2 sits just above the p10 point and is
+the standard vehicle-dynamics rule-of-thumb for negligible longitudinal
+load transfer. Display only -- LS_ratio's own numeric output, min_slip_
+span, and every other estimator input are untouched; this is a Tier C
+presentation choice, not a re-derivation of anything Tier B/A. Also
+applied identically to the same panel's PRINT export (core/figure_
+render.py's render_verdict_traces_figure/_draw_ls_panel reads the
+already-masked array core/views/corner_trace_dialog.py hands it, not a
+second independent mask), so screen and export always agree. The
+full-lap trace (LapTraceDialog) loses its LS panel entirely in this same
+package (A4) -- LS_ratio has no lap-level reading (STEP 3 established
+it only as a per-phase/per-corner windowed estimate), so a full-lap
+trace of it was never meaningful; the corner trace (where LS_ratio is a
+real per-corner quantity) keeps the panel, now with this mask applied.
+
+### Citation cross-reference, modules/longitudinal_forces.py [2026-09-01]
+Two Tier A/B anchors used by estimate_longitudinal_forces/
+estimate_slip_ratio had never been named as their own bullet, though
+the book itself (Rajamani, Vehicle Dynamics and Control, 2nd ed.,
+Springer) is already fully cited above (WP-N1 entry, Ch. 13.10 Dugoff
+anchor) -- recorded here so the pointer-only rule below has something
+to point at:
+- estimate_longitudinal_forces's fx_total = m*ax + drag + rolling
+  fallback tier: Rajamani Ch. 2, longitudinal equation of motion
+  (F_x = m*a_x + resistive forces), page TBD verify.
+- estimate_slip_ratio's kappa = (v_axle_corrected - v_ref)/v_ref:
+  Rajamani Ch. 2 sec. 2.2, slip-ratio (kappa) definition, page TBD
+  verify.
+Also anchors modules/longitudinal_stiffness.py's estimate_longitudinal_
+stiffness docstring, which cites this same Ch. 2 relationship for its
+inputs rather than restating it.
+
+### RULE APPLICATION, Phase 2a citation sweep [2026-09-01]
+Per the [2026-08-19] RULE CHANGE above (citation location), swept
+modules/ for remaining inline author/title/page citations and replaced
+each with a one-line pointer to its thesis_notes.md entry, following
+the estimate_sideslip precedent (WP-S4 citation cleanup) exactly. No
+citation content was changed or dropped -- every full citation already
+existed in this file (confirmed before editing code); this pass only
+moved the code-side text from a repeated inline citation to a named
+pointer. Sites converted: modules/stability_analysis.py (module-level
+header docstring, estimate_slip_angles, estimate_lateral_forces,
+estimate_vertical_loads, estimate_cornering_stiffness, estimate_yaw_
+moment_stability -- estimate_sideslip already done 2026-08-19), modules/tyre_model.py
+(module docstring, Dugoff anchor and the Werner sign-convention
+cross-reference), modules/tyre_model_pacejka.py (module docstring,
+Magic Formula general-form anchor), modules/longitudinal_forces.py
+(estimate_longitudinal_forces, estimate_slip_ratio), modules/
+longitudinal_stiffness.py (estimate_longitudinal_stiffness, pointer to
+the longitudinal_forces.py anchor above rather than a new citation).
+modules/tyre_fit_auto.py and modules/yaw_stability.py's own mentions
+of "Pacejka"/"Werner" were checked and left as-is: the former names a
+model/EKF variant, not a citation (no author/title/page attached); the
+latter's Werner mention was replaced too even though it already said
+"see thesis_notes.md" alongside the inline S2.2.3/S4.5.2 label, since
+the label itself is exactly the kind of inline author/year text the
+rule now excludes from code.
+
+### DECISIONS BATCH, Phase 2b: lap-filter UI choice removed [2026-09-01]
+ui/views/outing_form.py's Data section previously let the user narrow
+a stability analysis to one lap (click a row in the lap table) or drop
+in/out laps (the "Exclude In/Out Laps" toggle); both fed lap_filter.
+Per this session's work order, analysis now always covers every
+is_valid_for_analysis lap (falling back to every lap in the file only
+if none are flagged valid) -- no user choice left. Removed: the
+"Exclude In/Out Laps" toggle button (_on_exclude_toggled), and the
+_sync_lap_selector_to_filter method that reconstructed a selector state
+from a cached lap_filter (moot once the selector no longer determines
+lap_filter). _get_lap_filter_from_selector no longer reads the lap
+table's selection or the removed toggle at all.
+NOT removed: the lap table itself (row click, "Clear Selection", the
+_selected_lap_value/_on_lap_selected/_update_plots machinery). Read
+carefully before touching it -- this table serves a SECOND, independent
+purpose: scoping the raw-channel plot view below it (speed/throttle/
+brake/RPM/gear/steer traces) to one lap for visual inspection. That
+purpose has nothing to do with which laps the stability pipeline
+analyses and was kept exactly as-is; only the coupling from "table
+selection" to "analysis lap_filter" was cut. _populate_lap_table always
+shows every lap now (the old exclude-driven row-hiding depended on the
+removed toggle).
+WP5/WP6 cache-miss verification: _try_render_cached_analysis's DB
+cache-hit path gained a new guard -- a saved analysis_data payload
+whose stored lap_filter does not equal what _get_lap_filter_from_
+selector() would compute today is now rejected as stale (falls through
+to "re-run Analyse first"), instead of being rendered as if it were
+current. This matters concretely: an outing analysed and saved under
+the OLD UI with a single lap selected, or with in/out laps included,
+carries a lap_filter the new policy would never produce -- without this
+guard it would silently render under the OLD, now-incorrect scope
+forever. The WP6 in-memory Modules-1-5 pipeline cache (_pipeline_cache_
+get/put) needed no change: verified its identity key (csv_path + cap +
+resolved_vehicle_snapshot + sideslip_source) never included lap_filter
+in the first place, since Modules 1-5 always run on every sample in the
+file regardless of lap_filter (only Module 6/summarise_corners consumes
+it) -- so it was already lap-filter-policy-independent.
+Headless verification (diagnostics/inspect_clear_data_lifecycle.py, one-
+off, deleted after this entry): OutingForm._get_lap_filter_from_selector
+called unbound against the real Sample_Dubai.txt parse returns [1, 2,
+3, 4] (this file's is_valid_for_analysis set); a synthetic old cached
+lap_filter=[3] correctly flags as stale against that. No QApplication/
+QThread/DB pulled in for this check, matching the precedent already on
+record (tests/conftest.py's pipeline_result docstring) that Qt-in-tests
+was judged not worth the fragility for this codebase.
+
+### DECISIONS BATCH, Phase 2c: PROJECT.md removed [2026-09-01]
+Deleted PROJECT.md (a stale project-overview snapshot last accurate
+around WP1-WP2; PLAN.md + CLAUDE.md + this file are the live sources of
+truth). Two references found repo-wide: PLAN.md's own dated STATUS
+HISTORY log (a past entry recording "touched thesis_notes.md,
+PROJECT.md, ..." at the time PROJECT.md still existed) -- left
+untouched, since STATUS HISTORY records what happened, not current
+state, and rewriting past entries is against this project's own
+history-preservation convention. modules/recommendation.py's
+FEEDBACK_SCALE_MAX comment carried a live "(see PROJECT.md)" pointer --
+updated to drop the now-dangling reference (the comment already states
+the -5..+5 scale directly, no replacement documentation needed).
+CLAUDE.md, generate_handover.py, and any README never referenced
+PROJECT.md (checked, no hits).
+
+### DECISIONS BATCH, Phase 2d: Clear Data lifecycle button [2026-09-01]
+Added a "Clear Data" button (Data section button row, next to Load
+Outing) and OutingForm._reset_data_state(), guarded by a QMessageBox
+Yes/No confirmation (skipped if nothing is loaded) -- the only
+destructive-ish action in this form, and the codebase's one existing
+QMessageBox.question precedent (_print_sheet's file-overwrite prompt)
+confirmed this pattern is already in use elsewhere, not a new UI idiom.
+_reset_data_state() clears every field _on_csv_loaded/_run_stability_
+analysis/_on_stability_done populate (parsed_data, loaded_csv_path,
+stability_result, corner_positions_cache, _analysis_data_json,
+_displayed_resolved_vehicle_snapshot, _cached_schema_mismatch), hides
+the corner/lap trace dialogs if open, resets every status label and the
+corner-card grid back to their construction-time text, disables
+Analyse/Lap traces/Generate, and re-runs _update_corner_map_trace() so
+the track-map panel falls back to its own "Load a CSV" placeholder
+(already guarded for parsed_data is None, no new branch needed there).
+Deliberately NOT written to the database directly: self.loaded_csv_path
+=None is exactly what _save_outing already persists as csv_path=""
+(same "stage in memory, Save writes it" convention every other form
+field follows) -- a Clear Data click followed by Back-without-Save
+discards the clear exactly like any other unsaved edit, no special-
+cased DB write needed.
+Headless verification (diagnostics/inspect_clear_data_lifecycle.py, one-
+off, deleted after this entry): OutingForm._reset_data_state called
+unbound against a fake self (real Sample_Dubai.txt parsed_data plus
+no-op stand-ins for every QWidget method touched -- same "self=None/
+fake" precedent tests/generate_golden.py already uses for
+_classify_corner) leaves every state field None/empty as expected;
+reloading the same file afterward (simulating _on_csv_loaded's own
+reset lines, not this script's stand-in) reproduces the identical
+lap_filter as the first load -- no leaked state between the two loads.
+
+### DECISIONS BATCH, Phase 2e: weekend PDF status check, TypeError found
+and fixed [2026-09-01]
+Generated real weekend PDFs against the live local database (weekend 1
+"Dubai", outings 1-2; weekend 2 "Paul Ricard", outing 3, no analysis_
+data) via core.weekend_pdf_export.generate_weekend_pdf, then rendered
+pages to PNG (pymupdf, transient install, uninstalled after) for visual
+confirmation. Two findings:
+1. The Phase 1 three-column FL/RL | Car | FR/RR setup-strip layout
+   renders correctly inside the weekend PDF's own setup/setdown strips
+   section (it reuses core/pdf_export.py's build_session_strip
+   unchanged) -- confirmed visually, no separate fix needed here.
+2. A real TypeError, previously invisible because the per-outing try/
+   except (core/weekend_pdf_export.py's generate_weekend_pdf, already
+   in place before this session) swallows it into a generic "ERROR
+   building this section" note: outing 1 (Dubai, Warmup, has a current
+   analysis) failed to render ANY of its real content -- verdict
+   summary, corner table, feedback -- because _recommendations_
+   flowables crashed formatting one recommendation's score with
+   f"{r['score']:.2f}" where score was None. Root cause: this outing's
+   real driver feedback contains an "urgent_gap" recommendation (a
+   driver/data direction-contradiction flag for C8 -- driver reports
+   near-undrivable understeer, data shows oversteer at exit), a
+   deliberately parameter-less, score-less bucket type. ui/views/
+   outing_form.py's own recommendations panel already has a documented
+   fix for exactly this shape ("FIX 1" comment, badge_text falls back
+   to corner+verdict since there is no lever to name) -- the PDF path
+   was simply never given the equivalent fix. FIXED in _recommendations_
+   flowables: action_class=="urgent_gap" rows now show "C{id}:
+   {short_verdict}" for Action (mirrors the UI's badge_text), "-" for
+   Score (never crashes on None), and "URGENT" for Class (previously
+   silently mis-labelled RECOMMENDED alongside the crash). Purely a PDF-
+   rendering/Tier-C display fix -- no recommendation-engine, estimator,
+   or threshold logic touched. Re-rendered after the fix: outing 1 now
+   shows its real corner table (C1-C15+, one row per stable_corner_id)
+   and the recommendations table now has one row reading "C8:
+   understeer | - | driver | ... | URGENT | driver/data disagree: C8"
+   instead of the ERROR fallback. The per-outing try/except itself was
+   correct all along (one bad outing's exception never took down the
+   rest of the document) -- kept as-is; this fix removes the trigger,
+   it does not touch the safety net.
+Not investigated further this phase (report-only per this decision's
+own scope): whether any OTHER recommendation-engine output shape can
+reach a PDF-rendering assumption the UI already special-cases but the
+PDF does not -- action_class is currently a two-way UI switch (advisory
+vs urgent_gap vs the RECOMMENDED default) and this fix only closes the
+one gap that actually crashed. Flagged under "open" in this package's
+final report.
+
+### PLAN.md unsupervised package, Phase 3: LS_ratio span-dependence
+[2026-09-01]
+Read-only diagnostic (diagnostics/inspect_ls_ratio_span_dependence.py,
+kept, see diagnostics/README.md): does LS_ratio's per-sample value
+depend on how wide the sliding regression window's own kappa excursion
+("slip span") happened to be, for samples that would otherwise pass
+every OTHER validity gate in modules/longitudinal_stiffness.py's
+_centered_slopes? Motivated by wanting independent evidence for (or
+against) config's longitudinal_stiffness.min_slip_span=0.004 gate,
+which currently excludes any window below it outright with no evidence
+on record for why 0.004 specifically.
+METHOD: independently re-derived _centered_slopes's own numerator/
+denominator/slope arithmetic with the min_slip_span condition dropped
+(count>=min_samples and finite-denominator conditions kept -- those are
+numerical-validity, not the physical gate under study), against the
+real Sample_Dubai.txt run through Modules 1-4a-equivalent (prepare_
+vehicle_state, estimate_longitudinal_forces, estimate_slip_ratio,
+estimate_longitudinal_stiffness for the production linear_reference_N
+values only). Cross-checked before trusting the extended population:
+restricting the reimplementation to the SAME population production's
+gate keeps reproduces modules/longitudinal_stiffness.py's actual
+LS_ratio_f/LS_ratio_r output exactly (np.allclose, equal_nan=True, both
+axles) -- confirms the reimplementation is faithful, not an
+independent (and possibly divergent) formula.
+RESULT: diagnostics/plots_step2/ls_ratio_span_dependence.png (front and
+rear axle, LS_ratio vs window kappa span, log x-axis, min_slip_span
+marked with a vertical line, colour-split at the gate). Front axle:
+below-gate population n=21960 (of 39454 numerically-valid samples),
+median LS_ratio -0.0000 but ranging to roughly -200 at the smallest
+spans; rear axle: below-gate population n=10305 (of 39454), median
+0.3651, ranging to roughly -27. Above the gate, both axles compress
+tightly into the plausible <=1.0-capped band the production output
+actually shows. This is the expected small-span regression-blowup
+signature (near-zero-variance denominator amplifying numerator noise
+into an unbounded slope) -- the scatter shows a clear, visually obvious
+cliff at the gate, not a gradual/ambiguous transition, which reads as
+supporting evidence that SOME span gate near this order of magnitude is
+needed. NOT established: that 0.004 specifically (vs e.g. 0.003 or
+0.006) is the optimal cut -- this diagnostic shows the gate's general
+shape is justified, not that the exact value is data-derived at
+that precision. Read-only -- no config or modules/ file changed by
+this diagnostic; min_slip_span itself is untouched.
+
+### Corrections round 3 follow-up: dialogs, corner-figure track map,
+setup-sheet PDF, recommendation audit [2026-09-01]
+Small items, no estimator/module numerics touched; targeted smoke tests
+only, no full suite run (none of this round's own hard constraint
+required one).
+1. Every QDialog (CornerTraceDialog/LapTraceDialog via their shared
+   _TraceDialogBase, DriverDialog, WeekendDialog, WeekendPdfDialog) now
+   sets Qt.WindowType.WindowMinMaxButtonsHint explicitly -- a plain
+   QDialog omits native minimise/maximise on Windows by default.
+   Verified headlessly (constructed each, asserted the flag bit is set)
+   -- 2 of the 5 (DriverDialog, WeekendDialog) are setFixedWidth forms,
+   so maximise mostly just grows height there; applied uniformly per
+   the work order rather than special-cased.
+2. render_corner_figure's track map (dropped in round 3 proper to make
+   room for the new side-legend columns) is back as a narrow full-width
+   row between rear-CS and the tyre curves (compact=True: no title, no
+   legend -- lap colour is already established by the other panels'
+   legends). Cost: with a fixed 24cm cap and a 5th row now competing for
+   height, the tyre-curve panels shrank from round 3's own 6.49cm square
+   to 5.90cm square (tuned the map row's own height_ratio down from an
+   initial 1.3 to 0.9 to claw back some of that; further tuning hit
+   diminishing returns). Bottom margin (round 3's own item 1 fix, ≥8mm)
+   unaffected -- it comes from the figure-level `rect` constraint, not
+   the row height_ratios, confirmed unchanged at 9.7mm by rendering.
+   diagnostics/inspect_step2_chair_plots.py's own track-map builder
+   (removed in round 3 when the signature dropped the parameter) is
+   restored too, adapted to the current "brackets_by_lap" list shape
+   _draw_track_map_panel now reads (it previously read a bare
+   "bracket_xy" key that no longer exists post-Part-B) -- this script's
+   own tyre-curve builder still uses the older pre-multi-lap "corner_xy"
+   shape, a pre-existing staleness out of THIS round's scope, noted not
+   fixed.
+3. core/pdf_export.py's car_label font: was its own key (large=11pt vs
+   value=9pt -- car_label BIGGER than value, a pre-round-3 mismatch a
+   previous report flagged and left open; small=5.4pt vs value=6.5pt --
+   car_label smaller there). Now car_label = value exactly, one number
+   (f["car_label"] = f["value"]), at both scales -- verified by
+   rendering both scales against real Dubai data, no touching/overflow
+   introduced (small scale's car_label grew ~20%, checked specifically
+   for that direction of risk, not just assumed harmless because "value
+   >= label" held before).
+4. core/weekend_pdf_export.py: STRIPS_PER_PAGE 4 -> 2 (one outing's own
+   Setup+Setdown pair per page, not two outings'), STRIP_H roughly
+   doubles as a direct consequence (computed from STRIPS_PER_PAGE, nothing
+   else touched). Measured the real effect on the small-scale KeepInFrame
+   shrink this was meant to fix: natural (unshrunk) strip content is
+   ~102mm against the new ~90mm STRIP_H (113.6% fill) -- shrink is still
+   needed but now only to ~88% of natural size, down from the ~45%
+   shrink four-per-page needed (content used to run ~175% over a 44mm
+   budget). KeepInFrame(mode="shrink") itself is left in place -- it is
+   generic overflow-safety shared by both the single-outing and weekend
+   call sites, not something specific to the old ratio to delete; only
+   the ratio it now has to correct for shrank. Rendered and visually
+   confirmed legible at 250dpi, no touching, real Dubai data (weekend
+   id=1, 2 outings).
+5. Recommendation-shape audit (core/weekend_pdf_export.py's
+   _recommendations_flowables vs ui/views/outing_form.py's own
+   recommendation-card rendering): confirmed the urgent_gap fix already
+   recorded above (Phase 2e) is the only real shape mismatch that can
+   crash or silently mis-render -- action_text (corner+verdict
+   fallback), score_text ("-" not a crash), and class_text ("URGENT" not
+   the RECOMMENDED default) all already match the UI's own handling in
+   the current code. No other UI-special-cased shape (limit_status,
+   conflicts, selected, cell_ids/trigger_source, the retired seed/
+   unvalidated-rule tag, package multi-action badges) has a PDF-side gap
+   -- each either already matches byte-for-byte or is a deliberate,
+   documented content omission (the PDF is a condensed table by design,
+   per its own module docstring), not a shape-assumption bug. No new
+   code change from this item; audit confirms the existing fix is
+   complete, not that a new one was needed.
+PROCESS NOTE, worth recording: a background agent given isolation:
+"worktree" for this round's item-3/4/5 delegation reported that the
+entire shared-strip-renderer architecture (build_session_strip,
+_strip_styles, car_label, KeepInFrame, the weekend-PDF strip layout)
+"does not exist anywhere in the repo" -- a false premise, confirmed by
+grepping the actual main-tree files directly (they do exist, and were
+used successfully by an EARLIER isolated-worktree agent this same
+session). Root cause not fully diagnosed, but the evidence points to
+worktree isolation sometimes checking out committed HEAD only, missing
+this session's own uncommitted working-tree changes (everything this
+session has done is deliberately uncommitted, per every work order's
+own "no commit" instruction) -- an earlier verification step meant to
+catch exactly this (comparing the first agent's worktree against HEAD)
+was itself a no-op bug (piped to /dev/null, never actually inspected).
+The agent's own item-5 audit and fix were still valid in isolation (it
+found and fixed a real bug against ITS OWN stale checkout), just
+redundant with Phase 2e's already-landed fix once compared against the
+real main-tree state -- no harm done, but items 3/4 had to be redone
+directly rather than trusted from that report. Lesson for future
+delegation this session: verify a worktree agent's premise against the
+main tree BEFORE trusting its report, especially when nothing has been
+committed.

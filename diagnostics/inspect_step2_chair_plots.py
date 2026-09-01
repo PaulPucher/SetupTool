@@ -161,7 +161,18 @@ def _build_track_map(cid, instances, laps_by_number, t, s_m, bg_xy, cs, alpha_f,
 
     window_f_xy = _window_xy(cs["CS_ratio_f"], alpha_f)
     window_r_xy = _window_xy(cs["CS_ratio_r"], alpha_r)
-    return {"lap_xy": lap_xy, "bracket_xy": bracket_xy, "window_f_xy": window_f_xy, "window_r_xy": window_r_xy}
+    # render_corner_figure's track map (core/figure_render.py's
+    # _draw_track_map_panel) expects "brackets_by_lap" (a list, per the
+    # multi-lap-colour redesign) -- this script still only ever plots one
+    # representative lap's bracket, so it is wrapped as a single-entry
+    # list under that lap's own colour rather than the old bare
+    # "bracket_xy" key _draw_track_map_panel no longer reads.
+    from core.plot_style import lap_styles
+    style = lap_styles([rep_lap_number])[rep_lap_number]
+    brackets_by_lap = [{"xy": bracket_xy, "color": style["color"], "dash": style["dash"],
+                         "lap_number": rep_lap_number}] if bracket_xy is not None else []
+    return {"lap_xy": lap_xy, "brackets_by_lap": brackets_by_lap,
+            "window_f_xy": window_f_xy, "window_r_xy": window_r_xy}
 
 
 def _build_tyre_curve(axle, alpha_arr, Fy_arr, ref_arr, cs_ratio_arr, c_alpha_arr, bg_mask,
@@ -259,7 +270,7 @@ def make_corner_figure(cid, source, state, t, s_m, v_kmh, slip, forces, cs, para
     }
 
     fig = figure_render.render_corner_figure(
-        f"C{cid} ({source})", laps, thresholds, track_map, tyre_curves, theme=plot_style.PRINT,
+        f"C{cid} ({source})", laps, thresholds, tyre_curves, track_map, theme=plot_style.PRINT,
     )
     out_path = os.path.join(out_dir, f"C{cid:02d}_{source}.png")
     figure_render.save_png(fig, out_path)

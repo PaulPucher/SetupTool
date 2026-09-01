@@ -1,15 +1,17 @@
 # Dugoff lateral tyre model. Pure Python/numpy, no Qt imports.
 #
-# Tier A anchor: Rajamani, Vehicle Dynamics and Control, 2nd ed., Ch. 13.10
-# "Dugoff Tire Model" (eqs. 13.72-13.76, page TBD verify against the actual
-# printed edition). Pure-cornering reduction (no combined slip, no
-# longitudinal slip ratio term) -- the form this project needs, since the
-# nonlinear observer this feeds only estimates lateral state.
+# Method anchor recorded in thesis_notes.md, "WP-N1: Dugoff tyre model
+# chosen + first-pass fit, identifiability finding" entry. Pure-cornering
+# reduction (no combined slip, no longitudinal slip ratio term) -- the
+# form this project needs, since the nonlinear observer this feeds only
+# estimates lateral state.
 #
 # Sign convention: the literature form is Fy = -c_alpha*tan(alpha)*f(lambda)
 # (SAE-style, force opposes slip). This codebase's slip-angle definitions
-# (modules/stability_analysis.py estimate_slip_angles, Werner (2021) S2.2.3
-# sign convention, alpha_r carries its own leading minus) already produce a
+# (modules/stability_analysis.py estimate_slip_angles, sign convention
+# anchor recorded in thesis_notes.md, "CS_ratio (cornering stiffness
+# ratio) -- Werner MA method" entry, alpha_r carries its own leading
+# minus) already produce a
 # POSITIVE Fy-vs-alpha slope -- confirmed empirically on Dubai data (both
 # axles, corr(alpha, Fy_filt) > 0, matching the positive C_alpha the
 # pipeline reports throughout Module 4b). This module drops the literature

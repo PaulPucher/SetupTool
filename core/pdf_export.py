@@ -18,6 +18,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from PIL import Image as PILImage
 
 
@@ -53,6 +54,7 @@ ADVANCED_LABELS = {
 }
 CAR_LABELS = {
     "differential_preload": "Diff Preload", "differential_position": "Diff Position",
+    "wing_position": "Wing", "arb_front_mount": "ARB Fr.",
     "splitter_offset": "Splitter",
 }
 DIFF_TORQUE_LABEL = "Diff Locking Torque (measured, Nm)"
@@ -60,13 +62,6 @@ DIFF_TORQUE_POSITIONS = ["1", "2", "3", "4", "5"]
 WEIGHT_TOTALS_LABELS = {
     "total_weight": "Total (kg)", "cross_percentage": "Cross %",
 }
-# Marked-position schematics -- splitter_offset stays a plain numeric cell
-# in CAR_LABELS above; wing_position/arb_front_mount are the only fields
-# with a real legal-position set to draw. Sourced from config/setup_
-# parameters.json's own registry entries / car_data.json's
-# wing_position_table, not invented here.
-WING_POSITIONS = ["P8", "P9", "P10"]
-ARB_MOUNT_POSITIONS = ["P0", "P1", "P2"]
 
 # Splitter/diffuser floor-referenced measurement points (thesis_notes.md
 # "8. Splitter/diffuser measurement points"). Positions come from the one
@@ -111,14 +106,19 @@ def _strip_styles(size):
     # never by shrinking the number.
     if size == "large":
         f = dict(header=16, corner_title=16, core_label=12.5, value=9,
-                  table_label=11.5, car_label=11,
-                  section_title=14, schematic=9, notes=10)
+                  table_label=11.5,
+                  section_title=14, notes=10)
         pad = 6.5
     else:
         f = dict(header=7.5, corner_title=7, core_label=5.6, value=6.5,
-                  table_label=5, car_label=5.4,
-                  section_title=6, schematic=4.6, notes=5.2)
+                  table_label=5,
+                  section_title=6, notes=5.2)
         pad = 1.1
+    # Follow-up item 3: car_label is no longer its own key -- it shares
+    # the "value" size exactly, one number, so the two can never drift
+    # apart again the way large scale's car_label=11 (bigger than its
+    # own value=9) did before this fix.
+    f["car_label"] = f["value"]
     # Cleanup pass, Phase 3: several inter-block Spacer heights below used
     # to be hardcoded in millimetres regardless of `size` -- fine at
     # "large" scale, but at "small" scale (STRIP_H=44mm, four strips per
@@ -134,15 +134,25 @@ def _strip_styles(size):
     gap_sm = 1.5 * mm if size == "large" else 0.4 * mm
     # Cleanup pass, Phase 3, same finding as gap_lg/gap_sm above but for
     # the splitter/diffuser MeasurementDiagram flowables specifically:
-    # _measurement_diagram_boxes sizes them from the car column's own
-    # WIDTH alone (car_col_w is nearly the same in mm at both scales --
-    # only STRIP_H shrinks, from ~190mm large to 44mm small), so the two
-    # diagrams alone rendered at ~33mm+36mm tall regardless of `size`,
+    # _measurement_diagram_boxes used to size them from the car column's
+    # own WIDTH alone (car_col_w is nearly the same in mm at both scales
+    # -- only STRIP_H shrinks, from ~190mm large to 44mm small), so the
+    # two diagrams alone rendered at ~33mm+36mm tall regardless of `size`,
     # already exceeding the entire "small" strip height budget before
-    # counting anything else in the car column. diagram_scale shrinks
-    # their footprint directly instead of relying on KeepInFrame's own
-    # (until now catastrophic) uniform shrink to compensate.
-    diagram_scale = 1.0 if size == "large" else 0.4
+    # counting anything else in the car column.
+    # Corrections round 3, item 6: shrinking the diagram's WIDTH to make
+    # it fit was the wrong lever -- it shrank the value boxes along with
+    # it, since box_w used to be a fraction of diagram_w. box_w is now
+    # sized directly from the value font's own worst-case string width
+    # (see POINT_VALUE_WORST_CASE / _measurement_diagram_boxes), so the
+    # diagrams can always span the FULL car-column width at both scales
+    # without the boxes growing or shrinking with the outline. Only the
+    # HEIGHT (this factor) shrinks at "small" scale, verified by checking
+    # dy = |fy1-fy2|*diagram_h against box_h for every position pair in
+    # SPLITTER_POINT_POSITIONS / DIFFUSER_POINT_POSITIONS whose boxes are
+    # close enough in x to be a collision candidate -- not assumed, see
+    # thesis_notes.md.
+    diagram_height_scale = 1.0 if size == "large" else 0.36
     # Cleanup pass, Phase 3: ParagraphStyle's own `leading` (line-box
     # height) defaults to a FLAT 12pt regardless of fontSize when left
     # unset -- every style below left it unset. At "large" scale
@@ -188,17 +198,13 @@ def _strip_styles(size):
                                          leading=_lead(f["section_title"]),
                                          fontName="Helvetica-Bold", textColor=TEXT,
                                          alignment=TA_LEFT),
-        "schematic_label": ParagraphStyle("schematic_label", fontSize=f["schematic"],
-                                           leading=_lead(f["schematic"]),
-                                           fontName="Helvetica", textColor=MUTED),
-        "schematic_box_font": f["schematic"],
         "notes": ParagraphStyle("notes", fontSize=f["notes"], leading=_lead(f["notes"]),
                                  fontName="Helvetica", textColor=TEXT),
         "_pad": pad,
         "_fontsizes": f,
         "_gap_lg": gap_lg,
         "_gap_sm": gap_sm,
-        "_diagram_scale": diagram_scale,
+        "_diagram_height_scale": diagram_height_scale,
     }
     return styles
 
@@ -216,41 +222,6 @@ def _bordered_table(rows, col_widths, styles, row_heights=None, pad_scale=1.0):
         ("GRID", (0, 0), (-1, -1), 0.4, MID_GRAY),
     ]))
     return table
-
-
-class PositionSchematic(Flowable):
-    """Marked-position schematic: a row of small tick-boxes, one per legal
-    position, the active position filled solid black with its label
-    reversed out in white -- garage-sheet size, not a banner. Plain
-    reportlab canvas primitives, no new dependency.
-    """
-
-    def __init__(self, options, active, box_w, box_h, gap, font_size):
-        super().__init__()
-        self.options = options
-        self.active = active
-        self.box_w = box_w
-        self.box_h = box_h
-        self.gap = gap
-        self.font_size = font_size
-        self.width = len(options) * box_w + (len(options) - 1) * gap
-        self.height = box_h
-
-    def wrap(self, availWidth, availHeight):
-        return self.width, self.height
-
-    def draw(self):
-        c = self.canv
-        c.setLineWidth(0.5)
-        for i, opt in enumerate(self.options):
-            x = i * (self.box_w + self.gap)
-            is_active = (opt == self.active)
-            c.setStrokeColor(BLACK)
-            c.setFillColor(BLACK if is_active else WHITE)
-            c.rect(x, 0, self.box_w, self.box_h, stroke=1, fill=1)
-            c.setFillColor(WHITE if is_active else TEXT)
-            c.setFont("Helvetica-Bold" if is_active else "Helvetica", self.font_size)
-            c.drawCentredString(x + self.box_w / 2, self.box_h / 2 - self.font_size * 0.35, opt)
 
 
 class MeasurementDiagram(Flowable):
@@ -449,23 +420,13 @@ def _weight_grid(car, styles, width):
     return _bordered_table(rows, [lw, vw, lw, vw], styles)
 
 
-def _schematic_row(label, options, active, styles, width):
-    box_w = 8 * mm
-    box_h = 5 * mm
-    gap = 1 * mm
-    row = [
-        Paragraph(label, styles["schematic_label"]),
-        PositionSchematic(options, active, box_w, box_h, gap, styles["schematic_box_font"]),
-    ]
-    t = Table([row], colWidths=[width - (len(options) * box_w + (len(options) - 1) * gap) - 2 * mm, None])
-    t.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 1),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-    ]))
-    return t
+# Worst-case string these value boxes must fit, at whatever font_size is in
+# play -- these are floor-referenced mm offsets (core/setup_data_points.py),
+# a narrower physical range than the generic "888888"/"-88888" 6-digit
+# convention the rest of this file's value cells use for unbounded fields
+# like spring rates. One decimal place, signed, three integer digits is
+# already a generous margin over any plausible clearance measurement.
+POINT_VALUE_WORST_CASE = "-999.9"
 
 
 def _measurement_diagram_boxes(title, outline, positions, points, styles, width):
@@ -473,24 +434,36 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
     same visual language as the setup-form widget, used at both scales.
     A values-only-row alternative (no outline, point-number header +
     value cells) was built and rendered at weekend scale for comparison
-    and rejected: it overflowed its column width and displaced the
-    neighbouring Wing/ARB schematic rendering, while this outline stayed
-    legible and correctly bounded. See thesis_notes.md "8. Splitter/
-    diffuser measurement points, Phase 3".
+    and rejected: it overflowed its column width, while this outline
+    stayed legible and correctly bounded. See thesis_notes.md "8.
+    Splitter/diffuser measurement points, Phase 3".
+
+    Corrections round 3, item 6: diagram_w is always the full car-column
+    width at both scales -- box_w is sized from POINT_VALUE_WORST_CASE at
+    the ACTUAL font_size in play (pdfmetrics.stringWidth, not a fraction
+    of diagram_w), so the box a value sits in is only ever as wide as the
+    text needs, and diagram_w takes back whatever that leaves. font_size
+    is pinned to the same "value" size the surrounding tables use, so a
+    box digit reads at identical size to a table value next to it at
+    both scales; only diagram_h (via _diagram_height_scale) shrinks
+    beyond its natural aspect ratio, to fit the tight "small" strip
+    budget -- checked against every position pair in SPLITTER_POINT_
+    POSITIONS / DIFFUSER_POINT_POSITIONS so a flatter outline never
+    brings two value boxes into contact (see thesis_notes.md).
     """
-    # box_frac sized so diagram_w + box_w (the value box's full width,
-    # which MeasurementDiagram reserves as margin on each side for a
-    # point centred right at fx=0/1) sums to exactly `width` -- some
-    # points sit ON the outline's own edge (splitter point 5 at fy=0,
-    # diffuser's bottom row near fy=0.96), so this margin isn't optional
-    # headroom, it is where those boxes actually live.
-    box_frac = 0.14
-    diagram_w = width / (1 + box_frac) * styles["_diagram_scale"]
-    aspect = 0.55 if outline == "splitter" else 0.6
-    diagram_h = diagram_w * aspect
-    box_w = diagram_w * box_frac
+    font_size = styles["_fontsizes"]["value"]
+    # 1.2x margin over the bare text width -- a box that fills exactly to
+    # the glyph edge would look correct-but-suspiciously-tight in print.
+    box_w = stringWidth(POINT_VALUE_WORST_CASE, "Helvetica-Bold", font_size) * 1.2
     box_h = box_w * 0.6
-    font_size = max(styles["_fontsizes"]["value"] * 0.8, 4)
+    # diagram_w + box_w (the value box's full width, which MeasurementDiagram
+    # reserves as margin on each side for a point centred right at fx=0/1)
+    # sums to exactly `width` -- some points sit ON the outline's own edge
+    # (splitter point 5 at fy=0, diffuser's bottom row near fy=0.96), so
+    # this margin isn't optional headroom, it is where those boxes live.
+    diagram_w = width - box_w
+    aspect = 0.55 if outline == "splitter" else 0.6
+    diagram_h = diagram_w * aspect * styles["_diagram_height_scale"]
     return [
         Paragraph(title, styles["car_label"]),
         MeasurementDiagram(outline, positions, points, diagram_w, diagram_h, box_w, box_h, font_size),
@@ -500,13 +473,16 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
 def _car_column(car, styles, width):
     """Narrow right-hand column (Decision: car-level block is ONE column,
     sized to content, not a co-equal quadrant). Numeric cells are sized to
-    their value, not stretched; schematics are one compact line each.
-    Splitter/diffuser points always render as outline+value-boxes at both
-    scales -- a values-only row alternative was built and rendered at
-    weekend (small) scale for comparison and rejected: it overflowed its
-    column width and even displaced the Wing/ARB schematic rendering,
-    while the outline stayed legible and correctly bounded. See thesis_
-    notes.md "8. Splitter/diffuser measurement points, Phase 3".
+    their value, not stretched. Splitter/diffuser points always render as
+    outline+value-boxes at both scales -- a values-only row alternative
+    was built and rendered at weekend (small) scale for comparison and
+    rejected: it overflowed its column width, while the outline stayed
+    legible and correctly bounded. See thesis_notes.md "8. Splitter/
+    diffuser measurement points, Phase 3". Wing position and ARB front
+    mount are plain rows in the param table below (corrections round 3,
+    item 7) -- position-coded fields ("P8", "P0", ...), not coordinates,
+    so a marked-position schematic added drawing cost without adding
+    information a label/value row doesn't already give.
     """
     title_gap = 2.5 * mm if styles["_fontsizes"]["section_title"] >= 10 else 0.8 * mm
     elements = [Paragraph("Car", styles["section_title"]), Spacer(1, title_gap)]
@@ -527,10 +503,6 @@ def _car_column(car, styles, width):
     diffuser_points = car.get("diffuser_points") or [None] * len(DIFFUSER_POINT_POSITIONS)
     elements.extend(_measurement_diagram_boxes("Splitter Pts (mm, vs floor)", "splitter",
                                                  SPLITTER_POINT_POSITIONS, splitter_points, styles, width))
-    elements.append(Spacer(1, styles["_gap_sm"]))
-
-    elements.append(_schematic_row("Wing", WING_POSITIONS, car.get("wing_position"), styles, width))
-    elements.append(_schematic_row("ARB Fr.", ARB_MOUNT_POSITIONS, car.get("arb_front_mount"), styles, width))
     elements.append(Spacer(1, styles["_gap_sm"]))
 
     elements.extend(_measurement_diagram_boxes("Diffuser Pts (mm, vs floor)", "diffuser",

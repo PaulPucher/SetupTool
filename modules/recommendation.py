@@ -59,7 +59,7 @@ ESCALATION_TIER_RANK = {"cockpit": 0, "pitlane": 1, "garage": 2}
 # Method-defining constants (CLAUDE.md grounding rule): these fix the shape
 # of the scoring formula, not a per-car/per-track calibration.
 SOURCE_BALANCE_NORMALISER = 2.0  # makes source_balance=0.5 exactly neutral (both multipliers = 1.0)
-FEEDBACK_SCALE_MAX = 5.0  # driver feedback is entered on a fixed -5..+5 scale (see PROJECT.md)
+FEEDBACK_SCALE_MAX = 5.0  # driver feedback is entered on a fixed -5..+5 scale
 
 # Rule statuses that never fire. "retired": superseded (old ARB-only seeds).
 # "held": escalation rule, fully specified for 1:1 cell traceability but not

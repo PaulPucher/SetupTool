@@ -3,9 +3,9 @@
 #
 # PLAN.md unsupervised package, Phase 3. Cited as "chair performance_
 # analysis tooling (internal)" -- the chair's own reference model for
-# this evaluation; the published general form is Rajamani, Vehicle
-# Dynamics and Control, 2nd ed., Ch. 13 "Tire Models" (Magic Formula
-# section, page TBD verify). New file rather than an edit to modules/
+# this evaluation; published-general-form method anchor recorded in
+# thesis_notes.md, "Phase 3: Pacejka variant -- pre-registration"
+# entry. New file rather than an edit to modules/
 # tyre_model.py (Dugoff): PLAN.md's Phase 3 work order calls this a
 # "new code path", and modules/tyre_model.py is an existing production
 # file this package's hard constraints do not authorise editing --

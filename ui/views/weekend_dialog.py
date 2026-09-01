@@ -18,6 +18,10 @@ class WeekendDialog(QDialog):
         self.setWindowTitle("New Race Weekend / Test")
         self.setFixedWidth(400)
         self.setModal(True)
+        # Follow-up item 1: native minimise/maximise buttons on every
+        # dialog -- fixed-width here, so maximise mostly just grows the
+        # height, but the flag is applied uniformly per the work order.
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)

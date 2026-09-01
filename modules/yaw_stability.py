@@ -2,9 +2,9 @@
 # s-anchored ridge regression for dMz/dbeta.
 #
 # Concept and target relation (Mz = Iz*psidd + D_psi*psid, dMz/dbeta sign
-# convention) after Werner (2021) S2.2.3 / S4.5.2 Eq. 4.3 -- see
-# thesis_notes.md. The estimator construction below (centred rolling-mean
-# yaw acceleration; s-anchored Gaussian-weighted local ridge regression
+# convention): method anchor recorded in thesis_notes.md, "Yaw moment
+# stability dMz/dbeta" entry. The estimator construction below (centred
+# rolling-mean yaw acceleration; s-anchored Gaussian-weighted local ridge regression
 # pooling samples across laps at the same track position) is after the
 # chair performance_analysis tooling (internal), not part of Werner's
 # method -- the reference implementation is read-only in

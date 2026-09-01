@@ -55,7 +55,12 @@ End every turn with a "RESULT:" block — 3-6 lines of plain-language summary of
 Three tiers govern every implementation decision:
 - Tier A (vehicle dynamics methods): only with a literature anchor
   (Werner 2021, Milliken, standard textbooks). No unanchored
-  methods. Docstrings carry the reference.
+  methods. Code carries a one-line pointer to the thesis_notes.md
+  entry (e.g. "# method: thesis_notes.md, cornering stiffness
+  estimation"), never an author/year/page citation directly —
+  the full citation lives in thesis_notes.md, verified once,
+  never duplicated (and never allowed to drift) across every call
+  site that uses the method.
 - Tier B (signal/data engineering: filters, segmentation,
   clustering, exclusion masks, thresholds): standard techniques
   only, parameters config-driven, documented and data-derived,

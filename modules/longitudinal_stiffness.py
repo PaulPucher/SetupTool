@@ -215,10 +215,11 @@ def estimate_longitudinal_stiffness(long_forces, slip, state, params):
     Tier A/B split, same as Module 4b's own CS_ratio: the ratio
     construction itself (windowed OLS slope, low-slip reference,
     clip-at-1.0) is the chair's estimator, adopted as-is (no
-    literature-anchored physical claim of its own beyond Rajamani Ch.
-    2's slip-ratio/longitudinal-force relationship already cited for
-    the inputs); the Butterworth pre-filter and sliding-window
-    parameters are Tier B signal conditioning, config-driven
+    literature-anchored physical claim of its own beyond the slip-
+    ratio/longitudinal-force relationship already anchored for the
+    inputs -- thesis_notes.md, "Citation cross-reference, modules/
+    longitudinal_forces.py" entry); the Butterworth pre-filter and
+    sliding-window parameters are Tier B signal conditioning, config-driven
     (longitudinal_stiffness namespace), chair-sourced defaults --
     EXCEPT min_samples, rate-derived rather than chair-sourced (see
     _centered_slopes's own comment and thesis_notes.md), a documented

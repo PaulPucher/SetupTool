@@ -81,6 +81,12 @@ kept because a surviving script imports it, not for its own findings.
   speed_sources.py (AY_STRAIGHT_MAX_G/YAW_STRAIGHT_MAX_DEGPS).
 - **inspect_ls_cs_disambiguation.py** `[keep-referenced]` — cited by
   filename in PLAN.md (STEP 3 LS_ratio disambiguation record).
+- **inspect_ls_ratio_span_dependence.py** `[keep-referenced]` — cited by
+  filename in thesis_notes.md ("PLAN.md unsupervised package, Phase 3:
+  LS_ratio span-dependence" entry), which also cites the PNG it
+  produces (diagnostics/plots_step2/ls_ratio_span_dependence.png) as
+  supporting evidence for the longitudinal_stiffness.min_slip_span=
+  0.004 config gate.
 - **inspect_nis_tyre_mismatch_gate.py** `[keep-referenced]` — the WP-N3
   NIS mismatch-gate prototype. Cited by filename in modules/nis_gate.py's
   own docstring (states it ports this prototype) and tests/

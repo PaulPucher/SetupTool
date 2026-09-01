@@ -2,11 +2,13 @@
 # Pure Python/numpy/scipy. No Qt imports.
 # Units: SI throughout (m, s, rad, N, Nm, kg).
 # Cornering-stiffness (Module 4b) target relation and cross-lap yaw-moment-
-# stability target relation (Module 5) after Werner (2021) S2.2.2-2.2.3 /
-# S4.5.2 Eq. 4.3-4.4. Effective-stiffness estimation (Module 4b) is adapted;
-# Module 5's estimator (modules/yaw_stability.py) is after the chair
-# performance_analysis tooling (internal), not Werner's own construction.
-# See thesis_notes.md for both attribution splits.
+# stability target relation (Module 5): method anchors recorded in
+# thesis_notes.md, "CS_ratio (cornering stiffness ratio) -- Werner MA
+# method" and "Yaw moment stability dMz/dbeta" entries. Effective-
+# stiffness estimation (Module 4b) is adapted; Module 5's estimator
+# (modules/yaw_stability.py) is after the chair performance_analysis
+# tooling (internal), not Werner's own construction. See thesis_notes.md
+# for both attribution splits.
 
 import functools
 import numpy as np
@@ -559,8 +561,9 @@ def estimate_sideslip_gps(state, channels, params):
 
 
 def estimate_slip_angles(state, beta, params):
-    """Single-track slip-angle relations after Werner (2021) S2.1.1 /
-    Milliken RCVD.
+    """Single-track slip-angle relations; method anchor recorded in
+    thesis_notes.md, "CS_ratio (cornering stiffness ratio) -- Werner
+    MA method" entry.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -599,8 +602,8 @@ def estimate_slip_angles(state, beta, params):
 def estimate_lateral_forces(state, params):
     """Module 4a: axle lateral forces via 2-DOF planar force/moment
     balance -- Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,
-    Fy_r = m*ay - Fy_f. Tier A: Milliken & Milliken, RCVD, 2-DOF planar
-    force/moment balance, p. TBD verify. Same construction as the
+    Fy_r = m*ay - Fy_f. Method anchor recorded in thesis_notes.md,
+    "Fy yaw-moment term (Module 4a)" entry. Same construction as the
     chair performance_analysis tooling's own fy_f_N/fy_r_N (internal);
     no deviation, this is adopted as-is.
 
@@ -661,8 +664,8 @@ def estimate_vertical_loads(state, forces, params):
     """WP5b(b) phase 1: axle and per-wheel vertical tyre loads (Fz), plus
     the normalised-force diagnostic fy_f_norm_N/fy_r_norm_N.
 
-    Tier A: Milliken & Milliken, RCVD, static/aero/longitudinal-transfer
-    load decomposition, p. TBD verify. Same construction as the chair
+    Method anchor recorded in thesis_notes.md, "WP5b(b) phase 1:
+    chair-parity vertical loads (Fz)" entry. Same construction as the chair
     performance_analysis tooling's own fz_f_N/fz_r_N/fz_fl_N/fz_fr_N/
     fz_rl_N/fz_rr_N and fy_f_norm_N/fy_r_norm_N
     (docs/literature/data_handler.py:1548-1621, internal) -- adopted as-is,
@@ -766,9 +769,10 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span):
 def estimate_cornering_stiffness(slip, forces, state, params):
     """Module 4b: effective cornering stiffness / CS ratio.
 
-    After Werner (2021) S2.2.2-2.2.3. Effective-stiffness estimation is
-    adapted (windowed regression from logged Fy/alpha in place of
-    Werner's Pacejka-model evaluation) -- see thesis_notes.md.
+    Method anchor recorded in thesis_notes.md, "CS_ratio (cornering
+    stiffness ratio) -- Werner MA method" entry. Effective-stiffness
+    estimation is adapted (windowed regression from logged Fy/alpha in
+    place of Werner's Pacejka-model evaluation) -- see thesis_notes.md.
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -893,20 +897,21 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 def estimate_yaw_moment_stability(state, beta, params, laps=None):
     """Module 5: yaw moment stability dMz/dbeta.
 
-    Target relation after Werner (2021) S4.5.2 Eq. 4.3/4.4
-    (Mz = Iz*psidd + D_psi*psid); D_psi term not yet computed (no
-    wheel-load sensor); see thesis_notes.md "Completing Werner Eq. 4.3"
-    and WP5b. The estimator itself (yaw-accel rolling mean, s-anchored
-    Gaussian-weighted local ridge regression) is
-    modules.yaw_stability, after the chair performance_analysis tooling
-    (internal) -- see thesis_notes.md for the attribution split and the
-    call-site sample-exclusion adaptation notes below.
+    Target relation method anchor recorded in thesis_notes.md, "Yaw
+    moment stability dMz/dbeta" entry (Mz = Iz*psidd + D_psi*psid);
+    D_psi term not yet computed (no wheel-load sensor); see
+    thesis_notes.md "Completing Werner Eq. 4.3" and WP5b. The estimator
+    itself (yaw-accel rolling mean, s-anchored Gaussian-weighted local
+    ridge regression) is modules.yaw_stability, after the chair
+    performance_analysis tooling (internal) -- see thesis_notes.md for
+    the attribution split and the call-site sample-exclusion adaptation
+    notes below.
 
-    Front/rear saturation as controllability-loss vs stability-loss:
-    Hoffman, Stein, Louca, Huh (2008), Int. J. Vehicle Design, Vol. 48,
-    Nos. 1/2, pp. 132-148, p. 136 Section 2. Saddle-node framing
-    (motivation only, no bifurcation analysis implemented): Ono et al.
-    (1998), cited after Hoffman et al. (2008, p. 136).
+    Front/rear saturation as controllability-loss vs stability-loss,
+    and the saddle-node framing (motivation only, no bifurcation
+    analysis implemented): method anchors recorded in thesis_notes.md,
+    "Front/rear saturation and saddle-node concept anchors closed"
+    entry.
 
     Sample exclusions (moving mask, kerb mask, structural in/out-lap
     exclusion) are all applied HERE, at the call site, by NaN-ing

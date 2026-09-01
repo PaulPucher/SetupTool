@@ -26,9 +26,9 @@ def estimate_longitudinal_forces(state, channels, params):
     """Compute axle longitudinal force Fx_f/Fx_r -- fallback tier only (no direct
     per-wheel or per-axle Fx channel exists in the Cosworth log).
 
-    Tier A: Rajamani, Vehicle Dynamics and Control, 2nd ed., Ch. 2
-    (longitudinal equation of motion, F_x = m*a_x + resistive forces).
-    Same construction as the chair performance_analysis tooling's own
+    Method anchor recorded in thesis_notes.md, "Citation cross-
+    reference, modules/longitudinal_forces.py" entry. Same construction
+    as the chair performance_analysis tooling's own
     calculate_longitudinal_axle_forces() third fallback tier
     (docs/literature/longitudinal_stiffness_estimator.py, internal) --
     adopted as-is, no deviation: fx_total = m*ax + drag + rolling
@@ -93,7 +93,8 @@ def estimate_longitudinal_forces(state, channels, params):
 def estimate_slip_ratio(state, channels, params):
     """Compute per-axle kinematic slip ratio kappa = (v_axle_corrected - v_ref) /
     v_ref, v_ref = ecu_speed. Tier B (signal/data engineering -- standard
-    slip-ratio construction, Rajamani Ch. 2 sec. 2.2 kappa definition;
+    slip-ratio construction, method anchor recorded in thesis_notes.md,
+    "Citation cross-reference, modules/longitudinal_forces.py" entry;
     no per-corner kinematic correction, a wheel-speed-vs-vehicle-speed
     proxy). Reproduces diagnostics/inspect_combined_slip_premise.py's
     formula exactly (same v_ref, same rear rolling-radius correction) so

@@ -6,6 +6,7 @@ import os
 import traceback
 from datetime import datetime, timedelta
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
     QPushButton, QScrollArea, QWidget, QFileDialog, QMessageBox,
@@ -25,6 +26,10 @@ class WeekendPdfDialog(QDialog):
         self.setWindowTitle("Export Weekend PDF")
         self.setModal(True)
         self.resize(480, 440)
+        # Follow-up item 1: native minimise/maximise buttons -- this
+        # dialog's outing list can scroll, so maximising is genuinely
+        # useful for a weekend with many outings.
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)

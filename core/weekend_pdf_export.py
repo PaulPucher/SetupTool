@@ -3,8 +3,9 @@
 # thesis_notes.md). One multi-page document covering a user-selected
 # subset of a race weekend's outings: a cover summary page, a dedicated
 # Setup/Setdown sheets section (landscape strips, core/pdf_export.py's
-# build_session_strip at 'small' scale, four strips/page = two outings'
-# Setup+Setdown pairs, chronological, page break between pairs), then one
+# build_session_strip at 'small' scale, two strips/page = one outing's
+# own Setup+Setdown pair, chronological, page break per outing -- follow-
+# up item 4, was four strips/two outings' pairs per page), then one
 # section per outing for what setup sheets don't cover: resolved accuracy
 # footer, verdict summary, recommendations, driver feedback. reportlab
 # tables throughout for the non-strip sections -- CORNER_LABELS/
@@ -42,7 +43,12 @@ from models.driver import Driver
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN = 14 * mm
 CONTENT_W = PAGE_W - 2 * MARGIN
-STRIPS_PER_PAGE = 4
+# Follow-up item 4: two strips per page (one outing's own Setup+Setdown
+# pair), not four (two outings' pairs) -- roughly doubles STRIP_H, the
+# real fix for the content-density ceiling a previous round's own report
+# flagged as open (the wheel-grid corner boxes alone needed ~77mm against
+# a 44mm budget at four-per-page).
+STRIPS_PER_PAGE = 2
 STRIP_GAP = 2 * mm
 STRIP_H = (PAGE_H - 2 * MARGIN - (STRIPS_PER_PAGE - 1) * STRIP_GAP) / STRIPS_PER_PAGE
 
@@ -196,17 +202,21 @@ def _session_meta(outing, driver_name, sheet_label, weekend):
 
 def _build_setup_sheets_section(weekend, outings, styles):
     """Dedicated Setup/Setdown strips section (PDF layout rework package):
-    core/pdf_export.py's build_session_strip at 'small' scale, four strips
-    per landscape page = two outings' Setup+Setdown pairs, chronological
-    (outings arrive pre-sorted from generate_weekend_pdf). A page break is
-    inserted every 2 outings so a pair is never split across pages -- an
-    outing's Setdown always sits directly under its own Setup.
+    core/pdf_export.py's build_session_strip at 'small' scale, TWO strips
+    per landscape page = one outing's own Setup+Setdown pair (follow-up
+    item 4 -- was four strips/two outings' pairs per page; doubling
+    STRIP_H is the real fix for the small-scale content-density ceiling a
+    previous round flagged as open, not a tunable-constant tweak).
+    Chronological (outings arrive pre-sorted from generate_weekend_pdf). A
+    page break is inserted before every outing after the first, so a pair
+    is never split across pages -- an outing's Setdown always sits
+    directly under its own Setup.
     """
     from core.pdf_export import build_session_strip
 
     flow = []
     for i, outing in enumerate(outings):
-        if i > 0 and i % 2 == 0:
+        if i > 0:
             flow.append(PageBreak())
         driver_name, _level = _driver_name_and_level(outing.driver_id)
         setup = _load_json(outing.setup_data)
@@ -217,8 +227,6 @@ def _build_setup_sheets_section(weekend, outings, styles):
         flow.append(Spacer(1, STRIP_GAP))
         flow.append(build_session_strip(
             _session_meta(outing, driver_name, "SETDOWN", weekend), setdown, "small", strip_w, STRIP_H))
-        if i % 2 == 0:
-            flow.append(Spacer(1, STRIP_GAP))
     return flow
 
 
@@ -296,17 +304,35 @@ def _recommendations_flowables(outing, summaries, driving_level, styles):
     rows = [["Action", "Score", "Trigger", "Cell ID(s)", "Provenance", "Situational",
              "Class", "Selected", "Conflicts / limits"]]
     for r in results:
-        if r["parameter"] is not None:
-            action_text = f"{r['parameter']} {r['direction']}"
+        # Reliability pass: a synthetic urgent row (action_class
+        # "urgent_gap", ui/views/outing_form.py's own FIX 1) has no setup-
+        # parameter action and no numeric score -- it flags a driver/data
+        # direction contradiction, not a tunable recommendation. Mirrors
+        # the UI's badge_text fallback (corner + verdict, since there is
+        # no lever to name) instead of assuming parameter/actions/score
+        # are always populated.
+        if r["action_class"] == "urgent_gap":
+            c0 = r["corners"][0] if r["corners"] else None
+            action_text = f"C{c0['stable_corner_id']}: {c0['short_verdict']}" if c0 else "engineer attention"
+            score_text = "-"
         else:
-            action_text = " + ".join(
-                f"{a['parameter']} -> {a['target']}" if "target" in a
-                else f"{a['parameter']} {a['direction']}"
-                for a in r["actions"]
-            )
+            if r["parameter"] is not None:
+                action_text = f"{r['parameter']} {r['direction']}"
+            else:
+                action_text = " + ".join(
+                    f"{a['parameter']} -> {a['target']}" if "target" in a
+                    else f"{a['parameter']} {a['direction']}"
+                    for a in r["actions"]
+                )
+            score_text = f"{r['score']:.2f}"
         provenances = sorted({(rule_provenance.get(rid) or "-") for rid in r["rules_fired"]})
         situational = any(rule_situational.get(rid) for rid in r["rules_fired"])
-        action_class_text = "ADVISORY" if r["action_class"] == "advisory" else "RECOMMENDED"
+        if r["action_class"] == "urgent_gap":
+            action_class_text = "URGENT"
+        elif r["action_class"] == "advisory":
+            action_class_text = "ADVISORY"
+        else:
+            action_class_text = "RECOMMENDED"
 
         notes = []
         if r["conflicts"]:
@@ -320,7 +346,7 @@ def _recommendations_flowables(outing, summaries, driving_level, styles):
             notes.append("limit unchecked")
 
         rows.append([
-            action_text, f"{r['score']:.2f}", "/".join(r["trigger_source"]),
+            action_text, score_text, "/".join(r["trigger_source"]),
             "/".join(r["cell_ids"]) or "-", "/".join(provenances),
             "yes" if situational else "no",
             ("SELECTED" if r["selected"] else action_class_text),
@@ -444,8 +470,8 @@ def generate_weekend_pdf(weekend, outings, output_path):
 
     `outings` is the user's selected subset (Outing ORM rows, any order --
     re-sorted here by date_time). Structure: cover page, then a dedicated
-    Setup/Setdown strips section (landscape, four strips/page, one page
-    break per two outings), then one page per outing for analysis/
+    Setup/Setdown strips section (landscape, two strips/page, one page
+    per outing -- follow-up item 4), then one page per outing for analysis/
     recommendations/feedback -- unchanged from before except the page is
     now landscape like the rest of the document. Each outing's analysis
     section is built inside its own try/except: one outing's malformed

@@ -707,6 +707,10 @@ class OutingForm(QWidget):
         btn_load.setFixedWidth(120)
         btn_load.clicked.connect(self._load_csv)
 
+        self.btn_clear_data = QPushButton("Clear Data")
+        self.btn_clear_data.setFixedWidth(100)
+        self.btn_clear_data.clicked.connect(self._on_clear_data_clicked)
+
         self.btn_analyse = QPushButton("Analyse")
         self.btn_analyse.setFixedWidth(100)
         self.btn_analyse.clicked.connect(self._run_stability_analysis)
@@ -806,6 +810,7 @@ class OutingForm(QWidget):
         self.estimator_status_label.setVisible(False)
 
         btn_layout.addWidget(btn_load)
+        btn_layout.addWidget(self.btn_clear_data)
         btn_layout.addWidget(self.btn_analyse)
         btn_layout.addWidget(self.btn_lap_traces)
         btn_layout.addWidget(self.accuracy_cap_combo)
@@ -827,28 +832,6 @@ class OutingForm(QWidget):
         estimator_status_layout.addWidget(self.estimator_status_label)
         estimator_status_layout.addStretch()
         layout.addWidget(estimator_status_row)
-
-        self.exclude_inout_btn = QPushButton("Exclude In/Out Laps")
-        self.exclude_inout_btn.setCheckable(True)
-        self.exclude_inout_btn.setChecked(False)
-        self.exclude_inout_btn.setFixedWidth(160)
-        self.exclude_inout_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1a1a1a;
-                color: #888;
-                border: 1px solid #2a2a2a;
-                border-radius: 4px;
-                padding: 4px 10px;
-                font-size: 11px;
-            }
-            QPushButton:checked {
-                background-color: #252525;
-                color: #C0A060;
-                border-color: #C0A060;
-            }
-        """)
-        self.exclude_inout_btn.toggled.connect(self._on_exclude_toggled)
-        self.exclude_inout_btn.setVisible(False)
 
         self.btn_clear_lap_selection = QPushButton("Clear Selection")
         self.btn_clear_lap_selection.setFixedWidth(120)
@@ -873,7 +856,6 @@ class OutingForm(QWidget):
         lap_controls_layout = QHBoxLayout(lap_controls_row)
         lap_controls_layout.setContentsMargins(0, 0, 0, 0)
         lap_controls_layout.setSpacing(8)
-        lap_controls_layout.addWidget(self.exclude_inout_btn)
         lap_controls_layout.addWidget(self.btn_clear_lap_selection)
         lap_controls_layout.addStretch()
         layout.addWidget(lap_controls_row)
@@ -915,24 +897,6 @@ class OutingForm(QWidget):
         layout.addWidget(self.plot_container)
 
         return section
-
-    def _on_exclude_toggled(self, checked):
-        if not self.parsed_data:
-            return
-        prev_value = None
-        cur_row = self.lap_table.currentRow()
-        if cur_row >= 0:
-            item = self.lap_table.item(cur_row, 0)
-            if item is not None:
-                prev_value = item.data(Qt.ItemDataRole.UserRole)
-        laps = self.parsed_data.get("laps", [])
-        self._populate_lap_table(laps)
-        if prev_value is not None:
-            for r in range(self.lap_table.rowCount()):
-                it = self.lap_table.item(r, 0)
-                if it is not None and it.data(Qt.ItemDataRole.UserRole) == prev_value:
-                    self.lap_table.selectRow(r)
-                    break
 
     def _build_plot_widget(self):
         import pyqtgraph as pg
@@ -1189,24 +1153,85 @@ class OutingForm(QWidget):
         self.csv_status_label.setText(f"Error loading file: {error_msg}")
         self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
 
+    def _on_clear_data_clicked(self):
+        # Decisions batch (Phase 2d): nothing to clear yet -- avoid a
+        # confirmation dialog over an already-empty Data section.
+        if not self.parsed_data and not self.loaded_csv_path:
+            return
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, "Clear data",
+            "Remove the loaded data file and analysis from this outing? "
+            "This cannot be undone once you Save.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._reset_data_state()
+
+    def _reset_data_state(self):
+        # Data lifecycle (Phase 2d): undo everything _on_csv_loaded and a
+        # completed Analyse populate, back to the pre-load state. In-memory/
+        # widget state only -- self.loaded_csv_path=None is what _save_
+        # outing later persists as csv_path="" (same "stage in memory, Save
+        # writes it" convention every other form field already follows), so
+        # this needs no DB write of its own and a Back-without-Save discards
+        # the clear exactly like it discards any other unsaved edit.
+        self.parsed_data = None
+        self.loaded_csv_path = None
+        self.stability_result = None
+        self.corner_positions_cache = None
+        self._analysis_data_json = None
+        self._displayed_resolved_vehicle_snapshot = None
+        self._cached_schema_mismatch = None
+        if self._corner_trace_dialog is not None:
+            self._corner_trace_dialog.hide()
+        if self._lap_trace_dialog is not None:
+            self._lap_trace_dialog.hide()
+
+        self.csv_status_label.setText("No file loaded")
+        self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.stability_status_label.setText("")
+        self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.estimator_status_label.setText("")
+        self.estimator_status_label.setVisible(False)
+        self.calibration_banner_label.setText("")
+        self.calibration_banner_label.setVisible(False)
+        self.accuracy_footer_label.setText("")
+        self.recommendations_calibration_banner_label.setText("")
+        self.recommendations_calibration_banner_label.setVisible(False)
+
+        self.lap_table.setRowCount(0)
+        self.lap_table.setVisible(False)
+        self.plot_container.setVisible(False)
+
+        self._clear_cards()
+        self.stability_summary_label.setText(
+            "Click Analyse in the Data section to populate results."
+        )
+        self.recommendations_summary_label.setText(
+            "Run Analyse in the Data section, then Generate."
+        )
+        self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+
+        self.btn_analyse.setEnabled(False)
+        self.btn_lap_traces.setEnabled(False)
+        self.btn_generate_recommendations.setEnabled(False)
+
+        self._update_corner_map_trace()
+
     def _get_lap_filter_from_selector(self):
+        # Decisions batch (Phase 2b): the lap_table selection only scopes the
+        # raw-channel plot view below (_on_lap_selected/_update_plots) -- it
+        # no longer has any say over which laps get analysed. Analysis
+        # always covers every is_valid_for_analysis lap; a file with none
+        # (e.g. every lap flagged in/out) falls back to every lap in the
+        # file rather than analysing nothing.
         if not self.parsed_data:
             return None
         all_laps = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
-        exclude_inout = self.exclude_inout_btn.isChecked()
-        valid_laps = [l["lap_number"] for l in self.parsed_data.get("laps", [])
-                      if l.get("is_valid_for_analysis", False)]
-        current_row = self.lap_table.currentRow()
-        selected_value = None
-        if current_row >= 0:
-            lap_item = self.lap_table.item(current_row, 0)
-            if lap_item is not None:
-                selected_value = lap_item.data(Qt.ItemDataRole.UserRole)
-        if selected_value is None or selected_value == "all":
-            if exclude_inout:
-                return valid_laps if valid_laps else all_laps
-            return all_laps
-        return [int(selected_value)]
+        valid_laps = sorted(l["lap_number"] for l in self.parsed_data.get("laps", [])
+                             if l.get("is_valid_for_analysis", False))
+        return valid_laps if valid_laps else all_laps
 
     def _get_accuracy_cap_from_selector(self):
         # WP-C: None means "Best available" -- no ceiling. Otherwise the
@@ -1273,16 +1298,7 @@ class OutingForm(QWidget):
         self._analyse_click_time = time.perf_counter()
         lap_filter = self._get_lap_filter_from_selector()
         all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
-        exclude_state = self.exclude_inout_btn.isChecked()
-        sel_row = self.lap_table.currentRow()
-        sel_value = None
-        if sel_row >= 0:
-            item = self.lap_table.item(sel_row, 0)
-            if item is not None:
-                sel_value = item.data(Qt.ItemDataRole.UserRole)
-        print(f"[ANALYSE] selector_row={sel_row} selector_value={sel_value!r}  "
-              f"exclude_inout={exclude_state}  all_laps={all_lap_nums}  "
-              f"lap_filter={lap_filter}")
+        print(f"[ANALYSE] all_laps={all_lap_nums}  lap_filter={lap_filter}")
         self.btn_analyse.setEnabled(False)
         self.stability_status_label.setText(
             f"Analysing laps {lap_filter}..."
@@ -1415,50 +1431,6 @@ class OutingForm(QWidget):
             return f"laps {laps[0]}-{laps[-1]}"
         return "laps " + ",".join(str(l) for l in laps)
 
-    def _sync_lap_selector_to_filter(self, lap_filter):
-        # Reverses the earlier "no lap-selector reconstruction" decision: on
-        # a DB cache-hit render, the selector should match what's shown, not
-        # just the label. Only syncs when the stored filter corresponds to a
-        # state the selector UI can actually produce (a single in-file lap,
-        # exactly all laps, or exactly the valid-for-analysis laps) --
-        # anything else, including a filter referencing laps not present in
-        # the current file, is left alone; the "cached (...)" label stays
-        # the only indicator in that case.
-        if not lap_filter or not self.parsed_data:
-            return False
-        laps_data = self.parsed_data.get("laps", [])
-        all_laps = sorted({l["lap_number"] for l in laps_data})
-        valid_laps = sorted(l["lap_number"] for l in laps_data if l.get("is_valid_for_analysis", False))
-        target = sorted(lap_filter)
-
-        if any(lap not in all_laps for lap in target):
-            return False
-
-        def select_userrole(value):
-            for row in range(self.lap_table.rowCount()):
-                item = self.lap_table.item(row, 0)
-                if item is not None and item.data(Qt.ItemDataRole.UserRole) == value:
-                    self.lap_table.selectRow(row)
-                    return True
-            return False
-
-        if len(target) == 1:
-            if self.exclude_inout_btn.isChecked():
-                self.exclude_inout_btn.setChecked(False)
-            return select_userrole(target[0])
-
-        if target == all_laps:
-            want_exclude = False
-        elif valid_laps and target == valid_laps:
-            want_exclude = True
-        else:
-            return False
-
-        select_userrole("all")
-        if self.exclude_inout_btn.isChecked() != want_exclude:
-            self.exclude_inout_btn.setChecked(want_exclude)
-        return True
-
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
                                    sideslip_source="kinematic", fit_manifest=None,
                                    gate_verdict=None, fallback_used=False, fallback_reason=None):
@@ -1572,7 +1544,15 @@ class OutingForm(QWidget):
         if not summaries:
             return False
         lap_filter = cached.get("lap_filter")
-        self._sync_lap_selector_to_filter(lap_filter)
+        # Decisions batch (Phase 2b): analysis now always covers every
+        # is_valid_for_analysis lap (or every lap if none are valid) -- a
+        # cached payload written under the old exclude-toggle/single-lap
+        # selector can carry a different lap_filter than that policy would
+        # produce today (e.g. one lap only, or all laps including in/out).
+        # Such a payload no longer reflects current policy and must be
+        # treated as a cache miss, not rendered as if it were current.
+        if sorted(lap_filter or []) != sorted(self._get_lap_filter_from_selector() or []):
+            return False
         self.stability_result = {"summaries": summaries}
         self._analysis_data_json = self.outing.analysis_data
         cached_resolved_accuracy = {
@@ -2530,9 +2510,6 @@ class OutingForm(QWidget):
 
     def _populate_lap_table(self, laps):
         from PyQt6.QtGui import QColor
-        exclude = getattr(self, 'exclude_inout_btn', None) and self.exclude_inout_btn.isChecked()
-        if exclude:
-            laps = [l for l in laps if l.get("is_valid_for_analysis", False)]
         self.lap_table.setRowCount(0)
 
         all_row = self.lap_table.rowCount()
@@ -2623,7 +2600,6 @@ class OutingForm(QWidget):
             )
             self.lap_table.setFixedHeight(header_h + total_row_h + 4)
             self.lap_table.setVisible(True)
-            self.exclude_inout_btn.setVisible(True)
 
     def _build_setup_section(self, prefix="setup"):
         section = QWidget()
