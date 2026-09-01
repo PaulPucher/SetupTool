@@ -48,3 +48,4 @@ docs/study/
 /*.txt
 !/channel_list.txt
 !/requirements.txt
+/*.pdf

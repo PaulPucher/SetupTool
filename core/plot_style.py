@@ -103,8 +103,16 @@ SESSION_CLOUD_SIZE_PRINT = 2
 # matplotlib-s scale factor (2px->7 before this round) so the two media
 # stay visually proportionate to each other.
 LAP_SAMPLE_SIZE_SCREEN = 1.5
-LAP_SAMPLE_SIZE_PRINT = 5
-LAP_SAMPLE_ALPHA = 0.5           # 0..1 -- pyqtgraph callers scale by 255
+# Fixes round, item 3: PRINT-only, reduced by about a third again (5 ->
+# 3.3) now that the corner-sample-fitted zoom (round 3 item 3) makes the
+# cloud of overlapping lap markers the dominant visual element in the
+# tyre-curve panel -- smaller markers let the estimation-window rings
+# and tangent line read clearly on top instead of competing with a wall
+# of same-sized dots. SCREEN size is untouched (not mentioned this
+# round, and the interactive dialog's own zoom/pan already lets a user
+# see through overlapping markers a static PRINT export cannot).
+LAP_SAMPLE_SIZE_PRINT = 3.3
+LAP_SAMPLE_ALPHA = 0.4           # 0..1 -- pyqtgraph callers scale by 255
 WINDOW_RING_SIZE_SCREEN = 3.5
 WINDOW_RING_SIZE_PRINT = 12
 # Fitted model / tangent / linear-reference line width, PRINT only (the

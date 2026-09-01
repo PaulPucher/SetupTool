@@ -446,8 +446,12 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
     # nested subgridspec -- 0.036 of the 24cm figure height = 8.6mm,
     # measured at 8.1mm actual clearance after the legend axes' own
     # internal padding, still clearing item 1's 8mm floor, at no cost to
-    # the tyre-curve panel's own square size.
-    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.04, wspace=0.0, hspace=0.02, rect=(0.0, 0.036, 1.0, 1.0))
+    # the tyre-curve panel's own square size. Fixes round: rect's LEFT
+    # edge was 0.0 -- no reserved margin at all, so the leftmost panel's
+    # y-axis label sat flush against the figure edge and got clipped on
+    # export. 0.035 of the 16cm figure width = 5.6mm, measured (see this
+    # session's report) at >=5mm actual clearance after axis-label text.
+    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.04, wspace=0.0, hspace=0.02, rect=(0.07, 0.036, 1.0, 1.0))
     gs = fig.add_gridspec(5, 2, height_ratios=[2.4, 2.4, 2.4, 0.9, 5.4])
     ax_speed, legend_speed = _side_legend_axes(fig, gs[0, :])
     ax_csf, legend_csf = _side_legend_axes(fig, gs[1, :])
@@ -519,7 +523,11 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT)
     styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
 
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_VERDICT, theme)
-    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02)
+    # Fixes round: rect's left edge defaulted to 0.0 (no explicit rect at
+    # all) -- the leftmost panel's y-axis label sat flush against the
+    # figure edge and clipped on export. 0.035 of the 16cm figure width
+    # = 5.6mm, measured at >=5mm actual clearance.
+    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02, rect=(0.035, 0.0, 1.0, 1.0))
     gs = fig.add_gridspec(6, 1)
     panel_specs = [
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
@@ -573,7 +581,8 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT)
     styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
 
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_VERDICT, theme)
-    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02)
+    # Fixes round: same left-margin fix as render_verdict_traces_figure.
+    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02, rect=(0.035, 0.0, 1.0, 1.0))
     gs = fig.add_gridspec(4, 1)
     panel_specs = [
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
