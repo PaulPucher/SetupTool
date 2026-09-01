@@ -2,6 +2,7 @@
 
 import collections
 import os
+import traceback
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QScrollArea, QPushButton,
@@ -18,6 +19,7 @@ from models.outing import Outing
 from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
 from ui.views.measurement_points_widget import MeasurementPointsWidget
+from core.error_text import friendly_error_text
 
 # WARN boundary as a fraction of the BAD (stab_neg_thresh) boundary -- ratio
 # inherited from the original -200/-500 design so detail colours track the
@@ -109,7 +111,10 @@ class CsvLoaderThread(QThread):
             result = parse_csv(self.path)
             self.finished.emit(result)
         except Exception as e:
-            self.error.emit(str(e))
+            # Reliability pass: full traceback to the console/log (for
+            # diagnosis), a friendly one-line message to the UI.
+            print(traceback.format_exc())
+            self.error.emit(friendly_error_text(e))
 
 
 class StabilityAnalysisThread(QThread):
@@ -269,6 +274,12 @@ class StabilityAnalysisThread(QThread):
                 "forces": forces,
                 "corners": corners,
                 "cap": self.cap,
+                # Cleanup pass, Phase 1: lets CornerTraceDialog respect the
+                # analysis's own lap selection (single lap chosen -> traces
+                # default to that lap only) instead of always defaulting
+                # every valid lap to checked regardless of what was
+                # actually analysed.
+                "lap_filter": self.lap_filter,
                 "resolved_accuracy": self.resolved_accuracy,
                 "sideslip_source": sideslip_source,
                 "fit_manifest": fit_manifest,
@@ -279,7 +290,11 @@ class StabilityAnalysisThread(QThread):
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
         except Exception as e:
-            self.error.emit(str(e))
+            # Reliability pass: same convention as CsvLoaderThread.run()
+            # above -- full traceback to the console/log, a one-line
+            # message to the UI's status label.
+            print(traceback.format_exc())
+            self.error.emit(friendly_error_text(e))
 
 
 class OutingForm(QWidget):
@@ -1701,8 +1716,8 @@ class OutingForm(QWidget):
         else:
             self.calibration_banner_label.setVisible(True)
             self.calibration_banner_label.setText(
-                "PLACEHOLDER: sideslip estimator changed, verdict thresholds not "
-                "re-derived -- read traces, not verdict colours."
+                "Sideslip estimator changed; verdict thresholds not re-derived -- "
+                "read traces, not verdict colours."
             )
         self._displayed_resolved_vehicle_snapshot = (
             resolved_accuracy.get("values") if resolved_accuracy else None
@@ -2188,8 +2203,8 @@ class OutingForm(QWidget):
         else:
             self.recommendations_calibration_banner_label.setVisible(True)
             self.recommendations_calibration_banner_label.setText(
-                "PLACEHOLDER: sideslip estimator changed, recommendation rules key on "
-                "unrecalibrated verdict thresholds -- treat as indicative only."
+                "Sideslip estimator changed; recommendation thresholds not "
+                "re-derived -- treat as indicative only."
             )
         if not self.stability_result:
             # Fix turn: this must never render as silent emptiness. The
@@ -3262,6 +3277,17 @@ class OutingForm(QWidget):
             QMessageBox.warning(
                 self, "Save failed",
                 f"Could not save {os.path.basename(path)}.\nThe file may be open in another program."
+            )
+        except Exception as e:
+            # Reliability pass: PermissionError was the only exception
+            # this ever caught -- anything else (e.g. a KeyError from
+            # malformed setup data) propagated unhandled out of this Qt
+            # slot with no dialog telling the user the export failed.
+            # Full traceback to the console/log, a friendly message here.
+            print(traceback.format_exc())
+            QMessageBox.warning(
+                self, "Save failed",
+                f"Could not save {os.path.basename(path)}: {friendly_error_text(e)}"
             )
 
     def _build_corner_map(self):

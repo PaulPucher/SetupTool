@@ -475,8 +475,15 @@ def generate_weekend_pdf(weekend, outings, output_path):
         try:
             story.extend(_build_outing_section(outing, styles))
         except Exception as e:
+            # Reliability pass: this per-outing try/except already does the
+            # right thing structurally (one bad outing renders a visible
+            # inline note instead of aborting the whole export) -- only the
+            # message itself was raw repr() (Python syntax like
+            # ClassName('message')), not prose a race engineer should have
+            # to parse.
+            from core.error_text import friendly_error_text
             label = f"Outing {outing.number or outing.id}"
-            story.append(Paragraph(escape(f"{label}: ERROR building this section -- {e!r}"),
+            story.append(Paragraph(escape(f"{label}: ERROR building this section -- {friendly_error_text(e)}"),
                                     styles["error"]))
         story.append(PageBreak())
 

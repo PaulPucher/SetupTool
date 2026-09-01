@@ -99,48 +99,106 @@ def _strip_styles(size):
     the page, 'small' is one of four strips on a weekend page. Values
     only differ in point size, never in what's shown.
     """
+    # A3 revision: every numeric value cell (core row, damper, advanced
+    # list, diff torque, weight grid, car params) now shares ONE fixed
+    # "value" font size per scale, sized so a 6-digit value ("888888" /
+    # "-88888") fits every cell at its ACTUAL width with no shrinking --
+    # verified against every value-cell width formula in this file (see
+    # thesis_notes.md). No dynamic per-value autofit: a cell that can't
+    # fit at this size is a layout bug, fixed by widening the cell (see
+    # the DAMPER_W_FRAC/DAMPER_LABEL_FRAC/ADVANCED_VAL_FRAC/CAR_PARAM_
+    # VAL_FRAC constants and the diff-torque row's 3-across layout below),
+    # never by shrinking the number.
     if size == "large":
-        f = dict(header=16, corner_title=16, core_label=12.5, core_value=16,
-                  table_label=11.5, table_value=13.5, car_label=11, car_value=13,
+        f = dict(header=16, corner_title=16, core_label=12.5, value=9,
+                  table_label=11.5, car_label=11,
                   section_title=14, schematic=9, notes=10)
         pad = 6.5
     else:
-        f = dict(header=7.5, corner_title=7, core_label=5.6, core_value=6.8,
-                  table_label=5, table_value=5.8, car_label=5.4, car_value=6.2,
+        f = dict(header=7.5, corner_title=7, core_label=5.6, value=6.5,
+                  table_label=5, car_label=5.4,
                   section_title=6, schematic=4.6, notes=5.2)
         pad = 1.1
+    # Cleanup pass, Phase 3: several inter-block Spacer heights below used
+    # to be hardcoded in millimetres regardless of `size` -- fine at
+    # "large" scale, but at "small" scale (STRIP_H=44mm, four strips per
+    # weekend page) those same fixed gaps ate a disproportionate share of
+    # an already tight height budget relative to the font sizes actually
+    # shrinking around them. That mismatch was the real driver behind
+    # KeepInFrame's shrink search collapsing each strip -- including the
+    # Car column -- to roughly a quarter of its intended width (confirmed
+    # by rendering the real Dubai weekend sheet: content stopped at ~30mm
+    # of a ~269mm-wide strip). Scaled to the same large/small ratio as
+    # `pad` above so gaps shrink in proportion to everything around them.
+    gap_lg = 2.5 * mm if size == "large" else 0.6 * mm
+    gap_sm = 1.5 * mm if size == "large" else 0.4 * mm
+    # Cleanup pass, Phase 3, same finding as gap_lg/gap_sm above but for
+    # the splitter/diffuser MeasurementDiagram flowables specifically:
+    # _measurement_diagram_boxes sizes them from the car column's own
+    # WIDTH alone (car_col_w is nearly the same in mm at both scales --
+    # only STRIP_H shrinks, from ~190mm large to 44mm small), so the two
+    # diagrams alone rendered at ~33mm+36mm tall regardless of `size`,
+    # already exceeding the entire "small" strip height budget before
+    # counting anything else in the car column. diagram_scale shrinks
+    # their footprint directly instead of relying on KeepInFrame's own
+    # (until now catastrophic) uniform shrink to compensate.
+    diagram_scale = 1.0 if size == "large" else 0.4
+    # Cleanup pass, Phase 3: ParagraphStyle's own `leading` (line-box
+    # height) defaults to a FLAT 12pt regardless of fontSize when left
+    # unset -- every style below left it unset. At "large" scale
+    # (fontSize up to 16) that under-sizes the box relative to the glyph
+    # ink, so the next stacked Paragraph (e.g. the header's own muted
+    # subtitle line, or a section_title sitting right above its table)
+    # visually collides with the one above it. At "small" scale (fontSize
+    # down to 4.6) the same flat 12pt is far MORE than needed, over-
+    # sizing every label/value pair's box -- inflating the whole strip's
+    # natural height well past what 4-per-page (STRIP_H, core/weekend_
+    # pdf_export.py) budgets for, which is what forced KeepInFrame's
+    # shrink search to collapse the entire strip (car column included)
+    # down to roughly a quarter of its intended width, confirmed by
+    # rendering the real Dubai weekend sheet before this fix. Standard
+    # typographic ratio (1.2x fontSize), applied uniformly instead of
+    # reportlab's flat constant, fixes both symptoms with one change.
+    def _lead(size):
+        return size * 1.2
+
+    header_muted_size = f["header"] * 0.6
     styles = {
-        "header": ParagraphStyle("header", fontSize=f["header"], fontName="Helvetica-Bold",
-                                  textColor=TEXT),
-        "header_muted": ParagraphStyle("header_muted", fontSize=f["header"] * 0.6,
+        "header": ParagraphStyle("header", fontSize=f["header"], leading=_lead(f["header"]),
+                                  fontName="Helvetica-Bold", textColor=TEXT),
+        "header_muted": ParagraphStyle("header_muted", fontSize=header_muted_size,
+                                        leading=_lead(header_muted_size),
                                         fontName="Helvetica", textColor=MUTED),
-        "sheet_label": ParagraphStyle("sheet_label", fontSize=f["header"], fontName="Helvetica-Bold",
-                                       textColor=TEXT, alignment=TA_RIGHT),
+        "sheet_label": ParagraphStyle("sheet_label", fontSize=f["header"], leading=_lead(f["header"]),
+                                       fontName="Helvetica-Bold", textColor=TEXT, alignment=TA_RIGHT),
         "corner_title": ParagraphStyle("corner_title", fontSize=f["corner_title"],
+                                        leading=_lead(f["corner_title"]),
                                         fontName="Helvetica-Bold", textColor=TEXT),
-        "core_label": ParagraphStyle("core_label", fontSize=f["core_label"], fontName="Helvetica",
-                                      textColor=MUTED, wordWrap=None),
-        "core_value": ParagraphStyle("core_value", fontSize=f["core_value"],
-                                      fontName="Helvetica-Bold", textColor=TEXT),
-        "table_label": ParagraphStyle("table_label", fontSize=f["table_label"], fontName="Helvetica",
-                                       textColor=MUTED),
-        "table_value": ParagraphStyle("table_value", fontSize=f["table_value"],
-                                       fontName="Helvetica-Bold", textColor=TEXT, alignment=TA_CENTER),
-        "table_head": ParagraphStyle("table_head", fontSize=f["table_label"], fontName="Helvetica-Bold",
-                                      textColor=TEXT, alignment=TA_CENTER),
-        "car_label": ParagraphStyle("car_label", fontSize=f["car_label"], fontName="Helvetica",
-                                     textColor=MUTED),
-        "car_value": ParagraphStyle("car_value", fontSize=f["car_value"],
-                                     fontName="Helvetica-Bold", textColor=TEXT, alignment=TA_CENTER),
+        "core_label": ParagraphStyle("core_label", fontSize=f["core_label"], leading=_lead(f["core_label"]),
+                                      fontName="Helvetica", textColor=MUTED, wordWrap=None),
+        "value": ParagraphStyle("value", fontSize=f["value"], leading=_lead(f["value"]),
+                                 fontName="Helvetica-Bold", textColor=TEXT, alignment=TA_CENTER),
+        "table_label": ParagraphStyle("table_label", fontSize=f["table_label"], leading=_lead(f["table_label"]),
+                                       fontName="Helvetica", textColor=MUTED),
+        "table_head": ParagraphStyle("table_head", fontSize=f["table_label"], leading=_lead(f["table_label"]),
+                                      fontName="Helvetica-Bold", textColor=TEXT, alignment=TA_CENTER),
+        "car_label": ParagraphStyle("car_label", fontSize=f["car_label"], leading=_lead(f["car_label"]),
+                                     fontName="Helvetica", textColor=MUTED),
         "section_title": ParagraphStyle("section_title", fontSize=f["section_title"],
+                                         leading=_lead(f["section_title"]),
                                          fontName="Helvetica-Bold", textColor=TEXT,
                                          alignment=TA_LEFT),
         "schematic_label": ParagraphStyle("schematic_label", fontSize=f["schematic"],
+                                           leading=_lead(f["schematic"]),
                                            fontName="Helvetica", textColor=MUTED),
         "schematic_box_font": f["schematic"],
-        "notes": ParagraphStyle("notes", fontSize=f["notes"], fontName="Helvetica", textColor=TEXT),
+        "notes": ParagraphStyle("notes", fontSize=f["notes"], leading=_lead(f["notes"]),
+                                 fontName="Helvetica", textColor=TEXT),
         "_pad": pad,
         "_fontsizes": f,
+        "_gap_lg": gap_lg,
+        "_gap_sm": gap_sm,
+        "_diagram_scale": diagram_scale,
     }
     return styles
 
@@ -273,11 +331,29 @@ class MeasurementDiagram(Flowable):
         c.restoreState()
 
 
+# A3 revision: structural width fractions chosen (see thesis_notes.md)
+# so the uniform "value" font (f["value"], _strip_styles) fits a 6-digit
+# value in every one of these cells with margin, at both scales -- solved
+# once against the tightest cell (damper LS/HS, a 2-way split within an
+# already-narrow sub-table) and re-checked against every other cell
+# formula below. Changing any of these without re-checking that margin
+# (core/pdf_export.py's own verification script, not committed) reopens
+# the overflow bug this constant set closes.
+DAMPER_W_FRAC = 0.54        # of corner_w, was 0.42
+DAMPER_LABEL_FRAC = 0.33    # of damper_w, was 0.4
+ADVANCED_VAL_FRAC = 0.42    # of advanced_w, was 0.38
+CAR_PARAM_VAL_FRAC = 0.26   # of car_col_w, was 0.22
+DIFF_TORQUE_COLS = 3        # was 5-across (one row); car_col_w/5 cannot
+                             # hold a 6-digit value at any legible size
+
+
 def _damper_table(data, styles, width):
     """Bump/Reb x LS/HS as a real small table -- each label written once,
     not repeated per cell. Blowoff is its own row, value spanning both
     data columns since it has no LS/HS split.
     """
+    label_w = width * DAMPER_LABEL_FRAC
+    val_w = (width - label_w) / 2
     rows = [
         [Paragraph("", styles["table_head"]), Paragraph("LS", styles["table_head"]),
          Paragraph("HS", styles["table_head"])],
@@ -285,44 +361,44 @@ def _damper_table(data, styles, width):
     for row_label, k_ls, k_hs in DAMPER_ROWS:
         rows.append([
             Paragraph(row_label, styles["table_label"]),
-            Paragraph(_fmt(data.get(k_ls, "")), styles["table_value"]),
-            Paragraph(_fmt(data.get(k_hs, "")), styles["table_value"]),
+            Paragraph(_fmt(data.get(k_ls, "")), styles["value"]),
+            Paragraph(_fmt(data.get(k_hs, "")), styles["value"]),
         ])
     rows.append([
         Paragraph("Blowoff", styles["table_label"]),
-        Paragraph(_fmt(data.get(BLOWOFF_KEY, "")), styles["table_value"]), "",
+        Paragraph(_fmt(data.get(BLOWOFF_KEY, "")), styles["value"]), "",
     ])
-    label_w = width * 0.4
-    val_w = (width - label_w) / 2
     t = _bordered_table(rows, [label_w, val_w, val_w], styles)
     t.setStyle(TableStyle([("SPAN", (1, 3), (2, 3))]))
     return t
 
 
 def _advanced_list(data, styles, width):
-    rows = [[Paragraph(label, styles["table_label"]), Paragraph(_fmt(data.get(key, "")), styles["table_value"])]
+    val_w = width * ADVANCED_VAL_FRAC
+    label_w = width - val_w
+    rows = [[Paragraph(label, styles["table_label"]), Paragraph(_fmt(data.get(key, "")), styles["value"])]
             for key, label in ADVANCED_LABELS.items()]
-    return _bordered_table(rows, [width * 0.62, width * 0.38], styles)
+    return _bordered_table(rows, [label_w, val_w], styles)
 
 
 def _corner_box(label, data, styles, width):
     title_gap = 2.5 * mm if styles["_fontsizes"]["corner_title"] >= 10 else 0.5 * mm
     elements = [Paragraph(label, styles["corner_title"]), Spacer(1, title_gap)]
 
+    lw = width * 0.30
+    vw = width * 0.20
     core_pairs = list(CORNER_LABELS.items())
     core_rows = []
     for i in range(0, len(core_pairs), 2):
         (k1, l1), (k2, l2) = core_pairs[i], core_pairs[i + 1]
         core_rows.append([
-            Paragraph(l1, styles["core_label"]), Paragraph(_fmt(data.get(k1, "")), styles["core_value"]),
-            Paragraph(l2, styles["core_label"]), Paragraph(_fmt(data.get(k2, "")), styles["core_value"]),
+            Paragraph(l1, styles["core_label"]), Paragraph(_fmt(data.get(k1, "")), styles["value"]),
+            Paragraph(l2, styles["core_label"]), Paragraph(_fmt(data.get(k2, "")), styles["value"]),
         ])
-    lw = width * 0.30
-    vw = width * 0.20
     elements.append(_bordered_table(core_rows, [lw, vw, lw, vw], styles))
-    elements.append(Spacer(1, 2.5 * mm))
+    elements.append(Spacer(1, styles["_gap_lg"]))
 
-    damper_w = width * 0.42
+    damper_w = width * DAMPER_W_FRAC
     advanced_w = width - damper_w - 2 * mm
     lower = Table(
         [[_damper_table(data, styles, damper_w), _advanced_list(data, styles, advanced_w)]],
@@ -338,26 +414,38 @@ def _corner_box(label, data, styles, width):
 
 
 def _diff_torque_row(car, styles, width):
-    """Five bordered cells, one per measured locking-torque position --
-    same collected-but-previously-unprinted data as the setup form's own
-    diff_torque_row (ui/views/outing_form.py), same 1-5 position order.
+    """One bordered cell per measured locking-torque position (position
+    number over value, same stacked-cell convention as before), wrapped
+    at DIFF_TORQUE_COLS per row instead of one 5-across row -- five equal
+    columns across the full car-column width left too little room for a
+    6-digit value at the shared "value" font size (car_col_w/5 vs the
+    2-column damper split's own already-tight car_col_w/2-ish budget);
+    wrapping to rows of DIFF_TORQUE_COLS gives each cell car_col_w/
+    DIFF_TORQUE_COLS instead, verified against the "value" font's needed
+    width in the same check as every other cell in this file.
     """
     torque = car.get("differential_locking_torque_measured") or {}
-    cell_w = width / len(DIFF_TORQUE_POSITIONS)
-    row = [[Paragraph(pos, styles["table_head"]), Paragraph(_fmt(torque.get(pos, "")), styles["car_value"])]
-           for pos in DIFF_TORQUE_POSITIONS]
-    return _bordered_table([row], [cell_w] * len(DIFF_TORQUE_POSITIONS), styles)
+    cell_w = width / DIFF_TORQUE_COLS
+    positions = DIFF_TORQUE_POSITIONS
+    rows = []
+    for i in range(0, len(positions), DIFF_TORQUE_COLS):
+        chunk = positions[i:i + DIFF_TORQUE_COLS]
+        row = [[Paragraph(pos, styles["table_head"]), Paragraph(_fmt(torque.get(pos, "")), styles["value"])]
+               for pos in chunk]
+        row += [""] * (DIFF_TORQUE_COLS - len(chunk))
+        rows.append(row)
+    return _bordered_table(rows, [cell_w] * DIFF_TORQUE_COLS, styles)
 
 
 def _weight_grid(car, styles, width):
-    rows = [
-        [Paragraph("FL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fl", "")), styles["car_value"]),
-         Paragraph("FR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fr", "")), styles["car_value"])],
-        [Paragraph("RL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rl", "")), styles["car_value"]),
-         Paragraph("RR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rr", "")), styles["car_value"])],
-    ]
     lw = width * 0.2
     vw = width * 0.3
+    rows = [
+        [Paragraph("FL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fl", "")), styles["value"]),
+         Paragraph("FR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fr", "")), styles["value"])],
+        [Paragraph("RL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rl", "")), styles["value"]),
+         Paragraph("RR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rr", "")), styles["value"])],
+    ]
     return _bordered_table(rows, [lw, vw, lw, vw], styles)
 
 
@@ -397,12 +485,12 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
     # diffuser's bottom row near fy=0.96), so this margin isn't optional
     # headroom, it is where those boxes actually live.
     box_frac = 0.14
-    diagram_w = width / (1 + box_frac)
+    diagram_w = width / (1 + box_frac) * styles["_diagram_scale"]
     aspect = 0.55 if outline == "splitter" else 0.6
     diagram_h = diagram_w * aspect
     box_w = diagram_w * box_frac
     box_h = box_w * 0.6
-    font_size = max(styles["_fontsizes"]["car_value"] * 0.8, 4)
+    font_size = max(styles["_fontsizes"]["value"] * 0.8, 4)
     return [
         Paragraph(title, styles["car_label"]),
         MeasurementDiagram(outline, positions, points, diagram_w, diagram_h, box_w, box_h, font_size),
@@ -423,35 +511,37 @@ def _car_column(car, styles, width):
     title_gap = 2.5 * mm if styles["_fontsizes"]["section_title"] >= 10 else 0.8 * mm
     elements = [Paragraph("Car", styles["section_title"]), Spacer(1, title_gap)]
 
-    val_w = width * 0.22
+    val_w = width * CAR_PARAM_VAL_FRAC
     label_w = width - val_w
-    param_rows = [[Paragraph(label, styles["car_label"]), Paragraph(_fmt(car.get(key, "")), styles["car_value"])]
+    param_rows = [[Paragraph(label, styles["car_label"]),
+                    Paragraph(_fmt(car.get(key, "")), styles["value"])]
                   for key, label in CAR_LABELS.items()]
     elements.append(_bordered_table(param_rows, [label_w, val_w], styles))
-    elements.append(Spacer(1, 1.5 * mm))
+    elements.append(Spacer(1, styles["_gap_sm"]))
 
     elements.append(Paragraph(DIFF_TORQUE_LABEL, styles["car_label"]))
     elements.append(_diff_torque_row(car, styles, width))
-    elements.append(Spacer(1, 1.5 * mm))
+    elements.append(Spacer(1, styles["_gap_sm"]))
 
     splitter_points = car.get("splitter_points") or [None] * len(SPLITTER_POINT_POSITIONS)
     diffuser_points = car.get("diffuser_points") or [None] * len(DIFFUSER_POINT_POSITIONS)
     elements.extend(_measurement_diagram_boxes("Splitter Pts (mm, vs floor)", "splitter",
                                                  SPLITTER_POINT_POSITIONS, splitter_points, styles, width))
-    elements.append(Spacer(1, 1.5 * mm))
+    elements.append(Spacer(1, styles["_gap_sm"]))
 
     elements.append(_schematic_row("Wing", WING_POSITIONS, car.get("wing_position"), styles, width))
     elements.append(_schematic_row("ARB Fr.", ARB_MOUNT_POSITIONS, car.get("arb_front_mount"), styles, width))
-    elements.append(Spacer(1, 1.5 * mm))
+    elements.append(Spacer(1, styles["_gap_sm"]))
 
     elements.extend(_measurement_diagram_boxes("Diffuser Pts (mm, vs floor)", "diffuser",
                                                  DIFFUSER_POINT_POSITIONS, diffuser_points, styles, width))
-    elements.append(Spacer(1, 1.5 * mm))
+    elements.append(Spacer(1, styles["_gap_sm"]))
 
     elements.append(Paragraph("Weights (kg)", styles["section_title"]))
     elements.append(Spacer(1, title_gap))
     elements.append(_weight_grid(car, styles, width))
-    totals_rows = [[Paragraph(label, styles["car_label"]), Paragraph(_fmt(car.get(key, "")), styles["car_value"])]
+    totals_rows = [[Paragraph(label, styles["car_label"]),
+                     Paragraph(_fmt(car.get(key, "")), styles["value"])]
                    for key, label in WEIGHT_TOTALS_LABELS.items()]
     elements.append(_bordered_table(totals_rows, [label_w, val_w], styles))
     return elements
@@ -560,11 +650,20 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
     )
 
     setup = {}
+    parse_error = None
     if outing.setup_data:
         try:
             setup = json.loads(outing.setup_data)
-        except Exception:
-            pass
+        except Exception as e:
+            # Reliability pass: this used to swallow the error and render
+            # a fully blank-but-otherwise-normal-looking sheet -- zero
+            # indication anywhere that the stored setup_data was corrupt
+            # rather than genuinely empty. A visible note in the PDF
+            # itself, same "surface it in the document, don't abort the
+            # export" convention core/weekend_pdf_export.py's own per-
+            # outing error handling already uses.
+            from core.error_text import friendly_error_text
+            parse_error = friendly_error_text(e)
 
     meta = {
         "number": getattr(outing, "number", ""),
@@ -577,5 +676,18 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
 
     strip_w = PAGE_W - 2 * MARGIN
     strip_h = PAGE_H - 2 * MARGIN
-    story = [build_session_strip(meta, setup, "large", strip_w, strip_h)]
+    story = []
+    if parse_error is not None:
+        # Reserve real space for the banner instead of stacking it in
+        # front of a KeepInFrame already sized to the FULL page -- that
+        # would push the frame past the bottom margin and overflow the
+        # page, trading one Phase 3 overlap bug for a new one.
+        warn_h = 8 * mm
+        warn_style = ParagraphStyle("setup_data_error", fontSize=11, fontName="Helvetica-Bold",
+                                     textColor=colors.HexColor("#c0392b"))
+        story.append(Paragraph(
+            f"Setup data could not be read ({parse_error}) -- sheet below is blank.", warn_style))
+        story.append(Spacer(1, 3 * mm))
+        strip_h -= warn_h
+    story.append(build_session_strip(meta, setup, "large", strip_w, strip_h))
     doc.build(story)

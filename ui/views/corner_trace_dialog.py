@@ -54,46 +54,46 @@ ALPHA_FAINT = 90  # non-selected, still-visible laps -- out of 255
 # added/removed via plot.clear()/plot.plot(..., name=...) -- calling
 # addLegend() again on every show_corner()/show_lap() render would stack
 # duplicate legend boxes, so it must stay a one-time construction call.
-LEGEND_FONT_PT = "10pt"
-LEGEND_OFFSET = (10, 10)  # px from the plot's top-right corner
+LEGEND_FONT_PT = "11pt"
+LEGEND_INSET = (-8, 8)  # px, pulled in from the plot's actual top-right corner
 
 
 def _style_new_legend(plot):
     """Attach ONE styled legend to `plot`, call exactly once per plot
-    object (see LEGEND_FONT_PT's own comment for why). Semi-opaque
-    background (not fully solid) so it stays readable over a busy trace
-    without fully hiding whatever data happens to sit behind its corner.
+    object (see LEGEND_FONT_PT's own comment for why). Solid background
+    so it stays fully readable over a busy trace.
+
+    Cleanup fix: addLegend(offset=...) alone anchors the legend's
+    top-LEFT corner near the viewbox's top-left, offset by that amount --
+    on every panel here, traces start at the left edge of the window
+    (track position s), so that placement sat directly on top of the
+    data. legend.anchor(itemPos=(1,0), parentPos=(1,0), ...) explicitly
+    pins the legend's own top-right corner to the viewbox's top-right
+    corner instead, which is empty on every panel in this dialog family
+    (curves only reach their highest values well after the left edge).
     """
     import pyqtgraph as pg
-    legend = plot.addLegend(offset=LEGEND_OFFSET, labelTextSize=LEGEND_FONT_PT)
+    legend = plot.addLegend(labelTextSize=LEGEND_FONT_PT)
+    legend.anchor(itemPos=(1, 0), parentPos=(1, 0), offset=LEGEND_INSET)
     legend.setBrush(pg.mkBrush(PANEL_ALT))
     legend.setLabelTextColor(TEXT_MUTED)
     return legend
 
 
-# Fix turn: plain-English legend, no internal field/code names (CSf/CSr,
-# etc.) -- every curve, threshold line and shaded band gets a wording an
-# engineer who has never opened this codebase can read unaided.
+# Cleanup pass, Phase 1: short footer, not a per-panel/per-threshold
+# explainer -- each panel's own in-plot legend (see _style_new_legend/
+# _add_threshold_line) now names every curve and threshold line directly.
 BASE_LEGEND_TEXT = (
-    "Top panel: yaw-moment stability (purple); red dashed line = "
-    "destabilising-yaw threshold, below it the car is flagged unstable. "
-    "Second panel: front cornering stiffness (blue) and rear cornering "
-    "stiffness (orange); dashed lines = strong-collapse threshold, "
-    "dotted lines = moderate-collapse threshold, same colour per axle. "
-    "Third panel: front longitudinal stiffness (green) and rear "
-    "longitudinal stiffness (pink), same 1/0/negative scale as cornering "
-    "stiffness above -- shown for context only, no threshold lines (no "
-    "verdict currently depends on it). Bottom panel: speed (tan), shown "
-    "for context only."
+    "Bold = the emphasised lap, faint = other checked laps. "
+    "LS ratio (third panel) is shown for context only -- no verdict depends on it."
 )
 
 # Lap-trace-view work package: corner-band legend sentence, appended to
 # BASE_LEGEND_TEXT. Colour words describe ui.style's actual BAD/WARN/OK
 # hexes (a saturated red, a gold/tan, a green) -- not a separate palette.
 LAP_BAND_LEGEND_TEXT = (
-    "Background bands, labeled by corner number: colour is that corner's "
-    "worst verdict across all its laps (red = strong, gold = moderate, "
-    "green = normal) -- click a band to open its own per-corner trace."
+    "Corner bands: colour = worst verdict across all laps (red/gold/green). "
+    "Click a band to open that corner's trace."
 )
 
 PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
@@ -110,18 +110,17 @@ TYRE_CURVE_LEGEND_TEXT = (
     "C_linear_ref, the slope the tyre held before its lateral force peak) "
     "-- beyond-peak (throwaway) operation shows as the cloud folding BACK "
     "over this line, Fy falling while |slip angle| keeps growing, rather "
-    "than scattering evenly around it. When an EKF auto-fit mode analysed "
-    "this session, a second (magenta) FITTED curve also appears -- the "
-    "actual nonlinear model (Dugoff or Pacejka) the EKF used, which CAN "
-    "represent that peak-and-fold shape directly, unlike the linear "
-    "reference. The force axis autoranges per corner -- compare cloud "
-    "shape against either line's slope, not absolute force levels or one "
-    "corner's plot against another's. A constant VERTICAL offset of the "
-    "whole cloud from the reference line reflects the known direction-"
-    "dependent zero-slip offset in the Level-1 slip-angle estimate (see "
-    "thesis_notes.md, the C9 decomposition entry), not tyre saturation -- "
-    "judge slope and curvature relative to the lines, not the cloud's "
-    "position above or below them."
+    "than scattering evenly around it. With an EKF auto-fit mode active, a "
+    "second (magenta) FITTED curve also appears -- the actual nonlinear "
+    "model (Dugoff or Pacejka) the EKF used, which CAN represent that "
+    "peak-and-fold shape directly, unlike the linear reference. The force "
+    "axis autoranges per corner -- compare cloud shape against either "
+    "line's slope, not absolute force levels or one corner's plot against "
+    "another's. A constant VERTICAL offset of the whole cloud from the "
+    "reference line reflects a known direction-dependent zero-slip offset "
+    "in the Level-1 slip-angle estimate, not tyre saturation -- judge "
+    "slope and curvature relative to the lines, not the cloud's position "
+    "above or below them."
 )
 
 
@@ -382,6 +381,7 @@ class _TraceDialogBase(QDialog):
         # sites in show_corner/show_lap: none target "ls").
         titles = [("Stability (Nm/deg)", "stab"), ("CS ratio", "cs"), ("LS ratio", "ls"), ("Speed (km/h)", "speed")]
         self.plots = {}
+        self.legends = {}
         first_plot = None
         for i, (label, key) in enumerate(titles):
             is_last = (i == len(titles) - 1)
@@ -402,7 +402,7 @@ class _TraceDialogBase(QDialog):
             # only one named series each today (still worth a legend: it
             # states the line's name instead of requiring the prose
             # caption below to be read first); "cs" plots two.
-            _style_new_legend(plot)
+            self.legends[key] = _style_new_legend(plot)
             self.plots[key] = plot
             self.pg_layout.nextRow()
 
@@ -515,9 +515,64 @@ class _TraceDialogBase(QDialog):
         qcolor.setAlpha(alpha)
         return pg.mkPen(color=qcolor, width=width, style=style)
 
-    def _add_threshold_line(self, panel_key, value, color, style=Qt.PenStyle.DashLine):
+    def _add_threshold_line(self, panel_key, value, color, style=Qt.PenStyle.DashLine, name=None):
+        # Footer-text cleanup: threshold-line MEANING now lives here, as a
+        # named legend entry, instead of in the long prose caption below
+        # the plots (self.legend_label) -- name=None keeps the pre-cleanup
+        # behaviour (no legend entry) for any future caller that doesn't
+        # pass one.
+        #
+        # Bug fix: pyqtgraph's LegendItem.addItem(item, name) always builds
+        # an ItemSample that reads item.opts['pen'] to draw the swatch --
+        # InfiniteLine (what addLine returns) has no .opts dict at all, so
+        # registering the line object itself raises AttributeError inside
+        # ItemSample.paint() on every repaint (silently, Qt just skips the
+        # failed paint -- the legend ROW still appeared, with a name, just
+        # with no swatch ever drawn next to it). A zero-point PlotDataItem
+        # with the same pen is invisible on the plot itself but IS a real
+        # ItemSample-compatible item, giving the swatch the InfiniteLine
+        # never could.
         import pyqtgraph as pg
-        self.plots[panel_key].addLine(y=value, pen=pg.mkPen(color=color, width=1, style=style))
+        pen = pg.mkPen(color=color, width=1, style=style)
+        self.plots[panel_key].addLine(y=value, pen=pen)
+        if name is not None:
+            # Zero-point PlotDataItem, not tracked in lap_curve_items (that
+            # dict is keyed by lap_number and iterated by _recompute_
+            # emphasis/_restyle_lap_curves for per-lap bold/faint styling
+            # -- a threshold-line entry there would get recoloured on the
+            # next emphasis pass). plot.clear() at the top of every show_
+            # corner/show_lap call removes it along with everything else,
+            # same as the InfiniteLine itself -- no separate cleanup needed.
+            self.plots[panel_key].plot([], [], pen=pen, name=name)
+
+    def _apply_cs_ls_y_range(self):
+        # Cleanup pass, Phase 1: "cs" and "ls" share one fixed y-range
+        # instead of each auto-ranging independently. CS_ratio and
+        # LS_ratio are the SAME 1/0/negative scale (1 = linear region,
+        # 0 = at the peak, below 0 = beyond it -- both modules/stability_
+        # analysis.py's estimate_cornering_stiffness and modules/
+        # longitudinal_stiffness.py's estimate_longitudinal_stiffness clip
+        # only the +1.0 ceiling, never a floor), but LS_ratio's occasional
+        # numerically-unstable windows (Phase 0 finding, this package:
+        # a kappa span barely above min_slip_span's own validity gate
+        # blows the OLS slope up, values as extreme as -31.8 seen on
+        # Dubai) would otherwise force auto-range so wide the meaningful
+        # 0..1 region on BOTH panels collapses to an unreadable sliver.
+        # Config-driven, corner_trace_display namespace (same block as
+        # margin_before_m/after_m); default bound is data-derived from
+        # CS_ratio's own observed range on Dubai at the production
+        # kinematic config (min -3.065 rear / -1.872 front) plus headroom.
+        # Out-of-range samples are simply not drawn past the panel edge --
+        # pyqtgraph's own viewbox clipping, the underlying array is
+        # untouched. Pending Phase 0's own open decision (a proper
+        # numerical-stability fix to LS_ratio itself), which may
+        # supersede this display-only clip.
+        from modules.stability_analysis import load_parameters
+        margin_cfg = load_parameters().get("corner_trace_display", {})
+        y_min = margin_cfg.get("cs_ls_panel_y_min", -3.5)
+        y_max = margin_cfg.get("cs_ls_panel_y_max", 1.2)
+        for key in ("cs", "ls"):
+            self.plots[key].setYRange(y_min, y_max, padding=0)
 
 
 class CornerTraceDialog(_TraceDialogBase):
@@ -732,7 +787,7 @@ class CornerTraceDialog(_TraceDialogBase):
                     plot.plot(
                         np.degrees(x_line_rad), y_line,
                         pen=pg.mkPen(color=ACCENT, width=2, style=Qt.PenStyle.SolidLine),
-                        name="Linear-region reference (C_linear_ref)",
+                        name="Linear reference",
                     )
 
             # UI cleanup package: fitted model curve, auto modes only.
@@ -764,11 +819,10 @@ class CornerTraceDialog(_TraceDialogBase):
                             alpha_grid_rad, axle_fit["B"], axle_fit["C"], axle_fit["D"], axle_fit["E"]
                         )
                         model_name = "Pacejka"
-                    fit_date = fit_manifest.get("timestamp", "")[:10]  # YYYY-MM-DD prefix of the ISO timestamp
                     plot.plot(
                         np.degrees(alpha_grid_rad), fy_grid,
                         pen=pg.mkPen(color=FITTED_CURVE_COLOR, width=2, style=Qt.PenStyle.SolidLine),
-                        name=f"Fitted {model_name} curve ({fit_date}, this session)",
+                        name=f"Fitted tyre model ({model_name})",
                     )
 
     def show_corner(self, summary, stability_result, parsed_data):
@@ -850,7 +904,15 @@ class CornerTraceDialog(_TraceDialogBase):
         selected_lap = summary["lap_number"]
         representative = next((c for c in instances if c["lap_number"] == selected_lap), instances[0])
         self._add_phase_bands(representative, t, s_m, worst_phase=_worst_stab_phase(summary))
-        self._rebuild_lap_checkboxes(instances, selected_lap)
+        # Cleanup pass, Phase 1: when the analysis itself was run for one
+        # specific lap (lap_filter is a single-element list), the trace
+        # should default to showing only that lap too, not every valid
+        # lap regardless of what was analysed -- "All laps" analyses
+        # (lap_filter has more than one entry, or is unavailable on an
+        # older cached render) keep the existing all-checked default.
+        lap_filter = stability_result.get("lap_filter")
+        default_checked_laps = set(lap_filter) if lap_filter and len(lap_filter) == 1 else None
+        self._rebuild_lap_checkboxes(instances, selected_lap, default_checked_laps=default_checked_laps)
 
         # Fix turn: read the canonical bracket off the persisted summary
         # (ANALYSIS_SCHEMA_VERSION 4) first, falling back to the raw corner
@@ -910,17 +972,17 @@ class CornerTraceDialog(_TraceDialogBase):
                 self.plots["stab"].plot(
                     x, stab_obs[sl][order], connect="finite",
                     pen=self._pen(STAB_COLOR, width, style, alpha),
-                    name="Yaw-moment stability" if is_first else None,
+                    name="Stability" if is_first else None,
                 ),
                 self.plots["cs"].plot(
                     x, cs_f[sl][order], connect="finite",
                     pen=self._pen(CSF_COLOR, width, style, alpha),
-                    name="Front cornering stiffness" if is_first else None,
+                    name="Front CS" if is_first else None,
                 ),
                 self.plots["cs"].plot(
                     x, cs_r[sl][order], connect="finite",
                     pen=self._pen(CSR_COLOR, width, style, alpha),
-                    name="Rear cornering stiffness" if is_first else None,
+                    name="Rear CS" if is_first else None,
                 ),
                 self.plots["speed"].plot(
                     x, v_kmh[sl][order], connect="finite",
@@ -932,12 +994,12 @@ class CornerTraceDialog(_TraceDialogBase):
                 curve_items.append(self.plots["ls"].plot(
                     x, ls_f[sl][order], connect="finite",
                     pen=self._pen(LSF_COLOR, width, style, alpha),
-                    name="Front longitudinal stiffness" if is_first else None,
+                    name="Front LS" if is_first else None,
                 ))
                 curve_items.append(self.plots["ls"].plot(
                     x, ls_r[sl][order], connect="finite",
                     pen=self._pen(LSR_COLOR, width, style, alpha),
-                    name="Rear longitudinal stiffness" if is_first else None,
+                    name="Rear LS" if is_first else None,
                 ))
             self.lap_curve_items[c["lap_number"]] = curve_items
 
@@ -956,11 +1018,16 @@ class CornerTraceDialog(_TraceDialogBase):
             )
 
         cls_cfg = load_parameters()["classification"]
-        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], BAD)
-        self._add_threshold_line("cs", cls_cfg["STRONG_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DashLine)
-        self._add_threshold_line("cs", cls_cfg["MODERATE_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DotLine)
-        self._add_threshold_line("cs", cls_cfg["STRONG_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DashLine)
-        self._add_threshold_line("cs", cls_cfg["MODERATE_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DotLine)
+        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], BAD,
+                                  name="Unstable below this")
+        self._add_threshold_line("cs", cls_cfg["STRONG_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DashLine,
+                                  name="Front CS strong")
+        self._add_threshold_line("cs", cls_cfg["MODERATE_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DotLine,
+                                  name="Front CS moderate")
+        self._add_threshold_line("cs", cls_cfg["STRONG_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DashLine,
+                                  name="Rear CS strong")
+        self._add_threshold_line("cs", cls_cfg["MODERATE_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DotLine,
+                                  name="Rear CS moderate")
 
         if rep_start_s is not None:
             x_lo, x_hi = rep_start_s, rep_end_s
@@ -972,8 +1039,12 @@ class CornerTraceDialog(_TraceDialogBase):
         # push a stale/wrong range back onto "stab"; pinning all three
         # directly removes that race regardless of link-callback order.
         for plot in self.plots.values():
-            plot.enableAutoRange(axis='y')
             plot.setXRange(x_lo, x_hi, padding=0.02)
+        # "cs"/"ls" get a fixed y-range (see _apply_cs_ls_y_range); only
+        # "stab"/"speed" still auto-range.
+        for key in ("stab", "speed"):
+            self.plots[key].enableAutoRange(axis='y')
+        self._apply_cs_ls_y_range()
 
         n_laps = len(instances)
         n_quiet = sum(1 for c in instances if "canonical_quiet" in c.get("warnings", []))
@@ -1258,17 +1329,17 @@ class LapTraceDialog(_TraceDialogBase):
                 self.plots["stab"].plot(
                     data["x"], data["stab"], connect="finite",
                     pen=self._pen(STAB_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
-                    name="Yaw-moment stability" if is_first_lap else None,
+                    name="Stability" if is_first_lap else None,
                 ),
                 self.plots["cs"].plot(
                     data["x"], data["csf"], connect="finite",
                     pen=self._pen(CSF_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
-                    name="Front cornering stiffness" if is_first_lap else None,
+                    name="Front CS" if is_first_lap else None,
                 ),
                 self.plots["cs"].plot(
                     data["x"], data["csr"], connect="finite",
                     pen=self._pen(CSR_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
-                    name="Rear cornering stiffness" if is_first_lap else None,
+                    name="Rear CS" if is_first_lap else None,
                 ),
                 self.plots["speed"].plot(
                     data["x"], data["speed"], connect="finite",
@@ -1280,12 +1351,12 @@ class LapTraceDialog(_TraceDialogBase):
                 curve_items.append(self.plots["ls"].plot(
                     data["x"], data["lsf"], connect="finite",
                     pen=self._pen(LSF_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
-                    name="Front longitudinal stiffness" if is_first_lap else None,
+                    name="Front LS" if is_first_lap else None,
                 ))
                 curve_items.append(self.plots["ls"].plot(
                     data["x"], data["lsr"], connect="finite",
                     pen=self._pen(LSR_COLOR, NORMAL_WIDTH, Qt.PenStyle.SolidLine, ALPHA_FAINT),
-                    name="Rear longitudinal stiffness" if is_first_lap else None,
+                    name="Rear LS" if is_first_lap else None,
                 ))
             is_first_lap = False
             for item in curve_items:
@@ -1299,15 +1370,24 @@ class LapTraceDialog(_TraceDialogBase):
         self._recompute_emphasis()
 
         cls_cfg = load_parameters()["classification"]
-        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], BAD)
-        self._add_threshold_line("cs", cls_cfg["STRONG_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DashLine)
-        self._add_threshold_line("cs", cls_cfg["MODERATE_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DotLine)
-        self._add_threshold_line("cs", cls_cfg["STRONG_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DashLine)
-        self._add_threshold_line("cs", cls_cfg["MODERATE_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DotLine)
+        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], BAD,
+                                  name="Unstable below this")
+        self._add_threshold_line("cs", cls_cfg["STRONG_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DashLine,
+                                  name="Front CS strong")
+        self._add_threshold_line("cs", cls_cfg["MODERATE_CSF"]["value"], CSF_COLOR, Qt.PenStyle.DotLine,
+                                  name="Front CS moderate")
+        self._add_threshold_line("cs", cls_cfg["STRONG_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DashLine,
+                                  name="Rear CS strong")
+        self._add_threshold_line("cs", cls_cfg["MODERATE_CSR"]["value"], CSR_COLOR, Qt.PenStyle.DotLine,
+                                  name="Rear CS moderate")
 
         for plot in self.plots.values():
-            plot.enableAutoRange(axis='y')
             plot.enableAutoRange(axis='x')
+        # "cs"/"ls" get a fixed y-range (see _apply_cs_ls_y_range); only
+        # "stab"/"speed" still auto-range.
+        for key in ("stab", "speed"):
+            self.plots[key].enableAutoRange(axis='y')
+        self._apply_cs_ls_y_range()
 
         self._add_corner_bands(corners_by_id, worst_colour_by_id)
 

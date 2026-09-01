@@ -226,7 +226,10 @@
   "corner_trace_display": {
     "_comment": "Tier C UI display parameter (PLAN.md PART C usability follow-up, Task 2a) -- how far beyond a corner's own phase bracket (entry_1_brake start to exit_5 end) the per-corner trace window's plotted s-range extends, so brake/approach and coast-out context is visible. Not a science/analysis parameter, purely a plotting-window default; clamped at each lap's own s_m extent in ui/views/corner_trace_dialog.py, never fabricates data before/after what that lap actually recorded. Phase-tint bands are unaffected -- still drawn only over the 5 named phases, never over this margin.",
     "margin_before_m": 100.0,
-    "margin_after_m": 50.0
+    "margin_after_m": 50.0,
+    "cs_ls_panel_y_min": -3.5,
+    "cs_ls_panel_y_max": 1.2,
+    "cs_ls_panel_y_range_note": "Cleanup pass, Phase 1: fixed y-range shared by the CS ratio and LS ratio panels in ui/views/corner_trace_dialog.py -- both are the same 1/0/negative scale, but LS_ratio's occasional numerically-unstable windows (see Phase 0's finding) would otherwise force auto-range so wide the meaningful 0..1 region collapses. Data-derived from CS_ratio's own observed range on Dubai at the production kinematic config (min -3.065 rear / -1.872 front, checked 2026-09-01) plus headroom. Display-only clip, out-of-range samples simply not drawn -- pending Phase 0's own open decision on LS_ratio's numerical stability, which may supersede this."
   },
   "classification": {
     "_comment": "Corner-verdict thresholds for ui/views/outing_form.py's _classify_corner. Each entry's derived_from records the diagnostic run and estimator version it was picked against -- a threshold is only valid for the distribution it was derived from (CLAUDE.md deviation taxonomy: classification thresholds differ from the chair BY RULE, always re-derived per estimator/car).",

@@ -10049,3 +10049,77 @@ No production file changed, no config value changed, sideslip_source
 never read from or written to config/parameters.json. No regression
 suite run (not required by the work order for a read-only diagnostic
 adding an ignored output folder); nothing importable by tests/ changed.
+
+## 13. Cleanup/reliability/presentation pass, Phase 0: LS_ratio plausibility [2026-09-01]
+
+Read-only diagnostic (method question, per the work order -- no
+estimator change made). Investigated the corner-trace LS panel's
+occasional ~-15-and-worse readings.
+
+CHAIR REFERENCE (docs/literature/longitudinal_stiffness_estimator.py,
+internal): calculate_longitudinal_stiffness_ratio clips the ratio at a
+CEILING of 1.0 only (`np.clip(ratio, None, 1.0)`) -- no floor, no R^2
+gate, no confidence weighting of any kind. The only validity gates on
+the windowed OLS slope itself (_centered_slopes) are count>=min_samples,
+abs(denom)>1e-12, and slip_span>=min_slip_span -- min_slip_span=0.004
+(a fraction, i.e. 0.4% slip) is generous enough to admit windows whose
+kappa span is barely above that floor.
+
+SETUPTOOL (modules/longitudinal_stiffness.py): _stiffness_ratio is a
+verbatim mirror of the chair's function, including the missing floor.
+The two documented SetupTool-specific deviations (rate-derived
+min_samples, the additive kerb-coincidence plausibility guard) do not
+address this case: the guard only excludes a sample when |kappa|
+exceeds ls['plausibility_kappa_bound']=0.12 AND a kerb event is
+detected nearby -- the extreme windows found below have small kappa at
+the centre sample, not implausible kappa, so the guard correctly leaves
+them alone. CONCLUSION: SetupTool is NOT more permissive than the
+chair here -- the missing lower bound is inherited as-is; the -15-ish
+values are a shared numerical-stability gap in the method itself, not a
+SetupTool regression.
+
+MECHANISM, confirmed by direct inspection of the 8 most negative
+windows per axle on Dubai (production kinematic config,
+regression_window_s=0.45, half_window=11 samples at 50 Hz):
+every one of them has the FULL window (n_samples_in_window=23, i.e.
+count>=min_samples is trivially satisfied) but a kappa_span sitting
+right at the min_slip_span=0.004 floor (front: 0.00400-0.00405 for 6 of
+8; rear: 0.00512-0.00855 for 6 of 8). A windowed-OLS slope is
+numer/denom where denom ~ sum((x-xbar)^2) over the window's own kappa
+values -- when kappa_span is tiny, denom is tiny, so any real Fx
+variation across the window (noise or a genuine small transient)
+produces an enormous, poorly-conditioned slope. Example: front, t=599.06s,
+kappa_span=0.00405, stiffness=-697152 N (vs linear_reference=21911 N)
+-> LS_ratio=-31.8. This is exactly the numerical-instability signature
+CS_ratio (Module 4b) is protected against by its R2-weighted monotonic-
+section blending (SPAN_WEIGHT_EXPONENT/R2_WEIGHT_EXPONENT,
+estimate_cornering_stiffness) -- LS_ratio has no equivalent, by
+construction, matching the chair's own (simpler, no R^2 blending)
+method as-is.
+
+DISTRIBUTION on Dubai (base_mask = moving & ~kerb & valid-lap racing
+time, n=24183; production kinematic config -- LS_ratio does not depend
+on sideslip_source, kappa/Fx are computed independently of beta):
+- front: n_finite=11299 (46.7% of base_mask). p1=-10.994 p5=-3.437
+  p50=0.000 p95=1.000 p99=1.000. count<-1: 1815 (16.06% of finite).
+  count<-5: 344 (3.05% of finite). min=-31.818 max=1.000.
+- rear: n_finite=18450 (76.3% of base_mask). p1=-2.728 p5=-1.341
+  p50=0.527 p95=1.000 p99=1.000. count<-1: 1375 (7.45% of finite).
+  count<-5: 25 (0.14% of finite). min=-11.566 max=1.000.
+Front is markedly worse than rear -- consistent with the front axle's
+own kappa signal being smaller-magnitude in general (front is
+uncorrected/braking-only per modules/longitudinal_forces.py's own
+estimate_slip_ratio docstring), so a larger fraction of front windows
+sit near the min_slip_span floor.
+
+DECISION NOW LIVE FOR THE USER (not chosen here, per the work order):
+whether to add an R^2-style conditioning gate or confidence weighting
+to LS_ratio (a SetupTool-specific DOMAIN IMPROVEMENT over the chair,
+same taxonomy class as the existing plausibility guard), widen
+min_slip_span (a chair-sourced calibration tunable -- changing it is an
+estimator change, re-triggers threshold re-derivation per CLAUDE.md),
+or leave the estimator as-is and rely on Phase 1's display-only fixed
+Y-range clip (ui/views/corner_trace_dialog.py, this same package) to
+keep the panel readable without touching the underlying numbers. LS_ratio
+remains DISPLAY ONLY (no verdict/classifier reads it, PLAN.md STEP 3),
+so this is a legibility question, not (yet) a correctness-of-verdicts one.

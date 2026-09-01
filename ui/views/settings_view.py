@@ -34,26 +34,26 @@ SECTION1_FIELDS = [
     {"path": ("vehicle", "mass_kg"), "label": "Mass", "unit": "kg",
      "decimals": 1, "min": 500.0, "max": 2000.0,
      "note_path": ("vehicle", "mass_note"), "accuracy_key": "mass",
-     "short_note": "Car weight, measured with driver and fuel reference weights."},
+     "short_note": "Car weight, with driver and fuel reference weights."},
     {"path": ("vehicle", "cog_height_m"), "label": "CoG height", "unit": "m",
      "decimals": 3, "min": 0.05, "max": 1.0,
      "note_path": ("vehicle", "cog_height_note"), "accuracy_key": None,
-     "short_note": "Centre of gravity height. Estimate - replace with team figure."},
+     "short_note": "Centre of gravity height. Estimate."},
     {"path": ("vehicle", "track_width_front_m"), "label": "Track width front", "unit": "m",
      "decimals": 3, "min": 0.8, "max": 2.2,
      "note_path": ("vehicle", "track_width_note"), "accuracy_key": None,
-     "short_note": "Front track width. Estimate - replace with team figure."},
+     "short_note": "Front track width. Estimate."},
     {"path": ("vehicle", "track_width_rear_m"), "label": "Track width rear", "unit": "m",
      "decimals": 3, "min": 0.8, "max": 2.2,
      "note_path": ("vehicle", "track_width_note"), "accuracy_key": None,
-     "short_note": "Rear track width. Estimate - replace with team figure."},
+     "short_note": "Rear track width. Estimate."},
     {"path": ("vehicle", "wheelbase_m"), "label": "Wheelbase", "unit": "m",
      "decimals": 3, "min": 1.5, "max": 3.5,
      "note_path": None, "accuracy_key": "wheelbase_m"},
     {"path": ("vehicle", "yaw_inertia_kgm2"), "label": "Yaw inertia (Iz)", "unit": "kg*m^2",
      "decimals": 1, "min": 500.0, "max": 5000.0,
      "note_path": ("vehicle", "yaw_inertia_note"), "accuracy_key": "yaw_inertia",
-     "short_note": "Rotational inertia about the vertical axis. Estimated, ~10-20% error."},
+     "short_note": "Rotational inertia about the vertical axis. Estimate."},
     {"path": ("vehicle", "steering_ratio"), "label": "Steering ratio (constant)", "unit": "",
      "decimals": 2, "min": 5.0, "max": 25.0,
      "note_path": ("vehicle", "steering_ratio_note"), "accuracy_key": "steering_ratio",
@@ -65,15 +65,15 @@ SECTION1_FIELDS = [
     {"path": ("vehicle", "aero", "lift_coeff"), "label": "Lift coefficient (Cl)", "unit": "",
      "decimals": 3, "min": -3.0, "max": 3.0,
      "note_path": ("vehicle", "aero", "lift_coeff_note"), "accuracy_key": None,
-     "short_note": "Aero lift coefficient. Not yet sourced - downforce term is inactive at 0."},
+     "short_note": "Aero lift coefficient. Estimate."},
     {"path": ("vehicle", "aero", "cross_track_area_m2"), "label": "Frontal area (cross-track)", "unit": "m^2",
      "decimals": 3, "min": 0.0, "max": 5.0,
      "note_path": ("vehicle", "aero", "cross_track_area_note"), "accuracy_key": None,
-     "short_note": "Frontal area. Not yet sourced - inactive while Cl is 0."},
+     "short_note": "Frontal area. Estimate."},
     {"path": ("vehicle", "aero", "diff_cog_x_m"), "label": "Aero CoP-CoG offset (x)", "unit": "m",
      "decimals": 3, "min": -2.0, "max": 2.0,
      "note_path": ("vehicle", "aero", "diff_cog_x_note"), "accuracy_key": None,
-     "short_note": "Aero centre-of-pressure offset from CoG. Not yet sourced - inactive while Cl is 0."},
+     "short_note": "Aero centre-of-pressure offset from CoG. Estimate."},
 ]
 
 # --- Section 2: analysis tunables, three target files ----------------------
@@ -240,7 +240,8 @@ class SettingsView(QWidget):
         line.setStyleSheet(f"color: {BORDER};")
         return line
 
-    def _field_row(self, spec, widget, note_text=None, short_note=None, accuracy_text=None):
+    def _field_row(self, spec, widget, note_text=None, short_note=None, accuracy_text=None,
+                   accuracy_tooltip=None):
         # Fix turn (UI text humanization): the full audit-trail note_text
         # (config-side provenance, e.g. car_data source, correction history)
         # moves to a tooltip -- hover to read it, it's still there for the
@@ -265,6 +266,8 @@ class SettingsView(QWidget):
         if accuracy_text:
             acc_label = QLabel(accuracy_text)
             acc_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; margin-left: 8px;")
+            if accuracy_tooltip:
+                acc_label.setToolTip(accuracy_tooltip)
             top_layout.addWidget(acc_label)
         top_layout.addStretch()
         row_layout.addWidget(top)
@@ -309,16 +312,28 @@ class SettingsView(QWidget):
             self.section1_widgets[spec["path"]] = widget
 
             note_text = _get_path(params, spec["note_path"]) if spec["note_path"] else None
+            # Cleanup pass, Phase 2: the visible accuracy tag is JUST the
+            # compact "L1"/"L2"/... prefix now -- entry['source']/
+            # 'capped_by' used to be appended verbatim and could run to a
+            # full sentence with a file path and deviation-taxonomy wording
+            # (e.g. steering_ratio's own accuracy_levels entry names
+            # modules/accuracy_resolution.py and "chair-comparison
+            # deviation" inline). That detail still exists -- it moves to
+            # a tooltip on the same convention note_text/short_note
+            # already use, not lost, just not part of the always-visible
+            # row.
             accuracy_text = None
+            accuracy_tooltip = None
             if spec["accuracy_key"]:
                 entry = accuracy_levels.get(spec["accuracy_key"])
                 if entry:
-                    capped = entry.get("capped_by")
-                    accuracy_text = f"L{entry['level']} - {capped or entry.get('source', '')}"
+                    accuracy_text = f"L{entry['level']}"
+                    accuracy_tooltip = entry.get("capped_by") or entry.get("source") or None
 
             layout.addWidget(self._field_row(
                 spec, widget, note_text=note_text,
                 short_note=spec.get("short_note"), accuracy_text=accuracy_text,
+                accuracy_tooltip=accuracy_tooltip,
             ))
 
         return container
@@ -406,10 +421,7 @@ class SettingsView(QWidget):
 
         note = QLabel("How much a driver's feedback counts, by experience level -- not yet validated.")
         note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-        note.setToolTip(
-            "Elicited from the project lead on 2026-07-27 -- see PLAN.md's engineer "
-            "follow-up list for the standing validation question on this curve's shape."
-        )
+        note.setToolTip("Elicited from the project lead -- not yet validated.")
         row_layout.addWidget(note)
 
         return row
@@ -422,10 +434,8 @@ class SettingsView(QWidget):
         layout.addWidget(self._section_label("Classification Thresholds (read-only)"))
 
         rule_note = QLabel(
-            "Standing rule (CLAUDE.md deviation taxonomy): classification thresholds "
-            "differ from any chair value or prior estimator's distribution BY RULE -- "
-            "always re-derived from this car's own distribution, never hand-edited "
-            "here or carried over. No editable widget is constructed for this section."
+            "Thresholds are always re-derived from this car's own data, never "
+            "hand-edited -- read-only here by design."
         )
         rule_note.setWordWrap(True)
         rule_note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
@@ -565,10 +575,7 @@ class SettingsView(QWidget):
 
         if section1_changed:
             self.warning_label.setText(
-                "Physics constants changed - results will differ. Re-run Analyse. "
-                "Section-1 changes are tracked by the resolved-vehicle-snapshot cache "
-                "check (modules/accuracy_resolution.py); threshold re-derivation may "
-                "apply per CLAUDE.md's deviation taxonomy."
+                "Physics constants changed - results will differ. Re-run Analyse."
             )
             self.warning_label.setVisible(True)
         else:

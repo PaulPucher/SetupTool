@@ -3,6 +3,7 @@
 # document generation itself lives entirely in core/weekend_pdf_export.py.
 
 import os
+import traceback
 from datetime import datetime, timedelta
 
 from PyQt6.QtWidgets import (
@@ -139,9 +140,15 @@ class WeekendPdfDialog(QDialog):
             )
             return
         except Exception as e:
+            # Reliability pass: full traceback to the console/log, a
+            # friendly one-line message in the dialog (repr() shows
+            # Python syntax like ClassName('message'), not prose a race
+            # engineer should have to parse).
+            from core.error_text import friendly_error_text
+            print(traceback.format_exc())
             QMessageBox.critical(
                 self, "Export failed",
-                f"Could not build the PDF: {e!r}",
+                f"Could not build the PDF: {friendly_error_text(e)}",
             )
             return
 
