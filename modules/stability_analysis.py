@@ -740,6 +740,29 @@ def estimate_vertical_loads(state, forces, params):
     }
 
 
+def reconstruct_cs_window_start(alpha, i, min_window, min_span):
+    """Reconstruct the sliding window's own start index for target index
+    `i` -- mirrors compute_cs_for_axle's internal growth loop below
+    exactly (same two-line while loop), for callers that only have the
+    per-sample CS_ratio/C_alpha output and need to know which raw samples
+    produced one particular estimate (the corner-trace track map's
+    front/rear "estimation window" highlight, and diagnostics/inspect_
+    step2_chair_plots.py's tyre-curve window scatter). Reconstruction
+    only, not a second implementation of the estimator -- the CS value
+    itself always comes from this function's own returned arrays, never
+    recomputed here. Verified against a captured C_window_f/r trace to
+    1e-6 relative tolerance before this was factored out of the (then
+    diagnostics-only) copy of this loop.
+    """
+    start = i - min_window
+    while start > 0:
+        span = np.max(alpha[start:i]) - np.min(alpha[start:i])
+        if span >= min_span:
+            break
+        start -= 1
+    return max(start, 0)
+
+
 def estimate_cornering_stiffness(slip, forces, state, params):
     """Module 4b: effective cornering stiffness / CS ratio.
 

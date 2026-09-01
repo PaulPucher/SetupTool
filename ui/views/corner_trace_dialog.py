@@ -12,36 +12,25 @@
 
 import numpy as np
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QTabWidget, QWidget
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QTabWidget, QWidget,
+    QPushButton, QFileDialog, QMessageBox,
+)
 
 from ui.style import ACCENT, BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT_DIM, TEXT_MUTED
 
-# Per-signal curve colours, fixed across laps (a lap is distinguished by
-# line width/style/opacity, not colour) -- literal hex, same convention as
-# the existing channel-strip plot's plot_channels list (outing_form.py
-# _build_plot_widget), not ui.style: those constants are reserved for
-# verdict/chrome colouring, not continuous data-curve identity.
-CSF_COLOR = "#4FC3F7"
-CSR_COLOR = "#FFB74D"
-STAB_COLOR = "#B39DDB"
-SPEED_COLOR = "#C0A060"  # matches ecu_speed's colour in the channel-strip plot
-# PLAN.md STEP 3 Phase 3: LS ratio curve colours -- distinct from every
-# colour above (and from FITTED_CURVE_COLOR below) so the new panel's two
-# curves are never confused with an existing signal at a glance.
-LSF_COLOR = "#81C784"
-LSR_COLOR = "#F06292"
-# UI cleanup package: fitted-curve overlay colour (tyre curve tab, auto
-# modes only) -- distinct from ACCENT (the existing linear-reference
-# line's colour) so the two curves never read as the same line, and
-# distinct from CSF_COLOR/CSR_COLOR/STAB_COLOR/SPEED_COLOR/TEXT_MUTED/
-# NEUTRAL (the tab's other colours) so it cannot be confused with any
-# existing element either.
-FITTED_CURVE_COLOR = "#E040FB"
-
-SELECTED_WIDTH = 2.5
-NORMAL_WIDTH = 1.5
-ALPHA_SELECTED = 255
-ALPHA_FAINT = 90  # non-selected, still-visible laps -- out of 255
+# Cleanup pass, Part B: per-quantity colour/width/font constants now live
+# in core/plot_style.py, shared with the matplotlib export path (core/
+# figure_render.py) and diagnostics/inspect_step2_chair_plots.py's batch
+# export -- one source of truth so a curve means the same colour whether
+# it's on screen here or in an exported thesis figure. Re-imported under
+# their original names so every existing call site below is unchanged.
+from core.plot_style import (
+    CSF_COLOR, CSR_COLOR, STAB_COLOR, SPEED_COLOR, LSF_COLOR, LSR_COLOR,
+    FITTED_CURVE_COLOR, WINDOW_F_COLOR, WINDOW_R_COLOR, TRACK_BG_COLOR,
+    CORNER_BRACKET_COLOR, SELECTED_WIDTH, NORMAL_WIDTH, ALPHA_SELECTED,
+    ALPHA_FAINT, LEGEND_FONT_PT,
+)
 
 # UI cleanup package: ONE consistent in-plot legend style for every plot
 # this dialog family builds (item 3 -- "apply one consistent style,
@@ -54,7 +43,6 @@ ALPHA_FAINT = 90  # non-selected, still-visible laps -- out of 255
 # added/removed via plot.clear()/plot.plot(..., name=...) -- calling
 # addLegend() again on every show_corner()/show_lap() render would stack
 # duplicate legend boxes, so it must stay a one-time construction call.
-LEGEND_FONT_PT = "11pt"
 LEGEND_INSET = (-8, 8)  # px, pulled in from the plot's actual top-right corner
 
 
@@ -217,6 +205,37 @@ def _extend_slice_with_margin(t, s_m, lap_start_t, lap_end_t,
     start_local = int(np.searchsorted(lap_s, target_start_s, side="left"))
     end_local = int(np.searchsorted(lap_s, target_end_s, side="right"))
     return slice(lo + start_local, lo + end_local), target_start_s, target_end_s
+
+
+def _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m, bracket_start_m, bracket_end_m):
+    """The single sample with the lowest CS_ratio (most saturated) inside
+    this corner's own canonical bracket, pooled across every valid lap
+    instance -- same "worst phase" concept diagnostics/inspect_step2_
+    chair_plots.py's own _find_worst_phase already established, reused
+    here (not reimplemented) for the corner-trace track map's and export
+    figure's estimation-window highlight. Returns {"index": global array
+    index} or None if no instance contributes a finite sample.
+    """
+    best = None
+    for c in instances:
+        lap = laps_by_number.get(c["lap_number"])
+        if lap is None:
+            continue
+        sl, _start_s, _end_s = _extend_slice_with_margin(
+            t, s_m, lap["start_time"], lap["end_time"], bracket_start_m, bracket_end_m, 0.0, 0.0,
+        )
+        if sl.stop <= sl.start:
+            continue
+        seg = cs_ratio_arr[sl]
+        if not np.isfinite(seg).any():
+            continue
+        local_idx = int(np.nanargmin(np.where(np.isfinite(seg), seg, np.inf)))
+        val = seg[local_idx]
+        if best is None or val < best[0]:
+            best = (val, sl.start + local_idx)
+    if best is None:
+        return None
+    return {"index": best[1], "cs_ratio": best[0]}
 
 
 def _worst_stab_phase(summary):
@@ -618,9 +637,23 @@ class CornerTraceDialog(_TraceDialogBase):
         self.tyre_pg_layout.setBackground(PANEL)
         tyre_layout.addWidget(self.tyre_pg_layout)
 
+        # Part B, Q2: track map goes above the front/rear tyre curves,
+        # full width -- spatially tied to the axle-window context those
+        # panels already show, rather than the Traces tab (Q1 kept that
+        # tab's own 4-panel stack unchanged). Equal-aspect (unlike the
+        # tyre-curve panels below it) since this is a literal plan-view
+        # position plot, not a slope comparison.
+        self.track_map_plot = self.tyre_pg_layout.addPlot(row=0, col=0, colspan=2)
+        self.track_map_plot.setTitle("Track map", color=TEXT_MUTED, size='9pt')
+        self.track_map_plot.setAspectLocked(True)
+        self.track_map_plot.hideAxis('left')
+        self.track_map_plot.hideAxis('bottom')
+        self.track_map_legend = _style_new_legend(self.track_map_plot)
+        self.tyre_pg_layout.nextRow()
+
         self.tyre_plots = {}
-        for axle, title in (("front", "Front axle"), ("rear", "Rear axle")):
-            plot = self.tyre_pg_layout.addPlot()
+        for col, (axle, title) in enumerate((("front", "Front axle"), ("rear", "Rear axle"))):
+            plot = self.tyre_pg_layout.addPlot(row=1, col=col)
             plot.setTitle(title, color=TEXT_MUTED, size='9pt')
             plot.setLabel('left', 'Lateral force Fy (N)', color='#888', size='8pt')
             plot.setLabel('bottom', 'Slip angle (deg)', color='#888', size='8pt')
@@ -630,10 +663,28 @@ class CornerTraceDialog(_TraceDialogBase):
             # 1:1 pixel scale would make the reference slope unreadable.
             _style_new_legend(plot)  # UI cleanup package: names the scatter/reference/fitted-curve items below
             self.tyre_plots[axle] = plot
-            self.tyre_pg_layout.nextRow()
 
         self.tabs.addTab(tyre_tab, "Tyre Curves")
+
+        # Part B, Q3: one "Export figure" (full chair-style composition,
+        # this corner only) and one "Export verdict traces" (SetupTool's
+        # own stability/CS/LS/speed stack) -- both read whatever corner is
+        # CURRENTLY displayed regardless of which tab is active, so a
+        # single _export_data cache (populated at the end of show_corner)
+        # backs both buttons rather than each button re-deriving data from
+        # whichever tab happens to be open.
+        self._export_data = None
+        export_row = QHBoxLayout()
+        self.export_figure_btn = QPushButton("Export figure")
+        self.export_figure_btn.clicked.connect(self._on_export_figure_clicked)
+        self.export_verdict_btn = QPushButton("Export verdict traces")
+        self.export_verdict_btn.clicked.connect(self._on_export_verdict_clicked)
+        export_row.addWidget(self.export_figure_btn)
+        export_row.addWidget(self.export_verdict_btn)
+        export_row.addStretch(1)
+
         outer_layout.insertWidget(pg_index, self.tabs)
+        outer_layout.insertLayout(pg_index + 1, export_row)
 
     def _add_phase_bands(self, corner, t, s_m, worst_phase):
         import pyqtgraph as pg
@@ -825,6 +876,213 @@ class CornerTraceDialog(_TraceDialogBase):
                         name=f"Fitted tyre model ({model_name})",
                     )
 
+    def _render_track_map(self, representative, bracket_start_m, bracket_end_m, t, s_m, state,
+                           cs, slip, params, instances, laps_by_number):
+        """Track map (Tyre Curves tab, Part B Q2): the representative lap's
+        own GPS trace, this corner's canonical bracket, and each axle's
+        worst-phase estimation window, all in the axle's own curve colour
+        (core/plot_style.py) so the map keys into the tyre-curve panels
+        beside it. Reuses modules.stability_analysis.reconstruct_cs_
+        window_start (Tier B, verified against production) to locate each
+        window's raw samples -- computes no CS value of its own, pure
+        display. Returns the same geometry dict core/figure_render.py's
+        track_map argument expects, so show_corner can hand it straight to
+        the export button without a second computation; None if this
+        outing has no GPS channel to project.
+        """
+        import pyqtgraph as pg
+        from modules.geo import project_latlon_to_xy
+        from modules.stability_analysis import reconstruct_cs_window_start
+
+        self.track_map_plot.clear()
+        gps_lat = state.get("gps_lat")
+        gps_lon = state.get("gps_lon")
+        origin_lat = state.get("gps_origin_lat")
+        origin_lon = state.get("gps_origin_lon")
+        if gps_lat is None or gps_lon is None:
+            return None
+
+        x, y = project_latlon_to_xy(gps_lat, gps_lon, origin_lat, origin_lon)
+
+        lap = laps_by_number[representative["lap_number"]]
+        lap_sl = slice(int(np.searchsorted(t, lap["start_time"], side="left")),
+                        int(np.searchsorted(t, lap["end_time"], side="right")))
+        lap_xy = (x[lap_sl], y[lap_sl])
+
+        bracket_sl, _start_s, _end_s = _extend_slice_with_margin(
+            t, s_m, lap["start_time"], lap["end_time"], bracket_start_m, bracket_end_m, 0.0, 0.0,
+        )
+        bracket_xy = (x[bracket_sl], y[bracket_sl]) if bracket_sl.stop > bracket_sl.start else None
+
+        min_window = params["stability_estimation"]["cs_min_window_samples"]
+        min_span = params["stability_estimation"]["cs_min_slip_angle_span_rad"]
+
+        def _window_xy(cs_ratio_arr, alpha_arr):
+            if cs_ratio_arr is None or alpha_arr is None:
+                return None
+            wp = _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m,
+                                  bracket_start_m, bracket_end_m)
+            if wp is None:
+                return None
+            start = reconstruct_cs_window_start(alpha_arr, wp["index"], min_window, min_span)
+            window_sl = slice(start, wp["index"])
+            if window_sl.stop <= window_sl.start:
+                return None
+            return x[window_sl], y[window_sl]
+
+        window_f_xy = _window_xy(cs.get("CS_ratio_f") if cs else None, slip.get("alpha_f_filt") if slip else None)
+        window_r_xy = _window_xy(cs.get("CS_ratio_r") if cs else None, slip.get("alpha_r_filt") if slip else None)
+
+        self.track_map_plot.plot(lap_xy[0], lap_xy[1], pen=pg.mkPen(TRACK_BG_COLOR, width=1), name="Lap trace")
+        if bracket_xy is not None:
+            self.track_map_plot.plot(bracket_xy[0], bracket_xy[1],
+                                      pen=pg.mkPen(CORNER_BRACKET_COLOR, width=3), name="Corner bracket")
+        if window_f_xy is not None:
+            self.track_map_plot.plot(window_f_xy[0], window_f_xy[1],
+                                      pen=pg.mkPen(WINDOW_F_COLOR, width=4), name="Front window")
+        if window_r_xy is not None:
+            self.track_map_plot.plot(window_r_xy[0], window_r_xy[1],
+                                      pen=pg.mkPen(WINDOW_R_COLOR, width=4, style=Qt.PenStyle.DotLine),
+                                      name="Rear window")
+
+        return {"lap_xy": lap_xy, "bracket_xy": bracket_xy, "window_f_xy": window_f_xy, "window_r_xy": window_r_xy}
+
+    def _build_tyre_curve_export(self, axle, alpha_arr, Fy_arr, ref_arr, cs_ratio_arr, c_alpha_arr,
+                                  kerb_mask, session_mask, instances, laps_by_number,
+                                  bracket_start_m, bracket_end_m, t, s_m, params,
+                                  sideslip_source, fit_manifest):
+        """Assemble one axle's core/figure_render.py tyre_curves[axle]
+        entry: session scatter (whole-session background, NEW for export
+        -- the interactive tab only ever shows this corner's own window,
+        never the full session), corner scatter (pooled across this
+        corner's valid-lap instances -- same points _render_tyre_curves
+        plots per lap, concatenated here instead of kept separate for
+        per-lap toggling), the worst-phase estimation window, the linear-
+        reference line (same median-of-C_linear_ref computation
+        _render_tyre_curves uses), the auto-fit model curve (same Dugoff/
+        Pacejka evaluation), and a tangent line through the worst-phase
+        sample at slope CS[N/rad] * pi/180 -- the chair-comparable
+        composition's own element, not otherwise shown in this dialog.
+        """
+        session_valid = session_mask & np.isfinite(alpha_arr) & np.isfinite(Fy_arr)
+        session_xy = (np.degrees(alpha_arr[session_valid]), Fy_arr[session_valid],
+                      kerb_mask[session_valid] if kerb_mask is not None else None)
+
+        pooled_alpha = []
+        pooled_Fy = []
+        pooled_ref = []
+        for c in instances:
+            lap = laps_by_number.get(c["lap_number"])
+            if lap is None:
+                continue
+            sl, _s, _e = _extend_slice_with_margin(
+                t, s_m, lap["start_time"], lap["end_time"], bracket_start_m, bracket_end_m, 0.0, 0.0,
+            )
+            if sl.stop <= sl.start:
+                continue
+            lap_alpha, lap_Fy = alpha_arr[sl], Fy_arr[sl]
+            valid = np.isfinite(lap_alpha) & np.isfinite(lap_Fy)
+            if valid.any():
+                pooled_alpha.append(lap_alpha[valid])
+                pooled_Fy.append(lap_Fy[valid])
+            if ref_arr is not None:
+                lap_ref = ref_arr[sl][valid]
+                finite_ref = lap_ref[np.isfinite(lap_ref)]
+                if finite_ref.size:
+                    pooled_ref.append(finite_ref)
+
+        pooled_alpha_rad = np.concatenate(pooled_alpha) if pooled_alpha else np.array([])
+        pooled_Fy_arr = np.concatenate(pooled_Fy) if pooled_Fy else np.array([])
+        corner_xy = (np.degrees(pooled_alpha_rad), pooled_Fy_arr)
+        max_abs_alpha = float(np.max(np.abs(pooled_alpha_rad))) if pooled_alpha_rad.size else 0.0
+
+        ref_line = None
+        if pooled_ref and max_abs_alpha > 0:
+            ref_slope = float(np.median(np.concatenate(pooled_ref)))
+            if ref_slope > 0:
+                x_line_rad = np.array([-max_abs_alpha, max_abs_alpha])
+                ref_line = (np.degrees(x_line_rad), ref_slope * x_line_rad)
+
+        fitted_line = None
+        if (sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka")
+                and fit_manifest is not None and max_abs_alpha > 0):
+            axle_fit = fit_manifest.get("axles", {}).get(axle)
+            if axle_fit is not None:
+                alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
+                if sideslip_source == "ekf_auto_dugoff":
+                    from modules.tyre_model import dugoff_lateral_force
+                    fy_grid = dugoff_lateral_force(alpha_grid_rad, axle_fit["c_alpha_n_per_rad"], axle_fit["mu_fz_N"])
+                    model_name = "Dugoff"
+                else:
+                    from modules.tyre_model_pacejka import pacejka_lateral_force
+                    fy_grid = pacejka_lateral_force(alpha_grid_rad, axle_fit["B"], axle_fit["C"],
+                                                     axle_fit["D"], axle_fit["E"])
+                    model_name = "Pacejka"
+                fitted_line = (np.degrees(alpha_grid_rad), fy_grid, f"Fitted tyre model ({model_name})")
+
+        window_xy = None
+        tangent_line = None
+        if cs_ratio_arr is not None:
+            from modules.stability_analysis import reconstruct_cs_window_start
+            wp = _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m,
+                                  bracket_start_m, bracket_end_m)
+            if wp is not None:
+                min_window = params["stability_estimation"]["cs_min_window_samples"]
+                min_span = params["stability_estimation"]["cs_min_slip_angle_span_rad"]
+                idx = wp["index"]
+                start = reconstruct_cs_window_start(alpha_arr, idx, min_window, min_span)
+                window_sl = slice(start, idx)
+                if window_sl.stop > window_sl.start:
+                    window_xy = (np.degrees(alpha_arr[window_sl]), Fy_arr[window_sl])
+                cs_n_per_rad = float(c_alpha_arr[idx]) if c_alpha_arr is not None else None
+                if cs_n_per_rad is not None and np.isfinite(cs_n_per_rad):
+                    x0 = np.degrees(alpha_arr[idx])
+                    y0 = Fy_arr[idx]
+                    slope_per_deg = cs_n_per_rad * (np.pi / 180.0)
+                    span = max(0.5, 0.15 * max_abs_alpha * (180.0 / np.pi)) if max_abs_alpha > 0 else 1.0
+                    xs = np.array([x0 - span, x0 + span])
+                    ys = y0 + slope_per_deg * (xs - x0)
+                    tangent_line = (xs, ys, f"Tangent CS={cs_n_per_rad:.0f} N/rad")
+
+        return {
+            "session_xy": session_xy, "corner_xy": corner_xy, "window_xy": window_xy,
+            "linear_ref_line": ref_line, "fitted_line": fitted_line, "tangent_line": tangent_line,
+        }
+
+    def _on_export_figure_clicked(self):
+        self._export("corner")
+
+    def _on_export_verdict_clicked(self):
+        self._export("verdict")
+
+    def _export(self, kind):
+        if self._export_data is None:
+            QMessageBox.information(self, "Export figure", "Analyse a corner first -- nothing to export yet.")
+            return
+        from core import figure_render, plot_style
+
+        data = self._export_data
+        default_name = f"{data['corner_label']}_{'figure' if kind == 'corner' else 'verdict_traces'}.png"
+        path, _ = QFileDialog.getSaveFileName(self, "Export figure", default_name, "PNG image (*.png)")
+        if not path:
+            return
+        try:
+            if kind == "corner":
+                fig = figure_render.render_corner_figure(
+                    data["corner_label"], data["laps"], data["thresholds"],
+                    data["track_map"], data["tyre_curves"], theme=plot_style.PRINT,
+                )
+            else:
+                fig = figure_render.render_verdict_traces_figure(
+                    data["corner_label"], data["laps"], data["thresholds"], theme=plot_style.PRINT,
+                )
+            figure_render.save_png(fig, path)
+        except Exception as e:
+            from core.error_text import friendly_error_text
+            QMessageBox.warning(self, "Export figure", f"Could not export figure ({friendly_error_text(e)}).")
+            return
+        QMessageBox.information(self, "Export figure", f"Saved to {path}")
+
     def show_corner(self, summary, stability_result, parsed_data):
         """Repopulate in place for `summary`'s stable_corner_id. `summary`
         is the single lap's corner-detail summary the trace button was
@@ -929,6 +1187,10 @@ class CornerTraceDialog(_TraceDialogBase):
         any_kerb = False
         any_not_moving = False
         rep_start_s, rep_end_s = None, None
+        # Part B, Q3: captured alongside the on-screen curves below (same
+        # x/sl/order, not re-sliced) so "Export figure"/"Export verdict
+        # traces" render exactly what's on screen -- see _build_export_data.
+        export_laps = []
         for c in instances:
             is_selected = (c["lap_number"] == selected_lap)
             is_quiet = "canonical_quiet" in c.get("warnings", [])
@@ -1002,6 +1264,14 @@ class CornerTraceDialog(_TraceDialogBase):
                     name="Rear LS" if is_first else None,
                 ))
             self.lap_curve_items[c["lap_number"]] = curve_items
+            export_laps.append({
+                "lap_number": c["lap_number"], "selected": is_selected,
+                "s": x, "v_kmh": v_kmh[sl][order],
+                "cs_f": cs_f[sl][order], "cs_r": cs_r[sl][order],
+                "stab": stab_obs[sl][order],
+                "ls_f": ls_f[sl][order] if ls_f is not None else None,
+                "ls_r": ls_r[sl][order] if ls_r is not None else None,
+            })
 
         # Tyre Curves tab: runs AFTER the loop above, which does a plain
         # (overwriting) assignment to self.lap_curve_items[lap_number] --
@@ -1009,12 +1279,18 @@ class CornerTraceDialog(_TraceDialogBase):
         # by that assignment. _render_tyre_curves appends to whatever the
         # loop just built instead, so one checkbox toggles both tabs' items
         # for that lap.
+        track_map = None
         if bracket_start_m is not None and bracket_end_m is not None:
             self._render_tyre_curves(
                 instances, laps_by_number, bracket_start_m, bracket_end_m,
                 t, s_m, slip, forces, cs, kerb_mask,
                 sideslip_source=stability_result.get("sideslip_source"),
                 fit_manifest=stability_result.get("fit_manifest"),
+            )
+            params = load_parameters()
+            track_map = self._render_track_map(
+                representative, bracket_start_m, bracket_end_m, t, s_m, state,
+                cs, slip, params, instances, laps_by_number,
             )
 
         cls_cfg = load_parameters()["classification"]
@@ -1068,6 +1344,56 @@ class CornerTraceDialog(_TraceDialogBase):
             )
         self.legend_label.setText(" ".join(legend_parts))
         self.legend_label.setVisible(True)
+
+        # Part B, Q3: cache export data for whichever "Export ..." button
+        # is clicked next, regardless of which tab is currently open --
+        # built once here rather than re-derived per click. None (both
+        # buttons then show a message instead of exporting) whenever the
+        # bracket/slip/forces/cs guard above also skipped tyre-curve and
+        # track-map rendering, since tyre_curves needs exactly that data.
+        self._export_data = None
+        if bracket_start_m is not None and bracket_end_m is not None and slip is not None and forces is not None:
+            valid_laps_by_number = {l["lap_number"]: l for l in parsed_data.get("laps", []) if l.get("is_valid_for_analysis")}
+            session_mask = moving_mask if moving_mask is not None else np.ones_like(t, dtype=bool)
+            if kerb_mask is not None:
+                session_mask = session_mask & ~kerb_mask
+            racing_mask = np.zeros_like(t, dtype=bool)
+            for lap in valid_laps_by_number.values():
+                racing_mask |= (t >= lap["start_time"]) & (t <= lap["end_time"])
+            session_mask = session_mask & racing_mask
+
+            thresholds = {
+                "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
+                "strong_csf": cls_cfg["STRONG_CSF"]["value"], "moderate_csf": cls_cfg["MODERATE_CSF"]["value"],
+                "strong_csr": cls_cfg["STRONG_CSR"]["value"], "moderate_csr": cls_cfg["MODERATE_CSR"]["value"],
+            }
+            sideslip_source = stability_result.get("sideslip_source")
+            fit_manifest = stability_result.get("fit_manifest")
+            tyre_curves = {
+                "front": self._build_tyre_curve_export(
+                    "front", slip.get("alpha_f_filt"), forces.get("Fy_f_filt"),
+                    cs.get("C_linear_ref_f") if cs is not None else None,
+                    cs.get("CS_ratio_f") if cs is not None else None,
+                    cs.get("C_alpha_f") if cs is not None else None,
+                    kerb_mask, session_mask, instances, laps_by_number,
+                    bracket_start_m, bracket_end_m, t, s_m, params,
+                    sideslip_source, fit_manifest,
+                ),
+                "rear": self._build_tyre_curve_export(
+                    "rear", slip.get("alpha_r_filt"), forces.get("Fy_r_filt"),
+                    cs.get("C_linear_ref_r") if cs is not None else None,
+                    cs.get("CS_ratio_r") if cs is not None else None,
+                    cs.get("C_alpha_r") if cs is not None else None,
+                    kerb_mask, session_mask, instances, laps_by_number,
+                    bracket_start_m, bracket_end_m, t, s_m, params,
+                    sideslip_source, fit_manifest,
+                ),
+            }
+            self._export_data = {
+                "corner_label": f"C{stable_corner_id}",
+                "laps": export_laps, "thresholds": thresholds,
+                "track_map": track_map, "tyre_curves": tyre_curves,
+            }
 
         self.show()
         self.raise_()
