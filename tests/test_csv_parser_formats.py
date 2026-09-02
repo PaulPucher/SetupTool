@@ -304,3 +304,75 @@ def test_rate_guard_accepts_expected_rate():
     state = prepare_vehicle_state(channels, params)
     assert state is not None
     assert round(state["sample_rate_hz"]) == 50
+
+
+# --- Fastest-lap candidacy must respect the same reliability bar as
+# is_valid_for_analysis (v3 work package, real bug, 2026-09-02) -----------
+#
+# GT3_PRC_MLA-v3.txt has a genuine 15.8 s pit-exit-crossing-start/finish
+# fragment lap. Its OWN lap_time channel disagreed wildly with the
+# computed duration (716.5 s vs 15.8 s) -- _verify_laps correctly flagged
+# this as a warning -- but the fastest-lap candidate list used to check
+# ONLY lap_time_min_s, not that same warning. The fragment won min() for
+# being short, every genuine lap then read as "too far above fastest_time"
+# by valid_lap_max_ratio and was excluded from is_valid_for_analysis --
+# zero valid laps, zero corners detected, and (traced separately, tests/
+# test_nan_empty_paths.py) an IndexError several stages downstream when an
+# empty fit population reached np.percentile. Fixed by requiring the
+# fastest-lap candidate list to pass the same outlap/inlap/warnings bar
+# is_valid_for_analysis already does.
+
+def _lap_splitting_fixture_text():
+    # lap 1/3/4: three genuine ~24.8s laps -- deliberately ABOVE
+    # _merge_trailing_pit_fragment's own pit_fragment_max_duration_s
+    # default (20s), which would otherwise merge the session's LAST lap
+    # into its predecessor whenever no ecu_B_speedlimit_en channel is
+    # present (not present in this minimal fixture, so that Level-1
+    # fallback is exactly what would fire on a too-short final lap --
+    # a real fixture-authoring trap hit once while writing this test).
+    # lap 2: an 11.6s fragment whose own lap_time channel disagrees by
+    # nearly 500s, same shape as the real v3 fragment -- short enough to
+    # win a naive min() on duration alone, long enough to clear
+    # lap_time_min_s (10s default).
+    lines = ["PiToolboxVersionedASCIIDataSet", "Version\t2", "",
+             "{OutingInformation}", "CarName\tTest", "TrackName\tTestTrack", ""]
+
+    lines += ["{ChannelBlock}", "Time\tlap_number"]
+    lap_bounds = [(1, 0.0, 24.8), (2, 25.0, 36.6), (3, 36.8, 61.6), (4, 61.8, 86.6)]
+    for lap_n, start, end in lap_bounds:
+        t = start
+        while t <= end + 1e-9:
+            lines.append(f"{t:.1f}\t{lap_n}")
+            t = round(t + 0.2, 1)
+    lines.append("")
+
+    lines += ["{ChannelBlock}", "Time\tlap_time"]
+    for t in [round(0.0 + i, 1) for i in range(25)]:  # lap 1: 0..24, tracks duration
+        lines.append(f"{t:.1f}\t{t:.1f}")
+    lines.append("25.0\t500.0")  # lap 2 fragment: wildly disagreeing value
+    for t in [round(37.0 + i, 1) for i in range(25)]:  # lap 3: tracks (t - 36.8)
+        lines.append(f"{t:.1f}\t{t - 36.8:.1f}")
+    for t in [round(62.0 + i, 1) for i in range(25)]:  # lap 4: tracks (t - 61.8)
+        lines.append(f"{t:.1f}\t{t - 61.8:.1f}")
+    lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
+def test_fastest_lap_selection_excludes_warned_fragment(tmp_path):
+    path = _write(tmp_path, "lap_fragment.txt", _lap_splitting_fixture_text())
+    result = parse_csv(path)
+    laps = {lap["lap_number"]: lap for lap in result["laps"]}
+
+    assert len(laps) == 4
+    assert laps[2]["warnings"], "the fragment lap must carry the lap_time disagreement warning"
+    assert laps[2]["is_fastest"] is False, "the warned fragment must never win fastest, however short"
+    assert laps[2]["is_valid_for_analysis"] is False
+
+    assert laps[1]["is_fastest"] is True, "the first genuine lap wins the tie deterministically"
+    for lap_n in (1, 3, 4):
+        assert laps[lap_n]["warnings"] == []
+        assert laps[lap_n]["is_valid_for_analysis"] is True, (
+            f"lap {lap_n} is a genuine ~19.8s lap and must be valid once the fragment "
+            "is correctly excluded from fastest-lap candidacy"
+        )

@@ -39,7 +39,7 @@ from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, prepare_vehicle_state, estimate_sideslip,
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
-    reconstruct_cs_window_start,
+    reconstruct_cs_window_start, resolve_cs_min_window_samples,
 )
 from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.geo import project_latlon_to_xy
@@ -244,7 +244,12 @@ def make_corner_figure(cid, source, state, t, s_m, v_kmh, slip, forces, cs, para
         return None
 
     se = params["stability_estimation"]
-    min_window = se["cs_min_window_samples"]
+    # Fix (2026-09-02, v3 work package): cs_min_window_samples was removed
+    # by the CS validity repair rework -- min_window is now rate-derived
+    # via resolve_cs_min_window_samples(params, sample_rate_hz), same as
+    # every other current caller (e.g. modules/stability_analysis.py's own
+    # estimate_cornering_stiffness). One-line fix, no other change.
+    min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     min_span = se["cs_min_slip_angle_span_rad"]
     cls_cfg = params["classification"]
     thresholds = {

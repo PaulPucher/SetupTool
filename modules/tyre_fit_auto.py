@@ -475,6 +475,28 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
     m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy)
     a2, f2 = alpha[m2], Fy[m2]
 
+    if len(a2) == 0:
+        # Empty population -- e.g. every lap failed is_valid_for_analysis
+        # (a real v3 case, thesis_notes.md "v3 IndexError: empty fit
+        # population"). np.percentile below has no defined behaviour on an
+        # empty array and raises IndexError deep inside numpy's quantile
+        # internals rather than a clean error -- must never reach it.
+        # Matches _fit_axle's own established no-signal convention
+        # (early return, sign_ok=False) instead of feeding Powell/
+        # percentile an empty array; fit_session_pacejka's own degeneracy
+        # check (sign_ok and powell_converged on both axles) already turns
+        # this into a clean status="degenerate" manifest, so no separate
+        # check is needed at that caller.
+        return {
+            "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
+            "powell_converged": False,
+            "fit_n_samples": 0, "fit_rms_resid_N": float("nan"),
+            "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
+            "visited_alpha_p99_deg": float("nan"),
+            "sign_ok": False,
+            "residuals": np.array([]), "residual_mask": m2,
+        }
+
     def _sse(p):
         B, C, D, E = p
         pred = pacejka_lateral_force(a2, B, C, D, E)

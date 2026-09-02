@@ -352,7 +352,30 @@ def _split_laps(channels, config=None):
     lap_time_min_s = ls.get("lap_time_min_s", 10)
     valid_lap_max_ratio = ls.get("valid_lap_max_ratio", 1.10)
 
-    valid = [lap for lap in laps if _effective_lap_time(lap) > lap_time_min_s]
+    # Bug fix (2026-09-02, v3 pit-exit-fragment investigation): this
+    # candidate list used to check ONLY lap_time_min_s, not the same
+    # outlap/inlap/warnings conditions is_valid_for_analysis checks below
+    # -- so a corrupted fragment lap (e.g. a pit-exit crossing of start/
+    # finish that _verify_laps already flagged via a lap_time-channel
+    # disagreement) could still win min() as "fastest" purely for being
+    # short. Every genuine lap then reads as "too far above fastest_time"
+    # by valid_lap_max_ratio and is excluded from is_valid_for_analysis --
+    # on a session where this fires, ZERO laps analyse, corner detection
+    # returns nothing, and downstream indexing into an assumed-nonempty
+    # per-lap/per-corner array crashes. Candidacy for "fastest" must use
+    # the SAME reliability bar the resulting flag does (minus the
+    # self-referential ratio-vs-fastest_time check, which cannot apply
+    # until fastest_time is known) -- _verify_laps has already run and
+    # populated warnings by this point, so this list is never lying stale.
+    # Provably no behaviour change on Dubai: its outlap/warned laps were
+    # never the shortest-duration lap there, so excluding them from
+    # candidacy cannot change which lap already won min() -- confirmed via
+    # the golden pipeline test, not just argued (see thesis_notes.md).
+    valid = [lap for lap in laps
+             if _effective_lap_time(lap) > lap_time_min_s
+             and not lap["is_outlap"]
+             and not lap["is_inlap"]
+             and len(lap["warnings"]) == 0]
     if valid:
         fastest_lap = min(valid, key=_effective_lap_time)
         fastest_time = _effective_lap_time(fastest_lap)
