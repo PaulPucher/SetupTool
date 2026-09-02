@@ -278,9 +278,13 @@ def _make_state_channels(rate_hz, n=20):
 
 
 def test_rate_guard_refuses_mismatched_rate():
+    # 100 Hz time-base work package: the guard's own wording changed from
+    # an exact-match "Sample rate mismatch" to a range-based "Sample rate
+    # too low" (min_sample_rate_hz is now a FLOOR, not an exact target --
+    # a file at 50-100 Hz is accepted, only below 50 Hz is refused).
     channels = _make_state_channels(20.0)
     params = load_parameters()
-    with pytest.raises(ValueError, match=r"[Ss]ample rate mismatch"):
+    with pytest.raises(ValueError, match=r"[Ss]ample rate too low"):
         prepare_vehicle_state(channels, params)
 
 

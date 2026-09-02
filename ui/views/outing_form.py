@@ -472,9 +472,20 @@ class OutingForm(QWidget):
             "exit_5": "late exit",
         }
 
+        # CS validity repair part A, Phase 3: apex_3's CS reads come from
+        # apex_region (a distance-based window around the apex, config
+        # cs_apex_region_half_length_m) instead of apex_3's own structurally
+        # fixed 11-sample slice (thesis_notes.md "apex_3 structural
+        # finding") -- apex_3 still supplies its own stability median and
+        # every other phase's CS reads are unaffected.
+        apex_region = summary.get("apex_region")
         for phase, p in summary["phases"].items():
-            csf = p["cs_ratio_f"]["median"]
-            csr = p["cs_ratio_r"]["median"]
+            if phase == "apex_3" and apex_region is not None:
+                csf = apex_region["cs_ratio_f"]["median"]
+                csr = apex_region["cs_ratio_r"]["median"]
+            else:
+                csf = p["cs_ratio_f"]["median"]
+                csr = p["cs_ratio_r"]["median"]
             sob = p["stability_observed_Nm_per_deg"]["median"]
             if csf == csf and csf < worst_f_val:
                 worst_f_val = csf
@@ -1309,7 +1320,7 @@ class OutingForm(QWidget):
         # pipeline-cache identity check below and the thread's own
         # computation, so the cache decision and the computation can never
         # disagree about which values were used.
-        from modules.stability_analysis import load_parameters
+        from modules.stability_analysis import load_parameters, _resolve_grid_rate
         from modules.accuracy_resolution import resolve_accuracy
         cap = self._get_accuracy_cap_from_selector()
         setup_data = self._get_setup_data_dict()
@@ -1320,6 +1331,14 @@ class OutingForm(QWidget):
         # sessions must not let a stale in-memory entry serve a different
         # estimator's numbers).
         sideslip_source = params["stability_estimation"].get("sideslip_source", "kinematic")
+        # 100 Hz time-base work package: the grid rate is a property of
+        # THIS FILE's own channels (target_sample_rate_hz/min_sample_
+        # rate_hz config aside), not a per-click UI choice -- but a config
+        # edit to either of those between an earlier cached run and this
+        # one must still invalidate the cache, same reasoning as
+        # sideslip_source above. Cheap to recompute (channel header timing
+        # only, no Modules-1-5 work).
+        grid_rate_hz, _grid_status = _resolve_grid_rate(self.parsed_data["channels"], params)
 
         # WP6: reuse the last full Modules-1-5 run if it's for this same
         # file AND the same cap/resolved-vehicle-snapshot -- a cap change or
@@ -1339,7 +1358,8 @@ class OutingForm(QWidget):
         if (cached_entry is not None
                 and cached_entry.get("accuracy_cap") == cap
                 and cached_entry.get("resolved_vehicle_snapshot") == resolved_accuracy["values"]
-                and cached_entry.get("sideslip_source") == sideslip_source):
+                and cached_entry.get("sideslip_source") == sideslip_source
+                and cached_entry.get("grid_rate_hz") == grid_rate_hz):
             pipeline_cache = cached_entry
         self.stab_thread = StabilityAnalysisThread(
             self.parsed_data, lap_filter, pipeline_cache=pipeline_cache,
@@ -1384,6 +1404,9 @@ class OutingForm(QWidget):
             # WP-N2 Step 1b: joins the WP6 identity alongside accuracy_cap --
             # see the hit-check in _run_stability_analysis.
             "sideslip_source": result["sideslip_source"],
+            # 100 Hz time-base work package: joins the identity alongside
+            # sideslip_source -- see the hit-check in _run_stability_analysis.
+            "grid_rate_hz": result["state"]["sample_rate_hz"],
             # Fresh-session work package: NOT new identity fields (sideslip_
             # source alone already differentiates auto modes from each other
             # and from kinematic/ekf_pass_1) -- cached alongside slip/forces
@@ -1403,6 +1426,7 @@ class OutingForm(QWidget):
             result["sideslip_source"], fit_manifest=result["fit_manifest"],
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
+            grid_rate_hz=result["state"]["sample_rate_hz"],
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1415,6 +1439,7 @@ class OutingForm(QWidget):
             sideslip_source=result["sideslip_source"], fit_manifest=result["fit_manifest"],
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
+            grid_rate_hz=result["state"]["sample_rate_hz"],
         )
         t_render1 = time.perf_counter()
         print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
@@ -1433,7 +1458,8 @@ class OutingForm(QWidget):
 
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
                                    sideslip_source="kinematic", fit_manifest=None,
-                                   gate_verdict=None, fallback_used=False, fallback_reason=None):
+                                   gate_verdict=None, fallback_used=False, fallback_reason=None,
+                                   grid_rate_hz=None):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1468,6 +1494,12 @@ class OutingForm(QWidget):
             "gate_verdict": gate_verdict,
             "fallback_used": fallback_used,
             "fallback_reason": fallback_reason,
+            # 100 Hz time-base work package: the grid rate this run's
+            # Modules 1-5 actually ran at (thesis_notes.md "PHASE 0") --
+            # cache identity field, checked in _try_render_cached_analysis.
+            # v8 payload shape extension, not a new schema_version bump
+            # (still within this same, still-uncommitted v7->8 package).
+            "grid_rate_hz": grid_rate_hz,
         }
         return json.dumps(payload)
 
@@ -1506,7 +1538,7 @@ class OutingForm(QWidget):
         if not self.outing or not self.outing.analysis_data:
             return False
         import json
-        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION, load_parameters
+        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION, load_parameters, _resolve_grid_rate
         from modules.accuracy_resolution import resolve_accuracy
         try:
             cached = json.loads(self.outing.analysis_data)
@@ -1540,6 +1572,14 @@ class OutingForm(QWidget):
         )
         if cached.get("sideslip_source") != current_sideslip_source:
             return False
+        # 100 Hz time-base work package: same reasoning as sideslip_source
+        # above -- a target_sample_rate_hz/min_sample_rate_hz config edit
+        # (or this file's own channel timing somehow differing) since the
+        # cache was written must not silently render a payload computed at
+        # a different grid rate.
+        current_grid_rate, _grid_status = _resolve_grid_rate(self.parsed_data["channels"], load_parameters())
+        if cached.get("grid_rate_hz") != current_grid_rate:
+            return False
         summaries = cached.get("summaries")
         if not summaries:
             return False
@@ -1568,6 +1608,7 @@ class OutingForm(QWidget):
             fit_manifest=cached.get("fit_manifest"),
             gate_verdict=cached.get("gate_verdict"),
             fallback_used=cached.get("fallback_used", False),
+            grid_rate_hz=cached.get("grid_rate_hz"),
             fallback_reason=cached.get("fallback_reason"),
         )
         t1 = time.perf_counter()
@@ -1646,7 +1687,8 @@ class OutingForm(QWidget):
     def _render_stability_summaries(self, summaries, cached=False, lap_filter=None,
                                      cap=None, resolved_accuracy=None, sideslip_source=None,
                                      fit_manifest=None, gate_verdict=None,
-                                     fallback_used=False, fallback_reason=None):
+                                     fallback_used=False, fallback_reason=None,
+                                     grid_rate_hz=None):
         # Shared by the live analysis-finished path and the WP5 cache-hit
         # path -- the ONLY place that builds cards/classifies from a
         # summaries list, so a threshold re-derivation always shows up here
@@ -1710,6 +1752,17 @@ class OutingForm(QWidget):
             status_text, status_color = self._format_estimator_status(
                 sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
             )
+            # 100 Hz time-base work package: the one status line the work
+            # order asks for, appended rather than folded into _format_
+            # estimator_status's own tested/PDF-shared text -- keeps that
+            # function's existing contract untouched. target_sample_rate_hz
+            # read fresh (not cached) so a config edit shows immediately.
+            if grid_rate_hz is not None:
+                from modules.stability_analysis import load_parameters as _load_params_for_grid
+                target = _load_params_for_grid()["stability_estimation"]["target_sample_rate_hz"]
+                grid_text = (f"{grid_rate_hz:.0f} Hz" if grid_rate_hz >= target
+                             else f"{grid_rate_hz:.0f} Hz (channel-limited)")
+                status_text = f"{status_text} | time base: {grid_text}"
             self.estimator_status_label.setText(status_text)
             self.estimator_status_label.setStyleSheet(
                 f"color: {status_color}; font-size: 11px;"

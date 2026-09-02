@@ -113,25 +113,25 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
 
     DELIBERATE UPDATE, not a weakening: this assertion's own prior text
     said "update this test deliberately if the version was bumped
-    again" -- exactly what happened here, twice now (5->6, 6->7). Every
-    other check in this function (bracket_start_m/bracket_end_m,
-    fz_*/fy_*_norm_N keys) is unchanged and still runs at full strength
-    against the SAME kinematic-mode pipeline_result fixture; only the
-    version literal moved from 6 to 7 to match the now-current,
-    deliberately-bumped production constant. FLAGGED, same as the
-    fresh-session work package's own core/weekend_pdf_export.py
-    precedent: this file was not in PLAN.md STEP 3 Phase 3's own stated
-    permitted-file list (modules/stability_analysis.py, ui/views/
-    outing_form.py, ui/views/corner_trace_dialog.py); edited anyway
-    because the version-literal assertion this test's own docstring
-    explicitly invites updating would otherwise fail against the very
-    bump Phase 3 was instructed to make, and no phase in this package
-    named tests/test_config_schema_integrity.py explicitly. Worth a
-    second look, per that same precedent.
+    again" -- exactly what happened here, three times now (5->6, 6->7,
+    7->8). Every other check in this function (bracket_start_m/
+    bracket_end_m, fz_*/fy_*_norm_N keys) is unchanged and still runs at
+    full strength against the SAME kinematic-mode pipeline_result
+    fixture; the version literal moved from 7 to 8 and gained an
+    apex_region shape check (CS validity repair part A, Phase 3) to match
+    the now-current, deliberately-bumped production constant. FLAGGED,
+    same as the fresh-session work package's own core/weekend_pdf_
+    export.py precedent: this file was not in the CS validity repair
+    package's own stated permitted-file list (modules/stability_
+    analysis.py, ui/views/outing_form.py, modules/recommendation.py);
+    edited anyway because the version-literal assertion this test's own
+    docstring explicitly invites updating would otherwise fail against
+    the very bump Phase 3 was instructed to make. Worth a second look,
+    per that same precedent.
     """
-    assert ANALYSIS_SCHEMA_VERSION == 7, (
+    assert ANALYSIS_SCHEMA_VERSION == 8, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 7 -- update this test deliberately if the version was bumped again"
+        "written for 8 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
@@ -140,6 +140,9 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     for phase in sample["phases"].values():
         for key in ("fz_f_N", "fz_r_N", "fy_f_norm_N", "fy_r_norm_N"):
             assert key in phase, f"phase missing v4-bumped key {key!r}"
+    assert "apex_region" in sample, "corner summary missing v8-bumped apex_region key"
+    for key in ("n_samples", "cs_ratio_f", "cs_ratio_r"):
+        assert key in sample["apex_region"], f"apex_region missing v8-bumped key {key!r}"
 
 
 def test_analysis_data_payload_includes_sideslip_source():
@@ -218,10 +221,10 @@ def test_accuracy_levels_covers_every_dynamically_resolved_node(raw_params):
 def test_pipeline_cache_identity_fields():
     """WP6 in-memory cache: both the write side (_pipeline_cache_put's
     payload) and the read side (the hit-check condition in
-    _run_stability_analysis) must agree on the same three identity
-    fields -- accuracy_cap, resolved_vehicle_snapshot, sideslip_source.
-    Source-scan, not a Qt-instantiated call, same rationale as the
-    payload check above.
+    _run_stability_analysis) must agree on the same identity fields --
+    accuracy_cap, resolved_vehicle_snapshot, sideslip_source, and (100 Hz
+    time-base work package) grid_rate_hz. Source-scan, not a Qt-
+    instantiated call, same rationale as the payload check above.
     """
     with open("ui/views/outing_form.py", "r", encoding="utf-8") as f:
         src = f.read()
@@ -234,9 +237,9 @@ def test_pipeline_cache_identity_fields():
     hit_end = src.index("pipeline_cache = cached_entry", hit_start)
     hit_body = src[hit_start:hit_end]
 
-    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"'):
+    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"', '"grid_rate_hz"'):
         assert field in put_body, f"_pipeline_cache_put payload missing {field}"
-    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', "sideslip_source"):
+    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', "sideslip_source", "grid_rate_hz"):
         assert field in hit_body, f"pipeline-cache hit-check condition missing {field}"
 
 
@@ -244,10 +247,10 @@ def test_persisted_cache_identity_fields():
     """WP5 persisted (DB) cache: both _build_analysis_data_json's
     payload and _try_render_cached_analysis's hit-check must agree on
     the same identity fields. accuracy_cap and resolved_vehicle_snapshot
-    predate this session (WP-C); sideslip_source is this session's
-    addition -- checked here so a future edit that touches one side
-    without the other is caught structurally, not just by a slow full
-    pipeline re-run.
+    predate this session (WP-C); sideslip_source is a later addition;
+    grid_rate_hz (100 Hz time-base work package) is the latest -- checked
+    here so a future edit that touches one side without the other is
+    caught structurally, not just by a slow full pipeline re-run.
     """
     with open("ui/views/outing_form.py", "r", encoding="utf-8") as f:
         src = f.read()
@@ -260,7 +263,7 @@ def test_persisted_cache_identity_fields():
     hitcheck_end = src.index("\n    def ", hitcheck_start + 1)
     hitcheck_body = src[hitcheck_start:hitcheck_end]
 
-    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"'):
+    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"', '"grid_rate_hz"'):
         assert field in payload_body, f"_build_analysis_data_json payload missing {field}"
-    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"'):
+    for field in ('"accuracy_cap"', '"resolved_vehicle_snapshot"', '"sideslip_source"', '"grid_rate_hz"'):
         assert field in hitcheck_body, f"_try_render_cached_analysis missing a check against {field}"

@@ -69,7 +69,26 @@ CAR_DATA_PATH = "config/car_data.json"
 # change must fall to no-cache, not render an LS trace/detail-card
 # column against data that was never computed. DISPLAY ONLY: no
 # classification/recommendation logic reads ls_ratio_f/r.
-ANALYSIS_SCHEMA_VERSION = 7
+# Bumped 7->8 (CS validity repair part A, Phase 3): each corner summary
+# gains a top-level apex_region dict (n_samples, cs_ratio_f, cs_ratio_r --
+# same _stats() shape as a phase's own cs_ratio_f/r), a DISTANCE-based
+# statistic around the apex replacing apex_3's structurally fixed
+# 11-sample slice wherever an apex_3-keyed CS read feeds classification
+# (_classify_corner/_phase_verdict). A pre-bump payload has no
+# apex_region key, so a persisted result predating this change must fall
+# to no-cache rather than have those call sites read a missing key.
+# Existing phase dicts' own cs_ratio_f/r may also now report NaN in a few
+# more cases than before (cs_phase_min_valid_samples gate) -- same
+# pre-existing NaN-safe consumption, no new shape for that part.
+# v8 EXTENDED, same package, no further bump (100 Hz time-base work
+# order): ui/views/outing_form.py's _build_analysis_data_json payload
+# (not summarise_corners's own output -- a payload-builder field, same
+# scoping as sideslip_source/fit_manifest above) gained grid_rate_hz, the
+# common-grid rate this run actually used (thesis_notes.md "PHASE 0").
+# Not bumped to 9: this whole v7->8 package is still uncommitted, so v8's
+# own documented shape is extended rather than versioned again for a
+# change nothing has yet observed as "8" externally.
+ANALYSIS_SCHEMA_VERSION = 8  # unchanged literal -- extension noted above, not a new bump
 
 # Method-defining constants (CLAUDE.md grounding rule): these fix what the
 # estimator IS, not how it is tuned to this car/track, so they stay as named
@@ -124,6 +143,63 @@ def _estimate_sample_rate(time_arr):
     if dt_median <= 0:
         raise ValueError("Time array has non-positive intervals")
     return 1.0 / dt_median
+
+
+# 100 Hz time-base work package: the channels whose OWN native rate
+# determines how fast the common grid can genuinely run (method-defining
+# -- which channels constitute "the CS chain" is a fact about this
+# estimator, not a per-car tunable). ecu_speed is deliberately excluded:
+# it is always allowed to be the slower channel and gets upsampled onto
+# whatever grid the OTHER five support (see prepare_vehicle_state's own
+# comment on why that upsampling is safe).
+CS_CHAIN_FAST_CHANNELS = ["sclu_yaw_rate", "log_asteer", "log_acc_y", "log_acc_z", "lap_distance"]
+
+
+def _resolve_grid_rate(channels, params):
+    """100 Hz time-base work package (thesis_notes.md 'PHASE 0'). Picks
+    the common time grid's own rate: min(target_sample_rate_hz, the
+    slowest CS_CHAIN_FAST_CHANNELS channel's own native rate) -- a file
+    whose fast channels only support 50 Hz gets a 50 Hz grid (channel-
+    limited, not refused); one supporting 100 Hz+ gets the 100 Hz target.
+    Refuses only below min_sample_rate_hz (the GT3 Paul Ricard 20 Hz
+    case), naming the binding (slowest present) channel. A fast channel
+    that is entirely absent cannot bind the rate (nothing to measure) --
+    its own absence is a separate, pre-existing degrade-to-None concern
+    handled elsewhere (kerb_mask/s_m already tolerate a missing log_acc_z/
+    lap_distance), not this guard's job.
+    """
+    se = params["stability_estimation"]
+    target_rate = se["target_sample_rate_hz"]
+    min_rate = se["min_sample_rate_hz"]
+
+    native_rates = {}
+    for ch_name in CS_CHAIN_FAST_CHANNELS:
+        ch = channels.get(ch_name)
+        if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None:
+            continue
+        native_rates[ch_name] = _estimate_sample_rate(ch["time"])
+
+    if not native_rates:
+        raise ValueError(
+            "No CS-chain fast channel (sclu_yaw_rate, log_asteer, log_acc_y, log_acc_z, "
+            "lap_distance) has usable timing data -- cannot determine a common grid rate."
+        )
+
+    binding_channel = min(native_rates, key=native_rates.get)
+    cs_chain_capability = native_rates[binding_channel]
+
+    if cs_chain_capability < min_rate:
+        raise ValueError(
+            f"Sample rate too low: {binding_channel} measured {cs_chain_capability:.1f} Hz, "
+            f"below the {min_rate:.0f} Hz floor. Every estimator window in this pipeline was "
+            f"validated at {min_rate:.0f}-{target_rate:.0f} Hz only -- analysis is refused rather "
+            "than silently run at the wrong scale. See config/parameters.json "
+            "stability_estimation.min_sample_rate_hz."
+        )
+
+    grid_rate = min(target_rate, cs_chain_capability)
+    status = f"{grid_rate:.0f} Hz" if grid_rate >= target_rate else f"{grid_rate:.0f} Hz (channel-limited, {binding_channel})"
+    return grid_rate, status
 
 
 # Tier B signal conditioning for the Module 4b CS_alpha blend (see
@@ -262,28 +338,31 @@ def prepare_vehicle_state(channels, params):
         if ch is None or ch["quality"] in ("missing", "failed") or ch["time"] is None:
             return None
 
-    t_ref = channels["ecu_speed"]["time"]
-    sr = _estimate_sample_rate(t_ref)
-
-    # Rate guard (2026-08-31, GT3 Paul Ricard investigation): every
-    # estimator window, the NIS window, kerb dilation, and LS_ratio's
-    # min_samples were validated at 50 Hz only (see config's own
-    # provenance comment on expected_sample_rate_hz). A different rate
-    # is not a smaller/larger version of the same analysis -- it is an
-    # unvalidated one. Refuse outright rather than silently run
-    # calibrated-for-50-Hz logic against, e.g., a 20 Hz export; this is
-    # the earliest point prepare_vehicle_state itself knows the real
-    # rate, before anything downstream is computed. No resampling, no
-    # silent tolerance beyond rounding to the nearest whole Hz (floating-
-    # point interval measurement jitter, not a real rate difference).
-    expected_rate = se.get("expected_sample_rate_hz")
-    if expected_rate is not None and round(sr) != round(expected_rate):
-        raise ValueError(
-            f"Sample rate mismatch: measured {sr:.1f} Hz, expected {expected_rate:.0f} Hz. "
-            "Every estimator window in this pipeline was validated at the expected rate only -- "
-            "analysis is refused rather than silently run at the wrong scale. "
-            "See config/parameters.json stability_estimation.expected_sample_rate_hz."
-        )
+    # 100 Hz time-base work package (thesis_notes.md "PHASE 0"): the
+    # common grid is no longer ecu_speed's own raw timestamps -- ecu_speed
+    # is natively 50 Hz on this car (confirmed, diagnostics/inspect_
+    # native_channel_rates.py), while the other five CS-chain channels
+    # (CS_CHAIN_FAST_CHANNELS) are natively 100 Hz, and downsampling them
+    # onto ecu_speed's own coarser grid was silently discarding half their
+    # real resolution. _resolve_grid_rate picks the grid's own rate
+    # (target, or slower if the fast channels can't support it -- refusing
+    # only below the hard floor) and a synthetic, evenly-spaced grid at
+    # that rate is built here, spanning ecu_speed's own observed time
+    # range (still the anchor -- ecu_speed remains a required channel).
+    # ecu_speed itself is then upsampled onto this grid via the SAME
+    # np.interp every other channel already uses below: safe because
+    # vehicle speed is an inertia-limited signal (cannot jump between
+    # real samples), so linear interpolation between genuine readings
+    # invents no meaningfully wrong information, unlike upsampling a
+    # fast-changing quantity would.
+    sr, grid_rate_status = _resolve_grid_rate(channels, params)
+    ecu_speed_t = channels["ecu_speed"]["time"]
+    # np.arange's own stop-EXCLUSIVE semantics silently dropped the file's
+    # final sample here (invisible on a real ~80k-sample file, glaring on
+    # a small fixture) -- np.linspace with an explicit, rounded sample
+    # count is endpoint-inclusive and immune to step-accumulation drift.
+    n_grid = int(round((ecu_speed_t[-1] - ecu_speed_t[0]) * sr)) + 1
+    t_ref = np.linspace(ecu_speed_t[0], ecu_speed_t[-1], n_grid)
 
     def interp_channel(ch_name):
         ch = channels.get(ch_name)
@@ -363,6 +442,7 @@ def prepare_vehicle_state(channels, params):
         "time": t_ref,
         "s_m": s_m,
         "sample_rate_hz": sr,
+        "grid_rate_status": grid_rate_status,
         "v_mps": v_mps,
         "yaw_rate_radps": yaw_rate_radps,
         "delta_f_rad": delta_f_rad,
@@ -743,25 +823,63 @@ def estimate_vertical_loads(state, forces, params):
     }
 
 
-def reconstruct_cs_window_start(alpha, i, min_window, min_span):
+def resolve_cs_min_window_samples(params, sample_rate_hz):
+    """CS validity repair part A, Phase 1 (rate-corrected): cs_min_window_s
+    is a PHYSICAL window duration, not a sample count -- the chair's own
+    literal default (10 samples) was always a 100 Hz-calibrated value
+    (10/100 = 0.1 s), silently treated as rate-independent until this
+    correction. Converts to samples at THIS file's own measured rate,
+    same pattern as modules.longitudinal_stiffness's own 50 Hz min_samples
+    adaptation (regression_window_s * sample_rate_hz, floored). Shared by
+    estimate_cornering_stiffness and every UI/diagnostics caller that
+    reconstructs a window, so the derivation can never drift between them.
+    """
+    se = params["stability_estimation"]
+    return max(se["cs_min_window_samples_floor"], int(round(se["cs_min_window_s"] * sample_rate_hz)))
+
+
+def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_window_m=None):
     """Reconstruct the sliding window's own start index for target index
     `i` -- mirrors compute_cs_for_axle's internal growth loop below
-    exactly (same two-line while loop), for callers that only have the
-    per-sample CS_ratio/C_alpha output and need to know which raw samples
-    produced one particular estimate (the corner-trace track map's
-    front/rear "estimation window" highlight, and diagnostics/inspect_
-    step2_chair_plots.py's tyre-curve window scatter). Reconstruction
-    only, not a second implementation of the estimator -- the CS value
-    itself always comes from this function's own returned arrays, never
-    recomputed here. Verified against a captured C_window_f/r trace to
-    1e-6 relative tolerance before this was factored out of the (then
-    diagnostics-only) copy of this loop.
+    exactly, for callers that only have the per-sample CS_ratio/C_alpha
+    output and need to know which raw samples produced one particular
+    estimate (the corner-trace track map's front/rear "estimation window"
+    highlight, and various diagnostics scripts' tyre-curve window
+    scatter). Reconstruction only, not a second implementation of the
+    estimator -- the CS value itself always comes from this function's
+    own returned arrays, never recomputed here. Verified against a
+    captured C_window_f/r trace to 1e-6 relative tolerance before this
+    was factored out of the (then diagnostics-only) copy of this loop.
+
+    min_window is already a resolved SAMPLE COUNT here (see
+    resolve_cs_min_window_samples) -- this function has no opinion on
+    physical units, only the caller does.
+
+    s_m/max_window_m (CS validity repair part A, Phase 2, DISTANCE-based
+    per the locality-bound revision): caps how far the window may grow by
+    real track distance travelled, not a converted sample count -- a
+    corner's own physical scale is a distance, not a duration, so the cap
+    must not silently change meaning between a slow and a fast corner at
+    the same sample count. Omitting either (or an unreadable s_m at the
+    boundary -- NaN across a lap-distance reset, or a lap-boundary
+    crossing) falls back to NO distance cap for that reconstruction --
+    safe ONLY when called on an index already known to carry a finite
+    CS_ratio (compute_cs_for_axle itself enforces the cap when producing
+    that value; an index with no finite CS_ratio never had a qualifying
+    window to reconstruct in the first place).
     """
     start = i - min_window
+    s_i = s_m[i - 1] if (s_m is not None and max_window_m is not None) else None
+    if s_i is not None and not np.isfinite(s_i):
+        s_i = None
     while start > 0:
         span = np.max(alpha[start:i]) - np.min(alpha[start:i])
         if span >= min_span:
             break
+        if s_i is not None:
+            s_start = s_m[start]
+            if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
+                break
         start -= 1
     return max(start, 0)
 
@@ -779,6 +897,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
     kerb_mask = state.get("kerb_mask")
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
+    s_m = state.get("s_m")
 
     alpha_f = slip["alpha_f_filt"]
     alpha_r = slip["alpha_r_filt"]
@@ -787,7 +906,8 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
     min_span = se["cs_min_slip_angle_span_rad"]
     linear_thresh = se["cs_linear_slip_threshold_rad"]
-    min_window = se["cs_min_window_samples"]
+    min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
+    max_window_m = se["cs_max_window_m"]
 
     def compute_cs_for_axle(alpha, Fy):
         n = len(alpha)
@@ -809,17 +929,33 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             if not moving[i]:
                 continue
 
+            # Adaptive widening (CS validity repair part A, Phase 2): grow the
+            # window until it clears BOTH floors, capped at max_window_m (a
+            # real TRACK DISTANCE, not a sample count -- Phase 1 REVISION's
+            # locality bound) so a near-flat-alpha stretch (a straight, a
+            # slow lift) cannot chase min_span arbitrarily far back and
+            # blend in unrelated track sections -- see cs_max_window_m's own
+            # config comment. Mirrors reconstruct_cs_window_start exactly;
+            # keep both in sync.
             start = i - min_window
+            s_i = s_m[i - 1] if s_m is not None else None
+            if s_i is not None and not np.isfinite(s_i):
+                s_i = None
             while start > 0:
                 span = np.max(alpha[start:i]) - np.min(alpha[start:i])
                 if span >= min_span:
                     break
+                if s_i is not None:
+                    s_start = s_m[start]
+                    if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
+                        break
                 start -= 1
 
             window_alpha = alpha[start:i]
             window_Fy = Fy[start:i]
-            if len(window_alpha) < min_window:
-                continue
+            achieved_span = np.max(window_alpha) - np.min(window_alpha)
+            if achieved_span < min_span:
+                continue  # widening could not clear the span floor within the cap -- no signal
 
             alpha_mean = np.mean(window_alpha)
             Fy_mean = np.mean(window_Fy)
@@ -986,7 +1122,9 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     }
 
 
-def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None, apex_half_window_samples=None):
+def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None,
+                       apex_half_window_samples=None, cs_phase_min_valid_samples=None,
+                       cs_apex_region_half_length_m=None):
     # fz (modules.stability_analysis.estimate_vertical_loads's output) is
     # optional and additive only: passing it adds fz_f_N/fz_r_N/
     # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
@@ -997,9 +1135,16 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     # pattern: passing it adds ls_ratio_f/ls_ratio_r stat blocks per
     # phase, same _stats() treatment as cs_ratio_f/cs_ratio_r; omitting
     # it reproduces the exact pre-Phase-3 summary shape.
-    if apex_half_window_samples is None:
-        apex_half_window_samples = load_parameters()["stability_estimation"]["apex_half_window_samples"]
+    if apex_half_window_samples is None or cs_phase_min_valid_samples is None or cs_apex_region_half_length_m is None:
+        se_defaults = load_parameters()["stability_estimation"]
+        if apex_half_window_samples is None:
+            apex_half_window_samples = se_defaults["apex_half_window_samples"]
+        if cs_phase_min_valid_samples is None:
+            cs_phase_min_valid_samples = se_defaults["cs_phase_min_valid_samples"]
+        if cs_apex_region_half_length_m is None:
+            cs_apex_region_half_length_m = se_defaults["cs_apex_region_half_length_m"]
     t = state["time"]
+    s_m = state.get("s_m")
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")
 
@@ -1028,6 +1173,39 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             "p75": float(np.percentile(valid, 75)),
             "n": int(n),
         }
+
+    def _gate_cs_stat(stat):
+        # CS validity repair part A, Phase 2: a CS_ratio stat block backed
+        # by too few finite samples reports NaN (no signal) rather than a
+        # median that is really just one or two extreme readings -- see
+        # cs_phase_min_valid_samples's own config comment.
+        if stat["n"] < cs_phase_min_valid_samples:
+            return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
+        return stat
+
+    def _apex_region_idx(c):
+        # CS validity repair part A, Phase 3: a DISTANCE-based (not sample-
+        # count) window around the apex, replacing apex_3's structurally
+        # fixed 11-sample slice for CS reads (thesis_notes.md "apex_3
+        # structural finding"). Bounded in TIME to this corner's own
+        # instance first (union of its own 5 phase segments) before
+        # applying the distance band -- s_m resets every lap, so a pure
+        # distance-band search would otherwise pull in every other lap's
+        # samples passing the same track distance.
+        if s_m is None:
+            return np.array([], dtype=int)
+        apex_s = c.get("apex_lap_distance_m")
+        if apex_s is None or apex_s != apex_s:
+            return np.array([], dtype=int)
+        valid_segs = [seg for seg in c["segments"].values() if seg[1] >= seg[0]]
+        if not valid_segs:
+            return np.array([], dtype=int)
+        lo = int(np.searchsorted(t, min(seg[0] for seg in valid_segs), side="left"))
+        hi = int(np.searchsorted(t, max(seg[1] for seg in valid_segs), side="right"))
+        if hi <= lo:
+            return np.array([], dtype=int)
+        within = moving[lo:hi] & (np.abs(s_m[lo:hi] - apex_s) <= cs_apex_region_half_length_m)
+        return np.where(within)[0] + lo
 
     def _phase_slice(start_t, end_t, is_apex=False):
         if end_t < start_t:
@@ -1128,8 +1306,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 "n_samples": int(n_samples),
                 "valid_fraction_stab": valid_fraction_stab,
                 "kerb_fraction": kerb_fraction,
-                "cs_ratio_f": _stats(cs_f[idx]),
-                "cs_ratio_r": _stats(cs_r[idx]),
+                "cs_ratio_f": _gate_cs_stat(_stats(cs_f[idx])),
+                "cs_ratio_r": _gate_cs_stat(_stats(cs_r[idx])),
                 "stability_observed_Nm_per_deg": _stats(stab_obs[idx]),
             }
             if fz is not None:
@@ -1140,6 +1318,13 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             if ls is not None:
                 corner_summary["phases"][phase]["ls_ratio_f"] = _stats(ls_f[idx])
                 corner_summary["phases"][phase]["ls_ratio_r"] = _stats(ls_r[idx])
+
+        apex_idx = _apex_region_idx(c)
+        corner_summary["apex_region"] = {
+            "n_samples": int(apex_idx.size),
+            "cs_ratio_f": _gate_cs_stat(_stats(cs_f[apex_idx])),
+            "cs_ratio_r": _gate_cs_stat(_stats(cs_r[apex_idx])),
+        }
 
         out.append(corner_summary)
 

@@ -16,11 +16,12 @@ import pytest
 
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
-    load_parameters, prepare_vehicle_state, estimate_sideslip,
+    load_parameters, prepare_vehicle_state,
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
     estimate_yaw_moment_stability, estimate_vertical_loads, summarise_corners,
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
+from modules.tyre_fit_auto import resolve_sideslip_beta
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 
@@ -65,10 +66,27 @@ def state(parsed_data, effective_params):
 def pipeline_result(parsed_data, effective_params, state):
     """Full Modules 1-6 chain, replicating ui/views/outing_form.py's
     StabilityAnalysisThread.run() non-cache-hit branch function-for-
-    function (same call order, same arguments) at sideslip_source=
-    "kinematic" -- the production DEFAULT, asserted below rather than
-    assumed, so a future default change is caught here, not silently
-    tested against a stale assumption.
+    function (same call order, same arguments) at whatever
+    stability_estimation.sideslip_source the live config carries --
+    asserted below to equal "ekf_auto_pacejka", the production DEFAULT
+    since 2026-09-01 (thesis_notes.md "Production sideslip source set
+    to ekf_auto_pacejka"), rather than assumed, so a future default
+    change is caught here, not silently tested against a stale
+    assumption. Prior to 2026-09-01 this fixture hard-asserted
+    "kinematic" and running the suite against a live config already
+    pointed at an auto mode required manually flipping
+    config/parameters.json to kinematic and restoring it afterward --
+    that assertion now matches the live default directly instead of
+    fighting it, which is what removed the need to flip. "kinematic"
+    and "ekf_auto_dugoff" still get golden-file regression coverage,
+    just as explicit, live-config-independent secondary modes in
+    tests/test_golden_auto_modes.py rather than through this fixture.
+
+    Uses modules.tyre_fit_auto.resolve_sideslip_beta -- the same
+    dispatch function StabilityAnalysisThread.run() calls -- so this
+    fixture can never silently diverge from what the app itself would
+    compute for beta, the same reason ekf_auto_dugoff/ekf_auto_pacejka
+    testing in test_golden_auto_modes.py uses it too.
 
     Deliberately does not import ui/views/outing_form.py itself: that
     module is PyQt6-based (QThread), and the config-switch branch it
@@ -79,12 +97,18 @@ def pipeline_result(parsed_data, effective_params, state):
     section).
     """
     live_default = effective_params["stability_estimation"].get("sideslip_source", "kinematic")
-    assert live_default == "kinematic", (
+    assert live_default == "ekf_auto_pacejka", (
         f"config default changed to {live_default!r} -- this fixture (and the golden files it feeds) "
-        "assume 'kinematic'; regenerate golden files deliberately if this is an intended change"
+        "assume 'ekf_auto_pacejka'; regenerate golden files deliberately if this is an intended change"
     )
 
-    beta = estimate_sideslip(state, effective_params)
+    beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
+        state, effective_params, parsed_data, live_default, csv_path=RAW_FILE
+    )
+    # fallback_used is NOT asserted here -- returned instead so callers get one
+    # clear, dedicated failure (test_golden_pipeline.py's test_pipeline_did_not_
+    # fall_back) rather than every pipeline_result-dependent test erroring out
+    # on fixture setup, same pattern as test_golden_auto_modes.py's fixture.
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
     cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
@@ -102,6 +126,10 @@ def pipeline_result(parsed_data, effective_params, state):
         "fz": fz,
         "corners": corners,
         "summaries": summaries,
+        "fit_manifest": fit_manifest,
+        "gate_verdict": gate_verdict,
+        "fallback_used": fallback_used,
+        "fallback_reason": fallback_reason,
     }
 
 

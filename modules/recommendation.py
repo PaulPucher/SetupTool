@@ -147,11 +147,23 @@ def aggregate_by_corner(summaries):
                 "cs_ratio_r": {"median": _nanmedian_or_nan(csr)},
                 "stability_observed_Nm_per_deg": {"median": _nanmedian_or_nan(stab)},
             }
+        # CS validity repair part A, Phase 3: median-of-medians across laps
+        # for apex_region too, mirroring the phases loop above -- classify_fn
+        # (_classify_corner) reads this for apex_3-keyed CS, not phases[
+        # "apex_3"] itself. Older summaries predating ANALYSIS_SCHEMA_VERSION
+        # 8 have no "apex_region" key; s.get(...) then None is filtered out,
+        # same NaN-on-empty behaviour as every other aggregated stat here.
+        ar_csf = [s["apex_region"]["cs_ratio_f"]["median"] for s in corner_summaries if s.get("apex_region")]
+        ar_csr = [s["apex_region"]["cs_ratio_r"]["median"] for s in corner_summaries if s.get("apex_region")]
         aggregated[cid] = {
             "stable_corner_id": cid,
             "n_laps": len(corner_summaries),
             "speed_class": _aggregate_speed_class(corner_summaries),
             "phases": phases,
+            "apex_region": {
+                "cs_ratio_f": {"median": _nanmedian_or_nan(ar_csf)},
+                "cs_ratio_r": {"median": _nanmedian_or_nan(ar_csr)},
+            },
         }
     return aggregated
 
@@ -162,9 +174,17 @@ def _phase_verdict(aggregated_corner, phases, classify_fn):
     # what guarantees a recommendation can never disagree with the
     # verdict the stability grid shows for the same corner and phase --
     # both are the identical classifier, not two independent judgments.
+    # apex_region rides along whenever the rule's phases include apex_3 --
+    # classify_fn reads it for that phase's CS comparison instead of
+    # apex_3's own slice (CS validity repair part A, Phase 3); omitted
+    # otherwise so classify_fn's own apex_region-absent path (older,
+    # pre-bump summaries) is exercised identically to before.
     sliced = {p: aggregated_corner["phases"][p]
               for p in phases if p in aggregated_corner["phases"]}
-    severity, short, _long, _colour = classify_fn({"phases": sliced})
+    call_arg = {"phases": sliced}
+    if "apex_3" in phases and aggregated_corner.get("apex_region") is not None:
+        call_arg["apex_region"] = aggregated_corner["apex_region"]
+    severity, short, _long, _colour = classify_fn(call_arg)
     return severity, short
 
 
@@ -658,6 +678,12 @@ def _apply_undrivable_escalation(aggregated, by_corner_laps, feedback_data, clas
             for p in rule["phases"]:
                 if p in best["lap"]["phases"]:
                     escalated_corner["phases"][p] = best["lap"]["phases"][p]
+            if "apex_3" in rule["phases"] and best["lap"].get("apex_region") is not None:
+                # Keep apex_region consistent with the just-substituted apex_3
+                # phase -- both must come from the SAME qualifying lap, not mix
+                # this lap's real apex_3 with the aggregate's median-of-4-laps
+                # apex_region.
+                escalated_corner["apex_region"] = best["lap"]["apex_region"]
 
             synth_matches = _evaluate_rule(rule, {cid: escalated_corner}, {cid: laps}, feedback_data,
                                             classify_fn, settings, source_balance, feedback_weight)

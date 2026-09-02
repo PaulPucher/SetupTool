@@ -524,6 +524,302 @@ WHERE THE PROJECT STANDS
   (the urgent_gap case) was already fixed and found no other gap. OPEN:
   whether the ~12% small-scale shrink and the 5.90cm tyre panels need
   further chasing, or are accepted as they stand.
+- PRODUCTION DEFAULT SET TO ekf_auto_pacejka, test suite retargeted
+  (2026-09-01, same day, work order "Production default: ekf_auto_
+  pacejka" -- full record: thesis_notes.md "Production sideslip source
+  set to ekf_auto_pacejka"). config/parameters.json's sideslip_source
+  DECLARED default at "ekf_auto_pacejka" (value was already live from
+  prior sessions; this WP documents it and retargets tests to match,
+  removing the flip-to-kinematic-then-restore procedure every full-
+  suite run before this needed whenever the live config already pointed
+  at an auto mode). classification.thresholds_calibrated_for_sideslip_
+  source left at "kinematic" on purpose -- [UNCAL] banner now shows by
+  default on a fresh outing, correctly, until threshold re-derivation
+  lands (see next bullet). tests/conftest.py's pipeline_result fixture
+  now asserts+dispatches on the live config value via modules.tyre_fit_
+  auto.resolve_sideslip_beta instead of hard-asserting kinematic;
+  tests/test_golden_pipeline.py retargeted to the ekf_auto_pacejka
+  golden pair (primary); tests/test_golden_auto_modes.py retargeted to
+  kinematic + ekf_auto_dugoff (secondary, explicit-mode, renamed
+  auto_mode_*->secondary_mode_* since kinematic isn't an auto-fit mode);
+  tests/generate_golden.py retargeted to primary/pacejka, tests/
+  generate_golden_auto_modes.py to the two secondary modes, both gained
+  a skip-if-exists guard so a routine re-run can never silently reset a
+  pinned baseline's provenance. Existing pipeline_dubai_ekf_auto_
+  pacejka_cap1.json VERIFIED to still match current output exactly (no
+  fallback, no diff) via a scoped pytest run, NOT regenerated, per the
+  work order. New recommendations_dubai_ekf_auto_pacejka_cap1.json (4
+  recommendations) generated once, none existed before. Full suite
+  CONFIRMED green against the live config, no flip: 139 passed, 1
+  xfailed (138 prior baseline + the 1 new fallback-guard test this WP
+  added) -- git status not yet checked/committed, stop-before-commit
+  per the work order.
+- THRESHOLD RE-DERIVATION FOR ekf_auto_pacejka -- PROPOSAL APPROVED
+  (3 riders: CS gap-selection methodology upgrade signed off; worst-lap
+  aggregation ships atomically with the new thresholds and thresholds_
+  calibrated_for_sideslip_source, no intermediate state; single-session
+  derivation stated everywhere, re-validation added to the new-data-
+  file checklist), then AMENDED (physical anchoring: CS_ratio=0 is the
+  tyre's force peak, STRONG=0-minus-a-noise-margin rather than gap-
+  selected, rear tighter than front per Hoffman/Werner, gap-selection
+  demoted to a sanity cross-check only). diagnostics/inspect_corner_
+  distribution.py extended (kinematic vs ekf_auto_pacejka side by side,
+  per-instance AND worst-lap-per-corner populations, corner identity
+  retained, fallback-guarded) and RUN (2026-09-01, same day) -- STOPPED
+  at the numbers, nothing written to config, PENDING a user decision
+  before proceeding: the amendment's own premise (a small genuinely-
+  beyond-peak tail against a healthy background, C4 as the extreme
+  case) does NOT hold on this data -- worst-lap CSf inverts from 2/14
+  corners negative (kinematic) to 12/14 negative (ekf_auto_pacejka),
+  and C4 (-0.49) is no longer even the worst case (C3=-1.18, C2=-1.12,
+  C1=-0.98 all worse); C8, the corner the current gap-selected
+  stab_neg_thresh_Nm_per_deg targets, reads POSITIVE (+139.1) under
+  ekf_auto_pacejka, with C3/C5 the new worst cases. Leading hypothesis
+  (C_linear_ref, the CS_ratio denominator in estimate_cornering_
+  stiffness, freezing stale under the larger auto-fit alpha) INVESTIGATED
+  AND RULED OUT -- it updates continuously under both modes, to within
+  0.4-0.6% of session end. Remaining candidate explanation, NOT yet
+  verified: cs_linear_slip_threshold_rad/cs_min_slip_angle_span_rad/
+  cs_min_window_samples were calibrated against kinematic's compressed
+  alpha range and may now gate a much narrower slice of ekf_auto_
+  pacejka's ~1.4-1.5x wider range. Three options put to the user, none
+  chosen yet: investigate the window-regression mechanism further
+  (R2/sample-count at the newly-negative windows); re-derive the CS
+  windowed-regression calibration constants themselves first (a bigger,
+  separate piece of work); or treat the inversion as a genuine finding
+  and anchor against it as-is, framed as a major result needing its own
+  independent validation, not a routine re-derivation. Full record:
+  thesis_notes.md to be updated once a direction is chosen -- NOT YET
+  WRITTEN, this bullet is the only record right now.
+- MECHANISM INVESTIGATION, wholesale-negative CS_ratio under
+  ekf_auto_pacejka (2026-09-02, diagnostics only -- full record:
+  thesis_notes.md "Mechanism investigation: wholesale-negative CS_ratio
+  under ekf_auto_pacejka"). New diagnostics/inspect_negative_cs_
+  mechanism.py (disposable, DELETE at commit time), 12 renders
+  (diagnostics/plots_threshold_investigation/, gitignored). Median of
+  the pooled per-sample CS_ratio population stays POSITIVE in all 12
+  corner/axle cases checked (C1/C2/C3/C4/C8/C9, front+rear) despite
+  9-46% negative-sample fractions -- the population did NOT become
+  "typically beyond peak"; the existing worst-lap/min statistic is
+  converting a minority tail into the wholesale-negative reading.
+  Leading mechanism, not yet acted on: small (n=11-26), high-R2
+  (0.77-0.998) regression windows -- exactly the small-n overfitting
+  regime -- occur far more often under ekf_auto_pacejka because its
+  wider alpha range reaches cs_min_window_samples/cs_min_slip_angle_
+  span_rad's own floor almost immediately, far more often than
+  kinematic's narrower range did; C_window and C_section (the two
+  ingredients CS_alpha's R2-weighted blend combines) disagree in
+  magnitude by 3-14x in most of the 12 cases even when they agree in
+  sign. Phase lag ruled out as the general driver (9 of 12 cases show
+  ~0ms alpha-vs-Fy lag under ekf_auto_pacejka; the one exception, C2,
+  shows comparable lag under kinematic too). C4 remains visually
+  consistent with STEP 2's own genuine-saturation attribution (a wide,
+  sustained multi-lap dip, not a single spike) -- unaffected by this
+  finding. No config/estimator/threshold change made. Bears on the
+  paused threshold-re-derivation bullet's third option (re-deriving the
+  CS windowed-regression calibration constants first) -- no decision
+  made here.
+- CS_ratio STATISTIC-REPAIR PROPOSAL, reviewed with decisions
+  (2026-09-02, same day -- full record: thesis_notes.md "Pass-1
+  baseline independence, corrected" and "Phase-level validity
+  diagnostic: apex_3's fixed window budget conflicts with the C4-vs-
+  artifact distinction"). Decisions on record: Stage 2 stays min-
+  across-5-phases (worst-phase semantics load-bearing for the
+  recommendation matrix); cross-lap = min-then-min ("worst phase of
+  worst lap"), signed off; the earlier proposal's median-across-phases
+  idea REJECTED (would blind the verdict to genuine single-phase
+  understeer, the tool's core use case) in favour of a within-phase
+  validity gate (phase below a sample-count multiple of its own local
+  regression-window footprint reports NO SIGNAL), with persistence
+  (Part 2 option 3) kept as a parallel cross-check; Part 3 (window-
+  constant re-derivation) and its sequencing role accepted; Part 5
+  (figure completeness: corner_by_lap/fitted_line wiring, the split
+  never-silent rule) accepted, to implement with the eventual package.
+  Pass-1 baseline correction: the carried-forward curve itself (config
+  tyre_model_ekf.pass_1) is independent of the CS window constants as
+  claimed, but diagnostics/inspect_pass1_final_validation.py's own
+  manifest["wp_s4b_reference_spread"] section is NOT -- it calls
+  estimate_cornering_stiffness and would need deliberate re-running
+  after any window-constant change, same discipline as goldens.
+  PHASE-LEVEL DIAGNOSTIC RUN (diagnostics/inspect_cs_phase_validity.py,
+  disposable): surfaced a structural conflict before any gate value was
+  proposed, per the work order's own "stop at its numbers" instruction.
+  C1, C2, C3, AND C4 all resolve their Stage-3 minimum to apex_3
+  specifically (n=11, 11, 4, 11 cs_ratio-valid samples) -- traced to
+  apex_3's own construction (a single instant expanded to a FIXED +/-
+  apex_half_window_samples=5 window, 11 samples, independent of corner/
+  lap/estimator), not to genuineness. Local window footprints there
+  (12.0-19.5 samples mean) mean a phase_n>=k*footprint gate drops ALL
+  FOUR of C1/C2/C3/C4 identically at every candidate k (1.5/2/3) --
+  failing to preserve the pre-registered "C4 stays flagged" expectation,
+  since the gate keys on PHASE TYPE (apex's fixed tiny budget vs an
+  exit phase's larger, physically-variable one), not on whether the
+  corner's dip is genuine. C8/C9 resolve to exit_4/exit_5 instead (n=
+  84-93), surviving at k=1.5/2.0. Open question for the next step, not
+  resolved: whether the gate needs to be phase-type-aware, or whether
+  the persistence-across-phases cross-check should be promoted to the
+  PRIMARY C4-vs-artifact mechanism, with the within-phase gate demoted
+  to a general noise floor. No gate value proposed, no config/estimator
+  change made.
+- GATED STAGE-2 RECOMPUTATION (k=1.5 across all 5 phases): C4's
+  pre-registration FALSIFIED (2026-09-02, same day -- full record:
+  thesis_notes.md "apex_3 structural finding..." and "Gated Stage-2
+  recomputation (k=1.5 across all 5 phases)..."). Same diagnostics/
+  inspect_cs_phase_validity.py, extended to exclude any phase whose own
+  cs-valid n falls below 1.5x its mean local footprint, across ALL 5
+  phases of every lap (not just the previously-found worst one). C1
+  recovers to clearly healthy (+0.247/+0.021); C2/C3 recover to mild
+  negative rather than extreme (-0.197/-0.119, -0.225/-0.288); C8/C9
+  unchanged (their worst phase was never apex_3). C4 FLIPS POSITIVE on
+  BOTH axles (+0.061 front, +0.099 rear) -- no phase on any of its 4
+  laps reads negative once apex_3 is excluded. The pre-registered
+  expectation ("C4 still clearly negative via a non-apex phase") does
+  NOT hold. Reading: apex_3's narrow window was capturing the CORE of a
+  real, sustained event (render evidence stands); the surrounding wider
+  phases' own medians dilute it back to positive -- a different failure
+  mode (median-over-a-wide-window smooths a spatially narrow real event)
+  than the apex sample-budget mismatch the previous run found. Neither
+  a within-phase count gate nor plain median-across-phases (Part 2's
+  already-rejected candidate) currently preserves C4's signal in both
+  directions (apex included: noisy small-n; apex excluded: diluted).
+  Strengthens the case for persistence-across-distance (Part 2 option 3)
+  evaluated on the raw per-sample series directly, not through any
+  phase-median reduction -- not decided here. Recommendation-engine
+  exposure: 8 of 39 rules key on apex_3 (6 elicited/live, 1 held, 1
+  retired) -- count only, no gate value proposed, no config/estimator
+  change made.
+- PERSISTENCE-LENGTH DIAGNOSTIC: pre-registration NOT SUPPORTED
+  (2026-09-02, same day -- full record: thesis_notes.md "Persistence-
+  length diagnostic: pre-registration NOT supported..."). New
+  diagnostics/inspect_cs_negative_run_lengths.py (disposable),
+  below-zero run lengths on the raw per-sample series, all 14 corners,
+  both axles. C4's own longest runs (17-32m) are smaller than the
+  pre-registered 30-40m and mostly NOT apex-centred (1 of 5 instances).
+  C1 roughly matches "order one window footprint" (2-29m); C2 does not
+  (up to 45.2m); C3 dramatically does not -- REAR runs of 108-130m on
+  3 of 4 laps, the three longest runs found anywhere in the pooled
+  n=219-run distribution (p50=8.87m, p90=36.45m, p99=103.18m,
+  max=129.68m, C3 rear). C4's own runs sit mid-distribution (~p75-p85),
+  not in a separated upper cluster. Flagged, not reconciled: this
+  conflicts with the earlier visual "rapid sawtooth" read of C3
+  (Mechanism investigation entry) -- either that read under-sampled
+  C3's own sustained character, or a visually-jagged trace can still be
+  unbroken-below-zero at the sample resolution this script checks; not
+  distinguished here. CONSEQUENCE: persistence-over-distance (longest
+  single run, per lap) is now a THIRD statistic that fails to reproduce
+  the C4-vs-artifact separation, after phase-median (rejected) and the
+  within-phase count gate. No refinement evaluated, no config/
+  estimator/gate change made.
+- GROUND-TRUTH WORKUP: C4 REAL on all 5 runs, C2/C3 rear ARTIFACT
+  (2026-09-02, same day -- full record: thesis_notes.md "Ground-truth
+  workup: per-run verdicts for the long-run corners..."). New
+  diagnostics/inspect_run_ground_truth.py (disposable); Part 5's
+  renderer fix (corner_by_lap + fitted Pacejka curve) applied on the
+  diagnostic side only, core/figure_render.py itself untouched. Four
+  evidence lines per run (tyre-curve shape, LS_ratio/kappa, steering-
+  rate vs lap p95 + stability, synthesised verdict) for the 10 runs
+  named in the work order. C4: all 5 runs REAL -- 4 of 5 show a clean,
+  unambiguous fold or peak in the tyre-curve render (the cleanest,
+  C4 rear lap4, is a textbook peaked curve); kappa negligible
+  throughout (rules out traction-limited); this is the strongest
+  confirmation yet of STEP 2's original genuine-saturation attribution,
+  now grounded in actual fold pictures. C2 front (both 45.2m runs) and
+  C3 rear (all three 100m+ runs): ARTIFACT -- tyre curve shows a tight,
+  self-crossing LOOP (not a fold) traced by the run's own points;
+  kappa negligible (does not support traction-limited for these
+  specific spans); stability mostly healthy except C3 rear lap3, which
+  shows a genuine stability dip (min -21.0) inside the run -- flagged
+  MIXED rather than forced to one label. HONESTY NOTE: the C3 ARTIFACT
+  read does not straightforwardly reconcile with PLAN.md STEP 3's own
+  "C3 traction-limited on all 4 laps" finding (kinematic-sourced,
+  worst-phase) -- LS_ratio does not depend on sideslip_source, so the
+  comparison is valid, but kappa is negligible across all three spans
+  checked here; STEP 3's own statistic may key on a different, shorter
+  moment in the same laps. Not reconciled. No config, estimator, or
+  statistic proposed or changed.
+- CS VALIDITY REPAIR, PART A + 100 HZ TIME BASE -- COMPLETE
+  (2026-09-02 -- full record: thesis_notes.md "CS validity repair, part
+  A, Phase 1-4" through the sign-off clarification round's own three
+  entries; PLAN.md history below this bullet, superseded, kept as
+  narrative only). Mechanism (Phases 0/2/3) and floor VALUES (Phase 1,
+  four attempts, two independent bootstrap-only failures before direct
+  real-data validation settled it) are both DONE. No commit yet.
+  FINAL CONFIG VALUES (config/parameters.json, live): target_sample_
+  rate_hz=100, min_sample_rate_hz=50 (adaptive grid, refuses only below
+  the floor); cs_min_window_s=0.1 (the chair's own LITERAL default, zero
+  deviation -- a tested 0.2s hypothesis was REJECTED, not merely
+  superseded: real-data validation showed it performs no better),
+  cs_min_window_samples_floor=5, cs_min_slip_angle_span_rad=0.02,
+  cs_max_window_m=53.0 (a real state['s_m'] track-distance locality cap,
+  not a sample count), cs_linear_slip_threshold_rad=0.03, cs_phase_
+  min_valid_samples=5, cs_apex_region_half_length_m=25m.
+  ANALYSIS_SCHEMA_VERSION=8 (extended for grid_rate_hz, not re-bumped --
+  still uncommitted). Cache identity (in-memory + persisted) includes
+  grid_rate_hz; one status line added (estimator_status_label).
+  RESULT ON DUBAI: wholesale-negative artifact fixed (was 12/14 corners
+  negative pre-repair, now 6-7/14, a plausible non-artifact population);
+  apex_region validity 100%/98% front/rear (vs apex_3's own 25%
+  no-signal rate); pooled per-sample medians stayed positive and
+  INCREASED across the board vs the original pre-repair measurement (12
+  of 12 corner/axle cases checked); real-cornering windows no longer
+  floor-pinned (median natural window now 3.7x the floor, was AT the
+  floor for half the population pre-repair).
+  KNOWN, RECORDED LIMITATIONS (not fixed, by decision -- see thesis_
+  notes.md for each): (1) C4's own 5 independently ground-truth-
+  confirmed genuine saturation events (fold/peak pictures) are only
+  PARTIALLY caught by the worst-lap/apex_region statistic -- 1 of 5 per-
+  lap events still reads negative, the other 4 read positive; the
+  corner-LEVEL flag survives (one lap is enough to flag the corner) but
+  the per-lap evidence is thinner than an aggregate-only view suggests.
+  (2) cs_max_window_m=53.0 is verified against every corner's own
+  BRACKET LENGTH (smallest 116m, comfortably clear) but NOT against
+  corner-to-corner GAPS -- several real gaps (8.5-17.8m, one 0.0m pair)
+  are smaller than the cap, so a window in principle could bridge into a
+  neighbouring corner; not observed to affect Dubai's own result, not
+  disproven either. New-data-file checklist item added (PARKED section
+  below) for whoever loads the next track. (3) entry_1_brake stays
+  no-signal 75-93% of instances across every span value ever tested in
+  this arc -- treated as physics (braking genuinely doesn't vary slip
+  angle enough), reported only, not tuned. (4) tyre_model_ekf.pass_1's
+  frozen R, kerb_dilation_samples, four nis_window_samples blocks, and
+  apex_half_window_samples remain literal (not rate-derived) sample
+  counts -- each now silently represents HALF its calibrated duration at
+  100 Hz vs the old fixed 50 Hz; flagged, out of this package's scope.
+  (5) Dugoff-chain coupling (modules/tyre_fit_auto.py's fit_session uses
+  estimate_cornering_stiffness's CS_ratio==1.0 samples as its own
+  c_alpha determination) escalated from a cosmetic ~1.4% drift to full
+  DEGENERACY under the final floor (ekf_auto_dugoff always falls back to
+  kinematic on Dubai now) -- ACCEPTED (user decision), confined to that
+  secondary/non-default mode, deferred to the golden-regeneration step.
+  TEST SUITE: full non-golden suite run against the final config: 5
+  failed, 137 passed, 1 xfailed, 9 errors. TWO were real bugs in this
+  package's own code, found and FIXED same turn (a grid-construction
+  off-by-one dropping each file's last sample; a stale test string for
+  the guard's deliberately-changed wording) -- both re-verified green.
+  The remaining 10 all trace to limitation (5) above, re-confirmed
+  stable after the fixes. Golden pipeline/recommendation tests EXPECTED
+  RED (not run, per the work order -- CS_ratio/apex_region/grid rate all
+  changed).
+  ANCHORING INPUT READY: diagnostics/threshold_anchoring_input.md holds
+  the final (0.1s/0.02rad) worst-lap CSf/CSr sorted lists verbatim
+  (stability statistic marked MISSING -- the anchoring session produces
+  it fresh). Superseded diagnostics scripts from this arc (inspect_cs_
+  window_floor_derivation.py, inspect_cs_window_cap_sizing.py, inspect_
+  cs_phase_median_floor_derivation.py) and kept/reproducing ones
+  (inspect_cs_phase_median_floor_derivation_v2.py, inspect_cs_max_
+  window_locality_sizing.py, inspect_cs_floor_candidate_validation.py,
+  inspect_cs_duration_only_comparison.py, inspect_native_channel_
+  rates.py, inspect_corner_bracket_geometry.py, inspect_phase4_per_lap_
+  breakdown.py, inspect_pooled_median_comparison.py) are not yet
+  classified in diagnostics/README.md -- commit-time sweep, not now.
+  NEXT STEP: threshold anchoring (using diagnostics/threshold_
+  anchoring_input.md as the starting population), THEN the closing
+  package -- worst-lap aggregation switch, classification.
+  thresholds_calibrated_for_sideslip_source flag flip, golden
+  regeneration (including the deliberate tyre_model_ekf.pass_0
+  re-freeze for ekf_auto_dugoff), the ekf_auto_dugoff-mode decision
+  (keep degenerate-on-fallback as documented, or decouple/harden its
+  own fit chain), and a full suite run once everything above lands.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -774,7 +1070,18 @@ Compound-corner curvature detection - not worth destabilizing the
 realization. Worst-phase sentinel NaN quirk and valid_fraction_stab
 replacement metric - cosmetic, left alone. k=1.01211 application -
 gated on second-track data. New-data-file checklist - runs when a
-log arrives.
+log arrives. Items so far:
+  - cs_max_window_m locality check: re-run diagnostics/inspect_
+    corner_bracket_geometry.py (or equivalent) on the new track's
+    own corner sequence and compare its own corner-to-corner GAPS
+    against the live cs_max_window_m -- Dubai has several gaps
+    (8.5-17.8 m, one 0.0 m pair) smaller than the current 53.0 m
+    cap, meaning a window CAN in principle bridge into a
+    neighbouring corner there (thesis_notes.md "cs_max_window_m
+    corner-gap bridging limitation"); a track with tighter corner
+    sequencing than Dubai could make this a live, not theoretical,
+    concern and might need a per-track cap or an explicit gap-aware
+    clamp -- neither exists today.
 Combined-slip tyre model: pure-lateral Dugoff cannot represent
 rear exit-traction or front entry-braking limitation, producing
 false negatives in both. Rajamani Ch. 13.10's own formulation is

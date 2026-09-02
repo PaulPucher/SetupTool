@@ -869,7 +869,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
     def _render_tyre_curves(self, instances, laps_by_number, bracket_start_m, bracket_end_m,
                              t, s_m, slip, forces, cs, kerb_mask, params, session_mask,
-                             sideslip_source=None, fit_manifest=None):
+                             sideslip_source=None, fit_manifest=None, sample_rate_hz=None):
         """Tyre Curves tab: per-axle slip-angle-vs-lateral-force scatter for
         this corner's own canonical window (bracket_start_m/end_m, no
         approach/coast-out margin -- unlike the Traces tab). Plot design
@@ -932,7 +932,7 @@ class CornerTraceDialog(_TraceDialogBase):
         just hidden/shown.
         """
         import pyqtgraph as pg
-        from modules.stability_analysis import reconstruct_cs_window_start
+        from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 
         self._clear_tyre_curves()
         if slip is None or forces is None:
@@ -1086,10 +1086,12 @@ class CornerTraceDialog(_TraceDialogBase):
                 wp = _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m,
                                       bracket_start_m, bracket_end_m)
                 if wp is not None:
-                    min_window = params["stability_estimation"]["cs_min_window_samples"]
+                    min_window = resolve_cs_min_window_samples(params, sample_rate_hz)
                     min_span = params["stability_estimation"]["cs_min_slip_angle_span_rad"]
+                    max_window_m = params["stability_estimation"]["cs_max_window_m"]
                     idx = wp["index"]
-                    start = reconstruct_cs_window_start(alpha_arr, idx, min_window, min_span)
+                    start = reconstruct_cs_window_start(alpha_arr, idx, min_window, min_span,
+                                                         s_m=s_m, max_window_m=max_window_m)
                     window_sl = slice(start, idx)
                     if window_sl.stop > window_sl.start:
                         window_item = plot.plot(np.degrees(alpha_arr[window_sl]), Fy_arr[window_sl], pen=None,
@@ -1139,7 +1141,7 @@ class CornerTraceDialog(_TraceDialogBase):
         """
         import pyqtgraph as pg
         from modules.geo import project_latlon_to_xy
-        from modules.stability_analysis import reconstruct_cs_window_start
+        from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 
         self.track_map_plot.clear()
         gps_lat = state.get("gps_lat")
@@ -1174,8 +1176,9 @@ class CornerTraceDialog(_TraceDialogBase):
                 **styles[c["lap_number"]],
             })
 
-        min_window = params["stability_estimation"]["cs_min_window_samples"]
+        min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
         min_span = params["stability_estimation"]["cs_min_slip_angle_span_rad"]
+        max_window_m = params["stability_estimation"]["cs_max_window_m"]
 
         def _window_xy(cs_ratio_arr, alpha_arr):
             if cs_ratio_arr is None or alpha_arr is None:
@@ -1184,7 +1187,8 @@ class CornerTraceDialog(_TraceDialogBase):
                                   bracket_start_m, bracket_end_m)
             if wp is None:
                 return None
-            start = reconstruct_cs_window_start(alpha_arr, wp["index"], min_window, min_span)
+            start = reconstruct_cs_window_start(alpha_arr, wp["index"], min_window, min_span,
+                                                 s_m=s_m, max_window_m=max_window_m)
             window_sl = slice(start, wp["index"])
             if window_sl.stop <= window_sl.start:
                 return None
@@ -1215,7 +1219,7 @@ class CornerTraceDialog(_TraceDialogBase):
     def _build_tyre_curve_export(self, axle, alpha_arr, Fy_arr, ref_arr, cs_ratio_arr, c_alpha_arr,
                                   kerb_mask, session_mask, instances, laps_by_number,
                                   bracket_start_m, bracket_end_m, t, s_m, params,
-                                  sideslip_source, fit_manifest):
+                                  sideslip_source, fit_manifest, sample_rate_hz):
         """Assemble one axle's core/figure_render.py tyre_curves[axle]
         entry: session scatter (whole-session background, NEW for export
         -- the interactive tab only ever shows this corner's own window,
@@ -1294,14 +1298,16 @@ class CornerTraceDialog(_TraceDialogBase):
         window_xy = None
         tangent_line = None
         if cs_ratio_arr is not None:
-            from modules.stability_analysis import reconstruct_cs_window_start
+            from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
             wp = _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m,
                                   bracket_start_m, bracket_end_m)
             if wp is not None:
-                min_window = params["stability_estimation"]["cs_min_window_samples"]
+                min_window = resolve_cs_min_window_samples(params, sample_rate_hz)
                 min_span = params["stability_estimation"]["cs_min_slip_angle_span_rad"]
+                max_window_m = params["stability_estimation"]["cs_max_window_m"]
                 idx = wp["index"]
-                start = reconstruct_cs_window_start(alpha_arr, idx, min_window, min_span)
+                start = reconstruct_cs_window_start(alpha_arr, idx, min_window, min_span,
+                                                     s_m=s_m, max_window_m=max_window_m)
                 window_sl = slice(start, idx)
                 if window_sl.stop > window_sl.start:
                     window_xy = (np.degrees(alpha_arr[window_sl]), Fy_arr[window_sl])
@@ -1396,6 +1402,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 ctx["t"], ctx["s_m"], ctx["slip"], ctx["forces"], ctx["cs"], ctx["kerb_mask"], ctx["params"],
                 ctx["session_mask"],
                 sideslip_source=ctx["sideslip_source"], fit_manifest=ctx["fit_manifest"],
+                sample_rate_hz=ctx["state"]["sample_rate_hz"],
             )
             # Follow-up item 2: render_corner_figure has the track map
             # back (narrow row) -- _render_track_map still draws directly
@@ -1434,7 +1441,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 cs.get("C_alpha_f") if cs is not None else None,
                 ctx["kerb_mask"], ctx["session_mask"], checked_instances, ctx["laps_by_number"],
                 ctx["bracket_start_m"], ctx["bracket_end_m"], ctx["t"], ctx["s_m"], ctx["params"],
-                ctx["sideslip_source"], ctx["fit_manifest"],
+                ctx["sideslip_source"], ctx["fit_manifest"], ctx["state"]["sample_rate_hz"],
             ),
             "rear": self._build_tyre_curve_export(
                 "rear", slip.get("alpha_r_filt"), forces.get("Fy_r_filt"),
@@ -1443,7 +1450,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 cs.get("C_alpha_r") if cs is not None else None,
                 ctx["kerb_mask"], ctx["session_mask"], checked_instances, ctx["laps_by_number"],
                 ctx["bracket_start_m"], ctx["bracket_end_m"], ctx["t"], ctx["s_m"], ctx["params"],
-                ctx["sideslip_source"], ctx["fit_manifest"],
+                ctx["sideslip_source"], ctx["fit_manifest"], ctx["state"]["sample_rate_hz"],
             ),
         }
         self._export_data = {
