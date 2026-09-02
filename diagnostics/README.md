@@ -17,7 +17,12 @@ bug in this README, not license to leave a future one uncommented.
 
 Every entry below survived the 2026-08-30 full-inventory sweep
 (thesis_notes.md "10. Second diagnostics sweep: full-inventory
-classification"). Category in brackets: **[keep-referenced]** = cited
+classification") or the 2026-09-02 threshold-anchoring/arc-closure
+sweep (thesis_notes.md "Threshold anchoring + arc closure, Phase 6:
+diagnostics classification") -- the latter classified every script
+from the CS validity repair investigation arc plus one pre-existing
+gap (inspect_tyre_variant_comparison.py, unrelated to that arc, never
+previously listed here). Category in brackets: **[keep-referenced]** = cited
 from outside diagnostics/ (config provenance, PLAN.md, or a docstring/
 test pointer); **[keep-reproduces]** = live tooling (frozen baseline,
 smoke test, or an actual production import source); **[dependency]** =
@@ -165,6 +170,83 @@ kept because a surviving script imports it, not for its own findings.
   the CS estimator changes and the figures need regenerating. Output
   diagnostics/plots_step2/ (gitignored). Imports `estimate_sideslip_ekf_
   dugoff` from sideslip_ekf_dugoff.py directly (see that entry above).
+- **inspect_cs_window_floor_derivation.py** `[keep-referenced]` — the CS
+  validity repair's first-attempt window-floor bootstrap (superseded as a
+  DECIDING criterion, thesis_notes.md "CS validity repair, part A, Phase
+  1: window-floor re-derivation" and its own REVISION entry) -- but its
+  linear_region_end finding is still the LIVE source config/parameters.
+  json's cs_linear_slip_threshold_rad_derived_from cites directly by exact
+  filename (that specific finding was never superseded, only the window-
+  floor N/span choice was). Deleting this would leave that citation
+  dangling.
+- **inspect_cs_duration_only_comparison.py** `[keep-referenced]` — the
+  sign-off clarification round's 0.1s-vs-0.2s duration-only bootstrap
+  (thesis_notes.md "CS validity repair, sign-off clarification round").
+  Cited by exact filename in config/parameters.json's cs_min_window_s_
+  derived_from as joint provenance (with inspect_cs_floor_candidate_
+  validation.py) for the live 0.1s floor.
+- **inspect_cs_max_window_locality_sizing.py** `[keep-referenced]` —
+  measures the natural (uncapped) CS window's own metre extent. Cited by
+  exact filename in config/parameters.json's _comment_cs_max_window_m as
+  the source of the live cs_max_window_m=53.0 value; re-run at least
+  twice across this arc's own floor revisions (thesis_notes.md "100 Hz
+  time-base work package, Phase 4" also cites its re-run numbers).
+- **inspect_native_channel_rates.py** `[keep-referenced]` — per-channel
+  native sample-rate census (ecu_speed 50 Hz vs the other five CS-chain
+  channels at 100 Hz). Cited by exact filename in config/parameters.
+  json's _comment_grid_rate as the evidence behind the adaptive 50-100 Hz
+  grid design.
+- **inspect_corner_bracket_geometry.py** `[keep-referenced]` — corner
+  bracket length vs corner-to-corner gap geometry (thesis_notes.md "CS
+  validity repair, limitation: cs_max_window_m does not guarantee
+  locality..."). Cited by exact filename in PLAN.md's PARKED new-data-
+  file checklist ("re-run diagnostics/inspect_corner_bracket_geometry.py
+  ... on the new track's own corner sequence") -- a live, forward-looking
+  reference for whenever a second track's data arrives, not just a past
+  finding.
+- **inspect_cs_floor_candidate_validation.py** `[keep-reproduces]` — the
+  CS validity repair's direct real-data floor validation (thesis_notes.md
+  "100 Hz time-base work package, Phase 1 FINAL" and "CS validity repair,
+  sign-off clarification round"). THE generator behind diagnostics/
+  threshold_anchoring_input.md (cited there by exact filename as its own
+  source) and the threshold-anchoring Phase 1/2 work (thesis_notes.md
+  "Threshold anchoring, Phase 1/2") -- also jointly cited in config/
+  parameters.json's cs_min_window_s_derived_from and _comment_cs_max_
+  window_m. Load-bearing provenance for the live STRONG/MODERATE_CS*
+  thresholds; re-run whenever the CS window floor or the anchoring
+  population needs re-deriving.
+- **inspect_cs_phase_median_floor_derivation_v2.py** `[keep-reproduces]`
+  — the CS window floor's final bootstrap methodology (cornering-only
+  population; thesis_notes.md "100 Hz time-base work package, Phase 1:
+  floor derivation, third pass"), the version that led directly to the
+  direct-real-data-validation pivot above. Kept as the final methodology
+  version of this investigation branch, superseding v1 (inspect_cs_
+  phase_median_floor_derivation.py, deleted 2026-09-02 -- its own
+  earlier finding is fully recorded in thesis_notes.md "CS validity
+  repair, part A, Phase 1 REVISION").
+- **inspect_run_ground_truth.py** `[keep-reproduces]` — per-run ground-
+  truth verdicts (fold/loop tyre-curve pictures + LS_ratio/kappa +
+  steering-rate/stability evidence) for the 10 named C2/C3/C4 runs
+  (thesis_notes.md "Ground-truth workup: per-run verdicts for the long-
+  run corners..."). The single strongest evidence line in this entire
+  investigation arc (C4 confirmed REAL via actual fold pictures, C2
+  front/C3 rear confirmed ARTIFACT via loop pictures) and the basis for
+  which corners are excluded from the live STRONG_CSF/CSR noise-margin
+  population (config/parameters.json derived_from citations). Imports
+  `_canonical_window_slice`/`_build_track_map` from inspect_step2_
+  chair_plots.py (already `[keep-reproduces]` below).
+- **inspect_tyre_variant_comparison.py** `[keep-referenced]` — WP-N3
+  Phase 3's Dugoff-vs-Pacejka fit comparison (thesis_notes.md "3.
+  WP-N3..., Phase 3: Pacejka variant"). Backs the still-open "fit-variant
+  choice" decision listed in PLAN.md's own carry-forward items --
+  unrelated to the CS validity repair/threshold anchoring arc, out of
+  that arc's own disposal sweep, kept here since it had no README entry
+  at all (a gap this sweep also closes). NOTE: thesis_notes.md's own
+  "10. Second diagnostics sweep" entry (2026-08-30) lists this exact
+  filename as DELETED that day -- `git log --follow` on this path shows
+  only its original 2026-08-20 add, never a deletion, so that historical
+  record entry appears to be in error (flagged, not corrected -- CLAUDE.md
+  forbids rewriting past thesis_notes.md entries).
 - **generate_channel_requirements.py** `[keep-reproduces]` — regenerates
   the two committed deliverables docs/channel_requirements.md (the
   telemetry-export checklist for a new event, with per-channel WHY) and

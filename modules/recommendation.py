@@ -86,6 +86,13 @@ def _nanmedian_or_nan(values):
     return float(np.median(valid))
 
 
+def _nanmin_or_nan(values):
+    valid = [v for v in values if v == v]  # drop NaN (NaN != NaN)
+    if not valid:
+        return float("nan")
+    return float(np.min(valid))
+
+
 def _group_by_corner(summaries):
     by_id = {}
     for s in summaries:
@@ -120,14 +127,32 @@ def _aggregate_speed_class(lap_summaries):
 
 
 def aggregate_by_corner(summaries):
-    # Median-of-medians per stable_corner_id: each lap already reduces a
-    # corner instance to a per-phase median (summarise_corners); taking
-    # the median across laps of those medians privileges behaviour that
-    # repeats every lap. A single-lap anomaly washes out and cannot by
-    # itself drive a recommendation -- setup changes should address
-    # repeatable patterns, not one-off excursions. (The consistency gate in
-    # _evaluate_rule additionally requires the verdict itself to repeat
-    # across a minimum count/fraction of laps, evaluated per-lap below.)
+    # Cross-lap combiner for CS_ratio is config-driven (classification.
+    # cs_cross_lap_aggregation, "median"|"worst_lap"): "median" privileges
+    # behaviour that repeats every lap, washing out a one-off anomaly.
+    # "worst_lap" (min-then-min, thesis_notes.md "Gated Stage-2
+    # recomputation...", signed off as Stage 3) takes the worst phase of
+    # the worst lap instead -- this is a per-phase min across laps here,
+    # composed with classify_fn's own existing min-across-phases search
+    # (_classify_corner) at the caller; since min is associative, that
+    # composition IS the global min over every (lap, phase) pair, without
+    # needing to flatten the two stages into one pass here. Ships only
+    # together with thresholds re-derived against that same population
+    # (CLAUDE.md deviation taxonomy: classification thresholds are always
+    # re-derived for the population they will be read against). Stability
+    # keeps median unconditionally -- its aggregation was never found
+    # broken (PLAN.md "STEP 2"), only CS_ratio was. A single-lap CS anomaly
+    # can therefore surface at the aggregate under "worst_lap" without
+    # itself producing a recommendation: the consistency gate in
+    # _evaluate_rule re-evaluates classify_fn per lap independently and
+    # still requires the verdict to repeat across a minimum count/fraction
+    # of that corner's laps before any rule fires.
+    from modules.stability_analysis import load_parameters
+    cs_aggregation = load_parameters()["classification"].get(
+        "cs_cross_lap_aggregation", "median"
+    )
+    cs_combine = _nanmin_or_nan if cs_aggregation == "worst_lap" else _nanmedian_or_nan
+
     by_id = _group_by_corner(summaries)
 
     aggregated = {}
@@ -143,12 +168,12 @@ def aggregate_by_corner(summaries):
                 csr.append(p["cs_ratio_r"]["median"])
                 stab.append(p["stability_observed_Nm_per_deg"]["median"])
             phases[phase] = {
-                "cs_ratio_f": {"median": _nanmedian_or_nan(csf)},
-                "cs_ratio_r": {"median": _nanmedian_or_nan(csr)},
+                "cs_ratio_f": {"median": cs_combine(csf)},
+                "cs_ratio_r": {"median": cs_combine(csr)},
                 "stability_observed_Nm_per_deg": {"median": _nanmedian_or_nan(stab)},
             }
-        # CS validity repair part A, Phase 3: median-of-medians across laps
-        # for apex_region too, mirroring the phases loop above -- classify_fn
+        # CS validity repair part A, Phase 3: same cross-lap combiner for
+        # apex_region too, mirroring the phases loop above -- classify_fn
         # (_classify_corner) reads this for apex_3-keyed CS, not phases[
         # "apex_3"] itself. Older summaries predating ANALYSIS_SCHEMA_VERSION
         # 8 have no "apex_region" key; s.get(...) then None is filtered out,
@@ -161,8 +186,8 @@ def aggregate_by_corner(summaries):
             "speed_class": _aggregate_speed_class(corner_summaries),
             "phases": phases,
             "apex_region": {
-                "cs_ratio_f": {"median": _nanmedian_or_nan(ar_csf)},
-                "cs_ratio_r": {"median": _nanmedian_or_nan(ar_csr)},
+                "cs_ratio_f": {"median": cs_combine(ar_csf)},
+                "cs_ratio_r": {"median": cs_combine(ar_csr)},
             },
         }
     return aggregated

@@ -1,8 +1,8 @@
 {
   "_meta": {
     "purpose": "REGRESSION baseline, not a correctness claim -- see tests/test_golden_pipeline.py's module docstring. PRIMARY mode (ekf_auto_pacejka, production default since 2026-09-01): the underlying tyre curve is fit fresh on this data every time modules.tyre_fit_auto.fit_session_pacejka runs -- this golden pins CURRENT fit-chain output, not a frozen prior-session curve.",
-    "git_commit_hash": "2ffbff78f189aefd651aa9b71076bb2d0d7fc0be",
-    "generated_at_utc": "2026-09-01T20:38:49.933351+00:00",
+    "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
+    "generated_at_utc": "2026-09-02T17:13:13.814791+00:00",
     "data_file": "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt",
     "sideslip_source": "ekf_auto_pacejka",
     "accuracy_cap": 1,
@@ -15,339 +15,339 @@
         3,
         4
       ],
-      "timestamp": "2026-09-01T20:33:09.866237+00:00",
+      "timestamp": "2026-09-02T17:04:54.293945+00:00",
       "axles": {
         "front": {
-          "B": 10.027734141182316,
-          "C": 1.9669854860309053,
-          "D": 8245.475690398114,
-          "E": 0.274956953261426,
+          "B": 10.456547927865126,
+          "C": 1.9404337194463324,
+          "D": 8183.98337685473,
+          "E": 0.09100060949433769,
           "powell_converged": true,
-          "fit_n_samples": 24183,
-          "fit_rms_resid_N": 2738.383680385959,
-          "peak_alpha_deg": 6.281395348837209,
+          "fit_n_samples": 48775,
+          "fit_rms_resid_N": 2679.869142398041,
+          "peak_alpha_deg": 5.854311077769442,
           "peak_in_visited_range": false,
-          "visited_alpha_p99_deg": 5.058781866474378,
+          "visited_alpha_p99_deg": 4.960526641783392,
           "sign_ok": true
         },
         "rear": {
-          "B": 10.426053320274377,
-          "C": 1.9451117252914976,
-          "D": 9501.703958631446,
-          "E": -3.968811284618879,
+          "B": 11.759286952231337,
+          "C": 1.9821609246948586,
+          "D": 9213.596239936194,
+          "E": -2.2811974994392377,
           "powell_converged": true,
-          "fit_n_samples": 24183,
-          "fit_rms_resid_N": 5785.130435754017,
-          "peak_alpha_deg": 3.808802200550137,
+          "fit_n_samples": 48775,
+          "fit_rms_resid_N": 5762.819154917302,
+          "peak_alpha_deg": 3.696411602900725,
           "peak_in_visited_range": false,
-          "visited_alpha_p99_deg": 3.3552833232044685,
+          "visited_alpha_p99_deg": 3.2816942829850984,
           "sign_ok": true
         }
       },
-      "git_commit_hash": "2ffbff78f189aefd651aa9b71076bb2d0d7fc0be",
+      "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
       "r_derivation": {
-        "std_front_mps2": 2.019456991435073,
-        "std_rear_mps2": 4.26632038034957,
-        "inter_axle_correlation": 0.8950005455514499,
-        "r_ay_var_derived": 37.70171995904336,
-        "r_yaw_rate_var_derived": 0.0018635809507694375
+        "std_front_mps2": 1.9763046772846908,
+        "std_rear_mps2": 4.249866633419839,
+        "inter_axle_correlation": 0.8924361355183899,
+        "r_ay_var_derived": 36.958344660004755,
+        "r_yaw_rate_var_derived": 0.0007182123404898258
       },
       "r_sweep": {
         "grid_points": [
           {
             "r_ay_scale": 1.0,
             "r_yaw_scale": 1.0,
-            "R_ay_var": 37.70171995904336,
-            "R_yaw_rate_var": 0.0018635809507694375,
-            "f_yaw": 0.4121490303105487,
-            "f_ay": 0.0003721622627465575,
+            "R_ay_var": 36.958344660004755,
+            "R_yaw_rate_var": 0.0007182123404898258,
+            "f_yaw": 0.3682214249103024,
+            "f_ay": 0.0005125576627370579,
             "both_in_band": false
           },
           {
             "r_ay_scale": 1.0,
             "r_yaw_scale": 2.0,
-            "R_ay_var": 37.70171995904336,
-            "R_yaw_rate_var": 0.003727161901538875,
-            "f_yaw": 0.32626225034114875,
-            "f_ay": 0.0004135136252739528,
+            "R_ay_var": 36.958344660004755,
+            "R_yaw_rate_var": 0.0014364246809796515,
+            "f_yaw": 0.3278933880061507,
+            "f_ay": 0.00045105074320861096,
             "both_in_band": false
           },
           {
             "r_ay_scale": 1.0,
             "r_yaw_scale": 4.0,
-            "R_ay_var": 37.70171995904336,
-            "R_yaw_rate_var": 0.00745432380307775,
-            "f_yaw": 0.18798329404953892,
-            "f_ay": 0.0004962163503287433,
+            "R_ay_var": 36.958344660004755,
+            "R_yaw_rate_var": 0.002872849361959303,
+            "f_yaw": 0.27897488467452586,
+            "f_ay": 0.000389543823680164,
             "both_in_band": false
           },
           {
             "r_ay_scale": 1.0,
             "r_yaw_scale": 8.0,
-            "R_ay_var": 37.70171995904336,
-            "R_yaw_rate_var": 0.0149086476061555,
-            "f_yaw": 0.08257867096720838,
-            "f_ay": 0.0003721622627465575,
+            "R_ay_var": 36.958344660004755,
+            "R_yaw_rate_var": 0.005745698723918606,
+            "f_yaw": 0.2163403382880574,
+            "f_ay": 0.0003485392106611994,
             "both_in_band": false
           },
           {
             "r_ay_scale": 1.0,
             "r_yaw_scale": 16.0,
-            "R_ay_var": 37.70171995904336,
-            "R_yaw_rate_var": 0.029817295212311,
-            "f_yaw": 0.03080676508290948,
-            "f_ay": 0.0003721622627465575,
+            "R_ay_var": 36.958344660004755,
+            "R_yaw_rate_var": 0.011491397447837212,
+            "f_yaw": 0.11639159405433111,
+            "f_ay": 0.0003485392106611994,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.3,
             "r_yaw_scale": 1.0,
-            "R_ay_var": 11.310515987713007,
-            "R_yaw_rate_var": 0.0018635809507694375,
-            "f_yaw": 0.41185957077285695,
-            "f_ay": 0.009180002481081752,
+            "R_ay_var": 11.087503398001425,
+            "R_yaw_rate_var": 0.0007182123404898258,
+            "f_yaw": 0.3723423885187084,
+            "f_ay": 0.0078113787801127625,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.3,
             "r_yaw_scale": 2.0,
-            "R_ay_var": 11.310515987713007,
-            "R_yaw_rate_var": 0.003727161901538875,
-            "f_yaw": 0.3169581937724848,
-            "f_ay": 0.009428110656246123,
+            "R_ay_var": 11.087503398001425,
+            "R_yaw_rate_var": 0.0014364246809796515,
+            "f_yaw": 0.3243874935930292,
+            "f_ay": 0.007442337262942081,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.3,
             "r_yaw_scale": 4.0,
-            "R_ay_var": 11.310515987713007,
-            "R_yaw_rate_var": 0.00745432380307775,
-            "f_yaw": 0.1874043749741554,
-            "f_ay": 0.011247570607451516,
+            "R_ay_var": 11.087503398001425,
+            "R_yaw_rate_var": 0.002872849361959303,
+            "f_yaw": 0.27903639159405436,
+            "f_ay": 0.00699128651973347,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.3,
             "r_yaw_scale": 8.0,
-            "R_ay_var": 11.310515987713007,
-            "R_yaw_rate_var": 0.0149086476061555,
-            "f_yaw": 0.07951867014018112,
-            "f_ay": 0.012984327833602117,
+            "R_ay_var": 11.087503398001425,
+            "R_yaw_rate_var": 0.005745698723918606,
+            "f_yaw": 0.21082521783700667,
+            "f_ay": 0.006806765761148129,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.3,
             "r_yaw_scale": 16.0,
-            "R_ay_var": 11.310515987713007,
-            "R_yaw_rate_var": 0.029817295212311,
-            "f_yaw": 0.033494603647190174,
-            "f_ay": 0.015961625935574576,
+            "R_ay_var": 11.087503398001425,
+            "R_yaw_rate_var": 0.011491397447837212,
+            "f_yaw": 0.11241414659149154,
+            "f_ay": 0.0064582265504869295,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.1,
             "r_yaw_scale": 1.0,
-            "R_ay_var": 3.7701719959043363,
-            "R_yaw_rate_var": 0.0018635809507694375,
-            "f_yaw": 0.4134722739114254,
-            "f_ay": 0.05292974403506596,
+            "R_ay_var": 3.6958344660004756,
+            "R_yaw_rate_var": 0.0007182123404898258,
+            "f_yaw": 0.3745976422347514,
+            "f_ay": 0.03821629933367504,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.1,
             "r_yaw_scale": 2.0,
-            "R_ay_var": 3.7701719959043363,
-            "R_yaw_rate_var": 0.003727161901538875,
-            "f_yaw": 0.31480792292106025,
-            "f_ay": 0.06516974734317496,
+            "R_ay_var": 3.6958344660004756,
+            "R_yaw_rate_var": 0.0014364246809796515,
+            "f_yaw": 0.3193234238851871,
+            "f_ay": 0.037826755509994876,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.1,
             "r_yaw_scale": 4.0,
-            "R_ay_var": 3.7701719959043363,
-            "R_yaw_rate_var": 0.00745432380307775,
-            "f_yaw": 0.180250589256916,
-            "f_ay": 0.07720299383864698,
+            "R_ay_var": 3.6958344660004756,
+            "R_yaw_rate_var": 0.002872849361959303,
+            "f_yaw": 0.26868272680676575,
+            "f_ay": 0.03891337775499744,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.1,
             "r_yaw_scale": 8.0,
-            "R_ay_var": 3.7701719959043363,
-            "R_yaw_rate_var": 0.0149086476061555,
-            "f_yaw": 0.0797667783153455,
-            "f_ay": 0.0901873216722491,
+            "R_ay_var": 3.6958344660004756,
+            "R_yaw_rate_var": 0.005745698723918606,
+            "f_yaw": 0.19368528959507944,
+            "f_ay": 0.04043054843669913,
+            "both_in_band": false
+          },
+          {
+            "r_ay_scale": 0.1,
+            "r_yaw_scale": 16.0,
+            "R_ay_var": 3.6958344660004756,
+            "R_yaw_rate_var": 0.011491397447837212,
+            "f_yaw": 0.10193746796514608,
+            "f_ay": 0.04453100973859559,
             "both_in_band": true
           },
           {
-            "r_ay_scale": 0.1,
-            "r_yaw_scale": 16.0,
-            "R_ay_var": 3.7701719959043363,
-            "R_yaw_rate_var": 0.029817295212311,
-            "f_yaw": 0.044866228342223875,
-            "f_ay": 0.09792002646487202,
-            "both_in_band": true
-          },
-          {
             "r_ay_scale": 0.03,
             "r_yaw_scale": 1.0,
-            "R_ay_var": 1.1310515987713008,
-            "R_yaw_rate_var": 0.0018635809507694375,
-            "f_yaw": 0.41640822065087046,
-            "f_ay": 0.19211843030227846,
+            "R_ay_var": 1.1087503398001426,
+            "R_yaw_rate_var": 0.0007182123404898258,
+            "f_yaw": 0.3737160430548437,
+            "f_ay": 0.1362173244490005,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.03,
             "r_yaw_scale": 2.0,
-            "R_ay_var": 1.1310515987713008,
-            "R_yaw_rate_var": 0.003727161901538875,
-            "f_yaw": 0.3056692718025059,
-            "f_ay": 0.2101476243642228,
+            "R_ay_var": 1.1087503398001426,
+            "R_yaw_rate_var": 0.0014364246809796515,
+            "f_yaw": 0.30556637621732446,
+            "f_ay": 0.13904664274730907,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.03,
             "r_yaw_scale": 4.0,
-            "R_ay_var": 1.1310515987713008,
-            "R_yaw_rate_var": 0.00745432380307775,
-            "f_yaw": 0.17111193813836165,
-            "f_ay": 0.2233387090104619,
+            "R_ay_var": 1.1087503398001426,
+            "R_yaw_rate_var": 0.002872849361959303,
+            "f_yaw": 0.24490005125576628,
+            "f_ay": 0.14484879548949256,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.03,
             "r_yaw_scale": 8.0,
-            "R_ay_var": 1.1310515987713008,
-            "R_yaw_rate_var": 0.0149086476061555,
-            "f_yaw": 0.08518380680643427,
-            "f_ay": 0.2338833064549477,
+            "R_ay_var": 1.1087503398001426,
+            "R_yaw_rate_var": 0.005745698723918606,
+            "f_yaw": 0.16504356740133266,
+            "f_ay": 0.15331624807790875,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.03,
             "r_yaw_scale": 16.0,
-            "R_ay_var": 1.1310515987713008,
-            "R_yaw_rate_var": 0.029817295212311,
-            "f_yaw": 0.06070380019021627,
-            "f_ay": 0.23958979448372825,
+            "R_ay_var": 1.1087503398001426,
+            "R_yaw_rate_var": 0.011491397447837212,
+            "f_yaw": 0.08030753459764224,
+            "f_ay": 0.16252178370066633,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.01,
             "r_yaw_scale": 1.0,
-            "R_ay_var": 0.3770171995904336,
-            "R_yaw_rate_var": 0.0018635809507694375,
-            "f_yaw": 0.41479551751230204,
-            "f_ay": 0.35355414960922965,
+            "R_ay_var": 0.36958344660004755,
+            "R_yaw_rate_var": 0.0007182123404898258,
+            "f_yaw": 0.3630138390568939,
+            "f_ay": 0.2945156330087135,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.01,
             "r_yaw_scale": 2.0,
-            "R_ay_var": 0.3770171995904336,
-            "R_yaw_rate_var": 0.003727161901538875,
-            "f_yaw": 0.29698548567175287,
-            "f_ay": 0.36389199024107843,
+            "R_ay_var": 0.36958344660004755,
+            "R_yaw_rate_var": 0.0014364246809796515,
+            "f_yaw": 0.29385955920041007,
+            "f_ay": 0.29722193746796516,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.01,
             "r_yaw_scale": 4.0,
-            "R_ay_var": 0.3770171995904336,
-            "R_yaw_rate_var": 0.00745432380307775,
-            "f_yaw": 0.17136004631352603,
-            "f_ay": 0.3785717239383038,
+            "R_ay_var": 0.36958344660004755,
+            "R_yaw_rate_var": 0.002872849361959303,
+            "f_yaw": 0.2161353152229626,
+            "f_ay": 0.3052178370066633,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.01,
             "r_yaw_scale": 8.0,
-            "R_ay_var": 0.3770171995904336,
-            "R_yaw_rate_var": 0.0149086476061555,
-            "f_yaw": 0.08175164371666047,
-            "f_ay": 0.3897365918207005,
+            "R_ay_var": 0.36958344660004755,
+            "R_yaw_rate_var": 0.005745698723918606,
+            "f_yaw": 0.13371604305484366,
+            "f_ay": 0.31288569964120966,
             "both_in_band": false
           },
           {
             "r_ay_scale": 0.01,
             "r_yaw_scale": 16.0,
-            "R_ay_var": 0.3770171995904336,
-            "R_yaw_rate_var": 0.029817295212311,
-            "f_yaw": 0.051234338171442746,
-            "f_ay": 0.39895794566430964,
+            "R_ay_var": 0.36958344660004755,
+            "R_yaw_rate_var": 0.011491397447837212,
+            "f_yaw": 0.06124038954382368,
+            "f_ay": 0.324633521271143,
             "both_in_band": false
           }
         ],
         "chosen": {
           "r_ay_scale": 0.1,
-          "r_yaw_scale": 8.0,
-          "R_ay_var": 3.7701719959043363,
-          "R_yaw_rate_var": 0.0149086476061555,
-          "f_yaw": 0.0797667783153455,
-          "f_ay": 0.0901873216722491,
+          "r_yaw_scale": 16.0,
+          "R_ay_var": 3.6958344660004756,
+          "R_yaw_rate_var": 0.011491397447837212,
+          "f_yaw": 0.10193746796514608,
+          "f_ay": 0.04453100973859559,
           "both_in_band": true
         },
         "found_in_band": true
       },
       "final_config": {
-        "b_front": 10.027734141182316,
-        "c_front": 1.9669854860309053,
-        "d_front": 8245.475690398114,
-        "e_front": 0.274956953261426,
-        "b_rear": 10.426053320274377,
-        "c_rear": 1.9451117252914976,
-        "d_rear": 9501.703958631446,
-        "e_rear": -3.968811284618879,
+        "b_front": 10.456547927865126,
+        "c_front": 1.9404337194463324,
+        "d_front": 8183.98337685473,
+        "e_front": 0.09100060949433769,
+        "b_rear": 11.759286952231337,
+        "c_rear": 1.9821609246948586,
+        "d_rear": 9213.596239936194,
+        "e_rear": -2.2811974994392377,
         "Q_beta_var": 9.632002813655727e-07,
         "Q_yaw_rate_var": 2.4080007034139316e-07,
         "P0_beta_var": 0.00030461741978670857,
         "P0_yaw_rate_var": 0.00030461741978670857,
-        "R_ay_var": 3.7701719959043363,
-        "R_yaw_rate_var": 0.0149086476061555,
+        "R_ay_var": 3.6958344660004756,
+        "R_yaw_rate_var": 0.011491397447837212,
         "beta_hard_bound_deg": 15.0,
         "nis_window_samples": 20,
         "nis_chi2_bound": 5.99,
         "nis_flag_fraction": 0.5
       },
       "nis": {
-        "yaw_rate_exceedance": 0.0797667783153455,
-        "ay_exceedance": 0.0901873216722491,
-        "combined_exceedance": 0.10536327171980317,
-        "combined_mean_nis": 2.712538889384676
+        "yaw_rate_exceedance": 0.10193746796514608,
+        "ay_exceedance": 0.04453100973859559,
+        "combined_exceedance": 0.08239876986160943,
+        "combined_mean_nis": 2.4925754021585034
       },
       "sign_check": {
         "median_gate_all": "14/14",
         "median_gate_racing": "11/11",
         "median_gate_racing_fraction": 1.0,
-        "per_sample_fraction_racing": 0.9974918485076498
+        "per_sample_fraction_racing": 0.9970304380103935
       },
       "onset_coverage": {
         "front": {
-          "peak_alpha_deg": 6.281395348837209,
-          "coverage_fraction": 0.04193028160277881
+          "peak_alpha_deg": 5.854311077769442,
+          "coverage_fraction": 0.038892875448487955
         },
         "rear": {
-          "peak_alpha_deg": 3.808802200550137,
-          "coverage_fraction": 0.10995327296034405
+          "peak_alpha_deg": 3.696411602900725,
+          "coverage_fraction": 0.052731932342388516
         }
       },
       "h2_vs_ay_apex": {
-        "n": 471,
-        "correlation": 0.9680294378553416
+        "n": 496,
+        "correlation": 0.9696578910259468
       },
       "status": "ok"
     },
     "gate_verdict": {
       "verdict": "pass",
-      "health_score": 0.1690030186494645,
+      "health_score": 0.14171194259354178,
       "window_samples": 20,
       "nis_band_low": 0.03,
       "nis_band_high": 0.15,
       "threshold_use_ekf": 0.1385,
       "threshold_warn": 0.1006,
-      "masked_population_n": 24183,
+      "masked_population_n": 48775,
       "degenerate_reason": null
     },
     "config_snapshot": {
@@ -355,12 +355,24 @@
         "yaw_rate_unit": "rpm",
         "yaw_rate_to_radps": 0.10472,
         "cs_filter_cutoff_hz": 2.0,
+        "_comment_cs_window_floors": "CS validity repair, FOURTH and FINAL pass (100 Hz time base + corrected floor derivation, 2026-09-02, thesis_notes.md 'PHASE 1: floor derivation, third pass' and the sign-off session's own clarification round). SUPERSEDES all three earlier attempts (kept in thesis_notes.md, not deleted -- including the SECOND attempt's own real-data FALSIFICATION and the THIRD attempt's own 0.2s hypothesis, ALSO since retested and rejected). History, briefly: attempt 1 bootstrapped a single window's own slope variance (no natural knee, wrong target). Attempt 2's phase-median bootstrap sampled the WHOLE moving population, landed on (n=10, span=0.01 rad) @ 50 Hz, passed its own 15% criterion, then FAILED catastrophically on real Phase 4 data. Attempt 3 restricted the bootstrap to cornering-only stretches, exposed the deeper lesson that bootstrap relative std measures reproducibility (precision) never closeness to the true tangent (accuracy), abandoned the bootstrap as the deciding criterion, and picked (min_window_s=0.2, span=0.02 rad) via DIRECT real-data Phase 4 validation against 5 candidates spanning 0.2-2.0s -- clean result, matched the pre-registration reasonably well. ATTEMPT 4 (sign-off clarification round, same day): user asked for the 0.1s (chair's own LITERAL, unmodified reference) comparison that attempt 3 never actually ran. Isolated duration-only bootstrap (span fixed at 0.02, cornering-only population) found n=10 (0.1s) and n=20 (0.2s) STATISTICALLY INDISTINGUISHABLE at every tested phase length, both axles (1-2pp differences, no consistent direction) -- the bootstrap never supported 2x. Direct real-data validation at (0.1s, 0.02rad) then found it reproduces the (0.2s, 0.02rad) result almost exactly across all 14 corners (identical negative-count 7/14 CSf, 2/14 CSr, same corners flagged) -- C4 rear even reads a STRONGER negative at 0.1s (-0.134 vs -0.042). CONCLUSION: no evidence (bootstrap or direct validation) supports the 2x deviation from the chair's own value. cs_min_window_s reverted to 0.1s -- the chair's LITERAL, completely unmodified reference -- once the real fix (the 100 Hz grid, PHASE 0) was in place. The 0.2s hypothesis is recorded as TESTED AND REJECTED, not merely superseded by a better number: it worked, just no better than the simpler, zero-deviation choice.",
+        "cs_min_window_s": 0.1,
+        "cs_min_window_s_derived_from": "diagnostics/inspect_cs_floor_candidate_validation.py + inspect_cs_duration_only_comparison.py, 2026-09-02 -- see _comment_cs_window_floors. Exactly the chair's own literal default (10 samples @ their 100 Hz = 0.1s), zero deviation, now that the real fix (PHASE 0's 100 Hz grid) supplies the sample count that default always assumed. A 0.2s hypothesis (double the chair's value, motivated by an a priori 'this car's alpha comes from an ESTIMATED beta -- kinematic or EKF/auto-fit, a noisier Level 1-3 chain -- vs the chair's own MEASURED beta channel, so more averaging seemed plausible') was TESTED AND REJECTED, not just superseded: an isolated duration-only bootstrap (span held at 0.02 rad, cornering-only population) found 0.1s and 0.2s statistically indistinguishable at every tested phase length, and direct real-data Phase 4 validation confirmed the two floors reproduce the SAME worst-lap population almost exactly (identical negative-corner counts, same corners flagged, C4 rear even reads a stronger negative at 0.1s). The plausible-sounding physical story was not supported by either form of evidence gathered -- recorded honestly rather than left implied.",
+        "cs_min_window_samples_floor": 5,
+        "cs_min_window_samples_floor_derived_from": "Absolute floor protecting a much slower log (e.g. this project's own GT3 Paul Ricard census found 20 Hz -- thesis_notes.md) from deriving too few samples for a meaningful 2-parameter OLS fit: 0.2s*20Hz=4 samples would round below a robust minimum; floored at 5 (same magnitude as cs_phase_min_valid_samples's own robustness reasoning), mirroring modules.longitudinal_stiffness's own min_samples_floor precedent (PLAN.md STEP 3, 50 Hz adaptation).",
         "cs_min_slip_angle_span_rad": 0.02,
-        "cs_linear_slip_threshold_rad": 0.021,
+        "cs_min_slip_angle_span_rad_derived_from": "diagnostics/inspect_cs_floor_candidate_validation.py, 2026-09-02 -- see _comment_cs_window_floors. Rate-independent (alpha-domain, radians) -- no sample-rate correction applies. Reverted from attempt 2's falsified 0.01 rad back to 0.02 rad (the chair's own original span) after direct real-data validation; unaffected by the separate cs_min_window_s duration question (0.2s vs 0.1s) -- span was never the axis in question there.",
+        "_comment_cs_max_window_m": "CS validity repair, locality cap (2026-09-02) -- measured under the (then-current) 0.2s/0.02rad floor, re-confirmed valid for the FINAL 0.1s/0.02rad floor: since SPAN (unchanged, 0.02 rad), not min_window, is what actually governs the natural window size in practice (real cornering data rarely satisfies 0.02 rad within either 10 or 20 samples -- both floors showed near-identical achieved-window distributions in every comparison run), this cap does not need re-deriving for the 0.1s/0.02rad final choice. diagnostics/inspect_cs_max_window_locality_sizing.py measured the NATURAL (uncapped) window's own metre extent restricted to real corner-bracket samples only (moving, non-kerb, inside an actual corner's own entry_1_brake-to-exit_5 span): median footprint front=24.1 m, rear=35.4 m (p90 82.7 m / 110.7 m -- both notably larger than the earlier falsified floor's own 9.1 m/11.1 m, since a bigger span requirement naturally needs more track distance to satisfy). Set at 1.5x the more demanding (rear) axle's own median -- 1.5*35.4=53.1, rounded to 53.0 m. Verified this does not silently truncate any of the 14 physical corners at EITHER floor (diagnostics/inspect_cs_floor_candidate_validation.py's own (0.1,0.02) and (0.2,0.02) runs: all 14 corners present in both axles' worst-lap populations both times) -- the earlier, now-superseded 17.0 m value would have been too tight for this span (a 0.6s/0.06rad candidate tested in an earlier run, at the OLD 17.0 m cap, zeroed out every single corner, confirming the cap must scale with whichever span it is paired with). LIMITATION, checked and recorded (thesis_notes.md): a corner-bracket LENGTH check confirms 53 m never approaches even the smallest physical corner (116.0 m, C7), but a corner-to-corner GAP check finds several real gaps smaller than 53 m (8.5-17.8 m, plus one 0.0 m pair) -- the cap does not guarantee a window never bridges into a neighbouring corner for those specific tightly-sequenced cases, though it did not visibly affect the Phase 4 result. Applied as a real TRACK DISTANCE via state['s_m'] inside the growth loop (reconstruct_cs_window_start/compute_cs_for_axle), not converted to a fixed sample count -- a corner's physical scale is a distance, not a duration, so the cap must not silently mean something different at a slow vs a fast corner. A window that cannot meet BOTH floors within this distance cap reports NaN (no signal) rather than accepting a non-local fit.",
+        "cs_max_window_m": 53.0,
+        "_comment_cs_phase_min_valid_samples": "CS validity repair part A, Phase 2 (2026-09-02). Per-phase noise floor for summarise_corners's cs_ratio_f/cs_ratio_r stat blocks: a phase's median is reported as NaN (no signal, dropped from the Stage-2 min) when fewer than this many finite CS_ratio samples back it. Set at 5 -- the smallest sample count for which a median is not simply one of the phase's own most extreme readings (n=1: the median IS the single sample; n<=4: the median is an average of two extreme-adjacent points) -- a general backstop for any phase, not specific to apex_3 (whose own structural undersizing is separately addressed by apex_region below, replacing its CS reads outright rather than gating them).",
+        "cs_phase_min_valid_samples": 5,
+        "cs_linear_slip_threshold_rad": 0.03,
+        "cs_linear_slip_threshold_rad_derived_from": "diagnostics/inspect_cs_window_floor_derivation.py, linear_region_end, 2026-09-02 (CS validity repair part A, Phase 1). Binned the session's own Fy-vs-alpha cloud (both axles, folded to a single sign via the tyre curve's expected odd symmetry, moving & non-kerb samples) with sliding 0.04-rad-wide windows (matched to the re-derived cs_min_slip_angle_span_rad, not an arbitrary narrow bin -- a narrower bin reproduces the same small-span sampling noise Phase 1's own N/span sweeps diagnosed) stepped by 0.005 rad, comparing each window's local slope against the near-origin reference window ([0,0.04) rad). Departure stays within +/-15% of the reference out to ~0.03 rad on both axles, then exceeds 10% and STAYS exceeded (not a single noisy crossing) from window leading edge 0.045 rad (front) / 0.035 rad (rear) onward, climbing to full sign reversal by ~0.08-0.09 rad -- the genuine nonlinear/saturation region. Value set at the more conservative (earlier-onset) axle's sustained-departure point, 0.035 rad, rounded down slightly to 0.03 rad for a safety margin against measurement noise; both axles' own curves are still flat (within a few % of the reference) at 0.03 rad.",
         "beta_washout_cutoff_hz": 0.05,
         "moving_speed_min_mps": 5.0,
-        "_comment_expected_sample_rate_hz": "Rate guard (2026-08-31, GT3 Paul Ricard investigation -- see thesis_notes.md). Every estimator window in this pipeline was validated at 50 Hz only: yaw_stability_* (Module 5 window/grid/min_samples), nis_gate/tyre_fit_auto's nis_window_samples, kerb_dilation_samples, and longitudinal_stiffness.min_samples_floor's own rate-derivation all assume this car's Cosworth log rate. A file measured at a different rate (confirmed via modules.csv_parser.parse_csv's measured_sample_rate_hz, e.g. a 20 Hz export) is not a smaller/larger version of the same analysis -- prepare_vehicle_state refuses to proceed rather than silently apply 50-Hz-calibrated logic at the wrong scale. Not a calibration tunable to retune per-file: changing this is a decision to validate the whole estimator stack at a new rate, not a per-session setting.",
-        "expected_sample_rate_hz": 50,
+        "_comment_grid_rate": "100 Hz time-base work package (2026-09-02, thesis_notes.md 'PHASE 0: 100 Hz time base'). SUPERSEDES the prior single-value expected_sample_rate_hz exact-match guard (2026-08-31, GT3 Paul Ricard investigation) with an ADAPTIVE grid: target_sample_rate_hz (100) is the PREFERRED base grid -- diagnostics/inspect_native_channel_rates.py found this car's own fast CS-chain channels (sclu_yaw_rate, log_asteer, log_acc_y, log_acc_z, lap_distance) are natively 100 Hz on Dubai, only ecu_speed is natively 50 Hz. prepare_vehicle_state now builds the common time grid at min(target_sample_rate_hz, the slowest of those fast channels' own native rate) -- ecu_speed itself is upsampled onto that grid via the same np.interp already used for every other channel: justified because vehicle speed is an INERTIA-LIMITED signal (cannot jump between real samples), so linear interpolation between genuine 50 Hz speed readings invents no meaningfully wrong information, unlike upsampling a fast-changing quantity like yaw rate would. min_sample_rate_hz (50) is the HARD FLOOR below the target: a file whose fast channels cap BELOW 50 Hz (e.g. the 20 Hz GT3 Paul Ricard export) is still refused outright, naming the binding (slowest) channel -- the guard from 2026-08-31 is not gone, only widened into a range. A file capping exactly AT 50 Hz (e.g. every fast channel measured 50 Hz) processes normally at a 50 Hz grid, no refusal, no degradation beyond one status line (state['grid_rate_status']: 'channel-limited' vs the target). RESIDUAL LEGACY, documented not fixed (thesis_notes.md): tyre_model_ekf.pass_1's frozen R (R_yaw_rate_var/R_ay_var) was calibrated against this car's own PRIOR fixed 50 Hz grid -- carried forward unchanged for a file now running at 100 Hz, a stated limitation of that specific frozen curve, not something this package re-derives. Every OTHER estimator window in this pipeline was already converted to a PHYSICAL-duration/distance basis before or during this same package (cs_min_window_s, yaw_stability_* via window_s/window_m/grid_step_m, longitudinal_stiffness's own regression_window_s) and therefore derives correctly at either grid rate -- EXCEPT kerb_dilation_samples, nis_gate/tyre_fit_auto/tyre_model_ekf's own nis_window_samples, and apex_half_window_samples, which remain literal sample counts NOT rate-corrected by this package (out of its stated scope) -- each now silently represents HALF its originally-calibrated physical duration on a file running at the new 100 Hz grid instead of the old fixed 50 Hz. Flagged, not fixed, same treatment as the pass_1 R note above.",
+        "target_sample_rate_hz": 100,
+        "min_sample_rate_hz": 50,
         "_comment_sideslip_source": "WP-N2 Step 1b (2026-08-20): selects which beta feeds Modules 4b/5 at the ui/views/outing_form.py StabilityAnalysisThread call site. PRODUCTION DEFAULT since 2026-09-01: 'ekf_auto_pacejka' (see _comment_sideslip_source_auto_modes below) -- per-session fit, gated, kinematic fallback on gate-fail/degenerate fit. 'kinematic' = production estimate_sideslip, the prior default and still the universal fallback target for every other mode (byte-identical to every session before 2026-09-01). 'ekf_pass_1' = diagnostics/sideslip_ekf_dugoff.py's pass_1 configuration (frozen Dugoff curve, calibrated noise model, carried forward per thesis_notes.md 'WP-N2 carry-forward decision: pass 1'). Traces (CS_ratio, tyre curve, stability) are meaningful under any non-kinematic source immediately; verdict thresholds are NOT re-derived for any of them -- see classification.thresholds_calibrated_for_sideslip_source below, still 'kinematic', so the [UNCAL] banner is expected to show by default until threshold re-derivation lands. Flip to 'kinematic' to isolate a regression; no code edit needed either way.",
         "sideslip_source": "ekf_auto_pacejka",
         "_comment_sideslip_source_auto_modes": "Fresh-session work package (per-session tyre auto-fit + NIS gate wired into production): two additional values. 'ekf_auto_dugoff'/'ekf_auto_pacejka' run modules/tyre_fit_auto.py's fit_session/fit_session_pacejka on THIS session's own data (not a frozen prior-session curve), evaluate modules/nis_gate.py's provisional health gate on the result, and use the fitted EKF's beta_with_fallback only if the gate verdicts 'pass' or 'warn' AND the fit status is not 'degenerate' -- otherwise fall back to kinematic beta, recorded in the analysis payload (fallback_used/fallback_reason), never silently. 'ekf_auto_pacejka' became the production default 2026-09-01 (thesis_notes.md); 'ekf_auto_dugoff' remains available and gated the same way. thresholds_calibrated_for_sideslip_source (below) can never equal either auto value yet -- the [UNCAL] marker and banner apply to both by construction.",
@@ -370,8 +382,9 @@
         "gps_course_anchor_smooth_window_s": 0.3,
         "gps_course_latency_s": 0.32,
         "gps_course_latency_s_derived_from": "diagnostics/inspect_beta_gps_validation.py, WP5b(c) iteration 1 Section 0: cross-correlation of wrap-safe d(course)/dt against -yaw_rate_radps over lags -1..+1s (racing laps, moving samples) peaks at r=0.9898 at lag=+0.32s, vs r=0.9575 at zero lag -- course-derived rotation consistently lags yaw_rate by this much. A stale course reading recorded at time t describes the vehicle's true state at (t - latency); querying it at (t + latency) recovers the value that actually corresponds to the query instant.",
-        "cs_min_window_samples": 10,
         "apex_half_window_samples": 5,
+        "_comment_cs_apex_region": "CS validity repair part A, Phase 3 (2026-09-02, thesis_notes.md 'apex_3 structural finding'). apex_3 is a single time-instant expanded to a FIXED +/- apex_half_window_samples window (11 raw samples), independent of corner/lap/estimator -- structurally unable to clear the re-derived cs_min_window_samples floor above on its own terms. cs_apex_region_half_length_m defines a DISTANCE-based (not sample-count) span around the apex position for a separate apex_region CS statistic (summarise_corners), consumed by _classify_corner/_phase_verdict wherever an apex_3-keyed CS read is needed, instead of apex_3's own 11-sample slice -- apex_3 itself is unchanged for display and non-CS stats. Default 25 m from the work order's own C4 event-extent observation (thesis_notes.md 'Mechanism investigation...': C4's CS_ratio-vs-track-position dip sustains over ~1320-1360m, i.e. ~20-40m of track distance) -- half that extent puts the apex_region comfortably inside a single such event without reaching into the neighbouring straight or the next corner.",
+        "cs_apex_region_half_length_m": 25.0,
         "_comment_yaw_stability": "Module 5 estimator (modules/yaw_stability.py), after the chair performance_analysis tooling (internal). These are the values the chair pipeline actually runs (its dataclass defaults / default invocation) -- changing any of the six re-triggers classification-threshold re-derivation (WP5b(e) pattern), since thresholds are tuned to this estimator's output distribution.",
         "yaw_stability_accel_window_s": 0.15,
         "yaw_stability_grid_step_m": 2.0,
@@ -388,316 +401,32 @@
       },
       "classification": {
         "_comment": "Corner-verdict thresholds for ui/views/outing_form.py's _classify_corner. Each entry's derived_from records the diagnostic run and estimator version it was picked against -- a threshold is only valid for the distribution it was derived from (CLAUDE.md deviation taxonomy: classification thresholds differ from the chair BY RULE, always re-derived per estimator/car).",
+        "cs_cross_lap_aggregation": "worst_lap",
+        "cs_cross_lap_aggregation_note": "modules/recommendation.py aggregate_by_corner: 'median' (pre-2026-09-02 default) or 'worst_lap' (min-then-min, worst phase of worst lap, thesis_notes.md 'Gated Stage-2 recomputation...'). Ships atomically with the STRONG/MODERATE_CS* thresholds above, which were derived against the worst_lap population -- do not flip back to 'median' without re-deriving those four values against the median population first.",
         "STRONG_CSF": {
-          "value": 0.1,
-          "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; front worst-phase-per-corner p10=0.049, median=0.334). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes. Re-confirmed 2026-07-26 after steering-ratio L4 upgrade: +2/51 exceedance at both boundaries, within n=51 resolution; estimator scale unchanged (input-accuracy upgrade, not a rescaling) -- values kept so the improved input's marginal flags count as signal, not drift. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept."
+          "value": -0.1,
+          "derived_from": "2026-09-02, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio, CS validity repair final config (100 Hz grid, cs_min_window_s=0.1, cs_min_slip_angle_span_rad=0.02, apex_region-substituted), ekf_auto_pacejka, worst-lap-per-corner (14 physical corners) -- the statistic worst-lap aggregation (classification.cs_cross_lap_aggregation=worst_lap) now feeds to _classify_corner. Physical anchor at CS_ratio=0 (the tyre's force peak), margin sized from data (gap-selection demoted to a sanity cross-check per the amendment). Sorted worst-lap CSf: C9=-0.410, C3=-0.333, C4=-0.134, C14=-0.095, C12=-0.041, C7=-0.037, C2=-0.032, C1=+0.023, ... Excluded from the noise-margin population: C4 (ground-truth-confirmed genuine saturation, thesis_notes.md 'Ground-truth workup...'), C9 and C3 (the pre-registered 'standout group', numerically the two most extreme values by a wide margin -- excluding them and requiring the final threshold to flag them satisfies the work order's own stop condition). Noise floor over the remaining population = C14 at -0.095 (the tighter near-zero cluster {C12,C7,C2} sits at -0.032..-0.041, separated from C14 by its own small gap). -0.10 sits just past C14, inside the clean 0.055-wide gap before C1 crosses zero, well short of C4 at -0.134 -- flags C4/C9/C3, does not flag the near-zero cluster. Single-session derivation (Dubai only); re-validate against a second session per the checklist item. Supersedes 0.1 (2026-06-29, kinematic-era, gap-selected against a population that never went meaningfully negative -- see thesis_notes.md 'Threshold anchoring, Phase 2' for the full derivation)."
         },
         "STRONG_CSR": {
-          "value": 0.2,
-          "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since; rear worst-phase-per-corner p10=0.186, median=0.749). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes. Rear byte-identical under steering upgrade, no re-check needed 2026-07-26. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept."
+          "value": -0.07,
+          "derived_from": "2026-09-02, diagnostics/inspect_corner_distribution.py, same config/statistic as STRONG_CSF above. Sorted worst-lap CSr: C4=-0.134, C3=-0.065, C14=+0.013, C13=+0.029, C5=+0.040, C8=+0.052, C9=+0.084, C1=+0.159, ... Excluded from the noise-margin population: C4 only -- C3 rear is NOT excluded here (unlike C3 on the front axle above), because the ground-truth workup independently verdicted C3 REAR specifically as ARTIFACT (a self-crossing loop, not a fold, on all three of its long runs) -- it IS the noise this threshold must sit above, not a genuine case to protect. Noise floor = C3's own -0.065 (the only other negative value on this axle). -0.07 sits just past it, deliberately tighter (closer to zero) than STRONG_CSF's -0.10, per the pre-registered rear-tighter-than-front instruction (Hoffman: rear beyond peak = stability loss). Flags C4 (-0.134) as strong on both axles; does not flag C3 rear. Single-session derivation; re-validate per the checklist item. Supersedes 0.2 (2026-06-29, kinematic-era -- see thesis_notes.md 'Threshold anchoring, Phase 2')."
         },
         "MODERATE_CSF": {
-          "value": 0.25,
-          "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes. Re-confirmed 2026-07-26 after steering-ratio L4 upgrade: +2/51 exceedance at both boundaries, within n=51 resolution; estimator scale unchanged (input-accuracy upgrade, not a rescaling) -- values kept so the improved input's marginal flags count as signal, not drift. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept."
+          "value": 0.15,
+          "derived_from": "2026-09-02, diagnostics/inspect_corner_distribution.py, same config as STRONG_CSF above. Gap-selected (this value's own stated method -- physical anchoring applies to STRONG only) against the positive-only worst-lap CSf population (n=7): 0.023, 0.039, 0.069, 0.074 | 0.229, 0.425, 0.857. The clear gap sits between 0.074 and 0.229 (0.155 wide); 0.15 centres it (0.076 below the low cluster's top, 0.079 above it), separating a 'near-peak/at-the-limit' group of 4 corners (full utilisation, not defect) from a clearly-healthy group of 3. Single-session derivation; re-validate per the checklist item. Supersedes 0.25 (2026-06-29, kinematic-era -- see thesis_notes.md 'Threshold anchoring, Phase 2')."
         },
         "MODERATE_CSR": {
-          "value": 0.35,
-          "derived_from": "2026-06-29, diagnostics/inspect_corner_distribution.py, Module 4b CS_ratio (unchanged since). Re-confirmed 2026-07-24 after Fy yaw-term upgrade; exceedance-rate check, max shift 2/51 instances, see thesis_notes. Rear byte-identical under steering upgrade, no re-check needed 2026-07-26. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept."
+          "value": 0.2,
+          "derived_from": "2026-09-02, diagnostics/inspect_corner_distribution.py, same config as STRONG_CSR above. Gap-selected against the positive-only worst-lap CSr population (n=12): 0.013, 0.029, 0.040, 0.052, 0.084, 0.159 | 0.293, 0.316, 0.364, 0.402, 0.601, 0.714. The largest gap (0.134 wide) sits between 0.159 and 0.293, not between the tight low cluster and 0.159 -- C1 (0.159) groups with the near-peak population, not the healthy one. 0.20 sits inside that gap, comfortably clear of both sides. Single-session derivation; re-validate per the checklist item. Supersedes 0.35 (2026-06-29, kinematic-era -- see thesis_notes.md 'Threshold anchoring, Phase 2')."
         },
         "stab_neg_thresh_Nm_per_deg": {
           "value": -50.0,
-          "derived_from": "2026-07-24, diagnostics/inspect_yaw_stability_b2.py, Module 5 chair-basis s-anchored ridge-regression estimator (B1). Percentile-anchored gap selection in the worst-phase-per-corner-instance distribution (51 instances): clean gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps) and -18.5 Nm/deg (next-worst corner); -50.0 sits in that gap. Flags the same single physical corner (stable_id 8) as the superseded -500.0 value did, now across all 4 of its laps instead of 1; sample exceedance 3.0% vs the old estimator's 2.7%. Supersedes -500.0 (time-anchored OLS estimator, removed B1, see thesis_notes.md). Re-derive if yaw_stability_* above changes. Confirmed unchanged 2026-07-24 (Module 5 independent of Fy/Fz, distribution byte-identical). Re-confirmed 2026-07-26: exceedances identical, id-8 cluster and -99.3/-18.8 gap intact. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept."
+          "derived_from": "2026-07-24, diagnostics/inspect_yaw_stability_b2.py, Module 5 chair-basis s-anchored ridge-regression estimator (B1). Percentile-anchored gap selection in the worst-phase-per-corner-instance distribution (51 instances): clean gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps) and -18.5 Nm/deg (next-worst corner); -50.0 sits in that gap. Flags the same single physical corner (stable_id 8) as the superseded -500.0 value did, now across all 4 of its laps instead of 1; sample exceedance 3.0% vs the old estimator's 2.7%. Supersedes -500.0 (time-anchored OLS estimator, removed B1, see thesis_notes.md). Re-derive if yaw_stability_* above changes. Confirmed unchanged 2026-07-24 (Module 5 independent of Fy/Fz, distribution byte-identical). Re-confirmed 2026-07-26: exceedances identical, id-8 cluster and -99.3/-18.8 gap intact. Re-confirmed 2026-07-27 after WP1 canonical consolidation + boundary partition: stability gap now -398/+25 (C8-only negative population, exceedance 4/4/4 unchanged); CS moderate-count drops traceable to repaired realization defects (C11 misclassification, window jitter), not drift -- realization-accuracy upgrade, values kept. 2026-09-02: NOT re-derived for ekf_auto_pacejka -- the stability distribution reads uniformly positive under this estimator on the single available session (no negative tail to anchor a margin against). Value retained from the kinematic-era gap-selection as a conservative detector; re-derivation requires either a session with genuine yaw instability or the Module 5 beta-sensitivity investigation (open item, PLAN.md BACKLOG A)."
         },
-        "thresholds_calibrated_for_sideslip_source": "kinematic"
+        "stab_thresh_calibrated_for_sideslip_source": "kinematic",
+        "thresholds_calibrated_for_sideslip_source": "ekf_auto_pacejka"
       }
     }
   },
-  "recommendations": [
-    {
-      "actions": [
-        {
-          "parameter": "camber_fl",
-          "direction": "less_negative",
-          "delta": 0.1,
-          "feasible": null
-        },
-        {
-          "parameter": "camber_fr",
-          "direction": "less_negative",
-          "delta": 0.1,
-          "feasible": null
-        }
-      ],
-      "parameter": null,
-      "direction": null,
-      "score": 3.0,
-      "severity_rank": 2,
-      "corners": [
-        {
-          "stable_corner_id": 3,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex | unstable yaw @ apex [UNCAL]"
-        },
-        {
-          "stable_corner_id": 4,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex [UNCAL]"
-        }
-      ],
-      "rules_fired": [
-        "matrix_os_apx_high"
-      ],
-      "cell_ids": [
-        "OS-APX-high"
-      ],
-      "trigger_source": [
-        "data"
-      ],
-      "conflicts": [],
-      "rationale": [
-        {
-          "rule_id": "matrix_os_apx_high",
-          "cell_id": "OS-APX-high",
-          "rationale": "Observation, non-imperative: Under sustained high-speed apex load, three possible levers: a spring change, softening rear ARB 1 position, or 0.1deg less front negative camber -- engineer's call on which fits the car at the time. (engineer confirmation pending)"
-        }
-      ],
-      "action_class": "advisory",
-      "observation_lines": [
-        "C3: slight oversteer at apex | unstable yaw at apex [UNCAL] - likely lever if addressed: camber_fl less_negative (+0.1) + camber_fr less_negative (+0.1)",
-        "C4: slight oversteer at apex [UNCAL] - likely lever if addressed: camber_fl less_negative (+0.1) + camber_fr less_negative (+0.1)"
-      ],
-      "escalation_notes": [],
-      "urgent": false,
-      "urgent_tag": null,
-      "parameter_conflict": false,
-      "conflict_parameters": [],
-      "limit_status": "unchecked",
-      "at_limit_parameters": [],
-      "selected": false
-    },
-    {
-      "actions": [
-        {
-          "parameter": "arb_rl",
-          "direction": "soften",
-          "delta": -1,
-          "feasible": null
-        },
-        {
-          "parameter": "arb_rr",
-          "direction": "soften",
-          "delta": -1,
-          "feasible": null
-        }
-      ],
-      "parameter": null,
-      "direction": null,
-      "score": 4.0,
-      "severity_rank": 1,
-      "corners": [
-        {
-          "stable_corner_id": 2,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        },
-        {
-          "stable_corner_id": 8,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        },
-        {
-          "stable_corner_id": 13,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        },
-        {
-          "stable_corner_id": 14,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        }
-      ],
-      "rules_fired": [
-        "matrix_os_exit_med"
-      ],
-      "cell_ids": [
-        "OS-EXIT-med"
-      ],
-      "trigger_source": [
-        "data"
-      ],
-      "conflicts": [],
-      "rationale": [
-        {
-          "rule_id": "matrix_os_exit_med",
-          "cell_id": "OS-EXIT-med",
-          "rationale": "Observation, non-imperative: Soften the rear ARB 1 position to free up rear grip on power application."
-        }
-      ],
-      "action_class": "advisory",
-      "observation_lines": [
-        "C2: slight oversteer at exit [UNCAL] - likely lever if addressed: arb_rl soften (-1) + arb_rr soften (-1)",
-        "C8: slight oversteer at exit [UNCAL] - likely lever if addressed: arb_rl soften (-1) + arb_rr soften (-1)",
-        "C13: slight oversteer at exit [UNCAL] - likely lever if addressed: arb_rl soften (-1) + arb_rr soften (-1)",
-        "C14: slight oversteer at exit [UNCAL] - likely lever if addressed: arb_rl soften (-1) + arb_rr soften (-1)"
-      ],
-      "escalation_notes": [],
-      "urgent": false,
-      "urgent_tag": null,
-      "parameter_conflict": false,
-      "conflict_parameters": [],
-      "limit_status": "unchecked",
-      "at_limit_parameters": [],
-      "selected": false
-    },
-    {
-      "actions": [
-        {
-          "parameter": "diff_position",
-          "direction": "increase",
-          "delta": 1,
-          "feasible": null
-        }
-      ],
-      "parameter": "diff_position",
-      "direction": "increase",
-      "score": 5.0,
-      "severity_rank": 1,
-      "corners": [
-        {
-          "stable_corner_id": 1,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex [UNCAL]"
-        },
-        {
-          "stable_corner_id": 2,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex [UNCAL]"
-        },
-        {
-          "stable_corner_id": 5,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex [UNCAL]"
-        },
-        {
-          "stable_corner_id": 13,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ apex [UNCAL]"
-        }
-      ],
-      "rules_fired": [
-        "matrix_os_tin_med",
-        "matrix_os_apx_med"
-      ],
-      "cell_ids": [
-        "OS-APX-med",
-        "OS-TIN-med"
-      ],
-      "trigger_source": [
-        "data"
-      ],
-      "conflicts": [],
-      "rationale": [
-        {
-          "rule_id": "matrix_os_tin_med",
-          "cell_id": "OS-TIN-med",
-          "rationale": "Observation, non-imperative: Add one differential locking-torque position to stabilise the rear axle on turn-in trail-throttle."
-        },
-        {
-          "rule_id": "matrix_os_apx_med",
-          "cell_id": "OS-APX-med",
-          "rationale": "Observation, non-imperative: Under partial throttle, add one diff locking-torque position to stabilise the rear axle, or address it through toe/camber/ARB instead -- engineer's call. (engineer confirmation pending)"
-        }
-      ],
-      "action_class": "advisory",
-      "observation_lines": [
-        "C1: slight oversteer at apex [UNCAL] - likely lever if addressed: diff_position increase (+1)",
-        "C2: slight oversteer at apex [UNCAL] - likely lever if addressed: diff_position increase (+1)",
-        "C5: slight oversteer at apex [UNCAL] - likely lever if addressed: diff_position increase (+1)",
-        "C13: slight oversteer at apex [UNCAL] - likely lever if addressed: diff_position increase (+1)"
-      ],
-      "escalation_notes": [],
-      "urgent": false,
-      "urgent_tag": null,
-      "parameter_conflict": false,
-      "conflict_parameters": [],
-      "limit_status": "unchecked",
-      "at_limit_parameters": [],
-      "selected": false
-    },
-    {
-      "actions": [
-        {
-          "parameter": "wing_position",
-          "direction": "increase",
-          "delta": 1,
-          "feasible": null
-        }
-      ],
-      "parameter": "wing_position",
-      "direction": "increase",
-      "score": 3.0,
-      "severity_rank": 1,
-      "corners": [
-        {
-          "stable_corner_id": 3,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        },
-        {
-          "stable_corner_id": 4,
-          "n_laps": 4,
-          "worst_corner": false,
-          "short_verdict": "oversteer @ exit [UNCAL]"
-        }
-      ],
-      "rules_fired": [
-        "matrix_os_tin_high",
-        "matrix_os_exit_high"
-      ],
-      "cell_ids": [
-        "OS-EXIT-high",
-        "OS-TIN-high"
-      ],
-      "trigger_source": [
-        "data"
-      ],
-      "conflicts": [],
-      "rationale": [
-        {
-          "rule_id": "matrix_os_tin_high",
-          "cell_id": "OS-TIN-high",
-          "rationale": "Observation, non-imperative: Add one wing step to add rear downforce and counter rear instability at turn-in speed."
-        },
-        {
-          "rule_id": "matrix_os_exit_high",
-          "cell_id": "OS-EXIT-high",
-          "rationale": "Observation, non-imperative: Add one wing step to add rear downforce and stability on power application at high exit speed."
-        }
-      ],
-      "action_class": "advisory",
-      "observation_lines": [
-        "C3: slight oversteer at exit [UNCAL] - likely lever if addressed: wing_position increase (+1)",
-        "C4: slight oversteer at exit [UNCAL] - likely lever if addressed: wing_position increase (+1)"
-      ],
-      "escalation_notes": [],
-      "urgent": false,
-      "urgent_tag": null,
-      "parameter_conflict": false,
-      "conflict_parameters": [],
-      "limit_status": "unchecked",
-      "at_limit_parameters": [],
-      "selected": false
-    }
-  ]
+  "recommendations": []
 }

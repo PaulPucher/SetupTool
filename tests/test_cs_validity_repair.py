@@ -379,3 +379,132 @@ def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_k
     )
     fired = {rid for r in results for rid in r["rules_fired"]}
     assert rule_id in fired, f"{rule_id} did not fire; rules_fired across all results: {fired}"
+
+
+# --- Phase 3: config-driven cross-lap aggregation (median vs worst_lap) -----
+#
+# classification.cs_cross_lap_aggregation ("median"|"worst_lap", absent ==
+# "median"): the cross-LAP combiner aggregate_by_corner applies to each
+# phase's CS_ratio before classify_fn's own existing min-across-PHASES
+# search (_classify_corner) runs on top. "worst_lap" is min-then-min
+# (thesis_notes.md "Gated Stage-2 recomputation...") -- min is associative,
+# so composing a per-phase min-across-laps here with classify_fn's own
+# min-across-phases IS the true global min over every (lap, phase) pair,
+# with no separate flattening step needed. Stability stays median
+# unconditionally in both modes.
+
+def _healthy_phase_block():
+    return {"cs_ratio_f": {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 50},
+            "cs_ratio_r": {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 50},
+            "stability_observed_Nm_per_deg": {"median": 500.0, "p25": 400.0, "p75": 600.0, "n": 50},
+            "n_samples": 50, "kerb_fraction": 0.0, "valid_fraction_stab": 1.0}
+
+
+def _corner_summaries_one_bad_lap(bad_lap, axle_key, bad_value, phase="exit_4", n_laps=4):
+    # Exactly one of n_laps laps carries a bad value on the named phase/axle
+    # (default exit_4/cs_ratio_f -- NOT apex_3, so apex_region's own
+    # (here NaN, no apex_region data supplied) substitution in
+    # _classify_corner never masks it); every other phase/lap is healthy.
+    # Deliberately avoids apex_3 so this test isolates the cross-lap
+    # combiner from the separate apex_region substitution mechanism.
+    summaries = []
+    for lap in range(1, n_laps + 1):
+        phases = {p: _healthy_phase_block() for p in
+                   ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")}
+        if lap == bad_lap:
+            phases[phase][axle_key] = {"median": bad_value, "p25": bad_value, "p75": bad_value, "n": 50}
+        summaries.append({
+            "lap_number": lap, "corner_number": 1, "speed_class": "medium",
+            "apex_time": 5.0, "apex_speed": 25.0, "apex_lateral_g": 1.0,
+            "method": "test", "warnings": [], "apex_position_x_m": None, "apex_position_y_m": None,
+            "stable_corner_id": 1, "bracket_start_m": 0.0, "bracket_end_m": 100.0,
+            "phases": phases, "apex_region": None,
+        })
+    return summaries
+
+
+def _monkeypatch_cs_aggregation(monkeypatch, mode):
+    # cs_cross_lap_aggregation is read via a local `from modules.
+    # stability_analysis import load_parameters` inside aggregate_by_corner
+    # (and _classify_corner does the identical local import for the rest of
+    # the classification block) -- patching the module attribute is seen by
+    # both. mode=None removes the key entirely (tests the documented
+    # "absent -> median" default, not just an explicit "median" value).
+    import modules.stability_analysis as sa
+    real_params = sa.load_parameters()
+    fake = dict(real_params)
+    fake["classification"] = dict(real_params["classification"])
+    if mode is None:
+        fake["classification"].pop("cs_cross_lap_aggregation", None)
+    else:
+        fake["classification"]["cs_cross_lap_aggregation"] = mode
+    monkeypatch.setattr(sa, "load_parameters", lambda: fake)
+
+
+def test_aggregate_by_corner_worst_lap_mode_takes_min_across_laps(monkeypatch):
+    _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
+    from modules.recommendation import aggregate_by_corner
+
+    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
+    aggregated = aggregate_by_corner(summaries)
+    exit4 = aggregated[1]["phases"]["exit_4"]
+    assert exit4["cs_ratio_f"]["median"] == -0.7
+    # stability must stay median regardless of the CS mode -- the one bad
+    # lap's stability value (500.0, unchanged) must not shift the aggregate.
+    assert exit4["stability_observed_Nm_per_deg"]["median"] == 500.0
+
+
+def test_aggregate_by_corner_median_mode_is_default_when_key_absent(monkeypatch):
+    _monkeypatch_cs_aggregation(monkeypatch, None)
+    from modules.recommendation import aggregate_by_corner
+
+    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
+    aggregated = aggregate_by_corner(summaries)
+    # 3 healthy (1.0) laps + 1 bad (-0.7) lap -> median([1, 1, 1, -0.7]) = 1.0:
+    # the one-off lap washes out, exactly the pre-Phase-3 behaviour.
+    assert aggregated[1]["phases"]["exit_4"]["cs_ratio_f"]["median"] == 1.0
+
+
+def test_consistency_gate_blocks_one_off_lap_under_worst_lap_aggregation(monkeypatch):
+    # The work order's own required check: worst_lap aggregation makes the
+    # AGGREGATE sensitive to a single bad lap (min is outlier-sensitive by
+    # construction), but _evaluate_rule's consistency gate re-evaluates
+    # classify_fn independently PER LAP and still requires the verdict to
+    # repeat across settings.consistency_gate.min_repeat_laps (2 of this
+    # corner's 4 laps here, config/recommendations.json) before any rule
+    # fires -- a lone bad lap must not, by itself, produce a recommendation
+    # just because the aggregation became more sensitive.
+    _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
+    from modules.recommendation import aggregate_by_corner, generate_recommendations, load_recommendations_config
+    from ui.views.outing_form import OutingForm
+
+    def classify_fn(summary):
+        return OutingForm._classify_corner(None, summary)
+
+    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
+
+    aggregated = aggregate_by_corner(summaries)
+    severity, short, _long, _colour = classify_fn(aggregated[1])
+    # severity=="strong" requires a strong CS reading AND destabilising yaw
+    # together (_classify_corner's own severity ladder) -- this synthetic
+    # case only breaks CS (stability stays healthy at 500.0), so "moderate"
+    # is the correct severity here; "understeer" appearing at all is the
+    # actual point of this assertion (confirms worst_lap surfaced the bad
+    # lap's value rather than the aggregate washing it out to "ok").
+    assert severity in ("moderate", "strong") and "understeer" in short, (
+        f"expected the worst_lap aggregate to surface the single bad lap's value "
+        f"as an understeer verdict (STRONG_CSF={-0.7} clears any plausible "
+        f"threshold), got severity={severity!r} short={short!r}"
+    )
+
+    config = load_recommendations_config()
+    results = generate_recommendations(
+        summaries, classify_fn, feedback_data={}, setup_data=None, config=config,
+        outing=None, driving_level=None,
+    )
+    corner_1_hits = [r for r in results for c in r["corners"] if c["stable_corner_id"] == 1]
+    assert not corner_1_hits, (
+        f"a single one-off bad lap produced a recommendation under worst_lap aggregation -- "
+        f"the consistency gate should have blocked it (only 1 of 4 laps shows the verdict, "
+        f"below min_repeat_laps): {corner_1_hits}"
+    )

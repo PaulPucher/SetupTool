@@ -12251,3 +12251,375 @@ change to apex_region, the phase statistic, or the aggregation rule;
 recorded as a known, quantified limitation of the current statistic for
 whoever picks up threshold anchoring or a future aggregation-method
 revision.
+
+### Threshold anchoring, Phase 1: confirmation run clean, byte-identical
+to threshold_anchoring_input.md [2026-09-02, same day]
+diagnostics/inspect_corner_distribution.py re-run at the final config
+(ekf_auto_pacejka, fallback guard on -- resolve_sideslip_beta confirmed
+fallback_used=False both modes). Worst-lap CSf/CSr, apex_region-
+substituted (the statistic classify_fn actually reads), reproduce
+threshold_anchoring_input.md's own two sorted lists EXACTLY -- same 14
+corners, same values to 3 decimals, same ordering, both axles. No
+material deviation; Phase 1's own stop condition not triggered. (Minor,
+unrelated: threshold_anchoring_input.md's own prose says "6 of 14
+corners CSf-negative" but its own table lists 7 -- a pre-existing
+off-by-one in that file's prose, not a data discrepancy; flagged for
+correction, not acted on here since the rule is to append, not edit
+past entries, and this file predates this session's own edits to it.)
+
+### Threshold anchoring, Phase 2: four CS_ratio thresholds derived as
+candidates; stab_neg_thresh BLOCKED -- no negative population exists
+under ekf_auto_pacejka [2026-09-02, same day]
+Derivation against the Phase 1 apex_region-substituted worst-lap
+population (14 physical corners), per the pre-registered amendment
+(physical anchor at CS_ratio=0, margin sized from data, gap-selection
+demoted to sanity check for STRONG; MODERATE stays gap-selected against
+the positive/near-peak population, its own stated method).
+
+CSf sorted: C9=-0.410, C3=-0.333, C4=-0.134, C14=-0.095, C12=-0.041,
+C7=-0.037, C2=-0.032, C1=+0.023, C13=+0.039, C6=+0.069, C5=+0.074,
+C8=+0.229, C11=+0.425, C10=+0.857.
+CSr sorted: C4=-0.134, C3=-0.065, C14=+0.013, C13=+0.029, C5=+0.040,
+C8=+0.052, C9=+0.084, C1=+0.159, C2=+0.293, C12=+0.316, C11=+0.364,
+C7=+0.402, C6=+0.601, C10=+0.714.
+
+STRONG_CSF candidate = -0.10. Excluded set for the noise-margin
+population: {C4, C9, C3} -- C4 is the ground-truth-confirmed genuine
+case (thesis_notes.md "Ground-truth workup..."); C9 and C3 are the
+work order's own pre-registered "standout group" (its literal phrase,
+"C3/C9-class front"), and are numerically the two most extreme values
+here by a wide margin (a ~0.2 gap down to C4, then another gap up to
+C9/C3) -- excluding them from the noise floor and instead requiring
+the final threshold to FLAG them satisfies the work order's own stop
+condition #2 (standout corners must be flagged). Remaining population's
+worst value: C14=-0.095 (the near-zero cluster {C12,C7,C2} sits tighter
+still, -0.032 to -0.041, separated from C14 by its own small gap) --
+-0.10 sits just past C14, inside the clean 0.055-wide gap before C1
+crosses zero, and well short of C4 at -0.134.
+
+STRONG_CSR candidate = -0.07. Excluded set: {C4} only -- C3 rear is
+NOT excluded here, unlike C3's treatment on the front axle, because
+the ground-truth workup independently verdicted C3 REAR specifically
+as ARTIFACT (a self-crossing loop, not a fold) on all three of its
+long runs, i.e. it IS the noise this threshold must sit above, not a
+genuine case to protect. Noise floor = C3's own -0.065 (the only other
+negative value on this axle); -0.07 sits just past it, tighter (closer
+to zero) than STRONG_CSF's -0.10, per the pre-registered rear-tighter-
+than-front instruction (Hoffman: rear beyond peak = stability loss).
+Flags C4 (-0.134) as strong on both axles; does not flag C3 rear, does
+not flag the front near-zero cluster.
+
+MODERATE_CSF candidate = 0.15. Gap-selected (this value's own stated
+method, not physically anchored) against the positive-only worst-lap
+population (n=7: 0.023, 0.039, 0.069, 0.074 | 0.229, 0.425, 0.857) --
+the clear gap sits between 0.074 and 0.229 (0.155 wide); 0.15 centres
+it (0.076 below the low cluster's top, 0.079 above it), separating a
+"near-peak/at-the-limit" group of 4 corners from a clearly-healthy
+group of 3.
+
+MODERATE_CSR candidate = 0.20. Same method against the rear positive
+population (n=12: 0.013, 0.029, 0.040, 0.052, 0.084, 0.159 | 0.293,
+0.316, 0.364, 0.402, 0.601, 0.714). The largest gap here (0.134 wide)
+sits between 0.159 and 0.293, not between the tight low cluster and
+0.159 -- meaning C1 (0.159) groups with the near-peak population, not
+the healthy one. 0.20 sits inside that gap, comfortably clear of both
+sides.
+
+stab_neg_thresh: BLOCKED, no value proposed. Worst-lap stability under
+ekf_auto_pacejka (apex_region not applicable -- stability is not phase-
+substituted): C4=+3.6, C5=+84.0, C7=+109.6, C3=+112.2, C12=+223.6,
+C11=+312.5, C9=+320.5, C6=+414.7, C1=+447.3, C13=+497.2, C8=+552.0,
+C2=+556.2, C14=+564.6, C10=+763.7 -- ALL 14 corners positive, including
+C8 (+552.0), the single corner the existing -50.0 threshold was
+originally gap-selected against (derived_from: "clean gap between
+-99.2 Nm/deg ... and -18.5 Nm/deg" under the OLD kinematic-derived
+Module 5 estimator). This is a DIFFERENT and more severe situation than
+the work order's own stated stop condition #3 ("stability margin would
+exceed the magnitude of the old -50 value") -- there is no negative or
+near-zero population AT ALL to size a margin from; the minimum value
+(C4, +3.6) is the script's own "noise floor excl. C8" answer, and even
+that is solidly non-negative. Any negative stab_neg_thresh, however
+close to zero, would currently never fire on this data -- the yaw-
+instability flag would be structurally dead for this car/session under
+the production default estimator. ROOT CAUSE, not yet investigated
+further: estimate_yaw_moment_stability takes beta as a direct argument
+(modules/stability_analysis.py) -- Module 5's own output depends on
+which sideslip source is active, unlike the Fy/Fz independence
+previously confirmed for an unrelated upgrade (2026-07-24 derived_from
+note); nobody had computed this worst-lap stability comparison side by
+side for both modes before this Phase 1 run -- threshold_anchoring_
+input.md's own text flagged the statistic as "MISSING from this run"
+and left it for whoever picked this up. STOPPED per the work order's
+own instruction: no stab_neg_thresh value written, no config touched,
+Phase 2 not closed. Per rider 2 (worst-lap aggregation ships atomically
+with all five thresholds and thresholds_calibrated_for_sideslip_source,
+no intermediate state), NONE of the five values -- including the four
+CS candidates above, which independently clear their own stop
+conditions -- have been written to config/parameters.json. Phases 3-8
+not started; Phase 3's code (aggregate_by_corner's cs_cross_lap_
+aggregation branch, modules/recommendation.py) and Phase 4's UI label
+change (ui/views/outing_form.py) were already prepared before this
+finding surfaced -- both inert until the config key is set, left in
+place uncommitted. Reported to the user, per CLAUDE.md's own "STOP and
+ask, never invent" rule for an unanchored proposal.
+
+### CS validity repair, pooled per-sample median re-measured at the
+final config, same statistic as the original pre-repair number
+[2026-09-02, same day]
+Follow-up to the Phase 4 gap flagged there ("POOLED MEDIANS: ... did
+not re-measure the per-sample pooled median under the new floors").
+New diagnostics/inspect_pooled_median_comparison.py (disposable, run
+once, finding recorded here, deleted same turn per the diagnostics
+disposal rule), read-only, reproduces the ORIGINAL Mechanism
+investigation's own per-SAMPLE pooled median statistic (not the worst-
+lap/worst-instance statistic used everywhere else in this arc) at the
+FINAL config, same 6 corners (C1/C2/C3/C4/C8/C9), both axles, so the
+"pooled medians vs earlier measurements" question has a direct,
+same-statistic answer.
+
+RESULT: all 12 corner/axle cases stayed POSITIVE and every one
+INCREASED from the original (pre-repair) measurement to the final
+config -- C1 front 0.614->0.579 (the one near-flat/slightly-down case,
+still solidly positive), C1 rear 0.563->0.721, C2 front 0.226->0.595,
+C2 rear 0.246->0.660, C3 front 0.123->0.365, C3 rear 0.021->0.534, C4
+front 0.412->0.703, C4 rear 0.321->0.868, C8 front 0.314->0.448, C8
+rear 0.242->0.463, C9 front 0.603->0.730, C9 rear 0.513->0.584 (n_pooled
+650-2478 samples per case). Confirms, at the identical statistic this
+time (not just a different-quantity proxy), the "Mechanism
+investigation" finding that the underlying per-sample population was
+never wholesale-negative -- the repair's own worst-lap/worst-instance
+fix did not depend on the pooled per-sample median moving (it barely
+does), it fixed the small-n overfitting tail that the min-driven
+worst-lap statistic was amplifying. No config, estimator, or threshold
+change made.
+
+### Threshold anchoring + arc closure, Phase 6: diagnostics
+classification [2026-09-02, same day]
+Every script from the CS validity repair investigation arc without a
+diagnostics/README.md entry classified per the standing disposal rule,
+NOT per the work order's own narrower "4 keeps only" pre-registration --
+that pre-registration missed that several of these scripts are still
+LIVE config/parameters.json derived_from citations (checked directly by
+grep before deleting any of them, not assumed from the work order's own
+list). DELETED, 8 scripts (finding recorded here or in an earlier dated
+entry, zero external references anywhere -- checked against modules/ui/
+core/tests/config/PLAN.md, not just diagnostics/ internal imports):
+inspect_pooled_median_comparison.py (finding recorded above, this same
+turn), inspect_cs_negative_run_lengths.py, inspect_cs_phase_median_
+floor_derivation.py (v1, findings recorded in its own "Phase 1
+REVISION" entry, superseded by v2), inspect_cs_phase_validity.py,
+inspect_cs_validity_criteria.py, inspect_cs_window_cap_sizing.py,
+inspect_negative_cs_mechanism.py, inspect_phase4_per_lap_breakdown.py.
+
+KEPT, corrected from the work order's own 4-item list to 9 (the
+original 4 plus 5 discovered live citations): inspect_cs_floor_
+candidate_validation.py, inspect_run_ground_truth.py, inspect_cs_
+phase_median_floor_derivation_v2.py, inspect_ls_ratio_span_dependence.py
+(the work order's own literal 4 keeps -- "the anchoring input, the
+ground-truth workup, the floor-derivation final version, the span-
+dependence figure"), PLUS inspect_cs_duration_only_comparison.py
+(config cs_min_window_s_derived_from), inspect_cs_max_window_locality_
+sizing.py (config _comment_cs_max_window_m), inspect_cs_window_floor_
+derivation.py (config cs_linear_slip_threshold_rad_derived_from -- its
+OWN window-floor N/span choice was superseded, but its separate linear_
+region_end finding, 0.03 rad, was never superseded and is still the
+live cited source), inspect_native_channel_rates.py (config _comment_
+grid_rate), and inspect_corner_bracket_geometry.py (PLAN.md PARKED
+new-data-file checklist -- a live, forward-looking reference, not a
+past-tense mention). Each of these 5 would have been deleted under the
+work order's literal instruction ("everything else DELETED") while
+still being actively cited -- caught before deleting, not after, by
+grepping config/*.json and PLAN.md for every candidate's exact filename
+BEFORE running any `rm`, not relying on the work order's own
+pre-registration or on PLAN.md's informal "kept/reproducing" language
+from the prior session (which had listed 8 scripts as tentatively kept,
+close to but not identical to this sweep's own 9 -- the two lists were
+compared, not blindly trusted, and diverge only in already-explained
+ways: this sweep additionally confirms inspect_cs_window_floor_
+derivation.py, which the prior session's own "superseded, disposable"
+framing had NOT flagged as still config-cited).
+
+ONE PRE-EXISTING GAP CLOSED, outside this arc: inspect_tyre_variant_
+comparison.py (WP-N3 Phase 3, 2026-08-20) had never had a README entry
+at all, discovered while cross-checking this sweep's own file list
+against the full diagnostics/ inventory. Backs the still-open
+"fit-variant choice" decision (PLAN.md carry-forward items) --
+unrelated to this arc, left in place, added to README rather than
+deleted or left ungoverned. A discrepancy surfaced while investigating
+it: thesis_notes.md's own "10. Second diagnostics sweep" entry
+(2026-08-30) lists this exact filename among that day's DELETED
+scripts, but `git log --follow` on the path shows only its original
+add, never a deletion -- the historical record entry appears to
+contain an error. Flagged, not corrected (CLAUDE.md: never rewrite a
+past entry; strike through with a dated note if genuinely superseded --
+this is not superseded, it is factually wrong about what happened, so
+noted here instead rather than silently editing 2026-08-30's own text).
+
+diagnostics/README.md rewritten with all 9 new entries plus the
+tyre-variant-comparison gap closure; its own top-of-file summary line
+updated to reference both sweeps. threshold_anchoring_input.md kept
+(unchanged, provenance document, not a script). No config/estimator/
+production code touched by this phase.
+
+### Threshold anchoring + arc closure, Phase 5: golden regeneration,
+determinism confirmed -- and a real, expected consequence: the live
+recommendation set drops to zero [2026-09-02, same day]
+Deleted all 3 stale pipeline goldens (kinematic/ekf_auto_pacejka/
+ekf_auto_dugoff) and the one live recommendations golden (ekf_auto_
+pacejka) -- these had been stale since the CS validity repair itself
+(100 Hz grid, apex_region), per PLAN.md's own "EXPECTED RED" note, now
+finally regenerated with thresholds/aggregation settled. tests/golden/
+recommendations_dubai_kinematic_cap1.json left UNTOUCHED: grep across
+tests/*.py confirms no current test or generator reads it (test_golden_
+auto_modes.py's own 2026-09-01 retarget moved 'kinematic' to a pipeline-
+only secondary check; only tests/generate_golden.py writes a
+recommendations golden, and only for ekf_auto_pacejka) -- an orphaned
+artifact from before that retarget, not touched by this package since
+nothing tests it and regenerating it would need a generator that
+doesn't exist. Work order said "both recommendations goldens"; only
+one is actually live-tested. Flagged, not silently assumed.
+
+Regenerated via the existing generators (tests/generate_golden.py,
+tests/generate_golden_auto_modes.py, the latter's Phase 4 fallback
+handling from the entry above). DETERMINISM: ran the full regeneration
+twice (delete + regenerate both times), deep-diffed all 4 files with
+timestamp/git-hash fields (including fit_manifest's own nested
+timestamp, caught by a first comparison pass that wrongly flagged 3
+files as differing before this was found) stripped -- all 4 byte-
+identical in substance across both runs. Fit numbers themselves also
+confirmed identical run to run (Pacejka front/rear B/C/D/E, powell_
+converged, fit_rms_resid_N; gate health_score=0.14171194259354178
+both times) -- the optimizer chain is genuinely deterministic on this
+data, not just "usually similar."
+
+HEADLINE FINDING, verified not a bug before accepting it: the
+regenerated ekf_auto_pacejka recommendations golden has ZERO
+recommendations (vs 4 previously, under the old kinematic-era
+thresholds). Checked directly (aggregate_by_corner + classify_fn, no
+recommendation engine involved) before trusting this: 3 corners (C3
+moderate understeer @ apex, C4 moderate oversteer @ exit, C9 moderate
+understeer @ exit) DO carry a non-normal verdict at the aggregate
+level -- the thresholds are firing as designed. None reach an actual
+recommendation because _evaluate_rule's own consistency gate (settings.
+consistency_gate.min_repeat_laps=2 of 4, min_repeat_fraction=0.4) blocks
+every one of them: the worst_lap aggregate is, by construction, exactly
+as sensitive to a single lap's single worst phase as the limitation
+entry above found C4's own confirmed-genuine events to be (only 1 of 5
+independently-confirmed real saturation events still reads negative at
+this statistic) -- the SAME dilution-resistant sensitivity that makes
+worst_lap correctly surface C4 at the corner-verdict level is, at the
+recommendation-engine level, exactly what the consistency gate exists
+to filter before it becomes a setup-change suggestion for what is
+usually a one-lap excursion, not a repeatable pattern. This is a real
+and significant coupling between this session's two shipped decisions
+(worst_lap aggregation + the tightened physical-anchor thresholds) and
+the pre-existing consistency gate, not previously observed because no
+prior turn ran the aggregate-vs-gate comparison directly. Worth a
+sentence in the write-up: the tool's own two escalation layers
+(corner-verdict grid vs recommendation engine) now diverge more sharply
+than before -- a corner can show "moderate" on the grid while
+generating zero setup guidance, which is arguably the CORRECT behaviour
+(guidance should require repeatability) but is also a smaller live
+recommendation surface than any previous session in this project's
+history. Not fixed, not flagged as a defect -- reported per the
+"no silent caps" documentation discipline, for the user's own
+judgement on whether the consistency gate's own min_repeat_laps/
+fraction should be revisited now that the upstream statistic changed
+underneath it (a new, separate open question, not resolved here).
+
+### Threshold anchoring + arc closure, Phase 7: full suite, two real
+regressions found and fixed, combined-evidence GREEN [2026-09-02, same
+day]
+First full run (`pytest tests/`, live config, no flipping): 2 failed,
+156 passed, 9 skipped, 1 xfailed (0:56:02) -- both failures traced and
+real, not flaky:
+(1) test_auto_fit_wiring.py::test_forced_fallback_via_impossible_gate_
+thresholds -- this test forces impossible NIS gate thresholds on
+ekf_auto_dugoff specifically to exercise the "gate fails, fit itself
+succeeds" branch. Since Phase 4's finding (rear mu_fz degenerates on
+Dubai unconditionally), that mode now falls back BEFORE the gate is
+ever reached regardless of threshold values -- the branch under test
+became unreachable via ekf_auto_dugoff on this data. FIX: switched the
+test to ekf_auto_pacejka (which still converges to 'ok' normally),
+restoring actual coverage of the gate-fail branch; comment added
+naming the decision.
+(2) test_nan_empty_paths.py::test_classifier_partial_nan_phases_does_
+not_raise -- hardcoded a synthetic cs_ratio_f median of 0.05, chosen
+under the OLD STRONG_CSF=+0.1 to read as "strong/moderate". Under the
+new STRONG_CSF=-0.10 (physical anchor, Phase 2), 0.05 no longer clears
+strong OR moderate-alone severity (moderate-alone requires destabilising
+too, per _classify_corner's own severity ladder -- unchanged logic, just
+never exercised by this exact literal value before). FIX: changed the
+synthetic value to -0.20 (clearly below the new STRONG_CSF), preserving
+the test's actual purpose (NaN-phase handling, not the specific
+severity tier).
+
+Both fixes verified in isolation (2 passed, 0 failed, 204.59s) --
+NOT re-run as part of a second full-suite pass, a deliberate scope
+decision, not an oversight: nothing else in the codebase changed
+between the first full run and this fix, both failures were isolated
+to their own test bodies (no shared fixture/production code touched),
+and every other test in both affected files already passed in the
+first run. Re-running the full ~56-minute suite a second time to
+re-confirm 166 already-passing, unaffected tests was judged not worth
+the wall-clock cost -- user consulted and agreed. COMBINED RESULT,
+Phase 7's actual GREEN record: 158 passed (156 + 2), 9 skipped (test_
+nis_gate.py's fixture-dependent tests, Phase 4's own designed skip),
+1 xfailed (tests/test_pure_functions.py's long-standing single-sample-
+array edge case, confirmed pre-existing and unrelated to this session),
+0 failed, 0 errors. test_stability.py (the separate zero-assertion
+smoke test) also re-run clean, no tracebacks, real Dubai data, current
+config -- CS/stability distributions consistent with every number
+already recorded in Phase 1/2's own diagnostic runs above.
+
+### Threshold anchoring + arc closure, Phase 8: arc CLOSED [2026-09-02,
+same day]
+PLAN.md STATUS rewritten (not appended): the run of bullets from
+"THRESHOLD RE-DERIVATION FOR ekf_auto_pacejka" through the prior turn's
+own "THRESHOLD ANCHORING + ARC CLOSURE, Phases 1-2 -- BLOCKED" bullet
+deleted outright and replaced with one closing bullet, "ESTIMATOR-AND-
+THRESHOLDS ARC CLOSED", listing the five final threshold values, the
+aggregation switch, the ekf_auto_dugoff decision, golden regeneration,
+diagnostics cleanup, and the combined-evidence full-suite result --
+full derivation detail lives here in thesis_notes.md, not duplicated.
+[UNCAL] marker: RETIRED from default display now that classification.
+thresholds_calibrated_for_sideslip_source (ekf_auto_pacejka) matches
+the live default sideslip_source -- confirmed headlessly (load_
+parameters() check, no Qt needed) before writing this entry, not
+assumed from the config diff alone. A new, independent marker (stab_
+thresh_calibrated_for_sideslip_source, default "kinematic") now covers
+the stability threshold specifically, since it was NOT re-derived and
+the two calibration states are no longer the same question -- verified
+directly via a headless synthetic _classify_corner call (destabilising
+summary, healthy CS): confirmed severity='moderate', short text carries
+"unstable yaw @ exit [stab thresh: kinematic-era, not re-derived]", no
+[UNCAL] suffix. PLAN.md BACKLOG A gained the Module 5 stability/beta-
+sensitivity open item (estimate_yaw_moment_stability takes beta
+directly, worst-lap stability inverts sign wholesale under ekf_auto_
+pacejka, stab_neg_thresh re-derivation blocked on it).
+
+NEXT, per the work order's own Phase 8 instruction: decision-matrix
+design + damper skeleton + presentation. Estimator/threshold work is
+FROZEN again until explicitly reopened -- same standing priority order
+STEP 2's own close-out note already established (commit the working
+tree, reliability passes, thesis writing), now updated for this arc's
+own closure instead of STEP 2's.
+
+STOP BEFORE COMMIT, per the work order's own explicit instruction --
+no commit made this session. Full final change list (24 paths): PLAN.
+md, config/parameters.json, diagnostics/README.md, modules/
+recommendation.py, tests/generate_golden_auto_modes.py, 4 golden JSON
+files, tests/test_auto_fit_wiring.py, tests/test_cs_validity_repair.py,
+tests/test_golden_auto_modes.py, tests/test_nan_empty_paths.py, tests/
+test_nis_gate.py, thesis_notes.md, ui/views/outing_form.py (all
+modified); 8 diagnostics/*.py deleted (inspect_cs_negative_run_
+lengths.py, inspect_cs_phase_median_floor_derivation.py, inspect_cs_
+phase_validity.py, inspect_cs_validity_criteria.py, inspect_cs_window_
+cap_sizing.py, inspect_negative_cs_mechanism.py, inspect_phase4_per_
+lap_breakdown.py, inspect_pooled_median_comparison.py -- the last of
+these created and deleted within this same session, never committed at
+all). Protected set (docs/literature/, docs/car_data/, config/
+car_data.json, HANDOVER.md, docs/study/) untouched, confirmed empty
+diff. This closes the estimator-and-thresholds arc that opened with
+"Threshold re-derivation deliberately deferred" and ran through every
+entry between there and here.

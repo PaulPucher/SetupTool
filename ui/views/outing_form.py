@@ -444,6 +444,16 @@ class OutingForm(QWidget):
         )
         calibrated_for = cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic")
         uncalibrated_marker = "" if active_sideslip_source == calibrated_for else " [UNCAL]"
+        # Threshold anchoring, Phase 2 (2026-09-02): stab_neg_thresh itself
+        # was NOT re-derived for ekf_auto_pacejka (no negative population to
+        # anchor a margin against, thesis_notes.md "Threshold anchoring,
+        # Phase 2") and stays on its kinematic-era gap-selected value --
+        # a second, narrower marker than [UNCAL] above (which now reports
+        # CS-threshold calibration only), appended only to a firing
+        # unstable-yaw verdict specifically, since that is the only verdict
+        # this legacy value governs.
+        stab_calibrated_for = cls_cfg.get("stab_thresh_calibrated_for_sideslip_source", "kinematic")
+        stab_legacy_marker = "" if active_sideslip_source == stab_calibrated_for else " [stab thresh: kinematic-era, not re-derived]"
         STRONG_CSF = cls_cfg["STRONG_CSF"]["value"]
         STRONG_CSR = cls_cfg["STRONG_CSR"]["value"]
         MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
@@ -553,10 +563,10 @@ class OutingForm(QWidget):
             )
 
         if destabilising:
-            short_parts.append(f"unstable yaw @ {phase_labels_short[worst_stab_phase]}")
+            short_parts.append(f"unstable yaw @ {phase_labels_short[worst_stab_phase]}{stab_legacy_marker}")
             long_parts.append(
                 f"unstable yaw at {phase_labels_long[worst_stab_phase]} "
-                f"({worst_stab_val:.0f} Nm/deg)"
+                f"({worst_stab_val:.0f} Nm/deg){stab_legacy_marker}"
             )
 
         if not short_parts:
@@ -773,9 +783,15 @@ class OutingForm(QWidget):
         # pass_1 IS the active mode, config-selected). Only the DROPDOWN's
         # own selectable set shrinks to the three modes users are meant
         # to choose day to day.
+        # ekf_auto_dugoff marked experimental in the dropdown (CS validity
+        # repair, Phase 4, user decision): its rear-axle fit degenerates on
+        # this car's data under the final CS window floor and falls back to
+        # kinematic on every run -- kept selectable (a designed, loud
+        # fallback, not a crash) rather than removed, but the label must
+        # not imply it is as trustworthy as the other two modes.
         self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
             "Kinematic": "kinematic",
-            "EKF auto Dugoff": "ekf_auto_dugoff",
+            "EKF auto Dugoff (experimental)": "ekf_auto_dugoff",
             "EKF auto Pacejka": "ekf_auto_pacejka",
         }
         self._SIDESLIP_MODE_VALUE_TO_DISPLAY = {
@@ -783,7 +799,7 @@ class OutingForm(QWidget):
         }
         self.sideslip_mode_combo = QComboBox()
         self.sideslip_mode_combo.addItems(list(self._SIDESLIP_MODE_DISPLAY_TO_VALUE.keys()))
-        self.sideslip_mode_combo.setFixedWidth(170)
+        self.sideslip_mode_combo.setFixedWidth(230)
         from modules.stability_analysis import load_parameters as _load_params_for_init
         _current_mode = _load_params_for_init()["stability_estimation"].get(
             "sideslip_source", "kinematic"

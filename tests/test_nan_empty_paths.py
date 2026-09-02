@@ -131,7 +131,11 @@ def test_classifier_partial_nan_phases_does_not_raise():
     phases = {phase: _full_phase_stub(n_samples=0) for phase in PHASE_KEYS}
     phases["apex_3"] = {
         "n_samples": 20, "valid_fraction_stab": 1.0, "kerb_fraction": 0.0,
-        "cs_ratio_f": {"median": 0.05, "p25": 0.04, "p75": 0.06, "n": 20},  # below STRONG_CSF (0.1)
+        # -0.20 is below STRONG_CSF (-0.10, threshold anchoring, 2026-09-02 --
+        # updated from the old +0.05/0.1 pair, which pre-dates the physical-
+        # anchor-at-zero threshold redesign; thesis_notes.md "Threshold
+        # anchoring, Phase 2")
+        "cs_ratio_f": {"median": -0.20, "p25": -0.22, "p75": -0.18, "n": 20},
         "cs_ratio_r": {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 20},
         "stability_observed_Nm_per_deg": {"median": 500.0, "p25": 480.0, "p75": 520.0, "n": 20},
     }

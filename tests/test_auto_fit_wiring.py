@@ -41,60 +41,70 @@ def wiring_fixture():
 # --- Phase 4a: ekf_auto_dugoff wiring -----------------------------------
 
 def test_ekf_auto_dugoff_reproduces_wp_n3_phase2_figures(wiring_fixture):
-    """Fitted parameters, run through the SAME wiring production uses
-    (resolve_sideslip_beta), must reproduce WP-N3 Phase 2's own
-    acceptance figures (thesis_notes.md "Phase 2: one-shot per-session
-    Dugoff fit + EKF chain -- ..."): c_alpha/mu_fz exact match to pass-0
-    (rel tol 1e-6, deterministic optimizer over identical inputs), the
-    R-sweep's chosen grid point (r_ay_scale=0.1, r_yaw_scale=4.0),
-    status 'ok'. Any drift here is a WIRING bug (resolve_sideslip_beta
-    calling fit_session with different arguments/handling than
-    intended), not a re-litigation of fit_session's own correctness
-    (already covered by diagnostics/inspect_tyre_fit_auto_acceptance.py
-    and this file's own reference-comparison test below).
+    """DELIBERATELY REWRITTEN (CS validity repair, Phase 4, 2026-09-02,
+    thesis_notes.md "Threshold anchoring + arc closure, Phase 4"): this
+    test used to compare fitted c_alpha/mu_fz/R-sweep figures against
+    WP-N3 Phase 2's frozen acceptance numbers, on the premise that
+    ekf_auto_dugoff reliably converges to 'ok' on Dubai. It no longer
+    does -- the rear axle's mu_fz fit degenerates (hits its widened
+    search bracket ceiling) under the final CS window floor (100 Hz
+    grid), a real upstream behaviour change, not a wiring regression
+    (front axle's own fit is unaffected; only rear's mu_fz search is
+    exhausted). The frozen-pass-0/R-sweep comparison this test used to
+    run is therefore meaningless (gate_verdict is None -- the gate never
+    runs on a fit already known degenerate) and has been replaced with
+    an assertion on the CURRENT, designed behaviour: wiring reports the
+    fallback loudly and correctly, naming the real cause.
     """
     params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
         state, params, data, "ekf_auto_dugoff", csv_path=RAW_FILE
     )
-    assert not fallback_used, f"unexpected fallback: {fallback_reason}"
-    assert fit_manifest["status"] == "ok"
-    assert gate_verdict is not None and gate_verdict["verdict"] in ("pass", "warn")
-
-    live_pass0 = params["tyre_model_ekf"]["pass_0"]
-    for axle in ("front", "rear"):
-        got_c = fit_manifest["axles"][axle]["c_alpha_n_per_rad"]
-        exp_c = live_pass0[f"c_alpha_{axle}_n_per_rad"]
-        assert abs(got_c - exp_c) / abs(exp_c) < 1e-6, f"{axle} c_alpha drift: got={got_c} expect={exp_c}"
-        got_m = fit_manifest["axles"][axle]["mu_fz_N"]
-        exp_m = live_pass0[f"mu_fz_{axle}_N"]
-        assert abs(got_m - exp_m) / abs(exp_m) < 1e-6, f"{axle} mu_fz drift: got={got_m} expect={exp_m}"
-
-    assert fit_manifest["r_sweep"]["chosen"]["r_ay_scale"] == 0.1
-    assert fit_manifest["r_sweep"]["chosen"]["r_yaw_scale"] == 4.0
-    assert fit_manifest["r_sweep"]["found_in_band"] is True
+    assert fallback_used, (
+        "ekf_auto_dugoff did NOT fall back on this run -- if the rear mu_fz degeneracy "
+        "has been fixed/decoupled, this test's own deliberate-fallback exception (and the "
+        "corresponding golden) need revisiting, not silently left as-is"
+    )
+    assert fit_manifest["status"] == "degenerate"
+    assert "mu_fz" in fit_manifest["degenerate_reason"] and "rear" in fit_manifest["degenerate_reason"], (
+        f"unexpected degenerate_reason: {fit_manifest['degenerate_reason']!r} -- if the failure "
+        "mode changed, this is worth a fresh look, not just updating the substring check"
+    )
+    assert gate_verdict is None, "the NIS gate must not run against a fit already known degenerate"
+    assert "degenerate" in fallback_reason
 
 
 def test_ekf_auto_dugoff_beta_matches_standalone_chain_exactly(wiring_fixture):
-    """resolve_sideslip_beta's output, run through estimate_slip_angles,
-    must be BIT-IDENTICAL to calling fit_session directly and doing the
-    same -- both call the exact same functions with the exact same
-    inputs deterministically. Any difference is a wiring bug (e.g. the
-    wrong manifest key used, an extra transformation applied) -- "any
-    drift = wiring bug, blocks the package" per the work order.
+    """DELIBERATELY REWRITTEN (CS validity repair, Phase 4, 2026-09-02,
+    same record as above): resolve_sideslip_beta's own fallback path
+    computes beta via estimate_sideslip(state, params) directly (modules/
+    tyre_fit_auto.py) once fit_session reports 'degenerate' -- a direct
+    fit_session(...) call on a degenerate fit returns EARLY, before
+    'beta_ekf_with_fallback' is ever set (modules/tyre_fit_auto.py's own
+    fit_session, the manifest['status']='degenerate' branch), so the
+    original bit-identical-to-fit_session's-own-output comparison no
+    longer has a value to compare against. Still checks a real wiring
+    claim: resolve_sideslip_beta's fallback beta must be bit-identical
+    to calling estimate_sideslip directly, not a value it invented or
+    perturbed along the way.
     """
     params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
     beta_wired, _, gate_verdict, fallback_used, _ = resolve_sideslip_beta(
         state, params, data, "ekf_auto_dugoff", csv_path=RAW_FILE
     )
-    assert not fallback_used and gate_verdict["verdict"] != "fail"
+    assert fallback_used and gate_verdict is None
 
     standalone_manifest = fit_session(data, params, data_file_path=RAW_FILE)
-    beta_standalone = standalone_manifest["beta_ekf_with_fallback"]
+    assert standalone_manifest["status"] == "degenerate"
+    assert "beta_ekf_with_fallback" not in standalone_manifest, (
+        "a degenerate fit_session return unexpectedly carries beta_ekf_with_fallback -- "
+        "the early-return shape this test relies on may have changed"
+    )
 
+    beta_standalone = estimate_sideslip(state, params)
     assert np.array_equal(beta_wired, beta_standalone), (
-        "resolve_sideslip_beta's beta differs from a direct fit_session call's "
-        "beta_ekf_with_fallback -- wiring bug"
+        "resolve_sideslip_beta's fallback beta differs from a direct estimate_sideslip call -- "
+        "wiring bug"
     )
     slip_wired = estimate_slip_angles(state, beta_wired, params)
     slip_standalone = estimate_slip_angles(state, beta_standalone, params)
@@ -154,6 +164,18 @@ def test_forced_fallback_via_impossible_gate_thresholds(wiring_fixture):
     (degenerate fit vs failed gate) must stay distinguishable in the
     reason text for the status line/PDF (Phase 3b/3d) to describe
     correctly.
+
+    MODE CHANGED to ekf_auto_pacejka (CS validity repair, Phase 4,
+    2026-09-02, thesis_notes.md "Threshold anchoring + arc closure,
+    Phase 4"): this test's own premise -- forcing the GATE to fail while
+    the FIT itself succeeds -- requires a fit that actually reaches 'ok'
+    on Dubai. ekf_auto_dugoff's rear axle now degenerates unconditionally
+    under the final CS window floor, so resolve_sideslip_beta falls back
+    before the gate is ever reached regardless of these thresholds --
+    the gate-fail branch this test exists to cover became unreachable via
+    that mode on this data. ekf_auto_pacejka still converges normally
+    (status 'ok', gate 'pass' under real thresholds), so it is the mode
+    that actually exercises the code path under test now.
     """
     params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
     forced_params = copy.deepcopy(params)
@@ -161,7 +183,7 @@ def test_forced_fallback_via_impossible_gate_thresholds(wiring_fixture):
     forced_params["nis_gate"]["threshold_warn"] = 1.5      # same -- everything verdicts 'fail'
 
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, forced_params, data, "ekf_auto_dugoff", csv_path=RAW_FILE
+        state, forced_params, data, "ekf_auto_pacejka", csv_path=RAW_FILE
     )
 
     assert fallback_used is True

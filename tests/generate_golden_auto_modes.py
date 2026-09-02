@@ -82,12 +82,26 @@ def main():
         beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
             state, effective_params, data, mode, csv_path=RAW_FILE
         )
-        if fallback_used:
+        if fallback_used and mode != "ekf_auto_dugoff":
             raise SystemExit(
                 f"refusing to generate a golden file for {mode!r} while it fell back to kinematic "
                 f"({fallback_reason}) -- this mode is not currently 'ok' on Dubai, generating a "
                 f"golden under a fallback would silently pin the WRONG estimator's numbers"
             )
+        if fallback_used:
+            # CS validity repair, Phase 4 (2026-09-02, thesis_notes.md
+            # "Threshold anchoring + arc closure, Phase 4"): ekf_auto_
+            # dugoff's rear-axle mu_fz fit degenerates on Dubai under the
+            # final CS window floor (100 Hz grid) and falls back to
+            # kinematic beta on every run -- a designed, loud, non-silent
+            # fallback (modules/nis_gate.py's own gate never even runs;
+            # the degeneracy is caught earlier, in the fit itself), not a
+            # bug. Pinning the fallback path here is deliberate: it is
+            # production's own current, correct behaviour for this mode
+            # on this file, and this golden documents exactly that.
+            print(f"NOTE: {mode!r} fell back to kinematic ({fallback_reason}) -- "
+                  f"pinning the fallback path deliberately, this is designed behaviour "
+                  f"for ekf_auto_dugoff on Dubai, see thesis_notes.md")
         slip = estimate_slip_angles(state, beta, effective_params)
         forces = estimate_lateral_forces(state, effective_params)
         cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
@@ -96,16 +110,26 @@ def main():
         corners = data.get("corners", [])
         summaries = summarise_corners(corners, cs, stab, state, fz=fz, lap_filter=None)
 
+        purpose = ("REGRESSION baseline, not a correctness claim -- see "
+                   "tests/test_golden_auto_modes.py's module docstring. SECONDARY mode "
+                   "(ekf_auto_pacejka is primary, generated separately by "
+                   "tests/generate_golden.py). For ekf_auto_dugoff the underlying tyre "
+                   "curve is fit fresh on this data every time "
+                   "modules.tyre_fit_auto.fit_session runs -- this golden pins CURRENT "
+                   "fit-chain output, not a frozen prior-session curve. For kinematic it "
+                   "is the fixed production estimate_sideslip, unchanged run to run.")
+        if fallback_used:
+            purpose += (
+                " PINS THE FALLBACK PATH DELIBERATELY (CS validity repair, Phase 4, "
+                "2026-09-02): ekf_auto_dugoff's rear-axle mu_fz fit degenerates on Dubai "
+                "under the final CS window floor (100 Hz grid) and this golden's own "
+                "summaries are therefore KINEMATIC beta's output, not a Dugoff fit -- "
+                "see fallback_reason below and thesis_notes.md 'Threshold anchoring + "
+                "arc closure, Phase 4' for the full record. This is designed behaviour, "
+                "not a golden-generation bug.")
         payload = {
             "_meta": {
-                "purpose": "REGRESSION baseline, not a correctness claim -- see "
-                           "tests/test_golden_auto_modes.py's module docstring. SECONDARY mode "
-                           "(ekf_auto_pacejka is primary, generated separately by "
-                           "tests/generate_golden.py). For ekf_auto_dugoff the underlying tyre "
-                           "curve is fit fresh on this data every time "
-                           "modules.tyre_fit_auto.fit_session runs -- this golden pins CURRENT "
-                           "fit-chain output, not a frozen prior-session curve. For kinematic it "
-                           "is the fixed production estimate_sideslip, unchanged run to run.",
+                "purpose": purpose,
                 "git_commit_hash": _git_hash(),
                 "generated_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "data_file": RAW_FILE,
@@ -114,6 +138,8 @@ def main():
                 "setup_data": None,
                 "fit_manifest": fit_manifest,
                 "gate_verdict": gate_verdict,
+                "fallback_used": fallback_used,
+                "fallback_reason": fallback_reason,
             },
             "summaries": summaries,
         }
