@@ -666,10 +666,75 @@ WHERE THE PROJECT STANDS
   8 diagnostics/*.py deleted, one of them -- inspect_pooled_median_
   comparison.py -- created and deleted within this same session)
   -- stop before commit, per the work order.
-  NEXT: decision-matrix design + damper skeleton + presentation (per
-  the work order's own Phase 8 instruction) -- estimator/threshold work
-  is FROZEN again until explicitly reopened, same standing priority
-  order as STEP 2's own close-out note above.
+- DECISION-MATRIX FRAME, STAGE 1 COMPLETE (2026-09-02, same day, all 7
+  phases -- full record: thesis_notes.md "Decision-matrix frame, Stage 1:
+  evidence/candidate/scoring layers, one worked scenario end to end").
+  New three-layer recommendation frame (modules/decision_frame.py,
+  config/decision_frame.json), additive and parallel to the existing
+  39-rule engine (modules/recommendation.py unchanged, still production);
+  a new "Decision Frame (preview)" collapsible section in ui/views/
+  outing_form.py, existing Recommendations section untouched. Stage 1
+  scope: the exit-oversteer scenario end to end (both LS-disambiguated
+  branches, ARB/spring vs diff/TC) plus the brake-balance plausibility
+  check; tyre-pressure plausibility wired but silent (no target window
+  exists anywhere in this project). Real Dubai data verified end to end
+  under the live ekf_auto_pacejka default: 3 corner_verdict evidence
+  items (C3/C4/C9, the same three this session's own threshold-anchoring
+  arc already flagged), 4 candidates for C4 (both LS branches, all
+  'proposed' grade -- C4 is high-speed, matching neither of the two
+  matrix cells this stage implements, a real honestly-surfaced scope gap,
+  not a bug). tests/test_decision_frame.py: 8 targeted tests, all pass
+  (scoring determinism, cheap-check-outranks-on-equal-severity,
+  interaction-penalty sign, no-signal-lowers-confidence, 3x LS-branch-
+  routing, real end-to-end). Headless Qt smoke test (diagnostics/smoke_
+  test_decision_frame_widget.py, kept, [keep-reproduces]) passes; caught
+  and fixed a real test-authoring bug during development (Qt's
+  isVisible() reflects the whole ancestor chain, not a widget's own
+  explicit flag -- isHidden() is the correct per-widget check). One real
+  factual conflict caught and resolved with the user mid-package: the
+  work order asserted a camber->braking interaction was "already
+  recorded" in the registry/matrix; exhaustive search found nothing --
+  user confirmed the real claim from engineering knowledge (front camber
+  hurts braking, rear camber hurts traction), seeded at 'proposed' grade,
+  not invented as matrix-derived. Full list of null/needs-input config
+  entries for the user recorded in the thesis_notes.md entry (tyre-
+  pressure window; 5 fully-null parameter_windows entries; 26 nominal-
+  known-span-missing entries across dampers/camber/TC; interaction_table
+  covers only 9 of many possible parameter x axis pairs; every scoring
+  weight is an unvalidated placeholder). Stage 2 (explicitly deferred):
+  migrate the 39 rules into this frame, a conflict resolver (not ported
+  from the existing engine), the remaining interaction/window entries,
+  LS_ratio absolute-threshold derivation (still UNDECIDED, same open
+  status as PLAN.md STEP 3/4 below), driver-feedback magnitude weighting
+  (this frame has no feedback axis yet), the OS-EXIT-high wing-family
+  candidate. No existing production behaviour changed; full regression
+  suite not run (targeted tests only, per this package's own testing
+  policy) -- test_stability.py confirmed clean after Phase 1's config
+  addition. Stop before commit, per the work order.
+- SIDE TASK: GT3_PRC_MLA-v3.txt CENSUS (2026-09-02, same day, run
+  between decision-frame phases -- full record: thesis_notes.md
+  "GT3_PRC_MLA-v3 census: per-channel-block layout, 100 Hz dampers").
+  New real telemetry file (1.29 GB, repo root, gitignored/untracked,
+  already covered by the existing blanket /*.txt rule) censused
+  read-only: per-channel BLOCK layout (not v1's wide-table), no single
+  shared grid -- CS-chain channels at 100 Hz except ecu_speed (50 Hz,
+  the chain's binding rate), damper channels (log_dms_dam_*) present at
+  100 Hz for the FIRST TIME this project has seen real damper data,
+  suspension travel similarly at 100 Hz, wheel speeds at 50 Hz. tc_lat/
+  tc_lon substrings match ZERO channels (genuine negative, standing
+  checklist item); abs/brake_bias substrings match 171 channels, mostly
+  ECU diagnostic noise -- plausible switch candidates (abs_switch_pos,
+  log_abs_pos, log_rt_abs_pos, log_B_abs_setting, log_m_abs_en) listed,
+  none confirmed as the real switch channel by this census alone.
+  Verdict: exceeds v1 across every family, supports the 50 Hz analysis
+  base and a full 100 Hz for the damper/wheel-load work. Census script
+  kept (diagnostics/inspect_prc_v3_sample_rates.py, [keep-reproduces],
+  user decision) as reusable data-provenance tooling for future files,
+  not deleted as a one-off. No production/config/parser file touched.
+  NEXT: damper package, starting after this decision-frame package's own
+  Phase 7 report (user decision, 2026-09-02) -- estimator/threshold work
+  stays FROZEN until explicitly reopened, same standing priority order
+  as STEP 2's own close-out note above.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost

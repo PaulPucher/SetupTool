@@ -366,6 +366,7 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._build_corner_map())
         self.content_layout.addWidget(self._build_stability_toggle())
         self.content_layout.addWidget(self._build_recommendations_toggle())
+        self.content_layout.addWidget(self._build_decision_frame_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
         self.content_layout.addWidget(self._build_comments_section())
         self.content_layout.addStretch()
@@ -1243,6 +1244,7 @@ class OutingForm(QWidget):
         self.btn_analyse.setEnabled(False)
         self.btn_lap_traces.setEnabled(False)
         self.btn_generate_recommendations.setEnabled(False)
+        self.btn_generate_decision_frame.setEnabled(False)
 
         self._update_corner_map_trace()
 
@@ -1789,6 +1791,7 @@ class OutingForm(QWidget):
             self.estimator_status_label.setVisible(False)
         self.btn_analyse.setEnabled(True)
         self.btn_generate_recommendations.setEnabled(True)
+        self.btn_generate_decision_frame.setEnabled(True)
         self.btn_lap_traces.setEnabled(True)
         self._update_corner_map_markers()
 
@@ -2530,6 +2533,244 @@ class OutingForm(QWidget):
             rationale_host.setVisible(checked)
             btn_expand.setText("v rationale" if checked else "> rationale")
         btn_expand.toggled.connect(toggle_rationale)
+
+        return card
+
+    def _build_decision_frame_toggle(self):
+        # Decision-matrix frame, Stage 1 (2026-09-02): the three-layer
+        # evidence/candidate/scoring frame (modules/decision_frame.py),
+        # additive and parallel to the Recommendations section above --
+        # that section's 39-rule engine is untouched by this one. Same
+        # collapsible-toggle/card visual language as _build_recommendations_
+        # toggle, deliberately, so the two sections read as one family.
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        btn_toggle = QPushButton("> Decision Frame (preview)")
+        btn_toggle.setStyleSheet(
+            f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
+            "padding: 8px 14px; text-align: left;"
+        )
+        btn_toggle.setCheckable(True)
+        btn_toggle.setChecked(False)
+        layout.addWidget(btn_toggle)
+
+        self.decision_frame_panel = QWidget()
+        panel_layout = QVBoxLayout(self.decision_frame_panel)
+        panel_layout.setContentsMargins(0, 8, 0, 0)
+        panel_layout.setSpacing(8)
+
+        gen_row = QWidget()
+        gen_row_layout = QHBoxLayout(gen_row)
+        gen_row_layout.setContentsMargins(0, 0, 0, 0)
+        self.btn_generate_decision_frame = QPushButton("Generate")
+        self.btn_generate_decision_frame.setFixedWidth(100)
+        self.btn_generate_decision_frame.setEnabled(False)
+        self.btn_generate_decision_frame.clicked.connect(self._generate_decision_frame)
+        gen_row_layout.addWidget(self.btn_generate_decision_frame)
+        gen_row_layout.addStretch()
+        panel_layout.addWidget(gen_row)
+
+        note_label = QLabel(
+            "Preview: Stage 1 scope only (exit oversteer, LS-disambiguated, plus the "
+            "brake-balance plausibility check). Everything else falls back to the "
+            "Recommendations section above, which this does not replace."
+        )
+        note_label.setWordWrap(True)
+        note_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
+        panel_layout.addWidget(note_label)
+
+        self.decision_frame_summary_label = QLabel(
+            "Run Analyse in the Data section, then Generate."
+        )
+        self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        panel_layout.addWidget(self.decision_frame_summary_label)
+
+        self.decision_frame_host = QWidget()
+        self.decision_frame_host_layout = QVBoxLayout(self.decision_frame_host)
+        self.decision_frame_host_layout.setContentsMargins(0, 0, 0, 0)
+        self.decision_frame_host_layout.setSpacing(6)
+        self.decision_frame_host_layout.addStretch()
+        panel_layout.addWidget(self.decision_frame_host)
+
+        self.decision_frame_panel.setVisible(False)
+        layout.addWidget(self.decision_frame_panel)
+
+        btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
+            self.decision_frame_panel.setVisible(checked),
+            btn.setText("v Decision Frame (preview)" if checked else "> Decision Frame (preview)")
+        ))
+
+        return container
+
+    def _clear_decision_frame_rows(self):
+        while self.decision_frame_host_layout.count() > 1:
+            item = self.decision_frame_host_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+
+    def _generate_decision_frame(self):
+        # Synchronous, same rationale as _generate_recommendations: a
+        # handful of corners through three light layers is fast enough not
+        # to need a worker thread.
+        if not self.stability_result:
+            self.decision_frame_summary_label.setText(
+                "Run Analyse in the Data section, then Generate."
+            )
+            self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+            return
+        import json
+        from modules.decision_frame import (
+            build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
+            generate_candidates, generate_shortlist,
+        )
+        from modules.recommendation import load_setup_parameters_registry
+
+        summaries = self.stability_result["summaries"]
+        config = load_decision_frame_config()
+        registry = load_setup_parameters_registry()
+        setup_data = json.loads(self._collect_setup_data())
+
+        ls_stats = aggregate_ls_by_corner(summaries)
+        evidence = build_evidence(summaries, ls_stats, config, self._classify_corner)
+        candidates = generate_candidates(evidence, registry, config)
+        shortlist = generate_shortlist(candidates, evidence, setup_data, config)
+
+        self._clear_decision_frame_rows()
+
+        if not shortlist:
+            self.decision_frame_summary_label.setText(
+                f"{len(evidence)} evidence item(s), no candidates at this stage's scope "
+                "(Stage 1 only covers exit oversteer and brake-balance plausibility)."
+            )
+            return
+
+        self.decision_frame_summary_label.setText(
+            f"{len(evidence)} evidence item(s), {len(shortlist)} candidate(s)."
+        )
+
+        insert_pos = self.decision_frame_host_layout.count() - 1
+        for c in shortlist:
+            row = self._build_decision_frame_row(c)
+            self.decision_frame_host_layout.insertWidget(insert_pos, row)
+            insert_pos += 1
+
+    def _build_decision_frame_row(self, c):
+        # Same visual language as _build_recommendation_row: PANEL/BORDER
+        # card, ACCENT action badge, muted chips, expandable detail via a
+        # checkable "> ..." button -- deliberately, so the two sections
+        # read as one family (see _build_decision_frame_toggle's comment).
+        card = QWidget()
+        card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(10, 8, 10, 8)
+        card_layout.setSpacing(6)
+
+        header = QWidget()
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(10)
+
+        if c["actions"]:
+            badge_text = " + ".join(
+                f"{a['parameter']} -> {a['target']}" if "target" in a
+                else f"{a['parameter']} {a['direction']}"
+                for a in c["actions"]
+            )
+        else:
+            badge_text = f"C{c['corner']}: engineer attention (no routed action)"
+        badge = QLabel(badge_text)
+        badge.setStyleSheet(
+            f"background-color: {ACCENT}; color: #111; font-size: 11px; "
+            "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
+        )
+        header_layout.addWidget(badge)
+
+        score_label = QLabel(f"score {c['score']:.2f}")
+        score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
+        header_layout.addWidget(score_label)
+
+        # 'proposed'-grade candidates are advisory-capped, same policy as
+        # modules.recommendation._match_is_recommended's provenance cap --
+        # visually distinct from a matrix-backed candidate, same ADVISORY
+        # wording the Recommendations section already uses for the same
+        # concept.
+        if c["grade"] == "proposed":
+            grade_label = QLabel("ADVISORY (proposed, not matrix-reviewed)")
+            grade_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px; font-weight: 600;")
+        else:
+            grade_label = QLabel("derived-from-matrix")
+            grade_label.setStyleSheet(f"color: {ACCENT}; font-size: 10px; font-weight: 600;")
+        header_layout.addWidget(grade_label)
+
+        if c.get("cell_id"):
+            cell_label = QLabel(c["cell_id"])
+            cell_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+            header_layout.addWidget(cell_label)
+
+        header_layout.addStretch()
+        card_layout.addWidget(header)
+
+        evidence_line = QLabel(
+            f"C{c['corner']} {c['phase']} -- {len(c['evidence_refs'])} evidence item(s), "
+            f"effort={c['effort_class']}, effect={c['effect_class']}"
+        )
+        evidence_line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+        card_layout.addWidget(evidence_line)
+
+        btn_expand = QPushButton("> reasoning")
+        btn_expand.setCheckable(True)
+        btn_expand.setChecked(False)
+        btn_expand.setStyleSheet(
+            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
+            "text-align: left; border: none; padding: 2px 0;"
+        )
+        card_layout.addWidget(btn_expand)
+
+        detail_host = QWidget()
+        detail_layout = QVBoxLayout(detail_host)
+        detail_layout.setContentsMargins(12, 2, 0, 0)
+        detail_layout.setSpacing(2)
+
+        rationale_line = QLabel(c["rationale"])
+        rationale_line.setWordWrap(True)
+        rationale_line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+        detail_layout.addWidget(rationale_line)
+
+        components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
+        components_line = QLabel(f"score breakdown: {components_text}")
+        components_line.setWordWrap(True)
+        components_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+        detail_layout.addWidget(components_line)
+
+        for note in c.get("score_interaction_notes", []):
+            note_line = QLabel(f"interaction: {note}")
+            note_line.setWordWrap(True)
+            note_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+            detail_layout.addWidget(note_line)
+
+        for flag in c.get("score_flags", []):
+            flag_line = QLabel(flag)
+            flag_line.setWordWrap(True)
+            flag_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
+            detail_layout.addWidget(flag_line)
+
+        for e in c["evidence_refs"]:
+            source_line = QLabel(f"evidence ({e['type']}): {e['source']}")
+            source_line.setWordWrap(True)
+            source_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
+            detail_layout.addWidget(source_line)
+
+        detail_host.setVisible(False)
+        card_layout.addWidget(detail_host)
+
+        def toggle_detail(checked):
+            detail_host.setVisible(checked)
+            btn_expand.setText("v reasoning" if checked else "> reasoning")
+        btn_expand.toggled.connect(toggle_detail)
 
         return card
 

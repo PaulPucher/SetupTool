@@ -261,3 +261,20 @@ kept because a surviving script imports it, not for its own findings.
   investigation -- a reusable generator, kept by design, not by the
   disposal-rule
   exceptions above.
+- **inspect_prc_v3_sample_rates.py** `[keep-reproduces]` — read-only
+  per-channel-block sample-rate/layout census (streamed, never loads a
+  full multi-GB file into memory). Written for GT3_PRC_MLA-v3.txt (2026-
+  09-02, thesis_notes.md "GT3_PRC_MLA-v3 census: per-channel-block layout,
+  100 Hz dampers"), the first real damper-channel-bearing telemetry file
+  this project has seen -- kept as a reusable data-provenance check for
+  future telemetry files, not a one-off finding: any new export can be
+  re-run through this script to confirm layout (wide-table vs per-channel
+  block), per-channel-family rates, and TC LAT/TC LON/ABS/brake-bias
+  header candidates before it is trusted as an analysis input.
+- **smoke_test_decision_frame_widget.py** `[keep-reproduces]` — reusable
+  headless Qt smoke test for the "Decision Frame (preview)" section
+  (decision-matrix frame, Stage 1, 2026-09-02), same technique and role as
+  smoke_test_measurement_points_widget.py: verifies the widget binding
+  (toggle show/hide, button enable/disable, row rendering against a real
+  constructed OutingForm) that tests/test_decision_frame.py's pytest suite
+  cannot reach (conftest.py deliberately keeps PyQt6 out of pytest).

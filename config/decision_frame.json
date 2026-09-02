@@ -1,0 +1,158 @@
+{
+  "_comment_overview": "Decision-matrix frame, Stage 1 (2026-09-02). Additive config for modules/decision_frame.py's three-layer recommendation frame (evidence -> candidates -> scoring), separate from and parallel to the existing 39-rule engine in config/recommendations.json (unchanged). Tier B/C throughout (signal/data engineering + UI scoring plumbing, not a vehicle-dynamics method) -- every numeric entry below states its provenance grade so the write-up never presents a placeholder as a validated result. Design (three layers, provenance-grade scheme, Stage 1 scope = exit-oversteer scenario only) is fixed per the work order; this file does not redesign it.",
+
+  "plausibility_checks": {
+    "_comment": "Cheap-first-tier checks (Phase 3: 'generated whenever their evidence fires, any scenario'). Both are Tier B: standard data-engineering checks against config-driven bounds, not a vehicle-dynamics claim.",
+
+    "tyre_pressure_window": {
+      "_comment": "Per-axle hot-pressure plausibility window. NOT DERIVABLE from anything in this repo -- verified by search: config/channels.json, config/parameters.json, config/setup_parameters.json, config/car_data.json all contain zero tyre-pressure entries (only Brake Pressure Front/Rear channel labels, an unrelated signal). Left null on purpose rather than guessing a number for a real physical limit. Per-corner override is a later UI item (per-weekend, user-editable); Stage 1 reads these config defaults only.",
+      "front": {"min_psi": null, "max_psi": null},
+      "rear": {"min_psi": null, "max_psi": null},
+      "per_corner_override": {"fl": null, "fr": null, "rl": null, "rr": null},
+      "derived_from": "NEEDS USER INPUT -- no target hot-pressure window exists anywhere in this project's config or docs. Supply front/rear (or per-corner) min/max in psi from tyre data sheet or team practice before this check can ever fire; until then it is wired but permanently silent (no evidence, not a false negative)."
+    },
+
+    "brake_balance_signature": {
+      "_comment": "Front axle beyond its own limit while rear stays healthy, during the braking phase -- a data-driven plausibility read, not a new vehicle-dynamics method. Deliberately expressed in terms of classify_fn's own severity labels (moderate/strong), not raw CS_ratio numbers, so this file never duplicates config/parameters.json's classification.STRONG_CSF/STRONG_CSR/MODERATE_CSF/MODERATE_CSR thresholds -- those are re-derived per estimator/car (CLAUDE.md deviation taxonomy) and duplicating their values here would risk drift the next time they change. No brake-balance/brake-bias signature logic existed anywhere in modules/ before this (verified by search) -- new Stage 1 evidence source.",
+      "phase": "entry_1_brake",
+      "front_beyond_severity_min": "moderate",
+      "rear_healthy_severity_max": "normal",
+      "derived_from": "Tier B. 'Beyond limit' = front axle's classify_fn severity on entry_1_brake reaches front_beyond_severity_min (today: 'moderate', i.e. CS_ratio_f at or past config/parameters.json classification.MODERATE_CSF). 'Healthy' = rear axle's severity on the same phase stays at/below rear_healthy_severity_max (today: 'normal', i.e. rear CS_ratio_r has not crossed even MODERATE_CSR). Reuses the existing _phase_verdict/classify_fn path (modules/recommendation.py) unmodified, per-axle -- guarantees this check can never disagree with what the stability grid already shows for the same corner/phase."
+    }
+  },
+
+  "scoring_weights": {
+    "_comment": "Every weight here is a project-lead-elicited PLACEHOLDER (Stage 1, 2026-09-02) -- neutral (1.0) except phase_importance's elicited exit>entry ordering, none tuned against real scored output yet. Stage 2 calibration item (see thesis_notes.md Stage 1 entry).",
+    "severity_weight": 1.0,
+    "phase_importance": {
+      "_comment": "User instruction (this session): exit phases weigh highest for laptime. Ordinal ordering is the real content (entry < turn-in < apex < exit); the specific magnitudes are placeholders pending Stage 2 calibration against real scored output.",
+      "entry_1_brake": 0.8,
+      "entry_2_turnin": 0.9,
+      "apex_3": 1.0,
+      "exit_4": 1.2,
+      "exit_5": 1.2
+    },
+    "effect_weight": 1.0,
+    "effect_class_multiplier": {
+      "_comment": "Added during Phase 4 (scoring layer) -- not anticipated by Phase 1's own spec text, needed to turn the candidate layer's categorical effect_class ('primary'/'secondary', see modules/decision_frame.py generate_candidates) into a numeric score component. Placeholder, same status as every other weight here.",
+      "primary": 1.0,
+      "secondary": 0.6
+    },
+    "effort_weight": 1.0,
+    "effort_weight_note": "Applied INVERSELY at score time (Phase 4 owns the exact formula): a cheap change (cockpit/seconds) should score higher than an equally-effective expensive one (garage/hours), all else equal.",
+    "confidence_weight": 1.0,
+    "settings_window_weight": 1.0,
+    "interaction_weight": 1.0,
+    "derived_from": "project-lead-elicited placeholders, decision-frame Stage 1 package (2026-09-02) -- see thesis_notes.md for the elicitation context and the Stage 2 calibration item this leaves open."
+  },
+
+  "_comment_parameter_windows": "One entry per config/setup_parameters.json registry key (46 keys, verified against that file directly -- not from memory). 'nominal' + 'span' sourced from that registry's own typical_window/value_space fields wherever a real team-typical value exists there; null+flagged where it does not (never a fabricated midpoint of an arbitrary min/max -- CLAUDE.md 'never invent'). Used by Phase 4's settings-window-distance component (current setup value vs this window; a null window makes that component neutral for the parameter, same as a missing current setup value).",
+  "parameter_windows": {
+    "arb_fl": {"nominal": 4, "span": 1, "source": "typical_window {min:3,max:5}"},
+    "arb_fr": {"nominal": 4, "span": 1, "source": "typical_window {min:3,max:5}"},
+    "arb_rl": {"nominal": 4, "span": 1, "source": "typical_window {min:3,max:5}"},
+    "arb_rr": {"nominal": 4, "span": 1, "source": "typical_window {min:3,max:5}"},
+    "arb_front_mount": {"nominal": null, "span": null, "note": "no typical_window in registry (enum P0/P1/P2, no team-preference recorded) -- NEEDS USER INPUT"},
+    "springs_front": {"nominal": null, "span": null, "note": "no typical_window in registry (enum 220/250/280/310 N/mm, no team-preference recorded) -- NEEDS USER INPUT"},
+    "springs_rear": {"nominal": null, "span": null, "note": "no typical_window in registry (enum 240/260/280/300 N/mm, no team-preference recorded) -- NEEDS USER INPUT"},
+    "damper_bump_ls_fl": {"nominal": 10, "span": null, "source": "typical_window.reference_point_NBR=10", "note": "reference point only, no span in registry -- NEEDS USER INPUT for span"},
+    "damper_bump_hs_fl": {"nominal": 14, "span": null, "source": "typical_window.reference_point_NBR=14", "note": "span NEEDS USER INPUT"},
+    "damper_blowoff_fl": {"nominal": 6, "span": null, "source": "typical_window.reference_point_NBR=6", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_ls_fl": {"nominal": 7, "span": null, "source": "typical_window.reference_point_NBR=7", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_hs_fl": {"nominal": 8, "span": null, "source": "typical_window.reference_point_NBR=8", "note": "span NEEDS USER INPUT"},
+    "damper_bump_ls_fr": {"nominal": 10, "span": null, "source": "typical_window.reference_point_NBR=10", "note": "span NEEDS USER INPUT"},
+    "damper_bump_hs_fr": {"nominal": 14, "span": null, "source": "typical_window.reference_point_NBR=14", "note": "span NEEDS USER INPUT"},
+    "damper_blowoff_fr": {"nominal": 6, "span": null, "source": "typical_window.reference_point_NBR=6", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_ls_fr": {"nominal": 7, "span": null, "source": "typical_window.reference_point_NBR=7", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_hs_fr": {"nominal": 8, "span": null, "source": "typical_window.reference_point_NBR=8", "note": "span NEEDS USER INPUT"},
+    "damper_bump_ls_rl": {"nominal": 10, "span": null, "source": "typical_window.reference_point_NBR=10", "note": "span NEEDS USER INPUT"},
+    "damper_bump_hs_rl": {"nominal": 8, "span": null, "source": "typical_window.reference_point_NBR=8", "note": "span NEEDS USER INPUT"},
+    "damper_blowoff_rl": {"nominal": 0, "span": null, "source": "typical_window.reference_point_NBR=0", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_ls_rl": {"nominal": 13, "span": null, "source": "typical_window.reference_point_NBR=13", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_hs_rl": {"nominal": 13, "span": null, "source": "typical_window.reference_point_NBR=13", "note": "span NEEDS USER INPUT"},
+    "damper_bump_ls_rr": {"nominal": 10, "span": null, "source": "typical_window.reference_point_NBR=10", "note": "span NEEDS USER INPUT"},
+    "damper_bump_hs_rr": {"nominal": 8, "span": null, "source": "typical_window.reference_point_NBR=8", "note": "span NEEDS USER INPUT"},
+    "damper_blowoff_rr": {"nominal": 0, "span": null, "source": "typical_window.reference_point_NBR=0", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_ls_rr": {"nominal": 13, "span": null, "source": "typical_window.reference_point_NBR=13", "note": "span NEEDS USER INPUT"},
+    "damper_rebound_hs_rr": {"nominal": 13, "span": null, "source": "typical_window.reference_point_NBR=13", "note": "span NEEDS USER INPUT"},
+    "ride_height_front": {"nominal": 96, "span": 2, "source": "value_space.standard=96, typical_window.max_delta_from_standard=-2", "note": "asymmetric window in the registry ([94,96] only, never above standard) -- recorded here as a symmetric span for the scoring component's uniform distance formula; see setup_parameters.json for the true one-sided bound"},
+    "ride_height_rear": {"nominal": 134, "span": 5, "source": "value_space.standard=134, typical_window.delta_from_standard=[-5,5]"},
+    "diff_package": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"},
+    "diff_position": {"nominal": null, "span": null, "note": "no typical_window in registry (value_space 1-5, no team-preference recorded) -- NEEDS USER INPUT. Deliberately NOT filled with the numeric range midpoint (3): a plain midpoint of the legal range is not a team-typical value and would misrepresent a real derivation."},
+    "wing_position": {"nominal": null, "span": null, "note": "no typical_window in registry (enum P8/P9/P10, no team-preference recorded) -- NEEDS USER INPUT"},
+    "toe_front": {"nominal": -2, "span": 1, "source": "typical_window {min:-3,max:-1}"},
+    "toe_rear": {"nominal": 2, "span": 1, "source": "typical_window {min:1,max:3}"},
+    "camber_fl": {"nominal": -3.5, "span": null, "source": "typical_window.base=-3.5", "note": "single base value, no span in registry -- NEEDS USER INPUT for span"},
+    "camber_fr": {"nominal": -3.5, "span": null, "source": "typical_window.base=-3.5", "note": "span NEEDS USER INPUT"},
+    "camber_rl": {"nominal": -3.2, "span": null, "source": "typical_window.base=-3.2", "note": "span NEEDS USER INPUT"},
+    "camber_rr": {"nominal": -3.2, "span": null, "source": "typical_window.base=-3.2", "note": "span NEEDS USER INPUT"},
+    "tc_lat": {"nominal": 5, "span": null, "source": "typical_window.baseline=5 ('normal conditions')", "note": "span NEEDS USER INPUT"},
+    "tc_lon": {"nominal": 5, "span": null, "source": "typical_window.baseline=5 ('normal conditions')", "note": "span NEEDS USER INPUT"},
+    "abs_position": {"nominal": null, "span": null, "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal+span distance doesn't apply; Phase 4 must treat this parameter's settings-window component as neutral/skipped, not null-as-zero"},
+    "brake_bias": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false, driver-exclusive in-corner adjustment -- not a decision-frame candidate parameter"},
+    "splitter_offset": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"},
+    "kinematic_variants": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"},
+    "gear_ratios": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"},
+    "engine_curves": {"nominal": null, "span": null, "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"}
+  },
+
+  "_comment_interaction_table": "Sparse by design, not a full parameter x axis matrix (46 registry keys x this axis vocabulary would be almost entirely null noise). Seeded ONLY for: (a) the two lever families Stage 1's one worked scenario (exit oversteer, LS-disambiguated) actually generates candidates for -- rear ARB soften (cornering-limited branch) and diff_position increase (traction-limited branch); (b) the camber->braking / camber->traction pairing the user stated directly this session (2026-09-02), verified by search to exist nowhere else in this codebase, seeded here at 'proposed' grade rather than invented as 'derived-from-matrix'. Every other registry parameter x axis pair is implicitly null/uncovered -- listed as an open item below and in the Phase 7 close-out, not written out as thousands of explicit null entries. grade is exactly 'derived-from-matrix' (backed by a real rationale/mechanism string already in config/recommendations.json or config/setup_parameters.json, cited in each entry's note) or 'proposed' (new, not yet engineering-reviewed -- Phase 4 must advisory-cap any candidate whose interaction penalty leans on a 'proposed' entry, same policy as _match_is_recommended's provenance cap in modules/recommendation.py).",
+  "_comment_performance_axes": "Fixed vocabulary for performance_axis below, referenced by Phase 4's interaction-penalty lookup: understeer_tendency, oversteer_tendency (kept as two separate axes, not one bipolar scale, so a signed entry always reads as 'helps/hurts THIS named tendency' unambiguously), yaw_stability, braking_performance, traction_performance. Phase-agnostic on purpose -- Phase 4 matches an entry's axis against the VERDICT TYPE of the evidence's other active problems at that corner (already phase+corner+verdict scoped), not against the axis name itself. Extend this list only when a new interaction entry needs an axis not already here.",
+  "interaction_table": [
+    {
+      "parameter": "arb_rl", "direction": "soften",
+      "performance_axis": "understeer_tendency", "sign": -1,
+      "grade": "derived-from-matrix",
+      "note": "Softening rear ARB rotates the car more, trading away anti-understeer margin. Cross-referenced against config/recommendations.json matrix_us_exit_med/matrix_us_exit_high, which STIFFEN rear ARB specifically to counter exit understeer -- the opposite direction of this candidate. cell_ids: OS-EXIT-med (this candidate's own primary cell), US-EXIT-med/US-EXIT-high (opposite-direction cross-reference this entry is derived from)."
+    },
+    {
+      "parameter": "arb_rr", "direction": "soften",
+      "performance_axis": "understeer_tendency", "sign": -1,
+      "grade": "derived-from-matrix",
+      "note": "Same lever and reasoning as arb_rl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "arb_rl", "direction": "soften",
+      "performance_axis": "yaw_stability", "sign": 1,
+      "grade": "derived-from-matrix",
+      "note": "config/recommendations.json's retired seed rule yaw_entry_unstable records: 'softens the rear ARB to free up rear grip and add yaw damping while trail-braking into the corner' (entry phases); matrix_os_brk_med/matrix_os_brk_high both soften rear ARB specifically 'to free up rear grip under brake-release yaw' (braking phase). Rule status is 'retired'/superseded-by-matrix but the recorded mechanism is real, not invented for this table -- positive side-effect on yaw stability from the same rear-ARB-soften lever this candidate's primary effect (exit oversteer/traction) already uses."
+    },
+    {
+      "parameter": "arb_rr", "direction": "soften",
+      "performance_axis": "yaw_stability", "sign": 1,
+      "grade": "derived-from-matrix",
+      "note": "Same lever and reasoning as arb_rl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "diff_position", "direction": "increase",
+      "performance_axis": "understeer_tendency", "sign": -1,
+      "grade": "derived-from-matrix",
+      "note": "config/recommendations.json matrix_us_tin_med DECREASES diff_position specifically to ease turn-in understeer ('drop the differential one locking-torque position to let the front axle rotate more freely into the corner'); matrix_os_tin_med INCREASES it to stabilise the rear axle on turn-in. Increasing diff_position for this candidate's own primary purpose (exit oversteer, traction-limited branch) therefore carries a negative side-effect on understeer wherever else it is present -- opposite-direction cross-reference between these two matrix cells."
+    },
+    {
+      "parameter": "camber_fl", "direction": "more_negative",
+      "performance_axis": "braking_performance", "sign": -1,
+      "grade": "proposed",
+      "note": "User-elicited 2026-09-02 (decision-frame Stage 1 session): increasing front negative camber decreases braking performance -- reduced longitudinal contact-patch area under camber angle. Consistent with camber_fl's own registry mechanism text ('dictated by tyre usage/temperature distribution across the contact patch') but this specific braking-phase pairing was not previously recorded anywhere in this codebase (verified by search across config/recommendations.json, config/setup_parameters.json, thesis_notes.md, modules/ -- every existing camber rule ties to the apex phase only). Proposed grade, advisory-capped until engineering-reviewed."
+    },
+    {
+      "parameter": "camber_fr", "direction": "more_negative",
+      "performance_axis": "braking_performance", "sign": -1,
+      "grade": "proposed",
+      "note": "Same pairing and reasoning as camber_fl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "camber_rl", "direction": "more_negative",
+      "performance_axis": "traction_performance", "sign": -1,
+      "grade": "proposed",
+      "note": "User-elicited 2026-09-02: increasing rear negative camber decreases acceleration/traction performance, same contact-patch mechanism as the front/braking pairing above. Not previously recorded anywhere in this codebase. Proposed grade, advisory-capped until engineering-reviewed."
+    },
+    {
+      "parameter": "camber_rr", "direction": "more_negative",
+      "performance_axis": "traction_performance", "sign": -1,
+      "grade": "proposed",
+      "note": "Same pairing and reasoning as camber_rl above (axle-symmetric pair)."
+    }
+  ],
+  "_comment_interaction_table_open_items": "Every other registry parameter (springs_front/rear, all 20 damper channels, arb_front_mount, ride_height_front/rear, wing_position, toe_front/rear, tc_lat/tc_lon, abs_position) has NO interaction_table entry yet -- not covered by Stage 1's one worked scenario and not stated by the user this session. Listed here rather than silently absent; Stage 2's own scope (migrate the 39 rules, remaining interaction/window entries) is where these get filled, per the work order's Stage 2 list."
+}

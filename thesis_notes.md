@@ -12623,3 +12623,271 @@ car_data.json, HANDOVER.md, docs/study/) untouched, confirmed empty
 diff. This closes the estimator-and-thresholds arc that opened with
 "Threshold re-derivation deliberately deferred" and ran through every
 entry between there and here.
+
+### GT3_PRC_MLA-v3 census: per-channel-block layout, 100 Hz dampers
+[2026-09-02, same day, side task run between decision-frame phases]
+GT3_PRC_MLA-v3.txt (repo root, 1.29 GB, gitignored/untracked -- confirmed
+via `git check-ignore -v`, already covered by the existing blanket
+`/*.txt` rule from the original GT3_PRC_MLA.txt discovery, no gitignore
+change needed) censused read-only via diagnostics/inspect_prc_v3_
+sample_rates.py (single streaming pass, never loads the full file).
+LAYOUT: per-channel BLOCK format (`{ChannelBlock}` sections, each a
+`Time\t<channel>` header plus its own two-column rows, separated by a
+blank line) -- NOT the wide-table layout the original v1 Paul Ricard
+export used. 4,176 total channel blocks, 4,176 distinct channel names
+(no duplicates). No single shared grid rate: distinct per-channel-family
+rates coexist (100/50/10/5 Hz), unlike v1's uniform 20 Hz.
+RATES (all uniform start/mid/end across the ~686 s session, zero drift,
+zero NaN): CS-chain channels `sclu_yaw_rate`, `log_asteer`, `log_acc_y`,
+`log_acc_z`, `lap_distance` all read 100 Hz; `ecu_speed` reads 50 Hz --
+the one CS-chain member that is NOT at 100 Hz, making 50 Hz this file's
+own binding rate for the chain as a whole (same binding-channel role
+`ecu_speed`/wheel-speed played in the v1 census). Damper family
+`log_dms_dam_{fl,fr,rl,rr}` -- 100 Hz (their `_dash` display duplicates,
+5 Hz). Suspension travel `log_susp_travel_{fl,fr,rl,rr}` -- 100 Hz
+(`_dash` 5 Hz, `_diag` 10 Hz). Wheel speeds `log_speed_{fl,fr,rl,rr}` --
+50 Hz uniformly.
+DAMPER CHANNELS PRESENT, FIRST TIME FOR THIS PROJECT: Dubai carried none;
+this file's 100 Hz `log_dms_dam_*` genuinely supports the planned
+damper/wheel-load work package -- a real capability gain, not yet
+consumed by any module.
+TC/ABS/BRAKE-BIAS CHECKLIST (config/setup_parameters.json tc_lat/tc_lon/
+abs_position/brake_bias notes: "switch-position channel name TBD,
+identify in next data file's channel scan"): `tc_lat`/`tc_lon` substrings
+match ZERO channels anywhere in this 4,176-channel file -- a genuine
+negative result, not an oversight (checked case-insensitively, full
+scan). `abs`/`brake_bias` substrings match 171 channels, mostly ABS ECU
+diagnostic/fault/CAN-ID noise; plausible driver-switch candidates worth
+following up: `abs_switch_pos`, `log_abs_pos`, `log_abs_pos_db`,
+`log_rt_abs_pos`, `log_B_abs_setting` (+ `_dash`/`_deb` variants),
+`log_m_abs_en` -- none confirmed as THE switch channel by this census,
+identification is a separate follow-up task. One brake-bias-shaped hit:
+`Math_Brake_Bias_Hold`, a computed Math channel, not obviously the raw
+signal. Full 171-name list is the census script's own output, not
+duplicated here.
+VERDICT vs v1 (20 Hz uniform): this file exceeds v1 across every
+family checked. Supports at least the project's 50 Hz analysis base
+(config/parameters.json stability_estimation.expected_sample_rate_hz)
+via its own binding channel (`ecu_speed`), and separately supports the
+damper/suspension-travel-based wheel-load work at a full 100 Hz for
+those specific families. No production code, config, or parser touched;
+census script kept (`[keep-reproduces]`, diagnostics/README.md) as
+reusable data-provenance tooling for future telemetry files, per user
+decision (2026-09-02) rather than deleted as a one-off. Decision-frame
+Stage 1 package (parallel, unrelated) continues separately; damper
+package itself starts after that package's Phase 7 report, per user
+decision.
+
+### Decision-matrix frame, Stage 1: evidence/candidate/scoring layers,
+one worked scenario end to end [2026-09-02, same day]
+New three-layer recommendation frame (modules/decision_frame.py, config/
+decision_frame.json), additive and parallel to the existing 39-rule
+engine in modules/recommendation.py -- that engine is completely
+unmodified and remains the production recommendation path; the new frame
+is a UI preview section only ("Decision Frame (preview)"), not a
+replacement. Design (three layers, provenance-grade scheme, Stage 1 scope
+= the exit-oversteer scenario end to end) was fixed by the work order
+(user + reviewer decision); this package implemented it, it did not
+redesign it. All 7 phases done, tests green, stop before commit per the
+work order.
+
+ARCHITECTURE. Evidence layer (build_evidence): turns per-lap-per-corner
+stability summaries into a flat list of evidence items ({type, corner,
+phase, verdict, severity, confidence, source, ...}), from three sources:
+(a) corner_verdict, reusing the caller's own classify_fn (the identical
+worst-lap aggregate and anchored CS_ratio thresholds the stability grid
+already shows -- guarantees this evidence can never disagree with the
+UI for the same corner/phase, same mechanism modules.recommendation
+relies on for the same reason); (b) ls_disambiguation, traction-limited
+vs cornering-limited for exit-phase oversteer evidence, only where
+LS_ratio is valid -- the method is UNCHANGED from diagnostics/inspect_
+ls_cs_disambiguation.py (population-relative median split, that script's
+own header already states "no LS_ratio classification threshold exists
+in config... DISPLAY-ONLY... not a production rule"), promoted here to a
+real evidence source but still not an absolute threshold, since none has
+ever been derived (PLAN.md STEP 3/4: "whether LS_ratio enters the
+recommendation rules at all is UNDECIDED"); (c) plausibility_brake_
+balance, a NEW Tier-B evidence source (front axle beyond its own CS
+severity limit while rear stays healthy on entry_1_brake) -- deliberately
+expressed in classify_fn's own severity labels rather than duplicating
+config/parameters.json's raw CS threshold numbers, so it can never drift
+out of sync with a future threshold re-derivation. plausibility_tyre_
+pressure is wired but NEVER FIRES in Stage 1: no tyre-pressure target
+window exists anywhere in this project (verified by exhaustive search --
+config/channels.json, parameters.json, setup_parameters.json,
+car_data.json), left null rather than guessed, flagged for the user
+below. Confidence, for every evidence type, is always a plain fraction
+of REAL counts -- laps-repeating-fraction times signal-validity-fraction
+-- never an invented normalising constant; verified directly by a unit
+test holding repeat count fixed and varying only whether the non-
+matching laps carry real "normal" signal vs none at all (0.5 vs 0.25,
+Phase 6).
+
+Candidate layer (generate_candidates): Stage 1 scope is the exit-
+oversteer scenario only, both LS branches -- cornering-limited routes to
+an ARB/spring family (rear ARB soften as the primary, cheap lever;
+softer rear springs as a garage-effort secondary alternative, same
+rear-grip goal, never itself a matrix cell for this scenario); traction-
+limited routes to a diff/TC family (TC LON increase primary; diff_
+position increase secondary, PROPOSED grade per the work order's own
+instruction, since diff_position has no matrix cell for EXIT oversteer
+anywhere -- only turn-in/apex). Every candidate's provenance grade is
+computed, not asserted: 'derived-from-matrix' only when a real config/
+recommendations.json cell_id backs this EXACT parameter+direction+
+scenario (checked against that cell's own elicitation_provenance, same
+action-eligible-provenances set modules.recommendation._match_is_
+recommended already uses); 'proposed' otherwise. Verified against real
+Dubai data (C4, the corner this session's own anchored thresholds
+already flag for exit oversteer) that the corner's actual speed_class is
+'high' -- matching NEITHER OS-EXIT-med (ARB) nor OS-EXIT-low (TC) exactly
+-- so all 4 real candidates for C4 correctly graded 'proposed', a real,
+honestly-surfaced Stage 1 scope gap (the OS-EXIT-high matrix cell's own
+lever, wing up, is not implemented by either family) rather than a
+silent miscount. The brake-balance plausibility candidate reuses the
+EXISTING US-BRK-{speed_class} matrix cell's own suggestion/rationale
+directly from config/recommendations.json (never duplicated as a second
+copy of the same numbers) -- it is an additional, cheaper detection
+pathway for the same phenomenon those cells already address, not a new
+lever.
+
+Scoring layer (score/generate_shortlist): six components exactly, per
+the work order -- severity x phase_importance, effect_class (categorical
+primary/secondary -> config-driven multiplier), inverse effort (config
+effort_weight / (ordinal effort rank + 1), so a cockpit/seconds change
+outscores an equally-effective garage/hours one), confidence (MIN across
+a candidate's own evidence_refs, not mean -- one shaky supporting item
+drags the whole candidate down), settings-window distance (current setup
+value + action delta vs config parameter_windows; missing window or
+missing current value contributes a neutral 0, flagged, never guessed),
+interaction penalty (signed config interaction_table entries, but ONLY
+against evidence's OTHER active problems at the same corner -- excluding
+the candidate's own evidence_refs -- an axis with no matching other-
+evidence contributes 0, never fabricated). All six weights are project-
+lead-elicited PLACEHOLDERS (all neutral 1.0 except phase_importance,
+which encodes the user's own exit>entry-for-laptime instruction
+ordinally: 0.8/0.9/1.0/1.2/1.2 across entry_1_brake/entry_2_turnin/
+apex_3/exit_4/exit_5) -- Stage 2 calibration item, not yet compared
+against engineer judgement. Deterministic by construction (no randomness,
+no hidden global state) -- verified by a unit test AND by the real end-
+to-end test, both calling generate_shortlist twice on identical input and
+asserting byte-identical ordering and scores.
+
+PROVENANCE-GRADE SCHEME (project-wide pattern, not new to this package):
+'derived-from-matrix' vs 'proposed', mirroring the existing engine's own
+elicitation_provenance/action_eligible_provenances split exactly rather
+than inventing a parallel concept -- a 'proposed' candidate is advisory-
+capped in the UI (same wording/visual treatment the Recommendations
+section already uses for its own advisory tier), never silently
+presented as matrix-reviewed.
+
+INTERACTION_TABLE SEEDING, a real correction mid-package: the work order
+asserted a camber->braking interaction was "already recorded" in the
+registry/matrix and had to appear in the seed -- exhaustive search
+(config/recommendations.json, config/setup_parameters.json, this file,
+every camber rule in modules/) found NOTHING pairing camber with the
+braking phase; every existing camber rule ties to apex only. Flagged to
+the user directly rather than silently inventing or silently dropping
+the requirement (CLAUDE.md ambiguity rule) -- user confirmed the real
+claim from engineering knowledge: increasing front camber decreases
+braking performance, and increasing rear camber decreases acceleration/
+traction performance, by the same contact-patch-under-longitudinal-load
+mechanism. Seeded at 'proposed' grade (not derived-from-matrix, since no
+matrix cell supports it) -- camber_fl/fr -> braking_performance (sign
+-1), camber_rl/rr -> traction_performance (sign -1). interaction_table
+is deliberately SPARSE, not a full parameter x axis matrix (46 registry
+keys x this axis vocabulary would be almost entirely null noise) -- only
+the exit-oversteer scenario's own two lever families (rear ARB soften,
+diff_position increase) plus these two user-elicited camber pairings are
+seeded (9 entries total); every other registry parameter is explicitly
+listed as uncovered in config/decision_frame.json's own comment, not
+silently absent.
+
+TESTING (Phase 6, targeted per the work order -- full suite not run,
+additive module + additive UI, nothing existing imported differently):
+tests/test_decision_frame.py, 8 tests, all pass -- scoring determinism;
+cheap-check-outranks-on-equal-severity (isolated via a made-up parameter
+absent from both parameter_windows and interaction_table, so only the
+effort component can move the ranking); interaction-penalty sign
+(negative against a real other-active-problem, exactly 0 when that
+problem is absent); no-signal-phases-lower-confidence (0.25 vs 0.5,
+repeat count held fixed, only signal validity varied); LS branch routing
+(cornering-limited -> arb_spring only, traction-limited -> diff_tc only,
+no disambiguation -> both families, three separate tests); one real end-
+to-end test against the shared pipeline_result fixture (real Dubai,
+ekf_auto_pacejka, the live production default) -- deliberately no hard-
+coded corner/count assertions, per the work order's own framing that a
+near-empty shortlist under the newly anchored thresholds is a valid,
+honestly-reported result, not a failure; structural invariants only
+(confidence in [0,1], valid grade values, determinism) plus a printed
+real count for this report. Real count observed (repeatedly, across
+several manual verification runs during development, both ekf_auto_
+pacejka and kinematic): 3 corner_verdict evidence items (C3 apex_3
+understeer, C4 exit_4 oversteer, C9 exit_4 understeer -- exactly the
+three corners this session's own threshold-anchoring arc already
+recorded as carrying a non-normal aggregate verdict), 0 ls_disambiguation
+evidence (only one exit-oversteer instance exists this session, and a
+relative split needs at least two values to be relative to -- correctly
+abstains rather than fabricating one), 0 plausibility_brake_balance
+evidence (a real, checked negative -- the front-beyond/rear-healthy
+pattern does not occur in this session's aggregate data), 4 candidates
+for C4 (both LS branches, undifferentiated, all 'proposed' grade per the
+high-speed/no-matching-matrix-cell finding above). Headless Qt smoke test
+(diagnostics/smoke_test_decision_frame_widget.py, [keep-reproduces],
+same technique as smoke_test_measurement_points_widget.py since conftest.
+py deliberately keeps PyQt6 out of pytest): construction, initial
+collapsed/disabled state, toggle show/hide (caught and fixed a real test-
+authoring bug during development -- Qt's isVisible() reflects the WHOLE
+ancestor chain, not a widget's own explicit flag, so it always reads
+False when the top-level form itself is never shown; isHidden() is the
+correct check for a widget's own state), and a real kinematic-pipeline
+Generate-and-render pass (8 evidence items, 4 candidates under
+kinematic), all pass.
+
+DECISIONS NOW LIVE FOR THE USER -- every null/needs-input entry in
+config/decision_frame.json, verified directly against the live file
+before writing this list (not from memory):
+- plausibility_checks.tyre_pressure_window: front/rear (or per-corner)
+  min/max in psi -- no target window exists anywhere in this project.
+  Until supplied, this check is wired but permanently silent.
+- parameter_windows, fully null (no team-typical value in the registry
+  at all -- not filled with a legal-range midpoint, which would
+  misrepresent a real derivation): arb_front_mount, springs_front,
+  springs_rear, diff_position, wing_position. (diff_package, abs_
+  position, brake_bias, splitter_offset, kinematic_variants, gear_
+  ratios, engine_curves are intentionally null too, but are context-only/
+  categorical parameters, not decision-frame candidates -- no user input
+  needed for those.)
+- parameter_windows, nominal known but SPAN missing (a real registry
+  reference point exists -- damper click position, camber base, TC
+  baseline -- but no stated tolerance window around it): all 20 damper
+  channels (damper_bump_ls/hs, damper_blowoff, damper_rebound_ls/hs x
+  fl/fr/rl/rr), camber_fl/fr/rl/rr, tc_lat, tc_lon.
+- interaction_table: only 9 entries seeded (the exit-oversteer scenario's
+  two lever families plus the two user-elicited camber pairings above).
+  Every other registry parameter x performance-axis pairing is
+  unlisted/uncovered, explicitly, not silently null.
+- scoring_weights: every weight is a placeholder (Stage 2 calibration
+  item) -- severity_weight, effect_weight, effect_class_multiplier
+  (primary/secondary), effort_weight, confidence_weight, settings_
+  window_weight, interaction_weight all 1.0/neutral except phase_
+  importance's elicited exit>entry ordering.
+
+STAGE 2 (explicitly out of this package's scope, per the work order):
+migrate the 39 existing rules into this frame; a conflict resolver
+(this package's own parameter_conflict handling was NOT ported -- two
+candidates recommending opposite directions for the same parameter is
+not yet detected here); the remaining interaction_table/parameter_
+windows entries above; LS_ratio absolute-threshold derivation (still
+UNDECIDED per PLAN.md STEP 3/4, this package's own ls_disambiguation
+inherits that same open status); driver-feedback magnitude weighting
+(this frame has no feedback/driver-trigger axis at all yet -- Stage 1
+is data-evidence only); the wing-family candidate for OS-EXIT-high
+(the real Stage 1 scope gap found against C4 above).
+
+No production file's existing behaviour changed (modules/recommendation.
+py untouched; ui/views/outing_form.py gained new widgets/methods only,
+existing Recommendations section untouched). Full regression suite NOT
+run (not required by this package's own testing policy: additive module,
+additive UI, targeted tests only) -- test_stability.py (zero-assertion
+smoke test) confirmed clean after Phase 1's own config addition. Stop
+before commit, per the work order.
