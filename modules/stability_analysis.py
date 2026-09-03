@@ -1124,7 +1124,7 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
 
 def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None,
                        apex_half_window_samples=None, cs_phase_min_valid_samples=None,
-                       cs_apex_region_half_length_m=None):
+                       cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None):
     # fz (modules.stability_analysis.estimate_vertical_loads's output) is
     # optional and additive only: passing it adds fz_f_N/fz_r_N/
     # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
@@ -1135,7 +1135,13 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     # pattern: passing it adds ls_ratio_f/ls_ratio_r stat blocks per
     # phase, same _stats() treatment as cs_ratio_f/cs_ratio_r; omitting
     # it reproduces the exact pre-Phase-3 summary shape.
-    if apex_half_window_samples is None or cs_phase_min_valid_samples is None or cs_apex_region_half_length_m is None:
+    # v3 diagnostics Part C2 (2026-09-03): stability_observed_Nm_per_deg
+    # now goes through _gate_stab_stat, same no-signal-on-too-few-samples
+    # gate CS_ratio already had (_gate_cs_stat) plus a brake-specific
+    # no-actual-braking check for entry_1_brake -- see that helper and
+    # stab_phase_no_braking_floor_bar's own config comment.
+    if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
+            or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None):
         se_defaults = load_parameters()["stability_estimation"]
         if apex_half_window_samples is None:
             apex_half_window_samples = se_defaults["apex_half_window_samples"]
@@ -1143,8 +1149,11 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             cs_phase_min_valid_samples = se_defaults["cs_phase_min_valid_samples"]
         if cs_apex_region_half_length_m is None:
             cs_apex_region_half_length_m = se_defaults["cs_apex_region_half_length_m"]
+        if stab_phase_no_braking_floor_bar is None:
+            stab_phase_no_braking_floor_bar = se_defaults["stab_phase_no_braking_floor_bar"]
     t = state["time"]
     s_m = state.get("s_m")
+    brake_f_bar = state.get("brake_f_bar")
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")
 
@@ -1181,6 +1190,22 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         # cs_phase_min_valid_samples's own config comment.
         if stat["n"] < cs_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
+        return stat
+
+    def _gate_stab_stat(stat, phase, brake_vals):
+        # v3 diagnostics Part B2/C2 (2026-09-03): stability_observed_Nm_
+        # per_deg gets the SAME sample-count gate CS_ratio already has
+        # (cs_phase_min_valid_samples reused, not re-derived -- see
+        # stab_phase_no_braking_floor_bar's own config comment) plus a
+        # second, brake-specific check found evidenced on GT3_PRC_MLA-v3's
+        # C7/C15: an entry_1_brake phase with no real braking (max brake
+        # pressure never clears the floor) reports no-signal instead of a
+        # median computed from an essentially-unloaded phase.
+        if stat["n"] < cs_phase_min_valid_samples:
+            return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
+        if phase == "entry_1_brake" and brake_f_bar is not None:
+            if len(brake_vals) == 0 or float(np.nanmax(brake_vals)) < stab_phase_no_braking_floor_bar:
+                return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
     def _apex_region_idx(c):
@@ -1308,7 +1333,10 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 "kerb_fraction": kerb_fraction,
                 "cs_ratio_f": _gate_cs_stat(_stats(cs_f[idx])),
                 "cs_ratio_r": _gate_cs_stat(_stats(cs_r[idx])),
-                "stability_observed_Nm_per_deg": _stats(stab_obs[idx]),
+                "stability_observed_Nm_per_deg": _gate_stab_stat(
+                    _stats(stab_obs[idx]), phase,
+                    brake_f_bar[idx] if brake_f_bar is not None else np.array([])
+                ),
             }
             if fz is not None:
                 corner_summary["phases"][phase]["fz_f_N"] = _stats(fz_f[idx])

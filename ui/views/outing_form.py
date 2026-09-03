@@ -1692,7 +1692,12 @@ class OutingForm(QWidget):
             return text, WARN
         if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
             fit_status = fit_manifest.get("status") if fit_manifest else "?"
-            if gate_verdict:
+            if gate_verdict and gate_verdict["verdict"] == "warn":
+                # NIS gate band decision (2026-09-03, thesis_notes.md): WARN means
+                # the gate's divergence check did not clear PASS but the EKF beta
+                # is still used -- short, no dates/provenance in the live banner.
+                gate_text = "fit usable, provisional confidence (self-check warning)"
+            elif gate_verdict:
                 gate_text = (
                     f"gate={gate_verdict['verdict']} "
                     f"(score={gate_verdict['health_score']:.4f}, provisional threshold)"

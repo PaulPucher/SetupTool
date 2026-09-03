@@ -345,3 +345,17 @@ kept because a surviving script imports it, not for its own findings.
   their 0.0 placeholders -- only their product is identifiable from a
   constant-speed regression). Re-run whenever a new damper-equipped
   session arrives or the wheel-load estimator changes.
+- **inspect_v3_pacejka_refit_evaluation.py** `[keep-reproduces]` — corner
+  canonicalisation + refit evaluation work order (2026-09-03), Phase 2 and
+  its same-day extension: runs the Pacejka B/C/D/E refit chain (up to 4
+  iterations, each seeded from the previous iteration's own EKF beta
+  instead of kinematic beta) on BOTH Dubai (confirmation) and v3, reusing
+  modules.tyre_fit_auto.fit_session_pacejka/_fit_axle_pacejka and
+  diagnostics.sideslip_ekf_pacejka directly. THE load-bearing provenance
+  for PLAN.md BACKLOG A's "data-identified tyre curve" sub-item closure
+  (thesis_notes.md "Refit-loop conclusion: structural non-convergence
+  confirmed on two sessions, two failure directions") -- the run that
+  found D grows without plateauing on both files across 4 iterations
+  (Dugoff's own historical failure mode instead collapsed D). Re-run if
+  this closure is ever revisited, or a further-iteration/production-
+  adoption question is reopened.

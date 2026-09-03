@@ -6,20 +6,30 @@
 # the healthy fit chain and its four mismatch EKF re-runs are each a
 # real Modules-1-5 + EKF pass on Dubai, computed once per test run.
 #
-# REALITY-CHECK FINDING (this package): the WP-N3 work order that
-# preceded this one described the unit-test target as "the four
-# synthetic mismatch cases from WP-N3 fail". Verified numerically
-# (see thesis_notes.md) this is only PARTLY true at the recorded
-# thresholds (config nis_gate.threshold_use_ekf=0.1385, threshold_
-# warn=0.1006): c_alpha_x0.5 (health_score 0.1501) verdicts "pass",
-# not "fail" -- the same tier as the healthy baseline (0.1622).
-# c_alpha_x2.0 (0.1318) and mu_fz_x0.5 (0.1122) verdict "warn". Only
-# mu_fz_x2.0 (0.0674) verdicts "fail". The gap-selection formula that
-# produced these thresholds separates healthy from the WORST mismatch
-# by construction, not from every mismatch -- this is a real
-# limitation of the provisional thresholds, not a test or gate bug.
-# This file tests the ACTUAL verdict distribution, not the originally
-# assumed one.
+# REALITY-CHECK FINDING (original fresh-session package): the WP-N3
+# work order that preceded this one described the unit-test target as
+# "the four synthetic mismatch cases from WP-N3 fail". Verified
+# numerically this was only PARTLY true at the ORIGINAL thresholds
+# (threshold_use_ekf=0.1385, threshold_warn=0.1006): c_alpha_x0.5
+# (health_score 0.1501) verdicted "pass" -- the same tier as the
+# healthy baseline (0.1622). c_alpha_x2.0 (0.1318) and mu_fz_x0.5
+# (0.1122) verdicted "warn". Only mu_fz_x2.0 (0.0674) verdicted "fail".
+#
+# UPDATED (2026-09-03, NIS gate band decision -- thesis_notes.md "NIS
+# gate band decision: divergence-not-quality redesign"): threshold_
+# use_ekf/threshold_warn moved to 0.08/0.01 (both current real sessions
+# now PASS by design; FAIL reserved for order-of-magnitude collapse,
+# see config nis_gate.threshold_derived_from). Recomputed against the
+# SAME four recorded synthetic scores: c_alpha_x0.5 (0.1501) and
+# c_alpha_x2.0 (0.1318) and mu_fz_x0.5 (0.1122) all verdict "pass" now
+# (all clear the new, lower threshold_use_ekf); mu_fz_x2.0 (0.0674)
+# verdicts "warn", not "fail" -- an accepted, explicitly documented
+# consequence of the redesign (real n=2 session evidence now outweighs
+# synthetic-scenario calibration), not a bug. This fixture is currently
+# SKIPPED unconditionally regardless (see nis_gate_scenarios' own
+# comment: ekf_auto_dugoff degenerates on Dubai under the current CS
+# window floor) -- these expectations are updated for correctness/no-
+# drift, not because this file currently exercises them.
 
 import copy
 
@@ -113,9 +123,9 @@ def test_healthy_dubai_fit_passes(nis_gate_scenarios):
 
 @pytest.mark.parametrize("label,expected_verdict", [
     ("c_alpha_x0.5", "pass"),   # reality-check: NOT "fail" -- see module docstring
-    ("c_alpha_x2.0", "warn"),
-    ("mu_fz_x0.5", "warn"),
-    ("mu_fz_x2.0", "fail"),
+    ("c_alpha_x2.0", "pass"),   # updated 2026-09-03 band decision: was "warn" under old thresholds
+    ("mu_fz_x0.5", "pass"),     # updated 2026-09-03 band decision: was "warn" under old thresholds
+    ("mu_fz_x2.0", "warn"),     # updated 2026-09-03 band decision: was "fail" under old thresholds
 ])
 def test_synthetic_mismatch_verdicts(nis_gate_scenarios, label, expected_verdict):
     result = evaluate_gate(
@@ -187,6 +197,39 @@ def test_classify_score_boundaries(score, expected):
 
 def test_classify_score_nan_is_fail():
     assert classify_score(float("nan"), threshold_use_ekf=0.1385, threshold_warn=0.1006) == "fail"
+
+
+# --- NIS gate band decision (2026-09-03): divergence-not-quality redesign --
+# thesis_notes.md "NIS gate band decision: divergence-not-quality redesign".
+# Verifies the LIVE config thresholds (not literal values) against the exact
+# health scores measured this session (diagnostics/inspect_v3_nis_gate_
+# failure.py, live rate-corrected 100Hz window) for both real sessions, plus
+# the fail/warn/pass gate paths on synthetic scores per the work order's own
+# verification requirement.
+
+DUBAI_LIVE_HEALTH_SCORE = 0.13513070220399795
+V3_LIVE_HEALTH_SCORE = 0.08487092503723316
+
+
+def test_both_real_sessions_pass_under_live_thresholds():
+    cfg = load_parameters()["nis_gate"]
+    assert classify_score(DUBAI_LIVE_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
+    assert classify_score(V3_LIVE_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
+
+
+def test_order_of_magnitude_collapse_still_fails_under_live_thresholds():
+    cfg = load_parameters()["nis_gate"]
+    # ~1/10 of v3's real score -- the genuine-divergence case the redesign
+    # keeps FAIL reserved for, not a session-to-session noise difference.
+    collapsed_score = V3_LIVE_HEALTH_SCORE / 10.0
+    assert classify_score(collapsed_score, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "fail"
+
+
+def test_intermediate_score_warns_under_live_thresholds():
+    cfg = load_parameters()["nis_gate"]
+    # Between threshold_warn and threshold_use_ekf -- the buffer band.
+    mid_score = (cfg["threshold_warn"] + cfg["threshold_use_ekf"]) / 2.0
+    assert classify_score(mid_score, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "warn"
 
 
 # --- NaN / short-session degradation ----------------------------------------

@@ -38,6 +38,19 @@
 #      reaches the window (a genuine absence). Canonical speed_class is
 #      then assigned once per stable corner from the median of these
 #      re-realized per-lap apex speeds.
+#   9. Representative-lap filter (_representative_lap_numbers, 2026-09-03
+#      corner canonicalisation fix): a lap outside lap_time_representative_
+#      factor of the session's fastest valid lap is still fully realized
+#      against every canonical corner (step 8 is unaffected for it) but
+#      cannot itself seed a stable corner -- a component whose members are
+#      ALL non-representative laps is dropped before stable_corner_id
+#      assignment (step 7), and a surviving mixed cluster's canon geometry
+#      (step 8's medians) is computed from its representative members only.
+#      Precedent: same fragment-lap plausibility idea as csv_parser's own
+#      valid_lap_max_ratio, one level up -- a lap can be reliable enough to
+#      analyse but still atypical enough that it should not set the corner
+#      geometry every lap is measured against (thesis_notes.md, "v3
+#      diagnostics, Part B1/B2").
 #
 # Fallback chain (Tier B heuristics, used only when a channel is missing --
 # see thesis_notes.md for the primary dual-criterion method):
@@ -67,6 +80,23 @@ def _smooth(arr, window):
     return np.convolve(arr, kernel, mode="same")
 
 
+def _representative_lap_numbers(laps, factor):
+    """
+    Lap numbers allowed to shape canonical corner geometry: valid laps
+    within `factor` of the session's own fastest valid lap time. A lap
+    outside this band is still analysed against every canonical corner
+    (see _realize_canonical_corners) -- it just cannot seed one or
+    contribute to its geometry (see assign_stable_corner_ids).
+    """
+    from modules.csv_parser import _effective_lap_time  # local: csv_parser imports this module
+
+    valid = [l for l in laps if l.get("is_valid_for_analysis", False)]
+    if not valid:
+        return set()
+    fastest_time = min(_effective_lap_time(l) for l in valid)
+    return {l["lap_number"] for l in valid if _effective_lap_time(l) <= fastest_time * factor}
+
+
 def analyse_corners(parsed_data):
     """
     Detect and classify corners across all valid laps in parsed_data
@@ -94,8 +124,9 @@ def analyse_corners(parsed_data):
         lap_corners = _analyse_lap(lap, channels, cd, speed_thresholds)
         corners.extend(lap_corners)
 
-    assign_stable_corner_ids(corners, channels)
-    corners = _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds)
+    representative_laps = _representative_lap_numbers(laps, cd["lap_time_representative_factor"])
+    assign_stable_corner_ids(corners, channels, representative_laps)
+    corners = _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps)
 
     return corners
 
@@ -374,7 +405,7 @@ def _overlap_fraction(a, b):
     return ov / min(len_a, len_b)
 
 
-def assign_stable_corner_ids(corners, channels):
+def assign_stable_corner_ids(corners, channels, representative_laps):
     """
     Cross-lap corner identity: interpolate each corner's bracket span
     (steering/ay threshold-crossing start -> end, ft -> m) along lap_distance,
@@ -390,6 +421,16 @@ def assign_stable_corner_ids(corners, channels):
     deterministically, seeded from the lap contributing the most brackets.
     Leaves stable_corner_id as None (no clustering) if lap_distance is
     unavailable or invalid quality.
+
+    Representative-lap filter (2026-09-03): applied AFTER clustering, not
+    by changing the clustering/seeding logic above -- a final cluster
+    whose members are ALL non-representative laps never becomes a stable
+    corner (its corner objects are dropped from `corners` outright, same
+    as if they had never been detected); a cluster with at least one
+    representative member is kept and numbered as before. This is
+    deliberately not a change to which brackets link to which -- see
+    thesis_notes.md for why an earlier attempt at fixing this by changing
+    the seed-selection vote itself was reverted.
     """
     lap_distance = channels.get("lap_distance")
     if (lap_distance is None or lap_distance.get("time") is None
@@ -496,6 +537,16 @@ def assign_stable_corner_ids(corners, channels):
         final_clusters.extend(sub_clusters)
 
     _reassign_straddlers_pass2(final_clusters, min_frac)
+
+    # Representative-lap filter: a cluster only lap 9-like outlier laps
+    # contributed to never becomes a stable corner. Their corner objects
+    # are dropped from `corners` in place (not left at stable_corner_id
+    # None -- that would dump every dropped corner, from unrelated track
+    # positions, into one bogus shared group downstream).
+    final_clusters = [cluster for cluster in final_clusters
+                       if any(c["lap_number"] in representative_laps for c in cluster)]
+    kept = {id(c) for cluster in final_clusters for c in cluster}
+    corners[:] = [c for c in corners if id(c) in kept]
 
     final_clusters.sort(key=lambda cluster: min(c["bracket_start_m"] for c in cluster))
     for cluster_id, cluster in enumerate(final_clusters, start=1):
@@ -680,7 +731,7 @@ def _resolve_canonical_overlaps(canon_by_id, valid_laps, ld_time, ld_data, lat_g
     return resolved
 
 
-def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds):
+def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps):
     """
     WP1 Turn 1: canonical bracket + phase realization. Everything above
     (per-lap detection, connected-components clustering, the two-pass
@@ -691,10 +742,14 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds):
     For each stable_corner_id: canonical bracket_start_m/end_m and the
     phase-internal boundaries (brake_start_s, turnin_s, half_s -- apex_s
     reuses the already-guarded apex_lap_distance_m) are each the MEDIAN
-    across cluster members, independently per boundary (robust to one lap
+    across REPRESENTATIVE cluster members only (2026-09-03; a non-
+    representative member is guaranteed to have at least one representative
+    clustermate by this point -- assign_stable_corner_ids already dropped
+    any cluster without one), independently per boundary (robust to one lap
     being atypical on a single boundary without importing its other
     boundaries too -- same reasoning as the project's existing median-of-
-    medians aggregations elsewhere). Every valid lap is then re-realized
+    medians aggregations elsewhere). Every valid lap -- representative or
+    not -- is then re-realized
     over this canonical window by inverting its own guarded s_m(t): a lap
     that detected no bracket there at all still gets an instance (tagged
     "canonical_quiet" -- real telemetry, a quiet pass, informative, not an
@@ -753,17 +808,23 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds):
 
     canon_by_id = {}
     for cid, members in by_id.items():
+        rep_members = [m for m in members if m["lap_number"] in representative_laps]
+        if not rep_members:
+            raise RuntimeError(
+                f"stable_corner_id {cid} has zero representative-lap members -- "
+                f"assign_stable_corner_ids should already have dropped this cluster."
+            )
         brake_s, turnin_s, half_s = [], [], []
-        for m in members:
+        for m in rep_members:
             brake_t, turnin_t = m["segments"]["entry_1_brake"][0], m["segments"]["entry_2_turnin"][0]
             half_t = m["segments"]["exit_4"][1]
             brake_s.append(float(_interp_lap_distance_guarded(brake_t, ld_time, ld_data)))
             turnin_s.append(float(_interp_lap_distance_guarded(turnin_t, ld_time, ld_data)))
             half_s.append(float(_interp_lap_distance_guarded(half_t, ld_time, ld_data)))
         canon_by_id[cid] = {
-            "start": float(np.median([m["bracket_start_m"] for m in members])),
-            "end": float(np.median([m["bracket_end_m"] for m in members])),
-            "apex": float(np.median([m["apex_lap_distance_m"] for m in members])),
+            "start": float(np.median([m["bracket_start_m"] for m in rep_members])),
+            "end": float(np.median([m["bracket_end_m"] for m in rep_members])),
+            "apex": float(np.median([m["apex_lap_distance_m"] for m in rep_members])),
             "brake_s": float(np.nanmedian(brake_s)),
             "turnin_s": float(np.nanmedian(turnin_s)),
             "half_s": float(np.nanmedian(half_s)),

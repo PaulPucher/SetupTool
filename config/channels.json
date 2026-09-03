@@ -343,7 +343,9 @@
     "brake_throttle_max_pct": 95,
     "steering_unwind_fraction": 0.5,
     "canonical_overlap_max": 0.1,
-    "canonical_boundary_grid_step_m": 2.0
+    "canonical_boundary_grid_step_m": 2.0,
+    "lap_time_representative_factor": 1.05,
+    "lap_time_representative_factor_derived_from": "2026-09-03, corner canonicalisation fix work order. Representative laps cluster within ~1% of the session's fastest valid lap on both real sessions checked (Dubai worst ratio 1.0044, v3 worst representative ratio 1.0097, lap 6); the one excluded outlier observed (v3 lap 9, an on-track incident, thesis_notes.md 'v3 diagnostics, Part B1') sits at ratio 1.097141. SWEPT and confirmed, not just argued (thesis_notes.md 'Phase 2 extension' entry's companion sweep): v3's corner count is exactly 17 for every tested factor in (1.0097, 1.097141) -- the transition happens precisely between 1.0971 (17 corners, lap 9 still excluded) and 1.0972 (20 corners, lap 9 now included) -- so the result is not just 'roughly insensitive', it is provably constant on that entire open interval by construction (the filter depends only on the derived representative-lap SET, which is a step function of the factor with steps exactly at each lap's own ratio). Re-examine this factor if a session produces a genuinely intermediate lap (e.g. a traffic-compromised lap around ratio 1.04) -- that case is unobserved in the data checked so far."
   },
   "channel_quality_gates": {
     "failed_below": 0.5,

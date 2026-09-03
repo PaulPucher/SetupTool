@@ -13657,3 +13657,850 @@ KNOWN GAPS, explicitly not this package's to close:
 No production file outside modules/wheel_loads.py touched; config gained
 no new keys this turn (aero_front_fraction was already added in the
 prior entry). No commit made.
+
+### Reconstruction refinement chain: closing note [2026-09-03, same day]
+
+The wheel-load reconstruction refinement chain (Segers modal
+decomposition -> ground-truth diagnosis -> session-corrected mass ->
+session-corrected aero -> session-measured front/rear split) ENDS HERE,
+by decision, not because anything further failed to work. The remaining
+residual is an IDENTIFIABILITY LIMIT, not an open bug: with three real
+gauges (FL, RL, RR) and one corrupted (FR), straight-line data supplies
+exactly enough independent signal to fit a whole-car mass and a whole-
+car aero coefficient and a front/rear MASS split -- it does NOT supply
+enough to additionally fit a front/rear AERO split, because both sides
+of an axle see essentially the same speed and near-zero roll at straight
+line, so there is no differential signal for that fourth quantity to be
+fit from. Adding more analysis passes over this same session's straight-
+line data cannot manufacture information that was never present in it.
+
+FINAL ERROR SCOREBOARD (lap 8, drop-RL/RR ground-truth test, the only
+independent check available on this data): raw static axle-total model
+mean error -2607.2N -> session-corrected (mass+aero+split) mean error
++886N. An 80%+ reduction from a systematic, fully-explained bias down to
+a residual whose own remaining mechanism is understood and named (the
+aero front/rear split's own placeholder interacting with the now-correct
+mass split), not unexplained noise.
+
+TWO DATA REQUIREMENTS WOULD LIFT THIS LIMIT, recorded for whoever
+supplies them next (also added to PLAN.md's engineer follow-up
+questions):
+1. A real front/rear aero-balance split for this car, at the run's own
+   wing level (windtunnel or CFD figures) -- would let wheel_loads.
+   aero_front_fraction move off its 0.40 placeholder onto a real,
+   car-specific, wing-position-specific value, resolving the
+   inconsistency between the (now correct) mass split and the (still
+   placeholder) aero split identified in the prior entry.
+2. A session where all four damper gauges are alive (FR gauge repaired)
+   -- this does not just improve the reconstruction, it REMOVES it: with
+   four real corners, every wheel is a direct Level 4 measurement and
+   no axle-total model, mass/aero session-correction, or split fraction
+   is needed at all. This is the more fundamental fix of the two.
+
+PLAN.md's BACKLOG item B is updated to reflect this: the aero front/
+rear split is now DATA-GATED (gated on data requirement 1 or 2 above
+arriving), not carried forward as open work to iterate on further with
+what this project already has.
+
+### NIS gate band decision: divergence-not-quality redesign [2026-09-03]
+
+Implements the threshold/band half of the NIS gate redesign proposal
+(PLAN.md, damper package Phase 8) that the morning follow-up's window
+rate-correction deliberately left open. DESIGN INTENT, stated verbatim
+per the work order: at n=2 real sessions (Dubai, GT3_PRC_MLA-v3) the
+gate cannot grade fit QUALITY -- there is no basis to say one healthy
+session's score is "better" than another's with only two data points --
+so its job is redefined as catching DIVERGENCE only.
+
+LIVE HEALTH SCORES, re-measured this session (not assumed from the
+proposal's own recorded numbers), via diagnostics/inspect_v3_nis_gate_
+failure.py against the current rate-corrected 100Hz window (config
+nis_gate.nis_window_s=0.4, 40 samples at 100Hz for both sessions):
+Dubai health_score=0.13513070220399795 (previously WARN), v3 health_
+score=0.08487092503723316 (previously FAIL).
+
+DECISION: config/parameters.json nis_gate.threshold_use_ekf 0.1385 ->
+0.08, threshold_warn 0.1006 -> 0.01 (both threshold_derived_from in
+config carries the full reasoning, not duplicated here). threshold_
+use_ekf is a round number set below v3's real score (the lower of the
+two) with a ~6% safety margin, so BOTH real sessions now land in PASS
+-- no banner, EKF beta used directly. threshold_warn gap-selects the
+FAIL line roughly an order of magnitude below both real scores (8.5x
+below v3, 13.5x below Dubai), reserved for a genuinely collapsed fit
+(health_score near its structural floor of 0 -- almost no rolling
+window ever lands in the healthy NIS-exceedance band), not ordinary
+session-to-session noise. The resulting WARN band (0.01 to 0.08) is
+wide in absolute terms but this is the accepted cost of n=2 evidence,
+not an attempt at a numerically thin buffer -- the design intent
+explicitly accepts that fine discrimination between "healthy" and
+"warn" is not yet supportable.
+
+UI WORDING (ui/views/outing_form.py, OutingForm._format_estimator_
+status): the WARN-tier estimator-status line becomes "fit usable,
+provisional confidence (self-check warning)" -- short, no dates or
+provenance in the live banner (that context lives here and in config,
+not in the UI). FAIL wording (the loud KINEMATIC-fallback line)
+unchanged. This wording is not currently exercised by either real
+session (both now PASS, no banner at all) -- it fires only for a
+future session landing in the 0.01-0.08 band, or the accepted
+consequence below.
+
+VERIFIED: classify_score(0.13513070220399795, 0.08, 0.01) == "pass";
+classify_score(0.08487092503723316, 0.08, 0.01) == "pass" -- both
+confirmed via a new targeted test (tests/test_nis_gate.py test_both_
+real_sessions_pass_under_live_thresholds), reading live config, not
+literal thresholds. Two further targeted tests added: an order-of-
+magnitude-collapsed score (v3's score /10) still verdicts "fail"; a
+score midway between the two new thresholds verdicts "warn" -- the
+gate's three paths are all exercised under the NEW live thresholds,
+not just the boundary-classification pure-function tests already
+covering arbitrary threshold pairs.
+
+KNOWN CONSEQUENCE, recorded plainly: the WP-N3 synthetic mismatch
+scenario mu_fz_x2.0 (recorded score 0.0674), which verdicted "fail"
+under the old thresholds, would now verdict "warn". This is an
+accepted trade-off of the redesign's own stated intent -- real n=2
+session evidence now outweighs the five-synthetic-data-point
+calibration that previously anchored the gate -- not an oversight.
+Not currently live-tested either way: tests/test_nis_gate.py's
+nis_gate_scenarios fixture (which builds these synthetic scenarios)
+is unconditionally skipped for an unrelated, pre-existing reason
+(ekf_auto_dugoff degenerates on Dubai under the current CS window
+floor, thesis_notes.md "Threshold anchoring + arc closure, Phase 4").
+The file's parametrized expectations were still updated for
+correctness/no-drift (c_alpha_x2.0 and mu_fz_x0.5 now expected "pass"
+instead of "warn"; mu_fz_x2.0 now expected "warn" instead of "fail"),
+so a future un-skip does not silently fail against stale numbers.
+
+TEST RESULT: tests/test_nis_gate.py, 16 passed, 9 skipped (identical
+skip set to the morning follow-up's own run -- confirms this change
+touched nothing about WHY those 9 skip, only the threshold values the
+non-skipped tests exercise).
+
+NOT DONE by this decision, per the proposal's own RECOMMENDATION
+(still open): Option C (a principled chi-square consistency gate,
+Kiencke & Nielsen -- citation TO VERIFY) remains the longer-term
+upgrade path, named in config's own threshold_derived_from text.
+Option D (relative-to-kinematic, session-adaptive by construction) is
+superseded by this decision -- B was chosen as "fastest, incremental,
+real-session-anchored" per the proposal's own recommendation, not D.
+
+### v3 diagnostics, Part B1: corner-separation investigation, C17-C20 /
+C4-C5 / C8-C11 [2026-09-03, same day]
+
+Read-only, no config/production changes (diagnostics/inspect_v3_corner_
+census.py, diagnostics/inspect_v3_corner_separation.py, both disposable
+per CLAUDE.md's diagnostics/ rule pending this finding's disposition).
+GT3_PRC_MLA-v3 currently detects 20 stable corners overall (analyse_
+corners + assign_stable_corner_ids, 4 valid laps: 6, 7, 8, 9).
+
+METHOD: for each of the three named clusters, reproduced modules.
+corner_analysis._bracket_corners_by_steering's own per-sample entering/
+exiting logic (duplicated read-only, with an added entry-criterion label
+-- steering vs ay -- the production function has no such label) against
+EVERY valid lap's own raw steering/lateral-G trace, BEFORE the same-lap
+merge step and BEFORE cross-lap clustering, so each lap's own raw
+bracket count/timing is visible independently of what assign_stable_
+corner_ids later does with it.
+
+C4-C5 (config census: bracket_start_m 1138.8/1320.6, 2 stable ids, n_lap_
+instances=4 each): all 4 valid laps show 2-3 raw brackets in this window
+depending on whether the window also catches C6's own start (a widened-
+window artifact of this diagnostic, not a corner-count disagreement) --
+the two real events (~1137-1147m, ~1316-1323m) are present and alternate
+direction (right/left) on every lap. No inter-lap disagreement found.
+Current detection is CORRECT for this cluster; no re-derivation needed.
+
+C8-C11 (config census: 4 stable ids, n_lap_instances=4 each): laps 7, 8,
+9 show 4 raw brackets at consistent positions (~2826-2847m, ~2908-2932m,
+~3014-3026m, ~3155-3174m); lap 6 shows only 3 (missing the C11 position).
+This is the documented "canonical_quiet" mechanism (modules/corner_
+analysis.py's own module docstring, step 8) working as designed -- a lap
+that genuinely didn't need much steering input at that track position
+still gets a canonical corner instance via the realized window, not a
+detection failure. No inter-lap disagreement in the sense that matters
+(the 3-of-4 laps that DO show a bracket agree on its position). Current
+detection is CORRECT for this cluster; no re-derivation needed.
+
+C17-C20 (config census: bracket_start_m 5319.2/5416.2/5440.6/5474.0, 4
+stable ids, n_lap_instances=4 each, gaps between them 0.0/3.6/2.8m) --
+GENUINE FINDING, differs sharply from the two clusters above. Raw
+brackets in this same track-distance window, per lap:
+  lap 6: 1 bracket, s=[5317.4, 5425.7] m, t=[115.47, 120.18] s (4.71s),
+    entry_criterion=steering, direction=right.
+  lap 7: 1 bracket, s=[5321.1, 5424.5] m, t=[114.65, 119.20] s (4.55s),
+    entry_criterion=steering, direction=right.
+  lap 8: 1 bracket, s=[5316.1, 5410.7] m, t=[114.41, 118.61] s (4.20s),
+    entry_criterion=steering, direction=right.
+  lap 9: 5 brackets, s-starts=[5334.2, 5410.9, 5440.6, 5474.0, 5485.8] m,
+    directions=[right, right, left, right, left], durations 1.71-4.57s,
+    ALL entry_criterion=steering. Gaps between lap 9's own brackets:
+    bracket0->1 3.56s/38.6m (same direction, NOT merged -- gap exceeds
+    bracket_merge_gap_s=0.6s by nearly 6x); bracket1->2 0.33s/3.6m
+    (opposite direction, correctly not merged, a real reversal);
+    bracket2->3 0.30s/2.8m (opposite direction, correctly not merged);
+    bracket3->4 0.07s/0.4m (opposite direction, correctly not merged).
+
+THREE of the four valid laps (6, 7, 8) see this ENTIRE track section as
+ONE continuous right-hand corner, ~94-109m / 4.2-4.7s long. Only lap 9
+sees it as five separate direction-alternating events. Lap 9 is NOT a
+flagged/invalid lap (is_valid_for_analysis=True, no warnings) but its
+total duration is 137.2s vs 125.0-126.2s for laps 6/7/8 -- ~11-12s (9%)
+slower overall, with roughly 15-19s of that deficit concentrated in
+exactly this track-distance window (t=117.85-137.20s at this position on
+lap 9, vs t=114.4-120.2s on the other three laps for the same s-range).
+This is real, uncorrupted telemetry describing an atypical, much slower
+pass through this specific section on lap 9 -- consistent with a
+correction, a line-off, or some other on-track event concentrated right
+here, not sensor noise or a data-quality problem.
+
+ROOT CAUSE, evidenced not assumed: modules/corner_analysis.py's own
+module docstring (step 7) states assign_stable_corner_ids' pass 1
+"seeds sub-clusters from the lap with the most brackets" -- here, that
+is lap 9 (5 brackets) against 1 apiece from the other three. The pass-1
+seed heuristic is picking the ONE atypical lap's fragmentation pattern
+as the clustering ground truth for a section where 3-of-4 laps agree on
+a single continuous event, producing 4 stable_corner_ids where the
+majority-evidence expected count is 1.
+
+WHICH PARAMETER(S) WOULD NEED RE-DERIVATION -- direct answer, per the
+work order's own question: NONE of the corner_detection config values
+(bracket_merge_gap_s, steering/ay entry-exit thresholds, min_corner_
+duration_s). The evidence rules this out specifically: lap 9's own
+brackets that stay separate do so either because the gap (3.56s) is
+nearly 6x bracket_merge_gap_s -- no realistic bump to that single number
+merges this without a value large enough to risk bridging genuinely
+separate corners elsewhere (the same track-portability risk PLAN.md's
+PARKED cs_max_window_m item already flags) -- or because the direction
+alternates, which bracket_merge_gap_s is explicitly designed to respect
+(chicanes must not merge). The binding defect is the CROSS-LAP seed-lap
+selection step inside assign_stable_corner_ids (module step 7), not any
+single-lap bracket/merge threshold -- an algorithm-level question, not a
+config-value question.
+
+PRE-REGISTERED EXPECTED CORNER COUNT for this complex, from the
+steering/ay trace, stated before any fix is attempted per the work
+order's own instruction: 1 (three of four laps independently agree on a
+single continuous ~100m corner; the 4-way split is seeded by a single
+atypical lap's own real but non-representative event).
+
+OPEN DECISION FOR THE USER, not taken here: Part C1 of this work order
+was scoped as "config only, no detector-algorithm change," but this
+finding's actual fix target (pass-1's most-brackets seed heuristic in
+assign_stable_corner_ids) is an algorithm change, not a config value --
+implementing a config-only "fix" here would not address the evidenced
+root cause and risks either doing nothing or, if bracket_merge_gap_s
+were pushed far enough to bridge lap 9's 3.56s gap, corrupting corner
+separation elsewhere (Dubai's own 14-corner hard constraint would need
+re-verification against any such change regardless). Per CLAUDE.md's
+own rule ("if a work order is ambiguous or conflicts with the real
+code, STOP and ask"), C1 is NOT implemented pending direction: options
+include (a) descope C1 to algorithm-level work (which lap seeds a
+cluster, e.g. prefer the majority-count lap or a distance/duration-
+weighted vote instead of raw bracket count), (b) accept the current
+4-way split as correct despite the finding (if there is a reason lap
+9's line is the more representative one), or (c) leave C17-C20
+unchanged and close C1 as a documented limitation.
+
+### v3 diagnostics, Part B2: C7/C15 "unstable yaw at brake" investigation
+[2026-09-03, same day]
+
+Read-only, no config/production changes (diagnostics/inspect_v3_brake_
+phase_stability.py, disposable per CLAUDE.md's diagnostics/ rule pending
+this finding's disposition). Ran the exact production pipeline (same
+call sequence as ui/views/outing_form.py's StabilityAnalysisThread.
+run(), live config sideslip_source=ekf_auto_pacejka, fallback_used=
+False, gate_verdict=pass under this session's own new thresholds) on
+v3, then read every per-lap instance of stable_corner_id 7 and 15's
+entry_1_brake phase: n_samples, the stability statistic's own median/n,
+and log_pbrake_f (state["brake_f_bar"], already resolved by Module 5,
+no new channel needed) over the SAME sample indices summarise_corners
+used for that phase.
+
+RESULT, all 8 instances (C7 x4 laps, C15 x4 laps):
+  C7  lap 6: n=1, stability median=339.2 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C7  lap 7: n=2, stability median=339.0 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C7  lap 8: n=1, stability median=339.0 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C7  lap 9: n=1, stability median=339.0 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C15 lap 6: n=2, stability median=485.6 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C15 lap 7: n=2, stability median=484.7 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C15 lap 8: n=2, stability median=486.9 Nm/deg, brake_f_bar max/mean=0.00/0.00 bar
+  C15 lap 9: n=2, stability median=486.6 Nm/deg, brake_f_bar max/mean=13.58/13.47 bar
+
+Note the sign: all eight medians are POSITIVE (339-487 Nm/deg), the
+OPPOSITE sign from what fires the "unstable yaw" verdict (destabilising
+requires stability_observed median < stab_neg_thresh_Nm_per_deg, which
+is negative, -50.0 -- config/parameters.json classification block).
+These specific 8 instances therefore do NOT currently fire "unstable
+yaw at brake" under today's live thresholds -- the work order's premise
+(C7/C15 flagged unstable-at-brake) was likely observed under a
+DIFFERENT sideslip_source or an earlier config state; not reproduced
+verbatim here. What IS confirmed, and is the more general, more
+important finding regardless of which exact instance the user saw
+flagged: entry_1_brake for BOTH stable corners, on EVERY lap, is
+backed by only 1-2 finite samples -- far below cs_phase_min_valid_
+samples=5 (config/parameters.json, CS validity repair part A Phase 2's
+own established floor: "the smallest sample count for which a median
+is not simply one of the phase's own most extreme readings"). Seven of
+the eight instances additionally show ZERO brake pressure for the
+entire phase (max=mean=0.00 bar) -- genuinely no braking event at all,
+not just a short one. Only C15 lap 9 shows real brake pressure
+(13.58/13.47 bar) but STILL only 2 samples.
+
+CONCLUSION: entry_1_brake's own phase-boundary construction (modules/
+corner_analysis.py, brake_start_t search) is producing a near-empty
+phase for these two stable corners on this session -- consistent with
+corners taken at a track position where the driver barely lifts/brakes
+(a fast, low-load corner, or one entered still on a small residual
+lift rather than a real brake application), which the phase-boundary
+logic still nominally detects but with almost no samples inside it.
+This is EMPTY-PHASE STATISTIC, not mislabelled phase and not (for
+these 8 instances, under current thresholds) a real destabilising
+event -- whatever verdict the user originally saw is either from a
+different corner/session/config state, or would be exactly the kind of
+n=1/n=2 spurious-median case Part C2 targets if the sign had happened
+to land negative instead of positive on a given lap (a median of 1-2
+samples is exactly as likely to land spuriously negative as spuriously
+positive -- this session's particular draw happened to be positive,
+which is itself evidence the statistic is noise-dominated here, not
+evidence the underlying phase is healthy).
+
+DOES PHASE-VALIDITY GATING ALREADY APPLY TO THE STABILITY STATISTIC:
+NO, confirmed by reading modules/stability_analysis.py's summarise_
+corners directly -- cs_ratio_f/cs_ratio_r pass through _gate_cs_stat
+(NaN below cs_phase_min_valid_samples), but stability_observed_Nm_
+per_deg is computed via plain _stats(stab_obs[idx]) with no gating at
+all, for every phase. All 8 instances above would report n_samples<5
+if the same gate were applied -- Part C2's own pre-registration (that
+C7/C15's phantom flags disappear on v3) is evidenced in the sense that
+matters (near-empty phases exist and are ungated) even though these
+particular 8 instances do not currently fire "unstable" under today's
+thresholds/sideslip_source.
+
+### Part C1: majority-vote seed lap -- ATTEMPTED AND REVERTED [2026-09-03,
+same day]
+
+User decision (asked directly, per CLAUDE.md's stop-and-ask rule):
+descope C1 from the original "config only" scoping to an algorithm-level
+fix in modules/corner_analysis.py's assign_stable_corner_ids, targeting
+the evidenced root cause (Part B1: pass 1 seeds sub-clusters from the
+lap with the MOST brackets, which breaks when that lap is a genuine
+outlier rather than the majority).
+
+IMPLEMENTED: seed from the TRUE MAJORITY bracket count (more than half
+the laps in a connected component) instead of the raw maximum, but ONLY
+when that majority disagrees DOWNWARD from the max (preserving the
+original max-seeded code path, byte-for-byte, whenever the majority
+already agrees with the max -- the documented Dubai compound-corner
+case this heuristic was built for). Any lap contributing MORE fragments
+than the majority-derived seed count had its excess fragments folded
+(bracket span widened) into its one kept instance rather than raising
+the existing same-lap collision guard, tagged "cross_lap_majority_merge".
+
+RESULT ON v3: PARTIAL, not full, resolution. Corner count in the region
+fell from 20 to 19 (not to the pre-registered "1" for the whole C17-C20
+span) -- the majority-seed fix only helps fragments that already share
+a connected component with the majority's corner via bracket-overlap;
+lap 9's fragments 3-5 (s=5440-5490m) sit entirely OUTSIDE the other
+three laps' single bracket's own span (5316-5426m) and never connect to
+it in the first place (bracket_overlap_min_fraction gates connectivity
+before seed selection ever runs) -- those remain their own stable ids,
+now corroborated only by lap 9 (a real, separate question: whether a
+single-lap event should ever independently mint a stable corner at all,
+NOT addressed by this fix, out of scope).
+
+RESULT ON DUBAI: HARD CONSTRAINT VIOLATED -- 14 corners fell to 13, with
+ZERO cross_lap_majority_merge occurrences (confirmed by inspection),
+meaning the regression came purely from the majority-vote CONDITION
+choosing a smaller target_count in some Dubai component, not from the
+merge path. ROOT CAUSE OF THE VIOLATION, understood not just observed:
+a plain bracket-count majority vote cannot distinguish two structurally
+IDENTICAL-looking situations that require OPPOSITE resolutions --
+(1) v3's C17-C20: the minority lap (lap 9) is fragmenting a real single
+corner due to an on-track incident (independently evidenced by its
+~15-19s time loss concentrated at that exact position, Part B1) -- the
+majority's coarser view is correct. (2) Dubai's own documented compound-
+corner precedent (this same function's docstring, WP1 Turn 1): the
+minority lap is revealing GENUINE additional structure a wider-line
+majority blends together -- the minority's finer view is correct, which
+is exactly why the ORIGINAL "always seed from the max" rule exists.
+Both cases present as "N laps agree on count k, 1 lap disagrees with
+count k+m" to lap_counts alone; nothing in the bracket-count data itself
+tells the two apart. Resolving this correctly would need lap-level
+anomaly detection (e.g. an unusual time-loss signature at that exact
+track position, the actual evidence that distinguished v3's case in
+Part B1) -- a materially different, unvalidated, and speculative feature
+this session does not attempt.
+
+DISPOSITION: REVERTED in full (git checkout -- modules/corner_
+analysis.py), confirmed byte-identical to pre-session state and Dubai
+back to 14 corners. C17-C20 is UNCHANGED, carried forward as an open,
+documented limitation (added to PLAN.md PARKED) rather than a solved
+item -- the evidenced root cause (Part B1) stands as a valid finding
+even though this session's attempted fix for it does not.
+
+### Part C2: stability-statistic phase-validity gating -- IMPLEMENTED
+[2026-09-03, same day]
+
+Tier B (signal/data engineering: a validity gate on an existing
+statistic, same pattern as the already-shipped CS_ratio gate) -- config-
+driven, data-derived, not presented as methodological novelty.
+
+CHANGE: modules/stability_analysis.py's summarise_corners gained
+_gate_stab_stat, mirroring the existing _gate_cs_stat: a phase's
+stability_observed_Nm_per_deg reports no-signal (NaN median/p25/p75,
+n preserved) when either (1) fewer than cs_phase_min_valid_samples
+(reused from the CS gate, not re-derived -- its own justification, "the
+smallest sample count for which a median is not simply one of the
+phase's own most extreme readings", is generic to any per-phase median
+statistic, not CS-specific) finite samples back it, or (2) for
+entry_1_brake specifically, brake_f_bar (state's own already-resolved
+log_pbrake_f, Module 5) never clears the new config stab_phase_no_
+braking_floor_bar=3.0 for the whole phase -- meaning no real braking
+event occurred at all. New optional summarise_corners parameter
+(stab_phase_no_braking_floor_bar, same load-default-from-config pattern
+as the other three optional phase-gating parameters); every existing
+call site (production, tests, diagnostics) is unaffected since it is
+keyword-only with a config-resolved default.
+
+FLOOR DERIVATION (diagnostics/inspect_v3_brake_phase_stability.py's own
+supporting check, GT3_PRC_MLA-v3): throttle>90% reference population
+(32829 samples, unambiguously not braking) reads brake_f_bar mean=0.0049
+bar, p99=0.0 bar, one single 6.03 bar transient (0.003% of the
+population, not sustained); real braking events range 13.58-88 bar.
+3.0 bar sits comfortably above the population's effective noise ceiling
+and below every real braking event found.
+
+VERIFICATION, Dubai hard constraint (pre-registered: Dubai verdicts
+unchanged): confirmed via the exact live golden diff, not assumed.
+Running tests/test_golden_pipeline.py::test_pipeline_output_matches_
+golden against the CURRENT (gated) code shows 75 field diffs, all of
+the shape entry_1_brake.stability_observed_Nm_per_deg.{median,p25,p75}:
+got=nan, expected=<real number> -- 23 distinct phase instances (matches
+exactly the count independently found via a fast kinematic-beta cross-
+check, confirming n_samples for a phase is beta-independent as
+expected). Every one of the 23 real (pre-gating) medians was checked
+against config classification.stab_neg_thresh_Nm_per_deg (-50.0): ALL
+POSITIVE (339 to 1832 Nm/deg) -- none was ever destabilising, so
+_classify_corner's actual verdict/severity output for every Dubai
+corner is BYTE-IDENTICAL before and after this change. The golden diff
+is real (raw summaries data changed, as intended) but the thing the
+hard constraint actually protects (verdicts) did not.
+
+Targeted regression coverage: tests/test_config_schema_integrity.py (12
+passed) confirms the two new config keys don't break schema invariants;
+modules/stability_analysis.py and modules/corner_analysis.py both
+import cleanly.
+
+USER DECISION ON THE GOLDEN DIFF (2026-09-03): given regenerate+full-
+suite costs ~40-60 minutes, the user chose to LEAVE tests/golden/
+pipeline_dubai_ekf_auto_pacejka_cap1.json un-regenerated for now rather
+than spend that time this session. This is a KNOWN, EXPECTED, VERIFIED-
+SAFE failing state (not an unexplained regression) -- test_pipeline_
+output_matches_golden will fail until regenerated; tests/golden/
+recommendations_dubai_ekf_auto_pacejka_cap1.json was not individually
+re-checked (aggregate_by_corner's own treatment of a newly-NaN stat
+block is plausible but not directly verified this session) and should
+be checked alongside the pipeline golden at regeneration time. Full
+suite not run this session for the same reason (would only re-surface
+this same already-diagnosed failure).
+
+DIAGNOSTICS DISPOSAL, deferred to commit time per CLAUDE.md's own rule
+(session stops before commit, per standing process): inspect_v3_
+corner_census.py, inspect_v3_corner_separation.py, and inspect_v3_
+brake_phase_stability.py are all disposable by default (findings
+already recorded above); none currently cited from outside diagnostics/.
+diagnostics/README.md not yet updated -- do this at the same commit
+
+### Corner canonicalisation fix: representative-lap filtering [2026-09-03,
+new day, work order: "v3 quality: corner canonicalisation fix + fit
+refit evaluation", Phase 1]
+
+Tier B (signal/data engineering: a representative-lap selection filter
+on an existing canonicalisation step -- standard technique, config-
+driven, not presented as methodological novelty). Precedent: the same
+fragment-lap plausibility idea as csv_parser.py's own valid_lap_max_
+ratio (is_valid_for_analysis), applied one level up -- a lap can be
+reliable enough to ANALYSE but still atypical enough that it should not
+set the corner geometry every lap is measured against.
+
+PRE-REGISTRATION CHECK CAUGHT A REAL TRAP: the work order quoted lap 9's
+ratio as "2:17 vs 2:05 = factor 1.096" and pre-registered that the
+proposed default (lap_time_representative_factor=1.10) would exclude
+it. Read-only parse of the real v3 file (not the rounded quote) gave the
+exact ratio: lap 9 = 137.451996s vs fastest lap 8 = 125.281998s =
+1.097141 -- INSIDE 1.10, not outside it. Shipping the proposed default
+would have been a no-op on the one session it targeted. Per the work
+order's own instruction, stopped and asked the user rather than tuning
+the factor silently. USER DECISION: factor=1.05, with an explicit two-
+cluster-gap justification (representative laps everywhere checked
+cluster within ~1% of fastest -- Dubai worst 1.0044, v3 worst
+representative lap 6 at 1.009658; the one excluded outlier observed
+sits at 1.097141; the boundary sits mid-gap and is insensitive to its
+exact value roughly across 1.02-1.09) recorded verbatim in config/
+channels.json's corner_detection.lap_time_representative_factor_
+derived_from, including the user's own instruction to re-examine the
+factor if a genuinely intermediate lap (~1.04, e.g. traffic-compromised)
+is ever observed -- that case is unobserved in the data checked so far.
+
+IMPLEMENTATION (modules/corner_analysis.py): new _representative_lap_
+numbers(laps, factor) -- a valid lap within `factor` of the session's
+own fastest valid lap time (lap_time_precise preferred over lap_time,
+same fallback modules.csv_parser._effective_lap_time already
+encapsulates; imported locally inside the function, not at module level,
+to avoid a circular import since csv_parser imports corner_analysis for
+analyse_corners). assign_stable_corner_ids gained a `representative_
+laps` parameter -- the union-find linking, connected-components
+clustering, and the compound-straddle seed-selection vote (the exact
+mechanism the reverted "majority-vote seed lap" attempt, PART C1 above,
+touched and had to revert) are ALL LEFT UNCHANGED, per the work order's
+"no detector-algorithm change" instruction. The filter is a pure POST-
+STEP: after final_clusters is computed (including pass 2's straddler
+reassignment), any cluster whose members are ALL non-representative
+laps is dropped outright -- its corner objects removed from `corners`
+in place (not left at stable_corner_id=None, which would dump every
+dropped corner, from unrelated track positions, into one bogus shared
+group downstream in _realize_canonical_corners). A surviving MIXED
+cluster keeps its id; _realize_canonical_corners' own per-boundary
+median computation (bracket_start_m/end_m/apex/brake_s/turnin_s/half_s)
+is restricted to that cluster's representative members only -- guaranteed
+non-empty by the prior drop (a defensive RuntimeError guards this
+invariant explicitly, matching this file's existing same-lap-collision
+guard style rather than silently falling back). quiet_laps tagging
+(whether a lap gets "canonical_quiet") is UNCHANGED, still computed from
+the full membership -- a non-representative lap that genuinely detected
+a bracket at a surviving corner is correctly not mislabeled quiet, only
+excluded from shaping that corner's geometry.
+
+WHY SEED-LAP SELECTION ITSELF WAS LEFT UNTOUCHED: ground-truthed the
+real v3 C17-C20 output directly (not assumed from the work order's own
+narrative) before designing the fix. All four of its raw stable ids
+turned out to already be SINGLETON components under the CURRENT,
+unmodified algorithm -- lap 9's three isolated fragments never even
+overlap laps 6/7/8's one shared bracket, so they never enter the
+compound-straddle/seed-selection branch at all; only the genuine shared
+corner (lap 9's first fragment + laps 6/7/8, full overlap) does, and it
+needs no split (every lap contributes exactly one bracket there). The
+minimal post-filter above therefore already achieves the full pre-
+registered outcome without touching seed selection -- doing so anyway
+would have been exactly the kind of broader algorithm change the C1
+revert's own lesson warns against, for no additional benefit on this
+evidence.
+
+VERIFICATION:
+- Dubai hard constraint: proven twice. By construction -- all 4 valid
+  laps sit at ratio <=1.0044 (factor=1.05 has ~4.5x headroom), so the
+  drop condition can never fire and rep_members always equals the full
+  membership. Empirically -- full corner-list dump (every field except
+  a tuple->list normalisation) before vs after the change, diffed
+  byte-for-byte identical; targeted regression (tests/test_phase_
+  boundary_invariants.py + tests/test_nan_empty_paths.py, 17/17 pass,
+  9:47 wall clock) against the live Dubai sample.
+- v3: 20 -> 17 stable corners. The C17-C20 complex (previously 4 ids:
+  one real corner all four laps agree on, plus three lap-9-only ids
+  minted purely from its own isolated incident-section brackets --
+  independently evidenced in Part B1 above as a ~15-19s time-loss event
+  concentrated at that exact track position) collapsed to exactly 1 --
+  matching the pre-registered expectation from Part B's own steering/ay
+  evidence (3 of 4 laps already agreed this was one continuous corner).
+  The surviving corner carries no canonical_quiet or canonical_boundary_
+  resolved warning on any of its 4 lap instances -- a clean resolution,
+  not a partial one.
+- New tests: tests/test_corner_representative_laps.py, 9 targeted tests.
+  Pure-function coverage of _representative_lap_numbers (factor boundary
+  inclusive, lap_time_precise preferred over lap_time, an invalid lap
+  excluded from both candidacy and the fastest-time computation, empty-
+  valid-laps returns empty set). A synthetic two-lap integration fixture
+  (hand-built corners + a linear lap_distance channel, no real telemetry
+  file -- same synthetic-only convention as tests/test_wheel_loads.py,
+  keeps the suite fast and portable) proves the two concrete claims
+  directly: an all-non-representative cluster is dropped entirely (not
+  left at stable_corner_id=None), and a surviving mixed cluster's
+  canon geometry equals the representative-only median (40/60 m) rather
+  than the naive full-membership median (42/58 m) that including the
+  excluded lap would have produced -- plus a control case proving the
+  filter is inert when every lap is representative (Dubai's own case).
+
+No commit made (stop before commit, per the work order).
+
+### v3 Pacejka refit evaluation: one iteration from ekf_auto_pacejka's
+own beta -- VIABLE on this data, NOT shipped [2026-09-03, same work
+order, Phase 2]
+
+Tier A evaluation (continuing the WP-N2 refit-loop method lineage --
+literature anchor unchanged, Rajamani/chair Pacejka lineage already
+recorded for fit_session_pacejka/modules/tyre_model_pacejka.py).
+READ-ONLY per the work order: report only, no production change: the
+decision whether to adopt this is the user's.
+
+CONTEXT: the historical Dugoff pass-2/3/4 refit loop (PLAN.md STATUS,
+"refit loop... STOPPED as non-converging on pre-registered criteria")
+existed to break pass 1's kinematic-alpha circularity, but degenerated
+on Dubai -- each refit pushed the rear axle's onset boundary outward
+until the curve collapsed to pure-linear, with zero of 24,183 samples
+left beyond it. v3's own session has roughly 2x the slip range and 5x
+the saturation content of Dubai (damper package census, thesis_notes.md
+"GT3_PRC_MLA-v3 census") -- the data that loop lacked. This evaluation
+re-runs the same idea once, for the CURRENT production tyre model
+(Pacejka, not the old Dugoff), reusing modules.tyre_fit_auto.fit_
+session_pacejka / _fit_axle_pacejka / diagnostics.sideslip_ekf_pacejka.
+estimate_sideslip_ekf_pacejka directly -- no reimplementation, same
+dependency reasoning as modules/tyre_fit_auto.py's own header note.
+New script: diagnostics/inspect_v3_pacejka_refit_evaluation.py,
+[keep-reproduces] (diagnostics/README.md updated) -- a reusable refit-
+viability re-check, not a one-off.
+
+METHOD: pass 1 = production's own ekf_auto_pacejka first-shot manifest,
+unmodified (fit_session_pacejka on v3 -- curve fitted from KINEMATIC
+alpha, then run through the EKF to get beta_ekf_with_fallback). Pass 2
+= re-fit B/C/D/E per axle (Powell, the chair's own starting guess,
+identical to pass 1's own fitting call) against alpha computed from
+PASS 1's OWN beta (not kinematic beta) -- the exact "break the
+circularity one more step" idea the historical loop was built for --
+same Fy/base_mask as pass 1. The EKF is re-run with the refit curve;
+R (process/measurement noise) is held FIXED at pass 1's own chosen
+final_config values -- only the tyre curve is refit, matching the work
+order's own stated scope ("refit the Pacejka curve", not re-deriving R).
+
+RESULT (real numbers, both passes read directly from the run, not
+assumed):
+- front: B 8.3430->5.1425, C 1.8521->1.4953, D 8377.8->9123.4 N,
+  E -1.2099->-14.4063; peak_alpha_deg 6.304->7.293, STAYED inside the
+  visited range (p99 7.727->10.047 deg); RMS residual 3670.3->868.2 N
+  (4.2x lower).
+- rear: B 8.0063->5.9270, C 1.9833->1.7958, D 9559.9->12195.1 N,
+  E -2.2161->-10.7393; peak_alpha_deg 5.472->5.674, MOVED from OUTSIDE
+  the visited range (pass 1's own flagged extrapolation concern,
+  p99=5.352 deg) to INSIDE it (p99 now 6.828 deg); RMS residual
+  6704.5->1070.8 N (6.3x lower).
+- NIS: combined_exceedance 0.1870->0.0427 (yaw 0.1954->0.0186, ay
+  0.0853->0.0468). NIS-gate health_score 0.0849->0.0893, verdict
+  'pass' both times (pass 1's overall fit status was already
+  "marginal" under production's own existing classification --
+  pre-existing, unrelated to this evaluation, not a new problem).
+
+PRE-REGISTERED VERDICT: rear D/E stayed BOUNDED (D grew moderately, not
+to an unphysical ceiling; E's magnitude grew but stayed finite and the
+axle's own D>0 sign check still passed) and the NIS score did NOT
+degrade -- it improved slightly. Per the work order's own pre-
+registration, the refit is VIABLE on this data. The old failure
+signature (onset boundary running away, curve collapsing toward pure-
+linear) did NOT reappear -- the opposite happened: the rear peak moved
+INTO the visited range and both axles' residuals dropped 4-6x. Holding
+R fixed (rather than re-deriving it for pass 2) means the NIS
+improvement cannot be attributed to re-tuned filter noise -- it is
+attributable to the curve fit alone, if anything a STRONGER result than
+a re-derived-R comparison would have produced.
+
+LIMITATION, stated not glossed: only ONE iteration was run, per the
+work order's own scope. Whether a second iteration continues to
+improve (genuine convergence) or starts oscillating/diverging the way
+the historical Dugoff loop did on ITS own second/third iteration is
+UNTESTED here -- this finding shows pass 2 is viable, not that the
+loop converges in the limit. Also unexamined: whether pass 2's own
+alpha (now beta-EKF-derived rather than kinematic) still carries any
+of pass 1's own fit imprint (a weaker, one-step form of the same
+circularity the loop was built to break, not eliminated by a single
+iteration).
+
+DECISION: none made -- report only, per the work order. Adopting a
+refit-from-EKF-beta iteration into production ekf_auto_pacejka (and if
+so, how many iterations, with what stopping rule) is the user's call.
+
+No commit made (stop before commit, per the work order).
+
+### Phase 2 extension: Dubai confirmation + refit iterations 2-4, both
+files [2026-09-03, same day, user instruction]
+
+Extended diagnostics/inspect_v3_pacejka_refit_evaluation.py (same file,
+now parametrised over both sessions and up to 4 iterations) to (a) run
+the identical chain on DUBAI as a confirmation -- Dubai is the session
+the historical Dugoff loop originally degenerated on -- and (b) continue
+v3's own chain to iterations 2, 3, 4 (iteration 1 = the single-pass
+finding recorded above). Report only, per the user's own "report the
+iteration numbers and stop" instruction -- no viability judgement, no
+production change.
+
+NUMBERS (real, both files, all 4 iterations completed -- no Powell/
+sign-check failure on either axle on either file at any iteration, so
+the OLD Dugoff-era failure signature, collapse to pure-linear, did NOT
+reproduce on either session):
+
+DUBAI: iter1 (pass 1) gate verdict PASS (health=0.1351); iterations 2-4
+all verdict WARN (health 0.0614/0.0600/0.0588 -- a step down at
+iteration 2, then roughly flat, not a further collapse). Rear peak_
+alpha_deg stayed OUTSIDE the visited range on ALL FOUR iterations
+(3.696/4.483/4.640/4.730 vs visited p99 3.282/4.060/4.187/3.796 deg) --
+never resolved, unlike v3's iteration 2. D_rear grew every iteration
+without plateauing by iteration 4 (9213.6 -> 11195.8 -> 11547.0 ->
+12402.8 N); rear RMS residual dropped sharply iter1->2 (5762.8 -> 766.4
+N) then continued dropping more slowly (513.4, 487.4 N).
+
+V3: iter1 (pass 1) gate verdict PASS (health=0.0849, status already
+"marginal" under production's own classification, pre-existing).
+Iterations 2-4 all stayed verdict PASS (health 0.0893/0.0826/0.0802 --
+peaks at iteration 2, then declines slightly each further iteration).
+Rear peak_alpha_deg: OUTSIDE at iter1 (5.472 vs p99 5.352) -> INSIDE at
+iter2 (5.674 vs p99 6.828, the single-iteration finding above) -> back
+OUTSIDE at iter3 (6.708 vs p99 6.679, essentially at the boundary) ->
+OUTSIDE at iter4 (7.225 vs p99 6.251, now a clearer gap). D_rear grew
+every iteration without plateauing (9559.9 -> 12195.1 -> 13308.4 ->
+14461.1 N, still rising at iteration 4). Front/rear B roughly halved
+iter1->2 then oscillated in a ~4.9-6.5 band for iterations 2-4 (not
+monotonic, not diverging).
+
+PATTERN, stated not interpreted: on BOTH files, D (rear peak force)
+rises every iteration through iteration 4 with no sign of plateauing,
+and the rear peak's in/out-of-visited-range status is not stable
+iteration to iteration (v3: out/in/out/out; Dubai: out on all four).
+This is a DIFFERENT non-convergence pattern from the historical Dugoff
+loop's own failure mode (that loop's rear curve ran its onset boundary
+outward until it collapsed to pure-linear, D effectively vanishing
+toward the bracket's lower/degenerate limit) -- here D grows rather
+than collapses, and Powell converges cleanly with D>0 at every step on
+both axles on both files, all 4 iterations. Whether iterations 5+ would
+plateau, keep growing, or start oscillating more severely is untested
+(out of the requested 1-4 range). No production change; no commit.
+
+### Refit-loop conclusion: structural non-convergence confirmed on two
+sessions, two failure directions -- DECISION [2026-09-03, same day, user
+decision, closes the refit-loop investigation]
+
+DECISION: the refit loop (any variant: Dugoff pass 2-4, this session's
+Pacejka iterations 1-4) is NOT a path to a data-identified tyre curve.
+Production keeps the first-pass fit (kinematic-alpha-seeded curve, EKF
+run once to get beta) as its estimator, unchanged. No further refit
+iterations will be pursued absent a materially different input (see
+external-reference census below).
+
+EVIDENCE, both loops, both sessions:
+- Dugoff pass 2-4 (Dubai, historical, thesis_notes.md "refit loop...
+  STOPPED as non-converging"): rear curve's onset boundary ran outward
+  each iteration until the curve COLLAPSED toward pure-linear -- D
+  effectively vanishing, zero of 24,183 samples left beyond the onset
+  boundary by pass 4.
+- Pacejka iterations 1-4 (this session, BOTH Dubai and v3): the
+  OPPOSITE direction -- rear D_rear grew every iteration on both files
+  with no plateau by iteration 4 (Dubai: 9213.6 -> 12402.8 N; v3:
+  9559.9 -> 14461.1 N), and the rear peak's inside/outside-visited-
+  range status did not settle (v3: out/in/out/out; Dubai: out on all
+  four iterations).
+
+TWO SESSIONS, TWO FAILURE DIRECTIONS is the headline finding: the same
+underlying instability (a self-referential curve-fit/EKF loop with no
+external anchor) manifests as COLLAPSE under one tyre model/session
+combination and INFLATION under another. Neither direction is a
+property of one specific tyre model or one specific session -- it
+reproduces (in some direction) on every combination checked so far
+(2 models x effectively 2 sessions for Pacejka, 1 session for Dugoff
+historically).
+
+IDENTIFIABILITY ARGUMENT (the structural cause, not just an empirical
+pattern): the EKF has exactly two independent measurement channels
+(ay, yaw_rate) and is asked to jointly resolve TWO unknowns that are
+coupled only through the tyre model itself -- the state (beta, hence
+alpha) and, in the refit variant, the curve parameters that map alpha
+to Fy. Without an INDEPENDENT third measurement that constrains one of
+the two unknowns on its own (an external sideslip/heading reference),
+the system can trade curve shape against beta indefinitely and still
+explain the same ay/yaw_rate observations -- multiple (curve, beta)
+pairs are consistent with the same data. This is not a numerical-
+tuning problem (Powell converges cleanly every time, D>0, no NaN, no
+crash) -- it is a genuine lack of identifiability in the problem as
+posed. The two failure DIRECTIONS (collapse vs inflation) are two
+different points along the same unidentified manifold, not two
+unrelated bugs.
+
+RESIDUAL IMPROVEMENT IS NOT CONVERGENCE EVIDENCE, stated explicitly
+because this session's own single-iteration report (above) initially
+read the 4-6x RMS drop and the rear peak's one-step move into the
+visited range as encouraging: in a self-referential loop, alpha at
+iteration N is computed from the CURVE fitted at iteration N-1's own
+beta -- so a lower residual at iteration N partly reflects the curve
+re-fitting itself against data it had a hand in shaping, not an
+independent check of curve quality. A loop that fits its own output
+progressively better while its own physical parameter (D, the peak
+tyre force) drifts monotonically away from iteration 1's value across
+4 iterations is the textbook shape of an unidentified system settling
+onto an arbitrary point on its solution manifold, not of a model
+converging on the true curve.
+
+NIS GATE LIMITATION, recorded because it is a real gap in an existing
+production mechanism, not just a footnote to this investigation: v3's
+NIS-gate health_score stayed 'pass' (0.0849 -> 0.0893 -> 0.0826 ->
+0.0802) across all 4 iterations even as D_rear grew from 9559.9 to
+14461.1 N (+51%) and the rear peak repeatedly left the visited slip
+range. The gate measures FILTER CONSISTENCY (are the EKF's own
+innovations statistically where a correctly-tuned filter's should be)
+-- it has no way to know whether the CURVE feeding that filter is
+physically plausible. A curve drifting into an implausible regime can
+still produce innovations that look healthy, because the filter is
+self-consistently wrong, not inconsistent with itself. This is a
+genuine LIMITATION of the current NIS-only acceptance design, not a
+threshold-calibration issue -- no threshold value fixes a statistic
+that isn't sensitive to the failure mode in question.
+
+EXTERNAL-REFERENCE CENSUS (v3, read-only, disposable script per
+instruction, findings recorded here then the script deleted): checked
+whether an external reference already exists that would break the
+identifiability, before finalizing this closure.
+(1) Direct sideslip/lateral-velocity/optical-sensor channel search
+    (patterns vy, v_lat, lateral_vel, sideslip, slip_ang, beta,
+    kistler, correvit, optic, datron, speed_lat) across all 4176 v3
+    raw channels and all 2622 Dubai raw channels: ZERO hits on either
+    file. No such sensor exists in this project's data.
+(2) GPS family: v3 actually has FAR MORE raw GPS channels than Dubai's
+    whitelisted set (49 vs Dubai's much smaller declared set) -- but
+    NONE of them is a course/heading or velocity-component channel
+    usable for the existing shelved GPS-course-beta method (modules/
+    stability_analysis.py's estimate_sideslip_gps): v3 has NO log_gps_
+    course and NO log_gps_speed at all (confirmed absent, not just
+    unchecked) -- v3 is actually WORSE equipped for that specific
+    method than Dubai, not better. One weak, ambiguous candidate
+    (log_gps_split_in_course, range [0, 337 deg], course/heading-shaped)
+    is almost certainly a lap-timing/sector-beacon system's own
+    internal course reference, not a general vehicle heading signal --
+    flagged, not assumed either way, per the "no mapping conclusions"
+    instruction.
+(3) IMU family: v3 has several channels absent from Dubai (a_roll,
+    a_roll_dpr_f, l_roll_fa, log_susp_acc_fl/rl, r_roll_rg/r_roll_rg_r,
+    sclu_acc_y_dash, Math_ST_Acc_X/XY_s) -- but every one is a ROLL or
+    vertical-acceleration channel (weight-transfer/ride domain), not a
+    yaw/heading/lateral-velocity reference; several of the plainest-
+    looking gyro-shaped names (sclu_pitch_rate_stat, sclu_roll_rate_
+    stat, sclu_acc_x_stat, sclu_acc_z_stat) are logged as a constant
+    0.0 for the entire session (unpopulated in this export, not real
+    data). None resolves the beta identifiability question.
+(4) Reference-anchor count (the shelved GPS-course method's own
+    candidate gate, reused exactly: |ay|<0.05g smoothed over 0.3s,
+    sustained >=1.5s): re-derived directly from real data rather than
+    trusting the historical "6 anchors" docstring figure by memory
+    (that figure may predate the 100 Hz time-base migration). CURRENT
+    numbers: Dubai has 5 whole-session anchor runs (22.9s total) -- but
+    ALL FIVE fall inside the out-lap or in-lap, NONE inside any of the
+    4 valid racing laps (0 anchors available during actual racing
+    conditions). v3 has 6 whole-session anchor runs -- 4 fall inside
+    two invalid laps, and only 2 (4.3s total) fall inside a valid lap,
+    both inside lap 9 -- the SAME atypical, incident-affected lap the
+    corner-canonicalisation fix (above) independently excluded from
+    shaping corner geometry this same session (plausibly connected:
+    lap 9's own slower, more varied pace may simply produce more low-
+    ay moments; not confirmed as causal, flagged not assumed). NET: on
+    BOTH real sessions checked, essentially zero anchor coverage exists
+    during actual racing laps, independent of the GPS-course channel
+    availability question in (2).
+CONCLUSION OF THE CENSUS: no external reference exists in either
+session's data that would break the identifiability -- the closure
+below stands strengthened, not just unchallenged, by this check.
+diagnostics/inspect_v3_external_reference_census.py DELETED this same
+turn per the user's own "disposable script" instruction -- its findings
+live here, not in a kept script.
+
+REOPEN CONDITION (PLAN.md BACKLOG A, closed alongside this entry): an
+external sideslip/heading/lateral-velocity reference (a real sensor,
+not a repurposed timing/gyro channel) covering enough of an actual
+racing lap to anchor the identifiability -- not merely "present in a
+future export", given this census's own finding that even a currently-
+declared reference (Dubai's GPS course) provides ~zero anchor coverage
+during racing. No commit; PLAN.md STATUS rewritten separately below.
+that either deletes these three or gives each a stated keep-reason.
