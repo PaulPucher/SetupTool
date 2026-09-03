@@ -12678,6 +12678,128 @@ Stage 1 package (parallel, unrelated) continues separately; damper
 package itself starts after that package's Phase 7 report, per user
 decision.
 
+### v3 sawtooth mechanism investigation: corner selection, window stats,
+floor-fraction and alpha-character comparison vs Dubai [2026-09-02]
+Evidence-gathering only, continuing the open thread this session's
+"Mechanism investigation: wholesale-negative CS_ratio under ekf_auto_
+pacejka" entry left unresolved: GT3_PRC_MLA-v3 shows its own version of
+that entry's Finding 2 "sawtooth" (CS_ratio-vs-track-position oscillating
+in rapid, jagged full-scale swings within a corner traversal) in stable_
+corner_id 13. No config, estimator, or threshold changed; sideslip_source
+overridden only in a local copy.deepcopy'd params dict inside the new
+script. New diagnostics/inspect_v3_sawtooth_mechanism.py ([keep-reproduces]
+-- this thread is still open and will need re-running once the paused
+threshold re-derivation work reopens; not proposed for deletion).
+
+METHOD/STEP 1 (corner selection): oscillation metric = sign-change rate
+of CS_ratio across consecutive finite-valued samples, computed per axle
+per valid lap instance within each corner's own canonical bracket slice,
+corner score = the MAX rate over its axle/instance combos (the worst-
+oscillating combo), under ekf_auto_pacejka (the live production default).
+Ranked all 20 v3 stable_corner_ids. Top scores: C12 (high, 0.031), C5
+(medium, 0.026), C1 (medium, 0.025), C17 (low, 0.023), C7 (high, 0.023);
+C13 itself ranked 9th (0.016). Selected corners: C13 (forced per the work
+order), C12 and C5 (top two by this metric, excluding C13). Note on scale:
+even the top score (3.1% of adjacent samples flip sign) is far below what
+Dubai's "full-scale swing every lap" visual description might suggest --
+this metric is a coarse, reproducible PROXY for ranking purposes (task's
+own suggested example), not a claim that v3's sawtooth is visually
+identical in severity to Dubai's; window reconstruction (Finding 1) uses
+the exact production functions (resolve_cs_min_window_samples,
+reconstruct_cs_window_start), not a second implementation.
+
+FINDING 1 -- window-level stats at the worst-oscillating instance, both
+beta sources (n=window sample count, span=achieved alpha span, R2=window
+R-squared, all at the single worst-CS_ratio sample within the instance;
+sign-change rate=adjacent-window CS_ratio sign flips across the whole
+instance). C13 (front, lap 6, 1084-sample instance): ekf_auto_pacejka
+n_windows=999, n_median=37 (11-122), worst sample n=41 span=0.0200 rad
+R2=0.877 CS_ratio=-0.541, sign-change rate=0.016; kinematic n_windows=575,
+n_median=71 (14-141, i.e. windows nearly DOUBLE the median size), worst
+sample n=85 span=0.0201 rad R2=0.000 CS_ratio=-0.087, sign-change
+rate=0.017 -- ESSENTIALLY UNCHANGED despite much larger kinematic windows.
+C12 (front, lap 9, 472-sample instance): ekf_auto_pacejka n_windows=262,
+n_median=21 (10-85), worst n=30 span=0.0209 rad R2=0.000 CS_ratio=-0.828,
+sign-change rate=0.031; kinematic n_windows=194, n_median=45 (15-89),
+worst n=76 span=0.0201 rad R2=0.185 CS_ratio=0.111, sign-change
+rate=0.000 -- COLLAPSES to fully stable under kinematic. C5 (front, lap 9,
+337-sample instance): ekf_auto_pacejka n_windows=304, n_median=22 (10-47),
+worst n=22 span=0.0203 rad R2=0.997 CS_ratio=-0.639, sign-change
+rate=0.026; kinematic n_windows=304, n_median=28 (11-92), worst n=29
+span=0.0203 rad R2=0.806 CS_ratio=-1.221, sign-change rate=0.013 -- HALVES
+under kinematic. C12 and C5 both match the Dubai-established pattern
+(kinematic's narrower alpha range triggers the floor logic less often,
+lowering oscillation); C13 does NOT -- its oscillation persists at
+essentially the same rate regardless of beta source or window size,
+flagging C13 as a partial exception to the general mechanism, not fully
+explained by it alone.
+
+FINDING 2 -- fraction of windows at/near the validity floors, v3 vs
+Dubai, both ekf_auto_pacejka. Both files resolve to the IDENTICAL floor
+values (sample_rate_hz=100.00 for both -> min_window=10 samples, min_
+span=0.02 rad for both -- resolve_cs_min_window_samples/cs_min_slip_
+angle_span_rad are not different numbers between the files). v3 (chosen
+3 corners, pooled valid instances): C13 front frac_at_floor(n<=10)=0.009,
+frac_near_floor(n<=12)=0.032 (n_median=36, rear 0.002/0.023, n_median=45);
+C12 front 0.076/0.139 (n_median=26), rear 0.025/0.098 (n_median=31); C5
+front 0.175/0.220 (n_median=24), rear 0.087/0.115 (n_median=44). Dubai
+(the prior mechanism-investigation's own C1/C2/C3/C4/C8/C9 set, computed
+fresh here the same way): frac_at_floor ranges 0.000-0.031 (C3 front
+highest at 0.031), frac_near_floor 0.000-0.097 (C4 front highest); n_
+median mostly 29-86 (C1/C8/C9 all >=39, several >60-80). v3's C5 and C12
+sit at floor-fraction levels 2-6x Dubai's own highest values, with
+consistently smaller n_median, despite the floor VALUES being identical
+across files -- the difference is in how often each file's alpha signal
+reaches them, not in the thresholds themselves.
+
+FINDING 3 -- alpha signal character, v3 C13 vs Dubai C1 (both 'medium'
+speed_class, both ekf_auto_pacejka, front axle, both resampled to the
+same 10 ms grid). Local slip rate within the corner (|dalpha/dt|):
+v3 median=3.77 deg/s (p90=8.79, n=4332) vs Dubai median=2.87 deg/s
+(p90=7.20, n=1899) -- v3 ~31% faster at the median. Straight-line alpha
+jitter (sample-to-sample std on a clean, out-of-corner, near-zero-alpha,
+moving/non-kerb stretch): v3=0.0411 deg/sample (n=13328) vs Dubai=0.0226
+deg/sample (n=21873) -- v3 is ~1.8x noisier at matched sample rate and
+speed class. Both effects (faster alpha AND noisier alpha) independently
+make a window reach cs_min_slip_angle_span_rad sooner, which is exactly
+the small-n/high-R2 overfitting regime Finding 1's worst samples show
+(R2 0.877/0.997/0.000 on windows of 22-41 samples).
+
+FINDING 4 -- fold-vs-loop self-crossing check, worst-phase window,
+alpha-vs-Fy, quantitative (polyline self-intersection count over the
+time-ordered window points, not a plot). C13 worst window (front,
+[25880:25921], n=41): 0 self-crossings -> clean FOLD. C12 worst window
+(front, [62918:62948], n=30): 0 self-crossings -> clean FOLD. Neither
+worst window shows the hook/loop hysteresis shape Dubai's C3 rear showed
+-- v3's sawtooth is not explained by a lag/hysteresis artifact at these
+specific worst windows either, consistent with Dubai's own Finding 4
+(phase lag was corner-specific, not the general mechanism).
+
+CONCLUSION: (b) corner character. Finding 2 rules out (a) directly -- the
+resolved floor values are numerically IDENTICAL between v3 and Dubai (both
+100 Hz -> 10 samples / 0.02 rad), so a difference in how often windows sit
+at those floors cannot be a v3-specific floor miscalibration; it has to be
+a difference in how often each file's own alpha signal reaches them.
+Finding 3 supplies the reason directly: v3's alpha signal is both faster-
+changing and near-2x noisier than Dubai's at matched speed class and
+identical sample rate, both of which make the SAME window-growth loop hit
+its own floor sooner and more often (Finding 2's higher floor-fractions
+at smaller n_median), producing more small-n, high-R2, unstable per-
+window slope estimates (Finding 1) -- the identical mechanism Dubai's own
+mechanism-investigation entry already identified, just triggered more on
+this file's own corner/alpha character. Finding 4 rules out a fold-vs-loop
+/ hysteresis alternative at the specific worst windows checked. The one
+qualification: C13's own oscillation rate barely moves between ekf_auto_
+pacejka and kinematic (0.016 vs 0.017) despite kinematic windows being
+~2x larger, unlike C12 (0.031 -> 0.000) and C5 (0.026 -> 0.013) which both
+collapse toward stable under kinematic as the general mechanism predicts
+-- C13 may carry an additional, not-yet-identified contributor (raw
+channel noise or corner-specific geometry) on top of the shared floor-
+driven mechanism. This does not change the (b) verdict for the overall
+evidence set, but C13 specifically should not be treated as fully
+explained by "corner character" alone without further, separate
+investigation. No fix proposed or made, per the work order's instruction.
+
 ### Decision-matrix frame, Stage 1: evidence/candidate/scoring layers,
 one worked scenario end to end [2026-09-02, same day]
 New three-layer recommendation frame (modules/decision_frame.py, config/
@@ -12891,3 +13013,647 @@ run (not required by this package's own testing policy: additive module,
 additive UI, targeted tests only) -- test_stability.py (zero-assertion
 smoke test) confirmed clean after Phase 1's own config addition. Stop
 before commit, per the work order.
+
+### Damper package: wheel loads from pushrod/suspension-travel channels,
+Phases 1-6 [2026-09-03, unsupervised overnight package]
+
+Method anchor (Tier A): Segers, "Analysis Techniques for Racecar Data
+Acquisition" (SAE International, 2014), ch.9 (pushrod/damper force to
+wheel load via motion ratio, cited p.199) and ch.10 (roll-centre
+geometric vs spring-path elastic load-transfer split, cited pp.221-256).
+~~Both page anchors are carried over from the work order that opened
+this package and are marked TO VERIFY -- docs/literature/ holds the real
+PDF but this session had no page-render tool available (poppler/pdftoppm
+not installed) to check them directly.~~ [2026-09-03, morning follow-up
+Item 4, superseding the verification-pending note above] VERIFIED: the
+reviewer checked both page anchors directly against the project's
+docs/literature/ excerpt copies of Segers -- ch.9 (p.199) and ch.10
+(pp.221-256) are confirmed correct. No longer provisional. Full citation
+lives here; every code comment points back to this entry by filename/
+section, never repeats the citation itself, per CLAUDE.md's Tier A rule.
+
+NEW CHANNELS, config/channels.json (additive, Dubai untouched): log_dms_
+dam_{fl,fr,rl,rr}[N] (damper/pushrod strain-gauge force) and log_susp_
+travel_{fl,fr,rl,rr}[mm] (wheel/suspension travel), first available on
+GT3_PRC_MLA-v3.txt (thesis_notes.md "GT3_PRC_MLA-v3 census"). Range
+gates are generous plausibility bounds, not sensor specs.
+
+CRITICAL DATA-QUALITY FINDING: log_dms_dam_fr[N] is corrupted for the
+ENTIRE GT3_PRC_MLA-v3.txt session -- a near-constant ~-15.95 million N
+reading (sampled at 9 points spread across the full 686s session, max
+deviation ~5000N i.e. <0.05%), several orders of magnitude outside any
+physical pushrod force. This is a stuck/faulted sensor or a fault-code
+value, not real data. The channel's own quality-gate range ([-5000,
+20000] N) is deliberately set to fail this reading (channel_quality_
+gates.failed_below), so modules/wheel_loads.py's per-corner static-split
+fallback engages for FR across the whole session -- confirmed empirically
+(100.0% valid on FL/RL/RR, 0.0% on FR).
+
+MOTION-RATIO DIRECTION (work order Phase 1 requirement): determined
+ANALYTICALLY, not by trial of both conventions -- every digitised point
+in config/car_data.json's motion_ratio_vs_wheel_travel table sits below
+1.0 on both axles (front 0.615-0.691, rear 0.763-0.781), which by
+conservation of virtual work through the pushrod/rocker linkage
+(F_damper * damper_travel = F_wheel * wheel_travel) means F_wheel =
+F_damper * motion_ratio is the only convention consistent with the
+table's own digitised values -- not genuinely ambiguous, so the "compute
+both, pick nearer to config weight" fallback was not needed. This
+determination is independently corroborated by two later findings: the
+straight-line total-load check (below) lands within a physically
+sensible band of config weight, not off by the ~35-60% an inverted
+convention would produce, and the cornering-load sign checks (below) all
+resolve in the physically expected direction.
+
+MODULE: modules/wheel_loads.py, additive, no existing production file
+touched. Four-term per-wheel decomposition: (1) sprung force at the
+wheel = (raw damper force - config-entered zero offset, default 0.0,
+"pushrod gauges give absolute force via entered offsets") * motion
+ratio -- captures static+aero+longitudinal+lateral-ELASTIC load; (2) ARB
+force, a parallel load path invisible to the pushrod gauge, from the
+axle's own left-right travel delta * ARB table rate (car_data.json arb.
+{front,rear}, position-indexed, ratio_to_wheel-scaled) / the axle's own
+damper motion ratio (a work-order-authorised APPROXIMATION -- no
+dedicated ARB linkage motion-ratio table exists in car_data.json); (3)
+unsprung-mass lateral transfer (40kg front/45kg rear per wheel, work-
+order-supplied, Level 1) via ay * m_unsprung * h_u / track, h_u estimated
+from the team-supplied STATIC tyre circumference (thesis_notes.md
+"Rolling circumference: three disagreeing numbers, none resolved", front
+2140mm/rear 2210mm) converted to radius -- a Level 1 dynamic-radius
+ESTIMATE, not a measured loaded radius; (4) sprung-mass GEOMETRIC lateral
+transfer via the roll centre (car_data.json kinematic_variants_front/
+rear's own stated baseline_variant, FS15/RS25, roll_center_mm -- NOT
+confirmed as the variant actually fitted for this session, a Level 1
+estimate) -- only the geometric share, since the elastic share is already
+inside term (1) and must not be double-counted. Bump-rubber engagement
+is NOT modelled (documented limitation, config wheel_loads.bump_rubber_
+note) -- an under-estimate at extreme compression only. Registered as
+accuracy_levels.wheel_load_damper, Level 4, PER CORNER (not a whole-
+session switch); per_wheel_load_split's existing Level 1 static estimate
+remains the fallback. Not yet wired into modules/accuracy_resolution.py's
+dynamic per-session cascade or any UI/pipeline consumer -- same
+incremental scope as per_wheel_load_split's own phase 1 entry (WP5b(b)).
+6 targeted unit tests (tests/test_wheel_loads.py, synthetic fixtures --
+known pushrod force + MR -> known wheel load; offset subtraction order;
+ARB delta sign/magnitude/equal-opposite; missing-damper and missing-
+travel-channel fallback; lateral-transfer sign matches modules.
+stability_analysis.estimate_vertical_loads's own left-negative/right-
+positive convention exactly), all pass.
+
+PHASE 2 VALIDATION (bands, not equalities -- reported honestly whether
+in or out of band), diagnostics/inspect_v3_wheel_load_validation.py
+`[keep-reproduces]`, real GT3_PRC_MLA-v3.txt data, ekf_auto_pacejka
+default config, 68599 samples @ 100Hz:
+(a) Straight-line total load (moving, |ax|<0.5, |ay|<0.5, n=1804) mean
+14851.4N vs config total weight 13302.4N: +11.64%, OUTSIDE the +/-5%
+band -- NOT corrected. Plausible physical explanation, corroborated by
+Phase 5's own regression below: this is a STATIC weight comparison with
+no aero term (config lift_coeff=0.0 placeholder), while the damper-
+derived measurement genuinely senses real aero downforce at racing
+speed. +11.64% of 1356kg is ~158kg-equivalent downforce, a plausible
+order of magnitude for a GT3-class car at speed, not a red flag.
+(b) Fuel-drift trend: only 4 laps (6-9) had enough straight-line samples
+under this mask; mean total dropped from ~18600N (laps 6-8) to ~15700N
+(lap 9) -- too large and abrupt to be fuel burn alone. LIMITATION,
+recorded honestly: the |ax|<0.5 & |ay|<0.5 mask does not control for
+SPEED, and mean speed almost certainly differs materially between which
+stretches of track happen to fall inside that mask per lap -- since
+Phase 5 shows load depends strongly on v^2, this fuel-drift read is
+CONFOUNDED by speed differences between laps, not a clean measurement.
+Not fixed in this read-only validation pass.
+(c) Transfer signs: braking (ax<-1.0, n=17748) front Fz 6475.2N vs
+rear 9026.4N, vs straight-line front 5860.2N/rear 8991.2N -- front gains
++615N under braking (correct sign), rear is nearly flat (+35N) rather
+than the classically-expected decrease, plausibly because braking zones
+on this track still carry meaningful aero downforce that partially masks
+the classic longitudinal transfer on the rear -- reported, not resolved.
+Cornering (|ay|>3.0, n=44366): corr(ay, Fz_fr)=+0.966, corr(ay,
+Fz_fl)=-0.893 -- strong, correctly-signed, matching modules.stability_
+analysis.estimate_vertical_loads's own convention exactly.
+ARB sign-convention empirical check (the one genuinely uncertain sign in
+the whole decomposition): corr(travel_fl - travel_fr, ay) = +0.969 over
+cornering samples -- CONFIRMS the module's "more negative travel = more
+compressed" assumption with no code change needed. This is the
+determination the work order asked for under Phase 2(c); recorded here
+as the authoritative result.
+(d) Front/rear distribution, REPORTED ONLY per the work order (never
+asserted): moving-sample mean front Fz 37.0% / rear 63.0%, more rear-
+biased than the static corner-weight split (42.8%/57.2%) -- plausible
+for a rear-engined car whose lap-average load is dominated by traction/
+acceleration phases, not asserted as validated.
+
+PHASE 3 FIGURE: diagnostics/inspect_v3_wheel_load_comparison_figure.py
+`[keep-reproduces]`, static-split vs damper-derived Fz, REAR axle chosen
+over front (log_dms_dam_fr's session-wide corruption above makes a
+front-axle comparison uninformative -- one real trace, one permanent
+fallback trace). Corner selected systematically (median, not peak, |ay|
+over the corner bracket, restricted to a physically plausible 5-22 m/s^2
+band to reject spike-driven false "worst corners"): C12, lap 8, median
+|ay|=18.1 m/s^2. diagnostics/plots_v3/wheel_load_comparison_C12_lap8.png
+-- damper-derived RL/RR both track visibly above and with far more
+dynamic structure than the static-split estimate throughout the window;
+one notable side-observation, not chased further: the static-split
+estimate briefly goes NEGATIVE on RR during the window's most violent
+transient (~t=4.4s), a known unphysical failure mode of the simple
+lateral-transfer-at-CoG-height model, while the damper-derived reading
+stays positive (physically bounded, as a real load-cell reading must
+be) through the same event -- a real, if incidental, illustration of
+why a measured wheel load is worth having.
+
+PHASE 4 CHANNEL SURVEY (read-only, identification evidence only, NO
+mapping conclusion drawn): diagnostics/inspect_v3_tc_eb_abs_channels.py
+`[keep-reproduces]`, extends the v3 census's own tc_lat/tc_lon (zero
+matches) and abs/brake_bias (171 matches, name-only) search with tract/
+asr/eb/ebrake/engine_brake/map token-matched terms, plus rate/range/
+changes-during-session detail for all 229 total matches (raw output not
+reproduced here, script's own stdout is the record). Headline candidates:
+TRACTION CONTROL -- activity vs position genuinely distinguished, as the
+work order asked: ecu_B_tc_act (0/1, CHANGES during session, 50Hz) is a
+plausible ACTIVITY flag; ecu_TC_int_pos/log_tc_int_pos (constant=4 all
+session, 10Hz) are plausible POSITION-SWITCH candidates (driver did not
+touch the setting this session, consistent with a constant read).
+ENGINE BRAKING -- ecu_EB_int_pos/ecu_EB_tim_pos (0-5/1-5, DO change
+during the session, n_distinct=4, 10Hz) stand out as the one EB-family
+signal that is not simply constant/inactive -- every other EB flag
+checked (ecu_B_EB_act, _db_lim, _sail_act, log_eb_error, ecu_trq_eng_EB
+constant -120Nm) reads inactive/constant the whole session, a genuine
+negative result for those, not an oversight. ABS -- abs_active (0/1,
+changes, 100Hz) is a clean ACTIVITY flag; abs_switch_pos (constant=6,
+100Hz) matches config/car_data.json's own abs table row 6 ("Dry, Medium,
+More stable FA and RA compared to map 3") by value, a real corroboration
+-- but log_abs_pos/log_abs_pos_db/log_rt_abs_pos/stw_rt04_abs all read a
+DIFFERENT constant (5, not 6) for the same session, an unresolved cross-
+domain disagreement (ABS-ECU-domain vs dash/steering-wheel-domain
+logging), same caution this project already recorded once for abs_circ_
+f/r vs the team-supplied static tyre circumference -- flagged, not
+resolved. BRAKE BIAS -- Math_Brake_Bias_Hold (0-45.68%, changes, 100Hz)
+and the abs_brk_bal_prop/abs_brk_bal_prop_ad/abs_brk_bal_at50/abs_brk_
+bal_at50_adv family (multiple units -- % and bar -- all change) are
+listed as candidates; no single one is confirmed as "the" brake-bias
+setting. Every candidate above is IDENTIFICATION EVIDENCE ONLY, per the
+work order -- no channel here is wired into config/setup_parameters.json
+or any consumer.
+
+PHASE 5 AERO DIAGNOSTIC: diagnostics/inspect_v3_aero_load_diagnostic.py
+`[keep-reproduces]`, trusts nothing downstream (a pure top-level Fz
+regression, feeds no estimator). Fz_total = a + b*ax + c*v^2, fit by
+ordinary least squares over a widened "straights" population (moving,
+|ay|<1.5, n=17706, speed range 18-248 km/h) -- ax included as a
+regressor specifically to separate its own contaminating effect from
+c*v^2 rather than relying on a tighter zero-ax mask. Result: a=13134.6N,
+b=-24.80 N/(m/s^2) (small, consistent with front/rear longitudinal-
+transfer effects nearly cancelling in the AXLE SUM), c=+1.3655 N/(m/s)^2
+-- DOWNFORCE-CONSISTENT (c>0), R^2=0.79, residual std=1109.9N (~8% of
+static weight), residual mean exactly 0 (OLS property, not a separate
+finding). Implied Cl*A_ref product (config sign convention, Cl<0=
+downforce): -2.2294 m^2 -- a plausible order of magnitude for a GT3-
+class car's real Cl(~-1 to -1.3) x reference area(~1.8-2.2 m^2), but NOT
+separable into the two factors from this regression alone, and NOT
+written back to config -- vehicle.aero.lift_coeff and cross_track_area_
+m2 both stay at their 0.0 placeholders, per the work order's own
+instruction. This result, together with Phase 2(a)'s independent +11.64%
+straight-line finding, gives two independent lines of evidence for real,
+currently-unmodelled aero downforce on this car -- a strong candidate
+for a future WP5b aero-coefficient work package, not undertaken here.
+
+DECISIONS MADE AUTONOMOUSLY (Tier C / config-shape choices, per the
+session's autonomy rule): pushrod zero-offset config keys default to
+0.0 (no calibration procedure or UI entry point exists yet -- flagged as
+an open item, not invented); ARB blade position falls back to 4 (config
+wheel_loads.arb_position_fallback, inside setup_parameters.json's own
+arb_fl typical_window of 3-5) when no session setup record exists, as
+for GT3_PRC_MLA-v3.txt; roll-centre heights use each axis's own stated
+car_data.json baseline_variant (FS15 front/RS25 rear) since the actually-
+fitted kinematic variant for this session is unconfirmed; the Phase 3
+figure's corner-selection metric (median, not max, |ay|, restricted to a
+5-22 m/s^2 plausibility band) was chosen after an initial max-|ay| pick
+returned a 46.6 m/s^2 (4.75g) outlier, clearly a spike artifact, not a
+real corner event.
+
+FULL SUITE: run once at the end of this package (see the PLAN.md STATUS
+entry for the exact count) -- the parser whitelist changed (8 new
+channels) but no existing channel/config value changed, so all existing
+goldens were expected to pass unchanged, and did.
+
+OPEN FOR THE USER: pushrod zero-offset calibration procedure and UI
+entry point (none exists); which kinematic kinematic_variants_front/rear
+variant is actually fitted, if roll-centre precision ever matters beyond
+this Level-1 estimate; a proper tyre dynamic (loaded) radius measurement
+to replace the static-circumference-derived h_u estimate; the ABS-
+position cross-domain disagreement (6 vs 5) found in Phase 4; whether to
+pursue the aero-coefficient work package Phase 5's regression makes a
+strong case for; wiring wheel_load_damper into modules/accuracy_
+resolution.py's dynamic cascade and any real UI/pipeline consumer
+(deliberately out of this package's own scope, same precedent as
+per_wheel_load_split's own still-unwired phase 1). Pre-existing, noticed
+but NOT this package's to fix: diagnostics/inspect_v3_cs_validity_and_
+kinematic.py, inspect_v3_full_pipeline.py, inspect_v3_figures.py, and
+inspect_v3_nis_gate_failure.py have no diagnostics/README.md entry at
+all -- a gap that predates this package.
+
+### Morning follow-up to the damper package: NIS window rate-correction,
+FR reconstruction, ABS consistency check [2026-09-03]
+
+Three items, in order, per the follow-up work order. No commit made,
+stop before commit.
+
+ITEM 1 -- NIS GATE WINDOW RATE-CORRECTION (Tier B bug fix, same
+precedent as modules.longitudinal_stiffness's own 50Hz min_samples
+adaptation). config/parameters.json nis_gate.window_samples=20 (removed)
+-> nis_window_s=0.4 (a physical duration), with the effective sample
+count now derived at runtime from the file's own measured sample_rate_hz
+via the new modules.nis_gate.resolve_nis_window_samples (same rate-
+derivation pattern as modules.stability_analysis.resolve_cs_min_window_
+samples). evaluate_gate's signature gained a required sample_rate_hz
+argument; its one production call site (modules/tyre_fit_auto.py's
+resolve_sideslip_beta) now passes state["sample_rate_hz"]. Acceptance
+thresholds (threshold_use_ekf=0.1385, threshold_warn=0.1006) are
+UNCHANGED, per the work order -- band/threshold redesign remains a
+separate, still-open decision (PLAN.md NIS gate redesign proposal).
+CORRECTED VERDICTS, re-run for real via diagnostics/inspect_v3_nis_gate_
+failure.py (both sessions, live config, fit_session_pacejka): Dubai
+health_score 0.1417->0.1351, verdict PASS->WARN; GT3_PRC_MLA-v3
+health_score 0.1163->0.0849, verdict WARN->FAIL -- both exactly matching
+the Phase 8 proposal's own pre-registered prediction (PLAN.md), now
+confirmed rather than estimated. window_samples itself is now correctly
+40 (0.4s @ 100Hz) for both sessions, not the old literal 20 (0.2s).
+CONSEQUENCE FOR PRODUCTION, checked not assumed: resolve_sideslip_beta
+only branches on verdict=='fail' (both 'pass' and 'warn' use the fitted
+EKF beta identically) -- so Dubai's PASS->WARN flip changes NO production
+beta output, only the recorded verdict string/health_score in fit_
+manifest/gate_verdict. v3's WARN->FAIL flip DOES change behaviour: v3
+under ekf_auto_pacejka would now fall back to kinematic beta where it
+previously used the fitted EKF (a real behavioural change for that one
+session, correctly triggered by a real, now-fixed rate bug, not a
+regression to treat as a problem). 2 new targeted unit tests (tests/
+test_nis_gate.py: test_resolve_nis_window_samples_at_100hz_is_not_the_
+old_literal_20, test_resolve_nis_window_samples_rounds_to_nearest_
+sample), plus every existing evaluate_gate call site (7 across tests/
+test_nis_gate.py, 1 in diagnostics/inspect_v3_nis_gate_failure.py)
+updated to pass sample_rate_hz. Targeted run: 13 passed, 9 skipped (same
+9 skips as before this fix, for the pre-existing, UNRELATED reason that
+ekf_auto_dugoff's Dugoff fit degenerates unconditionally on Dubai under
+the current CS window floor -- see that fixture's own comment). Full
+suite not required by this item alone (see close-out note below).
+
+ITEM 2 -- FR RECONSTRUCTION (Segers modal decomposition, quasi-static).
+New modules.wheel_loads.reconstruct_missing_corner + combine_with_
+reconstruction_and_fallback: when exactly one corner of an axle is
+damper-invalid and its axle-mate IS damper-valid, the missing corner is
+reconstructed as (axle total from modules.stability_analysis.estimate_
+vertical_loads's own weight+longitudinal-transfer+aero-share formula) -
+(the real measured axle-mate) -- exact given the axle-total model, since
+left+right must sum to that total regardless of how roll splits them,
+so NO roll/ARB model is needed for the split once a real mate measurement
+exists. DELIBERATE DESIGN CHOICE, recorded: this is NOT "axle total x a
+modelled roll-balance fraction" (a plausible alternative reading of the
+work order's "left/right from roll balance" phrase) -- that would throw
+away the real axle-mate measurement in favour of the same approximate
+model already used for the plain static fallback, strictly worse once a
+real measurement exists on that axle. Registered as accuracy_levels.
+wheel_load_damper_reconstructed, Level 1 (NOT an intermediate level --
+the accuracy-level system records provenance TIER, and this method's
+axle-total half is capped by the same unsourced Level-1 aero/cog-height
+placeholders per_wheel_load_split already carries, even though three
+real sensors feed the method in practice). Cascade order implemented in
+combine_with_reconstruction_and_fallback: damper-measured (Level 4) ->
+reconstructed (Level 1, this method) -> static-split (Level 1, no real
+sensor at all) -- tried in that order per corner per sample. LIMITATIONS
+(work order's own required list, all recorded): single-wheel events on
+the reconstructed corner are invisible (the axle-total model has no road-
+input sensing); the warp/torsion mode is unobservable with three sensors
+and a heave/pitch-only model; both corners of one axle invalid at once
+falls through to plain static-split (one equation, two unknowns, no
+reconstruction possible). REAL-DATA OBSERVATION from the regenerated
+figure (diagnostics/plots_v3/wheel_load_reconstruction_C12_lap8.png,
+same corner-selection method as Phase 3's own figure): the reconstructed
+FR trace swings to visibly UNPHYSICAL negative values (down to roughly
+-4300N) during the window's most violent transient, where measured FL
+itself dips sharply (to ~900N) -- a direct, real illustration of the
+single-wheel-event limitation above: the Level-1 axle-total model cannot
+represent whatever genuinely perturbed FL at that instant, so the
+reconstruction's residual (axle_total - FL) absorbs the whole model/
+reality gap and overshoots. Recorded as observed evidence of a stated
+limitation, not a bug to fix. 3 new targeted unit tests (tests/test_
+wheel_loads.py: asymmetric-roll-split recovery -- deliberately NOT a
+50/50 split, to prove the method does not assume symmetry; both-corners-
+invalid correctly falls through; three-tier source labelling), all pass
+(9/9 in that file total). New figure: diagnostics/plots_v3/wheel_load_
+reconstruction_C12_lap8.png (measured FL vs reconstructed-and-static-
+split-for-contrast FR, same corner C12/lap 8 as Phase 3's rear-axle
+figure for direct comparability).
+
+ITEM 3 -- ABS CONSISTENCY CHECK (read-only, no mapping conclusion, no
+config change). diagnostics/inspect_v3_abs_consistency_check.py, a
+single streaming pass over GT3_PRC_MLA-v3.txt reading 8 channels by name
+(abs_switch_pos/log_abs_pos/log_rt_abs_pos/abs_active plus brake
+pressure), NOT through channels.json (deliberately -- no whitelist
+change). RESULT 1: none of abs_switch_pos (constant 6), log_abs_pos
+(constant 5), log_rt_abs_pos (constant 5) change value even once across
+the full session -- reconfirms Phase 4's own summary stat, now checked
+directly for this specific question. RESULT 2: N/A by construction --
+with zero changes on any of the three channels, there is nothing that
+could co-occur. RESULT 3: abs_active (100Hz, 0/1) fires for 5.95% of the
+session; combined front+rear brake pressure (abs_pbrake_f/r) exceeds a
+plainly-stated 120 bar "hard braking" threshold for 3.80% of the session.
+Of the hard-braking samples, 41.00% show abs_active=1; of the abs_
+active=1 samples, only 26.18% are during hard braking -- abs_active
+fires substantially OUTSIDE what this threshold calls hard braking too
+(could be lighter braking, a system self-check, or something else --
+NOT determined here, per the work order's own "no mapping conclusion"
+instruction). Plain answer for the engineer question: the three switch-
+position candidates are session-static (as already known) and never
+disagree with each other because none of them ever move; abs_active
+does engage during hard braking a large minority of the time, but is not
+exclusively or even mostly a hard-braking-only signal.
+
+CLOSE-OUT: no golden-covered path touched by any of the three items --
+item 1 changes the NIS gate's internal window/verdict computation
+(modules/nis_gate.py, modules/tyre_fit_auto.py's one call site) but does
+NOT change beta output for any currently-passing/warning session (see
+Item 1's own "consequence for production" paragraph -- only a session
+that would newly verdict 'fail' changes behaviour, and no such session
+exists in this project's own golden fixtures, which are all Dubai-based
+and Dubai stays non-'fail'); items 2-3 are purely additive (wheel_loads.py
+gains new functions, nothing existing changed) or read-only (Item 3).
+Full suite NOT run for this reason, per the work order's own conditional
+instruction -- targeted tests only (tests/test_nis_gate.py 13 passed/9
+skipped, tests/test_wheel_loads.py 9 passed).
+
+### Wheel-load showcase, ground-truth check, and closing the
+reconstruction's aero gap [2026-09-03, same day]
+
+Three linked work orders, recorded together since each built directly on
+the last. No commit made at any point; stop before commit throughout.
+
+PART A -- SHOWCASE (read-only, one new diagnostic script). diagnostics/
+inspect_v3_wheel_load_showcase.py computed a numbers block and rendered
+2 figures from the (at-the-time uncorrected, static-model) three-tier
+cascade: corner weights config-vs-measured (FL +18.2kg, FR[reconstructed]
+-18.3kg, RL +46.9kg, RR +93.6kg, total +10.4% vs config); peak load per
+wheel; heaviest-braking and fastest-|ay| transfer events; aero extra
+load at 200/250 km/h from the Phase 5 fit. TWO SANITY FLAGS surfaced and
+reported at the time, neither corrected in that turn (read-only scope):
+the "heaviest braking" sample (ax=-31.24 m/s^2) is an oscillating ~10-15Hz
+burst, not a real single braking event -- almost certainly a vibration/
+resonance artifact, not genuine physics; the "fastest corner" sample
+(ay=46.64 m/s^2, 4.75g) is the same implausible spike Phase 3's own
+median-based corner selection had already excluded. Figures: diagnostics/
+plots_v3/wheel_load_showcase_fastest_lap8.png (5-panel speed+4-corner Fz
+trace, fastest lap, corner bands), wheel_load_showcase_heavy_braking_zoom.
+png (4-corner Fz + ax around the flagged braking sample) -- both showed
+all four wheels dipping to unphysical negative Fz somewhere in the trace.
+
+PART B -- GROUND-TRUTH CHECK (read-only, diagnostics/inspect_v3_
+reconstruction_ground_truth.py). Both RL and RR are 100% damper-valid all
+session -- dropping one on purpose and reconstructing it with the exact
+shipped method against its own real measurement gives a genuine ground-
+truth accuracy check the real (corrupted) FR reconstruction can never
+have. Lap 8, STATIC axle-total model: mean error -2607.2N (IDENTICAL for
+both RL and RR, in Newtons, to the decimal) -- proven algebraically, not
+coincidental: error_RL = axle_total_model - (measured_RL+measured_RR) =
+error_RR, so the reconstruction error is entirely the axle-TOTAL model's
+own bias, independent of which corner is dropped. At the axle-total
+level this is a ~25.5% underestimate (mean measured rear total 10241.9N,
+model error -2607.2N) -- traced to two STATIC-model gaps: config mass_kg
+under-reading this session's real loaded mass, and config aero.
+lift_coeff=0.0 omitting real downforce entirely (lap 8 is a fast lap,
+so the aero share is large). Straight-line error (-4109.2N) exceeded
+corner-phase error (-2140.0N) -- aero peaks on straights, consistent
+with the diagnosis. A 0.1s (10Hz) low-pass on the surviving axle-mate
+input changed std by only ~1% and mean error not at all -- the error is
+systematic/model-driven, not sensor noise, so filtering the input cannot
+fix it. Figure: diagnostics/plots_v3/wheel_load_reconstruction_ground_
+truth_lap8.png (superseded by Part C's re-render below, same path).
+
+PART C -- CLOSING THE AERO GAP (implemented, modules/wheel_loads.py).
+New estimate_session_corrected_axle_totals(state, damper_result, params):
+replaces the STATIC axle-total model's mass and aero terms with per-
+SESSION measurements, feeding ONLY the reconstruction tier (modules.
+stability_analysis.estimate_vertical_loads and vehicle.aero.lift_coeff
+are completely untouched -- every other production consumer of the
+static split is unaffected; config Cl stays 0.0, per the work order).
+(1) mass_kg_session = this session's own measured straight-line mean
+total (the same +10.4% finding from Part A), replacing vehicle.mass_kg
+for this function's static-split term only. (2) F_aero(v) = c_session *
+v^2, c_session fit via the same 3-term regression as the Phase 5 method
+(Fz_total = a+b*ax+c*v^2, widened |ay|<1.5 mask), on THIS session's own
+straight-line damper data. Both fits are NON-CIRCULAR: FR is invalid all
+session, so using the (biased) model-based reconstruction for FR inside
+these fits would have the model correcting itself against its own error
+-- instead FR is proxied by its own axle-mate FL for the fit only (front
+static symmetry: config corner_weights states FL_kg==FR_kg exactly, so
+near-zero real roll asymmetry at low-ay is a small, bounded assumption,
+not a guess). Front/rear aero split: NEW config key wheel_loads.
+aero_front_fraction=0.40 (Level 1 PLACEHOLDER, not measured for this
+car -- a rear-biased GT3-typical assumption, stated in config's own
+derived_from text and returned in every result dict for the engineer to
+see and eventually replace with real aero-balance data). KNOWN,
+DOCUMENTED IMPERFECTION (in the function's own docstring, not hidden):
+mass_kg_session (a mean across a real speed range) already contains
+SOME of the real aero present at that range's typical speed; adding a
+full, separate c_session*v^2 term on top therefore double-counts a
+small aero share -- accepted as a second-order effect against the ~25%
+gap being closed, checked empirically below rather than merely argued.
+1 new targeted unit test (tests/test_wheel_loads.py test_estimate_
+session_corrected_axle_totals_recovers_noiseless_fit -- noiseless
+synthetic case, recovers c_session/mass_kg_session/the front-fraction
+split exactly), all 10 tests in that file pass.
+
+RE-RUN, Part B's ground-truth test, SESSION-CORRECTED model: mass_kg_
+session=1532.9kg (config 1356.0kg), c_session=1.5692 N/(m/s)^2. Mean
+error -2607.2N -> +497.1N (RL, +9.46%) / +497.1N (RR, +9.97%) -- an
+80.9% reduction, landing at "a few hundred N", matching the work order's
+own pre-registration almost exactly. Sign flipped negative-to-positive
+(a mild OVER-correction) -- consistent with the documented double-
+counting imperfection above, not a new, unexplained problem. std error
+2021.8N -> ~1489N (~26% reduction). Corner-vs-straight gap NARROWED
+sharply: corner +552.6N vs straight +318.8N (a 234N spread, vs the
+STATIC model's 1969N spread) -- the "straights-vs-corners error gap
+closes" pre-registration is CONFIRMED. Filtering the mate input again
+changed almost nothing (mean unchanged, std ~2% lower) -- same
+conclusion as Part B, filtering does not address a model-bias-driven
+error. Figure regenerated at the same path (diagnostics/plots_v3/
+wheel_load_reconstruction_ground_truth_lap8.png).
+
+FR RECONSTRUCTION FIGURE re-rendered (diagnostics/plots_v3/wheel_load_
+reconstruction_C12_lap8.png, same corner/lap as before): the SUSTAINED
+negative FR trace is GONE -- the reconstructed FR now sits comfortably
+positive through nearly the whole window, matching the pre-registration
+("FR's sustained negative should largely disappear"). A brief negative
+dip remains during the window's single most violent transient (~t=4.4s,
+where FL itself dips to ~900N) -- expected and unresolved by design (the
+single-wheel-event-invisible limitation, reconstruct_missing_corner's
+own docstring, is about instantaneous events, not the sustained bias
+this package targeted).
+
+CORNER-WEIGHT NUMBERS BLOCK re-run, IMPORTANT DISCOVERED LIMITATION not
+pre-registered by the work order, reported honestly rather than
+smoothed over: FR's own straight-line mean moved from 271.7kg (under,
+before) to 424.7kg (OVER, after) -- WORSE relative to FL's 308.2kg than
+before, and the whole-session total residual moved from +10.4% to
++21.6% (worse, not better). MECHANISM, distinct from the ground-truth-
+validated fix above: mass_kg_session correctly fixes the TOTAL car mass
+in aggregate, but estimate_session_corrected_axle_totals still splits
+that corrected (larger) total into front/rear using the STATIC
+geometric fraction (cog_to_front/rear_axle_m/wheelbase_m) -- the SAME
+fraction the static model always used. This project's own Phase 2(d)
+finding already established that the REAL dynamic front/rear split
+(37%/63%) differs substantially from the static config split (42.8%/
+57.2%); funnelling a LARGER, aero-inclusive total through the OLD static
+fraction over-allocates load to the front specifically. The ground-truth
+test above could not catch this because it exercises the REAR axle only
+(fz_r_N used directly, no front/rear split fraction involved) -- the
+FRONT axle's own total has NO ground truth to check against (that is
+exactly why FR is the corner that needed reconstructing in the first
+place). CONSEQUENCE: the session correction is CONFIRMED to close the
+axle-TOTAL-level bias (ground-truth validated, rear axle) and CONFIRMED
+to remove FR's sustained-negative time-series artifact (visually
+confirmed), but the FRONT-axle-specific split is NOT validated by
+anything in this package and is now demonstrably worse by one aggregate
+metric (the corner-weight mean). NOT fixed this turn (work order says
+implement/verify/stop, not iterate further) -- open item for the user:
+consider replacing the static geometric front/rear split fraction with
+a session-measured dynamic fraction (the same kind of upgrade already
+applied to mass and aero) the next time this is revisited.
+
+Fastest-lap and heavy-braking-zoom figures re-rendered with the
+corrected model: FR's own negative dips shrank (fastest lap -4.53kN ->
+-2.98kN; braking zoom -4.82kN -> -2.56kN) but did not disappear --
+consistent with the single-wheel-event-invisible limitation persisting
+at genuine transients, distinct from the sustained-bias problem this
+package targeted and closed.
+
+ARCHITECTURE NOTE (the work order's own framing, worth recording as
+such): this is the first instance in this project of a damper
+measurement upgrading the ESTIMATION CHAIN'S OWN INPUTS -- prior damper
+work (Phases 1-6) used config-static inputs (mass, Cl) throughout; here
+the damper data itself (via the ground-truth test) DIAGNOSED a fault in
+those static inputs, and the SAME real damper data (FL/RL/RR) then
+SUPPLIED the correction, entirely at analysis time, without touching a
+single global config value. This is the wheel-load architecture working
+as designed: real sensor data earns a higher accuracy tier only where
+and when it is actually present, and can improve even the MODEL terms
+a lower tier still depends on.
+
+Full pytest suite: not re-run as part of this specific package (targeted
+tests only, tests/test_wheel_loads.py 10/10) -- a separate full-suite
+verification from the same day's earlier NIS-gate fix work covers the
+whole regression surface. That run has since COMPLETED: 181 passed, 9
+skipped, 1 xfailed, 0 failed, 0 errors (43:07) -- confirms, empirically
+and not just by the "gate_verdict lives in golden _meta, never compared"
+argument made at the time, that the NIS window rate-correction (Item 1)
+broke nothing: 181 = the prior 176 baseline + 2 new nis_gate tests +
+3 new wheel_loads reconstruction tests (added between the two runs),
+exactly accounted for. No golden file was touched or regenerated.
+
+### Session-measured split fractions -- the third and last term of the
+session-correction set [2026-09-03, same day, follow-up to "Closing the
+reconstruction's aero gap"]
+
+Implements the open item that entry's own PART C left explicit: replace
+the STATIC geometric front/rear fraction (cog_to_front/rear_axle_m /
+wheelbase_m) with a session-measured one, for the mass term only.
+
+IMPLEMENTED, modules.wheel_loads.estimate_session_corrected_axle_totals:
+(a) front_mass_fraction = session-measured front_total/(front_total+
+rear_total) at straight-line samples (front_total = 2xFL, the same non-
+circular proxy already used for mass/aero, since FR is invalid all
+session), replacing the static fraction for the MASS/static term only --
+the longitudinal-transfer term keeps its own h_cog/wheelbase_m geometric
+formula unchanged (a different physical quantity). (b) rear_left_
+fraction = RL/(RL+RR) at straight-line samples, REPORTED ONLY (both rear
+corners are real, no proxy needed) -- not consumed by fz_f_N/fz_r_N,
+since the per-wheel L/R split already comes from estimate_wheel_loads_
+from_dampers's own real ARB/unsprung/geometric decomposition. (c) the
+AERO front/rear split (wheel_loads.aero_front_fraction) is explicitly
+NOT given the same treatment and STAYS the Level 1 config placeholder --
+straight-line data has no differential signal to measure an aero split
+from (both sides of an axle see the same speed and near-zero roll at
+straight line), stated in the function's own docstring rather than left
+implied. 2 new targeted tests (tests/test_wheel_loads.py: a symmetric
+fixture confirming both new fractions land exactly on 0.5, and an
+asymmetric fixture recovering known 0.4/0.6 ratios exactly) -- 11/11
+tests in that file pass.
+
+RE-VERIFICATION, HONEST RESULT (not simply confirming the pre-
+registration -- reported precisely, including the part that did not
+land as expected):
+
+Ground-truth test (lap 8, drop RL/RR in turn) -- the work order's own
+pre-registration ("expect little change -- rear test never used the
+split") did NOT hold: mean error moved from +497.1N (previous, static-
+fraction mass split) to +885.9N (session-measured front_mass_fraction).
+MECHANISM, found and recorded rather than left unexplained: fz_r_N =
+mass_kg_session*g*(1-front_mass_fraction) + rear_aero + long_transfer --
+the rear share is the ARITHMETIC COMPLEMENT of front_mass_fraction, so
+the rear axle total is NOT insulated from a front-fraction change the
+way the pre-registration assumed; a lower, session-measured front
+fraction (vs the static 42.8%) mechanically raises the rear share,
+raising the rear model's own prediction, and since error=model-true,
+the rear error moved more positive. The rear-axle-total ground-truth
+test is therefore NOT a clean, isolated check of the front/rear split
+fix -- a real methodological limitation of this test design, surfaced
+by using it, not assumed in advance.
+
+Corner-weight numbers block: FR moved 424.7kg (post mass/aero fix,
+pre-split-fix) -> 385.1kg (post split-fix) -- closer to FL's 308.2kg
+than before, a real improvement in the expected direction, but NOT "near
+its measured-total-consistent value" as pre-registered (77kg gap
+remains). Whole-session total residual: +21.6% -> +18.7% -- improved,
+but did NOT return to "the aero-consistent ~+10% range" (still above
+even the ORIGINAL, pre-any-correction +10.4% finding this whole package
+started from). MECHANISM: front_mass_fraction (now session-measured,
+correct by construction at the straight-line samples it was fit from)
+and aero_front_fraction (still the UNRELATED 0.40 placeholder) are not
+mutually consistent -- the front axle's static-term-only value already
+implicitly contains whatever REAL aero share the front axle carried at
+straight-line conditions (since mass_kg_session*front_mass_fraction was
+calibrated to match the real front total, aero included), and then a
+SEPARATE, full aero_front_fraction*c_session*v^2 term is added on top,
+double-counting part of the front axle's own aero share on top of an
+now-more-accurate mass split -- exactly the "known imperfection" the
+mass/aero entry already flagged, now shown to bite harder on the FRONT
+axle specifically once its mass share is correctly (not statically)
+apportioned. This is precisely why the aero front/rear split "needs
+other data" (a real windtunnel/CFD split, or a dedicated measurement)
+rather than being derivable from straight-line damper data alone -- it
+cannot be self-consistently resolved from the same data this whole
+session-correction set is built from.
+
+FUEL DRIFT (Item 2) -- SUBSTANTIALLY RESOLVED, from INCONCLUSIVE. New
+diagnostics/inspect_v3_fuel_drift_recheck.py `[keep-reproduces]`:
+normalising each lap's straight-line total by c_session*(v^2-v_ref^2)
+(v_ref = the session's own straight-line mean v^2, 125 km/h-equivalent)
+removes the previously-dominant speed confound directly (raw totals:
+laps 6/7/8 ~20800-21000N at ~230km/h average vs lap 9's 16916N at only
+117km/h average -- almost entirely a speed effect, now correctable
+since this session HAS a fitted aero coefficient). Aero-adjusted totals:
+lap 6=16298.2N, 7=16345.1N, 8=16412.7N, 9=16074.8N -- laps 6-8 read
+FLAT (within ~100N, plausibly just sampling noise, n=115-130 each), lap
+9 reads ~250-300N (~1.5-2%) lower, directionally consistent with mild
+fuel-mass decrease but NOT a confident measurement (small n, and lap 9's
+very different average speed/character leaves some residual uncertainty
+even after the correction). Reported as the honest state: no longer
+confounded, but not a precise fuel-burn-rate result either.
+
+THE THREE-TERM SESSION-CORRECTION SET IS NOW COMPLETE (mass, aero
+magnitude, mass front/rear split) -- modules.wheel_loads.estimate_
+session_corrected_axle_totals now replaces every STATIC-model input it
+reasonably can from this session's own real damper data. REMAINING
+KNOWN GAPS, explicitly not this package's to close:
+- Aero front/rear split (wheel_loads.aero_front_fraction=0.40): needs
+  data this session cannot supply (a real aero-balance measurement) --
+  shown above to be the specific remaining driver of the front-axle-
+  side residual.
+- Single-wheel events (the reconstructed corner's own transient dips,
+  e.g. FR's brief negative excursion at lap 8's most violent moment):
+  STRUCTURAL, not a calibration gap -- reconstruct_missing_corner's own
+  docstring already states this is unobservable by construction with
+  three sensors and a heave/pitch-only model, no session correction can
+  fix it.
+- Fuel-drift resolution: substantially improved (above), not fully
+  precise -- more laps/sessions would sharpen it, not this package.
+
+No production file outside modules/wheel_loads.py touched; config gained
+no new keys this turn (aero_front_fraction was already added in the
+prior entry). No commit made.

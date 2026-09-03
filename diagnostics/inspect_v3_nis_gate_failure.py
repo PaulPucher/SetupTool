@@ -16,7 +16,7 @@ from modules.csv_parser import parse_csv
 from modules.stability_analysis import load_parameters, prepare_vehicle_state
 from modules.tyre_fit_auto import fit_session_pacejka, _base_mask
 from modules.tyre_model_pacejka import pacejka_lateral_force
-from modules.nis_gate import evaluate_gate, compute_health_score
+from modules.nis_gate import evaluate_gate
 
 OUT_DIR = "diagnostics/plots_v3"
 
@@ -49,30 +49,15 @@ def audit_session(label, raw_file, params):
     print(f"r_derivation: {manifest['r_derivation']}")
 
     # --- NIS gate, as actually evaluated in production -----------------
-    nis_gate_verdict = evaluate_gate(manifest["nis_full"], manifest["base_mask"], params)
-    print(f"\nNIS gate (live config, window_samples={params['nis_gate']['window_samples']}): "
-          f"{nis_gate_verdict}")
-
-    # --- Rate-correction experiment (item 4: window not rate-corrected) -
-    # window_samples=20 was calibrated as "~0.4s at 50Hz" (config comment,
-    # config/parameters.json nis_gate._comment). At this session's own
-    # sample_rate_hz, the SAME physical duration corresponds to a
-    # different sample count -- computed here, not assumed, and compared
-    # against the live literal value.
-    rate_hz = state["sample_rate_hz"]
-    physical_duration_s = 20 / 50.0  # what window_samples=20 represents at Dubai's 50 Hz
-    rate_corrected_window = int(round(physical_duration_s * rate_hz))
-    print(f"\n[experiment] live window_samples=20 represents {physical_duration_s:.2f}s "
-          f"at 50 Hz; at this session's {rate_hz:.1f} Hz that is {rate_corrected_window} samples")
-    if rate_corrected_window != 20:
-        cfg = params["nis_gate"]
-        corrected_score = compute_health_score(
-            manifest["nis_full"], manifest["base_mask"], rate_corrected_window,
-            cfg["nis_band_low"], cfg["nis_band_high"],
-        )
-        print(f"[experiment] health_score with rate-corrected window "
-              f"({rate_corrected_window} samples) = {corrected_score:.4f} "
-              f"(threshold_warn={cfg['threshold_warn']}, threshold_use_ekf={cfg['threshold_use_ekf']})")
+    # window_samples is now rate-derived (morning follow-up, NIS gate
+    # window rate-correction, config nis_gate.nis_window_s) -- this
+    # experiment block, which used to compute the rate-corrected window
+    # by hand for comparison against the old literal, is retired: the
+    # live gate now IS the rate-corrected one, so evaluate_gate's own
+    # returned window_samples is already the corrected value.
+    nis_gate_verdict = evaluate_gate(manifest["nis_full"], manifest["base_mask"], params, state["sample_rate_hz"])
+    print(f"\nNIS gate (live config, rate-corrected window_samples="
+          f"{nis_gate_verdict['window_samples']} at {state['sample_rate_hz']:.1f} Hz): {nis_gate_verdict}")
 
     # --- Input population audit -----------------------------------------
     base_mask = manifest["base_mask"]

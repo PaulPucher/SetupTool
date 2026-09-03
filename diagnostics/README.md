@@ -278,3 +278,70 @@ kept because a surviving script imports it, not for its own findings.
   (toggle show/hide, button enable/disable, row rendering against a real
   constructed OutingForm) that tests/test_decision_frame.py's pytest suite
   cannot reach (conftest.py deliberately keeps PyQt6 out of pytest).
+- **inspect_v3_wheel_load_validation.py** `[keep-reproduces]` — damper
+  package (thesis_notes.md "Damper package: wheel loads from pushrod/
+  suspension-travel channels, Phases 1-6", 2026-09-03) Phase 2 validation
+  of modules/wheel_loads.py against real damper/suspension-travel data:
+  straight-line total load vs config weight, fuel-drift trend, transfer
+  signs/magnitudes vs ax/ay, and the ARB sign-convention empirical check
+  the module's own docstring flags as needing re-confirmation. Re-run
+  whenever the estimator changes or a new damper-equipped session arrives.
+- **inspect_v3_wheel_load_comparison_figure.py** `[keep-reproduces]` — the
+  same package's Phase 3 static-split-vs-damper-derived Fz comparison
+  figure generator (rear axle, chosen over front because log_dms_dam_fr
+  is corrupted for the whole GT3_PRC_MLA-v3.txt session). Reusable figure
+  source, not a one-off -- re-run for a new session or corner choice.
+- **inspect_v3_tc_eb_abs_channels.py** `[keep-reproduces]` — the same
+  package's Phase 4 channel survey (traction control, engine braking, ABS
+  activity-vs-position, brake bias), extending the v3 census's own tc_lat/
+  tc_lon/abs/brake_bias search with tract/asr/eb/ebrake/engine_brake/map
+  token-matched terms and per-candidate rate/range/changes-during-session
+  detail. Identification evidence only, no mapping conclusion. Reusable
+  for any future telemetry file, same role as inspect_prc_v3_sample_
+  rates.py for layout/rate census.
+- **inspect_v3_sawtooth_mechanism.py** `[keep-reproduces]` — damper
+  package Phase 7 (thesis_notes.md "v3 sawtooth mechanism investigation:
+  corner selection, window stats, floor-fraction and alpha-character
+  comparison vs Dubai", 2026-09-02), read-only. Diagnosed v3's CS_ratio
+  sawtooth artifact (C13/C12/C5) as CORNER CHARACTER, not a floor
+  miscalibration: v3 and Dubai resolve to numerically identical CS
+  window floors at 100Hz, but v3's own alpha signal is ~31% faster and
+  ~1.8x noisier at matched corner speed, so the same window-growth floor
+  is hit sooner and more often. Open thread (PLAN.md STATUS), will need
+  re-running once CS window floors or thresholds are revisited.
+- **inspect_v3_fuel_drift_recheck.py** `[keep-reproduces]` — follow-up to
+  the damper package's own Phase 2(b) inconclusive fuel-drift finding
+  (thesis_notes.md "Session-measured split fractions..."): normalises
+  each lap's straight-line total by the session-fit aero coefficient
+  (c_session, relative to the session's own reference speed) to remove
+  the speed confound that made the raw per-lap totals uninterpretable.
+  Re-run whenever the session-correction model or a new session changes.
+- **inspect_v3_wheel_load_reconstruction_figure.py** `[keep-reproduces]`
+  — morning follow-up Item 2 (thesis_notes.md "Morning follow-up to the
+  damper package...", 2026-09-03): front-axle comparison figure, measured
+  FL vs RECONSTRUCTED FR (modules.wheel_loads.reconstruct_missing_
+  corner), companion to inspect_v3_wheel_load_comparison_figure.py's
+  rear-axle figure. Reusable figure source, not a one-off.
+- **inspect_v3_abs_consistency_check.py** `[keep-reproduces]` — morning
+  follow-up Item 3: read-only ABS switch-position/activity consistency
+  check on GT3_PRC_MLA-v3.txt (streams 8 named channels directly, no
+  channels.json change). No mapping conclusion -- identification/
+  consistency evidence only. Re-run for any future ABS-question or new
+  damper-equipped session.
+- **inspect_v3_nis_gate_failure.py** `[keep-referenced]` — pre-existing
+  script (v3 work package), gap in this README until now. Cited by
+  filename in PLAN.md's NIS gate redesign proposal (damper package Phase
+  8, 2026-09-03) as the source of the live Dubai-vs-v3 health-score/
+  rate-correction numbers that proposal's PROBLEM section quotes exactly
+  (Dubai 0.1417->0.1351, v3 0.1163->0.0849 under a rate-corrected
+  window). Re-run whenever the NIS gate window/thresholds change --
+  the proposal's own numbers would need re-confirming.
+- **inspect_v3_aero_load_diagnostic.py** `[keep-reproduces]` — the same
+  package's Phase 5 aero diagnostic: damper-derived total Fz regressed
+  against v^2 (with an ax term to remove longitudinal-transfer
+  contamination) on straight-line stretches. Trusts nothing downstream
+  (a pure top-level Fz regression, feeds no estimator); does not write
+  back to config (vehicle.aero.lift_coeff/cross_track_area_m2 stay at
+  their 0.0 placeholders -- only their product is identifiable from a
+  constant-speed regression). Re-run whenever a new damper-equipped
+  session arrives or the wheel-load estimator changes.

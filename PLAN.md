@@ -735,6 +735,209 @@ WHERE THE PROJECT STANDS
   Phase 7 report (user decision, 2026-09-02) -- estimator/threshold work
   stays FROZEN until explicitly reopened, same standing priority order
   as STEP 2's own close-out note above.
+- DAMPER PACKAGE: WHEEL LOADS FROM PUSHROD/SUSPENSION-TRAVEL CHANNELS,
+  Phases 1-6 COMPLETE (2026-09-03, unsupervised overnight package -- full
+  record: thesis_notes.md "Damper package: wheel loads from pushrod/
+  suspension-travel channels, Phases 1-6"). BACKLOG item B ("Forces:
+  damper-derived Level-4 wheel loads... gated on damper data arriving")
+  substantially addressed now that GT3_PRC_MLA-v3.txt's own damper/
+  suspension-travel channels supply that data -- new modules/wheel_
+  loads.py (additive, Segers ch.9/10 method anchor, page cites VERIFIED
+  2026-09-03 by the reviewer against docs/literature/'s excerpt copies --
+  ch.9 p.199, ch.10 pp.221-256, thesis_notes.md), whitelisted via 8
+  new config/channels.json channels, registered as accuracy_levels.
+  wheel_load_damper Level 4 PER CORNER (static-split remains fallback,
+  never a whole-session switch) -- not yet wired into modules/accuracy_
+  resolution.py's dynamic cascade or any UI/pipeline consumer, same
+  incremental scope as per_wheel_load_split's own still-unwired phase 1.
+  CRITICAL DATA FINDING: log_dms_dam_fr is corrupted for the ENTIRE v3
+  session (~-15.95 million N constant reading) -- FR falls back to the
+  static-split estimate for every sample; FL/RL/RR are 100% damper-valid.
+  Motion-ratio direction determined ANALYTICALLY (every car_data.json
+  table point <1.0, standard F_wheel=F_damper*MR convention), not by
+  trial-of-both-conventions -- corroborated, not just asserted, by the
+  validation below. VALIDATION (bands, reported honestly): straight-line
+  total load +11.64% over config static weight (outside the +/-5% band,
+  plausibly REAL aero downforce -- config's own lift_coeff=0.0 placeholder
+  has no aero term to compare against, and Phase 5's independent v^2
+  regression corroborates: c=+1.3655 N/(m/s)^2, downforce-consistent,
+  R^2=0.79); fuel-drift trend CONFOUNDED by an under-controlled speed
+  mask, reported as inconclusive, not fixed; cornering-load signs correct
+  and strong (corr(ay,Fz_fr)=+0.966); ARB sign-convention EMPIRICALLY
+  CONFIRMED (corr(travel_fl-travel_fr, ay)=+0.969); front/rear dynamic
+  split 37/63 vs static 42.8/57.2, reported only. Comparison figure
+  (rear axle, chosen over front given FR's corruption): diagnostics/
+  plots_v3/wheel_load_comparison_C12_lap8.png. Channel survey (Phase 4,
+  identification evidence only): TC activity (ecu_B_tc_act) vs TC
+  position (ecu_TC_int_pos, constant this session) both found and
+  distinguished; ABS activity (abs_active) vs position (abs_switch_pos=6,
+  matching config/car_data.json's own abs table row 6 description) found,
+  but a cross-domain disagreement (log_abs_pos/log_rt_abs_pos/stw_rt04_
+  abs all read 5, not 6, same session) is flagged, not resolved; brake-
+  bias candidates listed (Math_Brake_Bias_Hold, abs_brk_bal_prop family),
+  none confirmed. 6 new targeted unit tests (tests/test_wheel_loads.py),
+  all pass. 4 new diagnostics scripts for this bullet's own Phases 1-5
+  (Phase 7's own script is a separate bullet below), all
+  `[keep-reproduces]` (diagnostics/README.md updated -- also closed a
+  pre-existing gap, adding the missing entry for inspect_v3_nis_gate_
+  failure.py, cited by the NIS gate proposal below). Full suite run once
+  at the very end of
+  this whole overnight session (covering the damper package, Phase 7's
+  sawtooth investigation, and Phase 8's NIS proposal together -- none of
+  the three touched estimator/production code): 176 passed, 9 skipped,
+  1 xfailed, 0 failed, 0 errors (50:01) -- parser whitelist changed (8
+  new channels) but no existing channel/config value changed, so every
+  existing golden was expected to pass unchanged, and did (confirmed: no
+  golden JSON file appears in git status). test_stability.py also
+  reconfirmed clean (exit 0) against the live Dubai sample. Open for the user: pushrod zero-offset
+  calibration procedure (none exists yet); which kinematic_variants_
+  front/rear variant is actually fitted (roll-centre heights are a Level
+  1 baseline-variant estimate); a real tyre dynamic-radius measurement;
+  the ABS-position cross-domain disagreement; whether to pursue an aero-
+  coefficient work package (Phase 5's regression makes a real case for
+  one). Pre-existing gap noticed, not this package's to fix: diagnostics/
+  inspect_v3_cs_validity_and_kinematic.py, inspect_v3_full_pipeline.py,
+  inspect_v3_figures.py, inspect_v3_nis_gate_failure.py have no
+  diagnostics/README.md entry.
+- V3 SAWTOOTH MECHANISM INVESTIGATED (2026-09-02, damper package Phase 7,
+  read-only -- full record: thesis_notes.md "v3 sawtooth mechanism
+  investigation: corner selection, window stats, floor-fraction and
+  alpha-character comparison vs Dubai"). CONCLUSION: CORNER CHARACTER, not
+  a floor miscalibration -- v3 and Dubai resolve to numerically IDENTICAL
+  CS window floors at 100Hz (min_window=10, min_span=0.02 rad both), but
+  v3's own alpha signal is ~31% faster (median |dalpha/dt|) and ~1.8x
+  noisier (straight-line jitter std) than Dubai's at matched corner speed
+  class -- so the same window-growth floor is hit sooner and more often on
+  v3, producing more frequent small-n/high-R2 unstable windows (Dubai's
+  own already-documented mechanism, "Mechanism investigation: wholesale-
+  negative CS_ratio"). Checked on C13 (forced), C12 and C5 (top two by a
+  sign-change-rate ranking metric across all 20 v3 corners) -- C12/C5
+  behave exactly as the mechanism predicts (sign-change rate collapses or
+  halves under kinematic beta's wider, slower-changing alpha); C13 itself
+  is a PARTIAL EXCEPTION (barely changes under kinematic despite ~2x
+  larger windows) -- flagged as an open sub-question, not resolved. Both
+  checked windows show clean folds (0 self-crossings), not hysteresis
+  loops. No config/estimator/threshold touched. This does NOT close the
+  "v3 sawtooth" open thread -- it explains the mechanism, the floor/
+  threshold question itself remains open (see the NIS gate proposal above
+  for the same "does 100Hz-grid rate-correction change verdicts" pattern
+  recurring in a second estimator subsystem).
+- MORNING FOLLOW-UP: NIS WINDOW RATE-CORRECTION SHIPPED, FR
+  RECONSTRUCTION ADDED, ABS CONSISTENCY CHECKED (2026-09-03 -- full
+  record: thesis_notes.md "Morning follow-up to the damper package: NIS
+  window rate-correction, FR reconstruction, ABS consistency check").
+  (1) NIS gate window_samples=20 literal REPLACED by nis_window_s=0.4,
+  rate-derived at runtime (modules.nis_gate.resolve_nis_window_samples)
+  -- the Phase 8 proposal's own mechanism (Option A), shipped as a
+  standalone Tier B bug fix per explicit instruction, thresholds
+  UNCHANGED. LIVE, CONFIRMED verdicts: Dubai PASS->WARN (0.1417->0.1351),
+  v3 WARN->FAIL (0.1163->0.0849) -- v3 under ekf_auto_pacejka now falls
+  back to kinematic beta where it previously used the fitted EKF, a real,
+  correctly-triggered behaviour change for that one session; Dubai's beta
+  output is unaffected (resolve_sideslip_beta treats pass/warn
+  identically). (2) modules/wheel_loads.py gained reconstruct_missing_
+  corner/combine_with_reconstruction_and_fallback -- when exactly one
+  corner of an axle is damper-invalid and its mate is valid, reconstructs
+  via axle-total-model minus the real mate (exact given the model, no
+  roll/ARB model needed for the split), registered as accuracy_levels.
+  wheel_load_damper_reconstructed (Level 1, chained to the same aero/
+  cog-height placeholders as per_wheel_load_split -- provenance tier, not
+  a confidence score). New figure diagnostics/plots_v3/wheel_load_
+  reconstruction_C12_lap8.png shows the reconstructed FR swinging to
+  unphysical negative values during FL's own most violent transient -- a
+  real illustration of the method's own stated single-wheel-event-
+  invisible limitation, not a bug. (3) ABS consistency check (read-only,
+  no mapping conclusion): abs_switch_pos/log_abs_pos/log_rt_abs_pos never
+  change value all session (reconfirmed); abs_active fires in 41.00% of
+  hard-braking samples but only 26.18% of its own firings are during hard
+  braking -- fires substantially outside hard-braking too. Targeted tests
+  only (tests/test_nis_gate.py 13 passed/9 skipped -- same pre-existing
+  skip reason as before, unrelated to this fix; tests/test_wheel_loads.py
+  9 passed); full suite NOT run (no golden-covered path touched -- Item
+  1 changes no currently-non-failing session's beta output, items 2-3 are
+  purely additive/read-only). No commit made.
+- WHEEL-LOAD SHOWCASE, GROUND-TRUTH CHECK, AERO GAP CLOSED (2026-09-03,
+  same day, three linked work orders -- full record: thesis_notes.md
+  "Wheel-load showcase, ground-truth check, and closing the
+  reconstruction's aero gap"). Showcase (read-only): numbers block +
+  2 figures from the (then-uncorrected) static model; flagged 2 real
+  sanity issues found, not fixed (the "heaviest braking" sample is a
+  10-15Hz oscillation burst, not real braking; the "fastest corner"
+  sample is the same 4.75g spike Phase 3 already excluded). Ground-truth
+  check (read-only, diagnostics/inspect_v3_reconstruction_ground_truth.
+  py): dropped a real RL/RR in turn, reconstructed it, compared to its
+  own measurement -- STATIC model showed mean error -2607.2N (IDENTICAL
+  for RL/RR by construction -- proven algebraic identity, not a
+  coincidence), a ~25.5% axle-total underestimate traced to config mass/
+  Cl=0 both omitting this session's real loaded mass and real aero.
+  IMPLEMENTED: modules.wheel_loads.estimate_session_corrected_axle_
+  totals -- session-measured mass (this session's own +10.4% straight-
+  line total) + session-fit aero (F_aero=c_session*v^2, same Phase 5
+  method, non-circular FR-proxied-by-FL fit) replace the static model's
+  two Level-1 placeholders for the RECONSTRUCTION TIER ONLY (global
+  static split / config Cl=0.0 UNCHANGED for every other consumer). New
+  config wheel_loads.aero_front_fraction=0.40 (Level 1 placeholder, GT3-
+  typical rear-biased assumption, stated in the result dict). RE-VERIFIED:
+  ground-truth mean error -2607.2N -> +497.1N (80.9% reduction, "a few
+  hundred N" as pre-registered), corner-vs-straight error gap narrowed
+  8x; FR reconstruction figure's sustained-negative trace GONE (pre-
+  registered, confirmed). DISCOVERED, NOT PRE-REGISTERED, REPORTED
+  HONESTLY: the corner-weight numbers block got WORSE for FR specifically
+  (271.7kg under -> 424.7kg over vs config 290kg; whole-session total
+  +10.4% -> +21.6%) -- the ground-truth test only exercises the REAR
+  axle (no front/rear split fraction involved), so it never validated
+  the STATIC geometric front/rear split fraction the correction still
+  uses to divide the now-larger total; this project's own Phase 2(d)
+  finding (dynamic front/rear split 37/63 vs static 42.8/57.2) means
+  that fraction is known-wrong for this car under load. OPEN ITEM for
+  the user: replace the static split fraction with a session-measured
+  dynamic one, the same upgrade pattern already applied to mass/aero --
+  not done this turn (implement/verify/stop, not iterate). 1 new test
+  (tests/test_wheel_loads.py, 10/10 pass); no full suite run (targeted
+  only, per this package's own scope). No commit made.
+  ALSO: the earlier NIS-window-fix full-suite run (bullet above)
+  COMPLETED after this bullet was written: 181 passed, 9 skipped, 1
+  xfailed, 0 failed, 0 errors -- confirms empirically that fix broke
+  nothing (176 baseline + 2 nis_gate + 3 wheel_loads new tests).
+- SESSION-MEASURED SPLIT FRACTIONS -- THE THREE-TERM SESSION-CORRECTION
+  SET IS COMPLETE (2026-09-03, same day, follow-up -- full record:
+  thesis_notes.md "Session-measured split fractions -- the third and
+  last term..."). Closed the open item the previous bullet left: modules.
+  wheel_loads.estimate_session_corrected_axle_totals now also derives
+  front_mass_fraction (session-measured front/rear total ratio at
+  straight-line samples, replacing the static geometric fraction for the
+  MASS term only) and reports rear_left_fraction (both rears real, no
+  proxy needed). Aero front/rear split explicitly STAYS the config
+  placeholder (wheel_loads.aero_front_fraction=0.40) -- straight-line
+  data cannot measure an aero split (no differential signal), stated not
+  left implied. 2 new tests, 11/11 in tests/test_wheel_loads.py pass.
+  HONEST RE-VERIFICATION, NOT a clean confirmation of every pre-
+  registration: ground-truth mean error moved +497.1N -> +885.9N (WORSE,
+  not "little change" as pre-registered) -- traced to a real mechanism
+  the ground-truth test's own design missed: rear axle total = mass*(1-
+  front_mass_fraction)+..., so it is NOT insulated from a front-fraction
+  change, a genuine limitation of that test surfaced by using it, not
+  assumed beforehand. Corner-weight FR moved 424.7kg -> 385.1kg (closer
+  to FL's 308.2kg, real improvement) but NOT "near its measured-total-
+  consistent value" (77kg gap remains); whole-session total residual
+  +21.6% -> +18.7% (improved but NOT back to the pre-registered ~+10%
+  range, still above the ORIGINAL +10.4% this whole arc started from) --
+  traced to front_mass_fraction (now correctly session-measured) and
+  aero_front_fraction (still an unrelated 0.40 placeholder) being
+  mutually inconsistent, double-counting part of the front axle's own
+  real aero share -- exactly why the aero split "needs other data" and
+  cannot be self-consistently resolved from this same straight-line
+  data. Fuel drift (Item 2): SUBSTANTIALLY RESOLVED from inconclusive --
+  new diagnostics/inspect_v3_fuel_drift_recheck.py normalises each lap's
+  total by the session's own fitted aero term, removing the dominant
+  speed confound (raw totals were driven almost entirely by each lap's
+  own average straight-line speed); aero-adjusted totals flat across
+  laps 6-8 (~16300-16400N), lap 9 ~250-300N lower -- directionally
+  fuel-consistent, not a precise burn-rate measurement (small n). REMAINING
+  KNOWN GAPS, explicit, not this package's to close: aero front/rear
+  split (needs real aero-balance data); single-wheel events (structural,
+  reconstruct_missing_corner's own docstring already states this);
+  fuel-drift precision (improved, not exact). No commit made.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -917,6 +1120,201 @@ STEP 4 -- Decision-matrix cleanup (the recommendation rules).
      re-derivation step as CS_ratio, still undecided whether LS_ratio
      should be a recommendation input at all.
 
+DECISION FRAME -- STAGE 2 BACKLOG (modules/decision_frame.py, Stage 1
+complete per thesis_notes.md "Decision-matrix frame, Stage 1"). New item
+added 2026-09-03 (damper package Phase 4, channel survey):
+  - Intervention-evidence design note: an ABS-inactive reading
+    (abs_active=0 throughout a braking event) combined with a driver
+    report of locking corroborates "increase ABS"; a TC-active reading
+    (ecu_B_tc_act=1) cutting hard combined with a driver report of exit
+    oversteer corroborates "traction-limited", not "cornering-limited" --
+    in both cases the LOGGED evidence and the DRIVER's own verbatim
+    report are treated as co-equal, mutually corroborating sources (same
+    "data and driver as co-equal evidence sources" design principle
+    already recorded, thesis_notes.md section 2), with the driver's
+    literal wording preserved and quoted rather than paraphrased into a
+    category (an "engineer-verbatim" provenance grade, distinct from the
+    frame's existing data-derived grades). WIRING DEFERRED until the
+    candidate channel names found in the Phase 4 survey (thesis_notes.md
+    "Damper package... Phase 4") are CONFIRMED against the team/telemetry
+    documentation -- ecu_B_tc_act/ecu_TC_int_pos and abs_active/abs_
+    switch_pos are plausible, not confirmed, identities. Do not wire this
+    note into build_evidence/build_candidates until that confirmation
+    lands.
+
+### PROPOSAL (awaiting review -- the THRESHOLD/BAND decision below is
+still WRITE-ONLY, not implemented) -- NIS gate redesign, session-adaptive
+acceptance design [2026-09-03, damper package Phase 8]
+
+UPDATE (2026-09-03, morning follow-up Item 1): OPTION A's own MECHANISM
+(rate-correct the window) is now IMPLEMENTED -- config nis_gate.
+nis_window_s=0.4, modules.nis_gate.resolve_nis_window_samples, full
+record thesis_notes.md "Morning follow-up to the damper package... Item
+1". This was authorised explicitly as a standalone bug fix (Tier B,
+precedent), NOT as a decision on the threshold/band question below --
+threshold_use_ekf/threshold_warn are UNCHANGED, per that same work
+order's own instruction. The verdicts below are therefore now LIVE
+production behaviour, not a prediction: Dubai PASS->WARN, v3 WARN->FAIL,
+both confirmed by re-running diagnostics/inspect_v3_nis_gate_failure.py
+(thesis_notes.md has the exact numbers). Options B/C/D below (the actual
+threshold/band redesign) remain fully open, un-decided, write-only.
+
+PROBLEM, evidenced (HISTORICAL framing kept as originally written --
+describes the defect this fix closed, not the current state) (diagnostics/inspect_v3_nis_gate_failure.py, re-run
+this session against the LIVE 100Hz-grid config for both files -- not
+assumed from memory): modules/nis_gate.py's window_samples=20 was
+calibrated as "~0.4s at 50Hz" (config/parameters.json nis_gate._comment)
+but BOTH reference sessions now run on the 100Hz time-base grid (Dubai's
+own upgrade, thesis_notes.md "100 Hz time-base work package"; v3 native)
+-- so window_samples=20 silently represents 0.2s, HALF its intended
+physical duration, for BOTH sessions today. This is the SAME residual
+gap config/parameters.json's own _comment_grid_rate note already flags
+("nis_window_samples... remain literal sample counts NOT rate-
+corrected"), now quantified with real numbers: at the CORRECT rate-
+corrected window (40 samples = 0.4s at 100Hz), Dubai's health_score
+falls from 0.1417 to 0.1351 (verdict PASS -> WARN under the current,
+uncorrected thresholds) and v3's falls from 0.1163 to 0.0849 (verdict
+WARN -> FAIL). The gate's window duration and its thresholds are
+currently BOTH wrong for the same reason (calibrated together against
+an assumption that no longer holds), so fixing only one without the
+other would produce a worse-calibrated gate, not a better one -- hence
+a proposal, not a quick edit.
+
+CURRENT STATE (both real sessions, live config, for reference): Dubai
+health_score=0.1417 (PASS, threshold_use_ekf=0.1385); v3 health_score=
+0.1163 (WARN, threshold_warn=0.1006). Both thresholds are themselves
+already marked PROVISIONAL (config nis_gate._comment: "gap-selected from
+five data points... a SINGLE session", "not a recommendation to apply
+as-is").
+
+OPTIONS (pros/cons, pre-registered expectations, config shape, what each
+invalidates):
+
+OPTION A -- rate-correct the window only, thresholds unchanged.
+  Change: nis_window_samples becomes nis_window_s (a physical duration,
+  e.g. 0.4), derived at runtime to samples via round(nis_window_s *
+  sample_rate_hz) -- identical pattern to stability_estimation.cs_min_
+  window_s's own rate-derivation (modules.stability_analysis.resolve_
+  cs_min_window_samples).
+  Pre-registered expectation: Dubai PASS->WARN, v3 WARN->FAIL (both
+  computed above, not estimated).
+  Pro: fixes a real, already-flagged method inconsistency (a window
+  should not silently halve its physical meaning when the grid rate
+  changes) -- a correctness fix, not a redesign judgement call.
+  Con: on its own, immediately regresses production behaviour (Dubai,
+  the only session the auto-fit path has ever shipped against, would
+  now WARN instead of PASS) without addressing why the thresholds might
+  need to move too -- not proposed as a standalone action, only as the
+  first half of any of B/C/D below.
+  Invalidates: threshold_warn/threshold_use_ekf (both were gap-selected
+  against the OLD, uncorrected window); the WP-N3 five-synthetic-
+  scenario mismatch-gate calibration (thesis_notes.md Phase 4 entry)
+  would need re-running under the corrected window before its own
+  gap-selection reasoning could be trusted again.
+
+OPTION B -- two-session calibrated band (rate-corrected window + re-
+gap-select thresholds using both Dubai and v3 as real anchors, instead
+of one real session plus four synthetic mismatch scenarios).
+  Change: same window fix as A, plus threshold_warn/threshold_use_ekf
+  re-derived by gap-selection against {Dubai, v3} (and any future real
+  session) health scores directly, retiring or supplementing the
+  synthetic-scenario population.
+  Pre-registered expectation: by construction, thresholds can be picked
+  so Dubai passes and v3 does not fail outright (e.g. threshold_warn
+  below v3's 0.0849, threshold_use_ekf above Dubai's 0.1351) -- but this
+  is somewhat circular (the band is fitted to exactly the two points
+  available), not a principled boundary.
+  Pro: incremental, keeps the existing health-score/fraction-in-band
+  mechanism, adds real-session evidence where before there was one real
+  + four synthetic points.
+  Con: still an n=2 (real) sample threshold, same standing "single/few-
+  session, provisional" caveat as today, just less thin; does not
+  address WHY Dubai and v3 differ (v3's own R_ay_var_derived is ~1.5x
+  Dubai's, 56.4 vs 37.0 -- a real, plausibly legitimate difference in
+  session noise character, not necessarily a worse fit) -- a fixed band
+  across sessions with different noise floors may always misclassify
+  one of them.
+  Invalidates: same as A, plus the current five-data-point synthetic
+  derivation's own stated rationale (still usable as a secondary check,
+  no longer the primary anchor).
+
+OPTION C -- residual-normalised band per Kiencke/Nielsen innovation
+testing (principled statistical test, not gap-selection).
+  Change: replace the health-score "fraction of NIS samples inside
+  [nis_band_low, nis_band_high]" metric with a formal chi-square
+  consistency test on the normalised innovation sequence (the same NIS
+  quantity, but tested against its theoretical distribution under a
+  correctly-tuned filter at a chosen significance level), following
+  Kiencke & Nielsen, "Automotive Control Systems" (2nd ed., 2005) --
+  citation TO VERIFY: PLAN.md's own ANCHORS section already verifies
+  this book's "Vehicle Body Side Slip Angle Observer" section for a
+  DIFFERENT purpose (the sideslip observer itself); an innovation-
+  testing/NIS-consistency section, if the book has one, has NOT been
+  independently verified this session (no PDF-render tool was available
+  -- same limitation noted in thesis_notes.md's damper-package citation
+  entry). Do not cite a specific chapter/page until checked directly.
+  Pre-registered expectation: cannot be computed without first doing the
+  literature check above -- flagged, not guessed.
+  Pro: escapes the "N data points, gap-selected" pattern entirely --
+  a real Tier A anchored method upgrade, and one whose acceptance region
+  does not need to grow with the number of sessions observed.
+  Con: the theoretical chi-square consistency test assumes a correctly
+  specified Q/R noise model, but THIS project's own R values (tyre_
+  model_ekf.pass_1.R_ay_var/R_yaw_rate_var) are themselves gap-selected/
+  swept against an acceptance BAND (thesis_notes.md "r_q_sweep_note"),
+  not derived from a validated noise model -- a "principled" test built
+  on an already-approximate noise model may not be more trustworthy in
+  practice than option B, just differently justified; also does not by
+  itself solve the rate-correction problem (window duration is an
+  orthogonal fix needed regardless of which acceptance test is chosen).
+  Invalidates: the entire health-score/fraction-in-band construction
+  (modules/nis_gate.py's compute_health_score), a bigger, riskier change
+  than A/B; every existing threshold and the WP-N3 synthetic-scenario
+  calibration.
+
+OPTION D -- relative-to-kinematic (session-adaptive by construction, no
+cross-session absolute threshold at all).
+  Change: instead of comparing the auto-fit EKF's NIS health score
+  against a FIXED absolute band shared across all sessions, compare it
+  against a measure of what THIS session's own noise characteristics
+  would predict (e.g. the EKF's own empirically-derived R for this
+  session, or a same-session kinematic-beta baseline run through the
+  same NIS-consistency machinery) -- the gate asks "is this fit
+  inconsistent with what THIS session's own data says it should look
+  like", not "does this session's score fall in a band tuned on other
+  sessions".
+  Pre-registered expectation: by design, adapts automatically to a
+  session with a genuinely different noise floor (like v3's higher
+  R_ay_var_derived above) without needing that session's data as a
+  threshold-calibration anchor first -- cannot state a numeric pass/warn
+  outcome without first designing the exact relative metric, which this
+  proposal does not attempt (write-only, evidence-gathering stops here).
+  Pro: most directly answers the work order's own framing ("session-
+  adaptive acceptance design") and the standing v3 finding that its
+  noise floor is measurably different from Dubai's, not obviously worse.
+  Con: the most design work of the four options (a new relative metric
+  must be specified and itself validated before any threshold exists);
+  highest risk of a design mistake being invisible until a third,
+  differently-behaved session arrives.
+  Invalidates: everything option C invalidates, plus the whole "fixed
+  band across sessions" premise the gate has used since WP-N3.
+
+RECOMMENDATION (not a decision -- for the user's review): fix the rate-
+correction defect (Option A's mechanism) unconditionally, since it is a
+correctness bug independent of any redesign choice, but do NOT ship it
+alone (see Option A's own "regresses Dubai" con) -- land it bundled with
+either B (fastest, incremental, real-session-anchored) or D (best
+matches "session-adaptive", more design work) as the actual threshold
+answer. C is the most scientifically satisfying anchor if the Kiencke/
+Nielsen citation checks out, but its own noise-model-quality caveat
+means it is not obviously better-calibrated in practice than B, only
+differently justified -- lower priority unless the citation check
+reveals a strong, directly-applicable NIS consistency test.
+
+NOT DONE by this proposal: no gate code touched, no config/parameters.
+json nis_gate value edited, no threshold changed. Stop here per the work
+order.
+
 STANDING WARNINGS -- carry these into every future session
 
 - NEVER state a config value from memory or from an instruction.
@@ -973,12 +1371,27 @@ C - Decision-matrix depth: elicitation question set (own file, to
     engineer); matrix expansion incl. the beyond-peak gap; cost
     function with elicited weights; feasibility/conflict logic.
     Gated on elicitation answers.
-B - Forces: damper-derived Level-4 wheel loads; roll-stiffness
-    apportionment; Fy split upgrade -> CS threshold re-derivation.
-    Gated on damper data arriving (no date). Science prep done
-    externally (Segers Ch. 9/10 anchors, method fixed; open items:
-    roll center heights, gauge calibration check) -- still gated on
-    50 Hz damper data arriving.
+B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
+    VALIDATED 2026-09-03 (modules/wheel_loads.py, damper package,
+    thesis_notes.md "Damper package: wheel loads from pushrod/
+    suspension-travel channels, Phases 1-6"; STATUS bullet above has
+    the headline numbers). Damper data arrived via GT3_PRC_MLA-v3.txt.
+    Both previously-open items resolved as far as this session's data
+    allows, NEITHER fully closed: roll center heights use car_data.
+    json's own stated baseline kinematic variant (Level 1 estimate,
+    fitted variant for this session unconfirmed -- open item carried
+    forward); gauge calibration check found NO existing offset/
+    calibration procedure or entry point at all (pushrod zero-offset
+    config keys default to 0.0, flagged, not fabricated -- open item
+    carried forward, needs a real procedure + UI field). STILL OPEN,
+    not part of this package's scope: roll-stiffness apportionment
+    (the per-wheel split inside estimate_vertical_loads stays the
+    chair's own independent-per-axle lateral-transfer split, a
+    documented later DOMAIN IMPROVEMENT, now damper-VALIDATABLE in
+    principle but not attempted); Fy split upgrade -> CS threshold
+    re-derivation (wheel_load_damper is not wired into any Module 4b/
+    accuracy_resolution.py consumer yet, so no CS threshold is affected
+    by this package).
 D - Output artifacts: weekend PDF expansion; per-corner CS overlay
     and g-g plots.
 E - Cleanup (after track A closes): diagnostics inventory + README,
@@ -1074,7 +1487,17 @@ Control Systems, 2nd ed. 2005 - "Vehicle Body Side Slip Angle
 Observer" section. Both confirmed visually by the user. Lecture
 anchor: dropped by decision. Open: Mitschke/Wallentowitz "p. TBD"
 in estimate_sideslip to be REPLACED by Rajamani 2.6/2.3, not
-deleted (not yet done).
+deleted (not yet done). Segers, Analysis Techniques for Racecar
+Data Acquisition, SAE International 2014 - Ch. 9 p. 199 (pushrod/
+damper force to wheel load via motion ratio), Ch. 10 pp. 221-256
+(roll-centre geometric vs spring-path elastic load-transfer split)
+-- modules/wheel_loads.py's method anchor. Verified 2026-09-03 by
+the reviewer against docs/literature/'s excerpt copies (thesis_
+notes.md "Damper package: wheel loads..."), no longer "to verify".
+Kiencke & Nielsen's own innovation-testing/NIS-consistency section
+(distinct from the already-verified sideslip-observer section
+above) is NOT yet checked -- cited as "TO VERIFY" in the NIS gate
+redesign proposal (Option C) if that direction is ever taken.
 
 ## STATUS HISTORY (superseded, newest last)
 Its "still-uncommitted" claims are OUTDATED -- that work was committed in 82bc49c, f37053f, e6ef209, 0bdff87, 5f44688, b96d59a, 2d3346f; read it as historical narrative only, never as current repo state.

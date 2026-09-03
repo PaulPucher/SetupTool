@@ -765,7 +765,8 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
             fallback_reason = f"fit status 'degenerate': {raw_fit_manifest.get('degenerate_reason')}"
             beta = estimate_sideslip(state, params)
         else:
-            gate_verdict = evaluate_gate(raw_fit_manifest["nis_full"], raw_fit_manifest["base_mask"], params)
+            gate_verdict = evaluate_gate(
+                raw_fit_manifest["nis_full"], raw_fit_manifest["base_mask"], params, state["sample_rate_hz"])
             if gate_verdict["verdict"] == "fail":
                 fallback_used = True
                 fallback_reason = (

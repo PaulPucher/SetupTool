@@ -70,15 +70,31 @@ def classify_score(health_score, threshold_use_ekf, threshold_warn):
     return "fail"
 
 
-def evaluate_gate(nis_combined_full, mask, params):
+def resolve_nis_window_samples(params, sample_rate_hz):
+    """nis_gate.nis_window_s is a PHYSICAL window duration (0.4s), not a
+    sample count -- the literal window_samples=20 this replaces was
+    always a 50Hz-calibrated value (20/50=0.4s), silently wrong on any
+    other grid rate (config nis_gate.nis_window_s_derived_from has the
+    full defect history). Same rate-derivation pattern as modules.
+    stability_analysis.resolve_cs_min_window_samples; no floor here
+    (unlike that function) since this project's own min_sample_rate_hz
+    floor (50Hz) already keeps the derived count away from anything
+    pathologically small.
+    """
+    return int(round(params["nis_gate"]["nis_window_s"] * sample_rate_hz))
+
+
+def evaluate_gate(nis_combined_full, mask, params, sample_rate_hz):
     """Evaluate the gate as the top-level entry point. params is the raw
-    or accuracy-resolved parameters dict (reads params["nis_gate"] only).
-    Returns a dict with the verdict plus every number behind it, so a
-    caller (the production analysis thread, a diagnostic script) never
-    has to re-derive what produced the verdict.
+    or accuracy-resolved parameters dict (reads params["nis_gate"] only,
+    apart from window_samples which is now rate-derived from sample_
+    rate_hz via resolve_nis_window_samples). Returns a dict with the
+    verdict plus every number behind it, so a caller (the production
+    analysis thread, a diagnostic script) never has to re-derive what
+    produced the verdict.
     """
     cfg = params["nis_gate"]
-    window_samples = int(cfg["window_samples"])
+    window_samples = resolve_nis_window_samples(params, sample_rate_hz)
     band_low, band_high = cfg["nis_band_low"], cfg["nis_band_high"]
     threshold_use_ekf, threshold_warn = cfg["threshold_use_ekf"], cfg["threshold_warn"]
 

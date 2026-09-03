@@ -29,7 +29,7 @@ import pytest
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import load_parameters, prepare_vehicle_state
 from modules.tyre_fit_auto import fit_session, _base_mask
-from modules.nis_gate import compute_health_score, classify_score, evaluate_gate
+from modules.nis_gate import compute_health_score, classify_score, evaluate_gate, resolve_nis_window_samples
 from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
@@ -94,7 +94,7 @@ def nis_gate_scenarios():
                 cfg[k] = cfg[k] * scale
             nis_by_label[f"{param_name}_x{scale}"] = run_nis(cfg)
 
-    return {"nis_by_label": nis_by_label, "mask": mask, "params": params}
+    return {"nis_by_label": nis_by_label, "mask": mask, "params": params, "sample_rate_hz": state["sample_rate_hz"]}
 
 
 def test_healthy_dubai_fit_passes(nis_gate_scenarios):
@@ -102,6 +102,7 @@ def test_healthy_dubai_fit_passes(nis_gate_scenarios):
         nis_gate_scenarios["nis_by_label"]["healthy"],
         nis_gate_scenarios["mask"],
         nis_gate_scenarios["params"],
+        nis_gate_scenarios["sample_rate_hz"],
     )
     assert result["verdict"] == "pass", (
         f"healthy Dubai fit verdicted {result['verdict']!r} (score={result['health_score']:.4f}), "
@@ -121,6 +122,7 @@ def test_synthetic_mismatch_verdicts(nis_gate_scenarios, label, expected_verdict
         nis_gate_scenarios["nis_by_label"][label],
         nis_gate_scenarios["mask"],
         nis_gate_scenarios["params"],
+        nis_gate_scenarios["sample_rate_hz"],
     )
     assert result["verdict"] == expected_verdict, (
         f"{label}: verdicted {result['verdict']!r} (score={result['health_score']:.4f}), "
@@ -149,6 +151,22 @@ def test_worst_mismatch_is_strictly_the_lowest_score(nis_gate_scenarios):
     assert all(healthy_score > s for s in mismatch_scores), (
         f"healthy score {healthy_score:.4f} is not strictly above every mismatch score {mismatch_scores}"
     )
+
+
+# --- window rate-derivation (morning follow-up, NIS gate rate-correction) --
+
+def test_resolve_nis_window_samples_at_100hz_is_not_the_old_literal_20():
+    # The bug this fix closes: window_samples=20 was a 50Hz-calibrated
+    # 0.4s literal, silently representing 0.2s at 100Hz. The corrected
+    # resolver must recover the full 0.4s (40 samples) at 100Hz, not 20.
+    params = {"nis_gate": {"nis_window_s": 0.4}}
+    assert resolve_nis_window_samples(params, 100.0) == 40
+    assert resolve_nis_window_samples(params, 50.0) == 20
+
+
+def test_resolve_nis_window_samples_rounds_to_nearest_sample():
+    params = {"nis_gate": {"nis_window_s": 0.4}}
+    assert resolve_nis_window_samples(params, 33.0) == round(0.4 * 33.0)
 
 
 # --- boundary classification (pure function, no EKF run needed) ------------
@@ -190,7 +208,7 @@ def test_compute_health_score_empty_mask_is_nan():
 def test_evaluate_gate_short_session_degrades_to_fail(nis_gate_scenarios):
     short_nis = np.array([1.0, 2.0, 3.0])
     short_mask = np.array([True, True, True])
-    result = evaluate_gate(short_nis, short_mask, nis_gate_scenarios["params"])
+    result = evaluate_gate(short_nis, short_mask, nis_gate_scenarios["params"], nis_gate_scenarios["sample_rate_hz"])
     assert result["verdict"] == "fail"
     assert result["degenerate_reason"] is not None
 
@@ -199,17 +217,18 @@ def test_evaluate_gate_all_nan_nis_degrades_to_fail(nis_gate_scenarios):
     n = 200
     nis = np.full(n, np.nan)
     mask = np.ones(n, dtype=bool)
-    result = evaluate_gate(nis, mask, nis_gate_scenarios["params"])
+    result = evaluate_gate(nis, mask, nis_gate_scenarios["params"], nis_gate_scenarios["sample_rate_hz"])
     assert result["verdict"] == "fail"
 
 
 def test_evaluate_gate_never_raises_on_degenerate_input(nis_gate_scenarios):
     # Explicit "never crash" check across a few adversarial shapes.
     params = nis_gate_scenarios["params"]
+    sample_rate_hz = nis_gate_scenarios["sample_rate_hz"]
     for nis, mask in (
         (np.array([]), np.array([], dtype=bool)),
         (np.full(5, np.nan), np.ones(5, dtype=bool)),
         (np.zeros(50), np.zeros(50, dtype=bool)),
     ):
-        result = evaluate_gate(nis, mask, params)
+        result = evaluate_gate(nis, mask, params, sample_rate_hz)
         assert result["verdict"] == "fail"

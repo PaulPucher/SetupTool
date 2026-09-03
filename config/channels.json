@@ -242,6 +242,86 @@
         350
       ],
       "required": false
+    },
+    "log_dms_dam_fl": {
+      "label": "Damper Force FL",
+      "unit": "N",
+      "range": [
+        -5000,
+        20000
+      ],
+      "required": false,
+      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py). Range gate is a plausibility bound on pushrod force for this car (order of magnitude a few kN, generous both ways) -- NOT a sensor spec; deliberately wide enough to admit a real dynamic excursion while still failing a grossly corrupted channel (see log_dms_dam_fr's own note on this file's known-bad FR reading)."
+    },
+    "log_dms_dam_fr": {
+      "label": "Damper Force FR",
+      "unit": "N",
+      "range": [
+        -5000,
+        20000
+      ],
+      "required": false,
+      "note": "Same channel family as log_dms_dam_fl. On GT3_PRC_MLA-v3.txt this specific channel reads a constant, wildly implausible value (~-15.95 million N, verified by direct sampling across the full session) -- a stuck/faulted sensor, not real data. This range gate deliberately fails that channel's quality (channel_quality_gates.failed_below), forcing modules/wheel_loads.py's per-corner static-split fallback for FR on this file, rather than silently consuming the fault value."
+    },
+    "log_dms_dam_rl": {
+      "label": "Damper Force RL",
+      "unit": "N",
+      "range": [
+        -5000,
+        20000
+      ],
+      "required": false,
+      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+    },
+    "log_dms_dam_rr": {
+      "label": "Damper Force RR",
+      "unit": "N",
+      "range": [
+        -5000,
+        20000
+      ],
+      "required": false,
+      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+    },
+    "log_susp_travel_fl": {
+      "label": "Suspension Travel FL",
+      "unit": "mm",
+      "range": [
+        -150,
+        150
+      ],
+      "required": false,
+      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py) -- used to look up car_data.json motion_ratio_vs_wheel_travel. Range is a generous mechanical-travel bound (car_data.json's own digitised table spans roughly -80..+60mm across both axles), not a precision spec."
+    },
+    "log_susp_travel_fr": {
+      "label": "Suspension Travel FR",
+      "unit": "mm",
+      "range": [
+        -150,
+        150
+      ],
+      "required": false,
+      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+    },
+    "log_susp_travel_rl": {
+      "label": "Suspension Travel RL",
+      "unit": "mm",
+      "range": [
+        -150,
+        150
+      ],
+      "required": false,
+      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+    },
+    "log_susp_travel_rr": {
+      "label": "Suspension Travel RR",
+      "unit": "mm",
+      "range": [
+        -150,
+        150
+      ],
+      "required": false,
+      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
     }
   },
   "corner_speed_thresholds": {
