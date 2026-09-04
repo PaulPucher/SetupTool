@@ -1045,16 +1045,40 @@ WHERE THE PROJECT STANDS
   plus a missed nested timestamp field -- was found and fixed), and the
   full suite re-run to FULL GREEN: 226 passed, 9 skipped, 1 xfailed, 0
   failed (was 223 passed/3 failed before regeneration -- exactly the 3
-  golden-affected tests flipped, nothing else moved). NO PRODUCTION
-  DEFAULT CHANGED anywhere in the package (vertical_load_source stays
-  "static", sideslip_source unchanged, load_normalised_fit_enabled stays
-  false) -- every shipped behavioural change is either a reliability/
-  correctness fix with no on/off switch or gated behind a flag that
-  stays off. ~65 new tests across 6 new test files, all passing; ~9 new
+  golden-affected tests flipped, nothing else moved). load_normalised_
+  fit_enabled and sideslip_source were and remain unchanged (mu-fit
+  stays config-gated off; sideslip source untouched); every OTHER
+  shipped behavioural change (Phases 1/4/5's own bug fixes) has no on/
+  off switch. ~65 new tests across 6 new test files, all passing; ~9 new
   [keep-reproduces] diagnostics scripts, diagnostics/README.md current.
-  git status NOT clean (13 modified + 10 new tracked-worthy files, see
-  the branch's own diff); NO COMMIT MADE -- stop before commit per the
-  work order, ready for the user's own review and commit/merge decision.
+  FINAL EDIT (2026-09-04, same day, user decision -- full record: thesis_
+  notes.md "Fz-integration final edit before commit: vertical_load_source
+  default flipped to 'measured'"): stability_estimation.vertical_load_
+  source DEFAULT FLIPPED "static" -> "measured" -- the one production
+  default this whole package DOES change, authorised because verdict
+  independence was already proven (code-level + empirical, Phase 1) before
+  the flip, so it carries zero classification risk; "static" remains the
+  automatic fallback wherever damper channels are absent/invalid,
+  unchanged mechanism. 1 new targeted test (tests/test_vertical_load_
+  source_default.py, 3 cases: live default is "measured"; resolves to the
+  measured cascade with real channels; resolves automatically to a
+  numerically-identical-to-static result without them) -- a first fixture
+  version used flat synthetic channels and was correctly rejected by the
+  dead-channel guard, fixed with real variation, not by weakening the
+  guard. VERIFIED (not just argued) that the flip touches nothing test-
+  observable: both tests/conftest.py's pipeline_result fixture and tests/
+  generate_golden.py call estimate_vertical_loads WITHOUT channels/
+  car_data, so every existing golden/test path was always going to take
+  the channels-absent branch regardless of the default string -- re-ran
+  golden_pipeline + golden_auto_modes + wheel_loads (24) + the 3 new +
+  config_schema_integrity together: 52 passed, 0 failed (17m42s).
+  PLAN.md BACKLOG gained item G, "Fy split upgrade from measured axle
+  loads" -- PROPOSAL-FIRST, Tier A, CS threshold re-derivation attached,
+  named/gated only, NOT implemented (formalises a previously-buried aside
+  under BACKLOG B into its own tracked package).
+  git status NOT clean (14 modified + 11 new tracked-worthy files, see
+  the branch's own diff); NO COMMIT MADE -- stop before commit, ready for
+  the user's own review and commit/merge decision.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -1620,6 +1644,37 @@ F - (optional thesis figure, not a work item) Rear Dugoff curve
     coverage falls to exactly zero of 24,183 samples. Not a result
     plot; the passes are not carried forward. Purely a figure for
     the write-up.
+G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
+    formalises the open item already flagged inline under BACKLOG B
+    above, "Fy split upgrade -> CS threshold re-derivation", into its
+    own tracked package rather than leaving it as a buried aside):
+    Fy split upgrade from measured axle loads. Now that stability_
+    estimation.vertical_load_source defaults to "measured" (Fz-
+    integration package close-out, 2026-09-04) and modules.wheel_loads'
+    damper-derived Fz is a live, validated Level 4 source on two real
+    sessions, the question is whether/how that measured load should
+    inform the Fy SPLIT itself -- CLAUDE.md's own deviation-taxonomy
+    example names "Level-1 Fy split" as a standing FORCED ADAPTATION
+    (modules.stability_analysis.estimate_lateral_forces's own axle-
+    level Fy construction, independent of which vertical-load source
+    feeds Module 4b/CS_ratio downstream). DO NOT IMPLEMENT before a
+    written PROPOSAL: this is Tier A (a vehicle-dynamics method change
+    to what feeds CS_ratio, not a Tier B consumption switch the way
+    Fz-integration Phase 1 itself was) -- needs its own literature
+    anchor before any code changes, per CLAUDE.md's scientific-
+    grounding rule ("If no anchor exists for a Tier A proposal, STOP
+    and ask -- never invent"). THRESHOLD RE-DERIVATION IS ATTACHED, not
+    optional: CS_ratio's threshold anchoring (thesis_notes.md "Threshold
+    anchoring + arc closure") was derived against the CURRENT Fy
+    construction's own distribution -- changing how Fy is split re-
+    triggers that re-derivation in full, the same standing rule any
+    estimator change already carries (CLAUDE.md's parameter-category
+    note: "classification thresholds... always re-derived from this
+    car's own distribution, never carried over... from a prior
+    estimator's distribution"). Gated on: a real literature anchor for
+    a measured-load-informed Fy split method; the proposal itself,
+    reviewed before implementation; CS threshold re-derivation as part
+    of the same package, not a follow-up.
 
 ### PARKED (decided, not forgotten)
 v3's C17-C20 corner-count fragmentation (one outlier lap, ~15-19s

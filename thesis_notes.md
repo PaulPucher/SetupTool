@@ -15588,3 +15588,67 @@ load_normalised_fit_enabled stays false) -- every behavioural change
 shipped is either a reliability/correctness fix with no on/off switch
 (Phases 4, 5, the Phase 1 bug fix) or gated behind a flag that stays off
 (Phase 2). Stop before commit, per the work order -- the user runs git.
+
+### Fz-integration final edit before commit: vertical_load_source default
+flipped to "measured" [2026-09-04, user decision]
+
+config/parameters.json's stability_estimation.vertical_load_source
+DEFAULT CHANGED "static" -> "measured", the one production default this
+whole package does change (every prior phase deliberately left it
+untouched -- see the Phase 7 entry immediately above). Authorised
+because verdict independence is PROVEN, not assumed, and was proven
+BEFORE this flip, not after: CS_ratio/stability -- the only classifier/
+verdict inputs -- never receive fz as an argument at all (code-level:
+estimate_cornering_stiffness/estimate_yaw_moment_stability's own
+signatures) and both run before fz is even computed in the pipeline;
+confirmed empirically on Dubai (Phase 1 finish entry, above) -- fz_f_N
+differed by up to 8591.8N between static and measured, CS_ratio_f/
+CS_ratio_r/C_alpha_f/C_alpha_r/stability_observed_Nm_per_deg were BYTE-
+IDENTICAL. The flip therefore changes ONLY fy_f_norm_N/fy_r_norm_N
+(display) and the Phase 2 diagnostic mu tyre-fit's own load input (still
+config-gated off by default) -- zero classification/verdict risk, by
+construction. config/parameters.json's own vertical_load_source_derived_
+from key states this reasoning inline, not just here.
+
+"static" remains the AUTOMATIC path wherever damper/travel channels are
+absent or invalid -- unchanged mechanism (modules.wheel_loads's own
+per-sample cascade), only the DEFAULT starting tier moved.
+
+TEST: tests/test_vertical_load_source_default.py, new, 3 tests --
+(1) the live config default really is "measured", not silently reverted;
+(2) with real, valid damper channels present, the default resolves to
+the measured cascade and every corner's own per-sample source is
+"damper" (fixture built with genuine variation in travel/force -- a
+first version used perfectly flat synthetic channels and every corner
+fell to static_fallback instead, correctly caught by modules.wheel_
+loads's own dead-channel guard doing its job on an unrealistic fixture,
+not a bug -- fixed by giving the fixture real variation); (3) without
+channels/car_data, the default resolves automatically to "static" and
+is numerically IDENTICAL to an explicit static run, confirming the
+provable-by-construction fallback identity directly rather than just
+by argument. All pass.
+
+VERIFIED, empirically, that the flip changes nothing test-observable:
+tests/conftest.py's own pipeline_result fixture and tests/generate_
+golden.py both call estimate_vertical_loads WITHOUT channels/car_data
+(confirmed by reading both call sites) -- so every existing golden/test
+path automatically takes the "channels absent" branch regardless of
+which string the config default holds, and was never going to be
+affected by this flip. Re-ran tests/test_golden_pipeline.py, tests/
+test_golden_auto_modes.py, tests/test_wheel_loads.py (24), tests/
+test_vertical_load_source_default.py (3), tests/test_config_schema_
+integrity.py together: 52 passed, 0 failed (17m42s) -- confirms the
+prediction rather than just asserting it.
+
+PLAN.md BACKLOG gained item G, "Fy split upgrade from measured axle
+loads" -- PROPOSAL-FIRST, Tier A (needs its own literature anchor before
+any code change), CS threshold re-derivation attached as part of the
+same future package, not a follow-up. Formalises an item that already
+existed as a buried aside under BACKLOG B ("Fy split upgrade -> CS
+threshold re-derivation") into its own tracked, named package. NOT
+implemented, NOT proposed in detail -- named and gated only, per the
+user's own explicit instruction.
+
+No further production/config change beyond the one default flip stated
+above. Stop before commit, per the user's own instruction -- the user
+runs git and decides on merge.
