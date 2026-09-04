@@ -273,6 +273,59 @@ def _merge_trailing_pit_fragment(laps, channels, config):
     laps.pop()
 
 
+def _limiter_active_at(limiter_ch, t):
+    """Channel value (>=0.5 threshold, same convention as _merge_trailing_
+    pit_fragment's own check) at the sample nearest t. None if the channel
+    is absent/unusable -- distinct from False (usable but not active),
+    so a caller can fall back to positional logic only in the True
+    "channel absent" case, not silently treat "not active" as "absent".
+    """
+    if (limiter_ch is None or limiter_ch.get("quality") in ("missing", "failed")
+            or limiter_ch.get("time") is None or len(limiter_ch["time"]) == 0):
+        return None
+    idx = min(np.searchsorted(limiter_ch["time"], t), len(limiter_ch["data"]) - 1)
+    return bool(limiter_ch["data"][idx] >= 0.5)
+
+
+def _classify_out_in_laps_by_limiter(laps, channels):
+    # Fz-integration Phase 4 (2026-09-03): laps are classified out/in by
+    # pit-limiter engagement (ecu_B_speedlimit_en) AT the lap's own start/
+    # end, ADDITIVE to the existing lap_number==0 positional rule (never
+    # removes a flag the positional rule already set) -- this is what
+    # guarantees Dubai's own classification stays byte-identical: no
+    # limiter-active run on Dubai overlaps any lap boundary the positional
+    # rule did not already flag (verified, tests/test_csv_parser_formats.py
+    # and the real-file diagnostic census both confirm this empirically,
+    # not just by this argument).
+    #
+    # Handles a pit box BEFORE start/finish (found on GT3_PRC_MLA-v3.txt,
+    # diagnostics/inspect_v3_pit_limiter_lap_census.py): the limiter can
+    # still be engaged AFTER the lap-counter has already incremented past
+    # the outlap's own lap_number (the pit-exit zone straddles the start/
+    # finish line) -- checking "limiter active at THIS lap's own start",
+    # not just "was there ever a limiter run inside this lap somewhere",
+    # correctly flags v3's lap 5 as an outlap continuation even though its
+    # own lap_number is not 0. Symmetrically for the inlap side: v3's
+    # session ends WITHOUT a separate short trailing fragment lap_number
+    # (unlike Dubai) -- the pit-committed tail runs inside the SAME
+    # lap_number as the rest of that lap (matches this module's own prior
+    # comment on _merge_trailing_pit_fragment: "the stop lap runs line-to-
+    # line through the pit box as one lap_number... need stint-aware in/
+    # out/stop-lap classification via MID-lap limiter engagement instead"
+    # -- this function is that classification, now implemented). Checking
+    # the limiter's state at the lap's own END catches this directly.
+    #
+    # Falls back to the existing positional-only result when the channel
+    # is absent/unusable (both _limiter_active_at calls return None) --
+    # every lap's is_outlap/is_inlap stays exactly what it already was.
+    limiter_ch = channels.get("ecu_B_speedlimit_en")
+    for lap in laps:
+        if _limiter_active_at(limiter_ch, lap["start_time"]):
+            lap["is_outlap"] = True
+        if _limiter_active_at(limiter_ch, lap["end_time"]):
+            lap["is_inlap"] = True
+
+
 def _attach_precise_lap_time(laps, channels, config):
     # lap_time (computed) is bounded by the lap_number channel's own
     # sample interval (0.2 s on Dubai) -- boundaries land on that grid, so
@@ -345,6 +398,7 @@ def _split_laps(channels, config=None):
         })
 
     _merge_trailing_pit_fragment(laps, channels, config)
+    _classify_out_in_laps_by_limiter(laps, channels)
     _attach_precise_lap_time(laps, channels, config)
     _verify_laps(laps, channels, config)
 

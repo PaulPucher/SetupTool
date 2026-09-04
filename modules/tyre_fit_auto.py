@@ -49,6 +49,7 @@ from scipy.stats import chi2
 from modules.stability_analysis import (
     prepare_vehicle_state, estimate_sideslip, estimate_slip_angles,
     estimate_lateral_forces, estimate_vertical_loads, estimate_cornering_stiffness,
+    load_car_data,
 )
 from modules.tyre_model import dugoff_lateral_force
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
@@ -537,7 +538,83 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
     }
 
 
-def fit_session_pacejka(data, params, data_file_path=None):
+def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
+    """Fz-integration Phase 2: load-normalised variant of _fit_axle_
+    pacejka -- fits (B, C, mu, E) instead of (B, C, D, E), with the peak
+    term evaluated per-sample as D = mu * Fz inside the objective (Fz the
+    measured per-axle load, same base_mask population as the free-D fit).
+    # method: thesis_notes.md, "Pacejka load-normalised (mu) tyre fit"
+
+    Returns the same dict shape as _fit_axle_pacejka (D holds a
+    REPRESENTATIVE value, mu * mean(Fz) over the fit population, so every
+    downstream consumer that already treats D as one axle-wide constant --
+    the EKF Jacobian config, onset_coverage, h2_vs_ay_apex -- needs no
+    change), plus two extra keys: "mu" (the fitted peak friction
+    coefficient itself) and "mean_axle_fz_N" (the Fz this D was evaluated
+    at, so a caller can reconstruct D at any other Fz if needed).
+    """
+    m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz)
+    a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
+
+    if len(a2) == 0:
+        # Same empty-population guard as _fit_axle_pacejka -- never let an
+        # empty array reach Powell/percentile.
+        return {
+            "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
+            "mu": float("nan"), "mean_axle_fz_N": float("nan"),
+            "powell_converged": False,
+            "fit_n_samples": 0, "fit_rms_resid_N": float("nan"),
+            "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
+            "visited_alpha_p99_deg": float("nan"),
+            "sign_ok": False,
+            "residuals": np.array([]), "residual_mask": m2,
+        }
+
+    mean_fz = float(np.mean(z2))
+    # Data-derived starting mu: the chair's own free-D starting guess
+    # (PACEJKA_START_GUESS[2] = 8000N) divided by this axle's own mean Fz
+    # -- keeps the same starting PEAK FORCE the free-D fit starts from,
+    # expressed as a friction coefficient, rather than an arbitrarily
+    # chosen mu constant.
+    mu_start = PACEJKA_START_GUESS[2] / mean_fz if mean_fz else 1.5
+
+    def _sse(p):
+        B, C, mu, E = p
+        pred = pacejka_lateral_force(a2, B, C, mu * z2, E)
+        return float(np.sum((pred - f2) ** 2))
+
+    start = (PACEJKA_START_GUESS[0], PACEJKA_START_GUESS[1], mu_start, PACEJKA_START_GUESS[3])
+    res = minimize(_sse, start, method="Powell")
+    B, C, mu, E = (float(x) for x in res.x)
+    pred = pacejka_lateral_force(a2, B, C, mu * z2, E)
+    resid = f2 - pred
+    rms = float(np.sqrt(np.mean(resid ** 2)))
+
+    D_repr = mu * mean_fz
+    grid_deg = np.linspace(0.01, 89.9, 4000)
+    grid_rad = np.radians(grid_deg)
+    stiffness_grid = pacejka_lateral_stiffness(grid_rad, B, C, D_repr, E)
+    sign_changes = np.where(np.diff(np.sign(stiffness_grid)) < 0)[0]
+    if len(sign_changes) > 0:
+        i = sign_changes[0]
+        peak_deg = float(grid_deg[i])
+        peak_in_visited_range = peak_deg <= float(np.percentile(np.abs(np.degrees(a2)), 99))
+    else:
+        peak_deg = float("nan")
+        peak_in_visited_range = False
+
+    return {
+        "B": B, "C": C, "D": D_repr, "E": E, "mu": mu, "mean_axle_fz_N": mean_fz,
+        "powell_converged": bool(res.success),
+        "fit_n_samples": int(len(a2)), "fit_rms_resid_N": rms,
+        "peak_alpha_deg": peak_deg, "peak_in_visited_range": peak_in_visited_range,
+        "visited_alpha_p99_deg": float(np.percentile(np.abs(np.degrees(a2)), 99)),
+        "sign_ok": mu > 0,
+        "residuals": resid, "residual_mask": m2,
+    }
+
+
+def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False):
     """Phase 3: same one-shot chain as fit_session, fitting the reduced
     4-parameter Magic Formula (modules/tyre_model_pacejka.py) instead
     of Dugoff, and running the EKF with Pacejka's analytic stiffness in
@@ -547,6 +624,19 @@ def fit_session_pacejka(data, params, data_file_path=None):
     validation); only the per-axle fit (step a/b) and the EKF call
     differ. See fit_session's own docstring for the shared status-
     threshold design (identical thresholds, config tyre_fit_auto.*).
+
+    Fz-integration Phase 2 (2026-09-03): load_normalised=True switches
+    the per-axle fit from a free peak FORCE D to D = mu * Fz (Fz the
+    measured per-axle load, mu the fitted peak friction coefficient --
+    method: thesis_notes.md, "Pacejka load-normalised (mu) tyre fit").
+    Requires measured Fz (modules.wheel_loads via stability_estimation.
+    vertical_load_source="measured"); returns a degenerate manifest if
+    unavailable (no damper channels this session, or car_data.json
+    missing) rather than silently falling back to free-D. Default False
+    reproduces the exact free-D behaviour, byte-identical -- steps
+    (c)-(e) below are UNCHANGED either way, since _fit_axle_pacejka_mu
+    returns the same dict shape (D holds a representative mu*mean(Fz)
+    value for those steps' own constant-D usage).
     """
     cfg = params["tyre_fit_auto"]
     vp = params["vehicle"]
@@ -564,11 +654,36 @@ def fit_session_pacejka(data, params, data_file_path=None):
     slip_kin = estimate_slip_angles(state, beta_kin, params)
     forces = estimate_lateral_forces(state, params)
 
-    front_fit = _fit_axle_pacejka(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask)
-    rear_fit = _fit_axle_pacejka(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask)
+    if load_normalised:
+        car_data = load_car_data()
+        if car_data is None:
+            return {"status": "degenerate", "degenerate_reason": "load_normalised=True requires "
+                    "car_data.json, not available", "data_file": data_file_path}
+        # Force "measured" for THIS call regardless of the live config's own
+        # stability_estimation.vertical_load_source -- load_normalised=True
+        # is an explicit request for measured Fz, not a reflection of the
+        # global flag (which stays "static" by default everywhere else in
+        # production; without this override the mu fit would silently
+        # degenerate to "static resolved" and never run, exactly the bug
+        # this comment replaced after finding it empirically).
+        params_measured_fz = dict(params)
+        params_measured_fz["stability_estimation"] = dict(params["stability_estimation"])
+        params_measured_fz["stability_estimation"]["vertical_load_source"] = "measured"
+        fz = estimate_vertical_loads(state, forces, params_measured_fz,
+                                      channels=data["channels"], car_data=car_data)
+        if fz.get("vertical_load_source_used") != "measured":
+            return {"status": "degenerate", "degenerate_reason": "load_normalised=True requires measured "
+                    "Fz -- no damper-valid samples this session (vertical_load_source resolved to 'static')",
+                    "data_file": data_file_path}
+        front_fit = _fit_axle_pacejka_mu(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"], base_mask)
+        rear_fit = _fit_axle_pacejka_mu(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"], base_mask)
+    else:
+        front_fit = _fit_axle_pacejka(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask)
+        rear_fit = _fit_axle_pacejka(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask)
 
     manifest = {
         "data_file": data_file_path,
+        "load_normalised": load_normalised,
         "laps_used": sorted(l["lap_number"] for l in laps if l.get("is_valid_for_analysis")),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "axles": {"front": {k: v for k, v in front_fit.items() if k not in ("residuals", "residual_mask")},
@@ -716,6 +831,18 @@ def fit_session_pacejka(data, params, data_file_path=None):
     else:
         manifest["status"] = "ok"
 
+    if load_normalised:
+        # mu plausibility (config tyre_fit_auto.mu_plausibility_band_low/
+        # high) -- reported, never silently accepted or discarded (this
+        # project's standing rule on an implausible Tier-A numeric result).
+        mu_lo, mu_hi = cfg["mu_plausibility_band_low"], cfg["mu_plausibility_band_high"]
+        manifest["mu_plausibility"] = {
+            "mu_front": front_fit["mu"], "mu_rear": rear_fit["mu"],
+            "band_low": mu_lo, "band_high": mu_hi,
+            "front_plausible": bool(mu_lo <= front_fit["mu"] <= mu_hi),
+            "rear_plausible": bool(mu_lo <= rear_fit["mu"] <= mu_hi),
+        }
+
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
@@ -754,8 +881,16 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
         return ekf_result["beta_with_fallback"], None, None, False, None
 
     if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
-        fit_fn = fit_session if sideslip_source == "ekf_auto_dugoff" else fit_session_pacejka
-        raw_fit_manifest = fit_fn(data, params, data_file_path=csv_path)
+        if sideslip_source == "ekf_auto_dugoff":
+            raw_fit_manifest = fit_session(data, params, data_file_path=csv_path)
+        else:
+            # Fz-integration Phase 2: config-gated, default False -- see
+            # fit_session_pacejka's own docstring. fit_session (Dugoff) has
+            # no load_normalised mode; this phase only touches the Pacejka
+            # path, per the work order.
+            load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
+            raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,
+                                                    load_normalised=load_normalised)
         fit_status = raw_fit_manifest.get("status")
         fallback_used = False
         fallback_reason = None

@@ -740,7 +740,7 @@ def estimate_lateral_forces(state, params):
     }
 
 
-def estimate_vertical_loads(state, forces, params):
+def estimate_vertical_loads(state, forces, params, channels=None, car_data=None):
     """WP5b(b) phase 1: axle and per-wheel vertical tyre loads (Fz), plus
     the normalised-force diagnostic fy_f_norm_N/fy_r_norm_N.
 
@@ -764,6 +764,21 @@ def estimate_vertical_loads(state, forces, params):
     Level 1: cog_height_m, track_width_front/rear_m and the aero
     coefficients are all unsourced placeholders (config/parameters.json
     notes).
+
+    Fz-integration Phase 1 (2026-09-03, Tier B: a consumption switch, not
+    a new vehicle-dynamics method -- modules.wheel_loads's own Segers
+    anchor is unchanged and does all the physics here): when config
+    stability_estimation.vertical_load_source is "measured" and both
+    channels/car_data are supplied, the static model above is computed
+    exactly as before but used only as the CASCADE'S OWN innermost
+    fallback (modules.wheel_loads.combine_with_reconstruction_and_
+    fallback) instead of as the final answer -- fz_fl_N/fz_fr_N/fz_rl_N/
+    fz_rr_N (and therefore fz_f_N/fz_r_N, resummed from them so the two
+    always agree) become damper-measured where valid, axle-total-
+    reconstructed where exactly one corner of an axle is invalid, static
+    otherwise. channels/car_data default to None so every existing call
+    site is unaffected; "static" (the config default) never touches
+    modules.wheel_loads at all.
     """
     vp = params["vehicle"]
     aero = vp["aero"]
@@ -805,6 +820,46 @@ def estimate_vertical_loads(state, forces, params):
     fz_rl_N = fz_r_N / 2 - lateral_transfer_rear / 2
     fz_rr_N = fz_r_N / 2 + lateral_transfer_rear / 2
 
+    # --- Fz-integration Phase 1: swap in the damper cascade, static model
+    # stays available as its own innermost fallback (see docstring). ---
+    vertical_load_source = params["stability_estimation"].get("vertical_load_source", "static")
+    fz_source_per_sample = None
+    if vertical_load_source == "measured" and channels is not None and car_data is not None:
+        from modules.wheel_loads import (
+            estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
+            combine_with_reconstruction_and_fallback, CORNERS as WHEEL_CORNERS,
+        )
+        static_fallback_fz = {"fl": fz_fl_N, "fr": fz_fr_N, "rl": fz_rl_N, "rr": fz_rr_N}
+        damper_result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
+        any_damper_valid = any(np.any(damper_result[c]["valid"]) for c in WHEEL_CORNERS)
+        if any_damper_valid:
+            session_corrected = estimate_session_corrected_axle_totals(state, damper_result, params)
+            fz_axle_totals = {"fz_f_N": session_corrected["fz_f_N"], "fz_r_N": session_corrected["fz_r_N"]}
+        else:
+            # No corner has ANY real damper sample this session (e.g. Dubai
+            # -- no damper channels at all): estimate_session_corrected_
+            # axle_totals's own straight-line means would average nothing
+            # (NaN), and reconstruct_missing_corner never selects this value
+            # anyway once every corner is invalid (an invalid corner's own
+            # axle-mate is also always invalid, so reconstructable is False
+            # everywhere) -- skip the unused fit rather than compute NaN.
+            fz_axle_totals = {"fz_f_N": fz_f_N, "fz_r_N": fz_r_N}
+        combined = combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz)
+        fz_fl_N = combined["fl"]["fz_N"]
+        fz_fr_N = combined["fr"]["fz_N"]
+        fz_rl_N = combined["rl"]["fz_N"]
+        fz_rr_N = combined["rr"]["fz_N"]
+        # Axle total = sum of the cascade's own per-wheel outputs, not the
+        # static axle formula above or the session-corrected model directly
+        # -- keeps fz_f_N/fz_r_N always consistent with fz_fl_N+fz_fr_N /
+        # fz_rl_N+fz_rr_N regardless of which tier produced each sample.
+        fz_f_N = fz_fl_N + fz_fr_N
+        fz_r_N = fz_rl_N + fz_rr_N
+        fz_source_per_sample = {c: combined[c]["source"] for c in WHEEL_CORNERS}
+        vertical_load_source = "measured"
+    else:
+        vertical_load_source = "static"
+
     # --- 5. Normalised-force diagnostic, chair's own fy_*_norm_N construction ---
     fy_f_norm_N = forces["Fy_f_filt"] / fz_f_N
     fy_r_norm_N = forces["Fy_r_filt"] / fz_r_N
@@ -820,6 +875,8 @@ def estimate_vertical_loads(state, forces, params):
         "fy_r_norm_N": fy_r_norm_N,
         "accuracy_level_axle": params["accuracy_levels"]["vertical_load_split"]["level"],
         "accuracy_level_wheel": params["accuracy_levels"]["per_wheel_load_split"]["level"],
+        "vertical_load_source_used": vertical_load_source,
+        "vertical_load_source_per_sample": fz_source_per_sample,
     }
 
 

@@ -345,6 +345,86 @@ kept because a surviving script imports it, not for its own findings.
   their 0.0 placeholders -- only their product is identifiable from a
   constant-speed regression). Re-run whenever a new damper-equipped
   session arrives or the wheel-load estimator changes.
+- **inspect_dubai_wheel_load_validation.py** `[keep-reproduces]` —
+  Fz-integration Phase 1 (2026-09-03): the Dubai counterpart to inspect_v3_
+  wheel_load_validation.py/inspect_v3_aero_load_diagnostic.py, run after
+  the premise-correction finding that Sample_Dubai.txt actually has real
+  damper/travel channels (thesis_notes.md "Fz-integration Phase 1: premise
+  correction..."). Per-gauge plausibility, straight-line-vs-config-weight,
+  transfer sign/magnitude, ARB sign-convention, and aero v^2 checks for a
+  SECOND real session -- re-run whenever the wheel-load estimator, the
+  dead-channel guard, or Dubai's own file changes.
+- **inspect_fz_before_after.py** `[keep-reproduces]` — Fz-integration
+  Phase 1 finish (2026-09-03): static-vs-measured before/after for
+  stability_estimation.vertical_load_source on both real sessions
+  (thesis_notes.md "Fz-integration Phase 1 (finish)..."). Reports what
+  actually changes under the flag (fz_*_N/fy_norm values, per-corner
+  damper/reconstructed/static_fallback share) -- explicitly NOT CS_ratio/
+  stability/verdicts, which are proven independent of this flag (same
+  entry). Generates the front/rear-axle static-vs-measured trace figures
+  at named + auto-picked corners. Re-run whenever the wheel-load
+  estimator changes or a third damper-equipped session arrives.
+- **inspect_fz_mu_tyre_fit.py** `[keep-reproduces]` — Fz-integration
+  Phase 2 (2026-09-03): free-D vs load-normalised (mu) Pacejka fit on
+  both real sessions (thesis_notes.md "Fz-integration Phase 2: load-
+  normalised (mu) Pacejka tyre fit..."). Reports B/C/D/E (or mu),
+  residuals, and the resulting EKF's NIS/gate numbers per axle; flags a
+  fitted mu outside config tyre_fit_auto.mu_plausibility_band_low/high.
+  Writes diagnostics/fz_mu_tyre_fit_results.json (gitignored). Re-run
+  whenever the mu fit, the measured-Fz cascade, or the Pacejka model
+  changes, or a third damper-equipped session arrives.
+- **inspect_fz_mu_cross_check.py** `[keep-reproduces]` — Fz-integration
+  Phase 2 gate resolution (2026-09-03): the decisive cross-check
+  (thesis_notes.md "Fz-integration Phase 2 gate resolution") comparing
+  each axle/session's joint-fit mu against (free-D fit's own D) /
+  (median measured Fz in that axle's fit population). Reuses
+  diagnostics/fz_mu_tyre_fit_results.json, only recomputes the median
+  Fz (cheap). Re-run whenever the mu fit or the measured-Fz cascade
+  changes.
+- **inspect_fz_mu_v3_rear_divergence.py** `[keep-reproduces]` — Fz-
+  integration Phase 2 gate resolution, v3 rear divergence dig (2026-09-
+  03, thesis_notes.md "v3 rear divergence dig..."). v3 front (control)
+  and rear (the +20.76% cross-check divergence) tyre-cloud figures
+  coloured by measured Fz with free-D/mu-median/mu-p25-p75-band curves
+  overlaid, plus correlation and Fz-tercile residual numbers. Concluded
+  LEGITIMATE LOAD EFFECT, not a fit artifact. Re-run whenever the mu fit
+  or the measured-Fz cascade changes.
+- **inspect_fz_mu_refit_evaluation.py** `[keep-reproduces]` — Fz-
+  integration Phase 3 (2026-09-03, thesis_notes.md "Fz-integration
+  Phase 3: bounded refit loop under mu..."). Mirrors inspect_v3_
+  pacejka_refit_evaluation.py's exact 4-iteration refit chain, one
+  substitution (_fit_axle_pacejka_mu, D=mu*Fz, in place of the free-D
+  axle fit). Classifies BOUNDED/CREEPING/WANDERING per axle per the
+  amended per-axle +/-15%-of-iteration-1 mu growth band. Result: both
+  sessions non-convergent (Dubai CREEPING, v3 WANDERING). Re-run
+  whenever the mu fit, the EKF Pacejka path, or the measured-Fz cascade
+  changes.
+- **inspect_v3_wheel_speed_census.py** `[keep-reproduces]` — Fz-
+  integration Phase 5 pre-implementation census (2026-09-03, thesis_
+  notes.md "Fz-integration Phase 5: wheel-speed plausibility guard +
+  ABS-domain fallback"). Raw-channel-name scan for ABS-domain wheel-
+  SPEED alternatives (found abs_speed_fl/fr/rl/rr, 100Hz, both
+  sessions) plus log_speed_rr dropout/stuck/spike diagnosis vs its own
+  mates and ecu_speed. Re-run whenever a third session arrives or the
+  guard's own thresholds need re-deriving.
+- **inspect_wheel_speed_guard_before_after.py** `[keep-reproduces]` —
+  Fz-integration Phase 5 (2026-09-03). Loads the pre-Phase-5 module
+  straight from git HEAD (via a system temp file, not a tracked copy)
+  and compares it against the current guarded behaviour on both real
+  sessions: per-corner wheel_speed_source share, LS_ratio_r no-signal
+  fraction before/after. The tool that caught BOTH real calibration
+  bugs before shipping (std_min_kmh initially 10x too high; the mate-
+  ratio check initially penalised v3's healthy log_speed_rl almost as
+  often as its actually-faulty mate log_speed_rr). Re-run whenever the
+  guard's thresholds or the wheel-speed channels change.
+- **inspect_v3_pit_limiter_lap_census.py** `[keep-reproduces]` — Fz-
+  integration Phase 4 (2026-09-03, thesis_notes.md "Fz-integration Phase
+  4: pit-limiter-based out/in-lap classification"). Read-only census of
+  lap_number/ecu_B_speedlimit_en/lap_distance boundaries on both real
+  sessions before/after the fix -- the tool that found v3's real bug
+  (last lap wrongly is_valid_for_analysis=True despite its final ~22s
+  running under the pit limiter). Re-run whenever the lap-splitting
+  logic changes or a third session arrives.
 - **inspect_v3_pacejka_refit_evaluation.py** `[keep-reproduces]` — corner
   canonicalisation + refit evaluation work order (2026-09-03), Phase 2 and
   its same-day extension: runs the Pacejka B/C/D/E refit chain (up to 4

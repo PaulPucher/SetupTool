@@ -131,6 +131,21 @@ wrote them for himself and his examiners:
 - When editing a file for any reason, bring touched comments up to
   this standard; do not launch mass rewrites without instruction.
 
+## Channel census rule (standing, 2026-09-03)
+Channel presence and content are censused from the file, never recalled.
+Before relying on a claim about what a raw telemetry file contains — a
+channel exists, is populated, runs at a given rate, uses a given unit,
+or a session's lap/limiter/gauge structure behaves a certain way — read
+it directly from the actual file for the session in question. A
+work order's own stated premise about the data ("this file has no
+damper channels", "this session's first/last lap is already correctly
+classified") is exactly the kind of claim this applies to: check it
+before building on it, the same as any other channel fact, and report
+the correction if it turns out wrong rather than silently working
+around it. A prior session's finding about a DIFFERENT file, or about
+the same file before a fix changed its behaviour, is not a substitute
+for checking the current file directly.
+
 ## diagnostics/ disposal rule (standing, 2026-08-30)
 A diagnostic script is disposable by default. Investigation scripts
 are scaffolding, not deliverables. Once a script's finding is

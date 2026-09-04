@@ -997,6 +997,64 @@ WHERE THE PROJECT STANDS
   v3_pacejka_refit_evaluation.py kept [keep-reproduces], the load-
   bearing provenance for this closure. No commit made, stop before
   commit -- suite runs once, only at commit time.
+- FZ-INTEGRATION PACKAGE COMPLETE, all 7 phases (2026-09-03 through a
+  resumed session same day, branch fz-integration -- full per-phase
+  detail in thesis_notes.md's own "Fz-integration Phase 1" through
+  "Fz-integration Phase 7" entries, this bullet compresses the prior
+  chain of individual phase bullets now that the package is closed).
+  SCOPE: new stability_estimation.vertical_load_source flag (default
+  "static", proven no-op) plus the damper-derived Fz cascade (modules/
+  wheel_loads.py) validated on a SECOND real session (Dubai, alongside
+  v3); a load-normalised (mu) Pacejka tyre fit (modules/tyre_fit_auto.py,
+  config-gated, default off); pit-limiter-based out/in-lap classification
+  (modules/csv_parser.py); a wheel-speed plausibility guard + ABS-domain
+  fallback (modules/longitudinal_forces.py). FOUR REAL BUGS found and
+  fixed before shipping, every one caught by actually running a
+  diagnostic against real data rather than trusting an assumption: (1)
+  Phase 1, a hardcoded FR-only dead-corner assumption silently NaN'd
+  Dubai's whole rear axle, found visually from a figure; (2) Phase 2, the
+  mu-fit path read the wrong config flag and silently degenerated; (3)
+  Phase 4, v3's own actual last lap was wrongly marked fully valid
+  despite running under the pit limiter -- the work order's own stated
+  premise, checked and found false; (4) Phase 5, two calibration bugs in
+  the wheel-speed guard itself (a stuck threshold 10x too aggressive; a
+  mate-only check that couldn't attribute fault correctly), both caught
+  by a before/after diagnostic before the guard shipped. KEY SCIENCE
+  RESULT (Phases 2-3): the mu-fit's initially-implausible values traced
+  to genuine tyre load-sensitivity (correlation-magnitude, residual-
+  tercile, and tyre-cloud-visual checks all agreed), not a fit artifact;
+  the amended bounded refit loop under mu still does not converge on
+  either session, STRENGTHENING (not reopening) the existing refit-loop
+  identifiability closure. Phase 6 added CLAUDE.md's standing "Channel
+  census rule" (naming this package's own three premise-correction
+  incidents -- GT3 Paul Ricard's rate, "Dubai has no damper channels",
+  "v3's laps are already correctly classified" -- as one recurring
+  pattern), 3 new engineer follow-up questions, and a consolidated two-
+  session wheel-load validation statement. Phase 7: confirmed (not
+  assumed) no golden regeneration was needed by Phases 1-5 themselves
+  (LS_ratio, Phase 5's own output, was never part of the golden
+  comparison -- verified by reading both generators); the FIRST full-
+  suite run (interrupted by a laptop shutdown, resumed in a later
+  session) surfaced exactly one PRE-EXISTING gap (75 fields, entry_1_
+  brake.stability_observed_Nm_per_deg -> NaN, from commit 42df7ce,
+  predates this whole package) and nothing else. That gap's golden files
+  were regenerated (tests.generate_golden, tests.generate_golden_auto_
+  modes), determinism-checked (regenerated twice, 0 real diffs via
+  tests/_json_utils.diff_json once a bug in the first, hand-written
+  determinism-check script itself -- NaN!=NaN under Python's own `!=`,
+  plus a missed nested timestamp field -- was found and fixed), and the
+  full suite re-run to FULL GREEN: 226 passed, 9 skipped, 1 xfailed, 0
+  failed (was 223 passed/3 failed before regeneration -- exactly the 3
+  golden-affected tests flipped, nothing else moved). NO PRODUCTION
+  DEFAULT CHANGED anywhere in the package (vertical_load_source stays
+  "static", sideslip_source unchanged, load_normalised_fit_enabled stays
+  false) -- every shipped behavioural change is either a reliability/
+  correctness fix with no on/off switch or gated behind a flag that
+  stays off. ~65 new tests across 6 new test files, all passing; ~9 new
+  [keep-reproduces] diagnostics scripts, diagnostics/README.md current.
+  git status NOT clean (13 modified + 10 new tracked-worthy files, see
+  the branch's own diff); NO COMMIT MADE -- stop before commit per the
+  work order, ready for the user's own review and commit/merge decision.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -2903,6 +2961,43 @@ else.
   session with all four gauges alive removes the reconstruction method
   (and the aero-split identifiability limit above) entirely, since every
   corner would then be a direct Level 4 measurement.
+- [2026-09-03, Fz-integration Phase 1] Dubai RR travel pot (log_susp_
+  travel_rr on Sample_Dubai.txt) reads frozen for the ENTIRE session
+  (std=0.101mm, range=3.03mm, vs 4.88-7.20mm on every other real travel
+  channel checked on either car) while its own force gauge (log_dms_
+  dam_rr) is NOT frozen and shows real load variation -- the wheel is
+  moving, only the travel pot (or that specific logging channel) is
+  dead. Is this a known dead/disconnected sensor on this car, and is a
+  repair/replacement planned? If fixed, Dubai's RR corner becomes a
+  direct Level 4 measurement instead of the axle-total reconstruction
+  it currently falls back to.
+- [2026-09-03, Fz-integration Phase 2/3] No external sideslip/heading/
+  lateral-velocity reference sensor (Correvit, Kistler optical speed
+  sensor, RT-range/INS, or similar) exists in either session's data --
+  confirmed by an exhaustive raw-channel-name search (thesis_notes.md
+  "Refit-loop conclusion: structural non-convergence confirmed on two
+  sessions, two failure directions", external-reference census). This
+  is the specific, identified blocker for the tyre-curve/beta
+  identifiability problem: the curve-fit refit loop (both the original
+  Dugoff/Pacejka closure and this package's own Phase 3 mu-normalised
+  re-test) fails on every combination tried because sideslip and the
+  tyre curve are jointly unobservable from ay/yaw_rate alone. Is
+  fitting an external sideslip reference for even a short calibration
+  session (not full-time) something the team could arrange? Without
+  one, this specific limitation cannot be resolved from any further
+  analysis of the existing telemetry, however it is processed.
+- [2026-09-03, Fz-integration Phase 5] v3's log_speed_rr (rear-right
+  wheel speed, the primary ECU-domain channel) shows a real dropout/
+  spike fault -- a spurious 300.5 kph peak (its own mates' max sits at
+  248.2-251.9 kph) and >15% deviation from its axle-mate on 5.90% of
+  moving samples this session (thesis_notes.md "Fz-integration Phase 5:
+  wheel-speed plausibility guard..."). A working ABS-domain alternative
+  (abs_speed_rr) exists and is now used as an automatic fallback when
+  the primary channel is flagged implausible -- but is this a known,
+  recurring fault on this specific car/sensor, or a one-off logging
+  glitch on this session? If recurring, the team may want to treat
+  abs_speed_rr as the primary source for this car going forward rather
+  than a fallback.
 
 ---
 

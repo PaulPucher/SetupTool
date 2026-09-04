@@ -1,8 +1,8 @@
 {
   "_meta": {
     "purpose": "REGRESSION baseline, not a correctness claim -- see tests/test_golden_auto_modes.py's module docstring. SECONDARY mode (ekf_auto_pacejka is primary, generated separately by tests/generate_golden.py). For ekf_auto_dugoff the underlying tyre curve is fit fresh on this data every time modules.tyre_fit_auto.fit_session runs -- this golden pins CURRENT fit-chain output, not a frozen prior-session curve. For kinematic it is the fixed production estimate_sideslip, unchanged run to run. PINS THE FALLBACK PATH DELIBERATELY (CS validity repair, Phase 4, 2026-09-02): ekf_auto_dugoff's rear-axle mu_fz fit degenerates on Dubai under the final CS window floor (100 Hz grid) and this golden's own summaries are therefore KINEMATIC beta's output, not a Dugoff fit -- see fallback_reason below and thesis_notes.md 'Threshold anchoring + arc closure, Phase 4' for the full record. This is designed behaviour, not a golden-generation bug.",
-    "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
-    "generated_at_utc": "2026-09-02T17:24:12.951459+00:00",
+    "git_commit_hash": "42df7ce3d0fd248ae08115c9bb4e5c828d5ec831",
+    "generated_at_utc": "2026-09-03T20:14:05.532925+00:00",
     "data_file": "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt",
     "sideslip_source": "ekf_auto_dugoff",
     "accuracy_cap": 1,
@@ -15,7 +15,7 @@
         3,
         4
       ],
-      "timestamp": "2026-09-02T17:20:21.252811+00:00",
+      "timestamp": "2026-09-03T20:10:50.320832+00:00",
       "axles": {
         "front": {
           "c_alpha_n_per_rad": 132815.6836830693,
@@ -54,7 +54,7 @@
           "degenerate_reason": "mu_fz fit did not converge to an interior optimum -- hit the widened search bracket ceiling after 4 attempt(s) (bound_fraction=1.000000)"
         }
       },
-      "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
+      "git_commit_hash": "42df7ce3d0fd248ae08115c9bb4e5c828d5ec831",
       "status": "degenerate",
       "degenerate_reason": "rear: mu_fz fit did not converge to an interior optimum -- hit the widened search bracket ceiling after 4 attempt(s) (bound_fraction=1.000000)"
     },
@@ -1163,9 +1163,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 768.5358239926215,
-            "p25": 768.5358239926215,
-            "p75": 768.5358239926215,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -1430,9 +1430,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 769.8168188184554,
-            "p25": 769.8168188184554,
-            "p75": 769.8168188184554,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -1697,9 +1697,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 768.7566834580227,
-            "p25": 768.7566834580227,
-            "p75": 768.7566834580227,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -1964,9 +1964,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 767.7142228107275,
-            "p25": 767.7142228107275,
-            "p75": 767.7142228107275,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -2233,9 +2233,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1832.915409445361,
-            "p25": 1827.1627399491742,
-            "p75": 1838.6680789415477,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -2502,9 +2502,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1830.2780552850472,
-            "p25": 1830.2780552850472,
-            "p75": 1830.2780552850472,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -2771,9 +2771,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1836.266813525685,
-            "p25": 1830.508385504358,
-            "p75": 1842.025241547012,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3040,9 +3040,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1834.4701824590768,
-            "p25": 1828.7117544378168,
-            "p75": 1840.2286104803368,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3307,9 +3307,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 568.4011125703034,
-            "p25": 567.6808089078759,
-            "p75": 569.121416232731,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3574,9 +3574,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 568.358896247077,
-            "p25": 567.6491466654564,
-            "p75": 569.0686458286976,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3841,9 +3841,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 568.6438514878071,
-            "p25": 568.6438514878071,
-            "p75": 568.6438514878071,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -4108,9 +4108,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 568.7546676892596,
-            "p25": 568.7546676892596,
-            "p75": 568.7546676892596,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -5453,9 +5453,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 447.92991584060695,
-            "p25": 446.0815813014078,
-            "p75": 449.7782503798061,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -5722,9 +5722,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 446.30637734061986,
-            "p25": 444.4164129428021,
-            "p75": 448.1963417384377,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -5991,9 +5991,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 443.1092587697774,
-            "p25": 441.25259955816296,
-            "p75": 444.9659179813919,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -6260,9 +6260,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 445.5903567655738,
-            "p25": 443.7503494974067,
-            "p75": 447.43036403374083,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -7595,9 +7595,9 @@
             "n": 5
           },
           "stability_observed_Nm_per_deg": {
-            "median": 396.67721801163106,
-            "p25": 393.84095109727946,
-            "p75": 399.5400975781005,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 5
           },
           "fz_f_N": {
@@ -7862,9 +7862,9 @@
             "n": 4
           },
           "stability_observed_Nm_per_deg": {
-            "median": 398.0244489455587,
-            "p25": 395.78201486954777,
-            "p75": 400.27131615826795,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 4
           },
           "fz_f_N": {
@@ -8129,9 +8129,9 @@
             "n": 5
           },
           "stability_observed_Nm_per_deg": {
-            "median": 396.57085039477545,
-            "p25": 393.71685093363453,
-            "p75": 399.4425824027056,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 5
           },
           "fz_f_N": {
@@ -8396,9 +8396,9 @@
             "n": 4
           },
           "stability_observed_Nm_per_deg": {
-            "median": 397.78514255551045,
-            "p25": 395.6579285378098,
-            "p75": 399.91235657321215,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 4
           },
           "fz_f_N": {
@@ -11895,9 +11895,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1051.6185487368928,
-            "p25": 1051.2927582618984,
-            "p75": 1051.9443392118872,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -12162,9 +12162,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1051.59830663482,
-            "p25": 1051.59830663482,
-            "p75": 1051.59830663482,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -12429,9 +12429,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1051.889704483638,
-            "p25": 1051.889704483638,
-            "p75": 1051.889704483638,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -12696,9 +12696,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1051.375725617251,
-            "p25": 1051.375725617251,
-            "p75": 1051.375725617251,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -14572,9 +14572,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 989.2439366953947,
-            "p25": 989.2439366953947,
-            "p75": 989.2439366953947,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {

@@ -4952,6 +4952,50 @@ reporting lap-to-lap spread alongside the median). That is a
 production behaviour change affecting verdicts and belongs with the
 deferred threshold work, not here -- see PLAN.md PARKED.
 
+### Pacejka load-normalised (mu) tyre fit -- Fz-integration Phase 2
+[2026-09-03]
+- Tier A. Anchor: Milliken & Milliken, "Race Car Vehicle Dynamics"
+  (RCVD) -- tyre force/friction-circle chapter, page TBD VERIFY (no
+  PDF-render tool available this session, same standing limitation
+  recorded for the NIS-gate Kiencke/Nielsen citation and the damper
+  package's own citation entry -- do not cite a specific chapter/page
+  until checked directly). RCVD is already cited as a Tier A anchor
+  elsewhere in this project without a docs/literature/ PDF copy on file
+  (e.g. the kinematic-beta 2-DOF moment-balance entries) -- same
+  precedent followed here, not a new exception. docs/literature/
+  Rajamani, "Vehicle Dynamics and Control" (present, unread this
+  session for the same PDF-tool reason) is a plausible secondary
+  anchor for the same standard result, also unverified.
+- METHOD: the reduced 4-parameter Magic Formula's peak factor D is
+  ordinarily a free-fitted peak FORCE (N). The standard load-scaling
+  form instead writes D = mu * Fz, where Fz is the (per-sample, per-
+  axle) vertical tyre load and mu is a single fitted PEAK FRICTION
+  COEFFICIENT -- the same physical quantity a friction-circle/mu*Fz
+  argument uses everywhere else in vehicle dynamics, applied here to
+  let the curve fit vary correctly with load rather than assuming one
+  constant peak force across the whole session's own load range.
+  Fitted jointly with B (stiffness factor), C (shape factor), E
+  (curvature factor) via the same Powell optimisation already used for
+  the free-D fit (modules.tyre_fit_auto._fit_axle_pacejka) -- only the
+  parameterisation of the peak term changes, not the optimiser or the
+  underlying Magic Formula shape (modules/tyre_model_pacejka.py
+  unchanged; D*sin(...) broadcasts over a per-sample D=mu*Fz array
+  exactly as it already does over a scalar D, so no change was needed
+  there).
+- REQUIRES measured per-axle Fz (modules.wheel_loads via stability_
+  estimation.vertical_load_source="measured", Fz-integration Phase 1) --
+  degenerate if unavailable (no damper channels this session, or
+  car_data.json missing).
+- PLAUSIBILITY BAND: mu in [1.2, 2.0] for a GT3 slick (config tyre_
+  fit_auto.mu_plausibility_band_low/high) -- a fitted mu outside this
+  band is reported, not silently accepted or discarded (this project's
+  standing rule on an implausible Tier-A numeric result).
+- config tyre_fit_auto.load_normalised_fit_enabled (default false):
+  gates whether resolve_sideslip_beta's own ekf_auto_pacejka call uses
+  this mode. Free-D stays the production default -- this mode is
+  diagnostic/config-selectable only, not authorised as a production
+  default by this phase.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Deviation taxonomy for chair-comparison [2026-07-24]
@@ -14504,3 +14548,1043 @@ future export", given this census's own finding that even a currently-
 declared reference (Dubai's GPS course) provides ~zero anchor coverage
 during racing. No commit; PLAN.md STATUS rewritten separately below.
 that either deletes these three or gives each a stated keep-reason.
+
+### Fz-integration Phase 1: premise correction (Dubai has damper channels),
+unit normalisation, dead-channel guard, Dubai validation chain [2026-09-03,
+new session, branch fz-integration]
+
+PREMISE CORRECTION -- memory vs census, census wins (same lesson as the
+GT3 Paul Ricard 20Hz sample-rate discovery): the work order stated "Dubai
+has no damper channels", asserted from memory/prior project history, not
+verified against the file. Directly grepping Sample_Dubai.txt's raw text
+before writing any code found all four log_dms_dam_* and all four log_
+susp_travel_* channel headers present, with real (non-degenerate) data:
+force channels read std 1489-2031N (physically plausible corner-load
+variation, not noise); one travel channel (log_susp_travel_rr) is frozen
+(see below). This directly broke Phase 1's own hard-constraint design
+(Dubai "resolves to static automatically" because no channels exist) --
+correctly caught by the FIRST empirical run of that check, not assumed
+to pass. Per CLAUDE.md's own rule and the work order's AUTONOMY RULE
+("stop... on a pre-registration failing in a way that changes the
+design"), this was reported and the user re-decided the hard constraint
+rather than having it silently patched over.
+
+DECISION (user, same session): the hard constraint is REWRITTEN --
+Dubai byte-identical under vertical_load_source="static" (the default,
+unconditionally, proven by construction: estimate_vertical_loads never
+touches modules.wheel_loads unless the flag is "measured"), not under
+"measured" -- Dubai's own real damper data makes "measured" mode on
+Dubai a SECOND VALIDATION SESSION, not a regression reference. Goldens
+stay static-mode; no golden divergence from Dubai is expected or
+excused by this package.
+
+UNIT NORMALISATION, mandatory per the user's decision (modules/
+wheel_loads.py): log_susp_travel_* varies by file exactly like lap_
+distance once did -- Sample_Dubai.txt logs metres (unit_raw='m',
+confirmed directly, values ~ +/-0.01-0.04), GT3_PRC_MLA-v3.txt logs
+millimetres already (unit_raw='mm', ~+/-10-53) -- both checked directly,
+not assumed. New _normalize_travel_to_mm(data, unit_raw) mirrors
+modules.stability_analysis._normalize_lap_distance_to_metres's own
+pattern exactly (convert mm/m, raise ValueError on anything else).
+log_dms_dam_* gets a CHECK, not a conversion (_check_damper_force_unit)
+-- refuses on any unit other than 'N', since a hypothetical alternative
+force unit has no meaningful fixed-factor conversion this module could
+apply blindly. Both wired into estimate_wheel_loads_from_dampers's own
+per-corner loop, gated behind the existing quality=="valid" check (a
+missing/failed channel never reaches the unit check at all). 5 new
+targeted tests (identity for mm, scaling for m, raises on an unknown
+unit, a same-physical-travel-two-different-units-in identical-result
+integration check through the full function, raises on an unrecognised
+force unit) -- all pass, plus the 6 dead-channel tests below, 11 new/19
+total in tests/test_wheel_loads.py.
+
+DEAD-CHANNEL PLAUSIBILITY GUARD, closing the "frozen at a plausible
+value passes the range gate" limitation the user named explicitly: new
+_channel_is_dead(data, std_max) flags a channel invalid on near-zero
+session-long variance REGARDLESS of where its value sits in the normal
+range -- channel_quality_gates' own range check tests the VALUE, never
+whether the channel moves at all. New config wheel_loads.dead_channel_
+std_max_travel_mm=1.0 (data-derived: the real frozen channel found
+below reads std=0.101mm, every real travel channel checked on both
+sessions reads std 4.88-7.20mm -- 1.0mm sits with ~10x margin above the
+frozen case and ~5x margin below every real one) and dead_channel_std_
+max_force_N=50.0 (conservative placeholder, no real frozen-force
+example observed yet on either session -- both real files read std
+1489-2083N, ~30-40x above this floor). A corner is only demoted by this
+guard when its quality-gate already passed (a missing/failed channel
+was already invalid for a different, existing reason).
+
+FLAT RR TRAVEL, investigated as instructed: log_susp_travel_rr on
+Sample_Dubai.txt reads std=0.101mm, range=3.03mm over the WHOLE session
+(81599 samples, 100Hz) -- vs its own axle-mate log_susp_travel_rl at
+std=5.39mm and every other travel channel checked on either real
+session (4.88-7.20mm). CONFIRMED dead/frozen, not a genuinely quiet
+corner: log_dms_dam_rr (the FORCE gauge on the same corner) is NOT
+frozen (std=2031N, real variation, the largest of all four force
+channels) -- the wheel itself is moving and loading normally, only its
+travel POT (or that channel's logging) is dead. CONSEQUENCE implemented
+per the user's instruction: RR is demoted to invalid for its OWN sprung-
+force term too (motion ratio genuinely needs real travel, not just the
+ARB term), correctly falling back to reconstruction/static for the
+whole corner. A NEW explicit per-corner arb_valid flag (bool array,
+returned by estimate_wheel_loads_from_dampers alongside valid/fz_N) now
+records, separately, whenever an AXLE's ARB term could not be computed
+at all (both left+right travel needed for the delta) -- RL's own fz_N
+still gets a real, finite answer (sprung + unsprung + geometric terms,
+all independently valid) with ARB explicitly degraded to a flagged
+zero-contribution, never silently absorbed into an unflagged "valid"
+corner the way the prior code's bare nan_to_num(arb_N, 0) would have
+let it. 6 new targeted tests cover the guard directly (detection
+function, whole-corner demotion, and the arb_valid-without-corner-
+invalidation distinction specifically).
+
+DUBAI VALIDATION CHAIN (new diagnostics/inspect_dubai_wheel_load_
+validation.py, [keep-reproduces] pending README entry -- mirrors
+diagnostics/inspect_v3_wheel_load_validation.py's checks (a)/(c)/(d)
+plus inspect_v3_aero_load_diagnostic.py's v^2 regression, run against
+Sample_Dubai.txt for the first time). REAL-OR-PLACEHOLDER VERDICT, all
+four gauges:
+- FL, FR, RL: REAL. 100% damper-valid. Cornering correlations correctly
+  signed and strong (corr(ay,Fz_fr)=+0.888, corr(ay,Fz_fl)=-0.864,
+  corr(ay,Fz_rl)=-0.831); the front ARB sign-convention check (corr(
+  travel_fl-travel_fr, ay)=+0.979) CONFIRMS the same convention already
+  verified on v3, independently, on a second car/session; the aero
+  regression's own intercept (a=13654.4N) sits only +2.65% above config
+  weight (13302.4N) -- much closer than the naive straight-line-mean
+  comparison below, because the intercept isolates the v=0 term from
+  real aero contamination the naive mean does not control for.
+- RR: DEAD/FROZEN (confirmed above), 0% damper-valid, correctly falls
+  back to the static/reconstructed tier for every sample.
+Findings reported, not resolved: (a) naive straight-line total (900
+samples, |ax|<0.5 & |ay|<0.5) reads +11.75% above config weight (OUTSIDE
+the +/-5% band used for v3) -- given the user's own statement that
+config mass_kg for this car/session IS Dubai's real weighing, this
+deviation is more diagnostically meaningful than it would be on v3
+(where an unknown session loaded weight could partly explain a gap);
+the aero regression's much closer intercept match suggests real aero
+downforce contamination in the naive mean (the straight mask is a
+LATERAL/LONGITUDINAL-acceleration filter, not a low-speed one) is a
+plausible explanation, not a confirmed one -- reported as a real,
+unresolved gap, not explained away. (b) the braking-phase check's own
+comment ("expect front > rear") reads front=6878.7N < rear=7839.2N in
+absolute terms -- but Dubai's own static split is strongly rear-biased
+(front 40.7%/rear 59.3% whole-session), and RELATIVE to each axle's own
+straight/no-transfer baseline (front 6175.4N, rear 8689.7N), braking
+correctly INCREASES front (+703N) and DECREASES rear (-850N) -- the
+comment's absolute-comparison framing (copied verbatim from the v3
+script) does not fit a car this rear-biased; the underlying transfer
+DIRECTION is correct on both axles, not a finding of concern. (c) the
+rear cornering correlation (corr(ay,Fz_rr)=+0.952) is NOT damper
+validation for RR -- since RR is dead, its reported Fz_rr in this run
+comes entirely from the pre-existing STATIC per-wheel model (combine_
+with_static_fallback), which already has an ay-driven transfer term by
+construction; this correlation confirms nothing new about the damper
+method, only that the long-standing static formula still behaves as
+designed.
+
+STOPPED HERE for a user checkpoint, per explicit instruction, before
+the v3 before/after comparison and any Dubai before/after (Phases 2/3
+of the original work order deferred to a later package, per the same-
+day scope-change instruction). No commit made.
+
+RESUMED 2026-09-03, new session, branch fz-integration -- see "Fz-
+integration Phase 1 (finish): CS_ratio independence, axle-total proxy
+bug fix, before/after comparison" below for how this checkpoint was
+closed out.
+
+### Fz-integration Phase 1 (finish): CS_ratio independence, axle-total
+proxy bug fix, before/after comparison [2026-09-03, same day, resuming
+the checkpoint above]
+
+PRE-REGISTRATION FAILURE, caught before producing a fabricated
+comparison: the work order asked for "CS ratio traces, worst-lap
+distributions (percentiles, flagged-count change)" static vs measured,
+under stability_estimation.vertical_load_source. This is IMPOSSIBLE
+under the current wiring, proven two ways, not assumed: (1) code-level
+-- modules.stability_analysis.estimate_cornering_stiffness(slip, forces,
+state, params) and estimate_yaw_moment_stability(state, beta, params,
+laps) never receive fz as an argument at all, and both are called
+BEFORE fz is computed in ui/views/outing_form.py's own pipeline order
+(cs, then stab, then fz) -- fz cannot influence either even in
+principle. (2) empirical -- diagnostics/inspect_vertical_load_source_
+cs_independence.py (one-off, deleted this same turn per the disposal
+rule, finding recorded here) ran the full Dubai pipeline twice, static
+vs measured: fz_f_N differed by up to 8591.8N (real, expected), but
+CS_ratio_f/CS_ratio_r/C_alpha_f/C_alpha_r and stability_observed_Nm_
+per_deg were BYTE-IDENTICAL. This also matches what PLAN.md's own
+"WHAT CHANGED IN UNDERSTANDING" section already states (2026-08-20):
+"CS_ratio IS the utilisation measure... It needs NO friction
+coefficient and NO vertical load." The work order's own premise
+contradicted an already-recorded project finding.
+
+USER DECISION (asked via the AUTONOMY RULE's own "pre-registration
+failing in a way that changes the design" stop condition, three options
+presented, plain-text answer): drop the CS_ratio/verdict/flagged-count
+comparison entirely (proven to always read exactly zero difference, not
+a real result to report), finish Phase 1 on the Fz values themselves
+(the actually-computable "before/after"), and proceed to Phase 2 --
+which is the real first consumer of measured Fz (the mu tyre-fit load
+term), consistent with the work order's own Phase 2 description. DECISION
+GATE, reframed to match what is actually testable: "material vs second-
+order shift" cannot fire because the shift is exactly zero by
+construction -- default stays "static" (trivially correct, not because
+a shift was evaluated and found small).
+
+BRAKING-CHECK WORDING FIXED, per the work order's own instruction:
+diagnostics/inspect_dubai_wheel_load_validation.py's transfer check (c)
+rewritten from an absolute front>rear comparison ("expect front > rear
+under load transfer" -- wrong for Dubai's own rear-biased static split,
+see the premise-correction entry above, finding (b)) to an AXLE-RELATIVE
+one: each axle's own load CHANGE from its own straight-line baseline
+under braking (front must increase, rear must decrease, independent of
+which axle carries more load at rest). Re-run: front 6175.4N ->
+6878.7N (+703.3N), rear 8689.7N -> 7839.2N (-850.5N) -- CONFIRMED both
+directions. diagnostics/inspect_v3_wheel_load_validation.py has the
+IDENTICAL bug (this script's own wording was copied verbatim from it,
+per its own header comment) -- left UNFIXED, out of this turn's named
+scope (the work order said "the validation script", singular); flagged
+for a future turn.
+
+REAL BUG FOUND AND FIXED, discovered visually from a figure, not from a
+number -- the render-and-look habit this project already uses for
+figure QA (PDF layout rework, splitter/diffuser measurement points) just
+caught a real correctness defect the same way: building the Dubai C4
+before/after corner figure (diagnostics/inspect_fz_before_after.py, new
+this turn), the rear-axle panel rendered with NO measured trace at all,
+only the static-split line. Traced to modules.wheel_loads.estimate_
+session_corrected_axle_totals: its "fr_proxy_N = damper_result['fl']
+['fz_N']" / "rear_total_N = damper_result['rl']['fz_N'] + damper_
+result['rr']['fz_N']" logic was hardcoded to v3's own failure pattern
+(FR permanently dead, RL/RR both always real) -- correct for v3, but on
+Dubai the dead corner is RR instead, so rear_total_N silently became NaN
+for the ENTIRE session (damper_result['rr']['fz_N'] is NaN wherever
+invalid, by that function's own contract), which then poisoned mass_kg_
+session and, through it, fz_r_N -- no exception, no warning, a fully
+silent structural failure specific to any session whose dead corner
+happens not to be FR.
+
+FIX (proposed, then approved with a modification): generalised to a new
+_axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c)
+applied per axle -- real value where a corner validates, else its
+axle-mate's real value scaled by the STATIC CONFIG MASS RATIO (dead
+corner's own corner_weights_kg / the mate's), not by equality. Front
+axle's ratio is exactly 1.0 (config FL_kg==FR_kg==290.0), reproducing
+the original hardcoded "2*FL" formula byte-for-byte -- RE-VERIFIED via
+diagnostics/inspect_v3_reconstruction_ground_truth.py: mass_kg_session=
+1532.9kg, mean reconstruction error=+885.9N (+16.86%/+17.76% RL/RR),
+EXACTLY the previously-recorded value (this same entry's own prior
+"Session-measured split fractions" record). Rear axle's ratio is NOT
+1.0 (config RL_kg=395.0, RR_kg=381.0, a real ~3.5% static asymmetry) --
+stated plainly in the new function's own docstring as a WEAKER
+approximation than front's exact case (it carries a STATIC left/right
+split onto what is really a DYNAMIC, roll-dependent quantity), not
+hidden behind the same confident wording front's exact-symmetry case
+earned. Where BOTH corners of an axle are invalid at once, there is no
+real value on either side to proxy from -- the total is now explicit
+NaN with a stated reason (new front_correction_degraded/rear_
+correction_degraded booleans plus _reason strings in the returned dict,
+e.g. "rl/rr: both corners invalid for 100.0% of samples -- axle total
+is NaN there, no mate to proxy from on either side") instead of an
+unexplained NaN a caller has to trace back by hand, exactly as this
+Dubai case had to be. rear_left_fraction (reported-only, item 4 of the
+function's docstring) is left un-proxied on purpose -- proxying one rear
+side from the other would make that ratio trivially equal to the config
+ratio by construction, not a measurement of anything; it now reads NaN
+on a Dubai-shaped session (an honest "not measurable this session", not
+a silent default).
+
+6 new tests (tests/test_wheel_loads.py): the v3 pattern (front, ratio
+1.0) reproduces the old formula exactly; the Dubai pattern (rear, ratio
+381/395) is finite and NOT the equality mistake (explicitly asserted
+not-equal-to-2x); both-corners-dead degrades explicitly with the
+reason string; two integration-level tests through estimate_session_
+corrected_axle_totals itself (Dubai's real front/rear pattern -> finite
+fz_r_N, degraded=False; both rear corners dead -> fz_r_N all-NaN,
+degraded=True). Two pre-existing tests updated to add "valid" arrays
+their fixtures never previously needed. All 24 tests in tests/test_
+wheel_loads.py pass. No production/config file touched by this fix
+(modules/wheel_loads.py only; vertical_load_source stays "static" by
+default, so this bug had zero effect on anything currently shipping --
+it only affected the not-yet-enabled "measured" path).
+
+BEFORE/AFTER COMPARISON (diagnostics/inspect_fz_before_after.py, new
+this turn, [keep-reproduces] -- reusable whenever the estimator changes
+or a third damper-equipped session arrives; diagnostics/README.md
+updated). Runs both vertical_load_source settings through modules.
+stability_analysis.estimate_vertical_loads on the real Dubai and v3
+files and reports the two things that ARE real: per-corner source share
+and static-vs-measured Fz trace figures.
+
+RECONSTRUCTED SHARE (source: damper/reconstructed/static_fallback,
+identical whole-session and valid-racing-laps-only -- no session has any
+static_fallback samples, since every real corner on both files is
+either damper-valid all session or damper-dead all session, never a
+mix):
+- Dubai: FL/FR/RL 100% damper, RR 100% reconstructed (matches the
+  premise-correction entry's own dead-RR finding).
+- v3: FL/RL/RR 100% damper, FR 100% reconstructed (matches the damper
+  package's own dead-FR finding).
+
+CORNER FIGURES (canonical corner + 2 auto-picked by highest plausible
+median|ay| among valid-lap instances, same selection convention as
+diagnostics/inspect_v3_wheel_load_comparison_figure.py/..._
+reconstruction_figure.py -- front-axle and rear-axle Fz, static-split
+vs measured cascade, 2 panels):
+- Dubai: C4 lap4 (median|ay|=12.1 m/s^2), C12 lap4 (13.7), C3 lap1
+  (13.7) -> diagnostics/plots_fz_integration/dubai/.
+- v3: C12 lap8 (18.0, the same corner/lap this project's own existing
+  showcase figures already used -- selection reproduces established
+  precedent, not a coincidence), C13 lap9 (15.7), C16 lap7 (15.1) ->
+  diagnostics/plots_fz_integration/v3/.
+Both sessions' front-axle traces show the measured cascade running well
+above and more dynamically than the static split under real cornering
+load (matches the already-recorded +10-20% whole-session finding); the
+Dubai C4 rear-axle panel (post-fix) shows the reconstructed RR-driven
+total tracking the static trace's shape but offset consistently higher,
+same session-correction signature as the front.
+
+DECISION GATE: cannot be evaluated as "material vs second-order" (that
+framing assumed a real CS_ratio/verdict delta exists to size) -- the
+delta is exactly zero, proven above. Default stays "static". Nothing in
+this Phase 1 finish authorises flipping it; Phase 2 is the first phase
+where "measured" actually feeds anything beyond a display value.
+
+Full regression suite NOT run this turn (targeted tests only, matching
+this whole package's own testing discipline -- full suite once at the
+end, per the work order). No commit made.
+
+### Fz-integration Phase 2: load-normalised (mu) Pacejka tyre fit --
+STOPPED on the pre-registered plausibility gate [2026-09-03, same day]
+
+IMPLEMENTED (method citation/reasoning: see the "Pacejka load-
+normalised (mu) tyre fit" entry, section 1, this file): modules.
+tyre_fit_auto.fit_session_pacejka gained load_normalised=False/True (new
+_fit_axle_pacejka_mu, joint Powell fit of B/C/mu/E with D=mu*Fz(t)
+evaluated per-sample inside the objective -- no change to modules/
+tyre_model_pacejka.py, D*sin(...) broadcasts over a per-sample array
+exactly as it already does over a scalar). Config tyre_fit_auto.
+load_normalised_fit_enabled (default false) gates resolve_sideslip_
+beta's own ekf_auto_pacejka call; free-D path completely unchanged
+(same code, same manifest shape plus one new "load_normalised": false
+key -- confirmed harmless: neither test_golden_pipeline.py nor test_
+golden_auto_modes.py diff fit_manifest itself, only pipeline_result[
+"summaries"], so an additive manifest key cannot break a golden test;
+verified by reading both files' comparison logic before relying on it,
+not assumed). mu_plausibility_band_low/high (1.2/2.0, GT3 slick) added,
+reported not enforced as a hard code assertion (a fitted mu outside the
+band is a STOP condition for THIS SESSION's own judgement, not
+something the function should silently clamp or refuse to return).
+
+REAL BUG caught and fixed before any real-session numbers were
+produced: the first run of diagnostics/inspect_fz_mu_tyre_fit.py (new,
+kept -- see diagnostics/README.md) returned DEGENERATE on load_
+normalised=True for BOTH sessions ("no damper-valid samples this
+session (vertical_load_source resolved to 'static')") despite Phase 1
+having just proven both sessions DO have damper-valid samples. Cause:
+fit_session_pacejka's own estimate_vertical_loads call passed the
+CALLER's params dict through unmodified, so it read the LIVE config's
+own stability_estimation.vertical_load_source (still "static", the
+production default) instead of requesting "measured" explicitly --
+load_normalised=True is a request for measured Fz, not a reflection of
+whatever the global flag happens to be. Fixed by building a params_
+measured_fz variant (deep-copied stability_estimation dict, vertical_
+load_source forced to "measured") for this one call only -- the live
+config/its default is never touched. Caught by running the real
+diagnostic script this same package's own Phase 1 (before/after
+comparison) had just established the habit of using, not a unit test
+-- no synthetic fixture was built for this specific wiring path (fit_
+session_pacejka needs a full real vehicle-state/laps/corners
+population; a hand-built synthetic fixture large enough to exercise it
+meaningfully would not have been materially cheaper than just running
+the real diagnostic, so none was added).
+
+SYNTHETIC TEST (tests/test_tyre_fit_auto_mu.py, 4 tests, all pass): a
+noiseless synthetic population from a KNOWN (B, C, mu, E) with an
+independently-varying Fz recovers mu to within ~1-2% and D (=mu*mean
+Fz) to the same tolerance, in both cases tested (two different Fz
+ranges) and even with 10% of Fz samples NaN'd out (correctly excluded
+from the fit population, not treated as zero). GENUINE FINDING, not
+swept under the rug: the SAME noiseless population does NOT recover
+B/C/E individually to a tight tolerance (10-20% drift depending on the
+alpha range/sample density used) -- a real B/C/E interdependency in the
+joint Powell fit, the same class of curve-parameter ambiguity already
+documented for this project's Dugoff/Pacejka refit loops ("Refit-loop
+conclusion: structural non-convergence...", above), here surfacing
+WITHIN a single fit rather than across iterations. mu is comparatively
+well identified because it scales D directly and proportionally against
+an independently-varying Fz, a signal the other three shape parameters
+do not have -- stated as the likely reason, not proven further this
+session.
+
+REAL-SESSION RESULTS (diagnostics/inspect_fz_mu_tyre_fit.py, both
+sessions, both modes -- full numbers in diagnostics/fz_mu_tyre_fit_
+results.json):
+- Dubai free-D: front B=10.457 C=1.940 D=8184.0 E=0.091 (rms=2679.9N),
+  rear B=11.759 C=1.982 D=9213.6 E=-2.281 (rms=5762.8N); status=ok,
+  nis_gate health_score=0.1351 (pass) -- these numbers are IDENTICAL to
+  the refit-loop closure's own iteration-1 Pacejka fit (thesis_notes.md
+  "v3 Pacejka refit evaluation..."), confirming load_normalised=False
+  really is byte-identical to the pre-existing path, not just argued.
+- Dubai mu: front B=10.872 C=1.899 D=8041.8 E=0.599 mu=1.3193 (mean_
+  axle_fz=6095.3N, rms=2728.0N), rear B=11.178 C=1.917 D=9522.6
+  E=-4.809 mu=0.8482 (mean_axle_fz=11226.5N, rms=5853.2N); status=ok,
+  nis_gate health_score=0.1274 (pass, slightly BETTER than free-D's
+  0.1351). mu_plausibility: front PLAUSIBLE (1.3193, inside [1.2,
+  2.0]), rear NOT PLAUSIBLE (0.8482, below 1.2).
+- v3 free-D: front B=8.343 C=1.852 D=8377.8 E=-1.210 (rms=3670.3N),
+  rear B=8.006 C=1.983 D=9559.9 E=-2.216 (rms=6704.5N); status=marginal
+  (sweep did not land in-band), nis_gate health_score=0.0849 (pass) --
+  again identical to the refit-loop closure's own recorded iteration-1
+  v3 Pacejka numbers.
+- v3 mu: front B=7.827 C=1.875 D=8603.8 E=-1.220 mu=1.1603 (mean_axle_
+  fz=7415.0N, rms=3756.9N), rear B=5.977 C=1.925 D=11603.5 E=-7.789
+  mu=1.1461 (mean_axle_fz=10124.3N, rms=6826.1N); status=ok (BETTER
+  than free-D's "marginal" -- the sweep now lands in-band), nis_gate
+  health_score=0.0859 (pass, essentially unchanged from free-D's
+  0.0849). mu_plausibility: front NOT PLAUSIBLE (1.1603, just below
+  1.2), rear NOT PLAUSIBLE (1.1461, just below 1.2).
+
+PRE-REGISTERED STOP TRIGGERED: 3 of 4 axle/session combinations have an
+implausible mu (Dubai rear, v3 front, v3 rear -- only Dubai front sits
+inside [1.2, 2.0]), firing the work order's own explicit "outside =
+STOP" instruction. Stopped here per that instruction -- Phase 3 (the
+bounded refit loop under mu) is NOT started, since it is gated on
+Phase 2 producing a plausible curve to refit from.
+
+INTERPRETATION, offered not asserted (both plausible, not disentangled
+this session): (1) REAL TYRE PHYSICS -- load sensitivity. A real tyre's
+peak friction coefficient DECREASES as vertical load increases (a
+well-documented effect; the full industrial Magic Formula uses a load-
+DEPENDENT D, e.g. D=Fz*(a1*Fz+a2), specifically because a single
+constant mu breaks down at high load) -- this project's D=mu*Fz
+formulation assumes one constant mu regardless of load, by the work
+order's own stated design. The rear axle's mean_axle_fz_N here (11226N
+Dubai, 10124N v3) is high -- plausibly high enough that a genuinely
+lower EFFECTIVE mu at that load is real tyre behaviour, not a fitting
+defect. This would mean the fitted numbers are correct and the ASSUMED
+1.2-2.0 band (calibrated, per the work order, against a slick tyre's
+typical/nominal mu) simply does not describe mu at these sessions' own
+real dynamic load levels. (2) Fz OVER-ESTIMATION -- Phase 1's own
+session-corrected axle-total model has TWO already-documented,
+unresolved imperfections that would push Fz too high and mu
+correspondingly too low: the aero/mass double-counting noted in
+estimate_session_corrected_axle_totals's own docstring ("mass_kg_
+session... already contains some of the real aero present... adding a
+full separate c_session*v^2 term therefore double-counts"), and the
+front/rear split's own still-open residual gap ("Session-measured split
+fractions..." above: whole-session total moved from the ORIGINAL
++10.4% finding to +18.7%, WORSE not better, after the split-fraction
+fix). Both mechanisms point the SAME direction (Fz too high -> mu too
+low), so either could explain some or all of the shortfall; this
+session did not attempt to separate them. NOT explored, flagged for a
+future session if this reopens: whether a load-dependent D formulation
+(the full industrial Magic Formula's own remedy, rather than a single
+constant mu) would resolve the plausibility gap without needing Fz to
+be exactly right.
+
+DECISION NEEDED FROM THE USER before any further phase: whether to (a)
+treat this as real load-sensitivity and revisit the plausibility band
+itself, (b) investigate/resolve the two known Fz-inflation mechanisms
+above first, (c) accept the mu fit as a diagnostic-only result and
+close this sub-thread without further numeric work, or (d) something
+else. No production/config default changed (load_normalised_fit_
+enabled stays false); resolve_sideslip_beta's free-D path is unaffected
+and re-verified byte-identical to the pre-existing recorded numbers
+above. Targeted tests only this turn (4 new, tests/test_tyre_fit_auto_
+mu.py, all pass); test_stability.py re-run clean (exit 0). No commit
+made.
+
+### Fz-integration Phase 2 gate resolution [2026-09-03, same day, user
+decision]
+
+(1) PLAUSIBILITY BAND CORRECTED, not the fit: config tyre_fit_auto.
+mu_plausibility_band_low/high (1.2/2.0) was set for a STATIC-load
+slick mu; this fit's own mu is computed against DYNAMIC, aero-inclusive
+Fz (modules.wheel_loads's measured/reconstructed cascade, including
+real cornering load transfer and aero downforce, not a static corner
+weight) -- a lower effective mu at those higher, dynamic load levels is
+consistent with ordinary tyre load sensitivity (real tyres lose peak
+friction coefficient as vertical load rises; the full industrial Magic
+Formula's own load-dependent D exists specifically because a single
+constant mu does not hold across a load range). The band itself, not
+the fitted numbers, was measuring the wrong regime. STATED PRECISELY,
+per the user's own instruction: the observed ordering (mu decreasing as
+each axle/session's own typical load level rises) is CONSISTENT WITH
+load sensitivity -- this is NOT a validated measurement of load
+sensitivity (no sweep across a controlled load range was performed, no
+literature load-sensitivity curve was fit or compared against); it is
+the qualitative shape of a real effect, offered as the explanation that
+fits the data, not proof of it.
+
+(2) DECISIVE CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py, new,
+[keep-reproduces] -- reuses diagnostics/fz_mu_tyre_fit_results.json's
+already-computed free-D D and joint-fit mu, only recomputes each axle's
+own fit-population median measured Fz, cheap: no EKF/sweep re-run).
+mu_check = free-D fit's own D / median measured Fz in that axle's exact
+fit population (base_mask & finite alpha & finite Fy & finite Fz -- the
+same population _fit_axle_pacejka_mu itself fits over). Four pairs:
+
+    session  axle    D_freeD   median_Fz  mu_check  mu_joint   diff
+    dubai    front    8184.0     6107.1     1.3401    1.3193   -1.55%
+    dubai    rear     9213.6    11495.4     0.8015    0.8482   +5.83%
+    v3       front    8377.8     7290.3     1.1492    1.1603   +0.97%
+    v3       rear     9559.9    10072.5     0.9491    1.1461  +20.76%
+
+(3) DUBAI REAR FLAGGED AND EXCLUDED, per instruction: its Fz rests
+entirely on the reconstructed-RR proxy (Phase 1's own axle-total-model
+reconstruction, not a direct RR measurement -- RR's travel pot is dead
+all session, thesis_notes.md "Fz-integration Phase 1: premise
+correction..."). Its +5.83% cross-check gap is the second-largest of
+the four and its own mu (0.8482, the ONLY axle below 0.85) is the
+plausibility band's single worst miss -- both consistent with, though
+not conclusive proof of, a reconstruction-proxy-driven distortion.
+Excluded from the confirm/diverge judgement below, stated not silently
+dropped.
+
+REMAINING THREE PAIRS, NOT UNIFORM: Dubai front (-1.55%) and v3 front
+(+0.97%) are TIGHT, well inside any reasonable "honest ratio" reading.
+v3 rear DIVERGES sharply (+20.76%, three to twenty times the gap size
+of every other pair) -- and unlike Dubai rear, v3's own rear axle (RL
+AND RR) is 100% real damper-valid all session (the damper package's own
+finding: v3's dead corner is FR, not a rear corner) -- so this
+divergence CANNOT be explained by the same reconstructed-proxy
+mechanism that flags Dubai rear. It is a genuinely unresolved anomaly,
+not an artifact with an already-known cause. The user's own pre-
+registered rule (confirms -> Phase 3 proceeds with the revised
+per-session +/-15% band; diverges -> stop, no Phase 3) did not specify
+a numeric divergence threshold, and this session's own result is mixed
+(2 of 3 non-excluded pairs confirm tightly, 1 diverges by an order of
+magnitude more than the others, unexplained) -- reported to the user
+for that judgement rather than this session choosing a threshold
+unilaterally. No config/production change; Phase 3 NOT started pending
+this decision.
+
+### v3 rear divergence dig, read-only [2026-09-03, same day, user
+instruction] -- CONCLUSION: LEGITIMATE LOAD EFFECT
+
+diagnostics/inspect_fz_mu_v3_rear_divergence.py, new, [keep-reproduces]
+(diagnostics/README.md updated). Front (control, where free-D/mu agreed
+within 1%) and rear (the +20.76% divergence) analysed the same way:
+tyre cloud coloured by measured Fz, three model curves overlaid (free-D;
+mu fit evaluated at median Fz; mu fit at p25/p75 Fz as a band), plus
+correlation and residual-tercile numbers. Figures: diagnostics/
+plots_fz_integration/v3/fz_mu_v3_{front,rear}_tyre_cloud.png. Full
+numbers: diagnostics/fz_mu_v3_rear_divergence_numbers.json.
+
+CORRELATION (does load co-vary with operating point -- the precondition
+for the two formulations to legitimately disagree): REAR corr(Fz,
+|alpha|)=-0.4355, corr(Fz,|Fy|)=-0.4547 -- FRONT corr(Fz,|alpha|)=
+-0.1491, corr(Fz,|Fy|)=-0.2772. Both negative (see caveat below), but
+REAR's magnitude is 1.6-2.9x FRONT's -- directionally exactly matching
+which axle showed the larger cross-check divergence (rear +20.76% vs
+front +0.97%). SIGN CAVEAT, stated not glossed over: a negative
+correlation is not what a naive single-mechanism "more load -> more
+force" story predicts; the whole-lap fit population mixes braking
+(large longitudinal/aero Fz transfer, near-zero alpha/Fy) with
+cornering (real alpha/Fy, a different, lower-Fz-on-average regime on
+this data) -- a plausible mechanism for the sign, not proven further
+this session. What the correlation's MAGNITUDE establishes (the
+precondition being tested) does not depend on which mechanism produces
+the sign.
+
+RESIDUAL-TERCILE CHECK (does the mu fit trade accuracy across load
+bins the way an overfit would): REAR, low/mid/high Fz terciles --
+rms_resid: free-D 6931/7823/5061N, mu 7197/7843/5147N (mu is uniformly
+20-266N worse than free-D in EVERY bin, ~1-4% relative, no bin where mu
+is much better at another bin's expense). FRONT -- free-D 4614/2828/
+3335N, mu 4648/2865/3540N (same pattern, uniformly 34-205N worse). Both
+axles' tercile-to-tercile SHAPE (mid easiest for front, high easiest
+for rear) is IDENTICAL between the free-D and mu fits -- the shape is a
+property of the DATA at each load level, not something the mu
+reparametrisation introduces. No sign of the mu fit exploiting one load
+regime's noise at another's expense, on either axle.
+
+VISUAL (both figures, render-and-look): FRONT's cloud is colour-
+homogeneous (narrow Fz range visually dominated by one teal band,
+matching its own small correlation) and the mu p25/p75 band sits
+tight against the free-D curve throughout -- exactly the "agrees within
+1%" result already known. REAR's cloud visibly colour-orders -- the
+warmer (higher-Fz) points cluster toward the upper edge of the positive-
+alpha peak region and the cooler (lower-Fz) points toward the lower
+edge of the negative-alpha region -- and the mu band brackets that
+colour gradient plausibly (not inverted, not absurdly wide): the p75
+curve tracks the warmer high-Fz cloud edge, the p25 curve tracks the
+cooler low-Fz edge, both directions, both signs of alpha.
+
+CONCLUSION: LEGITIMATE LOAD EFFECT, not fit artifact -- on every check
+run (correlation-magnitude-vs-divergence-magnitude ordering, tercile-
+residual uniformity, band plausibility against the colour-ordered
+cloud), the evidence points the same direction. The rear axle's larger
+free-D/mu divergence is explained by its own stronger load/operating-
+point coupling on this session's data, not by the mu reparametrisation
+introducing spurious structure. Per the user's own instruction, STOPPED
+HERE at the conclusion -- Phase 3 (bounded refit loop under mu) is NOT
+started pending the user's own decision on how to proceed. No config/
+production change.
+
+### Fz-integration Phase 3: bounded refit loop under mu -- BOTH SESSIONS
+NON-CONVERGENT [2026-09-03, same day, user GO with amended criteria]
+
+diagnostics/inspect_fz_mu_refit_evaluation.py, new, [keep-reproduces]
+(diagnostics/README.md updated). Mirrors diagnostics/inspect_v3_
+pacejka_refit_evaluation.py's exact iteration mechanics (pass 1 =
+production's own first-shot fit; iteration N refits from iteration
+N-1's own beta-derived alpha; R held fixed at pass 1's own chosen
+values throughout) with ONE substitution: _fit_axle_pacejka_mu (D=
+mu*Fz, Fz measured, recomputed once -- it does not depend on beta --
+and held fixed across iterations) in place of the free-D axle fit. 4
+iterations, both sessions, per the pre-registration. AMENDED CRITERIA
+(user instruction, replacing the closed loop's absolute-plausibility
+framing): growth band is PER-AXLE, mu within +/-15% of that axle's OWN
+iteration-1 value; mu drift and peak-position settling tracked and
+classified SEPARATELY, since the Phase 2 synthetic test already showed
+mu is the reliably-identified parameter of the joint fit and B/C/E
+wander is expected, not a failure criterion on its own.
+
+CLASSIFICATION RULE (pre-registered before running): WANDERING if
+peak_in_visited_range flips at all across the 4 iterations (the more
+severe failure -- curve peak location itself not settling, "limit is
+beta itself"); else CREEPING if mu exits the +/-15% band at any
+iteration OR |delta mu| does not shrink monotonically; else BOUNDED.
+
+RESULTS:
+    session  axle    mu_1    mu_2    mu_3    mu_4    peak_in_range seq
+    Dubai    front   1.3193  1.3992  1.2997  1.3088  F,F,F,F
+    Dubai    rear    0.8482  1.1113  1.2446  1.3255  F,F,F,F
+    v3       front   1.1603  1.3639  1.5102  1.5205  T,F,F,F
+    v3       rear    1.1461  1.3623  1.3818  1.4294  F,F,T,T
+
+- DUBAI: both axles CREEPING. Front's |delta mu| does not shrink
+  monotonically (0.0799 -> 0.0995 -> 0.0090 -- grows before it shrinks).
+  REAR (EXCLUDED from conclusions, reconstructed-RR proxy, per the
+  user's own instruction -- still run/reported): mu grows from 0.8482
+  to 1.3255 over 4 iterations (+56%), exiting the +/-15% band
+  [0.7210, 0.9755] at every subsequent iteration and never plateauing
+  -- D_rear correspondingly grows 9522.6 -> 14880.5N, the SAME "D grows
+  every iteration with no plateau" signature the historical closed
+  Pacejka loop already found on both sessions' free-D fits (thesis_
+  notes.md "Refit-loop conclusion..."). NIS-gate verdict degrades pass
+  -> warn from iteration 2 onward and does not recover.
+- V3 (PRIMARY evidence axle: rear): both axles WANDERING. Front's peak
+  settles OUTSIDE the visited range after iteration 1 (T,F,F,F -- one
+  transition, then stable for 3 of 4 iterations). REAR's peak settles
+  INSIDE the visited range after iteration 2 (F,F,T,T -- one transition,
+  then stable for 2 of 4). Both are single-transition-then-stable
+  patterns, milder than the historical loop's own "out/in/out/out"
+  oscillation on the same session -- but the pre-registered rule (ANY
+  flip anywhere in the 4-iteration series counts) was fixed BEFORE this
+  run per the user's own instruction, and is applied as pre-registered,
+  not loosened after seeing a milder pattern than expected. mu itself
+  moves substantially on both axles even where the peak eventually
+  settles (rear: 1.1461 -> 1.4294, +25%, still growing at iteration 4
+  with no plateau) -- consistent with WANDERING, not merely borderline.
+
+CONCLUSION: measuring load did NOT resolve the refit loop's structural
+non-convergence -- on BOTH sessions, under the amended per-axle growth
+criteria, the loop fails (Dubai: CREEPING with unbounded rear mu/D
+growth; v3, the primary evidence axle: WANDERING, peak location not
+settling within 4 iterations on either axle). This STRENGTHENS rather
+than reopens the existing closure (thesis_notes.md "Refit-loop
+conclusion: structural non-convergence confirmed on two sessions, two
+failure directions", PLAN.md BACKLOG A's tyre-curve sub-item): the
+identifiability argument there was that curve and beta are jointly
+unobservable from ay/yaw_rate alone without an INDEPENDENT third
+measurement -- Fz-integration supplies a real, independently-measured
+load, but load alone does not break the curve/beta ambiguity (alpha
+still depends on the SAME estimated beta the curve is fit against every
+iteration) -- exactly the mechanism the identifiability argument
+predicts, now empirically tested under an improved input and still
+failing the same way. NO PRODUCTION CHANGE from this phase, regardless
+of outcome, per the work order's own instruction -- the mu-normalised
+fit's PASS-1 result (Phase 2's own single-iteration numbers) is
+unaffected and remains the load_normalised=True diagnostic result on
+record; only the ITERATIVE refit (never production, never shipped) is
+what this phase re-confirms as non-viable. No config/production file
+touched; no commit made.
+
+### Fz-integration Phase 4: pit-limiter-based out/in-lap classification
+[2026-09-03, same day]
+
+TIER B (signal/data engineering, upstream lap-boundary reliability --
+no vehicle-dynamics method content). Method anchor: none needed, this
+is a data-classification rule, not a Tier A estimator.
+
+PREMISE CHECKED, NOT ASSUMED, per CLAUDE.md's own standing rule
+(channel presence and content are censused from the file, never
+recalled): the work order's own stated hard constraint ("v3: first and
+last laps correctly out/in, state expected before running") was
+CENSUSED FIRST (diagnostics/inspect_v3_pit_limiter_lap_census.py, new,
+[keep-reproduces]) rather than trusted -- and found FALSE for the last
+lap. Real, load-bearing bug found: v3's lap 9 (the session's actual
+last lap) was is_valid_for_analysis=TRUE despite its final ~22s running
+under ecu_B_speedlimit_en (t=[1224.19,1246.59]s, the file's own last
+sample at 1246.59s -- the session simply ends mid-limiter, no separate
+trailing fragment lap_number the existing _merge_trailing_pit_fragment
+mechanism could catch). Every corner instance in that ~22s window
+(whichever corner(s) sit at the end of this track) was being computed
+from artificially slow, pit-committed driving and folded into the
+"valid racing lap" population with no flag at all. This corrects the
+work order's own premise -- recorded per the "premise correction:
+census wins" pattern already established this session (Phase 1) and in
+the GT3 Paul Ricard 20Hz discovery before it.
+
+ROOT CAUSE: modules.csv_parser's is_outlap was purely positional
+(lap_number==0); is_inlap was set only by _merge_trailing_pit_fragment
+(a SESSION-TRAILING-fragment-only mechanism, by its own docstring:
+"Multi-stint race files... will need stint-aware in/out/stop-lap
+classification via MID-lap limiter engagement instead. That is
+deferred until multi-stint data arrives" -- GT3_PRC_MLA-v3.txt is
+exactly that arrival). v3's own lap_number channel does not even
+include 0 (range 4-9, a mid-session file fragment) -- the outlap-
+equivalent event (limiter still engaged after the lap-counter has
+already incremented, i.e. the pit lane exit sits BEFORE the start/
+finish line, the work order's own "box before start/finish" framing)
+spans lap_number 4 (a genuine 15.8s pit-exit-crossing fragment, already
+excluded via the lap_time-channel-disagreement warning found in the
+v3 work package) AND lap_number 5 (still under the limiter at ITS OWN
+start, t=576.61s, inside the limiter's own [560.61,600.31]s active
+run) -- lap 5 was ALREADY excluded from is_valid_for_analysis (by
+being 24% slower than the fastest lap, an indirect/accidental
+mechanism) but carried no explicit outlap flag at all.
+
+FIX: new modules.csv_parser._classify_out_in_laps_by_limiter, called
+after _merge_trailing_pit_fragment, before _verify_laps/fastest-
+candidate selection. Checks ecu_B_speedlimit_en's own value AT each
+lap's own start_time (-> is_outlap) and end_time (-> is_inlap),
+ADDITIVE-OR onto the existing flags (never removes one the positional
+rule or the merge step already set) -- this additive composition is
+what guarantees the Dubai hard constraint holds: no limiter-active run
+on Dubai overlaps any lap boundary the pre-existing logic did not
+already flag, verified both by the real-file census (below) and by 3
+new synthetic tests. Falls back to the pre-existing positional-only
+result when the channel is absent/unusable (both checks return None,
+distinct from an active-but-False read).
+
+VERIFIED, both hard constraints:
+- DUBAI BYTE-IDENTICAL: real-file census shows every lap's is_outlap/
+  is_inlap/is_valid_for_analysis/is_fastest/warnings unchanged (lap 0
+  outlap, lap 5 inlap via the pre-existing merge mechanism, laps 1-4
+  valid, exactly as before) -- Dubai's own limiter runs ([325.68,
+  360.10]s inside lap 0, [1108.78,1130.10]s inside the merged lap 5)
+  never touch any OTHER lap's own start/end instant. tests/test_golden_
+  pipeline.py and tests/test_golden_auto_modes.py re-run clean (see
+  below) as the full-pipeline confirmation, not just the lap-level one.
+- V3 FIRST/LAST NOW CORRECTLY OUT/IN: lap 4 is_outlap=True (also
+  is_inlap=True -- the fragment sits entirely inside the limiter's own
+  active window at both ends) AND lap 5 is_outlap=True (limiter active
+  at its own start, the "box before start/finish" case, working
+  exactly as designed); lap 9 is_inlap=True, is_valid_for_analysis now
+  correctly FALSE (the real bug above, now fixed). is_fastest unaffected
+  (lap 8, 125.0s, was never close to being beaten by lap 9's 137.2s
+  regardless).
+
+CANONICAL CORNER GEOMETRY ON V3, VERIFIED VIA A REAL BEFORE/AFTER, not
+argued: compared against the pre-fix code directly (git show HEAD's own
+modules/csv_parser.py, loaded and run side by side with the fixed
+version, same real file). BEFORE: 17 stable_corner_ids, every one with
+exactly 4 lap members (6,7,8,9). AFTER: 17 stable_corner_ids (IDENTICAL
+set), every one with exactly 3 lap members (6,7,8 -- lap 9 now
+correctly excluded). UNAFFECTED at the geometry/count level (matches
+the corner-canonicalisation work's own already-established, sweep-
+confirmed 17-corner result); IMPROVED at the data-quality level (one
+fewer lap -- already independently flagged as v3's own known outlier/
+artifact-prone lap in the corner-canonicalisation work, "C17-C20
+fragmentation traced to one outlier lap (lap 9...)" -- now excluded
+from the corner population entirely, not merely down-weighted in
+representative-lap shaping).
+
+TESTS: 3 new (tests/test_lap_pit_limiter_classification.py, synthetic
+Pi Toolbox fixtures only, same construction convention as tests/
+test_csv_parser_formats.py's own fastest-lap-candidacy fixture) --
+box-before-line outlap continuation flagged by the channel not the
+position; channel-absent fallback exactly reproduces the pre-Phase-4
+positional-only result; lap_number==0 stays an outlap even when the
+limiter's own timing does not coincide with it exactly (Dubai's own
+real shape). All pass. Existing suite re-run, no regressions: tests/
+test_csv_parser_formats.py, tests/test_corner_representative_laps.py,
+tests/test_nan_empty_paths.py (34 passed); tests/test_golden_pipeline.py
++ tests/test_golden_auto_modes.py: 3 failed, 10 passed -- ALL THREE
+FAILURES ARE PRE-EXISTING, unrelated to this phase, not a regression:
+exactly 75 fields differ in every case, every one entry_1_brake.
+stability_observed_Nm_per_deg going real-number -> NaN, EXACTLY matching
+(same field count, same field pattern) the already-recorded, already-
+decided-to-defer PART C2 golden mismatch from "NIS gate band decision:
+divergence-not-quality redesign" (2026-09-03, earlier this same day,
+predates this session): "golden diff is real and expected (75 fields...)
+... EVERY ONE of the 23 raw medians was checked against stab_neg_
+thresh=-50.0 and found positive... zero Dubai verdict changes... golden
+left un-regenerated for now". Confirmed via git diff that _gate_stab_
+stat/stab_phase_no_braking_floor_bar are NOT part of this session's own
+uncommitted changes (git diff HEAD on modules/stability_analysis.py
+shows neither name) -- they are already committed at HEAD (commit
+42df7ce). The exact-75-field match is the confirmation that Phase 4
+added ZERO new diffs on top of this pre-existing, already-acknowledged
+state, not an assumption.
+
+No config file touched (no new tunables -- this is a structural
+classification fix, nothing to calibrate). modules/csv_parser.py is the
+only production file changed. No commit made.
+
+### Fz-integration Phase 5: wheel-speed plausibility guard + ABS-domain
+fallback [2026-09-03, same day]
+
+TIER B (signal/data engineering -- a plausibility gate and fallback
+cascade, no vehicle-dynamics method content; anchor: none needed).
+
+DIAGNOSIS (diagnostics/inspect_v3_wheel_speed_census.py, new, [keep-
+reproduces]): v3's log_speed_rr reads a spurious 300.5 kph peak (its
+three mates' own max sits at 248.2-251.9 kph) and deviates from its
+axle-mate log_speed_rl by more than 15% on 5.90% of moving samples --
+a real dropout/spike signature, not a whole-session dead channel (its
+own std/nan-fraction/stuck-window-fraction are unremarkable, comparable
+to its healthy mates). Raw-channel-name scan (4176 channels, same
+streaming technique as the prior external-reference census, file not
+loaded whole -- 1.29GB) found a genuine ABS-domain wheel-speed
+alternative: abs_speed_fl/fr/rl/rr, present on BOTH real sessions, 100Hz
+(double log_speed_*'s own 50Hz), values physically plausible (v3 max
+252.1 kph, no spike). Per-file unit CONFIRMED, not assumed (same
+per-file-unit hazard as log_susp_travel/lap_distance): v3 logs kph, but
+Dubai logs MPH for this same channel family -- new modules.longitudinal_
+forces._normalize_wheel_speed_to_kmh converts, raises on anything else.
+
+IMPLEMENTED: modules/longitudinal_forces.py gained _rolling_
+plausibility_mask (per-window, non-overlapping, window_s rate-derived)
+and _guarded_wheel_speed_kmh, wired into estimate_slip_ratio for all
+four corners (not just RR -- the same even-handed treatment Phase 1's
+wheel_loads dead-channel guard already gave all four of ITS corners).
+Two conditions, OR'd: (1) near-zero variance while moving (stuck); (2)
+mean ratio to the axle-mate exceeds ratio_max_deviation=0.10 (dropout/
+spike) -- gap-selected against v3's own log_speed_rr/rl deviation
+distribution (real population's own p90=4.62%, fault population's own
+p95=20.40%, 10% sits in the gap). Where flagged, falls back to
+abs_speed_{corner} (unit-normalised); NaN where unavailable. Consumers
+(modules.longitudinal_forces.estimate_slip_ratio's own kappa_f/kappa_r,
+and through it modules.longitudinal_stiffness's kerb-adjacent
+plausibility guard) get the guarded channel automatically -- no separate
+wiring needed at either, per the work order's own explicit ask.
+
+TWO REAL BUGS found and fixed BEFORE any number was reported, both
+caught by the same discipline this whole package has leaned on
+repeatedly: run the real diagnostic, look at the real numbers, don't
+trust an untested placeholder.
+(1) std_min_kmh=1.0 (first value tried, an unverified placeholder) was
+    roughly 10x too aggressive: diagnostics/inspect_wheel_speed_guard_
+    before_after.py's own first run flagged 22-45% of samples on EVERY
+    corner of BOTH sessions -- including Dubai's own long-trusted,
+    healthy log_speed_* channels (already the reference input for this
+    project's whole LS_ratio baseline). Traced directly: a real, healthy
+    0.5s window's own std sits at p10=0.53/p25=0.91/p50=1.61 kph on
+    Dubai's log_speed_fl -- 1.0 kph sat in the MIDDLE of normal
+    variation, not below it. Fixed to 0.1 kph, ~5x below the real p10,
+    a genuine margin instead of a guess.
+(2) The mate-ratio check, evaluated symmetrically, cannot distinguish
+    WHICH of a disagreeing pair is actually at fault: v3's own healthy
+    log_speed_rl was being flagged at 13.56% (vs its genuinely faulty
+    mate log_speed_rr's 12.61%) -- nearly the SAME rate, purely because
+    disagreement is mutual by construction. Direct check against
+    ecu_speed (axle-independent, unaffected by either wheel's own fault)
+    confirmed the asymmetry directly: RL deviates from ecu_speed beyond
+    10% on only 0.28% of moving samples (healthy), RR on 6.997% (25x
+    higher, genuinely faulty). Fixed by using ecu_speed as a TIE-BREAKER,
+    not a primary check (real slip/braking IS a legitimate large
+    deviation from ecu_speed -- the same "never kappa alone" caution
+    modules.longitudinal_stiffness's own kerb guard already states) --
+    only fired when the mate-ratio check has already raised a
+    disagreement, flagging whichever of the two deviates MORE from
+    ecu_speed. Re-run after the fix: v3 RL fallback dropped to 3.21%
+    (in line with its own healthy front-axle-like baseline), RR stayed
+    at 12.61% (correctly, unaffected by the attribution fix).
+
+REAL-SESSION RESULTS, after both fixes (diagnostics/inspect_wheel_
+speed_guard_before_after.py):
+- Dubai: all four corners fall back 1.41-1.78% of samples -- small,
+  roughly symmetric front/rear, consistent with genuine rare transient
+  events (kerbs, hard cornering) rather than a systematic fault; no
+  corner stands out. LS_ratio_r: BEFORE n_valid=57814/81599 (70.85%
+  signal), AFTER n_valid=57778/81599 (70.81% signal) -- a 0.04
+  percentage-point change, i.e. no material effect on Dubai, as
+  expected for a session with no known wheel-speed fault.
+- v3: fl=3.64%, fr=3.50%, rl=3.21% fall back (all in the same small,
+  presumably-genuine-transient range as Dubai); rr=12.61% (the real
+  fault, correctly and specifically caught). LS_ratio_r: BEFORE n_valid=
+  46826/68599 (68.26% signal), AFTER n_valid=45971/68599 (67.01%
+  signal) -- a 1.25 percentage-point DROP in rear LS_ratio signal
+  (MORE no-signal after the fix, not less) -- the guard's own fallback
+  (abs_speed_rr) does not always agree closely enough with the rest of
+  the LS_ratio pipeline's own plausibility/regression-window
+  requirements to preserve every previously-"valid" sample; reported
+  honestly, not smoothed over. The fix trades a small amount of LS_ratio
+  rear COVERAGE on v3 for removing a known-implausible input signal
+  (a 300+ kph spike) from that coverage -- a correctness-for-coverage
+  trade, not a pure improvement, stated as such.
+
+TESTS: 11 new (tests/test_wheel_speed_guard.py, synthetic fixtures
+only) -- unit normalisation (identity/mph-scale/unknown-unit-raises);
+healthy population never flagged; stuck corner flagged directly;
+stuck check ignored at genuine standstill; mate disagreement correctly
+attributed to the corner that deviates from ecu_speed, NOT the healthy
+mate (both directions checked); no-ecu-evidence case flags
+conservatively; three integration-level _guarded_wheel_speed_kmh tests
+(fallback fires, NaN with no fallback channel, untouched when healthy).
+A fixture-authoring bug was itself caught and fixed while writing these
+(a smooth sine's own near-zero-derivative points coincided with the
+window boundaries, giving a false "stuck" reading inside the TEST
+fixture, not the production code) -- replaced with a monotonic-trend-
+plus-alternating-jitter signal shape that cannot coincidentally plateau,
+noted in the fixture's own comment as a fixture-quality lesson, not
+hidden.
+
+Config: new wheel_speed_guard namespace (window_s=0.5, std_min_kmh=0.1,
+ratio_max_deviation=0.10, all with derivation notes recording the two
+bugs above in-line, not just here); abs_speed_fl/fr/rl/rr newly
+whitelisted (config/channels.json). No existing config key touched, no
+default changed -- the guard is unconditionally active (same "always-on
+reliability gate, not a feature flag" pattern as Phase 1's wheel_loads
+dead-channel guard), but neither vertical_load_source nor sideslip_
+source nor any other production default changed as a result.
+
+Existing suite re-run, no regressions: tests/test_longitudinal_
+stiffness.py + tests/test_config_schema_integrity.py (28 passed).
+test_stability.py re-run clean. No commit made.
+
+### Fz-integration Phase 1: two-session wheel-load validation, consolidated
+statement [2026-09-03, Phase 6 records]
+
+Pointer/summary entry, per the work order's own instruction to state
+this in one place -- the two sessions' own findings are recorded in
+full detail across "Fz-integration Phase 1: premise correction..." and
+"...Phase 1 (finish): CS_ratio independence, axle-total proxy bug fix,
+before/after comparison" (both above); this entry is the single-place
+verdict, not a re-derivation.
+
+modules/wheel_loads.py's damper-derived Fz cascade (Segers ch.9/10
+method anchor) is now VALIDATED on TWO real sessions, not one:
+- v3 (GT3_PRC_MLA-v3.txt, the original validation session, damper
+  package): FL/RL/RR damper-valid all session, FR permanently dead
+  (log_dms_dam_fr, constant ~-15.95 million N) -- reconstructed via the
+  axle-total model. Ground-truth check (drop a real RL/RR, reconstruct,
+  compare to its own measurement): static model -2607.2N mean error ->
+  session-corrected +885.9N (after the mass/aero/split corrections, all
+  three complete).
+- Dubai (Sample_Dubai.txt, this package): FL/FR/RL damper-valid all
+  session, RR permanently dead (log_susp_travel_rr, frozen at a
+  plausible-looking value -- the dead-channel guard's own motivating
+  case) -- reconstructed via the SAME axle-total model, requiring the
+  axle-total-proxy generalisation bug fix (this package's own real find)
+  before it worked at all. Cornering/ARB sign-convention checks both
+  CONFIRM the same conventions already verified on v3, independently, on
+  a second car/session (front ARB corr=+0.979 Dubai vs +0.969 v3;
+  cornering correlations correctly signed and strong on both).
+
+VERDICT: the method (decomposition, motion-ratio lookup, ARB/unsprung/
+geometric transfer terms, axle-total reconstruction) generalises across
+two different real sessions on the same car without any method change --
+only the failure PATTERN differs (which single corner is dead: FR on
+v3, RR on Dubai), which is exactly the premise-correction/generalisation
+work this whole package's Phase 1+4 did (the axle-total proxy fix,
+Phase 1; the lap-classification fix, Phase 4 -- both were needed
+specifically BECAUSE Dubai's own failure pattern differs from v3's, and
+neither would have been found without actually running the method on a
+second real session rather than assuming v3's pattern was general).
+
+PREMISE-CORRECTION LESSON, stated explicitly per the work order's own
+instruction (this is the THIRD time this exact lesson recurred this
+project, worth naming as a pattern, not just three isolated incidents):
+(1) GT3 Paul Ricard's real 20Hz rate, assumed 50Hz until measured
+(2026-08-31); (2) this package's own opening premise, "Dubai has no
+damper channels", assumed from memory/prior project history, false on
+the first direct grep of the real file (Fz-integration Phase 1); (3)
+this package's own Phase 4 work order premise, "v3's first/last laps
+are already correctly classified", assumed true, false on the first
+real census (Fz-integration Phase 4) -- v3's actual last lap was
+silently contaminating the valid-lap population. All three share the
+same shape: a plausible-sounding assumption about what the data
+contains or how it behaves, stated with confidence, never checked
+against the actual file before code was built on top of it. All three
+were caught only because this project's own standing culture already
+called for checking real data before trusting a claim about it -- the
+CLAUDE.md rule this Phase 6 formalises (channel presence and content
+are censused from the file, never recalled) names that pattern
+explicitly so a fourth instance is checked BEFORE building on the
+assumption, not after.
+
+### Fz-integration Phase 7: golden regeneration, determinism check, full
+suite -- PACKAGE CLOSED [2026-09-03, resumed session after an
+interrupted close-out (laptop shutdown mid-suite, not a test failure)]
+
+RESUMED STATE VERIFIED FIRST, not assumed: git branch fz-integration
+confirmed; git status matched the interrupted session's own resume note
+exactly (same file list); core/config_loader.py (open in the user's IDE
+at resume, unrelated to this package) imports cleanly, not the historical
+one-character-SyntaxError incident recurring.
+
+FULL SUITE, FIRST RUN (before any golden change this turn): 3 failed,
+223 passed, 9 skipped, 1 xfailed (41m49s). All three failures CONFIRMED
+to be exactly the same pre-existing, already-diagnosed gap this package
+found and re-verified twice already (Phase 4, Phase 7's own earlier
+no-regeneration-needed check): 75 fields each, entry_1_brake.
+stability_observed_Nm_per_deg -> NaN, from the PART C2 stability-gating
+change (commit 42df7ce, predates this whole package). Nothing else red
+-- exactly the "green except the known gap" outcome pre-registered
+before this run.
+
+GOLDEN REGENERATION: the 3 affected files (tests/golden/pipeline_dubai_
+{ekf_auto_pacejka,kinematic,ekf_auto_dugoff}_cap1.json) deleted and
+regenerated via the standard generators (tests.generate_golden, tests.
+generate_golden_auto_modes) -- confirmed clean/unmodified against HEAD
+before deletion (git status showed no prior diff on these 3 paths, nothing
+of value discarded). recommendations_dubai_ekf_auto_pacejka_cap1.json
+correctly SKIPPED by generate_golden.py's own existing-file guard (still
+unaffected, never touched -- this package's own earlier finding that
+LS_ratio/stability changes produce zero recommendation-verdict impact on
+Dubai holds). ekf_auto_dugoff's own designed fallback-to-kinematic
+behaviour on Dubai reproduced exactly as documented (mu_fz bound-fraction
+degenerate) -- pinned correctly, not a new regression.
+
+DETERMINISM CHECK: regenerated a SECOND time, diffed against the first
+generation. FIRST diff attempt (hand-written script) wrongly reported
+2 of 3 files non-deterministic (940/1114 differing fields) -- traced
+immediately to two bugs in the CHECKING SCRIPT ITSELF, not the goldens:
+(1) it stripped only the top-level _meta.generated_at_utc/git_commit_hash,
+missing the ALSO-volatile nested _meta.fit_manifest.timestamp field
+(present per-run by construction, correctly expected to differ); (2)
+Python's `!=` reports NaN != NaN as True, so every legitimately-NaN
+field (e.g. cs_ratio during a phase with no valid samples) registered as
+a false "difference" against itself. Re-run using tests/_json_utils.
+diff_json (this project's own already-established NaN-aware, float-
+tolerant comparison, the same one test_golden_pipeline.py itself uses)
+with the fuller volatile-field strip: 0 real diffs on all 3 files.
+Genuinely deterministic; the first check's own false alarm was a script
+bug, caught and traced before being reported as a finding, not left
+ambiguous.
+
+FULL SUITE, SECOND RUN (after golden regeneration): 226 passed, 9
+skipped, 1 xfailed, 0 failed (42m05s) -- FULL GREEN. 226 = the prior
+223 plus exactly the 3 previously-failing tests, now passing under the
+regenerated goldens; no other count moved.
+
+PACKAGE STATUS: Fz-integration (Phases 1-7) is COMPLETE. Summary across
+the whole package, pointer-only (full detail in each phase's own entry
+above): Phase 1 wired stability_estimation.vertical_load_source (default
+"static", proven no-op) and validated the damper-derived Fz cascade on a
+SECOND real session (Dubai), fixing a real axle-total-proxy bug found
+visually. Phase 2 implemented and ran the load-normalised (mu) Pacejka
+fit, resolving its own plausibility-gate stop as a legitimate load-
+sensitivity effect via a decisive cross-check and a v3 rear-axle dig.
+Phase 3 ran the amended bounded refit loop under mu -- both sessions
+non-convergent, strengthening (not reopening) the existing refit-loop
+closure. Phase 4 fixed a real lap-classification bug (v3's actual last
+lap was wrongly treated as fully valid) via pit-limiter-based out/in-lap
+classification, Dubai proven byte-identical. Phase 5 fixed v3's real
+log_speed_rr sensor fault via a wheel-speed plausibility guard + ABS-
+domain fallback, catching two of its own calibration bugs before
+shipping. Phase 6 recorded the standing CLAUDE.md rule, the engineer
+questions, and the two-session validation statement this entry's own
+existence partly fulfils. Phase 7 (this entry) confirms the whole
+package is green, deterministic, and ready for the user's own commit/
+merge decision. NO PRODUCTION DEFAULT CHANGED anywhere in the package
+(vertical_load_source stays "static", sideslip_source unchanged,
+load_normalised_fit_enabled stays false) -- every behavioural change
+shipped is either a reliability/correctness fix with no on/off switch
+(Phases 4, 5, the Phase 1 bug fix) or gated behind a flag that stays off
+(Phase 2). Stop before commit, per the work order -- the user runs git.

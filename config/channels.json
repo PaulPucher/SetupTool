@@ -243,6 +243,42 @@
       ],
       "required": false
     },
+    "abs_speed_fl": {
+      "label": "ABS Wheel Speed FL",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "abs_speed_fr": {
+      "label": "ABS Wheel Speed FR",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "abs_speed_rl": {
+      "label": "ABS Wheel Speed RL",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
+    "abs_speed_rr": {
+      "label": "ABS Wheel Speed RR",
+      "unit": "km/h",
+      "range": [
+        0,
+        350
+      ],
+      "required": false
+    },
     "log_dms_dam_fl": {
       "label": "Damper Force FL",
       "unit": "N",

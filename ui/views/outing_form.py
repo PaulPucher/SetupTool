@@ -156,7 +156,7 @@ class StabilityAnalysisThread(QThread):
         t0 = time.perf_counter()
         try:
             from modules.stability_analysis import (
-                load_parameters, prepare_vehicle_state,
+                load_parameters, load_car_data, prepare_vehicle_state,
                 estimate_slip_angles, estimate_lateral_forces,
                 estimate_cornering_stiffness, estimate_yaw_moment_stability,
                 estimate_vertical_loads, summarise_corners,
@@ -250,8 +250,14 @@ class StabilityAnalysisThread(QThread):
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
                 # WP5b(b) phase 1 turn (b): read-only Fz/fy_norm diagnostic,
-                # feeds Module 6/UI only -- no classify_fn input.
-                fz = estimate_vertical_loads(state, forces, effective_params)
+                # feeds Module 6/UI only -- no classify_fn input. Fz-
+                # integration Phase 1: channels/car_data are passed through
+                # unconditionally -- estimate_vertical_loads itself only
+                # touches modules.wheel_loads when config's
+                # vertical_load_source is "measured" (default "static"
+                # ignores both args, byte-identical to before this package).
+                fz = estimate_vertical_loads(state, forces, effective_params,
+                                             channels=self.parsed_data["channels"], car_data=load_car_data())
                 # PLAN.md STEP 3 Phase 3: same read-only-diagnostic status.
                 long_forces = estimate_longitudinal_forces(state, self.parsed_data["channels"], effective_params)
                 slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)

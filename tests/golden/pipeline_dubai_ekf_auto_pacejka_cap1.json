@@ -1,21 +1,22 @@
 {
   "_meta": {
     "purpose": "REGRESSION baseline, not a correctness claim -- see tests/test_golden_pipeline.py's module docstring. PRIMARY mode (ekf_auto_pacejka, production default since 2026-09-01): the underlying tyre curve is fit fresh on this data every time modules.tyre_fit_auto.fit_session_pacejka runs -- this golden pins CURRENT fit-chain output, not a frozen prior-session curve.",
-    "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
-    "generated_at_utc": "2026-09-02T17:13:13.814791+00:00",
+    "git_commit_hash": "42df7ce3d0fd248ae08115c9bb4e5c828d5ec831",
+    "generated_at_utc": "2026-09-03T20:04:08.004926+00:00",
     "data_file": "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt",
     "sideslip_source": "ekf_auto_pacejka",
     "accuracy_cap": 1,
     "setup_data": null,
     "fit_manifest": {
       "data_file": "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt",
+      "load_normalised": false,
       "laps_used": [
         1,
         2,
         3,
         4
       ],
-      "timestamp": "2026-09-02T17:04:54.293945+00:00",
+      "timestamp": "2026-09-03T19:56:39.321298+00:00",
       "axles": {
         "front": {
           "B": 10.456547927865126,
@@ -44,7 +45,7 @@
           "sign_ok": true
         }
       },
-      "git_commit_hash": "477156f0a917b8fdb6c40123c7ee92fbec3ac357",
+      "git_commit_hash": "42df7ce3d0fd248ae08115c9bb4e5c828d5ec831",
       "r_derivation": {
         "std_front_mps2": 1.9763046772846908,
         "std_rear_mps2": 4.249866633419839,
@@ -341,12 +342,12 @@
     },
     "gate_verdict": {
       "verdict": "pass",
-      "health_score": 0.14171194259354178,
-      "window_samples": 20,
+      "health_score": 0.13513070220399795,
+      "window_samples": 40,
       "nis_band_low": 0.03,
       "nis_band_high": 0.15,
-      "threshold_use_ekf": 0.1385,
-      "threshold_warn": 0.1006,
+      "threshold_use_ekf": 0.08,
+      "threshold_warn": 0.01,
       "masked_population_n": 48775,
       "degenerate_reason": null
     },
@@ -366,6 +367,8 @@
         "cs_max_window_m": 53.0,
         "_comment_cs_phase_min_valid_samples": "CS validity repair part A, Phase 2 (2026-09-02). Per-phase noise floor for summarise_corners's cs_ratio_f/cs_ratio_r stat blocks: a phase's median is reported as NaN (no signal, dropped from the Stage-2 min) when fewer than this many finite CS_ratio samples back it. Set at 5 -- the smallest sample count for which a median is not simply one of the phase's own most extreme readings (n=1: the median IS the single sample; n<=4: the median is an average of two extreme-adjacent points) -- a general backstop for any phase, not specific to apex_3 (whose own structural undersizing is separately addressed by apex_region below, replacing its CS reads outright rather than gating them).",
         "cs_phase_min_valid_samples": 5,
+        "_comment_stab_phase_no_braking_floor_bar": "v3 diagnostics Part B2/C2 (2026-09-03, thesis_notes.md 'v3 diagnostics, Part B2' and 'Part C: stability-statistic phase-validity gating'). entry_1_brake's own stability_observed_Nm_per_deg stat gets the SAME cs_phase_min_valid_samples sample-count gate CS_ratio already has (reused, not re-derived -- that value's own justification, 'the smallest sample count for which a median is not simply one of the phase's own most extreme readings', is generic to any per-phase median statistic, not CS-specific), PLUS this second, brake-specific check: a phase whose max brake_f_bar never clears this floor had no real braking event at all, so its stability reading is reporting noise from an essentially-unloaded phase, not a real destabilising brake event. Value derived from GT3_PRC_MLA-v3's own log_pbrake_f distribution (diagnostics/inspect_v3_brake_phase_stability.py, run against a throttle>90% reference population -- unambiguously not braking): 32829 samples, mean=0.0049 bar, p99=0.0 bar, one single 6.03 bar transient (0.003% of the population, not sustained). Set at 3.0 bar -- comfortably above the population's own effective noise ceiling (p99 exactly 0) and below every real braking event found (entry_1_brake phases with genuine braking read 13.58 bar even for a light dab; general moving-sample braking events range to 88 bar), with margin against the single observed transient outlier.",
+        "stab_phase_no_braking_floor_bar": 3.0,
         "cs_linear_slip_threshold_rad": 0.03,
         "cs_linear_slip_threshold_rad_derived_from": "diagnostics/inspect_cs_window_floor_derivation.py, linear_region_end, 2026-09-02 (CS validity repair part A, Phase 1). Binned the session's own Fy-vs-alpha cloud (both axles, folded to a single sign via the tyre curve's expected odd symmetry, moving & non-kerb samples) with sliding 0.04-rad-wide windows (matched to the re-derived cs_min_slip_angle_span_rad, not an arbitrary narrow bin -- a narrower bin reproduces the same small-span sampling noise Phase 1's own N/span sweeps diagnosed) stepped by 0.005 rad, comparing each window's local slope against the near-origin reference window ([0,0.04) rad). Departure stays within +/-15% of the reference out to ~0.03 rad on both axles, then exceeds 10% and STAYS exceeded (not a single noisy crossing) from window leading edge 0.045 rad (front) / 0.035 rad (rear) onward, climbing to full sign reversal by ~0.08-0.09 rad -- the genuine nonlinear/saturation region. Value set at the more conservative (earlier-onset) axle's sustained-departure point, 0.035 rad, rounded down slightly to 0.03 rad for a safety margin against measurement noise; both axles' own curves are still flat (within a few % of the reference) at 0.03 rad.",
         "beta_washout_cutoff_hz": 0.05,
@@ -376,6 +379,8 @@
         "_comment_sideslip_source": "WP-N2 Step 1b (2026-08-20): selects which beta feeds Modules 4b/5 at the ui/views/outing_form.py StabilityAnalysisThread call site. PRODUCTION DEFAULT since 2026-09-01: 'ekf_auto_pacejka' (see _comment_sideslip_source_auto_modes below) -- per-session fit, gated, kinematic fallback on gate-fail/degenerate fit. 'kinematic' = production estimate_sideslip, the prior default and still the universal fallback target for every other mode (byte-identical to every session before 2026-09-01). 'ekf_pass_1' = diagnostics/sideslip_ekf_dugoff.py's pass_1 configuration (frozen Dugoff curve, calibrated noise model, carried forward per thesis_notes.md 'WP-N2 carry-forward decision: pass 1'). Traces (CS_ratio, tyre curve, stability) are meaningful under any non-kinematic source immediately; verdict thresholds are NOT re-derived for any of them -- see classification.thresholds_calibrated_for_sideslip_source below, still 'kinematic', so the [UNCAL] banner is expected to show by default until threshold re-derivation lands. Flip to 'kinematic' to isolate a regression; no code edit needed either way.",
         "sideslip_source": "ekf_auto_pacejka",
         "_comment_sideslip_source_auto_modes": "Fresh-session work package (per-session tyre auto-fit + NIS gate wired into production): two additional values. 'ekf_auto_dugoff'/'ekf_auto_pacejka' run modules/tyre_fit_auto.py's fit_session/fit_session_pacejka on THIS session's own data (not a frozen prior-session curve), evaluate modules/nis_gate.py's provisional health gate on the result, and use the fitted EKF's beta_with_fallback only if the gate verdicts 'pass' or 'warn' AND the fit status is not 'degenerate' -- otherwise fall back to kinematic beta, recorded in the analysis payload (fallback_used/fallback_reason), never silently. 'ekf_auto_pacejka' became the production default 2026-09-01 (thesis_notes.md); 'ekf_auto_dugoff' remains available and gated the same way. thresholds_calibrated_for_sideslip_source (below) can never equal either auto value yet -- the [UNCAL] marker and banner apply to both by construction.",
+        "_comment_vertical_load_source": "Fz-integration work package, Phase 1 (2026-09-03, branch fz-integration). DEFAULT 'static' = estimate_vertical_loads's own existing chair-parity static/aero/transfer model, completely unchanged -- every session before this package, and every session with no damper data, behaves byte-identically. 'measured' = axle/per-wheel Fz for fy_f_norm_N/fy_r_norm_N (and the Phase-2 tyre-fit load input) come from modules/wheel_loads.py's three-tier cascade (damper-measured > axle-total-reconstructed > this same static model as the innermost fallback) instead. A session with no damper channels at all (e.g. Sample_Dubai.txt) resolves to 'measured' == 'static' AUTOMATICALLY and exactly -- not via a special-cased branch, but because estimate_wheel_loads_from_dampers reports every corner invalid for every sample when its channels are simply absent, which makes reconstruct_missing_corner's own reconstructable mask False everywhere too (no valid axle-mate to reconstruct from), so the cascade's np.where chain selects the static fallback value unconditionally -- a provable-by-construction identity, verified empirically in thesis_notes.md's Phase 1 entry, not just argued.",
+        "vertical_load_source": "static",
         "_comment_gps_course_anchor": "WP5b(c), estimate_sideslip_gps (validation-only, no pipeline call site). Drift-correction anchor gate: a sample qualifies once a short-window-smoothed |ay| stays below max_ay_g for a contiguous run of at least min_duration_s. Data-derived on Dubai (diagnostics/inspect_beta_gps_validation.py): raw per-sample |ay| is too noisy for a literal unbroken-run test (2267 candidate runs at the chosen threshold, longest ~0.1s) -- smooth_window_s=0.3 first was necessary to get physically-sized runs (6 runs >=1.5s, 20.4s total anchor time across 4 laps). max_ay_g=0.05 sits at the moving-sample |ay| p10 (0.044g), a natural low-|ay| population before the distribution rises steeply toward cornering values (p20=0.109g).",
         "gps_course_anchor_max_ay_g": 0.05,
         "gps_course_anchor_min_duration_s": 1.5,
@@ -1529,9 +1534,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 556.2812964275623,
-            "p25": 556.2812964275623,
-            "p75": 556.2812964275623,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -1796,9 +1801,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 556.2114790923372,
-            "p25": 556.2114790923372,
-            "p75": 556.2114790923372,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -2063,9 +2068,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 556.2692590492509,
-            "p25": 556.2692590492509,
-            "p75": 556.2692590492509,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -2330,9 +2335,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 556.3260756912882,
-            "p25": 556.3260756912882,
-            "p75": 556.3260756912882,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -2599,9 +2604,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 682.2045394595025,
-            "p25": 681.6808512828161,
-            "p75": 682.7282276361889,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -2868,9 +2873,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 682.4446282030686,
-            "p25": 682.4446282030686,
-            "p75": 682.4446282030686,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -3137,9 +3142,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 681.8994479375008,
-            "p25": 681.3752355395754,
-            "p75": 682.4236603354262,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3406,9 +3411,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 682.0630023443852,
-            "p25": 681.5387899464658,
-            "p75": 682.5872147423045,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3673,9 +3678,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 505.52209531993515,
-            "p25": 505.37181688903667,
-            "p75": 505.6723737508336,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -3940,9 +3945,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 505.51328764180755,
-            "p25": 505.365211130441,
-            "p75": 505.6613641531741,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -4207,9 +4212,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 505.57273843830757,
-            "p25": 505.57273843830757,
-            "p75": 505.57273843830757,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -4474,9 +4479,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 505.59585824977194,
-            "p25": 505.59585824977194,
-            "p75": 505.59585824977194,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -5819,9 +5824,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 414.6563443097183,
-            "p25": 413.5030797314844,
-            "p75": 415.8096088879522,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -6088,9 +6093,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 415.6693478562762,
-            "p25": 414.490108412387,
-            "p75": 416.8485873001654,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -6357,9 +6362,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 417.66418348909616,
-            "p25": 416.50572474843204,
-            "p75": 418.8226422297603,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -6626,9 +6631,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 416.1161074384702,
-            "p25": 414.96803864406814,
-            "p75": 417.26417623287216,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -7961,9 +7966,9 @@
             "n": 5
           },
           "stability_observed_Nm_per_deg": {
-            "median": 644.929452845511,
-            "p25": 643.741953366193,
-            "p75": 646.1059136102066,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 5
           },
           "fz_f_N": {
@@ -8228,9 +8233,9 @@
             "n": 4
           },
           "stability_observed_Nm_per_deg": {
-            "median": 644.3706322610556,
-            "p25": 643.4386497646769,
-            "p75": 645.3007759278923,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 4
           },
           "fz_f_N": {
@@ -8495,9 +8500,9 @@
             "n": 5
           },
           "stability_observed_Nm_per_deg": {
-            "median": 644.9735732797451,
-            "p25": 643.7824018787197,
-            "p75": 646.1573893626055,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 5
           },
           "fz_f_N": {
@@ -8762,9 +8767,9 @@
             "n": 4
           },
           "stability_observed_Nm_per_deg": {
-            "median": 644.4698946320291,
-            "p25": 643.5875433211306,
-            "p75": 645.3522459429272,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 4
           },
           "fz_f_N": {
@@ -12261,9 +12266,9 @@
             "n": 2
           },
           "stability_observed_Nm_per_deg": {
-            "median": 921.3261388217878,
-            "p25": 921.1500846032918,
-            "p75": 921.5021930402838,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 2
           },
           "fz_f_N": {
@@ -12528,9 +12533,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 921.3152001733782,
-            "p25": 921.3152001733782,
-            "p75": 921.3152001733782,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -12795,9 +12800,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 921.4726689285528,
-            "p25": 921.4726689285528,
-            "p75": 921.4726689285528,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -13062,9 +13067,9 @@
             "n": 1
           },
           "stability_observed_Nm_per_deg": {
-            "median": 921.1949194097961,
-            "p25": 921.1949194097961,
-            "p75": 921.1949194097961,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {
@@ -14938,9 +14943,9 @@
             "n": 0
           },
           "stability_observed_Nm_per_deg": {
-            "median": 1074.967528596059,
-            "p25": 1074.967528596059,
-            "p75": 1074.967528596059,
+            "median": NaN,
+            "p25": NaN,
+            "p75": NaN,
             "n": 1
           },
           "fz_f_N": {

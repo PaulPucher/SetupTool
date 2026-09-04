@@ -13,6 +13,9 @@ WHEEL_NAMES = {
     "front": ("log_speed_fl", "log_speed_fr"),
     "rear": ("log_speed_rl", "log_speed_rr"),
 }
+CORNERS = ("fl", "fr", "rl", "rr")
+CORNER_AXLE_MATE = {"fl": "fr", "fr": "fl", "rl": "rr", "rr": "rl"}
+ABS_SPEED_CHANNEL = {c: f"abs_speed_{c}" for c in CORNERS}
 
 
 def _interp_channel(channels, ch_name, t_ref):
@@ -20,6 +23,135 @@ def _interp_channel(channels, ch_name, t_ref):
     if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None:
         return None
     return np.interp(t_ref, ch["time"], ch["data"])
+
+
+def _normalize_wheel_speed_to_kmh(data, unit_raw):
+    """abs_speed_* varies by export -- GT3_PRC_MLA-v3.txt logs kph
+    already, Sample_Dubai.txt logs mph (both confirmed directly against
+    their own raw files, Fz-integration Phase 5, 2026-09-03) -- the same
+    per-file-unit hazard as lap_distance's ft/m fix and log_susp_travel's
+    mm/m fix, same remedy: check the file's own claimed unit, never
+    assume. log_speed_* (this module's own primary wheel-speed source)
+    is always km/h, so this normalises the FALLBACK source to match it.
+    """
+    if unit_raw in ("kph", "km/h"):
+        return data
+    if unit_raw == "mph":
+        return data * 1.609344
+    raise ValueError(
+        f"abs_speed unit {unit_raw!r} not recognised (expected 'kph'/'km/h' or 'mph') -- "
+        "add explicit handling before trusting this export's speed values"
+    )
+
+
+def _rolling_plausibility_mask(corner_kmh, mate_kmh, ecu_kmh, moving_mask, window_samples,
+                                std_min_kmh, ratio_max_deviation):
+    """Fz-integration Phase 5: per-window (non-overlapping, same discrete-
+    window convention as modules.wheel_loads._channel_is_dead's whole-
+    session std guard, generalised here to a window so a TRANSIENT fault
+    is caught without demoting the channel for the whole session).
+
+    Two conditions, NOT symmetric between corner/mate:
+    (1) STUCK -- this corner's own speed shows near-zero variance while
+        the car is moving (evaluated on moving samples only, so genuine
+        standstill is never mistaken for a stuck sensor). Single-channel,
+        no ambiguity -- flags this corner directly.
+    (2) MATE DISAGREEMENT -- mean ratio to the axle-mate deviates from 1.0
+        beyond ratio_max_deviation (dropout/spike). Real per-corner
+        cornering speed differential (outer wheel travels a longer arc)
+        is a genuine, expected effect, not a fault -- ratio_max_deviation
+        is gap-selected to sit above that population and below the fault
+        population (config's own derived_from comment). A DISAGREEING
+        PAIR DOES NOT MEAN BOTH ARE WRONG -- found empirically (Fz-
+        integration Phase 5, thesis_notes.md): a first version of this
+        check flagged v3's own healthy log_speed_rl almost as often as
+        its genuinely faulty mate log_speed_rr, purely because a mate-
+        only ratio check cannot tell which side of a disagreement is at
+        fault. ecu_speed (ax le-independent, not affected by either
+        wheel's own fault) is the tie-breaker: only the corner whose OWN
+        mean deviation from ecu_speed exceeds its mate's is flagged.
+        (Not used as a primary check on its own -- real slip/braking
+        events are LEGITIMATE large deviations from ecu_speed, the same
+        reason modules.longitudinal_stiffness's kerb guard never
+        excludes on kappa magnitude alone; ecu_speed here only breaks a
+        tie the mate-disagreement check already raised.)
+    """
+    n = len(corner_kmh)
+    valid = np.ones(n, dtype=bool)
+    for start in range(0, n, window_samples):
+        end = min(start + window_samples, n)
+        w_moving = moving_mask[start:end]
+        if not w_moving.any():
+            continue
+        w_corner = corner_kmh[start:end][w_moving]
+        w_mate = mate_kmh[start:end][w_moving]
+        if len(w_corner) < 3 or not np.all(np.isfinite(w_corner)):
+            continue
+        if np.std(w_corner) < std_min_kmh:
+            valid[start:end][w_moving] = False
+            continue
+        with np.errstate(invalid="ignore", divide="ignore"):
+            ratio = np.where(w_mate != 0, w_corner / w_mate, np.nan)
+        finite_ratio = ratio[np.isfinite(ratio)]
+        mate_disagrees = (np.mean(np.abs(finite_ratio - 1.0)) > ratio_max_deviation) if len(finite_ratio) else False
+        if not mate_disagrees:
+            continue
+        w_ecu = ecu_kmh[start:end][w_moving]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            dev_corner = np.abs(np.where(w_ecu != 0, w_corner / w_ecu, np.nan) - 1.0)
+            dev_mate = np.abs(np.where(w_ecu != 0, w_mate / w_ecu, np.nan) - 1.0)
+        m_corner = np.nanmean(dev_corner) if np.isfinite(dev_corner).any() else np.nan
+        m_mate = np.nanmean(dev_mate) if np.isfinite(dev_mate).any() else np.nan
+        # Flag this corner if it is the worse-attributed side, OR if
+        # attribution itself is impossible (ecu_speed unusable this
+        # window) -- conservative default when the tie-breaker has no
+        # evidence to offer, same "never silently trust" posture as the
+        # rest of this guard.
+        if not (np.isfinite(m_corner) and np.isfinite(m_mate)) or m_corner >= m_mate:
+            valid[start:end][w_moving] = False
+    return valid
+
+
+def _guarded_wheel_speed_kmh(channels, corner, t_ref, moving_mask, sample_rate_hz, params):
+    """Fz-integration Phase 5: guarded log_speed_{corner} -- invalid
+    windows (see _rolling_plausibility_mask) are replaced by the
+    corresponding abs_speed_{corner} channel (unit-normalised), where
+    available; NaN where no fallback exists. Returns (kmh array or None
+    if log_speed_{corner} itself is unavailable, source array of str).
+    """
+    wg = params["wheel_speed_guard"]
+    mate = CORNER_AXLE_MATE[corner]
+    corner_kmh = _interp_channel(channels, f"log_speed_{corner}", t_ref)
+    if corner_kmh is None:
+        return None, None
+    mate_kmh = _interp_channel(channels, f"log_speed_{mate}", t_ref)
+    ecu_kmh = _interp_channel(channels, "ecu_speed", t_ref)
+
+    n = len(t_ref)
+    if mate_kmh is None or ecu_kmh is None:
+        # No mate to ratio-check against, or no ecu_speed to attribute a
+        # disagreement with -- log_speed_{corner} is used as-is (the
+        # stuck check alone, without a mate, would be too weak/one-sided
+        # a guard to act on; same "cannot attribute, do not guess" stance
+        # as the mate-disagreement branch above).
+        return corner_kmh, np.full(n, "log_speed", dtype=object)
+
+    window_samples = max(1, round(wg["window_s"] * sample_rate_hz))
+    valid = _rolling_plausibility_mask(corner_kmh, mate_kmh, ecu_kmh, moving_mask, window_samples,
+                                        wg["std_min_kmh"], wg["ratio_max_deviation"])
+    if valid.all():
+        return corner_kmh, np.full(n, "log_speed", dtype=object)
+
+    abs_ch = channels.get(ABS_SPEED_CHANNEL[corner])
+    if abs_ch is not None and abs_ch.get("quality") not in ("missing", "failed") and abs_ch.get("time") is not None:
+        abs_kmh_native = np.interp(t_ref, abs_ch["time"], abs_ch["data"])
+        abs_kmh = _normalize_wheel_speed_to_kmh(abs_kmh_native, abs_ch.get("unit_raw"))
+        out_kmh = np.where(valid, corner_kmh, abs_kmh)
+        source = np.where(valid, "log_speed", "abs_speed_fallback")
+    else:
+        out_kmh = np.where(valid, corner_kmh, np.nan)
+        source = np.where(valid, "log_speed", "nan_no_fallback")
+    return out_kmh, source
 
 
 def estimate_longitudinal_forces(state, channels, params):
@@ -109,19 +241,40 @@ def estimate_slip_ratio(state, channels, params):
     characterization (WP-S1)"). Front axle is left uncorrected: its own
     off-braking offset is ~0%, and its braking-specific deviation IS the
     front-slip-under-braking signal this ratio exists to measure.
+
+    Fz-integration Phase 5 (2026-09-03): each corner's own log_speed_*
+    passes through _guarded_wheel_speed_kmh first (per-window stuck/
+    implausible-ratio-to-mate guard, config wheel_speed_guard.*, falling
+    back to abs_speed_* where the guard trips and that channel exists --
+    real bug motivating this, GT3_PRC_MLA-v3.txt's own log_speed_rr:
+    diagnostics/inspect_v3_wheel_speed_census.py, thesis_notes.md "Fz-
+    integration Phase 5..."). Axle speed is the mean of the two GUARDED
+    corner speeds, not the two raw ones -- kappa_f/kappa_r therefore
+    already reflect the guarded/fallback channel with no separate wiring
+    needed at either of this function's own two consumers (this module's
+    slip ratio and modules.longitudinal_stiffness's kerb-adjacent
+    plausibility guard, which reads kappa_r/kappa_f from here).
     """
     ls = params["longitudinal_stiffness"]
     t_ref = state["time"]
     v_ecu_kmh = state["v_mps"] * 3.6
+    moving_mask = state["moving_mask"]
+    sample_rate_hz = state["sample_rate_hz"]
 
-    def axle_speed_kmh(names):
-        vals = [_interp_channel(channels, n, t_ref) for n in names]
-        if any(v is None for v in vals):
-            return None
+    wheel_speed_source = {}
+
+    def axle_speed_kmh(corners):
+        vals = []
+        for c in corners:
+            v, source = _guarded_wheel_speed_kmh(channels, c, t_ref, moving_mask, sample_rate_hz, params)
+            if v is None:
+                return None
+            vals.append(v)
+            wheel_speed_source[c] = source
         return np.mean(vals, axis=0)
 
-    v_front_kmh = axle_speed_kmh(WHEEL_NAMES["front"])
-    v_rear_kmh = axle_speed_kmh(WHEEL_NAMES["rear"])
+    v_front_kmh = axle_speed_kmh(("fl", "fr"))
+    v_rear_kmh = axle_speed_kmh(("rl", "rr"))
 
     # v_ecu_kmh sits at/near zero for every stationary (pit/grid) sample --
     # dividing there gives +/-inf, not NaN, which poisons Phase 2's
@@ -147,4 +300,5 @@ def estimate_slip_ratio(state, channels, params):
         "kappa_f": kappa_f if kappa_f is not None else np.full(n, np.nan),
         "kappa_r": kappa_r if kappa_r is not None else np.full(n, np.nan),
         "source_available": v_front_kmh is not None and v_rear_kmh is not None,
+        "wheel_speed_source": wheel_speed_source,  # {"fl": array[str], ...} -- see _guarded_wheel_speed_kmh
     }

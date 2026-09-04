@@ -58,6 +58,53 @@ def _interp_channel(channels, ch_name, t_ref):
     return np.interp(t_ref, ch["time"], ch["data"])
 
 
+def _normalize_travel_to_mm(data, unit_raw):
+    """log_susp_travel_* varies by export -- Sample_Dubai.txt logs metres,
+    GT3_PRC_MLA-v3.txt logs millimetres already (both confirmed directly
+    against their own raw files, Fz-integration Phase 1, 2026-09-03) --
+    the same per-file-unit hazard as lap_distance's own ft-vs-m fix
+    (modules.stability_analysis._normalize_lap_distance_to_metres), same
+    remedy: check the file's own claimed unit before trusting the number
+    rather than assuming every export shares one convention. car_data.
+    json's motion_ratio_vs_wheel_travel table and this module's own ARB
+    rate/geometry math are both calibrated in millimetres throughout.
+    """
+    if unit_raw == "mm":
+        return data
+    if unit_raw == "m":
+        return data * 1000.0
+    raise ValueError(
+        f"log_susp_travel unit {unit_raw!r} not recognised (expected 'mm' or 'm') -- "
+        "add explicit handling before trusting this export's travel values"
+    )
+
+
+def _check_damper_force_unit(unit_raw, ch_name):
+    # Unlike travel, a force channel logged in anything other than
+    # Newtons has no meaningful fixed-factor conversion this module could
+    # apply on its own (a hypothetical "bar" or "kgf" reading would need a
+    # gauge-specific calibration, not a unit multiplier) -- a check, not a
+    # normalisation: refuse rather than silently misinterpret the number.
+    if unit_raw != "N":
+        raise ValueError(
+            f"{ch_name} unit {unit_raw!r} not recognised (expected 'N') -- "
+            "add explicit handling before trusting this export's force values"
+        )
+
+
+def _channel_is_dead(data, std_max):
+    """Session-long near-zero-variance guard (Fz-integration Phase 1,
+    2026-09-03 -- Sample_Dubai.txt's log_susp_travel_rr finding: frozen at
+    a perfectly plausible VALUE for the whole session while its own axle-
+    mate and every other travel channel checked show real variation). The
+    existing channel_quality_gates range check cannot catch this -- it
+    tests whether a value falls inside a plausible band, not whether the
+    channel ever moves at all. std, not range: range is a two-sample
+    statistic, vulnerable to one real reading on an otherwise-flat trace.
+    """
+    return bool(np.nanstd(data) < std_max)
+
+
 def _motion_ratio(travel_mm, axle, car_data):
     """damper_ratio = damper_travel / wheel_travel, from car_data.json's
     motion_ratio_vs_wheel_travel[axle] table. Every digitised point on
@@ -103,10 +150,25 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     values (setup_parameters arb_fl/fr/rl/rr) when available. Falls back
     to config wheel_loads.arb_position_fallback per corner otherwise.
 
-    Returns a dict keyed by corner with fz_N (array), source ("damper" or
-    "static_fallback", array of str, per-sample), and the four component
-    arrays (sprung_N, arb_N, unsprung_transfer_N, geometric_transfer_N,
-    NaN where the fallback applies) for validation/plotting.
+    A corner's damper/travel channels validate only if BOTH pass quality
+    ("valid") AND clear two further checks, added Fz-integration Phase 1
+    (2026-09-03) after Sample_Dubai.txt exposed both: log_susp_travel_*'s
+    unit (mm vs m, per-file, mirroring lap_distance's own ft/m fix) is
+    normalised, never assumed, and log_dms_dam_*'s unit is checked against
+    "N" -- both raise ValueError on an unrecognised unit rather than
+    silently misinterpreting the number; and a channel logged "valid" but
+    with near-zero variance for the whole session (a plausible-looking but
+    dead sensor -- Sample_Dubai.txt's own log_susp_travel_rr) is flagged
+    invalid regardless of where its value sits in the normal range.
+
+    Returns a dict keyed by corner with fz_N (array), valid (bool array),
+    dead_channel (bool, whole-session), arb_valid (bool array -- False
+    wherever this corner's AXLE could not compute a real ARB term, e.g.
+    its mate's travel channel is dead; fz_N still has an answer, ARB just
+    contributes 0 to it, never a value derived from a flat channel), and
+    the four component arrays (sprung_N, arb_N, unsprung_transfer_N,
+    geometric_transfer_N, NaN where the fallback applies) for validation/
+    plotting.
     """
     wl = params["wheel_loads"]
     vp = params["vehicle"]
@@ -136,14 +198,26 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     travel_mm = {}
     mr = {}
     valid = {}
+    dead_channel = {}
     for c in CORNERS:
         axle = CORNER_AXLE[c]
         raw_force = _interp_channel(channels, DAMPER_CHANNEL[c], t_ref)
-        raw_travel = _interp_channel(channels, TRAVEL_CHANNEL[c], t_ref)
+        raw_travel_native = _interp_channel(channels, TRAVEL_CHANNEL[c], t_ref)
         ch_force = channels.get(DAMPER_CHANNEL[c])
         ch_travel = channels.get(TRAVEL_CHANNEL[c])
-        ok = (raw_force is not None and raw_travel is not None
-              and ch_force.get("quality") == "valid" and ch_travel.get("quality") == "valid")
+        quality_ok = (raw_force is not None and raw_travel_native is not None
+                      and ch_force.get("quality") == "valid" and ch_travel.get("quality") == "valid")
+
+        if quality_ok:
+            _check_damper_force_unit(ch_force.get("unit_raw"), DAMPER_CHANNEL[c])
+            raw_travel = _normalize_travel_to_mm(raw_travel_native, ch_travel.get("unit_raw"))
+            dead_channel[c] = (_channel_is_dead(raw_force, wl["dead_channel_std_max_force_N"])
+                                or _channel_is_dead(raw_travel, wl["dead_channel_std_max_travel_mm"]))
+            ok = not dead_channel[c]
+        else:
+            dead_channel[c] = False
+            ok = False
+
         valid[c] = np.full(n, ok, dtype=bool)
         if ok:
             offset = wl[f"pushrod_offset_{c}_N"]
@@ -166,9 +240,22 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     # ARB amplifies (not opposes) the outside wheel's load gain. VERIFIED
     # against real ay correlation in the Phase 2 validation run (thesis_
     # notes.md); flip SIDE_SIGN here if a future session contradicts it.
+    # arb_valid records, per corner per sample, whether THIS axle's ARB
+    # term could be computed at all (both travels valid) -- needed because
+    # the final fz_N combination below zeroes a NaN arb_N via nan_to_num
+    # (a real corner still needs an Fz answer even without ARB), which
+    # would otherwise silently absorb a missing ARB contribution into a
+    # "valid" corner's own total with no trace (Fz-integration Phase 1,
+    # 2026-09-03: the finding that motivated this flag -- one dead travel
+    # channel on an axle invalidates that WHOLE axle's ARB term, per the
+    # left-right delta the term is defined on, even though the OTHER
+    # corner's own sprung/transfer terms remain individually trustworthy).
     arb_N = {c: np.full(n, np.nan) for c in CORNERS}
+    arb_valid = {c: np.zeros(n, dtype=bool) for c in CORNERS}
     for axle, (left_c, right_c) in (("front", ("fl", "fr")), ("rear", ("rl", "rr"))):
         both_ok = valid[left_c] & valid[right_c]
+        arb_valid[left_c] = both_ok
+        arb_valid[right_c] = both_ok
         if not both_ok.any():
             continue
         position = arb_position.get(axle, arb_position.get(left_c, wl["arb_position_fallback"]))
@@ -195,10 +282,15 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
 
     result = {}
     for c in CORNERS:
+        # ARB degrades to no-signal (0 contribution), not fabricated from a
+        # flat channel -- arb_valid is the explicit flag a caller/report
+        # must check before treating fz_N as including a real ARB term.
         fz_damper = pushrod_N[c] + np.nan_to_num(arb_N[c], nan=0.0) + unsprung_N[c] + geometric_N[c]
         result[c] = {
             "fz_N": fz_damper,
             "valid": valid[c],
+            "dead_channel": dead_channel[c],
+            "arb_valid": arb_valid[c],
             "sprung_N": pushrod_N[c],
             "arb_N": arb_N[c],
             "unsprung_transfer_N": unsprung_N[c],
@@ -227,6 +319,69 @@ def combine_with_static_fallback(damper_result, static_fallback_fz):
 
 AXLE_MATE = {"fl": "fr", "fr": "fl", "rl": "rr", "rr": "rl"}
 AXLE_TOTAL_KEY = {"fl": "fz_f_N", "fr": "fz_f_N", "rl": "fz_r_N", "rr": "fz_r_N"}
+
+
+def _axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c):
+    """Per-axle total Fz for estimate_session_corrected_axle_totals's own
+    straight-line fits: a corner's REAL value where it validates, else its
+    axle-mate's real value scaled by the STATIC config mass ratio (this
+    corner's own corner_weights_kg / the mate's) where exactly one of the
+    two is invalid.
+
+    Fz-integration Phase 1 bug fix (2026-09-03): the original version of
+    this logic was hardcoded to always proxy FR from FL (v3's own failure
+    pattern, FR permanently dead) and always summed rl+rr assuming both
+    real -- correct for v3, but SILENTLY NaN on Dubai, where the dead
+    corner is RR instead (found visually, from a corner figure with a
+    missing rear-axle trace, not from a number -- the render-and-look
+    habit this project already leans on for figure QA caught it here
+    too). Generalising to "real where valid, ratio-proxied from the
+    mate where not" per axle fixes both sessions with one rule instead
+    of a session-specific special case.
+
+    RATIO, not equality: front's original trick implicitly used ratio
+    1.0 because config vehicle.corner_weights states FL_kg==FR_kg
+    exactly (both 290.0) -- true by construction for v3's own FR-from-FL
+    case, reproduced byte-identically here. The REAR axle has no such
+    exact symmetry (RL_kg=395.0, RR_kg=381.0, config) -- proxying RR from
+    RL (Dubai's case) at ratio RR_kg/RL_kg carries the STATIC left/right
+    split onto what is really a DYNAMIC (roll-dependent) quantity, which
+    is a weaker approximation than front's exact case, not an equally
+    clean one. Still strictly better than a silent NaN; stated here, not
+    hidden.
+
+    Where BOTH corners of an axle are invalid at a sample, there is no
+    real value on either side to proxy from -- that sample's total is
+    NaN (propagates to the caller's straight-line means/fits, which then
+    read NaN rather than a silently-wrong number) and `degraded` is
+    flagged True with a stated reason, rather than left for the caller
+    to discover only as an unexplained NaN downstream.
+
+    Returns (total_N array, degraded: bool, reason: str or None).
+    """
+    left_valid = damper_result[left_c]["valid"]
+    right_valid = damper_result[right_c]["valid"]
+    left_fz = damper_result[left_c]["fz_N"]
+    right_fz = damper_result[right_c]["fz_N"]
+
+    left_ratio = corner_weight_kg[left_c] / corner_weight_kg[right_c]
+    right_ratio = corner_weight_kg[right_c] / corner_weight_kg[left_c]
+
+    with np.errstate(invalid="ignore"):
+        left_value = np.where(left_valid, left_fz, right_fz * left_ratio)
+        right_value = np.where(right_valid, right_fz, left_fz * right_ratio)
+        total = left_value + right_value
+
+    both_invalid = ~left_valid & ~right_valid
+    total = np.where(both_invalid, np.nan, total)
+
+    degraded = bool(np.any(both_invalid))
+    reason = None
+    if degraded:
+        frac = float(np.mean(both_invalid))
+        reason = (f"{left_c}/{right_c}: both corners invalid for {frac*100:.1f}% of samples -- "
+                  "axle total is NaN there, no mate to proxy from on either side")
+    return total, degraded, reason
 
 
 def estimate_session_corrected_axle_totals(state, damper_result, params):
@@ -280,23 +435,26 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     silently left implied.
     (4) REAR LEFT/RIGHT (reported, not consumed): rear_left_fraction is
     the session's own measured RL/(RL+RR) ratio at straight-line samples
-    -- both rear corners are real all session, so this needs no proxy at
-    all, unlike every fraction above. Not used anywhere in this
+    -- deliberately NOT proxied like the totals above (proxying one side
+    from the other would make the ratio trivially equal to the config
+    ratio by construction, not a measurement of anything). Reads NaN on
+    a session where either rear corner is dead all session (e.g. Dubai's
+    RR) -- an honest "not measurable this session", not silently
+    defaulted. Not used anywhere in this
     function's own fz_f_N/fz_r_N (the per-wheel L/R split still comes
     from estimate_wheel_loads_from_dampers's own ARB/unsprung/geometric
     decomposition, which already uses real per-corner data) -- returned
     purely for the caller's own reporting/comparison against config's
     static RL_kg/RR_kg split.
 
-    NON-CIRCULARITY: both fits need a whole-car Fz_total, but FR is
-    invalid all session -- using the (biased) axle-total-model-based
-    reconstruction for FR here would make this function correct itself
-    against its own error. Instead FR is proxied by its own axle-mate FL
-    for the PURPOSE OF THIS FIT ONLY (front-axle static symmetry: config
-    vehicle.corner_weights states FL_kg==FR_kg exactly, so assuming near-
-    zero real roll asymmetry at low-ay/straight-line conditions is a
-    small, bounded approximation, not an arbitrary guess) -- ONLY FL/RL/
-    RR's real measurements feed these two fits, never a model output.
+    NON-CIRCULARITY: both fits need a whole-car Fz_total, but a session
+    can have exactly one dead corner per axle (v3: FR; Dubai: RR) --
+    using the (biased) axle-total-model-based reconstruction for that
+    corner here would make this function correct itself against its own
+    error. Instead each axle's total comes from _axle_total_with_proxy
+    (see its own docstring for the ratio-proxy rule and the front/rear
+    asymmetry caveat) -- ONLY real per-corner measurements feed these two
+    fits, never a model output, on either axle.
 
     KNOWN IMPERFECTION, stated not hidden: mass_kg_session (a straight-
     line MEAN across a real speed range) already contains some of the
@@ -324,13 +482,19 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     g = 9.81
     n = len(t_ref)
 
+    corner_weight_kg = {
+        "fl": vp["corner_weights"]["FL_kg"], "fr": vp["corner_weights"]["FR_kg"],
+        "rl": vp["corner_weights"]["RL_kg"], "rr": vp["corner_weights"]["RR_kg"],
+    }
+
     moving = v >= ls["moving_speed_min_mps"]
     straight_tight = moving & (np.abs(ax) < 0.5) & (np.abs(ay) < 0.5)
     straight_wide = moving & (np.abs(ay) < 1.5)
 
-    fr_proxy_N = damper_result["fl"]["fz_N"]  # non-circular FR stand-in, see docstring
-    front_total_N = damper_result["fl"]["fz_N"] + fr_proxy_N
-    rear_total_N = damper_result["rl"]["fz_N"] + damper_result["rr"]["fz_N"]
+    front_total_N, front_degraded, front_degraded_reason = _axle_total_with_proxy(
+        damper_result, corner_weight_kg, "fl", "fr")
+    rear_total_N, rear_degraded, rear_degraded_reason = _axle_total_with_proxy(
+        damper_result, corner_weight_kg, "rl", "rr")
     total_fz_for_fit_N = front_total_N + rear_total_N
 
     mass_kg_session = float(np.mean(total_fz_for_fit_N[straight_tight])) / g
@@ -339,7 +503,8 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     mean_rear_straight_N = float(np.mean(rear_total_N[straight_tight]))
     front_mass_fraction = mean_front_straight_N / (mean_front_straight_N + mean_rear_straight_N)
 
-    # Reported only -- both real, no proxy needed. Not consumed below.
+    # Reported only -- deliberately NOT proxied, see docstring (4). NaN on
+    # a session where either rear corner is dead all session (Dubai's RR).
     mean_rl_straight_N = float(np.mean(damper_result["rl"]["fz_N"][straight_tight]))
     mean_rr_straight_N = float(np.mean(damper_result["rr"]["fz_N"][straight_tight]))
     rear_left_fraction = mean_rl_straight_N / (mean_rl_straight_N + mean_rr_straight_N)
@@ -371,6 +536,14 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         "aero_front_fraction": aero_front_fraction,
         "front_mass_fraction": front_mass_fraction,
         "rear_left_fraction": rear_left_fraction,
+        # "Never silently" (Fz-integration Phase 1 bug fix): True only
+        # when BOTH corners of that axle are invalid at some sample --
+        # fz_f_N/fz_r_N are NaN there, with the reason stated here rather
+        # than left for a caller to discover as an unexplained NaN.
+        "front_correction_degraded": front_degraded,
+        "front_correction_degraded_reason": front_degraded_reason,
+        "rear_correction_degraded": rear_degraded,
+        "rear_correction_degraded_reason": rear_degraded_reason,
     }
 
 
