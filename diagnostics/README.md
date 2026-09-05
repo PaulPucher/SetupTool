@@ -439,3 +439,51 @@ kept because a surviving script imports it, not for its own findings.
   (Dugoff's own historical failure mode instead collapsed D). Re-run if
   this closure is ever revisited, or a further-iteration/production-
   adoption question is reopened.
+- **inspect_v3_fr_gauge_forensics.py** `[keep-reproduces]` — Frame-Stage-2
+  Phase 0 (2026-09-04, thesis_notes.md "Frame-Stage-2 Phase 0: FR damper-
+  force gauge forensics"). Full-session (not 9-point) census of log_dms_
+  dam_fr[N] plus its previously-unknown log_dms_dam_fr_dash[kgf] sibling;
+  decoding hypotheses and time-aligned correlation vs ay/ax/the other
+  three corners on the pipeline's own reference grid. Found the channel
+  carries real, correctly-signed signal under a corrupted offset -- open
+  engineer question (PLAN.md), reopens if a calibration reference for this
+  gauge ever surfaces.
+- **inspect_v3_speed_channel_survey.py** `[keep-reproduces]` — Frame-
+  Stage-2 Phase 1 (2026-09-04). Broad raw-header + full-block census of
+  every speed-shaped channel in GT3_PRC_MLA-v3.txt (wheel/GPS/NMEA/radar
+  families) -- found log_gps_speed/NMEA/an independent MRR radar ego-speed
+  all exist and are populated, correcting the work order's own "census
+  said gps_speed absent" premise. Re-run whenever a new file's own speed-
+  channel inventory needs checking before trusting an assumption about it.
+- **inspect_v3_ecu_speed_forensics.py** `[keep-reproduces]` — Frame-
+  Stage-2 Phase 1 (2026-09-04, thesis_notes.md "Frame-Stage-2 Phase 1").
+  ecu_speed cross-plot vs wheel/GPS/radar references and the RR-fault-
+  window overlap check (both real sessions); synthesizes a plausibility-
+  guarded left-side+healthy-wheel reference speed, cross-checked against
+  integrated ax; substitutes it for ecu_speed in a real C13 CS-chain
+  re-run (all else identical) via a local, deepcopy'd channel override --
+  found NO material change (speed exonerated) plus the unplanned finding
+  that v3's own sawtooth artifact has already substantially resolved.
+  Re-run if the sawtooth thread or the ecu_speed-derivation engineer
+  question reopens.
+- **inspect_v3_intervention_channel_classification.py** `[keep-reproduces]`
+  — Frame-Stage-2 Phase 2 (2026-09-04). Boolean/level/continuous
+  classification plus real co-occurrence-with-braking/traction numbers for
+  every ABS/TC/EB/brake-bias candidate the damper package's own Phase 4
+  survey named but did not classify -- the source of modules.decision_
+  frame.py's own USABLE-NOW (abs_active, ecu_B_tc_act) determination. Re-
+  run whenever a new session needs the same classification, or a READ-
+  AND-RECORD/UNCLEAR candidate's engineer question above gets answered.
+- **inspect_frame_stage2_parity.py** `[keep-reproduces]` — Frame-Stage-2
+  Phase 3d (2026-09-04/05, thesis_notes.md "Frame-Stage-2 Phase 3: decision-
+  frame Stage 2, full migration"). Runs BOTH the old 39-rule engine
+  (modules.recommendation.generate_recommendations) and the new decision
+  frame (modules.decision_frame) on real Dubai and v3 data and checks
+  every old-engine recommendation has a matching candidate in the new
+  frame; includes a diagnostic-only loosened-consistency-gate stress test
+  (never touches live config) specifically so the parity claim is not
+  vacuously true when production thresholds fire zero old-engine results.
+  THE load-bearing provenance for the Stage 2 migration's own parity
+  claim -- re-run whenever config/recommendations.json's rules or modules/
+  decision_frame.py's bridge logic change, to re-verify parity still
+  holds.

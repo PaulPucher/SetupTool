@@ -1079,6 +1079,83 @@ WHERE THE PROJECT STANDS
   git status NOT clean (14 modified + 11 new tracked-worthy files, see
   the branch's own diff); NO COMMIT MADE -- stop before commit, ready for
   the user's own review and commit/merge decision.
+- FRAME-STAGE-2 PACKAGE COMPLETE, all 5 phases (2026-09-04/05, branch
+  frame-stage2 -- full per-phase detail in thesis_notes.md's own "Frame-
+  Stage-2 Phase 0" through "Phase 3" entries). PHASE 0 (FR gauge
+  forensics, v3): the "constant -15.95 million N" verdict is REFINED, not
+  overturned -- log_dms_dam_fr carries real, correctly-signed signal (ay/
+  FL/RL/RR correlations all match the module's own validated Fz
+  convention) riding on a large, stationary corrupted offset; the exact
+  recovery constant cannot be derived from this session alone (no
+  calibration record, and a previously-unknown dash[kgf] sibling carries
+  the identical corruption) -- NOT wired in, reported for the user's own
+  decision, engineer question added. PHASE 1 (ecu_speed forensics, v3
+  primary/Dubai control): the work order's own premise ("census said
+  gps_speed absent") was FALSE -- log_gps_speed/NMEA/an independent RADAR
+  ego-speed all exist and are populated on v3; ecu_speed tracks the
+  healthy consensus tightly overall but has its own rare, isolated
+  corruption (a visible lap-8 spike, a session max exceeding every other
+  reference) NOT correlated with RR's own known fault; the C13 CS-chain
+  substitution test (synthetic speed in place of ecu_speed, all else
+  identical) showed NO material change -- speed exonerated, PLUS an
+  unplanned finding that v3's own sawtooth artifact has already
+  substantially resolved (max sign-change rate now 0.027, was reported
+  "unstable" 2026-09-02) as a side effect of two unrelated later fixes
+  (corner-representative-lap filtering, pit-limiter lap classification).
+  PHASE 2 (intervention-channel survey, v3): USABLE-NOW (abs_active,
+  ecu_B_tc_act -- clean booleans, real co-occurrence with braking/
+  traction events, TC's own near-zero session activity noted honestly);
+  READ-AND-RECORD (TC/ABS position channels, engine-braking levels, brake-
+  bias-hold -- real but unconfirmed semantics); UNCLEAR (4 competing
+  brake-bias candidates, no engineer confirmation of which is real).
+  PHASE 3 (decision-frame Stage 2, the package's main deliverable): all 39
+  config/recommendations.json rules re-expressed as candidate bridges (26
+  primary, 4 held->secondary-only, 2 dropped + 7 retired ->
+  documented-inactive, verified 39/39 accounted); a new two-step conflict
+  resolver (platform-calming search, else higher-phase-importance/exit>
+  entry wins -- never deletes a candidate, always annotates); config-gated
+  (default OFF) intervention evidence wiring for the two USABLE-NOW
+  booleans at engineer-verbatim grade; PARITY VERIFIED on both real
+  sessions -- production thresholds currently produce ZERO old-engine
+  recommendations on both files (independently reconfirmed against the
+  live golden's own empty array, not assumed), so a diagnostic-only
+  loosened-consistency-gate stress test (never touching live config) was
+  added specifically to avoid a vacuously-true parity claim -- under that
+  stress test Dubai fires 3 real recommendations and v3 fires 4, EVERY
+  ONE with a matching candidate in the new frame, zero discrepancies. The
+  old Recommendations UI section (~370 lines) is REMOVED; the Decision
+  Frame section loses "(preview)" and is now the only recommendation UI;
+  its calibration banner is migrated, not dropped. modules/recommendation.
+  py and config/recommendations.json are UNCHANGED (confirmed via git
+  diff) -- the frame calls the existing engine's rule definitions, it does
+  not fork them. 14 new targeted tests (test_decision_frame.py grew 8->22,
+  all pass) plus 1 legitimate pre-existing-test update (an evidence-type
+  whitelist assertion extended for the new "matrix_verdict" source, not a
+  regression). No golden regeneration needed or attempted: neither golden
+  generator/comparison references modules/decision_frame.py at all
+  (verified by search), and modules/recommendation.py itself is untouched
+  -- the work order's own "expected: recommendations golden changes shape"
+  premise did not hold for this implementation (a genuine, reported
+  premise correction, not a silent deviation). 5 new diagnostics scripts
+  this package (v3 FR-gauge forensics, v3 speed-channel survey, v3 ecu_
+  speed forensics, v3 intervention-channel classification, the frame-
+  stage2 parity harness), all classified [keep-reproduces] with
+  diagnostics/README.md entries added this same package (each is either a
+  load-bearing provenance script for an open engineer question or reusable
+  census/parity tooling, none a closed one-off). Engineer follow-up
+  questions section gained 3 new entries (FR gauge calibration-reference
+  ask, ecu_speed derivation-documentation ask, intervention level-channel
+  identity questions). Full regression suite run once at close-out: 243
+  passed, 9 skipped, 1 xfailed, 0 failed, 0 errors (39m44s) -- verified via
+  git diff that exactly +14 test functions exist anywhere in tests/ (all
+  in tests/test_decision_frame.py, matching Phase 3f's own count), 0 test
+  files besides that one changed. No golden regeneration needed or
+  attempted -- verified (not assumed) that no golden generator/comparison
+  references modules/decision_frame.py, and modules/recommendation.py/
+  config/recommendations.json are byte-identical to git HEAD, so the
+  recommendations golden's own content is structurally incapable of
+  having changed. git status NOT clean; NO COMMIT MADE -- stop before
+  commit, per the work order.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -3053,6 +3130,54 @@ else.
   glitch on this session? If recurring, the team may want to treat
   abs_speed_rr as the primary source for this car going forward rather
   than a fallback.
+
+### Engineer follow-up questions -- Frame-Stage-2 package (forensics + decision-frame Stage 2)
+- [2026-09-04, Phase 0] log_dms_dam_fr (v3's FR damper-force gauge) is NOT
+  simply dead -- a full-session re-census (thesis_notes.md "Frame-Stage-2
+  Phase 0") found it carries real, physically coherent signal (correctly-
+  signed correlations with ay and all three healthy corners, matching the
+  same sign pattern the module's own validated Fz convention expects)
+  riding on a large, stationary corrupted additive offset (~-15.95 million
+  raw units, essentially flat across the whole 686s session, not
+  degrading/intermittent). The exact offset needed to recover true
+  Newtons cannot be derived from this session alone -- no calibration
+  record exists for this channel, and a previously-unknown lower-rate
+  sibling (log_dms_dam_fr_dash[kgf]) carries the identical corruption
+  (ruling out a simple export/column-mapping fix). Does a calibration
+  sheet or a known-good reference reading for this specific gauge exist
+  anywhere on the team side (a prior session, a bench-test record) that
+  would let this be decoded rather than staying on the axle-total
+  reconstruction path indefinitely?
+- [2026-09-04, Phase 1] ecu_speed (the pipeline's sole vehicle-speed
+  reference) tracks the healthy wheel-speed/GPS/radar consensus tightly
+  for the great majority of v3's own session, but has its OWN rare,
+  isolated corruption events independent of any single wheel's own fault
+  (confirmed: its deviation from the healthy median is NOT elevated during
+  RR's own already-documented fault windows) -- e.g. a sharp spike/dropout
+  sequence visible directly in lap 8 (diagnostics/plots_v3/ecu_speed_vs_
+  references_lap8.png, ~t=943-946s) and a whole-session maximum (278.9
+  kph) that exceeds every independent reference (wheel/GPS/radar, all
+  248-252 kph) by a wide margin. Is ecu_speed's own derivation (which
+  wheel(s)/sensor(s) it is computed from, and whether it applies any
+  smoothing/fault-detection of its own) documented anywhere on the ECU/
+  team side? Confirming the derivation would let a future session's own
+  synthetic-speed substitution (this phase's own C13 test, thesis_notes.md
+  "Frame-Stage-2 Phase 1") be targeted at the actual mechanism rather than
+  a black-box comparison.
+- [2026-09-04, Phase 2] Two intervention-channel identity questions,
+  needed before any of the READ-AND-RECORD/UNCLEAR candidates (thesis_
+  notes.md "Frame-Stage-2 Phase 2") could ever be wired as real evidence:
+  (a) ecu_TC_int_pos/log_tc_int_pos read a CONSTANT 4 all session on v3 --
+  what does TC position level "4" mean physically (the team's own TC
+  map/table), and separately, abs_switch_pos reads a constant 6 while
+  log_abs_pos/log_rt_abs_pos (dash/steering-wheel-domain logging) read a
+  constant 5 for the SAME session -- which domain is authoritative? (b)
+  Four candidate brake-bias channels (Math_Brake_Bias_Hold, abs_brk_bal_
+  prop/prop_ad/at50/at50_adv) all change during the session and all show
+  a plausible shift under hard braking, but sit on two different numeric
+  scales (roughly 40-48 vs roughly 54-72) with no engineer confirmation of
+  which one (if any) is the actual brake-bias setting a driver/engineer
+  would read off the dash or setup sheet.
 
 ---
 

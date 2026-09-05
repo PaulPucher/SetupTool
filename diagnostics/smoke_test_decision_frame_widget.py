@@ -1,5 +1,7 @@
-# Headless smoke test for the "Decision Frame (preview)" section (decision-
-# matrix frame, Stage 1, Phase 5/6). Same technique as smoke_test_
+# Headless smoke test for the "Decision Frame" section (decision-matrix
+# frame -- Stage 1 Phase 5/6 preview UI, now the only recommendation UI
+# since Frame-Stage-2 Phase 3e removed the old Recommendations section and
+# dropped "(preview)" from the toggle label). Same technique as smoke_test_
 # measurement_points_widget.py: Qt's offscreen platform plugin, since
 # tests/conftest.py deliberately keeps PyQt6 out of pytest -- the widget
 # binding (toggle, button enable/disable, row rendering) is verified here
@@ -62,15 +64,15 @@ print("\n--- Toggle open/closed ---")
 # reflects only this widget's own explicit setVisible/hide state, which is
 # what the toggle handler actually controls.
 toggle_btns = [w for w in form.findChildren(type(form.btn_generate_decision_frame))
-               if w.text() in ("> Decision Frame (preview)", "v Decision Frame (preview)")]
+               if w.text() in ("> Decision Frame", "v Decision Frame")]
 assert len(toggle_btns) == 1, f"expected exactly one toggle button, found {len(toggle_btns)}"
 toggle_btn = toggle_btns[0]
 toggle_btn.setChecked(True)
 assert not form.decision_frame_panel.isHidden()
-assert toggle_btn.text() == "v Decision Frame (preview)"
+assert toggle_btn.text() == "v Decision Frame"
 toggle_btn.setChecked(False)
 assert form.decision_frame_panel.isHidden()
-assert toggle_btn.text() == "> Decision Frame (preview)"
+assert toggle_btn.text() == "> Decision Frame"
 print("toggle show/hide + label swap OK")
 
 print("\n--- Real pipeline (kinematic, fast) -> Generate -> rows render ---")

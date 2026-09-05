@@ -3,6 +3,16 @@
 # summaries + driver feedback + a rule table (config/recommendations.json)
 # into a ranked, evidence-backed list of setup direction suggestions.
 #
+# Frame-Stage-2 (2026-09-04): this module's own generate_recommendations()
+# is no longer surfaced by any UI (ui/views/outing_form.py's old
+# Recommendations section was removed once modules/decision_frame.py's
+# frame migrated all 39 rules as candidate bridges and passed parity on
+# real data, diagnostics/inspect_frame_stage2_parity.py). This module is
+# UNCHANGED and still the source of truth: its rule table/config and every
+# helper decision_frame.py imports (aggregate_by_corner, _phase_verdict,
+# load_recommendations_config, etc.) are what the frame actually calls --
+# only the parallel display died, not the engine.
+#
 # WP2b-2: rules are now sourced from an external engineer decision matrix
 # (scenario x speed-class grid, config/recommendations.json rule.cell_id),
 # referencing real config/setup_parameters.json registry keys instead of

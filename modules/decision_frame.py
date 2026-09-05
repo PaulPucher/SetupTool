@@ -1,13 +1,22 @@
-# Decision-matrix frame, Stage 1 (2026-09-02). Three-layer recommendation
-# frame (evidence -> candidates -> scoring), additive and parallel to the
-# existing 39-rule engine in modules/recommendation.py, which is unchanged
-# and remains the production path. Pure Python, no Qt.
+# Decision-matrix frame. Three-layer recommendation frame (evidence ->
+# candidates -> scoring), plus a conflict resolver. Pure Python, no Qt.
 #
-# Stage 1 scope, per the work order: one fully worked scenario (exit
-# oversteer, LS-disambiguated) end to end, plus the two cheap-first
-# plausibility checks. config/decision_frame.json documents everything
-# else as seeded/null and listed for the user -- this module only acts on
-# what that config actually populates.
+# Stage 1 (2026-09-02): one fully worked scenario (exit oversteer, LS-
+# disambiguated) end to end, plus the two cheap-first plausibility checks,
+# additive and parallel to the 39-rule engine in modules/recommendation.py.
+#
+# Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04): full migration -- ALL 39
+# config/recommendations.json rules re-expressed as candidate bridges
+# (_bridge_candidates_for_matrix_rules), a conflict resolver
+# (resolve_conflicts), and config-gated intervention evidence (Phase 3c).
+# Parity-verified against the old engine on both real sessions
+# (diagnostics/inspect_frame_stage2_parity.py) -- this is now the
+# production recommendation UI (ui/views/outing_form.py's old
+# Recommendations section is removed). modules/recommendation.py itself is
+# UNCHANGED -- this module calls its rule definitions/config, it does not
+# reimplement them; config/decision_frame.json documents every remaining
+# seeded/null entry (parameter_windows, interaction_table gaps) for the
+# user -- this module only acts on what that config actually populates.
 
 import json
 
@@ -17,6 +26,8 @@ from modules.stability_analysis import load_parameters
 from modules.recommendation import (
     PHASE_KEYS,
     SEVERITY_RANK,
+    _NON_FIRING_STATUSES,
+    _action_key,
     _axle_verdict,
     _current_setup_value,
     _group_by_corner,
@@ -284,7 +295,184 @@ def _build_brake_balance_evidence(aggregated, by_corner_laps, config):
     return evidence
 
 
-def build_evidence(summaries, ls_stats, config, classify_fn):
+# --- Stage 2: matrix-rule verdict evidence -----------------------------
+#
+# Source (d): the same classify_fn/_phase_verdict call the OLD engine's
+# own "data"-trigger rules use (modules.recommendation._evaluate_rule),
+# generalised from Stage 1's own single-PHASE_KEYS loop to the small set
+# of PHASE GROUPS the 39-rule matrix actually uses (derived from config/
+# recommendations.json's own rules, never hardcoded -- verified 2026-09-04
+# that every live ("elicited") matrix rule uses one of five groups: the
+# four single phases already covered by _build_corner_verdict_evidence,
+# plus (exit_4, exit_5) as one 2-phase unit for the six matrix_*_exit_*
+# rules specifically. A SEPARATE evidence type ("matrix_verdict", not
+# "corner_verdict") is used rather than changing corner_verdict's own
+# shape, so Stage 1's existing exit-oversteer/ls_disambiguation code (and
+# its own passing tests) are completely unaffected by this addition.
+
+def _distinct_phase_groups(config_recs):
+    return sorted({tuple(r["phases"]) for r in config_recs["rules"]})
+
+
+def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs):
+    evidence = []
+    for phase_group in _distinct_phase_groups(config_recs):
+        phases = list(phase_group)
+        for cid, corner in aggregated.items():
+            if not any(p in corner["phases"] for p in phases):
+                continue
+            severity, short = _phase_verdict(corner, phases, classify_fn)
+            if severity == "normal":
+                continue
+
+            verdicts_here = []
+            axle = _axle_verdict(short)
+            if axle is not None:
+                verdicts_here.append(axle)
+            if _verdict_present(short, "unstable_yaw"):
+                verdicts_here.append("unstable_yaw")
+
+            for verdict in verdicts_here:
+                def _lap_matches(lap_summary, phases=phases, verdict=verdict, severity=severity):
+                    lap_sev, lap_short = _phase_verdict(lap_summary, phases, classify_fn)
+                    return (_verdict_present(lap_short, verdict)
+                            and SEVERITY_RANK[lap_sev] >= SEVERITY_RANK[severity])
+
+                repeat, total = _count_repeating(cid, by_corner_laps, _lap_matches)
+                valid_laps = sum(
+                    1 for lap in by_corner_laps.get(cid, [])
+                    if any(lap["phases"].get(p, {}).get("n_samples", 0) > 0 for p in phases)
+                )
+                confidence = round(_fraction(repeat, total) * _fraction(valid_laps, total), 3)
+
+                evidence.append({
+                    "type": "matrix_verdict",
+                    "corner": cid,
+                    "phases": phase_group,
+                    "speed_class": corner.get("speed_class"),
+                    "verdict": verdict,
+                    "severity": severity,
+                    "confidence": confidence,
+                    "source": f"classify_fn (worst-lap aggregate, anchored thresholds), phases="
+                              f"{'+'.join(phase_group)}: C{cid} '{short}' -- repeats on {repeat}/{total} "
+                              f"laps, signal present on {valid_laps}/{total} laps",
+                })
+    return evidence
+
+
+# --- Stage 2: intervention evidence (Phase 3c, config-gated, default off) -
+#
+# USABLE-NOW booleans only (Frame-Stage-2 Phase 2 classification survey,
+# thesis_notes.md), wired at engineer-verbatim grade per the user's own
+# rules (PLAN.md "DECISION FRAME -- STAGE 2 BACKLOG"). Corroborating
+# evidence only -- these never generate a standalone candidate/action of
+# their own, they are appended to an existing matching candidate's
+# evidence_refs (see _bridge_candidates_for_matrix_rules and
+# _exit_oversteer_candidates). Needs raw channel/state/corner data (per-
+# lap phase time windows, config/recommendations.json "segments" field)
+# that summaries alone do not carry -- corners/state/channels are all
+# optional parameters of build_evidence, defaulting to None (skips
+# intervention evidence entirely, same as use_intervention_evidence=False)
+# so every existing Stage 1 caller/test is completely unaffected.
+
+def _phase_window_indices(t, segment):
+    # Mirrors modules.stability_analysis.summarise_corners's own internal
+    # _phase_slice mechanism exactly (searchsorted on the phase's own
+    # (start_t, end_t) segment) -- not reimplemented differently, just not
+    # importable (that function is nested/private inside summarise_corners).
+    if segment is None:
+        return None
+    start_t, end_t = segment
+    if end_t < start_t:
+        return None
+    lo = int(np.searchsorted(t, start_t, side="left"))
+    hi = int(np.searchsorted(t, end_t, side="right"))
+    if hi <= lo:
+        return None
+    return lo, hi
+
+
+def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, channels, aggregated):
+    abs_ch = (channels or {}).get("abs_active")
+    if state is None or abs_ch is None or abs_ch.get("quality") in ("missing", "failed") or abs_ch.get("time") is None:
+        return []
+    t = state["time"]
+    abs_on_ref = np.interp(t, abs_ch["time"], abs_ch["data"]) > 0.5
+
+    by_corner = {}
+    for c in corners or []:
+        cid = c.get("stable_corner_id")
+        if cid is not None:
+            by_corner.setdefault(cid, []).append(c)
+
+    evidence = []
+    for cid, instances in by_corner.items():
+        inactive_count, total = 0, 0
+        for c in instances:
+            idx = _phase_window_indices(t, c.get("segments", {}).get("entry_1_brake"))
+            if idx is None:
+                continue
+            lo, hi = idx
+            total += 1
+            if not abs_on_ref[lo:hi].any():
+                inactive_count += 1
+        if total == 0 or inactive_count == 0:
+            continue
+        confidence = round(inactive_count / total, 3)
+        evidence.append({
+            "type": "intervention_abs",
+            "corner": cid, "phases": ("entry_1_brake",),
+            "speed_class": aggregated.get(cid, {}).get("speed_class"),
+            "verdict": "unstable_yaw", "severity": None, "confidence": confidence,
+            "source": f"abs_active read 0 throughout entry_1_brake on {inactive_count}/{total} analysed "
+                      f"laps (USABLE-NOW boolean, Frame-Stage-2 Phase 2) -- corroborates braking-phase "
+                      f"instability per the user's own rule: 'ABS inactive + instability under braking -> "
+                      f"more ABS'.",
+        })
+    return evidence
+
+
+def _build_intervention_tc_evidence(corners, state, channels, aggregated):
+    tc_ch = (channels or {}).get("ecu_B_tc_act")
+    if state is None or tc_ch is None or tc_ch.get("quality") in ("missing", "failed") or tc_ch.get("time") is None:
+        return []
+    t = state["time"]
+    tc_on_ref = np.interp(t, tc_ch["time"], tc_ch["data"]) > 0.5
+
+    by_corner = {}
+    for c in corners or []:
+        cid = c.get("stable_corner_id")
+        if cid is not None:
+            by_corner.setdefault(cid, []).append(c)
+
+    evidence = []
+    for cid, instances in by_corner.items():
+        active_count, total = 0, 0
+        for c in instances:
+            segs = c.get("segments", {})
+            windows = [w for p in EXIT_PHASES for w in [_phase_window_indices(t, segs.get(p))] if w is not None]
+            if not windows:
+                continue
+            total += 1
+            if any(tc_on_ref[lo:hi].any() for lo, hi in windows):
+                active_count += 1
+        if total == 0 or active_count == 0:
+            continue
+        confidence = round(active_count / total, 3)
+        evidence.append({
+            "type": "intervention_tc",
+            "corner": cid, "phases": EXIT_PHASES,
+            "speed_class": aggregated.get(cid, {}).get("speed_class"),
+            "verdict": "oversteer", "severity": None, "confidence": confidence,
+            "source": f"ecu_B_tc_act read 1 during exit_4/exit_5 on {active_count}/{total} analysed laps "
+                      f"(USABLE-NOW boolean, Frame-Stage-2 Phase 2) -- corroborates traction-limited per "
+                      f"the user's own rule: 'TC cutting hard + exit oversteer -> corroborates "
+                      f"traction-limited'.",
+        })
+    return evidence
+
+
+def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state=None, channels=None):
     """Evidence layer, Stage 1. Turns per-lap-per-corner stability
     summaries (modules.stability_analysis.summarise_corners' own output
     shape) into a flat list of evidence items: {type, corner, phase,
@@ -322,9 +510,23 @@ def build_evidence(summaries, ls_stats, config, classify_fn):
     outing_form.py's own Qt imports) -- same parameter modules.
     recommendation.generate_recommendations already takes for the same
     reason.
+
+    Stage 2 additions (Frame-Stage-2 Phase 3, 2026-09-04): (d) matrix_
+    verdict, the same classify_fn/_phase_verdict call the OLD 39-rule
+    engine's own "data"-trigger rules use, generalised to the small set of
+    multi-phase groups the matrix actually uses -- feeds
+    _bridge_candidates_for_matrix_rules, the migrated-rule candidate
+    bridge. (e)/(f) intervention_abs/intervention_tc, config-gated
+    (decision_frame.json intervention_evidence.use_intervention_evidence,
+    default False) -- corners/state/channels are optional (default None,
+    Stage-1-caller-compatible); when any is missing, or the flag is off,
+    both are silently skipped (an honest [], never a fabricated fallback),
+    since the per-lap phase-window channel check they need cannot be
+    computed from summaries alone.
     """
     aggregated = aggregate_by_corner(summaries)
     by_corner_laps = _group_by_corner(summaries)
+    config_recs = load_recommendations_config()
 
     evidence = []
     evidence += _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn)
@@ -332,12 +534,18 @@ def build_evidence(summaries, ls_stats, config, classify_fn):
         aggregated, ls_stats, [e for e in evidence if e["type"] == "corner_verdict"]
     )
     evidence += _build_brake_balance_evidence(aggregated, by_corner_laps, config)
+    evidence += _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs)
+
+    if config.get("intervention_evidence", {}).get("use_intervention_evidence", False) and corners is not None:
+        evidence += _build_intervention_abs_evidence(corners, by_corner_laps, state, channels, aggregated)
+        evidence += _build_intervention_tc_evidence(corners, state, channels, aggregated)
+
     return evidence
 
 
-# --- Candidate layer, Stage 1 -----------------------------------------
+# --- Candidate layer, Stage 1 (exit-oversteer scenario) ----------------
 #
-# Scope, per the work order: the exit-oversteer scenario ONLY, both LS
+# Scope, per the Stage 1 work order: the exit-oversteer scenario ONLY, both LS
 # branches (cornering-limited -> ARB/spring family; traction-limited ->
 # diff/TC family), plus the brake-balance plausibility candidate wherever
 # its evidence fires. Every candidate carries the provenance grade of the
@@ -383,7 +591,9 @@ def _grade_for_provenance(provenance):
     return "derived-from-matrix" if provenance in _MATRIX_ELIGIBLE_PROVENANCES else "proposed"
 
 
-def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs):
+def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs,
+                                intervention_tc_by_corner=None):
+    intervention_tc_by_corner = intervention_tc_by_corner or {}
     candidates = []
     for (cid, phase), items in corner_verdicts_by_key.items():
         if phase not in EXIT_PHASES:
@@ -395,6 +605,13 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
         ls_evidence = ls_by_key.get((cid, phase))
         ls_class = ls_evidence["ls_class"] if ls_evidence else None
         evidence_refs = [cv] + ([ls_evidence] if ls_evidence else [])
+        # Stage 2 Phase 3c: TC-activity intervention evidence corroborates
+        # the TRACTION-limited branch specifically (config-gated, empty
+        # dict when off/unavailable -- see build_evidence) -- never added
+        # to the cornering-limited/ARB branch, a different mechanism.
+        tc_evidence_refs = evidence_refs + (
+            [intervention_tc_by_corner[cid]] if cid in intervention_tc_by_corner else []
+        )
 
         if ls_class in (None, "cornering_limited"):
             # ARB/spring family. Primary lever: rear ARB soften -- matrix-
@@ -458,7 +675,7 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                 "effect_class": "primary",
                 "grade": _grade_for_provenance(cell["elicitation_provenance"]) if cell else "proposed",
                 "cell_id": "OS-EXIT-low" if cell else None,
-                "evidence_refs": evidence_refs,
+                "evidence_refs": tc_evidence_refs,
                 "rationale": (cell["rationale"] if cell else
                               "Traction-limited (LS disambiguation): raising TC LON cuts wheel spin "
                               "under power, addressing power-on rear-axle oversteer directly. "
@@ -476,7 +693,7 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                 "effect_class": "secondary",
                 "grade": "proposed",
                 "cell_id": None,
-                "evidence_refs": evidence_refs,
+                "evidence_refs": tc_evidence_refs,
                 "rationale": "More locking torque resists axle-speed difference under power, "
                              "stabilising the rear on corner exit -- the same mechanism the matrix "
                              "already uses for turn-in/apex oversteer (cells OS-TIN-med, OS-APX-med), "
@@ -537,32 +754,165 @@ def _brake_balance_candidates(evidence, registry, config_recs):
     return candidates
 
 
+# --- Stage 2: generic 39-rule migration bridge --------------------------
+#
+# Every rule in config/recommendations.json re-expressed as a candidate
+# bridge: scenario evidence (matrix_verdict, same classify_fn call the old
+# engine's own "data" trigger uses) -> lever family (the rule's own
+# suggestion), effort/effect class from the registry, provenance grade
+# carried over via _grade_for_provenance (identical policy to Stage 1's
+# own exit-oversteer bridge -- never a second, disagreeing grading rule).
+#
+# Rule status -> bridge behaviour (mirrors modules.recommendation's own
+# firing rules exactly, never a second policy):
+#   elicited/reviewed -- a real "primary" candidate whenever matching
+#     matrix_verdict evidence exists (same verdict/min_severity/speed_class
+#     gate _evaluate_rule's "data" trigger already applies).
+#   held (escalation) -- NEVER a primary candidate on its own (status is in
+#     _NON_FIRING_STATUSES, same exclusion set the old engine already
+#     uses) -- instead, whenever its OWN base cell's candidate fires, the
+#     held rule's action is ALSO emitted as a "secondary" candidate on the
+#     identical evidence, mirroring the old engine's unconditional
+#     escalation_notes attachment (_add_rule_matches_to_buckets) exactly,
+#     but as a real scored candidate instead of a display-only string.
+#     Forced to grade="proposed" regardless of its own elicitation_
+#     provenance -- "held" itself means "not yet automated, no applied-
+#     recommendations history", a weaker evidentiary status than the
+#     wording of its rationale alone implies; promoting it to
+#     'derived-from-matrix' would overstate what the old engine ever
+#     claimed for it.
+#   dropped/retired -- documented-inactive: accounted for (see
+#     rule_bridge_status below, migration-completeness test) but never
+#     produce a candidate, exactly matching the old engine's own
+#     _NON_FIRING_STATUSES.
+#   trigger != "data" -- out of Stage 2's own scope (the matrix's 32 cells
+#     are all "data"-trigger; the 7 pre-matrix seed rules using "driver"/
+#     "both" are already status=retired, so this branch is presently dead
+#     code, kept defensively should a future non-retired non-data rule
+#     ever be added).
+
+def rule_bridge_status(rule):
+    """One of 'primary' | 'secondary(held)' | 'inactive(dropped)' |
+    'inactive(retired)' | 'inactive(other-status)' | 'non-matrix(trigger)'
+    -- used both by the bridge itself and by the migration-completeness
+    test (Phase 3f: 'all 39 accounted')."""
+    status = rule.get("status")
+    if status == "retired":
+        return "inactive(retired)"
+    if status == "dropped":
+        return "inactive(dropped)"
+    if status == "held":
+        return "secondary(held)"
+    if rule["condition"].get("trigger") != "data" or rule.get("suggestion") is None:
+        return "non-matrix(trigger)"
+    if status in _NON_FIRING_STATUSES:
+        return "inactive(other-status)"
+    return "primary"
+
+
+def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner=None):
+    intervention_abs_by_corner = intervention_abs_by_corner or {}
+    matrix_by_group = {}
+    for e in evidence:
+        if e["type"] == "matrix_verdict":
+            matrix_by_group.setdefault(e["phases"], {}).setdefault(e["corner"], []).append(e)
+
+    held_by_base = {r["escalation_of"]: r for r in config_recs["rules"]
+                     if r.get("status") == "held" and r.get("escalation_of")}
+
+    def _make_candidate(rule, cid, evidence_refs, effect_class, grade, phase_group):
+        actions = rule["suggestion"] if isinstance(rule["suggestion"], list) else [rule["suggestion"]]
+        param_keys = [a["parameter"] for a in actions]
+        return {
+            "id": f"{rule['id']}:C{cid}:{'+'.join(phase_group)}",
+            "scenario": rule.get("cell_id") or rule["id"],
+            "corner": cid, "phase": phase_group[-1], "phases": phase_group,
+            "lever_family": f"matrix:{rule.get('cell_id') or rule['id']}",
+            "actions": actions,
+            "effort_class": _effort_class_for_actions(param_keys, registry),
+            "effect_class": effect_class,
+            "grade": grade,
+            "cell_id": rule.get("cell_id"),
+            "evidence_refs": evidence_refs,
+            "rationale": rule["rationale"],
+            "rule_id": rule["id"], "rule_status": rule.get("status"),
+        }
+
+    candidates = []
+    for rule in config_recs["rules"]:
+        if rule_bridge_status(rule) != "primary":
+            continue
+        condition = rule["condition"]
+        phase_group = tuple(rule["phases"])
+        verdict = condition["verdict"]
+        min_sev = condition.get("min_severity", "normal")
+        req_speed_class = condition.get("speed_class")
+
+        for cid, items in matrix_by_group.get(phase_group, {}).items():
+            for ev in items:
+                if ev["verdict"] != verdict:
+                    continue
+                if SEVERITY_RANK[ev["severity"]] < SEVERITY_RANK[min_sev]:
+                    continue
+                if req_speed_class is not None and ev.get("speed_class") != req_speed_class:
+                    continue
+
+                evidence_refs = [ev]
+                if verdict == "unstable_yaw" and phase_group == ("entry_1_brake",) and cid in intervention_abs_by_corner:
+                    evidence_refs = evidence_refs + [intervention_abs_by_corner[cid]]
+
+                candidates.append(_make_candidate(
+                    rule, cid, evidence_refs, "primary",
+                    _grade_for_provenance(rule.get("elicitation_provenance")), phase_group,
+                ))
+
+                held = held_by_base.get(rule.get("cell_id"))
+                if held is not None and held.get("suggestion") is not None:
+                    candidates.append(_make_candidate(
+                        held, cid, evidence_refs, "secondary", "proposed", phase_group,
+                    ))
+    return candidates
+
+
 def generate_candidates(evidence, registry, config):
-    """Candidate layer, Stage 1. See module-level comment above for scope.
-    `registry` is modules.recommendation.load_setup_parameters_registry()'s
-    own dict; `config` is load_decision_frame_config()'s dict (accepted for
-    signature symmetry with build_evidence/score -- Stage 1's candidate
-    generation itself reads config/recommendations.json directly for
-    matrix-cell lookups, not config/decision_frame.json, since that is
-    where the actual lever/rationale/provenance data lives).
+    """Candidate layer. See module-level comment above for Stage 1's own
+    scope; Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04) adds
+    _bridge_candidates_for_matrix_rules (all 39 config/recommendations.json
+    rules re-expressed as bridges -- see that function's own comment) and
+    TC-intervention-evidence wiring into the existing exit-oversteer
+    candidates. `registry` is modules.recommendation.
+    load_setup_parameters_registry()'s own dict; `config` is load_decision_
+    frame_config()'s dict (accepted for signature symmetry with
+    build_evidence/score -- candidate generation itself reads config/
+    recommendations.json directly for matrix-cell lookups, not config/
+    decision_frame.json, since that is where the actual lever/rationale/
+    provenance data lives).
     """
     config_recs = load_recommendations_config()
 
     corner_verdicts_by_key = {}
     ls_by_key = {}
+    intervention_abs_by_corner = {}
+    intervention_tc_by_corner = {}
     for e in evidence:
         if e["type"] == "corner_verdict":
             corner_verdicts_by_key.setdefault((e["corner"], e["phase"]), []).append(e)
         elif e["type"] == "ls_disambiguation":
             ls_by_key[(e["corner"], e["phase"])] = e
+        elif e["type"] == "intervention_abs":
+            intervention_abs_by_corner[e["corner"]] = e
+        elif e["type"] == "intervention_tc":
+            intervention_tc_by_corner[e["corner"]] = e
 
     candidates = []
-    candidates += _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs)
+    candidates += _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs,
+                                              intervention_tc_by_corner)
     candidates += _brake_balance_candidates(evidence, registry, config_recs)
+    candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner)
     return candidates
 
 
-# --- Scoring layer, Stage 1 --------------------------------------------
+# --- Scoring layer (shared by every candidate, Stage 1 and Stage 2) ----
 #
 # Six components exactly, per the work order: severity x phase_importance,
 # effect_class, inverse effort, confidence, settings-window distance,
@@ -622,6 +972,18 @@ def _settings_window_component(candidate, current_setup, registry, decision_conf
 
 
 def _interaction_penalty(candidate, evidence, decision_config, weight):
+    # KNOWN LIMITATION (Stage 2, 2026-09-04): corner_verdict (single-phase)
+    # and matrix_verdict (phase-group, e.g. exit_4+exit_5 as one unit) can
+    # both describe the SAME real event at a corner from two different
+    # evidence sources. own_refs excludes only this candidate's OWN
+    # evidence_refs, so a same-event duplicate from the OTHER evidence type
+    # could in principle count as an "other active problem" here. Currently
+    # inert: none of the seeded interaction_table entries target
+    # 'oversteer_tendency' (the only axis this exact duplication could
+    # spuriously trigger, since same-verdict evidence never matches an
+    # entry's OPPOSING-axis target) -- flagged for whoever next extends
+    # interaction_table, not fixed here (would need evidence de-duplication
+    # by (corner, verdict, phase-overlap), out of this phase's own scope).
     table = decision_config["interaction_table"]
     corner = candidate["corner"]
     own_refs = {id(e) for e in candidate["evidence_refs"]}
@@ -721,4 +1083,105 @@ def generate_shortlist(candidates, evidence, current_setup, config):
             "score_flags": result["flags"],
         })
     shortlist.sort(key=lambda c: (-c["score"], c["id"]))
+    return shortlist
+
+
+# --- Conflict resolver, Stage 2 (Phase 3b) -------------------------------
+
+def resolve_conflicts(shortlist):
+    """Compound-problem conflict resolver, per the work order: a corner
+    with two or more candidates recommending DIFFERENT directions/targets
+    for the SAME registry parameter (same detection modules.recommendation.
+    _apply_parameter_conflicts already uses for the old engine's own final
+    results, generalised here across this frame's own candidate set) is
+    resolved in two steps:
+
+    1. PLATFORM-CALMING -- search this corner's own full candidate set
+    (not just the conflicting ones) for one whose evidence_refs already
+    cover EVERY verdict involved in the conflict (a single lever serving
+    both problems at once). If found, it is preferred; every conflicting
+    candidate is annotated, never silently dropped (transparency over
+    suppression, the same project-wide principle build_evidence's own
+    docstring states) -- 'platform_calming_available' on the winner,
+    'superseded_by_platform_calming' on the rest.
+
+    2. TIME-LOSS -- else, the candidate anchored to the higher phase-
+    importance weight wins (config/decision_frame.json scoring_weights.
+    phase_importance, reused directly -- exit > entry per the user's own
+    elicited ordering, never a second copy of the same numbers). Ties
+    break on the already-computed score. Annotated 'wins_time_loss' /
+    'superseded_by_time_loss'.
+
+    Mutates and returns `shortlist` in place (adds 'conflict_status',
+    'conflict_with', and, for a superseded candidate, a human-readable
+    'conflict_resolution_note') -- candidates outside any conflict get
+    conflict_status=None, conflict_with=[]. Never removes a candidate from
+    the list; ranking/display decisions based on conflict_status are the
+    caller's own choice (same "surfaced, never netted/averaged" posture
+    the old engine's own _apply_parameter_conflicts states).
+    """
+    weights = load_decision_frame_config()["scoring_weights"]["phase_importance"]
+
+    for c in shortlist:
+        c["conflict_status"] = None
+        c["conflict_with"] = []
+
+    by_corner = {}
+    for c in shortlist:
+        by_corner.setdefault(c["corner"], []).append(c)
+
+    for cid, group in by_corner.items():
+        param_to_entries = {}
+        for c in group:
+            for a in c["actions"]:
+                param_to_entries.setdefault(a["parameter"], []).append((c, _action_key(a)))
+
+        conflicting_ids = set()
+        for param, entries in param_to_entries.items():
+            if len({key for _, key in entries}) > 1:
+                conflicting_ids.update(c["id"] for c, _ in entries)
+        if not conflicting_ids:
+            continue
+
+        conflicting_candidates = [c for c in group if c["id"] in conflicting_ids]
+        for c in conflicting_candidates:
+            c["conflict_with"] = sorted({o["id"] for o in conflicting_candidates if o["id"] != c["id"]})
+
+        conflicting_verdicts = {
+            e["verdict"] for c in conflicting_candidates for e in c["evidence_refs"] if e.get("verdict")
+        }
+
+        platform_calming = None
+        if len(conflicting_verdicts) > 1:
+            for c in group:
+                own_verdicts = {e["verdict"] for e in c["evidence_refs"] if e.get("verdict")}
+                if conflicting_verdicts <= own_verdicts:
+                    platform_calming = c
+                    break
+
+        if platform_calming is not None:
+            for c in conflicting_candidates:
+                if c["id"] != platform_calming["id"]:
+                    c["conflict_status"] = "superseded_by_platform_calming"
+                    c["conflict_resolution_note"] = (
+                        f"Candidate '{platform_calming['id']}' addresses both conflicting "
+                        f"problems at C{cid} at once -- preferred over a single-purpose lever."
+                    )
+            platform_calming["conflict_status"] = "platform_calming_available"
+            continue
+
+        def _time_loss(c):
+            phases = c.get("phases") or (c["phase"],)
+            return max(weights.get(p, 1.0) for p in phases)
+
+        ranked = sorted(conflicting_candidates, key=lambda c: (-_time_loss(c), -c["score"]))
+        winner = ranked[0]
+        winner["conflict_status"] = "wins_time_loss"
+        for c in ranked[1:]:
+            c["conflict_status"] = "superseded_by_time_loss"
+            c["conflict_resolution_note"] = (
+                f"Superseded by '{winner['id']}' at C{cid} (higher phase-importance weight "
+                f"{_time_loss(winner):.2f} vs {_time_loss(c):.2f})."
+            )
+
     return shortlist

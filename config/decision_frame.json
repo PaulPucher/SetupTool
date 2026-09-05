@@ -1,6 +1,23 @@
 {
   "_comment_overview": "Decision-matrix frame, Stage 1 (2026-09-02). Additive config for modules/decision_frame.py's three-layer recommendation frame (evidence -> candidates -> scoring), separate from and parallel to the existing 39-rule engine in config/recommendations.json (unchanged). Tier B/C throughout (signal/data engineering + UI scoring plumbing, not a vehicle-dynamics method) -- every numeric entry below states its provenance grade so the write-up never presents a placeholder as a validated result. Design (three layers, provenance-grade scheme, Stage 1 scope = exit-oversteer scenario only) is fixed per the work order; this file does not redesign it.",
 
+  "intervention_evidence": {
+    "_comment": "Stage 2 (Frame-Stage-2 Phase 3c, 2026-09-04). Wires the USABLE-NOW boolean intervention channels found by Phase 2's classification survey (thesis_notes.md 'Frame-Stage-2 Phase 2') into two engineer-verbatim evidence bridges -- config/channels.json abs_active/ecu_B_tc_act. DEFAULT OFF: this is real, session-checked wiring, not a placeholder, but has been validated as a MECHANISM (real boolean, real co-occurrence numbers) rather than as a tuned/calibrated evidence source -- off until reviewed against more sessions, same posture as every other Stage 1/2 placeholder weight. The user's own rules, verbatim: 'ABS inactive + instability under braking -> more ABS'; 'TC cutting hard + exit oversteer -> corroborates traction-limited' (PLAN.md 'DECISION FRAME -- STAGE 2 BACKLOG', intervention-evidence design note).",
+    "use_intervention_evidence": false,
+    "abs_inactive_corroborates_braking_instability": {
+      "_comment": "Fires when abs_active reads 0 for the ENTIRE entry_1_brake phase window of a lap instance (never on a partial window -- 'inactive' means never fired, not merely low duty-cycle) AND that same corner shows unstable_yaw matrix-verdict evidence on entry_1_brake (the INST-BRK-* matrix cells' own verdict). Corroborating evidence only -- adds to a candidate's evidence_refs (MIN-confidence rule), never generates a standalone action of its own.",
+      "phase": "entry_1_brake",
+      "verdict": "unstable_yaw",
+      "grade": "engineer-verbatim"
+    },
+    "tc_active_corroborates_traction_limited": {
+      "_comment": "Fires when ecu_B_tc_act reads 1 anywhere inside a lap instance's exit_4/exit_5 phase window AND that corner/phase already carries oversteer matrix-verdict evidence. Corroborates the ls_disambiguation traction_limited classification (or, where LS_ratio itself is invalid/absent, stands as independent traction-limited evidence on its own) -- added to evidence_refs, never a standalone action.",
+      "phases": ["exit_4", "exit_5"],
+      "verdict": "oversteer",
+      "grade": "engineer-verbatim"
+    }
+  },
+
   "plausibility_checks": {
     "_comment": "Cheap-first-tier checks (Phase 3: 'generated whenever their evidence fires, any scenario'). Both are Tier B: standard data-engineering checks against config-driven bounds, not a vehicle-dynamics claim.",
 

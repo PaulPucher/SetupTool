@@ -15652,3 +15652,609 @@ user's own explicit instruction.
 No further production/config change beyond the one default flip stated
 above. Stop before commit, per the user's own instruction -- the user
 runs git and decides on merge.
+
+### Frame-Stage-2 Phase 0: FR damper-force gauge forensics, re-examined
+full-session, not the prior 9-point sample [2026-09-04, branch frame-
+stage2, read-only]
+
+PREMISE re-examined per CLAUDE.md's channel-census rule: the damper
+package's own "constant -15.95 million N" verdict (thesis_notes.md
+"Damper package... CRITICAL DATA-QUALITY FINDING") was based on 9 points
+sampled across the session. This phase reads the ENTIRE log_dms_dam_fr[N]
+block (n=68600, full 686s span) via a streaming pass, per the work
+order's own "Dubai-lesson treatment" instruction (diagnostics/inspect_v3_
+fr_gauge_forensics.py, new, [keep-reproduces] -- this finding is its own
+load-bearing record).
+
+(a) FULL-SESSION CENSUS, NOT CONSTANT: the raw value is NOT bit-for-bit
+constant -- it fluctuates continuously around a fixed huge mean
+(-15,949,976, whole-session std=1864.2) with essentially FLAT window-to-
+window means (20 equal windows across the session, window-mean spread
+only ~1135 units, no drift, no "coming to life" in some windows and not
+others -- the corruption's OWN magnitude is stationary the entire
+session). Critically, the WITHIN-window std (1508-2248 across the 20
+windows, excluding one lower-variance window 0 at 375 -- plausibly the
+formation-lap/pit-exit period, lower dynamic content expected there) is
+the SAME ORDER OF MAGNITUDE as the three healthy corners' own whole-
+session std (FL 1925.9N, RL 2082.5N, RR 2007.3N). The prior "~5000N max
+deviation" 9-point read was consistent with this (it just could not see
+the internal structure a full census reveals).
+
+(b) DECODING HYPOTHESES: simple rescalings (/1e3, /1e6) only move the
+decimal point of the same implausible number and are rejected outright
+(-15950 N and -15.95 N are both still nonphysical or nonsensical for a
+pushrod gauge). Bit-pattern hypotheses tried (uint32 wrap via +2^31,
+mod 2^16, /2^16) all produced numbers with no physical resemblance to a
+force signal either. Pearson correlation is invariant to any additive
+offset or positive linear scale, so testing "raw" directly against ay/ax/
+the other three corners (time-aligned onto the pipeline's own ecu_speed-
+based reference grid via np.interp, not a raw index-position assumption)
+tests the DECODING-INDEPENDENT question of whether real signal exists at
+all, before worrying about the exact offset:
+  corr(fr_raw, ay)  = +0.8152   (healthy reference: corr(ay,Fz_fr)=+0.966)
+  corr(fr_raw, ax)  = -0.1222   (weak, as expected -- axle SUM cancels ax)
+  corr(fr_raw, fl)  = -0.5349   (opposite front corner -- correct anti-sign)
+  corr(fr_raw, rl)  = -0.5318   (opposite side, correct anti-sign)
+  corr(fr_raw, rr)  = +0.7898   (same side, correct same-sign)
+Every one of these five checks lands with the SIGN a real load-transfer
+signal must have, and the ay/rr magnitudes (0.79-0.82) sit in the same
+range as this project's own already-validated healthy-channel reference
+(+0.966/-0.893, Phase 2 of the damper package) -- not identical (this
+compares the RAW pushrod signal before motion-ratio/ARB/unsprung-transfer
+composition, not the finished Fz estimate the reference numbers describe,
+so an exact match was never expected), but far beyond what an inert fault
+code or pure noise would produce by chance across five independent checks
+simultaneously. This channel is carrying REAL, physically coherent
+information for the entire session, wrapped in a large corrupted additive
+offset -- it is not "dead" in the sense of containing no signal.
+
+(c) HEADER/unit_raw CHECK: log_dms_dam_fr[N]'s own header line is
+byte-identical in form to fl/rl/rr[N] ("Time\tlog_dms_dam_<corner>[N]",
+verified by direct grep of the raw file) -- no differing unit annotation
+to explain the offset. A previously-unknown sibling channel found in the
+same header grep, log_dms_dam_fr_dash[kgf] (a lower-rate, ~5Hz dash-
+display variant, present for all four corners), was checked as a possible
+independent cross-check: it carries the IDENTICAL corruption (mean
+-1,626,446 kgf; *9.80665 = -15,949,989 N, matching fr[N]'s own raw mean
+to within noise) -- ruling out a simple export/column-mapping bug (two
+independent logging paths would not reproduce the exact same huge
+erroneous number) and pointing to the fault sitting upstream, in the
+sensor or its DAQ-side scaling/zero, before either export path branches.
+
+VERDICT: MISCODED, MECHANISM IDENTIFIED, ABSOLUTE VALUE NOT RECOVERABLE
+FROM THIS DATA -- distinct from both DEAD and simple MISCODED-RECOVERABLE.
+The signal is real (five independent, correctly-signed correlations,
+stationary-offset structure ruling out a degrading connection or
+intermittent fault) but the exact additive constant needed to convert raw
+units into true Newtons cannot be derived from this session alone: no
+zero-offset calibration record exists for this channel (config's own
+wheel_loads pushrod zero-offset defaults, 0.0, are a different quantity --
+a per-wheel STATIC decomposition offset, not a raw-sensor recalibration
+constant), and the dash[kgf] sibling's identical corruption removes it as
+an independent reference. Any offset chosen to make the recovered mean
+match an assumed "typical" FR corner load (comparable to FL/RL/RR's own
+5000-7000N range) would be circular -- fitting the unknown to the answer
+we want, not a derivation. NOT WIRED IN, per the work order's own
+instruction -- this is a report for the user's decision, not an
+implementation. If a genuine external reference for this channel's zero
+ever surfaces (a calibration sheet, a sister session with the same sensor
+reading correctly), this finding would let it be decoded rather than
+discarded; absent that, FR stays on the axle-total reconstruction path
+exactly as before, unchanged by this phase.
+
+No config/production file changed. diagnostics/inspect_v3_fr_gauge_
+forensics.py kept [keep-reproduces] -- diagnostics/README.md entry to be
+added at this package's own close-out phase, per the established
+disposal-timing convention.
+
+### Frame-Stage-2 Phase 1: vehicle-speed forensics, ecu_speed cross-plot,
+synthetic reference, C13 substitution test [2026-09-04, branch
+frame-stage2, read-only except Phase 1(c)'s own local copy substitution]
+
+PREMISE CORRECTED: the work order's own stated premise, "census said
+gps_speed absent", is FALSE on direct re-check of the real file (CLAUDE.
+md's channel-census rule). diagnostics/inspect_v3_speed_channel_survey.py
+(new, [keep-reproduces]) streamed a broader header/data census than the
+prior GT3_PRC_MLA-v3 census's own narrower speed-channel list and found:
+log_gps_speed[kph] (10Hz, n=6860, populated, plausible range) and TWO
+NMEA-derived GPS speeds (NMEA RX RMC/VTG Speed Over Ground, both 10Hz,
+populated, near-identical to log_gps_speed -- almost certainly the same
+receiver's own output surfaced under two channel-name conventions); AND a
+genuinely independent, non-wheel-derived reference, MRR_EgoVehSpeed[km/h]
+(10Hz, populated, radar-based ego-speed -- a forward-radar unit's own
+target-tracking output, not derived from any wheel or GPS system this car
+carries). Also found (not used further, both degenerate): gpsa_speed[kph]
+(a second, entirely unpopulated GPS system, all-zero) and corr_speed*/
+DTM_speed_TTL[kph] (all-zero placeholders). A further finding, useful for
+future work but not chased this phase: ecu_speed_fl/fr/rl/rr[kph]'s own
+n_distinct/mean/std/min/max are IDENTICAL to log_speed_fl/fr/rl/rr[kph]'s
+respectively -- almost certainly the same underlying per-wheel readings
+surfaced under both an ECU-domain and a logger-domain channel-name prefix
+(same cross-domain-aliasing pattern already seen for the ABS-position
+channels, damper package Phase 4), not four additional independent wheel
+sensors. Likewise "Corrected Speed[kph]" matches ecu_speed[kph]'s own
+stats exactly -- an alias, not an independent channel.
+
+(a) ECU_SPEED CROSS-PLOT (diagnostics/inspect_v3_ecu_speed_forensics.py,
+new, [keep-reproduces], real v3 data, ekf_auto_pacejka's own production
+grid via prepare_vehicle_state):
+  - vs log_speed_fl/fr/rl (the three healthy wheels): small, stable biases
+    (mean +0.56/+1.08/-2.69 kph, std 2.45-2.81 kph) -- ordinary per-wheel
+    slip/rolling-radius differences, nothing anomalous.
+  - vs log_speed_rr (the known-faulty wheel, Fz-integration Phase 5): much
+    larger spread (std=17.4 kph, max_abs=206.1 kph, p99_abs=90.1 kph) --
+    expected, this IS the already-documented fault, not a new finding.
+  - vs log_gps_speed/NMEA VTG (near-identical to each other, as expected):
+    mean=-1.38 kph, std=5.09 kph, max_abs=104.8 kph. vs MRR_EgoVehSpeed
+    (the independent radar): mean=-0.02 kph (excellent whole-session
+    agreement), std=5.43 kph, max_abs=105.1 kph.
+  - A REAL, ISOLATED ANOMALY FOUND, not previously documented: ecu_speed's
+    own whole-session MAXIMUM (278.9 kph) exceeds every other reference's
+    own maximum by a wide, consistent margin -- log_speed_fl/fr/rl top out
+    at 248.2-251.9 kph, log_gps_speed/NMEA at 252.0 kph, MRR radar at
+    248.4 kph. diagnostics/plots_v3/ecu_speed_vs_references_lap8.png
+    (real lap 8, the session's own fastest lap) shows this directly: for
+    the great majority of the lap ecu_speed (black) sits essentially on
+    top of the wheel-median/GPS/radar traces, then at ~t=943-946s it
+    breaks into a sharp, jagged spike/dropout sequence while every other
+    reference continues its smooth trace through the same interval --
+    a genuine, brief, isolated ecu_speed-specific glitch, not a
+    systematic bias and not something any of the four wheel-speed
+    channels individually shows at that instant.
+  - RR-FAULT-WINDOW OVERLAP CHECK (does ecu_speed track RR's own fault?)
+    -- REUSES modules.longitudinal_forces._guarded_wheel_speed_kmh
+    directly (no reimplementation) to get the RR guard's own flagged
+    windows (12.84% of moving samples on v3, consistent with the Fz-
+    integration Phase 5 finding). ecu_speed's own |deviation| from
+    median(FL,FR,RL) is statistically indistinguishable inside vs outside
+    those windows (median 0.600 kph flagged vs 0.550 kph not-flagged) --
+    a clean NEGATIVE result: ecu_speed does NOT inherit or track RR's
+    specific fault. Combined with the isolated ~943s glitch above (which
+    does not correspond to any RR-flagged window), the evidence points to
+    ecu_speed carrying its OWN separate, rare corruption events, unrelated
+    to which single wheel-speed channel is at fault this session -- not
+    "RR contaminates ecu_speed" as the work order's own framing
+    hypothesised, a real correction to that premise.
+  - DUBAI CONTROL: no GPS/radar channels exist on Dubai (log_gps_speed/
+    NMEA/MRR all genuinely absent there, unlike v3 -- confirmed, not
+    assumed). Wheel-speed deviations are smaller and more symmetric than
+    v3's own (std 1.98-2.33 kph across all four corners, no standout
+    faulty wheel) and the RR-fault-window overlap check shows the same
+    negative result (0.000 kph flagged vs 0.600 kph not-flagged -- if
+    anything LOWER inside the (much smaller, 1.46%) flagged fraction) --
+    Dubai's own ecu_speed shows no comparable anomaly, consistent with
+    Dubai's wheel-speed family being materially healthier overall (Fz-
+    integration Phase 5: Dubai's guard fires 1.41-1.78% on every corner,
+    vs v3's up-to-12.84% on RR specifically).
+
+(b) SYNTHETIC REFERENCE SPEED: median of the plausibility-guarded FL/FR/RL
+channels (RR excluded entirely, per the work order's own "left-side +
+healthy wheel" framing -- FR is not literally left-side but is one of the
+three currently-healthy wheels, included as instructed). Tracks ecu_speed
+extremely closely on v3 (mean=-0.13 kph, std=1.69 kph over moving
+samples) and on Dubai (mean=-0.22 kph, std=1.15 kph) -- the guard's own
+fallback rates confirm this is genuinely built from mostly-real wheel data
+(v3: 3.21-3.64% fallback per wheel; Dubai: 1.41-1.78%). CROSS-CHECKED
+against short-span (2.0s) integrated ax: v3 residual mean=+0.213 m/s,
+std=0.66 m/s (p90_abs=1.13 m/s); Dubai mean=+1.09 m/s, std=1.23 m/s
+(p90_abs=2.63 m/s) -- both sessions show a small systematic positive bias
+(integrated ax slightly outruns the synthetic speed's own delta, plausibly
+ordinary integration drift over the chosen 2s span plus ax's own sensor
+noise, not investigated further) but no sign of gross inconsistency; v3's
+own residual is actually TIGHTER than Dubai's despite v3 needing the
+guard's fallback more often, some evidence the guard is doing its job
+rather than degrading the synthetic reference.
+
+(c) C13 CS-CHAIN SUBSTITUTION TEST, ekf_auto_pacejka (production default),
+all else identical (same corners/laps geometry from the unmodified parse,
+same config, only channels["ecu_speed"]["data"] replaced by the synthetic
+reference from (b), interpolated back onto ecu_speed's own native
+timestamps before prepare_vehicle_state re-derives its own grid -- the
+grid's own time bounds are unaffected since only DATA values changed, not
+the time array). Worst-oscillating instance for C13 under the current
+(post corner-canonicalisation-fix, post pit-limiter-fix) pipeline: front
+axle, lap 7, sign_change_rate=0.020 both BEFORE (real ecu_speed) and AFTER
+(synthetic speed) substitution -- PRE-REGISTERED VERDICT: NO MATERIAL
+CHANGE. diagnostics/plots_v3/ecu_speed_substitution_C13_front.png shows
+the two CS_ratio traces overlapping closely in both level and oscillation
+shape; the median CS_ratio value itself shifts slightly (0.137 -> 0.112)
+but the OSCILLATION CHARACTER the sawtooth investigation cares about is
+unchanged. Per the work order's own pre-registration: speed is EXONERATED,
+the corner-character explanation ("v3 sawtooth mechanism investigation:
+corner selection, window stats, floor-fraction and alpha-character
+comparison vs Dubai", 2026-09-02) stands, unchallenged by this test.
+
+UNPLANNED FINDING, discovered while selecting C13's own worst instance,
+reported honestly rather than silently working around it: a full current
+re-ranking of ALL 17 v3 corners' own worst sign_change_rate (same metric,
+same method as the original 2026-09-02 sawtooth investigation) found the
+CURRENT session-wide worst rate is only 0.027 (C12, rear) -- every other
+corner sits at or below that, including C13 itself (0.020) and C5 (0.023,
+the work order's own other named candidate). Under the original
+investigation's own classification (>0.2 unstable, >0.05 borderline), NONE
+of v3's 17 corners are even borderline any more. This was NOT expected
+going into this phase and was not pre-registered -- the original 2026-09-02
+investigation reported v3 corners with sign_change_rate in the "unstable"
+range. Traced (plausible mechanism, not proven further this phase): TWO
+unrelated fixes landed AFTER that original investigation and BEFORE this
+phase -- the corner-representative-lap filtering fix and the pit-limiter-
+based lap classification fix (both 2026-09-03) -- and both specifically
+excluded or reduced the influence of lap 9, v3's own already-repeatedly-
+flagged atypical/incident-affected outlier lap (corner-canonicalisation
+work, external-reference census, refit-loop closure all separately
+implicated lap 9). If lap 9's own atypical corner-alpha behaviour was a
+material contributor to the ORIGINAL sawtooth reading, excluding it would
+plausibly explain most of this drop, independent of anything to do with
+ecu_speed -- but this phase did not re-run the original investigation's
+own script against current data to confirm that mechanism directly (out
+of this phase's own scope; flagged as a natural follow-up if the sawtooth
+thread is reopened). PRACTICAL CONSEQUENCE FOR THIS PHASE'S OWN TEST: the
+C13 substitution test was run against an already-mild signal (rate=0.020,
+below even "borderline") -- a genuine "no material change" result was the
+expected outcome either way, so this test's power to detect a real
+speed-driven de-sawtoothing effect on CURRENT data was limited from the
+start, though the negative result is still valid evidence consistent with
+(not proof of) the corner-character explanation.
+
+No config/production file changed. diagnostics/inspect_v3_speed_channel_
+survey.py and diagnostics/inspect_v3_ecu_speed_forensics.py both kept
+[keep-reproduces] -- diagnostics/README.md entries at this package's own
+close-out phase.
+
+### Frame-Stage-2 Phase 2: intervention-channel survey, classification +
+co-occurrence [2026-09-04, branch frame-stage2, read-only]
+
+Extends the damper package's own Phase 4 channel-identification survey
+(which named candidates but drew "NO mapping conclusion") with an
+explicit USABLE-NOW / READ-AND-RECORD / UNCLEAR classification and real
+co-occurrence numbers against braking/traction events, per this phase's
+own work order. diagnostics/inspect_v3_intervention_channel_
+classification.py, new, [keep-reproduces]. Wires NOTHING -- no config/
+production change, per the work order's own instruction. "hard_braking"
+reuses the ALREADY-RECORDED convention (combined front+rear brake
+pressure > 120 bar, "Morning follow-up... ABS consistency check") rather
+than a second incompatible threshold, specifically so this phase's own
+numbers are directly comparable, not a parallel disagreeing definition;
+"traction_event" is new this phase (throttle > 80%, ax > 1.0 m/s^2,
+moving).
+
+RECONCILIATION CHECK (confidence that the method is sound, not a new
+claim): re-measuring abs_active's own co-occurrence with the SAME hard-
+braking convention reproduces the already-recorded numbers closely --
+41.92% active-during-braking here vs the recorded 41.00%, 26.79%
+braking-during-active here vs the recorded 26.18% (small residual
+differences from this phase's own time-grid interpolation, not a
+disagreement).
+
+CLASSIFICATION:
+
+USABLE-NOW (clean boolean activity flag, matches the intervention-
+evidence design note's own plan exactly):
+  - abs_active: n_active=4083/68599 (5.95%), correctly concentrated in
+    hard-braking (41.92% of hard-braking samples active, vs 0.00% during
+    traction) -- ready to wire as the design note's own "ABS inactive +
+    instability under braking -> more ABS" evidence source, on THIS
+    session's own real data.
+  - ecu_B_tc_act: genuinely boolean (n_distinct=2, real 0/1 values) and
+    matches the design note's own "TC LON increase" plan -- but on THIS
+    session it fires only 3 SAMPLES in the entire 686s file (0.0044% of
+    all samples, effectively zero real activity). The MECHANISM is
+    usable-now (a clean, self-identifying flag); THIS SESSION offers
+    ~zero real evidence to feed it -- a session-data limitation, not a
+    channel-quality problem. Confidence-weighting (already built into
+    Stage 1's evidence layer, "confidence... never an invented
+    normalising constant") would correctly down-weight this to near-zero
+    on v3 by construction, without needing a special case.
+
+READ-AND-RECORD (real, changing levels; physically plausible braking-
+related pattern; no confirmed semantic meaning or target window --
+pending engineer input before use):
+  - ecu_TC_int_pos / log_tc_int_pos: CONSTANT=4 the entire session
+    (reconfirmed, matches the damper package's own prior finding) -- a
+    position/setting channel, not this-session-informative since it
+    never changed; needs the engineer's own table of what position "4"
+    means before it could ever be evidence.
+  - abs_switch_pos (constant=6) vs log_abs_pos/log_rt_abs_pos (constant=5,
+    reconfirmed): the SAME unresolved cross-domain disagreement already
+    flagged (damper package Phase 4) -- still unresolved, still needs the
+    engineer to state which domain (ECU-side vs dash/steering-wheel-side
+    logging) is authoritative before either is trusted for anything.
+  - ecu_EB_int_pos / ecu_EB_tim_pos (engine-braking position, 4 distinct
+    levels each, DO change during the session): shows a plausible,
+    consistent shift toward higher levels during hard braking (mean 3.19/
+    3.37 during hard_braking vs 2.63/2.93 during neither -- engine-braking
+    assist plausibly increasing under braking, the physically expected
+    direction) -- but no confirmed mapping from level number to a real
+    physical setting exists in this project yet, so the pattern is
+    suggestive, not actionable evidence.
+  - Math_Brake_Bias_Hold (continuous, 0-45.68, 1426 distinct values):
+    mean 43.73 during hard braking vs 40.19 during neither -- a real,
+    non-trivial shift consistent with a brake-bias HOLD/adjustment
+    feature that is only meaningful while actually braking -- but (like
+    the decision frame's own tyre-pressure/parameter_windows gaps) no
+    target window or confirmed unit semantics exists in this project to
+    turn this into an evidence source.
+
+UNCLEAR (multiple competing candidates for the same physical quantity,
+none confirmed, real risk of picking the wrong one):
+  - abs_brk_bal_prop / abs_brk_bal_prop_ad / abs_brk_bal_at50 / abs_brk_
+    bal_at50_adv: all four are continuous/level, all four change during
+    the session, all four show SOME shift under hard braking (e.g.
+    abs_brk_bal_at50: 63.39 hard-braking vs 58.67 neither) -- but with
+    four differently-scaled candidates (roughly 40-48 vs roughly 54-72
+    numeric ranges, suggesting at least two different units or reference
+    points) and no engineer confirmation of which is "the" brake-bias
+    setting a driver/engineer would actually read, wiring any one of
+    them in would risk picking an internal ECU intermediate over the
+    real setting. Genuinely unresolved, not merely unconfirmed.
+
+No config/production file changed. diagnostics/inspect_v3_intervention_
+channel_classification.py kept [keep-reproduces] -- diagnostics/README.md
+entry at this package's own close-out phase.
+
+### Frame-Stage-2 Phase 3: decision-frame Stage 2, full migration
+[2026-09-04/05, branch frame-stage2]
+
+Full migration of the 39-rule engine (modules/recommendation.py) into the
+three-layer decision frame (modules/decision_frame.py), per the work
+order's own (a)-(f) list. modules/recommendation.py's own rule
+definitions/config are UNCHANGED and still the source of truth -- this
+package calls them, it does not fork or duplicate them.
+
+(a) MIGRATION BRIDGE (rule_bridge_status, _build_matrix_verdict_evidence,
+_bridge_candidates_for_matrix_rules): every one of the 39 rules in config/
+recommendations.json is now classified into exactly one bridge behaviour
+-- verified directly (diagnostics/inspect_frame_stage2_parity.py's own
+rule-accounting pass, also a new targeted test, test_migration_
+completeness_all_39_accounted): 26 "elicited" matrix rules -> a real
+"primary" candidate whenever matching matrix_verdict evidence exists (a
+NEW evidence source, generalising the existing corner_verdict machinery
+from Stage 1's own single-PHASE_KEYS loop to the small set of multi-phase
+GROUPS the matrix actually uses -- derived from config/recommendations.
+json at runtime via _distinct_phase_groups, never hardcoded; verified only
+5 distinct groups exist across all 39 rules, and every live rule uses
+either a single phase or the (exit_4, exit_5) pair, never the third
+(entry_1_brake, entry_2_turnin) group -- that one is used only by already-
+inactive retired/dropped rules); 4 "held" escalation rules -> NEVER a
+primary candidate on their own (same _NON_FIRING_STATUSES exclusion the
+old engine already uses), instead emitted as a real "secondary" candidate
+on the SAME evidence whenever their own base cell's primary candidate
+fires -- a faithful re-expression of the old engine's own unconditional
+escalation_notes attachment (_add_rule_matches_to_buckets), now a scored
+candidate instead of a display-only string, but forced to grade=
+'proposed' regardless of its own elicitation_provenance (verified
+test_held_escalation_secondary_only_alongside_base: matrix_us_brk_low_esc
+carries "project-lead-reviewed", which would otherwise grade 'derived-
+from-matrix' -- deliberately overridden, since "held" itself means "not
+yet automated, no applied-recommendations history", a weaker evidentiary
+status than the wording of its own rationale implies); 2 "dropped" cells
+(OS-BRK-low, INST-ENT, suggestion=null) and 7 pre-matrix "retired" seed
+rules -> documented-inactive, accounted for but never produce a candidate,
+exactly matching the old engine's own firing rules.
+
+(b) CONFLICT RESOLVER (resolve_conflicts): a genuinely new piece of logic,
+not a literal port (the old engine's own _apply_parameter_conflicts only
+FLAGS a same-parameter/opposing-direction conflict across buckets, never
+resolves it). Two-step policy per the work order: (1) PLATFORM-CALMING --
+search the corner's own full candidate set for one whose evidence_refs
+already cover every verdict on both sides of the conflict; if found, it is
+preferred and every conflicting candidate is annotated (never dropped --
+transparency over suppression, the same project-wide principle build_
+evidence's own docstring already states), 'platform_calming_available' on
+the winner, 'superseded_by_platform_calming' on the rest. (2) TIME-LOSS --
+else, the candidate anchored to the higher config/decision_frame.json
+scoring_weights.phase_importance weight wins (exit > entry, the user's own
+elicited ordering, reused directly rather than a second copy of the same
+numbers), ties broken on score. Never deletes a candidate; every shortlist
+entry keeps conflict_status/conflict_with/conflict_resolution_note fields.
+5 new targeted tests (synthetic candidates, no real pipeline needed):
+time-loss preference, no-conflict-for-different-parameters, platform-
+calming preference over time-loss, and a "never removes candidates"
+invariant check -- all pass.
+
+(c) INTERVENTION EVIDENCE (config-gated, default OFF, config/decision_
+frame.json intervention_evidence.use_intervention_evidence): wires the two
+USABLE-NOW booleans this same phase's own Phase 2 survey found
+(abs_active, ecu_B_tc_act -- newly whitelisted, config/channels.json,
+additive) at engineer-verbatim grade, per the user's own verbatim rules
+(PLAN.md "DECISION FRAME -- STAGE 2 BACKLOG"). _build_intervention_abs_
+evidence checks, per corner, whether abs_active reads 0 for the ENTIRE
+entry_1_brake phase window of each analysed lap instance (using each
+corner's own real per-lap "segments" time boundaries, the same raw data
+modules.stability_analysis.summarise_corners' own internal _phase_slice
+mechanism uses -- not approximated from aggregated stats, which cannot
+answer a per-sample activity question) -- corroborates unstable_yaw
+matrix-verdict evidence at that same phase, per the user's rule "ABS
+inactive + instability under braking -> more ABS". _build_intervention_tc_
+evidence mirrors this for ecu_B_tc_act firing anywhere in exit_4/exit_5,
+corroborating the traction-limited routing (the user's rule: "TC cutting
+hard + exit oversteer -> corroborates traction-limited") -- wired into
+_exit_oversteer_candidates' own diff_tc branch specifically, never the
+arb_spring branch. Both are corroborating evidence only (appended to
+evidence_refs, confidence-weighted via the existing MIN-based mechanism --
+never a standalone action of their own). build_evidence's signature grew
+three optional parameters (corners/state/channels, default None) so every
+existing Stage-1 caller/test is completely unaffected when they are
+omitted -- verified by a dedicated test (test_intervention_evidence_
+skipped_without_raw_inputs) and by the full existing Stage 1 suite passing
+unchanged (see Phase 3f below). 5 new targeted tests: off-by-default,
+fires when enabled (synthetic ABS-inactive channel, confidence=1.0 from
+2/2 analysed instances), absent when ABS fires inside the window, and the
+skip-without-raw-inputs guard.
+
+(d) PARITY VERIFICATION, real data, both sessions (diagnostics/inspect_
+frame_stage2_parity.py, new, [keep-reproduces]): under the LIVE production
+config (ekf_auto_pacejka, accuracy cap=1, no feedback/setup data -- same
+fixed configuration tests/generate_golden.py itself uses), the OLD ENGINE
+PRODUCES ZERO RECOMMENDATIONS ON BOTH REAL SESSIONS -- independently
+re-confirmed (not assumed) against the actual state: tests/golden/
+recommendations_dubai_ekf_auto_pacejka_cap1.json's own "recommendations"
+array is empty (0 entries), exactly matching this session's own fresh
+pipeline run, and consistent with the already-recorded arc-closure finding
+("the live ekf_auto_pacejka recommendations golden now has ZERO
+recommendations (was 4)" -- the worst_lap aggregation switch making the
+consistency gate correctly stricter, PLAN.md "ESTIMATOR-AND-THRESHOLDS ARC
+CLOSED"). A parity check against zero old-engine output is technically
+correct (0 old results trivially have full coverage) but is NOT a real
+test of whether the migration bridge reproduces old-engine firing
+behaviour -- flagged and addressed, not accepted as sufficient: a second,
+DIAGNOSTIC-ONLY stress test (loosen_consistency_gate=True, a deep-copied
+config with min_repeat_laps=1/min_repeat_fraction=0.0, NEVER written back
+to config/recommendations.json) forces the old engine to actually fire on
+the SAME real data. Result: Dubai fires 3 real recommendations (C9 tc_lon
+decrease, C4 wing_position increase, C3 camber_fl/fr more_negative), v3
+fires 4 (C1 diff_position increase, C1 arb_rl/rr soften, C6 tc_lon
+increase, C6 arb_fl/fr stiffen) -- EVERY SINGLE ONE of these 7 real,
+non-vacuous old-engine results has a matching (parameter, direction/
+target) pair among the new frame's own candidates. ZERO discrepancies
+found across all four checks (2 sessions x production/loosened gate) --
+no STOP condition triggered.
+
+(e) UI (ui/views/outing_form.py): the old Recommendations section (toggle,
+Generate button, row rendering -- _build_recommendations_toggle/
+_generate_recommendations/_build_recommendation_row/_clear_recommendation_
+rows/_resolve_current_driving_level, ~370 lines) is REMOVED entirely, per
+the work order's own instruction ("after parity passes, the old
+Recommendations section is removed") -- parity passed first (item d
+above), then this was done. The Decision Frame section's toggle label
+drops "(preview)" ("> Decision Frame Frame" -> "> Decision Frame") and its
+own note label (previously "Preview: Stage 1 scope only... falls back to
+the Recommendations section above") is removed along with that section.
+The old Recommendations section's own calibration banner (the "[UNCAL]"-
+style sideslip-estimator-changed warning) is MIGRATED, not dropped --
+decision_frame_calibration_banner_label, same _sideslip_source_calibrated
+mechanism, now shown in the surviving section (it is equally relevant
+there, since matrix_verdict/corner_verdict evidence uses the identical
+classify_fn/anchored-thresholds path). The schema-mismatch "analysis
+outdated" message (previously written to both stability_status_label AND
+recommendations_summary_label) now targets decision_frame_summary_label
+instead. _generate_decision_frame now also passes corners/state/channels
+from self.stability_result/self.parsed_data into build_evidence (so
+intervention evidence CAN activate once the config flag is turned on --
+today, with it off, this changes nothing observable) and calls
+resolve_conflicts on the shortlist before rendering; _build_decision_
+frame_row gained a conflict-status header badge (PLATFORM-CALMING /
+SUPERSEDED / CONFLICT WINNER, colour-coded ACCENT/WARN) and a detail-panel
+conflict_resolution_note line. modules/recommendation.py itself is
+UNCHANGED (only a documentation-comment addition) -- confirmed via git
+diff before writing this entry. Verified headless (diagnostics/smoke_
+test_decision_frame_widget.py, updated for the new toggle label, [keep-
+reproduces]): construction, initial collapsed/disabled state, toggle show/
+hide, and a real kinematic-pipeline Generate-and-render pass against a
+REAL pre-existing outing -- "18 evidence item(s), 10 candidate(s)", 10
+rows rendered, no exception raised anywhere in the full construct ->
+toggle -> generate -> clear cycle.
+
+(f) TESTS: tests/test_decision_frame.py grew from 8 to 22 tests (+14,
+verified via git diff, not from memory), all
+passing (full file re-run, including the pre-existing real-Dubai end-to-
+end test which needed one legitimate, expected update -- its evidence-
+type whitelist assertion extended to include "matrix_verdict", the new
+Stage 2 evidence source; not a regression, a schema growth the assertion
+had to catch up to). Migration completeness (1 test, 39/39 accounted, see
+(a) above); rule-bridge candidate generation (4 tests: a concrete matrix
+rule fires with the right actions/grade/cell_id, absent below min_severity,
+absent at the wrong speed_class, dropped/retired rules never fire even
+with matching evidence); held-escalation secondary-only behaviour (1
+test, see (a) above); intervention evidence off/on (5 tests, see (c)
+above); conflict resolver (5 tests, see (b) above). Every existing Stage 1
+test (scoring determinism, cheap-check-outranks, interaction-penalty sign,
+no-signal-confidence, 3x LS-branch-routing, real end-to-end) passes
+UNCHANGED in behaviour.
+
+KNOWN LIMITATION, recorded not fixed (modules/decision_frame.py
+_interaction_penalty's own new comment): corner_verdict (single-phase) and
+matrix_verdict (phase-group) evidence can both describe the same real
+event at a corner from two different sources; the interaction-penalty
+component's "other active problems" search does not de-duplicate across
+evidence TYPES, only excludes a candidate's own evidence_refs by identity.
+Currently inert (verified): none of the 9 seeded interaction_table entries
+target 'oversteer_tendency', the only axis this specific duplication could
+spuriously trigger (same-verdict evidence never matches an entry's
+OPPOSING-axis target) -- flagged for whoever next extends interaction_
+table, a real de-duplication mechanism is out of this phase's own scope.
+
+No production behaviour outside modules/decision_frame.py and ui/views/
+outing_form.py's Decision Frame section changed. modules/recommendation.
+py, config/recommendations.json: UNCHANGED (confirmed via git diff).
+config/channels.json, config/decision_frame.json: additive only (2 new
+whitelisted channels; 1 new intervention_evidence config block, default
+off). No golden regeneration needed and none attempted this phase --
+neither the pipeline golden (modules/recommendation.py, modules/
+stability_analysis.py untouched) nor the recommendations golden (same
+reason, plus independently reconfirmed byte-identical: still 0
+recommendations) could have changed. Full regression suite NOT run yet,
+per this package's own testing policy (targeted tests + 2 real-pipeline
+diagnostics only, full suite once at Phase 4 close-out). No commit made --
+stop before commit, per the work order.
+
+### Frame-Stage-2 Phase 4: records, engineer questions, full suite
+[2026-09-05, branch frame-stage2, package close-out]
+
+RECORDS: thesis_notes.md gained one entry per phase (Phase 0 FR gauge
+forensics, Phase 1 ecu_speed forensics, Phase 2 intervention-channel
+survey, Phase 3 decision-frame Stage 2 migration -- all above, this same
+package); PLAN.md STATUS gained a new "FRAME-STAGE-2 PACKAGE COMPLETE"
+bullet (compressing all 4 phases, same convention every prior multi-phase
+package here uses) and a new "Engineer follow-up questions -- Frame-
+Stage-2 package" section (3 questions: FR gauge decoding evidence/
+calibration-reference ask, ecu_speed derivation-documentation ask, the two
+intervention level-channel identity questions from Phase 2).
+
+GOLDEN REGENERATION: NOT NEEDED, NOT ATTEMPTED -- a real premise
+correction against the work order's own stated expectation ("expected:
+recommendations golden changes shape"), reported honestly rather than
+silently regenerating a file that would come out byte-identical. Verified
+directly (not assumed): neither tests/generate_golden.py, tests/
+generate_golden_auto_modes.py, tests/test_golden_pipeline.py, nor tests/
+test_golden_auto_modes.py references modules/decision_frame.py anywhere
+(grep across all four); modules/recommendation.py and config/
+recommendations.json -- the only two things the recommendations golden's
+own generator actually calls -- are byte-identical to git HEAD (confirmed
+via git diff, zero lines changed in either file). The recommendations
+golden's own content is therefore structurally incapable of having
+changed by anything this package did.
+
+FULL REGRESSION SUITE, run ONCE at this close-out (`pytest tests/`, no
+scoped/partial run): 243 passed, 9 skipped, 1 xfailed, 0 failed, 0 errors
+(39m44s). Verified precisely, not estimated: tests/test_decision_frame.py
+itself grew from 8 to 22 test functions (+14, confirmed via `git diff
+HEAD -- tests/test_decision_frame.py` counting added "def test_" lines,
+matching this package's own Phase 3f record exactly); across the whole
+tests/ directory, raw "def test_" function COUNT (not pytest's own
+collected/parametrized item count, which differs due to fixture
+parametrization elsewhere in the suite and was not reconciled further --
+out of this phase's own scope) moved from 208 (git HEAD) to 222 (working
+tree), the same +14 delta, confirming no OTHER test file gained or lost a
+test function this package. 0 failures, 0 errors -- the full suite is
+clean. The 9 skipped / 1 xfailed are pre-existing (same counts the prior
+recorded full-suite baseline, Fz-integration Phase 7, already carried --
+not re-diffed number-for-number against that exact prior total per this
+phase's own scope, since the golden-generator/git-diff checks above
+already independently prove nothing outside modules/decision_frame.py and
+ui/views/outing_form.py's Decision Frame section could have moved any
+existing test's outcome).
+
+test_stability.py (the separate zero-assertion smoke script, not part of
+pytest's tests/ collection) not re-run this phase -- no production
+pipeline file (modules/stability_analysis.py, modules/corner_analysis.py,
+modules/csv_parser.py) was touched by this package at all, so it carries
+no risk this suite run does not already cover more thoroughly.
+
+DIAGNOSTICS DISPOSAL: all 5 new scripts this package (inspect_v3_fr_
+gauge_forensics.py, inspect_v3_speed_channel_survey.py, inspect_v3_ecu_
+speed_forensics.py, inspect_v3_intervention_channel_classification.py,
+inspect_frame_stage2_parity.py) classified [keep-reproduces] and given
+diagnostics/README.md entries this same turn -- each is either a load-
+bearing provenance script for an open engineer question/thread (Phases
+0-1) or reusable census/parity tooling this package's own findings depend
+on being re-checkable (Phases 2-3), none is a closed one-off investigation
+with nothing further to reproduce.
+
+git status NOT clean: PLAN.md, config/channels.json, config/decision_
+frame.json, diagnostics/README.md, diagnostics/smoke_test_decision_frame_
+widget.py, modules/decision_frame.py, modules/recommendation.py (comment-
+only), tests/test_decision_frame.py, thesis_notes.md, ui/views/outing_
+form.py modified; 5 new diagnostics/*.py + 2 new diagnostics/plots_v3/*.png
+untracked. NO COMMIT MADE -- stop before commit, per the work order; the
+user runs git and decides on commit/merge.

@@ -342,7 +342,7 @@ class OutingForm(QWidget):
         self._displayed_resolved_vehicle_snapshot = None
         # Fix turn: (stored_version, current_version) when
         # _try_render_cached_analysis rejects a persisted cache purely for
-        # a schema_version mismatch -- lets _generate_recommendations (and
+        # a schema_version mismatch -- lets _generate_decision_frame (and
         # any other stability_result consumer) tell that case apart from
         # "never analysed" and say so instead of rendering nothing.
         # Cleared in _render_stability_summaries, the single shared render
@@ -371,7 +371,6 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._build_setdown_toggle())
         self.content_layout.addWidget(self._build_corner_map())
         self.content_layout.addWidget(self._build_stability_toggle())
-        self.content_layout.addWidget(self._build_recommendations_toggle())
         self.content_layout.addWidget(self._build_decision_frame_toggle())
         self.content_layout.addWidget(self._build_feedback_section())
         self.content_layout.addWidget(self._build_comments_section())
@@ -1231,8 +1230,8 @@ class OutingForm(QWidget):
         self.calibration_banner_label.setText("")
         self.calibration_banner_label.setVisible(False)
         self.accuracy_footer_label.setText("")
-        self.recommendations_calibration_banner_label.setText("")
-        self.recommendations_calibration_banner_label.setVisible(False)
+        self.decision_frame_calibration_banner_label.setText("")
+        self.decision_frame_calibration_banner_label.setVisible(False)
 
         self.lap_table.setRowCount(0)
         self.lap_table.setVisible(False)
@@ -1242,14 +1241,13 @@ class OutingForm(QWidget):
         self.stability_summary_label.setText(
             "Click Analyse in the Data section to populate results."
         )
-        self.recommendations_summary_label.setText(
+        self.decision_frame_summary_label.setText(
             "Run Analyse in the Data section, then Generate."
         )
-        self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
 
         self.btn_analyse.setEnabled(False)
         self.btn_lap_traces.setEnabled(False)
-        self.btn_generate_recommendations.setEnabled(False)
         self.btn_generate_decision_frame.setEnabled(False)
 
         self._update_corner_map_trace()
@@ -1577,8 +1575,8 @@ class OutingForm(QWidget):
             )
             self.stability_status_label.setText(outdated_msg)
             self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
-            self.recommendations_summary_label.setText(outdated_msg)
-            self.recommendations_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+            self.decision_frame_summary_label.setText(outdated_msg)
+            self.decision_frame_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             return False
         if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
             return False
@@ -1801,7 +1799,6 @@ class OutingForm(QWidget):
         else:
             self.estimator_status_label.setVisible(False)
         self.btn_analyse.setEnabled(True)
-        self.btn_generate_recommendations.setEnabled(True)
         self.btn_generate_decision_frame.setEnabled(True)
         self.btn_lap_traces.setEnabled(True)
         self._update_corner_map_markers()
@@ -2179,387 +2176,27 @@ class OutingForm(QWidget):
             if w is not None:
                 w.deleteLater()
 
-    def _build_recommendations_toggle(self):
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        btn_toggle = QPushButton("> Recommendations")
-        btn_toggle.setStyleSheet(
-            f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
-            "padding: 8px 14px; text-align: left;"
-        )
-        btn_toggle.setCheckable(True)
-        btn_toggle.setChecked(False)
-        layout.addWidget(btn_toggle)
-
-        self.recommendations_panel = QWidget()
-        panel_layout = QVBoxLayout(self.recommendations_panel)
-        panel_layout.setContentsMargins(0, 8, 0, 0)
-        panel_layout.setSpacing(8)
-
-        gen_row = QWidget()
-        gen_row_layout = QHBoxLayout(gen_row)
-        gen_row_layout.setContentsMargins(0, 0, 0, 0)
-        self.btn_generate_recommendations = QPushButton("Generate")
-        self.btn_generate_recommendations.setFixedWidth(100)
-        self.btn_generate_recommendations.setEnabled(False)
-        self.btn_generate_recommendations.clicked.connect(self._generate_recommendations)
-        gen_row_layout.addWidget(self.btn_generate_recommendations)
-        gen_row_layout.addStretch()
-        panel_layout.addWidget(gen_row)
-
-        # WP-N2 Step 1b: same mechanism as calibration_banner_label in the
-        # stability panel -- rules key on _classify_corner's verdict text
-        # (which already carries the "[UNCAL]" marker), so a top-of-panel
-        # caveat here covers the whole recommendations list at a glance.
-        self.recommendations_calibration_banner_label = QLabel("")
-        self.recommendations_calibration_banner_label.setStyleSheet(
-            f"color: {WARN}; font-size: 11px; font-weight: bold;"
-        )
-        self.recommendations_calibration_banner_label.setWordWrap(True)
-        self.recommendations_calibration_banner_label.setVisible(False)
-        panel_layout.addWidget(self.recommendations_calibration_banner_label)
-
-        self.recommendations_summary_label = QLabel(
-            "Run Analyse in the Data section, then Generate."
-        )
-        self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-        panel_layout.addWidget(self.recommendations_summary_label)
-
-        self.recommendations_host = QWidget()
-        self.recommendations_host_layout = QVBoxLayout(self.recommendations_host)
-        self.recommendations_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.recommendations_host_layout.setSpacing(6)
-        self.recommendations_host_layout.addStretch()
-        panel_layout.addWidget(self.recommendations_host)
-
-        self.recommendations_panel.setVisible(False)
-        layout.addWidget(self.recommendations_panel)
-
-        btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
-            self.recommendations_panel.setVisible(checked),
-            btn.setText("v Recommendations" if checked else "> Recommendations")
-        ))
-
-        return container
-
-    def _clear_recommendation_rows(self):
-        while self.recommendations_host_layout.count() > 1:
-            item = self.recommendations_host_layout.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-
-    def _generate_recommendations(self):
-        # Synchronous: aggregation + rule matching over ~15 corners and a
-        # handful of rules is fast enough not to need a worker thread.
-        # WP-N2 Step 1b: set regardless of the early-return paths below --
-        # rules key on _classify_corner's verdict text (which already
-        # carries the "[UNCAL]" marker), so this banner must reflect the
-        # live config every time this method runs, not only on a full
-        # regeneration. Placeholder wording, pending review.
-        if self._sideslip_source_calibrated():
-            self.recommendations_calibration_banner_label.setVisible(False)
-            self.recommendations_calibration_banner_label.setText("")
-        else:
-            self.recommendations_calibration_banner_label.setVisible(True)
-            self.recommendations_calibration_banner_label.setText(
-                "Sideslip estimator changed; recommendation thresholds not "
-                "re-derived -- treat as indicative only."
-            )
-        if not self.stability_result:
-            # Fix turn: this must never render as silent emptiness. The
-            # button is normally disabled in this state (only enabled by
-            # _render_stability_summaries), but a stale schema-mismatch
-            # flag from a rejected cache-hit is the one case that can
-            # still reach here, so it gets its own explicit message; any
-            # other reason falls back to the panel's own default prompt.
-            if self._cached_schema_mismatch:
-                stored_v, current_v = self._cached_schema_mismatch
-                self.recommendations_summary_label.setText(
-                    f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first"
-                )
-                self.recommendations_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
-            else:
-                self.recommendations_summary_label.setText(
-                    "Run Analyse in the Data section, then Generate."
-                )
-                self.recommendations_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-            return
-        import json
-        from modules.recommendation import generate_recommendations, load_recommendations_config
-
-        summaries = self.stability_result["summaries"]
-        feedback_data = json.loads(self._collect_feedback_data())
-        setup_data = json.loads(self._collect_setup_data())
-        config = load_recommendations_config()
-        driving_level = self._resolve_current_driving_level()
-
-        results = generate_recommendations(
-            summaries, self._classify_corner, feedback_data, setup_data, config,
-            outing=self.outing, driving_level=driving_level,
-        )
-
-        rule_status = {r["id"]: r.get("status", "seed") for r in config["rules"]}
-        analysed_lap_count = len({s["lap_number"] for s in summaries})
-
-        self._clear_recommendation_rows()
-
-        if not results:
-            self.recommendations_summary_label.setText(
-                "No recommendations at current thresholds."
-            )
-            return
-
-        self.recommendations_summary_label.setText(f"{len(results)} recommendation(s).")
-
-        insert_pos = self.recommendations_host_layout.count() - 1
-        for r in results:
-            row = self._build_recommendation_row(r, rule_status, analysed_lap_count, driving_level)
-            self.recommendations_host_layout.insertWidget(insert_pos, row)
-            insert_pos += 1
-
-    def _resolve_current_driving_level(self):
-        # PART A: resolved from the currently selected driver in the combo,
-        # not self.outing.driver_id -- a new, not-yet-saved outing has no
-        # outing.driver_id yet even though a driver may already be selected
-        # here. Same read _save_outing itself uses for driver_id (below).
-        driver_id = self.driver_combo.currentData()
-        if driver_id is None:
-            return None
-        session = Session()
-        driver = session.get(Driver, driver_id)
-        level = driver.driving_level if driver else None
-        session.close()
-        return level
-
-    def _build_recommendation_row(self, r, rule_status, analysed_lap_count, driving_level=None):
-        card = QWidget()
-        card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(10, 8, 10, 8)
-        card_layout.setSpacing(6)
-
-        header = QWidget()
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(10)
-
-        # WP2b-2: a package/axle-symmetric-pair suggestion has no single
-        # parameter/direction -- badge falls back to listing every action.
-        # FIX 1: a synthetic urgent row (action_class "urgent_gap") has no
-        # setup-parameter action at all -- the badge names the corner and
-        # verdict instead of a lever, since there isn't one to name.
-        if r["action_class"] == "urgent_gap":
-            c0 = r["corners"][0] if r["corners"] else None
-            badge_text = f"C{c0['stable_corner_id']}: {c0['short_verdict']}" if c0 else "engineer attention"
-        elif r["parameter"] is not None:
-            badge_text = f"{r['parameter']} | {r['direction']}"
-        else:
-            badge_text = " + ".join(
-                f"{a['parameter']} -> {a['target']}" if "target" in a
-                else f"{a['parameter']} {a['direction']}"
-                for a in r["actions"]
-            )
-        badge = QLabel(badge_text)
-        badge.setStyleSheet(
-            f"background-color: {ACCENT}; color: #111; font-size: 11px; "
-            "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
-        )
-        header_layout.addWidget(badge)
-
-        # FIX 1: synthetic rows carry no engine score (nothing was ranked
-        # against anything) -- the URGENT tag below is the signal instead.
-        if r["score"] is not None:
-            score_label = QLabel(f"score {r['score']:.2f}")
-            score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
-            header_layout.addWidget(score_label)
-
-        # FIX 1 (undrivable-feedback tier, design ruling 2026-07-28): a
-        # raw|feedback|>=4 corner must never render as silent emptiness --
-        # this tag is the one thing every one of the tier's three outcomes
-        # (pierced bucket, synthetic gap row, synthetic contradiction row)
-        # has in common, so it is checked once, ahead of the normal
-        # ADVISORY/SELECTED branch below (an urgent row can still also be
-        # "recommended"/"selected" -- the tag is additive, not exclusive).
-        if r.get("urgent"):
-            urgent_label = QLabel(r.get("urgent_tag") or "URGENT")
-            urgent_label.setStyleSheet(
-                f"background-color: {BAD}; color: #fff; font-size: 10px; "
-                "font-weight: 700; padding: 3px 8px; border-radius: 3px;"
-            )
-            header_layout.addWidget(urgent_label)
-
-        trigger_label = QLabel(" / ".join(r["trigger_source"]))
-        trigger_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-        header_layout.addWidget(trigger_label)
-
-        if r["cell_ids"]:
-            cell_label = QLabel(" / ".join(r["cell_ids"]))
-            cell_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-            header_layout.addWidget(cell_label)
-
-        # WP2b-2 amendment 7: advisory matches are an observation, never a
-        # mandate -- mild understeer is this car's deliberate stable
-        # baseline. Visually distinct from a budget-eligible recommendation.
-        if r["action_class"] == "advisory":
-            class_label = QLabel("ADVISORY")
-            class_label.setStyleSheet(
-                f"color: {TEXT_MUTED}; font-size: 10px; font-weight: 600;"
-            )
-            header_layout.addWidget(class_label)
-        elif r["selected"]:
-            selected_label = QLabel("SELECTED (within budget)")
-            selected_label.setStyleSheet(
-                f"color: {ACCENT}; font-size: 10px; font-weight: 600;"
-            )
-            header_layout.addWidget(selected_label)
-
-        # WP2b-2 amendment 6: feasibility against the outing's current
-        # setup sheet, checked at generate time -- never silently applied
-        # past a registry limit, never silently hidden when unchecked.
-        if r["limit_status"] == "at_limit":
-            limit_label = QLabel(f"AT LIMIT ({', '.join(r['at_limit_parameters'])})")
-            limit_label.setStyleSheet(f"color: {BAD}; font-size: 10px; font-weight: 600;")
-            header_layout.addWidget(limit_label)
-        elif r["limit_status"] == "unchecked":
-            limit_label = QLabel("limit not checked (setup sheet unfilled)")
-            limit_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-            header_layout.addWidget(limit_label)
-
-        # Mandatory per WP2: a placeholder rule must never look like
-        # engineering truth. Shown whenever ANY contributing rule is still
-        # status:"seed" (retired in WP2b-2 -- dead code path kept in case a
-        # future experimental rule ever ships as "seed" again).
-        has_seed = any(
-            rule_status.get(rule_id, "seed") == "seed" for rule_id in r["rules_fired"]
-        )
-        if has_seed:
-            seed_label = QLabel("unvalidated rule")
-            seed_label.setStyleSheet(
-                f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;"
-            )
-            header_layout.addWidget(seed_label)
-
-        header_layout.addStretch()
-        card_layout.addWidget(header)
-
-        chips_row = QWidget()
-        chips_layout = QHBoxLayout(chips_row)
-        chips_layout.setContentsMargins(0, 0, 0, 0)
-        chips_layout.setSpacing(6)
-        for c in r["corners"]:
-            text = f"C{c['stable_corner_id']}"
-            if c["n_laps"] < analysed_lap_count:
-                text += f" ({c['n_laps']} lap{'s' if c['n_laps'] != 1 else ''})"
-            is_worst = c.get("worst_corner", False)
-            if is_worst:
-                text = f"! {text}"
-            chip = QLabel(text)
-            if is_worst:
-                # Driver flagged this corner "worst" -- the score boost
-                # (worst_corner_multiplier) must be visible, not silent.
-                chip.setStyleSheet(
-                    f"background-color: {PANEL_ALT}; color: {TEXT}; font-size: 10px; "
-                    f"font-weight: 600; padding: 2px 6px; border-radius: 3px; "
-                    f"border: 1px solid {ACCENT};"
-                )
-            else:
-                chip.setStyleSheet(
-                    f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 10px; "
-                    "padding: 2px 6px; border-radius: 3px;"
-                )
-            chips_layout.addWidget(chip)
-        chips_layout.addStretch()
-        card_layout.addWidget(chips_row)
-
-        if r["conflicts"]:
-            conflict_ids = ", ".join(f"C{c['stable_corner_id']}" for c in r["conflicts"])
-            # PART A: level context is one value for the whole outing (one
-            # driver), so it's appended once to the label rather than
-            # repeated per corner or threaded back through the engine's
-            # per-corner conflicts list.
-            level_note = f" (driver level {driving_level}/10)" if driving_level is not None else ""
-            conflict_label = QLabel(f"driver and data disagree at {conflict_ids}{level_note}")
-            conflict_label.setStyleSheet(f"color: {WARN}; font-size: 10px;")
-            card_layout.addWidget(conflict_label)
-
-        # WP2b-2: a DIFFERENT conflict from the one above -- two rules
-        # recommend opposite directions for the same registry parameter.
-        # Never netted/averaged; BAD (not WARN) since this is a harder stop
-        # than a driver/data disagreement on a single rule.
-        if r["parameter_conflict"]:
-            pc_label = QLabel(
-                f"CONFLICT with another recommendation on: {', '.join(r['conflict_parameters'])}"
-            )
-            pc_label.setStyleSheet(f"color: {BAD}; font-size: 10px; font-weight: 600;")
-            card_layout.addWidget(pc_label)
-
-        if r["observation_lines"]:
-            obs_host = QWidget()
-            obs_layout = QVBoxLayout(obs_host)
-            obs_layout.setContentsMargins(0, 0, 0, 0)
-            obs_layout.setSpacing(2)
-            for line in r["observation_lines"]:
-                obs_label = QLabel(line)
-                obs_label.setWordWrap(True)
-                obs_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-                obs_layout.addWidget(obs_label)
-            card_layout.addWidget(obs_host)
-
-        # Task 4 (second-choice visibility): a held escalation is context,
-        # not a recommendation -- it never fires, this is display only.
-        for note in r["escalation_notes"]:
-            esc_label = QLabel(note)
-            esc_label.setWordWrap(True)
-            esc_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-            card_layout.addWidget(esc_label)
-
-        btn_expand = QPushButton("> rationale")
-        btn_expand.setCheckable(True)
-        btn_expand.setChecked(False)
-        btn_expand.setStyleSheet(
-            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
-            "text-align: left; border: none; padding: 2px 0;"
-        )
-        card_layout.addWidget(btn_expand)
-
-        rationale_host = QWidget()
-        rationale_layout = QVBoxLayout(rationale_host)
-        rationale_layout.setContentsMargins(12, 2, 0, 0)
-        rationale_layout.setSpacing(2)
-        for rat in r["rationale"]:
-            # Fix turn: no [cell_id]/[rule_id] prefix here -- the cell_id(s)
-            # already show as their own header badge (chips_layout above).
-            line = QLabel(rat["rationale"])
-            line.setWordWrap(True)
-            line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-            rationale_layout.addWidget(line)
-        rationale_host.setVisible(False)
-        card_layout.addWidget(rationale_host)
-
-        def toggle_rationale(checked):
-            rationale_host.setVisible(checked)
-            btn_expand.setText("v rationale" if checked else "> rationale")
-        btn_expand.toggled.connect(toggle_rationale)
-
-        return card
-
     def _build_decision_frame_toggle(self):
-        # Decision-matrix frame, Stage 1 (2026-09-02): the three-layer
-        # evidence/candidate/scoring frame (modules/decision_frame.py),
-        # additive and parallel to the Recommendations section above --
-        # that section's 39-rule engine is untouched by this one. Same
-        # collapsible-toggle/card visual language as _build_recommendations_
-        # toggle, deliberately, so the two sections read as one family.
+        # Decision-matrix frame (modules/decision_frame.py): Stage 1
+        # (2026-09-02) shipped the exit-oversteer/brake-balance scenario as
+        # a preview section parallel to the old 39-rule Recommendations
+        # section; Stage 2 (Frame-Stage-2, 2026-09-04) migrated all 39
+        # rules into this frame as candidate bridges, added a conflict
+        # resolver and (config-gated, default off) intervention evidence,
+        # and PASSED PARITY on both real sessions (Dubai and v3) -- every
+        # recommendation the old engine produced has a matching candidate
+        # here (diagnostics/inspect_frame_stage2_parity.py). The old
+        # Recommendations section is REMOVED (this is now the only
+        # recommendation UI); modules/recommendation.py itself is
+        # unchanged and still supplies this frame's own rule definitions
+        # (config/recommendations.json), only its parallel display is
+        # gone -- "(preview)" dropped from the toggle label accordingly.
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        btn_toggle = QPushButton("> Decision Frame (preview)")
+        btn_toggle = QPushButton("> Decision Frame")
         btn_toggle.setStyleSheet(
             f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
             "padding: 8px 14px; text-align: left;"
@@ -2584,14 +2221,16 @@ class OutingForm(QWidget):
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
 
-        note_label = QLabel(
-            "Preview: Stage 1 scope only (exit oversteer, LS-disambiguated, plus the "
-            "brake-balance plausibility check). Everything else falls back to the "
-            "Recommendations section above, which this does not replace."
+        # Migrated from the old Recommendations section's own calibration
+        # banner (same mechanism: rules key on _classify_corner's verdict
+        # text, which already carries the "[UNCAL]" marker).
+        self.decision_frame_calibration_banner_label = QLabel("")
+        self.decision_frame_calibration_banner_label.setStyleSheet(
+            f"color: {WARN}; font-size: 11px; font-weight: bold;"
         )
-        note_label.setWordWrap(True)
-        note_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-        panel_layout.addWidget(note_label)
+        self.decision_frame_calibration_banner_label.setWordWrap(True)
+        self.decision_frame_calibration_banner_label.setVisible(False)
+        panel_layout.addWidget(self.decision_frame_calibration_banner_label)
 
         self.decision_frame_summary_label = QLabel(
             "Run Analyse in the Data section, then Generate."
@@ -2611,7 +2250,7 @@ class OutingForm(QWidget):
 
         btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
             self.decision_frame_panel.setVisible(checked),
-            btn.setText("v Decision Frame (preview)" if checked else "> Decision Frame (preview)")
+            btn.setText("v Decision Frame" if checked else "> Decision Frame")
         ))
 
         return container
@@ -2624,19 +2263,35 @@ class OutingForm(QWidget):
                 w.deleteLater()
 
     def _generate_decision_frame(self):
-        # Synchronous, same rationale as _generate_recommendations: a
-        # handful of corners through three light layers is fast enough not
-        # to need a worker thread.
-        if not self.stability_result:
-            self.decision_frame_summary_label.setText(
-                "Run Analyse in the Data section, then Generate."
+        # Synchronous: a handful of corners through evidence/candidate/
+        # scoring/conflict-resolution is fast enough not to need a worker
+        # thread.
+        if self._sideslip_source_calibrated():
+            self.decision_frame_calibration_banner_label.setVisible(False)
+            self.decision_frame_calibration_banner_label.setText("")
+        else:
+            self.decision_frame_calibration_banner_label.setVisible(True)
+            self.decision_frame_calibration_banner_label.setText(
+                "Sideslip estimator changed; recommendation thresholds not "
+                "re-derived -- treat as indicative only."
             )
-            self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        if not self.stability_result:
+            if self._cached_schema_mismatch:
+                stored_v, current_v = self._cached_schema_mismatch
+                self.decision_frame_summary_label.setText(
+                    f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first"
+                )
+                self.decision_frame_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+            else:
+                self.decision_frame_summary_label.setText(
+                    "Run Analyse in the Data section, then Generate."
+                )
+                self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
             return
         import json
         from modules.decision_frame import (
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
-            generate_candidates, generate_shortlist,
+            generate_candidates, generate_shortlist, resolve_conflicts,
         )
         from modules.recommendation import load_setup_parameters_registry
 
@@ -2646,16 +2301,25 @@ class OutingForm(QWidget):
         setup_data = json.loads(self._collect_setup_data())
 
         ls_stats = aggregate_ls_by_corner(summaries)
-        evidence = build_evidence(summaries, ls_stats, config, self._classify_corner)
+        # corners/state/channels feed the (config-gated, default off)
+        # intervention-evidence sources only -- build_evidence silently
+        # skips them without these (Stage-1-compatible default), so this
+        # is always safe to pass, flag on or off.
+        evidence = build_evidence(
+            summaries, ls_stats, config, self._classify_corner,
+            corners=self.stability_result.get("corners"),
+            state=self.stability_result.get("state"),
+            channels=(self.parsed_data or {}).get("channels"),
+        )
         candidates = generate_candidates(evidence, registry, config)
         shortlist = generate_shortlist(candidates, evidence, setup_data, config)
+        resolve_conflicts(shortlist)
 
         self._clear_decision_frame_rows()
 
         if not shortlist:
             self.decision_frame_summary_label.setText(
-                f"{len(evidence)} evidence item(s), no candidates at this stage's scope "
-                "(Stage 1 only covers exit oversteer and brake-balance plausibility)."
+                f"{len(evidence)} evidence item(s), no candidates."
             )
             return
 
@@ -2670,10 +2334,10 @@ class OutingForm(QWidget):
             insert_pos += 1
 
     def _build_decision_frame_row(self, c):
-        # Same visual language as _build_recommendation_row: PANEL/BORDER
-        # card, ACCENT action badge, muted chips, expandable detail via a
-        # checkable "> ..." button -- deliberately, so the two sections
-        # read as one family (see _build_decision_frame_toggle's comment).
+        # PANEL/BORDER card, ACCENT action badge, muted chips, expandable
+        # detail via a checkable "> ..." button -- same visual language the
+        # now-removed Recommendations section used (see
+        # _build_decision_frame_toggle's comment).
         card = QWidget()
         card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         card_layout = QVBoxLayout(card)
@@ -2722,6 +2386,24 @@ class OutingForm(QWidget):
             cell_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
             header_layout.addWidget(cell_label)
 
+        # Conflict resolver (Frame-Stage-2 Phase 3b): never hides a
+        # conflicting candidate, always labels it -- transparency over
+        # suppression, same posture the old engine's own parameter_
+        # conflict flag used.
+        conflict_status = c.get("conflict_status")
+        if conflict_status == "platform_calming_available":
+            cf_label = QLabel("PLATFORM-CALMING: addresses a compound problem at this corner")
+            cf_label.setStyleSheet(f"color: {ACCENT}; font-size: 10px; font-weight: 600;")
+            header_layout.addWidget(cf_label)
+        elif conflict_status in ("superseded_by_platform_calming", "superseded_by_time_loss"):
+            cf_label = QLabel(f"SUPERSEDED (conflicts with {', '.join(c.get('conflict_with', []))})")
+            cf_label.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
+            header_layout.addWidget(cf_label)
+        elif conflict_status == "wins_time_loss":
+            cf_label = QLabel(f"CONFLICT WINNER (higher time-loss phase, vs {', '.join(c.get('conflict_with', []))})")
+            cf_label.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
+            header_layout.addWidget(cf_label)
+
         header_layout.addStretch()
         card_layout.addWidget(header)
 
@@ -2750,6 +2432,12 @@ class OutingForm(QWidget):
         rationale_line.setWordWrap(True)
         rationale_line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
         detail_layout.addWidget(rationale_line)
+
+        if c.get("conflict_resolution_note"):
+            cf_note_line = QLabel(c["conflict_resolution_note"])
+            cf_note_line.setWordWrap(True)
+            cf_note_line.setStyleSheet(f"color: {WARN}; font-size: 10px;")
+            detail_layout.addWidget(cf_note_line)
 
         components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
         components_line = QLabel(f"score breakdown: {components_text}")

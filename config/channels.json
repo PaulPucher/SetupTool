@@ -319,6 +319,26 @@
       "required": false,
       "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
     },
+    "abs_active": {
+      "label": "ABS Active",
+      "unit": "bool",
+      "range": [
+        0,
+        1
+      ],
+      "required": false,
+      "note": "ABS activity flag (clean boolean, USABLE-NOW per Frame-Stage-2 Phase 2 intervention-channel survey: 5.95% active on GT3_PRC_MLA-v3.txt, correctly concentrated in hard braking). Whitelisted here for modules/decision_frame.py's intervention-evidence source, config-gated off by default (decision_frame.json intervention_evidence.use_intervention_evidence)."
+    },
+    "ecu_B_tc_act": {
+      "label": "TC Active",
+      "unit": "bool",
+      "range": [
+        0,
+        1
+      ],
+      "required": false,
+      "note": "Traction-control activity flag (clean boolean, USABLE-NOW per Frame-Stage-2 Phase 2 -- the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Whitelisted here for modules/decision_frame.py's intervention-evidence source, config-gated off by default (decision_frame.json intervention_evidence.use_intervention_evidence)."
+    },
     "log_susp_travel_fl": {
       "label": "Suspension Travel FL",
       "unit": "mm",

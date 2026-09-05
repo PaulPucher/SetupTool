@@ -10,6 +10,9 @@
 # (test_end_to_end_real_dubai) uses the real, shared pipeline_result
 # fixture (conftest.py), per the work order's own instruction.
 
+import copy
+
+import numpy as np
 import pytest
 
 from modules.decision_frame import (
@@ -19,8 +22,11 @@ from modules.decision_frame import (
     generate_candidates,
     generate_shortlist,
     load_decision_frame_config,
+    resolve_conflicts,
+    rule_bridge_status,
     score,
 )
+from modules.recommendation import load_recommendations_config, load_setup_parameters_registry
 
 
 def classify_fn(summary):
@@ -258,7 +264,12 @@ def test_end_to_end_real_dubai(pipeline_result):
     evidence = build_evidence(summaries, ls_stats, config, classify_fn)
     for e in evidence:
         assert 0.0 <= e["confidence"] <= 1.0
-        assert e["type"] in ("corner_verdict", "ls_disambiguation", "plausibility_brake_balance")
+        # Stage 2 (2026-09-04) added matrix_verdict (the 39-rule migration
+        # bridge's own evidence source); intervention_abs/intervention_tc
+        # never appear here since this call passes no corners/state/
+        # channels (build_evidence's own Stage-1-compatible default).
+        assert e["type"] in ("corner_verdict", "ls_disambiguation", "plausibility_brake_balance",
+                              "matrix_verdict")
 
     candidates = generate_candidates(evidence, registry, config)
     for c in candidates:
@@ -271,3 +282,267 @@ def test_end_to_end_real_dubai(pipeline_result):
 
     print(f"\n[decision_frame end-to-end, real Dubai] evidence={len(evidence)} "
           f"candidates={len(candidates)} shortlist={len(shortlist_a)}")
+
+
+# ==========================================================================
+# Stage 2 (Frame-Stage-2 Phase 3f, 2026-09-04): migration completeness,
+# rule-bridge candidates, intervention-evidence off/on, conflict resolver.
+# ==========================================================================
+
+# --- Migration completeness: all 39 rules accounted -----------------------
+
+def test_migration_completeness_all_39_accounted():
+    rec_config = load_recommendations_config()
+    rules = rec_config["rules"]
+    assert len(rules) == 39
+
+    counts = {}
+    for r in rules:
+        status = rule_bridge_status(r)
+        assert status in ("primary", "secondary(held)", "inactive(dropped)",
+                           "inactive(retired)", "inactive(other-status)", "non-matrix(trigger)")
+        counts[status] = counts.get(status, 0) + 1
+
+    # Real counts, verified against config/recommendations.json directly
+    # (2026-09-04 census): 7 pre-matrix seed rules (status=retired), 2
+    # dropped matrix cells (OS-BRK-low, INST-ENT), 4 held escalations, 26
+    # live "elicited" matrix rules.
+    assert counts.get("inactive(retired)", 0) == 7
+    assert counts.get("inactive(dropped)", 0) == 2
+    assert counts.get("secondary(held)", 0) == 4
+    assert counts.get("primary", 0) == 26
+    assert sum(counts.values()) == 39
+
+
+# --- Rule-bridge candidate generation --------------------------------------
+
+def _matrix_verdict_evidence(corner, phases, verdict, severity, speed_class, confidence=0.5):
+    return {"type": "matrix_verdict", "corner": corner, "phases": tuple(phases),
+            "verdict": verdict, "severity": severity, "speed_class": speed_class,
+            "confidence": confidence, "source": "test"}
+
+
+def test_bridge_candidate_matches_matrix_us_brk_med():
+    # matrix_us_brk_med: entry_1_brake, understeer, medium, min_severity
+    # moderate -> damper_bump_ls_fl/fr soften 3, elicitation_provenance
+    # "engineer-verbatim" (config/recommendations.json, verified directly).
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["corner"] == 6
+    assert c["grade"] == "derived-from-matrix"
+    assert c["cell_id"] == "US-BRK-med"
+    assert c["effect_class"] == "primary"
+    params = {a["parameter"] for a in c["actions"]}
+    assert params == {"damper_bump_ls_fl", "damper_bump_ls_fr"}
+    assert all(a["direction"] == "soften" for a in c["actions"])
+
+
+def test_bridge_candidate_absent_below_min_severity():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "normal", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+
+
+def test_bridge_candidate_absent_wrong_speed_class():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "strong", "high")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+
+
+def test_dropped_and_retired_rules_never_produce_candidates():
+    # OS-BRK-low (dropped, matrix_os_brk_low) has suggestion=null; even
+    # with matching evidence it must never appear as a candidate.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(3, ["entry_1_brake"], "oversteer", "strong", "low")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c.get("rule_id") == "matrix_os_brk_low"]
+
+
+def test_held_escalation_secondary_only_alongside_base():
+    # matrix_us_brk_low (base, US-BRK-low) + matrix_us_brk_low_esc (held,
+    # escalation_of="US-BRK-low", action abs_position more_fa_stability).
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+
+    # No matching evidence at all -- neither the base nor the held rule
+    # should ever appear.
+    candidates_none = generate_candidates([], registry, config)
+    assert not [c for c in candidates_none if c.get("rule_id") in ("matrix_us_brk_low", "matrix_us_brk_low_esc")]
+
+    # Base condition satisfied (entry_1_brake, understeer, low, moderate+).
+    evidence = [_matrix_verdict_evidence(2, ["entry_1_brake"], "understeer", "moderate", "low")]
+    candidates = generate_candidates(evidence, registry, config)
+    base = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low"]
+    esc = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low_esc"]
+    assert len(base) == 1
+    assert len(esc) == 1
+    assert base[0]["effect_class"] == "primary"
+    assert esc[0]["effect_class"] == "secondary"
+    # Forced 'proposed' regardless of its own elicitation_provenance
+    # ("project-lead-reviewed", which WOULD otherwise grade as
+    # derived-from-matrix) -- held means not yet automated.
+    rec_config = load_recommendations_config()
+    held_rule = next(r for r in rec_config["rules"] if r["id"] == "matrix_us_brk_low_esc")
+    assert held_rule["elicitation_provenance"] == "project-lead-reviewed"
+    assert esc[0]["grade"] == "proposed"
+    assert esc[0]["actions"][0]["parameter"] == "abs_position"
+
+
+# --- Intervention evidence, off/on -----------------------------------------
+
+def _synthetic_state_channels(n=200, sample_rate_hz=50.0):
+    t = np.arange(n) / sample_rate_hz
+    state = {"time": t}
+    return state, t
+
+
+def test_intervention_evidence_off_by_default():
+    config = load_decision_frame_config()
+    assert config["intervention_evidence"]["use_intervention_evidence"] is False
+
+    state, t = _synthetic_state_channels()
+    channels = {
+        "abs_active": {"time": t, "data": np.zeros(len(t)), "quality": "valid"},
+    }
+    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {"entry_1_brake": (0.0, 1.0)}}]
+    summaries = []  # no summaries needed -- evidence type filter is what's under test
+    evidence = build_evidence(summaries, {}, config, lambda s: ("normal", "", "", ""),
+                               corners=corners, state=state, channels=channels)
+    assert not [e for e in evidence if e["type"].startswith("intervention_")]
+
+
+def test_intervention_abs_evidence_fires_when_enabled():
+    config = copy.deepcopy(load_decision_frame_config())
+    config["intervention_evidence"]["use_intervention_evidence"] = True
+
+    state, t = _synthetic_state_channels()
+    # abs_active = 0 for the whole session -- "inactive throughout" for any
+    # phase window drawn from it.
+    channels = {"abs_active": {"time": t, "data": np.zeros(len(t)), "quality": "valid"}}
+    corners = [
+        {"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}},
+        {"stable_corner_id": 5, "lap_number": 2, "segments": {"entry_1_brake": (0.5, 1.5)}},
+    ]
+    aggregated = {5: {"speed_class": "medium"}}
+    from modules.decision_frame import _build_intervention_abs_evidence
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, aggregated)
+    assert len(evidence) == 1
+    ev = evidence[0]
+    assert ev["type"] == "intervention_abs"
+    assert ev["corner"] == 5
+    assert ev["confidence"] == pytest.approx(1.0)  # inactive on both of the 2 analysed instances
+
+
+def test_intervention_abs_evidence_absent_when_abs_fires():
+    state, t = _synthetic_state_channels()
+    data = np.zeros(len(t))
+    data[50:70] = 1.0  # ABS fires inside the entry_1_brake window below
+    channels = {"abs_active": {"time": t, "data": data, "quality": "valid"}}
+    corners = [{"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}}]
+    from modules.decision_frame import _build_intervention_abs_evidence
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, {5: {"speed_class": "medium"}})
+    assert evidence == []
+
+
+def test_intervention_evidence_skipped_without_raw_inputs():
+    # build_evidence's own Stage-1-compatible default (corners/state/
+    # channels all None) must never attempt intervention evidence, flag
+    # or no flag -- summaries-only callers (every existing Stage 1 test)
+    # must be completely unaffected.
+    config = copy.deepcopy(load_decision_frame_config())
+    config["intervention_evidence"]["use_intervention_evidence"] = True
+    evidence = build_evidence([], {}, config, lambda s: ("normal", "", "", ""))
+    assert not [e for e in evidence if e["type"].startswith("intervention_")]
+
+
+# --- Conflict resolver -----------------------------------------------------
+
+def _shortlist_candidate(cid, corner, phase, parameter, direction, verdict, severity,
+                          score_val=1.0, extra_evidence=None):
+    ev = [{"type": "corner_verdict", "corner": corner, "phase": phase, "verdict": verdict,
+           "severity": severity, "confidence": 0.5, "source": "test"}]
+    if extra_evidence:
+        ev += extra_evidence
+    return {
+        "id": cid, "corner": corner, "phase": phase, "phases": (phase,),
+        "actions": [{"parameter": parameter, "direction": direction, "delta": -1}],
+        "evidence_refs": ev, "score": score_val,
+    }
+
+
+def test_resolve_conflicts_time_loss_prefers_higher_phase_importance():
+    # Same parameter, opposing directions, one anchored to exit_4 (weight
+    # 1.2) and one to entry_2_turnin (weight 0.9) -- exit must win, per the
+    # user's own elicited exit>entry ordering (config/decision_frame.json
+    # scoring_weights.phase_importance).
+    entry_c = _shortlist_candidate("entry", 4, "entry_2_turnin", "arb_rl", "soften",
+                                    "understeer", "moderate")
+    exit_c = _shortlist_candidate("exit", 4, "exit_4", "arb_rl", "stiffen",
+                                   "oversteer", "moderate")
+    shortlist = [entry_c, exit_c]
+    resolve_conflicts(shortlist)
+
+    assert exit_c["conflict_status"] == "wins_time_loss"
+    assert entry_c["conflict_status"] == "superseded_by_time_loss"
+    assert entry_c["conflict_with"] == ["exit"]
+    assert exit_c["conflict_with"] == ["entry"]
+
+
+def test_resolve_conflicts_no_conflict_for_different_parameters():
+    a = _shortlist_candidate("a", 4, "entry_2_turnin", "arb_rl", "soften", "understeer", "moderate")
+    b = _shortlist_candidate("b", 4, "exit_4", "tc_lon", "increase", "oversteer", "moderate")
+    shortlist = [a, b]
+    resolve_conflicts(shortlist)
+    assert a["conflict_status"] is None
+    assert b["conflict_status"] is None
+    assert a["conflict_with"] == []
+
+
+def test_resolve_conflicts_platform_calming_preferred():
+    # Two single-purpose, conflicting candidates on arb_rl (understeer-
+    # fixing soften vs oversteer-fixing stiffen) plus a THIRD candidate
+    # (different parameter, e.g. diff_position) whose own evidence_refs
+    # span BOTH verdicts -- the platform-calming candidate must be
+    # preferred over resolving by time-loss.
+    understeer_c = _shortlist_candidate("us", 4, "entry_2_turnin", "arb_rl", "soften",
+                                         "understeer", "moderate")
+    oversteer_c = _shortlist_candidate("os", 4, "exit_4", "arb_rl", "stiffen",
+                                        "oversteer", "moderate")
+    platform_ev = [
+        {"type": "corner_verdict", "corner": 4, "phase": "entry_2_turnin", "verdict": "understeer",
+         "severity": "moderate", "confidence": 0.5, "source": "test"},
+        {"type": "corner_verdict", "corner": 4, "phase": "exit_4", "verdict": "oversteer",
+         "severity": "moderate", "confidence": 0.5, "source": "test"},
+    ]
+    platform_c = {
+        "id": "platform", "corner": 4, "phase": "exit_4", "phases": ("exit_4",),
+        "actions": [{"parameter": "diff_position", "direction": "increase", "delta": 1}],
+        "evidence_refs": platform_ev, "score": 0.5,
+    }
+    shortlist = [understeer_c, oversteer_c, platform_c]
+    resolve_conflicts(shortlist)
+
+    assert platform_c["conflict_status"] == "platform_calming_available"
+    assert understeer_c["conflict_status"] == "superseded_by_platform_calming"
+    assert oversteer_c["conflict_status"] == "superseded_by_platform_calming"
+
+
+def test_resolve_conflicts_never_removes_candidates():
+    entry_c = _shortlist_candidate("entry", 4, "entry_2_turnin", "arb_rl", "soften",
+                                    "understeer", "moderate")
+    exit_c = _shortlist_candidate("exit", 4, "exit_4", "arb_rl", "stiffen",
+                                   "oversteer", "moderate")
+    shortlist = [entry_c, exit_c]
+    result = resolve_conflicts(shortlist)
+    assert len(result) == 2
+    assert {c["id"] for c in result} == {"entry", "exit"}
