@@ -17653,3 +17653,500 @@ repair_frame_verification.py.
 git status NOT clean; NO COMMIT MADE -- stop before commit, per the
 work order's own explicit instruction and CLAUDE.md's standing rule
 that the user runs git.
+
+## LS-evidence work package: negative-population co-occurrence census
+[2026-09-20, branch ls-evidence, read-only science, from main]
+
+QUESTION UNDER TEST: are the surviving negative LS_ratio worst-phase
+values (post Metrology-extension-Phase-2 repair) genuine beyond-peak
+longitudinal operation -- normal at threshold braking and traction-
+limited exits on a race car -- or residual estimation noise? Genuine
+moments should co-occur with corroborating signals; noise should not.
+
+COST CAP HONOURED: no full suite, no golden runs, no EKF/fit re-run, no
+pipeline perturbation sweep. The ONLY real analysis cost was estimate_
+longitudinal_stiffness itself, run exactly ONCE per session (Dubai, v3)
+-- CS_ratio and stability were DELIBERATELY NOT computed at all (a
+dummy, structurally-valid all-NaN array of the right length satisfies
+summarise_corners's own required cs/stab arguments, which this
+diagnostic never reads), avoiding both the EKF fit (~230s/session) and
+CS's own windowed-regression loop (~370s/session) entirely -- neither
+is used by anything in this package. Total wall time for both sessions'
+own real analysis: well under the "tens of minutes" cap.
+
+PHASE 1 -- CENSUS (diagnostics/inspect_ls_negative_cooccurrence.py, new,
+[keep-reproduces]): every corner-phase-axle instance whose repaired
+worst-lap LS_ratio (aggregate_ls_by_corner's own min-then-min value) is
+negative -- 71 total, 34 Dubai + 37 v3 -- inspected in its own worst
+lap's own phase time-window: combined front+rear brake pressure and
+throttle position (a) [same hard_braking/traction_event convention as
+thesis_notes.md "Frame-Stage-2 Phase 2: intervention-channel survey",
+reused not reinvented], ABS duty fraction (b), TC duty fraction via
+ecu_B_tc_act (c), |ax| mean/max vs the corner-trace display mask's own
+1.0 m/s^2 reference line (d), and repeatability -- what fraction of the
+SAME corner's other laps also read negative at that same phase (e).
+
+A REAL BUG FOUND AND FIXED BEFORE THE WRITE-UP, not glossed over: the
+script's first classification pass required LOW demand as well as no
+system activity for UNCORROBORATED (an AND), which -- since every single
+one of the 71 instances sits ABOVE the 1.0 m/s^2 demand line (zero low-
+demand/cruise contamination in this population at all) -- made the
+UNCORROBORATED branch structurally unreachable (0/71, with the rest
+absorbed into a large, uninformative MIXED bucket, 48% of the
+population). Caught by hand-checking the printed census against the
+work order's own literal text ("UNCORROBORATED (low demand OR one-off,
+no system activity)") before writing the verdict, not after. FIXED
+(the script's own classification logic, in place) to the literal OR
+reading: UNCORROBORATED = no ABS/TC activity AND (low demand OR a one-
+off, non-repeating reading). Re-classification was done by REUSING the
+already-computed per-instance raw data (no second pipeline run, fully
+inside the cost cap) -- the underlying analysis is identical, only the
+downstream classification rule changed.
+
+CORRECTED CENSUS: POOLED 36/71 (51%) CORROBORATED, 35/71 (49%)
+UNCORROBORATED, 0 MIXED (the three-way split collapses to two-way once
+every instance is confirmed high-demand). BY PHASE TYPE (the real
+discriminator, not axle): braking 8/9 (89%) corroborated, other (turn-
+in/apex) 13/18 (72%), exit only 15/44 (34%). BY AXLE (weaker
+discriminator, shown for completeness): front 15/35 (43%), rear 21/36
+(58%) -- both axles individually reproduce the SAME phase-type pattern
+(front braking 4/4, front exit 5/22; rear braking 4/5, rear exit 10/22),
+confirming phase type, not axle, drives the split.
+
+PHASE 2 -- VERDICT: MIXED, case (c) per the work order's own framing --
+not a clean sign-off, not a clean rejection, but a CLEANLY EXPLAINED
+split. Braking and turn-in negatives are dominantly corroborated by real
+ABS activity (exactly "ABS regulating IS the car operating at the slip
+peak," the work order's own framing). Exit negatives are dominantly
+UNCORROBORATED -- but the reason is IDENTIFIED, not just observed: TC is
+the natural exit/traction corroborator, and it is ALREADY on record as
+firing on only 3 samples in v3's entire session (thesis_notes.md "Frame-
+Stage-2 Phase 2: intervention-channel survey," 0.0044% activity),
+reconfirmed present-but-near-silent on both files this session. Exit-
+phase instances are therefore structurally unable to be TC-corroborated
+THIS session's own data, independent of whether the underlying LS
+signal is real -- "uncorroborated" at exit reads as an EVIDENCE GAP, not
+a demonstrated absence of signal.
+
+THE C3 CROSS-CHECK, the sharpest piece of evidence in this census: Dubai
+C3's own exit_5 rear instance (LS=-0.329, the project's independently-
+established genuine traction-limited corner, thesis_notes.md's own C3
+finding, re-confirmed surviving the repair in Metrology extension Phase
+2g) is classified CORROBORATED here -- via repeatability ALONE (4/4
+laps negative), with ZERO ABS/TC activity. This is direct, positive
+proof that a real, already-confirmed genuine event is correctly
+recognised by this census's own repeatability channel even when TC
+support is completely unavailable -- validating the method on exactly
+the one case where the right answer is independently known in advance,
+not merely self-consistent.
+
+MAGNITUDE CROSS-CHECK: CORROBORATED instances run larger on average
+(median |LS_ratio|=0.257) than UNCORROBORATED (median 0.115) -- a real,
+if imperfect, signal-vs-noise gradient in the direction the underlying
+question predicts (though the single largest-magnitude instance in the
+whole census, v3 C6 exit_4 front at LS=-1.116, IS in the uncorroborated
+bucket -- a one-off, no ABS/TC -- reported as a genuine open case, not
+smoothed over).
+
+RECOMMENDATION, written not shipped, per the work order's own explicit
+scope limit: do NOT sign off on STRONG_LSF=-0.79/STRONG_LSR=-0.60 as
+flat, phase-blind thresholds. The braking/turn-in population supports
+trusting a negative worst-phase reading there as real signal now. The
+exit population needs either a session with genuine TC activity (to
+close the evidence gap directly) or a phase-conditioned confidence
+treatment in the frame -- reusing the SAME MIN-confidence/reused-anchor
+architecture the ABS-masking bridge already established (Deepening
+Phase 4c), an exit-phase LS confidence discount rather than a single
+unconditional threshold. Named as a real design option for whoever picks
+this up next, not implemented here.
+
+RECORDS: PLAN.md's own LS_ratio threshold proposal PARKED entry updated
+in place with the full census and this verdict, resolving the open user
+decision it had left behind. One figure (PRINT-appropriate, two panels:
+by session, by phase type): diagnostics/plots_ls_evidence/ls_negative_
+cooccurrence_census.png. diagnostics/README.md gained one new [keep-
+reproduces] entry. No config/production file changed; no threshold
+shipped; no commit made, per the work order's own explicit "Stop. No
+commit, no threshold change, no config edits."
+
+## LS threshold decision: SHIPPED, phase-scoped [2026-09-20, branch
+ls-evidence, same day, user + reviewer decision]
+
+Resolves the LS-evidence census's own open verdict (above): STRONG_LSF/
+LSR ship, but PHASE-SCOPED, not flat, as a NEW frame-evidence source --
+still explicitly NOT a classification verdict tier.
+
+MECHANISM: modules/decision_frame.py gains _build_ls_threshold_evidence,
+a new evidence type ("ls_threshold"), wired into build_evidence alongside
+the existing corner_verdict/ls_disambiguation/matrix_verdict/intervention_
+*/driver_feedback sources. Fires whenever a corner-phase's own worst-lap
+LS_ratio_f/r (aggregate_ls_by_corner's own min-then-min value) crosses an
+ABSOLUTE threshold -- config/decision_frame.json's own NEW ls_threshold_
+evidence block (STRONG_LSF=-0.79, STRONG_LSR=-0.60, both citing the
+LS-evidence census directly) -- on ANY of the 5 phases, independent of
+whether an oversteer corner_verdict already exists (unlike ls_
+disambiguation, which is gated on one). DELIBERATELY placed in config/
+decision_frame.json, NOT config/parameters.json's classification block --
+this evidence never reaches _classify_corner or the UI's severity
+colour, exactly the "still NOT a classification verdict tier" instruction.
+Verdict naming: front-axle crossings report "brake_limited" (a beyond-
+peak FRONT longitudinal event on this car is fundamentally a braking
+phenomenon), rear-axle crossings reuse the ALREADY-established
+"traction_limited" term ls_disambiguation's own ls_class field already
+uses, rather than inventing a second name for the same concept.
+
+CONFIDENCE, phase-conditioned, reusing existing mechanisms only (no new
+formula, per the work order's own explicit constraint): the SAME repeat-
+fraction x valid-fraction confidence _build_corner_verdict_evidence
+already computes (fraction of this corner's OWN other laps that also
+cross the SAME threshold at the SAME phase, times fraction of laps with
+real signal) -- for entry_1_brake/entry_2_turnin/apex_3, reported as-is,
+uncapped (the census's own 89%/72% corroboration rates). For exit_4/
+exit_5, that confidence is additionally capped via min() against config's
+own exit_phase_confidence_discount=0.5 -- the SAME MIN-confidence-cap
+mechanism the ABS-masking bridge (Deepening Phase 4c) and the MARGINAL-
+verdict cap (Metrology Phase 2) already use, 0.5 itself reusing
+intervention_evidence.abs.confidence's own 0.8-cap PRECEDENT (a value in
+the same family, sized down to match this source's own weaker 34%
+corroboration rate rather than copied verbatim). "Repeatability lifts the
+discount" (the user's own framing, resolved concretely): min() can only
+LOWER a value, never raise one -- a highly-repeatable exit reading (the
+C3 pattern, repeat=4/4) gets pulled UP TO the 0.5 ceiling from what would
+otherwise be a full 1.0, while a one-off exit reading (repeat=1/3) stays
+at its own honestly-low raw fraction (~0.33), never inflated to 0.5.
+Verified directly, not just reasoned: test_ls_threshold_evidence_exit_
+phase_confidence_capped (full repeatability -> exactly the discount) and
+test_ls_threshold_evidence_exit_phase_low_repeatability_not_inflated (low
+repeatability -> its own lower raw fraction, confirmed strictly below the
+discount) both pass.
+
+derived_from on every new config value cites the census directly (71
+instances, the phase gradient 89%/72%/34%, the Dubai C3 repeatability
+anchor) and NAMES THE REOPEN CONDITION explicitly, per the work order's
+own item 3: a session with real, non-trivial TC activity would close the
+exit-phase evidence gap directly and should trigger re-deriving (or
+retiring) exit_phase_confidence_discount, rather than this discount being
+treated as a permanent fixture.
+
+TESTS (tests/test_decision_frame.py, 8 new, all pass): fires on braking
+uncapped; exit-phase confidence capped at the discount despite full
+repeatability; exit-phase low repeatability NOT inflated to the discount
+(the min()-only-lowers proof); the C3 repeatability pattern reproduced
+directly (4/4 laps, capped at the ceiling); absent when the value does
+not cross the threshold; absent when the source is disabled (config
+gate); front-axle verdict is "brake_limited" not "traction_limited";
+config values match the census numbers exactly (a values-drift guard).
+tests/test_decision_frame.py's own _make_summary helper gained an
+additive ls_f_by_phase parameter (front-axle LS synthetic control,
+alongside the pre-existing ls_r_by_phase) -- backward compatible, every
+existing call site that only passes ls_r_by_phase reproduces its exact
+prior behaviour (ls_ratio_f defaults to the same healthy 1.0 stat as
+before).
+
+Full tests/test_decision_frame.py re-run: 46/46 passed (38 pre-existing +
+8 new), including test_end_to_end_real_dubai (the one real-pipeline test
+in this file) -- confirms no crash and sane behaviour against real
+production config/real Dubai data, not just synthetic fixtures.
+
+GOLDENS: confirmed OUTSIDE the golden path, both ways per the work
+order's own instruction ("verify... confirm as before") -- by reading
+the code directly (grep across tests/test_golden_pipeline.py, tests/
+test_golden_auto_modes.py, tests/generate_golden.py: zero references to
+build_evidence or modules.decision_frame at all, the golden path only
+ever exercises modules.recommendation's own 39-rule engine, never this
+module) AND by actually running the golden subset once (NOT the full
+suite, per the work order's own explicit "no full suite" instruction):
+tests/test_golden_pipeline.py + tests/test_golden_auto_modes.py, 13/13
+passed, byte-identical, 1443.98s (24m03s) -- confirms the code
+inspection above rather than only asserting it.
+
+No commit made -- stop before commit, per the work order's own explicit
+instruction and CLAUDE.md's standing rule that the user runs git.
+
+## Literature-bridge work package: coverage check and ride-height
+platform bridges [2026-09-20, branch ls-evidence, same day]
+
+WORK ORDER'S OWN PREMISE CHECKED AGAINST CURRENT CODE, per the standing
+channel-census rule applied to our own config this time, not just raw
+telemetry: the work order asked to extract Segers-anchored setup-change
+-> behaviour bridges (roll-stiffness distribution, ARB-vs-springs
+balance/platform split) into config/decision_frame.json. Reading that
+file directly first found this substantially ALREADY SHIPPED by
+Deepening Phase 4b (2026-09-18, thesis_notes.md "Deepening Phase 4:
+decision-frame deepening (a-d)") -- the springs_front/rear Segers
+ch.9/10 interaction_table entries (stiffen/soften x understeer_
+tendency/oversteer_tendency/platform_stability) and full bidirectional
+ARB/camber_fl/fr/diff_position/ride_height/tc_lon/toe_front matrix
+cross-references already existed, verified directly against both
+config/decision_frame.json and config/recommendations.json's 39 rules
+(python census of every (parameter, direction) pair used by a live,
+data-trigger, non-retired/dropped rule). Not a conflict between the
+work order and the code (CLAUDE.md's "stop and ask" trigger) so much as
+the work order over-specifying against a base it predates -- resolved
+by user decision, this session, rather than silently redone or
+silently skipped.
+
+COVERAGE-CHECK FINDING (the real content of this package): an
+interaction_table entry NEVER generates a candidate on its own --
+verified by reading modules/decision_frame.py's generate_candidates
+directly. Exactly three sources produce a candidate: _exit_oversteer_
+candidates (hardcoded, exit_oversteer scenario only), _brake_balance_
+candidates (plausibility-check reuse of an existing matrix cell), and
+_bridge_candidates_for_matrix_rules (the generic 39-rule bridge).
+interaction_table is consumed ONLY by _interaction_penalty, the
+scoring layer -- it can adjust an existing candidate's score, never
+produce one. Cross-referencing the census above against this candidate-
+generation set: ARB/camber_fl/fr/diff_position/ride_height/tc_lon/
+toe_front are ALL matrix-covered in every direction physics supports,
+so the generic bridge already generates candidates both ways -- the
+work order's stated item-1 gap does not actually exist for these.
+springs_front has ZERO matrix rules and ZERO candidate-generating
+bridge in either direction anywhere in the code -- it exists only as
+an interaction_table scoring modifier, and can never actually be
+suggested to the user as an action, no matter how strong the evidence.
+springs_rear has exactly ONE candidate-generating bridge (soften,
+hardcoded in _exit_oversteer_candidates, secondary/proposed, exit_
+oversteer cornering-limited branch only); "stiffen" has none anywhere.
+camber_rl/rr carry the identical interaction-table-only gap but are
+not a Segers lever and were outside this work order's stated scope --
+flagged, not acted on.
+
+SHIPPED, config-only (items b/d, this package): ride_height_front/rear
+gained 4 new interaction_table entries (increase/decrease x front/rear)
+-> platform_stability, grade "proposed (Segers ch.9/10)", sign -1
+(matching the springs platform_stability convention: either direction
+trades platform margin, not a directional helps/hurts claim). Grounded
+directly in each parameter's own registry mechanism text (config/
+setup_parameters.json): ride_height_front "sets front floor/splitter
+proximity to the ground -- aero platform height"; ride_height_rear
+"sets rear floor/diffuser exit height -- aero platform height and rake
+(with ride_height_front)" -- not an invented claim, the registry
+already said this. Same Segers ch.9/10 anchor already verified and
+used for the springs platform_stability entries (thesis_notes.md
+"Damper package..." wheel_loads.py anchor entry: ch.9 p.199, ch.10
+pp.221-256). Structurally INERT in current scoring, identical status
+to the pre-existing springs platform_stability entries -- no evidence
+source in this frame maps to platform_stability yet (_AXIS_TO_VERDICT
+has no entry for it).
+
+NOT shipped, named rather than silently done (items b remainder, c):
+springs_front/rear candidate-bridge coverage needs a NEW module-logic
+code path (a candidate can only come from the three sources above) --
+explicitly out of this package's own "config + docs + tests only, NO
+module logic changes" scope. Written up as a READY PROPOSAL, PLAN.md
+BACKLOG item H: a generic, config-driven per-lever candidate-bridge
+mechanism (lever family + verdict pattern + direction + grade, in one
+new config block, consumed by one new generic function -- the same
+"config row -> candidate" pattern _bridge_candidates_for_matrix_rules
+already uses for the 39-rule matrix, extended to non-matrix levers
+instead of a new hardcoded function per lever) so springs_front/rear
+(and later camber_rl/rr) get real candidate coverage without repeating
+_exit_oversteer_candidates's own per-lever hardcoding. Acceptance test
+named: springs_rear "stiffen" appears as an advisory candidate on a
+synthetic entry-oversteer case -- currently impossible to write, since
+no code path produces that candidate at all. Item 3 (damper transient-
+phase bridges): interaction_table has no phase field and no transient-
+phase axis exists in _AXIS_TO_VERDICT -- listed as PENDING SCHEMA
+SUPPORT in PLAN.md, schema NOT extended, per the work order's own
+"if it does not, do not extend the schema" instruction.
+
+TESTS (tests/test_decision_frame.py, 3 new): grade-capping (the 4 new
+entries are exactly 4, all grade "proposed (Segers ch.9/10)", never a
+matrix-eligible grade, sign -1, both directions present per axle);
+config-schema validation (every interaction_table entry, not just the
+new ones, carries the required fields and a legal grade string); and a
+provably-inert check that caught a real bug in its own first draft --
+the first version asserted the candidate's TOTAL interaction_penalty
+stays exactly 0.0 under an "other active" understeer+unstable_yaw
+scenario, which FAILED (-1.0, not 0.0) because ride_height_front/rear
+already carry real, pre-existing derived-from-matrix entries on
+understeer_tendency/yaw_stability (Deepening Phase 4b) that correctly
+fire in that same scenario -- a genuine test-design bug, not a config
+bug (caught by actually running the test, not by inspection alone).
+Corrected to the precise claim: the new platform_stability entries
+specifically never appear in interaction_notes or contribute to the
+penalty, proven in a scenario that DOES exercise ride_height's other,
+pre-existing entries (asserted nonzero, so the inert-check isn't
+trivially true from an inactive scenario). Full tests/test_decision_
+frame.py re-run after the fix: 49/49 passed (46 pre-existing + 3 new),
+including test_end_to_end_real_dubai, ~10-11 min.
+
+VERIFICATION SCOPE, stated rather than silently narrowed: the work
+order's own VERIFY step named "frame end-to-end on both sessions".
+This package's change is provably inert by construction (platform_
+stability has no _AXIS_TO_VERDICT mapping -- a direct code-read fact,
+true for any input, not something an empirical run can strengthen),
+and no existing cheap fixture runs modules.decision_frame end-to-end
+against v3 (the one real-pipeline test in this file, test_end_to_end_
+real_dubai, is Dubai-only via conftest.py's pipeline_result fixture;
+a v3 equivalent would need the ~230s EKF + ~370s CS computation the
+LS-evidence package's own diagnostic script explicitly flagged and
+capped out of scope, and this work order caps "NO expensive runs" too).
+Verification therefore rests on the static proof (_interaction_penalty
+code read) + the targeted inert-test (both directions, both axles,
+under a scenario proven to exercise ride_height's other real entries)
++ the existing Dubai end-to-end test staying green -- not an empirical
+v3 pass, named here rather than silently substituted for it.
+
+No commit made -- stop before commit, per the work order's own explicit
+instruction and CLAUDE.md's standing rule that the user runs git.
+
+## Mu-fit re-evaluation with FR live [2026-09-20, branch ls-evidence,
+same day, read-only science]
+
+CONTEXT: the original mu load-normalised fit evaluation (Fz-integration
+Phase 2, above) ran with v3's FR corner Fz RECONSTRUCTED (its own dead
+damper gauge, proxy-modelled) and the aero/mass double-count bug live.
+Both are now fixed (FR measured via the shipped evidence-gated channel
+correction; the joint mass+aero fit's double-count repair, error
+917->168N, e8101ad). Re-evaluated on these clean inputs, read-only,
+diagnostic output only -- no config/production change, mu mode stays
+config-gated off (config/parameters.json tyre_fit_auto.load_normalised_
+fit_enabled=false, confirmed by direct read, unedited this session).
+Reused the THREE existing [keep-reproduces] diagnostic scripts exactly
+as built (diagnostics/inspect_fz_mu_tyre_fit.py, inspect_fz_mu_cross_
+check.py, inspect_fz_mu_v3_rear_divergence.py) -- no new diagnostics
+script written, per the work order's own cost cap (one fit per session/
+axle/mode, at most one EKF/NIS pass per fitted model, no sweeps/loops).
+
+TASK 1 -- PARAMETER TABLE, new vs previously recorded (diagnostics/
+fz_mu_tyre_fit_results.json, overwritten in place):
+
+Dubai free-D: BYTE-IDENTICAL to the original recording -- front B=10.457
+C=1.940 D=8184.0 E=0.091 (rms=2679.9N), rear B=11.759 C=1.982 D=9213.6
+E=-2.281 (rms=5762.8N), nis_gate health_score=0.1351 (pass). Expected:
+free-D fits alpha-vs-Fy alone, no Fz term in its own formula, and
+Dubai's own session-corrected mass fit was apparently untouched by the
+v3-specific FR/double-count fixes -- a clean confirmation the free-D
+path really is Fz-independent on this session, not just argued.
+
+Dubai mu: front IDENTICAL to before (B=10.872 C=1.899 D=8041.8 E=0.599
+mu=1.3193, mean_axle_fz_N=6095.3, rms=2728.0N) -- Dubai front Fz also
+untouched. REAR CHANGED: B=10.846 C=1.905 D=9676.2 E=-5.645 mu=0.9385
+(mean_axle_fz_N=10310.6, rms=5874.4N), vs the old B=11.178 C=1.917
+D=9522.6 E=-4.809 mu=0.8482 (mean_axle_fz_N=11226.5, rms=5853.2N).
+nis_gate health_score=0.1320 (pass, vs old 0.1274). mu_plausibility:
+front TRUE (1.3193, unchanged), rear FALSE (0.9385, still below the
+1.2 floor). See task 2 below for the Dubai-rear-specific re-read.
+
+v3 free-D: CHANGED, front B=8.521 C=1.888 D=8355.4 E=-0.518 (rms=
+3738.8N, was B=8.343 C=1.852 D=8377.8 E=-1.210, rms=3670.3N), rear
+B=8.371 C=2.007 D=9486.2 E=-1.381 (rms=6805.0N, was B=8.006 C=1.983
+D=9559.9 E=-2.216, rms=6704.5N); status=marginal (unchanged), nis_gate
+health_score=0.0985 (was 0.0849). NOT the Fz-independent behaviour
+Dubai showed above -- v3's free-D numbers moved on BOTH axles despite
+free-D's own formula never reading Fz. Most likely mechanism, offered
+not separately verified this session (would need a dedicated mass-fit
+comparison, out of this package's cost cap): the joint mass+aero
+double-count fix changes v3's own fitted SESSION MASS, which feeds
+Fy=m*ay upstream of both the free-D fit (via Fy) and Fz (via wheel_
+loads) -- so "free-D is Fz-independent" is true of the FORMULA but not
+of the full pipeline on a session whose own mass fit changed. Flagged
+as an open observation, not chased further here.
+
+v3 mu: front B=7.801 C=1.935 D=8722.9 E=-1.211 mu=1.4443 (mean_axle_
+fz_N=6039.7, rms=3728.5N), vs old B=7.827 C=1.875 D=8603.8 E=-1.220
+mu=1.1603 (mean_axle_fz_N=7415.0, rms=3756.9N) -- mu +24.5%, mean_fz
+-18.6%. rear B=6.074 C=1.941 D=11624.0 E=-6.799 mu=1.1389 (mean_axle_
+fz_N=10206.5, rms=6944.2N), vs old B=5.977 C=1.925 D=11603.5 E=-7.789
+mu=1.1461 (mean_axle_fz_N=10124.5, rms=6826.1N) -- mu -0.6%, mean_fz
++0.8%, essentially flat. nis_gate health_score=0.0851 (was 0.0859,
+essentially unchanged). mu_plausibility: front NOW TRUE (1.4443, was
+FALSE at 1.1603 -- crossed into the [1.2, 2.0] band), rear still FALSE
+(1.1389, was 1.1461 -- still just below 1.2).
+
+STOP CONDITION, re-checked: 2 of 4 axle/session combinations still
+implausible (Dubai rear 0.9385, v3 rear 1.1389) -- still fires the
+original work order's own "outside = STOP" instruction, so Phase 3
+(the bounded refit loop under mu, already separately CLOSED as non-
+convergent on both sessions, thesis_notes.md "Fz-integration Phase 3")
+remains correctly out of scope; not reopened by this package, which is
+diagnostic-only per its own explicit instruction. IMPROVED from the
+original 3-of-4 count: v3 front is the one combination that flipped
+plausible.
+
+TASK 2 -- THE TWO FLAGGED-WEAK CASES, explicit re-read:
+
+Dubai rear (was 0.8482 on the reconstructed-RR proxy): now 0.9385,
++10.6%, mean_axle_fz_N down 11226.5->10310.6N (-8.2%). SHARPENS, does
+not resolve: still below the 1.2 plausibility floor, and still resting
+on the SAME reconstructed-RR proxy as before (Dubai's own RR travel
+pot is dead for the entire session, thesis_notes.md "Fz-integration
+Phase 1: premise correction..." -- unaffected by this package, which
+fixed v3's FR and the double-count bug, neither of which touches
+Dubai's own reconstruction). The joint mass+aero double-count fix
+improved the RECONSTRUCTION MODEL feeding that proxy (lower Fz, mu
+closer to plausible), but the proxy-vs-direct-measurement gap itself
+is untouched -- expected, not a surprise, and consistent with the
+original flag's own reasoning.
+
+v3 rear (the legitimate load effect): mu 1.1461->1.1389 (-0.6%),
+mean_axle_fz_N 10124.5->10206.5 (+0.8%) -- ESSENTIALLY FLAT, neither
+sharpens nor softens. Physically expected: FR is a FRONT-right corner,
+so fixing its channel should move FRONT Fz (it did, -18.6% mean_fz
+above), not REAR -- v3 rear staying flat under a front-axle-specific
+fix is an internal-consistency check passing, not a null result. The
+"LEGITIMATE LOAD EFFECT" conclusion itself (thesis_notes.md "v3 rear
+divergence dig...") reproduces on the corrected inputs -- see task 4.
+
+TASK 3 -- CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py,
+D_freeD/median_Fz vs joint mu, re-run on clean inputs, reuses the
+freshly-saved fz_mu_tyre_fit_results.json, no EKF re-run):
+
+    session  axle    D_freeD   median_Fz  mu_check  mu_joint   diff
+    dubai    front    8184.0     6107.1     1.3401    1.3193   -1.55%
+    dubai    rear     9213.6    10375.3     0.8880    0.9385   +5.68%
+    v3       front    8355.4     6015.6     1.3890    1.4443   +3.98%
+    v3       rear     9486.2    10190.9     0.9308    1.1389  +22.35%
+
+(old, for reference: dubai front -1.55%, dubai rear +5.83%, v3 front
++0.97%, v3 rear +20.76%.) PATTERN REPRODUCES: front stays tight on both
+sessions (Dubai -1.55% unchanged; v3 +3.98%, larger than the old
++0.97% but still an order of magnitude below the rear divergences).
+Dubai rear stays moderate (+5.68%, essentially the same size as
+before, +5.83%). v3 rear remains by far the largest divergence
+(+22.35%, essentially the same size as before, +20.76%) -- 4-6x every
+other pair, exactly reproducing the original "front tight, rear
+load-coupled, v3 rear the standout" pattern on inputs where the two
+known confounds (FR reconstruction, double-count) are now fixed. This
+is direct evidence the v3 rear divergence was never an artifact of
+either bug (neither touches v3's rear axle specifically) -- it
+survives their fix essentially unchanged in magnitude.
+
+TASK 4 -- FIGURE, regenerated on clean inputs (diagnostics/inspect_fz_
+mu_v3_rear_divergence.py, PRINT theme, same script/output location as
+the original -- diagnostics/plots_fz_integration/v3/fz_mu_v3_{front,
+rear}_tyre_cloud.png -- reused rather than a new plots_mu_refit/
+directory, per the diagnostics [keep-reproduces] reuse convention
+rather than the work order's own suggested-but-not-mandatory path
+name). Numbers: diagnostics/fz_mu_v3_rear_divergence_numbers.json.
+
+REAR corr(Fz,|alpha|)=-0.4699, corr(Fz,|Fy|)=-0.5330 (was -0.4355/
+-0.4547) -- FRONT corr(Fz,|alpha|)=-0.2150, corr(Fz,|Fy|)=-0.2241 (was
+-0.1491/-0.2772). Rear's magnitude is still 2.2-2.4x front's (was
+1.6-2.9x) -- same qualitative ordering, matching which axle shows the
+larger cross-check divergence, reproduced. Tercile RMS: REAR free-D
+7397/7651/5066N vs mu 7718/7659/5143N (mu 21-320N worse in every bin,
+same "uniform, no bin exploited at another's expense" signature as
+before). FRONT free-D 4490/3377/3220N vs mu 4525/3369/3144N (small,
+mixed-sign, same tight-control pattern as before). CONCLUSION
+REPRODUCES: LEGITIMATE LOAD EFFECT, not fit artifact -- every check
+(correlation-magnitude ordering, tercile-residual uniformity) that
+supported this on the original, confound-affected inputs supports it
+again on the corrected ones, essentially number-for-number.
+
+OVERALL: the mu load-normalised fit's central finding -- rear axles
+run a lower effective mu than front at this car's own dynamic load
+levels, consistent with ordinary tyre load sensitivity, most cleanly
+evidenced on v3 rear -- is CONFIRMED on clean inputs, not an artifact
+of the two now-fixed confounds. The plausibility-band stop condition
+is IMPROVED (3-of-4 -> 2-of-4 implausible, v3 front now plausible) but
+still fires; Phase 3 (refit loop) stays correctly closed/out of scope.
+mu mode remains config-gated OFF in production (load_normalised_fit_
+enabled=false) -- this package changes no default and ships nothing;
+still a diagnostic-only, validated load-sensitivity finding, per the
+standing PLAN.md BACKLOG note.
+
+No config/production change. No commit made -- stop before commit,
+per the work order's own explicit instruction and CLAUDE.md's standing
+rule that the user runs git.

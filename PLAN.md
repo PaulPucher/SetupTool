@@ -2064,6 +2064,55 @@ G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
     a measured-load-informed Fy split method; the proposal itself,
     reviewed before implementation; CS threshold re-derivation as part
     of the same package, not a follow-up.
+H - PROPOSAL-FIRST (named 2026-09-20, literature-bridge work package
+    coverage-check finding): generic per-lever candidate-bridge
+    mechanism. That package's own coverage check (config/decision_
+    frame.json interaction_table entries vs modules/decision_frame.py
+    candidate generation, thesis_notes.md "Literature-bridge work
+    package...") found that an interaction_table entry NEVER generates
+    a candidate on its own -- it only ever adjusts another candidate's
+    score (_interaction_penalty). Candidates come from exactly three
+    sources: the exit-oversteer hardcoded bridge, the brake-balance
+    plausibility bridge, and the generic 39-rule matrix bridge
+    (_bridge_candidates_for_matrix_rules). Two lever families that
+    already carry literature-anchored (Segers ch.9/10) interaction_
+    table entries have NO matching candidate-generating bridge in one
+    or both directions, so they can never actually be suggested as an
+    action: springs_front (zero candidate bridge, either direction --
+    interaction_table entries only) and springs_rear (only "soften" has
+    a bridge, hardcoded in _exit_oversteer_candidates; "stiffen" has
+    none). camber_rl/rr carry the identical gap (interaction-table-
+    only, user-elicited grade, not Segers) but are not in this
+    proposal's stated scope. PROPOSAL: a generic, config-driven
+    candidate-bridge mechanism -- one new config/decision_frame.json
+    block (e.g. lever_bridges) listing, per non-matrix lever: lever
+    family, the verdict pattern it responds to (verdict + phase-scope,
+    reusing the SAME vocabulary matrix_verdict/corner_verdict evidence
+    already uses), direction, and grade -- consumed by ONE new
+    generic candidate-generation function in modules/decision_frame.py,
+    the same way _bridge_candidates_for_matrix_rules already turns
+    config/recommendations.json rows into candidates generically,
+    rather than adding a new hardcoded per-lever function (matching
+    _exit_oversteer_candidates's springs_rear_soften entry) for every
+    lever this pattern is extended to. Tier B (candidate-generation
+    plumbing, not a vehicle-dynamics method change -- the underlying
+    Segers roll-stiffness claim is already anchored and reviewed via
+    the existing interaction_table entries; this proposal only decides
+    HOW an already-approved bridge becomes a visible candidate).
+    Springs_front/rear are the immediate beneficiaries; camber_rl/rr
+    named as a likely second consumer once the mechanism exists, not
+    implemented alongside it. ACCEPTANCE TEST (named per the work
+    order): springs_rear "stiffen" appears as an advisory ("proposed")
+    candidate on a synthetic entry-oversteer case (a corner/phase with
+    understeer_tendency-relevant evidence firing, mirroring the shape
+    of the existing springs_rear_soften/exit_oversteer test but for the
+    stiffen direction and an understeer-adjacent scenario) -- currently
+    IMPOSSIBLE to write, since no code path produces that candidate at
+    all; passing it is the acceptance criterion for this package.
+    Natural next small package once the current literature-bridge
+    package commits. DO NOT IMPLEMENT before this proposal is reviewed
+    -- new module logic, out of the current (config+docs+tests-only)
+    package's own explicit scope.
 
 ### PARKED (decided, not forgotten)
 Verdict-stability annotation (STABLE / MARGINAL) -- IMPLEMENTED 2026-09-19
@@ -2255,6 +2304,108 @@ population needs its own further investigation (e.g. explicitly
 separating known-traction-limited corners like C3 from the rest) before
 anchoring a threshold against it. Full record: thesis_notes.md "Metrology
 extension Phase 2: LS_ratio validity repair".
+CO-OCCURRENCE VERDICT, resolving the open decision above (2026-09-20,
+branch ls-evidence, read-only science, diagnostics/inspect_ls_negative_
+cooccurrence.py, [keep-reproduces]): every corner-phase-axle instance
+whose repaired worst-lap LS_ratio is negative (71 total, both sessions)
+censused against corroborating signal in its own worst-lap's own phase
+window -- brake pressure/throttle, ABS duty, TC duty (ecu_B_tc_act),
+|ax| vs the 1.0 m/s^2 display-mask reference line, and repeatability
+across the corner's own other laps. CORROBORATED = ABS or TC fires, or
+high demand AND repeatable across laps; UNCORROBORATED = no ABS/TC AND
+(low demand OR a one-off, non-repeating reading). POOLED: 36/71 (51%)
+CORROBORATED, 35/71 (49%) UNCORROBORATED, 0 MIXED -- every single
+instance sits above the 1.0 m/s^2 demand line (no low-demand/cruise
+contamination at all), so the split reduces entirely to ABS/TC activity
+vs repeatability.
+VERDICT: MIXED, case (c) -- NOT a clean sign-off, NOT a clean rejection,
+but the split is NOT random: it is cleanly EXPLAINED by phase type, not
+axle. BRAKING phase: 8/9 (89%) corroborated (front braking 4/4, rear
+braking 4/5) -- ABS activity co-occurs strongly, exactly the "ABS
+regulating IS the car at the slip peak" signature the work order named.
+OTHER (turn-in/apex, real trail-braking territory): 13/18 (72%)
+corroborated. EXIT phase: only 15/44 (34%) corroborated (front exit 5/22
+= 23%, rear exit 10/22 = 45%). THE DISCRIMINATING FACTOR, named not just
+observed: TC (the natural exit/traction corroborator) is ALREADY
+recorded as firing on only 3 samples in v3's entire session (thesis_
+notes.md "Frame-Stage-2 Phase 2: intervention-channel survey", 0.0044%
+activity, reconfirmed this session on both files) -- exit-phase
+instances are structurally unable to be TC-corroborated THIS session,
+regardless of whether the underlying LS signal is genuine. "Uncorrob-
+orated" at exit therefore reads more as an EVIDENCE GAP (no channel
+available to confirm OR deny) than a demonstrated absence of real
+signal -- confirmed directly, not just argued: Dubai's own C3 (the
+project's independently-established genuine traction-limited corner,
+thesis_notes.md's C3 finding) IS corroborated in this census, via
+repeatability alone (exit_5, rear, LS=-0.329, repeat=4/4 laps, zero
+ABS/TC activity) -- proof that a real, already-confirmed genuine
+traction-limited event can and does get correctly recognised by this
+census even with zero TC support, validating repeatability as a working
+corroboration channel on exactly the case it needs to work on.
+Magnitude cross-check: CORROBORATED instances run larger on average
+(median |LS|=0.257) than UNCORROBORATED (median |LS|=0.115) -- a real,
+if imperfect, signal-vs-noise gradient in the same direction the
+question under test predicts.
+RECOMMENDATION (design note, not implementation, per the work order's
+own scope limit): do NOT sign off on STRONG_LSF=-0.79/STRONG_LSR=-0.60
+as flat, phase-blind thresholds. The braking/turn-in population
+(dominantly corroborated) supports treating a negative worst-phase
+value there as a real, trustworthy signal now. The exit population
+needs EITHER a session with genuine TC activity to close the evidence
+gap, OR a phase-conditioned confidence treatment reusing the frame's own
+existing MIN-confidence mechanism (e.g. an exit-phase LS confidence
+discount mirroring the ABS-masking cap's own reused-anchor pattern,
+Deepening Phase 4c) rather than a single unconditional threshold -- a
+genuine design option for whoever picks this up next, not built here.
+One figure: diagnostics/plots_ls_evidence/ls_negative_cooccurrence_
+census.png (by session, by phase type). Full record: thesis_notes.md
+"LS-evidence work package: negative-population co-occurrence census".
+SHIPPED 2026-09-20 (user + reviewer decision, branch ls-evidence,
+resolving the design option named just above): STRONG_LSF/LSR ship
+PHASE-SCOPED as a NEW frame-evidence source, config/decision_frame.json
+ls_threshold_evidence (NOT config/parameters.json's classification block
+-- still explicitly not a verdict tier). Braking/turn-in/apex: normal,
+uncapped repeat-fraction confidence. Exit: the SAME repeat-fraction
+confidence capped via min() at exit_phase_confidence_discount=0.5 (the
+exact design option this entry itself proposed, now implemented) --
+reuses intervention_evidence.abs.confidence's own 0.8-cap precedent, no
+new formula. modules/decision_frame.py gained _build_ls_threshold_
+evidence; 8 new targeted tests (tests/test_decision_frame.py, 46/46
+total passed including the real-Dubai end-to-end test); golden subset
+(not the full suite, per the work order) re-run once, confirmed outside
+the golden path both by code inspection and by the actual run. No
+config/parameters.json change; this is a frame-evidence-only, non-
+classification shipment. Full record: thesis_notes.md "LS threshold
+decision: SHIPPED, phase-scoped".
+LITERATURE-BRIDGE WORK PACKAGE (2026-09-20, same day, branch
+ls-evidence): the work order's own items 1-2 (roll-stiffness
+distribution bridges, ARB-vs-springs balance/platform split) turned
+out to be substantially ALREADY SHIPPED by Deepening Phase 4b
+(2026-09-18) -- the springs_front/rear Segers ch.9/10 interaction_
+table entries and the full bidirectional ARB/camber/diff_position/
+ride_height/tc_lon/toe_front matrix cross-references already existed;
+the work order over-specified against the accepted base, not a
+conflict with real code (resolved by user decision, this session).
+A coverage check (config interaction_table vs modules/decision_
+frame.py candidate generation) found the one place real work was
+hiding: an interaction_table entry NEVER generates a candidate on
+its own (see BACKLOG H below for the full finding and the resulting
+PROPOSAL). SHIPPED, config-only: ride_height_front/rear gained
+Segers ch.9/10 platform_stability interaction_table entries
+(4 entries, structurally inert like the springs ones -- no
+_AXIS_TO_VERDICT mapping for platform_stability yet), grounded in
+their own registry mechanism text ("aero platform height"). NOT
+shipped: springs_front/rear candidate-bridge coverage (needs module
+logic, out of this config-only package's scope -- see BACKLOG H,
+a new READY PROPOSAL); damper transient-phase bridges (item 3 --
+interaction_table has no phase field, listed PENDING SCHEMA SUPPORT,
+schema NOT extended, per the work order's own instruction). New
+proposed bridges (all four new entries, grade "proposed (Segers
+ch.9/10)") await engineer grading, same status as every other
+"proposed"-grade entry in this file -- advisory-capped, never a
+classification/severity input. Full record: thesis_notes.md
+"Literature-bridge work package: coverage check and ride-height
+platform bridges".
 CS_ratio verdict non-robustness to sub-1%-level mass corrections
 (Deepening Phase 1, 2026-09-18): v3's own front_fraction moved a tiny
 43.267%->43.361% (a real, legitimate corner-weight accuracy upgrade) and

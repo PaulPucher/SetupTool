@@ -257,6 +257,101 @@ def _build_ls_disambiguation_evidence(aggregated, aggregated_ls, corner_verdict_
     return evidence
 
 
+def _build_ls_threshold_evidence(aggregated_ls, by_corner_laps, config):
+    """LS threshold decision (2026-09-20, user + reviewer, resolving
+    PLAN.md PARKED "LS_ratio threshold proposal"): an ABSOLUTE-threshold
+    evidence source, independent of _build_ls_disambiguation_evidence's
+    own population-relative split above -- config/decision_frame.json's
+    own ls_threshold_evidence.STRONG_LSF/LSR (-0.79/-0.60, LS-evidence
+    work package census, thesis_notes.md "LS-evidence work package:
+    negative-population co-occurrence census") fire whenever a corner-
+    phase's own worst-lap LS_ratio_f/r crosses the threshold, on ANY
+    phase (not gated on an existing oversteer corner_verdict the way
+    ls_disambiguation is) -- STILL NOT a classification verdict tier:
+    config/parameters.json's own classification block is untouched, this
+    evidence never reaches _classify_corner/the UI's severity colour.
+
+    PHASE-CONDITIONED CONFIDENCE, per the census's own finding that phase
+    type (not axle) drives whether a negative reading corroborates:
+    confidence is the SAME repeat-fraction x valid-fraction formula
+    _build_corner_verdict_evidence already uses (no new formula) --
+    fraction of this corner's OWN other laps that also cross the
+    threshold at this phase, times fraction of laps with real signal.
+    For exit_4/exit_5 specifically, that confidence is additionally
+    capped via min() against ls_threshold_evidence.exit_phase_confidence_
+    discount (0.5) -- the SAME MIN-confidence-cap mechanism the ABS-
+    masking bridge and the MARGINAL-verdict cap already use, reusing
+    intervention_evidence.abs.confidence's own precedent rather than a
+    new formula. Repeatability across laps is what "lifts" a high-
+    repeatability exit reading UP TO that discount ceiling rather than
+    leaving it at whatever a low, unrepeated reading's own raw fraction
+    would give (the C3 pattern: exit_5 rear, repeat=4/4, corroborated in
+    the census via repeatability alone with zero TC activity) -- min()
+    never raises a value, so a one-off exit reading still reports its
+    own honestly-low fraction, never inflated to the discount.
+
+    Braking/turn-in/apex phases carry NO discount (89%/72% corroborated
+    in the census) -- their own repeat-fraction confidence is reported
+    as-is, uncapped.
+    """
+    ls_cfg = config.get("ls_threshold_evidence", {})
+    if not ls_cfg.get("enabled", False):
+        return []
+    strong_lsf = ls_cfg["STRONG_LSF"]
+    strong_lsr = ls_cfg["STRONG_LSR"]
+    exit_phases = tuple(ls_cfg.get("exit_phases", ("exit_4", "exit_5")))
+    braking_turnin_phases = tuple(ls_cfg.get("braking_turnin_phases",
+                                              ("entry_1_brake", "entry_2_turnin", "apex_3")))
+    exit_discount = ls_cfg["exit_phase_confidence_discount"]
+
+    evidence = []
+    for cid, phases in aggregated_ls.items():
+        for phase in braking_turnin_phases + exit_phases:
+            p = phases.get(phase)
+            if p is None:
+                continue
+            for axle, key, thresh, verdict in (
+                ("front", "ls_ratio_f", strong_lsf, "brake_limited"),
+                ("rear", "ls_ratio_r", strong_lsr, "traction_limited"),
+            ):
+                val = p.get(key)
+                if val is None or val != val or val >= thresh:
+                    continue
+
+                def _lap_crosses(lap_summary, phase=phase, key=key, thresh=thresh):
+                    lv_entry = lap_summary["phases"].get(phase, {}).get(key)
+                    lv = lv_entry.get("median") if isinstance(lv_entry, dict) else None
+                    return lv is not None and lv == lv and lv < thresh
+
+                repeat, total = _count_repeating(cid, by_corner_laps, _lap_crosses)
+                valid_laps = sum(
+                    1 for lap in by_corner_laps.get(cid, [])
+                    if lap["phases"].get(phase, {}).get("n_samples", 0) > 0
+                )
+                confidence = round(_fraction(repeat, total) * _fraction(valid_laps, total), 3)
+                is_exit = phase in exit_phases
+                if is_exit:
+                    confidence = min(confidence, exit_discount)
+
+                evidence.append({
+                    "type": "ls_threshold",
+                    "corner": cid,
+                    "phase": phase,
+                    "axle": axle,
+                    "verdict": verdict,
+                    "confidence": confidence,
+                    "phase_scope": "exit" if is_exit else "braking_turnin",
+                    "source": f"LS_ratio_{('f' if axle=='front' else 'r')}={val:.3f} < "
+                              f"{'STRONG_LSF' if axle=='front' else 'STRONG_LSR'}={thresh:.2f} "
+                              f"(LS-evidence census, thesis_notes.md 'LS-evidence work package'); "
+                              f"repeats on {repeat}/{total} laps, signal on {valid_laps}/{total} laps"
+                              + (f"; exit-phase confidence capped at {exit_discount} "
+                                 f"(TC corroboration structurally unavailable this session, "
+                                 f"34% corroborated in the census)" if is_exit else ""),
+                })
+    return evidence
+
+
 def _build_brake_balance_evidence(aggregated, by_corner_laps, config):
     # Source (c): front axle beyond its own limit while rear stays healthy
     # during braking (config/decision_frame.json plausibility_checks.
@@ -691,6 +786,14 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
     optional, default None -- when supplied, adds driver_feedback evidence
     items (see _build_driver_feedback_evidence); generate_candidates then
     attaches matching items to existing candidates' evidence_refs.
+
+    LS threshold decision (2026-09-20): (g) ls_threshold, config-gated
+    (decision_frame.json ls_threshold_evidence.enabled), an ABSOLUTE-
+    threshold evidence source independent of (b) -- see _build_ls_
+    threshold_evidence for the phase-conditioned confidence treatment
+    (braking/turn-in uncapped, exit-phase capped via the existing MIN-
+    confidence mechanism). NOT a classification verdict tier -- config/
+    parameters.json's classification block is untouched by this source.
     """
     aggregated = aggregate_by_corner(summaries)
     by_corner_laps = _group_by_corner(summaries)
@@ -703,6 +806,7 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
     )
     evidence += _build_brake_balance_evidence(aggregated, by_corner_laps, config)
     evidence += _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs, config)
+    evidence += _build_ls_threshold_evidence(ls_stats, by_corner_laps, config)
 
     # Deepening Phase 4c (2026-09-18, user decision): ABS/TC now gate
     # independently -- ABS defaults ON (Phase 3 resolved the trusted

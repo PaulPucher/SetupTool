@@ -575,3 +575,16 @@ kept because a surviving script imports it, not for its own findings.
   routing" and "C3's own traction-limited signature" are different
   checks, not one). Re-run whenever the LS estimator or the frame's own
   ls_disambiguation evidence source changes.
+- **inspect_ls_negative_cooccurrence.py** `[keep-reproduces]` -- LS-
+  evidence work package (2026-09-20, thesis_notes.md "LS-evidence work
+  package: negative-population co-occurrence census"). Censuses every
+  negative repaired-LS worst-phase instance (both sessions) against
+  brake/throttle/ABS/TC/|ax| and cross-lap repeatability in its own
+  worst-lap's own phase window -- the load-bearing provenance for
+  PLAN.md's own LS_ratio threshold-proposal verdict (MIXED, phase-
+  conditioned: braking/turn-in corroborated, exit uncorroborated because
+  TC is session-silent, not because the signal is shown false). Cheap
+  (CS/stability deliberately not computed, unused by this script). Re-
+  run if the LS estimator changes again, or a session with real TC
+  activity becomes available to close the exit-phase evidence gap named
+  here.

@@ -44,11 +44,12 @@ def _stat(median, n=50):
 
 def _make_summary(lap_number, stable_corner_id, speed_class,
                    csf_by_phase=None, csr_by_phase=None, n_samples_by_phase=None,
-                   ls_r_by_phase=None):
+                   ls_r_by_phase=None, ls_f_by_phase=None):
     csf_by_phase = csf_by_phase or {}
     csr_by_phase = csr_by_phase or {}
     n_samples_by_phase = n_samples_by_phase or {}
     ls_r_by_phase = ls_r_by_phase or {}
+    ls_f_by_phase = ls_f_by_phase or {}
     phases = {}
     for phase in PHASE_KEYS:
         n = n_samples_by_phase.get(phase, 50)
@@ -69,9 +70,9 @@ def _make_summary(lap_number, stable_corner_id, speed_class,
                 "cs_ratio_r": _stat(csr_by_phase.get(phase, 1.0), n),
                 "stability_observed_Nm_per_deg": _stat(500.0, n),
             }
-        if phase in ls_r_by_phase:
-            entry["ls_ratio_f"] = _stat(1.0, n)
-            entry["ls_ratio_r"] = _stat(ls_r_by_phase[phase], n)
+        if phase in ls_r_by_phase or phase in ls_f_by_phase:
+            entry["ls_ratio_f"] = _stat(ls_f_by_phase.get(phase, 1.0), n)
+            entry["ls_ratio_r"] = _stat(ls_r_by_phase.get(phase, 1.0), n)
         phases[phase] = entry
     return {
         "lap_number": lap_number,
@@ -717,6 +718,138 @@ def test_matrix_verdict_evidence_marginal_also_caps_confidence():
     assert all(e["confidence"] == pytest.approx(cap) for e in matches)
 
 
+# --- LS threshold decision (2026-09-20, user + reviewer) -------------------
+# ls_threshold_evidence: an ABSOLUTE-threshold evidence source, independent
+# of ls_disambiguation's own population-relative split, phase-conditioned
+# confidence (braking/turn-in uncapped, exit-phase capped via the existing
+# MIN-confidence mechanism). See modules/decision_frame.py's own
+# _build_ls_threshold_evidence docstring and config/decision_frame.json's
+# ls_threshold_evidence block for the full derivation/reopen-condition text.
+
+def test_ls_threshold_evidence_fires_braking_uncapped():
+    # STRONG_LSR=-0.60 in the real config -- entry_1_brake, rear, -0.70
+    # crosses it on all 3 laps -> repeat=3/3, valid=3/3 -> confidence=1.0,
+    # UNCAPPED (braking is not in exit_phases).
+    config = load_decision_frame_config()
+    summaries = [
+        _make_summary(lap, 20, "medium", ls_r_by_phase={"entry_1_brake": -0.70})
+        for lap in range(1, 4)
+    ]
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 20]
+    assert matches
+    assert matches[0]["phase"] == "entry_1_brake"
+    assert matches[0]["axle"] == "rear"
+    assert matches[0]["verdict"] == "traction_limited"
+    assert matches[0]["phase_scope"] == "braking_turnin"
+    assert matches[0]["confidence"] == pytest.approx(1.0)
+
+
+def test_ls_threshold_evidence_exit_phase_confidence_capped():
+    # Same fully-repeatable (3/3) crossing, but at exit_4 -- the raw
+    # repeat-fraction confidence (1.0) must be capped down to the config's
+    # own exit_phase_confidence_discount (0.5), not reported as 1.0.
+    config = load_decision_frame_config()
+    discount = config["ls_threshold_evidence"]["exit_phase_confidence_discount"]
+    summaries = [
+        _make_summary(lap, 21, "medium", ls_r_by_phase={"exit_4": -0.70})
+        for lap in range(1, 4)
+    ]
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 21]
+    assert matches
+    assert matches[0]["phase_scope"] == "exit"
+    assert matches[0]["confidence"] == pytest.approx(discount)
+
+
+def test_ls_threshold_evidence_exit_phase_low_repeatability_not_inflated():
+    # A one-off exit crossing (1 of 3 laps) must report its own honestly-low
+    # fraction, never inflated UP to the discount ceiling -- min() can only
+    # lower a value, never raise one.
+    config = load_decision_frame_config()
+    discount = config["ls_threshold_evidence"]["exit_phase_confidence_discount"]
+    summaries = [_make_summary(lap, 22, "medium") for lap in range(1, 4)]
+    summaries[0]["phases"]["exit_5"]["ls_ratio_r"] = _stat(-0.70, 50)
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 22]
+    assert matches
+    raw_fraction = 1 / 3
+    assert matches[0]["confidence"] == pytest.approx(round(raw_fraction * 1.0, 3))
+    assert matches[0]["confidence"] < discount
+
+
+def test_ls_threshold_evidence_reproduces_c3_repeatability_pattern():
+    # The census's own "C3 pattern": exit phase, fully repeatable (here
+    # 4/4, matching C3's own real repeat count), zero ABS/TC involved in
+    # this evidence source at all (it never reads those channels) --
+    # repeatability alone lifts confidence UP TO the exit discount ceiling,
+    # not left at some lower ad-hoc value.
+    config = load_decision_frame_config()
+    discount = config["ls_threshold_evidence"]["exit_phase_confidence_discount"]
+    summaries = [
+        _make_summary(lap, 3, "medium", ls_r_by_phase={"exit_5": -0.65})
+        for lap in range(1, 5)
+    ]
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 3
+               and e["phase"] == "exit_5"]
+    assert matches
+    assert matches[0]["confidence"] == pytest.approx(discount)
+
+
+def test_ls_threshold_evidence_absent_when_value_above_threshold():
+    config = load_decision_frame_config()
+    summaries = [
+        _make_summary(lap, 23, "medium", ls_r_by_phase={"entry_1_brake": -0.10})
+        for lap in range(1, 4)
+    ]  # -0.10 does not cross STRONG_LSR=-0.60
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 23]
+    assert not matches
+
+
+def test_ls_threshold_evidence_absent_when_disabled():
+    config = copy.deepcopy(load_decision_frame_config())
+    config["ls_threshold_evidence"]["enabled"] = False
+    summaries = [
+        _make_summary(lap, 24, "medium", ls_r_by_phase={"entry_1_brake": -0.70})
+        for lap in range(1, 4)
+    ]
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    assert not [e for e in evidence if e["type"] == "ls_threshold"]
+
+
+def test_ls_threshold_evidence_front_axle_verdict_is_brake_limited():
+    config = load_decision_frame_config()
+    summaries = [
+        _make_summary(lap, 25, "medium", ls_f_by_phase={"entry_1_brake": -0.90})
+        for lap in range(1, 4)
+    ]  # -0.90 crosses STRONG_LSF=-0.79
+    ls_stats = aggregate_ls_by_corner(summaries)
+    evidence = build_evidence(summaries, ls_stats, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "ls_threshold" and e["corner"] == 25]
+    assert matches
+    assert matches[0]["axle"] == "front"
+    assert matches[0]["verdict"] == "brake_limited"
+    assert matches[0]["phase_scope"] == "braking_turnin"
+
+
+def test_ls_threshold_evidence_config_values_match_the_ls_evidence_census():
+    config = load_decision_frame_config()
+    ls_cfg = config["ls_threshold_evidence"]
+    assert ls_cfg["STRONG_LSF"] == pytest.approx(-0.79)
+    assert ls_cfg["STRONG_LSR"] == pytest.approx(-0.60)
+    assert ls_cfg["exit_phase_confidence_discount"] == pytest.approx(0.5)
+    assert set(ls_cfg["exit_phases"]) == {"exit_4", "exit_5"}
+    assert set(ls_cfg["braking_turnin_phases"]) == {"entry_1_brake", "entry_2_turnin", "apex_3"}
+
+
 # --- Conflict resolver -----------------------------------------------------
 
 def _shortlist_candidate(cid, corner, phase, parameter, direction, verdict, severity,
@@ -798,3 +931,83 @@ def test_resolve_conflicts_never_removes_candidates():
     result = resolve_conflicts(shortlist)
     assert len(result) == 2
     assert {c["id"] for c in result} == {"entry", "exit"}
+
+
+# ==========================================================================
+# Literature-bridge work package (2026-09-20): ride_height platform_
+# stability entries (Segers ch.9/10, coverage-check follow-up to Deepening
+# Phase 4b's springs entries). Config-only addition -- these tests confirm
+# the two guarantees the work order requires: (1) grade never exceeds
+# advisory ("proposed"-family, never derived-from-matrix/engineer-verbatim,
+# so nothing above ADVISORY output can result), and (2) the new entries are
+# provably inert on real scoring output (platform_stability has no
+# _AXIS_TO_VERDICT mapping) -- proving candidate/shortlist identity and
+# scores are byte-stable by construction, not just by a single sampled run.
+# ==========================================================================
+
+_MATRIX_ELIGIBLE_GRADES = {"derived-from-matrix", "engineer-verbatim", "project-lead-reviewed"}
+
+
+def test_literature_bridge_grades_never_exceed_advisory():
+    config = load_decision_frame_config()
+    new_entries = [e for e in config["interaction_table"]
+                   if e["parameter"] in ("ride_height_front", "ride_height_rear")
+                   and e["performance_axis"] == "platform_stability"]
+    assert len(new_entries) == 4  # front/rear x increase/decrease
+    for e in new_entries:
+        assert e["grade"] == "proposed (Segers ch.9/10)"
+        assert e["grade"] not in _MATRIX_ELIGIBLE_GRADES
+        assert e["sign"] == -1
+        assert {"decrease", "increase"} == {
+            x["direction"] for x in new_entries if x["parameter"] == e["parameter"]
+        }
+
+
+def test_ride_height_platform_entries_never_contribute_a_penalty():
+    # NOT the same claim as "ride_height's total interaction_penalty is
+    # always 0" -- ride_height_front/rear already carry PRE-EXISTING
+    # derived-from-matrix entries on understeer_tendency/yaw_stability
+    # (real, active axes; Deepening Phase 4b), so a scenario with both an
+    # understeer and an unstable_yaw problem active DOES legitimately
+    # score a nonzero penalty via THOSE entries -- confirmed below, not
+    # papered over. The narrower, correct claim: the platform_stability
+    # entries added by this package never contribute to that penalty or
+    # its notes, regardless of what else is active, because
+    # _AXIS_TO_VERDICT has no mapping for platform_stability at all (a
+    # structural guarantee, not a scenario-dependent one).
+    config = load_decision_frame_config()
+    own_evidence = {"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+                     "verdict": "oversteer", "severity": "moderate", "confidence": 0.5, "source": "test"}
+    other_active = [
+        {"type": "corner_verdict", "corner": 4, "phase": "entry_2_turnin", "verdict": "understeer",
+         "severity": "moderate", "confidence": 0.5, "source": "test"},
+        {"type": "matrix_verdict", "corner": 4, "phases": ("entry_1_brake",), "verdict": "unstable_yaw",
+         "severity": "strong", "confidence": 0.5, "source": "test"},
+    ]
+    saw_nonzero_penalty = False
+    for param in ("ride_height_front", "ride_height_rear"):
+        for direction in ("increase", "decrease"):
+            candidate = _dummy_candidate(param=param, direction=direction,
+                                          evidence_refs=[own_evidence])
+            result = score(candidate, [own_evidence] + other_active, None, config)
+            if result["components"]["interaction_penalty"] != 0.0:
+                saw_nonzero_penalty = True
+            assert not any("platform_stability" in note for note in result["interaction_notes"])
+    # Confirms the scenario was a real exercise of ride_height's existing
+    # entries, not an accidentally-inert setup that would make the
+    # assertion above trivially true.
+    assert saw_nonzero_penalty
+
+
+def test_decision_frame_config_still_validates():
+    # Config-schema regression check, per the work order's own VERIFY step
+    # -- the file must still load cleanly and every interaction_table entry
+    # must carry the required fields with a legal grade string, not just
+    # the four new ones checked above.
+    config = load_decision_frame_config()
+    required_keys = {"parameter", "direction", "performance_axis", "sign", "grade", "note"}
+    legal_grades = {"derived-from-matrix", "proposed", "proposed (Segers ch.9/10)"}
+    for e in config["interaction_table"]:
+        assert required_keys <= e.keys()
+        assert e["grade"] in legal_grades
+        assert e["sign"] in (1, -1)
