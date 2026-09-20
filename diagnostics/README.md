@@ -487,3 +487,91 @@ kept because a surviving script imports it, not for its own findings.
   claim -- re-run whenever config/recommendations.json's rules or modules/
   decision_frame.py's bridge logic change, to re-verify parity still
   holds.
+- **inspect_deepening_phase1_ripple.py** `[keep-reproduces]` — Deepening
+  Phase 1 (2026-09-18, thesis_notes.md "Deepening Phase 1: per-outing
+  corner weights..."). Reconstructs v3's OLD stored corner weighing (from
+  the pre-edit DB census, since the DB write already happened) and runs
+  the real production chain (resolve_accuracy -> apply_resolved_vehicle
+  -> Modules 1-5, cap=None) old-vs-new -- the tool that found the 4
+  verdict flips this phase's own STOP condition is built on, and traced
+  them to CS_ratio's own window-floor sensitivity rather than a fit-chain
+  divergence. Re-run if the mass/corner-weight mechanism or that
+  sensitivity thread reopens.
+- **inspect_deepening_phase2_fr_correction.py** `[keep-reproduces]` —
+  Deepening Phase 2 (2026-09-18, thesis_notes.md "Deepening Phase 2: FR
+  gauge decoding correction, SHIPPED"). The load-bearing acceptance-chain
+  validation for the shipped config/channels.json channel_corrections
+  entry -- injects a candidate-corrected log_dms_dam_fr into the real
+  modules.wheel_loads decomposition and checks straight-line total load,
+  transfer correlations, front L/R consistency against the real outing
+  weighing, and fuel drift. Re-run if the correction is ever revisited or
+  a new session's own log_dms_dam_fr needs the same test.
+- **inspect_deepening_phase4e_ls_thresholds.py** `[keep-reproduces]` —
+  Deepening Phase 4e (2026-09-18, thesis_notes.md "Deepening Phase 4e: LS_
+  ratio threshold groundwork"). Worst-phase/worst-lap LS_ratio_f/r
+  distribution on both real sessions, the tool that found the SAME
+  wholesale-negative pattern CS_ratio itself showed before its own
+  validity repair -- the load-bearing provenance for the PARKED "LS_ratio
+  threshold proposal, BLOCKED on its own validity repair" item. Re-run
+  once an LS_ratio validity-repair pass (mirroring CS_ratio's own) lands.
+- **inspect_deepening_phase4f_before_after.py** `[keep-reproduces]` —
+  Deepening Phase 4f (2026-09-18). Dynamically execs modules/decision_
+  frame.py's own git-HEAD content against a git-HEAD copy of its config,
+  never touching the real working tree, to diff shortlist output before/
+  after a decision-frame change on real data -- a reusable technique
+  (not specific to this one comparison), kept for whenever a future
+  decision-frame change needs the same before/after check without
+  stashing real uncommitted work.
+- **inspect_metrology_phase1_sensitivity.py** `[keep-reproduces]` —
+  Metrology Phase 1 (2026-09-19, thesis_notes.md "Metrology Phase 1:
+  verdict sensitivity map"). The "big compute": perturbs each of 5
+  Level-1/2 scalar vehicle inputs +/-1% on both real sessions and
+  re-runs the full production chain (22 pipeline runs, ~38 min via a
+  6-way process pool), saving per-task results to diagnostics/
+  results_metrology/*.json. The load-bearing provenance for the PARKED
+  "Verdict-stability annotation" proposal's own anchor constant. Re-run
+  if a future estimator change needs the sensitivity map redone, or to
+  extend the input set.
+- **inspect_metrology_phase1_analysis.py** `[keep-reproduces]` —
+  companion to the above: post-processes the saved JSON results (no
+  pipeline re-run, seconds) into the flip census, the pre-registration
+  threshold-distance check, the margin table, and the CS_ratio margin-
+  distribution figures. Re-run whenever results_metrology/ is
+  regenerated.
+- **inspect_metrology_phase1_corner_map.py** `[keep-reproduces]` —
+  companion figure generator: GPS is invalid on both real sessions
+  (censused directly, not assumed), so the corner-sequence figure uses
+  each corner's own lap-distance position instead of a true 2-D map,
+  explicitly labelled as a proxy. Re-run alongside the analysis script.
+- **inspect_metrology_phase3_rear_residual.py** `[keep-reproduces]` —
+  Metrology Phase 3 (2026-09-19, thesis_notes.md "Metrology Phase 3:
+  rear axle-total residual decomposition"). Decomposes the v3/Dubai
+  straight-line Fz residual (measured vs the outing's own real
+  weighing) against BACKLOG item B's three candidate mechanisms --
+  the load-bearing provenance for that BACKLOG item's own updated
+  finding (aero split confirmed, geometric transfer ruled out, motion-
+  ratio region narrowed). Cheap (no fitting), re-run whenever the
+  wheel-load chain or the aero-split placeholder is revisited.
+- **inspect_ls_window_floor_derivation.py** `[keep-reproduces]` --
+  Metrology extension Phase 2a (2026-09-19, thesis_notes.md "Metrology
+  extension Phase 2: LS_ratio validity repair"). Bootstrap-resampled
+  phase-median-stability window-floor derivation for LS_ratio, applying
+  CS_ratio's own Phase 1 REVISION method to real kappa/Fx on both
+  sessions -- the load-bearing provenance for config/parameters.json's
+  own longitudinal_stiffness.min_window_s/min_window_samples_floor/
+  min_slip_span. Re-run if this car's own kappa/Fx noise characteristics
+  change materially (new track, new tyre) or a third session becomes
+  available.
+- **inspect_ls_max_window_locality_sizing.py** `[keep-reproduces]` --
+  companion to the above: natural (uncapped) window footprint under the
+  chosen floors, real track distance via s_m, demand-population samples
+  only -- the load-bearing provenance for max_window_m=900. Re-run
+  alongside the floor-derivation script if the floors themselves change.
+- **inspect_ls_repair_frame_verification.py** `[keep-reproduces]` --
+  Metrology extension Phase 2g. Verifies modules.decision_frame's
+  ls_disambiguation evidence and Dubai C3's own raw LS_ratio signature
+  under the repaired estimator -- found and recorded a real premise
+  correction (C3 is not an exit-oversteer corner, so the "exit-oversteer
+  routing" and "C3's own traction-limited signature" are different
+  checks, not one). Re-run whenever the LS estimator or the frame's own
+  ls_disambiguation evidence source changes.

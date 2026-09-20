@@ -162,6 +162,17 @@ def parse_csv(file_path):
     # Build result with quality flags
     channels_config = config["channels"]
     quality_gates = config["channel_quality_gates"]
+    # Deepening Phase 2 (2026-09-18): decoding corrections for a specific
+    # channel/session's own known-corrupted raw signal (e.g. GT3_PRC_MLA-
+    # v3.txt's log_dms_dam_fr, thesis_notes.md "Deepening Phase 2: FR
+    # gauge decoding" -- a pure additive offset recovers real, correctly-
+    # signed signal). Evidence-gated by precondition_mean_range, never a
+    # blind unconditional patch: if THIS file's own raw mean for the
+    # channel does not sit inside the range the correction's own evidence
+    # was derived from, it is left untouched -- guards against silently
+    # mis-correcting a HEALTHY reading of the same channel name in a
+    # future, differently-faulted (or unfaulted) export.
+    corrections = config.get("channel_corrections", {})
     result_channels = {}
 
     for ch_name, ch_config in channels_config.items():
@@ -179,6 +190,12 @@ def parse_csv(file_path):
         raw = raw_channels[ch_name]
         time_arr = raw["time"]
         data_arr = raw["data"]
+
+        correction = corrections.get(ch_name)
+        if correction is not None and len(data_arr) > 0:
+            lo_pre, hi_pre = correction["precondition_mean_range"]
+            if lo_pre <= float(np.mean(data_arr)) <= hi_pre:
+                data_arr = data_arr + correction["offset"]
 
         if len(data_arr) == 0:
             quality = "failed"

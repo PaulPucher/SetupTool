@@ -1156,6 +1156,284 @@ WHERE THE PROJECT STANDS
   recommendations golden's own content is structurally incapable of
   having changed. git status NOT clean; NO COMMIT MADE -- stop before
   commit, per the work order.
+- DEEPENING PACKAGE COMPLETE, all 6 phases (2026-09-18, branch deepening
+  -- full per-phase detail in thesis_notes.md's own "Deepening Phase 1"
+  through "Phase 6" entries; this bullet compresses them). PHASE 1
+  (per-outing corner weights): the mechanism (setup-sheet FL/FR/RL/RR
+  weights -> Level 2 mass/front-fraction/CoG, cascading automatically
+  into Modules 1-5) ALREADY EXISTED, fully wired into production, since
+  commit 82bc49c -- the real work was a database census that overturned
+  the work order's own premise on BOTH outings (Dubai already had real
+  weights stored, front_fraction 43.56%, not the "42.8%" every prior
+  diagnostic's own deliberate setup_data=None convention had been
+  quoting as if it were live; v3 already had a different weighing plus
+  an explicit total_weight that would have silently overridden any new
+  entry) -- flagged to the user before writing anything (AskUserQuestion,
+  destructive DB writes to real setup-sheet data), then updated v3 to
+  the new weighing per the user's own decision, left Dubai untouched.
+  The MANDATORY RIPPLE CHECK hit its own pre-registered STOP: 4 of 85
+  corner-phase verdicts flipped on v3 despite a tiny (+0.094pp) front-
+  fraction change. Root-caused before reporting (fitted curve/beta both
+  shift smoothly <1.5%, no fit-chain divergence) to CS_ratio's own
+  already-documented window-floor sensitivity, newly shown triggerable
+  by a mass perturbation -- reported, user decided to KEEP the real
+  weighing and record the fragility as a standing limitation (PARKED,
+  new entry) rather than revert or fix it this package. New tests/
+  test_accuracy_resolution.py (13 tests, all pass) closes a real gap --
+  the Level-2 session-measurement branch had never been unit-tested
+  (every existing call site deliberately passes setup_data=None for
+  golden reproducibility).
+  PHASE 2 (FR gauge decoding correction): SHIPPED. The offset (raw+K,
+  no rescaling -- Phase 0's own forensics already ruled that out) was
+  anchored empirically against FL's own straight-line mean (now
+  possible with Phase 1's real weighing as an anchor) and validated
+  through the full wheel_loads.py decomposition -- straight-line total
+  matches the already-recorded aero-explained +11.64% finding closely,
+  transfer correlations strong and correctly signed, front L/R within
+  2-3% of the real weighing on both corners equally. Shipped as a new,
+  generic, EVIDENCE-GATED config/channels.json channel_corrections
+  mechanism (modules/csv_parser.py, applied before the quality/range
+  gate, only when a file's own raw mean matches the precondition range
+  a known corruption was derived from) -- Dubai's own healthy FR
+  channel confirmed byte-identical, untouched. FR is now damper-
+  measured, not reconstructed, on v3. An unplanned side-finding while
+  re-rendering the wheel-load showcase: the axle-total reconstruction
+  model's own residual is now visibly large and rear-biased (RR +22.8%)
+  now that all four corners are real -- flagged, not chased, likely the
+  same pre-existing roll-stiffness-apportionment gap (BACKLOG B)
+  becoming visible rather than a new problem.
+  PHASE 3 (ABS channel-mapping decision): log_abs_pos is now the
+  trusted ABS map-position channel (user decision), resolving the
+  cross-domain disagreement first found in the damper package --
+  RECONFIRMED to generalise across BOTH real sessions this phase (a
+  self-caught correction: an initial ad-hoc probe wrongly reported the
+  channel absent from Dubai due to a parsing-assumption bug in a
+  throwaway script, caught and fixed before it reached any record).
+  config/channels.json whitelists log_abs_pos; config/setup_parameters.
+  json's own abs_position registry entry, which has said "channel name
+  TBD" since 2026-07-26, is updated to record the resolution.
+  PHASE 4 (decision-frame deepening, the package's main body): (a)
+  parameter_windows -- every genuinely fillable null filled per the
+  work order's own rule; found and fixed a real LATENT CRASH (enum-
+  label setup values like "P9" would have raised inside
+  _settings_window_component's own float() call the moment either
+  affected window was filled and a real candidate used it -- fixed
+  defensively regardless of which windows end up filled). (b)
+  interaction_table grew 9->43 -- systematically extracted every
+  matrix cross-reference across all 39 rules (not just the two families
+  Stage 1 covered), plus the work order's own 3 literature-anchored
+  principles (Segers ch.9/10) for springs_front/rear, the one registry
+  parameter pair with zero matrix coverage at all -- a new platform_
+  stability axis added, documented as structurally inert like the
+  pre-existing braking/traction_performance axes until a matching
+  evidence source exists. (c) intervention evidence split into
+  independent abs.enabled (now TRUE) / tc.enabled (stays FALSE,
+  dormant) flags, replacing Stage 2's single global flag; ABS
+  confidence capped at 0.8 (min() against the real repeat-fraction,
+  never replacing it); a NEW "ABS regulating heavily -> masking flag,
+  prefer brake-balance/platform levers" bridge, partially realised
+  (a confidence discount via the existing MIN rule, not a hard
+  reordering rule -- flagged as partial, not oversold). (d) driver-
+  feedback magnitude weighting -- a genuinely NEW evidence dimension
+  (decision_frame.py had none before), confidence ramping linearly from
+  0.1 at |feedback|=1 to 1.0 at |feedback|=4 (the SAME anchor modules.
+  recommendation's own consistency-gate override already uses, reused
+  not reinvented), corroborating existing candidates via the same
+  MIN-confidence rule every other evidence source uses. (e) LS_ratio
+  threshold groundwork -- DIAGNOSTIC ONLY, not shipped: found the SAME
+  wholesale-negative pattern CS_ratio itself showed before its own
+  validity repair, on BOTH real sessions -- the proposed STRONG_LSF/LSR
+  numbers are reported but explicitly NOT trusted, PARKED pending an
+  LS_ratio validity-repair pass mirroring CS_ratio's own. (f) end-to-end
+  before/after (git-HEAD dynamic diff, never touching the real working
+  tree) on both sessions: candidate count/identity STABLE (0 new, 0
+  removed) on both files; a handful of candidates gained a real,
+  explained +1.000 score bump from the new springs_rear interaction_
+  table entries firing for the first time against a genuine co-
+  occurring problem -- a working, validating demonstration, not an
+  unexplained drift.
+  PHASE 5 (wing-graph check): docs/car_data/Wing_1.png is the ONLY wing
+  image (no "neighbours" as the work order assumed) and contains NO
+  downforce/balance content at all -- a plain angle-to-hole-pattern
+  lookup table, already fully captured in the registry. The aero-split
+  identifiability limit (BACKLOG B) is NOT lifted; nothing to flag
+  loudly, the negative result is the finding.
+  PHASE 6 (records + closure): thesis_notes.md gained a new design-
+  principle entry ("Sensors break; the cascade handles it") naming the
+  pattern this whole project keeps independently arriving at (detect via
+  a real gate, fall back to a real source, report never hide, provably
+  inert when healthy) across wheel_loads.py's cascade, the wheel-speed
+  guard, and this package's own channel_corrections mechanism. Engineer
+  questions: the "FR gauge repair status" question is ANSWERED/
+  SUPERSEDED (decoded, not physically repaired -- still worth knowing
+  whether the fault recurs session to session before blindly re-
+  applying the same correction to a future file). GOLDEN REGENERATION:
+  NOT NEEDED, VERIFIED DIRECTLY (not just reasoned about) -- ran tests/
+  test_golden_pipeline.py + tests/test_golden_auto_modes.py, 13 passed,
+  byte-identical, confirming Dubai is untouched by both Phase 1 (DB-only,
+  Dubai's own setup_data explicitly left alone) and Phase 2 (the channel
+  correction's own precondition provably never matches Dubai's healthy
+  FR reading) -- another premise correction against the work order's
+  own "(expected: yes...)" assumption, same shape as Frame-Stage-2's own
+  golden-premise correction before it. Full regression suite run once:
+  269 passed, 9 skipped, 1 xfailed, 0 failed (56m18s) -- clean, no
+  regression anywhere in the suite from this whole 6-phase package.
+  git status NOT clean; NO COMMIT MADE -- stop before commit, per the
+  work order.
+- METROLOGY PACKAGE COMPLETE, Phases 1/3 (diagnostics) + Phase 2
+  (proposal only) (2026-09-19, branch metrology, from deepening's own
+  uncommitted tip -- overnight, unsupervised, user asleep). NO full
+  suite this package (diagnostics plus at most a PROPOSED config entry,
+  per the work order -- nothing here ships production numerics without
+  review). PHASE 1 (verdict sensitivity map, the "big compute"): 5
+  Level-1/2 scalar inputs enumerated by reading the actual fit chain
+  (mass, front_fraction, wheelbase, yaw_inertia, steering_ratio), each
+  perturbed +/-1% on both real sessions, 22 full pipeline re-runs
+  (ekf_auto_pacejka refit + windowed regressions each time) via a 6-way
+  process pool, 2300.5s (38.3 min) wall vs an estimated ~2.9h
+  sequential. cog_height_m/track_width_front_rear_m/aero.* SKIPPED,
+  citing the Fz-independence precedent (f33c50c; Fz-integration Phase
+  1) -- confirmed by reading the code, these feed Fz only, never the
+  CS/stability chain. Flip census: front_fraction 11, mass 8, yaw_
+  inertia 7, steering_ratio 4, wheelbase 3 (33 flip-events, 10 distinct
+  corner-phases: v3 3/17 corners, Dubai 5/14). Pre-registration HOLDS,
+  checked two ways: (1) flipped corner-phases sit ~3-4x closer to a
+  CS_ratio threshold than the general population on average (one
+  individually-inspected exception found to be a different, comparison-
+  based mechanism, not a threshold-distance one -- read directly, not
+  glossed over); (2) ALL 33 flips stay strictly within {normal,
+  moderate} severity, ZERO involving "strong" either direction -- no
+  confident verdict was ever disturbed. No "different, worse mechanism"
+  found. 6 figures (diagnostics/plots_metrology/). Full record: thesis_
+  notes.md "Metrology Phase 1: verdict sensitivity map".
+  PHASE 2 (verdict-stability annotation): originally a WRITE-ONLY
+  PROPOSAL this same day, per the overnight work order's own two-phase
+  rule -- IMPLEMENTED the same day in the close-out below (see CLOSE-OUT
+  paragraph) once the user reviewed and approved it. STABLE/MARGINAL tag
+  per corner-phase, threshold 0.11 empirically anchored from Phase 1's
+  own sweep (covers 9/10 observed flips), zero extra compute (reuses
+  already-computed CS_ratio values), decision-frame impact reuses the
+  existing MIN-confidence rule rather than a new formula. Full record:
+  PLAN.md PARKED "Verdict-stability annotation".
+  PHASE 3 (rear axle-total residual decomposition, read-only, no
+  fitting): with all four v3 corners damper-measured since Deepening
+  Phase 2, decomposed the straight-line residual against the outing's
+  own real weighing (FL +2.1%, FR +2.9%, RL +11.5%, RR +22.8%) against
+  BACKLOG item B's three named candidate mechanisms. "Geometric
+  transfer estimates" RULED OUT, both structurally (wheel_loads.py's
+  own left/right transfer terms cancel exactly in an axle's total, by
+  construction -- verified at +0.00 N both axles, both sessions) and
+  empirically (axle-total residual vs |ay| after removing the fitted
+  v^2/ax terms: correlation +0.031/-0.058, both null). "Aero front/rear
+  split" CONFIRMED as the dominant driver of the residual's SIZE: a
+  pure v^2 fit alone explains >90% of each rear corner's own straight-
+  line variance (R^2 0.91/0.91), reproduces almost exactly across both
+  independent sessions (v3 RL b=0.604 vs Dubai RL b=0.611), and implies
+  a real measured front/rear aero split of 25%/75% against the config
+  placeholder's assumed 40%/60% -- a real, quantified, engineer-
+  question-worthy number (PLAN.md "Engineer follow-up questions --
+  damper/wheel-load package", updated). "Motion-ratio table region" --
+  a smaller, genuinely corner-specific residual remains after the v^2
+  term (rear intercepts diverge sharply within an axle, and the same
+  corner flips sign session-to-session despite an almost-identical v^2
+  slope) but is NOT distinguishable from real session-to-session
+  static-condition differences with telemetry alone -- carried forward,
+  several times smaller in scope than the original headline residual.
+  BACKLOG item B updated with the full finding. 2 figures. Full record:
+  thesis_notes.md "Metrology Phase 3: rear axle-total residual
+  decomposition".
+  CLOSE-OUT (2026-09-19, same day, explicit follow-up work order,
+  supervised not overnight): (1) Phase 2 IMPLEMENTED -- [MARGINAL]
+  marker embedded in _classify_corner's existing return strings (13
+  call sites untouched), MIN-confidence cap on corner_verdict AND
+  matrix_verdict evidence (config verdict_stability_margin.cs_margin=
+  0.11), 7 new targeted tests, 64/64 passed on the two touched test
+  files. (2) wheel_loads.aero_front_fraction SHIPPED 0.40->0.25 (Phase
+  3's own b-value fit). Ground-truth re-check (diagnostics/inspect_v3_
+  reconstruction_ground_truth.py) FAILED its own pre-registration --
+  mean error got WORSE (+916.6N->+1451.4N, +17-18%->+27-29%), root-
+  caused to a SEPARATE, pre-existing mass_kg_session/c_session aero
+  double-counting flaw in the same function, now quantified for the
+  first time (new PARKED entry, with a fix sketch, not attempted this
+  session). User decision (AskUserQuestion): kept 0.25, reported the
+  regression honestly rather than reverting a more accurate number to
+  hide a different bug. (3) thesis_notes.md gained 3 new entries (Phase
+  2 implementation; aero_front_fraction shipped + double-counting
+  found; the measured-split finding as its own engineer-facing entry).
+  PLAN.md BACKLOG item B and the aero-balance engineer question both
+  updated with a direct "we measured 25/75 -- does that match your
+  expectations?" flag. (4) Full suite run once: 276 passed (269+7 new),
+  9 skipped, 1 xfailed, 0 failed, 3490.00s (58m09s) -- clean, no
+  regression, no golden-file breakage (the new [MARGINAL] marker does
+  NOT fire on any golden fixture's own baseline data, confirmed by the
+  golden tests passing byte-identical without regeneration).
+  git status NOT clean; NO COMMIT MADE -- stop before commit, per the
+  work order.
+- EXTENSION PACKAGE, two repairs before commit (2026-09-19, same day,
+  unsupervised, user away; on top of the close-out above, same branch).
+  PHASE 1 (mass/aero double-counting fix, the parked sketch):
+  estimate_session_corrected_axle_totals's mass_kg_session/c_session now
+  come from ONE joint regression (v->0 intercept for mass, v^2 term for
+  aero, no overlap by construction) instead of a separate mean+regression
+  pair that double-counted. ACCEPTANCE CLEARED, the hard pre-registered
+  bar: v3 lap-8 ground-truth reconstruction mean error dropped to +167.6N
+  (+3.19/3.36%, straight-line-only +308.9N) -- well below the ORIGINAL
+  +916.6N baseline, not just the double-counted +1451.4N state. Dubai
+  intercept check re-run as instructed -- unchanged (a=13654.4N,
+  confirmed by reading the script that it is structurally independent of
+  this fix, not a second confirming data point). 1 test updated (known-
+  mass/known-c synthetic recovery, discriminates old vs new formula
+  explicitly), full tests/test_wheel_loads.py re-run 24/24 passed.
+  PHASE 2 (LS_ratio validity repair, the CS playbook applied): window
+  floors re-derived via CS's own Phase 1 REVISION bootstrap method, on
+  real kappa/Fx, BOTH sessions (CS's own was Dubai-only) -- governing
+  case v3 rear (n=40,span=0.016) -> min_window_s=0.40s @ 100 Hz (close
+  to the chair's own literal 0.45s, no bootstrap-vs-chair tension unlike
+  CS's own history). Adaptive widening + a 900m locality cap implemented
+  (modules/longitudinal_stiffness.py: new resolve_ls_min_window_samples/
+  reconstruct_ls_window_start, mirroring CS's own analogues exactly) --
+  cap sizing DEVIATED from CS's own 1.5x-median multiplier on purpose,
+  stated why (LS's own footprint is far more heavy-tailed than CS's, a
+  real physical difference, not an estimator defect); sized at the P95
+  mark of the most demanding case instead (900m). NaN semantics identical
+  to CS; the pre-existing |ax| display mask and kerb guard confirmed
+  unchanged and still applying (demand masks, not validity conditions).
+  New ls_phase_min_valid_samples gate (summarise_corners), own value not
+  cs_phase_min_valid_samples reused. RE-RUN DISTRIBUTION: pre-registration
+  PARTIALLY MET -- the extreme garbage-window amplification is GONE
+  (pooled p10 front -5.56->-0.785, rear -1.34->-0.604, 7x/2x smaller),
+  but the wholesale negative COUNT dropped materially without reaching
+  "gone" (Dubai front 14/14->10/14) -- reported honestly, not forced
+  either way; the work order's own item (e) expected SOME real negative
+  population to survive (Dubai C3's own known signature), so this is not
+  necessarily a repair failure. THRESHOLD PROPOSAL written to PLAN.md
+  PARKED, NOT shipped to classification (STRONG_LSF=-0.79/LSR=-0.60,
+  open user decision). FRAME VERIFICATION found a real premise
+  correction: C3 is not an exit-oversteer corner, so the "exit-oversteer
+  routing" the work order asked to check and "C3's own traction-limited
+  signature" are different checks -- both verified separately (0/0
+  ls_disambiguation evidence is CORRECT, reproduces this project's own
+  already-recorded finding; C3's own raw worst-phase LS_ratio_r=-0.329
+  confirms its signature survives). 6 new + 6 rewritten targeted tests
+  (adaptive widening, distance cap, NaN paths, phase-gate) -- full
+  tests/test_longitudinal_stiffness.py 20/20 and tests/test_cs_
+  validity_repair.py 28/28 passed.
+  GOLDENS verified directly (not assumed): 13/13 passed byte-identical,
+  both Phase 1 (a real, live concern checked -- vertical_load_source=
+  "measured" is the production default and Dubai's own real damper
+  channels DO route through the changed function, yet goldens still
+  matched) and Phase 2 (confirmed by reading the code that LS_ratio is
+  never computed in the golden path at all). No STOP triggered, no
+  regeneration performed.
+  Full suite run once: 282 passed (276+6 new), 9 skipped, 1 xfailed, 0
+  failed, 3483.91s (58m03s) -- clean, no regression; wall time
+  essentially unchanged from the prior close-out run (58m09s) despite
+  LS_ratio's own new per-sample adaptive-widening cost, confirming that
+  cost stays contained to test_longitudinal_stiffness.py's own synthetic/
+  short-array tests and never hits the expensive real-session/golden
+  paths (which never call estimate_longitudinal_stiffness at all).
+  git status NOT clean; NO COMMIT MADE -- stop before commit, per the
+  work order.
 
 WHAT CHANGED IN UNDERSTANDING (2026-08-20) -- corrections that
 must not be lost
@@ -1704,10 +1982,44 @@ B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
     for this car (windtunnel/CFD, at the run's own wing level), or (2) a
     session with all four damper gauges alive (removes reconstruction --
     and the identifiability limit -- entirely, since every corner would
-    then be Level 4 measured, no split fraction needed at all). Engineer
+    then be Level 4 measured, no split fraction needed at all). GATE (2)
+    RESOLVED 2026-09-18 (Deepening Phase 2, FR fixed on v3) -- and
+    followed up, Metrology Phase 3 (2026-09-19, diagnostics/inspect_
+    metrology_phase3_rear_residual.py): with the identifiability limit
+    lifted, the STRAIGHT-LINE residual against the outing's own real
+    weighing that this now exposed (FL +2.1%, FR +2.9%, RL +11.5%, RR
+    +22.8%) was decomposed against the three candidate mechanisms named
+    below. "Geometric transfer estimates" RULED OUT, both structurally
+    (wheel_loads.py's own left/right transfer terms cancel exactly in
+    an axle's total, by construction, verified at +0.00 N both axles)
+    and empirically (axle-total residual correlation with |ay|, after
+    removing the fitted v^2/ax terms: front +0.031, rear -0.058, both
+    null). "Aero front/rear split" CONFIRMED as the dominant driver of
+    the residual's SIZE: a pure v^2 fit alone explains >90% of each rear
+    corner's own variance (R^2 0.91/0.91), reproduces almost exactly
+    across both independent sessions (v3 RL b=0.604 vs Dubai RL b=0.611),
+    and implies a real measured front/rear aero split of 25%/75% -- the
+    0.40 placeholder understates this car's real rear aero share by 15
+    points. A smaller, genuinely corner-specific residual remains after
+    the v^2 term (v3 rear intercepts diverge sharply, RL -281.7N vs RR
+    +174.0N, and the same corner (RL) flips sign v3->Dubai despite an
+    almost-identical v^2 slope) -- consistent with "motion-ratio table
+    region" but not distinguishable from real session-to-session static-
+    condition differences (fuel/ballast/tyre pressure) with telemetry
+    alone; carried forward, several times smaller in scope than the
+    original headline residual. Full record: thesis_notes.md "Metrology
+    Phase 3: rear axle-total residual decomposition". Engineer
     questions raised (PLAN.md "Engineer follow-up questions -- damper/
     wheel-load package," new section): front/rear aero balance figures
-    for this car at the run wing level; FR gauge repair status.
+    for this car at the run wing level; FR gauge repair status --
+    ANSWERED 2026-09-18 for v3 specifically (Deepening Phase 2: FR was
+    decoded, not physically repaired, but is now live/damper-measured on
+    that file) -- option (2) above is therefore SATISFIED for v3 (every
+    corner is now Level 4 measured there, no reconstruction needed), but
+    the aero-split identifiability limit itself (option 1) remains open
+    and unaffected -- this was never about the FR gauge, it is a
+    straight-line-data-with-three-gauges limitation that a fourth real
+    gauge does not resolve on its own.
 D - Output artifacts: weekend PDF expansion; per-corner CS overlay
     and g-g plots.
 E - Cleanup (after track A closes): diagnostics inventory + README,
@@ -1754,6 +2066,210 @@ G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
     of the same package, not a follow-up.
 
 ### PARKED (decided, not forgotten)
+Verdict-stability annotation (STABLE / MARGINAL) -- IMPLEMENTED 2026-09-19
+(close-out work order, same day as the proposal below). Ships as
+described, with two real implementation differences from the original
+proposal text, recorded here rather than silently: (1) UI SHAPE ended up
+as an embedded "[MARGINAL]" text marker inside classify_fn's own short/
+long verdict strings (the SAME append-marker pattern _classify_corner
+already used for [UNCAL]/the stab-threshold legacy marker), not a
+separate tooltip glyph -- minimal-blast-radius: _classify_corner's own
+4-tuple return shape and all 13 of its call sites are untouched. (2) the
+MIN-confidence discount was applied to BOTH corner_verdict AND
+matrix_verdict evidence (the proposal only named corner_verdict) --
+matrix_verdict is the type that actually feeds most of the 39-rule
+matrix's own candidates, so capping only corner_verdict would have left
+a real gap. Confidence cap reuses intervention_evidence.abs.confidence
+(0.8), per the proposal's own "reuse an anchor" instruction. 7 targeted
+tests: 4 in tests/test_cs_validity_repair.py (classify_fn marker
+presence/absence, front and rear axle), 3 in tests/test_decision_frame.py
+(corner_verdict cap fires/doesn't, matrix_verdict cap fires) -- all pass,
+plus the full tests/test_decision_frame.py + tests/test_cs_validity_
+repair.py files re-run clean (64 passed) to confirm no regression on the
+other 57 pre-existing tests. ORIGINAL PROPOSAL TEXT, kept for the record
+(2026-09-19, write-only per the work order -- "propose, don't implement"
+two-phase rule applied before any of this was built): follows directly
+from Metrology Phase 1's own
+sensitivity sweep (thesis_notes.md "Metrology Phase 1: verdict
+sensitivity map"): 10 of 85-128 tested corner-phases per session flip
+their axle-label under a realistic +/-1% single-input measurement/
+parameterisation change, concentrated in already-borderline (normal/
+moderate severity) verdicts, never in a STRONG one.
+  WHAT IT ADDS: each corner-phase verdict already shown in the UI gains
+  a second-order STABLE/MARGINAL tag, surfacing "this call could flip
+  under a realistic small measurement change" instead of hiding it.
+  THRESHOLD, reusing the anchored margin, not inventing a new one:
+  MARGINAL fires when min(|CS_ratio_f - STRONG_CSF|, |CS_ratio_f -
+  MODERATE_CSF|) <= 0.11, or the same test on CS_ratio_r against STRONG_
+  CSR/MODERATE_CSR. 0.11 is not a guessed round number -- it is the
+  empirical threshold-distance of the 2nd-most-marginal flip actually
+  observed in the Phase 1 sweep (v3 C12 apex_3/exit_4, distance 0.104,
+  rounded up slightly for a small margin of safety), chosen to cover 9
+  of the 10 observed <=1%-perturbation flips. The ONE excluded case
+  (dubai C1 apex_3, distance 0.274) is excluded deliberately: Phase 1
+  read it directly and found that flip is driven by a DIFFERENT
+  mechanism (which of CS_ratio_f/r is currently more extreme, a
+  relative front/rear comparison _classify_corner also makes, not a
+  fixed-threshold crossing) -- folding it into this single-axis distance
+  threshold would require inflating the anchor 2.6x past every other
+  observed case just to cover one differently-caused outlier, which
+  would flag far more corners as MARGINAL than the sweep actually
+  supports. COMPUTATION COST: zero extra pipeline runs -- both CS_ratio_
+  f/r values are already computed for every corner-phase today; this is
+  a comparison against two existing numbers, not a live re-sweep (the
+  sweep itself takes ~38 minutes and cannot run per-analysis).
+  UI SHAPE: a small marker next to the existing verdict label (a
+  tooltip-bearing glyph, not a colour change -- MARGINAL is a
+  confidence/robustness qualifier on top of the existing severity
+  colour, not a new severity tier) reading "this verdict can flip under
+  a realistic ~1% measurement change" on hover.
+  CONFIG SHAPE: a new config/parameters.json classification.
+  verdict_stability_margin entry, {"cs_margin": 0.11, "derived_from":
+  "Metrology Phase 1 sensitivity sweep, 2026-09-19 -- covers 9/10
+  observed <=1% flips, thesis_notes.md"} -- sibling to the existing
+  STRONG_CSF/CSR/MODERATE_CSF/CSR entries, same provenance-note
+  convention.
+  DECISION-FRAME IMPACT: a MARGINAL verdict discounts like low
+  repeatability already does -- NOT a new confidence formula. Every
+  corner_verdict evidence item already carries a confidence value (the
+  existing repeat-fraction-derived mechanism); a MARGINAL tag would
+  become a second corroborating-evidence-style input feeding the SAME
+  MIN-confidence rule every other evidence source in modules/decision_
+  frame.py already uses (driver_feedback, intervention_abs, etc.) --
+  no new combination mechanism, no new arbitrary confidence number
+  proposed here. The exact discount value is deliberately left for the
+  implementing session to set (matching an existing anchor at that
+  time, e.g. the ABS masking cap or the repeat-fraction floor -- "reuse
+  an anchor" applies to that choice too, not just the 0.11 CS-distance
+  number above).
+  NOT YET DECIDED: whether MARGINAL should be surfaced in the decision-
+  frame candidate list at all, or only in the raw corner-phase grid (the
+  two are different UI surfaces, thesis_notes.md's own Stage-1/Stage-2
+  framing); whether stability_observed_Nm_per_deg (the yaw-moment
+  verdict) needs its own analogous margin, not computed this phase
+  (Phase 1's sweep tracked it per corner-phase but the margin table
+  above is CS_ratio-only -- stab_neg_thresh_Nm_per_deg=-50.0 was never
+  found to be the actual driver of any of the 10 observed flips this
+  session, so no stability-margin anchor exists yet to reuse).
+mass_kg_session / c_session aero double-counting in modules.wheel_loads.
+estimate_session_corrected_axle_totals -- RESOLVED 2026-09-19 (Metrology
+extension Phase 1, same day as this entry, per the fix sketch below):
+mass_kg_session and c_session now come from ONE joint regression (v->0
+intercept for mass, v^2 term for aero), no overlap by construction.
+ACCEPTANCE CLEARED: the lap-8 v3 ground-truth reconstruction error
+dropped to +167.6N mean (+3.19/3.36%, straight-line-only +308.9N), well
+below the ORIGINAL +916.6N baseline (not just below the double-counted
++1451.4N state) -- the pre-registered hard bar. Full record: thesis_
+notes.md "Metrology extension Phase 1: mass/aero double-counting fix,
+ACCEPTANCE CLEARED". ORIGINAL FINDING TEXT, kept for the record (found
+2026-09-19, Metrology close-out, re-running the reconstruction ground-
+truth check after the
+aero_front_fraction 0.40->0.25 update). mass_kg_session is fit from real
+damper data at the straight-line population's OWN mean speed -- its own
+docstring already stated the caveat that this "already contains some of
+the real aero present at that range's own typical speed" before this
+session, but its real SIZE was never quantified. Now quantified: shifting
+the (separately, correctly, cross-session-validated) aero_front_fraction
+from 0.40 to 0.25 -- i.e. giving the rear axle MORE of c_session's
+already-fit total aero -- made the lap-8 RL/RR reconstruction ground-
+truth error WORSE, not better (+916.6N/+17-18% -> +1451.4N/+27-29% mean
+error, worst in the straight-line-only subset: +756.9N -> +1620.6N),
+because mass_kg_session's own real-data mean was ALREADY absorbing part
+of that same real aero before the explicit v^2 term added more on top.
+The aero_front_fraction fix itself is not at fault (it independently
+cross-validates against two real sessions, thesis_notes.md "Metrology
+Phase 3") -- this is a SEPARATE, pre-existing flaw in how mass_kg_session
+and c_session combine, newly made visible (not created) by giving the
+rear axle a more accurate, larger aero share. FIX SKETCH, not attempted
+this session (a methodology change, needs its own validation, explicitly
+out of scope for the close-out that found it): fit mass_kg_session's own
+static term at v->0 (extrapolated, like the v^2 fits in thesis_notes.md
+"Metrology Phase 3" do for their own intercepts) instead of at the
+straight-line population's mean speed, so the aero contribution is
+cleanly zero in the static term and lives ONLY in the explicit c_session*
+v^2 term -- removing the double-count structurally rather than by
+re-tuning aero_front_fraction to compensate for it. Full record: thesis_
+notes.md "Metrology close-out: aero_front_fraction shipped, mass/aero
+double-counting found".
+LS_ratio threshold proposal -- VALIDITY REPAIR DONE 2026-09-19 (Metrology
+extension Phase 2, thesis_notes.md "Metrology extension Phase 2: LS_ratio
+validity repair"), threshold itself STILL NOT SHIPPED (open user decision,
+by the work order's own explicit instruction: LS stays display + frame-
+evidence-only until the numbers are signed off). PRE-REPAIR finding kept
+for the record (Deepening Phase 4e, 2026-09-18): Dubai front 14/14
+corners negative, Dubai rear 10/14, v3 front 12/16, v3 rear 14/17, pooled
+p10 front=-5.56/rear=-1.34 -- the SAME wholesale-negative pattern CS_ratio
+itself showed before its own repair, BLOCKED pending an LS-specific
+validity-repair pass.
+REPAIR (applying the CS_ratio playbook, own values not copied):
+window floors re-derived via the SAME phase-level-median bootstrap
+method CS's own Phase 1 REVISION used, on real kappa/Fx from BOTH
+sessions (diagnostics/inspect_ls_window_floor_derivation.py) -- governing
+case (smallest (n,span) clearing P75<=15% relative std, most demanding of
+2 sessions x 2 axles, at the shortest MEANINGFUL representative phase
+length): v3 rear, (min_window_samples=40, min_slip_span=0.016) ->
+min_window_s=0.40s @ 100 Hz (both sessions' real grid rate) -- notably
+close to the chair's own literal 0.45s default, no bootstrap-vs-chair
+tension the way CS once had. Locality cap (diagnostics/inspect_ls_max_
+window_locality_sizing.py) sized at 900m -- DEVIATED FROM CS's OWN 1.5x-
+median MULTIPLIER on purpose, stated why: LS's own natural footprint is
+far more heavy-tailed than CS's (v3 front median/p90 ratio ~5.5x vs CS's
+own ~3x, a real physical difference -- braking/traction zones can
+legitimately span much further than a single corner's lateral extent);
+applying CS's literal multiplier would have sat below even the P90 of
+the most demanding case. Sized instead at the P95 mark of the most
+demanding case (v3 front, 840.2m) instead.
+RE-RUN DISTRIBUTION (diagnostics/inspect_deepening_phase4e_ls_thresholds.
+py, unchanged script, re-run against the repaired estimator): Dubai front
+10/14 negative (was 14/14), Dubai rear 9/14 (was 10/14), v3 front 10/17
+(was 12/16), v3 rear 13/17 (was 14/17); pooled p10 front=-0.785 (was
+-5.56, ~7x smaller in magnitude), rear=-0.604 (was -1.34, ~2x smaller);
+pooled MEDIAN front=-0.078 (near zero), rear=-0.206 (still meaningfully
+negative). PRE-REGISTRATION PARTIALLY MET, reported honestly rather than
+forced either way: the EXTREME garbage-window amplification that made
+the pre-repair values physically implausible (p10 beyond -5, far past the
+ratio's own clip-at-1.0 range) is gone -- values now sit in a physically
+plausible range. The wholesale COUNT of negative corners dropped
+materially (100%->71% front Dubai) but did not reach "gone" -- a
+meaningful residual negative population remains, front's pooled median
+near zero, rear's still clearly negative. Not necessarily wrong: the work
+order's own item (e) pre-registration expected the KNOWN genuine
+traction-limited corner (Dubai C3) to still show its signature -- some
+real negative population is expected, not just artifact; this repair
+cannot and does not claim to separate "genuine beyond-peak traction
+limitation" from "remaining estimation noise" within what's left.
+Frame-verification (diagnostics/inspect_ls_repair_frame_verification.py,
+item g): [see thesis_notes.md for the C3-specific result].
+THRESHOLD PROPOSAL (diagnostic only, config classification NOT touched,
+per the work order's own explicit instruction -- LS stays display +
+frame-evidence-only until signed off): pooled p10, same physical anchor
+logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force
+point, minus a data-sized margin) -- PROPOSED STRONG_LSF=-0.79,
+STRONG_LSR=-0.60. Small-n caveat unchanged from the original entry
+(n=31 pooled corners, front/rear asymmetry present but not dramatically
+so -- no strong case for treating the axles differently beyond what the
+raw numbers already show). OPEN USER DECISION: whether these repaired-
+but-still-substantially-negative numbers are trustworthy enough to sign
+off as real STRONG_LSF/LSR thresholds, or whether the remaining negative
+population needs its own further investigation (e.g. explicitly
+separating known-traction-limited corners like C3 from the rest) before
+anchoring a threshold against it. Full record: thesis_notes.md "Metrology
+extension Phase 2: LS_ratio validity repair".
+CS_ratio verdict non-robustness to sub-1%-level mass corrections
+(Deepening Phase 1, 2026-09-18): v3's own front_fraction moved a tiny
+43.267%->43.361% (a real, legitimate corner-weight accuracy upgrade) and
+4 of 85 corner-phase verdicts FLIPPED. Root-caused, not just observed:
+the fitted Pacejka curve and beta both shift smoothly/proportionally
+(<1.5%, no sign of the fit chain diverging to a different solution) --
+the flips trace to CS_ratio's own already-documented window-growth floor
+sensitivity (same mechanism as the "v3 sawtooth mechanism investigation"
+and the "CS validity repair" arc), newly shown triggerable by a mass
+perturbation, not just a speed/beta one. User decision: keep the real
+weighing change, do not revert, do not fix this turn -- recorded as a
+standing characterisation for whoever next revisits the CS_ratio/window-
+floor thread. Full record: thesis_notes.md "Deepening Phase 1: per-outing
+corner weights -- premise corrections, STOP on verdict flips" and its
+"...STOP resolved, user decision" follow-up.
 v3's C17-C20 corner-count fragmentation (one outlier lap, ~15-19s
 slower through exactly that section, fragments a corner the other 3
 of 4 valid laps see as one continuous ~100m right-hander) -- root
@@ -3076,23 +3592,76 @@ else.
     not a bug fix; confirm the intended floor.
 
 ### Engineer follow-up questions -- damper/wheel-load package
-- [2026-09-03, reconstruction refinement chain closing note] Front/rear
+- [2026-09-03, reconstruction refinement chain closing note; UPDATED
+  2026-09-19] WE MEASURED A 25%/75% FRONT/REAR AERO SPLIT FROM THIS
+  CAR'S OWN TELEMETRY (v3, cross-checked against Dubai) -- DOES THAT
+  MATCH YOUR EXPECTATIONS FOR THIS CAR AT THIS WING LEVEL? Front/rear
   aero balance figures for this car at the run wing level -- needed to
   replace wheel_loads.aero_front_fraction's current Level 1 placeholder
-  (0.40, an unmeasured GT3-typical rear-biased assumption) with a real
-  value. Without this, modules.wheel_loads.estimate_session_corrected_
-  axle_totals cannot fully resolve the front-axle-side residual found in
-  the ground-truth check (thesis_notes.md "Closing the reconstruction's
-  aero gap", "Session-measured split fractions...") -- an identifiability
-  limit of straight-line data with three gauges, not a bug, per BACKLOG
-  item B's own closing note.
-- [2026-09-03, same] FR gauge (log_dms_dam_fr) repair status for
-  GT3_PRC_MLA-v3.txt / this car going forward -- it read a constant,
-  wildly implausible value (~-15.95 million N) for the entire session
-  (thesis_notes.md "Damper package... Phases 1-6"). If/when repaired, a
-  session with all four gauges alive removes the reconstruction method
-  (and the aero-split identifiability limit above) entirely, since every
-  corner would then be a direct Level 4 measurement.
+  (now 0.25, telemetry-derived -- was 0.40, an unmeasured GT3-typical
+  rear-biased assumption) with a real, independently-verified value.
+  Without this, modules.wheel_
+  loads.estimate_session_corrected_axle_totals cannot fully resolve the
+  front-axle-side residual found in the ground-truth check (thesis_
+  notes.md "Closing the reconstruction's aero gap", "Session-measured
+  split fractions...") -- an identifiability limit of straight-line data
+  with three gauges, not a bug, per BACKLOG item B's own closing note.
+  Metrology Phase 3 (2026-09-19, thesis_notes.md "Metrology Phase 3: rear
+  axle-total residual decomposition") now has a real, telemetry-derived
+  estimate to check against any windtunnel/CFD figure the team provides:
+  ~25% front / 75% rear, from v3's own per-corner damper data (a v^2-only
+  fit already explains >90% of each rear corner's own straight-line
+  residual variance, and the same rear-axle v^2 slope reproduces almost
+  exactly on Dubai independently) -- single-car, two-session telemetry
+  evidence only, not a substitute for a real aero-balance measurement,
+  but a specific number to compare a real figure against rather than an
+  open unknown. SHIPPED 2026-09-19 (close-out): config/parameters.json
+  wheel_loads.aero_front_fraction 0.40 -> 0.25, derived_from citing the
+  b-value fit above. RE-RUN diagnostics/inspect_v3_reconstruction_
+  ground_truth.py once, as instructed, to check the error delta -- it
+  got WORSE, not better/neutral as pre-registered: mean reconstruction
+  error (lap 8, RL/RR dropped in turn) +916.6N (+17.4/18.4%) at 0.40 ->
+  +1451.4N (+27.6/29.1%) at 0.25, worst in the straight-line-only subset
+  (+756.9N -> +1620.6N). ROOT-CAUSED, not just observed, before
+  reporting: this function's own mass_kg_session term is fit from REAL
+  damper data at the straight-line population's own mean speed, and its
+  own docstring already states the KNOWN caveat that this "already
+  contains some of the real aero present at that range's own typical
+  speed" -- adding a full, separately-fit c_session*v^2 aero term on top
+  DOUBLE-COUNTS a real aero contribution that's partly already baked
+  into mass_kg_session. Shifting more of c_session toward the rear axle
+  (0.25's own correct, cross-session-validated direction) makes this
+  PRE-EXISTING double-counting worse specifically on the rear axle,
+  independent of whether the split itself is accurate -- the arithmetic
+  matches: (0.75-0.60)*c_session*v^2 at this population's own mean
+  speed predicts a rear-model increase in the same range as the
+  observed +534.8N mean-error jump. USER DECISION (2026-09-19): keep
+  0.25 (the split itself independently cross-validates against two real
+  sessions and is not the flawed part), report the regression honestly
+  rather than revert, new PARKED entry opened for the double-counting
+  issue itself rather than fixed in this close-out (a methodology
+  change, its own new validation, out of the 4-step scope). Full
+  record: thesis_notes.md "Metrology close-out: aero_front_fraction
+  shipped, mass/aero double-counting found".
+- [2026-09-03, ANSWERED/SUPERSEDED 2026-09-18] FR gauge (log_dms_dam_fr)
+  repair status for GT3_PRC_MLA-v3.txt -- was believed a constant,
+  wildly implausible value (~-15.95 million N) for the entire session.
+  Deepening Phase 2 (2026-09-18, thesis_notes.md "Deepening Phase 2: FR
+  gauge decoding correction, SHIPPED") found and shipped a decoding fix
+  -- the channel was never truly dead, it carried real, correctly-
+  signed signal riding on a decodable additive offset. FR is now LIVE/
+  damper-measured on v3 via config/channels.json's own channel_
+  corrections mechanism -- the reconstruction fallback for FR on this
+  file is retired (still available as a mechanism for any OTHER
+  corner/session that needs it). The ORIGINAL question this entry asked
+  ("is a physical repair planned") is now MOOT for this specific
+  channel/session -- but the underlying gauge's own physical health is
+  still worth knowing for future sessions: does this same corrupted-
+  offset signature recur session to session (a stable sensor/wiring
+  fault, in which case the SAME correction likely applies again), or
+  was it a one-off (in which case a future session's own log_dms_dam_fr
+  should NOT have this correction blindly re-applied without re-
+  verifying the precondition first)?
 - [2026-09-03, Fz-integration Phase 1] Dubai RR travel pot (log_susp_
   travel_rr on Sample_Dubai.txt) reads frozen for the ENTIRE session
   (std=0.101mm, range=3.03mm, vs 4.88-7.20mm on every other real travel

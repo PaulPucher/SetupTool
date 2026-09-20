@@ -25,11 +25,13 @@ import numpy as np
 from modules.stability_analysis import load_parameters
 from modules.recommendation import (
     PHASE_KEYS,
+    PHASE_TO_FEEDBACK_KEY,
     SEVERITY_RANK,
     _NON_FIRING_STATUSES,
     _action_key,
     _axle_verdict,
     _current_setup_value,
+    _feedback_row,
     _group_by_corner,
     _nanmin_or_nan,
     _phase_verdict,
@@ -119,12 +121,26 @@ def aggregate_ls_by_corner(summaries):
     return out
 
 
-def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn):
+def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn, config=None):
     # Source (a): corner verdicts via the existing classify path -- the
     # same worst-lap aggregate and anchored thresholds the stability grid
     # already shows, so this evidence can never disagree with the UI for
     # the same corner/phase (identical mechanism modules.recommendation
     # relies on for the same reason).
+    #
+    # Metrology Phase 2 (2026-09-19, PLAN.md PARKED "Verdict-stability
+    # annotation", now implemented): classify_fn (ui/views/outing_form.py
+    # _classify_corner) appends a "[MARGINAL]" marker to `short` when the
+    # verdict-driving axle sits within classification.verdict_stability_
+    # margin.cs_margin of a threshold (Metrology Phase 1's own empirically
+    # anchored value). A MARGINAL verdict discounts like low repeatability
+    # already does here -- NOT a new confidence formula: it caps the same
+    # repeat-fraction confidence via min(), reusing intervention_evidence.
+    # abs.confidence's own 0.8 cap (Deepening Phase 4c) as the anchor,
+    # rather than inventing a second discount constant. A weak repeat
+    # pattern still reports honestly below 0.8; a MARGINAL verdict with a
+    # strong repeat pattern is pulled down to 0.8, never inflated to it.
+    margin_confidence_cap = (config or {}).get("intervention_evidence", {}).get("abs", {}).get("confidence", 0.8)
     evidence = []
     for cid, corner in aggregated.items():
         for phase in PHASE_KEYS:
@@ -159,6 +175,9 @@ def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn):
                     if lap["phases"].get(phase, {}).get("n_samples", 0) > 0
                 )
                 confidence = round(_fraction(repeat, total) * _fraction(valid_laps, total), 3)
+                is_marginal = "[MARGINAL]" in short
+                if is_marginal:
+                    confidence = min(confidence, margin_confidence_cap)
 
                 evidence.append({
                     "type": "corner_verdict",
@@ -168,9 +187,11 @@ def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn):
                     "verdict": verdict,
                     "severity": severity,
                     "confidence": confidence,
+                    "marginal": is_marginal,
                     "source": f"classify_fn (worst-lap aggregate, anchored thresholds): "
                               f"C{cid} {phase} '{short}' -- repeats on {repeat}/{total} laps, "
-                              f"signal present on {valid_laps}/{total} laps",
+                              f"signal present on {valid_laps}/{total} laps"
+                              + (f", MARGINAL: capped at {margin_confidence_cap}" if is_marginal else ""),
                 })
     return evidence
 
@@ -314,7 +335,14 @@ def _distinct_phase_groups(config_recs):
     return sorted({tuple(r["phases"]) for r in config_recs["rules"]})
 
 
-def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs):
+def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs, config=None):
+    # Metrology Phase 2: same MARGINAL discount as _build_corner_verdict_
+    # evidence, applied here too -- this is the SAME classify_fn/short
+    # output, grouped over multiple phases rather than one; leaving this
+    # path uncapped would let a MARGINAL verdict still drive the 39-rule
+    # matrix engine (this evidence type, not corner_verdict, feeds most
+    # real candidates) at full confidence.
+    margin_confidence_cap = (config or {}).get("intervention_evidence", {}).get("abs", {}).get("confidence", 0.8)
     evidence = []
     for phase_group in _distinct_phase_groups(config_recs):
         phases = list(phase_group)
@@ -344,6 +372,9 @@ def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
                     if any(lap["phases"].get(p, {}).get("n_samples", 0) > 0 for p in phases)
                 )
                 confidence = round(_fraction(repeat, total) * _fraction(valid_laps, total), 3)
+                is_marginal = "[MARGINAL]" in short
+                if is_marginal:
+                    confidence = min(confidence, margin_confidence_cap)
 
                 evidence.append({
                     "type": "matrix_verdict",
@@ -353,9 +384,11 @@ def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
                     "verdict": verdict,
                     "severity": severity,
                     "confidence": confidence,
+                    "marginal": is_marginal,
                     "source": f"classify_fn (worst-lap aggregate, anchored thresholds), phases="
                               f"{'+'.join(phase_group)}: C{cid} '{short}' -- repeats on {repeat}/{total} "
-                              f"laps, signal present on {valid_laps}/{total} laps",
+                              f"laps, signal present on {valid_laps}/{total} laps"
+                              + (f", MARGINAL: capped at {margin_confidence_cap}" if is_marginal else ""),
                 })
     return evidence
 
@@ -392,12 +425,32 @@ def _phase_window_indices(t, segment):
     return lo, hi
 
 
-def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, channels, aggregated):
+def _log_abs_pos_at(channels, t, idx):
+    # Deepening Phase 4c: reports the trusted ABS map position (Phase 3
+    # decision -- log_abs_pos, not abs_switch_pos) for traceability inside
+    # an evidence item's own source string. Never used to change firing
+    # logic (abs_position's own registry entry is explicitly non-
+    # monotonic/categorical, so there is no validated "more/less
+    # aggressive" ordering to route on).
+    ch = (channels or {}).get("log_abs_pos")
+    if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None or idx is None:
+        return None
+    lo, hi = idx
+    val = np.interp(t, ch["time"], ch["data"])[lo:hi]
+    if val.size == 0:
+        return None
+    return float(np.median(val))
+
+
+def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, channels, aggregated, abs_config):
     abs_ch = (channels or {}).get("abs_active")
     if state is None or abs_ch is None or abs_ch.get("quality") in ("missing", "failed") or abs_ch.get("time") is None:
         return []
     t = state["time"]
     abs_on_ref = np.interp(t, abs_ch["time"], abs_ch["data"]) > 0.5
+    confidence_cap = abs_config.get("confidence", 1.0)
+    heavy_cfg = abs_config.get("abs_heavy_masks_verdict", {})
+    heavy_threshold = heavy_cfg.get("heavy_duty_cycle_threshold", 1.0)
 
     by_corner = {}
     for c in corners or []:
@@ -407,28 +460,62 @@ def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, cha
 
     evidence = []
     for cid, instances in by_corner.items():
-        inactive_count, total = 0, 0
+        inactive_count, heavy_count, total = 0, 0, 0
+        example_idx_inactive, example_idx_heavy = None, None
         for c in instances:
             idx = _phase_window_indices(t, c.get("segments", {}).get("entry_1_brake"))
             if idx is None:
                 continue
             lo, hi = idx
             total += 1
-            if not abs_on_ref[lo:hi].any():
+            window = abs_on_ref[lo:hi]
+            if not window.any():
                 inactive_count += 1
-        if total == 0 or inactive_count == 0:
-            continue
-        confidence = round(inactive_count / total, 3)
-        evidence.append({
-            "type": "intervention_abs",
-            "corner": cid, "phases": ("entry_1_brake",),
-            "speed_class": aggregated.get(cid, {}).get("speed_class"),
-            "verdict": "unstable_yaw", "severity": None, "confidence": confidence,
-            "source": f"abs_active read 0 throughout entry_1_brake on {inactive_count}/{total} analysed "
-                      f"laps (USABLE-NOW boolean, Frame-Stage-2 Phase 2) -- corroborates braking-phase "
-                      f"instability per the user's own rule: 'ABS inactive + instability under braking -> "
-                      f"more ABS'.",
-        })
+                example_idx_inactive = idx
+            elif window.mean() >= heavy_threshold:
+                heavy_count += 1
+                example_idx_heavy = idx
+
+        if total and inactive_count:
+            # User rule, verbatim: "instability/locking under braking +
+            # ABS not intervening -> ABS map up". Corroborates unstable_
+            # yaw matrix-verdict evidence on entry_1_brake -- see this
+            # function's own caller in build_evidence for that gate.
+            confidence = min(confidence_cap, round(inactive_count / total, 3))
+            pos = _log_abs_pos_at(channels, t, example_idx_inactive)
+            pos_txt = f", log_abs_pos={pos:.0f}" if pos is not None else ""
+            evidence.append({
+                "type": "intervention_abs",
+                "corner": cid, "phases": ("entry_1_brake",),
+                "speed_class": aggregated.get(cid, {}).get("speed_class"),
+                "verdict": "unstable_yaw", "severity": None, "confidence": confidence,
+                "source": f"abs_active read 0 throughout entry_1_brake on {inactive_count}/{total} analysed "
+                          f"laps{pos_txt} -- corroborates braking-phase instability per the user's own rule: "
+                          f"'ABS inactive + instability under braking -> more ABS'.",
+            })
+
+        if total and heavy_count:
+            # NEW, Deepening Phase 4c. User rule, verbatim: "ABS
+            # regulating heavily through braking zones -> flag as
+            # masking, prefer brake-balance/platform levers". A masking
+            # FLAG, not a verdict-corroborating evidence item -- verdict
+            # is None on purpose (this fires independent of what the
+            # phase's own CS/matrix verdict says, it questions whether
+            # that verdict should be trusted at all).
+            confidence = min(confidence_cap, round(heavy_count / total, 3))
+            pos = _log_abs_pos_at(channels, t, example_idx_heavy)
+            pos_txt = f", log_abs_pos={pos:.0f}" if pos is not None else ""
+            evidence.append({
+                "type": "intervention_abs_masking",
+                "corner": cid, "phases": ("entry_1_brake",),
+                "speed_class": aggregated.get(cid, {}).get("speed_class"),
+                "verdict": None, "severity": None, "confidence": confidence,
+                "masked_by_heavy_abs": True,
+                "source": f"abs_active duty cycle >= {heavy_threshold:.0%} of entry_1_brake on {heavy_count}/"
+                          f"{total} analysed laps{pos_txt} -- per the user's own rule, this corner/phase's own "
+                          f"braking-phase verdict may reflect ABS regulation rather than raw mechanical "
+                          f"balance; prefer brake-balance/platform levers over a literal reading.",
+            })
     return evidence
 
 
@@ -472,7 +559,78 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
     return evidence
 
 
-def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state=None, channels=None):
+# --- Driver-feedback evidence (Deepening Phase 4d, 2026-09-18) ---------
+#
+# A genuinely new evidence dimension -- Stage 1/2 had none ("this frame
+# has no feedback/driver-trigger axis at all yet", the Stage 1 close-out's
+# own recorded open item). A driver_feedback item never generates its own
+# candidate; it corroborates an EXISTING candidate's evidence_refs (same
+# MIN-confidence rule every other corroborating source already uses) when
+# its own corner/phase/verdict agrees, via _attach_feedback_evidence.
+
+def _build_driver_feedback_evidence(feedback_data, aggregated, feedback_cfg):
+    if not feedback_data:
+        return []
+    floor = feedback_cfg.get("confidence_floor", 0.1)
+    full_at = feedback_cfg.get("full_confidence_at_raw_abs", 4)
+
+    evidence = []
+    for cid, corner in aggregated.items():
+        fb_row = _feedback_row(feedback_data, cid)
+        if not fb_row:
+            continue
+        for phase in PHASE_KEYS:
+            key = PHASE_TO_FEEDBACK_KEY.get(phase)
+            if key is None:
+                continue
+            raw = fb_row.get(key, 0)
+            if not raw:
+                continue
+            magnitude = abs(raw)
+            ramp = min(1.0, max(0.0, (magnitude - 1.0) / (full_at - 1.0))) if full_at > 1 else 1.0
+            confidence = round(floor + (1.0 - floor) * ramp, 3)
+            evidence.append({
+                "type": "driver_feedback",
+                "corner": cid, "phase": phase,
+                "speed_class": corner.get("speed_class"),
+                "verdict": "oversteer" if raw > 0 else "understeer",
+                "severity": None, "confidence": confidence, "raw_feedback": raw,
+                "source": f"driver feedback {raw:+g} at {phase} (magnitude {magnitude:g}; confidence ramps "
+                          f"{floor} at |1| to 1.0 at |{full_at}| -- Deepening Phase 4d, user decision "
+                          f"'counts from 1, very little weight')",
+            })
+    return evidence
+
+
+def _attach_feedback_evidence(candidates, evidence):
+    feedback_by_key = {}
+    for e in evidence:
+        if e["type"] == "driver_feedback":
+            feedback_by_key.setdefault((e["corner"], e["phase"]), []).append(e)
+    if not feedback_by_key:
+        return candidates
+
+    for c in candidates:
+        own_verdicts_by_phase = {}
+        for ref in c["evidence_refs"]:
+            verdict = ref.get("verdict")
+            if verdict is None:
+                continue
+            phases = ref["phases"] if "phases" in ref else (ref.get("phase"),)
+            for p in phases:
+                if p is not None:
+                    own_verdicts_by_phase.setdefault(p, set()).add(verdict)
+        own_ids = {id(r) for r in c["evidence_refs"]}
+        for phase, verdicts in own_verdicts_by_phase.items():
+            for fb in feedback_by_key.get((c["corner"], phase), []):
+                if fb["verdict"] in verdicts and id(fb) not in own_ids:
+                    c["evidence_refs"].append(fb)
+                    own_ids.add(id(fb))
+    return candidates
+
+
+def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state=None, channels=None,
+                    feedback_data=None):
     """Evidence layer, Stage 1. Turns per-lap-per-corner stability
     summaries (modules.stability_analysis.summarise_corners' own output
     shape) into a flat list of evidence items: {type, corner, phase,
@@ -516,29 +674,53 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
     engine's own "data"-trigger rules use, generalised to the small set of
     multi-phase groups the matrix actually uses -- feeds
     _bridge_candidates_for_matrix_rules, the migrated-rule candidate
-    bridge. (e)/(f) intervention_abs/intervention_tc, config-gated
-    (decision_frame.json intervention_evidence.use_intervention_evidence,
-    default False) -- corners/state/channels are optional (default None,
-    Stage-1-caller-compatible); when any is missing, or the flag is off,
-    both are silently skipped (an honest [], never a fabricated fallback),
-    since the per-lap phase-window channel check they need cannot be
-    computed from summaries alone.
+    bridge. (e)/(f) intervention_abs/intervention_abs_masking/
+    intervention_tc, config-gated PER SOURCE (decision_frame.json
+    intervention_evidence.abs.enabled / .tc.enabled -- Deepening Phase 4c,
+    2026-09-18, replaced Stage 2's own single global use_intervention_
+    evidence flag; ABS defaults on, TC stays dormant) -- corners/state/
+    channels are optional (default None, Stage-1-caller-compatible); when
+    any is missing, or a source's own flag is off, that source is silently
+    skipped (an honest [], never a fabricated fallback), since the per-lap
+    phase-window channel check they need cannot be computed from summaries
+    alone.
+
+    Deepening Phase 4d (2026-09-18): `feedback_data` (the outing's own
+    driver-feedback table, same shape modules.recommendation.
+    generate_recommendations' own feedback_data parameter takes) is
+    optional, default None -- when supplied, adds driver_feedback evidence
+    items (see _build_driver_feedback_evidence); generate_candidates then
+    attaches matching items to existing candidates' evidence_refs.
     """
     aggregated = aggregate_by_corner(summaries)
     by_corner_laps = _group_by_corner(summaries)
     config_recs = load_recommendations_config()
 
     evidence = []
-    evidence += _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn)
+    evidence += _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn, config)
     evidence += _build_ls_disambiguation_evidence(
         aggregated, ls_stats, [e for e in evidence if e["type"] == "corner_verdict"]
     )
     evidence += _build_brake_balance_evidence(aggregated, by_corner_laps, config)
-    evidence += _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs)
+    evidence += _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, config_recs, config)
 
-    if config.get("intervention_evidence", {}).get("use_intervention_evidence", False) and corners is not None:
-        evidence += _build_intervention_abs_evidence(corners, by_corner_laps, state, channels, aggregated)
-        evidence += _build_intervention_tc_evidence(corners, state, channels, aggregated)
+    # Deepening Phase 4c (2026-09-18, user decision): ABS/TC now gate
+    # independently -- ABS defaults ON (Phase 3 resolved the trusted
+    # position channel, treated as reviewed-enough to ship); TC stays
+    # dormant pending its own channel-identity mapping. Replaces Stage 2's
+    # single global use_intervention_evidence flag.
+    intervention_cfg = config.get("intervention_evidence", {})
+    if corners is not None:
+        abs_cfg = intervention_cfg.get("abs", {})
+        if abs_cfg.get("enabled", False):
+            evidence += _build_intervention_abs_evidence(corners, by_corner_laps, state, channels, aggregated, abs_cfg)
+        tc_cfg = intervention_cfg.get("tc", {})
+        if tc_cfg.get("enabled", False):
+            evidence += _build_intervention_tc_evidence(corners, state, channels, aggregated)
+
+    if feedback_data:
+        evidence += _build_driver_feedback_evidence(
+            feedback_data, aggregated, config.get("driver_feedback_weighting", {}))
 
     return evidence
 
@@ -810,8 +992,10 @@ def rule_bridge_status(rule):
     return "primary"
 
 
-def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner=None):
+def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner=None,
+                                         intervention_abs_masking_by_corner=None):
     intervention_abs_by_corner = intervention_abs_by_corner or {}
+    intervention_abs_masking_by_corner = intervention_abs_masking_by_corner or {}
     matrix_by_group = {}
     for e in evidence:
         if e["type"] == "matrix_verdict":
@@ -860,6 +1044,23 @@ def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, interve
                 evidence_refs = [ev]
                 if verdict == "unstable_yaw" and phase_group == ("entry_1_brake",) and cid in intervention_abs_by_corner:
                     evidence_refs = evidence_refs + [intervention_abs_by_corner[cid]]
+                # Deepening Phase 4c: "ABS regulating heavily -> flag as
+                # masking" applies to ANY braking-phase verdict (under-
+                # steer/oversteer/unstable_yaw alike), not just the ABS-
+                # inactive corroboration above -- a heavily-regulated
+                # braking zone's own CS/matrix reading is suspect
+                # regardless of which axle/direction it points. Appended
+                # to evidence_refs so the MIN-confidence rule pulls this
+                # candidate's own confidence down toward the masking
+                # evidence's -- a real, if partial, realisation of
+                # "prefer brake-balance/platform levers": this candidate
+                # scores lower, so a brake_balance_signature candidate at
+                # the same corner (unaffected by this flag, a different
+                # evidence source) naturally outranks it if one exists.
+                # No hard reordering/exclusion rule implemented -- flagged
+                # as a partial realisation, not the full "prefer" semantics.
+                if phase_group == ("entry_1_brake",) and cid in intervention_abs_masking_by_corner:
+                    evidence_refs = evidence_refs + [intervention_abs_masking_by_corner[cid]]
 
                 candidates.append(_make_candidate(
                     rule, cid, evidence_refs, "primary",
@@ -893,6 +1094,7 @@ def generate_candidates(evidence, registry, config):
     corner_verdicts_by_key = {}
     ls_by_key = {}
     intervention_abs_by_corner = {}
+    intervention_abs_masking_by_corner = {}
     intervention_tc_by_corner = {}
     for e in evidence:
         if e["type"] == "corner_verdict":
@@ -903,12 +1105,20 @@ def generate_candidates(evidence, registry, config):
             intervention_abs_by_corner[e["corner"]] = e
         elif e["type"] == "intervention_tc":
             intervention_tc_by_corner[e["corner"]] = e
+        elif e["type"] == "intervention_abs_masking":
+            intervention_abs_masking_by_corner[e["corner"]] = e
 
     candidates = []
     candidates += _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs,
                                               intervention_tc_by_corner)
     candidates += _brake_balance_candidates(evidence, registry, config_recs)
-    candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner)
+    candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
+                                                        intervention_abs_masking_by_corner)
+    # Deepening Phase 4d: attaches any driver_feedback evidence (built by
+    # build_evidence when feedback_data was supplied) to every candidate
+    # whose own evidence_refs share its corner/phase/verdict -- corroborates
+    # via the existing MIN-confidence rule, never a new candidate/action.
+    candidates = _attach_feedback_evidence(candidates, evidence)
     return candidates
 
 
@@ -961,7 +1171,21 @@ def _settings_window_component(candidate, current_setup, registry, decision_conf
             flags.append(f"{param}: settings-window distance not computable "
                          f"(nominal={nominal}, span={span}, current={current}) -- neutral, contributes 0")
             continue
-        new_value = float(current) + action["delta"]
+        # Deepening Phase 4a (2026-09-18): current comes from the outing's
+        # own setup_data, which stores an ENUM-typed parameter's real value
+        # as its LABEL string (e.g. wing_position="P9", arb_front_mount=
+        # "P1"), not a number -- float() on that raises. A numeric-typed
+        # parameter stored as a numeral string ("11" for a damper click
+        # count) converts fine; only a genuine enum label does not. Caught
+        # defensively rather than left to crash the whole scoring call --
+        # same "neutral, never guessed" treatment as a missing value, since
+        # no per-parameter label->number mapping exists yet to resolve it.
+        try:
+            new_value = float(current) + action["delta"]
+        except (TypeError, ValueError):
+            flags.append(f"{param}: settings-window distance not computable "
+                         f"(current={current!r} is not numeric, likely an enum label) -- neutral, contributes 0")
+            continue
         distances.append(min(1.0, abs(new_value - nominal) / span))
     if not distances:
         return 0.0, flags

@@ -1181,7 +1181,8 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
 
 def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None,
                        apex_half_window_samples=None, cs_phase_min_valid_samples=None,
-                       cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None):
+                       cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None,
+                       ls_phase_min_valid_samples=None):
     # fz (modules.stability_analysis.estimate_vertical_loads's output) is
     # optional and additive only: passing it adds fz_f_N/fz_r_N/
     # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
@@ -1198,7 +1199,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     # no-actual-braking check for entry_1_brake -- see that helper and
     # stab_phase_no_braking_floor_bar's own config comment.
     if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
-            or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None):
+            or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None
+            or ls_phase_min_valid_samples is None):
         se_defaults = load_parameters()["stability_estimation"]
         if apex_half_window_samples is None:
             apex_half_window_samples = se_defaults["apex_half_window_samples"]
@@ -1208,6 +1210,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             cs_apex_region_half_length_m = se_defaults["cs_apex_region_half_length_m"]
         if stab_phase_no_braking_floor_bar is None:
             stab_phase_no_braking_floor_bar = se_defaults["stab_phase_no_braking_floor_bar"]
+        if ls_phase_min_valid_samples is None:
+            ls_phase_min_valid_samples = se_defaults["ls_phase_min_valid_samples"]
     t = state["time"]
     s_m = state.get("s_m")
     brake_f_bar = state.get("brake_f_bar")
@@ -1246,6 +1250,16 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         # median that is really just one or two extreme readings -- see
         # cs_phase_min_valid_samples's own config comment.
         if stat["n"] < cs_phase_min_valid_samples:
+            return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
+        return stat
+
+    def _gate_ls_stat(stat):
+        # LS validity repair (Metrology extension Phase 2, 2026-09-19):
+        # same no-signal-on-too-few-samples gate CS_ratio already has,
+        # its own separately-derived floor (ls_phase_min_valid_samples,
+        # not cs_phase_min_valid_samples reused) since LS's own windowed-
+        # regression noise characteristics differ from CS's.
+        if stat["n"] < ls_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
@@ -1401,8 +1415,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(fy_f_norm[idx])
                 corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(fy_r_norm[idx])
             if ls is not None:
-                corner_summary["phases"][phase]["ls_ratio_f"] = _stats(ls_f[idx])
-                corner_summary["phases"][phase]["ls_ratio_r"] = _stats(ls_r[idx])
+                corner_summary["phases"][phase]["ls_ratio_f"] = _gate_ls_stat(_stats(ls_f[idx]))
+                corner_summary["phases"][phase]["ls_ratio_r"] = _gate_ls_stat(_stats(ls_r[idx]))
 
         apex_idx = _apex_region_idx(c)
         corner_summary["apex_region"] = {

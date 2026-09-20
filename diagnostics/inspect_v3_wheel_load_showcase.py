@@ -55,12 +55,25 @@ from modules.wheel_loads import (
     estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
     combine_with_reconstruction_and_fallback, CORNERS,
 )
+from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 
 RAW_FILE = "GT3_PRC_MLA-v3.txt"
 OUT_DIR = "diagnostics/plots_v3"
 WHEEL_LABELS = {"fl": "FL", "fr": "FR", "rl": "RL", "rr": "RR"}
 PLAUSIBILITY_BOUND_MPS2 = 22.0  # reuses Phase 3's own established upper bound
 ROBUST_MEDIAN_WINDOW_S = 0.2
+
+# Deepening Phase 1 (2026-09-18): this outing's own real corner weighing
+# (Outing.setup_data.car.corner_weight_*, stored this session) now
+# resolves to Level 2 via modules.accuracy_resolution -- reused here so
+# the showcase's own "config vs measured" comparison reads against the
+# same reference production actually uses for this outing, not the
+# older config placeholder. See PLAN.md/thesis_notes.md "Deepening Phase
+# 1" for the full resolution chain.
+V3_SETUP_DATA = {"car": {
+    "corner_weight_fl": 300.3, "corner_weight_fr": 298.9,
+    "corner_weight_rl": 396.2, "corner_weight_rr": 386.5,
+}}
 
 
 def _corner_at_time(corners, t):
@@ -91,7 +104,9 @@ def _classify_negatives(fz_kn, kerb_slice):
 
 def main():
     data = parse_csv(RAW_FILE)
-    params = load_parameters()
+    raw_params = load_parameters()
+    resolved = resolve_accuracy(raw_params, setup_data=V3_SETUP_DATA, cap=None)
+    params = apply_resolved_vehicle(raw_params, resolved)
     car_data = load_car_data()
     state = prepare_vehicle_state(data["channels"], params)
     if state is None or car_data is None:
@@ -139,13 +154,21 @@ def main():
     print("NUMBERS BLOCK")
     print("=" * 78)
 
-    print("\n--- corner weights: config (static) vs measured straight-line mean (kg) ---")
+    # Deepening Phase 2 (2026-09-18): FR's own log_dms_dam_fr decoding
+    # correction (config/channels.json channel_corrections) is live --
+    # FR is now damper-MEASURED on this file, not reconstructed. Tag by
+    # each corner's own real validity fraction rather than a hardcoded
+    # "fr" special case, so this script never silently mislabels a corner
+    # again if a future channel/session state changes.
+    valid_frac = {c: float(damper_result[c]["valid"].mean()) for c in CORNERS}
+
+    print("\n--- corner weights: outing weighing (Level 2, Phase 1) vs measured straight-line mean (kg) ---")
     total_config_kg = sum(config_kg.values())
     total_measured_kg = 0.0
     for c in CORNERS:
         measured_kg = float(np.mean(combined[c]["fz_N"][straight])) / g
         total_measured_kg += measured_kg
-        tag = " [reconstructed]" if c == "fr" else ""
+        tag = "" if valid_frac[c] > 0.99 else f" [reconstructed/fallback, {(1-valid_frac[c])*100:.0f}% of session]"
         print(f"  {WHEEL_LABELS[c]}{tag}: config={config_kg[c]:.1f} kg, measured={measured_kg:.1f} kg, "
               f"delta={measured_kg - config_kg[c]:+.1f} kg")
     residual_pct = (total_measured_kg - total_config_kg) / total_config_kg * 100.0
@@ -247,7 +270,7 @@ def main():
             axp = fig.add_subplot(gs[row, 0], sharex=ax0)
             fz_kn = combined[c]["fz_N"][sl][order] / 1000.0
             axp.plot(lap_s, fz_kn, color=ps.LAP_PALETTE[1 if c == "fr" else 0], linewidth=1.0)
-            label = f"{WHEEL_LABELS[c]} Fz (kN)" + (" [reconstructed]" if c == "fr" else "")
+            label = f"{WHEEL_LABELS[c]} Fz (kN)" + ("" if valid_frac[c] > 0.99 else " [reconstructed/fallback]")
             axp.set_ylabel(label)
             axes.append(axp)
             kerb_n, not_kerb_n = _classify_negatives(fz_kn, kerb_slice)
@@ -291,7 +314,7 @@ def main():
         for i, c in enumerate(CORNERS):
             fz_kn = combined[c]["fz_N"][sl_] / 1000.0
             ax_load.plot(t_rel, fz_kn, color=ps.LAP_PALETTE[i], linewidth=1.2,
-                         label=WHEEL_LABELS[c] + (" [reconstructed]" if c == "fr" else ""))
+                         label=WHEEL_LABELS[c] + ("" if valid_frac[c] > 0.99 else " [reconstructed/fallback]"))
             kerb_n, not_kerb_n = _classify_negatives(fz_kn, kerb_slice)
             if kerb_n or not_kerb_n:
                 sanity_bits.append(f"{WHEEL_LABELS[c]}: {kerb_n} kerb-coincident/{not_kerb_n} not")
@@ -325,14 +348,16 @@ def main():
     _event_zoom_figure(idx_corner, ay, "ay (m/s^2)", "Robust max-lateral-transfer corner",
                         "wheel_load_showcase_lateral_transfer_zoom.png")
 
-    print("\n(d) confirming existing comparison figures reflect the final model (not regenerated -- "
-          "nothing they depend on changed since their last render):")
+    print("\n(d) existing comparison figures -- one is now STALE, flagged not regenerated (out of this "
+          "script's own scope):")
     print("    diagnostics/plots_v3/wheel_load_comparison_C12_lap8.png (rear axle, measured vs "
-          "static-split -- both lines independent of the session-correction model, RL/RR are real "
-          "sensors and the static-split contrast line is deliberately the OLD global static estimate)")
+          "static-split -- unaffected by Phase 2's FR fix, RL/RR were always damper-measured)")
     print("    diagnostics/plots_v3/wheel_load_reconstruction_C12_lap8.png (front axle, measured FL vs "
-          "reconstructed FR -- already regenerated against the FINAL mass+aero+split-corrected model "
-          "in the prior 'Session-measured split fractions' turn)")
+          "*reconstructed* FR) is now OBSOLETE terminology -- Deepening Phase 2 (2026-09-18) made FR "
+          "live/damper-measured on this file (config/channels.json channel_corrections.log_dms_dam_fr), "
+          "so this figure's own title no longer describes the live cascade's behaviour. Not regenerated "
+          "here (a fresh FL-vs-live-FR figure is a natural follow-up, not attempted this turn) -- flagged "
+          "so it is not mistaken for current.")
 
 
 if __name__ == "__main__":

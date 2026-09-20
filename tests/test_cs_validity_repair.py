@@ -220,6 +220,54 @@ def test_phase_at_or_above_min_valid_samples_reports_real_median():
     assert phase["cs_ratio_f"]["median"] == 0.5
 
 
+# --- LS validity repair: phase_min_valid_samples gate (Metrology extension
+# Phase 2, 2026-09-19) -- same shape as the CS gate tests above, own
+# separately-named config key (ls_phase_min_valid_samples).
+
+def test_ls_phase_below_min_valid_samples_reports_nan():
+    n = 20
+    t = np.linspace(0.0, 10.0, n)
+    cs_f = np.full(n, np.nan)
+    cs_r = np.full(n, np.nan)
+    stab = np.full(n, 100.0)
+    ls_f = np.full(n, np.nan)
+    ls_f[2:4] = 0.5  # 2 finite samples -- below the min of 3 used here
+    ls_r = np.full(n, np.nan)
+    corner = _make_corner()
+    state = _base_state(n, t)
+    out = summarise_corners(
+        [corner], {"CS_ratio_f": cs_f, "CS_ratio_r": cs_r},
+        {"stability_observed_Nm_per_deg": stab, "stability_valid": np.ones(n, dtype=bool)},
+        state, ls={"LS_ratio_f": ls_f, "LS_ratio_r": ls_r},
+        apex_half_window_samples=1, cs_phase_min_valid_samples=1,
+        cs_apex_region_half_length_m=5.0, ls_phase_min_valid_samples=3,
+    )
+    phase = out[0]["phases"]["entry_2_turnin"]
+    assert phase["ls_ratio_f"]["median"] != phase["ls_ratio_f"]["median"]  # NaN
+
+
+def test_ls_phase_at_or_above_min_valid_samples_reports_real_median():
+    n = 20
+    t = np.linspace(0.0, 10.0, n)
+    cs_f = np.full(n, np.nan)
+    cs_r = np.full(n, np.nan)
+    stab = np.full(n, 100.0)
+    ls_f = np.full(n, np.nan)
+    ls_f[2:5] = 0.5  # 3 finite samples -- meets the min of 3
+    ls_r = np.full(n, np.nan)
+    corner = _make_corner()
+    state = _base_state(n, t)
+    out = summarise_corners(
+        [corner], {"CS_ratio_f": cs_f, "CS_ratio_r": cs_r},
+        {"stability_observed_Nm_per_deg": stab, "stability_valid": np.ones(n, dtype=bool)},
+        state, ls={"LS_ratio_f": ls_f, "LS_ratio_r": ls_r},
+        apex_half_window_samples=1, cs_phase_min_valid_samples=1,
+        cs_apex_region_half_length_m=5.0, ls_phase_min_valid_samples=3,
+    )
+    phase = out[0]["phases"]["entry_2_turnin"]
+    assert phase["ls_ratio_f"]["median"] == 0.5
+
+
 # --- apex_region (Phase 3) ----------------------------------------------------
 
 def test_apex_region_empty_when_s_m_missing():
@@ -318,6 +366,65 @@ def test_classify_corner_without_apex_region_falls_back_to_apex_3_slice():
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary_no_apex_region)
     assert severity == "moderate"
     assert "understeer" in short
+
+
+# --- Metrology Phase 2: verdict-stability [MARGINAL] annotation -------------
+
+def _healthy_phases():
+    healthy = {"median": 1.0}
+    stab_ok = {"median": 500.0}
+    return {
+        phase: {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok}
+        for phase in ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")
+    }
+
+
+def test_classify_corner_marginal_marker_fires_within_anchored_margin():
+    # STRONG_CSF=-0.10; -0.15 sits 0.05 away, inside the 0.11 anchored
+    # margin (config classification.verdict_stability_margin.cs_margin) --
+    # a real understeer verdict this close to the threshold must be tagged.
+    from ui.views.outing_form import OutingForm
+    summary = {"phases": _healthy_phases()}
+    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": -0.15}
+    severity, short, long_, _colour = OutingForm._classify_corner(None, summary)
+    assert severity == "moderate"
+    assert "understeer" in short
+    assert "[MARGINAL]" in short
+    assert "[MARGINAL]" in long_
+    assert "Metrology Phase 1" in long_
+
+
+def test_classify_corner_marginal_marker_absent_far_from_threshold():
+    # -0.5 sits 0.40 from STRONG_CSF and 0.65 from MODERATE_CSF -- both
+    # well outside the 0.11 anchored margin -- a confident verdict, not a
+    # marginal one.
+    from ui.views.outing_form import OutingForm
+    summary = {"phases": _healthy_phases()}
+    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": -0.5}
+    severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
+    assert severity == "moderate"
+    assert "understeer" in short
+    assert "[MARGINAL]" not in short
+
+
+def test_classify_corner_marginal_marker_absent_when_no_verdict():
+    # A clean corner has no primary axle to attach a stability marker to.
+    from ui.views.outing_form import OutingForm
+    summary = {"phases": _healthy_phases()}
+    severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
+    assert severity == "normal"
+    assert short == "ok"
+    assert "[MARGINAL]" not in short
+
+
+def test_classify_corner_marginal_marker_fires_on_rear_axle_too():
+    # STRONG_CSR=-0.07; -0.12 sits 0.05 away, inside the margin.
+    from ui.views.outing_form import OutingForm
+    summary = {"phases": _healthy_phases()}
+    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": -0.12}
+    severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
+    assert "oversteer" in short
+    assert "[MARGINAL]" in short
 
 
 # --- end-to-end: the 6 live apex-keyed recommendation rules (Phase 3) --------

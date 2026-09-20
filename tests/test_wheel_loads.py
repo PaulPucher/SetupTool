@@ -275,10 +275,16 @@ def test_estimate_session_corrected_axle_totals_recovers_noiseless_fit():
     # ax=ay=0 everywhere (every sample satisfies both the tight and wide
     # straight-line masks) -- FL/RL/RR constructed so total_fz_for_fit
     # (FL used twice, as its own FR proxy, plus RL plus RR) equals
-    # A + C*v^2 EXACTLY at every sample, letting the regression recover
-    # C exactly (noiseless) and letting the returned fz_f_N+fz_r_N sum be
-    # checked directly against the same closed form (long-transfer term
-    # is exactly zero here since ax=0 throughout).
+    # A + C*v^2 EXACTLY at every sample, letting the joint regression
+    # (Metrology extension Phase 1, thesis_notes.md "mass/aero double-
+    # counting fix") recover BOTH A (the v->0 intercept, mass_kg_session
+    # = A/g) and C exactly (noiseless) -- the synthetic-session-with-
+    # known-mass-and-known-c test the fix's own acceptance criteria
+    # asked for. Previously this asserted mass_kg_session == mean(total)/g
+    # (the pre-fix, double-counting behaviour) -- v spans 20-80 m/s here
+    # specifically so that assertion and the intercept assertion would
+    # give numerically DIFFERENT answers, proving this test actually
+    # exercises the new mechanism rather than passing either way.
     n = 50
     v = np.linspace(20.0, 80.0, n)
     A_true = 12000.0
@@ -298,7 +304,10 @@ def test_estimate_session_corrected_axle_totals_recovers_noiseless_fit():
 
     result = estimate_session_corrected_axle_totals(state, damper_result, params)
     assert np.isclose(result["c_session_N_per_mps2"], C_true, rtol=1e-6)
-    assert np.isclose(result["mass_kg_session"], np.mean(total_true) / 9.81, rtol=1e-6)
+    assert np.isclose(result["mass_kg_session"], A_true / 9.81, rtol=1e-6)
+    # The OLD (pre-fix) formula would have given a materially different,
+    # WRONG number here -- confirms the fixture is actually discriminating.
+    assert not np.isclose(result["mass_kg_session"], np.mean(total_true) / 9.81, rtol=1e-3)
     assert result["aero_front_fraction"] == 0.40
     # FL=RL=RR symmetric in this fixture -> both session-measured split
     # fractions must land exactly on 0.5 (front==rear total, RL==RR).

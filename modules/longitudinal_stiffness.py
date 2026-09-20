@@ -131,57 +131,102 @@ def _window_sum(prefix, start, stop):
     return prefix[stop] - prefix[start]
 
 
-def _centered_slopes(slip, force, valid_mask, sample_rate_hz, se):
+def resolve_ls_min_window_samples(ls, sample_rate_hz):
+    """LS validity repair, Phase 1 (2026-09-19, thesis_notes.md 'Metrology
+    extension Phase 2: LS_ratio validity repair'), mirroring modules.
+    stability_analysis.resolve_cs_min_window_samples exactly: min_window_s
+    is a PHYSICAL window duration, not a sample count, converted to
+    samples at THIS file's own measured rate, floored at min_window_
+    samples_floor so an unusually low sample rate cannot validate a
+    near-empty window. `ls` is the longitudinal_stiffness config sub-dict
+    directly (this module's own existing convention -- _apply_
+    plausibility_guard and friends take sub-dicts, not the full params),
+    not the top-level params dict CS's own analogous function takes.
+    """
+    return max(ls["min_window_samples_floor"], int(round(ls["min_window_s"] * sample_rate_hz)))
+
+
+def reconstruct_ls_window_start(kappa, i, min_window, min_span, s_m=None, max_window_m=None):
+    """Reconstruct the adaptive window's own start index for target index
+    `i` -- mirrors modules.stability_analysis.reconstruct_cs_window_start
+    exactly (kappa in place of alpha), and _centered_slopes's own internal
+    growth loop below calls this directly rather than duplicating it, so
+    the two can never drift apart. min_window is already a resolved
+    SAMPLE COUNT (see resolve_ls_min_window_samples). s_m/max_window_m
+    cap how far the window may grow by real track distance travelled
+    (metres, not samples) -- omitting either falls back to NO distance
+    cap, safe only when called on an index already known to carry a
+    finite LS_ratio.
+    """
+    start = i - min_window
+    s_i = s_m[i - 1] if (s_m is not None and max_window_m is not None) else None
+    if s_i is not None and not np.isfinite(s_i):
+        s_i = None
+    while start > 0:
+        span = np.max(kappa[start:i]) - np.min(kappa[start:i])
+        if span >= min_span:
+            break
+        if s_i is not None:
+            s_start = s_m[start]
+            if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
+                break
+        start -= 1
+    return max(start, 0)
+
+
+def _centered_slopes(slip, force, valid_mask, sample_rate_hz, se, s_m=None):
+    """LS validity repair (2026-09-19, thesis_notes.md 'Metrology
+    extension Phase 2: LS_ratio validity repair'), applying the CS_ratio
+    playbook: min_window_s/min_window_samples_floor/min_slip_span are now
+    FLOORS, not a fixed window -- the window ADAPTIVELY WIDENS past the
+    floor until it clears min_slip_span, capped at max_window_m (a real
+    track DISTANCE, not a sample count, so the cap means the same thing
+    at a slow and a fast corner) via reconstruct_ls_window_start. This
+    replaces the prior fixed-half-window prefix-sum implementation (chair-
+    identical, but with no widening and no span-floor enforcement against
+    a genuinely too-narrow window -- see thesis_notes.md for the finding
+    that motivated this repair: the CS playbook's own 'min-driven
+    statistics amplify garbage windows' failure mode, reproduced here as
+    the Phase 4e wholesale-negative finding).
+
+    NaN/no-signal semantics mirror CS exactly: a sample whose window
+    cannot clear BOTH floors within the cap reports NaN (no signal), not
+    a slope computed from an under-qualified window.
+    """
     n = len(slip)
     if n == 0:
         return np.array([]), np.array([], dtype=bool)
 
-    half_window = max(2, int(round(se["regression_window_s"] * sample_rate_hz / 2.0)))
-    # Rate-derived min_samples (PLAN.md STEP 3, 50 Hz adaptation, decided
-    # 2026-08-30 -- thesis_notes.md has the full record). The chair's
-    # literal min_samples=25 assumes a higher log rate than this car's
-    # 50 Hz Cosworth file provides: the window's own maximum possible
-    # sample count is 2*half_window+1, which is 23 at 50 Hz -- below 25
-    # by construction, on any data, proven in the prior phase's own
-    # entry. Rather than transplant the chair's count, this keeps the
-    # chair's PHYSICAL window (regression_window_s, unchanged) and
-    # requires half_window+1 finite samples -- enough to span from the
-    # window's centre to one edge inclusive, a natural minimum for a
-    # centred regression slope at ANY log rate, not just this one.
-    # Floored at min_samples_floor so an unusually low sample rate
-    # cannot validate a near-empty window.
-    min_samples = max(se["min_samples_floor"], half_window + 1)
-    idx = np.arange(n)
-    start = np.maximum(0, idx - half_window)
-    stop = np.minimum(n, idx + half_window + 1)
+    min_window = resolve_ls_min_window_samples(se, sample_rate_hz)
+    min_span = se["min_slip_span"]
+    max_window_m = se["max_window_m"]
 
     finite = np.isfinite(slip) & np.isfinite(force) & valid_mask
     x = np.where(finite, slip, 0.0)
     y = np.where(finite, force, 0.0)
-    finite_flag = finite.astype(float)
 
-    count = _window_sum(_prefix_sum(finite_flag), start, stop)
-    sx = _window_sum(_prefix_sum(x), start, stop)
-    sy = _window_sum(_prefix_sum(y), start, stop)
-    sxx = _window_sum(_prefix_sum(x * x), start, stop)
-    sxy = _window_sum(_prefix_sum(x * y), start, stop)
-
-    # Sliding min/max, same "not worth a dependency, windows are small" note as the chair's own comment.
-    slip_span = np.full(n, np.nan)
-    for i in range(n):
-        window_slip = slip[start[i]:stop[i]][finite[start[i]:stop[i]]]
-        if window_slip.size:
-            slip_span[i] = float(np.nanmax(window_slip) - np.nanmin(window_slip))
-
-    denom = sxx - (sx * sx / np.maximum(count, 1.0))
-    numer = sxy - (sx * sy / np.maximum(count, 1.0))
     slopes = np.full(n, np.nan)
-    valid = (
-        (count >= min_samples)
-        & (np.abs(denom) > 1e-12)
-        & (slip_span >= se["min_slip_span"])
-    )
-    slopes[valid] = numer[valid] / denom[valid]
+    valid = np.zeros(n, dtype=bool)
+
+    for i in range(min_window, n):
+        if not finite[i]:
+            continue
+        start = reconstruct_ls_window_start(x, i, min_window, min_span, s_m=s_m, max_window_m=max_window_m)
+        window_x = x[start:i]
+        window_y = y[start:i]
+        achieved_span = np.max(window_x) - np.min(window_x)
+        if achieved_span < min_span:
+            continue  # widening could not clear the span floor within the cap -- no signal
+
+        x_mean = np.mean(window_x)
+        y_mean = np.mean(window_y)
+        denom = np.sum((window_x - x_mean) ** 2)
+        if denom < 1e-10:
+            continue
+
+        slopes[i] = np.sum((window_x - x_mean) * (window_y - y_mean)) / denom
+        valid[i] = True
+
     return slopes, valid
 
 
@@ -230,6 +275,7 @@ def estimate_longitudinal_stiffness(long_forces, slip, state, params):
     sr = state["sample_rate_hz"]
     v_mps = state["v_mps"]
     az_g = state.get("az_g")
+    s_m = state.get("s_m")
 
     speed_valid = v_mps >= ls["min_speed_mps"]
 
@@ -250,7 +296,7 @@ def estimate_longitudinal_stiffness(long_forces, slip, state, params):
         fx_filt = _filtered(fx_raw, sr, ls["cutoff_hz"])
         valid_mask = np.isfinite(kappa_raw) & np.isfinite(fx_raw) & speed_valid & ~exclude
 
-        stiffness, valid = _centered_slopes(kappa_filt, fx_filt, valid_mask, sr, ls)
+        stiffness, valid = _centered_slopes(kappa_filt, fx_filt, valid_mask, sr, ls, s_m=s_m)
         ratio, reference = _stiffness_ratio(stiffness, kappa_filt, valid, ls["linear_slip_threshold"])
 
         return {

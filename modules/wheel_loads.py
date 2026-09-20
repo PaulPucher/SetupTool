@@ -403,16 +403,28 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     aero.lift_coeff=0.0 omits real, substantial aero downforce entirely.
     Both are corrected here from this session's OWN damper data.
 
-    (1) MASS: mass_kg_session is the session's own measured straight-line
-    mean total (same tight mask as the +10.4% finding: moving, |ax|<0.5,
-    |ay|<0.5), replacing vehicle.mass_kg for this function's own static-
-    split term only.
-    (2) AERO: F_aero(v) = c_session * v^2, c_session fit from THIS
-    session's own straight-line damper data via the same 3-term
-    regression as diagnostics/inspect_v3_aero_load_diagnostic.py's Phase
-    5 method (Fz_total = a + b*ax + c*v^2, widened |ay|<1.5 mask), split
-    front/rear by wheel_loads.aero_front_fraction (Level 1 placeholder,
-    config-stated -- see (3) below for why this one stays a placeholder).
+    (1)/(2) MASS AND AERO, JOINTLY (UPDATED 2026-09-19, Metrology close-out
+    extension Phase 1, thesis_notes.md "Metrology extension Phase 1:
+    mass/aero double-counting fix"): mass_kg_session and c_session are
+    recovered from ONE regression, total_fz_for_fit_N(v) = static_total_N
+    + c_session*v^2, fit jointly on the straight_wide population (moving,
+    |ay|<1.5) -- static_total_N is the fit's own v->0 intercept
+    (mass_kg_session = static_total_N/g), so aero's entire speed
+    dependence lives in c_session, by construction, with no overlap.
+    F_aero(v) = c_session*v^2 is then split front/rear by wheel_loads.
+    aero_front_fraction (see (3) below). SUPERSEDES the original two-fit
+    version (a separate straight_tight MEAN for mass, a separate 3-term
+    ax/v^2 regression for c_session) which double-counted: the mean
+    already contained real aero at its own reference speed, and the
+    separate v^2 term added more on top -- found and quantified via the
+    Deepening/Metrology aero_front_fraction 0.40->0.25 update's own
+    ground-truth regression (thesis_notes.md "Metrology close-out: aero_
+    front_fraction shipped, mass/aero double-counting found"). The ax
+    term is DROPPED from this fit: the axle TOTAL (front+rear) is
+    physically transfer-invariant under longitudinal acceleration (weight
+    transfer redistributes between axles, it does not change their sum)
+    -- ax's presence in the old 3-term fit was absorbing noise/artifact,
+    not a real dependency of the total on ax.
     (3) FRONT/REAR MASS SPLIT: front_mass_fraction is the session's own
     measured axle-total ratio at straight-line samples (front_total /
     (front_total+rear_total), same FL-doubling proxy as (1)/(2) for the
@@ -456,17 +468,20 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     asymmetry caveat) -- ONLY real per-corner measurements feed these two
     fits, never a model output, on either axle.
 
-    KNOWN IMPERFECTION, stated not hidden: mass_kg_session (a straight-
-    line MEAN across a real speed range) already contains some of the
-    real aero present at that range's own typical speed; adding a full,
-    separate c_session*v^2 term on top therefore double-counts a small
-    aero share already implicit in the mean, rather than being a clean
-    zero-speed/speed-dependent split (which would require fitting the
-    intercept of the SAME regression, deliberately not done here per the
-    work order's own explicit instruction to use "the +10.4% finding"
-    directly). Expected to be a second-order effect against the ~25%
-    gap being closed -- checked empirically in the Phase 3 re-run, not
-    just argued.
+    KNOWN IMPERFECTION, now CLOSED (was open until 2026-09-19): mass_kg_
+    session used to be a straight-line MEAN across a real speed range,
+    which already contains some of the real aero present at that range's
+    own typical speed -- adding a full, separate c_session*v^2 term on
+    top double-counted a share of it. The joint (1)/(2) fit above removes
+    this structurally (the static term is the v->0 intercept, not a mean
+    at some nonzero reference speed) rather than by re-tuning a split
+    fraction to compensate for it. ACCEPTANCE: the reconstruction ground-
+    truth check (diagnostics/inspect_v3_reconstruction_ground_truth.py,
+    lap 8, v3) dropped from +1451.4N/+27-29% mean error (the double-
+    counted state, aero_front_fraction=0.25) back below the original
+    +916.6N/+17-18% baseline (aero_front_fraction=0.40, pre-double-count-
+    discovery) -- full numbers: thesis_notes.md "Metrology extension
+    Phase 1: mass/aero double-counting fix".
 
     Returns fz_f_N/fz_r_N arrays plus the derived scalars (mass_kg_
     session, c_session_N_per_mps2, aero_front_fraction) for the caller to
@@ -497,7 +512,33 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         damper_result, corner_weight_kg, "rl", "rr")
     total_fz_for_fit_N = front_total_N + rear_total_N
 
-    mass_kg_session = float(np.mean(total_fz_for_fit_N[straight_tight])) / g
+    # Metrology close-out, Phase 1 (2026-09-19, thesis_notes.md "Metrology
+    # extension Phase 1: mass/aero double-counting fix"): mass_kg_session
+    # and c_session are now recovered from ONE joint regression, total(v)
+    # = m*g + c*v^2, on the straight_wide population -- the static term IS
+    # the fit's own v->0 intercept, so aero's speed-dependent contribution
+    # lives ONLY in the explicit c*v^2 term, by construction. Previously,
+    # mass_kg_session was a separate straight_tight MEAN (which already
+    # contains real aero at that population's own mean speed, its own
+    # long-standing documented caveat, quantified for the first time by
+    # the ground-truth regression this fix responds to) and c_session came
+    # from a SEPARATE 3-term (intercept, ax, v^2) regression on straight_
+    # wide -- two different fits of overlapping physical content, double-
+    # counting the aero share once inside each. The ax term is DROPPED
+    # here deliberately: the axle TOTAL (front+rear) is physically
+    # transfer-invariant under longitudinal acceleration (weight transfer
+    # redistributes between axles, it does not change their sum) -- ax's
+    # own presence in the old 3-term fit was absorbing noise/artifact, not
+    # a real physical dependency of the total on ax, and the joint 2-
+    # parameter fit below is the model this function's own docstring (1)/
+    # (2) always intended, made structurally double-count-free rather than
+    # patched after the fact.
+    X_total = np.column_stack([np.ones(int(straight_wide.sum())), v[straight_wide] ** 2])
+    y_total = total_fz_for_fit_N[straight_wide]
+    coeffs_total, _, _, _ = np.linalg.lstsq(X_total, y_total, rcond=None)
+    static_total_N = float(coeffs_total[0])
+    c_session = float(coeffs_total[1])
+    mass_kg_session = static_total_N / g
 
     mean_front_straight_N = float(np.mean(front_total_N[straight_tight]))
     mean_rear_straight_N = float(np.mean(rear_total_N[straight_tight]))
@@ -508,11 +549,6 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     mean_rl_straight_N = float(np.mean(damper_result["rl"]["fz_N"][straight_tight]))
     mean_rr_straight_N = float(np.mean(damper_result["rr"]["fz_N"][straight_tight]))
     rear_left_fraction = mean_rl_straight_N / (mean_rl_straight_N + mean_rr_straight_N)
-
-    X = np.column_stack([np.ones(int(straight_wide.sum())), ax[straight_wide], v[straight_wide] ** 2])
-    y = total_fz_for_fit_N[straight_wide]
-    coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
-    c_session = float(coeffs[2])
 
     aero_front_fraction = wl["aero_front_fraction"]  # NOT session-measurable, see docstring (3)
 

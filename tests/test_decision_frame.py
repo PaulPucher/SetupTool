@@ -406,25 +406,54 @@ def _synthetic_state_channels(n=200, sample_rate_hz=50.0):
     return state, t
 
 
-def test_intervention_evidence_off_by_default():
-    config = load_decision_frame_config()
-    assert config["intervention_evidence"]["use_intervention_evidence"] is False
+_ABS_TEST_CONFIG = {
+    "confidence": 0.8,
+    "abs_heavy_masks_verdict": {"heavy_duty_cycle_threshold": 0.5},
+}
 
+
+def test_intervention_evidence_per_source_defaults():
+    # Deepening Phase 4c (2026-09-18, user decision): ABS defaults ON, TC
+    # stays dormant -- replaces Stage 2's own single global flag.
+    config = load_decision_frame_config()
+    assert config["intervention_evidence"]["abs"]["enabled"] is True
+    assert config["intervention_evidence"]["tc"]["enabled"] is False
+    assert config["intervention_evidence"]["abs"]["confidence"] == pytest.approx(0.8)
+
+
+def test_intervention_abs_evidence_fires_via_build_evidence_default_config():
+    # End-to-end through build_evidence with the REAL, unmodified live
+    # config (abs.enabled=True by default) -- not just the unit-level
+    # _build_intervention_abs_evidence tests above.
+    config = load_decision_frame_config()
+    state, t = _synthetic_state_channels()
+    channels = {"abs_active": {"time": t, "data": np.zeros(len(t)), "quality": "valid"}}
+    corners = [
+        {"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}},
+        {"stable_corner_id": 5, "lap_number": 2, "segments": {"entry_1_brake": (0.5, 1.5)}},
+    ]
+    evidence = build_evidence([], {}, config, lambda s: ("normal", "", "", ""),
+                               corners=corners, state=state, channels=channels)
+    assert [e for e in evidence if e["type"] == "intervention_abs" and e["corner"] == 5]
+
+
+def test_intervention_evidence_tc_off_by_default_via_build_evidence():
+    config = load_decision_frame_config()
     state, t = _synthetic_state_channels()
     channels = {
         "abs_active": {"time": t, "data": np.zeros(len(t)), "quality": "valid"},
+        "ecu_B_tc_act": {"time": t, "data": np.ones(len(t)), "quality": "valid"},
     }
-    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {"entry_1_brake": (0.0, 1.0)}}]
-    summaries = []  # no summaries needed -- evidence type filter is what's under test
-    evidence = build_evidence(summaries, {}, config, lambda s: ("normal", "", "", ""),
+    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {"entry_1_brake": (0.0, 1.0),
+                                                                      "exit_4": (1.0, 1.5), "exit_5": (1.5, 2.0)}}]
+    evidence = build_evidence([], {}, config, lambda s: ("normal", "", "", ""),
                                corners=corners, state=state, channels=channels)
-    assert not [e for e in evidence if e["type"].startswith("intervention_")]
+    # TC stays dormant -- never fires even with a channel that would
+    # otherwise trigger it, since intervention_evidence.tc.enabled=False.
+    assert not [e for e in evidence if e["type"] == "intervention_tc"]
 
 
 def test_intervention_abs_evidence_fires_when_enabled():
-    config = copy.deepcopy(load_decision_frame_config())
-    config["intervention_evidence"]["use_intervention_evidence"] = True
-
     state, t = _synthetic_state_channels()
     # abs_active = 0 for the whole session -- "inactive throughout" for any
     # phase window drawn from it.
@@ -435,23 +464,77 @@ def test_intervention_abs_evidence_fires_when_enabled():
     ]
     aggregated = {5: {"speed_class": "medium"}}
     from modules.decision_frame import _build_intervention_abs_evidence
-    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, aggregated)
-    assert len(evidence) == 1
-    ev = evidence[0]
-    assert ev["type"] == "intervention_abs"
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, aggregated, _ABS_TEST_CONFIG)
+    inactive_ev = [e for e in evidence if e["type"] == "intervention_abs"]
+    assert len(inactive_ev) == 1
+    ev = inactive_ev[0]
     assert ev["corner"] == 5
-    assert ev["confidence"] == pytest.approx(1.0)  # inactive on both of the 2 analysed instances
+    # Deepening Phase 4c: confidence is capped at abs_config["confidence"]
+    # (0.8), not the raw repeat fraction (1.0 here, inactive on both of
+    # the 2 analysed instances) -- "supersedes Stage 2's own autonomous
+    # 1.0 default" per the user's own decision.
+    assert ev["confidence"] == pytest.approx(0.8)
 
 
-def test_intervention_abs_evidence_absent_when_abs_fires():
+def test_intervention_abs_evidence_confidence_caps_not_inflates():
+    # The 0.8 figure is a CEILING on the real repeat-fraction signal, not
+    # a replacement for it -- a weaker repeat pattern must still report
+    # honestly below 0.8, never inflated up to it.
+    state, t = _synthetic_state_channels(n=400)
+    channels = {"abs_active": {"time": t, "data": np.zeros(len(t)), "quality": "valid"}}
+    corners = [
+        {"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}},
+        {"stable_corner_id": 5, "lap_number": 2, "segments": {"entry_1_brake": (2.5, 3.5)}},
+        {"stable_corner_id": 5, "lap_number": 3, "segments": {"entry_1_brake": (4.5, 5.5)}},
+        {"stable_corner_id": 5, "lap_number": 4, "segments": {"entry_1_brake": (6.5, 7.5)}},
+    ]
+    aggregated = {5: {"speed_class": "medium"}}
+    from modules.decision_frame import _build_intervention_abs_evidence
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, aggregated, _ABS_TEST_CONFIG)
+    inactive_ev = [e for e in evidence if e["type"] == "intervention_abs"]
+    assert len(inactive_ev) == 1
+    # abs_active is 0 everywhere -- all 4 instances are "inactive", so the
+    # raw repeat fraction really is 1.0, capped down to 0.8. Confirms the
+    # cap direction (only ever lowers, matching min()) via the OTHER
+    # existing test above; this test's own job is just to not regress
+    # that with a differently-shaped fixture (more instances).
+    assert inactive_ev[0]["confidence"] == pytest.approx(0.8)
+
+
+def test_intervention_abs_evidence_absent_when_abs_fires_lightly():
     state, t = _synthetic_state_channels()
     data = np.zeros(len(t))
-    data[50:70] = 1.0  # ABS fires inside the entry_1_brake window below
+    data[50:70] = 1.0  # ABS fires inside the entry_1_brake window below, 20/50 samples = 40% duty cycle
     channels = {"abs_active": {"time": t, "data": data, "quality": "valid"}}
     corners = [{"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}}]
     from modules.decision_frame import _build_intervention_abs_evidence
-    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, {5: {"speed_class": "medium"}})
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, {5: {"speed_class": "medium"}},
+                                                  _ABS_TEST_CONFIG)
+    # Neither fully inactive (ABS did fire) nor heavy (40% < the 50% test
+    # threshold) -- correctly produces no evidence of either type.
     assert evidence == []
+
+
+def test_intervention_abs_masking_fires_on_heavy_duty_cycle():
+    # NEW, Deepening Phase 4c: "ABS regulating heavily -> flag as masking".
+    state, t = _synthetic_state_channels()
+    data = np.zeros(len(t))
+    data[25:65] = 1.0  # 40/50 samples = 80% duty cycle within the window below, >= 50% threshold
+    channels = {"abs_active": {"time": t, "data": data, "quality": "valid"}}
+    corners = [{"stable_corner_id": 5, "lap_number": 1, "segments": {"entry_1_brake": (0.5, 1.5)}}]
+    from modules.decision_frame import _build_intervention_abs_evidence
+    evidence = _build_intervention_abs_evidence(corners, {}, state, channels, {5: {"speed_class": "medium"}},
+                                                  _ABS_TEST_CONFIG)
+    masking_ev = [e for e in evidence if e["type"] == "intervention_abs_masking"]
+    assert len(masking_ev) == 1
+    ev = masking_ev[0]
+    assert ev["corner"] == 5
+    assert ev["verdict"] is None  # a masking flag, not a verdict-corroborating item
+    assert ev["masked_by_heavy_abs"] is True
+    assert ev["confidence"] == pytest.approx(0.8)  # capped, same as the inactive-corroboration entry
+    # Must not ALSO report inactive-corroboration for the same instance --
+    # exactly one of the two conditions can hold per instance.
+    assert not [e for e in evidence if e["type"] == "intervention_abs"]
 
 
 def test_intervention_evidence_skipped_without_raw_inputs():
@@ -459,10 +542,179 @@ def test_intervention_evidence_skipped_without_raw_inputs():
     # channels all None) must never attempt intervention evidence, flag
     # or no flag -- summaries-only callers (every existing Stage 1 test)
     # must be completely unaffected.
-    config = copy.deepcopy(load_decision_frame_config())
-    config["intervention_evidence"]["use_intervention_evidence"] = True
+    config = load_decision_frame_config()
     evidence = build_evidence([], {}, config, lambda s: ("normal", "", "", ""))
     assert not [e for e in evidence if e["type"].startswith("intervention_")]
+
+
+# --- Driver-feedback magnitude weighting (Deepening Phase 4d) -------------
+
+def _feedback_data_for(cid, **phase_values):
+    corners = [{} for _ in range(cid)]
+    corners[cid - 1] = dict(phase_values)
+    return {"corners": corners}
+
+
+def test_driver_feedback_confidence_floor_at_magnitude_1():
+    from modules.decision_frame import _build_driver_feedback_evidence
+    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
+    feedback_data = _feedback_data_for(4, x4=1)  # smallest possible complaint, exit_4
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    assert len(evidence) == 1
+    ev = evidence[0]
+    assert ev["corner"] == 4 and ev["phase"] == "exit_4"
+    assert ev["verdict"] == "oversteer"  # positive raw value
+    assert ev["confidence"] == pytest.approx(0.1)  # exactly the floor at |1|
+
+
+def test_driver_feedback_confidence_full_at_magnitude_4():
+    from modules.decision_frame import _build_driver_feedback_evidence
+    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
+    feedback_data = _feedback_data_for(4, e1=-4)  # understeer, entry_1_brake
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    assert len(evidence) == 1
+    ev = evidence[0]
+    assert ev["phase"] == "entry_1_brake"
+    assert ev["verdict"] == "understeer"
+    assert ev["confidence"] == pytest.approx(1.0)
+
+
+def test_driver_feedback_confidence_ramps_linearly_between():
+    from modules.decision_frame import _build_driver_feedback_evidence
+    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
+    feedback_data = _feedback_data_for(4, a3=2.5)  # halfway between |1| and |4|
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    # floor + (1-floor)*ramp, ramp=(2.5-1)/(4-1)=0.5 -> 0.1 + 0.9*0.5 = 0.55
+    assert evidence[0]["confidence"] == pytest.approx(0.55)
+
+
+def test_driver_feedback_zero_value_produces_no_evidence():
+    from modules.decision_frame import _build_driver_feedback_evidence
+    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
+    feedback_data = _feedback_data_for(4, e1=0, x4=0)
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    assert evidence == []
+
+
+def test_build_evidence_skips_feedback_without_feedback_data():
+    config = load_decision_frame_config()
+    evidence = build_evidence([], {}, config, lambda s: ("normal", "", "", ""))
+    assert not [e for e in evidence if e["type"] == "driver_feedback"]
+
+
+def test_attach_feedback_evidence_matches_corner_phase_verdict():
+    from modules.decision_frame import _attach_feedback_evidence
+    matrix_ev = {"type": "matrix_verdict", "corner": 6, "phases": ("exit_4", "exit_5"),
+                 "verdict": "oversteer", "severity": "moderate", "confidence": 0.5, "source": "test"}
+    feedback_ev = {"type": "driver_feedback", "corner": 6, "phase": "exit_4", "verdict": "oversteer",
+                   "severity": None, "confidence": 0.2, "raw_feedback": 1, "source": "test"}
+    candidate = {"id": "c1", "corner": 6, "phase": "exit_5", "phases": ("exit_4", "exit_5"),
+                 "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}],
+                 "evidence_refs": [matrix_ev]}
+    result = _attach_feedback_evidence([candidate], [matrix_ev, feedback_ev])
+    assert feedback_ev in result[0]["evidence_refs"]
+    assert len(result[0]["evidence_refs"]) == 2
+
+
+def test_attach_feedback_evidence_skips_mismatched_verdict():
+    from modules.decision_frame import _attach_feedback_evidence
+    matrix_ev = {"type": "matrix_verdict", "corner": 6, "phases": ("exit_4", "exit_5"),
+                 "verdict": "oversteer", "severity": "moderate", "confidence": 0.5, "source": "test"}
+    feedback_ev = {"type": "driver_feedback", "corner": 6, "phase": "exit_4", "verdict": "understeer",
+                   "severity": None, "confidence": 0.9, "raw_feedback": -1, "source": "test"}
+    candidate = {"id": "c1", "corner": 6, "phase": "exit_5", "phases": ("exit_4", "exit_5"),
+                 "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}],
+                 "evidence_refs": [matrix_ev]}
+    result = _attach_feedback_evidence([candidate], [matrix_ev, feedback_ev])
+    assert result[0]["evidence_refs"] == [matrix_ev]
+
+
+def test_attach_feedback_evidence_never_duplicates():
+    from modules.decision_frame import _attach_feedback_evidence
+    matrix_ev = {"type": "matrix_verdict", "corner": 6, "phases": ("exit_4",),
+                 "verdict": "oversteer", "severity": "moderate", "confidence": 0.5, "source": "test"}
+    feedback_ev = {"type": "driver_feedback", "corner": 6, "phase": "exit_4", "verdict": "oversteer",
+                   "severity": None, "confidence": 0.2, "raw_feedback": 1, "source": "test"}
+    candidate = {"id": "c1", "corner": 6, "phase": "exit_4", "phases": ("exit_4",),
+                 "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}],
+                 "evidence_refs": [matrix_ev]}
+    result = _attach_feedback_evidence([candidate], [matrix_ev, feedback_ev])
+    result = _attach_feedback_evidence(result, [matrix_ev, feedback_ev])  # idempotent on a second pass
+    assert result[0]["evidence_refs"].count(feedback_ev) == 1
+
+
+def test_feedback_weighting_config_present():
+    config = load_decision_frame_config()
+    fw = config["driver_feedback_weighting"]
+    assert fw["confidence_floor"] == pytest.approx(0.1)
+    assert fw["full_confidence_at_raw_abs"] == 4
+    # Same anchor modules.recommendation's own consistency-gate override uses.
+    rec_config = load_recommendations_config()
+    assert (rec_config["settings"]["consistency_gate"]["feedback_override"]["feedback_override_raw_min"]
+            == fw["full_confidence_at_raw_abs"])
+
+
+# --- Metrology Phase 2: verdict-stability [MARGINAL] confidence cap --------
+
+def test_corner_verdict_evidence_marginal_caps_confidence():
+    # CSf=-0.15 sits 0.05 from STRONG_CSF(-0.10), inside the anchored 0.11
+    # margin -- classify_fn tags it [MARGINAL]; every lap agrees (repeat=
+    # total), so the plain repeat-fraction confidence would be 1.0 -- it
+    # must be capped at intervention_evidence.abs.confidence (reused
+    # anchor, not a new constant), not merely reduced by some amount.
+    # exit_4, not apex_3: apex_3 rides on aggregate_by_corner's own
+    # apex_region substitution, which this synthetic fixture (apex_region
+    # always None per lap) aggregates into a NaN-filled dict rather than
+    # None, masking the phase's own cs_ratio_f -- an unrelated pre-existing
+    # fixture quirk, sidestepped by testing on a phase apex_region never
+    # touches.
+    config = load_decision_frame_config()
+    cap = config["intervention_evidence"]["abs"]["confidence"]
+    summaries = [
+        _make_summary(lap, 7, "medium", csf_by_phase={"exit_4": -0.15})
+        for lap in range(1, 5)
+    ]
+    evidence = build_evidence(summaries, {}, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "corner_verdict"
+               and e["corner"] == 7 and e["phase"] == "exit_4"]
+    assert matches
+    assert matches[0]["marginal"] is True
+    assert matches[0]["confidence"] == pytest.approx(cap)
+
+
+def test_corner_verdict_evidence_not_marginal_stays_uncapped():
+    # CSf=-0.5 sits 0.40 from STRONG_CSF -- well outside the margin, a
+    # confident verdict. All 4 laps agree -> repeat-fraction confidence
+    # 1.0, untouched by the cap.
+    config = load_decision_frame_config()
+    summaries = [
+        _make_summary(lap, 8, "medium", csf_by_phase={"exit_4": -0.5})
+        for lap in range(1, 5)
+    ]
+    evidence = build_evidence(summaries, {}, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "corner_verdict"
+               and e["corner"] == 8 and e["phase"] == "exit_4"]
+    assert matches
+    assert matches[0]["marginal"] is False
+    assert matches[0]["confidence"] == pytest.approx(1.0)
+
+
+def test_matrix_verdict_evidence_marginal_also_caps_confidence():
+    # Same cap must apply to matrix_verdict evidence (the type that
+    # actually feeds most of the 39-rule matrix candidates), not just
+    # corner_verdict -- otherwise a MARGINAL verdict would still drive a
+    # full-confidence recommendation via the matrix path.
+    config = load_decision_frame_config()
+    cap = config["intervention_evidence"]["abs"]["confidence"]
+    summaries = [
+        _make_summary(lap, 9, "medium", csf_by_phase={"exit_4": -0.15, "exit_5": -0.15})
+        for lap in range(1, 5)
+    ]
+    evidence = build_evidence(summaries, {}, config, classify_fn)
+    matches = [e for e in evidence if e["type"] == "matrix_verdict" and e["corner"] == 9]
+    assert matches
+    assert all(e["marginal"] is True for e in matches)
+    assert all(e["confidence"] == pytest.approx(cap) for e in matches)
 
 
 # --- Conflict resolver -----------------------------------------------------

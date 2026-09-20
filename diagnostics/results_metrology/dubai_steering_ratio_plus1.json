@@ -1,0 +1,705 @@
+{
+  "session": "dubai",
+  "input": "steering_ratio",
+  "sign": 1,
+  "desc": "steering_ratio +1%",
+  "front_fraction": 0.4356014142434519,
+  "mass_kg": 1385.9,
+  "wheelbase_m": 2.505,
+  "yaw_inertia_kgm2": 2082.0,
+  "fallback_used": false,
+  "fallback_reason": null,
+  "elapsed_s": 764.8834958076477,
+  "verdicts": {
+    "1|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "1|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "1|apex_3": [
+      "normal",
+      "understeer @ apex"
+    ],
+    "1|exit_4": [
+      "normal",
+      "ok"
+    ],
+    "1|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "2|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "2|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "2|apex_3": [
+      "normal",
+      "understeer @ apex"
+    ],
+    "2|exit_4": [
+      "normal",
+      "understeer @ exit"
+    ],
+    "2|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "3|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "3|entry_2_turnin": [
+      "normal",
+      "oversteer @ turn-in"
+    ],
+    "3|apex_3": [
+      "moderate",
+      "oversteer @ apex"
+    ],
+    "3|exit_4": [
+      "moderate",
+      "oversteer @ exit"
+    ],
+    "3|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "4|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "4|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "4|apex_3": [
+      "normal",
+      "oversteer @ apex"
+    ],
+    "4|exit_4": [
+      "moderate",
+      "oversteer @ exit"
+    ],
+    "4|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "5|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "5|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "5|apex_3": [
+      "normal",
+      "oversteer @ apex"
+    ],
+    "5|exit_4": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "5|exit_5": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "6|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "6|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "6|apex_3": [
+      "normal",
+      "ok"
+    ],
+    "6|exit_4": [
+      "normal",
+      "understeer @ exit"
+    ],
+    "6|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "7|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "7|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "7|apex_3": [
+      "normal",
+      "ok"
+    ],
+    "7|exit_4": [
+      "normal",
+      "ok"
+    ],
+    "7|exit_5": [
+      "normal",
+      "understeer @ exit"
+    ],
+    "8|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "8|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "8|apex_3": [
+      "normal",
+      "oversteer @ apex"
+    ],
+    "8|exit_4": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "8|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "10|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "10|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "10|apex_3": [
+      "normal",
+      "ok"
+    ],
+    "10|exit_4": [
+      "normal",
+      "ok"
+    ],
+    "10|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "11|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "11|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "11|apex_3": [
+      "normal",
+      "ok"
+    ],
+    "11|exit_4": [
+      "normal",
+      "ok"
+    ],
+    "11|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "12|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "12|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "12|apex_3": [
+      "normal",
+      "understeer @ apex"
+    ],
+    "12|exit_4": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "12|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "13|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "13|entry_2_turnin": [
+      "normal",
+      "oversteer @ turn-in"
+    ],
+    "13|apex_3": [
+      "normal",
+      "oversteer @ apex"
+    ],
+    "13|exit_4": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "13|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "14|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "14|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "14|apex_3": [
+      "moderate",
+      "oversteer @ apex"
+    ],
+    "14|exit_4": [
+      "moderate",
+      "oversteer @ exit"
+    ],
+    "14|exit_5": [
+      "normal",
+      "ok"
+    ],
+    "9|entry_1_brake": [
+      "normal",
+      "ok"
+    ],
+    "9|entry_2_turnin": [
+      "normal",
+      "ok"
+    ],
+    "9|apex_3": [
+      "normal",
+      "oversteer @ apex"
+    ],
+    "9|exit_4": [
+      "normal",
+      "oversteer @ exit"
+    ],
+    "9|exit_5": [
+      "normal",
+      "ok"
+    ]
+  },
+  "cs_values": {
+    "1|entry_1_brake": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": 1.0,
+      "stability_observed": 1337.939889920819
+    },
+    "1|entry_2_turnin": {
+      "cs_ratio_f": 0.3613799542072671,
+      "cs_ratio_r": 0.5111010835344967,
+      "stability_observed": 834.9944597999261
+    },
+    "1|apex_3": {
+      "cs_ratio_f": 0.4333188256926567,
+      "cs_ratio_r": 0.6338345810543279,
+      "stability_observed": 484.5010388226446
+    },
+    "1|exit_4": {
+      "cs_ratio_f": 0.27255988070332193,
+      "cs_ratio_r": 0.276170321435684,
+      "stability_observed": 402.06878466614796
+    },
+    "1|exit_5": {
+      "cs_ratio_f": 0.22769778274805993,
+      "cs_ratio_r": 0.4271586189077811,
+      "stability_observed": 413.49788798653447
+    },
+    "2|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "2|entry_2_turnin": {
+      "cs_ratio_f": 0.3152678129605616,
+      "cs_ratio_r": 0.5521066083010358,
+      "stability_observed": 668.2477187943491
+    },
+    "2|apex_3": {
+      "cs_ratio_f": -0.360320886483192,
+      "cs_ratio_r": 0.29503410963134186,
+      "stability_observed": 828.3575385671593
+    },
+    "2|exit_4": {
+      "cs_ratio_f": -0.024251351362284217,
+      "cs_ratio_r": 0.2933774411087139,
+      "stability_observed": 1064.7601559544655
+    },
+    "2|exit_5": {
+      "cs_ratio_f": 0.518772842872697,
+      "cs_ratio_r": 0.6295762261879903,
+      "stability_observed": 890.8396892788232
+    },
+    "3|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "3|entry_2_turnin": {
+      "cs_ratio_f": 0.08494294588288108,
+      "cs_ratio_r": 0.1624492011021868,
+      "stability_observed": 451.6768340203522
+    },
+    "3|apex_3": {
+      "cs_ratio_f": 0.07992015098301482,
+      "cs_ratio_r": 0.139182140462554,
+      "stability_observed": 194.00086394162506
+    },
+    "3|exit_4": {
+      "cs_ratio_f": 0.1464919332392167,
+      "cs_ratio_r": -0.23239349316493355,
+      "stability_observed": 95.16510467064694
+    },
+    "3|exit_5": {
+      "cs_ratio_f": 0.49384164500219935,
+      "cs_ratio_r": 0.3757980516943381,
+      "stability_observed": 277.35291022566486
+    },
+    "4|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "4|entry_2_turnin": {
+      "cs_ratio_f": 0.19592818611445656,
+      "cs_ratio_r": 0.47903242497703785,
+      "stability_observed": 218.14641814099127
+    },
+    "4|apex_3": {
+      "cs_ratio_f": -0.24669424182069885,
+      "cs_ratio_r": -0.020071631863444836,
+      "stability_observed": 104.74253501010068
+    },
+    "4|exit_4": {
+      "cs_ratio_f": -0.2466301329079318,
+      "cs_ratio_r": -0.12151801957469574,
+      "stability_observed": 160.65431812247581
+    },
+    "4|exit_5": {
+      "cs_ratio_f": 0.594852030370183,
+      "cs_ratio_r": 0.43113471422974575,
+      "stability_observed": 418.2883576125339
+    },
+    "5|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "5|entry_2_turnin": {
+      "cs_ratio_f": 0.366371336818357,
+      "cs_ratio_r": 0.25063597487514944,
+      "stability_observed": 57.50374992973896
+    },
+    "5|apex_3": {
+      "cs_ratio_f": 0.23270445587100763,
+      "cs_ratio_r": 0.23173023867485087,
+      "stability_observed": 173.81887194228094
+    },
+    "5|exit_4": {
+      "cs_ratio_f": 0.0832229251880734,
+      "cs_ratio_r": 0.13035104642832634,
+      "stability_observed": 180.67890826920484
+    },
+    "5|exit_5": {
+      "cs_ratio_f": 0.31369210439284256,
+      "cs_ratio_r": 0.009931081704805412,
+      "stability_observed": 708.9218165032389
+    },
+    "6|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "6|entry_2_turnin": {
+      "cs_ratio_f": 0.6104137910023775,
+      "cs_ratio_r": 0.5837684862098331,
+      "stability_observed": 608.8231491668893
+    },
+    "6|apex_3": {
+      "cs_ratio_f": 0.4459556937509995,
+      "cs_ratio_r": 0.4930632952614645,
+      "stability_observed": 753.2381668881749
+    },
+    "6|exit_4": {
+      "cs_ratio_f": 0.04854128016217368,
+      "cs_ratio_r": 0.49073710146987376,
+      "stability_observed": 1184.365953540886
+    },
+    "6|exit_5": {
+      "cs_ratio_f": 0.6271635810618907,
+      "cs_ratio_r": 0.6463663420846856,
+      "stability_observed": 892.0721135924406
+    },
+    "7|entry_1_brake": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": NaN,
+      "stability_observed": 996.4226456834159
+    },
+    "7|entry_2_turnin": {
+      "cs_ratio_f": 0.5378692091897554,
+      "cs_ratio_r": 0.5495115514325559,
+      "stability_observed": 164.38455336067548
+    },
+    "7|apex_3": {
+      "cs_ratio_f": 0.12543288333252559,
+      "cs_ratio_r": 0.20390716543741005,
+      "stability_observed": 232.39978114365857
+    },
+    "7|exit_4": {
+      "cs_ratio_f": 0.1943680889526162,
+      "cs_ratio_r": 0.2942046719256582,
+      "stability_observed": 335.686722155413
+    },
+    "7|exit_5": {
+      "cs_ratio_f": 0.014943121032612177,
+      "cs_ratio_r": 0.37694388795567635,
+      "stability_observed": 95.2986192881232
+    },
+    "8|entry_1_brake": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": 1.0,
+      "stability_observed": NaN
+    },
+    "8|entry_2_turnin": {
+      "cs_ratio_f": 0.3921333614163842,
+      "cs_ratio_r": 0.3756757825171615,
+      "stability_observed": 457.82881008998834
+    },
+    "8|apex_3": {
+      "cs_ratio_f": 0.6205811492858919,
+      "cs_ratio_r": 0.5320670165987829,
+      "stability_observed": 544.7474834715906
+    },
+    "8|exit_4": {
+      "cs_ratio_f": 0.21157252907272292,
+      "cs_ratio_r": -0.041367382504264784,
+      "stability_observed": 518.6549923126734
+    },
+    "8|exit_5": {
+      "cs_ratio_f": 0.3085604062588859,
+      "cs_ratio_r": 0.46134469056654326,
+      "stability_observed": 724.6886947459864
+    },
+    "10|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "10|entry_2_turnin": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "10|apex_3": {
+      "cs_ratio_f": 0.8446028930644989,
+      "cs_ratio_r": 0.50602196762479,
+      "stability_observed": 1427.1430521271054
+    },
+    "10|exit_4": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": 0.698225548130064,
+      "stability_observed": 1771.4327560362926
+    },
+    "10|exit_5": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": 0.7567433741735767,
+      "stability_observed": 950.912084808891
+    },
+    "11|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "11|entry_2_turnin": {
+      "cs_ratio_f": 0.6314925653763551,
+      "cs_ratio_r": 0.44678627892099254,
+      "stability_observed": 311.8678066382645
+    },
+    "11|apex_3": {
+      "cs_ratio_f": 0.4515664215543005,
+      "cs_ratio_r": 0.36041221393929523,
+      "stability_observed": 1100.767652198896
+    },
+    "11|exit_4": {
+      "cs_ratio_f": 0.6528504137978866,
+      "cs_ratio_r": 0.42694616187809,
+      "stability_observed": 1353.2188424436918
+    },
+    "11|exit_5": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "12|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "12|entry_2_turnin": {
+      "cs_ratio_f": 0.25365977203964973,
+      "cs_ratio_r": 0.3590755899169165,
+      "stability_observed": 33.078068053991316
+    },
+    "12|apex_3": {
+      "cs_ratio_f": -0.1726699469610171,
+      "cs_ratio_r": 0.0012573906447349804,
+      "stability_observed": 464.9971909557746
+    },
+    "12|exit_4": {
+      "cs_ratio_f": 0.017040314505266174,
+      "cs_ratio_r": 0.19472473539053806,
+      "stability_observed": 576.8192322699306
+    },
+    "12|exit_5": {
+      "cs_ratio_f": 0.49021534198764793,
+      "cs_ratio_r": 0.7592987796913718,
+      "stability_observed": 823.5148063000179
+    },
+    "13|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "13|entry_2_turnin": {
+      "cs_ratio_f": 0.10021532337055913,
+      "cs_ratio_r": 0.1216481205405632,
+      "stability_observed": 863.1837035036315
+    },
+    "13|apex_3": {
+      "cs_ratio_f": 0.012456562580951281,
+      "cs_ratio_r": -0.030684568445730497,
+      "stability_observed": 735.3151620062803
+    },
+    "13|exit_4": {
+      "cs_ratio_f": 0.026961601813613994,
+      "cs_ratio_r": 0.008371750685873963,
+      "stability_observed": 461.90505607329914
+    },
+    "13|exit_5": {
+      "cs_ratio_f": 0.5309729168667345,
+      "cs_ratio_r": 0.7922062614707301,
+      "stability_observed": 612.3716991645089
+    },
+    "14|entry_1_brake": {
+      "cs_ratio_f": 1.0,
+      "cs_ratio_r": 1.0,
+      "stability_observed": 2110.3438571146976
+    },
+    "14|entry_2_turnin": {
+      "cs_ratio_f": 0.31590336773828576,
+      "cs_ratio_r": 0.3562854644855893,
+      "stability_observed": 269.1694004327216
+    },
+    "14|apex_3": {
+      "cs_ratio_f": -0.026597857337352888,
+      "cs_ratio_r": -0.13715607254528758,
+      "stability_observed": 285.4065941676783
+    },
+    "14|exit_4": {
+      "cs_ratio_f": 0.04060050069373404,
+      "cs_ratio_r": -0.1668796754751432,
+      "stability_observed": 322.78409331235196
+    },
+    "14|exit_5": {
+      "cs_ratio_f": 0.3513879775237742,
+      "cs_ratio_r": 0.40203703860743706,
+      "stability_observed": 551.9657116769442
+    },
+    "9|entry_1_brake": {
+      "cs_ratio_f": NaN,
+      "cs_ratio_r": NaN,
+      "stability_observed": NaN
+    },
+    "9|entry_2_turnin": {
+      "cs_ratio_f": 0.61358595354584,
+      "cs_ratio_r": 0.3865751599228059,
+      "stability_observed": 347.05905032565227
+    },
+    "9|apex_3": {
+      "cs_ratio_f": 0.13789726524753707,
+      "cs_ratio_r": 0.3404790882326763,
+      "stability_observed": 924.3082731183113
+    },
+    "9|exit_4": {
+      "cs_ratio_f": 0.17696540266395283,
+      "cs_ratio_r": 0.06055075206217873,
+      "stability_observed": 1148.9023749659182
+    },
+    "9|exit_5": {
+      "cs_ratio_f": 0.5289843826096073,
+      "cs_ratio_r": 0.32040245169681625,
+      "stability_observed": 1003.0976997286468
+    }
+  },
+  "apex_xy": {
+    "1": {
+      "x": null,
+      "y": null
+    },
+    "2": {
+      "x": null,
+      "y": null
+    },
+    "3": {
+      "x": null,
+      "y": null
+    },
+    "4": {
+      "x": null,
+      "y": null
+    },
+    "5": {
+      "x": null,
+      "y": null
+    },
+    "6": {
+      "x": null,
+      "y": null
+    },
+    "7": {
+      "x": null,
+      "y": null
+    },
+    "8": {
+      "x": null,
+      "y": null
+    },
+    "10": {
+      "x": null,
+      "y": null
+    },
+    "11": {
+      "x": null,
+      "y": null
+    },
+    "12": {
+      "x": null,
+      "y": null
+    },
+    "13": {
+      "x": null,
+      "y": null
+    },
+    "14": {
+      "x": null,
+      "y": null
+    },
+    "9": {
+      "x": null,
+      "y": null
+    }
+  }
+}

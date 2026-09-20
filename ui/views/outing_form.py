@@ -465,6 +465,13 @@ class OutingForm(QWidget):
         MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
         MODERATE_CSR = cls_cfg["MODERATE_CSR"]["value"]
         STAB_NEG_THRESH = cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"]
+        # Metrology Phase 2 (2026-09-19, PLAN.md PARKED "Verdict-stability
+        # annotation", now implemented): CS_MARGIN anchors a MARGINAL tag on
+        # top of the verdict below -- a robustness qualifier, not a new
+        # severity tier -- appended only to whichever axle is actually
+        # driving the verdict (primary_axle/primary_val, decided further
+        # down), never computed independently of it.
+        CS_MARGIN = cls_cfg["verdict_stability_margin"]["cs_margin"]
 
         worst_f_phase = None
         worst_f_val = 1.0
@@ -560,13 +567,26 @@ class OutingForm(QWidget):
             severity = "moderate"
         # else stays "normal"
 
+        marginal_marker = ""
         if primary is not None:
-            short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}")
+            if primary_axle == "f":
+                dist = min(abs(primary_val - STRONG_CSF), abs(primary_val - MODERATE_CSF))
+            else:
+                dist = min(abs(primary_val - STRONG_CSR), abs(primary_val - MODERATE_CSR))
+            if dist <= CS_MARGIN:
+                marginal_marker = " [MARGINAL]"
+
+            short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}{marginal_marker}")
             cs_label = "CSf" if primary_axle == "f" else "CSr"
             long_parts.append(
                 f"{primary} at {phase_labels_long[primary_phase]} "
-                f"({cs_label} {primary_val:.2f})"
+                f"({cs_label} {primary_val:.2f}){marginal_marker}"
             )
+            if marginal_marker:
+                long_parts.append(
+                    "this verdict can flip under a realistic ~1% measurement/parameterisation "
+                    "change (Metrology Phase 1, thesis_notes.md)"
+                )
 
         if destabilising:
             short_parts.append(f"unstable yaw @ {phase_labels_short[worst_stab_phase]}{stab_legacy_marker}")
@@ -2301,15 +2321,20 @@ class OutingForm(QWidget):
         setup_data = json.loads(self._collect_setup_data())
 
         ls_stats = aggregate_ls_by_corner(summaries)
-        # corners/state/channels feed the (config-gated, default off)
-        # intervention-evidence sources only -- build_evidence silently
-        # skips them without these (Stage-1-compatible default), so this
-        # is always safe to pass, flag on or off.
+        # corners/state/channels feed the (config-gated per source, ABS on
+        # by default since Deepening Phase 4c) intervention-evidence
+        # sources -- build_evidence silently skips them without these
+        # (Stage-1-compatible default), so this is always safe to pass,
+        # flags on or off. feedback_data (Deepening Phase 4d) feeds the
+        # driver-feedback corroboration evidence -- same source
+        # _collect_feedback_data() already provides everywhere else in
+        # this form.
         evidence = build_evidence(
             summaries, ls_stats, config, self._classify_corner,
             corners=self.stability_result.get("corners"),
             state=self.stability_result.get("state"),
             channels=(self.parsed_data or {}).get("channels"),
+            feedback_data=json.loads(self._collect_feedback_data()),
         )
         candidates = generate_candidates(evidence, registry, config)
         shortlist = generate_shortlist(candidates, evidence, setup_data, config)
@@ -2871,6 +2896,12 @@ class OutingForm(QWidget):
         layout.addWidget(img_label)
 
         weights_group = QGroupBox("Weights")
+        weights_group.setToolTip(
+            "Corner-weighing convention: driver seated + 35 kg fuel reference. "
+            "When all four FL/FR/RL/RR are entered, the analysis uses them as the "
+            "session's own mass/front-rear split (Level 2) instead of the config "
+            "default (Level 1) -- see modules/accuracy_resolution.py."
+        )
         weights_group.setStyleSheet("""
             QGroupBox {
                 color: #C0A060;

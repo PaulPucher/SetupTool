@@ -329,6 +329,16 @@
       "required": false,
       "note": "ABS activity flag (clean boolean, USABLE-NOW per Frame-Stage-2 Phase 2 intervention-channel survey: 5.95% active on GT3_PRC_MLA-v3.txt, correctly concentrated in hard braking). Whitelisted here for modules/decision_frame.py's intervention-evidence source, config-gated off by default (decision_frame.json intervention_evidence.use_intervention_evidence)."
     },
+    "log_abs_pos": {
+      "label": "ABS Map Position (logged)",
+      "unit": "position",
+      "range": [
+        0,
+        11
+      ],
+      "required": false,
+      "note": "Deepening Phase 3 (2026-09-18): the TRUSTED ABS switch-position channel, per user decision -- resolves the cross-domain disagreement first found in the damper package's own Phase 4 survey (thesis_notes.md). Census on GT3_PRC_MLA-v3.txt (verified directly, not recalled): log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5 all session (dash/steering-wheel domain, mutually agreeing); abs_switch_pos reads a constant 6 (ECU domain) for the SAME session and is NOT trusted per this decision. Range [0,11] matches car_data.json's own abs table's real row count (0=Off through 11=monsoon emergency). See config/setup_parameters.json abs_position's own updated notes."
+    },
     "ecu_B_tc_act": {
       "label": "TC Active",
       "unit": "bool",
@@ -402,6 +412,14 @@
     "canonical_boundary_grid_step_m": 2.0,
     "lap_time_representative_factor": 1.05,
     "lap_time_representative_factor_derived_from": "2026-09-03, corner canonicalisation fix work order. Representative laps cluster within ~1% of the session's fastest valid lap on both real sessions checked (Dubai worst ratio 1.0044, v3 worst representative ratio 1.0097, lap 6); the one excluded outlier observed (v3 lap 9, an on-track incident, thesis_notes.md 'v3 diagnostics, Part B1') sits at ratio 1.097141. SWEPT and confirmed, not just argued (thesis_notes.md 'Phase 2 extension' entry's companion sweep): v3's corner count is exactly 17 for every tested factor in (1.0097, 1.097141) -- the transition happens precisely between 1.0971 (17 corners, lap 9 still excluded) and 1.0972 (20 corners, lap 9 now included) -- so the result is not just 'roughly insensitive', it is provably constant on that entire open interval by construction (the filter depends only on the derived representative-lap SET, which is a step function of the factor with steps exactly at each lap's own ratio). Re-examine this factor if a session produces a genuinely intermediate lap (e.g. a traffic-compromised lap around ratio 1.04) -- that case is unobserved in the data checked so far."
+  },
+  "channel_corrections": {
+    "_comment": "Deepening Phase 2 (2026-09-18): per-channel decoding corrections for a known raw-signal corruption, applied in modules/csv_parser.py BEFORE the quality/range gate below -- distinct from wheel_loads.pushrod_offset_*_N (a small, legitimate per-wheel zero-calibration; this is a large decoding-offset fix for a specific corrupted export). Evidence-gated by precondition_mean_range: applied only if THIS file's own raw mean for the channel falls inside the range the correction was derived from, so a future export where this channel reads correctly (or fails a different way) is never silently mis-corrected.",
+    "log_dms_dam_fr": {
+      "offset": 15954360.401142702,
+      "precondition_mean_range": [-16050000, -15850000],
+      "derived_from": "GT3_PRC_MLA-v3.txt, Frame-Stage-2 Phase 0 forensics (thesis_notes.md) found log_dms_dam_fr carries real, correctly-signed pushrod-force signal (whole-session std=1864.2N, matching the three healthy corners' own 1925.9/2082.5/2007.3N) riding on a stationary corrupted additive offset (whole-session raw mean -15949976.44N) -- pure rescaling (x1e-3/x1e-6) was ruled out since the raw fluctuation is ALREADY at the correct physical scale. Deepening Phase 2 (2026-09-18) anchored the offset empirically once a real per-outing weighing existed (Phase 1): K is chosen so FR's own straight-line raw mean, scaled by the tiny FR/FL static-weight ratio from the outing's real corner weighing (298.9/300.3 kg), matches FL's own straight-line raw mean -- FR is FL's own axle mate, sharing the same motion-ratio table and (per that weighing) nearly equal static load. VALIDATED against the full wheel_loads.py decomposition chain (diagnostics/inspect_deepening_phase2_fr_correction.py): straight-line total load +10.77% vs session weight (matches the already-recorded, aero-explained +11.64% v3 finding from when FR was on static fallback); corr(ay,Fz_fr)=+0.893, corr(ay,Fz_fl)=-0.903 (both strong, correctly signed, close to this project's own healthy-corner reference band +0.966/-0.893 to -0.895); FR/FL straight-line static means within 2-3% of the outing's own real corner weights on BOTH corners equally (a shared aero-lift bias, not an FR-specific error) -- FL/FR ratio 0.9970 vs the weighing's own 1.0047 (0.77% apart). One clean pass, no red flags -- FR promoted from the axle-total reconstruction fallback to a live, damper-measured Level 4 corner on this file."
+    }
   },
   "channel_quality_gates": {
     "failed_below": 0.5,

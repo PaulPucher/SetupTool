@@ -6,18 +6,18 @@
 # against the chair's OWN stated method, not an independent claim
 # that the method is the right one for this car).
 #
-# The 50 Hz-vs-chair-defaults short-window finding (thesis_notes.md
-# "PLAN.md STEP 3 (LS_ratio): unsupervised package, Phase 2 --
-# estimator") led to a decided, documented adaptation (thesis_notes.md
-# "PLAN.md STEP 3: 50 Hz min_samples adaptation"): min_samples is no
-# longer a transplanted chair literal, it is derived at runtime from
-# the chair's own PHYSICAL window (regression_window_s, unchanged) and
-# the actual sample rate, floored at min_samples_floor. The test that
-# used to pin "never validates at 50 Hz" (test_real_config_at_50hz_
-# never_reaches_min_samples) is RETIRED -- that was correct behaviour
-# for the pre-adaptation code and is now intentional history, not
-# current truth -- and replaced below by
-# test_real_config_at_50hz_now_validates_with_rate_derived_min_samples.
+# LS VALIDITY REPAIR (Metrology extension Phase 2, 2026-09-19, thesis_
+# notes.md "Metrology extension Phase 2: LS_ratio validity repair"):
+# applies the SAME playbook modules.stability_analysis's own CS_ratio
+# validity repair established -- _centered_slopes no longer uses a
+# FIXED half-window (the chair's own regression_window_s, unchanged
+# duration); min_window_s/min_slip_span are now FLOORS the window
+# adaptively widens past (reconstruct_ls_window_start), capped at
+# max_window_m (a real track distance). Every test below that exercised
+# the old fixed-half-window mechanism directly is REWRITTEN, not
+# patched, to match -- kept as history in thesis_notes.md, not deleted
+# from the record there, but the OLD code path these pinned no longer
+# exists to test.
 
 import numpy as np
 import pytest
@@ -25,19 +25,21 @@ import pytest
 from modules.longitudinal_stiffness import (
     estimate_longitudinal_stiffness, _stiffness_ratio, _centered_slopes,
     _plausibility_exclude_mask, _az_disturbed_recently,
+    resolve_ls_min_window_samples, reconstruct_ls_window_start,
 )
 from modules.stability_analysis import load_parameters
 
 
-def _se(cutoff_hz=20.0, regression_window_s=0.45, min_samples_floor=15,
-        min_slip_span=0.004, linear_slip_threshold=0.015, min_speed_mps=5.0,
-        plausibility_kappa_bound=0.12, plausibility_az_window_front_s=0.15,
-        plausibility_az_window_rear_s=0.6):
+def _se(cutoff_hz=20.0, min_window_s=0.4, min_window_samples_floor=8,
+        min_slip_span=0.016, max_window_m=900.0, linear_slip_threshold=0.015,
+        min_speed_mps=5.0, plausibility_kappa_bound=0.12,
+        plausibility_az_window_front_s=0.15, plausibility_az_window_rear_s=0.6):
     return {
         "cutoff_hz": cutoff_hz,
-        "regression_window_s": regression_window_s,
-        "min_samples_floor": min_samples_floor,
+        "min_window_s": min_window_s,
+        "min_window_samples_floor": min_window_samples_floor,
         "min_slip_span": min_slip_span,
+        "max_window_m": max_window_m,
         "linear_slip_threshold": linear_slip_threshold,
         "min_speed_mps": min_speed_mps,
         "plausibility_kappa_bound": plausibility_kappa_bound,
@@ -71,7 +73,7 @@ def test_linear_ramp_recovers_exact_stiffness_and_ratio_one():
     reference equals the everywhere-slope)."""
     n = 400
     sr = 100.0
-    se = _se(cutoff_hz=20.0, regression_window_s=0.45, min_samples_floor=15,
+    se = _se(cutoff_hz=20.0, min_window_s=0.45, min_window_samples_floor=15,
               min_slip_span=0.004, linear_slip_threshold=0.03, min_speed_mps=5.0)
     C_true = 850_000.0
     kappa = np.linspace(-0.05, 0.05, n)
@@ -82,8 +84,12 @@ def test_linear_ramp_recovers_exact_stiffness_and_ratio_one():
     state = _state(n, sample_rate_hz=sr)
     result = estimate_longitudinal_stiffness(long_forces, slip, state, _params(se))
 
-    half_window = max(2, int(round(se["regression_window_s"] * sr / 2.0)))
-    interior = slice(half_window + 5, n - half_window - 5)
+    # Adaptive widening still starts at min_window (the floor) -- on a
+    # globally linear ramp with no saturation, ANY window (min or wider)
+    # recovers the exact same slope, so the interior population is
+    # identical to the pre-repair fixed-window test's own population.
+    min_window = resolve_ls_min_window_samples(se, sr)
+    interior = slice(min_window + 5, n - 5)
 
     assert np.all(result["valid_f"][interior]), "interior samples must satisfy the window/span/count gates"
     assert result["stiffness_f"][interior] == pytest.approx(C_true, rel=1e-6)
@@ -97,7 +103,7 @@ def test_ratio_clips_at_one_when_stiffness_exceeds_linear_reference():
     documented np.clip(ratio, None, 1.0)."""
     n = 400
     sr = 100.0
-    se = _se(cutoff_hz=20.0, regression_window_s=0.45, min_samples_floor=15,
+    se = _se(cutoff_hz=20.0, min_window_s=0.45, min_window_samples_floor=15,
               min_slip_span=0.004, linear_slip_threshold=0.01, min_speed_mps=5.0)
     kappa = np.linspace(-0.06, 0.06, n)
     # Piecewise: gentle slope inside +-0.01 (the linear reference region),
@@ -169,7 +175,7 @@ def test_empty_array_input_does_not_crash():
 
 def test_all_nan_input_does_not_crash_and_stays_nan():
     n = 100
-    se = _se(min_samples_floor=10, regression_window_s=0.2)
+    se = _se(min_window_samples_floor=10, min_window_s=0.2)
     nan_arr = np.full(n, np.nan)
     long_forces = {"fx_f_N": nan_arr, "fx_r_N": nan_arr}
     slip = {"kappa_f": nan_arr.copy(), "kappa_r": nan_arr.copy()}
@@ -180,27 +186,22 @@ def test_all_nan_input_does_not_crash_and_stays_nan():
 
 
 def test_window_below_floor_still_never_validates():
-    """Direct unit test of _centered_slopes's own floor mechanism.
-    min_samples is now derived as max(min_samples_floor, half_window+1)
-    -- half_window+1 can never exceed the window's own ceiling
-    (2*half_window+1), so the ONLY way for min_samples to exceed the
-    window ceiling (and therefore for count >= min_samples to be
-    unsatisfiable everywhere) is for min_samples_floor itself to exceed
-    it, at an unusually low sample rate. PRE-ADAPTATION this test used
-    a literal min_samples=25 to force the same structural ceiling; POST-
-    ADAPTATION that lever no longer exists (min_samples is derived, not
-    freely settable), so this reproduces the same structural guarantee
-    via a low sample rate instead -- the mechanism this test protects
-    (a window that's too short can never validate, regardless of data)
-    is unchanged, only how it is provoked."""
-    n = 200
-    sr = 5.0  # deliberately very low -- half_window collapses to the code's own floor of 2
-    se = _se(regression_window_s=0.45, min_samples_floor=15, min_slip_span=0.0, min_speed_mps=0.0)
-    half_window = max(2, int(round(se["regression_window_s"] * sr / 2.0)))
-    max_window_samples = 2 * half_window + 1
-    assert max_window_samples < se["min_samples_floor"], (
-        "test precondition: window ceiling must be below min_samples_floor"
-    )
+    """Direct unit test of _centered_slopes's own floor mechanism, POST
+    validity-repair: the loop only attempts indices i >= min_window
+    (resolve_ls_min_window_samples) -- when min_window_samples_floor
+    alone exceeds the whole array length (an unusually low sample rate
+    or a very short array), the loop's own range(min_window, n) is
+    empty and NOTHING can ever validate, regardless of data content.
+    Unlike the pre-repair fixed-half-window mechanism (which had a
+    second, independent ceiling at 2*half_window+1), adaptive widening
+    has no such ceiling of its own -- min_window is now the ONLY
+    structural floor, so this test provokes it directly rather than via
+    an indirect half-window-vs-floor inequality."""
+    n = 10
+    sr = 5.0  # min_window_s=0.45 * 5 Hz = 2.25 -> rounds to 2, floor(15) binds
+    se = _se(min_window_s=0.45, min_window_samples_floor=15, min_slip_span=0.0, min_speed_mps=0.0)
+    min_window = resolve_ls_min_window_samples(se, sr)
+    assert min_window >= n, "test precondition: floor must meet/exceed the whole array length"
 
     kappa = np.linspace(-0.05, 0.05, n)
     fx = 500_000.0 * kappa
@@ -210,43 +211,114 @@ def test_window_below_floor_still_never_validates():
     assert np.all(np.isnan(stiffness))
 
 
-def test_real_config_at_50hz_now_validates_with_rate_derived_min_samples():
-    """REPLACES test_real_config_at_50hz_never_reaches_min_samples
-    (retired, thesis_notes.md 'PLAN.md STEP 3: 50 Hz min_samples
-    adaptation'): that test correctly pinned the PRE-adaptation
-    behaviour (chair's literal min_samples=25 unsatisfiable at 50 Hz,
-    max window 23 samples) -- true then, no longer true now that
-    min_samples is rate-derived, so pinning it further would pin
-    retired behaviour as if it were still current, the opposite of
-    what a regression test should do. This test pins the NEW rule
-    instead, both halves of it against config/parameters.json's real
-    longitudinal_stiffness block:
-    1. at this car's real 50 Hz, the derived min_samples (max(floor,
-       half_window+1) = max(15, 12) = 15) is now BELOW the 23-sample
-       window ceiling -- validation is possible again, confirmed here
-       both analytically and against a real synthetic regression.
-    2. the floor still binds and still refuses below it (covered by
-       test_window_below_floor_still_never_validates above, at a
-       lower rate) -- restated here in one place for clarity.
-    """
+def test_real_config_validates_at_this_cars_real_100hz_grid_rate():
+    """Confirms the real, current config/parameters.json longitudinal_
+    stiffness block (Metrology extension Phase 2's own derived floors)
+    actually validates at 100 Hz -- both real sessions' own resolved
+    grid rate (diagnostics/inspect_ls_window_floor_derivation.py's own
+    printed sample_rate_hz=100 on both files), not the stale 50 Hz
+    figure the pre-repair version of this test pinned (this project's
+    own 100 Hz time-base upgrade predates this repair)."""
     se = load_parameters()["longitudinal_stiffness"]
-    sample_rate_hz = 50.0  # this session's own state["sample_rate_hz"], confirmed in thesis_notes.md
-    half_window = max(2, int(round(se["regression_window_s"] * sample_rate_hz / 2.0)))
-    max_window_samples = 2 * half_window + 1
-    derived_min_samples = max(se["min_samples_floor"], half_window + 1)
-    assert derived_min_samples <= max_window_samples, (
-        f"derived min_samples={derived_min_samples} exceeds the 50 Hz window ceiling "
-        f"{max_window_samples} -- the adaptation this test pins no longer holds; update "
-        "deliberately if min_samples_floor or regression_window_s changed again"
-    )
+    sample_rate_hz = 100.0
+    min_window = resolve_ls_min_window_samples(se, sample_rate_hz)
+    assert min_window == max(se["min_window_samples_floor"], round(se["min_window_s"] * sample_rate_hz))
 
-    # Confirmed against a real synthetic regression, not just the analytic inequality above.
-    n = 200
+    # Confirmed against a real synthetic regression, not just the derived count.
+    n = 400
     kappa = np.linspace(-0.05, 0.05, n)
     fx = 500_000.0 * kappa
     valid_mask = np.ones(n, dtype=bool)
     stiffness, valid = _centered_slopes(kappa, fx, valid_mask, sample_rate_hz, se)
-    assert np.any(valid), "expected at least one valid window at 50 Hz under the real, current config"
+    assert np.any(valid), "expected at least one valid window at 100 Hz under the real, current config"
+    assert np.allclose(stiffness[valid], 500_000.0, rtol=1e-6)
+
+
+# --- LS validity repair: adaptive widening, distance cap, NaN paths ---------
+# (Metrology extension Phase 2, 2026-09-19, thesis_notes.md "Metrology
+# extension Phase 2: LS_ratio validity repair" -- targeted tests for the
+# new mechanics, mirroring tests/test_cs_validity_repair.py's own
+# equivalent CS coverage.)
+
+def test_reconstruct_ls_window_start_widens_past_min_window_to_meet_span():
+    """Two-slope kappa: a SHALLOW ramp (region A, 60 samples) followed by
+    a STEEP ramp (region B, 40 samples). Deep in region B, min_window
+    alone already clears the span floor -- no widening. Deep in region A,
+    min_window alone falls well short -- the window must widen backward
+    (region A is monotonic, so older samples are smaller, increasing the
+    achieved span) to clear the floor, well within region A's own bounds."""
+    slope_a, slope_b = 0.001, 0.01
+    region_a = np.arange(60) * slope_a
+    region_b = region_a[-1] + np.arange(1, 41) * slope_b
+    kappa = np.concatenate([region_a, region_b])
+    min_window = 10
+    min_span = 0.03
+
+    # Deep in region A: min_window alone spans 9*0.001=0.009 << 0.03 -- must widen.
+    i = 55
+    start = reconstruct_ls_window_start(kappa, i, min_window, min_span)
+    achieved_span = kappa[start:i].max() - kappa[start:i].min()
+    assert start < i - min_window, "must have widened past the min_window-only start"
+    assert achieved_span >= min_span - 1e-9
+    assert start > 0, "must have found enough span well before exhausting region A's own history"
+
+    # Deep in region B: min_window alone spans 9*0.01=0.09 >= 0.03 -- no widening needed.
+    i2 = 95
+    start2 = reconstruct_ls_window_start(kappa, i2, min_window, min_span)
+    assert start2 == i2 - min_window
+
+
+def test_reconstruct_ls_window_start_respects_distance_cap():
+    """A real track-distance cap (max_window_m) must stop the widening
+    even if the span floor is never reached -- s_m increasing 1 unit per
+    sample here makes the cap trivial to reason about."""
+    n = 100
+    kappa = np.full(n, 0.001)  # perfectly flat -- span NEVER clears any positive floor
+    s_m = np.arange(n, dtype=float)
+    min_window = 5
+    min_span = 0.02
+    max_window_m = 20.0
+    i = 90
+    start = reconstruct_ls_window_start(kappa, i, min_window, min_span, s_m=s_m, max_window_m=max_window_m)
+    # Widening must stop once (s_m[i-1] - s_m[start]) >= max_window_m -- it
+    # cannot walk back past that, no matter how long the flat region continues.
+    assert (s_m[i - 1] - s_m[start]) < max_window_m + 1.0
+    assert start > 0, "must not have walked all the way back to index 0"
+
+
+def test_centered_slopes_nan_when_widening_cannot_clear_span_within_cap():
+    """Integration: a perfectly flat kappa region, real s_m, a tight
+    max_window_m -- every sample must report NaN/invalid (no signal),
+    never a slope computed from an under-qualified window."""
+    n = 200
+    sr = 100.0
+    kappa = np.full(n, 0.001)
+    fx = np.zeros(n)
+    s_m = np.arange(n, dtype=float) * 0.1  # 0.1 m/sample
+    se = _se(min_window_s=0.05, min_window_samples_floor=5, min_slip_span=0.02, max_window_m=1.0)
+    valid_mask = np.ones(n, dtype=bool)
+    stiffness, valid = _centered_slopes(kappa, fx, valid_mask, sr, se, s_m=s_m)
+    assert not np.any(valid)
+    assert np.all(np.isnan(stiffness))
+
+
+def test_centered_slopes_recovers_true_slope_via_widening_beyond_floor():
+    """A genuine ramp whose span only clears the floor once the window
+    widens past min_window -- confirms the production _centered_slopes
+    (not just the reconstruct_* helper in isolation) actually widens and
+    recovers the correct slope, not just validates or invalidates."""
+    n = 200
+    sr = 100.0
+    C_true = 400_000.0
+    # Very shallow ramp: min_window alone (5 samples) spans far less than
+    # min_slip_span=0.03 -- must widen substantially to qualify.
+    kappa = np.linspace(0.0, 0.05, n)
+    fx = C_true * kappa
+    se = _se(min_window_s=0.05, min_window_samples_floor=5, min_slip_span=0.03, max_window_m=1.0e6)
+    valid_mask = np.ones(n, dtype=bool)
+    stiffness, valid = _centered_slopes(kappa, fx, valid_mask, sr, se)
+    assert np.any(valid)
+    assert np.allclose(stiffness[valid], C_true, rtol=1e-6)
 
 
 # --- LS plausibility guard (PLAN.md STEP 3 follow-up, 2026-08-30) ------------
@@ -360,12 +432,12 @@ def test_estimate_longitudinal_stiffness_end_to_end_guard_recovers_true_slope():
     kappa_base = np.linspace(-0.05, 0.05, n)
     fx_base = C_true * kappa_base
     spike_idx = 200
-    half_window = max(2, int(round(0.45 * sr / 2.0)))
-    probe_idx = spike_idx + half_window - 2  # a window that includes spike_idx but is not centred on it
 
-    se_ls = _se(cutoff_hz=20.0, regression_window_s=0.45, min_samples_floor=15,
+    se_ls = _se(cutoff_hz=20.0, min_window_s=0.45, min_window_samples_floor=15,
                 min_slip_span=0.004, linear_slip_threshold=0.03, min_speed_mps=5.0,
                 plausibility_kappa_bound=0.12)
+    min_window = resolve_ls_min_window_samples(se_ls, sr)
+    probe_idx = spike_idx + min_window - 2  # a window [probe_idx-min_window, probe_idx) that includes spike_idx near its start, not centred on it
     state_base = {"sample_rate_hz": sr, "v_mps": np.full(n, 30.0)}
 
     # WITH az-coincidence -- guard should exclude the outlier, slope stays close to C_true.
