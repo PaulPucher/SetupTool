@@ -243,6 +243,37 @@ def test_ls_branch_routing_no_disambiguation_generates_both():
     assert {c["lever_family"] for c in candidates} == {"arb_spring", "diff_tc"}
 
 
+# --- Regression: springs_rear_soften missing "delta" (found 2026-09-20) --
+#
+# _settings_window_component does float(current) + action["delta"] once
+# parameter_windows has a real nominal/span for the parameter (springs_rear
+# does) -- the hardcoded springs_rear_soften action had no "delta" key at
+# all, a latent KeyError on any real setup sheet with a springs_rear value
+# on record. Never caught by test_end_to_end_real_dubai (that fixture's own
+# session has no current_setup wired through score()) or by any other
+# existing test (all call score() with current_setup=None, which short-
+# circuits _current_setup_value before the crashing line is ever reached).
+# Fixed alongside the lever_bridges package since the fix uses the exact
+# delta convention (+1 stiffen / -1 soften) that package introduces.
+
+def test_springs_rear_soften_settings_window_no_keyerror():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_make_oversteer_evidence()]  # cornering_limited-or-None branch -> arb_spring family
+    candidates = generate_candidates(evidence, registry, config)
+    springs_candidate = next(c for c in candidates if c["id"] == "springs_rear_soften:C4:exit_4")
+    assert springs_candidate["actions"][0]["delta"] == -1
+
+    # Filled springs window: rear_left/rear_right.springs is a real, nonzero
+    # legal value (config/setup_parameters.json springs_rear.value_space
+    # options), so _current_setup_value resolves a real `current` and the
+    # crashing line is actually reached.
+    current_setup = {"rear_left": {"springs": 260}, "rear_right": {"springs": 260}}
+    result = score(springs_candidate, evidence, current_setup, config)  # must not raise
+    assert not any("springs_rear" in flag for flag in result["flags"])
+    assert result["components"]["settings_window_distance"] != 0.0
+
+
 # --- End to end: real Dubai analysis -> frame output ---------------------
 
 def test_end_to_end_real_dubai(pipeline_result):
@@ -397,6 +428,118 @@ def test_held_escalation_secondary_only_alongside_base():
     assert held_rule["elicitation_provenance"] == "project-lead-reviewed"
     assert esc[0]["grade"] == "proposed"
     assert esc[0]["actions"][0]["parameter"] == "abs_position"
+
+
+# --- Generic lever-bridge candidate mechanism (BACKLOG item H, 2026-09-20) -
+#
+# config/decision_frame.json's lever_bridges list, consumed generically by
+# _bridge_candidates_for_levers -- see that function's own comment and the
+# config key's _comment_lever_bridges for the schema and the springs_rear/
+# soften/exit dedupe rule.
+
+def test_lever_bridges_schema_grade_always_proposed():
+    # Structural cap: no lever_bridges entry may declare a grade other than
+    # "proposed" -- none carries a real matrix cell_id, so nothing should be
+    # able to promote one to action-eligible via a config edit alone. The
+    # generator itself hardcodes grade="proposed" regardless of this field
+    # (test_lever_bridge_* below confirm that); this test guards the
+    # config's own self-documentation from drifting out of sync with it.
+    config = load_decision_frame_config()
+    bridges = config["lever_bridges"]
+    assert len(bridges) == 4
+    assert {(b["lever"], b["direction"]) for b in bridges} == {
+        ("springs_front", "soften"), ("springs_front", "stiffen"),
+        ("springs_rear", "stiffen"), ("springs_rear", "soften"),
+    }
+    for b in bridges:
+        assert b["grade"] == "proposed"
+
+
+def test_lever_bridge_springs_front_soften_fires_on_understeer():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+    assert matches[0]["grade"] == "proposed"
+    assert matches[0]["actions"] == [{"parameter": "springs_front", "direction": "soften", "delta": -1}]
+
+
+def test_lever_bridge_springs_front_stiffen_fires_on_oversteer():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "oversteer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:stiffen:C7:apex_3"]
+    assert len(matches) == 1
+    assert matches[0]["actions"] == [{"parameter": "springs_front", "direction": "stiffen", "delta": 1}]
+
+
+def test_lever_bridge_corrected_acceptance_springs_rear_stiffen_on_understeer():
+    # Corrected acceptance case (2026-09-20 work order): the original BACKLOG
+    # item H acceptance line paired "springs_rear stiffen" with a synthetic
+    # ENTRY-OVERSTEER case -- physically backwards per config/decision_frame.
+    # json's own interaction_table (springs_rear stiffen carries sign=-1 on
+    # oversteer_tendency, i.e. WORSENS oversteer; sign=+1 on understeer_
+    # tendency, i.e. HELPS understeer -- rear roll stiffness up shifts
+    # balance toward oversteer, not away from it). The genuinely new,
+    # previously IMPOSSIBLE-to-write candidate this package unlocks is
+    # springs_rear stiffen on an UNDERSTEER case -- no code path before this
+    # package could ever produce it (only soften had a bridge, hardcoded in
+    # _exit_oversteer_candidates, and only for oversteer).
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_rear:stiffen:C7:entry_2_turnin"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["grade"] == "proposed"
+    assert c["actions"] == [{"parameter": "springs_rear", "direction": "stiffen", "delta": 1}]
+
+
+def test_lever_bridge_springs_rear_soften_fires_at_turnin_no_hardcoded_equivalent():
+    # No dedupe collision -- _exit_oversteer_candidates only ever fires at
+    # EXIT_PHASES, never turn-in, so this is genuinely new territory the
+    # hardcoded path never covered.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(9, ["entry_2_turnin"], "oversteer", "moderate", "low")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_rear:soften:C9:entry_2_turnin"]
+    assert len(matches) == 1
+
+
+def test_lever_bridge_dedupe_springs_rear_soften_exit_oversteer_hardcoded_wins():
+    # springs_rear/soften/oversteer at exit_4+exit_5 OVERLAPS the hardcoded
+    # _exit_oversteer_candidates' own springs_rear_soften secondary
+    # candidate. Both corner_verdict (drives the hardcoded path) and
+    # matrix_verdict (drives the generic path) evidence present at the same
+    # corner/phase -- the real-session collision shape named in the work
+    # order. The hardcoded path must win: richer, LS-disambiguation-aware
+    # evidence, generated first.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _make_oversteer_evidence(corner=4, phase="exit_4"),
+        _matrix_verdict_evidence(4, ["exit_4", "exit_5"], "oversteer", "moderate", "high"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    springs_rear_candidates = [c for c in candidates
+                                if any(a["parameter"] == "springs_rear" for a in c["actions"])]
+    assert len(springs_rear_candidates) == 1
+    assert springs_rear_candidates[0]["id"] == "springs_rear_soften:C4:exit_4"
+    assert springs_rear_candidates[0]["scenario"] == "exit_oversteer"
+
+
+def test_lever_bridges_absent_when_config_empty():
+    config = copy.deepcopy(load_decision_frame_config())
+    config["lever_bridges"] = []
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["id"].startswith("lever_bridge:")]
 
 
 # --- Intervention evidence, off/on -----------------------------------------

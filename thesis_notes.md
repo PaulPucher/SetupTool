@@ -17991,6 +17991,119 @@ v3 pass, named here rather than silently substituted for it.
 No commit made -- stop before commit, per the work order's own explicit
 instruction and CLAUDE.md's standing rule that the user runs git.
 
+## Generic lever-bridge candidate mechanism (BACKLOG item H): shipped
+[2026-09-20, branch lever-bridges, same day]
+
+MECHANISM: config/decision_frame.json gained a lever_bridges list (4
+entries: springs_front soften/understeer, springs_front stiffen/
+oversteer, springs_rear stiffen/understeer, springs_rear soften/
+oversteer), consumed by one new generic function, modules.decision_
+frame._bridge_candidates_for_levers, wired as generate_candidates' 4th
+source. Mirrors _bridge_candidates_for_matrix_rules's own matrix_
+verdict grouping and verdict/min_severity gate exactly -- the only
+structural difference is that a lever_bridges row names its OWN list
+of phase groups (a lever can act across several -- turn-in, apex,
+exit) instead of the one group a specific matrix cell_id/rationale is
+tied to. Deliberately excludes entry_1_brake and the combined
+[entry_1_brake, entry_2_turnin] group for every entry: Segers ch.9/10
+roll-stiffness-distribution physics only acts under LATERAL load
+transfer, not straight-line braking (a brake-balance/bias question,
+different lever family). grade is hardcoded "proposed" inside the
+generator itself, never read from config as authoritative --
+lever_bridges entries carry "grade":"proposed" for self-documentation
+only, and a schema test asserts no entry ever declares anything else
+(advisory-capped STRUCTURALLY, the same policy every other proposed-
+grade bridge in this file already uses, since no cell_id backs any of
+these).
+
+ACCEPTANCE-CASE CONTRADICTION, found and resolved: PLAN.md's own
+BACKLOG item H acceptance line paired "springs_rear stiffen" with a
+synthetic entry-OVERSTEER case -- physically backwards. config/
+decision_frame.json's own interaction_table already states the
+physics precisely (sign convention: +1 helps/counters the named
+tendency, -1 worsens it): springs_rear stiffen carries sign +1 on
+understeer_tendency (helps understeer) and sign -1 on oversteer_
+tendency (worsens oversteer) -- stiffening the rear axle increases
+rear-to-front lateral load transfer, reducing the rear's relative
+grip contribution, i.e. MORE oversteer, not less. This is also
+exactly what the pre-existing hardcoded _exit_oversteer_candidates
+already encodes (its springs_rear_soften candidate fires for
+oversteer, never stiffen). Resolved by reading the interaction_
+table's own recorded sign values directly -- the channel-census rule
+applied to our own config, not to memory of what the physics "should"
+say. Corrected acceptance case: springs_rear "stiffen" fires as a
+proposed candidate on a synthetic UNDERSTEER case (test_lever_bridge_
+corrected_acceptance_springs_rear_stiffen_on_understeer, tests/
+test_decision_frame.py) -- genuinely new, no code path before this
+package could ever produce it (only soften had a bridge, hardcoded,
+and only for oversteer).
+
+DEDUPE: springs_rear/soften/oversteer at the exit_4+exit_5 group
+overlaps the hardcoded _exit_oversteer_candidates' own springs_rear_
+soften secondary candidate. _bridge_candidates_for_levers builds a
+set of (parameter, direction, corner) keys from every candidate
+already generated earlier in the same generate_candidates call and
+skips emitting where that key is covered -- the hardcoded/matrix path
+always wins (generated first, richer LS-disambiguation-aware
+evidence). Confirmed on REAL session data, not only the synthetic
+test: both sessions carry real matrix_verdict oversteer evidence at
+exactly the corner/phase-group the hardcoded path already covers
+(matrix_os_exit_high:C4 Dubai; matrix_os_exit_med:C1/C5/C8/C16 v3) --
+5 real collisions total, hardcoded candidate wins in all 5 (confirmed
+by diffing full before/after candidate lists, see VERIFICATION
+below -- these are exactly the 5 pre-existing springs_rear_soften
+candidates whose actions changed, see the KeyError fix below).
+
+KEYERROR FOUND AND FIXED (latent, pre-existing, unrelated to the
+deferred hardcoded-path migration): the hardcoded springs_rear_soften
+action (_exit_oversteer_candidates) carried no "delta" key at all.
+modules.decision_frame._settings_window_component does
+float(current) + action["delta"] unconditionally once parameter_
+windows has a real nominal/span for the parameter -- springs_rear
+does (nominal=270, span=30) -- so any real setup sheet with a
+recorded rear-spring value would crash score() with a KeyError. Never
+caught before because every existing test called score() with
+current_setup=None, which short-circuits _current_setup_value before
+the crashing line is ever reached. Fixed with one key ("delta": -1,
+matching this package's own +1 stiffen / -1 soften convention), a
+regression test added (test_springs_rear_soften_settings_window_no_
+keyerror: real candidate via generate_candidates, filled springs
+window, asserts score() does not raise and the settings-window
+component actually computes rather than neutral-flagging). No other
+change to the hardcoded path -- its migration into the generic
+mechanism stays deferred, named in PLAN.md as future work.
+
+VERIFICATION, real sessions (Dubai + GT3_PRC_MLA-v3.txt), full
+evidence->candidate chain, pre-registered acceptance: existing non-
+advisory (derived-from-matrix) candidates BYTE-STABLE -- Dubai 3/3
+ids present with identical bodies, v3 12/12 ids present with
+identical bodies, zero removed either session. New rows appear ONLY
+where lever_bridges evidence exists, all grade "proposed": Dubai +5
+(springs_front soften C3/C9, springs_front stiffen C4, springs_rear
+stiffen C3/C9), v3 +16 (springs_front stiffen C1/C5/C6/C8/C9/C13/C16,
+springs_rear soften C6/C9/C13). The only other diff among "proposed"-
+grade candidates is the delta-fix's own one-key addition to the 5
+pre-existing springs_rear_soften candidates it touches (Dubai C4; v3
+C1/C5/C8/C16) -- exactly the 5 dedupe-collision corners named above,
+independently confirming the collision count.
+
+TESTS: 8 new (tests/test_decision_frame.py) -- the KeyError
+regression test above, plus 7 for the lever-bridges mechanism itself:
+schema (grade always "proposed", exactly 4 entries, both levers/both
+directions present); 3 generator-firing (springs_front soften on
+understeer, springs_front stiffen on oversteer, springs_rear soften
+at turn-in with no hardcoded equivalent to collide with); the
+corrected-acceptance case (springs_rear stiffen on understeer); 1
+dedupe test (synthetic collision shape, hardcoded candidate wins); 1
+config-empty guard (lever_bridges=[] produces zero lever_bridge
+candidates). Full tests/test_decision_frame.py: 57/57 passed (49
+pre-existing + 8 new), including test_end_to_end_real_dubai.
+test_stability.py re-run clean, no errors.
+
+No commit made -- stop before commit, per the work order's own
+explicit instruction and CLAUDE.md's standing rule that the user runs
+git.
+
 ## Mu-fit re-evaluation with FR live [2026-09-20, branch ls-evidence,
 same day, read-only science]
 

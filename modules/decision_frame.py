@@ -930,7 +930,7 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                 "scenario": "exit_oversteer",
                 "corner": cid, "phase": phase,
                 "lever_family": "arb_spring",
-                "actions": [{"parameter": "springs_rear", "direction": "soften"}],
+                "actions": [{"parameter": "springs_rear", "direction": "soften", "delta": -1}],
                 "effort_class": _effort_class_for_actions(["springs_rear"], registry),
                 "effect_class": "secondary",
                 "grade": "proposed",
@@ -1179,6 +1179,87 @@ def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, interve
     return candidates
 
 
+# --- Generic per-lever candidate-bridge mechanism (BACKLOG item H, 2026-09-20) -
+#
+# config/decision_frame.json's own lever_bridges list (see that key's _comment)
+# re-expressed as candidates: one row per (lever, direction), each firing
+# across the phase groups where its mechanism actually acts. Mirrors
+# _bridge_candidates_for_matrix_rules's own matrix_verdict grouping and
+# verdict/min_severity gate exactly -- the only structural difference is that
+# a lever_bridges row names its OWN list of phase groups (a lever can act
+# across several) instead of the one group a specific matrix cell_id/
+# rationale is tied to.
+
+def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_candidates):
+    """Tier B (candidate-generation plumbing) -- the Segers ch.9/10 physics
+    itself is already anchored and reviewed via config/decision_frame.json's
+    interaction_table; this function only decides how an already-approved
+    lever_bridges row becomes a visible candidate.
+
+    Dedupe: a lever_bridges row can overlap a candidate the hardcoded
+    _exit_oversteer_candidates (or the matrix bridge above) already emits for
+    the same (parameter, direction, corner) -- springs_rear/soften/exit is
+    the one live case (config comment names it). `existing_candidates` is
+    every candidate generated so far this call; the hardcoded/matrix path
+    always wins the collision (generated first, richer evidence_refs), so
+    this function simply skips a key already covered rather than re-scoring
+    or merging -- never a second, disagreeing grading rule.
+    """
+    bridges = decision_config.get("lever_bridges", [])
+    if not bridges:
+        return []
+
+    existing_keys = {
+        (action["parameter"], action["direction"], c["corner"])
+        for c in existing_candidates for action in c["actions"]
+    }
+
+    matrix_by_group = {}
+    for e in evidence:
+        if e["type"] == "matrix_verdict":
+            matrix_by_group.setdefault(e["phases"], {}).setdefault(e["corner"], []).append(e)
+
+    candidates = []
+    for bridge in bridges:
+        param = bridge["lever"]
+        direction = bridge["direction"]
+        condition = bridge["condition"]
+        verdict = condition["verdict"]
+        min_sev = condition.get("min_severity", "moderate")
+        # Method-defining, not a car tunable: +1/-1 encodes ONE step in this
+        # lever's own direction_semantics (config/setup_parameters.json
+        # springs_front/rear both declare increasing="stiffer"), matching the
+        # ARB actions' existing delta convention -- not a physical magnitude.
+        delta = 1 if direction == "stiffen" else -1
+
+        for phase_group in bridge["phase_groups"]:
+            phase_group = tuple(phase_group)
+            for cid, items in matrix_by_group.get(phase_group, {}).items():
+                key = (param, direction, cid)
+                if key in existing_keys:
+                    continue
+                for ev in items:
+                    if ev["verdict"] != verdict:
+                        continue
+                    if SEVERITY_RANK[ev["severity"]] < SEVERITY_RANK[min_sev]:
+                        continue
+                    candidates.append({
+                        "id": f"lever_bridge:{param}:{direction}:C{cid}:{'+'.join(phase_group)}",
+                        "scenario": f"lever_bridge:{param}:{direction}",
+                        "corner": cid, "phase": phase_group[-1], "phases": phase_group,
+                        "lever_family": bridge.get("lever_family", param),
+                        "actions": [{"parameter": param, "direction": direction, "delta": delta}],
+                        "effort_class": _effort_class_for_actions([param], registry),
+                        "effect_class": bridge.get("effect_class", "secondary"),
+                        "grade": "proposed",  # structural cap -- see lever_bridges' own config comment
+                        "cell_id": None,
+                        "evidence_refs": [ev],
+                        "rationale": bridge["rationale"],
+                        "derived_from": bridge["derived_from"],
+                    })
+    return candidates
+
+
 def generate_candidates(evidence, registry, config):
     """Candidate layer. See module-level comment above for Stage 1's own
     scope; Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04) adds
@@ -1187,11 +1268,11 @@ def generate_candidates(evidence, registry, config):
     TC-intervention-evidence wiring into the existing exit-oversteer
     candidates. `registry` is modules.recommendation.
     load_setup_parameters_registry()'s own dict; `config` is load_decision_
-    frame_config()'s dict (accepted for signature symmetry with
-    build_evidence/score -- candidate generation itself reads config/
+    frame_config()'s dict -- candidate generation otherwise reads config/
     recommendations.json directly for matrix-cell lookups, not config/
-    decision_frame.json, since that is where the actual lever/rationale/
-    provenance data lives).
+    decision_frame.json, EXCEPT `config`'s own lever_bridges list (BACKLOG
+    item H, 2026-09-20), the one source that genuinely lives there (see
+    _bridge_candidates_for_levers and that config key's own comment).
     """
     config_recs = load_recommendations_config()
 
@@ -1218,6 +1299,7 @@ def generate_candidates(evidence, registry, config):
     candidates += _brake_balance_candidates(evidence, registry, config_recs)
     candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
                                                         intervention_abs_masking_by_corner)
+    candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates)
     # Deepening Phase 4d: attaches any driver_feedback evidence (built by
     # build_evidence when feedback_data was supplied) to every candidate
     # whose own evidence_refs share its corner/phase/verdict -- corroborates

@@ -719,5 +719,52 @@
       "note": "Mirror of the decrease entry above -- either direction moves the rear aero platform and rake, not just balance. Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). Literature-bridge work package, 2026-09-20."
     }
   ],
-  "_comment_interaction_table_open_items": "Updated Deepening Phase 4b (2026-09-18) -- springs_front/rear and ride_height_front/rear now HAVE entries (see _comment_interaction_table above for exactly which and why). Literature-bridge work package (2026-09-20): ride_height_front/rear gained Segers ch.9/10 platform_stability entries (grounded in their own registry mechanism text, 'aero platform height'), completing the same balance/platform split springs already had -- a coverage-check finding, not a redo of Phase 4b (which had already shipped the springs half and the ARB/camber/diff_position/tc_lon/toe_front interaction-table bidirectionality this same check re-verified as already complete). NOT extended by that check, because closing it needs a module-logic (candidate-bridge) change, not a config entry: springs_front (zero candidate-generating bridge in either direction anywhere in modules/decision_frame.py -- interaction_table entries alone never generate a candidate, see that module's own generate_candidates) and springs_rear's stiffen direction (only soften has a bridge, hardcoded in _exit_oversteer_candidates) -- named as a READY PROPOSAL in PLAN.md BACKLOG (generic per-lever candidate-bridge mechanism), not implemented here. camber_rl/rr carry the identical interaction-table-only gap but are not a Segers lever and were out of this work order's scope -- flagged only. Genuinely still uncovered, each for its own stated reason: all 20 damper channels and tc_lat (used by only one rule each in the 39-rule matrix, no opposite-direction cross-reference exists to extract, and not one of the work order's own literature-anchored bullets either; damper TRANSIENT-PHASE bridges specifically were also considered this session and deferred -- interaction_table has no phase field and no transient-phase axis in _AXIS_TO_VERDICT, listed pending schema support rather than extending the schema); arb_front_mount (no numeric quantity underlies its enum anywhere in this codebase); wing_position (the matrix itself uses 'increase' for BOTH understeer and oversteer fixes on different phases -- genuinely phase-dependent/non-monotonic, a single signed entry would misrepresent it); toe_rear (never appears as a suggestion in any of the 39 rules, only toe_front does); abs_position (categorical, direction_semantics.type is explicitly non-monotonic)."
+  "_comment_interaction_table_open_items": "Updated Deepening Phase 4b (2026-09-18) -- springs_front/rear and ride_height_front/rear now HAVE entries (see _comment_interaction_table above for exactly which and why). Literature-bridge work package (2026-09-20): ride_height_front/rear gained Segers ch.9/10 platform_stability entries (grounded in their own registry mechanism text, 'aero platform height'), completing the same balance/platform split springs already had -- a coverage-check finding, not a redo of Phase 4b (which had already shipped the springs half and the ARB/camber/diff_position/tc_lon/toe_front interaction-table bidirectionality this same check re-verified as already complete). NOT extended by that check, because closing it needs a module-logic (candidate-bridge) change, not a config entry: springs_front (zero candidate-generating bridge in either direction anywhere in modules/decision_frame.py -- interaction_table entries alone never generate a candidate, see that module's own generate_candidates) and springs_rear's stiffen direction (only soften has a bridge, hardcoded in _exit_oversteer_candidates) -- named as a READY PROPOSAL in PLAN.md BACKLOG (generic per-lever candidate-bridge mechanism), not implemented here. camber_rl/rr carry the identical interaction-table-only gap but are not a Segers lever and were out of this work order's scope -- flagged only. Genuinely still uncovered, each for its own stated reason: all 20 damper channels and tc_lat (used by only one rule each in the 39-rule matrix, no opposite-direction cross-reference exists to extract, and not one of the work order's own literature-anchored bullets either; damper TRANSIENT-PHASE bridges specifically were also considered this session and deferred -- interaction_table has no phase field and no transient-phase axis in _AXIS_TO_VERDICT, listed pending schema support rather than extending the schema); arb_front_mount (no numeric quantity underlies its enum anywhere in this codebase); wing_position (the matrix itself uses 'increase' for BOTH understeer and oversteer fixes on different phases -- genuinely phase-dependent/non-monotonic, a single signed entry would misrepresent it); toe_rear (never appears as a suggestion in any of the 39 rules, only toe_front does); abs_position (categorical, direction_semantics.type is explicitly non-monotonic).",
+  "_comment_lever_bridges": "Generic per-lever candidate-bridge mechanism (BACKLOG item H, named 2026-09-20, implemented 2026-09-20). Closes the gap the comment above names: an interaction_table entry alone never generates a candidate, it only adjusts another candidate's score (_interaction_penalty) -- so springs_front/rear could never actually be SUGGESTED as an action despite carrying literature-anchored (Segers ch.9/10) interaction_table entries. Each entry below is consumed generically by modules.decision_frame._bridge_candidates_for_levers (the same matrix_verdict evidence + phase-group + verdict/min_severity gate _bridge_candidates_for_matrix_rules already uses, mirrored -- convergent, not novel), rather than a new hardcoded per-lever function. 'condition' reuses the SAME verdict vocabulary matrix_verdict evidence carries (understeer/oversteer/unstable_yaw); 'phase_groups' is a list of the matrix's own phase-group tuples (config/recommendations.json rules[].phases), one candidate per group where matching evidence fires. Deliberately excludes 'entry_1_brake' and the combined ['entry_1_brake','entry_2_turnin'] group for every spring entry below: roll-stiffness-distribution (Segers ch.9/10) only acts under LATERAL load transfer -- straight-line braking has no roll-couple mechanism for a spring-rate change to act through, that is a brake-balance/bias question (a different lever family). 'grade' is 'proposed' on every entry and is NOT read as authoritative by the generator -- _bridge_candidates_for_levers hardcodes grade='proposed' on every candidate it emits regardless of what this field says (advisory-capped STRUCTURALLY, same policy _grade_for_provenance already gives every proposed-grade bridge in this file, since no cell_id backs any of these), the field exists here only so a config reader sees the same value the code enforces; a schema test asserts no entry ever declares anything else. Dedupe: springs_rear/soften's exit_4+exit_5 group overlaps the existing hardcoded _exit_oversteer_candidates springs_rear_soften secondary candidate -- the generator skips emitting there (hardcoded path wins, richer LS-disambiguation-aware evidence); no other entry/group below has a hardcoded equivalent to collide with. camber_rl/rr carry the identical interaction_table gap (see comment above) but are flagged, not seeded, per the work order's own scope.",
+  "lever_bridges": [
+    {
+      "lever": "springs_front",
+      "direction": "soften",
+      "condition": {"verdict": "understeer", "min_severity": "moderate"},
+      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "lever_family": "springs",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "interaction_table: springs_front/soften/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
+      "rationale": "Softening the front axle reduces front roll stiffness, shifting balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped."
+    },
+    {
+      "lever": "springs_front",
+      "direction": "stiffen",
+      "condition": {"verdict": "oversteer", "min_severity": "moderate"},
+      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "lever_family": "springs",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "interaction_table: springs_front/stiffen/oversteer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
+      "rationale": "Stiffening the front axle increases front roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped."
+    },
+    {
+      "lever": "springs_rear",
+      "direction": "stiffen",
+      "condition": {"verdict": "understeer", "min_severity": "moderate"},
+      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "lever_family": "springs",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "interaction_table: springs_rear/stiffen/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
+      "rationale": "Stiffer rear axle roll rate shifts balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_rear stiffen at all (only soften has a hardcoded exit-oversteer bridge), proposed grade, advisory-capped."
+    },
+    {
+      "lever": "springs_rear",
+      "direction": "soften",
+      "condition": {"verdict": "oversteer", "min_severity": "moderate"},
+      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "lever_family": "springs",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "interaction_table: springs_rear/soften/oversteer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
+      "rationale": "Softening the rear axle reduces rear roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Same mechanism the hardcoded exit-oversteer bridge already uses at exit phases (deduped there, this entry additionally covers turn-in/apex)."
+    }
+  ]
 }

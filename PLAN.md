@@ -4,6 +4,1540 @@
 
 WHERE THE PROJECT STANDS
 
+- The production tool works. The sideslip estimator arc is CLOSED:
+  nonlinear single-track EKF + Dugoff tyre model, carried-forward
+  configuration is PASS 1 (kinematic-seeded curve, calibrated noise
+  model), frozen validation baseline in diagnostics/inspect_pass1_
+  final_validation.py. The refit loop (passes 2-4) was rejected as
+  structurally non-convergent on two sessions, two failure directions
+  (thesis_notes.md "Refit-loop conclusion: structural non-convergence
+  confirmed on two sessions, two failure directions") -- pass 1's
+  kinematic circularity is a stated, documented limitation, not a
+  resolved issue, and must appear as such in the write-up.
+- Fz-integration line complete: measured (damper-derived) vertical
+  loads are the default source (stability_estimation.vertical_load_
+  source=measured). The aero front/rear split (0.40 placeholder) is a
+  genuine identifiability limit of 3-gauge straight-line data, not an
+  open bug -- gated on a real aero-balance figure or a session with all
+  4 gauges live.
+- Decision-frame layer (evidence -> candidates -> scoring,
+  modules/decision_frame.py) is live: Stage 1, Stage 2 (39-rule
+  migration bridge), Deepening (a-d), Metrology (Phases 1-3), and
+  LS-evidence are all shipped.
+- LS thresholds SHIPPED, phase-scoped (2026-09-20, branch ls-evidence):
+  STRONG_LSF/LSR fire as a new "ls_threshold" evidence source (still
+  explicitly NOT a classification-verdict tier) -- uncapped on braking/
+  turn-in/apex, confidence-capped at exit_phase_confidence_discount=0.5
+  (census-derived; min() only ever lowers a value, so a repeatable exit
+  reading gets pulled UP to the cap while a one-off stays honestly
+  below it). Full record: thesis_notes.md "LS threshold decision:
+  SHIPPED, phase-scoped".
+- Generic lever-bridge candidate mechanism SHIPPED (BACKLOG item H,
+  2026-09-20, branch lever-bridges): springs_front/rear now produce
+  real advisory candidates in both directions via one config-driven
+  generator (config/decision_frame.json lever_bridges + modules.
+  decision_frame._bridge_candidates_for_levers), not a new hardcoded
+  function per lever. Found-and-fixed a latent KeyError in the
+  pre-existing hardcoded springs_rear_soften action along the way
+  (missing "delta" key). Verified on both real sessions: existing
+  non-advisory (derived-from-matrix) candidates byte-stable, new
+  advisory rows only where evidence exists. Full record and numbers:
+  thesis_notes.md "Generic lever-bridge candidate mechanism (BACKLOG
+  item H): shipped"; closure note under BACKLOG item H below.
+- Mu load-normalised tyre fit: re-evaluated on clean inputs (v3 FR
+  live, aero/mass double-count fixed) -- CENTRAL FINDING CONFIRMED, not
+  an artifact of either now-fixed confound (rear axles run a lower
+  effective mu than front at this car's own dynamic load levels,
+  ordinary tyre load sensitivity, most cleanly evidenced on v3 rear).
+  Plausibility-band stop condition IMPROVED (3-of-4 -> 2-of-4
+  implausible, v3 front now plausible) but still fires; mu mode stays
+  config-gated OFF in production (diagnostic-only finding, no default
+  changed). Full record: thesis_notes.md "Mu-fit re-evaluation with FR
+  live".
+- Regression suite (tests/): 301 passed, 9 skipped, 1 xfailed, 0 failed
+  (2026-09-20, full run after the lever-bridges package, 56m49s) --
+  goldens byte-identical (golden-file tests are part of this run and
+  pass). test_stability.py remains a separate zero-assertion smoke
+  test (see STANDING WARNINGS below -- it does not verify numerical
+  correctness).
+
+OPEN ITEMS (not done, named rather than silently dropped):
+- Springs-path migration: the hardcoded _exit_oversteer_candidates
+  springs_rear_soften candidate is not yet folded into the generic
+  lever-bridge mechanism above -- a dedupe step currently substitutes
+  for it (hardcoded path wins any collision). Natural next small
+  package, named under BACKLOG item H's own closure note.
+- TC/EB channel-identity mapping: still dormant/unresolved (Frame-
+  Stage-2 Phase 2's own UNCLEAR/READ-AND-RECORD findings) -- TC
+  intervention evidence stays config-gated off pending it.
+- Motion-ratio residual: a smaller, corner-specific wheel-load residual
+  remains after the aero v^2 term (Metrology Phase 3 rear-residual
+  decomposition) -- consistent with the motion-ratio table region but
+  not distinguishable from real session-to-session static-condition
+  differences (fuel/ballast/tyre pressure) with telemetry alone;
+  several times smaller in scope than the original aero-split residual,
+  carried forward rather than further worked.
+- Standing PROPOSAL-FIRST items from the estimator-arc closure remain
+  open and gated: Module 5 stability-threshold re-anchoring under a
+  non-kinematic estimator (BACKLOG item A, NEW OPEN ITEM); the Fy-split-
+  from-measured-load upgrade (BACKLOG item G, needs a literature anchor
+  before any code change).
+
+Full BACKLOG (ordered) and PARKED sections below carry the complete,
+itemized detail behind every line above; STATUS HISTORY further below
+carries the full prior narrative this rewrite condensed.
+
+STANDING WARNINGS -- carry these into every future session
+
+- NEVER state a config value from memory or from an instruction.
+  Read it from config and quote it. Two errors this week came from
+  exactly that.
+- test_stability.py has ZERO assertions. It is a smoke test that
+  confirms the pipeline does not crash. It passed cleanly through
+  two separate broken phase-boundary fixes. Phase-boundary and
+  numerical correctness have no automated coverage.
+- For boundary and numerical work, verify against an EXTERNAL
+  physical reference channel. Distributional plausibility is not
+  verification: both broken fixes produced healthy-looking
+  durations and population shares, and only the brake-pressure
+  cross-check caught them.
+- Findings go into thesis_notes.md in the SAME turn they are
+  produced. Chat reports are not the record.
+- Protected set, never committed: docs/literature/, docs/car_data/,
+  config/car_data.json, HANDOVER.md, docs/study/. Verify with
+  git ls-files returning empty.
+
+### BACKLOG (ordered)
+A - Numbers correct: nonlinear single-track Kalman filter with a
+    data-identified tyre curve (linear observer rejected for
+    production on saturation-detection failure, see NOW above --
+    this replaces the prior "observer tuning; comparison report +
+    decision" item, does not close it); vehicle-parameter provenance
+    (wheelbase, Iz, cog height, track widths, Cl reviewer
+    placeholders) + team figures, unrelated to the estimator
+    question. PARTIAL OUTCOME (see NOW, carry-forward decision): the
+    data-identified-curve refit sub-attempt (passes 2-4) is REJECTED
+    as non-converging; pass 1's configuration (kinematic-sourced
+    curve, calibrated noise model) is carried forward instead, with
+    the kinematic circularity explicitly unresolved. Done when:
+    sideslip has a defensible source and verdicts are recomputed on
+    it -- still open, gated on R re-derivation against pass 1 (NOW)
+    and the threshold re-derivation (PARKED).
+    NEW OPEN ITEM (2026-09-02, threshold anchoring): Module 5
+    stability sign/scale under ekf_auto_pacejka + stab_neg_thresh
+    re-derivation. estimate_yaw_moment_stability takes beta as a
+    direct argument, so its output depends on sideslip source, unlike
+    the Fy/Fz independence previously confirmed for an unrelated
+    upgrade -- worst-lap stability under ekf_auto_pacejka reads
+    POSITIVE on all 14 Dubai corners (min +3.6 at C4; C8, the corner
+    the live -50.0 stab_neg_thresh was originally gap-selected
+    around, now reads +552.0), leaving no negative population to
+    anchor a re-derived threshold against. stab_neg_thresh stays at
+    its kinematic-era -50.0 value (config/parameters.json, marked
+    [stab thresh: kinematic-era, not re-derived] in the UI whenever
+    it fires under a non-kinematic estimator) until this is
+    investigated. Full record: thesis_notes.md "Threshold anchoring,
+    Phase 2...". STILL OPEN, unaffected by the closure immediately
+    below (a separate sub-item of this same backlog entry).
+    DATA-IDENTIFIED TYRE CURVE SUB-ITEM CLOSED, 2026-09-03 (structural,
+    not incremental -- full record: thesis_notes.md "Refit-loop
+    conclusion: structural non-convergence confirmed on two sessions,
+    two failure directions"). The refit loop (Dugoff pass 2-4,
+    historical; Pacejka iterations 1-4, this session, BOTH Dubai and
+    v3) fails in TWO DIFFERENT DIRECTIONS depending on tyre model/
+    session -- Dugoff collapses toward pure-linear, Pacejka inflates D
+    without plateauing -- the same underlying identifiability failure
+    (curve and beta are jointly unobservable from ay/yaw_rate alone,
+    with no external anchor) manifesting differently, not two
+    unrelated bugs. A same-session external-reference census (v3, all
+    4176 raw channels) found no sideslip/heading/lateral-velocity
+    sensor on either session, and confirmed v3 lacks GPS course/speed
+    entirely (worse-equipped than Dubai for the existing shelved GPS-
+    course method) with near-zero within-racing-lap anchor coverage on
+    BOTH sessions regardless (Dubai 0/5 anchors inside a valid lap, v3
+    2/6). CLOSED as structurally infeasible from onboard sensors alone
+    -- production keeps the first-pass, kinematic-seeded fit
+    unchanged. REOPEN CONDITION: a real external sideslip/heading/
+    lateral-velocity reference covering enough of an actual racing lap
+    to anchor the identifiability, not merely present in a future
+    export at all (this session's own census shows a declared
+    reference can still provide ~zero usable racing-lap anchors).
+C - Decision-matrix depth: elicitation question set (own file, to
+    be created in a later session, sorted by who answers - user or
+    engineer); matrix expansion incl. the beyond-peak gap; cost
+    function with elicited weights; feasibility/conflict logic.
+    Gated on elicitation answers.
+B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
+    VALIDATED 2026-09-03 (modules/wheel_loads.py, damper package,
+    thesis_notes.md "Damper package: wheel loads from pushrod/
+    suspension-travel channels, Phases 1-6"; STATUS bullet above has
+    the headline numbers). Damper data arrived via GT3_PRC_MLA-v3.txt.
+    Both previously-open items resolved as far as this session's data
+    allows, NEITHER fully closed: roll center heights use car_data.
+    json's own stated baseline kinematic variant (Level 1 estimate,
+    fitted variant for this session unconfirmed -- open item carried
+    forward); gauge calibration check found NO existing offset/
+    calibration procedure or entry point at all (pushrod zero-offset
+    config keys default to 0.0, flagged, not fabricated -- open item
+    carried forward, needs a real procedure + UI field). STILL OPEN,
+    not part of this package's scope: roll-stiffness apportionment
+    (the per-wheel split inside estimate_vertical_loads stays the
+    chair's own independent-per-axle lateral-transfer split, a
+    documented later DOMAIN IMPROVEMENT, now damper-VALIDATABLE in
+    principle but not attempted); Fy split upgrade -> CS threshold
+    re-derivation (wheel_load_damper is not wired into any Module 4b/
+    accuracy_resolution.py consumer yet, so no CS threshold is affected
+    by this package).
+    RECONSTRUCTION REFINEMENT CHAIN CLOSED BY DECISION, 2026-09-03 (full
+    record: thesis_notes.md "Reconstruction refinement chain: closing
+    note"). The mass/aero/split session-correction set (thesis_notes.md
+    "Closing the reconstruction's aero gap" and "Session-measured split
+    fractions...") is COMPLETE as far as this session's own data allows.
+    One item DATA-GATED, not further worked: the aero front/rear split
+    (wheel_loads.aero_front_fraction=0.40, Level 1 placeholder) is an
+    IDENTIFIABILITY LIMIT of straight-line data with three gauges, not
+    an open bug -- no amount of further analysis on THIS data resolves
+    it. Final ground-truth scoreboard: raw static model -2607N mean
+    error -> session-corrected +886N mean error (lap 8, drop-RL/RR
+    test). Gated on either of: (1) a real front/rear aero-balance split
+    for this car (windtunnel/CFD, at the run's own wing level), or (2) a
+    session with all four damper gauges alive (removes reconstruction --
+    and the identifiability limit -- entirely, since every corner would
+    then be Level 4 measured, no split fraction needed at all). GATE (2)
+    RESOLVED 2026-09-18 (Deepening Phase 2, FR fixed on v3) -- and
+    followed up, Metrology Phase 3 (2026-09-19, diagnostics/inspect_
+    metrology_phase3_rear_residual.py): with the identifiability limit
+    lifted, the STRAIGHT-LINE residual against the outing's own real
+    weighing that this now exposed (FL +2.1%, FR +2.9%, RL +11.5%, RR
+    +22.8%) was decomposed against the three candidate mechanisms named
+    below. "Geometric transfer estimates" RULED OUT, both structurally
+    (wheel_loads.py's own left/right transfer terms cancel exactly in
+    an axle's total, by construction, verified at +0.00 N both axles)
+    and empirically (axle-total residual correlation with |ay|, after
+    removing the fitted v^2/ax terms: front +0.031, rear -0.058, both
+    null). "Aero front/rear split" CONFIRMED as the dominant driver of
+    the residual's SIZE: a pure v^2 fit alone explains >90% of each rear
+    corner's own variance (R^2 0.91/0.91), reproduces almost exactly
+    across both independent sessions (v3 RL b=0.604 vs Dubai RL b=0.611),
+    and implies a real measured front/rear aero split of 25%/75% -- the
+    0.40 placeholder understates this car's real rear aero share by 15
+    points. A smaller, genuinely corner-specific residual remains after
+    the v^2 term (v3 rear intercepts diverge sharply, RL -281.7N vs RR
+    +174.0N, and the same corner (RL) flips sign v3->Dubai despite an
+    almost-identical v^2 slope) -- consistent with "motion-ratio table
+    region" but not distinguishable from real session-to-session static-
+    condition differences (fuel/ballast/tyre pressure) with telemetry
+    alone; carried forward, several times smaller in scope than the
+    original headline residual. Full record: thesis_notes.md "Metrology
+    Phase 3: rear axle-total residual decomposition". Engineer
+    questions raised (PLAN.md "Engineer follow-up questions -- damper/
+    wheel-load package," new section): front/rear aero balance figures
+    for this car at the run wing level; FR gauge repair status --
+    ANSWERED 2026-09-18 for v3 specifically (Deepening Phase 2: FR was
+    decoded, not physically repaired, but is now live/damper-measured on
+    that file) -- option (2) above is therefore SATISFIED for v3 (every
+    corner is now Level 4 measured there, no reconstruction needed), but
+    the aero-split identifiability limit itself (option 1) remains open
+    and unaffected -- this was never about the FR gauge, it is a
+    straight-line-data-with-three-gauges limitation that a fourth real
+    gauge does not resolve on its own.
+D - Output artifacts: weekend PDF expansion; per-corner CS overlay
+    and g-g plots.
+E - Cleanup (after track A closes): diagnostics inventory + README,
+    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
+    protected-set audit and push readiness.
+F - (optional thesis figure, not a work item) Rear Dugoff curve
+    plotted at pass 0, 2, 3 and 4 on shared axes, showing the
+    pass-4 rear curve as a straight line. A single figure
+    communicating the refit loop's identifiability failure -- the
+    onset boundary moving outward until it reaches 88.4 deg and
+    coverage falls to exactly zero of 24,183 samples. Not a result
+    plot; the passes are not carried forward. Purely a figure for
+    the write-up.
+G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
+    formalises the open item already flagged inline under BACKLOG B
+    above, "Fy split upgrade -> CS threshold re-derivation", into its
+    own tracked package rather than leaving it as a buried aside):
+    Fy split upgrade from measured axle loads. Now that stability_
+    estimation.vertical_load_source defaults to "measured" (Fz-
+    integration package close-out, 2026-09-04) and modules.wheel_loads'
+    damper-derived Fz is a live, validated Level 4 source on two real
+    sessions, the question is whether/how that measured load should
+    inform the Fy SPLIT itself -- CLAUDE.md's own deviation-taxonomy
+    example names "Level-1 Fy split" as a standing FORCED ADAPTATION
+    (modules.stability_analysis.estimate_lateral_forces's own axle-
+    level Fy construction, independent of which vertical-load source
+    feeds Module 4b/CS_ratio downstream). DO NOT IMPLEMENT before a
+    written PROPOSAL: this is Tier A (a vehicle-dynamics method change
+    to what feeds CS_ratio, not a Tier B consumption switch the way
+    Fz-integration Phase 1 itself was) -- needs its own literature
+    anchor before any code changes, per CLAUDE.md's scientific-
+    grounding rule ("If no anchor exists for a Tier A proposal, STOP
+    and ask -- never invent"). THRESHOLD RE-DERIVATION IS ATTACHED, not
+    optional: CS_ratio's threshold anchoring (thesis_notes.md "Threshold
+    anchoring + arc closure") was derived against the CURRENT Fy
+    construction's own distribution -- changing how Fy is split re-
+    triggers that re-derivation in full, the same standing rule any
+    estimator change already carries (CLAUDE.md's parameter-category
+    note: "classification thresholds... always re-derived from this
+    car's own distribution, never carried over... from a prior
+    estimator's distribution"). Gated on: a real literature anchor for
+    a measured-load-informed Fy split method; the proposal itself,
+    reviewed before implementation; CS threshold re-derivation as part
+    of the same package, not a follow-up.
+H - SHIPPED 2026-09-20 (branch lever-bridges, full record: thesis_notes.md
+    "Generic lever-bridge candidate mechanism (BACKLOG item H): shipped").
+    Originally PROPOSAL-FIRST (named 2026-09-20, literature-bridge work package
+    coverage-check finding): generic per-lever candidate-bridge
+    mechanism. That package's own coverage check (config/decision_
+    frame.json interaction_table entries vs modules/decision_frame.py
+    candidate generation, thesis_notes.md "Literature-bridge work
+    package...") found that an interaction_table entry NEVER generates
+    a candidate on its own -- it only ever adjusts another candidate's
+    score (_interaction_penalty). Candidates come from exactly three
+    sources: the exit-oversteer hardcoded bridge, the brake-balance
+    plausibility bridge, and the generic 39-rule matrix bridge
+    (_bridge_candidates_for_matrix_rules). Two lever families that
+    already carry literature-anchored (Segers ch.9/10) interaction_
+    table entries have NO matching candidate-generating bridge in one
+    or both directions, so they can never actually be suggested as an
+    action: springs_front (zero candidate bridge, either direction --
+    interaction_table entries only) and springs_rear (only "soften" has
+    a bridge, hardcoded in _exit_oversteer_candidates; "stiffen" has
+    none). camber_rl/rr carry the identical gap (interaction-table-
+    only, user-elicited grade, not Segers) but are not in this
+    proposal's stated scope. PROPOSAL: a generic, config-driven
+    candidate-bridge mechanism -- one new config/decision_frame.json
+    block (e.g. lever_bridges) listing, per non-matrix lever: lever
+    family, the verdict pattern it responds to (verdict + phase-scope,
+    reusing the SAME vocabulary matrix_verdict/corner_verdict evidence
+    already uses), direction, and grade -- consumed by ONE new
+    generic candidate-generation function in modules/decision_frame.py,
+    the same way _bridge_candidates_for_matrix_rules already turns
+    config/recommendations.json rows into candidates generically,
+    rather than adding a new hardcoded per-lever function (matching
+    _exit_oversteer_candidates's springs_rear_soften entry) for every
+    lever this pattern is extended to. Tier B (candidate-generation
+    plumbing, not a vehicle-dynamics method change -- the underlying
+    Segers roll-stiffness claim is already anchored and reviewed via
+    the existing interaction_table entries; this proposal only decides
+    HOW an already-approved bridge becomes a visible candidate).
+    Springs_front/rear are the immediate beneficiaries; camber_rl/rr
+    named as a likely second consumer once the mechanism exists, not
+    implemented alongside it. ACCEPTANCE TEST (named per the work
+    order): springs_rear "stiffen" appears as an advisory ("proposed")
+    candidate on a synthetic entry-oversteer case (a corner/phase with
+    understeer_tendency-relevant evidence firing, mirroring the shape
+    of the existing springs_rear_soften/exit_oversteer test but for the
+    stiffen direction and an understeer-adjacent scenario) -- currently
+    IMPOSSIBLE to write, since no code path produces that candidate at
+    all; passing it is the acceptance criterion for this package.
+    Natural next small package once the current literature-bridge
+    package commits. DO NOT IMPLEMENT before this proposal is reviewed
+    -- new module logic, out of the current (config+docs+tests-only)
+    package's own explicit scope.
+    SHIPPED 2026-09-20: config/decision_frame.json lever_bridges (4 seed
+    entries, springs_front/rear x soften/stiffen) + one new generic
+    function modules.decision_frame._bridge_candidates_for_levers, wired
+    as generate_candidates' 4th source -- exactly the "config row ->
+    candidate" pattern this proposal named, no new hardcoded per-lever
+    function. ACCEPTANCE-TEST CORRECTION: this proposal's own acceptance
+    line (above) paired springs_rear "stiffen" with a synthetic ENTRY-
+    OVERSTEER case -- found to be physically backwards against config/
+    decision_frame.json's own interaction_table (springs_rear stiffen
+    WORSENS oversteer, sign -1; it HELPS understeer, sign +1) and against
+    the pre-existing hardcoded _exit_oversteer_candidates (springs_rear_
+    soften already fires for oversteer, never stiffen). Corrected
+    acceptance case, passing: springs_rear "stiffen" on a synthetic
+    UNDERSTEER case. Dedupe against the hardcoded exit-oversteer path
+    (springs_rear soften/oversteer overlaps its springs_rear_soften
+    candidate at exit_4+exit_5): hardcoded path always wins, confirmed on
+    5 REAL collisions across both sessions (Dubai C4; v3 C1/C5/C8/C16),
+    not only the synthetic dedupe test. Real-session verification (Dubai +
+    GT3_PRC_MLA-v3.txt, full evidence->candidate chain): existing non-
+    advisory (derived-from-matrix) candidates byte-stable (Dubai 3/3, v3
+    12/12, zero removed either session); new advisory rows only where
+    lever_bridges evidence exists (Dubai +5, v3 +16, all grade
+    "proposed"). Found-and-fixed, alongside this package: a latent
+    KeyError in the pre-existing hardcoded springs_rear_soften action
+    (missing "delta" key, crashes _settings_window_component's scoring
+    once a real rear-spring setup value is on record) -- one-key fix,
+    regression test added, no other change to that path. 8 new tests
+    (tests/test_decision_frame.py): schema, 3x generator-firing, the
+    corrected acceptance case, dedupe, config-empty guard, the KeyError
+    regression. Full tests/test_decision_frame.py: 57/57 passed (49
+    pre-existing + 8 new). test_stability.py clean.
+    NOT done, named as future work: migrating the hardcoded
+    _exit_oversteer_candidates springs_rear_soften path INTO this generic
+    mechanism (so the dedupe step itself becomes unnecessary) -- explicitly
+    out of this package's scope per the work order, a natural next small
+    package. camber_rl/rr remain unseeded (flagged, not this order's
+    scope, per the original proposal above).
+
+### PARKED (decided, not forgotten)
+Verdict-stability annotation (STABLE / MARGINAL) -- IMPLEMENTED 2026-09-19
+(close-out work order, same day as the proposal below). Ships as
+described, with two real implementation differences from the original
+proposal text, recorded here rather than silently: (1) UI SHAPE ended up
+as an embedded "[MARGINAL]" text marker inside classify_fn's own short/
+long verdict strings (the SAME append-marker pattern _classify_corner
+already used for [UNCAL]/the stab-threshold legacy marker), not a
+separate tooltip glyph -- minimal-blast-radius: _classify_corner's own
+4-tuple return shape and all 13 of its call sites are untouched. (2) the
+MIN-confidence discount was applied to BOTH corner_verdict AND
+matrix_verdict evidence (the proposal only named corner_verdict) --
+matrix_verdict is the type that actually feeds most of the 39-rule
+matrix's own candidates, so capping only corner_verdict would have left
+a real gap. Confidence cap reuses intervention_evidence.abs.confidence
+(0.8), per the proposal's own "reuse an anchor" instruction. 7 targeted
+tests: 4 in tests/test_cs_validity_repair.py (classify_fn marker
+presence/absence, front and rear axle), 3 in tests/test_decision_frame.py
+(corner_verdict cap fires/doesn't, matrix_verdict cap fires) -- all pass,
+plus the full tests/test_decision_frame.py + tests/test_cs_validity_
+repair.py files re-run clean (64 passed) to confirm no regression on the
+other 57 pre-existing tests. ORIGINAL PROPOSAL TEXT, kept for the record
+(2026-09-19, write-only per the work order -- "propose, don't implement"
+two-phase rule applied before any of this was built): follows directly
+from Metrology Phase 1's own
+sensitivity sweep (thesis_notes.md "Metrology Phase 1: verdict
+sensitivity map"): 10 of 85-128 tested corner-phases per session flip
+their axle-label under a realistic +/-1% single-input measurement/
+parameterisation change, concentrated in already-borderline (normal/
+moderate severity) verdicts, never in a STRONG one.
+  WHAT IT ADDS: each corner-phase verdict already shown in the UI gains
+  a second-order STABLE/MARGINAL tag, surfacing "this call could flip
+  under a realistic small measurement change" instead of hiding it.
+  THRESHOLD, reusing the anchored margin, not inventing a new one:
+  MARGINAL fires when min(|CS_ratio_f - STRONG_CSF|, |CS_ratio_f -
+  MODERATE_CSF|) <= 0.11, or the same test on CS_ratio_r against STRONG_
+  CSR/MODERATE_CSR. 0.11 is not a guessed round number -- it is the
+  empirical threshold-distance of the 2nd-most-marginal flip actually
+  observed in the Phase 1 sweep (v3 C12 apex_3/exit_4, distance 0.104,
+  rounded up slightly for a small margin of safety), chosen to cover 9
+  of the 10 observed <=1%-perturbation flips. The ONE excluded case
+  (dubai C1 apex_3, distance 0.274) is excluded deliberately: Phase 1
+  read it directly and found that flip is driven by a DIFFERENT
+  mechanism (which of CS_ratio_f/r is currently more extreme, a
+  relative front/rear comparison _classify_corner also makes, not a
+  fixed-threshold crossing) -- folding it into this single-axis distance
+  threshold would require inflating the anchor 2.6x past every other
+  observed case just to cover one differently-caused outlier, which
+  would flag far more corners as MARGINAL than the sweep actually
+  supports. COMPUTATION COST: zero extra pipeline runs -- both CS_ratio_
+  f/r values are already computed for every corner-phase today; this is
+  a comparison against two existing numbers, not a live re-sweep (the
+  sweep itself takes ~38 minutes and cannot run per-analysis).
+  UI SHAPE: a small marker next to the existing verdict label (a
+  tooltip-bearing glyph, not a colour change -- MARGINAL is a
+  confidence/robustness qualifier on top of the existing severity
+  colour, not a new severity tier) reading "this verdict can flip under
+  a realistic ~1% measurement change" on hover.
+  CONFIG SHAPE: a new config/parameters.json classification.
+  verdict_stability_margin entry, {"cs_margin": 0.11, "derived_from":
+  "Metrology Phase 1 sensitivity sweep, 2026-09-19 -- covers 9/10
+  observed <=1% flips, thesis_notes.md"} -- sibling to the existing
+  STRONG_CSF/CSR/MODERATE_CSF/CSR entries, same provenance-note
+  convention.
+  DECISION-FRAME IMPACT: a MARGINAL verdict discounts like low
+  repeatability already does -- NOT a new confidence formula. Every
+  corner_verdict evidence item already carries a confidence value (the
+  existing repeat-fraction-derived mechanism); a MARGINAL tag would
+  become a second corroborating-evidence-style input feeding the SAME
+  MIN-confidence rule every other evidence source in modules/decision_
+  frame.py already uses (driver_feedback, intervention_abs, etc.) --
+  no new combination mechanism, no new arbitrary confidence number
+  proposed here. The exact discount value is deliberately left for the
+  implementing session to set (matching an existing anchor at that
+  time, e.g. the ABS masking cap or the repeat-fraction floor -- "reuse
+  an anchor" applies to that choice too, not just the 0.11 CS-distance
+  number above).
+  NOT YET DECIDED: whether MARGINAL should be surfaced in the decision-
+  frame candidate list at all, or only in the raw corner-phase grid (the
+  two are different UI surfaces, thesis_notes.md's own Stage-1/Stage-2
+  framing); whether stability_observed_Nm_per_deg (the yaw-moment
+  verdict) needs its own analogous margin, not computed this phase
+  (Phase 1's sweep tracked it per corner-phase but the margin table
+  above is CS_ratio-only -- stab_neg_thresh_Nm_per_deg=-50.0 was never
+  found to be the actual driver of any of the 10 observed flips this
+  session, so no stability-margin anchor exists yet to reuse).
+mass_kg_session / c_session aero double-counting in modules.wheel_loads.
+estimate_session_corrected_axle_totals -- RESOLVED 2026-09-19 (Metrology
+extension Phase 1, same day as this entry, per the fix sketch below):
+mass_kg_session and c_session now come from ONE joint regression (v->0
+intercept for mass, v^2 term for aero), no overlap by construction.
+ACCEPTANCE CLEARED: the lap-8 v3 ground-truth reconstruction error
+dropped to +167.6N mean (+3.19/3.36%, straight-line-only +308.9N), well
+below the ORIGINAL +916.6N baseline (not just below the double-counted
++1451.4N state) -- the pre-registered hard bar. Full record: thesis_
+notes.md "Metrology extension Phase 1: mass/aero double-counting fix,
+ACCEPTANCE CLEARED". ORIGINAL FINDING TEXT, kept for the record (found
+2026-09-19, Metrology close-out, re-running the reconstruction ground-
+truth check after the
+aero_front_fraction 0.40->0.25 update). mass_kg_session is fit from real
+damper data at the straight-line population's OWN mean speed -- its own
+docstring already stated the caveat that this "already contains some of
+the real aero present at that range's own typical speed" before this
+session, but its real SIZE was never quantified. Now quantified: shifting
+the (separately, correctly, cross-session-validated) aero_front_fraction
+from 0.40 to 0.25 -- i.e. giving the rear axle MORE of c_session's
+already-fit total aero -- made the lap-8 RL/RR reconstruction ground-
+truth error WORSE, not better (+916.6N/+17-18% -> +1451.4N/+27-29% mean
+error, worst in the straight-line-only subset: +756.9N -> +1620.6N),
+because mass_kg_session's own real-data mean was ALREADY absorbing part
+of that same real aero before the explicit v^2 term added more on top.
+The aero_front_fraction fix itself is not at fault (it independently
+cross-validates against two real sessions, thesis_notes.md "Metrology
+Phase 3") -- this is a SEPARATE, pre-existing flaw in how mass_kg_session
+and c_session combine, newly made visible (not created) by giving the
+rear axle a more accurate, larger aero share. FIX SKETCH, not attempted
+this session (a methodology change, needs its own validation, explicitly
+out of scope for the close-out that found it): fit mass_kg_session's own
+static term at v->0 (extrapolated, like the v^2 fits in thesis_notes.md
+"Metrology Phase 3" do for their own intercepts) instead of at the
+straight-line population's mean speed, so the aero contribution is
+cleanly zero in the static term and lives ONLY in the explicit c_session*
+v^2 term -- removing the double-count structurally rather than by
+re-tuning aero_front_fraction to compensate for it. Full record: thesis_
+notes.md "Metrology close-out: aero_front_fraction shipped, mass/aero
+double-counting found".
+LS_ratio threshold proposal -- VALIDITY REPAIR DONE 2026-09-19 (Metrology
+extension Phase 2, thesis_notes.md "Metrology extension Phase 2: LS_ratio
+validity repair"), threshold itself STILL NOT SHIPPED (open user decision,
+by the work order's own explicit instruction: LS stays display + frame-
+evidence-only until the numbers are signed off). PRE-REPAIR finding kept
+for the record (Deepening Phase 4e, 2026-09-18): Dubai front 14/14
+corners negative, Dubai rear 10/14, v3 front 12/16, v3 rear 14/17, pooled
+p10 front=-5.56/rear=-1.34 -- the SAME wholesale-negative pattern CS_ratio
+itself showed before its own repair, BLOCKED pending an LS-specific
+validity-repair pass.
+REPAIR (applying the CS_ratio playbook, own values not copied):
+window floors re-derived via the SAME phase-level-median bootstrap
+method CS's own Phase 1 REVISION used, on real kappa/Fx from BOTH
+sessions (diagnostics/inspect_ls_window_floor_derivation.py) -- governing
+case (smallest (n,span) clearing P75<=15% relative std, most demanding of
+2 sessions x 2 axles, at the shortest MEANINGFUL representative phase
+length): v3 rear, (min_window_samples=40, min_slip_span=0.016) ->
+min_window_s=0.40s @ 100 Hz (both sessions' real grid rate) -- notably
+close to the chair's own literal 0.45s default, no bootstrap-vs-chair
+tension the way CS once had. Locality cap (diagnostics/inspect_ls_max_
+window_locality_sizing.py) sized at 900m -- DEVIATED FROM CS's OWN 1.5x-
+median MULTIPLIER on purpose, stated why: LS's own natural footprint is
+far more heavy-tailed than CS's (v3 front median/p90 ratio ~5.5x vs CS's
+own ~3x, a real physical difference -- braking/traction zones can
+legitimately span much further than a single corner's lateral extent);
+applying CS's literal multiplier would have sat below even the P90 of
+the most demanding case. Sized instead at the P95 mark of the most
+demanding case (v3 front, 840.2m) instead.
+RE-RUN DISTRIBUTION (diagnostics/inspect_deepening_phase4e_ls_thresholds.
+py, unchanged script, re-run against the repaired estimator): Dubai front
+10/14 negative (was 14/14), Dubai rear 9/14 (was 10/14), v3 front 10/17
+(was 12/16), v3 rear 13/17 (was 14/17); pooled p10 front=-0.785 (was
+-5.56, ~7x smaller in magnitude), rear=-0.604 (was -1.34, ~2x smaller);
+pooled MEDIAN front=-0.078 (near zero), rear=-0.206 (still meaningfully
+negative). PRE-REGISTRATION PARTIALLY MET, reported honestly rather than
+forced either way: the EXTREME garbage-window amplification that made
+the pre-repair values physically implausible (p10 beyond -5, far past the
+ratio's own clip-at-1.0 range) is gone -- values now sit in a physically
+plausible range. The wholesale COUNT of negative corners dropped
+materially (100%->71% front Dubai) but did not reach "gone" -- a
+meaningful residual negative population remains, front's pooled median
+near zero, rear's still clearly negative. Not necessarily wrong: the work
+order's own item (e) pre-registration expected the KNOWN genuine
+traction-limited corner (Dubai C3) to still show its signature -- some
+real negative population is expected, not just artifact; this repair
+cannot and does not claim to separate "genuine beyond-peak traction
+limitation" from "remaining estimation noise" within what's left.
+Frame-verification (diagnostics/inspect_ls_repair_frame_verification.py,
+item g): [see thesis_notes.md for the C3-specific result].
+THRESHOLD PROPOSAL (diagnostic only, config classification NOT touched,
+per the work order's own explicit instruction -- LS stays display +
+frame-evidence-only until signed off): pooled p10, same physical anchor
+logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force
+point, minus a data-sized margin) -- PROPOSED STRONG_LSF=-0.79,
+STRONG_LSR=-0.60. Small-n caveat unchanged from the original entry
+(n=31 pooled corners, front/rear asymmetry present but not dramatically
+so -- no strong case for treating the axles differently beyond what the
+raw numbers already show). OPEN USER DECISION: whether these repaired-
+but-still-substantially-negative numbers are trustworthy enough to sign
+off as real STRONG_LSF/LSR thresholds, or whether the remaining negative
+population needs its own further investigation (e.g. explicitly
+separating known-traction-limited corners like C3 from the rest) before
+anchoring a threshold against it. Full record: thesis_notes.md "Metrology
+extension Phase 2: LS_ratio validity repair".
+CO-OCCURRENCE VERDICT, resolving the open decision above (2026-09-20,
+branch ls-evidence, read-only science, diagnostics/inspect_ls_negative_
+cooccurrence.py, [keep-reproduces]): every corner-phase-axle instance
+whose repaired worst-lap LS_ratio is negative (71 total, both sessions)
+censused against corroborating signal in its own worst-lap's own phase
+window -- brake pressure/throttle, ABS duty, TC duty (ecu_B_tc_act),
+|ax| vs the 1.0 m/s^2 display-mask reference line, and repeatability
+across the corner's own other laps. CORROBORATED = ABS or TC fires, or
+high demand AND repeatable across laps; UNCORROBORATED = no ABS/TC AND
+(low demand OR a one-off, non-repeating reading). POOLED: 36/71 (51%)
+CORROBORATED, 35/71 (49%) UNCORROBORATED, 0 MIXED -- every single
+instance sits above the 1.0 m/s^2 demand line (no low-demand/cruise
+contamination at all), so the split reduces entirely to ABS/TC activity
+vs repeatability.
+VERDICT: MIXED, case (c) -- NOT a clean sign-off, NOT a clean rejection,
+but the split is NOT random: it is cleanly EXPLAINED by phase type, not
+axle. BRAKING phase: 8/9 (89%) corroborated (front braking 4/4, rear
+braking 4/5) -- ABS activity co-occurs strongly, exactly the "ABS
+regulating IS the car at the slip peak" signature the work order named.
+OTHER (turn-in/apex, real trail-braking territory): 13/18 (72%)
+corroborated. EXIT phase: only 15/44 (34%) corroborated (front exit 5/22
+= 23%, rear exit 10/22 = 45%). THE DISCRIMINATING FACTOR, named not just
+observed: TC (the natural exit/traction corroborator) is ALREADY
+recorded as firing on only 3 samples in v3's entire session (thesis_
+notes.md "Frame-Stage-2 Phase 2: intervention-channel survey", 0.0044%
+activity, reconfirmed this session on both files) -- exit-phase
+instances are structurally unable to be TC-corroborated THIS session,
+regardless of whether the underlying LS signal is genuine. "Uncorrob-
+orated" at exit therefore reads more as an EVIDENCE GAP (no channel
+available to confirm OR deny) than a demonstrated absence of real
+signal -- confirmed directly, not just argued: Dubai's own C3 (the
+project's independently-established genuine traction-limited corner,
+thesis_notes.md's C3 finding) IS corroborated in this census, via
+repeatability alone (exit_5, rear, LS=-0.329, repeat=4/4 laps, zero
+ABS/TC activity) -- proof that a real, already-confirmed genuine
+traction-limited event can and does get correctly recognised by this
+census even with zero TC support, validating repeatability as a working
+corroboration channel on exactly the case it needs to work on.
+Magnitude cross-check: CORROBORATED instances run larger on average
+(median |LS|=0.257) than UNCORROBORATED (median |LS|=0.115) -- a real,
+if imperfect, signal-vs-noise gradient in the same direction the
+question under test predicts.
+RECOMMENDATION (design note, not implementation, per the work order's
+own scope limit): do NOT sign off on STRONG_LSF=-0.79/STRONG_LSR=-0.60
+as flat, phase-blind thresholds. The braking/turn-in population
+(dominantly corroborated) supports treating a negative worst-phase
+value there as a real, trustworthy signal now. The exit population
+needs EITHER a session with genuine TC activity to close the evidence
+gap, OR a phase-conditioned confidence treatment reusing the frame's own
+existing MIN-confidence mechanism (e.g. an exit-phase LS confidence
+discount mirroring the ABS-masking cap's own reused-anchor pattern,
+Deepening Phase 4c) rather than a single unconditional threshold -- a
+genuine design option for whoever picks this up next, not built here.
+One figure: diagnostics/plots_ls_evidence/ls_negative_cooccurrence_
+census.png (by session, by phase type). Full record: thesis_notes.md
+"LS-evidence work package: negative-population co-occurrence census".
+SHIPPED 2026-09-20 (user + reviewer decision, branch ls-evidence,
+resolving the design option named just above): STRONG_LSF/LSR ship
+PHASE-SCOPED as a NEW frame-evidence source, config/decision_frame.json
+ls_threshold_evidence (NOT config/parameters.json's classification block
+-- still explicitly not a verdict tier). Braking/turn-in/apex: normal,
+uncapped repeat-fraction confidence. Exit: the SAME repeat-fraction
+confidence capped via min() at exit_phase_confidence_discount=0.5 (the
+exact design option this entry itself proposed, now implemented) --
+reuses intervention_evidence.abs.confidence's own 0.8-cap precedent, no
+new formula. modules/decision_frame.py gained _build_ls_threshold_
+evidence; 8 new targeted tests (tests/test_decision_frame.py, 46/46
+total passed including the real-Dubai end-to-end test); golden subset
+(not the full suite, per the work order) re-run once, confirmed outside
+the golden path both by code inspection and by the actual run. No
+config/parameters.json change; this is a frame-evidence-only, non-
+classification shipment. Full record: thesis_notes.md "LS threshold
+decision: SHIPPED, phase-scoped".
+LITERATURE-BRIDGE WORK PACKAGE (2026-09-20, same day, branch
+ls-evidence): the work order's own items 1-2 (roll-stiffness
+distribution bridges, ARB-vs-springs balance/platform split) turned
+out to be substantially ALREADY SHIPPED by Deepening Phase 4b
+(2026-09-18) -- the springs_front/rear Segers ch.9/10 interaction_
+table entries and the full bidirectional ARB/camber/diff_position/
+ride_height/tc_lon/toe_front matrix cross-references already existed;
+the work order over-specified against the accepted base, not a
+conflict with real code (resolved by user decision, this session).
+A coverage check (config interaction_table vs modules/decision_
+frame.py candidate generation) found the one place real work was
+hiding: an interaction_table entry NEVER generates a candidate on
+its own (see BACKLOG H below for the full finding and the resulting
+PROPOSAL). SHIPPED, config-only: ride_height_front/rear gained
+Segers ch.9/10 platform_stability interaction_table entries
+(4 entries, structurally inert like the springs ones -- no
+_AXIS_TO_VERDICT mapping for platform_stability yet), grounded in
+their own registry mechanism text ("aero platform height"). NOT
+shipped: springs_front/rear candidate-bridge coverage (needs module
+logic, out of this config-only package's scope -- see BACKLOG H,
+a new READY PROPOSAL); damper transient-phase bridges (item 3 --
+interaction_table has no phase field, listed PENDING SCHEMA SUPPORT,
+schema NOT extended, per the work order's own instruction). New
+proposed bridges (all four new entries, grade "proposed (Segers
+ch.9/10)") await engineer grading, same status as every other
+"proposed"-grade entry in this file -- advisory-capped, never a
+classification/severity input. Full record: thesis_notes.md
+"Literature-bridge work package: coverage check and ride-height
+platform bridges".
+CS_ratio verdict non-robustness to sub-1%-level mass corrections
+(Deepening Phase 1, 2026-09-18): v3's own front_fraction moved a tiny
+43.267%->43.361% (a real, legitimate corner-weight accuracy upgrade) and
+4 of 85 corner-phase verdicts FLIPPED. Root-caused, not just observed:
+the fitted Pacejka curve and beta both shift smoothly/proportionally
+(<1.5%, no sign of the fit chain diverging to a different solution) --
+the flips trace to CS_ratio's own already-documented window-growth floor
+sensitivity (same mechanism as the "v3 sawtooth mechanism investigation"
+and the "CS validity repair" arc), newly shown triggerable by a mass
+perturbation, not just a speed/beta one. User decision: keep the real
+weighing change, do not revert, do not fix this turn -- recorded as a
+standing characterisation for whoever next revisits the CS_ratio/window-
+floor thread. Full record: thesis_notes.md "Deepening Phase 1: per-outing
+corner weights -- premise corrections, STOP on verdict flips" and its
+"...STOP resolved, user decision" follow-up.
+v3's C17-C20 corner-count fragmentation (one outlier lap, ~15-19s
+slower through exactly that section, fragments a corner the other 3
+of 4 valid laps see as one continuous ~100m right-hander) -- root
+cause evidenced (assign_stable_corner_ids' pass-1 "seed from most
+brackets" heuristic locks onto the one atypical lap, thesis_notes.md
+"v3 diagnostics, Part B1"), but the algorithm-level fix attempted
+(majority-vote seed lap) REVERTED after violating the Dubai 14-corner
+hard constraint -- a plain bracket-count vote cannot distinguish "one
+lap disagrees because of a real incident" (v3) from "one lap reveals
+genuine extra structure a wider line blends together" (Dubai's own
+documented compound-corner precedent, same function). Reopens only
+with a lap-level anomaly signal (e.g. an unusual time-loss profile at
+the disputed track position) to break the tie, not a pure vote.
+Full record: thesis_notes.md "Part C1: majority-vote seed lap --
+ATTEMPTED AND REVERTED".
+Beyond-peak verdict tier - shelved, reopens only with a validated
+sideslip estimate. Kerb-gap interpolation - optional cleanup.
+Compound-corner curvature detection - not worth destabilizing the
+realization. Worst-phase sentinel NaN quirk and valid_fraction_stab
+replacement metric - cosmetic, left alone. k=1.01211 application -
+gated on second-track data. New-data-file checklist - runs when a
+log arrives. Items so far:
+  - cs_max_window_m locality check: re-run diagnostics/inspect_
+    corner_bracket_geometry.py (or equivalent) on the new track's
+    own corner sequence and compare its own corner-to-corner GAPS
+    against the live cs_max_window_m -- Dubai has several gaps
+    (8.5-17.8 m, one 0.0 m pair) smaller than the current 53.0 m
+    cap, meaning a window CAN in principle bridge into a
+    neighbouring corner there (thesis_notes.md "cs_max_window_m
+    corner-gap bridging limitation"); a track with tighter corner
+    sequencing than Dubai could make this a live, not theoretical,
+    concern and might need a per-track cap or an explicit gap-aware
+    clamp -- neither exists today.
+Combined-slip tyre model: pure-lateral Dugoff cannot represent
+rear exit-traction or front entry-braking limitation, producing
+false negatives in both. Rajamani Ch. 13.10's own formulation is
+already combined-slip, so no new anchor is needed; log_speed_* is
+the designated wheel-speed source (WP-S1, not yet whitelisted).
+Gated on the EKF arc closing. Full reasoning and evidence:
+thesis_notes.md WP-N2 combined-slip subsection.
+Classification-threshold re-derivation against the EKF's CS_ratio
+distribution: deliberately deferred until the estimator is
+finalised (refit passes complete, combined-slip comparison done),
+because re-derivation is the step that commits to the EKF as the
+production sideslip source. Pass_1 flagged counts are NOT
+comparable to production verdicts in the meantime. Reasoning:
+thesis_notes.md "Threshold re-derivation deliberately deferred".
+entry_1_brake bounded-backward-search hardening: the 2026-08-20 fix
+(off_throttle[0] -> [-1], modules/corner_analysis.py) corrects
+which off-throttle sample is picked but the backward search itself
+is still unbounded -- for a corner taken nearly flat-out with only
+a brief lift, brake_start_t could still reach back further than
+intended if no clear off-throttle sample sits close to turn-in.
+Bounding the lookback (e.g. not searching past the previous
+corner's own bracket) is a reasonable defensive measure but is a
+second change with its own behaviour; bundling it with the index
+fix would have made verification ambiguous, so it was deliberately
+left out of that fix. Reopens if a spot-check or production use
+surfaces an implausibly long entry_1_brake window post-fix.
+CS_ratio aggregation-sensitivity: aggregate_by_corner's median-of-
+medians across four laps washes out a single lap's real signal on a
+ceiling-pinned metric (found 2026-08-20 comparing entry_1_brake
+before/after its phase-boundary fix -- CS_ratio stayed pinned at
+~1.000 at the aggregate level for every corner checked despite a
+dramatic single-lap collapse at one). Most of the 15 braking-matrix
+rules key on CS_ratio, so they carry near-zero aggregate sensitivity
+on this dataset independent of any phase-boundary correctness.
+Candidate directions (percentile instead of median, worst-lap,
+reporting lap-to-lap spread) not evaluated. Gated on the same
+decision point as the deferred classification-threshold
+re-derivation above -- changing the aggregation is itself a
+production behaviour change affecting verdicts. Reasoning:
+thesis_notes.md "Production impact of the fix, and a structural
+finding about CS_ratio aggregation".
+
+### PROCESS RULES
+- One step at a time; proposal and implementation never combined;
+  every turn ends at a stop point; user runs git.
+- Every WP names its artifact up front (changed number, UI element,
+  config, or documented decision). Knowledge-only work is a
+  diagnostic, capped at one per question, and must state which
+  decision it unblocks.
+- Estimator-input changes trigger threshold re-derivation.
+- Tier A methods need a verified anchor; full citations live in
+  thesis_notes.md, code carries a pointer only.
+- STATUS is rewritten at every work stop; history goes below.
+
+### ANCHORS (verified)
+Rajamani, Vehicle Dynamics and Control, 2nd ed. 2012 - Ch. 2,
+sec. 2.3 bicycle model p. 27, sec. 2.6 yaw-rate/slip-angle model
+p. 37; Ch. 14 Kalman application. Kiencke & Nielsen, Automotive
+Control Systems, 2nd ed. 2005 - "Vehicle Body Side Slip Angle
+Observer" section. Both confirmed visually by the user. Lecture
+anchor: dropped by decision. Open: Mitschke/Wallentowitz "p. TBD"
+in estimate_sideslip to be REPLACED by Rajamani 2.6/2.3, not
+deleted (not yet done). Segers, Analysis Techniques for Racecar
+Data Acquisition, SAE International 2014 - Ch. 9 p. 199 (pushrod/
+damper force to wheel load via motion ratio), Ch. 10 pp. 221-256
+(roll-centre geometric vs spring-path elastic load-transfer split)
+-- modules/wheel_loads.py's method anchor. Verified 2026-09-03 by
+the reviewer against docs/literature/'s excerpt copies (thesis_
+notes.md "Damper package: wheel loads..."), no longer "to verify".
+Kiencke & Nielsen's own innovation-testing/NIS-consistency section
+(distinct from the already-verified sideslip-observer section
+above) is NOT yet checked -- cited as "TO VERIFY" in the NIS gate
+redesign proposal (Option C) if that direction is ever taken.
+
+## STATUS HISTORY (superseded, newest last)
+Its "still-uncommitted" claims are OUTDATED -- that work was committed in 82bc49c, f37053f, e6ef209, 0bdff87, 5f44688, b96d59a, 2d3346f; read it as historical narrative only, never as current repo state.
+
+## STATUS (update at every work stop)
+Current WP: WP-S4b (observer self-consistency check) DONE (2026-08-19,
+this session -- see thesis_notes.md "WP-S4b: observer self-consistency
+and the Cr_A inflation finding" for full detail), closing out this
+session's Open Board item B (sideslip methods comparison) sequence:
+WP-S1 (wheel-speed source characterization), WP-S2 (comparison harness,
+Metrics 1-4), WP-S3 (Metric 5, zero-slip Fy offset + direction-match),
+WP-S3b (chain decomposition: geometric-cancellation reframing,
+force-balance steady-state gap, IMU-lever-arm/weight-split mechanisms
+rejected), WP-S3c (washout-mechanism ablation, uninformative -- own
+drift too large to trust), WP-S4 (linear Kalman sideslip observer
+registered as third diagnostics-only candidate C_kalman_observer;
+confirms real steady-state slip where the kinematic candidate reads
+~0, at every corner, in sign), WP-S4b (this turn). OUTCOME: the 2-3x
+alpha_r_ss overshoot reported at WP-S4 traced to an inflated reference
+stiffness (Cr_A, fitted against the washout-suppressed kinematic
+alpha) rather than a flaw in the observer -- worst at exactly the
+corners (C3/C11/C13) that showed the worst apparent overshoot.
+Separately, Cr_A's own ~4x corner-to-corner spread (79k-337k N/rad) is
+new evidence the kinematic alpha's error reaches the PRODUCTION
+cornering-stiffness estimate itself (Module 4b), not only beta -- a
+live finding, not yet acted on; the standing CS threshold re-derivation
+rule applies once/if a beta fix is wired to production, not before.
+Entire arc is diagnostics-only: no production/UI/pipeline wiring
+changed; the only config changes are two re-introduced fallback-
+stiffness keys and one new Iz placeholder, both diagnostics-only
+consumers, test_stability.py confirmed byte-identical after every
+step. Next steps: Q/R tuning for the Kalman observer (currently hand-
+tuned initial placeholders with no ground truth to tune against), then
+the WP-S6 comparison report closing out Open Board item B. User has
+not committed yet, stopped before commit every turn this session per
+instruction -- this WP-S1..S4b arc lands on top of the prior sessions'
+still-uncommitted work described below (WP1 consolidation, WP2b-2 +
+matrix v2 review, WP5b(b)/(c)/(d), the Accuracy-registry arc), unless
+those have since been committed separately (this block was stale
+relative to git log before this update; check `git log` before relying
+on "still-uncommitted" claims below for anything predating 2026-08-19).
+
+Queue once this lands, confirmed still accurate: the new-data-file
+diagnostic checklist (runs automatically when a new log arrives -- also
+the reproduction check WP5b(d)'s k-application decision is gated on);
+the WP2b-2 engineer follow-up questions (headroom-ranking, rake-package
+magnitude, TC-LAT-escalation throttle scoping -- see WP2b-2 section) PLUS
+the matrix v2 tick-through (dagger-marked/project-lead-reviewed cells,
+ABS direction semantics, the three situational OS-APX cells -- see
+"Matrix v2 review round" section); WP5b(b) phase 2 (damper-derived Level 4
+wheel loads + the roll-stiffness DOMAIN IMPROVEMENT split); sourcing the
+three reviewer-placeholder figures (cog_height_m, track_width_front/
+rear_m, lift_coeff/Cl) from the team; the WP5b(d) k-application decision
+itself (apply the measured k=1.01211 rolling-radius correction to
+ecu_speed, or not) -- gated on the second-track reproduction check above,
+its own re-derivation stop, not taken this session. New this close-out:
+WP1's two open watch items (C10 corner_radius_filtered overlap 0.60 vs.
+the 0.67 pre-WP1 baseline; C9's inter-lap agreement dip + the C9-lap1
+CS_r=-0.721 flag, both tracing to C9's own start boundary never having
+been independently examined) -- see thesis_notes.md "WP1 open watch
+items, carried forward".
+Last commit:
+113c7d9 (clean up).
+WP2b-1 that session: config/car_data.json (manufacturer reference
+data digitised from docs/car_data/, gitignored/local-only, consumer-
+scoped -- only tables with a named registry/WP5b/module consumer are
+digitised, everything else stays in the docs/car_data/ image archive
+undigitised); config/setup_parameters.json (46-entry tunable
+registry, direction_semantics cross-checked against car_data.json
+per entry -- caught and fixed a real tc_lat/tc_lon inversion and
+rewrote abs_position as categorical, not monotonic; gained a
+`value_source` field ("setup_sheet" default vs "logged_data",
+independent of recommendation_target) after tc_lat/tc_lon/
+abs_position/brake_bias were identified as driver-adjusted
+mid-session from the wheel, not setup-sheet targets -- their
+maps_to is null pending a channel-name identification pass, see the
+new "NEW DATA FILE — DIAGNOSTIC CHECKLIST" section above WP1);
+car.json gained arb_front_mount and
+differential_locking_torque_measured only (car dict, no new
+front_axle tier -- schema decision); outing_form.py renders those
+two new fields (QComboBox support added to the generic
+_collect_inputs/_load_inputs for arb_front_mount; flat-key<->nested
+reshape helpers for the diff torque table, round-trip verified,
+including an offscreen QComboBox collect/load smoke test). PLAN.md
+WP5b gained item (f) steering-ratio lookup as steering_ratio_table's
+registry consumer.
+Open threads: WP2b-2 (rewrite recommendations.json rules against the
+new registry keys); the new-data-file channel scan for
+tc_lat/tc_lon/abs_position/brake_bias (checklist above WP1); UI
+verification checklist (arb_front_mount dropdown + 5 diff-torque
+cells render in setup+setdown, save/reopen round-trip, setdown
+mirror, PDF export, test_stability) -- user to run manually per
+CLAUDE.md UI-change rule; track_check naming verdict (T5-T6 region,
+user-confirmed two real corners = one load event); second-track
+clustering validation when new data arrives (also tests the
+overlap-fraction gap-vs-overlap assumption); wing_position
+spinbox-vs-enum UI polish noted under WP4.
+
+Cross-cutting session (2026-07-24, not tied to a WP number, currently
+uncommitted): the Werner (2021) attribution pass never got committed
+on its own before the foundations-audit/cleanup pass started, so both
+now sit together in the working tree and will land as one combined
+commit. (1) Werner (2021) attribution pass after a primary-source
+verification -- full citation closed out
+in thesis_notes.md §6; framing corrected project-wide from "follows/
+matches Werner" to "adopts Werner's framework as-is, adapts only the
+effective-stiffness estimation (no validated tyre model), extends via
+the WP5b D_psi/wheel-load completion of his Eq. 4.3"; touched
+thesis_notes.md, PROJECT.md, modules/stability_analysis.py docstrings.
+(2) Two new CLAUDE.md standing rules: scientific grounding (Tier A/B/C
+per technical decision, Tier A needs a literature anchor, Tier B needs
+config-driven data-derived parameters, calibration tunables vs
+method-defining named constants) and comment style (WHY not WHAT,
+ASCII in .py files, no boilerplate/filler). (3) Read-only foundations
+audit against both new rules across stability_analysis.py,
+corner_analysis.py, csv_parser.py, recommendation.py, geo.py --
+reported per-function tier/anchor/config-driven status plus comment-
+style violations; user decided per item. (4) Applied those decisions:
+new docstring citations (estimate_sideslip: Mitschke/Wallentowitz,
+page TBD pending verify; estimate_slip_angles: Werner S2.1.1/Milliken);
+removed the unverified "Suzuka convention" label everywhere (thesis_
+notes.md struck through with a dated correction, PROJECT.md rewritten)
+and replaced with Werner (2021) S2.2.3's actual sign convention;
+corrected corner_analysis.py's speed-fallback header ("prominence
+threshold" -> the valley-depth check actually implemented) and gave it
+an explicit Tier B thesis_notes.md entry; moved 15 previously-hardcoded
+Tier B calibration values into config (parameters.json,
+channels.json x2 groups, recommendations.json) with zero behavioural
+change; named the method-defining constants that deliberately stayed
+in code (Butterworth order, CS blend exponents, source-balance
+normaliser, feedback scale) with one-line justifications; ASCII-fixed
+comments/docstrings in stability_analysis.py, corner_analysis.py,
+csv_parser.py (user-facing warning strings left untouched by design).
+test_stability.py run after every file in this pass (6 runs); output
+byte-identical to the pre-session baseline throughout -- confirms the
+whole pass was attribution/documentation/config-location only, no
+logic changed.
+
+WP-ALIGN session (2026-07-24, B1-B3, currently uncommitted, lands as
+one combined commit with the two sessions above): chair-basis rebuild
+of Module 5 (yaw moment stability). New modules/yaw_stability.py
+(after the chair performance_analysis tooling, internal): rolling-mean
+yaw acceleration replaces the 5 Hz Butterworth filter; the stability
+regression is now s-anchored (lap_distance grid, Gaussian-weighted
+local ridge, pools samples across laps at the same track position)
+replacing the old time-anchored single-lap OLS. Three call-site
+adaptations layered on top of the chair-identical estimator: raw-yaw-
+rate path (forced -- chair's pre-smoothed-input filter list is out of
+reference scope), moving/kerb/in-out-lap masking wiring (neutral
+engineering), and structural in/out-lap exclusion (production, WP6-
+independent of the UI lap_filter) -- the exclusion's rationale turned
+out to be two separate legs on inspection (B2 diagnostic): the outlap
+leg is forced in character (lap_distance channel is frozen at s~0 for
+the whole outlap, a literal coordinate degeneracy, not a judgement
+call), the inlap leg is the original cold-tyre/stationarity domain
+improvement. Classification thresholds re-derived against the new
+estimator's output distribution and moved into config/parameters.json
+(new "classification" block, each entry with its own derived_from
+note): CS thresholds unchanged (still valid, different signal); the
+stability threshold moved from -500 to -50 Nm/deg (gap-selected
+between -99.2 and -18.5 in the new worst-phase-per-corner
+distribution), which now correctly flags all 4 laps of the one
+physical corner (stable_id 8) that -500 only caught on 1 lap under the
+old estimator. Verdict distribution on Dubai: 1 strong / 16 moderate /
+34 normal (51 instances) -- proportionally close to the 2026-06-29
+reference (0/23/49 over 72 instances, different lap composition) even
+though the corner population, the estimator, and the threshold all
+changed. A new CLAUDE.md/thesis_notes.md deviation taxonomy (FORCED
+ADAPTATION / DOMAIN IMPROVEMENT / NEUTRAL ENGINEERING, plus a "vehicle
+parameterization is not a deviation" clarification) now labels every
+chair-comparison deviation, present and future. ui/views/outing_form.py's
+_stability_colour also made config-derived (BAD boundary = the new
+classification threshold, WARN boundary = a named 0.4 ratio inherited
+from the original -200/-500 design) so detail-cell colours can't drift
+out of sync with the verdict threshold again. test_stability.py run at
+every step; Modules 1-4b confirmed byte-identical throughout B1-B3 --
+only Module 5's numbers and the classification/colour thresholds
+changed, exactly as intended.
+Open threads: CS-threshold re-derivation deferred to the vehicle-model-
+upgrade WP (bundled with the Fy yaw-term fix + WP5b a/b -- maps onto
+WP5b(e), re-run diagnostic + re-derive thresholds after a Level 2+ Fy
+split lands, since CS thresholds are tuned to the current static-
+weight-split Fy signal); valid_fraction_stab replacement metric
+deferred post-B3 (the field is non-discriminating under the new
+s-anchored estimator -- see thesis_notes.md -- but no replacement
+transparency metric has been designed yet, kerb_fraction covers the
+kerb case only); _stability_colour is now config-derived (done this
+session, listed here for visibility, not an open thread).
+
+Vehicle-model-upgrade WP (2026-07-24, reduced scope, currently
+uncommitted): Fy yaw-moment term landed in Module 4a (exact 2-DOF
+planar force/moment balance, Fy_f = m*ay*front_fraction +
+Iz*psidd/wheelbase, Fy_r = m*ay - Fy_f; raw np.gradient psidd,
+deliberately not Module 5's filtered signal; Tier A, Milliken & Milliken
+RCVD, p. TBD verify; chair-identical construction, no deviation).
+WP5b(a)/(b) untangled: the original "roll stiffness needed for Fy" framing
+was a conflation -- Fy needs none of it; axle-Fz-for-CS-normalization and
+the per-tire/roll-stiffness-apportionment work (DOMAIN IMPROVEMENT vs the
+chair's simpler independent-per-axle split) both moved into WP5b(b),
+where they have an actual consumer. Housekeeping: OLD_REF hash fixed in
+inspect_yaw_stability_b2.py, load_parameters() now lru_cache'd (neutral
+engineering, not a chair-comparison item). Verification: Modules 1-3 and
+5 byte-identical throughout (confirmed twice); CS thresholds re-checked
+against the new distribution and kept unchanged (max flag-count shift
+2/51 instances; n=51 resolution argument in thesis_notes.md); a genuine,
+not-engineered-for CSr-tail repair observed (p10 -0.052 -> +0.082);
+verdict distribution moved from 1 strong/16 moderate/34 normal (post-B3)
+to 0/14/37, entirely via CS-branch movement -- Module 5's stability
+branch contribution unchanged (byte-identical output).
+
+WP5 (result persistence) + WP6 (lap-filter/pipeline cache) + wing_position
+rider (2026-07-25, currently uncommitted): analysis_data column added to
+Outing (models/outing.py) with an idempotent PRAGMA/ALTER migration in
+init_db (models/base.py) -- verified additive and idempotent against the
+real local DB (2 outings, backed up first, row data confirmed untouched).
+Cache-hit rendering on reopen ("cached (laps X-Y) - re-run Analyse to
+refresh"), write triggers on analysis completion (existing outings) and
+via _save_outing (new outings / untouched cache-hit re-saves). Guard A:
+verdicts are never persisted -- classification always runs live from
+current config at render time, now through a single shared
+_render_stability_summaries call site; verified a config threshold edit
+changes a cached corner's verdict only after a fresh process (lru_cache
+semantics), confirmed and config restored byte-identical afterward. Guard
+B: ANALYSIS_SCHEMA_VERSION=1 (modules/stability_analysis.py) with a
+bump-rule comment; version or csv_path mismatch (normalised via
+os.path.normcase/normpath) treated as no cache, both verified. WP6:
+_pipeline_cache stores {csv_path, corners, state, cs, stab} per
+loaded_csv_path -- a lap-filter-only re-Analyse reuses cached Modules 1-5
+output object-for-object (verified by identity, not just value equality),
+no corner-detection or Modules-1-5 recompute; invalidated in
+_on_csv_loaded's existing reset block; no cross-population between the
+WP5 DB cache and the WP6 in-memory cache. Rider: wing_position is now a
+QComboBox (P8/P9/P10), same pattern as arb_front_mount, in both setup and
+setdown forms. Surprise, corrected in code comment: a legacy stored value
+outside {P8,P9,P10} doesn't load as "nothing selected" -- QComboBox.
+setCurrentText() no-ops on unmatched text, so it silently shows P8;
+accepted by user decision (see UI polish note above). test_stability.py
+byte-identical (structural -- this WP touches no code test_stability.py
+imports).
+~~Open threads: corner_analysis.py:359 lap_distance interpolation lacks
+the lap-boundary reset guard that stability_analysis has (found
+2026-07-25 during study doc stage 2). Fix requires WP1-freeze proof:
+before/after identical stable_corner_id assignment and corner count on
+Dubai. Small targeted WP after study document.~~ [DONE 2026-07-26,
+small-decisions sweep item 3: corner_analysis.py's apex_lap_distance_m
+now routes through the shared _interp_lap_distance_guarded helper
+(modules/stability_analysis.py, imported directly, no duplication).
+WP1-freeze proof run: per-lap corner counts, every corner's
+apex_lap_distance_m (10 decimal places), and every stable_corner_id
+byte-identical before/after on Dubai (diagnostics/inspect_wp1_reset_
+guard_freeze_proof.py) -- confirms the fix is a no-op on this file, as
+expected (no apex sits near a lap-boundary reset). bracket_start_m/
+bracket_end_m stay unguarded, out of scope for this fix.
+thesis_notes.md: "corner_analysis.py:359 reset-guard fix (small-
+decisions sweep)".]
+~~cs_front/rear_fallback_reference config keys defined+commented but
+consumed nowhere (found 2026-07-26). Decision needed: wire per comment
+(estimator change, triggers re-derivation -- bundle with WP5b(b)) or
+remove. Do not wire casually.~~ [DONE 2026-07-26, small-decisions
+sweep item 1: DELETED (cs_front_fallback_reference_n_per_rad,
+cs_rear_fallback_reference_n_per_rad, and their explanatory comment,
+config/parameters.json) -- confirmed consumed nowhere in modules/.
+Rationale: the no-linear-reference case has never occurred on real
+data; if it ever does, the corner reports invalid, more honest than
+filling from an unvalidated constant. thesis_notes.md: "cs fallback
+reference constants deleted (small-decisions sweep)".]
+~~Chair estimator has a time_s-anchored fallback mode (window/grid
+scaled /50) when s_m is unusable; SetupTool short-circuits to
+all-invalid instead (study doc §8c). Decide: port the fallback tier or
+document the short-circuit as deliberate. Moot for current data.~~
+[DONE 2026-07-26, small-decisions sweep item 2: documented as
+deliberate, not ported -- one sentence added to estimate_yaw_moment_
+stability's docstring (modules/stability_analysis.py): the fallback is
+a differently-behaving estimator (time-local, no cross-lap pooling)
+whose output the s-grid-derived thresholds could not classify
+meaningfully; no verdict is more honest than a silently degraded one.
+thesis_notes.md: "s_m short-circuit documented as deliberate
+(small-decisions sweep)".]
+~~Accuracy-level registry consolidation (rider WP): single source in
+config, wire the inline dict + the hardcoded duplicate, add beta +
+wheelbase entries, verify and apply the weakest-link semantics, re-tag
+accordingly; found 2026-07-26, study doc §11.~~ [DONE 2026-07-26, see
+the Accuracy-registry arc session below.]
+Repo handover procedure (decided 2026-07-26): docs/car_data images
+exist in main's HISTORY (untracked from the index 2026-07-26, prior
+commits unaffected). Therefore the showing branch MUST be an orphan
+branch (no parent history) pushed to a separate submission remote;
+never grant access to the working remote. No history rewrite on main
+- keeps OLD_REF and all recorded commit hashes valid. Protected-set
+verification from now on: git ls-files on all protected paths must
+return empty, check-ignore alone is insufficient.
+
+Accuracy-registry arc (2026-07-26, WP-A through marker cleanup,
+currently uncommitted, lands as one combined commit): five pieces in
+sequence. (1) WP-A: config/parameters.json's accuracy_levels block
+consolidated to the single source for every per-quantity tag --
+extended to eleven then twelve nodes, each {level, source, capped_by};
+prepare_vehicle_state's inline accuracy dict and estimate_lateral_
+forces's hardcoded literal deleted, both now read the registry;
+resolved the yaw_rate=3-vs-steering_angle=1 weakest-link question with
+two named mechanisms (chained-constant vs provenance-assumption, not
+one); removed six stale VBOX_*/gpsa_* channels.json entries verified
+absent from the real Dubai file. Zero behaviour change throughout.
+(2) WP-C: new modules/accuracy_resolution.py -- per-session resolver
+for mass/corner_weights (leaf nodes, highest-available-wins, never
+blended) and cog_position (pure cascade); global accuracy-cap dropdown
+next to Analyse, plumbed as a plain value like lap_filter, never read
+from UI state inside modules/; both WP5 (Outing.analysis_data) and WP6
+(_pipeline_cache) identities extended with accuracy_cap + a resolved_
+vehicle_snapshot, ANALYSIS_SCHEMA_VERSION bumped 1->2; resolved-level
+footer + clipped-only "comparison run" tag with the threshold caveat
+text. Five-cap byte-identity regression on Dubai confirmed; synthetic
+acceptance proof (corner weights shifted +2.06pp front) confirmed
+Fy_f/CS_ratio_f respond correctly, CS_ratio_f's flat median explained
+by the pre-existing ceiling-clipping effect, not a defect.
+(3) Small WP: explicit Save button (Tier C) next to Back, factored
+_save_outing into a shared _persist_outing() core; first Save in
+new-outing mode now sets self.outing so the form becomes edit mode
+(no duplicate row on a later Back) -- found and fixed a real
+DetachedInstanceError (session.commit() expires attributes by default;
+session.refresh() before close fixes it) via a synthetic offscreen-Qt
+test against an isolated throwaway DB, never data/setuptool.db.
+Post-save WARN hint reuses the existing stability_status_label, no
+auto-rerun. One later hardening fix: the bare except TypeError around
+setup_data parsing now logs before returning, no behaviour change on
+the happy path.
+(4) WP-B: steering_ratio Level 1->4, config/car_data.json's
+steering_ratio_table (21 rows, monotonic, np.interp default clamp,
++/-291.5 deg domain vs log_asteer's actual -130.7/+113.9 deg on Dubai
+-- never clamps on this data). New leaf node (car_data.json presence-
+gated, no per-outing setup_data involvement) plus steering_angle as a
+fourth pure cascade. Graceful L1 fallback verified with car_data.json
+genuinely renamed away in a fresh process; test_stability.py's raw,
+un-resolved call path confirmed byte-identical. Diagnostic found and
+corrected the proposal's own claim: Module 5's stability regressand is
+NOT byte-identical (delta_f_rad is one of its five ridge regressors) --
+front-axle-only scoping verified directly (beta/Fy_f/Fy_r/alpha_r/
+CS_ratio_r byte-identical, alpha_f/CS_ratio_f/stability move). Sign
+dispute resolved by the diagnostic, not argument: the effect is signed
+with the steering direction (increases alpha_f one way, decreases the
+other), this session's data skews toward the decreasing side. Location
+prediction confirmed (low-speed corners shift most) with a nuance
+(medium/low separation weaker than pre-registered). Zero verdict flips
+under unchanged thresholds; all five classification thresholds
+re-confirmed unchanged after review (config/parameters.json
+derived_from fields, thesis_notes.md).
+(5) Full channel census (2622 channels, re-scanned with correct
+cp1252 decoding -- the existing scan_channels.py's utf-8/errors=
+"replace" read mangles every degree-sign unit) + targeted
+verification: no lateral-velocity/sideslip/optical-sensor channel
+exists anywhere in the log; the log_a_car heading hypothesis tested
+and REFUTED (r=-0.001 vs yaw rate); corner_radius confirmed as a live
+logged curvature channel (r=0.87 vs ay/v^2); TO_VBOX_01-05 confirmed
+constant/inert. Chair-context marker cleanup: all four "[to verify
+with chair]"/"[context claim, to verify with chair]" markers in
+thesis_notes.md removed, each surrounding claim reworded to rest on
+SetupTool's own post-session nature and documented physics/coordinate
+evidence rather than an unverified assumption about the chair
+pipeline's operating context; DOMAIN IMPROVEMENT taxonomy labels
+unchanged throughout (the classification never depended on the
+removed wording).
+Open threads: worst-phase selector sentinel -- all-phases-at-ceiling
+reports NaN in diagnostics while classifying as normal (found
+explaining the WP-B n=49->48 count; the sentinel starts at the ceiling
+and only updates on a strictly-lower value, so an instance with every
+phase exactly at 1.0 has no phase that reads as "the worst"); reconcile
+the representation someday, not urgent, no diagnostic or verdict was
+wrong because of it. Everything still open from before this arc stays
+open, unchanged by it: the new-data-file diagnostic checklist (tc_lat/
+tc_lon/abs_position/brake_bias channel-name scan) above WP1; WP2b-2
+(rule engineering against the setup_parameters registry); WP5b(d)
+(speed cross-validation) -- log_gps_speed confirmed present in the
+real file but still not whitelisted, deliberately not added ahead of
+this consumer; the small-decisions list -- cs_front/rear_fallback_
+reference wiring-or-removal decision, the chair's time_s-anchored
+Module 5 fallback tier (port or document-as-deliberate), and the
+corner_analysis.py:359 lap_distance reset-guard fix (needs a WP1-freeze
+before/after proof first). [UPDATE 2026-07-26: WP5b(c) (GPS-course
+beta) is no longer open -- SHELVED after two implementation iterations,
+see WP5b section (c) and thesis_notes.md for the full validation
+record and reopen condition (denser anchor data). log_gps_course IS
+now whitelisted (config/channels.json), unlike log_gps_speed above,
+which stays deliberately unwhitelisted pending WP5b(d). [FURTHER
+UPDATE 2026-07-26: WP5b(d) itself is now DONE too -- log_gps_speed IS
+now whitelisted, see WP5b section (d) for the verdict (b) record.]
+
+WP5b(b) phase 1 + WP5b(c) session (2026-07-26, currently uncommitted,
+lands with the Accuracy-registry arc above as one combined commit):
+two work packages, both chair-parity/validation work on Modules 4b/6.
+TURN (a) -- Fz compute function: new modules/stability_analysis.py
+estimate_vertical_loads(state, forces, params), chair-identical axle
+Fz (static + aero + longitudinal transfer) and per-wheel split
+(independent-per-axle lateral transfer, NOT the roll-stiffness
+DOMAIN IMPROVEMENT, which stays a later sub-step) plus fy_f_norm_N/
+fy_r_norm_N (Fy_filt/fz axle), Tier A (Milliken RCVD, p. TBD verify),
+docstring states no deviation from the chair construction. New config
+(vehicle.cog_height_m=0.30, track_width_front/rear_m=1.66/1.64, all
+reviewer placeholders "NOT sourced, replace with team figure";
+aero.air_density_kgm3=1.225 L1-by-convention; aero.lift_coeff=0.0,
+documented zero-meaning, sign convention inferred from the chair's own
+formula+comment -- not yet empirically confirmed, config note flags
+the first real Cl entry must validate Fz rising with v^2). Two new
+accuracy_levels registry nodes (vertical_load_split,
+per_wheel_load_split), both Level 1. Isolated: zero call sites,
+test_stability.py byte-identical. Sign-convention verification against
+real Dubai data (not assumed): braking loads the front (ax negative
+under braking, matching the chair's formula) and a GPS-derived
+right-hander loads the left (outside) tire -- both MATCH, no flip
+needed. TURN (b) -- consumer wiring: estimate_vertical_loads joins
+StabilityAnalysisThread's pipeline (after estimate_lateral_forces) and
+the WP6 _pipeline_cache identity (new "fz" key); summarise_corners
+gained an optional fz= parameter adding fz_f_N/fz_r_N/fy_f_norm_N/
+fy_r_norm_N per-phase stat blocks (additive only, old call sites
+unaffected); UI gained one Fzf/Fzr median column pair in the corner-
+details phase table (fy_norm computed but not displayed, doesn't fit
+the panel width cleanly, deferred); nothing feeds _classify_corner.
+ANALYSIS_SCHEMA_VERSION 2->3 (payload shape change, comment explains
+why). Verified additive-only: a before/after summary-dict diff showed
+zero pre-existing keys changed, only the new keys added; three sample
+Fz values reported physically plausible (5-8 kN/axle, static-dominated
+at low ax/ay, matching the static-split calculation almost exactly).
+WP5b(c) -- GPS-course beta, two iterations, SHELVED: see the WP5b
+section (c) above for the work-package-level summary and
+thesis_notes.md for the full validation record (rotation-convention
+and latency findings, iteration 1's numbers and diagnosed root cause,
+iteration 2's two fixes and the falsifiable lever-arm check that
+passed without moving the decision-criteria metrics). config/
+parameters.json's accuracy_levels.sideslip_angle gained an inactive
+registry note recording the outcome; production beta untouched
+throughout. Closeout pass (this session): registry note text finalised
+(above), this WP5b(b)/(c) STATUS paragraph and the WP5b section (b)/(c)
+markers added, Open threads paragraph corrected (WP5b(c) removed from
+the open/gated list). thesis_notes.md completeness checked against
+today's work -- see the session's own report for the verdict; nothing
+added beyond what was explicitly flagged.
+
+WP-N2 pass 0 build session (2026-08-19, superseded by the pass 1-4
+arc and the carry-forward decision above -- kept for the development
+narrative): pass 0 (nonlinear single-track EKF, Dugoff tyre model,
+frozen WP-N1b curve) built -- diagnostics/sideslip_ekf_dugoff.py
+(states [beta, yaw_rate], Vx/delta_f scheduled, Dugoff forces +
+analytic dugoff_lateral_stiffness for both Jacobians, nonlinear state
+propagation with covariance-only Ad, windowed-NIS + hard-|beta|-bound
+divergence monitor, fixed fallback to kinematic beta/measured yaw
+rate/P0); diagnostics/inspect_ekf_dugoff_sanity_checks.py
+(Jacobian-collapse check against the rejected linear filter's own A/C
+-- exact match at alpha=0, small expected deviation at alpha=0.02 rad
+from Dugoff's tan(alpha) nonlinearity; h2-vs-ay consistency check,
+explicitly labelled NOT validation and PARTLY CIRCULAR). config/
+parameters.json gained tyre_model_ekf.pass_0 (additive, tyre_model_fit
+untouched): frozen Dugoff parameters + frozen_from pointer, Q/R/P0
+seeded from the tuned linear observer (QR_RATIO=0.3162), beta_hard_
+bound_deg=15.0 (physically anchored), NIS window/bound/fraction
+(20/5.99/0.5, placeholder pending validation), Iz_provenance,
+fy_axle_dependency_note.
+KEY FINDING from this build (verified numerically on Dubai data):
+Module 4a's Fy_f/Fy_r satisfy a*Fy_f - b*Fy_r == Iz*psidd_raw
+IDENTICALLY (max deviation 7.3e-12 Nm using live a/b) -- the two axle
+forces carry exactly TWO independent measured quantities (ay, psidd)
+between them, not four independent numbers; any per-axle fit against
+both must be read with this coupling in mind. Iz choice: vehicle.
+yaw_inertia_kgm2 (2082.0), not yaw_inertia_kalman_kgm2 (1800.0) --
+consistency with the training-data forces, not a better-sourced claim.
+DOCUMENTATION FIX, same session: the Ulsoy, Peng, Cakmakci citation
+corrected (confirmed by two independent readings) to anchor the
+nonlinear single-track vehicle model (sec. 14.3) and sideslip's
+operational significance (sec. 14.1), not observer structure; Eq. 14.8
+confirmed a term-by-term match (two documented simplifications: no
+roll DOF, pure-lateral Dugoff vs. combined-slip Magic Formula).
+Open design decisions this build carried forward (all since resolved
+or superseded by the pass 1-4 arc and carry-forward decision above):
+sign correctness at racing-speed corners; the saturation/circularity
+check reframed for a nonlinear model; steady-state magnitude check;
+NIS/bound placeholder tuning; the Q/R sensitivity check under this
+filter's state-dependent Jacobian; how the fitted curve's valid slip
+range gets reported as a production-facing mechanism (still not
+designed -- unchanged open item, now inherited by whichever future WP
+revisits production wiring).
+
+### NOW section archived [superseded 2026-08-20, replaced by the
+entry_1_brake production-fix / method-lineage-correction / plan
+rewrite below the current STATUS block]
+Track A (numbers correct): sideslip methods-comparison arc CONTINUES --
+NOT closed. Linear-tyre Kalman observer (WP-S4/S5/S5b/S6) REJECTED for
+production (saturation-detection failure). Kinematic estimate remains
+production. WP-N0/N1/N1b DONE (Dugoff model chosen, c_alpha refit from
+Module 4b, mu_fz interior optimum both axles): frozen pass-0/pass-1
+Dugoff parameters c_alpha_front=132798, c_alpha_rear=174217 N/rad,
+mu_fz_front=10653, mu_fz_rear=15819 N (read exact values from config --
+do not trust these).
+
+WP-N2, nonlinear single-track EKF, Dugoff tyre model. Pass 0 built and
+run (frozen WP-N1b curve, Q/R/P0 seeded from the tuned linear observer):
+NIS baseline poor (93.4% combined exceedance -- expected, since R
+assumed sensor-only noise while the curve's own fit residuals are two
+orders of magnitude larger), but three convergent lines of evidence for
+kinematic slip-angle under-read. Pass 1: noise-model recalibration only
+(curve unchanged), R redefined as total innovation uncertainty, 2-D
+sweep found one interior grid point inside the pre-registered NIS band
+-- NIS/sign/C2-excursion gates all PASSED. Pass 1's flagged CS_ratio
+counts jumped sharply (front 32/56, rear 27/56 vs kinematic 11/9);
+investigated and found NOT YET INTERPRETABLE -- thresholds are
+kinematic-fitted and the whole pass_1 distribution shifted across every
+percentile band, not just the tail. THRESHOLD RE-DERIVATION
+DELIBERATELY DEFERRED (see PARKED) until the estimator is finalised.
+
+Passes 2-4: refit loop, attempting to break the kinematic-sourced
+curve's circularity by refitting c_alpha/mu_fz from the EKF's own
+converged slip angles each pass, Q/R/P0 held fixed to isolate the
+curve's effect, predictions pre-registered before every pass (thesis_
+notes.md WP-N2 pass 2/3/4 entries). OUTCOME: NON-CONVERGED, STOPPED at
+pass 4 (one short of the pre-registered 4-pass cap) on the
+pre-registered failure criteria, not the cap. FRONT axle oscillated
+with GROWING (not shrinking) magnitude at pass 4 -- failure mode 1.
+REAR axle's mu_fz fit diverged to its search bracket's ceiling at pass
+4 (8.48e6 N, effective mu 1102.5, onset 88.4 deg, coverage exactly
+0.0000) -- failure mode 3, the curve degenerating to pure-linear, the
+same structural blind spot that condemned the linear observer, arrived
+at here by fit failure rather than design. MECHANISM: a self-starving
+positive feedback (lower c_alpha -> onset moves outward -> fewer
+saturating samples -> mu_fz less identifiable -> drifts up -> onset
+moves out further), pre-registered as a risk at pass 0 (rear only 6.95%
+of samples past onset) and confirmed as the cause. SECOND READING,
+EXPECTED not established: the rear axle of this RWD car may saturate
+principally under longitudinal traction on exit, not laterally, so a
+pure-lateral model has genuinely little rear saturation to identify in
+this data -- connects directly to the PARKED combined-slip item. Full
+trajectory, mechanism and scorecard: thesis_notes.md "WP-N2 refit loop:
+NON-CONVERGENCE, rear degeneracy to a pure-linear curve, and the
+identifiability limit".
+
+CARRY-FORWARD DECISION (thesis_notes.md "WP-N2 carry-forward decision:
+pass 1"): the estimator carried forward is PASS 1's configuration
+(pass_0's Dugoff curve, pass_1's calibrated noise model) -- chosen by a
+PROVENANCE RULE stated before any outcome comparison (pass 1 is the
+last configuration not produced by the non-converging refit loop), not
+by comparing which pass scored best, which would be retrofitting.
+CARRIED-FORWARD LIMITATION, not resolved: pass 1's curve is still
+fitted from KINEMATIC slip angles -- the exact circularity the refit
+loop existed to break, and the loop failed to break it. Stated
+limitation of the carried-forward method, not a solved problem.
+
+R RE-DERIVATION DECIDED NOT NEEDED (2026-08-20, thesis_notes.md "WP-N2
+pass 1: final validation baseline"): pass 1's R was derived from and
+NIS-gated against this exact curve and filter configuration -- the
+acceptance figures (yaw_rate 10.01%, ay 9.18%, combined mean NIS
+2.907) are already a direct measurement of the carried-forward
+estimator, not an inference from provenance. The staleness found in
+passes 2-4 was specific to refitted curves, none of which are carried
+forward. No change made. Two refinement opportunities remain open,
+not defects: Q was never swept, and the accepted R is one interior
+point on a coarse 5x5 grid with no finer search run around it.
+
+NEXT STEP: the classification-threshold re-derivation (deferred, see
+PARKED), and the combined-slip comparison the rear degeneracy now
+motivates more strongly than before.
+
+Last commit: 4b1b548 (Sideslip observer arc: comparison harness, Kalman
+candidate, tuning, report). Local main up to date with origin/main.
+Uncommitted: everything from the WP-N0/N1/N1b turn plus the full WP-N2
+arc this session -- pass 0/1/2/3/4 filter runs and their config blocks
+(tyre_model_ekf.pass_0 through pass_4), diagnostics/sideslip_ekf_
+dugoff.py and every inspect_ekf_*/fit_dugoff_pass*_refit.py/*_manifest.
+json script and file this arc produced, the carry-forward decision, and
+every corresponding thesis_notes.md entry (see thesis_notes.md for the
+full, dated file-by-file record of each pass). This PLAN.md rewrite.
+
+## SUPERSEDED NOW-BLOCK CLOSING TEXT (2026-08-31 STATUS rewrite)
+The following closing paragraph stood at the end of ### NOW's "WHERE
+THE PROJECT STANDS" bullet list from the 2026-08-30 ship-readiness
+cleanup entry until the 2026-08-31 STATUS rewrite replaced it with the
+PROJECT DIRECTION paragraph (method work frozen; commit/reliability/
+thesis-writing priorities) now in ### NOW. Preserved here verbatim,
+not because its content is wrong -- STEP 4's prerequisites listed below
+are still exactly as scoped -- but because "next substantive work" is
+no longer an accurate framing of what happens next:
+  NEXT: STEP 4 below (decision-matrix cleanup) is the next substantive
+  work -- its prerequisites are unchanged by this cleanup package and
+  already listed in full under STEP 4's own entry (threshold re-
+  derivation for CS_ratio AND LS_ratio together, the CS_ratio cross-
+  lap aggregation problem under PARKED, the entry_1_brake rule-base
+  implications, and whether LS_ratio enters the recommendation rules
+  at all).
+
+STEP 2 and the TRACE-DIALOG/PDF/DECISIONS PACKAGE bullets folded into
+the ### NOW standing summary at the 2026-09-01 follow-up's own STATUS
+rewrite (item 7 of that work order: "rewritten at every work stop, not
+appended" -- these two had grown to 142 lines of dated narrative
+sitting in NOW instead of a short standing-summary line). Full verbatim
+text preserved below exactly as it read in NOW before the fold; nothing
+summarised away here, only condensed in NOW itself (thesis_notes.md has
+the same detail on permanent record regardless):
+
+- STEP 2 (chair-comparable result plots) DONE (2026-08-31 -- full
+  record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result
+  plots, kinematic vs ekf_pass_1"). diagnostics/inspect_step2_chair_
+  plots.py ([keep-reproduces] in diagnostics/README.md, thesis-figure
+  source), 28 PNGs (14 stable corners x kinematic/ekf_pass_1 sources)
+  in diagnostics/plots_step2/ (gitignored). HEADLINE FINDING: the rear
+  CS extremes that opened the estimator arc are largely BETA
+  ARTIFACTS -- C9 rear worst-phase CS improves from -362508 to -74581
+  N/rad and C6 rear from -311382 to -13064 N/rad under ekf_pass_1 vs
+  kinematic, both with visibly cleaner near-monotonic tyre curves under
+  ekf_pass_1. C4's front saturation is NOT a beta artifact -- CS stays
+  large and negative under both sources (-98372 kinematic / -95027
+  ekf_pass_1) with the same peak-and-fold shape at a similar slip angle
+  both times, read as genuine saturation, not estimator noise. No
+  production/config file changed; sideslip_source never read from or
+  written to config throughout.
+  PROJECT DIRECTION (decided 2026-08-31): estimator/method work is
+  FROZEN for now. STEP 4 (decision-matrix cleanup) and the STEP 3/4
+  threshold-re-derivation prerequisites below remain open but are NOT
+  the next work. Next priorities, in order: (1) commit the large
+  uncommitted working tree (many sessions' worth -- see git status),
+  (2) reliability passes (the ship-readiness audit's catalogued raw-
+  exception-string/silent-failure UI risks, thesis_notes.md "9. Ship-
+  readiness cleanup" Phase 5, still uncatalogued-into-fixes), (3)
+  thesis writing. STEP 4 and further method work resume only when the
+  user reopens it -- the prerequisites list below is preserved exactly
+  as scoped, not abandoned.
+- TRACE-DIALOG VISIBILITY/COLOUR REDESIGN AND PDF/DECISIONS/DIAGNOSTIC
+  PACKAGE DONE (2026-09-01, unsupervised package, Phases 0-3 -- full
+  record: thesis_notes.md entries dated 2026-09-01, one per phase/
+  decision below; Phases 4-5 are this bullet and the suite run closing
+  it out). Continues directly from the already-committed trace-dialog
+  Part A/B/addendum work (commits 3a114cb, 1117ecf: one-visibility-rule,
+  legend/click fixes, per-lap dynamic colour, LS display mask) -- this
+  package is the post-visual-review CORRECTIONS pass on that redesign
+  plus four independent decisions and one diagnostic, still uncommitted.
+  PHASE 0 (corrections after visual review, core/plot_style.py, core/
+  figure_render.py, ui/views/corner_trace_dialog.py): removed the bold/
+  faint emphasis distinction entirely (SCREEN_LAP_WIDTH/PRINT_LAP_WIDTH
+  now uniform per lap, no is_emphasized concept left anywhere); Tyre
+  Curves tab legend text collapsed to one line; CS/LS panels split
+  front/rear in BOTH the interactive dialog and the PRINT export (no
+  solid/dashed axle encoding); corner-figure PRINT export layout
+  redesigned for tyre-curve legibility (dedicated legend sub-axes via
+  GridSpec.subgridspec -- a bbox_to_anchor legend was silently
+  collapsing sibling axes to near-zero width under constrained_layout
+  when sharing a row with row-spanning axes, root-caused and fixed;
+  final tyre-curve panel width 6.92 cm against a 7 cm target, accepted
+  as close enough); tyre-curve readability re-tuned (session-cloud/lap-
+  sample/window-ring sizes and alphas, kN y-axis formatting); ls_
+  display_min_ax_mps2=1.0 confirmed and reported (derived from this
+  car's own |ax_mps2| distribution, ~0.1g rule-of-thumb, config/
+  parameters.json note has the full percentile record). Four
+  deliverables re-rendered and inspected (C5 both tabs at 4 laps and at
+  1 lap, both PRINT exports) before proceeding.
+  PHASE 1 (core/pdf_export.py, three-column car-centric weekend-strip
+  layout): FL/RL left, Car middle, FR/RR right, real spacer COLUMNS for
+  inter-column gaps (not LEFTPADDING/RIGHTPADDING carved out of the car
+  column, which was silently causing an internal width-vs-content
+  mismatch); large-scale fonts unified (core_label=value=table_label=
+  car_label=9.5pt, satisfying "value >= label"); verified via pymupdf
+  render at both scales against real Dubai data -- large scale improved
+  from an initial ~73%/96% (width/height fill) to 93.5%/94.4%; small
+  scale improved modestly (pad/diagram_scale tuning) but hit a genuine
+  CONTENT-DENSITY CEILING, not a tunable-constant problem -- the car
+  column's own non-diagram tables alone already exceed the small-scale
+  strip's ~37mm height budget. OPEN, needs a user decision: fewer
+  strips per page, taller strips, or trimming which car-column blocks
+  appear at small scale.
+  PHASE 2 DECISIONS BATCH: (2a) CLAUDE.md's Tier A citation rule changed
+  -- code now carries a one-line pointer to a named thesis_notes.md
+  entry, never inline author/title/page; swept modules/stability_
+  analysis.py, tyre_model.py, tyre_model_pacejka.py, longitudinal_
+  forces.py, longitudinal_stiffness.py, yaw_stability.py and converted
+  every remaining inline citation (estimate_sideslip already done
+  2026-08-19); one thesis_notes.md cross-reference bullet added for two
+  Rajamani Ch. 2 anchors (longitudinal_forces.py) that had never been
+  named as their own bullet; no citation content changed or lost.
+  (2b) The Data section's "Exclude In/Out Laps" toggle and single-lap-
+  selection-drives-analysis coupling REMOVED from ui/views/outing_
+  form.py -- analysis now always covers every is_valid_for_analysis lap
+  (falls back to every lap only if none are valid); the lap table
+  itself and its row-click-scopes-the-raw-channel-plot behaviour are
+  UNTOUCHED (a second, independent purpose the removal did not touch).
+  _try_render_cached_analysis gained a stale-lap_filter guard: a saved
+  analysis whose lap_filter does not match what the new policy would
+  compute today is now a cache miss, not a silent stale render -- this
+  matters for any outing analysed and saved under the old UI. (2c)
+  PROJECT.md deleted (stale since ~WP1/WP2, PLAN.md+CLAUDE.md+thesis_
+  notes.md are the live sources of truth); its one live reference
+  (modules/recommendation.py's FEEDBACK_SCALE_MAX comment) fixed, its
+  historical PLAN.md STATUS HISTORY mentions left untouched. (2d) New
+  "Clear Data" button + OutingForm._reset_data_state() (Data section,
+  QMessageBox-confirmed): clears parsed_data/loaded_csv_path/stability_
+  result/analysis caches and every dependent status widget back to
+  construction state; deliberately writes nothing to the database
+  itself -- loaded_csv_path=None is exactly what a subsequent Save
+  already persists as csv_path="", same stage-in-memory convention
+  every other form field follows. (2e) Weekend PDF status check found
+  a REAL bug while confirming Phase 1's layout survives inside the
+  weekend PDF (it does): core/weekend_pdf_export.py's _recommendations_
+  flowables crashed with "TypeError: unsupported format string passed
+  to NoneType.__format__" on any "urgent_gap" driver/data-contradiction
+  recommendation (score=None, parameter=None, actions=[] by design) --
+  invisible in normal use because the existing per-outing try/except
+  (correct, kept as-is) silently swallowed it into a generic ERROR note,
+  meaning that outing's entire analysis section (verdict summary,
+  corner table, feedback) never rendered. Fixed to mirror ui/views/
+  outing_form.py's own already-documented "FIX 1" handling for this
+  exact recommendation shape (corner+verdict badge, no score, URGENT
+  class) instead of assuming every recommendation has a numeric score.
+  Confirmed against the real local database (weekend 1 "Dubai") before
+  and after the fix.
+  PHASE 3: new read-only diagnostic diagnostics/inspect_ls_ratio_span_
+  dependence.py ([keep-referenced], diagnostics/README.md) -- does
+  LS_ratio depend on the sliding regression window's own kappa span,
+  independent of config's longitudinal_stiffness.min_slip_span=0.004
+  gate? Independent re-derivation cross-checked exactly against
+  production output on the gate-kept population (np.allclose, both
+  axles) before trusting its extended (below-gate) population.
+  RESULT: a clear, visually obvious cliff at the gate -- below it,
+  LS_ratio explodes to implausible values (front to roughly -200, rear
+  to roughly -27) from small-span-denominator noise amplification;
+  above it, both axles compress into the plausible <=1.0-capped band
+  production actually reports. Supports the GENERAL SHAPE of the gate
+  being necessary; does not establish that 0.004 SPECIFICALLY (vs a
+  nearby value) is optimal. diagnostics/plots_step2/ls_ratio_span_
+  dependence.png, thesis_notes.md has the full record.
+  HARD CONSTRAINTS HELD: no estimator/threshold/config numerics changed
+  beyond the named additions above (CLAUDE.md's citation rule text,
+  PROJECT.md's deletion, and the pdf_export.py font/layout constants
+  are all Tier C/documentation, not method numerics); no commit.
+  PHASE 5: full regression suite run exactly once (temporarily flipped
+  sideslip_source to "kinematic", ran, restored to the user's own live
+  value "ekf_auto_pacejka" exactly afterward, verified via git diff --
+  config/parameters.json's diff against HEAD is byte-identical to the
+  pre-Phase-5 state, exactly this package's own named additions above
+  and nothing else). RESULT: 138 passed, 1 xfailed, 0 failed, 0 errors
+  (27m29s), zero failures or errors of any kind. git status clean
+  otherwise (exactly this package's own file list, unchanged before/
+  after the suite run); protected set empty; no commit.
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-09-20 STATUS rewrite)
+### NOW's own "WHERE THE PROJECT STANDS" bullet list had grown to over
+1800 lines of dated, appended narrative (from the cross-lap corner-
+identity work through the NIS-gate-redesign proposal) instead of a
+short standing-summary, contrary to this file's own "rewritten at every
+work stop, never appended" rule -- the same drift the 2026-08-31 and
+2026-09-01 rewrites above already caught and condensed once each, since
+recurred. Full verbatim text preserved below exactly as it read in NOW
+before this rewrite -- nothing summarised away, only condensed in NOW
+itself (thesis_notes.md holds the same detail on permanent record
+regardless, dated, per-package). STANDING WARNINGS (the section that
+followed this bullet list in NOW) is unaffected by this rewrite and
+stays exactly where it was.
+
+WHERE THE PROJECT STANDS
+
 - The production tool works and is unchanged except for one fix:
   modules/corner_analysis.py's entry_1_brake phase boundary, which
   previously spanned 85% of the dataset and now spans 5.5%,
@@ -1865,1402 +3399,6 @@ reveals a strong, directly-applicable NIS consistency test.
 NOT DONE by this proposal: no gate code touched, no config/parameters.
 json nis_gate value edited, no threshold changed. Stop here per the work
 order.
-
-STANDING WARNINGS -- carry these into every future session
-
-- NEVER state a config value from memory or from an instruction.
-  Read it from config and quote it. Two errors this week came from
-  exactly that.
-- test_stability.py has ZERO assertions. It is a smoke test that
-  confirms the pipeline does not crash. It passed cleanly through
-  two separate broken phase-boundary fixes. Phase-boundary and
-  numerical correctness have no automated coverage.
-- For boundary and numerical work, verify against an EXTERNAL
-  physical reference channel. Distributional plausibility is not
-  verification: both broken fixes produced healthy-looking
-  durations and population shares, and only the brake-pressure
-  cross-check caught them.
-- Findings go into thesis_notes.md in the SAME turn they are
-  produced. Chat reports are not the record.
-- Protected set, never committed: docs/literature/, docs/car_data/,
-  config/car_data.json, HANDOVER.md, docs/study/. Verify with
-  git ls-files returning empty.
-
-### BACKLOG (ordered)
-A - Numbers correct: nonlinear single-track Kalman filter with a
-    data-identified tyre curve (linear observer rejected for
-    production on saturation-detection failure, see NOW above --
-    this replaces the prior "observer tuning; comparison report +
-    decision" item, does not close it); vehicle-parameter provenance
-    (wheelbase, Iz, cog height, track widths, Cl reviewer
-    placeholders) + team figures, unrelated to the estimator
-    question. PARTIAL OUTCOME (see NOW, carry-forward decision): the
-    data-identified-curve refit sub-attempt (passes 2-4) is REJECTED
-    as non-converging; pass 1's configuration (kinematic-sourced
-    curve, calibrated noise model) is carried forward instead, with
-    the kinematic circularity explicitly unresolved. Done when:
-    sideslip has a defensible source and verdicts are recomputed on
-    it -- still open, gated on R re-derivation against pass 1 (NOW)
-    and the threshold re-derivation (PARKED).
-    NEW OPEN ITEM (2026-09-02, threshold anchoring): Module 5
-    stability sign/scale under ekf_auto_pacejka + stab_neg_thresh
-    re-derivation. estimate_yaw_moment_stability takes beta as a
-    direct argument, so its output depends on sideslip source, unlike
-    the Fy/Fz independence previously confirmed for an unrelated
-    upgrade -- worst-lap stability under ekf_auto_pacejka reads
-    POSITIVE on all 14 Dubai corners (min +3.6 at C4; C8, the corner
-    the live -50.0 stab_neg_thresh was originally gap-selected
-    around, now reads +552.0), leaving no negative population to
-    anchor a re-derived threshold against. stab_neg_thresh stays at
-    its kinematic-era -50.0 value (config/parameters.json, marked
-    [stab thresh: kinematic-era, not re-derived] in the UI whenever
-    it fires under a non-kinematic estimator) until this is
-    investigated. Full record: thesis_notes.md "Threshold anchoring,
-    Phase 2...". STILL OPEN, unaffected by the closure immediately
-    below (a separate sub-item of this same backlog entry).
-    DATA-IDENTIFIED TYRE CURVE SUB-ITEM CLOSED, 2026-09-03 (structural,
-    not incremental -- full record: thesis_notes.md "Refit-loop
-    conclusion: structural non-convergence confirmed on two sessions,
-    two failure directions"). The refit loop (Dugoff pass 2-4,
-    historical; Pacejka iterations 1-4, this session, BOTH Dubai and
-    v3) fails in TWO DIFFERENT DIRECTIONS depending on tyre model/
-    session -- Dugoff collapses toward pure-linear, Pacejka inflates D
-    without plateauing -- the same underlying identifiability failure
-    (curve and beta are jointly unobservable from ay/yaw_rate alone,
-    with no external anchor) manifesting differently, not two
-    unrelated bugs. A same-session external-reference census (v3, all
-    4176 raw channels) found no sideslip/heading/lateral-velocity
-    sensor on either session, and confirmed v3 lacks GPS course/speed
-    entirely (worse-equipped than Dubai for the existing shelved GPS-
-    course method) with near-zero within-racing-lap anchor coverage on
-    BOTH sessions regardless (Dubai 0/5 anchors inside a valid lap, v3
-    2/6). CLOSED as structurally infeasible from onboard sensors alone
-    -- production keeps the first-pass, kinematic-seeded fit
-    unchanged. REOPEN CONDITION: a real external sideslip/heading/
-    lateral-velocity reference covering enough of an actual racing lap
-    to anchor the identifiability, not merely present in a future
-    export at all (this session's own census shows a declared
-    reference can still provide ~zero usable racing-lap anchors).
-C - Decision-matrix depth: elicitation question set (own file, to
-    be created in a later session, sorted by who answers - user or
-    engineer); matrix expansion incl. the beyond-peak gap; cost
-    function with elicited weights; feasibility/conflict logic.
-    Gated on elicitation answers.
-B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
-    VALIDATED 2026-09-03 (modules/wheel_loads.py, damper package,
-    thesis_notes.md "Damper package: wheel loads from pushrod/
-    suspension-travel channels, Phases 1-6"; STATUS bullet above has
-    the headline numbers). Damper data arrived via GT3_PRC_MLA-v3.txt.
-    Both previously-open items resolved as far as this session's data
-    allows, NEITHER fully closed: roll center heights use car_data.
-    json's own stated baseline kinematic variant (Level 1 estimate,
-    fitted variant for this session unconfirmed -- open item carried
-    forward); gauge calibration check found NO existing offset/
-    calibration procedure or entry point at all (pushrod zero-offset
-    config keys default to 0.0, flagged, not fabricated -- open item
-    carried forward, needs a real procedure + UI field). STILL OPEN,
-    not part of this package's scope: roll-stiffness apportionment
-    (the per-wheel split inside estimate_vertical_loads stays the
-    chair's own independent-per-axle lateral-transfer split, a
-    documented later DOMAIN IMPROVEMENT, now damper-VALIDATABLE in
-    principle but not attempted); Fy split upgrade -> CS threshold
-    re-derivation (wheel_load_damper is not wired into any Module 4b/
-    accuracy_resolution.py consumer yet, so no CS threshold is affected
-    by this package).
-    RECONSTRUCTION REFINEMENT CHAIN CLOSED BY DECISION, 2026-09-03 (full
-    record: thesis_notes.md "Reconstruction refinement chain: closing
-    note"). The mass/aero/split session-correction set (thesis_notes.md
-    "Closing the reconstruction's aero gap" and "Session-measured split
-    fractions...") is COMPLETE as far as this session's own data allows.
-    One item DATA-GATED, not further worked: the aero front/rear split
-    (wheel_loads.aero_front_fraction=0.40, Level 1 placeholder) is an
-    IDENTIFIABILITY LIMIT of straight-line data with three gauges, not
-    an open bug -- no amount of further analysis on THIS data resolves
-    it. Final ground-truth scoreboard: raw static model -2607N mean
-    error -> session-corrected +886N mean error (lap 8, drop-RL/RR
-    test). Gated on either of: (1) a real front/rear aero-balance split
-    for this car (windtunnel/CFD, at the run's own wing level), or (2) a
-    session with all four damper gauges alive (removes reconstruction --
-    and the identifiability limit -- entirely, since every corner would
-    then be Level 4 measured, no split fraction needed at all). GATE (2)
-    RESOLVED 2026-09-18 (Deepening Phase 2, FR fixed on v3) -- and
-    followed up, Metrology Phase 3 (2026-09-19, diagnostics/inspect_
-    metrology_phase3_rear_residual.py): with the identifiability limit
-    lifted, the STRAIGHT-LINE residual against the outing's own real
-    weighing that this now exposed (FL +2.1%, FR +2.9%, RL +11.5%, RR
-    +22.8%) was decomposed against the three candidate mechanisms named
-    below. "Geometric transfer estimates" RULED OUT, both structurally
-    (wheel_loads.py's own left/right transfer terms cancel exactly in
-    an axle's total, by construction, verified at +0.00 N both axles)
-    and empirically (axle-total residual correlation with |ay|, after
-    removing the fitted v^2/ax terms: front +0.031, rear -0.058, both
-    null). "Aero front/rear split" CONFIRMED as the dominant driver of
-    the residual's SIZE: a pure v^2 fit alone explains >90% of each rear
-    corner's own variance (R^2 0.91/0.91), reproduces almost exactly
-    across both independent sessions (v3 RL b=0.604 vs Dubai RL b=0.611),
-    and implies a real measured front/rear aero split of 25%/75% -- the
-    0.40 placeholder understates this car's real rear aero share by 15
-    points. A smaller, genuinely corner-specific residual remains after
-    the v^2 term (v3 rear intercepts diverge sharply, RL -281.7N vs RR
-    +174.0N, and the same corner (RL) flips sign v3->Dubai despite an
-    almost-identical v^2 slope) -- consistent with "motion-ratio table
-    region" but not distinguishable from real session-to-session static-
-    condition differences (fuel/ballast/tyre pressure) with telemetry
-    alone; carried forward, several times smaller in scope than the
-    original headline residual. Full record: thesis_notes.md "Metrology
-    Phase 3: rear axle-total residual decomposition". Engineer
-    questions raised (PLAN.md "Engineer follow-up questions -- damper/
-    wheel-load package," new section): front/rear aero balance figures
-    for this car at the run wing level; FR gauge repair status --
-    ANSWERED 2026-09-18 for v3 specifically (Deepening Phase 2: FR was
-    decoded, not physically repaired, but is now live/damper-measured on
-    that file) -- option (2) above is therefore SATISFIED for v3 (every
-    corner is now Level 4 measured there, no reconstruction needed), but
-    the aero-split identifiability limit itself (option 1) remains open
-    and unaffected -- this was never about the FR gauge, it is a
-    straight-line-data-with-three-gauges limitation that a fourth real
-    gauge does not resolve on its own.
-D - Output artifacts: weekend PDF expansion; per-corner CS overlay
-    and g-g plots.
-E - Cleanup (after track A closes): diagnostics inventory + README,
-    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
-    protected-set audit and push readiness.
-F - (optional thesis figure, not a work item) Rear Dugoff curve
-    plotted at pass 0, 2, 3 and 4 on shared axes, showing the
-    pass-4 rear curve as a straight line. A single figure
-    communicating the refit loop's identifiability failure -- the
-    onset boundary moving outward until it reaches 88.4 deg and
-    coverage falls to exactly zero of 24,183 samples. Not a result
-    plot; the passes are not carried forward. Purely a figure for
-    the write-up.
-G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
-    formalises the open item already flagged inline under BACKLOG B
-    above, "Fy split upgrade -> CS threshold re-derivation", into its
-    own tracked package rather than leaving it as a buried aside):
-    Fy split upgrade from measured axle loads. Now that stability_
-    estimation.vertical_load_source defaults to "measured" (Fz-
-    integration package close-out, 2026-09-04) and modules.wheel_loads'
-    damper-derived Fz is a live, validated Level 4 source on two real
-    sessions, the question is whether/how that measured load should
-    inform the Fy SPLIT itself -- CLAUDE.md's own deviation-taxonomy
-    example names "Level-1 Fy split" as a standing FORCED ADAPTATION
-    (modules.stability_analysis.estimate_lateral_forces's own axle-
-    level Fy construction, independent of which vertical-load source
-    feeds Module 4b/CS_ratio downstream). DO NOT IMPLEMENT before a
-    written PROPOSAL: this is Tier A (a vehicle-dynamics method change
-    to what feeds CS_ratio, not a Tier B consumption switch the way
-    Fz-integration Phase 1 itself was) -- needs its own literature
-    anchor before any code changes, per CLAUDE.md's scientific-
-    grounding rule ("If no anchor exists for a Tier A proposal, STOP
-    and ask -- never invent"). THRESHOLD RE-DERIVATION IS ATTACHED, not
-    optional: CS_ratio's threshold anchoring (thesis_notes.md "Threshold
-    anchoring + arc closure") was derived against the CURRENT Fy
-    construction's own distribution -- changing how Fy is split re-
-    triggers that re-derivation in full, the same standing rule any
-    estimator change already carries (CLAUDE.md's parameter-category
-    note: "classification thresholds... always re-derived from this
-    car's own distribution, never carried over... from a prior
-    estimator's distribution"). Gated on: a real literature anchor for
-    a measured-load-informed Fy split method; the proposal itself,
-    reviewed before implementation; CS threshold re-derivation as part
-    of the same package, not a follow-up.
-H - PROPOSAL-FIRST (named 2026-09-20, literature-bridge work package
-    coverage-check finding): generic per-lever candidate-bridge
-    mechanism. That package's own coverage check (config/decision_
-    frame.json interaction_table entries vs modules/decision_frame.py
-    candidate generation, thesis_notes.md "Literature-bridge work
-    package...") found that an interaction_table entry NEVER generates
-    a candidate on its own -- it only ever adjusts another candidate's
-    score (_interaction_penalty). Candidates come from exactly three
-    sources: the exit-oversteer hardcoded bridge, the brake-balance
-    plausibility bridge, and the generic 39-rule matrix bridge
-    (_bridge_candidates_for_matrix_rules). Two lever families that
-    already carry literature-anchored (Segers ch.9/10) interaction_
-    table entries have NO matching candidate-generating bridge in one
-    or both directions, so they can never actually be suggested as an
-    action: springs_front (zero candidate bridge, either direction --
-    interaction_table entries only) and springs_rear (only "soften" has
-    a bridge, hardcoded in _exit_oversteer_candidates; "stiffen" has
-    none). camber_rl/rr carry the identical gap (interaction-table-
-    only, user-elicited grade, not Segers) but are not in this
-    proposal's stated scope. PROPOSAL: a generic, config-driven
-    candidate-bridge mechanism -- one new config/decision_frame.json
-    block (e.g. lever_bridges) listing, per non-matrix lever: lever
-    family, the verdict pattern it responds to (verdict + phase-scope,
-    reusing the SAME vocabulary matrix_verdict/corner_verdict evidence
-    already uses), direction, and grade -- consumed by ONE new
-    generic candidate-generation function in modules/decision_frame.py,
-    the same way _bridge_candidates_for_matrix_rules already turns
-    config/recommendations.json rows into candidates generically,
-    rather than adding a new hardcoded per-lever function (matching
-    _exit_oversteer_candidates's springs_rear_soften entry) for every
-    lever this pattern is extended to. Tier B (candidate-generation
-    plumbing, not a vehicle-dynamics method change -- the underlying
-    Segers roll-stiffness claim is already anchored and reviewed via
-    the existing interaction_table entries; this proposal only decides
-    HOW an already-approved bridge becomes a visible candidate).
-    Springs_front/rear are the immediate beneficiaries; camber_rl/rr
-    named as a likely second consumer once the mechanism exists, not
-    implemented alongside it. ACCEPTANCE TEST (named per the work
-    order): springs_rear "stiffen" appears as an advisory ("proposed")
-    candidate on a synthetic entry-oversteer case (a corner/phase with
-    understeer_tendency-relevant evidence firing, mirroring the shape
-    of the existing springs_rear_soften/exit_oversteer test but for the
-    stiffen direction and an understeer-adjacent scenario) -- currently
-    IMPOSSIBLE to write, since no code path produces that candidate at
-    all; passing it is the acceptance criterion for this package.
-    Natural next small package once the current literature-bridge
-    package commits. DO NOT IMPLEMENT before this proposal is reviewed
-    -- new module logic, out of the current (config+docs+tests-only)
-    package's own explicit scope.
-
-### PARKED (decided, not forgotten)
-Verdict-stability annotation (STABLE / MARGINAL) -- IMPLEMENTED 2026-09-19
-(close-out work order, same day as the proposal below). Ships as
-described, with two real implementation differences from the original
-proposal text, recorded here rather than silently: (1) UI SHAPE ended up
-as an embedded "[MARGINAL]" text marker inside classify_fn's own short/
-long verdict strings (the SAME append-marker pattern _classify_corner
-already used for [UNCAL]/the stab-threshold legacy marker), not a
-separate tooltip glyph -- minimal-blast-radius: _classify_corner's own
-4-tuple return shape and all 13 of its call sites are untouched. (2) the
-MIN-confidence discount was applied to BOTH corner_verdict AND
-matrix_verdict evidence (the proposal only named corner_verdict) --
-matrix_verdict is the type that actually feeds most of the 39-rule
-matrix's own candidates, so capping only corner_verdict would have left
-a real gap. Confidence cap reuses intervention_evidence.abs.confidence
-(0.8), per the proposal's own "reuse an anchor" instruction. 7 targeted
-tests: 4 in tests/test_cs_validity_repair.py (classify_fn marker
-presence/absence, front and rear axle), 3 in tests/test_decision_frame.py
-(corner_verdict cap fires/doesn't, matrix_verdict cap fires) -- all pass,
-plus the full tests/test_decision_frame.py + tests/test_cs_validity_
-repair.py files re-run clean (64 passed) to confirm no regression on the
-other 57 pre-existing tests. ORIGINAL PROPOSAL TEXT, kept for the record
-(2026-09-19, write-only per the work order -- "propose, don't implement"
-two-phase rule applied before any of this was built): follows directly
-from Metrology Phase 1's own
-sensitivity sweep (thesis_notes.md "Metrology Phase 1: verdict
-sensitivity map"): 10 of 85-128 tested corner-phases per session flip
-their axle-label under a realistic +/-1% single-input measurement/
-parameterisation change, concentrated in already-borderline (normal/
-moderate severity) verdicts, never in a STRONG one.
-  WHAT IT ADDS: each corner-phase verdict already shown in the UI gains
-  a second-order STABLE/MARGINAL tag, surfacing "this call could flip
-  under a realistic small measurement change" instead of hiding it.
-  THRESHOLD, reusing the anchored margin, not inventing a new one:
-  MARGINAL fires when min(|CS_ratio_f - STRONG_CSF|, |CS_ratio_f -
-  MODERATE_CSF|) <= 0.11, or the same test on CS_ratio_r against STRONG_
-  CSR/MODERATE_CSR. 0.11 is not a guessed round number -- it is the
-  empirical threshold-distance of the 2nd-most-marginal flip actually
-  observed in the Phase 1 sweep (v3 C12 apex_3/exit_4, distance 0.104,
-  rounded up slightly for a small margin of safety), chosen to cover 9
-  of the 10 observed <=1%-perturbation flips. The ONE excluded case
-  (dubai C1 apex_3, distance 0.274) is excluded deliberately: Phase 1
-  read it directly and found that flip is driven by a DIFFERENT
-  mechanism (which of CS_ratio_f/r is currently more extreme, a
-  relative front/rear comparison _classify_corner also makes, not a
-  fixed-threshold crossing) -- folding it into this single-axis distance
-  threshold would require inflating the anchor 2.6x past every other
-  observed case just to cover one differently-caused outlier, which
-  would flag far more corners as MARGINAL than the sweep actually
-  supports. COMPUTATION COST: zero extra pipeline runs -- both CS_ratio_
-  f/r values are already computed for every corner-phase today; this is
-  a comparison against two existing numbers, not a live re-sweep (the
-  sweep itself takes ~38 minutes and cannot run per-analysis).
-  UI SHAPE: a small marker next to the existing verdict label (a
-  tooltip-bearing glyph, not a colour change -- MARGINAL is a
-  confidence/robustness qualifier on top of the existing severity
-  colour, not a new severity tier) reading "this verdict can flip under
-  a realistic ~1% measurement change" on hover.
-  CONFIG SHAPE: a new config/parameters.json classification.
-  verdict_stability_margin entry, {"cs_margin": 0.11, "derived_from":
-  "Metrology Phase 1 sensitivity sweep, 2026-09-19 -- covers 9/10
-  observed <=1% flips, thesis_notes.md"} -- sibling to the existing
-  STRONG_CSF/CSR/MODERATE_CSF/CSR entries, same provenance-note
-  convention.
-  DECISION-FRAME IMPACT: a MARGINAL verdict discounts like low
-  repeatability already does -- NOT a new confidence formula. Every
-  corner_verdict evidence item already carries a confidence value (the
-  existing repeat-fraction-derived mechanism); a MARGINAL tag would
-  become a second corroborating-evidence-style input feeding the SAME
-  MIN-confidence rule every other evidence source in modules/decision_
-  frame.py already uses (driver_feedback, intervention_abs, etc.) --
-  no new combination mechanism, no new arbitrary confidence number
-  proposed here. The exact discount value is deliberately left for the
-  implementing session to set (matching an existing anchor at that
-  time, e.g. the ABS masking cap or the repeat-fraction floor -- "reuse
-  an anchor" applies to that choice too, not just the 0.11 CS-distance
-  number above).
-  NOT YET DECIDED: whether MARGINAL should be surfaced in the decision-
-  frame candidate list at all, or only in the raw corner-phase grid (the
-  two are different UI surfaces, thesis_notes.md's own Stage-1/Stage-2
-  framing); whether stability_observed_Nm_per_deg (the yaw-moment
-  verdict) needs its own analogous margin, not computed this phase
-  (Phase 1's sweep tracked it per corner-phase but the margin table
-  above is CS_ratio-only -- stab_neg_thresh_Nm_per_deg=-50.0 was never
-  found to be the actual driver of any of the 10 observed flips this
-  session, so no stability-margin anchor exists yet to reuse).
-mass_kg_session / c_session aero double-counting in modules.wheel_loads.
-estimate_session_corrected_axle_totals -- RESOLVED 2026-09-19 (Metrology
-extension Phase 1, same day as this entry, per the fix sketch below):
-mass_kg_session and c_session now come from ONE joint regression (v->0
-intercept for mass, v^2 term for aero), no overlap by construction.
-ACCEPTANCE CLEARED: the lap-8 v3 ground-truth reconstruction error
-dropped to +167.6N mean (+3.19/3.36%, straight-line-only +308.9N), well
-below the ORIGINAL +916.6N baseline (not just below the double-counted
-+1451.4N state) -- the pre-registered hard bar. Full record: thesis_
-notes.md "Metrology extension Phase 1: mass/aero double-counting fix,
-ACCEPTANCE CLEARED". ORIGINAL FINDING TEXT, kept for the record (found
-2026-09-19, Metrology close-out, re-running the reconstruction ground-
-truth check after the
-aero_front_fraction 0.40->0.25 update). mass_kg_session is fit from real
-damper data at the straight-line population's OWN mean speed -- its own
-docstring already stated the caveat that this "already contains some of
-the real aero present at that range's own typical speed" before this
-session, but its real SIZE was never quantified. Now quantified: shifting
-the (separately, correctly, cross-session-validated) aero_front_fraction
-from 0.40 to 0.25 -- i.e. giving the rear axle MORE of c_session's
-already-fit total aero -- made the lap-8 RL/RR reconstruction ground-
-truth error WORSE, not better (+916.6N/+17-18% -> +1451.4N/+27-29% mean
-error, worst in the straight-line-only subset: +756.9N -> +1620.6N),
-because mass_kg_session's own real-data mean was ALREADY absorbing part
-of that same real aero before the explicit v^2 term added more on top.
-The aero_front_fraction fix itself is not at fault (it independently
-cross-validates against two real sessions, thesis_notes.md "Metrology
-Phase 3") -- this is a SEPARATE, pre-existing flaw in how mass_kg_session
-and c_session combine, newly made visible (not created) by giving the
-rear axle a more accurate, larger aero share. FIX SKETCH, not attempted
-this session (a methodology change, needs its own validation, explicitly
-out of scope for the close-out that found it): fit mass_kg_session's own
-static term at v->0 (extrapolated, like the v^2 fits in thesis_notes.md
-"Metrology Phase 3" do for their own intercepts) instead of at the
-straight-line population's mean speed, so the aero contribution is
-cleanly zero in the static term and lives ONLY in the explicit c_session*
-v^2 term -- removing the double-count structurally rather than by
-re-tuning aero_front_fraction to compensate for it. Full record: thesis_
-notes.md "Metrology close-out: aero_front_fraction shipped, mass/aero
-double-counting found".
-LS_ratio threshold proposal -- VALIDITY REPAIR DONE 2026-09-19 (Metrology
-extension Phase 2, thesis_notes.md "Metrology extension Phase 2: LS_ratio
-validity repair"), threshold itself STILL NOT SHIPPED (open user decision,
-by the work order's own explicit instruction: LS stays display + frame-
-evidence-only until the numbers are signed off). PRE-REPAIR finding kept
-for the record (Deepening Phase 4e, 2026-09-18): Dubai front 14/14
-corners negative, Dubai rear 10/14, v3 front 12/16, v3 rear 14/17, pooled
-p10 front=-5.56/rear=-1.34 -- the SAME wholesale-negative pattern CS_ratio
-itself showed before its own repair, BLOCKED pending an LS-specific
-validity-repair pass.
-REPAIR (applying the CS_ratio playbook, own values not copied):
-window floors re-derived via the SAME phase-level-median bootstrap
-method CS's own Phase 1 REVISION used, on real kappa/Fx from BOTH
-sessions (diagnostics/inspect_ls_window_floor_derivation.py) -- governing
-case (smallest (n,span) clearing P75<=15% relative std, most demanding of
-2 sessions x 2 axles, at the shortest MEANINGFUL representative phase
-length): v3 rear, (min_window_samples=40, min_slip_span=0.016) ->
-min_window_s=0.40s @ 100 Hz (both sessions' real grid rate) -- notably
-close to the chair's own literal 0.45s default, no bootstrap-vs-chair
-tension the way CS once had. Locality cap (diagnostics/inspect_ls_max_
-window_locality_sizing.py) sized at 900m -- DEVIATED FROM CS's OWN 1.5x-
-median MULTIPLIER on purpose, stated why: LS's own natural footprint is
-far more heavy-tailed than CS's (v3 front median/p90 ratio ~5.5x vs CS's
-own ~3x, a real physical difference -- braking/traction zones can
-legitimately span much further than a single corner's lateral extent);
-applying CS's literal multiplier would have sat below even the P90 of
-the most demanding case. Sized instead at the P95 mark of the most
-demanding case (v3 front, 840.2m) instead.
-RE-RUN DISTRIBUTION (diagnostics/inspect_deepening_phase4e_ls_thresholds.
-py, unchanged script, re-run against the repaired estimator): Dubai front
-10/14 negative (was 14/14), Dubai rear 9/14 (was 10/14), v3 front 10/17
-(was 12/16), v3 rear 13/17 (was 14/17); pooled p10 front=-0.785 (was
--5.56, ~7x smaller in magnitude), rear=-0.604 (was -1.34, ~2x smaller);
-pooled MEDIAN front=-0.078 (near zero), rear=-0.206 (still meaningfully
-negative). PRE-REGISTRATION PARTIALLY MET, reported honestly rather than
-forced either way: the EXTREME garbage-window amplification that made
-the pre-repair values physically implausible (p10 beyond -5, far past the
-ratio's own clip-at-1.0 range) is gone -- values now sit in a physically
-plausible range. The wholesale COUNT of negative corners dropped
-materially (100%->71% front Dubai) but did not reach "gone" -- a
-meaningful residual negative population remains, front's pooled median
-near zero, rear's still clearly negative. Not necessarily wrong: the work
-order's own item (e) pre-registration expected the KNOWN genuine
-traction-limited corner (Dubai C3) to still show its signature -- some
-real negative population is expected, not just artifact; this repair
-cannot and does not claim to separate "genuine beyond-peak traction
-limitation" from "remaining estimation noise" within what's left.
-Frame-verification (diagnostics/inspect_ls_repair_frame_verification.py,
-item g): [see thesis_notes.md for the C3-specific result].
-THRESHOLD PROPOSAL (diagnostic only, config classification NOT touched,
-per the work order's own explicit instruction -- LS stays display +
-frame-evidence-only until signed off): pooled p10, same physical anchor
-logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force
-point, minus a data-sized margin) -- PROPOSED STRONG_LSF=-0.79,
-STRONG_LSR=-0.60. Small-n caveat unchanged from the original entry
-(n=31 pooled corners, front/rear asymmetry present but not dramatically
-so -- no strong case for treating the axles differently beyond what the
-raw numbers already show). OPEN USER DECISION: whether these repaired-
-but-still-substantially-negative numbers are trustworthy enough to sign
-off as real STRONG_LSF/LSR thresholds, or whether the remaining negative
-population needs its own further investigation (e.g. explicitly
-separating known-traction-limited corners like C3 from the rest) before
-anchoring a threshold against it. Full record: thesis_notes.md "Metrology
-extension Phase 2: LS_ratio validity repair".
-CO-OCCURRENCE VERDICT, resolving the open decision above (2026-09-20,
-branch ls-evidence, read-only science, diagnostics/inspect_ls_negative_
-cooccurrence.py, [keep-reproduces]): every corner-phase-axle instance
-whose repaired worst-lap LS_ratio is negative (71 total, both sessions)
-censused against corroborating signal in its own worst-lap's own phase
-window -- brake pressure/throttle, ABS duty, TC duty (ecu_B_tc_act),
-|ax| vs the 1.0 m/s^2 display-mask reference line, and repeatability
-across the corner's own other laps. CORROBORATED = ABS or TC fires, or
-high demand AND repeatable across laps; UNCORROBORATED = no ABS/TC AND
-(low demand OR a one-off, non-repeating reading). POOLED: 36/71 (51%)
-CORROBORATED, 35/71 (49%) UNCORROBORATED, 0 MIXED -- every single
-instance sits above the 1.0 m/s^2 demand line (no low-demand/cruise
-contamination at all), so the split reduces entirely to ABS/TC activity
-vs repeatability.
-VERDICT: MIXED, case (c) -- NOT a clean sign-off, NOT a clean rejection,
-but the split is NOT random: it is cleanly EXPLAINED by phase type, not
-axle. BRAKING phase: 8/9 (89%) corroborated (front braking 4/4, rear
-braking 4/5) -- ABS activity co-occurs strongly, exactly the "ABS
-regulating IS the car at the slip peak" signature the work order named.
-OTHER (turn-in/apex, real trail-braking territory): 13/18 (72%)
-corroborated. EXIT phase: only 15/44 (34%) corroborated (front exit 5/22
-= 23%, rear exit 10/22 = 45%). THE DISCRIMINATING FACTOR, named not just
-observed: TC (the natural exit/traction corroborator) is ALREADY
-recorded as firing on only 3 samples in v3's entire session (thesis_
-notes.md "Frame-Stage-2 Phase 2: intervention-channel survey", 0.0044%
-activity, reconfirmed this session on both files) -- exit-phase
-instances are structurally unable to be TC-corroborated THIS session,
-regardless of whether the underlying LS signal is genuine. "Uncorrob-
-orated" at exit therefore reads more as an EVIDENCE GAP (no channel
-available to confirm OR deny) than a demonstrated absence of real
-signal -- confirmed directly, not just argued: Dubai's own C3 (the
-project's independently-established genuine traction-limited corner,
-thesis_notes.md's C3 finding) IS corroborated in this census, via
-repeatability alone (exit_5, rear, LS=-0.329, repeat=4/4 laps, zero
-ABS/TC activity) -- proof that a real, already-confirmed genuine
-traction-limited event can and does get correctly recognised by this
-census even with zero TC support, validating repeatability as a working
-corroboration channel on exactly the case it needs to work on.
-Magnitude cross-check: CORROBORATED instances run larger on average
-(median |LS|=0.257) than UNCORROBORATED (median |LS|=0.115) -- a real,
-if imperfect, signal-vs-noise gradient in the same direction the
-question under test predicts.
-RECOMMENDATION (design note, not implementation, per the work order's
-own scope limit): do NOT sign off on STRONG_LSF=-0.79/STRONG_LSR=-0.60
-as flat, phase-blind thresholds. The braking/turn-in population
-(dominantly corroborated) supports treating a negative worst-phase
-value there as a real, trustworthy signal now. The exit population
-needs EITHER a session with genuine TC activity to close the evidence
-gap, OR a phase-conditioned confidence treatment reusing the frame's own
-existing MIN-confidence mechanism (e.g. an exit-phase LS confidence
-discount mirroring the ABS-masking cap's own reused-anchor pattern,
-Deepening Phase 4c) rather than a single unconditional threshold -- a
-genuine design option for whoever picks this up next, not built here.
-One figure: diagnostics/plots_ls_evidence/ls_negative_cooccurrence_
-census.png (by session, by phase type). Full record: thesis_notes.md
-"LS-evidence work package: negative-population co-occurrence census".
-SHIPPED 2026-09-20 (user + reviewer decision, branch ls-evidence,
-resolving the design option named just above): STRONG_LSF/LSR ship
-PHASE-SCOPED as a NEW frame-evidence source, config/decision_frame.json
-ls_threshold_evidence (NOT config/parameters.json's classification block
--- still explicitly not a verdict tier). Braking/turn-in/apex: normal,
-uncapped repeat-fraction confidence. Exit: the SAME repeat-fraction
-confidence capped via min() at exit_phase_confidence_discount=0.5 (the
-exact design option this entry itself proposed, now implemented) --
-reuses intervention_evidence.abs.confidence's own 0.8-cap precedent, no
-new formula. modules/decision_frame.py gained _build_ls_threshold_
-evidence; 8 new targeted tests (tests/test_decision_frame.py, 46/46
-total passed including the real-Dubai end-to-end test); golden subset
-(not the full suite, per the work order) re-run once, confirmed outside
-the golden path both by code inspection and by the actual run. No
-config/parameters.json change; this is a frame-evidence-only, non-
-classification shipment. Full record: thesis_notes.md "LS threshold
-decision: SHIPPED, phase-scoped".
-LITERATURE-BRIDGE WORK PACKAGE (2026-09-20, same day, branch
-ls-evidence): the work order's own items 1-2 (roll-stiffness
-distribution bridges, ARB-vs-springs balance/platform split) turned
-out to be substantially ALREADY SHIPPED by Deepening Phase 4b
-(2026-09-18) -- the springs_front/rear Segers ch.9/10 interaction_
-table entries and the full bidirectional ARB/camber/diff_position/
-ride_height/tc_lon/toe_front matrix cross-references already existed;
-the work order over-specified against the accepted base, not a
-conflict with real code (resolved by user decision, this session).
-A coverage check (config interaction_table vs modules/decision_
-frame.py candidate generation) found the one place real work was
-hiding: an interaction_table entry NEVER generates a candidate on
-its own (see BACKLOG H below for the full finding and the resulting
-PROPOSAL). SHIPPED, config-only: ride_height_front/rear gained
-Segers ch.9/10 platform_stability interaction_table entries
-(4 entries, structurally inert like the springs ones -- no
-_AXIS_TO_VERDICT mapping for platform_stability yet), grounded in
-their own registry mechanism text ("aero platform height"). NOT
-shipped: springs_front/rear candidate-bridge coverage (needs module
-logic, out of this config-only package's scope -- see BACKLOG H,
-a new READY PROPOSAL); damper transient-phase bridges (item 3 --
-interaction_table has no phase field, listed PENDING SCHEMA SUPPORT,
-schema NOT extended, per the work order's own instruction). New
-proposed bridges (all four new entries, grade "proposed (Segers
-ch.9/10)") await engineer grading, same status as every other
-"proposed"-grade entry in this file -- advisory-capped, never a
-classification/severity input. Full record: thesis_notes.md
-"Literature-bridge work package: coverage check and ride-height
-platform bridges".
-CS_ratio verdict non-robustness to sub-1%-level mass corrections
-(Deepening Phase 1, 2026-09-18): v3's own front_fraction moved a tiny
-43.267%->43.361% (a real, legitimate corner-weight accuracy upgrade) and
-4 of 85 corner-phase verdicts FLIPPED. Root-caused, not just observed:
-the fitted Pacejka curve and beta both shift smoothly/proportionally
-(<1.5%, no sign of the fit chain diverging to a different solution) --
-the flips trace to CS_ratio's own already-documented window-growth floor
-sensitivity (same mechanism as the "v3 sawtooth mechanism investigation"
-and the "CS validity repair" arc), newly shown triggerable by a mass
-perturbation, not just a speed/beta one. User decision: keep the real
-weighing change, do not revert, do not fix this turn -- recorded as a
-standing characterisation for whoever next revisits the CS_ratio/window-
-floor thread. Full record: thesis_notes.md "Deepening Phase 1: per-outing
-corner weights -- premise corrections, STOP on verdict flips" and its
-"...STOP resolved, user decision" follow-up.
-v3's C17-C20 corner-count fragmentation (one outlier lap, ~15-19s
-slower through exactly that section, fragments a corner the other 3
-of 4 valid laps see as one continuous ~100m right-hander) -- root
-cause evidenced (assign_stable_corner_ids' pass-1 "seed from most
-brackets" heuristic locks onto the one atypical lap, thesis_notes.md
-"v3 diagnostics, Part B1"), but the algorithm-level fix attempted
-(majority-vote seed lap) REVERTED after violating the Dubai 14-corner
-hard constraint -- a plain bracket-count vote cannot distinguish "one
-lap disagrees because of a real incident" (v3) from "one lap reveals
-genuine extra structure a wider line blends together" (Dubai's own
-documented compound-corner precedent, same function). Reopens only
-with a lap-level anomaly signal (e.g. an unusual time-loss profile at
-the disputed track position) to break the tie, not a pure vote.
-Full record: thesis_notes.md "Part C1: majority-vote seed lap --
-ATTEMPTED AND REVERTED".
-Beyond-peak verdict tier - shelved, reopens only with a validated
-sideslip estimate. Kerb-gap interpolation - optional cleanup.
-Compound-corner curvature detection - not worth destabilizing the
-realization. Worst-phase sentinel NaN quirk and valid_fraction_stab
-replacement metric - cosmetic, left alone. k=1.01211 application -
-gated on second-track data. New-data-file checklist - runs when a
-log arrives. Items so far:
-  - cs_max_window_m locality check: re-run diagnostics/inspect_
-    corner_bracket_geometry.py (or equivalent) on the new track's
-    own corner sequence and compare its own corner-to-corner GAPS
-    against the live cs_max_window_m -- Dubai has several gaps
-    (8.5-17.8 m, one 0.0 m pair) smaller than the current 53.0 m
-    cap, meaning a window CAN in principle bridge into a
-    neighbouring corner there (thesis_notes.md "cs_max_window_m
-    corner-gap bridging limitation"); a track with tighter corner
-    sequencing than Dubai could make this a live, not theoretical,
-    concern and might need a per-track cap or an explicit gap-aware
-    clamp -- neither exists today.
-Combined-slip tyre model: pure-lateral Dugoff cannot represent
-rear exit-traction or front entry-braking limitation, producing
-false negatives in both. Rajamani Ch. 13.10's own formulation is
-already combined-slip, so no new anchor is needed; log_speed_* is
-the designated wheel-speed source (WP-S1, not yet whitelisted).
-Gated on the EKF arc closing. Full reasoning and evidence:
-thesis_notes.md WP-N2 combined-slip subsection.
-Classification-threshold re-derivation against the EKF's CS_ratio
-distribution: deliberately deferred until the estimator is
-finalised (refit passes complete, combined-slip comparison done),
-because re-derivation is the step that commits to the EKF as the
-production sideslip source. Pass_1 flagged counts are NOT
-comparable to production verdicts in the meantime. Reasoning:
-thesis_notes.md "Threshold re-derivation deliberately deferred".
-entry_1_brake bounded-backward-search hardening: the 2026-08-20 fix
-(off_throttle[0] -> [-1], modules/corner_analysis.py) corrects
-which off-throttle sample is picked but the backward search itself
-is still unbounded -- for a corner taken nearly flat-out with only
-a brief lift, brake_start_t could still reach back further than
-intended if no clear off-throttle sample sits close to turn-in.
-Bounding the lookback (e.g. not searching past the previous
-corner's own bracket) is a reasonable defensive measure but is a
-second change with its own behaviour; bundling it with the index
-fix would have made verification ambiguous, so it was deliberately
-left out of that fix. Reopens if a spot-check or production use
-surfaces an implausibly long entry_1_brake window post-fix.
-CS_ratio aggregation-sensitivity: aggregate_by_corner's median-of-
-medians across four laps washes out a single lap's real signal on a
-ceiling-pinned metric (found 2026-08-20 comparing entry_1_brake
-before/after its phase-boundary fix -- CS_ratio stayed pinned at
-~1.000 at the aggregate level for every corner checked despite a
-dramatic single-lap collapse at one). Most of the 15 braking-matrix
-rules key on CS_ratio, so they carry near-zero aggregate sensitivity
-on this dataset independent of any phase-boundary correctness.
-Candidate directions (percentile instead of median, worst-lap,
-reporting lap-to-lap spread) not evaluated. Gated on the same
-decision point as the deferred classification-threshold
-re-derivation above -- changing the aggregation is itself a
-production behaviour change affecting verdicts. Reasoning:
-thesis_notes.md "Production impact of the fix, and a structural
-finding about CS_ratio aggregation".
-
-### PROCESS RULES
-- One step at a time; proposal and implementation never combined;
-  every turn ends at a stop point; user runs git.
-- Every WP names its artifact up front (changed number, UI element,
-  config, or documented decision). Knowledge-only work is a
-  diagnostic, capped at one per question, and must state which
-  decision it unblocks.
-- Estimator-input changes trigger threshold re-derivation.
-- Tier A methods need a verified anchor; full citations live in
-  thesis_notes.md, code carries a pointer only.
-- STATUS is rewritten at every work stop; history goes below.
-
-### ANCHORS (verified)
-Rajamani, Vehicle Dynamics and Control, 2nd ed. 2012 - Ch. 2,
-sec. 2.3 bicycle model p. 27, sec. 2.6 yaw-rate/slip-angle model
-p. 37; Ch. 14 Kalman application. Kiencke & Nielsen, Automotive
-Control Systems, 2nd ed. 2005 - "Vehicle Body Side Slip Angle
-Observer" section. Both confirmed visually by the user. Lecture
-anchor: dropped by decision. Open: Mitschke/Wallentowitz "p. TBD"
-in estimate_sideslip to be REPLACED by Rajamani 2.6/2.3, not
-deleted (not yet done). Segers, Analysis Techniques for Racecar
-Data Acquisition, SAE International 2014 - Ch. 9 p. 199 (pushrod/
-damper force to wheel load via motion ratio), Ch. 10 pp. 221-256
-(roll-centre geometric vs spring-path elastic load-transfer split)
--- modules/wheel_loads.py's method anchor. Verified 2026-09-03 by
-the reviewer against docs/literature/'s excerpt copies (thesis_
-notes.md "Damper package: wheel loads..."), no longer "to verify".
-Kiencke & Nielsen's own innovation-testing/NIS-consistency section
-(distinct from the already-verified sideslip-observer section
-above) is NOT yet checked -- cited as "TO VERIFY" in the NIS gate
-redesign proposal (Option C) if that direction is ever taken.
-
-## STATUS HISTORY (superseded, newest last)
-Its "still-uncommitted" claims are OUTDATED -- that work was committed in 82bc49c, f37053f, e6ef209, 0bdff87, 5f44688, b96d59a, 2d3346f; read it as historical narrative only, never as current repo state.
-
-## STATUS (update at every work stop)
-Current WP: WP-S4b (observer self-consistency check) DONE (2026-08-19,
-this session -- see thesis_notes.md "WP-S4b: observer self-consistency
-and the Cr_A inflation finding" for full detail), closing out this
-session's Open Board item B (sideslip methods comparison) sequence:
-WP-S1 (wheel-speed source characterization), WP-S2 (comparison harness,
-Metrics 1-4), WP-S3 (Metric 5, zero-slip Fy offset + direction-match),
-WP-S3b (chain decomposition: geometric-cancellation reframing,
-force-balance steady-state gap, IMU-lever-arm/weight-split mechanisms
-rejected), WP-S3c (washout-mechanism ablation, uninformative -- own
-drift too large to trust), WP-S4 (linear Kalman sideslip observer
-registered as third diagnostics-only candidate C_kalman_observer;
-confirms real steady-state slip where the kinematic candidate reads
-~0, at every corner, in sign), WP-S4b (this turn). OUTCOME: the 2-3x
-alpha_r_ss overshoot reported at WP-S4 traced to an inflated reference
-stiffness (Cr_A, fitted against the washout-suppressed kinematic
-alpha) rather than a flaw in the observer -- worst at exactly the
-corners (C3/C11/C13) that showed the worst apparent overshoot.
-Separately, Cr_A's own ~4x corner-to-corner spread (79k-337k N/rad) is
-new evidence the kinematic alpha's error reaches the PRODUCTION
-cornering-stiffness estimate itself (Module 4b), not only beta -- a
-live finding, not yet acted on; the standing CS threshold re-derivation
-rule applies once/if a beta fix is wired to production, not before.
-Entire arc is diagnostics-only: no production/UI/pipeline wiring
-changed; the only config changes are two re-introduced fallback-
-stiffness keys and one new Iz placeholder, both diagnostics-only
-consumers, test_stability.py confirmed byte-identical after every
-step. Next steps: Q/R tuning for the Kalman observer (currently hand-
-tuned initial placeholders with no ground truth to tune against), then
-the WP-S6 comparison report closing out Open Board item B. User has
-not committed yet, stopped before commit every turn this session per
-instruction -- this WP-S1..S4b arc lands on top of the prior sessions'
-still-uncommitted work described below (WP1 consolidation, WP2b-2 +
-matrix v2 review, WP5b(b)/(c)/(d), the Accuracy-registry arc), unless
-those have since been committed separately (this block was stale
-relative to git log before this update; check `git log` before relying
-on "still-uncommitted" claims below for anything predating 2026-08-19).
-
-Queue once this lands, confirmed still accurate: the new-data-file
-diagnostic checklist (runs automatically when a new log arrives -- also
-the reproduction check WP5b(d)'s k-application decision is gated on);
-the WP2b-2 engineer follow-up questions (headroom-ranking, rake-package
-magnitude, TC-LAT-escalation throttle scoping -- see WP2b-2 section) PLUS
-the matrix v2 tick-through (dagger-marked/project-lead-reviewed cells,
-ABS direction semantics, the three situational OS-APX cells -- see
-"Matrix v2 review round" section); WP5b(b) phase 2 (damper-derived Level 4
-wheel loads + the roll-stiffness DOMAIN IMPROVEMENT split); sourcing the
-three reviewer-placeholder figures (cog_height_m, track_width_front/
-rear_m, lift_coeff/Cl) from the team; the WP5b(d) k-application decision
-itself (apply the measured k=1.01211 rolling-radius correction to
-ecu_speed, or not) -- gated on the second-track reproduction check above,
-its own re-derivation stop, not taken this session. New this close-out:
-WP1's two open watch items (C10 corner_radius_filtered overlap 0.60 vs.
-the 0.67 pre-WP1 baseline; C9's inter-lap agreement dip + the C9-lap1
-CS_r=-0.721 flag, both tracing to C9's own start boundary never having
-been independently examined) -- see thesis_notes.md "WP1 open watch
-items, carried forward".
-Last commit:
-113c7d9 (clean up).
-WP2b-1 that session: config/car_data.json (manufacturer reference
-data digitised from docs/car_data/, gitignored/local-only, consumer-
-scoped -- only tables with a named registry/WP5b/module consumer are
-digitised, everything else stays in the docs/car_data/ image archive
-undigitised); config/setup_parameters.json (46-entry tunable
-registry, direction_semantics cross-checked against car_data.json
-per entry -- caught and fixed a real tc_lat/tc_lon inversion and
-rewrote abs_position as categorical, not monotonic; gained a
-`value_source` field ("setup_sheet" default vs "logged_data",
-independent of recommendation_target) after tc_lat/tc_lon/
-abs_position/brake_bias were identified as driver-adjusted
-mid-session from the wheel, not setup-sheet targets -- their
-maps_to is null pending a channel-name identification pass, see the
-new "NEW DATA FILE — DIAGNOSTIC CHECKLIST" section above WP1);
-car.json gained arb_front_mount and
-differential_locking_torque_measured only (car dict, no new
-front_axle tier -- schema decision); outing_form.py renders those
-two new fields (QComboBox support added to the generic
-_collect_inputs/_load_inputs for arb_front_mount; flat-key<->nested
-reshape helpers for the diff torque table, round-trip verified,
-including an offscreen QComboBox collect/load smoke test). PLAN.md
-WP5b gained item (f) steering-ratio lookup as steering_ratio_table's
-registry consumer.
-Open threads: WP2b-2 (rewrite recommendations.json rules against the
-new registry keys); the new-data-file channel scan for
-tc_lat/tc_lon/abs_position/brake_bias (checklist above WP1); UI
-verification checklist (arb_front_mount dropdown + 5 diff-torque
-cells render in setup+setdown, save/reopen round-trip, setdown
-mirror, PDF export, test_stability) -- user to run manually per
-CLAUDE.md UI-change rule; track_check naming verdict (T5-T6 region,
-user-confirmed two real corners = one load event); second-track
-clustering validation when new data arrives (also tests the
-overlap-fraction gap-vs-overlap assumption); wing_position
-spinbox-vs-enum UI polish noted under WP4.
-
-Cross-cutting session (2026-07-24, not tied to a WP number, currently
-uncommitted): the Werner (2021) attribution pass never got committed
-on its own before the foundations-audit/cleanup pass started, so both
-now sit together in the working tree and will land as one combined
-commit. (1) Werner (2021) attribution pass after a primary-source
-verification -- full citation closed out
-in thesis_notes.md §6; framing corrected project-wide from "follows/
-matches Werner" to "adopts Werner's framework as-is, adapts only the
-effective-stiffness estimation (no validated tyre model), extends via
-the WP5b D_psi/wheel-load completion of his Eq. 4.3"; touched
-thesis_notes.md, PROJECT.md, modules/stability_analysis.py docstrings.
-(2) Two new CLAUDE.md standing rules: scientific grounding (Tier A/B/C
-per technical decision, Tier A needs a literature anchor, Tier B needs
-config-driven data-derived parameters, calibration tunables vs
-method-defining named constants) and comment style (WHY not WHAT,
-ASCII in .py files, no boilerplate/filler). (3) Read-only foundations
-audit against both new rules across stability_analysis.py,
-corner_analysis.py, csv_parser.py, recommendation.py, geo.py --
-reported per-function tier/anchor/config-driven status plus comment-
-style violations; user decided per item. (4) Applied those decisions:
-new docstring citations (estimate_sideslip: Mitschke/Wallentowitz,
-page TBD pending verify; estimate_slip_angles: Werner S2.1.1/Milliken);
-removed the unverified "Suzuka convention" label everywhere (thesis_
-notes.md struck through with a dated correction, PROJECT.md rewritten)
-and replaced with Werner (2021) S2.2.3's actual sign convention;
-corrected corner_analysis.py's speed-fallback header ("prominence
-threshold" -> the valley-depth check actually implemented) and gave it
-an explicit Tier B thesis_notes.md entry; moved 15 previously-hardcoded
-Tier B calibration values into config (parameters.json,
-channels.json x2 groups, recommendations.json) with zero behavioural
-change; named the method-defining constants that deliberately stayed
-in code (Butterworth order, CS blend exponents, source-balance
-normaliser, feedback scale) with one-line justifications; ASCII-fixed
-comments/docstrings in stability_analysis.py, corner_analysis.py,
-csv_parser.py (user-facing warning strings left untouched by design).
-test_stability.py run after every file in this pass (6 runs); output
-byte-identical to the pre-session baseline throughout -- confirms the
-whole pass was attribution/documentation/config-location only, no
-logic changed.
-
-WP-ALIGN session (2026-07-24, B1-B3, currently uncommitted, lands as
-one combined commit with the two sessions above): chair-basis rebuild
-of Module 5 (yaw moment stability). New modules/yaw_stability.py
-(after the chair performance_analysis tooling, internal): rolling-mean
-yaw acceleration replaces the 5 Hz Butterworth filter; the stability
-regression is now s-anchored (lap_distance grid, Gaussian-weighted
-local ridge, pools samples across laps at the same track position)
-replacing the old time-anchored single-lap OLS. Three call-site
-adaptations layered on top of the chair-identical estimator: raw-yaw-
-rate path (forced -- chair's pre-smoothed-input filter list is out of
-reference scope), moving/kerb/in-out-lap masking wiring (neutral
-engineering), and structural in/out-lap exclusion (production, WP6-
-independent of the UI lap_filter) -- the exclusion's rationale turned
-out to be two separate legs on inspection (B2 diagnostic): the outlap
-leg is forced in character (lap_distance channel is frozen at s~0 for
-the whole outlap, a literal coordinate degeneracy, not a judgement
-call), the inlap leg is the original cold-tyre/stationarity domain
-improvement. Classification thresholds re-derived against the new
-estimator's output distribution and moved into config/parameters.json
-(new "classification" block, each entry with its own derived_from
-note): CS thresholds unchanged (still valid, different signal); the
-stability threshold moved from -500 to -50 Nm/deg (gap-selected
-between -99.2 and -18.5 in the new worst-phase-per-corner
-distribution), which now correctly flags all 4 laps of the one
-physical corner (stable_id 8) that -500 only caught on 1 lap under the
-old estimator. Verdict distribution on Dubai: 1 strong / 16 moderate /
-34 normal (51 instances) -- proportionally close to the 2026-06-29
-reference (0/23/49 over 72 instances, different lap composition) even
-though the corner population, the estimator, and the threshold all
-changed. A new CLAUDE.md/thesis_notes.md deviation taxonomy (FORCED
-ADAPTATION / DOMAIN IMPROVEMENT / NEUTRAL ENGINEERING, plus a "vehicle
-parameterization is not a deviation" clarification) now labels every
-chair-comparison deviation, present and future. ui/views/outing_form.py's
-_stability_colour also made config-derived (BAD boundary = the new
-classification threshold, WARN boundary = a named 0.4 ratio inherited
-from the original -200/-500 design) so detail-cell colours can't drift
-out of sync with the verdict threshold again. test_stability.py run at
-every step; Modules 1-4b confirmed byte-identical throughout B1-B3 --
-only Module 5's numbers and the classification/colour thresholds
-changed, exactly as intended.
-Open threads: CS-threshold re-derivation deferred to the vehicle-model-
-upgrade WP (bundled with the Fy yaw-term fix + WP5b a/b -- maps onto
-WP5b(e), re-run diagnostic + re-derive thresholds after a Level 2+ Fy
-split lands, since CS thresholds are tuned to the current static-
-weight-split Fy signal); valid_fraction_stab replacement metric
-deferred post-B3 (the field is non-discriminating under the new
-s-anchored estimator -- see thesis_notes.md -- but no replacement
-transparency metric has been designed yet, kerb_fraction covers the
-kerb case only); _stability_colour is now config-derived (done this
-session, listed here for visibility, not an open thread).
-
-Vehicle-model-upgrade WP (2026-07-24, reduced scope, currently
-uncommitted): Fy yaw-moment term landed in Module 4a (exact 2-DOF
-planar force/moment balance, Fy_f = m*ay*front_fraction +
-Iz*psidd/wheelbase, Fy_r = m*ay - Fy_f; raw np.gradient psidd,
-deliberately not Module 5's filtered signal; Tier A, Milliken & Milliken
-RCVD, p. TBD verify; chair-identical construction, no deviation).
-WP5b(a)/(b) untangled: the original "roll stiffness needed for Fy" framing
-was a conflation -- Fy needs none of it; axle-Fz-for-CS-normalization and
-the per-tire/roll-stiffness-apportionment work (DOMAIN IMPROVEMENT vs the
-chair's simpler independent-per-axle split) both moved into WP5b(b),
-where they have an actual consumer. Housekeeping: OLD_REF hash fixed in
-inspect_yaw_stability_b2.py, load_parameters() now lru_cache'd (neutral
-engineering, not a chair-comparison item). Verification: Modules 1-3 and
-5 byte-identical throughout (confirmed twice); CS thresholds re-checked
-against the new distribution and kept unchanged (max flag-count shift
-2/51 instances; n=51 resolution argument in thesis_notes.md); a genuine,
-not-engineered-for CSr-tail repair observed (p10 -0.052 -> +0.082);
-verdict distribution moved from 1 strong/16 moderate/34 normal (post-B3)
-to 0/14/37, entirely via CS-branch movement -- Module 5's stability
-branch contribution unchanged (byte-identical output).
-
-WP5 (result persistence) + WP6 (lap-filter/pipeline cache) + wing_position
-rider (2026-07-25, currently uncommitted): analysis_data column added to
-Outing (models/outing.py) with an idempotent PRAGMA/ALTER migration in
-init_db (models/base.py) -- verified additive and idempotent against the
-real local DB (2 outings, backed up first, row data confirmed untouched).
-Cache-hit rendering on reopen ("cached (laps X-Y) - re-run Analyse to
-refresh"), write triggers on analysis completion (existing outings) and
-via _save_outing (new outings / untouched cache-hit re-saves). Guard A:
-verdicts are never persisted -- classification always runs live from
-current config at render time, now through a single shared
-_render_stability_summaries call site; verified a config threshold edit
-changes a cached corner's verdict only after a fresh process (lru_cache
-semantics), confirmed and config restored byte-identical afterward. Guard
-B: ANALYSIS_SCHEMA_VERSION=1 (modules/stability_analysis.py) with a
-bump-rule comment; version or csv_path mismatch (normalised via
-os.path.normcase/normpath) treated as no cache, both verified. WP6:
-_pipeline_cache stores {csv_path, corners, state, cs, stab} per
-loaded_csv_path -- a lap-filter-only re-Analyse reuses cached Modules 1-5
-output object-for-object (verified by identity, not just value equality),
-no corner-detection or Modules-1-5 recompute; invalidated in
-_on_csv_loaded's existing reset block; no cross-population between the
-WP5 DB cache and the WP6 in-memory cache. Rider: wing_position is now a
-QComboBox (P8/P9/P10), same pattern as arb_front_mount, in both setup and
-setdown forms. Surprise, corrected in code comment: a legacy stored value
-outside {P8,P9,P10} doesn't load as "nothing selected" -- QComboBox.
-setCurrentText() no-ops on unmatched text, so it silently shows P8;
-accepted by user decision (see UI polish note above). test_stability.py
-byte-identical (structural -- this WP touches no code test_stability.py
-imports).
-~~Open threads: corner_analysis.py:359 lap_distance interpolation lacks
-the lap-boundary reset guard that stability_analysis has (found
-2026-07-25 during study doc stage 2). Fix requires WP1-freeze proof:
-before/after identical stable_corner_id assignment and corner count on
-Dubai. Small targeted WP after study document.~~ [DONE 2026-07-26,
-small-decisions sweep item 3: corner_analysis.py's apex_lap_distance_m
-now routes through the shared _interp_lap_distance_guarded helper
-(modules/stability_analysis.py, imported directly, no duplication).
-WP1-freeze proof run: per-lap corner counts, every corner's
-apex_lap_distance_m (10 decimal places), and every stable_corner_id
-byte-identical before/after on Dubai (diagnostics/inspect_wp1_reset_
-guard_freeze_proof.py) -- confirms the fix is a no-op on this file, as
-expected (no apex sits near a lap-boundary reset). bracket_start_m/
-bracket_end_m stay unguarded, out of scope for this fix.
-thesis_notes.md: "corner_analysis.py:359 reset-guard fix (small-
-decisions sweep)".]
-~~cs_front/rear_fallback_reference config keys defined+commented but
-consumed nowhere (found 2026-07-26). Decision needed: wire per comment
-(estimator change, triggers re-derivation -- bundle with WP5b(b)) or
-remove. Do not wire casually.~~ [DONE 2026-07-26, small-decisions
-sweep item 1: DELETED (cs_front_fallback_reference_n_per_rad,
-cs_rear_fallback_reference_n_per_rad, and their explanatory comment,
-config/parameters.json) -- confirmed consumed nowhere in modules/.
-Rationale: the no-linear-reference case has never occurred on real
-data; if it ever does, the corner reports invalid, more honest than
-filling from an unvalidated constant. thesis_notes.md: "cs fallback
-reference constants deleted (small-decisions sweep)".]
-~~Chair estimator has a time_s-anchored fallback mode (window/grid
-scaled /50) when s_m is unusable; SetupTool short-circuits to
-all-invalid instead (study doc §8c). Decide: port the fallback tier or
-document the short-circuit as deliberate. Moot for current data.~~
-[DONE 2026-07-26, small-decisions sweep item 2: documented as
-deliberate, not ported -- one sentence added to estimate_yaw_moment_
-stability's docstring (modules/stability_analysis.py): the fallback is
-a differently-behaving estimator (time-local, no cross-lap pooling)
-whose output the s-grid-derived thresholds could not classify
-meaningfully; no verdict is more honest than a silently degraded one.
-thesis_notes.md: "s_m short-circuit documented as deliberate
-(small-decisions sweep)".]
-~~Accuracy-level registry consolidation (rider WP): single source in
-config, wire the inline dict + the hardcoded duplicate, add beta +
-wheelbase entries, verify and apply the weakest-link semantics, re-tag
-accordingly; found 2026-07-26, study doc §11.~~ [DONE 2026-07-26, see
-the Accuracy-registry arc session below.]
-Repo handover procedure (decided 2026-07-26): docs/car_data images
-exist in main's HISTORY (untracked from the index 2026-07-26, prior
-commits unaffected). Therefore the showing branch MUST be an orphan
-branch (no parent history) pushed to a separate submission remote;
-never grant access to the working remote. No history rewrite on main
-- keeps OLD_REF and all recorded commit hashes valid. Protected-set
-verification from now on: git ls-files on all protected paths must
-return empty, check-ignore alone is insufficient.
-
-Accuracy-registry arc (2026-07-26, WP-A through marker cleanup,
-currently uncommitted, lands as one combined commit): five pieces in
-sequence. (1) WP-A: config/parameters.json's accuracy_levels block
-consolidated to the single source for every per-quantity tag --
-extended to eleven then twelve nodes, each {level, source, capped_by};
-prepare_vehicle_state's inline accuracy dict and estimate_lateral_
-forces's hardcoded literal deleted, both now read the registry;
-resolved the yaw_rate=3-vs-steering_angle=1 weakest-link question with
-two named mechanisms (chained-constant vs provenance-assumption, not
-one); removed six stale VBOX_*/gpsa_* channels.json entries verified
-absent from the real Dubai file. Zero behaviour change throughout.
-(2) WP-C: new modules/accuracy_resolution.py -- per-session resolver
-for mass/corner_weights (leaf nodes, highest-available-wins, never
-blended) and cog_position (pure cascade); global accuracy-cap dropdown
-next to Analyse, plumbed as a plain value like lap_filter, never read
-from UI state inside modules/; both WP5 (Outing.analysis_data) and WP6
-(_pipeline_cache) identities extended with accuracy_cap + a resolved_
-vehicle_snapshot, ANALYSIS_SCHEMA_VERSION bumped 1->2; resolved-level
-footer + clipped-only "comparison run" tag with the threshold caveat
-text. Five-cap byte-identity regression on Dubai confirmed; synthetic
-acceptance proof (corner weights shifted +2.06pp front) confirmed
-Fy_f/CS_ratio_f respond correctly, CS_ratio_f's flat median explained
-by the pre-existing ceiling-clipping effect, not a defect.
-(3) Small WP: explicit Save button (Tier C) next to Back, factored
-_save_outing into a shared _persist_outing() core; first Save in
-new-outing mode now sets self.outing so the form becomes edit mode
-(no duplicate row on a later Back) -- found and fixed a real
-DetachedInstanceError (session.commit() expires attributes by default;
-session.refresh() before close fixes it) via a synthetic offscreen-Qt
-test against an isolated throwaway DB, never data/setuptool.db.
-Post-save WARN hint reuses the existing stability_status_label, no
-auto-rerun. One later hardening fix: the bare except TypeError around
-setup_data parsing now logs before returning, no behaviour change on
-the happy path.
-(4) WP-B: steering_ratio Level 1->4, config/car_data.json's
-steering_ratio_table (21 rows, monotonic, np.interp default clamp,
-+/-291.5 deg domain vs log_asteer's actual -130.7/+113.9 deg on Dubai
--- never clamps on this data). New leaf node (car_data.json presence-
-gated, no per-outing setup_data involvement) plus steering_angle as a
-fourth pure cascade. Graceful L1 fallback verified with car_data.json
-genuinely renamed away in a fresh process; test_stability.py's raw,
-un-resolved call path confirmed byte-identical. Diagnostic found and
-corrected the proposal's own claim: Module 5's stability regressand is
-NOT byte-identical (delta_f_rad is one of its five ridge regressors) --
-front-axle-only scoping verified directly (beta/Fy_f/Fy_r/alpha_r/
-CS_ratio_r byte-identical, alpha_f/CS_ratio_f/stability move). Sign
-dispute resolved by the diagnostic, not argument: the effect is signed
-with the steering direction (increases alpha_f one way, decreases the
-other), this session's data skews toward the decreasing side. Location
-prediction confirmed (low-speed corners shift most) with a nuance
-(medium/low separation weaker than pre-registered). Zero verdict flips
-under unchanged thresholds; all five classification thresholds
-re-confirmed unchanged after review (config/parameters.json
-derived_from fields, thesis_notes.md).
-(5) Full channel census (2622 channels, re-scanned with correct
-cp1252 decoding -- the existing scan_channels.py's utf-8/errors=
-"replace" read mangles every degree-sign unit) + targeted
-verification: no lateral-velocity/sideslip/optical-sensor channel
-exists anywhere in the log; the log_a_car heading hypothesis tested
-and REFUTED (r=-0.001 vs yaw rate); corner_radius confirmed as a live
-logged curvature channel (r=0.87 vs ay/v^2); TO_VBOX_01-05 confirmed
-constant/inert. Chair-context marker cleanup: all four "[to verify
-with chair]"/"[context claim, to verify with chair]" markers in
-thesis_notes.md removed, each surrounding claim reworded to rest on
-SetupTool's own post-session nature and documented physics/coordinate
-evidence rather than an unverified assumption about the chair
-pipeline's operating context; DOMAIN IMPROVEMENT taxonomy labels
-unchanged throughout (the classification never depended on the
-removed wording).
-Open threads: worst-phase selector sentinel -- all-phases-at-ceiling
-reports NaN in diagnostics while classifying as normal (found
-explaining the WP-B n=49->48 count; the sentinel starts at the ceiling
-and only updates on a strictly-lower value, so an instance with every
-phase exactly at 1.0 has no phase that reads as "the worst"); reconcile
-the representation someday, not urgent, no diagnostic or verdict was
-wrong because of it. Everything still open from before this arc stays
-open, unchanged by it: the new-data-file diagnostic checklist (tc_lat/
-tc_lon/abs_position/brake_bias channel-name scan) above WP1; WP2b-2
-(rule engineering against the setup_parameters registry); WP5b(d)
-(speed cross-validation) -- log_gps_speed confirmed present in the
-real file but still not whitelisted, deliberately not added ahead of
-this consumer; the small-decisions list -- cs_front/rear_fallback_
-reference wiring-or-removal decision, the chair's time_s-anchored
-Module 5 fallback tier (port or document-as-deliberate), and the
-corner_analysis.py:359 lap_distance reset-guard fix (needs a WP1-freeze
-before/after proof first). [UPDATE 2026-07-26: WP5b(c) (GPS-course
-beta) is no longer open -- SHELVED after two implementation iterations,
-see WP5b section (c) and thesis_notes.md for the full validation
-record and reopen condition (denser anchor data). log_gps_course IS
-now whitelisted (config/channels.json), unlike log_gps_speed above,
-which stays deliberately unwhitelisted pending WP5b(d). [FURTHER
-UPDATE 2026-07-26: WP5b(d) itself is now DONE too -- log_gps_speed IS
-now whitelisted, see WP5b section (d) for the verdict (b) record.]
-
-WP5b(b) phase 1 + WP5b(c) session (2026-07-26, currently uncommitted,
-lands with the Accuracy-registry arc above as one combined commit):
-two work packages, both chair-parity/validation work on Modules 4b/6.
-TURN (a) -- Fz compute function: new modules/stability_analysis.py
-estimate_vertical_loads(state, forces, params), chair-identical axle
-Fz (static + aero + longitudinal transfer) and per-wheel split
-(independent-per-axle lateral transfer, NOT the roll-stiffness
-DOMAIN IMPROVEMENT, which stays a later sub-step) plus fy_f_norm_N/
-fy_r_norm_N (Fy_filt/fz axle), Tier A (Milliken RCVD, p. TBD verify),
-docstring states no deviation from the chair construction. New config
-(vehicle.cog_height_m=0.30, track_width_front/rear_m=1.66/1.64, all
-reviewer placeholders "NOT sourced, replace with team figure";
-aero.air_density_kgm3=1.225 L1-by-convention; aero.lift_coeff=0.0,
-documented zero-meaning, sign convention inferred from the chair's own
-formula+comment -- not yet empirically confirmed, config note flags
-the first real Cl entry must validate Fz rising with v^2). Two new
-accuracy_levels registry nodes (vertical_load_split,
-per_wheel_load_split), both Level 1. Isolated: zero call sites,
-test_stability.py byte-identical. Sign-convention verification against
-real Dubai data (not assumed): braking loads the front (ax negative
-under braking, matching the chair's formula) and a GPS-derived
-right-hander loads the left (outside) tire -- both MATCH, no flip
-needed. TURN (b) -- consumer wiring: estimate_vertical_loads joins
-StabilityAnalysisThread's pipeline (after estimate_lateral_forces) and
-the WP6 _pipeline_cache identity (new "fz" key); summarise_corners
-gained an optional fz= parameter adding fz_f_N/fz_r_N/fy_f_norm_N/
-fy_r_norm_N per-phase stat blocks (additive only, old call sites
-unaffected); UI gained one Fzf/Fzr median column pair in the corner-
-details phase table (fy_norm computed but not displayed, doesn't fit
-the panel width cleanly, deferred); nothing feeds _classify_corner.
-ANALYSIS_SCHEMA_VERSION 2->3 (payload shape change, comment explains
-why). Verified additive-only: a before/after summary-dict diff showed
-zero pre-existing keys changed, only the new keys added; three sample
-Fz values reported physically plausible (5-8 kN/axle, static-dominated
-at low ax/ay, matching the static-split calculation almost exactly).
-WP5b(c) -- GPS-course beta, two iterations, SHELVED: see the WP5b
-section (c) above for the work-package-level summary and
-thesis_notes.md for the full validation record (rotation-convention
-and latency findings, iteration 1's numbers and diagnosed root cause,
-iteration 2's two fixes and the falsifiable lever-arm check that
-passed without moving the decision-criteria metrics). config/
-parameters.json's accuracy_levels.sideslip_angle gained an inactive
-registry note recording the outcome; production beta untouched
-throughout. Closeout pass (this session): registry note text finalised
-(above), this WP5b(b)/(c) STATUS paragraph and the WP5b section (b)/(c)
-markers added, Open threads paragraph corrected (WP5b(c) removed from
-the open/gated list). thesis_notes.md completeness checked against
-today's work -- see the session's own report for the verdict; nothing
-added beyond what was explicitly flagged.
-
-WP-N2 pass 0 build session (2026-08-19, superseded by the pass 1-4
-arc and the carry-forward decision above -- kept for the development
-narrative): pass 0 (nonlinear single-track EKF, Dugoff tyre model,
-frozen WP-N1b curve) built -- diagnostics/sideslip_ekf_dugoff.py
-(states [beta, yaw_rate], Vx/delta_f scheduled, Dugoff forces +
-analytic dugoff_lateral_stiffness for both Jacobians, nonlinear state
-propagation with covariance-only Ad, windowed-NIS + hard-|beta|-bound
-divergence monitor, fixed fallback to kinematic beta/measured yaw
-rate/P0); diagnostics/inspect_ekf_dugoff_sanity_checks.py
-(Jacobian-collapse check against the rejected linear filter's own A/C
--- exact match at alpha=0, small expected deviation at alpha=0.02 rad
-from Dugoff's tan(alpha) nonlinearity; h2-vs-ay consistency check,
-explicitly labelled NOT validation and PARTLY CIRCULAR). config/
-parameters.json gained tyre_model_ekf.pass_0 (additive, tyre_model_fit
-untouched): frozen Dugoff parameters + frozen_from pointer, Q/R/P0
-seeded from the tuned linear observer (QR_RATIO=0.3162), beta_hard_
-bound_deg=15.0 (physically anchored), NIS window/bound/fraction
-(20/5.99/0.5, placeholder pending validation), Iz_provenance,
-fy_axle_dependency_note.
-KEY FINDING from this build (verified numerically on Dubai data):
-Module 4a's Fy_f/Fy_r satisfy a*Fy_f - b*Fy_r == Iz*psidd_raw
-IDENTICALLY (max deviation 7.3e-12 Nm using live a/b) -- the two axle
-forces carry exactly TWO independent measured quantities (ay, psidd)
-between them, not four independent numbers; any per-axle fit against
-both must be read with this coupling in mind. Iz choice: vehicle.
-yaw_inertia_kgm2 (2082.0), not yaw_inertia_kalman_kgm2 (1800.0) --
-consistency with the training-data forces, not a better-sourced claim.
-DOCUMENTATION FIX, same session: the Ulsoy, Peng, Cakmakci citation
-corrected (confirmed by two independent readings) to anchor the
-nonlinear single-track vehicle model (sec. 14.3) and sideslip's
-operational significance (sec. 14.1), not observer structure; Eq. 14.8
-confirmed a term-by-term match (two documented simplifications: no
-roll DOF, pure-lateral Dugoff vs. combined-slip Magic Formula).
-Open design decisions this build carried forward (all since resolved
-or superseded by the pass 1-4 arc and carry-forward decision above):
-sign correctness at racing-speed corners; the saturation/circularity
-check reframed for a nonlinear model; steady-state magnitude check;
-NIS/bound placeholder tuning; the Q/R sensitivity check under this
-filter's state-dependent Jacobian; how the fitted curve's valid slip
-range gets reported as a production-facing mechanism (still not
-designed -- unchanged open item, now inherited by whichever future WP
-revisits production wiring).
-
-### NOW section archived [superseded 2026-08-20, replaced by the
-entry_1_brake production-fix / method-lineage-correction / plan
-rewrite below the current STATUS block]
-Track A (numbers correct): sideslip methods-comparison arc CONTINUES --
-NOT closed. Linear-tyre Kalman observer (WP-S4/S5/S5b/S6) REJECTED for
-production (saturation-detection failure). Kinematic estimate remains
-production. WP-N0/N1/N1b DONE (Dugoff model chosen, c_alpha refit from
-Module 4b, mu_fz interior optimum both axles): frozen pass-0/pass-1
-Dugoff parameters c_alpha_front=132798, c_alpha_rear=174217 N/rad,
-mu_fz_front=10653, mu_fz_rear=15819 N (read exact values from config --
-do not trust these).
-
-WP-N2, nonlinear single-track EKF, Dugoff tyre model. Pass 0 built and
-run (frozen WP-N1b curve, Q/R/P0 seeded from the tuned linear observer):
-NIS baseline poor (93.4% combined exceedance -- expected, since R
-assumed sensor-only noise while the curve's own fit residuals are two
-orders of magnitude larger), but three convergent lines of evidence for
-kinematic slip-angle under-read. Pass 1: noise-model recalibration only
-(curve unchanged), R redefined as total innovation uncertainty, 2-D
-sweep found one interior grid point inside the pre-registered NIS band
--- NIS/sign/C2-excursion gates all PASSED. Pass 1's flagged CS_ratio
-counts jumped sharply (front 32/56, rear 27/56 vs kinematic 11/9);
-investigated and found NOT YET INTERPRETABLE -- thresholds are
-kinematic-fitted and the whole pass_1 distribution shifted across every
-percentile band, not just the tail. THRESHOLD RE-DERIVATION
-DELIBERATELY DEFERRED (see PARKED) until the estimator is finalised.
-
-Passes 2-4: refit loop, attempting to break the kinematic-sourced
-curve's circularity by refitting c_alpha/mu_fz from the EKF's own
-converged slip angles each pass, Q/R/P0 held fixed to isolate the
-curve's effect, predictions pre-registered before every pass (thesis_
-notes.md WP-N2 pass 2/3/4 entries). OUTCOME: NON-CONVERGED, STOPPED at
-pass 4 (one short of the pre-registered 4-pass cap) on the
-pre-registered failure criteria, not the cap. FRONT axle oscillated
-with GROWING (not shrinking) magnitude at pass 4 -- failure mode 1.
-REAR axle's mu_fz fit diverged to its search bracket's ceiling at pass
-4 (8.48e6 N, effective mu 1102.5, onset 88.4 deg, coverage exactly
-0.0000) -- failure mode 3, the curve degenerating to pure-linear, the
-same structural blind spot that condemned the linear observer, arrived
-at here by fit failure rather than design. MECHANISM: a self-starving
-positive feedback (lower c_alpha -> onset moves outward -> fewer
-saturating samples -> mu_fz less identifiable -> drifts up -> onset
-moves out further), pre-registered as a risk at pass 0 (rear only 6.95%
-of samples past onset) and confirmed as the cause. SECOND READING,
-EXPECTED not established: the rear axle of this RWD car may saturate
-principally under longitudinal traction on exit, not laterally, so a
-pure-lateral model has genuinely little rear saturation to identify in
-this data -- connects directly to the PARKED combined-slip item. Full
-trajectory, mechanism and scorecard: thesis_notes.md "WP-N2 refit loop:
-NON-CONVERGENCE, rear degeneracy to a pure-linear curve, and the
-identifiability limit".
-
-CARRY-FORWARD DECISION (thesis_notes.md "WP-N2 carry-forward decision:
-pass 1"): the estimator carried forward is PASS 1's configuration
-(pass_0's Dugoff curve, pass_1's calibrated noise model) -- chosen by a
-PROVENANCE RULE stated before any outcome comparison (pass 1 is the
-last configuration not produced by the non-converging refit loop), not
-by comparing which pass scored best, which would be retrofitting.
-CARRIED-FORWARD LIMITATION, not resolved: pass 1's curve is still
-fitted from KINEMATIC slip angles -- the exact circularity the refit
-loop existed to break, and the loop failed to break it. Stated
-limitation of the carried-forward method, not a solved problem.
-
-R RE-DERIVATION DECIDED NOT NEEDED (2026-08-20, thesis_notes.md "WP-N2
-pass 1: final validation baseline"): pass 1's R was derived from and
-NIS-gated against this exact curve and filter configuration -- the
-acceptance figures (yaw_rate 10.01%, ay 9.18%, combined mean NIS
-2.907) are already a direct measurement of the carried-forward
-estimator, not an inference from provenance. The staleness found in
-passes 2-4 was specific to refitted curves, none of which are carried
-forward. No change made. Two refinement opportunities remain open,
-not defects: Q was never swept, and the accepted R is one interior
-point on a coarse 5x5 grid with no finer search run around it.
-
-NEXT STEP: the classification-threshold re-derivation (deferred, see
-PARKED), and the combined-slip comparison the rear degeneracy now
-motivates more strongly than before.
-
-Last commit: 4b1b548 (Sideslip observer arc: comparison harness, Kalman
-candidate, tuning, report). Local main up to date with origin/main.
-Uncommitted: everything from the WP-N0/N1/N1b turn plus the full WP-N2
-arc this session -- pass 0/1/2/3/4 filter runs and their config blocks
-(tyre_model_ekf.pass_0 through pass_4), diagnostics/sideslip_ekf_
-dugoff.py and every inspect_ekf_*/fit_dugoff_pass*_refit.py/*_manifest.
-json script and file this arc produced, the carry-forward decision, and
-every corresponding thesis_notes.md entry (see thesis_notes.md for the
-full, dated file-by-file record of each pass). This PLAN.md rewrite.
-
-## SUPERSEDED NOW-BLOCK CLOSING TEXT (2026-08-31 STATUS rewrite)
-The following closing paragraph stood at the end of ### NOW's "WHERE
-THE PROJECT STANDS" bullet list from the 2026-08-30 ship-readiness
-cleanup entry until the 2026-08-31 STATUS rewrite replaced it with the
-PROJECT DIRECTION paragraph (method work frozen; commit/reliability/
-thesis-writing priorities) now in ### NOW. Preserved here verbatim,
-not because its content is wrong -- STEP 4's prerequisites listed below
-are still exactly as scoped -- but because "next substantive work" is
-no longer an accurate framing of what happens next:
-  NEXT: STEP 4 below (decision-matrix cleanup) is the next substantive
-  work -- its prerequisites are unchanged by this cleanup package and
-  already listed in full under STEP 4's own entry (threshold re-
-  derivation for CS_ratio AND LS_ratio together, the CS_ratio cross-
-  lap aggregation problem under PARKED, the entry_1_brake rule-base
-  implications, and whether LS_ratio enters the recommendation rules
-  at all).
-
-STEP 2 and the TRACE-DIALOG/PDF/DECISIONS PACKAGE bullets folded into
-the ### NOW standing summary at the 2026-09-01 follow-up's own STATUS
-rewrite (item 7 of that work order: "rewritten at every work stop, not
-appended" -- these two had grown to 142 lines of dated narrative
-sitting in NOW instead of a short standing-summary line). Full verbatim
-text preserved below exactly as it read in NOW before the fold; nothing
-summarised away here, only condensed in NOW itself (thesis_notes.md has
-the same detail on permanent record regardless):
-
-- STEP 2 (chair-comparable result plots) DONE (2026-08-31 -- full
-  record: thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result
-  plots, kinematic vs ekf_pass_1"). diagnostics/inspect_step2_chair_
-  plots.py ([keep-reproduces] in diagnostics/README.md, thesis-figure
-  source), 28 PNGs (14 stable corners x kinematic/ekf_pass_1 sources)
-  in diagnostics/plots_step2/ (gitignored). HEADLINE FINDING: the rear
-  CS extremes that opened the estimator arc are largely BETA
-  ARTIFACTS -- C9 rear worst-phase CS improves from -362508 to -74581
-  N/rad and C6 rear from -311382 to -13064 N/rad under ekf_pass_1 vs
-  kinematic, both with visibly cleaner near-monotonic tyre curves under
-  ekf_pass_1. C4's front saturation is NOT a beta artifact -- CS stays
-  large and negative under both sources (-98372 kinematic / -95027
-  ekf_pass_1) with the same peak-and-fold shape at a similar slip angle
-  both times, read as genuine saturation, not estimator noise. No
-  production/config file changed; sideslip_source never read from or
-  written to config throughout.
-  PROJECT DIRECTION (decided 2026-08-31): estimator/method work is
-  FROZEN for now. STEP 4 (decision-matrix cleanup) and the STEP 3/4
-  threshold-re-derivation prerequisites below remain open but are NOT
-  the next work. Next priorities, in order: (1) commit the large
-  uncommitted working tree (many sessions' worth -- see git status),
-  (2) reliability passes (the ship-readiness audit's catalogued raw-
-  exception-string/silent-failure UI risks, thesis_notes.md "9. Ship-
-  readiness cleanup" Phase 5, still uncatalogued-into-fixes), (3)
-  thesis writing. STEP 4 and further method work resume only when the
-  user reopens it -- the prerequisites list below is preserved exactly
-  as scoped, not abandoned.
-- TRACE-DIALOG VISIBILITY/COLOUR REDESIGN AND PDF/DECISIONS/DIAGNOSTIC
-  PACKAGE DONE (2026-09-01, unsupervised package, Phases 0-3 -- full
-  record: thesis_notes.md entries dated 2026-09-01, one per phase/
-  decision below; Phases 4-5 are this bullet and the suite run closing
-  it out). Continues directly from the already-committed trace-dialog
-  Part A/B/addendum work (commits 3a114cb, 1117ecf: one-visibility-rule,
-  legend/click fixes, per-lap dynamic colour, LS display mask) -- this
-  package is the post-visual-review CORRECTIONS pass on that redesign
-  plus four independent decisions and one diagnostic, still uncommitted.
-  PHASE 0 (corrections after visual review, core/plot_style.py, core/
-  figure_render.py, ui/views/corner_trace_dialog.py): removed the bold/
-  faint emphasis distinction entirely (SCREEN_LAP_WIDTH/PRINT_LAP_WIDTH
-  now uniform per lap, no is_emphasized concept left anywhere); Tyre
-  Curves tab legend text collapsed to one line; CS/LS panels split
-  front/rear in BOTH the interactive dialog and the PRINT export (no
-  solid/dashed axle encoding); corner-figure PRINT export layout
-  redesigned for tyre-curve legibility (dedicated legend sub-axes via
-  GridSpec.subgridspec -- a bbox_to_anchor legend was silently
-  collapsing sibling axes to near-zero width under constrained_layout
-  when sharing a row with row-spanning axes, root-caused and fixed;
-  final tyre-curve panel width 6.92 cm against a 7 cm target, accepted
-  as close enough); tyre-curve readability re-tuned (session-cloud/lap-
-  sample/window-ring sizes and alphas, kN y-axis formatting); ls_
-  display_min_ax_mps2=1.0 confirmed and reported (derived from this
-  car's own |ax_mps2| distribution, ~0.1g rule-of-thumb, config/
-  parameters.json note has the full percentile record). Four
-  deliverables re-rendered and inspected (C5 both tabs at 4 laps and at
-  1 lap, both PRINT exports) before proceeding.
-  PHASE 1 (core/pdf_export.py, three-column car-centric weekend-strip
-  layout): FL/RL left, Car middle, FR/RR right, real spacer COLUMNS for
-  inter-column gaps (not LEFTPADDING/RIGHTPADDING carved out of the car
-  column, which was silently causing an internal width-vs-content
-  mismatch); large-scale fonts unified (core_label=value=table_label=
-  car_label=9.5pt, satisfying "value >= label"); verified via pymupdf
-  render at both scales against real Dubai data -- large scale improved
-  from an initial ~73%/96% (width/height fill) to 93.5%/94.4%; small
-  scale improved modestly (pad/diagram_scale tuning) but hit a genuine
-  CONTENT-DENSITY CEILING, not a tunable-constant problem -- the car
-  column's own non-diagram tables alone already exceed the small-scale
-  strip's ~37mm height budget. OPEN, needs a user decision: fewer
-  strips per page, taller strips, or trimming which car-column blocks
-  appear at small scale.
-  PHASE 2 DECISIONS BATCH: (2a) CLAUDE.md's Tier A citation rule changed
-  -- code now carries a one-line pointer to a named thesis_notes.md
-  entry, never inline author/title/page; swept modules/stability_
-  analysis.py, tyre_model.py, tyre_model_pacejka.py, longitudinal_
-  forces.py, longitudinal_stiffness.py, yaw_stability.py and converted
-  every remaining inline citation (estimate_sideslip already done
-  2026-08-19); one thesis_notes.md cross-reference bullet added for two
-  Rajamani Ch. 2 anchors (longitudinal_forces.py) that had never been
-  named as their own bullet; no citation content changed or lost.
-  (2b) The Data section's "Exclude In/Out Laps" toggle and single-lap-
-  selection-drives-analysis coupling REMOVED from ui/views/outing_
-  form.py -- analysis now always covers every is_valid_for_analysis lap
-  (falls back to every lap only if none are valid); the lap table
-  itself and its row-click-scopes-the-raw-channel-plot behaviour are
-  UNTOUCHED (a second, independent purpose the removal did not touch).
-  _try_render_cached_analysis gained a stale-lap_filter guard: a saved
-  analysis whose lap_filter does not match what the new policy would
-  compute today is now a cache miss, not a silent stale render -- this
-  matters for any outing analysed and saved under the old UI. (2c)
-  PROJECT.md deleted (stale since ~WP1/WP2, PLAN.md+CLAUDE.md+thesis_
-  notes.md are the live sources of truth); its one live reference
-  (modules/recommendation.py's FEEDBACK_SCALE_MAX comment) fixed, its
-  historical PLAN.md STATUS HISTORY mentions left untouched. (2d) New
-  "Clear Data" button + OutingForm._reset_data_state() (Data section,
-  QMessageBox-confirmed): clears parsed_data/loaded_csv_path/stability_
-  result/analysis caches and every dependent status widget back to
-  construction state; deliberately writes nothing to the database
-  itself -- loaded_csv_path=None is exactly what a subsequent Save
-  already persists as csv_path="", same stage-in-memory convention
-  every other form field follows. (2e) Weekend PDF status check found
-  a REAL bug while confirming Phase 1's layout survives inside the
-  weekend PDF (it does): core/weekend_pdf_export.py's _recommendations_
-  flowables crashed with "TypeError: unsupported format string passed
-  to NoneType.__format__" on any "urgent_gap" driver/data-contradiction
-  recommendation (score=None, parameter=None, actions=[] by design) --
-  invisible in normal use because the existing per-outing try/except
-  (correct, kept as-is) silently swallowed it into a generic ERROR note,
-  meaning that outing's entire analysis section (verdict summary,
-  corner table, feedback) never rendered. Fixed to mirror ui/views/
-  outing_form.py's own already-documented "FIX 1" handling for this
-  exact recommendation shape (corner+verdict badge, no score, URGENT
-  class) instead of assuming every recommendation has a numeric score.
-  Confirmed against the real local database (weekend 1 "Dubai") before
-  and after the fix.
-  PHASE 3: new read-only diagnostic diagnostics/inspect_ls_ratio_span_
-  dependence.py ([keep-referenced], diagnostics/README.md) -- does
-  LS_ratio depend on the sliding regression window's own kappa span,
-  independent of config's longitudinal_stiffness.min_slip_span=0.004
-  gate? Independent re-derivation cross-checked exactly against
-  production output on the gate-kept population (np.allclose, both
-  axles) before trusting its extended (below-gate) population.
-  RESULT: a clear, visually obvious cliff at the gate -- below it,
-  LS_ratio explodes to implausible values (front to roughly -200, rear
-  to roughly -27) from small-span-denominator noise amplification;
-  above it, both axles compress into the plausible <=1.0-capped band
-  production actually reports. Supports the GENERAL SHAPE of the gate
-  being necessary; does not establish that 0.004 SPECIFICALLY (vs a
-  nearby value) is optimal. diagnostics/plots_step2/ls_ratio_span_
-  dependence.png, thesis_notes.md has the full record.
-  HARD CONSTRAINTS HELD: no estimator/threshold/config numerics changed
-  beyond the named additions above (CLAUDE.md's citation rule text,
-  PROJECT.md's deletion, and the pdf_export.py font/layout constants
-  are all Tier C/documentation, not method numerics); no commit.
-  PHASE 5: full regression suite run exactly once (temporarily flipped
-  sideslip_source to "kinematic", ran, restored to the user's own live
-  value "ekf_auto_pacejka" exactly afterward, verified via git diff --
-  config/parameters.json's diff against HEAD is byte-identical to the
-  pre-Phase-5 state, exactly this package's own named additions above
-  and nothing else). RESULT: 138 passed, 1 xfailed, 0 failed, 0 errors
-  (27m29s), zero failures or errors of any kind. git status clean
-  otherwise (exactly this package's own file list, unchanged before/
-  after the suite run); protected set empty; no commit.
 
 # SetupTool — Work Plan (Phase 6)
 Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
