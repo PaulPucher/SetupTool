@@ -542,6 +542,166 @@ def test_lever_bridges_absent_when_config_empty():
     assert not [c for c in candidates if c["id"].startswith("lever_bridge:")]
 
 
+# --- FRAME DEPTH PROGRAMME Step 1: condition schema -------------------------
+#
+# evaluate_conditions() is a pure function -- most paths are tested directly
+# against it (fast, precise). Two integration tests confirm the wiring into
+# _bridge_candidates_for_levers/generate_candidates actually suppresses/caps
+# a real candidate, not just that the pure function returns the right enum.
+
+def test_condition_all_pass():
+    from modules.decision_frame import evaluate_conditions
+    conditions = [{"type": "phase_transient", "required": True}]
+    verdict, reasons = evaluate_conditions(conditions, 4, "entry_2_turnin", [], None, {})
+    assert verdict == "PASS"
+    assert reasons == []
+
+
+def test_condition_required_fail_suppresses():
+    from modules.decision_frame import evaluate_conditions
+    conditions = [{"type": "phase_transient", "required": True}]
+    verdict, reasons = evaluate_conditions(conditions, 4, "apex_3", [], None, {})
+    assert verdict == "SUPPRESS"
+    assert reasons and "apex_3" in reasons[0]
+
+
+def test_condition_non_required_fail_caps():
+    from modules.decision_frame import evaluate_conditions
+    conditions = [{"type": "phase_transient", "required": False}]
+    verdict, reasons = evaluate_conditions(conditions, 4, "apex_3", [], None, {})
+    assert verdict == "CAP_ADVISORY"
+    assert reasons and "apex_3" in reasons[0]
+
+
+def test_condition_not_evaluable_evidence_type_absent_caps():
+    from modules.decision_frame import evaluate_conditions
+    conditions = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                   "presence": "present", "required": False}]
+    # evidence_items carries OTHER types but never damper_motion at all --
+    # the evidence source itself was never built this run, not merely
+    # silent at this corner/phase.
+    evidence_items = [{"type": "corner_verdict", "corner": 4, "phase": "entry_2_turnin"}]
+    verdict, reasons = evaluate_conditions(conditions, 4, "entry_2_turnin", evidence_items, None, {})
+    assert verdict == "CAP_ADVISORY"
+    assert "no damper_motion evidence available" in reasons[0]
+
+
+def test_condition_not_evaluable_setup_data_none_caps():
+    from modules.decision_frame import evaluate_conditions
+    registry = load_setup_parameters_registry()
+    conditions = [{"type": "setup_state", "parameter": "toe_front", "check": "within_window",
+                   "required": False}]
+    verdict, reasons = evaluate_conditions(conditions, 4, "entry_2_turnin", [], None, registry)
+    assert verdict == "CAP_ADVISORY"
+    assert "setup sheet unfilled: toe_front" in reasons[0]
+
+
+def test_condition_not_evaluable_registry_window_missing_caps():
+    from modules.decision_frame import evaluate_conditions
+    registry = load_setup_parameters_registry()
+    # abs_position's own parameter_windows entry is nominal=null/span=null
+    # (categorical, direction_semantics.type is explicitly non-monotonic --
+    # config/decision_frame.json's own note on this parameter).
+    conditions = [{"type": "setup_state", "parameter": "abs_position", "check": "within_window",
+                   "required": False}]
+    setup_data = {"electronics": {"abs_position": 5}}
+    verdict, reasons = evaluate_conditions(conditions, 4, "entry_1_brake", [], setup_data, registry)
+    assert verdict == "CAP_ADVISORY"
+    assert "no settings window: abs_position" in reasons[0]
+
+
+def test_condition_phase_transient_passes_exit_fails_apex():
+    from modules.decision_frame import evaluate_conditions
+    conditions = [{"type": "phase_transient", "required": True}]
+    verdict, _ = evaluate_conditions(conditions, 4, "exit_4", [], None, {})
+    assert verdict == "PASS"
+    verdict, _ = evaluate_conditions(conditions, 4, "apex_3", [], None, {})
+    assert verdict == "SUPPRESS"
+
+
+def test_condition_evidence_corroboration_present_and_absent():
+    from modules.decision_frame import evaluate_conditions
+    damper_ev = {"type": "damper_motion", "corner": 4, "phase": "entry_2_turnin"}
+    present_cond = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                      "presence": "present", "required": False}]
+    absent_cond = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                     "presence": "absent", "required": False}]
+    # Evidence type WAS built this run (damper_ev exists somewhere), and a
+    # matching item exists at this exact corner/phase.
+    verdict, _ = evaluate_conditions(present_cond, 4, "entry_2_turnin", [damper_ev], None, {})
+    assert verdict == "PASS"
+    verdict, reasons = evaluate_conditions(absent_cond, 4, "entry_2_turnin", [damper_ev], None, {})
+    assert verdict == "CAP_ADVISORY"  # non-required presence violated
+    # Evidence type built, but nothing at THIS corner -- a real, evaluable absence.
+    verdict, reasons = evaluate_conditions(present_cond, 9, "entry_2_turnin", [damper_ev], None, {})
+    assert verdict == "CAP_ADVISORY"
+    assert "no damper_motion evidence at C9 entry_2_turnin" in reasons[0]
+    verdict, _ = evaluate_conditions(absent_cond, 9, "entry_2_turnin", [damper_ev], None, {})
+    assert verdict == "PASS"
+
+
+def test_condition_no_conditions_key_byte_identical_to_today():
+    # Entry with no "conditions" key at all -- the exact shape every one of
+    # the 4 shipped lever_bridges entries has today. Confirms generate_
+    # candidates' new setup_data parameter and the evaluate_conditions call
+    # it now makes are completely inert for a bridge that doesn't opt in.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    assert all("conditions" not in b for b in config["lever_bridges"])
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+    assert matches[0]["evidence_refs"] == [evidence[0]]  # no synthetic condition_gap item appended
+    assert matches[0]["condition_reasons"] == []
+
+
+# --- Integration: conditions actually suppress/cap a real candidate --------
+
+def test_condition_integration_required_condition_suppresses_real_candidate():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    # springs_front/soften normally fires at apex_3 too (see the config's
+    # own phase_groups) -- attach a required phase_transient condition and
+    # confirm the apex_3 candidate specifically disappears while another
+    # phase (entry_2_turnin, a real transient) is unaffected.
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "phase_transient", "required": True}]
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
+        _matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "moderate", "medium"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    ids = {c["id"] for c in candidates}
+    assert "lever_bridge:springs_front:soften:C7:apex_3" not in ids
+    assert "lever_bridge:springs_front:soften:C7:entry_2_turnin" in ids
+
+
+def test_condition_integration_not_evaluable_caps_real_candidate_confidence():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    cap = config["conditions"]["not_evaluable_confidence_cap"]
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                                 "presence": "present", "required": False}]
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium", confidence=0.9)]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["condition_reasons"] == ["no damper_motion evidence available this run"]
+    gap_items = [e for e in c["evidence_refs"] if e["type"] == "condition_gap"]
+    assert len(gap_items) == 1
+    assert gap_items[0]["confidence"] == pytest.approx(cap)
+    # The candidate's own overall confidence (MIN across evidence_refs) is
+    # pulled DOWN to the cap even though the firing evidence itself was 0.9
+    # -- min() never inflates, only lowers.
+    from modules.decision_frame import _candidate_confidence
+    assert _candidate_confidence(c) == pytest.approx(cap)
+
+
 # --- Intervention evidence, off/on -----------------------------------------
 
 def _synthetic_state_channels(n=200, sample_rate_hz=50.0):

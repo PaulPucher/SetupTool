@@ -2,90 +2,17 @@
 
 ### NOW
 
-WHERE THE PROJECT STANDS
-
-- The production tool works. The sideslip estimator arc is CLOSED:
-  nonlinear single-track EKF + Dugoff tyre model, carried-forward
-  configuration is PASS 1 (kinematic-seeded curve, calibrated noise
-  model), frozen validation baseline in diagnostics/inspect_pass1_
-  final_validation.py. The refit loop (passes 2-4) was rejected as
-  structurally non-convergent on two sessions, two failure directions
-  (thesis_notes.md "Refit-loop conclusion: structural non-convergence
-  confirmed on two sessions, two failure directions") -- pass 1's
-  kinematic circularity is a stated, documented limitation, not a
-  resolved issue, and must appear as such in the write-up.
-- Fz-integration line complete: measured (damper-derived) vertical
-  loads are the default source (stability_estimation.vertical_load_
-  source=measured). The aero front/rear split (0.40 placeholder) is a
-  genuine identifiability limit of 3-gauge straight-line data, not an
-  open bug -- gated on a real aero-balance figure or a session with all
-  4 gauges live.
-- Decision-frame layer (evidence -> candidates -> scoring,
-  modules/decision_frame.py) is live: Stage 1, Stage 2 (39-rule
-  migration bridge), Deepening (a-d), Metrology (Phases 1-3), and
-  LS-evidence are all shipped.
-- LS thresholds SHIPPED, phase-scoped (2026-09-20, branch ls-evidence):
-  STRONG_LSF/LSR fire as a new "ls_threshold" evidence source (still
-  explicitly NOT a classification-verdict tier) -- uncapped on braking/
-  turn-in/apex, confidence-capped at exit_phase_confidence_discount=0.5
-  (census-derived; min() only ever lowers a value, so a repeatable exit
-  reading gets pulled UP to the cap while a one-off stays honestly
-  below it). Full record: thesis_notes.md "LS threshold decision:
-  SHIPPED, phase-scoped".
-- Generic lever-bridge candidate mechanism SHIPPED (BACKLOG item H,
-  2026-09-20, branch lever-bridges): springs_front/rear now produce
-  real advisory candidates in both directions via one config-driven
-  generator (config/decision_frame.json lever_bridges + modules.
-  decision_frame._bridge_candidates_for_levers), not a new hardcoded
-  function per lever. Found-and-fixed a latent KeyError in the
-  pre-existing hardcoded springs_rear_soften action along the way
-  (missing "delta" key). Verified on both real sessions: existing
-  non-advisory (derived-from-matrix) candidates byte-stable, new
-  advisory rows only where evidence exists. Full record and numbers:
-  thesis_notes.md "Generic lever-bridge candidate mechanism (BACKLOG
-  item H): shipped"; closure note under BACKLOG item H below.
-- Mu load-normalised tyre fit: re-evaluated on clean inputs (v3 FR
-  live, aero/mass double-count fixed) -- CENTRAL FINDING CONFIRMED, not
-  an artifact of either now-fixed confound (rear axles run a lower
-  effective mu than front at this car's own dynamic load levels,
-  ordinary tyre load sensitivity, most cleanly evidenced on v3 rear).
-  Plausibility-band stop condition IMPROVED (3-of-4 -> 2-of-4
-  implausible, v3 front now plausible) but still fires; mu mode stays
-  config-gated OFF in production (diagnostic-only finding, no default
-  changed). Full record: thesis_notes.md "Mu-fit re-evaluation with FR
-  live".
-- Regression suite (tests/): 301 passed, 9 skipped, 1 xfailed, 0 failed
-  (2026-09-20, full run after the lever-bridges package, 56m49s) --
-  goldens byte-identical (golden-file tests are part of this run and
-  pass). test_stability.py remains a separate zero-assertion smoke
-  test (see STANDING WARNINGS below -- it does not verify numerical
-  correctness).
-
-OPEN ITEMS (not done, named rather than silently dropped):
-- Springs-path migration: the hardcoded _exit_oversteer_candidates
-  springs_rear_soften candidate is not yet folded into the generic
-  lever-bridge mechanism above -- a dedupe step currently substitutes
-  for it (hardcoded path wins any collision). Natural next small
-  package, named under BACKLOG item H's own closure note.
-- TC/EB channel-identity mapping: still dormant/unresolved (Frame-
-  Stage-2 Phase 2's own UNCLEAR/READ-AND-RECORD findings) -- TC
-  intervention evidence stays config-gated off pending it.
-- Motion-ratio residual: a smaller, corner-specific wheel-load residual
-  remains after the aero v^2 term (Metrology Phase 3 rear-residual
-  decomposition) -- consistent with the motion-ratio table region but
-  not distinguishable from real session-to-session static-condition
-  differences (fuel/ballast/tyre pressure) with telemetry alone;
-  several times smaller in scope than the original aero-split residual,
-  carried forward rather than further worked.
-- Standing PROPOSAL-FIRST items from the estimator-arc closure remain
-  open and gated: Module 5 stability-threshold re-anchoring under a
-  non-kinematic estimator (BACKLOG item A, NEW OPEN ITEM); the Fy-split-
-  from-measured-load upgrade (BACKLOG item G, needs a literature anchor
-  before any code change).
-
-Full BACKLOG (ordered) and PARKED sections below carry the complete,
-itemized detail behind every line above; STATUS HISTORY further below
-carries the full prior narrative this rewrite condensed.
+(1) Decision-layer spec: designed with the reviewer in chat, stage by
+    stage; implemented afterward as ONE package, mostly config. Governs
+    all remaining decision-frame work.
+(2) Pipeline performance: profile first -- read-only per-module timing
+    on both sessions, machine untouched during the run -- then decide.
+    Observed unprofiled: Modules 1-5 832s, fit chain 188-383s.
+(3) Big cleanup: diagnostics inventory, HANDOVER regeneration,
+    protected-set audit, module map document for the author.
+(4) Commit and push at end of every working day.
+(5) Thesis writing starts after (1)-(3); later building remains
+    possible but chapter-driven.
 
 STANDING WARNINGS -- carry these into every future session
 
@@ -106,8 +33,266 @@ STANDING WARNINGS -- carry these into every future session
 - Protected set, never committed: docs/literature/, docs/car_data/,
   config/car_data.json, HANDOVER.md, docs/study/. Verify with
   git ls-files returning empty.
+- Full test suite only at commit points, once per package. Targeted
+  tests during implementation. Never run the full suite mid-iteration.
+
+# DECISION LAYER SPEC (governing document — elicited 2026-09-22,
+reviewer interview with author. Source key: [A]=author decision,
+[M]=matrix/registry record, [S]=Segers via docs/segers_bridge_review.md,
+[E]=engineer elicitation pending. Implementation follows this spec;
+any conflict between spec and code is a STOP.)
+
+## Design principle
+The layer mirrors a race engineer's reasoning order: (1) what can I
+change, (2) what is calling for it, (3) is it still in its green band,
+(4) is anything blocking or overlapping it, (5) what data breaks the
+tie, (6) ranked output, pick one. Candidates are statuses on a fixed
+lever inventory, never spawned ad hoc. Every lever always has a state:
+proposed / no-trigger / blocked-at-edge / contradicted / not-assessable.
+Silent unreachability is structurally impossible.
+
+## Stage 1 — Lever inventory (fixed, from config/setup_parameters.json)
+Reachable levers (axle-paired where marked):
+- arb_fl/fr/rl/rr [M]; arb_front_mount P0/P1/P2, progressive pretension
+  vs steering, higher=snappier turn-in; driver-feel lever, triggers on
+  turn-in-phase driver feedback, not data verdicts alone [A].
+- springs_front/rear [M]; heavy corrector (see eligibility).
+- Dampers as 10 levers: bump LS/HS, rebound LS/HS, blowoff x front/rear
+  axle. AXLE PAIRS ONLY, never asymmetric [A]. Blowoff reachable,
+  reference front 6 / rear 0 [A]. Transient phases only, consuming
+  damper_motion evidence [S: C11-1/2/3]. Step sizes: exploratory=large
+  (feelable), fine-tune=1 click; exact clicks per adjuster [E].
+- camber fl/fr/rl/rr, axle-pairs, step 0.1 deg: HEAVY CORRECTOR, fires
+  only on multi-corner same-axle strong patterns or |feedback|>=4;
+  surface-temp/wear optimisation explicitly out of scope (no channels)
+  — balance evidence only, stated as limitation [A]. Effort:
+  half-hour class (20-30 min) [A].
+- toe_front/rear [M]; heavy-corrector eligibility like springs [A].
+- ride_height_front/rear [M]; rake default 1mm [E confirms].
+- wing_position P8<P9<P10 downforce, degrees per Wing_1 GT3R-2026
+  table [A].
+- splitter_offset: NOW A LEVER [A]. Range -4..+4 mm, 0=default, step
+  1mm; hard forward limit = front contact, track-dependent; effort
+  MINUTES (2 sloppy / 20 precise — registry garage_hours is wrong,
+  fix it); front aero pair-lever to wing; interactions: ride_height_
+  front (shared ground clearance), wing (same axis) [A].
+- diff_position: 5 sheet positions, ~70-160 Nm; effort PITLANE/MINUTES
+  (registry garage/seconds is wrong, fix it); triggers include
+  straight-line stability under braking AND acceleration, not only
+  exit cells [A]. COUPLED to engine braking: teams run high diff,
+  per-corner EB weakens it in-corner — diff recommendations degrade
+  honestly ("EB program unknown") until TC/EB channel mapping lands
+  [A][E].
+- brake_bias: NOW A TARGET [A] (resolves the deliberate-omission
+  question: it was an oversight). Braking phases only; direction
+  clicks fwd/rear; step 1 click default, max 3, severity-scaled;
+  cockpit/seconds; lockup chain behind it [S: C5-1/2]; current-state
+  window not evaluable until bias channel identified [E].
+- tc_lat, tc_lon: positions 1-11, 1=least intervention, NON-LINEAR,
+  per-position semantics from TC_reference table [A]. abs_position:
+  per ABS_2 table, variant V2 operative [A]. Direction vocabulary
+  "more/less intervention", mapped via tables, never raw arithmetic.
+Check-only (never recommended):
+- tyre pressures: config target window (tyre_pressure_target, per
+  corner position, per-compound, ships null=silent), evaluated on
+  CORNERING-PHASE samples only — straight-line pressure drop is
+  physics, never a flag [A]. Deviation flags shown beside shortlist,
+  never in it.
+Written exclusions (not in-weekend levers): kinematic_variants (whole-
+car directness, pre-event), gear_ratios, diff_package, engine_curves
+(EB-as-lever question pending [E]) [A].
+
+## Stage 2 — Triggers
+Three trigger provenances, all labelled: data-only (verdicts, matrix
+patterns [M]); feedback-only: |driver feedback|>=2 generates candidates
+with ZERO data verdict — small-step, low-urgency, cheapest eligible
+levers, distinct provenance label; |1| is a note, corroboration-only,
+never triggers [A]; both-agreeing = strongest class. Repeatability is
+NEVER a trigger condition (census 2026-09-22: repeat floor wipes 100%);
+it remains the continuous confidence discount.
+
+## Stage 3 — Windows / current state
+Checks: at_window_edge, moved_from_nominal, within_window (WP-FD1+2
+machinery). Unfilled sheet -> not-assessable, honest degrade. AT EDGE:
+candidate shown BLOCKED at its earned rank, reason stated ("bias at
+rear limit"), alternative ranks up on its own merit — no suppression,
+no auto-promotion. Soft edge (typical_window) labelled "engineer may
+exceed"; hard edge (physical, e.g. splitter contact) labelled as such
+[A].
+
+## Stage 4 — Interference
+Interaction table penalties as today [M]. Shortlist semantics: PICK
+ONE — alternative single moves, never a package; one change per
+iteration for attribution [A]. Same-axis overlaps are competing
+answers, annotated "overlapping effect", ranked normally, no
+suppression machinery.
+
+## Stage 5 — Corroboration and contradiction
+Present+agreeing -> full confidence. Absent -> capped 0.5, reason
+stated (WP-FD1+2). Present+CONTRADICTING, two classes [A]:
+- data contradicts data (direct measurement vs estimator verdict):
+  SUPPRESSED from shortlist -> tail, "contradicted by X" — measurements
+  veto estimates; systematic disagreement is estimator diagnostics.
+- driver contradicts data: NEVER suppresses — both shown side by side;
+  the system supervises the driver too; engineer arbitrates.
+
+## Stage 6 — Cost function and output
+Term order: (1) problem weight = severity x confidence; (2) ELIGIBILITY
+CLASS = magnitude matching: mild/single-corner problems reach click-
+class levers only; springs/camber/toe unlock only at strong+multi-
+corner or |feedback|>=4 [A]; (3) within class: change-time first
+(track time is the scarce resource — clicks beat car-parking changes),
+breadth penalty (global lever helping 1 of N corners is penalised,
+stated as "helps C7, risks others"; per-corner-capable levers exempt;
+time-loss-weighted breadth = documented future extension, needs
+per-corner time-loss signal), window headroom, interaction penalty.
+ALL WEIGHTS [E] — config placeholders until elicited, each named
+"placeholder" in derived_from. No fixed candidate count anywhere;
+display cutoff is a config threshold on score [A]. Ranking never
+hides: below-threshold/blocked/contradicted/no-trigger levers live in
+a collapsed "assessed, not proposed" tail, one line each.
+OUTPUT: top line = THE CHANGE ONLY ("Bias +1 click rearward"); all
+reasoning (corners, verdicts, feedback, provenance, window status,
+contradictions) under a per-row dropdown; severity via existing row
+colour; only BLOCKED may join the top line [A].
+
+## Elicitation list (engineer talk — gates weight/window finalisation,
+not implementation)
+1. Cost-function weights (severity, change-time, breadth, headroom).
+2. Tyre pressure target windows, current compound.
+3. Damper step sizes: exploratory vs fine, per adjuster.
+4. Brake-bias channel identity (4 candidates, 2 scales).
+5. TC/EB channel mapping; EB-as-lever yes/no.
+6. Rake package 1mm default confirm.
+7. The 14 non-verbatim matrix cells (standing list).
+8. Aero split 25/75 expectation check (standing).
+9. Display cutoff score threshold.
+
+## Verify items (small read tasks, not elicitation)
+- TC_reference and ABS_2(V2) tables digitised in car_data.json with a
+  named consumer now existing; digitise if absent (consumer-scoped
+  rule satisfied).
+- Tyre-pressure channel identity on both sessions (census rule).
+- Wing_1 GT3R-2026 degree column digitised.
+
+# FRAME DEPTH PROGRAMME (2026-09-22, reviewer + project lead) (SUPERSEDED 2026-09-22 by DECISION LAYER SPEC — Steps 1-2 shipped as WP-FD1+2, Steps 3-5 fold into the spec, never run as standalone packages)
+
+## Motivation (project-lead critique, recorded verbatim in spirit)
+The decision frame has grown in BREADTH (7 evidence sources, 4
+candidate generators, 47 interactions) but its reasoning is
+mostly one-hop: verdict -> lever. A race engineer works in
+DEPTH: chains multiple signals into a diagnosis before naming a
+lever, and always considers the CURRENT STATE of the levers
+themselves (if braking is bad, look at what toe and camber are
+set to NOW before recommending anything). Recent additions
+(brake_bias bridge C5-1) are honest but loose by this standard:
+advisory-capped, so safe, but not yet how an engineer works.
+The LS disambiguation (traction- vs cornering-limited before
+lever choice) is the one existing example of real chaining and
+is the template for everything below.
+
+## Target picture
+A candidate should be generatable only when: (a) the verdict
+pattern matches, AND (b) corroborating evidence agrees where it
+exists (lockup, damper motion, intervention flags), AND (c) the
+current setup state makes the lever plausible (a lever already
+at its window edge, or already moved that direction from
+nominal, is discounted or redirected to the alternative lever).
+Every condition that cannot be evaluated (missing channel,
+unfilled setup sheet) degrades to today's behaviour with the
+existing no-signal honesty — depth never becomes fragility.
+
+## Step 1 — condition schema extension (the enabler)
+lever_bridges entries gain an optional "conditions" list.
+Condition types, each config-driven, each optional:
+- evidence_corroboration: named evidence type must be present/
+  absent for the same corner+phase (e.g. lockup on the loaded
+  axle, abs_active, damper motion state).
+- setup_state: reads the outing's current setup value for a
+  named parameter; comparators: at_window_edge, moved_from_
+  nominal(direction), within_window. Unfilled sheet -> condition
+  reports not-evaluable -> bridge falls back to advisory with a
+  stated reason (never silently full-confidence).
+- phase_transient: the phase must be a transient (entry/exit),
+  encoding C11-1's boundary condition (dampers never act at
+  steady-state apex).
+Semantics: conditions multiply into confidence via the existing
+MIN/cap machinery (no new scoring formula). A bridge with all
+conditions evaluable and passing gets full grade confidence;
+failing a hard condition suppresses the candidate; not-evaluable
+conditions cap it advisory. Tier B mechanics, but the schema
+design is reviewed (proposal-first) before implementation.
+
+## Step 2 — damper motion-state evidence source (new, Tier B)
+From the existing 100 Hz log_susp_travel_* channels: per corner
++ phase, compute unloading/loading direction and rate during
+transients (sign + magnitude of travel derivative, kerb-masked,
+same validity honesty as CS windows: floors, no-signal).
+Registered as evidence type damper_motion. This is the evidence
+C11-2 requires and PLAN.md's "PENDING SCHEMA SUPPORT" item
+names. Anchor: Segers ch.11 (review doc C11-1/C11-2).
+
+## Step 3 — damper bridges (first consumers of 1+2)
+From docs/segers_bridge_review.md, encoded ONLY once steps 1-2
+exist: C11-2 (front LS rebound decrease -> turn-in understeer;
+conditions: verdict understeer@turn-in AND damper_motion shows
+front unloading AND phase_transient), C11-3 (symmetric L/R
+annotation attached), C11-4 direction-only entries (parked with
+axis activation, Package 6), C11-5 (parked: platform_stability
+sign convention decided at axis activation, recorded in review
+doc). Grade proposed, advisory-capped, engineer promotion path
+as established.
+
+## Step 4 — lever-state awareness retrofit (the project-lead
+example, generalised)
+Using the setup_state condition on EXISTING bridges: braking-
+phase bridges (toe_front, brake_bias, arb) gain setup_state
+checks on the levers an engineer would inspect first (toe and
+camber current values vs window; bias current position).
+Concrete first case (the recorded example): braking instability
+-> before recommending toe_front more_negative, check current
+toe_front vs nominal — if already at/past the recommended
+direction's window edge, suppress and let the next family
+(damper bump per the matrix cells) rank up. Requires filled
+setup sheets to bite; degrades honestly without.
+
+## Step 5 — lockup evidence (review Package 3, unchanged)
+_build_lockup_evidence from registered log_speed_* channels
+(review C5-2): per-corner speed-drop during entry_1_brake,
+axle asymmetry direction. Consumed as evidence_corroboration by
+the brake_bias bridge (retrofitting C5-1 from one-hop to
+chained: verdict AND lockup direction agree -> full confidence;
+no lockup evidence -> advisory as today). Check the raw
+log_speed_*_lock[s] sub-channels' semantics first (may already
+encode this at logger level).
+
+## Step ordering and review gates
+1 (schema, proposal-first: design comes to the reviewer before
+implementation) -> 2 (evidence source, standard package) -> 3
+(damper bridges) -> 5 (lockup + brake_bias retrofit) -> 4
+(lever-state retrofit across existing bridges, one family at a
+time, matrix cells untouched). Citations package (review
+Package 1: C10-3, C13-1, C13-3/4/5) may ship any time,
+independent — paper armor, zero engineering content, harmless.
+Package 6 (axis vocabulary: traction/braking/platform
+activation, C11-4, C11-5, C13-6 wing/drag) stays parked until
+after step 4; C13-2 (coast-down aero test) stays an on-track
+proposal on the engineer questions list.
+
+## Standing constraints carried into every step
+Verdicts remain evidence, never ground truth. No bridge without
+a source and grade. Proposed never outranks engineer-verbatim.
+Conditions degrade to advisory, never to silence or to false
+confidence. Dubai byte-stability is the regression bar for
+every step; goldens only at commit points; full suite once per
+package. The engineer questions list (TC/EB mapping, brake_bias
+deliberate-omission question, FR record, aero split
+expectation) gates promotions, not implementations.
 
 ### BACKLOG (ordered)
+
+BLOCKS FINISHED PRODUCT
+
 A - Numbers correct: nonlinear single-track Kalman filter with a
     data-identified tyre curve (linear observer rejected for
     production on saturation-detection failure, see NOW above --
@@ -167,6 +352,25 @@ C - Decision-matrix depth: elicitation question set (own file, to
     engineer); matrix expansion incl. the beyond-peak gap; cost
     function with elicited weights; feasibility/conflict logic.
     Gated on elicitation answers.
+D - Output artifacts: weekend PDF expansion; per-corner CS overlay
+    and g-g plots.
+
+BLOCKS WRITING
+
+E - Cleanup (after track A closes): diagnostics inventory + README,
+    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
+    protected-set audit and push readiness.
+F - (optional thesis figure, not a work item) Rear Dugoff curve
+    plotted at pass 0, 2, 3 and 4 on shared axes, showing the
+    pass-4 rear curve as a straight line. A single figure
+    communicating the refit loop's identifiability failure -- the
+    onset boundary moving outward until it reaches 88.4 deg and
+    coverage falls to exactly zero of 24,183 samples. Not a result
+    plot; the passes are not carried forward. Purely a figure for
+    the write-up.
+
+DOCUMENTED LIMITATION (reopen condition stated)
+
 B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
     VALIDATED 2026-09-03 (modules/wheel_loads.py, damper package,
     thesis_notes.md "Damper package: wheel loads from pushrod/
@@ -241,19 +445,6 @@ B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
     and unaffected -- this was never about the FR gauge, it is a
     straight-line-data-with-three-gauges limitation that a fourth real
     gauge does not resolve on its own.
-D - Output artifacts: weekend PDF expansion; per-corner CS overlay
-    and g-g plots.
-E - Cleanup (after track A closes): diagnostics inventory + README,
-    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
-    protected-set audit and push readiness.
-F - (optional thesis figure, not a work item) Rear Dugoff curve
-    plotted at pass 0, 2, 3 and 4 on shared axes, showing the
-    pass-4 rear curve as a straight line. A single figure
-    communicating the refit loop's identifiability failure -- the
-    onset boundary moving outward until it reaches 88.4 deg and
-    coverage falls to exactly zero of 24,183 samples. Not a result
-    plot; the passes are not carried forward. Purely a figure for
-    the write-up.
 G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
     formalises the open item already flagged inline under BACKLOG B
     above, "Fy split upgrade -> CS threshold re-derivation", into its

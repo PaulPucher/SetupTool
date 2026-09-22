@@ -794,6 +794,15 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
     (braking/turn-in uncapped, exit-phase capped via the existing MIN-
     confidence mechanism). NOT a classification verdict tier -- config/
     parameters.json's classification block is untouched by this source.
+
+    FRAME DEPTH PROGRAMME Step 2 (2026-09-22): (h) damper_motion, config-
+    gated (decision_frame.json damper_motion.enabled), same corners-not-
+    None gate as (e)/(f) above -- per-corner, per-TRANSIENT-phase (entry/
+    exit only, never apex) loading/unloading classification from log_
+    susp_travel_*, modules.damper_motion.build_damper_motion_evidence. No
+    candidate-generation consumer reads this evidence type yet (Step 1's
+    evaluate_conditions can, once a lever_bridges entry's own "conditions"
+    list names it -- that wiring is Step 3's own job, not this one's).
     """
     aggregated = aggregate_by_corner(summaries)
     by_corner_laps = _group_by_corner(summaries)
@@ -822,6 +831,24 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
         if tc_cfg.get("enabled", False):
             evidence += _build_intervention_tc_evidence(corners, state, channels, aggregated)
 
+        # FRAME DEPTH PROGRAMME Step 2 (2026-09-22): damper motion-state
+        # evidence, same corners-is-not-None gate as ABS/TC above (needs
+        # per-lap phase-window segments summaries alone do not carry).
+        # Lazy import to break the circular dependency -- modules/damper_
+        # motion.py itself imports TRANSIENT_PHASES/_phase_window_indices
+        # from this module, so a module-level import here would deadlock
+        # at import time; by the time build_evidence is actually CALLED
+        # both modules are already fully loaded, same resolution this
+        # project's own test helpers already use for a similar late-bound
+        # dependency (tests/test_decision_frame.py's classify_fn).
+        dm_cfg = config.get("damper_motion", {})
+        if dm_cfg.get("enabled", False):
+            from modules.damper_motion import build_damper_motion_evidence
+            wl_cfg = load_parameters()["wheel_loads"]
+            dm_evidence, _dm_summary = build_damper_motion_evidence(
+                corners, state, channels, aggregated, dm_cfg, wl_cfg)
+            evidence += dm_evidence
+
     if feedback_data:
         evidence += _build_driver_feedback_evidence(
             feedback_data, aggregated, config.get("driver_feedback_weighting", {}))
@@ -842,6 +869,14 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
 # provenance cap.
 
 EXIT_PHASES = ("exit_4", "exit_5")
+
+# FRAME DEPTH PROGRAMME Step 1: entry/exit families act as transients for
+# phase_transient conditions (Segers ch.11 boundary condition, docs/
+# segers_bridge_review.md C11-1 -- dampers only develop force while the
+# shaft has velocity, never at steady-state apex cornering). Derived from
+# PHASE_KEYS itself (not a second, hand-typed list) so this can never
+# silently disagree if PHASE_KEYS ever changes.
+TRANSIENT_PHASES = tuple(p for p in PHASE_KEYS if p != "apex_3")
 
 # Enum structure (a fixed ordering of setup_parameters.json's own
 # change_effort vocabulary), not a per-car tunable -- CLAUDE.md
@@ -1179,6 +1214,151 @@ def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, interve
     return candidates
 
 
+# --- FRAME DEPTH PROGRAMME Step 1: per-bridge condition evaluator ------
+#
+# PLAN.md "FRAME DEPTH PROGRAMME", reviewer-approved fixed design (2026-09-
+# 22). See config/decision_frame.json's own "conditions"/"_comment_
+# conditions" keys for the config-side schema and rationale (in particular
+# why no cross-lap repeat count is a condition type here -- the 2026-09-22
+# candidate census found every corner_verdict/matrix_verdict evidence item
+# on both real sessions rests on exactly 1 repeating lap, so a repeat-count
+# floor would suppress 100% of candidates; repeatability stays the
+# existing per-evidence-item confidence discount's own job).
+
+def _eval_evidence_corroboration(cond, corner, phase, evidence_items):
+    """PASS/FAIL/not-evaluable for one evidence_corroboration condition.
+    Scope is the SAME corner AND phase as the candidate being generated,
+    per the work order. Distinguishes "this evidence source was never even
+    built this run" (config-gated off, e.g. TC by default; or a source
+    whose own required inputs -- corners/state/channels -- were not
+    supplied) from "this evidence source ran but has nothing at this
+    corner/phase" -- only the former is not-evaluable; the latter is a
+    real, evaluable answer (a genuine absence), matching build_evidence's
+    own "silently skipped... an honest [], never a fabricated fallback"
+    posture for the source-level case, extended here to the per-condition
+    case.
+    """
+    evidence_type = cond["evidence_type"]
+    presence = cond["presence"]
+    if not any(e["type"] == evidence_type for e in evidence_items):
+        return "not_evaluable", f"no {evidence_type} evidence available this run"
+
+    def _matches(e):
+        if e["type"] != evidence_type or e.get("corner") != corner:
+            return False
+        return phase == e.get("phase") or phase in (e.get("phases") or ())
+
+    found = any(_matches(e) for e in evidence_items)
+    if presence == "present":
+        return (True, None) if found else (False, f"no {evidence_type} evidence at C{corner} {phase}")
+    return (True, None) if not found else (False, f"{evidence_type} evidence present at C{corner} {phase} (expected absent)")
+
+
+def _eval_setup_state(cond, setup_data, registry):
+    """PASS/FAIL/not-evaluable for one setup_state condition. Nominal/span
+    come from load_decision_frame_config()'s own parameter_windows -- the
+    SAME already-derived, human-reviewed window _settings_window_component
+    (Phase 4 scoring) already uses for this exact purpose, not re-derived
+    a second time from setup_parameters.json's own heterogeneous typical_
+    window/value_space fields (which use different field shapes per
+    parameter -- min/max, base, baseline, enum options -- re-deriving here
+    would duplicate that conversion logic a second time with real drift
+    risk). `registry` (this function's own fixed-signature parameter) is
+    used exactly as Phase 4 scoring already uses it: to resolve maps_to for
+    _current_setup_value, nothing else. Loading decision-frame config fresh
+    here mirrors score()'s own existing precedent in this file (score()
+    takes `config` as a parameter and loads `registry` fresh internally --
+    the mirror image of that same asymmetry, not a new pattern)."""
+    param = cond["parameter"]
+    check = cond["check"]
+    entry = registry.get(param)
+    if entry is None:
+        return "not_evaluable", f"no registry entry: {param}"
+
+    window = load_decision_frame_config()["parameter_windows"].get(param, {})
+    nominal, span = window.get("nominal"), window.get("span")
+    if nominal is None or span is None or not span:
+        return "not_evaluable", f"no settings window: {param}"
+
+    current = _current_setup_value(setup_data, entry)
+    if current is None:
+        return "not_evaluable", f"setup sheet unfilled: {param}"
+    try:
+        current = float(current)
+    except (TypeError, ValueError):
+        return "not_evaluable", f"setup sheet value non-numeric (likely an enum label): {param}"
+
+    if check == "within_window":
+        ok = abs(current - nominal) <= span
+        return (True, None) if ok else (False, f"{param} outside window (current={current}, nominal={nominal}, span={span})")
+    if check == "at_window_edge":
+        ok = abs(current - nominal) >= span
+        return (True, None) if ok else (False, f"{param} not at window edge (current={current}, nominal={nominal}, span={span})")
+    if check == "moved_from_nominal":
+        direction = cond.get("direction")
+        if direction == "increase":
+            ok = current > nominal
+        elif direction == "decrease":
+            ok = current < nominal
+        else:
+            return "not_evaluable", f"moved_from_nominal requires a direction: {param}"
+        return (True, None) if ok else (False, f"{param} not moved {direction} from nominal (current={current}, nominal={nominal})")
+    return "not_evaluable", f"unknown setup_state check: {check!r}"
+
+
+def _eval_phase_transient(phase):
+    ok = phase in TRANSIENT_PHASES
+    return (True, None) if ok else (False, f"{phase} is not a transient phase (apex/steady-state)")
+
+
+def evaluate_conditions(conditions, corner, phase, evidence_items, setup_data, registry):
+    """Pure function. Returns (verdict, reasons) where verdict is one of
+    "PASS" / "SUPPRESS" / "CAP_ADVISORY", exactly:
+      - every condition evaluable and passing -> PASS, confidence untouched;
+      - any REQUIRED condition evaluable and FAILING -> SUPPRESS (checked
+        first per condition, short-circuits -- a candidate this frame can
+        affirmatively rule out is not emitted at all);
+      - otherwise, if any non-required condition failed OR any condition
+        (required or not) was not-evaluable -> CAP_ADVISORY, reasons is
+        every non-passing condition's own human-readable explanation ("no
+        damper_motion evidence available", "setup sheet unfilled:
+        toe_front"). An evidence GAP caps, it never suppresses -- "cannot
+        corroborate" is not "contradicted" (config/decision_frame.json's
+        own "conditions" comment states this as the load-bearing rule).
+    No conditions (absent/empty list) -> PASS, [] -- byte-identical to
+    today's unconditional behaviour.
+    """
+    if not conditions:
+        return "PASS", []
+
+    reasons = []
+    degraded = False
+    for cond in conditions:
+        ctype = cond["type"]
+        required = cond.get("required", False)
+
+        if ctype == "evidence_corroboration":
+            result, reason = _eval_evidence_corroboration(cond, corner, phase, evidence_items)
+        elif ctype == "setup_state":
+            result, reason = _eval_setup_state(cond, setup_data, registry)
+        elif ctype == "phase_transient":
+            result, reason = _eval_phase_transient(phase)
+        else:
+            result, reason = "not_evaluable", f"unknown condition type: {ctype!r}"
+
+        if result == "not_evaluable":
+            degraded = True
+            reasons.append(reason)
+            continue
+        if result is False:
+            if required:
+                return "SUPPRESS", [reason]
+            degraded = True
+            reasons.append(reason)
+
+    return ("CAP_ADVISORY", reasons) if degraded else ("PASS", [])
+
+
 # --- Generic per-lever candidate-bridge mechanism (BACKLOG item H, 2026-09-20) -
 #
 # config/decision_frame.json's own lever_bridges list (see that key's _comment)
@@ -1190,7 +1370,7 @@ def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, interve
 # across several) instead of the one group a specific matrix cell_id/
 # rationale is tied to.
 
-def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_candidates):
+def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_candidates, setup_data=None):
     """Tier B (candidate-generation plumbing) -- the Segers ch.9/10 physics
     itself is already anchored and reviewed via config/decision_frame.json's
     interaction_table; this function only decides how an already-approved
@@ -1204,7 +1384,25 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
     always wins the collision (generated first, richer evidence_refs), so
     this function simply skips a key already covered rather than re-scoring
     or merging -- never a second, disagreeing grading rule.
+
+    FRAME DEPTH PROGRAMME Step 1 (2026-09-22): `setup_data` (additive,
+    default None -- every pre-existing caller, including ui/views/
+    outing_form.py's own _generate_decision_frame via generate_candidates,
+    is unaffected) feeds evaluate_conditions' own setup_state checks. Each
+    bridge's OPTIONAL "conditions" list (config/decision_frame.json) is
+    evaluated once per firing (corner, phase_group) via evaluate_conditions
+    -- PASS emits the candidate unchanged; SUPPRESS skips it entirely;
+    CAP_ADVISORY emits it with a synthetic confidence-capping item appended
+    to evidence_refs (reusing _candidate_confidence's own existing min()
+    machinery, exactly like the MARGINAL-verdict/exit-phase-LS caps already
+    do -- no new scoring formula) plus a machine-readable "condition_
+    reasons" list on the candidate dict (no UI rendering this package).
+    None of the 4 shipped bridges carries a "conditions" list yet, so
+    evaluate_conditions([], ...) short-circuits to PASS for every one of
+    them today -- byte-identical to pre-Step-1 behaviour, confirmed by the
+    2026-09-22 candidate-census re-run.
     """
+    cap = decision_config.get("conditions", {}).get("not_evaluable_confidence_cap", 1.0)
     bridges = decision_config.get("lever_bridges", [])
     if not bridges:
         return []
@@ -1243,6 +1441,20 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
                         continue
                     if SEVERITY_RANK[ev["severity"]] < SEVERITY_RANK[min_sev]:
                         continue
+
+                    verdict_result, reasons = evaluate_conditions(
+                        bridge.get("conditions", []), cid, phase_group[-1], evidence, setup_data, registry)
+                    if verdict_result == "SUPPRESS":
+                        continue
+
+                    evidence_refs = [ev]
+                    if verdict_result == "CAP_ADVISORY":
+                        evidence_refs = evidence_refs + [{
+                            "type": "condition_gap", "corner": cid, "phase": phase_group[-1],
+                            "verdict": None, "severity": None, "confidence": cap,
+                            "source": f"condition gap, capped at {cap}: " + "; ".join(reasons),
+                        }]
+
                     candidates.append({
                         "id": f"lever_bridge:{param}:{direction}:C{cid}:{'+'.join(phase_group)}",
                         "scenario": f"lever_bridge:{param}:{direction}",
@@ -1253,14 +1465,15 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
                         "effect_class": bridge.get("effect_class", "secondary"),
                         "grade": "proposed",  # structural cap -- see lever_bridges' own config comment
                         "cell_id": None,
-                        "evidence_refs": [ev],
+                        "evidence_refs": evidence_refs,
                         "rationale": bridge["rationale"],
                         "derived_from": bridge["derived_from"],
+                        "condition_reasons": reasons,
                     })
     return candidates
 
 
-def generate_candidates(evidence, registry, config):
+def generate_candidates(evidence, registry, config, setup_data=None):
     """Candidate layer. See module-level comment above for Stage 1's own
     scope; Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04) adds
     _bridge_candidates_for_matrix_rules (all 39 config/recommendations.json
@@ -1273,6 +1486,14 @@ def generate_candidates(evidence, registry, config):
     decision_frame.json, EXCEPT `config`'s own lever_bridges list (BACKLOG
     item H, 2026-09-20), the one source that genuinely lives there (see
     _bridge_candidates_for_levers and that config key's own comment).
+
+    `setup_data` (FRAME DEPTH PROGRAMME Step 1, 2026-09-22, additive,
+    default None) is the outing's own setup-sheet dict, same shape
+    generate_shortlist's own `current_setup` parameter already takes --
+    threaded through to _bridge_candidates_for_levers only, for its
+    optional per-bridge "conditions" setup_state checks. Every pre-
+    existing caller (ui/views/outing_form.py's _generate_decision_frame
+    calls generate_candidates without this argument) is unaffected.
     """
     config_recs = load_recommendations_config()
 
@@ -1299,7 +1520,7 @@ def generate_candidates(evidence, registry, config):
     candidates += _brake_balance_candidates(evidence, registry, config_recs)
     candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
                                                         intervention_abs_masking_by_corner)
-    candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates)
+    candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates, setup_data)
     # Deepening Phase 4d: attaches any driver_feedback evidence (built by
     # build_evidence when feedback_data was supplied) to every candidate
     # whose own evidence_refs share its corner/phase/verdict -- corroborates

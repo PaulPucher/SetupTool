@@ -18263,3 +18263,363 @@ standing PLAN.md BACKLOG note.
 No config/production change. No commit made -- stop before commit,
 per the work order's own explicit instruction and CLAUDE.md's standing
 rule that the user runs git.
+
+## Segers deep-dive bridge review: full document, pointer only [2026-09-22,
+read-only session, no branch]
+
+Full reasoned review of 8 chapters/sections of Segers (ch.11 dampers, ch.9
+roll stiffness, ch.10 wheel loads, ch.8 tire performance, ch.13
+aerodynamics, ch.5 braking, ch.7 targeted 7.5-7.7, sec.4.3 targeted) against
+the parameter registry, written up in full at docs/segers_bridge_review.md
+(committable -- original analysis citing published literature, per
+CLAUDE.md's deviation-taxonomy distinction from the chair's internal
+tooling). 32 candidates total, every one PROPOSED grade, nothing
+implemented this session -- 6 ADOPT (citations/annotations/one validation-
+protocol proposal, zero new interaction_table rows), 3 ADAPT (2 blocked on
+a named schema gap, 1 flagged for engineer confirmation rather than
+adopted), 6 REJECT (mostly real levers blocked by instrumentation this car
+does not carry, confirmed by direct file census each time, not assumed),
+17 INSIGHT-ONLY. Two standout findings, both requiring a follow-up decision
+outside this document's own scope: (1) brake_bias carries zero decision-
+frame coverage despite a textbook-direct book statement, sitting adjacent
+to (not contradicting) seven engineer-verbatim matrix cells that solve the
+same scenario with other levers -- flagged for engineer confirmation, not
+silently added; (2) Segers ch.13's constant-velocity/coast-down test
+protocol is an independent, literature-standard way to re-measure the
+front/rear aero split this project's own aero_front_fraction=0.25 currently
+carries as an opportunistic multi-session regression fit -- proposed as a
+new PLAN.md "Engineer follow-up questions" line item, not run here. Full
+candidate list, per-chapter census, contradiction/tension list (2 named,
+0 direct contradictions with any engineer-verbatim bridge), and a proposed
+implementation order (smallest config+docs-only package first) all live in
+the document itself -- not duplicated here.
+
+## Frame depth programme recorded in PLAN.md [2026-09-22]
+Frame depth programme recorded in PLAN.md.
+
+## Frame candidate census: single-lap evidence confirmed on both real
+sessions [2026-09-22, read-only diagnostic, no branch]
+
+FRAME DEPTH PROGRAMME's own pre-work question (PLAN.md, understand today's
+shape before adding conditions on top of it). Read modules/decision_
+frame.py (build_evidence, generate_candidates, generate_shortlist, score,
+resolve_conflicts) and ui/views/outing_form.py's _generate_decision_frame
+directly before writing anything, per the work order.
+
+CODE-READING ANSWERS (all three confirmed by direct read, not assumed):
+
+(a) generate_shortlist does NOT cut or cap the candidate list at all --
+confirmed line-by-line: it scores every candidate via score() and returns
+the full list, same length as its input, sorted by (-score, id) for a
+deterministic tie-break. resolve_conflicts also never removes a candidate,
+only annotates conflict_status/conflict_with in place. The real UI caller
+(ui/views/outing_form.py _generate_decision_frame) iterates the ENTIRE
+shortlist with no slicing anywhere -- every scored candidate becomes a
+card. "cap=1" in this work order's own instruction refers to something
+different: the accuracy-level cap (modules.accuracy_resolution.
+resolve_accuracy(cap=1)) that diagnostics/inspect_frame_stage2_parity.py's
+own run_full_pipeline already applies -- unrelated to candidate-list
+length, confirmed by reading that script before reusing it.
+
+(b) Only the confidence DISCOUNT exists; there is no hard cross-lap
+repeatability GATE anywhere in build_evidence's own sources. Every
+lap-repeatability-sensitive evidence builder (_build_corner_verdict_
+evidence, _build_matrix_verdict_evidence, _build_ls_threshold_evidence)
+computes confidence = round(repeat/total * valid_laps/total, 3) -- a
+continuous fraction, never thresholded against a minimum repeat count
+before the evidence item is emitted. Two-second-order refinements exist
+(MARGINAL-verdict cap via min(), exit-phase LS discount via min()) but
+these are confidence CEILINGS, not floors, and never suppress an item
+outright. The one partial exception, found by reading _build_ls_
+disambiguation_evidence directly: a SESSION-level population-size gate
+(`if len(population) < 2: return []`) on the relative traction-vs-cornering
+split's own reference population -- a different thing from a per-evidence-
+item lap-repeatability gate, and named as such rather than conflated with
+it.
+
+(c) NO cross-corner aggregation of candidates exists anywhere. Every
+candidate dict carries a single "corner" field (confirmed across
+_exit_oversteer_candidates, _brake_balance_candidates, _bridge_candidates_
+for_matrix_rules, _bridge_candidates_for_levers) -- one candidate per
+corner+phase+lever, never merged across corners even when the SAME
+(parameter, direction) fires at many corners. Item 3 below (grouping by
+parameter+direction across corners) had to be done by this diagnostic
+script itself, because no such aggregation exists in production to reuse.
+This is exactly the capability the FRAME DEPTH PROGRAMME's own "current
+setup state" chaining would need built on top of, not something already
+half-built and overlooked.
+
+METHOD: new diagnostics/inspect_frame_candidate_census.py `[keep-
+reproduces]`, live config, no config/production change. Reuses
+inspect_frame_stage2_parity.py's own run_full_pipeline/DUBAI_FILE/V3_FILE
+(same accuracy cap=1, same two file paths, literally imported not
+re-typed) for both sessions -- one pipeline run per session, no fits
+beyond what that function already performs. Calls modules.decision_
+frame's own four candidate-generator functions individually, in
+generate_candidates' own exact order (same arguments, same order --
+the lever_bridges dedupe depends on seeing exit_oversteer/brake_balance/
+matrix_bridge's output first), attaching only a `_generator` label per
+candidate; no generator logic reimplemented. feedback_data omitted
+(defaults None, "no feedback"); current_setup=None at scoring
+("no setup_data"), matching run_parity's own call shape. Lap-repeat counts
+for corner_verdict/matrix_verdict evidence are recovered by regex-parsing
+each item's own human-readable "repeats on X/Y laps" source string (these
+two builders return only the combined confidence float, not the raw
+counts separately) -- a diagnostic-only string-parse, flagged as such in
+the script, never used to drive production logic.
+
+FINDINGS, DUBAI (Sample_Dubai.txt):
+1. Evidence by type: intervention_abs=8, corner_verdict=3, matrix_
+   verdict=3, ls_threshold=3, intervention_abs_masking=1. Zero
+   plausibility_brake_balance, zero ls_disambiguation. corner_verdict AND
+   matrix_verdict items: ALL 3 of each type rest on exactly 1 repeating
+   lap -- 100% single-lap, zero items with 2 or more.
+2. 12 candidates total. By grade: proposed=9, derived-from-matrix=3. By
+   generator: lever_bridges=5, exit_oversteer=4, matrix_bridge=3.
+   brake_balance=0, matrix_bridge_held_secondary=0 (both genuinely zero,
+   not a script omission -- confirmed no plausibility_brake_balance
+   evidence existed to feed the former, and no held-escalation rule's base
+   cell fired alongside a matching held rule for the latter).
+3. 12 distinct (parameter, direction) groups, EVERY one at corners=1 or 2
+   (max: springs_front/soften and springs_rear/stiffen, both corners=2,
+   corners [3,9]). No group reaches 3+ corners on this session.
+4. Confidence distribution: p10=p50=p90=0.25 (every candidate identical).
+   12/12 candidates below the 0.3 mark named in the work order.
+5. Hypothetical min_repeat_laps=2 floor on corner_verdict/matrix_verdict
+   evidence_refs: 0/12 would survive, 12/12 would fail.
+
+FINDINGS, v3 (GT3_PRC_MLA-v3.txt):
+1. Evidence by type: intervention_abs=13, corner_verdict=12, matrix_
+   verdict=12, ls_disambiguation=7, ls_threshold=5, intervention_abs_
+   masking=1. Zero plausibility_brake_balance. corner_verdict AND matrix_
+   verdict: ALL 12 of each type rest on exactly 1 repeating lap -- 100%
+   single-lap again, zero items with 2 or more, on a session with roughly
+   4x Dubai's own corner-verdict volume.
+2. 41 candidates total. By grade: proposed=29, derived-from-matrix=12. By
+   generator: lever_bridges=16, exit_oversteer=14, matrix_bridge=11.
+   brake_balance=0, held_secondary=0 (same as Dubai, genuinely zero).
+3. 8 distinct (parameter, direction) groups -- FEWER groups than Dubai
+   despite 3.4x the candidate count, because this session's candidates
+   concentrate: springs_rear/soften and springs_front/stiffen both reach
+   corners=7 ([1,5,6,8,9,13,16]), arb_rl/soften and arb_rr/soften both
+   reach corners=6, diff_position/increase reaches corners=5, tc_lon/
+   increase reaches corners=3. Only arb_fl/stiffen and arb_fr/stiffen sit
+   at corners=1.
+4. Confidence distribution: p10=p50=p90=0.333 (every candidate identical
+   again, a different constant than Dubai's 0.25). 0/41 below 0.3 -- the
+   OPPOSITE of Dubai's 12/12, despite both sessions sharing the identical
+   single-lap-repeat pattern in finding 1. The uniform-per-session
+   confidence value is consistent with confidence = repeat_fraction x
+   valid_fraction collapsing to the same constant whenever repeat=1 and
+   this session's own per-corner valid-lap total is itself uniform across
+   corners (1/3 x 3/3 = 0.333 here vs 1/4 x 4/4 = 0.25 for Dubai) --
+   plausible given each session's own lap-validity pattern, not
+   independently re-derived per corner in this pass; flagged as an
+   observation, not a verified mechanism.
+5. Hypothetical min_repeat_laps=2 floor: 0/41 would survive, 41/41 would
+   fail -- identical wipe-out proportion to Dubai (100%).
+
+READING ACROSS BOTH SESSIONS: the single-lap-repeat finding (0 items with
+2+ repeating laps, either evidence type, either session) is the numeric
+confirmation of the FRAME DEPTH PROGRAMME's own stated motivation --
+"mostly one-hop: verdict -> lever" is not just a qualitative critique, it
+is quantitatively true that no corner_verdict/matrix_verdict evidence item
+on either real session currently has more than one lap's worth of direct
+repetition behind it. A NAIVE min_repeat_laps=2 floor would not refine the
+candidate set, it would ELIMINATE it entirely on both sessions -- this is
+reported as a fact about the floor value chosen (2), not evidence that the
+underlying verdicts are wrong; corner lap-validity counts on both sessions
+are themselves small (Dubai: laps 1-5 valid per CLAUDE.md's own sample-data
+note), so a same-severity repeat on a SECOND lap is a materially higher bar
+than it would be on a longer session, a scoping question for whoever
+designs Step 1's actual condition thresholds, not resolved here. The
+(parameter, direction) grouping in finding 3 (built by this script, absent
+from production) is exactly the shape Step 4's lever-state retrofit and any
+future cross-corner view would consume.
+
+No config/production change. No commit made -- stop before commit, per the
+work order's own instruction and CLAUDE.md's standing rule that the user
+runs git.
+
+## WP-FD1+2: Frame depth Steps 1-2 -- condition schema + damper motion
+evidence [2026-09-22, branch frame-depth]
+
+Two-phase package, PLAN.md "FRAME DEPTH PROGRAMME" Steps 1-2. Both phases
+shipped this session, byte-stability confirmed at every checkpoint. No
+commit -- stop before commit, per the work order and CLAUDE.md's standing
+rule.
+
+### (a) Phase 1: condition schema, semantics, and the census-informed
+no-repeat-condition decision
+
+config/decision_frame.json gained a top-level `conditions` block
+(`not_evaluable_confidence_cap=0.5`, reusing `ls_threshold_evidence.
+exit_phase_confidence_discount`'s own precedent verbatim, not a new
+number) and an optional per-`lever_bridges`-entry `conditions` list
+(schema: `{type: evidence_corroboration|setup_state|phase_transient,
+required: bool, ...}`). modules/decision_frame.py gained `evaluate_
+conditions(conditions, corner, phase, evidence_items, setup_data,
+registry) -> (verdict, reasons)`, verdict one of PASS / SUPPRESS /
+CAP_ADVISORY, wired into `_bridge_candidates_for_levers` only (per the
+work order's own scope). `generate_candidates` gained an additive
+`setup_data=None` parameter (needed to thread setup-sheet data to
+`_bridge_candidates_for_levers` for `setup_state` checks -- the fixed
+design named the one function to wire into but the real data flow
+required this one small, backward-compatible signature extension;
+ui/views/outing_form.py's own call site is unaffected, since it omits
+the new argument and gets None, identical to today).
+
+DELIBERATE DESIGN DECISION, load-bearing: NO condition type checks
+cross-lap repeat count. This directly uses the 2026-09-22 candidate-
+census finding (thesis_notes.md "Frame candidate census: single-lap
+evidence confirmed on both real sessions") -- every corner_verdict/
+matrix_verdict evidence item on both real sessions rests on exactly 1
+repeating lap, so a repeat-count condition would suppress 100% of
+candidates on both sessions (confirmed again in that same census run:
+0/12 Dubai, 0/41 v3 would survive a hypothetical min_repeat_laps=2
+floor). Repeatability stays the EXISTING per-evidence-item confidence
+discount's own job; Step 1 only adds corroboration/setup-state/phase
+conditions on top of it.
+
+CAP_ADVISORY implementation: a synthetic `{"type": "condition_gap",
+confidence: cap, ...}` item is appended to the candidate's own
+evidence_refs, reusing `_candidate_confidence`'s existing min()-across-
+evidence_refs mechanism exactly (same MIN machinery the MARGINAL-verdict
+cap and exit-phase LS discount already use) -- no new scoring formula.
+The synthetic item is added ONLY to the candidate's own evidence_refs,
+never to the global evidence list `_interaction_penalty` scans, so it
+cannot spuriously register as an "other active problem" at that corner.
+`condition_reasons` (machine-readable, no UI rendering this package) is
+attached to every candidate the mechanism touches.
+
+Tests: 12 new (tests/test_decision_frame.py) -- one per named path
+(all-pass, required-fail-suppress, non-required-fail-cap, not-evaluable
+x3: evidence type never built this run / setup_data None / registry
+window missing, phase_transient exit-pass/apex-fail, evidence_
+corroboration present/absent x2 sub-cases, no-conditions-key byte-
+identical) plus 2 integration tests proving SUPPRESS/CAP_ADVISORY
+actually reach a real candidate through generate_candidates (confirmed:
+a required-failing condition removes exactly the intended candidate id
+and no other; a not-evaluable condition pulls a candidate's own overall
+confidence down to the cap even when its firing evidence itself was
+0.9, never inflated). Full tests/test_decision_frame.py: 68/68 passed
+(56 pre-existing + 12 new), 615.9s, including test_end_to_end_real_dubai.
+
+BYTE-STABILITY, Phase 1 (the regression bar): diagnostics/inspect_frame_
+candidate_census.py re-run on both real sessions with the shipped config
+(zero `lever_bridges` entries carry a `conditions` list) -- EXACT MATCH
+to the 2026-09-22 baseline in every reported number: Dubai 12 candidates
+(5 lever_bridges/4 exit_oversteer/3 matrix_bridge), v3 41 candidates
+(16/14/11), identical (parameter,direction) groupings and corner lists,
+identical confidence distributions (0.25 flat Dubai, 0.333 flat v3),
+identical min_repeat_laps=2 hypothetical (0/12, 0/41). Zero difference.
+
+### (b) Sign-convention verification result
+
+diagnostics/inspect_damper_motion_sign_and_threshold.py, same method as
+the existing ARB sign-convention check (thesis_notes.md "Damper
+package"): correlate front-axle travel (mean of FL+FR, unit-normalised)
+against braking ax (ax_mps2 < -1.0, moving, kerb-excluded). RESULT, both
+real sessions, SAME SIGN: Dubai corr=+0.4905 (n=21396), v3 corr=+0.2025
+(n=16625). Both POSITIVE: travel DECREASES as ax DECREASES (harder
+braking). Braking transfers weight forward, physically COMPRESSING the
+front axle -- therefore DECREASING log_susp_travel_* = compression =
+"loading"; INCREASING = extension = "unloading". This is the OPPOSITE of
+the first, unverified placeholder convention modules/damper_motion.py
+was drafted with before this check ran -- corrected in the same session,
+exactly the outcome the work order's "do not assume" instruction exists
+to catch. v3's own correlation (+0.20) is meaningfully weaker than
+Dubai's (+0.49) -- both still clearly positive and same-signed, but
+worth naming: a genuine session-to-session strength difference, not
+investigated further this package (out of scope; the SIGN agrees, which
+is what this check exists to establish).
+
+### (c) Motion-vs-noise rate threshold derivation
+
+Same script. Originally planned reference population (apex_3, near-zero
+rate expected by construction, Segers ch.11/C11-1) FAILED: both real
+sessions' own apex_3 phase segments are too narrow for even one >=2-
+sample rate window (n=0 on both sessions) -- a genuine property of this
+project's own phase segmentation (apex is evidently a near-instantaneous
+point in this corner-detection scheme, not a real-duration zone), not a
+script bug, discovered and reported rather than silently worked around.
+Reused this project's own EXISTING straight-line mask (|ax|<0.5 g,
+|ay|<0.5 g -- the Fz-integration/aero work's own "nothing dynamic
+happening" convention) as the reference population instead, on 0.5s
+rolling full-session windows.
+
+RESULT: straight-line |rate| pooled (n=1830, both sessions, non-dead
+wheels): p50=0.975, p75=2.319, p90=4.668, p95=6.675 mm/s. Transient
+(entry/exit phase windows) |rate| pooled (n=1250): p10=0.300,
+p25=0.800, p50=1.867 mm/s. NOT a clean bimodal gap -- the straight-line
+population's own upper tail (p90=4.67, p95=6.68) genuinely overlaps the
+transient population's own median (1.87): real road-texture/engine-
+vibration chassis motion exists even in a straight line, this is not
+pure sensor noise, named honestly rather than presented as a cleaner
+separation than the data shows. rate_threshold_mm_s=1.0 (straight-line
+pooled median 0.975, rounded to a clean value just above it) shipped in
+config/decision_frame.json's damper_motion block as the honest choice
+available, flagged for revisit if a third session's own distribution
+suggests otherwise.
+
+min_valid_fraction=0.7: pooled transient-phase window valid_fraction
+(non-kerb-masked/finite samples over window length, n=1258): p5=0.712,
+p10=0.783, p25=0.934, p50~1.0 -- most windows are nearly fully valid,
+only a small tail meaningfully kerb-degraded. 0.7 sits just below p5,
+flagging roughly the sparsest 5% of windows as not-evaluable.
+
+### (d) Dead-channel guard finding on Dubai RR
+
+Confirmed exactly as expected, not merely assumed from the earlier
+wheel_loads.py precedent: modules.damper_motion.build_damper_motion_
+evidence's own dead-channel guard (reusing modules.wheel_loads.
+_channel_is_dead and its existing dead_channel_std_max_travel_mm=1.0mm
+floor directly -- same channel, same known-frozen case, not a second,
+duplicate number) flags Dubai's log_susp_travel_rr as dead on the REAL
+end-to-end run (diagnostics/inspect_damper_motion_verification.py):
+`dead_wheels=['rr']` for Dubai, `[]` for v3 (matching the wheel_loads.py
+package's own original finding exactly -- v3 has no known-dead travel
+channel). Dubai RR produces ZERO damper_motion evidence items across
+every corner/phase, never a fabricated "no-motion" reading -- confirmed
+by checking the evidence list directly (no `wheel: "rr"` item anywhere
+for Dubai), the mandatory distinction the work order named. The other
+three Dubai wheels: 182 evaluable / 15 not-evaluable instances each (of
+197 phase-window slots); v3, no dead wheels: 163 evaluable / 30 not-
+evaluable each (of 193 slots) -- v3's own higher not-evaluable share is
+consistent with its own weaker validity-fraction distribution already
+seen in (c) (v3 window valid_fraction p5=0.5625 vs Dubai's 0.75).
+
+REAL-SESSION VERIFICATION (item 8, diagnostics/inspect_damper_motion_
+verification.py): full build_evidence/generate_candidates chain, both
+sessions. damper_motion evidence appears (144 items Dubai, 244 v3) as
+the ONLY new evidence type added to the list; candidate counts stay
+EXACTLY byte-stable against the 2026-09-22 census baseline (12 Dubai,
+41 v3 -- confirmed by direct count, not assumed from Phase 1's own
+census); zero candidates' own evidence_refs include a damper_motion item
+(confirmed by direct check -- no lever_bridges entry has a "conditions"
+list yet, exactly as Step 1/2 leave it, Step 3's own job to wire).
+
+Tests: 8 new (tests/test_damper_motion.py) -- derivative sign/
+classification (both directions, matching the CORRECTED convention from
+(b) above), kerb-masked-sample exclusion (majority-share synthetic spike,
+demonstrates the median-robustness boundary explicitly), validity-floor
+sparse-window rejection, too-short-window rejection, dead-channel guard
+(frozen synthetic wheel never emits evidence, appears in summary),
+transient-phases-only (apex_3 never fires). All pass.
+
+Files: modules/damper_motion.py (new), config/decision_frame.json
+(conditions + damper_motion blocks), modules/decision_frame.py
+(evaluate_conditions + 4 helpers, TRANSIENT_PHASES, build_evidence/
+generate_candidates/_bridge_candidates_for_levers wiring), tests/
+test_decision_frame.py (+12), tests/test_damper_motion.py (new, +8),
+diagnostics/inspect_frame_candidate_census.py (pre-existing, reused
+unchanged for the byte-stability re-run), diagnostics/inspect_damper_
+motion_sign_and_threshold.py (new, [keep-reproduces]), diagnostics/
+inspect_damper_motion_verification.py (new, [keep-reproduces]),
+diagnostics/README.md (+2 entries).
+
+No config/production change beyond what this package itself ships
+(additive throughout -- zero existing bridge behaviour changed, byte-
+stability proven twice). No commit made -- stop before commit, per the
+work order's own explicit instruction and CLAUDE.md's standing rule that
+the user runs git.

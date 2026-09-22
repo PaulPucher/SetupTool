@@ -588,3 +588,36 @@ kept because a surviving script imports it, not for its own findings.
   run if the LS estimator changes again, or a session with real TC
   activity becomes available to close the exit-phase evidence gap named
   here.
+- **inspect_frame_candidate_census.py** `[keep-reproduces]` — general-
+  purpose decision-frame candidate census (2026-09-22, thesis_notes.md
+  "Frame candidate census: single-lap evidence confirmed on both real
+  sessions"). Reuses inspect_frame_stage2_parity.py's own run_full_
+  pipeline/DUBAI_FILE/V3_FILE directly (same cap=1, same file paths) and
+  modules.decision_frame's own generator functions, called individually in
+  generate_candidates' own order, purely to label each candidate by which
+  generator produced it -- no logic reimplemented. Two live uses so far:
+  the original census (found EVERY corner_verdict/matrix_verdict evidence
+  item on both real sessions rests on exactly 1 repeating lap, the numeric
+  basis for WP-FD1's own no-repeat-condition design decision) and the
+  WP-FD1+2 Phase 1 byte-stability re-run (exact match, zero difference).
+  THE standard byte-stability tool for DECISION LAYER SPEC work going
+  forward (PLAN.md) -- every stage of that spec touches candidate
+  generation and will need the same before/after check this script
+  already performs; re-run at each stage boundary, not just once.
+- **inspect_damper_motion_sign_and_threshold.py** `[keep-reproduces]` --
+  WP-FD1+2 Step 2 groundwork (2026-09-22, thesis_notes.md "Damper motion
+  sign-convention and threshold derivation"). Two real-data questions
+  modules/damper_motion.py's classification logic depends on, CITED
+  DIRECTLY from config/decision_frame.json's own damper_motion block
+  (rate_threshold_mm_s_derived_from, min_valid_fraction_derived_from) and
+  from tests/test_damper_motion.py's own header comment: (1) sign
+  convention -- correlates front-axle travel against braking ax (same
+  method as the existing ARB sign-convention check), found POSITIVE on
+  both real sessions (decreasing travel = compression = loading, the
+  opposite of the first unverified guess); (2) motion-vs-noise rate
+  threshold -- originally planned to compare apex_3 (near-zero by
+  construction) against transient-phase rates, abandoned when both
+  sessions' own apex_3 segments proved too narrow for any >=2-sample rate
+  window (n=0) -- reused this project's own existing straight-line mask
+  (|ax|<0.5,|ay|<0.5 g) as the reference population instead. Re-run if a
+  third session's own distribution should ever revisit either value.
