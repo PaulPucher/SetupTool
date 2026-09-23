@@ -145,7 +145,12 @@ corner or |feedback|>=4 [A]; (3) within class: change-time first
 breadth penalty (global lever helping 1 of N corners is penalised,
 stated as "helps C7, risks others"; per-corner-capable levers exempt;
 time-loss-weighted breadth = documented future extension, needs
-per-corner time-loss signal), window headroom, interaction penalty.
+per-corner time-loss signal), window headroom, interaction penalty,
+effect_class (lever-fit: primary answers rank above side-effect
+answers, weight elicited — Phase C addendum, grouped with interaction
+as the lever-fit/solution-quality slot, never folded into problem
+weight; phase_importance is folded INTO problem weight instead — it
+qualifies the problem itself, not the lever's fit to it).
 ALL WEIGHTS [E] — config placeholders until elicited, each named
 "placeholder" in derived_from. No fixed candidate count anywhere;
 display cutoff is a config threshold on score [A]. Ranking never
@@ -167,6 +172,17 @@ not implementation)
 7. The 14 non-verbatim matrix cells (standing list).
 8. Aero split 25/75 expectation check (standing).
 9. Display cutoff score threshold.
+10. Feedback-router click-class entries: B2's own feedback-only
+    trigger mechanism (interaction_table signed entries, click-class
+    only) currently has zero matching entries on either tendency axis
+    (confirmed, config/decision_frame.json) -- needs at least one
+    click-class lever with a helping-sign entry before it can ever
+    fire on real data. OPEN.
+11. Splitter sign convention -- RESOLVED 2026-09-22 (Phase C, author-
+    elicited): negative offset = more front downforce (hard edge,
+    front-splitter/track contact), positive = less (soft edge, range
+    limit only). See thesis_notes.md "Phase C: splitter_offset
+    direction convention resolved" for the full record.
 
 ## Verify items (small read tasks, not elicitation)
 - TC_reference and ABS_2(V2) tables digitised in car_data.json with a
@@ -174,6 +190,21 @@ not implementation)
   rule satisfied).
 - Tyre-pressure channel identity on both sessions (census rule).
 - Wing_1 GT3R-2026 degree column digitised.
+
+## Addendum 2026-09-22: cost-function weights are calibration
+tunables, editable in Settings at runtime with provenance shown;
+weights re-rank only — they never touch verdicts, thresholds, or
+evidence. The stage-flow and coverage figures are GENERATED from
+live config and therefore cannot drift from the implementation.
+
+## Addendum 2026-09-22 (Phase B1): Design principle's "every lever has
+a state" resolved as per-candidate statuses plus synthetic no-trigger
+rows; reviewer-confirmed 2026-09-22.
+
+## Addendum 2026-09-22 (Phase B2): Feedback-only routing decided:
+interaction_table signed entries, cheapest eligible, one candidate;
+matrix-rule relaxation rejected (severity floors are part of the
+elicited meaning); reviewer 2026-09-22.
 
 # FRAME DEPTH PROGRAMME (2026-09-22, reviewer + project lead) (SUPERSEDED 2026-09-22 by DECISION LAYER SPEC — Steps 1-2 shipped as WP-FD1+2, Steps 3-5 fold into the spec, never run as standalone packages)
 

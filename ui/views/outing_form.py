@@ -2313,7 +2313,7 @@ class OutingForm(QWidget):
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
             generate_candidates, generate_shortlist, resolve_conflicts,
         )
-        from modules.recommendation import load_setup_parameters_registry
+        from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
         summaries = self.stability_result["summaries"]
         config = load_decision_frame_config()
@@ -2336,7 +2336,17 @@ class OutingForm(QWidget):
             channels=(self.parsed_data or {}).get("channels"),
             feedback_data=json.loads(self._collect_feedback_data()),
         )
-        candidates = generate_candidates(evidence, registry, config)
+        # DECISION LAYER SPEC B4 (2026-09-22): assessed_corner_ids feeds the
+        # breadth penalty (corners_helped vs corners_touched) -- every
+        # corner this session actually assessed, including normal verdicts,
+        # not derivable from `evidence` alone (see _attach_breadth's own
+        # comment in modules/decision_frame.py).
+        assessed_corner_ids = set(_group_by_corner(summaries).keys())
+        # DECISION LAYER SPEC B5 (2026-09-22): setup_data also drives the
+        # window-edge (blocked_at_edge) check now, not just generate_
+        # shortlist's own settings-window scoring component below.
+        candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
+                                          assessed_corner_ids=assessed_corner_ids)
         shortlist = generate_shortlist(candidates, evidence, setup_data, config)
         resolve_conflicts(shortlist)
 

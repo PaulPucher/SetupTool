@@ -721,6 +721,59 @@ def _attach_feedback_evidence(candidates, evidence):
                 if fb["verdict"] in verdicts and id(fb) not in own_ids:
                     c["evidence_refs"].append(fb)
                     own_ids.add(id(fb))
+                    # DECISION LAYER SPEC B2 (2026-09-22): data agreeing with
+                    # driver feedback is the strongest trigger class (Stage
+                    # 2). Never touches a feedback-only candidate's own
+                    # provenance -- it has no data verdict to agree with.
+                    if c.get("trigger_provenance") == TRIGGER_DATA_ONLY:
+                        c["trigger_provenance"] = TRIGGER_BOTH_AGREEING
+    return candidates
+
+
+# DECISION LAYER SPEC B6 (2026-09-22): driver-vs-data disagreement. Only
+# oversteer/understeer have a natural opposite -- unstable_yaw has none,
+# so a candidate whose own verdict is unstable_yaw never gets a
+# conflicting_feedback entry from this function (no invented opposite).
+_OPPOSITE_VERDICT = {"oversteer": "understeer", "understeer": "oversteer"}
+
+
+def _attach_conflicting_feedback(candidates, evidence):
+    """Stage 5: 'driver contradicts data: NEVER suppresses -- both shown
+    side by side; the system supervises the driver too; engineer
+    arbitrates.' Attaches disagreeing driver_feedback items to a
+    candidate's own `conflicting_feedback` list -- never touches status,
+    confidence, or evidence_refs (agreement has its own path above; this
+    is strictly the opposite-verdict case, so a single feedback item can
+    never land in both lists for the same candidate)."""
+    feedback_by_key = {}
+    for e in evidence:
+        if e["type"] == "driver_feedback":
+            feedback_by_key.setdefault((e["corner"], e["phase"]), []).append(e)
+
+    for c in candidates:
+        if not feedback_by_key:
+            c["conflicting_feedback"] = []
+            continue
+        own_verdicts_by_phase = {}
+        for ref in c["evidence_refs"]:
+            verdict = ref.get("verdict")
+            if verdict is None:
+                continue
+            phases = ref["phases"] if "phases" in ref else (ref.get("phase"),)
+            for p in phases:
+                if p is not None:
+                    own_verdicts_by_phase.setdefault(p, set()).add(verdict)
+        conflicting = []
+        seen_ids = set()
+        for phase, verdicts in own_verdicts_by_phase.items():
+            opposites = {_OPPOSITE_VERDICT[v] for v in verdicts if v in _OPPOSITE_VERDICT}
+            if not opposites:
+                continue
+            for fb in feedback_by_key.get((c["corner"], phase), []):
+                if fb["verdict"] in opposites and id(fb) not in seen_ids:
+                    conflicting.append(fb)
+                    seen_ids.add(id(fb))
+        c["conflicting_feedback"] = conflicting
     return candidates
 
 
@@ -881,8 +934,24 @@ TRANSIENT_PHASES = tuple(p for p in PHASE_KEYS if p != "apex_3")
 # Enum structure (a fixed ordering of setup_parameters.json's own
 # change_effort vocabulary), not a per-car tunable -- CLAUDE.md
 # method-defining-constant guidance, same status as modules.recommendation.
-# SEVERITY_RANK/ESCALATION_TIER_RANK.
-EFFORT_RANK = {"seconds": 0, "minutes": 1, "garage_hours": 2}
+# SEVERITY_RANK/ESCALATION_TIER_RANK. DECISION LAYER SPEC 2026-09-22 adds
+# half_hour (camber's 20-30 min class) between minutes and garage_hours.
+EFFORT_RANK = {"seconds": 0, "minutes": 1, "half_hour": 2, "garage_hours": 3}
+
+# DECISION LAYER SPEC design principle (2026-09-22): every reachable lever
+# always resolves to exactly one status. Granularity is PER-CANDIDATE
+# (reviewer-confirmed 2026-09-22, thesis_notes.md "B1 design resolution") --
+# a real candidate stays corner+phase-specific exactly as today, never
+# merged across corners; STATUS_NO_TRIGGER is the one exception, a
+# synthetic placeholder for a lever with zero real candidates anywhere
+# this session (see generate_lever_inventory).
+STATUS_PROPOSED = "proposed"
+STATUS_NO_TRIGGER = "no_trigger"
+STATUS_BLOCKED_AT_EDGE = "blocked_at_edge"
+STATUS_CONTRADICTED = "contradicted"
+STATUS_NOT_ASSESSABLE = "not_assessable"
+LEVER_STATUSES = (STATUS_PROPOSED, STATUS_NO_TRIGGER, STATUS_BLOCKED_AT_EDGE,
+                   STATUS_CONTRADICTED, STATUS_NOT_ASSESSABLE)
 
 # Provenance grades that the existing 39-rule engine already treats as
 # action-eligible (config/recommendations.json settings.action_class.
@@ -1071,6 +1140,71 @@ def _brake_balance_candidates(evidence, registry, config_recs):
                          "plausibility check, not the full CS-verdict classify path -- same "
                          f"underlying matrix cell and lever as the existing {cell_id} rule in "
                          "config/recommendations.json.)",
+        })
+    return candidates
+
+
+# --- DECISION LAYER SPEC B7: brake_bias bridge (2026-09-22) -------------
+#
+# Encoding target reviewed and fixed by docs/segers_bridge_review.md
+# C5-1 (ch.5 p.107, Eq.5.3): too much FRONT bias uses up front-tyre grip
+# capacity under straight-line braking, unavailable for turn-in cornering
+# force -> understeer (corner-entry, continuing mid-corner) -> the fix is
+# LESS front bias, i.e. more_rear. Too much REAR bias risks the rear
+# stepping out under trail-braking -> oversteer (corner-entry only, the
+# book's own "not mid-corner" scoping) -> the fix is more_front. Direction
+# convention reviewer-confirmed 2026-09-22 (thesis_notes.md "B7 brake_bias
+# direction convention"): bias moves AWAY from the limiting axle.
+# "Forward"/"rearward" are output WORDS only -- the channel's own sign
+# and numeric scale stay elicitation item 4 (config/setup_parameters.json
+# brake_bias notes); this bridge never emits a numeric channel delta, only
+# a direction word plus a severity-scaled click count.
+#
+# Magnitude reuses SEVERITY_RANK directly (moderate=1, strong=2) rather
+# than inventing a third value for "3 clicks max" -- the spec's own
+# ceiling is a cap, not a target every firing must reach.
+
+def _brake_bias_candidates(evidence):
+    direction_by_verdict = {
+        "understeer": ("more_rear", [("entry_1_brake",), ("entry_2_turnin",)]),
+        "oversteer": ("more_front", [("entry_1_brake",)]),
+    }
+    candidates = []
+    for e in evidence:
+        if e["type"] != "matrix_verdict":
+            continue
+        spec = direction_by_verdict.get(e["verdict"])
+        if spec is None:
+            continue
+        direction, allowed_phase_groups = spec
+        if e["phases"] not in allowed_phase_groups:
+            continue
+        if SEVERITY_RANK[e["severity"]] < SEVERITY_RANK["moderate"]:
+            continue
+        clicks = min(3, SEVERITY_RANK[e["severity"]])
+        if direction == "more_rear":
+            mechanism = ("Too much front bias uses up front-tyre grip capacity under "
+                         "straight-line braking, unavailable for turn-in cornering force "
+                         "(understeer) -- move REARWARD to free up front grip.")
+        else:
+            mechanism = ("Too much rear bias risks the rear stepping out under "
+                         "trail-braking (oversteer) -- move FORWARD to stabilise the rear.")
+        candidates.append({
+            "id": f"brake_bias:{direction}:C{e['corner']}:{'+'.join(e['phases'])}",
+            "scenario": f"brake_bias:{direction}",
+            "corner": e["corner"], "phase": e["phases"][-1], "phases": e["phases"],
+            "lever_family": "brake_bias",
+            "actions": [{"parameter": "brake_bias", "direction": direction, "delta": clicks}],
+            "effort_class": "seconds",
+            "effect_class": "secondary",
+            "grade": "proposed",
+            "cell_id": None,
+            "evidence_refs": [e],
+            "derived_from": "Segers ch.5 p.107 Eq.5.3 (docs/segers_bridge_review.md C5-1), "
+                             "reviewer-confirmed direction convention 2026-09-22",
+            "rationale": mechanism + f" Severity-scaled {clicks} click(s) (max 3). Direction is "
+                         "an output word only -- the channel's own sign/scale and current-state "
+                         "window are elicitation item 4, not resolved here.",
         })
     return candidates
 
@@ -1311,13 +1445,23 @@ def _eval_phase_transient(phase):
     return (True, None) if ok else (False, f"{phase} is not a transient phase (apex/steady-state)")
 
 
-def evaluate_conditions(conditions, corner, phase, evidence_items, setup_data, registry):
+def evaluate_conditions(conditions, corner, phase, evidence_items, setup_data, registry,
+                         contradiction_sources=None):
     """Pure function. Returns (verdict, reasons) where verdict is one of
-    "PASS" / "SUPPRESS" / "CAP_ADVISORY", exactly:
+    "PASS" / "SUPPRESS" / "CONTRADICTED" / "CAP_ADVISORY", exactly:
       - every condition evaluable and passing -> PASS, confidence untouched;
-      - any REQUIRED condition evaluable and FAILING -> SUPPRESS (checked
-        first per condition, short-circuits -- a candidate this frame can
-        affirmatively rule out is not emitted at all);
+      - any REQUIRED evidence_corroboration condition evaluable, FAILING,
+        and whose own evidence_type is in `contradiction_sources` ->
+        CONTRADICTED (DECISION LAYER SPEC B6, 2026-09-22: "data contradicts
+        data" -- the evidence type exists and was actually checked, it
+        just disagrees here; a real, evidenced conflict, not an absence).
+        Still checked first per condition, short-circuits;
+      - any OTHER required condition evaluable and FAILING -> SUPPRESS
+        (phase_transient, setup_state, or an evidence_corroboration type
+        not listed in contradiction_sources -- structural inapplicability
+        or an untracked corroboration gap, not a data disagreement; a
+        candidate this frame can affirmatively rule out is not emitted
+        at all);
       - otherwise, if any non-required condition failed OR any condition
         (required or not) was not-evaluable -> CAP_ADVISORY, reasons is
         every non-passing condition's own human-readable explanation ("no
@@ -1326,10 +1470,15 @@ def evaluate_conditions(conditions, corner, phase, evidence_items, setup_data, r
         corroborate" is not "contradicted" (config/decision_frame.json's
         own "conditions" comment states this as the load-bearing rule).
     No conditions (absent/empty list) -> PASS, [] -- byte-identical to
-    today's unconditional behaviour.
+    today's unconditional behaviour. `contradiction_sources` (additive,
+    default None == treated as empty) is config/decision_frame.json's own
+    conditions.contradiction_sources list -- omitting it reproduces the
+    pre-B6 SUPPRESS-only behaviour exactly, for every direct caller/test
+    that doesn't pass it.
     """
     if not conditions:
         return "PASS", []
+    contradiction_sources = contradiction_sources or ()
 
     reasons = []
     degraded = False
@@ -1352,6 +1501,8 @@ def evaluate_conditions(conditions, corner, phase, evidence_items, setup_data, r
             continue
         if result is False:
             if required:
+                if ctype == "evidence_corroboration" and cond.get("evidence_type") in contradiction_sources:
+                    return "CONTRADICTED", [reason]
                 return "SUPPRESS", [reason]
             degraded = True
             reasons.append(reason)
@@ -1424,11 +1575,22 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
         condition = bridge["condition"]
         verdict = condition["verdict"]
         min_sev = condition.get("min_severity", "moderate")
+        # DECISION LAYER SPEC Phase C (2026-09-22): optional speed_class
+        # filter, added for the splitter_offset bridges below (mirrors
+        # wing_position's own matrix cells, which ARE speed_class="high"-
+        # gated) -- absent (every pre-existing entry) means no filter,
+        # byte-identical to before this addition.
+        required_speed_class = condition.get("speed_class")
         # Method-defining, not a car tunable: +1/-1 encodes ONE step in this
         # lever's own direction_semantics (config/setup_parameters.json
         # springs_front/rear both declare increasing="stiffer"), matching the
         # ARB actions' existing delta convention -- not a physical magnitude.
-        delta = 1 if direction == "stiffen" else -1
+        # DECISION LAYER SPEC B7 (2026-09-22): widened from a springs-only
+        # "stiffen"/else check to _DIRECTION_SIGN (already established by B2
+        # for exactly this purpose) so this generic mechanism also handles
+        # diff_position's "increase"/"decrease" vocabulary correctly --
+        # stiffen/soften still map identically, byte-identical for springs.
+        delta = _DIRECTION_SIGN.get(direction, 1)
 
         for phase_group in bridge["phase_groups"]:
             phase_group = tuple(phase_group)
@@ -1441,19 +1603,45 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
                         continue
                     if SEVERITY_RANK[ev["severity"]] < SEVERITY_RANK[min_sev]:
                         continue
+                    if required_speed_class is not None and ev.get("speed_class") != required_speed_class:
+                        continue
 
+                    contradiction_sources = decision_config.get("conditions", {}).get(
+                        "contradiction_sources", [])
                     verdict_result, reasons = evaluate_conditions(
-                        bridge.get("conditions", []), cid, phase_group[-1], evidence, setup_data, registry)
+                        bridge.get("conditions", []), cid, phase_group[-1], evidence, setup_data, registry,
+                        contradiction_sources)
                     if verdict_result == "SUPPRESS":
                         continue
 
                     evidence_refs = [ev]
+                    status = STATUS_PROPOSED
                     if verdict_result == "CAP_ADVISORY":
                         evidence_refs = evidence_refs + [{
                             "type": "condition_gap", "corner": cid, "phase": phase_group[-1],
                             "verdict": None, "severity": None, "confidence": cap,
                             "source": f"condition gap, capped at {cap}: " + "; ".join(reasons),
                         }]
+                        # DECISION LAYER SPEC Stage 3: "unfilled sheet -> not-
+                        # assessable, honest degrade" -- CAP_ADVISORY already
+                        # means some condition could not be evaluated (missing
+                        # evidence source, unfilled setup sheet, missing
+                        # registry window); this status makes that visible in
+                        # the lever inventory rather than only in a confidence
+                        # number and a machine-readable reasons list.
+                        status = STATUS_NOT_ASSESSABLE
+                    elif verdict_result == "CONTRADICTED":
+                        # DECISION LAYER SPEC B6 (2026-09-22): data contradicts
+                        # data -- SUPPRESSED from the shortlist but NOT
+                        # dropped from the full inventory (Stage 5's own
+                        # wording: "SUPPRESSED from shortlist -> tail,
+                        # 'contradicted by X'"). Unlike CAP_ADVISORY this
+                        # candidate's own confidence is left untouched -- the
+                        # contradiction is reported via status/reason, not by
+                        # further degrading a number that already reads
+                        # honestly for the firing evidence itself.
+                        status = STATUS_CONTRADICTED
+                        reasons = [f"contradicted by {reasons[0]}"] if reasons else ["contradicted"]
 
                     candidates.append({
                         "id": f"lever_bridge:{param}:{direction}:C{cid}:{'+'.join(phase_group)}",
@@ -1469,11 +1657,383 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
                         "rationale": bridge["rationale"],
                         "derived_from": bridge["derived_from"],
                         "condition_reasons": reasons,
+                        "status": status,
                     })
     return candidates
 
 
-def generate_candidates(evidence, registry, config, setup_data=None):
+# --- DECISION LAYER SPEC B2: feedback-only trigger (2026-09-22) --------
+#
+# |driver feedback|>=2 generates a candidate with ZERO data verdict.
+# Routing mechanism reviewer-confirmed 2026-09-22 (thesis_notes.md "B2
+# design resolution"): interaction_table's own signed (parameter,
+# direction, performance_axis, sign) entries, repurposed as a "what
+# helps this axis" lookup, filtered to click-class-eligible levers only
+# -- matrix-rule relaxation was explicitly REJECTED (severity floors are
+# part of what the engineer elicited, not a gate to bypass for
+# subjective-only input). |1| feedback never reaches this function (see
+# generate_candidates' own bucketing) -- Stage 2: "|1| is a note,
+# corroboration-only, never triggers".
+#
+# Trigger provenance (Stage 2's three labelled classes): every candidate
+# from the other three generators is TRIGGER_DATA_ONLY (set in
+# generate_candidates); a candidate from this function is
+# TRIGGER_FEEDBACK_ONLY ("driver_reported", the spec's own wording); a
+# data-only candidate that ALSO receives matching feedback corroboration
+# is upgraded to TRIGGER_BOTH_AGREEING in _attach_feedback_evidence
+# ("both-agreeing = strongest class").
+TRIGGER_DATA_ONLY = "data_only"
+TRIGGER_FEEDBACK_ONLY = "driver_reported"
+TRIGGER_BOTH_AGREEING = "both_agreeing"
+
+# Symbolic one-step direction sign -- same convention _bridge_candidates_
+# for_levers already uses (delta=+-1 regardless of a parameter's real
+# physical step size; the settings-window component's own distance
+# formula is a heuristic already, not a literal physical delta). Matches
+# config/recommendations.json's own established sign convention for
+# these exact direction words (increase/decrease/more_negative/
+# less_negative all verified there directly, not assumed).
+_DIRECTION_SIGN = {
+    "stiffen": 1, "soften": -1,
+    "increase": 1, "decrease": -1,
+    "more_negative": -1, "less_negative": 1,
+    "more_positive": 1, "less_positive": -1,
+}
+
+
+def _phase_compatible(phase, phase_affinity):
+    # None = global lever (no phase_affinity recorded), compatible with
+    # every phase. wing_position's own phase_affinity is a speed-class
+    # tag ("high_speed_corners"), not a PHASE_KEYS value -- it correctly
+    # never matches a real feedback phase here; feedback carries no
+    # speed_class routing today, so this is an honest exclusion, not a
+    # special case this function invents.
+    return phase_affinity is None or phase in phase_affinity
+
+
+def _feedback_only_candidates(evidence, existing_candidates, registry, config):
+    feedback_items = [e for e in evidence if e["type"] == "driver_feedback" and abs(e["raw_feedback"]) >= 2]
+    if not feedback_items:
+        return []
+
+    click_class = set(config.get("eligibility_classes", {}).get("click_class", []))
+    table = config["interaction_table"]
+    existing_keys = {
+        (action["parameter"], action.get("direction"), c["corner"])
+        for c in existing_candidates for action in c["actions"]
+    }
+
+    candidates = []
+    for fb in feedback_items:
+        axis = "oversteer_tendency" if fb["verdict"] == "oversteer" else "understeer_tendency"
+        pool = []
+        for entry in table:
+            if entry["performance_axis"] != axis or entry["sign"] != 1:
+                continue
+            param = entry["parameter"]
+            if param not in click_class:
+                continue
+            reg_entry = registry.get(param)
+            if reg_entry is None:
+                continue
+            if (param, entry["direction"], fb["corner"]) in existing_keys:
+                continue
+            if not _phase_compatible(fb["phase"], reg_entry.get("phase_affinity")):
+                continue
+            pool.append((param, entry["direction"], reg_entry, entry))
+        if not pool:
+            continue  # honest gap -- no fallback, no invention (B2 reviewer decision)
+
+        def _effort_rank(item):
+            return EFFORT_RANK.get(item[2].get("change_effort"), len(EFFORT_RANK))
+
+        min_rank = min(_effort_rank(item) for item in pool)
+        cheapest = [item for item in pool if _effort_rank(item) == min_rank]
+        if len(cheapest) > 1:
+            def _penalty_magnitude(item):
+                param, direction, _reg_entry, _entry = item
+                probe = {"corner": fb["corner"], "evidence_refs": [fb],
+                         "actions": [{"parameter": param, "direction": direction}]}
+                penalty, _notes = _interaction_penalty(probe, evidence, config,
+                                                        config["cost_function"]["interaction"])
+                return abs(penalty)
+            max_pen = max(_penalty_magnitude(item) for item in cheapest)
+            cheapest = [item for item in cheapest if _penalty_magnitude(item) == max_pen]
+        if len(cheapest) > 1:
+            # Reviewer decision 2026-09-22: a genuine tie is reported, never
+            # resolved arbitrarily.
+            raise ValueError(
+                "feedback-only routing tie unresolved: "
+                f"corner={fb['corner']} phase={fb['phase']} axis={axis} "
+                f"candidates={[(p, d) for p, d, _, _ in cheapest]}"
+            )
+
+        param, direction, reg_entry, entry = cheapest[0]
+        delta = _DIRECTION_SIGN.get(direction, 1)
+        candidates.append({
+            "id": f"feedback_only:{param}:{direction}:C{fb['corner']}:{fb['phase']}",
+            "scenario": f"feedback_only:{param}:{direction}",
+            "corner": fb["corner"], "phase": fb["phase"],
+            "lever_family": param,
+            "actions": [{"parameter": param, "direction": direction, "delta": delta}],
+            "effort_class": reg_entry.get("change_effort"),
+            "effect_class": "secondary",
+            "grade": entry["grade"],
+            "cell_id": None,
+            "evidence_refs": [fb],
+            "rationale": f"Driver reported {fb['verdict']} at {fb['phase']} "
+                         f"(feedback {fb['raw_feedback']:+g}) -- {param} {direction} routed via "
+                         f"interaction_table's own {axis} entry (grade={entry['grade']}), "
+                         f"cheapest click-class lever available.",
+            "status": STATUS_PROPOSED,
+            "trigger_provenance": TRIGGER_FEEDBACK_ONLY,
+        })
+    return candidates
+
+
+# --- DECISION LAYER SPEC B3: eligibility gate (2026-09-22) -------------
+#
+# Stage 6: "ELIGIBILITY CLASS = magnitude matching: mild/single-corner
+# problems reach click-class levers only; springs/camber/toe unlock only
+# at strong+multi-corner or |feedback|>=4 [A]... Camber ADDITIONALLY
+# always requires the multi-corner gate per spec" (B3's own wording,
+# no |feedback|>=4 bypass for camber specifically). This RAISES the
+# existing matrix-rule floor for camber/toe from "moderate" (config/
+# recommendations.json US-APX-high/OS-APX-high/US-BRK-low/US-TIN-low/
+# OS-TIN-low/INST-BRK-high, verified directly) to "strong", and adds a
+# cross-corner requirement neither the matrix engine nor lever_bridges
+# has ever enforced -- a real, expected behaviour change (not a bug),
+# per the work order's own B8 instruction that census counts WILL
+# change in this phase.
+#
+# "Same axle" only matters for camber (4 independent per-corner registry
+# keys); springs_front/rear and toe_front/rear are already axle-level
+# parameters, so the axle-family for those is just the parameter itself.
+_CAMBER_AXLE_FAMILY = {
+    "camber_fl": "camber_front", "camber_fr": "camber_front",
+    "camber_rl": "camber_rear", "camber_rr": "camber_rear",
+}
+
+
+def _axle_family(parameter):
+    return _CAMBER_AXLE_FAMILY.get(parameter, parameter)
+
+
+def _apply_eligibility_gate(candidates, evidence, config):
+    heavy = set(config.get("eligibility_classes", {}).get("heavy_correctors", []))
+    if not heavy:
+        return candidates
+
+    feedback_magnitude = {}
+    for e in evidence:
+        if e["type"] == "driver_feedback":
+            key = (e["corner"], e["phase"])
+            feedback_magnitude[key] = max(feedback_magnitude.get(key, 0), abs(e["raw_feedback"]))
+
+    def _is_heavy(c):
+        return any(a["parameter"] in heavy for a in c["actions"])
+
+    heavy_candidates = [c for c in candidates if _is_heavy(c)]
+    if not heavy_candidates:
+        return candidates
+    other_candidates = [c for c in candidates if not _is_heavy(c)]
+
+    # (axle_family, direction) -> distinct corners showing STRONG severity
+    # for that group. Severity is read the SAME way score() already reads
+    # it (evidence_refs[0]'s own severity) -- no second severity rule.
+    strong_corners_by_group = {}
+    for c in heavy_candidates:
+        primary = c["evidence_refs"][0] if c["evidence_refs"] else None
+        severity = primary.get("severity") if primary else None
+        if severity != "strong":
+            continue
+        for a in c["actions"]:
+            if a["parameter"] not in heavy:
+                continue
+            group = (_axle_family(a["parameter"]), a["direction"])
+            strong_corners_by_group.setdefault(group, set()).add(c["corner"])
+
+    kept = []
+    for c in heavy_candidates:
+        eligible = False
+        fb_mag = feedback_magnitude.get((c["corner"], c["phase"]), 0)
+        for a in c["actions"]:
+            if a["parameter"] not in heavy:
+                continue
+            group = (_axle_family(a["parameter"]), a["direction"])
+            multi_corner_ok = len(strong_corners_by_group.get(group, set())) >= 2
+            # Camber never gets the feedback bypass -- always multi-corner.
+            feedback_ok = fb_mag >= 4 and not a["parameter"].startswith("camber_")
+            if multi_corner_ok or feedback_ok:
+                eligible = True
+                break
+        if eligible:
+            kept.append(c)
+    return other_candidates + kept
+
+
+# --- DECISION LAYER SPEC B4: breadth (2026-09-22) -----------------------
+#
+# Stage 6: "breadth penalty (global lever helping 1 of N corners is
+# penalised, stated as 'helps CX, risks others'; per-corner-capable
+# levers exempt". "Per-corner-capable" == dampers, per the spec (the
+# bump/rebound LS/HS split gives them shaft-speed-range selectivity a
+# single spring/ARB/camber setting doesn't have).
+#
+# N resolved (reviewer-confirmed 2026-09-22, thesis_notes.md "B4 breadth
+# design resolution", two rounds): N = every corner ASSESSED this
+# session, INCLUDING normal verdicts -- a normal verdict is itself
+# positive evidence of a working state a global rebalance would risk.
+# This is NOT derivable from the evidence list alone (_build_corner_
+# verdict_evidence/_build_matrix_verdict_evidence both skip
+# severity=="normal" -- confirmed directly): hence the additive optional
+# `assessed_corner_ids` parameter below, rather than an evidence-only
+# proxy (explicitly rejected -- it reproduces the same zeroing failure
+# in the spec's own motivating case of one bad corner, rest good).
+
+def _attach_breadth(candidates, assessed_corner_ids):
+    by_action = {}
+    for c in candidates:
+        for a in c["actions"]:
+            by_action.setdefault((a["parameter"], a.get("direction")), set()).add(c["corner"])
+
+    if not assessed_corner_ids:
+        # No corner census supplied -- every pre-existing caller. Breadth
+        # fields present but null: no invented N, no evidence-only proxy.
+        for c in candidates:
+            c["corners_helped"] = None
+            c["corners_touched"] = None
+            c["breadth_note"] = None
+        return candidates
+
+    assessed = set(assessed_corner_ids)
+    for c in candidates:
+        exempt = any(a["parameter"].startswith("damper_") for a in c["actions"])
+        helped = set()
+        opposed = set()
+        for a in c["actions"]:
+            param, direction = a["parameter"], a.get("direction")
+            helped |= by_action.get((param, direction), set())
+            for (other_param, other_direction), corners in by_action.items():
+                if other_param == param and other_direction != direction:
+                    opposed |= corners
+        c["corners_helped"] = sorted(helped)
+        if exempt:
+            c["corners_touched"] = sorted(helped)
+            c["breadth_note"] = None
+            continue
+
+        c["corners_touched"] = sorted(assessed)
+        helped_in_assessed = helped & assessed
+        rebalanced = sorted(assessed - helped_in_assessed)
+        notes = []
+        if rebalanced:
+            helped_str = "/".join(str(x) for x in sorted(helped_in_assessed)) or "none assessed"
+            notes.append(
+                f"helps C{helped_str} -- rebalances {len(rebalanced)} corner(s) "
+                f"currently assessed good (C{'/'.join(str(x) for x in rebalanced)})"
+            )
+        opposed_only = sorted(opposed - helped)
+        if opposed_only:
+            notes.append(f"directly opposed at C{'/'.join(str(x) for x in opposed_only)}")
+        c["breadth_note"] = "; ".join(notes) if notes else None
+    return candidates
+
+
+# --- DECISION LAYER SPEC B5: window edge -> blocked_at_edge (2026-09-22) -
+#
+# Stage 3: "AT EDGE: candidate shown BLOCKED at its earned rank, reason
+# stated ('bias at rear limit'), alternative ranks up on its own merit --
+# no suppression, no auto-promotion. Soft edge (typical_window) labelled
+# 'engineer may exceed'; hard edge (physical, e.g. splitter contact)
+# labelled as such." Universal per-candidate check (not the opt-in
+# per-lever_bridges "conditions" list evaluate_conditions already serves)
+# -- gated on `setup_data` being supplied at all, same additive/opt-in
+# pattern B4 already established for assessed_corner_ids: setup_data=None
+# (every pre-existing caller) skips this check entirely, byte-identical.
+#
+# Hard vs soft resolved without inventing new per-parameter data: HARD =
+# the registry's own value_space min/max (a physical/legal bound no
+# adjustment can cross -- e.g. arb position cannot exist outside 1-7;
+# splitter_offset's own Phase A note already ties its value_space extremes
+# to front-splitter/track contact). SOFT = decision_frame.json's own
+# parameter_windows (nominal+-span, the typical-practice range an engineer
+# may choose to exceed). Both are real, already-present structured data --
+# no new config field, no guessed limit values.
+#
+# Directional: "at edge" only blocks when the candidate's OWN delta pushes
+# FURTHER past that same edge (worsening/impossible), never when the
+# proposed direction corrects back toward nominal from an edge already
+# reached -- Stage 3's own "current state of the levers" framing (FRAME
+# DEPTH PROGRAMME's motivating example: check toe/camber's CURRENT value
+# before recommending more of the same direction).
+#
+# "Unfilled sheet -> not-assessable" (Stage 3) applies per-lever, only
+# once setup_data is supplied but THIS parameter's own value is missing --
+# never a blanket rule (a candidate whose own lever's value IS on record
+# is checked normally even if some OTHER lever's sheet cell is empty).
+
+def _window_edge_check(action, setup_data, registry, config):
+    param = action["parameter"]
+    delta = action.get("delta")
+    if delta is None or delta == 0:
+        return None  # target-style action, no directional push to check
+    entry = registry.get(param)
+    if entry is None:
+        return None
+    current = _current_setup_value(setup_data, entry)
+    if current is None:
+        return ("not_assessable", f"setup sheet unfilled: {param}")
+    try:
+        current = float(current)
+    except (TypeError, ValueError):
+        return None  # enum label (e.g. wing_position "P9") -- not numerically checkable, same
+                     # defensive skip _settings_window_component already uses for this case
+
+    push_sign = 1 if delta > 0 else -1
+
+    value_space = entry.get("value_space") or {}
+    vmin, vmax = value_space.get("min"), value_space.get("max")
+    if push_sign > 0 and vmax is not None and current >= vmax:
+        return ("hard", f"{param} already at its hard maximum ({current} >= {vmax})")
+    if push_sign < 0 and vmin is not None and current <= vmin:
+        return ("hard", f"{param} already at its hard minimum ({current} <= {vmin})")
+
+    window = config["parameter_windows"].get(param, {})
+    nominal, span = window.get("nominal"), window.get("span")
+    if nominal is None or span is None or not span:
+        return None  # no typical-window data for this parameter -- silent, same as scoring's own skip
+    distance = current - nominal
+    if (push_sign > 0 and distance >= span) or (push_sign < 0 and distance <= -span):
+        return ("soft", f"{param} already at its typical-window edge "
+                         f"(current={current}, nominal={nominal}, span={span})")
+    return None
+
+
+def _apply_window_edge_status(candidates, setup_data, registry, config):
+    if setup_data is None:
+        return candidates
+    for c in candidates:
+        if c.get("status") != STATUS_PROPOSED:
+            continue  # not_assessable (B1/evaluate_conditions) takes precedence, not overridden here
+        for action in c["actions"]:
+            result = _window_edge_check(action, setup_data, registry, config)
+            if result is None:
+                continue
+            kind, reason = result
+            if kind == "not_assessable":
+                c["status"] = STATUS_NOT_ASSESSABLE
+                c["edge_reason"] = reason
+            else:
+                c["status"] = STATUS_BLOCKED_AT_EDGE
+                c["edge_kind"] = kind
+                c["edge_reason"] = reason
+                c["edge_label"] = "engineer may exceed" if kind == "soft" else "hard limit"
+            break  # first blocking/not-evaluable action found is enough to set this candidate's status
+    return candidates
+
+
+def generate_candidates(evidence, registry, config, setup_data=None, assessed_corner_ids=None):
     """Candidate layer. See module-level comment above for Stage 1's own
     scope; Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04) adds
     _bridge_candidates_for_matrix_rules (all 39 config/recommendations.json
@@ -1494,6 +2054,13 @@ def generate_candidates(evidence, registry, config, setup_data=None):
     optional per-bridge "conditions" setup_state checks. Every pre-
     existing caller (ui/views/outing_form.py's _generate_decision_frame
     calls generate_candidates without this argument) is unaffected.
+
+    `assessed_corner_ids` (DECISION LAYER SPEC B4, 2026-09-22, additive,
+    default None) is the set/iterable of every corner id assessed this
+    session (modules.recommendation._group_by_corner(summaries).keys(),
+    NOT derivable from `evidence` alone -- see _attach_breadth's own
+    comment). None -> breadth fields present but null on every candidate,
+    byte-identical to pre-B4 behaviour for every existing caller.
     """
     config_recs = load_recommendations_config()
 
@@ -1518,25 +2085,70 @@ def generate_candidates(evidence, registry, config, setup_data=None):
     candidates += _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs,
                                               intervention_tc_by_corner)
     candidates += _brake_balance_candidates(evidence, registry, config_recs)
+    # DECISION LAYER SPEC B7 (2026-09-22): brake_bias bridge (Segers C5-1).
+    candidates += _brake_bias_candidates(evidence)
     candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
                                                         intervention_abs_masking_by_corner)
     candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates, setup_data)
+    # DECISION LAYER SPEC B3 (2026-09-22): heavy correctors (springs/camber/
+    # toe) only survive at strong+multi-corner or (non-camber) |feedback|>=4
+    # -- applied BEFORE the feedback-only generator below, so a heavy
+    # corrector gated out here never blocks a cheaper click-class
+    # alternative from firing at the same corner via _feedback_only_
+    # candidates' own existing_keys dedupe.
+    candidates = _apply_eligibility_gate(candidates, evidence, config)
+    # DECISION LAYER SPEC B1 (2026-09-22): every candidate carries a status.
+    # Only _bridge_candidates_for_levers currently has a mechanism that can
+    # produce anything other than "proposed" (its evaluate_conditions call);
+    # the other three generators have no blocking/contradiction mechanism
+    # yet (B5/B6's own job), so their candidates default to proposed here.
+    # Same pass sets trigger_provenance=data_only -- every one of these four
+    # generators keys off a real verdict-bearing evidence item.
+    for c in candidates:
+        c.setdefault("status", STATUS_PROPOSED)
+        c.setdefault("trigger_provenance", TRIGGER_DATA_ONLY)
+    # DECISION LAYER SPEC B2 (2026-09-22): feedback-only candidates, routed
+    # independently of any data verdict -- deduped against everything
+    # generated so far (existing_keys inside the function), so a lever
+    # already covered by a data-driven candidate never gets a second,
+    # competing feedback-only proposal for the same (parameter, direction,
+    # corner).
+    candidates += _feedback_only_candidates(evidence, candidates, registry, config)
     # Deepening Phase 4d: attaches any driver_feedback evidence (built by
     # build_evidence when feedback_data was supplied) to every candidate
     # whose own evidence_refs share its corner/phase/verdict -- corroborates
     # via the existing MIN-confidence rule, never a new candidate/action.
+    # DECISION LAYER SPEC B2: also upgrades trigger_provenance to
+    # both_agreeing when a data-only candidate receives matching feedback
+    # (Stage 2: "both-agreeing = strongest class") -- never touches a
+    # feedback-only candidate's own provenance (it has no data verdict to
+    # agree with by definition).
     candidates = _attach_feedback_evidence(candidates, evidence)
+    # DECISION LAYER SPEC B6 (2026-09-22): driver-vs-data disagreement is
+    # display data only -- never suppresses, never touches status/score.
+    candidates = _attach_conflicting_feedback(candidates, evidence)
+    # DECISION LAYER SPEC B5 (2026-09-22): window edge -> blocked_at_edge.
+    # setup_data is None for every pre-existing caller that doesn't pass it
+    # -- byte-identical (status untouched).
+    candidates = _apply_window_edge_status(candidates, setup_data, registry, config)
+    # DECISION LAYER SPEC B4 (2026-09-22): breadth. assessed_corner_ids is
+    # None for every pre-existing caller -- byte-identical (fields present,
+    # null, no invented number).
+    candidates = _attach_breadth(candidates, assessed_corner_ids)
     return candidates
 
 
 # --- Scoring layer (shared by every candidate, Stage 1 and Stage 2) ----
 #
-# Six components exactly, per the work order: severity x phase_importance,
-# effect_class, inverse effort, confidence, settings-window distance,
-# interaction penalty. Every weight lives in config/decision_frame.json's
-# scoring_weights (all project-lead-elicited placeholders, Stage 2
-# calibration item). Deterministic: no randomness, no hidden global state
-# -- identical (candidate, evidence, current_setup, config) always
+# DECISION LAYER SPEC C1 (2026-09-22) REVISION: six components exactly,
+# per Stage 6's own term order -- problem weight (severity x
+# phase_importance x confidence), change_time, breadth, headroom,
+# interaction, effect_class. Every weight lives in config/decision_frame.
+# json's cost_function (scoring_weights retired, see that key's own
+# retirement comment) -- all placeholders pending engineer elicitation,
+# except phase_importance/effect_class's already-elicited orderings,
+# carried over unchanged. Deterministic: no randomness, no hidden global
+# state -- identical (candidate, evidence, current_setup, config) always
 # produces an identical breakdown.
 
 # performance_axis -> the corner_verdict verdict string it corresponds to,
@@ -1638,10 +2250,44 @@ def _interaction_penalty(candidate, evidence, decision_config, weight):
     return penalty, notes
 
 
+def _breadth_penalty(candidate, weight):
+    """DECISION LAYER SPEC C1 (2026-09-22): Tier B formula turning B4's
+    own corners_helped/corners_touched data into a scalar. penalty =
+    -(1 - helped/touched) -- 0 when the candidate helps every assessed
+    corner (or is breadth-exempt, since an exempt candidate's own
+    corners_touched==corners_helped by construction, _attach_breadth
+    above), 0 and flagged when breadth data was never computed at all
+    (assessed_corner_ids omitted from generate_candidates). Same
+    normalized-distance style _settings_window_component already uses
+    ("1 - distance/span"), not a new invented style.
+    """
+    helped = candidate.get("corners_helped")
+    touched = candidate.get("corners_touched")
+    if helped is None or touched is None:
+        return 0.0, ["breadth not computable (no assessed_corner_ids supplied to "
+                      "generate_candidates) -- neutral, contributes 0"]
+    if not touched:
+        return 0.0, []
+    return weight * -(1.0 - len(helped) / len(touched)), []
+
+
 def score(candidate, evidence, current_setup, config):
-    """Scoring layer, Stage 1. Six components (see module comment above),
-    each weighted by config['scoring_weights'], summed to one scalar with
-    the full breakdown retained for Phase 5's expandable UI reasoning.
+    """Scoring layer. DECISION LAYER SPEC Stage 6 (2026-09-22, REVISED
+    Phase C -- thesis_notes.md "C1: scoring-term fold"). Six components,
+    each weighted by config['cost_function'] EXCLUSIVELY (the older
+    scoring_weights block is retired, see its own config comment for the
+    key-by-key migration), summed to one scalar with the full breakdown
+    retained for the UI's own expandable reasoning.
+
+    Term order matches Stage 6 exactly: (1) problem weight = severity x
+    phase_importance x confidence (phase_importance folded in here --
+    it qualifies the PROBLEM, not any one lever's fit to it); within
+    class, (2) change_time (inverse effort), (3) breadth, (4) headroom
+    (settings-window distance), (5) interaction, (6) effect_class
+    (lever-fit/solution-quality, grouped with interaction -- deliberately
+    NOT folded into problem weight, since the SAME problem can yield a
+    different effect_class from different candidate levers; thesis_notes.
+    md has the full category-error reasoning for this split).
 
     `evidence` is build_evidence()'s own full list (needed by the
     interaction-penalty component to see this corner's OTHER active
@@ -1649,72 +2295,153 @@ def score(candidate, evidence, current_setup, config):
     shape modules.recommendation.generate_recommendations' setup_data
     parameter takes). `config` is load_decision_frame_config()'s dict.
     """
-    weights = config["scoring_weights"]
+    weights = config["cost_function"]
     registry = load_setup_parameters_registry()
     flags = []
 
     primary = candidate["evidence_refs"][0] if candidate["evidence_refs"] else None
     sev_rank = SEVERITY_RANK.get(primary.get("severity") if primary else None, 0)
     phase_importance = weights["phase_importance"].get(candidate["phase"], 1.0)
-    c_severity = weights["severity_weight"] * sev_rank * phase_importance
-
-    if candidate["effect_class"] is None:
-        c_effect = 0.0
-        flags.append("effect_class unset (unrouted candidate)")
-    else:
-        c_effect = weights["effect_weight"] * weights["effect_class_multiplier"].get(
-            candidate["effect_class"], 0.0)
+    confidence = _candidate_confidence(candidate)
+    c_problem_weight = weights["severity"] * sev_rank * phase_importance * confidence
 
     if candidate["effort_class"] is None:
-        c_effort = 0.0
+        c_change_time = 0.0
         flags.append("effort_class unset (unrouted candidate)")
     else:
-        c_effort = weights["effort_weight"] / (EFFORT_RANK.get(candidate["effort_class"], 0) + 1)
+        c_change_time = weights["change_time"] / (EFFORT_RANK.get(candidate["effort_class"], 0) + 1)
 
-    c_confidence = weights["confidence_weight"] * _candidate_confidence(candidate)
+    c_breadth, breadth_flags = _breadth_penalty(candidate, weights["breadth"])
+    flags += breadth_flags
 
     c_window, window_flags = _settings_window_component(
-        candidate, current_setup, registry, config, weights["settings_window_weight"])
+        candidate, current_setup, registry, config, weights["headroom"])
     flags += window_flags
 
     c_interaction, interaction_notes = _interaction_penalty(
-        candidate, evidence, config, weights["interaction_weight"])
+        candidate, evidence, config, weights["interaction"])
 
-    total = c_severity + c_effect + c_effort + c_confidence + c_window + c_interaction
+    if candidate["effect_class"] is None:
+        c_effect_class = 0.0
+        flags.append("effect_class unset (unrouted candidate)")
+    else:
+        c_effect_class = weights["effect_class"].get(candidate["effect_class"], 0.0)
+
+    total = c_problem_weight + c_change_time + c_breadth + c_window + c_interaction + c_effect_class
 
     return {
         "total": round(total, 4),
         "components": {
-            "severity_x_phase_importance": round(c_severity, 4),
-            "effect_class": round(c_effect, 4),
-            "inverse_effort": round(c_effort, 4),
-            "confidence": round(c_confidence, 4),
-            "settings_window_distance": round(c_window, 4),
-            "interaction_penalty": round(c_interaction, 4),
+            "problem_weight": round(c_problem_weight, 4),
+            "change_time": round(c_change_time, 4),
+            "breadth": round(c_breadth, 4),
+            "headroom": round(c_window, 4),
+            "interaction": round(c_interaction, 4),
+            "effect_class": round(c_effect_class, 4),
         },
         "interaction_notes": interaction_notes,
         "flags": flags,
     }
 
 
-def generate_shortlist(candidates, evidence, current_setup, config):
-    """Ranked shortlist: every candidate scored via score() above, sorted
-    by total score descending. Deterministic tie-break on candidate id
-    (lexical) so identical inputs always produce an identical ordering,
-    even when two candidates score exactly equal.
-    """
-    shortlist = []
+def _score_and_sort(candidates, evidence, current_setup, config):
+    # Shared by generate_shortlist and generate_lever_inventory -- every
+    # real candidate scored via score() above, sorted by total score
+    # descending. Deterministic tie-break on candidate id (lexical) so
+    # identical inputs always produce an identical ordering, even when two
+    # candidates score exactly equal.
+    scored = []
     for c in candidates:
         result = score(c, evidence, current_setup, config)
-        shortlist.append({
+        scored.append({
             **c,
             "score": result["total"],
             "score_components": result["components"],
             "score_interaction_notes": result["interaction_notes"],
             "score_flags": result["flags"],
         })
-    shortlist.sort(key=lambda c: (-c["score"], c["id"]))
-    return shortlist
+    scored.sort(key=lambda c: (-c["score"], c["id"]))
+    return scored
+
+
+def generate_shortlist(candidates, evidence, current_setup, config):
+    """Ranked shortlist. DECISION LAYER SPEC B1 (reviewer-confirmed
+    2026-09-22): the shortlist is status=="proposed" candidates ONLY --
+    every other status (no_trigger/blocked_at_edge/contradicted/
+    not_assessable) belongs in generate_lever_inventory's own tail, never
+    here. Every existing real session's candidates are status=="proposed"
+    today (no lever_bridges entry declares a "conditions" list yet), so
+    this filter is currently a no-op against the 2026-09-22 census
+    baseline -- it only starts excluding candidates once B5/B6/a
+    conditions-bearing bridge actually produces a non-proposed status.
+    """
+    scored = _score_and_sort(candidates, evidence, current_setup, config)
+    return [c for c in scored if c.get("status", STATUS_PROPOSED) == STATUS_PROPOSED]
+
+
+def reachable_lever_keys(registry):
+    """Every registry lever the DECISION LAYER SPEC design principle
+    requires an inventory entry for: every recommendation_target=true key,
+    session-wide -- NOT per corner. A registry key like ride_height_front
+    covers both FL/FR wheel positions, and the same key can fire at many
+    different track corners without being a different lever; "reachable"
+    is a property of the registry entry, not of any one corner's evidence.
+    """
+    return {k for k, v in registry.items() if isinstance(v, dict) and v.get("recommendation_target")}
+
+
+def generate_lever_inventory(candidates, evidence, current_setup, config, registry):
+    """DECISION LAYER SPEC design principle, B1 (reviewer-confirmed
+    granularity, thesis_notes.md 2026-09-22): every reachable lever always
+    resolves to exactly one status; silent unreachability is structurally
+    impossible. Ordering (reviewer-confirmed): proposed candidates first
+    (identical order to generate_shortlist), then real non-proposed
+    candidates (blocked_at_edge/contradicted/not_assessable) ranked by
+    their own earned score, then synthetic no_trigger rows last, unranked
+    -- no candidate object exists for a lever nothing ever pointed at, so
+    there is nothing to score.
+    """
+    scored = _score_and_sort(candidates, evidence, current_setup, config)
+    proposed = [c for c in scored if c.get("status", STATUS_PROPOSED) == STATUS_PROPOSED]
+    tail_real = [c for c in scored if c.get("status", STATUS_PROPOSED) != STATUS_PROPOSED]
+    touched = {action["parameter"] for c in candidates for action in c["actions"]}
+    no_trigger = [
+        {
+            "id": f"no_trigger:{lever}",
+            "status": STATUS_NO_TRIGGER,
+            "lever": lever,
+            "corner": None,
+            "phase": None,
+            "actions": [],
+            "evidence_refs": [],
+            "rationale": "No evidence pointed at this lever this session.",
+        }
+        for lever in sorted(reachable_lever_keys(registry) - touched)
+    ]
+    return proposed + tail_real + no_trigger
+
+
+def generate_display_split(candidates, evidence, current_setup, config, registry):
+    """DECISION LAYER SPEC C1 (2026-09-22), Stage 6: "display cutoff is a
+    config threshold on score. Ranking never hides: below-threshold/
+    blocked/contradicted/no-trigger levers live in a collapsed 'assessed,
+    not proposed' tail, one line each." The VISIBLE shortlist is
+    status==proposed AND score>=display_score_threshold; every other
+    inventory entry (low-score proposed, blocked_at_edge, contradicted,
+    not_assessable, no_trigger) lives in the tail -- the tail still
+    carries every one of them with its own status, never a silent drop.
+    No fixed candidate count anywhere: both lists can be any length,
+    including empty.
+    """
+    inventory = generate_lever_inventory(candidates, evidence, current_setup, config, registry)
+    threshold = config["display_score_threshold"]["value"]
+    visible, visible_ids = [], set()
+    for c in inventory:
+        if c.get("status") == STATUS_PROPOSED and c.get("score", float("-inf")) >= threshold:
+            visible.append(c)
+            visible_ids.add(id(c))
+    tail = [c for c in inventory if id(c) not in visible_ids]
+    return {"shortlist": visible, "tail": tail}
 
 
 # --- Conflict resolver, Stage 2 (Phase 3b) -------------------------------
@@ -1737,9 +2464,11 @@ def resolve_conflicts(shortlist):
     'superseded_by_platform_calming' on the rest.
 
     2. TIME-LOSS -- else, the candidate anchored to the higher phase-
-    importance weight wins (config/decision_frame.json scoring_weights.
+    importance weight wins (config/decision_frame.json cost_function.
     phase_importance, reused directly -- exit > entry per the user's own
-    elicited ordering, never a second copy of the same numbers). Ties
+    elicited ordering, never a second copy of the same numbers; DECISION
+    LAYER SPEC C1 moved this key from scoring_weights, now retired, into
+    cost_function, same values). Ties
     break on the already-computed score. Annotated 'wins_time_loss' /
     'superseded_by_time_loss'.
 
@@ -1751,7 +2480,7 @@ def resolve_conflicts(shortlist):
     caller's own choice (same "surfaced, never netted/averaged" posture
     the old engine's own _apply_parameter_conflicts states).
     """
-    weights = load_decision_frame_config()["scoring_weights"]["phase_importance"]
+    weights = load_decision_frame_config()["cost_function"]["phase_importance"]
 
     for c in shortlist:
         c["conflict_status"] = None

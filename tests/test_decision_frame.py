@@ -16,12 +16,24 @@ import numpy as np
 import pytest
 
 from modules.decision_frame import (
+    EFFORT_RANK,
     PHASE_KEYS,
+    STATUS_BLOCKED_AT_EDGE,
+    STATUS_CONTRADICTED,
+    STATUS_NO_TRIGGER,
+    STATUS_NOT_ASSESSABLE,
+    STATUS_PROPOSED,
+    TRIGGER_BOTH_AGREEING,
+    TRIGGER_DATA_ONLY,
+    TRIGGER_FEEDBACK_ONLY,
     aggregate_ls_by_corner,
     build_evidence,
     generate_candidates,
+    generate_display_split,
+    generate_lever_inventory,
     generate_shortlist,
     load_decision_frame_config,
+    reachable_lever_keys,
     resolve_conflicts,
     rule_bridge_status,
     score,
@@ -132,10 +144,10 @@ def test_cheap_check_outranks_on_equal_severity():
     score_cheap = score(cheap, evidence, None, config)
     score_expensive = score(expensive, evidence, None, config)
 
-    assert score_cheap["components"]["settings_window_distance"] == 0.0
-    assert score_expensive["components"]["settings_window_distance"] == 0.0
-    assert score_cheap["components"]["interaction_penalty"] == 0.0
-    assert score_expensive["components"]["interaction_penalty"] == 0.0
+    assert score_cheap["components"]["headroom"] == 0.0
+    assert score_expensive["components"]["headroom"] == 0.0
+    assert score_cheap["components"]["interaction"] == 0.0
+    assert score_expensive["components"]["interaction"] == 0.0
     assert score_cheap["total"] > score_expensive["total"]
 
 
@@ -155,11 +167,11 @@ def test_interaction_penalty_sign_negative_against_other_active_problem():
     candidate = _dummy_candidate(param="arb_rl", direction="soften", evidence_refs=[own_evidence])
 
     with_other_problem = score(candidate, [own_evidence, other_understeer], None, config)
-    assert with_other_problem["components"]["interaction_penalty"] < 0.0
+    assert with_other_problem["components"]["interaction"] < 0.0
     assert with_other_problem["interaction_notes"]
 
     without_other_problem = score(candidate, [own_evidence], None, config)
-    assert without_other_problem["components"]["interaction_penalty"] == 0.0
+    assert without_other_problem["components"]["interaction"] == 0.0
     assert without_other_problem["interaction_notes"] == []
 
 
@@ -259,7 +271,14 @@ def test_ls_branch_routing_no_disambiguation_generates_both():
 def test_springs_rear_soften_settings_window_no_keyerror():
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_make_oversteer_evidence()]  # cornering_limited-or-None branch -> arb_spring family
+    # springs_rear is a heavy corrector (DECISION LAYER SPEC B3) -- needs
+    # strong severity plus a second same-direction corner to survive the
+    # eligibility gate; corner 9 supplies the multi-corner support, only
+    # corner 4's own candidate is asserted on below.
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},
+        {**_make_oversteer_evidence(corner=9), "severity": "strong"},
+    ]
     candidates = generate_candidates(evidence, registry, config)
     springs_candidate = next(c for c in candidates if c["id"] == "springs_rear_soften:C4:exit_4")
     assert springs_candidate["actions"][0]["delta"] == -1
@@ -271,7 +290,7 @@ def test_springs_rear_soften_settings_window_no_keyerror():
     current_setup = {"rear_left": {"springs": 260}, "rear_right": {"springs": 260}}
     result = score(springs_candidate, evidence, current_setup, config)  # must not raise
     assert not any("springs_rear" in flag for flag in result["flags"])
-    assert result["components"]["settings_window_distance"] != 0.0
+    assert result["components"]["headroom"] != 0.0
 
 
 # --- End to end: real Dubai analysis -> frame output ---------------------
@@ -412,10 +431,17 @@ def test_held_escalation_secondary_only_alongside_base():
     assert not [c for c in candidates_none if c.get("rule_id") in ("matrix_us_brk_low", "matrix_us_brk_low_esc")]
 
     # Base condition satisfied (entry_1_brake, understeer, low, moderate+).
-    evidence = [_matrix_verdict_evidence(2, ["entry_1_brake"], "understeer", "moderate", "low")]
+    # Base rule's own action (toe_front) is a heavy corrector (DECISION
+    # LAYER SPEC B3) -- needs strong severity and a second same-direction
+    # corner (12) to survive the eligibility gate; only corner 2's own
+    # candidates are asserted on below.
+    evidence = [
+        _matrix_verdict_evidence(2, ["entry_1_brake"], "understeer", "strong", "low"),
+        _matrix_verdict_evidence(12, ["entry_1_brake"], "understeer", "strong", "low"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
-    base = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low"]
-    esc = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low_esc"]
+    base = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low" and c["corner"] == 2]
+    esc = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_low_esc" and c["corner"] == 2]
     assert len(base) == 1
     assert len(esc) == 1
     assert base[0]["effect_class"] == "primary"
@@ -446,10 +472,16 @@ def test_lever_bridges_schema_grade_always_proposed():
     # config's own self-documentation from drifting out of sync with it.
     config = load_decision_frame_config()
     bridges = config["lever_bridges"]
-    assert len(bridges) == 4
+    # DECISION LAYER SPEC B7 (2026-09-22) added diff_position/increase
+    # (braking-phase instability), alongside the 4 springs entries BACKLOG
+    # item H originally shipped; Phase C added the two splitter_offset
+    # entries once the author resolved its direction sign convention.
+    assert len(bridges) == 7
     assert {(b["lever"], b["direction"]) for b in bridges} == {
         ("springs_front", "soften"), ("springs_front", "stiffen"),
         ("springs_rear", "stiffen"), ("springs_rear", "soften"),
+        ("diff_position", "increase"),
+        ("splitter_offset", "decrease"), ("splitter_offset", "increase"),
     }
     for b in bridges:
         assert b["grade"] == "proposed"
@@ -458,7 +490,13 @@ def test_lever_bridges_schema_grade_always_proposed():
 def test_lever_bridge_springs_front_soften_fires_on_understeer():
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    # springs_front is a heavy corrector (DECISION LAYER SPEC B3) -- needs
+    # strong severity plus a second same-direction corner (9) to survive
+    # the eligibility gate; only corner 7's own candidate is asserted on.
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
     assert len(matches) == 1
@@ -469,7 +507,10 @@ def test_lever_bridge_springs_front_soften_fires_on_understeer():
 def test_lever_bridge_springs_front_stiffen_fires_on_oversteer():
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "oversteer", "moderate", "medium")]
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "oversteer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "oversteer", "strong", "medium"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:stiffen:C7:apex_3"]
     assert len(matches) == 1
@@ -490,7 +531,13 @@ def test_lever_bridge_corrected_acceptance_springs_rear_stiffen_on_understeer():
     # _exit_oversteer_candidates, and only for oversteer).
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "moderate", "medium")]
+    # springs_rear is a heavy corrector (DECISION LAYER SPEC B3) -- strong
+    # severity plus a second same-direction corner (12) needed to survive
+    # the eligibility gate.
+    evidence = [
+        _matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(12, ["entry_2_turnin"], "understeer", "strong", "medium"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_rear:stiffen:C7:entry_2_turnin"]
     assert len(matches) == 1
@@ -502,10 +549,14 @@ def test_lever_bridge_corrected_acceptance_springs_rear_stiffen_on_understeer():
 def test_lever_bridge_springs_rear_soften_fires_at_turnin_no_hardcoded_equivalent():
     # No dedupe collision -- _exit_oversteer_candidates only ever fires at
     # EXIT_PHASES, never turn-in, so this is genuinely new territory the
-    # hardcoded path never covered.
+    # hardcoded path never covered. springs_rear is a heavy corrector
+    # (B3) -- strong severity plus a second same-direction corner needed.
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_matrix_verdict_evidence(9, ["entry_2_turnin"], "oversteer", "moderate", "low")]
+    evidence = [
+        _matrix_verdict_evidence(9, ["entry_2_turnin"], "oversteer", "strong", "low"),
+        _matrix_verdict_evidence(13, ["entry_2_turnin"], "oversteer", "strong", "low"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_rear:soften:C9:entry_2_turnin"]
     assert len(matches) == 1
@@ -521,13 +572,20 @@ def test_lever_bridge_dedupe_springs_rear_soften_exit_oversteer_hardcoded_wins()
     # evidence, generated first.
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
+    # springs_rear is a heavy corrector (DECISION LAYER SPEC B3) -- corner
+    # 8 supplies the second same-direction corner the eligibility gate
+    # needs (its own springs_rear_soften:C8:exit_4 candidate, hardcoded
+    # path, not otherwise asserted on); both corner-4 evidence items
+    # bumped to strong so the multi-corner group actually forms.
     evidence = [
-        _make_oversteer_evidence(corner=4, phase="exit_4"),
-        _matrix_verdict_evidence(4, ["exit_4", "exit_5"], "oversteer", "moderate", "high"),
+        {**_make_oversteer_evidence(corner=4, phase="exit_4"), "severity": "strong"},
+        _matrix_verdict_evidence(4, ["exit_4", "exit_5"], "oversteer", "strong", "high"),
+        {**_make_oversteer_evidence(corner=8, phase="exit_4"), "severity": "strong"},
     ]
     candidates = generate_candidates(evidence, registry, config)
     springs_rear_candidates = [c for c in candidates
-                                if any(a["parameter"] == "springs_rear" for a in c["actions"])]
+                                if any(a["parameter"] == "springs_rear" for a in c["actions"])
+                                and c["corner"] == 4]
     assert len(springs_rear_candidates) == 1
     assert springs_rear_candidates[0]["id"] == "springs_rear_soften:C4:exit_4"
     assert springs_rear_candidates[0]["scenario"] == "exit_oversteer"
@@ -648,7 +706,13 @@ def test_condition_no_conditions_key_byte_identical_to_today():
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
     assert all("conditions" not in b for b in config["lever_bridges"])
-    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    # springs_front is a heavy corrector (DECISION LAYER SPEC B3) -- strong
+    # severity plus a second same-direction corner needed to survive the
+    # eligibility gate.
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
     assert len(matches) == 1
@@ -668,9 +732,15 @@ def test_condition_integration_required_condition_suppresses_real_candidate():
     for b in config["lever_bridges"]:
         if b["lever"] == "springs_front" and b["direction"] == "soften":
             b["conditions"] = [{"type": "phase_transient", "required": True}]
+    # springs_front is a heavy corrector (DECISION LAYER SPEC B3) -- strong
+    # severity plus a second same-direction corner (9, entry_2_turnin)
+    # needed for the surviving entry_2_turnin candidate to clear the
+    # eligibility gate; apex_3 is suppressed by the phase_transient
+    # condition itself regardless of the gate.
     evidence = [
-        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
-        _matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "moderate", "medium"),
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(7, ["entry_2_turnin"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["entry_2_turnin"], "understeer", "strong", "medium"),
     ]
     candidates = generate_candidates(evidence, registry, config)
     ids = {c["id"] for c in candidates}
@@ -686,12 +756,21 @@ def test_condition_integration_not_evaluable_caps_real_candidate_confidence():
         if b["lever"] == "springs_front" and b["direction"] == "soften":
             b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
                                  "presence": "present", "required": False}]
-    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium", confidence=0.9)]
+    # springs_front is a heavy corrector (DECISION LAYER SPEC B3) -- strong
+    # severity plus a second same-direction corner needed to survive the
+    # eligibility gate.
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium", confidence=0.9),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
     candidates = generate_candidates(evidence, registry, config)
     matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
     assert len(matches) == 1
     c = matches[0]
     assert c["condition_reasons"] == ["no damper_motion evidence available this run"]
+    # DECISION LAYER SPEC B1: a CAP_ADVISORY condition marks the candidate
+    # not_assessable in the lever inventory, not just a lowered confidence.
+    assert c["status"] == "not_assessable"
     gap_items = [e for e in c["evidence_refs"] if e["type"] == "condition_gap"]
     assert len(gap_items) == 1
     assert gap_items[0]["confidence"] == pytest.approx(cap)
@@ -1293,7 +1372,7 @@ def test_ride_height_platform_entries_never_contribute_a_penalty():
             candidate = _dummy_candidate(param=param, direction=direction,
                                           evidence_refs=[own_evidence])
             result = score(candidate, [own_evidence] + other_active, None, config)
-            if result["components"]["interaction_penalty"] != 0.0:
+            if result["components"]["interaction"] != 0.0:
                 saw_nonzero_penalty = True
             assert not any("platform_stability" in note for note in result["interaction_notes"])
     # Confirms the scenario was a real exercise of ride_height's existing
@@ -1314,3 +1393,1093 @@ def test_decision_frame_config_still_validates():
         assert required_keys <= e.keys()
         assert e["grade"] in legal_grades
         assert e["sign"] in (1, -1)
+
+
+# --- DECISION LAYER SPEC Phase A: registry/config schema (2026-09-22) -------
+#
+# Data-only additions -- no candidate-generation logic changes in this
+# phase. These tests guard the NEW config/registry shape itself, not any
+# scoring behaviour (Phase B/C's own job).
+
+def test_effort_rank_gained_half_hour_between_minutes_and_garage_hours():
+    # camber's new "half_hour" (20-30 min) class must rank strictly between
+    # minutes and garage_hours, and every existing class keeps its relative
+    # order -- a pure insertion, not a renumbering that would silently flip
+    # any existing _effort_class_for_actions max() comparison.
+    assert EFFORT_RANK["seconds"] < EFFORT_RANK["minutes"] < EFFORT_RANK["half_hour"] < EFFORT_RANK["garage_hours"]
+
+
+def test_eligibility_classes_partition_registry_recommendation_targets():
+    # heavy_correctors and click_class together must equal EXACTLY the set
+    # of recommendation_target=true registry keys -- no lever silently
+    # unreachable (missing from both) and no lever double-counted.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    true_keys = {k for k, v in registry.items() if isinstance(v, dict) and v.get("recommendation_target") is True}
+    ec = config["eligibility_classes"]
+    heavy = set(ec["heavy_correctors"])
+    click = set(ec["click_class"])
+    assert heavy & click == set(), "a lever cannot be both heavy_corrector and click_class"
+    assert heavy | click == true_keys, "eligibility_classes must cover exactly the recommendation-target levers"
+
+
+def test_heavy_correctors_are_exactly_springs_camber_toe():
+    # Spec fidelity: heavy correctors are springs/camber/toe, nothing else
+    # (arb, dampers, ride_height, diff_position, wing_position, splitter,
+    # tc/abs/brake_bias all stay click_class per Stage 1/6).
+    config = load_decision_frame_config()
+    heavy = set(config["eligibility_classes"]["heavy_correctors"])
+    assert heavy == {
+        "springs_front", "springs_rear",
+        "camber_fl", "camber_fr", "camber_rl", "camber_rr",
+        "toe_front", "toe_rear",
+    }
+
+
+def test_cost_function_and_display_threshold_are_placeholders():
+    config = load_decision_frame_config()
+    cost = config["cost_function"]
+    for key in ("severity", "change_time", "breadth", "headroom", "interaction"):
+        assert key in cost
+        assert isinstance(cost[key], (int, float))
+    assert "placeholder" in cost["derived_from"]
+    threshold = config["display_score_threshold"]
+    assert isinstance(threshold["value"], (int, float))
+    assert "placeholder" in threshold["derived_from"]
+
+
+def test_cost_function_six_governed_keys_scoring_weights_retired():
+    # DECISION LAYER SPEC C1 (2026-09-22): SIX governed keys, phase_
+    # importance and effect_class migrated in as dict-valued sub-keys;
+    # scoring_weights fully retired, no dual weight system.
+    config = load_decision_frame_config()
+    assert "scoring_weights" not in config
+    cost = config["cost_function"]
+    for phase, value in {"entry_1_brake": 0.8, "entry_2_turnin": 0.9, "apex_3": 1.0,
+                          "exit_4": 1.2, "exit_5": 1.2}.items():
+        assert cost["phase_importance"][phase] == value
+    assert cost["effect_class"]["primary"] == 1.0
+    assert cost["effect_class"]["secondary"] == 0.6
+
+
+def test_tyre_pressure_target_ships_all_null():
+    # Per-corner (not per-axle) target, ALL null -- no target pressure
+    # exists anywhere in this repo (checked directly, not assumed); this
+    # must stay silent, same honesty posture as plausibility_checks.
+    # tyre_pressure_window, until a real number is supplied.
+    config = load_decision_frame_config()
+    target = config["tyre_pressure_target"]
+    for corner in ("fl", "fr", "rl", "rr"):
+        assert target[corner]["min_psi"] is None
+        assert target[corner]["max_psi"] is None
+    assert target["compound_note"] is None
+
+
+def test_splitter_offset_and_brake_bias_promoted_to_recommendation_targets():
+    # Both were deliberately omitted before the DECISION LAYER SPEC (an
+    # oversight for brake_bias, context-only scope for splitter) -- the
+    # spec promotes both to real levers/targets.
+    registry = load_setup_parameters_registry()
+    splitter = registry["splitter_offset"]
+    assert splitter["recommendation_target"] is True
+    assert splitter["change_effort"] == "minutes"
+    assert splitter["value_space"]["min"] == -4 and splitter["value_space"]["max"] == 4
+    bias = registry["brake_bias"]
+    assert bias["recommendation_target"] is True
+    assert bias["change_effort"] == "seconds"
+    assert bias["escalation_tier"] == "cockpit"
+
+
+def test_diff_position_tier_and_effort_corrected():
+    # Registry previously carried garage/seconds -- spec text says
+    # pitlane/minutes; both were wrong the same way arb_front_mount's
+    # sibling entries already read.
+    registry = load_setup_parameters_registry()
+    diff = registry["diff_position"]
+    assert diff["escalation_tier"] == "pitlane"
+    assert diff["change_effort"] == "minutes"
+
+
+def test_camber_entries_use_half_hour_effort():
+    registry = load_setup_parameters_registry()
+    for corner in ("fl", "fr", "rl", "rr"):
+        assert registry[f"camber_{corner}"]["change_effort"] == "half_hour"
+
+
+# --- DECISION LAYER SPEC Phase B1: lever-status model (2026-09-22) ----------
+#
+# Granularity reviewer-confirmed same day (thesis_notes.md "B1 design
+# resolution"): status is per-candidate, corner+phase-specific as today,
+# never merged across corners; STATUS_NO_TRIGGER is the one synthetic
+# exception for a lever with zero candidates anywhere this session.
+
+def test_every_candidate_defaults_to_proposed_status():
+    # None of the three non-lever_bridges generators has a blocking/
+    # contradiction mechanism yet (B5/B6's own job) -- every candidate they
+    # produce must default to proposed via generate_candidates' own
+    # setdefault pass.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    assert candidates  # sanity: the fixture actually produced something
+    for c in candidates:
+        assert c["status"] == STATUS_PROPOSED
+
+
+def test_reachable_lever_keys_matches_registry_recommendation_targets():
+    registry = load_setup_parameters_registry()
+    true_keys = {k for k, v in registry.items() if isinstance(v, dict) and v.get("recommendation_target") is True}
+    assert reachable_lever_keys(registry) == true_keys
+    assert len(true_keys) == 42
+
+
+def test_generate_shortlist_excludes_non_proposed_status():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                                 "presence": "present", "required": False}]
+    # springs_front is a heavy corrector (DECISION LAYER SPEC B3) -- strong
+    # severity plus a second same-direction corner needed to survive the
+    # eligibility gate before the CAP_ADVISORY condition check even runs.
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    not_assessable_ids = {c["id"] for c in candidates if c["status"] == STATUS_NOT_ASSESSABLE}
+    assert not_assessable_ids  # sanity: the fixture actually produced a not_assessable candidate
+    shortlist = generate_shortlist(candidates, evidence, None, config)
+    shortlist_ids = {c["id"] for c in shortlist}
+    assert not_assessable_ids.isdisjoint(shortlist_ids)
+    # Every proposed candidate the fixture also produced is still present.
+    proposed_ids = {c["id"] for c in candidates if c["status"] == STATUS_PROPOSED}
+    assert proposed_ids <= shortlist_ids
+
+
+def test_generate_lever_inventory_adds_no_trigger_rows_for_untouched_levers():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    touched = {a["parameter"] for c in candidates for a in c["actions"]}
+    inventory = generate_lever_inventory(candidates, evidence, None, config, registry)
+    no_trigger_levers = {e["lever"] for e in inventory if e["status"] == STATUS_NO_TRIGGER}
+    # Every reachable lever ends up in the inventory, one way or another.
+    assert no_trigger_levers == (reachable_lever_keys(registry) - touched)
+    assert len(inventory) == len(candidates) + len(no_trigger_levers)
+    for row in inventory:
+        if row["status"] == STATUS_NO_TRIGGER:
+            assert row["actions"] == []
+            assert row["corner"] is None
+            assert "score" not in row
+
+
+def test_generate_lever_inventory_ordering_proposed_then_tail_real_then_no_trigger():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                                 "presence": "present", "required": False}]
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),  # stays proposed
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),  # becomes not_assessable
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    inventory = generate_lever_inventory(candidates, evidence, None, config, registry)
+    statuses = [row["status"] for row in inventory]
+    # proposed block, then non-proposed-real block, then no_trigger block --
+    # never interleaved.
+    first_non_proposed = next(i for i, s in enumerate(statuses) if s != STATUS_PROPOSED)
+    assert all(s == STATUS_PROPOSED for s in statuses[:first_non_proposed])
+    first_no_trigger = next(i for i, s in enumerate(statuses) if s == STATUS_NO_TRIGGER)
+    assert all(s != STATUS_PROPOSED and s != STATUS_NO_TRIGGER
+               for s in statuses[first_non_proposed:first_no_trigger])
+    assert all(s == STATUS_NO_TRIGGER for s in statuses[first_no_trigger:])
+
+
+# --- DECISION LAYER SPEC Phase B2: feedback-only trigger (2026-09-22) ------
+#
+# Routing reviewer-confirmed same day (thesis_notes.md "B2 design
+# resolution"): interaction_table signed entries, click-class only,
+# cheapest by EFFORT_RANK, tie-break by _interaction_penalty magnitude,
+# unresolved tie raises. Matrix-rule relaxation explicitly rejected.
+#
+# A GAP was found and reported (thesis_notes.md): the REAL config/
+# decision_frame.json has zero click-class entries with sign=+1 on either
+# tendency axis today (every such entry belongs to springs, a heavy
+# corrector) -- so every test below that needs a real routable lever
+# injects one synthetic interaction_table entry into a deepcopy of the
+# config, exactly as the existing test_condition_integration_* tests
+# already do for lever_bridges conditions.
+
+def _feedback_evidence(corner, phase, raw, speed_class="medium"):
+    return {"type": "driver_feedback", "corner": corner, "phase": phase, "speed_class": speed_class,
+            "severity": None, "confidence": 0.5, "raw_feedback": raw,
+            "verdict": "oversteer" if raw > 0 else "understeer", "source": "test"}
+
+
+def _inject_click_class_bridge(config, parameter, direction, axis, sign=1, grade="proposed"):
+    config["interaction_table"].append({
+        "parameter": parameter, "direction": direction, "performance_axis": axis,
+        "sign": sign, "grade": grade, "note": "test-injected",
+    })
+    assert parameter in config["eligibility_classes"]["click_class"], (
+        f"test fixture error: {parameter} is not click-class-eligible")
+
+
+def test_feedback_only_gap_zero_candidates_on_real_config():
+    # The reported gap itself: real config, real magnitude-2 feedback, no
+    # matching data verdict -- must produce nothing (honest gap, no
+    # fallback), for both oversteer and understeer.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_feedback_evidence(4, "exit_4", 3), _feedback_evidence(4, "exit_4", -3)]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not any(c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY for c in candidates)
+
+
+def test_feedback_only_fires_at_magnitude_2_with_injected_click_class_entry():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    evidence = [_feedback_evidence(4, "exit_4", -2)]  # understeer, magnitude 2
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["actions"] == [{"parameter": "arb_rl", "direction": "soften", "delta": -1}]
+    assert c["status"] == STATUS_PROPOSED
+    assert c["evidence_refs"] == [evidence[0]]
+
+
+def test_feedback_magnitude_1_never_triggers_a_candidate():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    evidence = [_feedback_evidence(4, "exit_4", -1)]  # magnitude 1 -- corroboration-only
+    candidates = generate_candidates(evidence, registry, config)
+    assert not any(c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY for c in candidates)
+
+
+def test_feedback_only_picks_cheapest_eligible_lever():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    # arb_rl (minutes) vs tc_lon (seconds, strictly cheaper) -- both
+    # click-class, both compatible with exit_4 (arb has null phase_affinity,
+    # tc_lon's own phase_affinity includes exit_4/exit_5).
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    _inject_click_class_bridge(config, "tc_lon", "increase", "understeer_tendency")
+    evidence = [_feedback_evidence(4, "exit_4", -2)]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+    assert len(matches) == 1
+    assert matches[0]["lever_family"] == "tc_lon"
+
+
+def test_feedback_only_phase_affinity_filters_out_incompatible_lever():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    # toe_front's own phase_affinity is ["entry_2_turnin"] only -- must not
+    # fire for exit_4 feedback even though it would be cheaper (minutes vs
+    # arb's minutes -- tie irrelevant here, toe_front should never enter
+    # the pool at all for this phase). toe_front is a heavy corrector
+    # (not click-class) anyway; use arb_front_mount instead (click-class,
+    # phase_affinity=["entry_2_turnin"]) as the incompatible lever, and
+    # arb_rl (null phase_affinity, always compatible) as the one that must
+    # still fire.
+    _inject_click_class_bridge(config, "arb_front_mount", "stiffen", "understeer_tendency")
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    evidence = [_feedback_evidence(4, "exit_4", -2)]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+    assert len(matches) == 1
+    assert matches[0]["lever_family"] == "arb_rl"
+
+
+def test_feedback_only_dedupes_against_existing_data_candidate():
+    # springs_rear/soften already has a real lever_bridges entry that fires
+    # on oversteer -- injecting the SAME (parameter, direction) as a
+    # click-class-tagged interaction_table entry must not spawn a second,
+    # competing feedback-only candidate for the corner a data candidate
+    # already covers there. Use a corner/phase where springs_rear/soften's
+    # own phase_groups fire (exit_4+exit_5) and matrix_verdict evidence
+    # supplies the data half.
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    config["eligibility_classes"]["click_class"].append("springs_rear")
+    config["eligibility_classes"]["heavy_correctors"].remove("springs_rear")
+    _inject_click_class_bridge(config, "springs_rear", "soften", "oversteer_tendency")
+    evidence = [
+        _matrix_verdict_evidence(9, ["exit_4", "exit_5"], "oversteer", "moderate", "medium"),
+        _feedback_evidence(9, "exit_5", 3),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    springs_rear_soften = [c for c in candidates
+                            if any(a["parameter"] == "springs_rear" and a["direction"] == "soften"
+                                   for a in c["actions"]) and c["corner"] == 9]
+    assert len(springs_rear_soften) == 1  # not two competing candidates for the same lever+corner
+    assert springs_rear_soften[0]["trigger_provenance"] == TRIGGER_BOTH_AGREEING
+
+
+def test_feedback_only_tie_raises_when_unresolvable():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    # Two levers, identical effort class (both "minutes"), identical
+    # (zero) interaction penalty (no other active evidence at this corner
+    # for either to collide with) -- genuinely unresolvable without
+    # picking arbitrarily.
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    _inject_click_class_bridge(config, "arb_rr", "soften", "understeer_tendency")
+    evidence = [_feedback_evidence(4, "exit_4", -2)]
+    with pytest.raises(ValueError, match="tie unresolved"):
+        generate_candidates(evidence, registry, config)
+
+
+def test_data_only_candidate_stays_data_only_without_feedback():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert candidates
+    for c in candidates:
+        assert c["trigger_provenance"] == TRIGGER_DATA_ONLY
+
+
+def test_eligibility_gate_blocks_heavy_corrector_on_moderate_single_corner():
+    # The B3 headline case: mild/single-corner heavy-corrector evidence
+    # must not reach the shortlist at all.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+
+
+def test_eligibility_gate_allows_heavy_corrector_on_strong_multi_corner():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+
+
+def test_eligibility_gate_camber_blocked_single_corner_even_at_strong_high_speed():
+    # US-APX-high: camber_fl/fr more_negative, understeer, speed_class high,
+    # min_severity moderate -- fires at "moderate" in the OLD engine, but a
+    # single corner (even strong) must not survive B3's own gate.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(3, ["apex_3"], "understeer", "strong", "high")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c.get("rule_id") == "matrix_us_apx_high"]
+
+
+def test_eligibility_gate_camber_fires_on_strong_multi_corner():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(3, ["apex_3"], "understeer", "strong", "high"),
+        _matrix_verdict_evidence(5, ["apex_3"], "understeer", "strong", "high"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_apx_high" and c["corner"] == 3]
+    assert len(matches) == 1
+
+
+def test_eligibility_gate_camber_never_gets_feedback_bypass():
+    # B3's own wording: "Camber ADDITIONALLY always requires the multi-
+    # corner gate" -- |feedback|>=4 at the SAME corner/phase must NOT be
+    # enough on its own, unlike a non-camber heavy corrector.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(3, ["apex_3"], "understeer", "strong", "high"),
+        _feedback_evidence(3, "apex_3", -4),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c.get("rule_id") == "matrix_us_apx_high"]
+
+
+def test_eligibility_gate_non_camber_heavy_corrector_gets_feedback_bypass():
+    # springs_front (not camber) -- a single strong corner PLUS matching
+    # |feedback|>=4 at that same corner/phase must be enough on its own.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _feedback_evidence(7, "apex_3", -4),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+
+
+def test_eligibility_gate_feedback_magnitude_3_not_enough_for_bypass():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _feedback_evidence(7, "apex_3", -3),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+
+
+def test_eligibility_gate_direct_axle_and_direction_grouping():
+    # Direct unit test of _apply_eligibility_gate's own grouping logic --
+    # hand-built candidates, since no real rear-camber matrix rule exists
+    # to exercise a front-vs-rear axle mismatch through generate_candidates
+    # (verified: config/recommendations.json has zero camber_rl/rr
+    # suggestions anywhere).
+    from modules.decision_frame import _apply_eligibility_gate
+
+    def _heavy_candidate(corner, parameter, direction, severity="strong"):
+        return {"id": f"{parameter}:{direction}:C{corner}", "corner": corner, "phase": "apex_3",
+                "actions": [{"parameter": parameter, "direction": direction}],
+                "evidence_refs": [{"severity": severity}]}
+
+    config = load_decision_frame_config()
+
+    # Same axle (front), same direction, 2 corners -> both survive.
+    same_axle_same_dir = [
+        _heavy_candidate(3, "camber_fl", "more_negative"),
+        _heavy_candidate(9, "camber_fr", "more_negative"),
+    ]
+    kept = _apply_eligibility_gate(same_axle_same_dir, [], config)
+    assert len(kept) == 2
+
+    # Different axle (front vs rear) -- must NOT combine.
+    diff_axle = [
+        _heavy_candidate(3, "camber_fl", "more_negative"),
+        _heavy_candidate(9, "camber_rl", "more_negative"),
+    ]
+    kept = _apply_eligibility_gate(diff_axle, [], config)
+    assert kept == []
+
+    # Same axle, different direction -- must NOT combine.
+    diff_direction = [
+        _heavy_candidate(3, "camber_fl", "more_negative"),
+        _heavy_candidate(9, "camber_fr", "less_negative"),
+    ]
+    kept = _apply_eligibility_gate(diff_direction, [], config)
+    assert kept == []
+
+
+# --- DECISION LAYER SPEC Phase B4: breadth (2026-09-22) --------------------
+#
+# N resolved reviewer-side (thesis_notes.md "B4 breadth design
+# resolution", two rounds): N = corners assessed this session INCLUDING
+# normal verdicts. NOT derivable from evidence alone -- additive optional
+# `assessed_corner_ids` parameter; None preserves pre-existing behaviour
+# byte-identical (proven below). Dampers exempt (shaft-speed-range
+# selectivity, per spec).
+
+def test_breadth_fields_null_when_assessed_corner_ids_omitted():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)  # no assessed_corner_ids
+    assert candidates
+    for c in candidates:
+        assert c["corners_helped"] is None
+        assert c["corners_touched"] is None
+        assert c["breadth_note"] is None
+
+
+def test_breadth_helps_one_corner_rebalances_others_assessed_good():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    # matrix_us_tin_med: diff_position decrease, click-class, non-damper --
+    # damper rules are breadth-exempt (see test_breadth_dampers_exempt_
+    # from_penalty below), so this needs a non-damper rule instead.
+    evidence = [_matrix_verdict_evidence(6, ["entry_2_turnin"], "understeer", "moderate", "medium")]
+    # Corner 6 is the only one with a finding; corners 1 and 2 were also
+    # assessed this session and came back normal (no evidence item at all,
+    # per _build_matrix_verdict_evidence's own severity=="normal" skip).
+    candidates = generate_candidates(evidence, registry, config, assessed_corner_ids={1, 2, 6})
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_tin_med"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["corners_helped"] == [6]
+    assert c["corners_touched"] == [1, 2, 6]
+    assert "helps C6" in c["breadth_note"]
+    assert "rebalances 2 corner(s)" in c["breadth_note"]
+    assert "C1/2" in c["breadth_note"]
+
+
+def test_breadth_no_note_when_helped_covers_every_assessed_corner():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_2_turnin"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config, assessed_corner_ids={6})
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_tin_med"]
+    assert len(matches) == 1
+    assert matches[0]["breadth_note"] is None
+
+
+def test_breadth_reports_directly_opposed_corner_separately():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
+    # Two feedback-only candidates for the SAME lever, opposite directions,
+    # at two different corners.
+    evidence = [
+        _feedback_evidence(4, "exit_4", -2),  # understeer -> arb_rl soften
+    ]
+    # Add a second, independent oversteer feedback at a different corner
+    # routed to the SAME lever in the opposite direction via a second
+    # injected entry.
+    _inject_click_class_bridge(config, "arb_rl", "stiffen", "oversteer_tendency")
+    evidence.append(_feedback_evidence(8, "exit_4", 2))  # oversteer -> arb_rl stiffen
+    candidates = generate_candidates(evidence, registry, config, assessed_corner_ids={4, 8, 12})
+    soften_candidates = [c for c in candidates
+                          if any(a["parameter"] == "arb_rl" and a["direction"] == "soften"
+                                 for a in c["actions"])]
+    assert len(soften_candidates) == 1
+    note = soften_candidates[0]["breadth_note"]
+    assert "directly opposed at C8" in note
+
+
+def test_breadth_dampers_exempt_from_penalty():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    # matrix_us_brk_med: damper_bump_ls_fl/fr soften, engineer-verbatim.
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config, assessed_corner_ids={1, 2, 6})
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["breadth_note"] is None
+    assert c["corners_touched"] == c["corners_helped"]  # exempt: touched never expands to N
+
+
+# --- DECISION LAYER SPEC Phase B5: window edge (2026-09-22) ----------------
+#
+# Universal per-candidate check, gated on setup_data being supplied at all
+# (same additive/opt-in pattern as B4's assessed_corner_ids). Hard = the
+# registry's own value_space min/max; soft = decision_frame.json's own
+# parameter_windows (nominal+-span). Directional: only blocks when the
+# delta pushes further past an edge already reached, never when it
+# corrects back toward nominal.
+
+def test_window_edge_check_soft_blocks_pushing_further_past_edge():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    # arb_rl: value_space 1-7, parameter_windows nominal=4/span=1 -- current
+    # 3 is already AT the soft edge (|3-4|=1>=1); softening (delta=-1)
+    # pushes further away from nominal.
+    setup_data = {"rear_left": {"arb": 3}}
+    result = _window_edge_check({"parameter": "arb_rl", "direction": "soften", "delta": -1},
+                                 setup_data, registry, config)
+    assert result[0] == "soft"
+    assert "arb_rl" in result[1]
+
+
+def test_window_edge_check_no_block_correcting_back_toward_nominal():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    # Same current value (3, at the soft edge), but stiffening (delta=+1)
+    # moves BACK toward nominal (4) -- must not block.
+    setup_data = {"rear_left": {"arb": 3}}
+    result = _window_edge_check({"parameter": "arb_rl", "direction": "stiffen", "delta": 1},
+                                 setup_data, registry, config)
+    assert result is None
+
+
+def test_window_edge_check_no_block_within_window():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    setup_data = {"rear_left": {"arb": 4}}  # exactly nominal
+    result = _window_edge_check({"parameter": "arb_rl", "direction": "soften", "delta": -1},
+                                 setup_data, registry, config)
+    assert result is None
+
+
+def test_window_edge_check_hard_blocks_at_value_space_limit():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    # arb_rl value_space min=1 -- already at the physical/legal floor.
+    setup_data = {"rear_left": {"arb": 1}}
+    result = _window_edge_check({"parameter": "arb_rl", "direction": "soften", "delta": -1},
+                                 setup_data, registry, config)
+    assert result == ("hard", result[1])
+    assert "hard minimum" in result[1]
+
+
+def test_window_edge_check_not_assessable_when_sheet_unfilled():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    result = _window_edge_check({"parameter": "arb_rl", "direction": "soften", "delta": -1},
+                                 {}, registry, config)
+    assert result[0] == "not_assessable"
+    assert "arb_rl" in result[1]
+
+
+def test_window_edge_check_skips_non_numeric_enum_value():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    setup_data = {"car": {"wing_position": "P9"}}
+    result = _window_edge_check({"parameter": "wing_position", "direction": "increase", "delta": 1},
+                                 setup_data, registry, config)
+    assert result is None  # not numerically checkable -- same defensive skip as scoring's own
+
+
+def test_window_edge_check_skips_target_style_actions_with_no_delta():
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    result = _window_edge_check({"parameter": "brake_bias", "target": "rearward"},
+                                 {}, registry, config)
+    assert result is None
+
+
+def test_window_edge_integration_none_setup_data_is_byte_identical():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_make_oversteer_evidence()]
+    candidates = generate_candidates(evidence, registry, config)  # no setup_data
+    assert candidates
+    assert not any(c["status"] == STATUS_BLOCKED_AT_EDGE for c in candidates)
+
+
+def test_window_edge_integration_real_candidate_blocked_and_excluded_from_shortlist():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_make_oversteer_evidence()]  # arb_soften:C4:exit_4 -- arb_rl/rr soften
+    setup_data = {"rear_left": {"arb": 1}, "rear_right": {"arb": 1}}  # both at hard floor
+    candidates = generate_candidates(evidence, registry, config, setup_data=setup_data)
+    arb_candidate = next(c for c in candidates if c["id"] == "arb_soften:C4:exit_4")
+    assert arb_candidate["status"] == STATUS_BLOCKED_AT_EDGE
+    assert arb_candidate["edge_kind"] == "hard"
+    assert arb_candidate["edge_label"] == "hard limit"
+    shortlist = generate_shortlist(candidates, evidence, setup_data, config)
+    assert "arb_soften:C4:exit_4" not in {c["id"] for c in shortlist}
+
+
+def test_window_edge_integration_does_not_override_existing_not_assessable():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                                 "presence": "present", "required": False}]
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
+    # springs_front has no numeric setup_data entry supplied at all here, so
+    # the window-edge check (if it ran) would ALSO want to mark
+    # not_assessable -- confirms it never runs at all once B1's own
+    # not_assessable is already set, rather than silently agreeing by luck.
+    setup_data = {}
+    candidates = generate_candidates(evidence, registry, config, setup_data=setup_data)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+    assert matches[0]["status"] == STATUS_NOT_ASSESSABLE
+    assert "edge_kind" not in matches[0]  # B5 never touched this candidate
+
+
+# --- DECISION LAYER SPEC Phase B6: contradiction (2026-09-22) --------------
+#
+# data-vs-data: a required evidence_corroboration condition failing on a
+# contradiction_sources-listed evidence type -> CONTRADICTED (still
+# emitted, out of the shortlist, reason "contradicted by X"). Every other
+# required failure stays SUPPRESS (structural inapplicability, not a data
+# disagreement). driver-vs-data: NEVER suppresses, side-by-side display
+# data only (conflicting_feedback).
+
+def test_evaluate_conditions_contradiction_source_produces_contradicted():
+    from modules.decision_frame import evaluate_conditions
+    damper_ev = {"type": "damper_motion", "corner": 4, "phase": "entry_2_turnin", "direction": "loading"}
+    # required "absent" fails because damper_motion IS present here.
+    cond = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+             "presence": "absent", "required": True}]
+    verdict, reasons = evaluate_conditions(cond, 4, "entry_2_turnin", [damper_ev], None, {},
+                                            contradiction_sources=["damper_motion"])
+    assert verdict == "CONTRADICTED"
+    assert "damper_motion" in reasons[0]
+
+
+def test_evaluate_conditions_evidence_corroboration_not_listed_stays_suppress():
+    from modules.decision_frame import evaluate_conditions
+    damper_ev = {"type": "damper_motion", "corner": 4, "phase": "entry_2_turnin"}
+    cond = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+             "presence": "absent", "required": True}]
+    # Same failing condition, but contradiction_sources doesn't list it.
+    verdict, _ = evaluate_conditions(cond, 4, "entry_2_turnin", [damper_ev], None, {},
+                                      contradiction_sources=["lockup"])
+    assert verdict == "SUPPRESS"
+    verdict, _ = evaluate_conditions(cond, 4, "entry_2_turnin", [damper_ev], None, {})  # omitted entirely
+    assert verdict == "SUPPRESS"
+
+
+def test_evaluate_conditions_phase_transient_never_contradicts():
+    from modules.decision_frame import evaluate_conditions
+    cond = [{"type": "phase_transient", "required": True}]
+    verdict, _ = evaluate_conditions(cond, 4, "apex_3", [], None, {},
+                                      contradiction_sources=["damper_motion", "phase_transient"])
+    assert verdict == "SUPPRESS"  # not a data-vs-data type at all, never CONTRADICTED
+
+
+def test_contradiction_integration_real_candidate_contradicted_and_excluded():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    for b in config["lever_bridges"]:
+        if b["lever"] == "springs_front" and b["direction"] == "soften":
+            b["conditions"] = [{"type": "evidence_corroboration", "evidence_type": "damper_motion",
+                                 "presence": "absent", "required": True}]
+    damper_ev = {"type": "damper_motion", "corner": 7, "phase": "apex_3", "direction": "loading"}
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+        damper_ev,
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["status"] == STATUS_CONTRADICTED
+    assert c["condition_reasons"][0].startswith("contradicted by")
+    # confidence untouched -- no synthetic condition_gap item, unlike CAP_ADVISORY
+    assert c["evidence_refs"] == [evidence[0]]
+    shortlist = generate_shortlist(candidates, evidence, None, config)
+    assert c["id"] not in {sc["id"] for sc in shortlist}
+
+
+def test_conflicting_feedback_attached_for_opposite_verdict():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),
+        _feedback_evidence(6, "entry_1_brake", 3),  # oversteer -- opposite of understeer
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+    assert len(matches) == 1
+    c = matches[0]
+    assert c["status"] == STATUS_PROPOSED  # never suppressed
+    assert len(c["conflicting_feedback"]) == 1
+    assert c["conflicting_feedback"][0]["verdict"] == "oversteer"
+    assert c["conflicting_feedback"][0] not in c["evidence_refs"]  # display-only, not corroboration
+
+
+def test_conflicting_feedback_empty_when_feedback_agrees():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),
+        _feedback_evidence(6, "entry_1_brake", -3),  # understeer -- agrees
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+    assert len(matches) == 1
+    assert matches[0]["conflicting_feedback"] == []
+
+
+# --- DECISION LAYER SPEC Phase B7: three bridges (2026-09-22) --------------
+#
+# brake_bias: Segers C5-1 encoding target, reviewer-confirmed direction
+# convention (bias moves AWAY from the limiting axle). diff_position:
+# braking-phase addition alongside the pre-existing, already-ls-
+# disambiguation-gated exit trigger. splitter_offset: interaction_table
+# platform_stability pairing only -- no directional lever_bridges entry
+# (unresolved sign convention, reported not invented).
+
+def test_brake_bias_understeer_at_brake_produces_more_rear():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["lever_family"] == "brake_bias"]
+    assert len(matches) == 1
+    assert matches[0]["actions"] == [{"parameter": "brake_bias", "direction": "more_rear", "delta": 1}]
+
+
+def test_brake_bias_understeer_at_turnin_also_produces_more_rear():
+    # Book's own "corner-entry followed by mid-corner" phrasing -- more_rear
+    # covers both entry_1_brake and entry_2_turnin.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_2_turnin"], "understeer", "strong", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["lever_family"] == "brake_bias"]
+    assert len(matches) == 1
+    assert matches[0]["actions"][0]["direction"] == "more_rear"
+    assert matches[0]["actions"][0]["delta"] == 2  # strong -> SEVERITY_RANK 2
+
+
+def test_brake_bias_oversteer_at_brake_produces_more_front():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "oversteer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["lever_family"] == "brake_bias"]
+    assert len(matches) == 1
+    assert matches[0]["actions"] == [{"parameter": "brake_bias", "direction": "more_front", "delta": 1}]
+
+
+def test_brake_bias_oversteer_at_turnin_does_not_fire():
+    # Book scopes the rear-bias/oversteer case to corner-ENTRY only, not
+    # mid-corner -- entry_2_turnin must not trigger more_front.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_2_turnin"], "oversteer", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["lever_family"] == "brake_bias"]
+
+
+def test_brake_bias_never_fires_outside_braking_phase_groups():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["exit_4", "exit_5"], "understeer", "strong", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["lever_family"] == "brake_bias"]
+
+
+def test_diff_position_braking_instability_bridge_fires():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["entry_1_brake"], "unstable_yaw", "moderate", "medium")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates
+               if any(a["parameter"] == "diff_position" and a["direction"] == "increase" for a in c["actions"])
+               and c["corner"] == 6]
+    assert len(matches) == 1
+    assert "EB" in matches[0]["rationale"] or "engine-braking" in matches[0]["rationale"]
+
+
+def test_diff_position_exit_trigger_already_gated_by_ls_disambiguation():
+    # Confirms the report's own claim: the EXISTING exit-phase diff bridge
+    # already keys off (and includes in evidence_refs) the ls_disambiguation
+    # traction_limited signal -- nothing needed adding for the
+    # "acceleration side" of B7's diff item.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_make_oversteer_evidence(), _make_ls_evidence("traction_limited")]
+    candidates = generate_candidates(evidence, registry, config)
+    diff_exit = next(c for c in candidates if c["id"] == "diff_position_increase:C4:exit_4")
+    ls_refs = [e for e in diff_exit["evidence_refs"] if e["type"] == "ls_disambiguation"]
+    assert len(ls_refs) == 1
+    assert ls_refs[0]["ls_class"] == "traction_limited"
+    # And cornering_limited correctly EXCLUDES the diff/TC family entirely
+    # (already-existing routing, re-confirmed here in the same breath).
+    evidence_cornering = [_make_oversteer_evidence(), _make_ls_evidence("cornering_limited")]
+    candidates_cornering = generate_candidates(evidence_cornering, registry, config)
+    assert not [c for c in candidates_cornering if c["id"] == "diff_position_increase:C4:exit_4"]
+
+
+def test_splitter_offset_platform_stability_pairing_present():
+    config = load_decision_frame_config()
+    entries = [e for e in config["interaction_table"] if e["parameter"] == "splitter_offset"]
+    assert {e["direction"] for e in entries} == {"increase", "decrease"}
+    for e in entries:
+        assert e["performance_axis"] == "platform_stability"
+        assert e["sign"] == -1
+
+
+def test_splitter_offset_direction_convention_resolved_phase_c():
+    # RESOLVED Phase C (2026-09-22, author-elicited): negative=more front
+    # downforce (decrease fixes understeer), positive=less (increase fixes
+    # oversteer) -- supersedes the earlier Phase A/B7 "reported gap, no
+    # directional entry" state.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    splitter_bridges = {(b["lever"], b["direction"]) for b in config["lever_bridges"]
+                         if b["lever"] == "splitter_offset"}
+    assert splitter_bridges == {("splitter_offset", "decrease"), ("splitter_offset", "increase")}
+    assert registry["splitter_offset"]["direction_semantics"]["negative"] == "more front downforce"
+    assert registry["splitter_offset"]["direction_semantics"]["positive"] == "less front downforce"
+
+
+def test_splitter_offset_bridges_fire_only_at_high_speed_class():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence_high = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "high")]
+    candidates_high = generate_candidates(evidence_high, registry, config)
+    matches_high = [c for c in candidates_high
+                     if any(a["parameter"] == "splitter_offset" for a in c["actions"])]
+    assert len(matches_high) == 1
+    assert matches_high[0]["actions"][0]["direction"] == "decrease"
+
+    evidence_medium = [_matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium")]
+    candidates_medium = generate_candidates(evidence_medium, registry, config)
+    assert not [c for c in candidates_medium
+                if any(a["parameter"] == "splitter_offset" for a in c["actions"])]
+
+
+def test_splitter_offset_oversteer_high_speed_produces_increase():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [_matrix_verdict_evidence(6, ["exit_4", "exit_5"], "oversteer", "moderate", "high")]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if any(a["parameter"] == "splitter_offset" for a in c["actions"])]
+    assert len(matches) == 1
+    assert matches[0]["actions"][0]["direction"] == "increase"
+
+
+# --- DECISION LAYER SPEC Phase C1: scoring-term fold (2026-09-22) ----------
+#
+# Six cost_function-governed terms: problem_weight (severity x
+# phase_importance x confidence), change_time, breadth, headroom,
+# interaction, effect_class. scoring_weights fully retired.
+
+def test_breadth_penalty_zero_when_helps_all_assessed():
+    from modules.decision_frame import _breadth_penalty
+    penalty, flags = _breadth_penalty({"corners_helped": [3, 9], "corners_touched": [3, 9]}, 1.0)
+    assert penalty == 0.0
+    assert flags == []
+
+
+def test_breadth_penalty_negative_fraction_when_helps_subset():
+    from modules.decision_frame import _breadth_penalty
+    penalty, flags = _breadth_penalty({"corners_helped": [6], "corners_touched": [1, 2, 6]}, 1.0)
+    assert penalty == pytest.approx(-(1 - 1 / 3))
+    assert flags == []
+
+
+def test_breadth_penalty_neutral_and_flagged_when_data_unavailable():
+    from modules.decision_frame import _breadth_penalty
+    penalty, flags = _breadth_penalty({"corners_helped": None, "corners_touched": None}, 1.0)
+    assert penalty == 0.0
+    assert flags
+
+
+def test_score_components_are_the_six_named_cost_function_terms():
+    config = load_decision_frame_config()
+    candidate = _dummy_candidate()
+    result = score(candidate, candidate["evidence_refs"], None, config)
+    assert set(result["components"].keys()) == {
+        "problem_weight", "change_time", "breadth", "headroom", "interaction", "effect_class",
+    }
+
+
+def test_score_term_order_severity_beats_change_time():
+    # A STRONG candidate with the WORST effort class still outranks a
+    # MODERATE candidate with the BEST effort class -- severity's own
+    # multiplicative reach (via sev_rank) exceeds change_time's bounded
+    # inverse-effort spread at today's placeholder (all 1.0) weights.
+    config = load_decision_frame_config()
+    strong_evidence = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+                         "verdict": "oversteer", "severity": "strong", "confidence": 1.0, "source": "test"}]
+    moderate_evidence = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+                           "verdict": "oversteer", "severity": "moderate", "confidence": 1.0, "source": "test"}]
+    strong_expensive = _dummy_candidate(effort_class="garage_hours", evidence_refs=strong_evidence)
+    moderate_cheap = _dummy_candidate(effort_class="seconds", evidence_refs=moderate_evidence)
+    assert (score(strong_expensive, strong_evidence, None, config)["total"]
+            > score(moderate_cheap, moderate_evidence, None, config)["total"])
+
+
+def test_score_term_order_change_time_beats_breadth():
+    # Same severity/confidence/effect_class; cheap effort + a SMALL
+    # breadth penalty still outranks expensive effort + zero breadth --
+    # change_time's own swing (seconds vs garage_hours) exceeds this
+    # constructed breadth difference at today's placeholder weights.
+    config = load_decision_frame_config()
+    evidence = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+                 "verdict": "oversteer", "severity": "moderate", "confidence": 1.0, "source": "test"}]
+    cheap_partial_breadth = _dummy_candidate(effort_class="seconds", evidence_refs=evidence)
+    cheap_partial_breadth["corners_helped"] = [4]
+    cheap_partial_breadth["corners_touched"] = [4, 9, 13]  # helps 1 of 3 -- small penalty
+    expensive_full_breadth = _dummy_candidate(effort_class="garage_hours", evidence_refs=evidence)
+    expensive_full_breadth["corners_helped"] = expensive_full_breadth["corners_touched"] = [4]  # zero penalty
+    assert (score(cheap_partial_breadth, evidence, None, config)["total"]
+            > score(expensive_full_breadth, evidence, None, config)["total"])
+
+
+def test_display_score_threshold_splits_shortlist_and_tail():
+    config = copy.deepcopy(load_decision_frame_config())
+    registry = load_setup_parameters_registry()
+    config["display_score_threshold"]["value"] = 1.0  # deliberately high, to force a real split
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "strong", "medium", confidence=1.0),
+        _matrix_verdict_evidence(6, ["entry_2_turnin"], "understeer", "moderate", "medium", confidence=0.1),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    split = generate_display_split(candidates, evidence, None, config, registry)
+    assert split["shortlist"]
+    assert split["tail"]
+    shortlist_ids = {c["id"] for c in split["shortlist"]}
+    tail_ids = {c["id"] for c in split["tail"]}
+    assert shortlist_ids.isdisjoint(tail_ids)
+    for c in split["shortlist"]:
+        assert c["status"] == STATUS_PROPOSED
+        assert c["score"] >= 1.0
+    # No fixed candidate count anywhere -- every inventory entry lands in
+    # exactly one of the two lists, none dropped.
+    inventory = generate_lever_inventory(candidates, evidence, None, config, registry)
+    assert len(split["shortlist"]) + len(split["tail"]) == len(inventory)
+
+
+def test_weight_change_reranks_only_verdict_and_evidence_byte_identical():
+    # DECISION LAYER SPEC C2's own required test: weight changes re-rank
+    # only -- every non-score field of every candidate (verdict/evidence-
+    # bearing content) stays byte-identical under a cost_function
+    # perturbation; only score/order may change.
+    config_a = load_decision_frame_config()
+    config_b = copy.deepcopy(config_a)
+    config_b["cost_function"]["severity"] = 3.0
+    config_b["cost_function"]["change_time"] = 0.1
+    config_b["cost_function"]["breadth"] = 5.0
+    config_b["cost_function"]["headroom"] = 2.0
+    config_b["cost_function"]["interaction"] = 4.0
+    config_b["cost_function"]["effect_class"] = {"primary": 2.0, "secondary": 0.1}
+
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["entry_1_brake"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(3, ["apex_3"], "oversteer", "moderate", "low"),
+    ]
+    candidates_a = generate_candidates(evidence, registry, config_a)
+    candidates_b = generate_candidates(evidence, registry, config_b)
+    # generate_candidates itself never reads cost_function at all -- the
+    # two candidate lists must already be identical before scoring even
+    # runs (the strongest possible form of this guarantee).
+    assert candidates_a == candidates_b
+
+    shortlist_a = generate_shortlist(candidates_a, evidence, None, config_a)
+    shortlist_b = generate_shortlist(candidates_b, evidence, None, config_b)
+    non_score_keys = lambda c: {k: v for k, v in c.items()
+                                 if k not in ("score", "score_components", "score_interaction_notes",
+                                              "score_flags")}
+    ids_a = {c["id"] for c in shortlist_a}
+    ids_b = {c["id"] for c in shortlist_b}
+    assert ids_a == ids_b  # same set of proposed candidates, order may differ
+    by_id_a = {c["id"]: non_score_keys(c) for c in shortlist_a}
+    by_id_b = {c["id"]: non_score_keys(c) for c in shortlist_b}
+    assert by_id_a == by_id_b
+    # And scores actually DID change -- confirms the perturbation was real,
+    # not a no-op that would make this test trivially pass.
+    scores_a = {c["id"]: c["score"] for c in shortlist_a}
+    scores_b = {c["id"]: c["score"] for c in shortlist_b}
+    assert scores_a != scores_b
+
+
+def test_data_and_feedback_agreeing_upgrades_to_both_agreeing():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),
+        _feedback_evidence(6, "entry_1_brake", -2),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matrix_candidates = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
+    assert len(matrix_candidates) == 1
+    assert matrix_candidates[0]["trigger_provenance"] == TRIGGER_BOTH_AGREEING

@@ -592,18 +592,29 @@ kept because a surviving script imports it, not for its own findings.
   purpose decision-frame candidate census (2026-09-22, thesis_notes.md
   "Frame candidate census: single-lap evidence confirmed on both real
   sessions"). Reuses inspect_frame_stage2_parity.py's own run_full_
-  pipeline/DUBAI_FILE/V3_FILE directly (same cap=1, same file paths) and
-  modules.decision_frame's own generator functions, called individually in
-  generate_candidates' own order, purely to label each candidate by which
-  generator produced it -- no logic reimplemented. Two live uses so far:
-  the original census (found EVERY corner_verdict/matrix_verdict evidence
-  item on both real sessions rests on exactly 1 repeating lap, the numeric
-  basis for WP-FD1's own no-repeat-condition design decision) and the
-  WP-FD1+2 Phase 1 byte-stability re-run (exact match, zero difference).
-  THE standard byte-stability tool for DECISION LAYER SPEC work going
-  forward (PLAN.md) -- every stage of that spec touches candidate
-  generation and will need the same before/after check this script
-  already performs; re-run at each stage boundary, not just once.
+  pipeline/DUBAI_FILE/V3_FILE directly (same cap=1, same file paths).
+  RECONCILED at DECISION LAYER SPEC B8 (2026-09-22): originally hand-
+  re-implemented generate_candidates' own body (calling each generator
+  function individually) purely to label candidates by generator -- by
+  Phase B's end that body had grown to 7 steps and the hand-kept copy had
+  already drifted twice (missing the eligibility gate and the
+  feedback-only generator for a full sub-phase each). Now calls
+  generate_candidates() directly and derives each candidate's generator
+  label from fields the production dict already carries (id prefix,
+  scenario, rule_id, effect_class) -- no logic reimplemented anywhere,
+  so it cannot drift from production again the way the old copy did.
+  Live uses: the original census (found EVERY corner_verdict/matrix_
+  verdict evidence item on both real sessions rests on exactly 1
+  repeating lap, the numeric basis for WP-FD1's own no-repeat-condition
+  design decision), the WP-FD1+2 Phase 1 byte-stability re-run (exact
+  match, zero difference), and the DECISION LAYER SPEC Phase B close-out
+  re-run (new baseline after the status model/feedback-only trigger/
+  eligibility gate/breadth/window-edge/contradiction/three new bridges,
+  thesis_notes.md "WP-DL Phase B close-out"). THE standard byte-stability
+  tool for DECISION LAYER SPEC work going forward (PLAN.md) -- every
+  stage of that spec touches candidate generation and will need the same
+  before/after check this script already performs; re-run at each stage
+  boundary, not just once.
 - **inspect_damper_motion_sign_and_threshold.py** `[keep-reproduces]` --
   WP-FD1+2 Step 2 groundwork (2026-09-22, thesis_notes.md "Damper motion
   sign-convention and threshold derivation"). Two real-data questions
@@ -621,3 +632,17 @@ kept because a surviving script imports it, not for its own findings.
   window (n=0) -- reused this project's own existing straight-line mask
   (|ax|<0.5,|ay|<0.5 g) as the reference population instead. Re-run if a
   third session's own distribution should ever revisit either value.
+- **smoke_test_settings_view.py** `[keep-reproduces]` — reusable headless
+  Qt smoke test for SettingsView's Section 4 (decision-frame cost-
+  function weights, DECISION LAYER SPEC C2, 2026-09-22), same technique
+  as smoke_test_decision_frame_widget.py/smoke_test_measurement_points_
+  widget.py. Verifies the specific claim C2 needed checked -- values
+  ACTUALLY persist across a restart, not just within one already-running
+  instance -- by constructing SettingsView, changing a weight, clicking
+  Save, then constructing a SECOND, fresh SettingsView instance (the
+  closest headless proxy for "restart") and confirming it reads the new
+  value back from disk; also confirms the provenance-note tooltip is
+  populated (C2: "each with provenance note display"). Restores config/
+  decision_frame.json to its original content in a finally block either
+  way -- writes to the real config file to prove real persistence, so it
+  must never leave that file mutated behind it.

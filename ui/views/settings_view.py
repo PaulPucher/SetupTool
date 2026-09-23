@@ -22,6 +22,7 @@ from ui.views.outing_form import NoScrollSpinBox, NoScrollIntSpinBox
 PARAMETERS_PATH = "config/parameters.json"
 CHANNELS_PATH = "config/channels.json"
 RECOMMENDATIONS_PATH = "config/recommendations.json"
+DECISION_FRAME_PATH = "config/decision_frame.json"
 
 # --- Section 1: vehicle physics constants (config/parameters.json) --------
 # Scope is exactly the field list approved for PART B: mass, cog_height,
@@ -117,6 +118,53 @@ SECTION2_RECS_FLOAT_FIELDS = [
 ]
 DRIVER_WEIGHT_LEVELS = [str(i) for i in range(1, 11)]
 
+# --- Section 4: decision-frame cost-function weights (config/decision_
+# frame.json) -- DECISION LAYER SPEC C2 (2026-09-22). Uses the WORKING
+# JSON-file read-modify-write pattern this file already established for
+# sections 1/2 (batched, on "Save" click) -- NOT outing_form.py's own
+# accuracy_cap_combo pattern, which has no persistence at all (verified
+# by reading it directly: no write path exists anywhere for that
+# control). Weights affect ranking only -- never verdicts/evidence/
+# candidate generation (modules/decision_frame.py generate_candidates
+# never reads cost_function at all; only score() does), confirmed by a
+# dedicated test (tests/test_decision_frame.py test_weight_change_
+# reranks_only_verdict_and_evidence_byte_identical).
+SECTION4_FIELDS = [
+    {"path": ("cost_function", "severity"), "label": "Severity weight", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "How much problem severity (and confidence) drives ranking."},
+    {"path": ("cost_function", "change_time"), "label": "Change-time weight", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "Cheaper/faster changes rank higher (inverse effort)."},
+    {"path": ("cost_function", "breadth"), "label": "Breadth weight", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "breadth_derived_from"),
+     "short_note": "Penalises a global lever that helps only some assessed corners."},
+    {"path": ("cost_function", "headroom"), "label": "Headroom weight", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "How much settings-window distance from nominal matters."},
+    {"path": ("cost_function", "interaction"), "label": "Interaction weight", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "Penalises side-effects on other active problems (interaction_table)."},
+    {"path": ("cost_function", "effect_class", "primary"), "label": "Effect class: primary", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "Multiplier for a primary (matrix-exact) candidate."},
+    {"path": ("cost_function", "effect_class", "secondary"), "label": "Effect class: secondary", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 10.0,
+     "note_path": ("cost_function", "derived_from"),
+     "short_note": "Multiplier for a secondary (side-effect) candidate."},
+    {"path": ("display_score_threshold", "value"), "label": "Display cutoff score", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 20.0,
+     "note_path": ("display_score_threshold", "derived_from"),
+     "short_note": "Below this score, a candidate moves from the visible shortlist into the collapsed tail."},
+]
+
+
 # --- Section 3: classification thresholds (read-only) ----------------------
 SECTION3_FIELDS = [
     ("STRONG_CSF", "Strong front CS threshold"),
@@ -170,6 +218,7 @@ class SettingsView(QWidget):
         self.section1_widgets = {}
         self.section2_widgets = {}
         self.driver_weight_widgets = {}
+        self.section4_widgets = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -195,9 +244,13 @@ class SettingsView(QWidget):
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             initial_params = json.load(f)
 
+        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
+            initial_decision_frame = json.load(f)
+
         self.content_layout.addWidget(self._build_section1(initial_params))
         self.content_layout.addWidget(self._build_section2())
         self.content_layout.addWidget(self._build_section3())
+        self.content_layout.addWidget(self._build_section4(initial_decision_frame))
         self.content_layout.addStretch()
 
         scroll.setWidget(content)
@@ -473,6 +526,38 @@ class SettingsView(QWidget):
 
         return container
 
+    def _build_section4(self, decision_frame):
+        # DECISION LAYER SPEC C2 (2026-09-22). note_text/short_note baked
+        # in once from the file content at construction time, same
+        # convention as _build_section1 -- this tool never edits
+        # derived_from strings, only the numeric leaves.
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.addWidget(self._section_label("Decision-Frame Scoring Weights"))
+
+        rule_note = QLabel(
+            "Re-rank the shortlist only -- never touch verdicts, evidence, or which "
+            "candidates are generated (DECISION LAYER SPEC addendum, PLAN.md)."
+        )
+        rule_note.setWordWrap(True)
+        rule_note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
+        layout.addWidget(rule_note)
+
+        for spec in SECTION4_FIELDS:
+            widget = NoScrollSpinBox()
+            widget.setDecimals(spec["decimals"])
+            widget.setRange(spec["min"], spec["max"])
+            widget.setFixedWidth(120)
+            self.section4_widgets[spec["path"]] = widget
+
+            note_text = _get_path(decision_frame, spec["note_path"]) if spec.get("note_path") else None
+            layout.addWidget(self._field_row(spec, widget, note_text=note_text,
+                                              short_note=spec.get("short_note")))
+
+        return container
+
     def _load_from_disk(self):
         # Always a fresh file read, never through the lru_cache'd loaders --
         # this view must reflect the true on-disk content regardless of
@@ -483,11 +568,19 @@ class SettingsView(QWidget):
             channels = json.load(f)
         with open(RECOMMENDATIONS_PATH, encoding="utf-8") as f:
             recs = json.load(f)
+        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
+            decision_frame = json.load(f)
 
         for spec in SECTION1_FIELDS:
             widget = self.section1_widgets[spec["path"]]
             widget.blockSignals(True)
             widget.setValue(float(_get_path(params, spec["path"])))
+            widget.blockSignals(False)
+
+        for spec in SECTION4_FIELDS:
+            widget = self.section4_widgets[spec["path"]]
+            widget.blockSignals(True)
+            widget.setValue(float(_get_path(decision_frame, spec["path"])))
             widget.blockSignals(False)
 
         sources = {"parameters": params, "channels": channels, "recommendations": recs}
@@ -524,6 +617,8 @@ class SettingsView(QWidget):
             channels = json.load(f)
         with open(RECOMMENDATIONS_PATH, encoding="utf-8") as f:
             recs = json.load(f)
+        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
+            decision_frame = json.load(f)
 
         section1_changed = False
         for spec in SECTION1_FIELDS:
@@ -545,6 +640,10 @@ class SettingsView(QWidget):
         for level, widget in self.driver_weight_widgets.items():
             recs["settings"]["driver_level_weighting"]["weights"][level] = widget.value()
 
+        for spec in SECTION4_FIELDS:
+            widget = self.section4_widgets[spec["path"]]
+            _set_path(decision_frame, spec["path"], widget.value())
+
         # newline="" disables Python's universal-newline translation on
         # write -- without it, text-mode "w" on Windows turns every "\n"
         # json.dump emits into "\r\n", rewriting every line's ending even
@@ -559,10 +658,18 @@ class SettingsView(QWidget):
         with open(RECOMMENDATIONS_PATH, "w", encoding="utf-8", newline="") as f:
             json.dump(recs, f, indent=2)
             f.write("\n")
+        with open(DECISION_FRAME_PATH, "w", encoding="utf-8", newline="") as f:
+            json.dump(decision_frame, f, indent=2)
+            f.write("\n")
 
         from modules.stability_analysis import load_parameters, load_car_data
         load_parameters.cache_clear()
         load_car_data.cache_clear()
+        # load_decision_frame_config() (modules/decision_frame.py) is NOT
+        # lru_cache-wrapped -- it re-reads the file on every call (verified
+        # directly), so there is no cache to clear for the write above;
+        # the next "Generate" click in the decision-frame panel already
+        # sees the new weights with no extra invalidation step needed.
 
         # Redundant safety net (the structural fix is resolved_vehicle_
         # snapshot now carrying these constants, modules/accuracy_

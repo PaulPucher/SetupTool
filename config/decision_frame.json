@@ -53,7 +53,7 @@
         "rl": null,
         "rr": null
       },
-      "derived_from": "NEEDS USER INPUT -- no target hot-pressure window exists anywhere in this project's config or docs. Supply front/rear (or per-corner) min/max in psi from tyre data sheet or team practice before this check can ever fire; until then it is wired but permanently silent (no evidence, not a false negative)."
+      "derived_from": "NEEDS USER INPUT -- no target hot-pressure window exists anywhere in this project's config or docs. Supply front/rear (or per-corner) min/max in psi from tyre data sheet or team practice before this check can ever fire; until then it is wired but permanently silent (no evidence, not a false negative). CHANNEL-CENSUS CORRECTION 2026-09-22 (DECISION LAYER SPEC Phase A5): the claim above ('zero tyre-pressure entries anywhere') was checked only against config/channels.json, config/parameters.json, config/setup_parameters.json, config/car_data.json -- it was never checked against the raw telemetry files themselves, which the channel census rule requires. Direct census of both real sessions found tpms_press_fl/fr/rl/rr[bar] (plus _abs/_raw/_dash variants) IS present and populated on both Sample_Dubai.txt and GT3_PRC_MLA-v3.txt, 1 Hz, real varying values (~1.6-1.8 bar plausible range) alongside clear startup/dropout glitches (Dubai: 20.47 bar spike at channel start; v3: 6.2 bar at start, an isolated 296.7 bar dropout spike) that would need a Tier B exclusion mask before any production use. This corrects the earlier premise, not the target-window gap: the LIVE CHANNEL exists, but the TARGET pressure (this file's own min/max here and in tyre_pressure_target below) still does not -- no data sheet or team-practice number exists anywhere in this repo, so both blocks stay null on purpose, unchanged in effect. No production wiring done this session (out of Phase A's own scope)."
     },
     "brake_balance_signature": {
       "_comment": "Front axle beyond its own limit while rear stays healthy, during the braking phase -- a data-driven plausibility read, not a new vehicle-dynamics method. Deliberately expressed in terms of classify_fn's own severity labels (moderate/strong), not raw CS_ratio numbers, so this file never duplicates config/parameters.json's classification.STRONG_CSF/STRONG_CSR/MODERATE_CSF/MODERATE_CSR thresholds -- those are re-derived per estimator/car (CLAUDE.md deviation taxonomy) and duplicating their values here would risk drift the next time they change. No brake-balance/brake-bias signature logic existed anywhere in modules/ before this (verified by search) -- new Stage 1 evidence source.",
@@ -63,30 +63,28 @@
       "derived_from": "Tier B. 'Beyond limit' = front axle's classify_fn severity on entry_1_brake reaches front_beyond_severity_min (today: 'moderate', i.e. CS_ratio_f at or past config/parameters.json classification.MODERATE_CSF). 'Healthy' = rear axle's severity on the same phase stays at/below rear_healthy_severity_max (today: 'normal', i.e. rear CS_ratio_r has not crossed even MODERATE_CSR). Reuses the existing _phase_verdict/classify_fn path (modules/recommendation.py) unmodified, per-axle -- guarantees this check can never disagree with what the stability grid already shows for the same corner/phase."
     }
   },
-  "scoring_weights": {
-    "_comment": "Every weight here is a project-lead-elicited PLACEHOLDER (Stage 1, 2026-09-02) -- neutral (1.0) except phase_importance's elicited exit>entry ordering, none tuned against real scored output yet. Stage 2 calibration item (see thesis_notes.md Stage 1 entry).",
-    "severity_weight": 1.0,
-    "phase_importance": {
-      "_comment": "User instruction (this session): exit phases weigh highest for laptime. Ordinal ordering is the real content (entry < turn-in < apex < exit); the specific magnitudes are placeholders pending Stage 2 calibration against real scored output.",
-      "entry_1_brake": 0.8,
-      "entry_2_turnin": 0.9,
-      "apex_3": 1.0,
-      "exit_4": 1.2,
-      "exit_5": 1.2
+  "_comment_tyre_pressure_target": "DECISION LAYER SPEC 2026-09-22, Stage 1 check-only item: tyre pressures are NEVER recommended (no lever), only flagged beside the shortlist when out of window -- and only evaluated on CORNERING-PHASE samples (straight-line pressure drop is physics, never a flag). Per-corner (not just per-axle, unlike the older plausibility_checks.tyre_pressure_window above, which this supersedes for decision-frame purposes) with a compound note, since target pressure is compound-dependent. Tier B, config-driven, all null -- ships silent exactly like tyre_pressure_window above and for the identical reason (see that block's derived_from and its 2026-09-22 channel-census correction): the tpms_press_* channel now confirmed present on both real sessions is a MEASUREMENT, not a TARGET -- no target pressure number exists anywhere in this repo's config or docs, so filling one here would be inventing it. Deviation flags shown beside the shortlist, never inside it (Stage 1 'Written exclusions').",
+  "tyre_pressure_target": {
+    "fl": {
+      "min_psi": null,
+      "max_psi": null
     },
-    "effect_weight": 1.0,
-    "effect_class_multiplier": {
-      "_comment": "Added during Phase 4 (scoring layer) -- not anticipated by Phase 1's own spec text, needed to turn the candidate layer's categorical effect_class ('primary'/'secondary', see modules/decision_frame.py generate_candidates) into a numeric score component. Placeholder, same status as every other weight here.",
-      "primary": 1.0,
-      "secondary": 0.6
+    "fr": {
+      "min_psi": null,
+      "max_psi": null
     },
-    "effort_weight": 1.0,
-    "effort_weight_note": "Applied INVERSELY at score time (Phase 4 owns the exact formula): a cheap change (cockpit/seconds) should score higher than an equally-effective expensive one (garage/hours), all else equal.",
-    "confidence_weight": 1.0,
-    "settings_window_weight": 1.0,
-    "interaction_weight": 1.0,
-    "derived_from": "project-lead-elicited placeholders, decision-frame Stage 1 package (2026-09-02) -- see thesis_notes.md for the elicitation context and the Stage 2 calibration item this leaves open."
+    "rl": {
+      "min_psi": null,
+      "max_psi": null
+    },
+    "rr": {
+      "min_psi": null,
+      "max_psi": null
+    },
+    "compound_note": null,
+    "derived_from": "NEEDS USER INPUT (DECISION LAYER SPEC elicitation item 2) -- current compound and its target hot-pressure window, per corner, from tyre data sheet or team practice. Until supplied: wired but permanently silent, same honesty posture as plausibility_checks.tyre_pressure_window."
   },
+  "_comment_scoring_weights_retired": "DECISION LAYER SPEC C1 (2026-09-22): the scoring_weights block (Stage 1/2/4, 2026-09-02 through 2026-09-18) is RETIRED -- fully migrated into cost_function below, not kept as a second, parallel weight system (reviewer instruction: 'zero components outside cost_function control'). severity_weight/phase_importance moved into cost_function.severity/cost_function.phase_importance (problem-weight term); effect_weight/effect_class_multiplier moved into cost_function.effect_class (lever-fit term, NOT problem weight -- see thesis_notes.md 'C1: scoring-term fold' for the category-error reasoning); effort_weight moved into cost_function.change_time; settings_window_weight moved into cost_function.headroom; interaction_weight moved into cost_function.interaction; confidence_weight is now folded directly into the problem-weight multiplication (confidence is not an independent term in Stage 6's own text, it multiplies severity) and has no separate cost_function key. score() (modules/decision_frame.py) reads cost_function exclusively.",
   "driver_feedback_weighting": {
     "_comment": "Deepening Phase 4d (2026-09-18). NEW evidence dimension -- Stage 1/2 had no driver-feedback axis at all (explicitly flagged as a Stage 2 open item in the original Stage 1 close-out). A driver_feedback evidence item's own CONFIDENCE (not a new action, not a new candidate -- it is attached to an EXISTING candidate's evidence_refs when its own verdict/corner/phase agrees, via the same MIN-confidence rule every other corroborating evidence source already uses) ramps LINEARLY from confidence_floor at |raw feedback|=1 to 1.0 at full_confidence_at_raw_abs.",
     "confidence_floor": 0.1,
@@ -98,10 +96,17 @@
     "enabled": true,
     "STRONG_LSF": -0.79,
     "STRONG_LSF_derived_from": "LS-evidence census pooled p10 (front), same physical anchor logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force point, minus a data-sized margin) -- Metrology extension Phase 2's own repaired-estimator distribution, n=31 pooled corners. Reopen condition: a validity-repair-scale re-derivation if a third session's own distribution shifts this materially; small-n caveat carried over unchanged from the original proposal.",
-    "STRONG_LSR": -0.60,
+    "STRONG_LSR": -0.6,
     "STRONG_LSR_derived_from": "Same population/method as STRONG_LSF, rear axle pooled p10. Reopen condition identical.",
-    "braking_turnin_phases": ["entry_1_brake", "entry_2_turnin", "apex_3"],
-    "exit_phases": ["exit_4", "exit_5"],
+    "braking_turnin_phases": [
+      "entry_1_brake",
+      "entry_2_turnin",
+      "apex_3"
+    ],
+    "exit_phases": [
+      "exit_4",
+      "exit_5"
+    ],
     "exit_phase_confidence_discount": 0.5,
     "exit_phase_confidence_discount_derived_from": "LS-evidence census, 2026-09-20: exit-phase negative instances corroborate at only 34% (15/44) vs braking 89% (8/9) and turn-in/apex 72% (13/18) -- the discriminating factor is NAMED, not just observed: TC (the natural exit/traction corroborator) fires on only 3 samples in v3's entire session (0.0044%, thesis_notes.md 'Frame-Stage-2 Phase 2: intervention-channel survey'), so exit-phase readings are structurally unable to be TC-corroborated this session regardless of whether the underlying signal is real -- an evidence gap, not a demonstrated absence of signal. 0.5 reuses intervention_evidence.abs.confidence's own 0.8-cap PRECEDENT (a MIN-confidence ceiling, not a new discount mechanism) at a value matching this source's own weaker (34%, vs ABS's 41.92% co-occurrence) corroboration rate. Applied via min() against the SAME repeat-fraction confidence _build_corner_verdict_evidence already computes -- repeatability across a corner's own laps (the Dubai C3 pattern: exit_5 rear, repeat=4/4, corroborated via repeatability alone with zero TC activity) is what lifts a reading UP TO this ceiling rather than leaving it at a low one-off fraction; min() cannot inflate a genuinely low fraction past what it already is. REOPEN CONDITION, stated explicitly per the work order: a session with real, non-trivial TC activity re-derives this discount (or removes the need for it) by closing the evidence gap directly instead of working around it."
   },
@@ -717,14 +722,115 @@
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
       "note": "Mirror of the decrease entry above -- either direction moves the rear aero platform and rake, not just balance. Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). Literature-bridge work package, 2026-09-20."
+    },
+    {
+      "parameter": "splitter_offset",
+      "direction": "increase",
+      "performance_axis": "platform_stability",
+      "sign": -1,
+      "grade": "proposed (Segers ch.9/10)",
+      "note": "DECISION LAYER SPEC B7 (2026-09-22), reviewer-confirmed: splitter_offset promoted to a lever in Phase A, spec Stage 1 names it front-aero 'pair-lever to wing (same axis); ride_height_front (shared ground clearance)' -- mirrors those two parameters' own platform_stability convention exactly (sign=-1 regardless of direction, since ANY change trades front-platform margin, not a directional helps/hurts claim). Same Segers ch.9/10 ride/aero-platform anchor already used for wing_position/ride_height_front above. Structurally INERT in current scoring (_AXIS_TO_VERDICT has no platform_stability mapping), identical status to those entries. NO lever_bridges entry accompanies this pairing -- splitter_offset's own direction sign convention (which extreme is 'forward'/more front downforce) is unresolved (config/setup_parameters.json splitter_offset.direction_semantics, Phase A), so a directional recommendation would have to invent it; this entry needs no such resolution (sign=-1 both ways, same as wing/ride_height's own convention), but a real recommend-splitter bridge is deliberately NOT built this package -- reported as a gap, not worked around."
+    },
+    {
+      "parameter": "splitter_offset",
+      "direction": "decrease",
+      "performance_axis": "platform_stability",
+      "sign": -1,
+      "grade": "proposed (Segers ch.9/10)",
+      "note": "Mirror of the increase entry above -- either direction moves the front aero platform. Same reasoning and same deliberate absence of a directional lever_bridges entry, for the identical unresolved-sign-convention reason."
     }
   ],
   "_comment_interaction_table_open_items": "Updated Deepening Phase 4b (2026-09-18) -- springs_front/rear and ride_height_front/rear now HAVE entries (see _comment_interaction_table above for exactly which and why). Literature-bridge work package (2026-09-20): ride_height_front/rear gained Segers ch.9/10 platform_stability entries (grounded in their own registry mechanism text, 'aero platform height'), completing the same balance/platform split springs already had -- a coverage-check finding, not a redo of Phase 4b (which had already shipped the springs half and the ARB/camber/diff_position/tc_lon/toe_front interaction-table bidirectionality this same check re-verified as already complete). NOT extended by that check, because closing it needs a module-logic (candidate-bridge) change, not a config entry: springs_front (zero candidate-generating bridge in either direction anywhere in modules/decision_frame.py -- interaction_table entries alone never generate a candidate, see that module's own generate_candidates) and springs_rear's stiffen direction (only soften has a bridge, hardcoded in _exit_oversteer_candidates) -- named as a READY PROPOSAL in PLAN.md BACKLOG (generic per-lever candidate-bridge mechanism), not implemented here. camber_rl/rr carry the identical interaction-table-only gap but are not a Segers lever and were out of this work order's scope -- flagged only. Genuinely still uncovered, each for its own stated reason: all 20 damper channels and tc_lat (used by only one rule each in the 39-rule matrix, no opposite-direction cross-reference exists to extract, and not one of the work order's own literature-anchored bullets either; damper TRANSIENT-PHASE bridges specifically were also considered this session and deferred -- interaction_table has no phase field and no transient-phase axis in _AXIS_TO_VERDICT, listed pending schema support rather than extending the schema); arb_front_mount (no numeric quantity underlies its enum anywhere in this codebase); wing_position (the matrix itself uses 'increase' for BOTH understeer and oversteer fixes on different phases -- genuinely phase-dependent/non-monotonic, a single signed entry would misrepresent it); toe_rear (never appears as a suggestion in any of the 39 rules, only toe_front does); abs_position (categorical, direction_semantics.type is explicitly non-monotonic).",
   "_comment_lever_bridges": "Generic per-lever candidate-bridge mechanism (BACKLOG item H, named 2026-09-20, implemented 2026-09-20). Closes the gap the comment above names: an interaction_table entry alone never generates a candidate, it only adjusts another candidate's score (_interaction_penalty) -- so springs_front/rear could never actually be SUGGESTED as an action despite carrying literature-anchored (Segers ch.9/10) interaction_table entries. Each entry below is consumed generically by modules.decision_frame._bridge_candidates_for_levers (the same matrix_verdict evidence + phase-group + verdict/min_severity gate _bridge_candidates_for_matrix_rules already uses, mirrored -- convergent, not novel), rather than a new hardcoded per-lever function. 'condition' reuses the SAME verdict vocabulary matrix_verdict evidence carries (understeer/oversteer/unstable_yaw); 'phase_groups' is a list of the matrix's own phase-group tuples (config/recommendations.json rules[].phases), one candidate per group where matching evidence fires. Deliberately excludes 'entry_1_brake' and the combined ['entry_1_brake','entry_2_turnin'] group for every spring entry below: roll-stiffness-distribution (Segers ch.9/10) only acts under LATERAL load transfer -- straight-line braking has no roll-couple mechanism for a spring-rate change to act through, that is a brake-balance/bias question (a different lever family). 'grade' is 'proposed' on every entry and is NOT read as authoritative by the generator -- _bridge_candidates_for_levers hardcodes grade='proposed' on every candidate it emits regardless of what this field says (advisory-capped STRUCTURALLY, same policy _grade_for_provenance already gives every proposed-grade bridge in this file, since no cell_id backs any of these), the field exists here only so a config reader sees the same value the code enforces; a schema test asserts no entry ever declares anything else. Dedupe: springs_rear/soften's exit_4+exit_5 group overlaps the existing hardcoded _exit_oversteer_candidates springs_rear_soften secondary candidate -- the generator skips emitting there (hardcoded path wins, richer LS-disambiguation-aware evidence); no other entry/group below has a hardcoded equivalent to collide with. camber_rl/rr carry the identical interaction_table gap (see comment above) but are flagged, not seeded, per the work order's own scope. FRAME DEPTH PROGRAMME Step 1 (2026-09-22): any entry below MAY now additionally carry an optional 'conditions' list (see the top-level 'conditions' key's own comment for the schema and modules.decision_frame.evaluate_conditions for the semantics) -- NONE of the 4 entries below carry one yet (verified by the byte-stability re-run against the 2026-09-22 candidate-census baseline, thesis_notes.md), so every existing bridge's behaviour is completely unchanged by Step 1's own addition; conditions are Step 3's own job to attach, once modules/damper_motion.py (Step 2) gives them something real to corroborate against.",
   "_comment_conditions": "FRAME DEPTH PROGRAMME Step 1 (2026-09-22, PLAN.md 'FRAME DEPTH PROGRAMME', reviewer-approved fixed design). Adds an optional per-lever_bridges-entry 'conditions' list (schema: each item is {type: evidence_corroboration|setup_state|phase_transient, required: bool, ...type-specific fields}) so a candidate's confidence can depend on MORE than the single matrix_verdict evidence item that fires it -- corroborating evidence (e.g. lockup, damper motion) and the CURRENT setup state (a lever already at its window edge), not just the verdict pattern. Deliberately excludes any cross-lap repeat/consistency requirement, per the 2026-09-22 candidate-census finding (thesis_notes.md 'Frame candidate census: single-lap evidence confirmed on both real sessions'): every corner_verdict/matrix_verdict evidence item on both real sessions rests on exactly 1 repeating lap, so a repeat-count condition would suppress 100% of candidates on both sessions -- repeatability stays the EXISTING confidence discount's own job (repeat_fraction x valid_fraction, already computed per evidence item), never re-litigated as a second, stricter gate here. evaluate_conditions() (modules/decision_frame.py) returns one of PASS (every condition evaluable and passing -- confidence untouched) / SUPPRESS (a REQUIRED condition evaluable and failing -- candidate not emitted at all) / CAP_ADVISORY (a non-required condition failing, OR ANY condition not-evaluable for any reason -- missing evidence source this run, unfilled setup sheet, missing registry window -- applies not_evaluable_confidence_cap below via the EXISTING min()-confidence machinery, no new formula). 'CAP_ADVISORY, never SUPPRESS, for an evidence gap' is the load-bearing distinction: a condition this frame simply CANNOT check (no signal, not corroborated one way or the other) is not the same claim as a condition that was checked and found false -- 'cannot corroborate' is not 'contradicted', so it degrades confidence rather than deleting the candidate, the same honesty posture build_evidence's own docstring states project-wide ('an honest [], never a fabricated fallback').",
+  "_comment_eligibility_classes": "DECISION LAYER SPEC 2026-09-22, Stage 6 term (2) magnitude matching. heavy_correctors = every registry key the spec names a HEAVY CORRECTOR (springs_front/rear, camber x4, toe_front/rear) -- these generate ONLY on strong+multi-corner (same axle, same direction, >=2 corners) or |feedback|>=4 (Phase B gate, not implemented here -- Phase A ships the DATA only). click_class = every other recommendation_target=true registry key (verified against config/setup_parameters.json directly by script, not counted by hand: 42 recommendation_target=true keys total, 8 heavy_correctors, 34 click_class) -- reachable at mild/single-corner severity too. Damper levers are listed per registry key (5 types x 4 corners = 20), matching this file's own parameter_windows/interaction_table convention of addressing dampers per-corner, not as the spec prose's conceptual '10 axle-paired levers' (axle-pairing is enforced elsewhere, at candidate-generation time, never asymmetric -- this list is eligibility only).",
+  "eligibility_classes": {
+    "heavy_correctors": [
+      "springs_front",
+      "springs_rear",
+      "camber_fl",
+      "camber_fr",
+      "camber_rl",
+      "camber_rr",
+      "toe_front",
+      "toe_rear"
+    ],
+    "click_class": [
+      "arb_fl",
+      "arb_fr",
+      "arb_rl",
+      "arb_rr",
+      "arb_front_mount",
+      "damper_bump_ls_fl",
+      "damper_bump_hs_fl",
+      "damper_blowoff_fl",
+      "damper_rebound_ls_fl",
+      "damper_rebound_hs_fl",
+      "damper_bump_ls_fr",
+      "damper_bump_hs_fr",
+      "damper_blowoff_fr",
+      "damper_rebound_ls_fr",
+      "damper_rebound_hs_fr",
+      "damper_bump_ls_rl",
+      "damper_bump_hs_rl",
+      "damper_blowoff_rl",
+      "damper_rebound_ls_rl",
+      "damper_rebound_hs_rl",
+      "damper_bump_ls_rr",
+      "damper_bump_hs_rr",
+      "damper_blowoff_rr",
+      "damper_rebound_ls_rr",
+      "damper_rebound_hs_rr",
+      "ride_height_front",
+      "ride_height_rear",
+      "diff_position",
+      "wing_position",
+      "splitter_offset",
+      "tc_lat",
+      "tc_lon",
+      "abs_position",
+      "brake_bias"
+    ],
+    "camber_multi_corner_gate": "Camber ADDITIONALLY always requires the multi-corner gate per spec (no |feedback|>=4 bypass for camber specifically) -- flagged here as a DATA note; the distinct-from-springs/toe gate logic itself is Phase B's own job."
+  },
+  "_comment_cost_function": "DECISION LAYER SPEC 2026-09-22, Stage 6, REVISED Phase C (2026-09-22, reviewer-confirmed, thesis_notes.md 'C1: scoring-term fold'). SIX governed keys, zero scoring components live outside this block (scoring_weights above fully retired, see its own retirement comment for the exact key-by-key migration): (1) severity -- problem weight = severity x sev_rank x phase_importance x confidence (phase_importance folded IN here: it qualifies the problem itself, not any one lever's fit to it); (2) change_time (inverse-effort, track time is the scarce resource); (3) breadth (global-lever-helping-1-of-N penalty, new Tier B formula this phase -- see cost_function.breadth_derived_from); (4) headroom (settings-window distance); (5) interaction (interaction-table penalty); (6) effect_class (lever-fit/solution-quality: primary vs secondary, grouped with interaction at Stage 6's own 'within class' step, deliberately NOT folded into problem weight -- the SAME problem can yield different effect classes from different candidate levers, so this is a property of the lever-problem fit, a category distinct from the problem's own severity). ALL VALUES PLACEHOLDERS pending engineer elicitation (elicitation item 1) -- neutral (1.0) except phase_importance's already-elicited exit>entry ordering and effect_class's already-elicited primary>secondary ordering, carried over unchanged from the retired scoring_weights block, not re-elicited from scratch.",
+  "cost_function": {
+    "severity": 1.0,
+    "phase_importance": {
+      "_comment": "Carried over unchanged from the retired scoring_weights block -- user instruction (2026-09-02): exit phases weigh highest for laptime. Ordinal ordering is the real content (entry < turn-in < apex < exit); magnitudes are placeholders pending calibration against real scored output.",
+      "entry_1_brake": 0.8,
+      "entry_2_turnin": 0.9,
+      "apex_3": 1.0,
+      "exit_4": 1.2,
+      "exit_5": 1.2
+    },
+    "change_time": 1.0,
+    "breadth": 1.0,
+    "breadth_derived_from": "Tier B formula, new Phase C (Stage 6 names the CONCEPT -- 'global lever helping 1 of N corners is penalised' -- not a formula): penalty = -(1 - corners_helped/corners_touched) when breadth data is available and the lever is not exempt (0 when exempt -- corners_touched==corners_helped by construction, modules/decision_frame.py _attach_breadth; 0, flagged, when assessed_corner_ids was not supplied to generate_candidates at all). Fraction-based, clamped at 0 when the candidate helps every assessed corner -- same normalized-distance style this file's own _settings_window_component formula already uses ('1 - distance/span'), not a new invented style.",
+    "headroom": 1.0,
+    "interaction": 1.0,
+    "effect_class": {
+      "_comment": "Carried over unchanged from the retired scoring_weights block (added Phase 4, 2026-09-04) -- turns the candidate layer's categorical effect_class ('primary'/'secondary') into a numeric term. Grouped with interaction at Stage 6's lever-fit step, NOT folded into problem weight (thesis_notes.md 'C1: scoring-term fold' -- category-error reasoning: same problem, different effect_class per candidate lever).",
+      "primary": 1.0,
+      "secondary": 0.6
+    },
+    "derived_from": "placeholder pending engineer elicitation, DECISION LAYER SPEC (elicitation item 1) -- phase_importance/effect_class orderings are already-elicited exceptions, carried over from the retired scoring_weights block, not re-elicited"
+  },
+  "_comment_display_score_threshold": "DECISION LAYER SPEC 2026-09-22, Stage 6: 'display cutoff is a config threshold on score'. Splits shortlist (>= threshold) from the collapsed 'assessed, not proposed' tail (< threshold) -- ranking never hides, the tail still carries every candidate with its status. Placeholder pending elicitation item 9.",
+  "display_score_threshold": {
+    "value": 0.5,
+    "derived_from": "placeholder pending engineer elicitation, DECISION LAYER SPEC (elicitation item 9) -- round neutral midpoint, not gap-selected against any real scored-output distribution yet"
+  },
   "conditions": {
     "not_evaluable_confidence_cap": 0.5,
-    "not_evaluable_confidence_cap_derived_from": "Reuses ls_threshold_evidence.exit_phase_confidence_discount's own 0.5 PRECEDENT (2026-09-20) -- not a new number invented for this mechanism. Same justification transfers directly: an evidence gap (there, exit-phase TC corroboration being structurally unavailable this session; here, any not-evaluable condition -- missing evidence source, unfilled setup sheet, missing registry window) caps confidence via min() rather than suppressing the candidate outright, at a value already established in this same config file for exactly this kind of gap. Applied via the SAME min()-confidence mechanism every other cap in this file uses (MARGINAL-verdict cap, exit-phase LS discount, ABS-masking) -- min() can only ever LOWER a candidate's confidence, never raise it, so a candidate whose OWN evidence already reports confidence below 0.5 is untouched (never inflated up to the cap)."
+    "not_evaluable_confidence_cap_derived_from": "Reuses ls_threshold_evidence.exit_phase_confidence_discount's own 0.5 PRECEDENT (2026-09-20) -- not a new number invented for this mechanism. Same justification transfers directly: an evidence gap (there, exit-phase TC corroboration being structurally unavailable this session; here, any not-evaluable condition -- missing evidence source, unfilled setup sheet, missing registry window) caps confidence via min() rather than suppressing the candidate outright, at a value already established in this same config file for exactly this kind of gap. Applied via the SAME min()-confidence mechanism every other cap in this file uses (MARGINAL-verdict cap, exit-phase LS discount, ABS-masking) -- min() can only ever LOWER a candidate's confidence, never raise it, so a candidate whose OWN evidence already reports confidence below 0.5 is untouched (never inflated up to the cap).",
+    "contradiction_sources": [
+      "damper_motion",
+      "intervention_abs",
+      "intervention_tc",
+      "lockup"
+    ],
+    "contradiction_sources_derived_from": "DECISION LAYER SPEC B6 (2026-09-22), Stage 5: 'data contradicts data (direct measurement vs estimator verdict): SUPPRESSED from shortlist -> tail, contradicted by X'. A required evidence_corroboration condition failing (evidence exists globally but disagrees at this corner/phase) produces status=contradicted instead of silent SUPPRESS when its own evidence_type is listed here; every other required-condition failure (phase_transient, setup_state, or an evidence_corroboration type NOT listed here) stays a silent, structural non-generation -- that is inapplicability, not a data disagreement. Wired only for evidence types that exist today (damper_motion: modules/damper_motion.py; intervention_abs/intervention_tc: Stage 2 Phase 3c) -- 'lockup' is listed as a deliberate placeholder for docs/segers_bridge_review.md's own reviewed C5-2 lockup-evidence proposal, not yet built (PLAN.md FRAME DEPTH PROGRAMME Step 5); it can never match today (no evidence item of type 'lockup' is ever produced), by design, per the work order's own 'wire only those that exist today... leave the list config-driven and extensible' instruction. No lever_bridges entry declares a damper_motion/intervention_abs/intervention_tc condition yet (that is Step 3's own job, PLAN.md), so this mechanism is complete and tested but currently inert on real data -- the same 'gap, not a bug' posture as B2's own feedback-only routing finding."
   },
   "_comment_damper_motion": "FRAME DEPTH PROGRAMME Step 2 (2026-09-22, modules/damper_motion.py). Per-corner, per-TRANSIENT-phase (entry/exit only, never apex -- Segers ch.11 boundary condition, docs/segers_bridge_review.md C11-1) loading/unloading classification from log_susp_travel_* -- the evidence source Step 1's evidence_corroboration condition type was built to consume, no consumer wired to it yet (that is Step 3's own job). Two real-data findings, thesis_notes.md 'Damper motion sign-convention and threshold derivation' entry: (1) SIGN CONVENTION, empirically checked on BOTH real sessions (corr(front-axle travel, braking ax): Dubai +0.4905, v3 +0.2025, both POSITIVE and agreeing) -- travel DECREASES as braking gets harder, and harder braking physically compresses the front axle, so DECREASING travel = compression = loading, INCREASING = extension = unloading (the OPPOSITE of the first, unverified guess this package started with -- exactly why the work order required checking, not assuming). (2) THRESHOLD DERIVATION: apex_3 was the originally planned 'near-zero reference' population but both sessions' own apex_3 phase segments are too narrow for this project's own phase segmentation (zero >=2-sample rate windows on either session) -- reused this project's own EXISTING straight-line mask precedent (|ax|<0.5, |ay|<0.5 g, the same mask the Fz-integration/aero work already established as its own 'nothing dynamic happening' convention) as the reference population instead.",
   "damper_motion": {
@@ -738,8 +844,22 @@
     {
       "lever": "springs_front",
       "direction": "soften",
-      "condition": {"verdict": "understeer", "min_severity": "moderate"},
-      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "condition": {
+        "verdict": "understeer",
+        "min_severity": "moderate"
+      },
+      "phase_groups": [
+        [
+          "entry_2_turnin"
+        ],
+        [
+          "apex_3"
+        ],
+        [
+          "exit_4",
+          "exit_5"
+        ]
+      ],
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
@@ -749,8 +869,22 @@
     {
       "lever": "springs_front",
       "direction": "stiffen",
-      "condition": {"verdict": "oversteer", "min_severity": "moderate"},
-      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "condition": {
+        "verdict": "oversteer",
+        "min_severity": "moderate"
+      },
+      "phase_groups": [
+        [
+          "entry_2_turnin"
+        ],
+        [
+          "apex_3"
+        ],
+        [
+          "exit_4",
+          "exit_5"
+        ]
+      ],
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
@@ -760,8 +894,22 @@
     {
       "lever": "springs_rear",
       "direction": "stiffen",
-      "condition": {"verdict": "understeer", "min_severity": "moderate"},
-      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "condition": {
+        "verdict": "understeer",
+        "min_severity": "moderate"
+      },
+      "phase_groups": [
+        [
+          "entry_2_turnin"
+        ],
+        [
+          "apex_3"
+        ],
+        [
+          "exit_4",
+          "exit_5"
+        ]
+      ],
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
@@ -771,13 +919,90 @@
     {
       "lever": "springs_rear",
       "direction": "soften",
-      "condition": {"verdict": "oversteer", "min_severity": "moderate"},
-      "phase_groups": [["entry_2_turnin"], ["apex_3"], ["exit_4", "exit_5"]],
+      "condition": {
+        "verdict": "oversteer",
+        "min_severity": "moderate"
+      },
+      "phase_groups": [
+        [
+          "entry_2_turnin"
+        ],
+        [
+          "apex_3"
+        ],
+        [
+          "exit_4",
+          "exit_5"
+        ]
+      ],
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
       "derived_from": "interaction_table: springs_rear/soften/oversteer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
       "rationale": "Softening the rear axle reduces rear roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Same mechanism the hardcoded exit-oversteer bridge already uses at exit phases (deduped there, this entry additionally covers turn-in/apex)."
+    },
+    {
+      "lever": "diff_position",
+      "direction": "increase",
+      "condition": {
+        "verdict": "unstable_yaw",
+        "min_severity": "moderate"
+      },
+      "phase_groups": [
+        [
+          "entry_1_brake"
+        ]
+      ],
+      "lever_family": "diff_tc",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "DECISION LAYER SPEC B7 (2026-09-22): diff_position's existing exit-phase trigger (modules/decision_frame.py _exit_oversteer_candidates diff_position_increase, gated on and evidenced by ls_disambiguation traction_limited -- confirmed by direct read, not assumed, so the 'acceleration side' of this item needed no new code) already covers power-on exit instability; this entry adds the braking-phase half named in the same work order item, straight-line/corner-entry instability under braking.",
+      "rationale": "More locking torque resists axle-speed difference, stabilising the rear -- the same mechanism the existing exit-phase bridge already uses, extended here to braking-phase yaw instability. HONEST DEGRADE, stated per the work order: diff behaviour under braking/coast is coupled to the engine-braking (EB) program, which this project does not currently map to a channel (config/setup_parameters.json diff_position notes, 'EB program unknown' until TC/EB channel mapping lands) -- advisory-capped, proposed grade, not claimed as validated as the power-on case."
+    },
+    {
+      "lever": "splitter_offset",
+      "direction": "decrease",
+      "condition": {
+        "verdict": "understeer",
+        "min_severity": "moderate",
+        "speed_class": "high"
+      },
+      "phase_groups": [
+        [
+          "entry_1_brake"
+        ],
+        [
+          "entry_2_turnin"
+        ]
+      ],
+      "lever_family": "splitter",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "author-elicited 2026-09-22, negative=more front downforce; hard forward limit = front contact, track-dependent. Phase scope and verdict vocabulary mirror wing_position's own matrix cells (US-BRK-high/US-TIN-high, config/recommendations.json), same performance_axis platform_stability, opposite end of the car.",
+      "rationale": "Decreasing splitter offset (toward -4) adds front downforce, addressing high-speed understeer directly -- the front-aero analogue of wing_position's own high-speed understeer fix (US-BRK-high/US-TIN-high increase wing for the same scenario at the rear). Advisory-capped, proposed grade -- no matrix cell exists for splitter_offset."
+    },
+    {
+      "lever": "splitter_offset",
+      "direction": "increase",
+      "condition": {
+        "verdict": "oversteer",
+        "min_severity": "moderate",
+        "speed_class": "high"
+      },
+      "phase_groups": [
+        [
+          "entry_2_turnin"
+        ],
+        [
+          "exit_4",
+          "exit_5"
+        ]
+      ],
+      "lever_family": "splitter",
+      "effect_class": "secondary",
+      "grade": "proposed",
+      "derived_from": "author-elicited 2026-09-22, negative=more front downforce; hard forward limit = front contact, track-dependent. Phase scope and verdict vocabulary mirror wing_position's own matrix cells (OS-TIN-high/OS-EXIT-high, config/recommendations.json), same performance_axis platform_stability, opposite end of the car.",
+      "rationale": "Increasing splitter offset (toward +4) reduces front downforce, easing a nervous/oversteering-at-speed front-heavy balance -- the front-aero analogue of wing_position's own high-speed oversteer fix (OS-TIN-high/OS-EXIT-high). Advisory-capped, proposed grade -- no matrix cell exists for splitter_offset."
     }
   ]
 }

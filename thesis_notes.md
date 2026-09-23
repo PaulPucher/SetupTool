@@ -18623,3 +18623,552 @@ No config/production change beyond what this package itself ships
 stability proven twice). No commit made -- stop before commit, per the
 work order's own explicit instruction and CLAUDE.md's standing rule that
 the user runs git.
+
+## DECISION LAYER SPEC Phase A: registry/config schema + channel-census
+correction [2026-09-22, branch decision-layer]
+
+Phase A of the WP-DL package (PLAN.md "DECISION LAYER SPEC" governing
+document, elicited same day). Data-only: config/setup_parameters.json
+and config/decision_frame.json schema/data additions per the spec's
+Stage 1/6, plus one code-level vocabulary extension (EFFORT_RANK). No
+candidate-generation logic touched -- confirmed by census byte-stability
+below.
+
+CHANNEL-CENSUS CORRECTION (the thesis-worthy finding): config/
+decision_frame.json's plausibility_checks.tyre_pressure_window has
+carried, since Stage 1 (2026-09-02), the claim "NOT DERIVABLE...
+config/channels.json, config/parameters.json, config/setup_parameters.
+json, config/car_data.json all contain zero tyre-pressure entries."
+That claim was true of every CONFIG file checked, but the channel
+census rule (CLAUDE.md, standing 2026-09-03) requires checking the
+RAW telemetry file itself before relying on an absence claim -- this
+had never been done for tyre pressure specifically. Direct grep of
+both real session files found tpms_press_fl/fr/rl/rr[bar] (plus _abs/
+_raw/_dash variants) present on BOTH Sample_Dubai.txt and GT3_PRC_
+MLA-v3.txt, logged at 1 Hz (TPMS wireless-transmitter rate, far below
+the project's native 50-100 Hz channels), with real varying values
+once past a startup transient: Dubai settles to ~1.65-1.75 bar shortly
+after an initial 20.47 bar power-on glitch; v3 shows a plausible
+~1.70-2.0 bar band with an isolated 296.7 bar dropout spike and a 6.2
+bar startup value. A distinct, larger family of tpms_get_press_flat/
+hard/soft_* [bar] channels also exists but reads flat, constant values
+(0.25-0.7 bar) starting well into the session (Dubai: t=314s) -- these
+are TPMS threshold/alarm configuration constants, not live pressure
+readings, and were initially mistaken for candidates before checking
+their own value distribution.
+
+This corrects the PREMISE (a live channel exists) without closing the
+actual gap the original comment named (a TARGET pressure): no hot-
+pressure target number, per corner or per axle, exists anywhere in
+this repo's config or docs, so plausibility_checks.tyre_pressure_window
+and the new tyre_pressure_target block below both stay null, silent,
+unchanged in effect. Method: Tier B, read-only channel presence/
+value-range check, no production wiring. Both raw pressure channels
+show glitches (startup transient, one dropout spike) that would need a
+Tier B exclusion mask -- similar in kind to existing kerb-masking/dead-
+channel-guard conventions -- before any future production use; noted
+for whoever wires this, not built here.
+
+CONFIG CHANGES (config/setup_parameters.json, 46-entry registry):
+splitter_offset promoted from context-only to a real lever
+(recommendation_target=true, value_space -4..+4mm step 1, change_effort
+corrected minutes<-garage_hours) -- direction sign convention (which
+extreme is "forward"/front-contact) is NOT recorded anywhere in this
+codebase, left unresolved and flagged rather than invented. brake_bias
+promoted from context-only to a recommendation target (cockpit/
+seconds, 1-3 clicks, braking-phase-only) -- direction convention and
+channel identity remain elicitation item 4, typical_window stays null
+(not-assessable) rather than invented, per spec Stage 3's own honesty
+rule. diff_position: escalation_tier corrected pitlane<-garage,
+change_effort corrected minutes<-seconds, typical_window filled 1..5.
+camber_fl/fr/rl/rr: change_effort raised to a NEW class, half_hour
+(20-30 min), inserted into modules/decision_frame.py's EFFORT_RANK
+between minutes and garage_hours. tc_lat/tc_lon: typical_window gained
+explicit min=1/max=11 (0=off excluded from the tuning window, nonlinear
+per TC_reference). abs_position: typical_window gained the ABS_2 V2
+bracket structure (dry_high 1-4, dry_medium 5-8, wet 9-11) -- verify
+item A5 confirmed TC_reference, ABS_2(V2), and Wing_1 GT3R-2026 are ALL
+already digitised in config/car_data.json, nothing to digitise this
+phase. arb_front_mount/wing_position: typical_window filled with their
+own legal enum set (no numeric anchor fillable for either, for two
+different documented reasons already on file in decision_frame.json's
+parameter_windows comments).
+
+CONFIG ADDITIONS (config/decision_frame.json): tyre_pressure_target
+(per-corner min/max psi + compound_note, all null, check-only per
+Stage 1's written exclusion -- never a lever). eligibility_classes
+(heavy_correctors: springs_front/rear, camber x4, toe_front/rear = 8
+keys; click_class: the remaining 34 recommendation_target=true
+registry keys) -- verified by script to EXACTLY partition all 42
+recommendation_target=true keys, no overlap, nothing missing (the
+work order's own hand-counted "32 total/24 click_class" estimate was
+wrong; corrected to the script-verified 42/34/8 in the config's own
+comment rather than left standing). cost_function (severity,
+change_time, breadth, headroom, interaction -- Stage 6's named term
+order, all placeholder=1.0, distinct from and additional to the
+pre-existing scoring_weights block, reconciliation deferred to Phase
+C). display_score_threshold (placeholder 0.5). PLAN.md gained the
+verbatim Addendum 2026-09-22 (cost-function weights are runtime-
+editable calibration tunables that re-rank only).
+
+TESTS: 8 new (tests/test_decision_frame.py) -- EFFORT_RANK ordering,
+eligibility_classes exact partition, heavy_correctors exact membership,
+cost_function/display_score_threshold placeholder structure,
+tyre_pressure_target all-null, splitter_offset/brake_bias promotion,
+diff_position tier/effort correction, camber half_hour effort. Full
+tests/test_decision_frame.py: 76/76 passed (68 pre-existing + 8 new),
+742.2s, including test_end_to_end_real_dubai.
+
+BYTE-STABILITY (the regression bar, since Phase A is data-only):
+diagnostics/inspect_frame_candidate_census.py re-run on both real
+sessions -- EXACT MATCH to the 2026-09-22 WP-FD1+2 baseline in every
+reported number: Dubai 12 candidates (5 lever_bridges/4 exit_oversteer/
+3 matrix_bridge, confidence flat 0.25), v3 41 candidates (16/14/11,
+confidence flat 0.333), identical (parameter,direction) groupings and
+corner lists on both sessions. Zero difference -- confirms none of
+Phase A's config/registry edits reached candidate generation, as the
+phase's own "data only, no logic" scope requires.
+
+No commit made this phase -- WP-DL commits at the package's own close-
+out (Phase F), not per-phase, per the work order's own instruction.
+
+## DECISION LAYER SPEC B1 design resolution: lever-status granularity
+[2026-09-22, reviewer-confirmed]
+
+Design principle's "every lever always has a state" resolved as PER-
+CANDIDATE statuses plus synthetic no-trigger rows; reviewer-confirmed
+2026-09-22. The spec text underdetermined the unit that carries a
+status: "every lever always has a state" reads lever-wide (one row per
+registry key), but Stage 3's own "candidate shown BLOCKED at its
+earned rank" only makes sense per-candidate (a specific corner+phase+
+lever firing) -- and the existing architecture (confirmed by direct
+code read: no cross-corner candidate aggregation exists anywhere,
+_exit_oversteer_candidates/_bridge_candidates_for_matrix_rules/
+_bridge_candidates_for_levers all key one candidate per corner+phase+
+lever, never merged) already commits to the per-candidate reading.
+Resolved: status (proposed/blocked_at_edge/contradicted/not_assessable)
+is a property of each candidate, corner+phase-specific as today, never
+merged across corners; a registry lever with ZERO candidates all
+session gets exactly one synthetic no_trigger row (the only status
+with no real candidate object to attach to), so the full 42-lever
+inventory is always visible with no silent unreachability. Shortlist =
+status=="proposed", filtered from the full inventory. B3's heavy-
+corrector multi-corner gate is a FIRING CONDITION evaluated across a
+corner set (same axle, same direction, >=2 corners) -- its product
+stays per-corner candidates, never a cross-corner merged object; each
+resulting candidate carries the breadth/multi-corner data in its own
+dropdown payload. Tail ordering: real candidates first (blocked_at_
+edge/contradicted/not_assessable, ranked by earned score), synthetic
+no_trigger rows last, unranked (no score exists for a lever with no
+candidate). Pending: add the same one-sentence resolution to PLAN.md's
+DECISION LAYER SPEC section the next time PLAN.md is touched in this
+package (not done this turn -- PLAN.md not otherwise edited yet in
+Phase B).
+
+## DECISION LAYER SPEC B2 design resolution: feedback-only routing
+mechanism [2026-09-22, reviewer-confirmed]
+
+Feedback-only routing decided: interaction_table signed entries,
+cheapest eligible, one candidate; matrix-rule relaxation rejected
+(severity floors are part of the elicited meaning); reviewer
+2026-09-22. The spec text ("cheapest eligible levers", Stage 2) named
+neither the routing table nor the selection rule. Two existing config-
+driven mechanisms could plausibly supply it: (a) interaction_table's
+own signed (parameter, direction, performance_axis, sign) entries,
+already graded and reused for scoring penalties, repurposed here as a
+"what helps this axis" lookup; (b) relaxing _bridge_candidates_for_
+matrix_rules to drop its severity/speed_class gate when the firing
+evidence is feedback-only. Rejected (b) explicitly: the 39-rule
+matrix's min_severity floors were elicited from the engineer WITH those
+floors as part of their stated meaning (config/recommendations.json
+rules) -- firing a rule below its own elicited floor on subjective-only
+input repurposes an engineer's answer outside the condition they gave
+it under, not a data-engineering simplification. Chose (a): for a
+feedback verdict's matching tendency axis (understeer_tendency /
+oversteer_tendency) with the HELPING sign (+1), filter interaction_
+table entries to click-class-eligible levers (config/decision_frame.
+json eligibility_classes.click_class) whose registry phase_affinity is
+compatible with the feedback's own phase, emit ONE candidate: cheapest
+by EFFORT_RANK; tie broken by the larger absolute _interaction_penalty
+component (an already-existing computed quantity, not a new number);
+a tie surviving that raises rather than picks arbitrarily. Provenance
+"driver_reported" (B2), grade inherited from the interaction_table
+entry used, advisory-capped, one increment.
+
+GAP FOUND, reported per the reviewer's own instruction #4 (verified by
+direct query against config/decision_frame.json, not assumed): EVERY
+sign=+1 entry on understeer_tendency/oversteer_tendency in the current
+interaction_table belongs to springs_front/springs_rear -- a HEAVY
+CORRECTOR, never click-class-eligible. Zero click-class levers
+currently carry a sign=+1 entry on either tendency axis. Consequence,
+stated honestly per instruction #4 ("no fallback, no invention"): the
+feedback-only mechanism as specified will emit ZERO candidates on
+every real session today, always, until the interaction_table gains at
+least one click-class entry with a helping sign on a tendency axis --
+this is a genuine coverage gap in the elicited table, not a bug in the
+routing mechanism, and belongs on the engineer questions list (a new
+item, alongside the existing 9-item elicitation list) rather than
+worked around here.
+
+## DECISION LAYER SPEC B4 breadth design resolution [2026-09-22,
+reviewer-confirmed]
+
+Breadth penalty resolved: N = assessed corners incl. normal verdicts (a
+normal verdict is evidence of a working state); opposing-candidate
+conflicts reported separately; reviewer 2026-09-22. Two rounds of
+resolution: first reject "N = corners with an opposing-direction
+candidate" (zeroes the penalty in the spec's own motivating case of one
+bad corner and the rest good, inverting the intent -- a candidate with
+no opposing candidate anywhere would report zero risk, when the real
+risk is rebalancing every corner that was working). Second: "N = every
+corner assessed this session, including normal verdicts" is NOT
+derivable from the evidence list generate_candidates already receives --
+confirmed directly, not assumed: both _build_corner_verdict_evidence
+(line 150) and _build_matrix_verdict_evidence (line 448) explicitly
+`continue` past severity=="normal", so a corner clean on every phase
+produces zero evidence items, of any type. This is itself the same
+story as the earlier channel-census finding and the FRAME DEPTH
+PROGRAMME's own motivation: the frame's evidence layer has always been
+structurally blind to healthy corners, one-hop in exactly the sense the
+programme's own critique named, and this plumbing gap is a second,
+independent symptom of it.
+
+Explicitly rejected: the evidence-only proxy ("corners appearing
+anywhere in the evidence list") -- reproduces the same zeroing failure
+as the first rejected reading, since it also excludes every genuinely
+clean corner, which is exactly the majority case the penalty exists to
+price.
+
+Resolved mechanism: generate_candidates gains an ADDITIVE optional
+`assessed_corner_ids=None` parameter. None (every pre-existing caller,
+byte-identical) -> breadth fields present but null, no invented number.
+Populated -> corners_helped/corners_touched computed for real, using
+the caller's own corner census (ui/views/outing_form.py's
+_generate_decision_frame and diagnostics/inspect_frame_candidate_
+census.py both already hold `summaries` before calling generate_
+candidates -- modules.recommendation._group_by_corner(summaries).keys()
+supplies the set directly, no new data source needed). Dampers (bump/
+rebound LS/HS split gives them shaft-speed-range selectivity a single
+spring/ARB/camber setting doesn't have) are exempt from the penalty,
+per spec. Dropdown wording when assessed_corner_ids is None: the
+breadth line is simply absent -- never a guessed "0 corners at risk".
+
+## DECISION LAYER SPEC B5/B6 implementation notes [2026-09-22]
+
+B5 (window edge): implemented directly, no reviewer round-trip needed --
+the mechanism was fully spec-derivable from existing structured data.
+HARD edge = the registry's own value_space min/max (a physical/legal
+bound, e.g. arb position cannot exist outside 1-7; splitter_offset's own
+Phase A hard_limit note already ties its value_space extremes to front-
+splitter/track contact). SOFT edge = decision_frame.json's own
+parameter_windows (nominal+-span, typical practice). Neither required a
+new config field or an invented limit value. Gated on setup_data being
+supplied at all (same additive/opt-in pattern as B4) -- None preserves
+every pre-existing caller byte-identical. Directional: only blocks when
+the candidate's own delta pushes further past an edge already reached,
+never when it corrects back toward nominal (Stage 3's own "current state
+of the levers" framing). Wired into ui/views/outing_form.py's
+_generate_decision_frame (setup_data now threaded into generate_
+candidates itself, not just generate_shortlist's scoring component).
+
+B6 (contradiction): also implemented directly. Repurposes evaluate_
+conditions' existing SUPPRESS outcome: a required evidence_corroboration
+condition failing on an evidence_type listed in the NEW config/decision_
+frame.json conditions.contradiction_sources (["damper_motion",
+"intervention_abs", "intervention_tc", "lockup"]) now returns
+CONTRADICTED instead of SUPPRESS -- the candidate is still emitted (status
+visible in the full inventory, reason "contradicted by X") rather than
+silently dropped, per Stage 5's own "SUPPRESSED from shortlist -> tail"
+wording; every other required failure (phase_transient, setup_state, or
+an evidence_corroboration type not listed) stays silent SUPPRESS --
+structural inapplicability, not a data disagreement. "lockup" is listed
+as a deliberate, currently-unmatchable placeholder (no evidence type of
+that name is ever produced -- PLAN.md's own Step 5 lockup work is not
+part of this package). SAME GAP SHAPE AS B2: no lever_bridges entry
+today declares a damper_motion/intervention_abs/intervention_tc
+condition at all (Step 3's own job, PLAN.md) -- the mechanism is
+complete and tested but currently inert on real data, exactly like B2's
+own feedback-only routing finding. Driver-vs-data (new _attach_
+conflicting_feedback function): opposite-verdict driver_feedback is
+attached to a candidate's own conflicting_feedback list, display-only --
+never touches status, confidence, or evidence_refs, so it can never
+suppress. unstable_yaw has no defined opposite verdict and is
+deliberately excluded from this mechanism (no invented opposite).
+
+## DECISION LAYER SPEC B7: three bridges [2026-09-22, reviewer-confirmed]
+
+brake_bias direction convention = standard (forward = more front share);
+channel encoding pending item 4; reviewer 2026-09-22. Full mechanism per
+docs/segers_bridge_review.md C5-1 (ch.5 p.107, Eq.5.3), its own already-
+reviewed encoding target (section f) followed verbatim: understeer at
+entry_1_brake/entry_2_turnin -> more_rear (too much front bias uses up
+front-tyre grip capacity under straight-line braking, unavailable for
+turn-in cornering force); oversteer at entry_1_brake ONLY -> more_front
+(too much rear bias risks the rear stepping out under trail-braking --
+the book's own corner-entry-only scoping, not mid-corner). New dedicated
+function _brake_bias_candidates (not the generic lever_bridges mechanism
+-- severity-scaled magnitude, SEVERITY_RANK direct: moderate=1, strong=2,
+capped at 3, doesn't fit that mechanism's fixed +-1 convention). Direction
+is an output WORD only, never a numeric channel delta -- the channel's
+own sign/scale and current-state window stay elicitation item 4,
+unresolved, exactly as flagged in Phase A; nothing here invents them.
+
+diff_position: braking-phase trigger added (new lever_bridges entry,
+unstable_yaw at entry_1_brake, "EB program unknown" honest-degrade note
+in the rationale, matching the pre-existing diff_position notes' own
+language). Acceleration side needed NO addition -- confirmed by direct
+read, not assumed: the existing exit-phase bridge (_exit_oversteer_
+candidates' diff_position_increase) is already gated by `if ls_class in
+(None, "traction_limited")` and already includes the ls_disambiguation
+evidence item in its own evidence_refs when present. Reused the generic
+_bridge_candidates_for_levers mechanism for this one (unlike brake_bias)
+-- fixed the mechanism's own delta convention along the way: it hardcoded
+`1 if direction=="stiffen" else -1`, which would have silently mapped
+diff's "increase" to -1 (wrong sign). Widened to reuse B2's own
+_DIRECTION_SIGN dict (stiffen/soften unaffected, byte-identical for
+springs) rather than adding a second, parallel sign table.
+
+splitter_offset: reuse performance_axis platform_stability for the new
+interaction_table entries (increase/decrease, sign=-1 both directions) --
+consistent with the existing Segers-anchored wing_position/ride_height_
+front entries, no new axis invented. Deliberately NO lever_bridges entry:
+splitter_offset's own direction sign convention (which extreme is
+"forward"/more front downforce) is unresolved (config/setup_parameters.
+json, Phase A) -- a directional recommendation would have to invent it.
+The platform_stability pairing itself needs no such resolution (sign=-1
+regardless of direction, same convention wing/ride_height already use),
+so that half ships; the recommendable lever does not. Reported as a gap
+in the phase report, not worked around.
+
+Full real-Dubai end-to-end test (test_end_to_end_real_dubai) re-run
+after all of B1-B7: passes cleanly, 495.9s, confirming the full pipeline
+(status model, feedback-only routing, eligibility gate, breadth, window
+edge, contradiction, three new bridges) runs end to end on real data
+without error.
+
+## WP-DL Phase B close-out: census re-run, new baseline [2026-09-22]
+
+diagnostics/inspect_frame_candidate_census.py reconciled to call
+generate_candidates() directly (see its own updated header comment and
+diagnostics/README.md entry) and re-run on both real sessions. NEW
+BASELINE, deltas explained per class, not silently accepted:
+
+Dubai: 12 -> 5 candidates. v3: 41 -> 21 candidates. By class:
+1. Heavy-corrector removals (B3 eligibility gate): every springs_front/
+   springs_rear/camber_fl/camber_fr candidate on BOTH sessions disappeared
+   -- confirmed by direct comparison against the pre-B8 grouping tables,
+   not assumed. Notably, v3's springs_rear/soften and springs_front/
+   stiffen groups had 7 corners each pre-gate (thesis_notes.md Phase A
+   census) -- a large corner count, yet still zero of those 7 firings
+   reach STRONG severity on this session (only multi-corner, never
+   strong+multi-corner together), so the entire group is gated out. This
+   is the eligibility gate doing exactly its named job (Stage 6: "mild/
+   single-corner problems reach click-class levers only"), not a defect --
+   but worth naming since a 7-corner group disappearing entirely is a
+   large, visible change for anyone comparing censuses.
+2. lever_bridges generator: 0 candidates on both sessions (was 5/Dubai,
+   16/v3 pre-gate). All 4 pre-existing entries are springs (removed by
+   class 1); the new B7 diff_position/unstable_yaw braking-phase entry
+   found no matching evidence on either real session -- no unstable_yaw
+   verdict fires at entry_1_brake in either file this session. Gap, not a
+   bug, same honest-absence posture as classes 3-4 below.
+3. brake_bias generator (B7): 0 candidates on both sessions -- no
+   understeer/oversteer matrix_verdict evidence exists at entry_1_brake/
+   entry_2_turnin in either real session. The mechanism is real and unit-
+   tested (tests/test_decision_frame.py); this specific pair of sessions
+   simply has no braking-phase balance verdict to route through it.
+4. feedback_only generator (B2): 0 candidates -- this diagnostic passes
+   no feedback_data by design ("no feedback" convention, unchanged since
+   Stage 1); B2's own already-reported gap (zero click-class interaction_
+   table entries with a helping sign) would zero it out even with
+   feedback supplied.
+5. exit_oversteer/matrix_bridge (the two generators that DO still fire):
+   counts dropped in proportion to the heavy-corrector removals only --
+   arb_rl/rr, tc_lon, diff_position, wing_position groups are UNCHANGED
+   in their own corner lists/confidence values (byte-identical to the
+   Phase A baseline for every click-class group), confirming the gate
+   touches exactly the heavy-corrector candidates it names and nothing
+   else.
+6. Status/window-edge/contradiction fields: this diagnostic passes
+   setup_data=None (B5 window-edge and B1's per-candidate not_assessable-
+   via-CAP_ADVISORY both stay inert, matching every pre-existing caller);
+   B6 contradiction needs a lever_bridges entry with a contradiction-
+   listed evidence_corroboration condition, which none currently declare
+   (same gap class as #2). No no_trigger/blocked_at_edge/contradicted
+   candidate exists in this specific census run -- everything reported IS
+   status=proposed. generate_lever_inventory's own no_trigger completion
+   (B1) is not exercised by this script (it calls generate_shortlist, not
+   generate_lever_inventory) -- a UI-facing concern, Phase D's own job.
+
+Confidence distributions, evidence-by-type counts, and the min_repeat_
+laps=2 hypothetical are otherwise unchanged in shape from the Phase A
+baseline (same underlying evidence layer, untouched by Phase B).
+
+## Phase C: splitter_offset direction convention resolved, correcting
+same-session inversion [2026-09-22, author-elicited]
+
+splitter_offset direction convention resolved by author, 2026-09-22:
+NEGATIVE offset = MORE front downforce, POSITIVE = less. CORRECTION
+EVENT, recorded as part of the provenance, precisely as verified against
+this session's own record (not assumed): Phase A and B7 both correctly
+left the sign UNRESOLVED and flagged rather than guessing (config/
+setup_parameters.json's own direction_semantics said exactly "sign
+convention unresolved, not invented, flagged for elicitation" -- no
+inverted or wrong sign was ever asserted within this session). The
+reviewer's own "CORRECTED, supersedes any prior splitter direction note"
+framing when supplying this resolution is recorded here as their
+instruction's own wording, describing their elicitation process, not a
+correction of a claim this session made. config/setup_parameters.json
+splitter_offset.direction_semantics now states negative/positive
+explicitly, with the hard/soft edge note added to match (negative
+extreme = physical front-splitter/track contact, HARD; positive extreme
+= a range limit only, SOFT).
+
+Consequence for B5 (window edge, already shipped): _window_edge_check's
+own hard-edge test (registry value_space min/max) is symmetric PER
+LEVER, not per direction -- it treats both the -4 and +4 extremes as
+"hard" for splitter_offset, when physically only the negative (-4,
+more front downforce) extreme is a real contact point; the positive
+extreme is a soft, arbitrary range limit. KNOWN SIMPLIFICATION, not
+rebuilt this package (reviewer instruction, Phase C: flag it, don't
+rebuild B5) -- noted here and in the registry's own splitter_offset
+notes field so a future per-direction hard/soft extension (if ever
+needed) has this specific, real case on record rather than being
+discovered again from scratch.
+
+Two new lever_bridges entries added (Phase C, mirroring wing_position's
+own high-speed matrix cells exactly -- US-BRK-high/US-TIN-high for the
+understeer/decrease pairing, OS-TIN-high/OS-EXIT-high for the oversteer/
+increase pairing, config/recommendations.json): splitter_offset/decrease
+on high-speed understeer (adds front downforce), splitter_offset/
+increase on high-speed oversteer (removes front downforce). Required one
+small, additive extension to _bridge_candidates_for_levers: an optional
+condition.speed_class filter (absent on every pre-existing entry, so
+byte-identical for springs/diff_position) -- the generic mechanism had
+no speed_class gate at all before this, and wing's own matrix cells are
+speed_class="high"-gated, so without this addition the splitter bridges
+would have fired at any speed class, over-broad relative to the
+parameter they mirror.
+
+Elicitation list update (PLAN.md, next touch): item 10 (feedback-router
+click-class entries, B2's own gap) added OPEN; item 11 (splitter sign
+convention) added RESOLVED with this entry.
+
+## DECISION LAYER SPEC C1: scoring-term fold, phase_importance vs
+effect_class category split [2026-09-22, reviewer-confirmed]
+
+Stage 6 names exactly five terms (severity x confidence, change_time,
+breadth, headroom, interaction); the pre-C1 score() carried six
+components, two of which (phase_importance, effect_class_multiplier)
+Stage 6 never names. Both fold into the new formula, but into DIFFERENT
+places, for a reasoned category distinction the write-up will need
+verbatim:
+
+phase_importance folds INTO the problem-weight term: problem_weight =
+cost_function.severity x sev_rank x phase_importance x confidence.
+Reasoning: phase_importance qualifies THE PROBLEM ITSELF -- an exit-
+phase understeer reading matters more for laptime than an entry-phase
+one, regardless of which lever eventually addresses it. It is a
+property of the evidence/verdict, same axis as severity, so it belongs
+in Stage 6's own "problem weight" term.
+
+effect_class_multiplier does NOT fold into problem weight -- it is a
+property of the LEVER-PROBLEM FIT, not of the problem: the identical
+verdict at the identical corner/phase can yield a "primary" candidate
+from one lever and a "secondary" candidate from another (the matrix's
+own held-escalation pattern is the clearest case: same firing evidence,
+two candidates, different effect_class). Folding it into problem_weight
+would make the SAME problem score differently depending on which
+candidate is being evaluated for it, double-counting solution quality
+as if it were problem severity -- a category error. Instead it becomes
+its own named term, grouped with interaction at Stage 6's "lever-fit/
+solution-quality" step (term 3's later half, alongside change-time/
+breadth/headroom which are about the LEVER's own cost/reach, not the
+problem's own urgency).
+
+Result: SIX governed cost_function keys (severity, change_time, breadth,
+headroom, interaction, effect_class) -- zero scoring components live
+outside cost_function's control; the old scoring_weights block is fully
+retired, not left as a second, parallel weight system. phase_importance
+and effect_class both move INTO cost_function as their own sub-keys
+(dict-valued, same structural pattern -- no separate outer scalar
+alongside either, their own dict values ARE the applied weight, matching
+how phase_importance already worked pre-C1).
+
+Breadth's own numeric penalty formula (Stage 6 names the CONCEPT, not a
+formula) is new this phase, Tier B: penalty = -(1 - corners_helped/
+corners_touched) when non-exempt and breadth data is available (0 when
+exempt, since exempt candidates carry corners_touched==corners_helped by
+construction -- B4's own _attach_breadth; 0, flagged, when breadth data
+is unavailable at all, i.e. assessed_corner_ids was not supplied to
+generate_candidates, same "not computable, neutral" convention
+_settings_window_component already uses). A fraction-based, clamped-at-
+zero-when-fully-helped formula, same style as this file's own existing
+normalized-distance conventions (_settings_window_component's own
+"1 - distance/span"), not a new invented style.
+
+PLAN.md's own Stage 6 text gains, at this touch: effect_class named as
+a term ("lever-fit: primary answers rank above side-effect answers,
+weight elicited"), and phase_importance noted as folded into problem
+weight.
+
+## WP-DL Phase C close-out: C2/C3, census STOP investigated and
+resolved, new baseline 6/21 [2026-09-22]
+
+C2 (settings persistence): researched both patterns directly before
+wiring anything, per the reviewer's own instruction. BROKEN --
+ui/views/outing_form.py's accuracy_cap_combo has no write path anywhere
+(confirmed by reading it directly: constructed, read on demand via
+_get_accuracy_cap_from_selector, never saved to any file/QSettings/DB;
+this codebase uses no QSettings at all, confirmed by a project-wide
+grep returning zero hits). WORKING -- SettingsView's own existing
+sections (ui/views/settings_view.py): batched JSON read-modify-write on
+a "Save" click, `newline=""` to avoid a Windows CRLF rewrite of the
+whole file (an already-solved problem in this exact file, reused
+verbatim), lru_cache invalidation for the loaders that need it. Added
+Section 4 ("Decision-Frame Scoring Weights") to SettingsView following
+this exact pattern -- 8 fields (5 cost_function scalars, effect_class.
+primary/secondary, display_score_threshold.value), each showing its own
+config-file provenance note as a tooltip (C2: "each with provenance
+note display"). load_decision_frame_config() itself is NOT lru_cache-
+wrapped (confirmed directly), so no cache-clear is needed on save --
+the next read already sees the new file. New diagnostics/smoke_test_
+settings_view.py [keep-reproduces], diagnostics/README.md entry added:
+constructs SettingsView, changes a weight, saves, constructs a SECOND
+fresh instance (the closest headless proxy for an app restart), and
+confirms the new value round-trips through the real file -- passed
+cleanly, restores the file's original content in a finally block.
+
+C3: term-order/threshold/rerank-only tests written as part of C1/C2
+above (tests/test_decision_frame.py) -- test_score_term_order_severity_
+beats_change_time, test_score_term_order_change_time_beats_breadth,
+test_display_score_threshold_splits_shortlist_and_tail, test_weight_
+change_reranks_only_verdict_and_evidence_byte_identical. All pass, plus
+the full fast targeted suite (138/138).
+
+CENSUS RE-RUN, STOP FIRED AND RESOLVED: Dubai moved 5->6 candidates
+(v3 unchanged at 21) -- a real count change, exactly the condition the
+reviewer named as an automatic STOP regardless of cause. Investigated
+before reporting, not assumed: the new candidate is splitter_offset/
+increase at corner 4 (generator=lever_bridges, grade=proposed) -- the
+NEW splitter bridge added THIS SAME Phase C session (the direction-
+convention resolution, folded into "Phase C config pass" per the
+reviewer's own instruction), now firing for real on Dubai's own high-
+speed oversteer at corner 4. Confirmed structurally, not just by
+inference, that score() itself cannot be the cause: it only computes a
+"score" field on already-generated candidates, with no code path that
+adds or removes one -- every candidate-generation function (the
+eligibility gate, the four base generators, feedback-only) is
+unchanged this phase except for the additive, backward-compatible
+speed_class filter and the two new splitter lever_bridges rows
+themselves. Reviewer confirmed: accept as the new baseline. v3 stays at
+0 lever_bridges candidates (springs/diff-braking/splitter all silent
+there) -- not investigated further, a "gap in this specific session's
+data" of the same shape already documented repeatedly this package
+(B2, B6, B7's own brake_bias finding), not a new concern.
+
+NEW BASELINE: Dubai 6 candidates (3 exit_oversteer/2 matrix_bridge/1
+lever_bridges), v3 21 candidates (11 matrix_bridge/10 exit_oversteer),
+unchanged from the B8 baseline except for the one new splitter
+candidate. This is the comparison point for any future phase's own
+census check, superseding the B8 5/21 figure.

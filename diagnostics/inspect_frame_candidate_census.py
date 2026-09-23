@@ -6,14 +6,20 @@
 #
 # Reuses diagnostics/inspect_frame_stage2_parity.py's own run_full_pipeline
 # (same accuracy cap=1, same file paths -- DUBAI_FILE/V3_FILE literally
-# imported, not re-typed) for both sessions, and modules.decision_frame's
-# own generator functions called individually (in generate_candidates' own
-# order) purely to LABEL each candidate by which generator produced it --
-# no logic is reimplemented or duplicated, every call is the same function
-# generate_candidates() itself calls, with the same arguments in the same
-# order (including the lever_bridges dedupe, which depends on that order).
-# feedback_data is not passed anywhere (default None) and current_setup is
-# None at scoring time -- "no feedback, no setup_data" per the work order.
+# imported, not re-typed) for both sessions.
+#
+# DECISION LAYER SPEC B8 (2026-09-22) RECONCILIATION: this script used to
+# hand-re-implement generate_candidates' own body (calling each generator
+# function individually) purely to attach a "_generator" label per
+# candidate. By Phase B's end that body had grown to 7 steps (four base
+# generators, brake_bias, the eligibility gate, the feedback-only
+# generator, window-edge status, breadth) and the hand-kept copy had
+# already drifted twice (B2, B3) -- a maintenance trap by construction.
+# Switched to calling generate_candidates() directly and deriving each
+# candidate's generator label from fields the production dict ALREADY
+# carries (id prefix, scenario, rule_id, effect_class) -- no logic
+# reimplemented anywhere now, so this file cannot drift from production
+# again the way the old hand-copy did.
 
 import re
 from collections import Counter, defaultdict
@@ -23,14 +29,32 @@ import numpy as np
 from diagnostics.inspect_frame_stage2_parity import run_full_pipeline, DUBAI_FILE, V3_FILE, classify_fn
 from modules.decision_frame import (
     aggregate_ls_by_corner, load_decision_frame_config,
-    _exit_oversteer_candidates, _brake_balance_candidates,
-    _bridge_candidates_for_matrix_rules, _bridge_candidates_for_levers,
-    _attach_feedback_evidence, generate_shortlist, resolve_conflicts,
+    generate_candidates, generate_shortlist, resolve_conflicts,
     build_evidence,
 )
-from modules.recommendation import load_setup_parameters_registry, load_recommendations_config
+from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
 REPEAT_RE = re.compile(r"repeats on (\d+)/(\d+) laps")
+
+
+def _generator_label(c):
+    """Derives which generate_candidates() step produced this candidate
+    from fields the production dict already carries -- see this file's
+    own B8 reconciliation comment above."""
+    cid = c["id"]
+    if cid.startswith("lever_bridge:"):
+        return "lever_bridges"
+    if cid.startswith("feedback_only:"):
+        return "feedback_only"
+    if cid.startswith("brake_bias:"):
+        return "brake_bias"
+    if c.get("scenario") == "plausibility_brake_balance":
+        return "brake_balance"
+    if c.get("scenario") == "exit_oversteer":
+        return "exit_oversteer"
+    if c.get("rule_id") is not None:
+        return "matrix_bridge_held_secondary" if c.get("effect_class") == "secondary" else "matrix_bridge"
+    return "unlabelled"
 
 
 def _repeat_laps(evidence_item):
@@ -46,56 +70,6 @@ def _repeat_laps(evidence_item):
     return int(m.group(1)), int(m.group(2))
 
 
-def _build_labelled_candidates(evidence, registry, df_config, config_recs):
-    """Exact re-statement of modules.decision_frame.generate_candidates'
-    own body (same functions, same arguments, same order -- the
-    lever_bridges dedupe depends on seeing exit_oversteer/brake_balance/
-    matrix_bridge's candidates first) with one addition: a '_generator'
-    label attached to each candidate so the census below can break counts
-    out by generator, which the production candidate dict does not itself
-    carry as a single clean field."""
-    corner_verdicts_by_key = {}
-    ls_by_key = {}
-    intervention_abs_by_corner = {}
-    intervention_abs_masking_by_corner = {}
-    intervention_tc_by_corner = {}
-    for e in evidence:
-        if e["type"] == "corner_verdict":
-            corner_verdicts_by_key.setdefault((e["corner"], e["phase"]), []).append(e)
-        elif e["type"] == "ls_disambiguation":
-            ls_by_key[(e["corner"], e["phase"])] = e
-        elif e["type"] == "intervention_abs":
-            intervention_abs_by_corner[e["corner"]] = e
-        elif e["type"] == "intervention_tc":
-            intervention_tc_by_corner[e["corner"]] = e
-        elif e["type"] == "intervention_abs_masking":
-            intervention_abs_masking_by_corner[e["corner"]] = e
-
-    exit_ov = _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, config_recs,
-                                          intervention_tc_by_corner)
-    for c in exit_ov:
-        c["_generator"] = "exit_oversteer"
-
-    brake_bal = _brake_balance_candidates(evidence, registry, config_recs)
-    for c in brake_bal:
-        c["_generator"] = "brake_balance"
-
-    matrix = _bridge_candidates_for_matrix_rules(evidence, registry, config_recs,
-                                                  intervention_abs_by_corner,
-                                                  intervention_abs_masking_by_corner)
-    for c in matrix:
-        c["_generator"] = "matrix_bridge_held_secondary" if c.get("effect_class") == "secondary" else "matrix_bridge"
-
-    running = exit_ov + brake_bal + matrix
-    lever = _bridge_candidates_for_levers(evidence, registry, df_config, running)
-    for c in lever:
-        c["_generator"] = "lever_bridges"
-
-    candidates = running + lever
-    candidates = _attach_feedback_evidence(candidates, evidence)
-    return candidates
-
-
 def _percentile(values, p):
     if not values:
         return None
@@ -109,7 +83,6 @@ def census(raw_file, label):
     summaries = pipe["summaries"]
     df_config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    config_recs = load_recommendations_config()
     ls_stats = aggregate_ls_by_corner(summaries)
 
     evidence = build_evidence(
@@ -118,8 +91,12 @@ def census(raw_file, label):
         # feedback_data intentionally omitted (defaults None) -- "no feedback"
     )
 
-    candidates = _build_labelled_candidates(evidence, registry, df_config, config_recs)
-    # current_setup=None -- "no setup_data", same as run_parity's own call
+    # setup_data=None -- "no setup_data", same as run_parity's own call
+    # (window-edge status inert); assessed_corner_ids real, for breadth.
+    assessed_corner_ids = set(_group_by_corner(summaries).keys())
+    candidates = generate_candidates(evidence, registry, df_config, assessed_corner_ids=assessed_corner_ids)
+    for c in candidates:
+        c["_generator"] = _generator_label(c)
     shortlist = generate_shortlist(candidates, evidence, None, df_config)
     resolve_conflicts(shortlist)
 

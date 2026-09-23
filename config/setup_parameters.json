@@ -145,7 +145,10 @@
       "P0": "softest coupling",
       "increasing": "more direct/snappy turn-in"
     },
-    "typical_window": null,
+    "typical_window": {
+      "options": ["P0", "P1", "P2"],
+      "notes": "DECISION LAYER SPEC 2026-09-22: full legal enum is the window -- no numeric quantity underlies this parameter anywhere in this codebase (decision_frame.json parameter_windows.arb_front_mount), so no narrower nominal+span is fillable; documented here as the option set only."
+    },
     "change_effort": "minutes",
     "mechanism": "Upright mount couples steering input to ARB preload -- higher position gives a more direct/snappy turn-in response.",
     "phase_affinity": [
@@ -898,7 +901,7 @@
     "key": "diff_position",
     "label": "Differential Position",
     "category": "mechanical",
-    "escalation_tier": "garage",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.differential_position"
     ],
@@ -913,14 +916,18 @@
       "5": "most locking torque",
       "increasing": "more locking torque"
     },
-    "typical_window": null,
-    "change_effort": "seconds",
+    "typical_window": {
+      "min": 1,
+      "max": 5,
+      "notes": "DECISION LAYER SPEC 2026-09-22: full 5 sheet positions are the window, no narrower team-typical sub-range recorded"
+    },
+    "change_effort": "minutes",
     "mechanism": "Sets clutch-pack preload/locking torque on the installed diff package -- more locking torque resists axle-speed difference under power, affecting exit rotation vs. traction.",
     "phase_affinity": [
       "exit_4",
       "exit_5"
     ],
-    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3.",
+    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3. DECISION LAYER SPEC 2026-09-22: escalation_tier corrected pitlane (was garage, wrong), change_effort corrected minutes (was seconds, wrong); triggers now include straight-line stability under braking AND acceleration, not only exit cells -- coupled to engine braking (teams run high diff, per-corner EB weakens it in-corner; diff recommendations degrade honestly, 'EB program unknown', until TC/EB channel mapping lands).",
     "recommendation_target": true
   },
   "wing_position": {
@@ -948,7 +955,10 @@
     "direction_semantics": {
       "increasing": "higher angle = more rear downforce"
     },
-    "typical_window": null,
+    "typical_window": {
+      "options": ["P8", "P9", "P10"],
+      "notes": "DECISION LAYER SPEC 2026-09-22: full legal enum is the window -- a numeric anchor exists (angles_deg above) but Outing.setup_data stores the enum label, not the angle (decision_frame.json parameter_windows.wing_position), so a numeric nominal+span would silently compare against the wrong representation; documented here as the option set only."
+    },
     "change_effort": "minutes",
     "mechanism": "Rear wing angle sets rear downforce -- affects high-speed balance (more angle = more rear grip/stability, less top speed).",
     "phase_affinity": [
@@ -1046,10 +1056,10 @@
     "typical_window": {
       "base": -3.5
     },
-    "change_effort": "minutes",
+    "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer). WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer). WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_fr": {
@@ -1074,10 +1084,10 @@
     "typical_window": {
       "base": -3.5
     },
-    "change_effort": "minutes",
+    "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_rl": {
@@ -1102,10 +1112,10 @@
     "typical_window": {
       "base": -3.2
     },
-    "change_effort": "minutes",
+    "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_rr": {
@@ -1130,10 +1140,10 @@
     "typical_window": {
       "base": -3.2
     },
-    "change_effort": "minutes",
+    "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "tc_lat": {
@@ -1156,8 +1166,10 @@
       "increasing_2_to_11": "LESS permitted car rotation under lateral load on power = MORE TC intervention/support"
     },
     "typical_window": {
+      "min": 1,
+      "max": 11,
       "baseline": 5,
-      "notes": "5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation"
+      "notes": "DECISION LAYER SPEC 2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 (off) excluded from the tuning window, it is a distinct state, not the window floor. 5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation."
     },
     "change_effort": "seconds",
     "mechanism": "Sets how much car rotation the TC system permits during the lateral-loaded cornering phase (power applied while cornering); higher position = less permitted rotation = more intervention.",
@@ -1189,8 +1201,10 @@
       "increasing_2_to_11": "LESS permitted wheel spin under longitudinal load = MORE TC intervention/support"
     },
     "typical_window": {
+      "min": 1,
+      "max": 11,
       "baseline": 5,
-      "notes": "5 = 'normal conditions' per source table"
+      "notes": "DECISION LAYER SPEC 2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 excluded from the tuning window (does NOT disable TC for tc_lon, see direction_semantics, but is still not part of the intervention-severity scale). 5 = 'normal conditions' per source table."
     },
     "change_effort": "seconds",
     "mechanism": "Sets how much wheel spin the TC system permits during high-torque longitudinal phases (1st/2nd gear power-down on exit); higher position = less permitted spin = more intervention, useful for managing rear-tyre degradation.",
@@ -1220,7 +1234,13 @@
       "1_to_8": "dry maps -- 1-4 grouped 'High' overall grip level (1=baseline dry-high, 2/4=more stable FA/RA variants, 3=printed 'BL Medium grip map' despite its own row being categorised 'High' -- verified as printed, not a transcription error), 5-8 grouped 'Medium' overall grip level (5=baseline medium, 6=more stable, 7-8=add lateral support)",
       "9_to_11": "wet maps ascending severity -- 9=baseline good-wet-grip, 10=rain tyres/heavy wet (limited deceleration), 11=monsoon emergency (highly limited deceleration)"
     },
-    "typical_window": null,
+    "typical_window": {
+      "type": "categorical brackets, not a numeric min/max distance (see direction_semantics.type)",
+      "dry_high": [1, 4],
+      "dry_medium": [5, 8],
+      "wet": [9, 11],
+      "notes": "DECISION LAYER SPEC 2026-09-22, per ABS_2 V2 table (car_data.json abs, installed_config V2): sweet-spot search stays WITHIN the bracket appropriate to conditions; jumping across brackets (e.g. 4 to 9) is not a valid tuning move."
+    },
     "change_effort": "seconds",
     "mechanism": "Selects the ABS intervention map; team practice is a sweet-spot search within the dry or wet bracket appropriate to conditions, not a linear soft-to-hard sweep.",
     "phase_affinity": [
@@ -1232,34 +1252,63 @@
   "brake_bias": {
     "key": "brake_bias",
     "label": "Brake Bias",
-    "category": "context",
+    "category": "electronic",
+    "escalation_tier": "cockpit",
     "maps_to": null,
     "value_source": "logged_data",
-    "value_space": null,
+    "value_space": {
+      "type": "int",
+      "min": 1,
+      "max": 3,
+      "unit": "clicks",
+      "note": "direction convention (fwd vs rear) and the channel's own identity are elicitation item 4 -- not invented here"
+    },
     "direction_semantics": null,
     "typical_window": null,
-    "change_effort": null,
-    "mechanism": "Driver-exclusive in-corner adjustment; not a setup-sheet target.",
-    "phase_affinity": null,
-    "notes": "Value read from logged data, not set on the setup sheet -- brake bias channel name TBD, identify in next data file's channel scan.",
-    "recommendation_target": false
+    "change_effort": "seconds",
+    "mechanism": "Driver-exclusive in-corner adjustment; braking-phase target only. Not evaluable for current-state window until the bias channel is identified [E].",
+    "phase_affinity": [
+      "entry_1_brake"
+    ],
+    "notes": "DECISION LAYER SPEC 2026-09-22: brake_bias promoted to a recommendation target (was deliberately omitted -- an oversight, per the spec). Step 1 click default, max 3, severity-scaled; lockup chain behind it (Segers C5-1/2, docs/segers_bridge_review.md). Value read from logged data, not set on the setup sheet -- brake bias channel name TBD (elicitation item 4), so direction_semantics stays null and typical_window stays not-assessable rather than invented.",
+    "recommendation_target": true
   },
   "splitter_offset": {
     "key": "splitter_offset",
     "label": "Splitter Offset",
-    "category": "context",
+    "category": "mechanical",
+    "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.splitter_offset"
     ],
     "value_source": "setup_sheet",
-    "value_space": null,
-    "direction_semantics": null,
-    "typical_window": null,
-    "change_effort": "garage_hours",
-    "mechanism": "Front aero balance trim; context only in this WP.",
-    "phase_affinity": null,
-    "notes": "No car_data digitisation -- context entry per task scope.",
-    "recommendation_target": false
+    "value_space": {
+      "type": "int",
+      "min": -4,
+      "max": 4,
+      "step": 1,
+      "unit": "mm",
+      "default": 0
+    },
+    "direction_semantics": {
+      "0": "default",
+      "negative": "more front downforce",
+      "positive": "less front downforce",
+      "hard_limit": "the NEGATIVE extreme (more front downforce) is bounded by front-splitter/track contact, track-dependent -- HARD edge. The positive extreme is a range limit only, no physical contact -- SOFT edge. Author-elicited 2026-09-22 (Phase C), resolving Phase A's own unresolved placeholder ('sign convention unresolved, not invented, flagged for elicitation') -- see thesis_notes.md for the full provenance record."
+    },
+    "typical_window": {
+      "min": -4,
+      "max": 4,
+      "step": 1,
+      "notes": "DECISION LAYER SPEC 2026-09-22: full legal range is the window; hard forward limit (negative extreme only) is track-dependent, not a fixed sub-range"
+    },
+    "change_effort": "minutes",
+    "mechanism": "Front aero balance trim -- high-speed balance lever, paired to wing_position (same aero axis) and ride_height_front (shared ground clearance).",
+    "phase_affinity": [
+      "high_speed_corners"
+    ],
+    "notes": "DECISION LAYER SPEC 2026-09-22: splitter_offset promoted to a real lever (was context-only). change_effort corrected minutes (was garage_hours, wrong) -- 2 min sloppy / 20 min precise per spec elicitation. No car_data digitisation for the offset-to-effect relationship itself. Direction convention author-elicited 2026-09-22 (Phase C): negative=more front downforce, positive=less; the two directions are NOT symmetric (negative approaches a hard physical edge, positive only a range limit) -- modules/decision_frame.py's own window-edge check (_window_edge_check) is symmetric per lever, not per direction, so it currently labels BOTH extremes 'hard' for this parameter; known simplification, not rebuilt this package (see thesis_notes.md).",
+    "recommendation_target": true
   },
   "kinematic_variants": {
     "key": "kinematic_variants",
