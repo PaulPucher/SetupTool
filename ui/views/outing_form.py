@@ -316,6 +316,22 @@ class OutingForm(QWidget):
         self.parsed_data = None
         self.loaded_csv_path = None
         self.stability_result = None
+        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
+        # attempt (True/False + reason); Phase 2's status line reads these
+        # to say WHY it is or isn't offering the fast path. None before any
+        # cache attempt this instance has made (e.g. a fresh/never-analysed
+        # outing, or a brand-new CSV load).
+        self._sidecar_hit = None
+        self._sidecar_miss_reason = None
+        # WP-CACHE Phase 2a: the exact kwargs the last successful
+        # _render_stability_summaries call used, captured at every one of
+        # its 3 call sites (fresh run, DB-cache hit, fast-path re-render) --
+        # lets the fast path replay an identical render without needing to
+        # know which of the two differently-shaped stability_result origins
+        # (a fresh run's nested resolved_accuracy vs a sidecar-merged flat
+        # resolved_vehicle_snapshot) produced it. None until the first
+        # render this instance has done.
+        self._last_render_kwargs = None
         self.corner_positions_cache = None
         self.corner_map_trace_xy = None
         # PART C: lazily-created, reused per-corner trace window (see
@@ -854,6 +870,22 @@ class OutingForm(QWidget):
         self.stability_status_label = QLabel("")
         self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
+        # WP-CACHE Phase 2a: explicit recompute control, shown only when an
+        # Analyse click rendered from a matching cache (fast path, zero
+        # pipeline run) -- the one way to force a real recompute even
+        # though nothing in the tracked identity changed. Same link-button
+        # styling as the decision-frame "> reasoning" toggle (transparent
+        # background, no border, muted colour, ui/views/outing_form.py's
+        # own existing btn_expand construction).
+        self.btn_recompute_stale_cache = QPushButton("recompute")
+        self.btn_recompute_stale_cache.setStyleSheet(
+            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 11px; "
+            "text-decoration: underline; border: none; padding: 0 0 0 6px;"
+        )
+        self.btn_recompute_stale_cache.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_recompute_stale_cache.clicked.connect(self._on_recompute_clicked)
+        self.btn_recompute_stale_cache.setVisible(False)
+
         # Fresh-session work package, Phase 3b: which estimator actually
         # produced beta (auto modes can fall back!), fit status, gate
         # verdict, fallback reason -- see _format_estimator_status.
@@ -876,6 +908,7 @@ class OutingForm(QWidget):
         status_layout = QHBoxLayout(status_row)
         status_layout.setContentsMargins(0, 0, 0, 0)
         status_layout.addWidget(self.stability_status_label)
+        status_layout.addWidget(self.btn_recompute_stale_cache)
         status_layout.addStretch()
         layout.addWidget(status_row)
 
@@ -1179,6 +1212,15 @@ class OutingForm(QWidget):
         # leakage risk), and reloading THIS SAME file is exactly the case
         # this fix exists to make fast.
         self.stability_result = None
+        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
+        # attempt (True/False + reason); Phase 2's status line reads these
+        # to say WHY it is or isn't offering the fast path. None before any
+        # cache attempt this instance has made (e.g. a fresh/never-analysed
+        # outing, or a brand-new CSV load).
+        self._sidecar_hit = None
+        self._sidecar_miss_reason = None
+        self._last_render_kwargs = None
+        self.btn_recompute_stale_cache.setVisible(False)
         self.corner_positions_cache = None
         self._analysis_data_json = None
         self._displayed_resolved_vehicle_snapshot = None
@@ -1232,6 +1274,15 @@ class OutingForm(QWidget):
         self.parsed_data = None
         self.loaded_csv_path = None
         self.stability_result = None
+        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
+        # attempt (True/False + reason); Phase 2's status line reads these
+        # to say WHY it is or isn't offering the fast path. None before any
+        # cache attempt this instance has made (e.g. a fresh/never-analysed
+        # outing, or a brand-new CSV load).
+        self._sidecar_hit = None
+        self._sidecar_miss_reason = None
+        self._last_render_kwargs = None
+        self.btn_recompute_stale_cache.setVisible(False)
         self.corner_positions_cache = None
         self._analysis_data_json = None
         self._displayed_resolved_vehicle_snapshot = None
@@ -1342,45 +1393,124 @@ class OutingForm(QWidget):
         except (json.JSONDecodeError, TypeError):
             return None
 
-    def _run_stability_analysis(self):
-        if not self.parsed_data:
-            return
-        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
-        # manual timing run, then keep or remove per user decision.
-        import time
-        self._analyse_click_time = time.perf_counter()
-        lap_filter = self._get_lap_filter_from_selector()
-        all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
-        print(f"[ANALYSE] all_laps={all_lap_nums}  lap_filter={lap_filter}")
-        self.btn_analyse.setEnabled(False)
-        self.stability_status_label.setText(
-            f"Analysing laps {lap_filter}..."
-        )
-        self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
-
-        # WP-C: resolve accuracy once per Analyse click -- backs both the
-        # pipeline-cache identity check below and the thread's own
-        # computation, so the cache decision and the computation can never
-        # disagree about which values were used.
+    def _current_analysis_identity(self):
+        # WP-CACHE Phase 2: the 5 fields that decide whether ANYTHING needs
+        # recomputing for the Analyse-button contract -- narrower than the
+        # 7-field DB/sidecar identity (no schema_version: that only governs
+        # deserialising a STORED payload, irrelevant when comparing two
+        # live in-memory states) and narrower than WP6's own 4-field check
+        # (adds lap_filter: a lap-filter-only change still needs Module 6
+        # re-run, so it counts as "something changed" for this contract).
         from modules.stability_analysis import load_parameters, _resolve_grid_rate
         from modules.accuracy_resolution import resolve_accuracy
         cap = self._get_accuracy_cap_from_selector()
         setup_data = self._get_setup_data_dict()
         params = load_parameters()
         resolved_accuracy = resolve_accuracy(params, setup_data, cap)
-        # WP-N2 Step 1b: the config switch (not per-click UI state, but still
-        # part of the run's identity -- a config flip + app restart between
-        # sessions must not let a stale in-memory entry serve a different
-        # estimator's numbers).
         sideslip_source = params["stability_estimation"].get("sideslip_source", "kinematic")
-        # 100 Hz time-base work package: the grid rate is a property of
-        # THIS FILE's own channels (target_sample_rate_hz/min_sample_
-        # rate_hz config aside), not a per-click UI choice -- but a config
-        # edit to either of those between an earlier cached run and this
-        # one must still invalidate the cache, same reasoning as
-        # sideslip_source above. Cheap to recompute (channel header timing
-        # only, no Modules-1-5 work).
         grid_rate_hz, _grid_status = _resolve_grid_rate(self.parsed_data["channels"], params)
+        lap_filter = self._get_lap_filter_from_selector()
+        return cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter
+
+    def _recompute_reason(self, cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter):
+        # WP-CACHE Phase 2b: "no silent recomputes when nothing changed" --
+        # when a recompute IS about to happen, name which tracked field(s)
+        # differ from whatever was last known, so the status line never
+        # just says "Analysing..." when something stale actually triggered
+        # it. Compares against this instance's own last render first (the
+        # most relevant "what the user is currently looking at" reference);
+        # falls back to the WP6 cross-instance cache's own 4 fields (no
+        # lap_filter there) if this instance never rendered anything yet.
+        # Returns None when there is nothing to compare against (a truly
+        # first-ever Analyse this session) OR nothing detectably differs.
+        prev = self._last_render_kwargs
+        if prev is not None:
+            checks = [
+                ("accuracy cap", prev.get("cap") != cap),
+                ("vehicle setup", (prev.get("resolved_accuracy") or {}).get("values")
+                 != resolved_accuracy["values"]),
+                ("sideslip estimator", prev.get("sideslip_source") != sideslip_source),
+                ("grid rate", prev.get("grid_rate_hz") != grid_rate_hz),
+                ("lap filter", sorted(prev.get("lap_filter") or []) != sorted(lap_filter or [])),
+            ]
+        else:
+            cached_entry = _pipeline_cache_get(self.loaded_csv_path)
+            if cached_entry is None:
+                return None
+            checks = [
+                ("accuracy cap", cached_entry.get("accuracy_cap") != cap),
+                ("vehicle setup", cached_entry.get("resolved_vehicle_snapshot")
+                 != resolved_accuracy["values"]),
+                ("sideslip estimator", cached_entry.get("sideslip_source") != sideslip_source),
+                ("grid rate", cached_entry.get("grid_rate_hz") != grid_rate_hz),
+            ]
+        changed = [label for label, is_changed in checks if is_changed]
+        return " and ".join(changed) + " changed" if changed else None
+
+    def _run_stability_analysis(self):
+        if not self.parsed_data:
+            return
+        cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter = (
+            self._current_analysis_identity()
+        )
+
+        # WP-CACHE Phase 2a: fast path -- a full pipeline result (state/cs/
+        # stab/... present, not just summaries) already rendered by THIS
+        # instance, under EXACTLY this identity including lap_filter. When
+        # true there is nothing to compute at all, not even Module 6 --
+        # render is skipped too, since the display already shows it.
+        prev = self._last_render_kwargs
+        full_result_available = (
+            prev is not None and isinstance(self.stability_result, dict)
+            and "state" in self.stability_result
+        )
+        if full_result_available:
+            identity_matches = (
+                prev.get("cap") == cap
+                and (prev.get("resolved_accuracy") or {}).get("values") == resolved_accuracy["values"]
+                and prev.get("sideslip_source") == sideslip_source
+                and prev.get("grid_rate_hz") == grid_rate_hz
+                and sorted(prev.get("lap_filter") or []) == sorted(lap_filter or [])
+            )
+        else:
+            identity_matches = False
+        if identity_matches:
+            print("[ANALYSE] fast path: results already current, zero recompute")
+            self.stability_status_label.setText("results current (cached) - recompute")
+            self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
+            self.btn_recompute_stale_cache.setVisible(True)
+            return
+        self._force_recompute(cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter)
+
+    def _on_recompute_clicked(self):
+        # WP-CACHE Phase 2a: the explicit control that forces a real run
+        # even when the fast path judged the cache current -- bypasses
+        # _run_stability_analysis' own identity check entirely, unlike a
+        # normal Analyse click.
+        if not self.parsed_data:
+            return
+        cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter = (
+            self._current_analysis_identity()
+        )
+        self._force_recompute(cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter,
+                               forced=True)
+
+    def _force_recompute(self, cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter,
+                          forced=False):
+        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
+        # manual timing run, then keep or remove per user decision.
+        import time
+        self._analyse_click_time = time.perf_counter()
+        all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
+        print(f"[ANALYSE] all_laps={all_lap_nums}  lap_filter={lap_filter}")
+        self.btn_analyse.setEnabled(False)
+        self.btn_recompute_stale_cache.setVisible(False)
+        reason = "forced recompute" if forced else self._recompute_reason(
+            cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter
+        )
+        status_text = f"recomputing: {reason} - " if reason else ""
+        self.stability_status_label.setText(f"{status_text}Analysing laps {lap_filter}...")
+        self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
 
         # WP6: reuse the last full Modules-1-5 run if it's for this same
         # file AND the same cap/resolved-vehicle-snapshot -- a cap change or
@@ -1420,7 +1550,10 @@ class OutingForm(QWidget):
         # module-level singleton (_pipeline_cache_put), not this instance --
         # outliving this OutingForm so a later reopen of this same file, in
         # this same session, from any OutingForm instance, still hits.
-        _pipeline_cache_put(self.loaded_csv_path, {
+        # WP-CACHE Phase 1: built once, reused for both the WP6 in-memory
+        # cache and the sidecar payload below -- same shape, same content,
+        # one place to keep them from drifting apart.
+        pipeline_cache_entry = {
             "csv_path": _norm_path(self.loaded_csv_path),
             "corners": result["corners"],
             "state": result["state"],
@@ -1458,7 +1591,8 @@ class OutingForm(QWidget):
             "gate_verdict": result["gate_verdict"],
             "fallback_used": result["fallback_used"],
             "fallback_reason": result["fallback_reason"],
-        })
+        }
+        _pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)
         # WP5: build (not yet write) the cache payload for this analysis;
         # _save_outing uses whatever this holds, so a save after a cache-hit
         # render (no fresh Analyse this session) still persists correctly.
@@ -1472,17 +1606,41 @@ class OutingForm(QWidget):
         )
         if self.outing:
             self._persist_analysis_cache()
+            # WP-CACHE Phase 1c: sidecar write, alongside the DB write above,
+            # never gating it -- write_sidecar never raises (logs and
+            # swallows any failure internally), so a sidecar problem can
+            # never fail the analysis that just completed.
+            from modules.pipeline_sidecar import build_identity, write_sidecar
+            from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
+            sidecar_identity = build_identity(
+                schema_version=ANALYSIS_SCHEMA_VERSION,
+                csv_path=_norm_path(self.loaded_csv_path),
+                accuracy_cap=result["cap"],
+                resolved_vehicle_snapshot=result["resolved_accuracy"]["values"],
+                sideslip_source=result["sideslip_source"],
+                grid_rate_hz=result["state"]["sample_rate_hz"],
+                lap_filter=lap_filter,
+            )
+            write_sidecar(self.outing.id, sidecar_identity, pipeline_cache_entry)
         # TEMPORARY perf instrumentation (WP6 timing verification).
         import time
         t_render0 = time.perf_counter()
-        self._render_stability_summaries(
-            result["summaries"], cached=False,
+        # WP-CACHE Phase 2a: captured here (not just passed positionally)
+        # so the Analyse-button fast path can replay an identical render
+        # later without caring that a fresh result's own shape (nested
+        # "resolved_accuracy") differs from a sidecar-merged one's (flat
+        # "resolved_vehicle_snapshot") -- see the _last_render_kwargs
+        # attribute's own comment.
+        render_kwargs = dict(
+            lap_filter=lap_filter,
             cap=result["cap"], resolved_accuracy=result["resolved_accuracy"],
             sideslip_source=result["sideslip_source"], fit_manifest=result["fit_manifest"],
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
             grid_rate_hz=result["state"]["sample_rate_hz"],
         )
+        self._last_render_kwargs = dict(render_kwargs, summaries=result["summaries"])
+        self._render_stability_summaries(result["summaries"], cached=False, **render_kwargs)
         t_render1 = time.perf_counter()
         print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
         if hasattr(self, "_analyse_click_time"):
@@ -1636,6 +1794,30 @@ class OutingForm(QWidget):
         if sorted(lap_filter or []) != sorted(self._get_lap_filter_from_selector() or []):
             return False
         self.stability_result = {"summaries": summaries}
+        # WP-CACHE Phase 1d: attempt the sidecar next, using the SAME
+        # identity already established above (every field just matched the
+        # DB cache). On a hit, merge the full Modules-1-5 outputs into
+        # stability_result and warm the WP6 in-memory cache too, so trace
+        # dialogs/plots work exactly as if the pipeline had just run,
+        # without paying for a rerun. A miss/mismatch changes nothing --
+        # stability_result stays exactly the summaries-only hull the DB
+        # cache already produced (today's behaviour, honest cascade).
+        from modules.pipeline_sidecar import build_identity, load_sidecar
+        sidecar_identity = build_identity(
+            schema_version=ANALYSIS_SCHEMA_VERSION,
+            csv_path=_norm_path(self.loaded_csv_path),
+            accuracy_cap=cap,
+            resolved_vehicle_snapshot=current_resolved["values"],
+            sideslip_source=current_sideslip_source,
+            grid_rate_hz=current_grid_rate,
+            lap_filter=lap_filter,
+        )
+        sidecar_payload, sidecar_miss_reason = load_sidecar(self.outing.id, sidecar_identity)
+        self._sidecar_hit = sidecar_payload is not None
+        self._sidecar_miss_reason = sidecar_miss_reason
+        if sidecar_payload is not None:
+            self.stability_result = {"summaries": summaries, **sidecar_payload}
+            _pipeline_cache_put(self.loaded_csv_path, sidecar_payload)
         self._analysis_data_json = self.outing.analysis_data
         cached_resolved_accuracy = {
             "levels": cached.get("resolved_levels"),
@@ -1643,9 +1825,15 @@ class OutingForm(QWidget):
             "clipped": cached.get("resolved_clipped"),
             "warnings": cached.get("resolved_warnings") or [],
         }
-        self._render_stability_summaries(
-            summaries, cached=True, lap_filter=lap_filter,
-            cap=cap, resolved_accuracy=cached_resolved_accuracy,
+        # WP-CACHE Phase 2a: same capture as the fresh-run path -- see
+        # _last_render_kwargs' own comment. Only meaningful as a Tier-A
+        # fast-render source once a sidecar hit has ALSO populated the full
+        # pipeline fields (checked via "state" in self.stability_result at
+        # the Analyse-click site) -- a DB-only hit (summaries alone) still
+        # gets its kwargs captured here for consistency, but the fast path
+        # will decline it as a source.
+        render_kwargs = dict(
+            lap_filter=lap_filter, cap=cap, resolved_accuracy=cached_resolved_accuracy,
             sideslip_source=current_sideslip_source,
             fit_manifest=cached.get("fit_manifest"),
             gate_verdict=cached.get("gate_verdict"),
@@ -1653,8 +1841,12 @@ class OutingForm(QWidget):
             grid_rate_hz=cached.get("grid_rate_hz"),
             fallback_reason=cached.get("fallback_reason"),
         )
+        self._last_render_kwargs = dict(render_kwargs, summaries=summaries)
+        self._render_stability_summaries(summaries, cached=True, **render_kwargs)
         t1 = time.perf_counter()
-        print(f"[PERF] db_cache_hit=True  render+sync total: {t1 - t0:.3f}s")
+        print(f"[PERF] db_cache_hit=True sidecar_hit={self._sidecar_hit} "
+              f"({self._sidecar_miss_reason if not self._sidecar_hit else 'n/a'}) "
+              f"render+sync total: {t1 - t0:.3f}s")
         return True
 
     # WP-C: short display labels for the resolved-level footer -- not every

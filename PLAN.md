@@ -2,28 +2,38 @@
 
 ### NOW
 
-(1) Decision-layer spec (WP-DL): Phases A-F COMPLETE, 2026-09-23 --
-    registry/config schema, per-candidate statuses, three trigger
-    provenances, window edges, corroboration/contradiction, six-term
-    cost function + Settings weight editing, UI rendering (D6 magnitude
-    rule, display grouping, band confidence), eligibility-gate corner+
-    sign amendment, two generated figures (diagnostics/plots_decision_
-    layer/, gitignored). Census baseline Dubai 6 / v3 21 re-confirmed
-    stable at close-out (F3). Full suite: 417 passed / 9 skipped / 1
-    xfailed / 0 failed (F4). thesis_notes.md completeness-checked against
-    the whole package (F2) -- one gap found and closed (Phase E entry had
-    been missed, backfilled same turn). STOP BEFORE COMMIT -- ready for
-    the package's own commit boundary, awaiting the user's go-ahead.
-(2) Pipeline performance: PROFILING DONE (2026-09-23, diagnostics/
+(1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
+    A-F complete per its own close-out record (thesis_notes.md). No
+    longer an open item.
+(2) Sidecar cache + Analyse-button contract (WP-CACHE, branch cache-
+    sidecar off main): Phases 1-2 COMPLETE, 2026-09-23/24 -- gzip-pickle
+    sidecar per outing (modules/pipeline_sidecar.py, atomic write,
+    8-field identity incl. its own format version), write/load hooks in
+    ui/views/outing_form.py, Analyse-button fast path (zero recompute
+    when nothing changed, explicit recompute control, honest "why
+    recomputing" status line). Phase 1e real-data gate: Dubai 21.04MB/
+    0.205s load, v3 17.67MB/0.159s load -- both far under the 500MB/10s
+    gate, no trimming needed. Acceptance condition proven end to end on
+    real data (diagnostics/smoke_test_cache_sidecar_analyse_contract.py):
+    restart -> open v3 outing -> graphs/trace dialogs usable in
+    0.270s -> ZERO pipeline run. Targeted tests: 15 new (tests/test_
+    pipeline_sidecar.py) + 2 existing tests repaired after a harmless
+    refactor broke their own source-slicing markers (tests/test_config_
+    schema_integrity.py). Full suite: 432 passed / 9 skipped / 1 xfailed
+    / 0 failed (+15 vs the WP-DL baseline, exactly the new sidecar tests,
+    no golden moved). STOP BEFORE COMMIT -- ready for the package's own
+    commit boundary on cache-sidecar, awaiting the user's go-ahead
+    (branch not yet merged to main).
+(3) Pipeline performance: PROFILING DONE (2026-09-23, diagnostics/
     inspect_pipeline_wall_times.py, thesis_notes.md "Pipeline wall-clock
     timing") -- estimate_longitudinal_stiffness, the fit chain's own EKF
     run, and estimate_cornering_stiffness are 97-98% of wall time on both
     real sessions. DECIDE step (what, if anything, to do about it) not
     yet done -- next session's own first question.
-(3) Big cleanup: diagnostics inventory, HANDOVER regeneration,
+(4) Big cleanup: diagnostics inventory, HANDOVER regeneration,
     protected-set audit, module map document for the author.
-(4) Commit and push at end of every working day.
-(5) Thesis writing starts after (1)-(3); later building remains
+(5) Commit and push at end of every working day.
+(6) Thesis writing starts after (1)-(4); later building remains
     possible but chapter-driven.
 
 STANDING WARNINGS -- carry these into every future session

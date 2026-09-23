@@ -229,11 +229,22 @@ def test_pipeline_cache_identity_fields():
     with open("ui/views/outing_form.py", "r", encoding="utf-8") as f:
         src = f.read()
 
-    put_start = src.index("_pipeline_cache_put(self.loaded_csv_path, {")
-    put_end = src.index("})", put_start)
+    # WP-CACHE Phase 1: the payload dict is now built once as a named
+    # variable (pipeline_cache_entry, reused verbatim as the sidecar
+    # payload too) rather than as an inline literal argument -- same
+    # content, different marker text to locate it by.
+    put_start = src.index("pipeline_cache_entry = {")
+    put_end = src.index("_pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)", put_start)
     put_body = src[put_start:put_end]
 
-    hit_start = src.index("cached_entry = _pipeline_cache_get(self.loaded_csv_path)")
+    # WP-CACHE Phase 2: the real WP6 hit-check now lives in _force_recompute
+    # (the Analyse-button contract's own "actually run the pipeline" step);
+    # _run_stability_analysis's new fast-path helper (_recompute_reason)
+    # ALSO references _pipeline_cache_get with the same variable name, as a
+    # fallback comparison source, not the hit-check itself -- anchor past
+    # _force_recompute's own def so this test keeps finding the real one.
+    force_recompute_start = src.index("def _force_recompute")
+    hit_start = src.index("cached_entry = _pipeline_cache_get(self.loaded_csv_path)", force_recompute_start)
     hit_end = src.index("pipeline_cache = cached_entry", hit_start)
     hit_body = src[hit_start:hit_end]
 

@@ -696,3 +696,28 @@ kept because a surviving script imports it, not for its own findings.
   eligibility_classes/cost_function/lever_bridges/interaction_table,
   config/setup_parameters.json's registry, or config/recommendations.json's
   rules change, so the figures stay in sync.
+- **inspect_pipeline_sidecar_size.py** `[keep-reproduces]` — WP-CACHE
+  Phase 1e (2026-09-23/24, thesis_notes.md "WP-CACHE Phase 1: sidecar
+  implementation + Phase 1e real-data measurement"). Real sidecar size
+  and load-wall-time measurement on both real sessions (production
+  defaults, same FIXED_CAP convention as inspect_frame_stage2_parity.py),
+  writing into a throwaway temp dir, never data/analysis_cache/. Found
+  Dubai 21.04MB/0.205s load, v3 17.67MB/0.159s load -- both far under the
+  500MB/10s acceptance gate. Re-run whenever modules/pipeline_sidecar.py's
+  payload shape, the gzip compresslevel, or the underlying pipeline
+  outputs (state/cs/stab/fz/ls/slip/forces) change materially, to
+  re-confirm the gate still holds.
+- **smoke_test_cache_sidecar_analyse_contract.py** `[keep-reproduces]` —
+  headless Qt smoke test proving WP-CACHE's own acceptance condition end
+  to end on real data (2026-09-23/24): restart the app (WP6 in-memory
+  cache cleared), open the v3 outing, graphs/trace dialogs fully usable
+  in seconds with zero pipeline run (Phase 1d), the Analyse-button fast
+  path renders instantly when nothing changed (Phase 2a), an identity
+  mismatch names which field changed and forces a real run (Phase 2b),
+  and the explicit recompute control forces a run unconditionally (Phase
+  2a). Uses a throwaway RaceWeekend+Outing row and sidecar file, both
+  deleted in a finally block -- never touches real user data. One real
+  full pipeline run is unavoidable (~15 min, v3) to produce the sidecar
+  this test then exercises; re-run whenever the sidecar payload shape,
+  the DB/sidecar identity fields, or the Analyse-button contract's own
+  control flow changes.

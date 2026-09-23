@@ -19869,3 +19869,240 @@ or needed.
 STOP BEFORE COMMIT, per the work order's own F5 instruction -- final
 report and protected-set reminder delivered in-chat, not duplicated
 here.
+
+## WP-CACHE Phase 1a groundwork: the "empty hull" finding, backfilled
+[2026-09-23/24, record correction -- this finding was never actually
+written here, only claimed in a session-start summary; see the
+discrepancy note below]
+
+DISCREPANCY NOTED FIRST, per the channel-census-rule spirit (CLAUDE.md):
+a WP-CACHE session-start briefing described this finding as an existing,
+dated thesis_notes.md entry ("diagnosis: hit works, stores summaries
+only, graphs need the full pipeline objects -- the empty hull finding").
+Direct search of this file (grep for "empty hull", "summaries only",
+"_pipeline_cache") found NO such entry anywhere -- the two real
+2026-09-23 cache entries that DO exist ("Phase D feedback round, ITEM 3:
+cache-miss diagnosis" and "Cache-miss reproduction attempt, WP5 identity
+check") are both about the WP5 DB-cache HIT/MISS decision being correct
+(they conclude the decision-layer package cannot cause a miss, and trace
+the user's own reported miss to accuracy_cap_combo's own known no-
+persistence gap). Neither entry says anything about WHAT a hit actually
+restores. The claim was true (verified directly from code below) but had
+never been recorded -- backfilled now because WP-CACHE's entire Phase 1
+design rests on it holding.
+
+FINDING, verified directly from code, not re-derived from the summary
+that named it: ui/views/outing_form.py's WP5 DB-cache hit path
+(_try_render_cached_analysis, ~1565-1658) reconstructs exactly ONE field
+on a hit -- `self.stability_result = {"summaries": summaries}` (line
+1638) -- because the DB's own analysis_data JSON payload
+(_build_analysis_data_json, ~1501-1546) only ever stores summaries plus
+identity/status metadata (csv_path, lap_filter, schema_version,
+accuracy_cap, resolved_levels/snapshot/clipped/warnings, sideslip_
+source, fit_manifest, gate_verdict, fallback_used/reason, grid_rate_hz)
+-- never corners/state/cs/stab/fz/ls/slip/forces, the large numpy-array-
+bearing Modules-1-5 outputs. Those seven keys live ONLY in the WP6
+in-memory _pipeline_cache_store (module-level OrderedDict, outing_
+form.py:71, capped at 2 entries), which is Python process state and
+therefore dies with the app.
+
+CONSUMER SIDE, confirmed by direct read of both call sites: _open_
+corner_trace/_open_lap_trace (outing_form.py ~2651-2688) pass the WHOLE
+self.stability_result dict straight into CornerTraceDialog.show_corner /
+LapTraceDialog.show_lap (ui/views/corner_trace_dialog.py); both methods
+read state/cs/stab/corners/slip/forces/ls off it via .get() (grep-
+confirmed at corner_trace_dialog.py lines 1491-1509, 1883-1885, 1994-
+1998). On a DB-cache-hit render, every one of those .get() calls returns
+None -- the dialogs open (no crash, .get() degrades gracefully) but plot
+nothing: an "empty hull" around the summary data that IS present. The
+Analyse button, separately, always takes the full-recompute branch
+regardless of any cache state (_run_stability_analysis has no early-
+return path that skips StabilityAnalysisThread) -- so the ONLY way to
+repopulate state/cs/stab/... for a reopened outing today is a full
+Modules 1-5 + fit-chain rerun (profiled 2026-09-23 at 700-950s/session,
+"Pipeline wall-clock timing" entry above).
+
+LIVE MEASUREMENT (same session as the reproduction entry above, not
+re-run separately for this backfill): the "Cache-miss reproduction
+attempt" entry's own console output already recorded the DB-cache-hit
+timing directly -- "[PERF] db_cache_hit=True render+sync total: 0.046s"
+-- fast because it renders only the summary hull; a full [ANALYSE] click
+on the same outing pays the full 700-950s pipeline cost with no cache
+path available to shortcut it. Both numbers were already on record in
+that entry; this entry connects them to the specific field-level cause
+(summaries-only storage) rather than leaving them as two isolated
+observations.
+
+This is Phase 1's own design premise, now on record: a sidecar carrying
+WP6's exact payload (corners, state, cs, stab, fz, ls, slip, forces) is
+sufficient to close this gap, because that is exactly and only what the
+dialogs read beyond summaries.
+
+## WP-CACHE Phase 1: sidecar implementation + Phase 1e real-data
+measurement [2026-09-23/24]
+
+IMPLEMENTATION (1a-1d, reviewer-approved proposal, three amendments
+applied): modules/pipeline_sidecar.py -- gzip-compressed pickle, one file
+per outing (data/analysis_cache/outing_<id>.pkl.gz, already covered by
+the existing blanket data/ gitignore entry, no new one needed), two
+objects written sequentially into the same stream (a small identity
+header -- the same 7 WP5 fields plus SIDECAR_FORMAT_VERSION=1 -- read and
+compared BEFORE the large payload is ever unpickled). Atomic write
+(amendment 1): tmp file + os.replace(), so a sidecar exists whole or not
+at all. Pickle safety note (amendment 3) is the module's own docstring:
+pickle.load is used only on files this module wrote itself, under
+data/analysis_cache/, never transferred or received -- loading a foreign
+sidecar is out of contract.
+
+ui/views/outing_form.py integration: write hook in _on_stability_done,
+alongside (never gating) the existing DB persist -- write_sidecar never
+raises, a write failure is logged and swallowed. The exact dict passed to
+_pipeline_cache_put (WP6) is now built once (pipeline_cache_entry) and
+reused as the sidecar payload verbatim, so the two caches cannot drift
+apart in shape. Load hook in _try_render_cached_analysis, immediately
+after the existing DB-hit succeeds, using the SAME identity values
+already computed for that check -- on a sidecar hit, self.stability_
+result (until now always {"summaries": summaries} on a DB-only hit) gets
+merged with the full sidecar payload, and the WP6 in-memory cache is
+warmed too (_pipeline_cache_put), so a later Analyse click on the same
+file this session also benefits. A sidecar miss/mismatch changes nothing
+-- today's summaries-only hull stays exactly what it was, honest cascade.
+
+TESTS (targeted, tests/test_pipeline_sidecar.py, 15/15 green): round-trip
+write/load, each of the 8 identity/version fields mismatching ->
+fallback (parametrized), a missing file, a garbage (non-gzip) file, a
+REAL sidecar truncated mid-payload after decompression (amendment 1's own
+corrupt-file test -- distinct from the garbage-file case, which fails at
+the very first read; this one exercises the payload pickle.load's own
+EOFError path specifically), atomic-write verification (no .tmp left
+after success; a simulated mid-write failure via a monkeypatched pickle.
+dump leaves no partial final file at all), and directory auto-creation.
+
+PHASE 1e, REAL MEASUREMENT (diagnostics/inspect_pipeline_sidecar_size.py
+[keep-reproduces], production defaults -- ekf_auto_pacejka, cap=1, same
+FIXED_CAP convention diagnostics/inspect_frame_stage2_parity.py already
+uses -- both real sessions, writing into a throwaway temp dir, never
+data/analysis_cache/):
+
+Dubai: pipeline 983.4s (56 corner summaries), sidecar WRITE 1.210s, size
+21.04 MB (22,064,798 bytes), LOAD (decompress+unpickle+render-ready)
+0.205s.
+v3: pipeline 625.5s (51 corner summaries), sidecar WRITE 0.957s, size
+17.67 MB (18,532,456 bytes), LOAD 0.159s.
+
+Both sessions land roughly two orders of magnitude under the 500MB size
+gate and roughly 50x under the 10s load-time gate -- VERDICT: within
+gate, proceed. No trimming question reaches the reviewer this package;
+the full Modules-1-5 payload (large numpy arrays included) is cheap
+enough to persist and reload whole. Measured, not estimated, per the
+work order's own instruction -- gzip compresslevel=6 (the untouched
+default named in pipeline_sidecar.py) was never tuned against these
+numbers since there was no pressure to.
+
+## WP-CACHE Phase 2: Analyse-button contract + acceptance-condition
+smoke test, real data [2026-09-23/24]
+
+IMPLEMENTATION (2a/2b): ui/views/outing_form.py's monolithic
+_run_stability_analysis split into 5 pieces, no behaviour change to the
+part that was already correct (WP6's own 4-field pipeline_cache hit-check
+is byte-identical, just relocated): _current_analysis_identity (the 5
+comparison fields -- cap, resolved_accuracy, sideslip_source,
+grid_rate_hz, lap_filter; narrower than the 7-field DB/sidecar identity,
+no schema_version, which only governs deserialising a STORED payload;
+wider than WP6's own 4 fields, adds lap_filter, since a lap-filter-only
+change still needs a Module 6 re-run and must count as "something
+changed" for this contract); _recompute_reason (names which field(s)
+differ, comparing against this instance's own last render first, falling
+back to the WP6 cross-instance cache's 4 fields when this instance never
+rendered anything yet); _run_stability_analysis (now just the fast-path
+gate: a full pipeline result -- state/cs/stab/... present, not just
+summaries -- already rendered by THIS instance under the EXACT current
+identity including lap_filter means zero recompute, not even Module 6,
+render skipped too since the display already shows it); _force_recompute
+(the actual thread-spawning body, unchanged in substance, parametrized
+with a "why" reason and a forced flag); _on_recompute_clicked (the new
+explicit control, bypasses the identity check entirely). New UI element:
+btn_recompute_stale_cache, a link-styled QPushButton next to the status
+label, shown only on the fast-path render, same styling convention as
+the decision-frame "> reasoning" toggle. New self._last_render_kwargs
+(captured at all 3 _render_stability_summaries call sites) solves a real
+shape asymmetry: a fresh run's own stability_result carries nested
+resolved_accuracy while a sidecar-merged one carries a flat
+resolved_vehicle_snapshot -- the fast path replays a stored kwargs dict
+rather than needing to know which shape produced it.
+
+TEST-SUITE COLLATERAL, found and fixed: tests/test_config_schema_
+integrity.py's test_pipeline_cache_identity_fields did a literal source-
+string slice (`_pipeline_cache_put(self.loaded_csv_path, {` ... `})`) to
+locate the WP6 write-side payload -- broke when the payload became a
+named variable (pipeline_cache_entry, reused verbatim as the sidecar
+payload, avoiding a second, potentially-drifting copy). Fixed the test's
+own markers to the new text, not the code -- the invariant it protects
+(write side and read side agree on the same identity fields) is
+unaffected by this refactor. A second, subtler break in the same test:
+its hit-check marker (`cached_entry = _pipeline_cache_get(self.loaded_
+csv_path)`) became ambiguous once _recompute_reason's own fallback branch
+started using the identical line for a DIFFERENT purpose (a comparison
+source, not the real hit-check) -- src.index found the wrong one first;
+the test would have COINCIDENTALLY still passed (both code regions
+reference the same 4 field names) while silently checking the wrong
+span. Fixed by anchoring the search past "def _force_recompute" first.
+Both fixes verified: tests/test_config_schema_integrity.py 12/12 green.
+
+ACCEPTANCE-CONDITION SMOKE TEST (diagnostics/smoke_test_cache_sidecar_
+analyse_contract.py [keep-reproduces], real v3 data, throwaway Outing
+row + sidecar, both cleaned up in a finally block): five iterations
+before it passed clean, every failure in the TEST HARNESS itself, never
+in the code under test -- recorded here because each one is a real,
+useful finding about testing this specific codebase, not just noise. (1)
+_on_stability_done reads self.stab_thread.lap_filter; calling it directly
+(bypassing the real QThread, to avoid needing full event-loop pumping)
+needs that one attribute supplied via a stand-in object. (2) A fresh
+OutingForm's accuracy_cap_combo always defaults to "Best available"
+(cap=None) -- running the initial pipeline under a different cap (the
+FIXED_CAP=1 convention borrowed from inspect_frame_stage2_parity.py, a
+DIFFERENT script with a DIFFERENT purpose) made a clean reopen correctly
+MISS on the accuracy_cap field; switched to cap=None to match what a
+genuine restart actually presents, rather than routing around the
+already-documented no-persistence gap (thesis_notes.md, WP-DL Phase D
+feedback round ITEM 3) inside the test. (3) Running summarise_corners
+with lap_filter=None (the "all laps" convention other diagnostics scripts
+use for a different purpose) diverges from what a real Analyse click
+always computes and stores (valid-laps-only, or all laps if none are
+valid) -- found via a side-by-side diagnostic printout of all 7 identity
+fields (same technique as "Cache-miss reproduction attempt"), not by
+guessing again. (4) QWidget.isVisible() reflects EFFECTIVE on-screen
+visibility, which requires the top-level window to have been shown at
+least once -- setVisible(True) on a child alone is not enough even in
+offscreen mode (verified directly with a 6-line standalone check before
+spending another real-pipeline run on a guess); form2.show() fixed it.
+(5) An overly narrow assertion expected exactly "accuracy cap changed"
+when changing the cap ALSO changes resolve_accuracy's own resolved
+snapshot (the cap clips/selects different levels) -- the correct, honest
+reason names both ("accuracy cap and vehicle setup changed"), exactly
+what 2b's own "no silent recomputes, name why" contract wants; loosened
+to a substring check.
+
+FINAL CLEAN RUN, all six steps: (A) one real full pipeline run, v3,
+909.4s, lap_filter=[6,7,8], sidecar written 17.85MB. (B) WP6 in-memory
+cache cleared (restart-simulate), confirmed actually empty before
+proceeding. (C) fresh OutingForm reopen: DB-hit AND sidecar-hit, full
+pipeline fields present (state/cs/stab/corners/slip/forces/ls, not an
+empty hull), state arrays non-empty, in 0.270s -- ZERO pipeline run, the
+package's own acceptance condition, proven end to end through the real
+code paths, not just the sidecar module in isolation (tests/test_
+pipeline_sidecar.py's own 15 tests already covered that in under a
+second). (D) Analyse click on an unchanged identity: fast path, 0.0029s,
+no StabilityAnalysisThread spawned, status text "results current
+(cached) - recompute", recompute control shown. (E) accuracy_cap changed
+to Level 2: real run triggered, status text "recomputing: accuracy cap
+and vehicle setup changed - Analysing laps [6, 7, 8]...", thread
+terminated early (decision/control proof only, not a second full run's
+numeric output -- covered elsewhere). (F) explicit recompute control
+clicked with nothing else changed: real run triggered anyway, status
+text "recomputing: forced recompute - Analysing laps [6, 7, 8]...".
+
+Cleanup verified after every run (including the 4 failed ones): data/
+analysis_cache/ empty, no leftover DB rows -- git status and a directory
+listing both checked directly, not assumed from the finally block's own
+presence.
