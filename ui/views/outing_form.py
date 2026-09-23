@@ -2258,6 +2258,15 @@ class OutingForm(QWidget):
         self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.decision_frame_summary_label)
 
+        # D3: tyre-pressure deviation flags, beside the shortlist, never in
+        # it -- silent (hidden) while tyre_pressure_target is all-null,
+        # today's actual state (modules.decision_frame.tyre_pressure_flags).
+        self.decision_frame_tyre_flags_label = QLabel("")
+        self.decision_frame_tyre_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+        self.decision_frame_tyre_flags_label.setWordWrap(True)
+        self.decision_frame_tyre_flags_label.setVisible(False)
+        panel_layout.addWidget(self.decision_frame_tyre_flags_label)
+
         self.decision_frame_host = QWidget()
         self.decision_frame_host_layout = QVBoxLayout(self.decision_frame_host)
         self.decision_frame_host_layout.setContentsMargins(0, 0, 0, 0)
@@ -2311,7 +2320,8 @@ class OutingForm(QWidget):
         import json
         from modules.decision_frame import (
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
-            generate_candidates, generate_shortlist, resolve_conflicts,
+            generate_candidates, generate_display_split, resolve_conflicts,
+            tyre_pressure_flags, group_display_rows,
         )
         from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
@@ -2347,32 +2357,51 @@ class OutingForm(QWidget):
         # shortlist's own settings-window scoring component below.
         candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
                                           assessed_corner_ids=assessed_corner_ids)
-        shortlist = generate_shortlist(candidates, evidence, setup_data, config)
+        # Phase D (2026-09-22): generate_display_split replaces generate_
+        # shortlist as this form's own entry point -- Stage 6's "ranking
+        # never hides" rule requires the full lever inventory (shortlist +
+        # collapsed tail), not just the visible-threshold subset.
+        split = generate_display_split(candidates, evidence, setup_data, config, registry)
+        shortlist, tail = split["shortlist"], split["tail"]
         resolve_conflicts(shortlist)
+        # Phase D feedback round, ITEM 1 (2026-09-23): identical (parameter-
+        # set, direction, rendered magnitude) rows collapse into one display
+        # row -- AFTER resolve_conflicts (grouping is purely a display-layer
+        # step over the already-scored/resolved list, never re-scores).
+        shortlist = group_display_rows(shortlist, registry)
+        tail = group_display_rows(tail, registry)
 
         self._clear_decision_frame_rows()
 
-        if not shortlist:
-            self.decision_frame_summary_label.setText(
-                f"{len(evidence)} evidence item(s), no candidates."
-            )
-            return
+        flags = tyre_pressure_flags(config, evidence)
+        self.decision_frame_tyre_flags_label.setText(" | ".join(flags))
+        self.decision_frame_tyre_flags_label.setVisible(bool(flags))
 
         self.decision_frame_summary_label.setText(
-            f"{len(evidence)} evidence item(s), {len(shortlist)} candidate(s)."
+            f"{len(evidence)} evidence item(s), {len(shortlist)} proposed, "
+            f"{len(tail)} in the assessed-not-proposed tail."
         )
 
         insert_pos = self.decision_frame_host_layout.count() - 1
         for c in shortlist:
-            row = self._build_decision_frame_row(c)
+            row = self._build_decision_frame_row(c, registry)
             self.decision_frame_host_layout.insertWidget(insert_pos, row)
             insert_pos += 1
+        if tail:
+            tail_section = self._build_decision_frame_tail_section(tail, registry)
+            self.decision_frame_host_layout.insertWidget(insert_pos, tail_section)
 
-    def _build_decision_frame_row(self, c):
-        # PANEL/BORDER card, ACCENT action badge, muted chips, expandable
-        # detail via a checkable "> ..." button -- same visual language the
-        # now-removed Recommendations section used (see
-        # _build_decision_frame_toggle's comment).
+    def _build_decision_frame_row(self, c, registry):
+        # Phase D (2026-09-22), DECISION LAYER SPEC Stage 6 output rule:
+        # top line = THE CHANGE ONLY -- no corners, no urgency prose, no
+        # provenance on the line. Severity via the existing strong/
+        # moderate/normal colour map (same mapping this form's own
+        # stability cards already use, ui.style constants only); NEUTRAL
+        # (existing "no data" colour) when nothing backs a severity.
+        # Everything else that used to sit in the always-visible header
+        # (score, grade, cell_id, conflict labels, evidence/effort/effect)
+        # moves into the "> reasoning" dropdown, same pattern as before.
+        from modules.decision_frame import render_top_line, candidate_severity
         card = QWidget()
         card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         card_layout = QVBoxLayout(card)
@@ -2384,70 +2413,17 @@ class OutingForm(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(10)
 
-        if c["actions"]:
-            badge_text = " + ".join(
-                f"{a['parameter']} -> {a['target']}" if "target" in a
-                else f"{a['parameter']} {a['direction']}"
-                for a in c["actions"]
-            )
-        else:
-            badge_text = f"C{c['corner']}: engineer attention (no routed action)"
-        badge = QLabel(badge_text)
+        severity_colour = {"strong": BAD, "moderate": WARN, "normal": OK}.get(
+            candidate_severity(c), NEUTRAL
+        )
+        badge = QLabel(render_top_line(c, registry))
         badge.setStyleSheet(
-            f"background-color: {ACCENT}; color: #111; font-size: 11px; "
+            f"background-color: {severity_colour}; color: #111; font-size: 11px; "
             "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
         )
         header_layout.addWidget(badge)
-
-        score_label = QLabel(f"score {c['score']:.2f}")
-        score_label.setStyleSheet(f"color: {TEXT}; font-size: 11px;")
-        header_layout.addWidget(score_label)
-
-        # 'proposed'-grade candidates are advisory-capped, same policy as
-        # modules.recommendation._match_is_recommended's provenance cap --
-        # visually distinct from a matrix-backed candidate, same ADVISORY
-        # wording the Recommendations section already uses for the same
-        # concept.
-        if c["grade"] == "proposed":
-            grade_label = QLabel("ADVISORY (proposed, not matrix-reviewed)")
-            grade_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px; font-weight: 600;")
-        else:
-            grade_label = QLabel("derived-from-matrix")
-            grade_label.setStyleSheet(f"color: {ACCENT}; font-size: 10px; font-weight: 600;")
-        header_layout.addWidget(grade_label)
-
-        if c.get("cell_id"):
-            cell_label = QLabel(c["cell_id"])
-            cell_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-            header_layout.addWidget(cell_label)
-
-        # Conflict resolver (Frame-Stage-2 Phase 3b): never hides a
-        # conflicting candidate, always labels it -- transparency over
-        # suppression, same posture the old engine's own parameter_
-        # conflict flag used.
-        conflict_status = c.get("conflict_status")
-        if conflict_status == "platform_calming_available":
-            cf_label = QLabel("PLATFORM-CALMING: addresses a compound problem at this corner")
-            cf_label.setStyleSheet(f"color: {ACCENT}; font-size: 10px; font-weight: 600;")
-            header_layout.addWidget(cf_label)
-        elif conflict_status in ("superseded_by_platform_calming", "superseded_by_time_loss"):
-            cf_label = QLabel(f"SUPERSEDED (conflicts with {', '.join(c.get('conflict_with', []))})")
-            cf_label.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
-            header_layout.addWidget(cf_label)
-        elif conflict_status == "wins_time_loss":
-            cf_label = QLabel(f"CONFLICT WINNER (higher time-loss phase, vs {', '.join(c.get('conflict_with', []))})")
-            cf_label.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
-            header_layout.addWidget(cf_label)
-
         header_layout.addStretch()
         card_layout.addWidget(header)
-
-        evidence_line = QLabel(
-            f"C{c['corner']} {c['phase']} -- {len(c['evidence_refs'])} evidence item(s), "
-            f"effort={c['effort_class']}, effect={c['effect_class']}"
-        )
-        evidence_line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-        card_layout.addWidget(evidence_line)
 
         btn_expand = QPushButton("> reasoning")
         btn_expand.setCheckable(True)
@@ -2458,47 +2434,7 @@ class OutingForm(QWidget):
         )
         card_layout.addWidget(btn_expand)
 
-        detail_host = QWidget()
-        detail_layout = QVBoxLayout(detail_host)
-        detail_layout.setContentsMargins(12, 2, 0, 0)
-        detail_layout.setSpacing(2)
-
-        rationale_line = QLabel(c["rationale"])
-        rationale_line.setWordWrap(True)
-        rationale_line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-        detail_layout.addWidget(rationale_line)
-
-        if c.get("conflict_resolution_note"):
-            cf_note_line = QLabel(c["conflict_resolution_note"])
-            cf_note_line.setWordWrap(True)
-            cf_note_line.setStyleSheet(f"color: {WARN}; font-size: 10px;")
-            detail_layout.addWidget(cf_note_line)
-
-        components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
-        components_line = QLabel(f"score breakdown: {components_text}")
-        components_line.setWordWrap(True)
-        components_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-        detail_layout.addWidget(components_line)
-
-        for note in c.get("score_interaction_notes", []):
-            note_line = QLabel(f"interaction: {note}")
-            note_line.setWordWrap(True)
-            note_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-            detail_layout.addWidget(note_line)
-
-        for flag in c.get("score_flags", []):
-            flag_line = QLabel(flag)
-            flag_line.setWordWrap(True)
-            flag_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-            detail_layout.addWidget(flag_line)
-
-        for e in c["evidence_refs"]:
-            source_line = QLabel(f"evidence ({e['type']}): {e['source']}")
-            source_line.setWordWrap(True)
-            source_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
-            detail_layout.addWidget(source_line)
-
-        detail_host.setVisible(False)
+        detail_host = self._build_decision_frame_reasoning_host(c)
         card_layout.addWidget(detail_host)
 
         def toggle_detail(checked):
@@ -2507,6 +2443,210 @@ class OutingForm(QWidget):
         btn_expand.toggled.connect(toggle_detail)
 
         return card
+
+    def _build_decision_frame_reasoning_host(self, c):
+        # Phase D feedback round, ITEM 1 (2026-09-23): a grouped row's
+        # dropdown lists every contributing corner+phase, each with its
+        # own full reasoning block -- the exact same _build_decision_
+        # frame_detail_host an ungrouped candidate gets, reused per
+        # member unchanged, never a merged/summarised reasoning that
+        # would hide which corners are actually behind the one displayed
+        # change.
+        members = c.get("group_members")
+        if not members:
+            return self._build_decision_frame_detail_host(c)
+
+        host = QWidget()
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        for i, member in enumerate(members):
+            if i > 0:
+                divider = QWidget()
+                divider.setFixedHeight(1)
+                divider.setStyleSheet(f"background-color: {BORDER};")
+                layout.addWidget(divider)
+            member_host = self._build_decision_frame_detail_host(member)
+            member_host.setVisible(True)  # visibility is the group host's own toggle's job, not each member's
+            layout.addWidget(member_host)
+        host.setVisible(False)
+        return host
+
+    def _build_decision_frame_detail_host(self, c):
+        # Shared "> reasoning" dropdown content -- used by both a
+        # shortlist row and a real (non-no_trigger) tail row, so a
+        # candidate's full reasoning is worded exactly once regardless of
+        # which list it lands in.
+        detail_host = QWidget()
+        detail_layout = QVBoxLayout(detail_host)
+        detail_layout.setContentsMargins(12, 2, 0, 0)
+        detail_layout.setSpacing(2)
+
+        def add_line(text, colour=TEXT_MUTED, italic=False, bold=False):
+            line = QLabel(text)
+            line.setWordWrap(True)
+            style = f"color: {colour}; font-size: 10px;"
+            if italic:
+                style += " font-style: italic;"
+            if bold:
+                style += " font-weight: 600;"
+            line.setStyleSheet(style)
+            detail_layout.addWidget(line)
+
+        corner_phase = (f"C{c['corner']} {c.get('phase')}" if c.get("corner") is not None
+                         else "no corner (unrouted)")
+        add_line(
+            f"{corner_phase} -- {len(c.get('evidence_refs', []))} evidence item(s), "
+            f"effort={c.get('effort_class')}, effect={c.get('effect_class')}, "
+            f"score {c.get('score', 0):.2f}"
+        )
+
+        if c.get("grade") == "proposed":
+            add_line("ADVISORY (proposed, not matrix-reviewed)", bold=True)
+        elif c.get("grade") is not None:
+            add_line("derived-from-matrix", colour=ACCENT, bold=True)
+        if c.get("cell_id"):
+            add_line(f"matrix cell: {c['cell_id']}", colour=TEXT_DIM)
+
+        # Stage 2 trigger provenance: data-only / feedback-only / both-
+        # agreeing (the spec's own three labelled classes).
+        provenance_words = {
+            "data_only": "data-only",
+            "driver_reported": "driver feedback only, zero data verdict",
+            "both_agreeing": "data and driver feedback agreeing (strongest)",
+        }
+        trigger = c.get("trigger_provenance")
+        if trigger:
+            add_line(f"trigger: {provenance_words.get(trigger, trigger)}", colour=TEXT_DIM)
+
+        # Conflict resolver (Frame-Stage-2 Phase 3b): never hides a
+        # conflicting candidate, always labels it.
+        conflict_status = c.get("conflict_status")
+        if conflict_status == "platform_calming_available":
+            add_line("PLATFORM-CALMING: addresses a compound problem at this corner",
+                      colour=ACCENT, bold=True)
+        elif conflict_status in ("superseded_by_platform_calming", "superseded_by_time_loss"):
+            add_line(f"SUPERSEDED (conflicts with {', '.join(c.get('conflict_with', []))})",
+                      colour=WARN, bold=True)
+        elif conflict_status == "wins_time_loss":
+            add_line(f"CONFLICT WINNER (higher time-loss phase, vs "
+                      f"{', '.join(c.get('conflict_with', []))})", colour=WARN, bold=True)
+        if c.get("conflict_resolution_note"):
+            add_line(c["conflict_resolution_note"], colour=WARN)
+
+        if c.get("rationale"):
+            add_line(c["rationale"])
+
+        # DECISION LAYER SPEC B4: breadth note, already worded by
+        # _attach_breadth ("helps CX -- rebalances N-1 corners currently
+        # assessed good") -- never re-derived here.
+        if c.get("breadth_note"):
+            add_line(f"breadth: {c['breadth_note']}", colour=TEXT_DIM)
+
+        # DECISION LAYER SPEC B5/B7: window-edge / condition-gap reasons.
+        if c.get("edge_reason"):
+            add_line(f"window: {c.get('edge_label', c.get('status'))} -- {c['edge_reason']}",
+                      colour=WARN)
+        if c.get("condition_reasons"):
+            add_line(f"condition: {'; '.join(c['condition_reasons'])}", colour=TEXT_DIM)
+
+        # DECISION LAYER SPEC B6: driver-vs-data disagreement -- never
+        # suppresses, always shown side by side.
+        for fb in c.get("conflicting_feedback", []):
+            add_line(
+                f"driver feedback disagrees: {fb.get('raw_feedback') or fb.get('verdict')} "
+                f"at {fb.get('phase')}", colour=WARN
+            )
+
+        if c.get("score_components"):
+            components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
+            add_line(f"score breakdown: {components_text}", colour=TEXT_DIM)
+
+        for note in c.get("score_interaction_notes", []):
+            add_line(f"interaction: {note}", colour=TEXT_DIM)
+
+        for flag in c.get("score_flags", []):
+            add_line(flag, colour=TEXT_DIM, italic=True)
+
+        for e in c.get("evidence_refs", []):
+            add_line(f"evidence ({e['type']}): {e.get('source', '')}", colour=TEXT_DIM)
+
+        detail_host.setVisible(False)
+        return detail_host
+
+    def _build_decision_frame_tail_section(self, tail, registry):
+        # D2: collapsed "assessed, not proposed" tail, collapsed by
+        # default -- real candidates first (blocked_at_edge/contradicted/
+        # not_assessable/below-threshold, ranked by earned score), then
+        # synthetic no_trigger rows, unranked. generate_lever_inventory
+        # already produces this exact order; this just renders it.
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 4, 0, 0)
+        layout.setSpacing(4)
+
+        btn_toggle = QPushButton(f"> assessed, not proposed ({len(tail)})")
+        btn_toggle.setCheckable(True)
+        btn_toggle.setChecked(False)
+        btn_toggle.setStyleSheet(
+            f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 11px; "
+            "padding: 6px 10px; text-align: left;"
+        )
+        layout.addWidget(btn_toggle)
+
+        rows_host = QWidget()
+        rows_layout = QVBoxLayout(rows_host)
+        rows_layout.setContentsMargins(0, 4, 0, 0)
+        rows_layout.setSpacing(4)
+        for entry in tail:
+            rows_layout.addWidget(self._build_decision_frame_tail_row(entry, registry))
+        rows_host.setVisible(False)
+        layout.addWidget(rows_host)
+
+        def toggle(checked):
+            rows_host.setVisible(checked)
+            btn_toggle.setText(f"v assessed, not proposed ({len(tail)})" if checked
+                                else f"> assessed, not proposed ({len(tail)})")
+        btn_toggle.toggled.connect(toggle)
+
+        return container
+
+    def _build_decision_frame_tail_row(self, entry, registry):
+        from modules.decision_frame import render_tail_line, STATUS_NO_TRIGGER
+        row = QWidget()
+        row.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        row_layout = QVBoxLayout(row)
+        row_layout.setContentsMargins(8, 4, 8, 4)
+        row_layout.setSpacing(2)
+
+        line = QLabel(render_tail_line(entry, registry))
+        line.setWordWrap(True)
+        line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
+        row_layout.addWidget(line)
+
+        if entry.get("status") == STATUS_NO_TRIGGER:
+            # generate_lever_inventory's own rationale IS the line above --
+            # no evidence, no score, nothing further to expand.
+            return row
+
+        btn_expand = QPushButton("> reasoning")
+        btn_expand.setCheckable(True)
+        btn_expand.setChecked(False)
+        btn_expand.setStyleSheet(
+            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
+            "text-align: left; border: none; padding: 2px 0;"
+        )
+        row_layout.addWidget(btn_expand)
+
+        detail_host = self._build_decision_frame_reasoning_host(entry)
+        row_layout.addWidget(detail_host)
+
+        def toggle_detail(checked):
+            detail_host.setVisible(checked)
+            btn_expand.setText("v reasoning" if checked else "> reasoning")
+        btn_expand.toggled.connect(toggle_detail)
+
+        return row
 
     def _open_corner_trace(self, summary):
         # PART C: reused, non-modal per-corner trace window (ui/views/

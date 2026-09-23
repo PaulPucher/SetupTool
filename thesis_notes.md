@@ -19172,3 +19172,700 @@ lever_bridges), v3 21 candidates (11 matrix_bridge/10 exit_oversteer),
 unchanged from the B8 baseline except for the one new splitter
 candidate. This is the comparison point for any future phase's own
 census check, superseding the B8 5/21 figure.
+
+## Phase D: D6 top-line rendering rule resolved [2026-09-22, reviewer
+decision]
+
+WP-DL Phase D (UI). D1's own two example top lines ("Bias +1 click
+rearward", "Splitter -1 mm") imply every candidate carries a direction
+plus a real numeric magnitude. Direct read of every candidate generator
+against config/setup_parameters.json's registry, cross-checked with
+diagnostics/inspect_frame_candidate_census.py's own Dubai baseline (6
+candidates), found this untrue for half of it: _bridge_candidates_for_
+matrix_rules (the 39-rule migration bridge -- 2/6 candidates on Dubai,
+11/21 on v3, the SINGLE LARGEST source there) passes config/
+recommendations.json's actions straight through as {parameter,
+direction} with no "delta" key at all, for any lever, ever -- confirmed
+by direct read, not assumed. The three other generators (_exit_
+oversteer_candidates, _brake_bias_candidates, _bridge_candidates_for_
+levers) do attach a delta, but per that code's own pre-existing comment
+(_bridge_candidates_for_levers, "+1/-1 encodes ONE step... not a
+physical magnitude") it is a ROUTING SIGN, not a real step size, except
+where it happens to equal the registry's own real linear step (arb/tc
+position=1, splitter mm=1). It is meaningless as a magnitude for enum-
+valued levers (springs_front/rear, wing_position -- no linear step
+exists to multiply a sign by) and was undefined for diff_position,
+which had a real delta but NO "unit" key anywhere in its registry entry
+-- the one plain registry gap found, distinct from the enum-lever
+class. STOP raised per D6's own instruction rather than inventing a
+unit, a step count, or enum-navigation logic.
+
+REVIEWER DECISION, three parts:
+1. Rendering rule (replaces reliance on the two literal examples -- this
+   IS the rule now): a top line renders a magnitude ONLY when the
+   candidate carries a real delta AND the registry defines a linear
+   unit/step for the lever. Otherwise direction-only, in the lever's own
+   registry vocabulary ("TC LON: less intervention", "Wing Position:
+   higher position", "Diff: more locking", "Rear springs: softer") --
+   correct output, not degraded: TC/ABS's own Stage-1 vocabulary is
+   direction-only by design. Never renders a magnitude the candidate
+   does not carry; never renders the symbolic one-step delta as a number
+   for an enum lever. Implemented as modules.decision_frame.
+   render_action_line/render_top_line/render_tail_line, with a small
+   _LEVER_DIRECTION_PHRASES/_SYMMETRIC_PHRASES table sourcing each
+   phrase from that lever's own registry direction_semantics text (or
+   the plain-English opposite of a symmetric word already in candidate
+   data, e.g. soften/stiffen) -- no new physical claim, no invented
+   number.
+2. Registry fix, Tier B, same phase: config/setup_parameters.json's
+   diff_position gained value_space.unit="position" -- the 5 sheet
+   positions were already the elicited Stage 1 value space; this only
+   names their existing unit, no new number. Dated note added at the
+   registry entry itself.
+3. Enum-step navigation ("P8 -> P9") explicitly deferred, OUT of this
+   package -- it requires the current setup value (Stage-3 current-state
+   machinery, generate_shortlist's own current_setup/setup_data) and is
+   business logic for modules/, not ui/. PLAN.md's DECISION LAYER SPEC
+   section gained a one-line "Refinements deferred" note at this touch.
+
+VERIFICATION: diagnostics/smoke_test_decision_frame_phase_d.py
+[keep-reproduces] -- rebuilds the real Dubai shortlist/tail directly
+(kinematic sideslip, same fast choice smoke_test_decision_frame_widget.py
+already made) and confirms no shortlist top line carries a corner id
+(D1), no direction-only candidate renders a digit it does not have (D6),
+tail ordering (real candidates by descending score, then unranked
+no_trigger rows, D2), plus two hand-built synthetic actions (a no-delta
+matrix_bridge shape and an enum-lever symbolic-delta shape) so D6's rule
+is checked deterministically regardless of which candidates this file's
+own kinematic-mode verdicts happen to fire. Also constructs a real
+OutingForm, calls the real _generate_decision_frame(), and confirms the
+rendered widget tree matches (no corner id in any rendered badge, tail
+toggle present and collapsed by default, "> reasoning" dropdowns
+present and toggle correctly). tests/test_decision_frame.py: 139/139
+passed (targeted, not full suite -- full suite is Phase F only).
+
+## Pipeline wall-clock timing, per-stage, both real sessions [2026-09-23,
+read-only diagnostic, no branch, no config/production change]
+
+PLAN.md ### NOW item (2): "Pipeline performance: profile first --
+read-only per-module timing on both sessions, machine untouched during
+the run -- then decide. Observed unprofiled: Modules 1-5 832s, fit chain
+188-383s." This entry supplies the actual profiled numbers; no decision
+made, no fix applied, per the work order's own "measurement only" scope.
+
+METHOD: new diagnostics/inspect_pipeline_wall_times.py `[keep-
+reproduces]`, live config (read directly, not assumed: stability_
+estimation.sideslip_source="ekf_auto_pacejka", vertical_load_source=
+"measured"). Re-issues diagnostics/inspect_frame_stage2_parity.py's own
+run_full_pipeline call sequence one call at a time (same DUBAI_FILE/
+V3_FILE/FIXED_CAP constants, literally imported, not re-typed), each
+wrapped in time.perf_counter() -- nothing in modules/ touched. The fit
+chain's own three sub-stages (Pacejka fit / EKF run / NIS gate) have no
+external call boundary in production (fit_session_pacejka is one
+monolithic function); split via cProfile wrapped around that single call
+and bucketed by function name afterward (_fit_axle_pacejka* = Pacejka
+fit, estimate_sideslip_ekf_pacejka = EKF run, cumulative time per
+bucket) -- a script-level wrapper only, consistent with the work order's
+"do NOT edit modules/" instruction. NIS gate (evaluate_gate) IS already
+a separate top-level call, timed directly. One run per session, machine
+otherwise idle, no repetitions (single-run wall clock, unlike the 2026-
+08-20 reference's 5-repetition mean -- noted as a precision difference,
+not corrected for here).
+
+RESULT, Dubai (grand total parse_csv-through-summarise_corners =
+938.99s):
+  estimate_longitudinal_stiffness   405.18s  43.2%
+  estimate_cornering_stiffness      276.67s  29.5%
+  fit chain: EKF run                241.75s  25.7%
+  parse_csv                          14.00s   1.5%
+  (fit chain: Pacejka fit 0.35s, NIS gate 0.02s, other 0.13s -- all
+  negligible; every remaining stage -- prepare_vehicle_state, slip
+  angles, lateral forces, yaw moment stability, vertical loads/wheel_
+  loads, longitudinal forces, slip ratio, summarise_corners, accuracy
+  resolution -- individually under 0.5s)
+
+RESULT, v3 (grand total = 694.11s):
+  estimate_longitudinal_stiffness   389.16s  56.1%
+  fit chain: EKF run                205.22s  29.6%
+  estimate_cornering_stiffness       81.55s  11.7%
+  parse_csv                          16.76s   2.4%
+  (same negligible remainder as Dubai)
+
+TOP THREE COST DRIVERS, both sessions, same three stages: estimate_
+longitudinal_stiffness, fit chain EKF run, estimate_cornering_stiffness
+-- together 98.4% of total on Dubai, 97.4% on v3. GROWTH IS CONCENTRATED,
+NOT SPREAD: every one of the other nine measured stages is individually
+under 0.5s on both files; none of the wall-clock growth traces to many
+small increments, all of it sits in these three named functions.
+
+COMPARISON AGAINST THE RECORDED REFERENCE POINTS:
+1. 2026-08-20 reference (thesis_notes.md "WP-N2 Step 1a", Dubai only,
+   kinematic sideslip, BEFORE any EKF wiring): total 123.27s, estimate_
+   cornering_stiffness alone 106.22s = 86% of total. Today, under the
+   live default (ekf_auto_pacejka): estimate_cornering_stiffness is
+   276.67s on Dubai -- 2.6x larger in absolute terms, but its SHARE of
+   total dropped to 29.5%, because two other costs were added/grew
+   faster: the fit chain (which did not exist as a production path in
+   the 2026-08-20 baseline -- that entry's own title is "before any
+   wiring") and estimate_longitudinal_stiffness, not present in that
+   baseline's own per-module breakdown at all (a module either added
+   since, or not separately measured then).
+2. PLAN.md's own informal "Modules 1-5 832s, fit chain 188-383s":
+   fit-chain figures corroborate well -- this run's fit-chain subtotal
+   (Pacejka fit + EKF run + other + NIS gate) is 242.26s (Dubai) /
+   205.61s (v3), both inside the informally-observed 188-383s band.
+   "Modules 1-5" does NOT corroborate under this script's own definition
+   (prepare_vehicle_state through estimate_yaw_moment_stability,
+   EXCLUDING longitudinal_stiffness as a separate side-module per the
+   work order's own phrasing): that subtotal is only 276.96s (Dubai) /
+   81.85s (v3), nowhere near 832s. Folding estimate_longitudinal_
+   stiffness INTO "Modules 1-5" instead (682.14s Dubai) comes much
+   closer to 832s but still does not match exactly -- the informal
+   figure was an unprofiled/eyeballed observation, not a repeated
+   measurement, and this profiled run supersedes it as the new
+   reference point rather than reconciling the exact number.
+
+NOT INVESTIGATED (measurement-only scope, no fixes/optimization/config
+changes applied, per the work order): WHY estimate_longitudinal_
+stiffness or estimate_cornering_stiffness are this expensive, or why
+estimate_cornering_stiffness costs 3.4x more on Dubai (276.67s) than on
+the larger v3 file (81.55s) -- flagged as an asymmetry worth a future
+look, not diagnosed here. No decision made on PLAN.md NOW item (2)'s own
+"then decide" half; this entry is the measurement input for that
+decision, left to a separate turn.
+
+## Phase D feedback round, ITEM 1: display-layer grouping, max-score,
+user-elicited [2026-09-23, reviewer+user decision, user visual check v3]
+
+User visually checked Phase D on v3 and found identical shortlist rows
+(e.g. two "Traction Control - Longitudinal +1 position" cards from
+different corners) rendered as separate cards -- confirmed as a real,
+reproducible case on the kinematic-mode Dubai run too (diagnostics/
+smoke_test_decision_frame_phase_d.py's own shortlist printout). Reviewer+
+user decision: identical (parameter-set, direction, rendered magnitude)
+rows collapse into ONE display row.
+
+IMPLEMENTATION: modules.decision_frame.group_display_rows(rows,
+registry), pure function, called by ui/ once for the shortlist and once
+for the tail, strictly AFTER generate_display_split/resolve_conflicts
+have already run -- the candidate model itself is untouched, this is a
+display-layer step only. Grouping key is render_top_line's OWN output
+(the D6 rendering function), not a second, separately-derived tuple of
+(parameters, directions, deltas) -- re-deriving a key would risk
+disagreeing with the rendering function over time. Group score = MAX
+member score, NEVER summed (Stage 6 severity is a property of each
+problem instance; the breadth term already scores "helps many corners"
+separately, so summing here would double-count that effect under a
+different name). The representative row's other fields (corner, phase,
+status, edge_reason, ...) also come from the max-score member, a single
+consistent rule rather than two disagreeing definitions of "which one to
+show up front."
+
+Two shapes explicitly excluded from grouping (kept one row each,
+regardless of a matching render_top_line string): no_trigger synthetic
+rows (keyed on (lever) instead -- render_top_line has no lever-specific
+branch for a status with no "actions", so every no_trigger row would
+otherwise collapse into one meaningless group) and real candidates with
+NO routed action (the brake_balance_unrouted case -- no parameter-set to
+match on at all, so "identical parameter-set" cannot apply; two distinct
+corners each needing unrouted engineer attention must stay two distinct
+flags).
+
+UI: ui/views/outing_form.py's _generate_decision_frame calls
+group_display_rows on both shortlist and tail after resolve_conflicts.
+A grouped row's dropdown ("> reasoning") lists every contributing
+corner+phase, each with its OWN full reasoning block -- new
+_build_decision_frame_reasoning_host dispatches to either the existing
+single-candidate _build_decision_frame_detail_host (ungrouped case,
+unchanged) or stacks one detail_host per member (divider between them,
+BORDER colour, no new colour literal) when "group_members" is present.
+Every member's own detail_host is unchanged code, reused verbatim -- no
+second, summarised reasoning that would hide which corners are actually
+behind the one displayed change.
+
+TESTS: 6 new targeted unit tests (tests/test_decision_frame.py) --
+collapse on identical top-line, score is MAX never sum, different
+parameters stay separate, no_trigger rows never cross-collapse between
+levers, unrouted candidates never collapse, single-member groups pass
+through byte-identical (no "group_members" key added). diagnostics/
+smoke_test_decision_frame_phase_d.py updated: asserts no two visible
+shortlist rows render identical top-line strings (real data AND a
+hand-built synthetic pair, since which real candidates collapse depends
+on which verdicts this file's own kinematic-mode run happens to produce,
+not on Phase D's own grouping code) plus the widget-level equivalent
+against the actually-rendered badge labels. Full targeted suite green
+(154 pre-existing + this package's own new tests); smoke test green.
+
+PLAN.md gained a one-line spec addendum at this touch: "output stage:
+identical changes group for display, max-score, user-elicited
+2026-09-23."
+
+## Phase D feedback round, ITEM 2: driver-feedback path diagnosis (-5 at
+entry phase, v3, no visible change) [2026-09-23, diagnosis only, no fix]
+
+User entered feedback -5 at entry phase (e1/entry_1_brake) for the first
+10 corners on v3, clicked Generate, saw no visible change in
+suggestions. Traced the real path, three legs, per the work order:
+
+LEG 1 (UI table -> generate_candidates input): ALIVE, confirmed by
+direct read. ui/views/outing_form.py:3308-3324 _collect_feedback_data()
+serialises {"corner_count", "corners": [{"e1","e2","a3","x4","x5",
+"worst"}, ...], "map_path"} from self.corner_rows, positionally indexed
+(row i = corner i+1). outing_form.py:2347 passes this straight into
+build_evidence(feedback_data=...). modules/recommendation.py:242-251
+_feedback_row(feedback_data, stable_corner_id) maps stable_corner_id-1
+back to that same row index ("interim per WP3b", already documented) --
+so corners 1-10 in the UI table DO correspond to stable_corner_id 1-10
+in the evidence builder, matching the "first 10 corners" the user
+entered. modules/decision_frame.py's _build_driver_feedback_evidence
+(around line 666, now extended by ITEM 2(c) below) turns raw=-5 at e1
+into a real driver_feedback evidence item: verdict="understeer"
+(raw<0), confidence=1.0 (magnitude 5, saturates). This leg is NOT where
+the signal dies.
+
+LEG 2 (|feedback|>=4 heavy-corrector eligibility): STRUCTURALLY ALIVE
+but never independently reachable -- confirmed by direct read of
+_apply_eligibility_gate (decision_frame.py:1822-1872). This function is
+a FILTER over candidates that ALREADY EXIST with a heavy-corrector
+action (heavy_candidates = [c for c in candidates if _is_heavy(c)],
+line 1836) -- it can only relax the multi-corner requirement for a
+heavy-corrector candidate a DATA generator already proposed (matrix
+rules or lever_bridges, both requiring matrix_verdict evidence); it
+never creates a candidate from feedback alone. Stage 6's own wording
+("springs/camber/toe unlock only at... |feedback|>=4") is itself about
+UNLOCKING something already proposed, not generating one -- the code
+matches the spec's own wording once read this way, not a bug. Net
+effect: a feedback-only understeer complaint with zero data
+corroboration can NEVER reach a heavy corrector, by design, regardless
+of magnitude.
+
+LEG 3 (feedback-only router, click-class): CONFIRMED DEAD, exactly the
+already-documented B2 gap (thesis_notes.md "DECISION LAYER SPEC B2
+design resolution", 2026-09-22) -- reconfirmed against the LIVE config,
+not assumed from the prior finding: config/decision_frame.json's
+interaction_table currently has exactly 4 sign=+1 entries on
+understeer_tendency/oversteer_tendency, ALL FOUR belong to springs_
+front/springs_rear (heavy_correctors), ZERO belong to click_class.
+_feedback_only_candidates (decision_frame.py:1714-1791) filters its own
+pool to click_class levers at line 1734 (`if param not in click_class:
+continue`) -- for raw=-5 (axis=understeer_tendency), every matching
+entry is filtered out, pool is empty, line 1745 hits its own documented
+"honest gap -- no fallback, no invention" continue, zero candidates.
+
+CONCLUSION: leg 1 is alive (the value really does reach the evidence
+layer with full confidence). Legs 2 and 3 both structurally cannot
+produce a visible change for THIS specific input (feedback-only,
+understeer, no data corroboration) -- leg 2 because it is an eligibility
+relaxation with nothing to relax (no heavy-corrector candidate exists to
+unlock), leg 3 because of the already-known click-class routing gap.
+The feedback evidence item DOES get created and IS attached to any
+EXISTING data-corroborated candidate at the same corner/phase/verdict
+(_attach_feedback_evidence, unaffected by this trace) -- but if v3's own
+telemetry shows no matching data verdict at corners 1-10's entry phase
+either, there is nothing for it to attach to, and the net visible effect
+is exactly zero. Not a "feedback never leaves the UI layer" case (it
+does leave, all the way to a real evidence item) -- the dead end is one
+step further in, at candidate generation, for a reason already on
+record (leg 3) plus a structural, previously-undocumented clarification
+(leg 2: the eligibility bypass was never a generator).
+
+## Phase D feedback round, ITEM 2(c): proportionate feedback
+strengthening, band-shaped confidence [2026-09-23, reviewer+user
+decision]
+
+Replaces the linear confidence ramp _build_driver_feedback_evidence used
+(Deepening Phase 4d, 2026-09-18) with a band shaped per the feedback
+scale's own recorded semantics (ui/views/outing_form.py's caption:
+|1|=slight, |3|=strong, |5|=undrivable -- three qualitatively different
+regimes, not one continuous slope). SHAPE is the decision; each band's
+own VALUE stays tunable, explicitly provisional pending elicitation
+(config/decision_frame.json driver_feedback_weighting.confidence_bands,
+each entry carrying its own derived_from note dated 2026-09-23). Bands:
+|1| -> 0.1 (low, unchanged from the old floor), |2|-|3| -> 0.75 (mid,
+"clearly felt" -- deliberately ABOVE the old linear ramp's own 0.4/0.7 at
+those exact points, the strengthening this item is named for), |4|-|5|
+-> 1.0 (undrivable, saturates -- |5|=1.0 exactly, same anchor the old
+ramp already reached at |4|).
+
+New modules.decision_frame._feedback_confidence(magnitude, feedback_cfg)
+is the one and only place a feedback-magnitude-to-confidence CURVE is
+computed in this codebase -- confirmed by search, not assumed: modules.
+recommendation._feedback_modulation (the OLD 39-rule engine, no longer
+surfaced by any UI per Frame-Stage-2's own removal) is a flat agreement-
+bonus/conflict-penalty multiplier, a structurally different mechanism,
+correctly left untouched (out of the decision-layer's own scope).
+
+TESTS: 5 tests rewritten/added in tests/test_decision_frame.py to match
+the new config shape (the 3 pre-existing linear-ramp tests would have
+broken outright -- confidence_floor/full_confidence_at_raw_abs no longer
+exist as config keys) -- floor unchanged at |1|, mid band flat at both
+|2| and |3| (0.75, not the old 0.4/0.7 split), undrivable band saturates
+at both |4| and |5| (1.0 exactly), and the explicit "band beats old
+linear" regression guard (new value >= old linear value at the same
+input, for every magnitude 2-5) using the retired formula reproduced
+literally in the test file for comparison only, never imported from
+production. config-presence test updated to check the band list
+structure instead of the retired scalar pair. Full targeted suite green.
+
+ITEM (a) RE-RUN -- NOT DONE THIS TURN: the work order asks to "re-run
+item (a)'s term listing after this lands so the report shows the springs
+candidate's rank under the reshaped input." No "item (a)" term-listing
+report exists anywhere in this repo (PLAN.md, thesis_notes.md) or in
+this session's own visible history -- checked directly, not assumed.
+Flagged back to the user rather than guessed at; the band-shaped
+reshaping above is complete and tested independently of whatever that
+re-run is meant to reference.
+
+## Phase D feedback round, ITEM 3: cache-miss diagnosis, decision-layer
+package vs WP5/WP6 identity checks [2026-09-23, diagnosis only, no fix]
+
+User reported a previously-analysed outing re-running the full pipeline
+(recently profiled at 700-950s, see "Pipeline wall-clock timing" above)
+instead of hitting cache, suspecting the decision-layer package. Read
+both cache-identity checks directly and every decision-layer commit's
+own diff against them.
+
+WP5 DB-cache (ui/views/outing_form.py:1565-1637, _try_render_cached_
+analysis): 7 identity fields, in order -- schema_version (== ANALYSIS_
+SCHEMA_VERSION, modules/stability_analysis.py:91, currently 8),
+csv_path (normalised), accuracy_cap, resolved_vehicle_snapshot (a fresh
+resolve_accuracy() re-run compared against the stored "values" dict),
+sideslip_source, grid_rate_hz, lap_filter (sorted-list compare). Any
+mismatch -> return False -> full re-Analyse. Write side: _persist_
+analysis_cache (outing_form.py:1548-1563), called automatically on
+analysis completion (line 1473-1474, `if self.outing:
+self._persist_analysis_cache()`) -- NOT gated behind an explicit Save
+click, so "forgot to save" is ruled out for an outing that has ever
+completed one real Analyse run as a persisted (not brand-new/unsaved)
+Outing.
+
+WP6 in-memory cache (outing_form.py:1385-1412, module-level singleton
+keyed by csv_path via _pipeline_cache_get/_pipeline_cache_put): 4 of
+the same fields -- accuracy_cap, resolved_vehicle_snapshot, sideslip_
+source, grid_rate_hz (no schema_version or lap_filter -- this cache
+sits BELOW summarise_corners, Modules 1-5 output only). Session-scoped
+by construction (module-level Python state); resets on every app
+restart -- expected behaviour, not a bug, and orthogonal to whatever the
+user observed on a REOPENED (not same-session) outing.
+
+DECISION-LAYER PACKAGE'S OWN CHANGES AGAINST BOTH CHECKS: `git log
+--oneline -- ui/views/outing_form.py modules/stability_analysis.py`
+shows exactly one decision-layer commit touching outing_form.py (fa0c95b,
+WP-DL Phases A-C) -- `git show fa0c95b -- ui/views/outing_form.py`
+confirms its ENTIRE diff (12 insertions, 2 deletions) is inside
+_generate_decision_frame's own body (~line 2313-2350 today), passing
+assessed_corner_ids/setup_data into generate_candidates. Zero lines
+touched anywhere near _try_render_cached_analysis (1565-1637),
+_persist_analysis_cache (1548-1563), _build_analysis_data_json, or the
+WP6 hit-check (1385-1412). modules/stability_analysis.py's ANALYSIS_
+SCHEMA_VERSION is 8, its own inline comment (line 91) stating explicitly
+this is "unchanged... not a new bump" -- the decision-layer package
+never touched it. config/decision_frame.json and config/setup_
+parameters.json (the two files the decision-layer package actually
+edits) are read by modules.decision_frame directly, never by resolve_
+accuracy (modules/accuracy_resolution.py, which only reads config/
+parameters.json's vehicle/accuracy_levels block) -- neither file is part
+of any hashed/compared identity field in either cache check.
+
+CONCLUSION: the decision-layer package CANNOT be the cause of a Modules-
+1-5 cache miss -- structurally, by the numbers above, not by inference.
+Decision-frame candidate generation runs entirely downstream of self.
+stability_result["summaries"] (already-cached data) inside _generate_
+decision_frame, and never re-triggers Modules 1-5 itself; clicking
+"Generate" in the Decision Frame panel cannot cause a Modules-1-5 rerun
+regardless of what modules/decision_frame.py or its config does. IF the
+user is genuinely seeing a full-pipeline rerun on a previously-analysed
+v3 outing, the cause is one of the 7 PRE-EXISTING WP5 identity fields
+failing to match for a reason unrelated to this package -- most likely
+candidates, in order of how commonly they'd actually change: (1) the
+outing's own setup-sheet data edited since the last Analyse, changing
+resolve_accuracy's own "values" snapshot at line 1607 (this is the field
+the guard comment itself names as the one that "catches setup_data was
+edited since this cache was written"); (2) the accuracy_cap selector
+defaulting to a different value on reopen than it held when the cache
+was written; (3) sideslip_source or grid_rate_hz having changed via a
+config edit since. NOT diagnosed further here (no access to the user's
+own live outing/DB state, and the work order is diagnosis-only) -- the
+concrete next step, if the symptom persists, is instrumenting each of
+_try_render_cached_analysis's own seven `return False` points (or
+temporarily logging which one fires) against the SPECIFIC v3 outing in
+question, not a code-only re-read, since every candidate cause above is
+now already correctly implemented and none of them involves this
+package. No cache logic changed, per the work order's own instruction.
+
+## Item (a) term listing + eligibility gate amendment [2026-09-23,
+reviewer decision from item (a) findings]
+
+Item (a), restated by the user: run the real v3 session with -5
+(undrivable understeer) entry-phase (e1) feedback on corners 1-10, list
+the resulting shortlist in rank order with the six cost_function term
+values per row, to see which term holds a springs candidate down now
+that band confidence saturates at 1.0. Read-only, production defaults
+(ekf_auto_pacejka, cap=1), no config/production change.
+
+FIRST RUN: 10 driver_feedback evidence items created (confidence 1.0,
+saturated), 0 feedback-only candidates (reconfirms ITEM 2 leg 3 on real
+data). Shortlist, 4 rows after ITEM 1 grouping: Rear-Left/Right ARB
+soften (score 3.2525, 10 grouped members), TC LON increase (1.5761, 4
+members), Diff Position increase (1.4601, 6 members), Front-Left/Right
+ARB stiffen (0.8918). Springs: ZERO in shortlist or tail -- not a low
+rank, absent entirely. Traced pre-eligibility-gate generation directly
+(_bridge_candidates_for_matrix_rules + _bridge_candidates_for_levers):
+22 raw springs candidates DO exist (springs_front stiffen / springs_
+rear soften, C1/C5/C6/C8/C9/C13/C16 at apex_3/exit_5, one strong
+instance at C13 apex_3, rest moderate). _apply_eligibility_gate
+(decision_frame.py:1822-1872, pre-amendment) requires >=2 distinct
+corners at strong severity (only 1: C13) OR |feedback|>=4 matched at
+the SAME (corner, phase) -- every springs candidate fires at apex_3/
+exit_5, the feedback was entered at entry_1_brake, zero phase overlap,
+so the bypass could never fire regardless of magnitude. CONCLUSION:
+not a cost_function term holding springs down -- the eligibility gate
+removes it before scoring runs at all.
+
+REVIEWER DECISION: _apply_eligibility_gate's |feedback|>=4 relaxation
+now matches at CORNER level with SIGN CONSISTENCY, not phase-exact -- a
+|fb|>=4 item at corner N unlocks heavy-corrector candidates at corner N
+whose own verdict direction matches the feedback sign, any phase. The
+>=2-corner strong-severity DATA path stays phase-scoped, unchanged.
+Rationale for record: driver feedback is corner-granular testimony --
+drivers do not phase-segment their own complaint; phase attribution is
+the pipeline's own job, not something the eligibility check should
+demand agreement on.
+
+IMPLEMENTATION: feedback_magnitude dict rekeyed from (corner, phase) to
+(corner, verdict) (decision_frame.py, _apply_eligibility_gate); each
+heavy candidate's own fb_mag lookup now uses its own primary evidence's
+verdict (same "primary = evidence_refs[0]" pattern severity already
+uses) paired with its own corner, not its own phase. Camber's own "no
+bypass, ever" rule is untouched. 4 new targeted tests (tests/test_
+decision_frame.py): bypass fires across a phase mismatch (same corner,
+same verdict sign), sign mismatch does NOT unlock, a DIFFERENT corner's
+feedback does NOT unlock (still corner-scoped, not session-wide), and
+the >=2-corner data path re-confirmed unchanged with zero feedback
+evidence in play. Full targeted suite green (165/165, up from 161 pre-
+amendment).
+
+RE-RUN, item (a) listing, amendment live: BYTE-IDENTICAL shortlist
+(same 4 rows, same scores, same six-term breakdowns) -- springs still
+absent. Investigated why, without re-running the expensive pipeline
+again: read config/decision_frame.json's own lever_bridges directly.
+springs_front stiffen and springs_rear soften -- the exact pair that
+fired 22 times in the first run -- both carry condition.verdict=
+"oversteer", not "understeer" (springs_front soften and springs_rear
+stiffen are the understeer-side bridges, matching config/decision_
+frame.json's own interaction_table tagging, cross-checked earlier this
+session: springs_front/stiffen and springs_rear/soften both carry
+sign=+1 on oversteer_tendency). The user's own feedback was -5 UNDER-
+STEER; the amendment correctly requires SIGN CONSISTENCY; these 22 real
+springs candidates are genuinely addressing an OVERSTEER problem v3's
+own telemetry shows independently at those corners (apex_3/exit_5) --
+a different axis from the entry-phase understeer the driver reported,
+not something any eligibility relaxation should bridge. No understeer-
+side springs bridge (springs_front soften / springs_rear stiffen)
+appeared anywhere in either run's own raw-candidate list -- v3's data
+does not independently propose an understeer-springs fix at any corner
+this session, so there is nothing of matching sign for the feedback to
+unlock even with the amendment fully correct and working. CONCLUSION:
+the amendment is verified working as specified (corner+sign match,
+phase-agnostic); springs stays absent because the real data and the
+driver's own feedback are about two different problems at these
+corners, not because of any remaining gate defect.
+
+PLAN.md gained a one-line spec addendum at this touch, dated
+2026-09-23.
+
+## Cache-miss reproduction attempt, WP5 identity check [2026-09-23,
+read-only diagnostic, no branch, no config/production change]
+
+Follow-up to ITEM 3's static-code diagnosis: reproduce one cache miss
+for real, through the app's own code paths (headless Qt), rather than
+reason about it further from a code read alone. Outing 3 (race_weekend
+2, csv_path C:/UNI/Bachelorarbeit/Setuptool_local/GT3_PRC_MLA-v3.txt)
+confirmed to carry real stored analysis_data (291468 chars) via a
+direct DB query -- the other v3-adjacent outing, id 2, has none, and
+Outing 1 (Dubai) has its own. Constructed a real OutingForm(weekend,
+outing=Outing(3)) headlessly (offscreen Qt), pumped the real event loop
+so the actual _auto_load_csv -> CsvLoaderThread -> _on_csv_loaded ->
+_try_render_cached_analysis chain ran for real (no monkeypatching, no
+reimplementation of the decision) -- console output: "[PERF] db_cache_
+hit=True render+sync total: 0.023s", stability_result populated.
+
+RESULT: could not reproduce a miss. All 7 identity fields (outing_form.
+py:1565-1637) matched, stored vs freshly computed, side by side:
+schema_version (8/8), csv_path normalised (identical), accuracy_cap
+(None/None), resolved_vehicle_snapshot (identical dict, mass_kg=1381.9
+et al.), sideslip_source (ekf_auto_pacejka/ekf_auto_pacejka),
+grid_rate_hz (100/100), lap_filter sorted ([6,7,8]/[6,7,8]). The cache-
+hit path is CORRECT and fast on a clean headless reopen of this exact
+outing, today, on this machine -- confirms ITEM 3's own conclusion
+(decision-layer package changes do not touch any of these fields) from
+the other direction: a real run, not just a diff read.
+
+LIVE-SEQUENCE CANDIDATE, if the user is still seeing a genuine miss in
+their own running app: accuracy_cap_combo. The widget's own construction
+comment (outing_form.py:794) states explicitly: "accuracy_cap_combo has
+NO cross-restart persistence at all" -- it always initialises to its
+first item, "Best available" (cap=None), regardless of what cap was
+selected when an outing's stored analysis_data was produced. Concrete
+sequence that WOULD reproduce a miss: set the selector to "Level 1/2/3"
+before clicking Analyse (persisting accuracy_cap=1/2/3 into analysis_
+data) -- then reopen the outing (new OutingForm construction, e.g. via
+the weekend list, or an app restart) -- the combo resets to "Best
+available" (None) -- outing_form.py:1604's `cached.get("accuracy_cap")
+!= cap` fires -- full re-Analyse, correctly, by the check's own existing
+design (this is the SAME already-known, in-code-documented gap Phase C
+already found for a different reason -- "accuracy_cap_combo has no
+write path anywhere", cited in this file's own 2026-09-22 close-out
+entry -- not a new discovery, but now the concrete mechanism connecting
+it to this specific symptom). Second candidate, per the guard's own
+comment (line 1571): a setup-sheet edit since the cache was written,
+changing resolved_vehicle_snapshot. Neither reproducible headlessly
+without deliberately setting up that exact widget-state sequence first
+(not attempted here -- would require simulating a user's own multi-step
+UI interaction, not a single reopen). No cache logic changed.
+
+## WP-DL Phase E: decision-layer figures generated from live config
+[2026-09-23, user-approved; entry backfilled 2026-09-23 during Phase F's
+own completeness check -- CLAUDE.md's "same turn" recording rule was
+missed when Phase E itself ran, caught and corrected here]
+
+New diagnostics/generate_decision_layer_figure.py [keep-reproduces,
+diagnostics/README.md entry added]: reads ONLY live config (config/
+setup_parameters.json, config/decision_frame.json, config/
+recommendations.json) plus the production rule_bridge_status classifier
+(modules/decision_frame.py) -- no hardcoded copies of config content, so
+the figures cannot drift from the implementation. No production write;
+read-only against modules/ui/config throughout Phase E, per the work
+order's own constraint. Outputs diagnostics/plots_decision_layer/
+(gitignored, added to .gitignore this same touch).
+
+Output 1, six_stage_flow.png/.pdf: PLAN.md DECISION LAYER SPEC's six
+stages as a landscape-A4 flow diagram, live counts/values printed as-is
+(42 reachable levers, matrix-rule and lever_bridges counts, interaction_
+table size, contradiction_sources, the six cost_function terms and
+display_score_threshold).
+
+Output 2, lever_coverage_table.png/.pdf: a two-panel landscape table, 35
+rows proving full coverage of all 46 config/setup_parameters.json
+registry keys -- 30 rows for the 42 recommendation_target=true keys
+(axle-paired display per Stage 1's own text: camber and the 5 damper
+types pair front/rear into 10+2 rows; ARB stays 4 separate per-corner
+rows, per the registry's own arb_fl/arb_rl notes, "Four fully independent
+per-corner targets, no pairing concept"), 1 check-only row (tyre
+pressures, not a setup_parameters.json key at all), 4 written-exclusion
+rows (diff_package, kinematic_variants, gear_ratios, engine_curves).
+Trigger-provenance column computed by replicating the exact gates each
+candidate generator uses (matrix: rule_bridge_status=="primary" actions;
+lever_bridges: config content directly; feedback-only: sign==+1 AND
+performance_axis in {understeer_tendency, oversteer_tendency} AND
+parameter in eligibility_classes.click_class, matching modules/decision_
+frame.py _feedback_only_candidates' own gate exactly) plus two small
+cited constants for the two dedicated Python-only generators that no
+config block can expose (_exit_oversteer_candidates' fixed parameter set
+{arb_rl, arb_rr, springs_rear, tc_lon, diff_position}; _brake_bias_
+candidates' single lever brake_bias).
+
+FINDING (surfaced by the coverage table itself, not looked for):
+config/decision_frame.json parameter_windows.brake_bias and
+.splitter_offset both still carried a "context-only, recommendation_
+target=false" note, stale since both levers were promoted to
+recommendation_target=true on 2026-09-22 (DECISION LAYER SPEC/Phase A).
+Reported to the user rather than fixed (Phase E was read-only against
+config); the fix itself is Phase F item F1, recorded in this file's own
+Phase F close-out entry below.
+
+Three layout bugs found and fixed during the same Phase E session,
+before the figures were shown (E5's "no more than one render before
+showing" was about layout taste, not about shipping a structurally
+broken render): (1) the flow diagram's row-2 boxes were placed left to
+right (4,5,6) but the connecting arrows implemented a serpentine
+down-then-right-to-left path, so the diagram visually read 1-2-3-6-5-4 --
+fixed by routing the 3->4 transition as an explicit elbow (drop, then
+across) so both rows read left to right; (2) the coverage table's single
+A4-landscape panel could not hold 35 rows x 6 columns at a readable font
+size and both overflowed the page and overlapped its own title -- fixed
+by splitting into two side-by-side panels, each table forced to fill a
+fixed-bbox axes region so it can never overflow regardless of row count;
+(3) long Notes-column text was truncated at a fixed character count but
+never wrapped, so it clipped at the cell's right edge instead of
+breaking -- fixed with textwrap, with the per-cell character budget
+tuned down until the longest wrapped notes (including a row combining
+two note fragments, Brake Bias) stayed within the uniform row height.
+
+BUG FOUND DURING PHASE F (2026-09-23), NOT during Phase E itself: the
+first working version of _collect_data()'s feedback_eligible set filtered
+interaction_table entries by sign==1 and click-class membership only,
+omitting the performance_axis check modules/decision_frame.py
+_feedback_only_candidates itself applies (axis must be understeer_
+tendency or oversteer_tendency for THAT specific candidate's feedback
+verdict). This over-counted arb_rl/arb_rr as feedback-eligible -- their
+own sign=+1 interaction_table entries are on yaw_stability, an axis B2's
+routing mechanism never checks. Caught by Phase F's own thesis_notes.md
+completeness cross-check (this file's own 2026-09-22 "DECISION LAYER
+SPEC B2 design resolution" entry states the true count is zero click-
+class levers on either tendency axis, elicitation item 10, still OPEN --
+the figure's original "2 levers" contradicted that recorded finding).
+Fixed by adding the axis filter; both figures re-rendered. Corrected
+figures now show "0 click-class levers ... OPEN gap (elicitation item
+10)" at Stage 2, and the coverage table no longer tags arb_rl/arb_rr as
+feedback-eligible. A concrete illustration of why this script imports
+the production gate logic (rule_bridge_status) where it can, rather than
+re-deriving it by hand everywhere: the one place it DID re-derive a gate
+by hand (feedback eligibility) is exactly where it drifted from
+production on the first pass.
+
+## WP-DL Phase F close-out: config note fix, thesis_notes completeness
+check, census stability, full suite [2026-09-23]
+
+F1 (the one config edit authorized this phase): config/decision_frame.
+json parameter_windows.brake_bias and .splitter_offset notes corrected
+-- both previously read "context-only, recommendation_target=false",
+stale since both levers were promoted to recommendation_target=true on
+2026-09-22 (found by Phase E's own coverage-table audit, recorded
+above). Each note now states the correction explicitly, dated, with a
+pointer to WHY nominal/span still stay null independently of the
+promotion (brake_bias: channel not yet identified, elicitation item 4;
+splitter_offset: never revisited with Deepening Phase 4a's own value_
+space-midpoint fill rule after promotion -- a real open gap, not a
+re-affirmed design choice). Both decision-layer figures re-rendered
+after the edit, per the work order's own instruction. JSON validity
+confirmed by direct parse before re-rendering.
+
+F2 (thesis_notes.md completeness check): every phase A-E and every
+named reviewer decision in this package already carried a dated,
+substantive entry -- verified by reading each one directly, not by
+title alone: Phase A (registry/config schema, channel-census
+correction, byte-stable 12/41 baseline), B1 (per-candidate statuses),
+B2 (feedback-only routing + the "zero eligible levers" gap finding),
+B4 (breadth N definition), B5/B6 (window edge, contradiction), B7
+(three bridges), Phase B close-out (12/41->5/21), Phase C (splitter
+direction), C1 (scoring-term fold), Phase C close-out (5/21->6/21,
+STOP investigated), D6 (top-line rendering rule), ITEM 1 (display
+grouping, max-score), ITEM 2(c) (band confidence), item (a) (gate
+amendment). ONE GAP FOUND: Phase E (the decision-layer figures) had no
+entry at all -- CLAUDE.md's "same turn" recording rule was missed when
+Phase E itself ran. Added this same turn (see "WP-DL Phase E" entry
+above), including a real bug the completeness check itself surfaced
+while writing that entry (the feedback_eligible axis-filter omission --
+see that entry for the full account). No other gaps found.
+
+F3 (census stability): diagnostics/inspect_frame_candidate_census.py
+re-run on both real sessions. Dubai 6 candidates, v3 21 candidates --
+EXACT MATCH to the accepted 6/21 baseline (Phase C close-out). No count
+change, no STOP. Per-group shapes also match the Phase C close-out
+baseline's own description (Dubai: arb_rl/rr soften, tc_lon increase/
+decrease, diff_position increase, wing_position increase, splitter_
+offset increase, each 1 corner; v3: arb_rl/rr soften across 6 corners,
+diff_position increase across 5, tc_lon increase across 3, arb_fl/fr
+stiffen 1 corner each).
+
+F4 (full regression suite, the package's ONE run): `pytest tests/` --
+417 passed, 9 skipped, 1 xfailed, 0 failed, 2854.02s (47m34s). No
+golden-path test failed (decision_frame remains outside golden paths,
+per the work order's own framing -- this run did not touch that
+question either way, since nothing failed). No regeneration performed
+or needed.
+
+STOP BEFORE COMMIT, per the work order's own F5 instruction -- final
+report and protected-set reminder delivered in-chat, not duplicated
+here.

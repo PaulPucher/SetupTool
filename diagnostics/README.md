@@ -646,3 +646,53 @@ kept because a surviving script imports it, not for its own findings.
   decision_frame.json to its original content in a finally block either
   way -- writes to the real config file to prove real persistence, so it
   must never leave that file mutated behind it.
+- **smoke_test_decision_frame_phase_d.py** `[keep-reproduces]` — WP-DL
+  Phase D (2026-09-22, thesis_notes.md "Phase D: D6 top-line rendering
+  rule resolved"), same offscreen-Qt technique as smoke_test_decision_
+  frame_widget.py, but checking CONTENT the D6 STOP made load-bearing
+  rather than the widget binding: rebuilds the real Dubai shortlist/tail
+  directly and confirms no shortlist top line carries a corner id (D1),
+  no direction-only candidate (no real delta) renders a digit it does
+  not have (D6) -- both from real data AND from two hand-built synthetic
+  actions so the direction-only path is checked deterministically
+  regardless of which candidates this file's own kinematic-mode verdicts
+  happen to fire -- and tail ordering (real candidates by descending
+  score before unranked no_trigger rows, D2). Also constructs a real
+  OutingForm and confirms the actually-rendered widget tree agrees (no
+  corner id in any rendered badge, tail toggle collapsed by default,
+  "> reasoning" dropdowns present). Re-run whenever render_top_line/
+  render_tail_line or the row-building code in ui/views/outing_form.py's
+  Decision Frame section changes.
+- **inspect_pipeline_wall_times.py** `[keep-reproduces]` — PLAN.md ###
+  NOW item (2) profiling pass (2026-09-23, thesis_notes.md "Pipeline
+  wall-clock timing, per-stage, both real sessions"). Re-issues
+  inspect_frame_stage2_parity.py's own run_full_pipeline call sequence
+  one call at a time (same DUBAI_FILE/V3_FILE/FIXED_CAP constants,
+  imported not re-typed), each wrapped in time.perf_counter() -- the
+  fit chain's own Pacejka-fit/EKF-run split (no external call boundary
+  in production) comes from cProfile wrapped around the single fit_
+  session_pacejka call, bucketed by function name after the fact, never
+  by editing modules/. Found estimate_longitudinal_stiffness, the fit
+  chain's own EKF run, and estimate_cornering_stiffness are 97-98% of
+  total wall time on both real sessions -- the load-bearing measurement
+  behind PLAN.md NOW item (2)'s own "profile first" half; re-run
+  whenever the pipeline's own default sideslip/vertical-load source or
+  any of these three estimators changes, to re-check whether the
+  concentration still holds.
+- **generate_decision_layer_figure.py** `[keep-reproduces]` — regenerates
+  the thesis/supervisor figures for the decision layer (WP-DL Phase E,
+  2026-09-23) from live config only: config/setup_parameters.json,
+  config/decision_frame.json, config/recommendations.json, plus the
+  production rule_bridge_status classifier (modules/decision_frame.py) --
+  so neither figure can drift from what the pipeline actually does.
+  Outputs diagnostics/plots_decision_layer/ (gitignored): a six-stage
+  flow diagram (PLAN.md DECISION LAYER SPEC Stage 1-6, live counts and
+  cost_function weights printed as-is) and a two-panel lever coverage
+  table (35 rows -- axle-paired per Stage 1 for camber/dampers, ARB kept
+  per-corner per the registry's own no-pairing note -- covering all 42
+  recommendation_target=true registry keys + the tyre-pressure check-only
+  item + the 4 written exclusions, proving every registry entry appears
+  exactly once). Re-run whenever config/decision_frame.json's
+  eligibility_classes/cost_function/lever_bridges/interaction_table,
+  config/setup_parameters.json's registry, or config/recommendations.json's
+  rules change, so the figures stay in sync.

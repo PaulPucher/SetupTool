@@ -909,7 +909,8 @@
     "value_space": {
       "type": "int",
       "min": 1,
-      "max": 5
+      "max": 5,
+      "unit": "position"
     },
     "direction_semantics": {
       "1": "least locking torque",
@@ -927,7 +928,7 @@
       "exit_4",
       "exit_5"
     ],
-    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3. DECISION LAYER SPEC 2026-09-22: escalation_tier corrected pitlane (was garage, wrong), change_effort corrected minutes (was seconds, wrong); triggers now include straight-line stability under braking AND acceleration, not only exit cells -- coupled to engine braking (teams run high diff, per-corner EB weakens it in-corner; diff recommendations degrade honestly, 'EB program unknown', until TC/EB channel mapping lands).",
+    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3. DECISION LAYER SPEC 2026-09-22: escalation_tier corrected pitlane (was garage, wrong), change_effort corrected minutes (was seconds, wrong); triggers now include straight-line stability under braking AND acceleration, not only exit cells -- coupled to engine braking (teams run high diff, per-corner EB weakens it in-corner; diff recommendations degrade honestly, 'EB program unknown', until TC/EB channel mapping lands). PHASE D (2026-09-22): value_space gained unit 'position' -- the D6 top-line rendering STOP found this was the one registry lever with a real delta but no unit string at all (the 5 sheet positions were already the elicited Stage 1 value space; this only names their unit, no new number).",
     "recommendation_target": true
   },
   "wing_position": {

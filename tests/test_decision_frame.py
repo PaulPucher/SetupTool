@@ -28,15 +28,21 @@ from modules.decision_frame import (
     TRIGGER_FEEDBACK_ONLY,
     aggregate_ls_by_corner,
     build_evidence,
+    candidate_severity,
     generate_candidates,
     generate_display_split,
     generate_lever_inventory,
     generate_shortlist,
+    group_display_rows,
     load_decision_frame_config,
     reachable_lever_keys,
+    render_action_line,
+    render_tail_line,
+    render_top_line,
     resolve_conflicts,
     rule_bridge_status,
     score,
+    tyre_pressure_flags,
 )
 from modules.recommendation import load_recommendations_config, load_setup_parameters_registry
 
@@ -938,44 +944,71 @@ def _feedback_data_for(cid, **phase_values):
     return {"corners": corners}
 
 
+_BAND_CFG = {"confidence_bands": [
+    {"max_abs": 1, "value": 0.1}, {"max_abs": 3, "value": 0.75}, {"max_abs": 5, "value": 1.0},
+]}
+# The formula ITEM 2(c) replaced (linear ramp, floor=0.1, full_at=4) -- kept
+# here ONLY as a literal comparison point for the "band beats old linear"
+# regression test below, never imported from production (that formula no
+# longer exists in modules/decision_frame.py).
+_OLD_LINEAR = lambda magnitude, floor=0.1, full_at=4: round(
+    floor + (1.0 - floor) * min(1.0, max(0.0, (magnitude - 1.0) / (full_at - 1.0))), 3
+)
+
+
 def test_driver_feedback_confidence_floor_at_magnitude_1():
     from modules.decision_frame import _build_driver_feedback_evidence
-    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
     feedback_data = _feedback_data_for(4, x4=1)  # smallest possible complaint, exit_4
-    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, _BAND_CFG)
     assert len(evidence) == 1
     ev = evidence[0]
     assert ev["corner"] == 4 and ev["phase"] == "exit_4"
     assert ev["verdict"] == "oversteer"  # positive raw value
-    assert ev["confidence"] == pytest.approx(0.1)  # exactly the floor at |1|
+    assert ev["confidence"] == pytest.approx(0.1)  # low band, unchanged from the old floor
 
 
-def test_driver_feedback_confidence_full_at_magnitude_4():
+def test_driver_feedback_confidence_mid_band_flat_at_2_and_3():
+    # Phase D ITEM 2(c) (2026-09-23): band-shaped, not linear -- |2| and |3|
+    # both land in the same "clearly felt" band and must read the SAME
+    # confidence, unlike the old linear ramp's own 0.4/0.7 split.
     from modules.decision_frame import _build_driver_feedback_evidence
-    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
-    feedback_data = _feedback_data_for(4, e1=-4)  # understeer, entry_1_brake
-    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
-    assert len(evidence) == 1
-    ev = evidence[0]
-    assert ev["phase"] == "entry_1_brake"
-    assert ev["verdict"] == "understeer"
-    assert ev["confidence"] == pytest.approx(1.0)
+    fb2 = _feedback_data_for(4, a3=2)
+    fb3 = _feedback_data_for(4, a3=-3)
+    ev2 = _build_driver_feedback_evidence(fb2, {4: {"speed_class": "medium"}}, _BAND_CFG)
+    ev3 = _build_driver_feedback_evidence(fb3, {4: {"speed_class": "medium"}}, _BAND_CFG)
+    assert ev2[0]["confidence"] == pytest.approx(0.75)
+    assert ev3[0]["confidence"] == pytest.approx(0.75)
 
 
-def test_driver_feedback_confidence_ramps_linearly_between():
+def test_driver_feedback_confidence_undrivable_band_saturates_at_4_and_5():
     from modules.decision_frame import _build_driver_feedback_evidence
-    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
-    feedback_data = _feedback_data_for(4, a3=2.5)  # halfway between |1| and |4|
-    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
-    # floor + (1-floor)*ramp, ramp=(2.5-1)/(4-1)=0.5 -> 0.1 + 0.9*0.5 = 0.55
-    assert evidence[0]["confidence"] == pytest.approx(0.55)
+    fb4 = _feedback_data_for(4, e1=-4)
+    fb5 = _feedback_data_for(4, e1=-5)
+    ev4 = _build_driver_feedback_evidence(fb4, {4: {"speed_class": "medium"}}, _BAND_CFG)
+    ev5 = _build_driver_feedback_evidence(fb5, {4: {"speed_class": "medium"}}, _BAND_CFG)
+    assert ev4[0]["confidence"] == pytest.approx(1.0)
+    assert ev5[0]["verdict"] == "understeer"
+    assert ev5[0]["confidence"] == pytest.approx(1.0)  # |5| = 1.0 exactly, per the work order
+
+
+def test_driver_feedback_confidence_band_beats_old_linear_in_mid_band():
+    # "Proportionate feedback strengthening": the new band value at |2| and
+    # |3| must be >= what the old linear ramp gave at that same input --
+    # a clearly-felt complaint now carries at least as much weight as
+    # before, never less. |4|/|5| already saturated under the old formula
+    # too (both already 1.0), so the strengthening is entirely in this
+    # mid band -- the regression this test actually guards.
+    from modules.decision_frame import _feedback_confidence
+    for magnitude in (2, 3):
+        assert _feedback_confidence(magnitude, _BAND_CFG) >= _OLD_LINEAR(magnitude)
+    for magnitude in (4, 5):
+        assert _feedback_confidence(magnitude, _BAND_CFG) == _OLD_LINEAR(magnitude) == 1.0
 
 
 def test_driver_feedback_zero_value_produces_no_evidence():
     from modules.decision_frame import _build_driver_feedback_evidence
-    cfg = {"confidence_floor": 0.1, "full_confidence_at_raw_abs": 4}
     feedback_data = _feedback_data_for(4, e1=0, x4=0)
-    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, cfg)
+    evidence = _build_driver_feedback_evidence(feedback_data, {4: {"speed_class": "medium"}}, _BAND_CFG)
     assert evidence == []
 
 
@@ -1027,14 +1060,19 @@ def test_attach_feedback_evidence_never_duplicates():
 
 
 def test_feedback_weighting_config_present():
+    # Phase D ITEM 2(c) (2026-09-23): band-shaped config, replacing the
+    # original confidence_floor/full_confidence_at_raw_abs pair.
     config = load_decision_frame_config()
     fw = config["driver_feedback_weighting"]
-    assert fw["confidence_floor"] == pytest.approx(0.1)
-    assert fw["full_confidence_at_raw_abs"] == 4
-    # Same anchor modules.recommendation's own consistency-gate override uses.
+    bands = fw["confidence_bands"]
+    assert [b["max_abs"] for b in bands] == [1, 3, 5]
+    assert [b["value"] for b in bands] == [pytest.approx(0.1), pytest.approx(0.75), pytest.approx(1.0)]
+    # Same anchor modules.recommendation's own consistency-gate override
+    # uses (|4|="approaching undrivable") must still fall inside the
+    # undrivable band (max_abs=5), past the mid band's own max_abs=3.
     rec_config = load_recommendations_config()
-    assert (rec_config["settings"]["consistency_gate"]["feedback_override"]["feedback_override_raw_min"]
-            == fw["full_confidence_at_raw_abs"])
+    anchor = rec_config["settings"]["consistency_gate"]["feedback_override"]["feedback_override_raw_min"]
+    assert bands[1]["max_abs"] < anchor <= bands[2]["max_abs"]
 
 
 # --- Metrology Phase 2: verdict-stability [MARGINAL] confidence cap --------
@@ -1876,6 +1914,72 @@ def test_eligibility_gate_direct_axle_and_direction_grouping():
     assert kept == []
 
 
+# --- Eligibility gate amendment (2026-09-23, reviewer decision from item
+# (a) findings): |feedback|>=4 matches at CORNER level with SIGN
+# CONSISTENCY, not phase-exact -- item (a)'s own v3 run found every real
+# springs candidate fires at apex_3/exit_5 while the driver's own
+# feedback was entered at entry_1_brake, so the OLD phase-exact key could
+# never unlock a springs candidate no matter the feedback magnitude.
+
+def test_eligibility_gate_feedback_bypass_matches_corner_not_phase():
+    # Moderate, single-corner (multi_corner_ok=False on its own) -- only
+    # the feedback bypass can make this eligible. Feedback fires at a
+    # DIFFERENT phase (entry_1_brake) than the matrix evidence
+    # (apex_3) -- same corner, same verdict sign (understeer).
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
+        _feedback_evidence(7, "entry_1_brake", -4),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+
+
+def test_eligibility_gate_feedback_bypass_sign_mismatch_does_not_unlock():
+    # Same corner, |feedback|>=4, but the OPPOSITE sign (oversteer) from
+    # the candidate's own understeer verdict -- must NOT unlock.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
+        _feedback_evidence(7, "entry_1_brake", 4),  # positive raw -> oversteer
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+
+
+def test_eligibility_gate_feedback_bypass_different_corner_does_not_unlock():
+    # Sanity check: the relaxation is still CORNER-scoped, not session-
+    # wide -- feedback at a different corner must not unlock this one.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
+        _feedback_evidence(9, "entry_1_brake", -4),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    assert not [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+
+
+def test_eligibility_gate_data_path_unchanged_by_amendment():
+    # The >=2-corner strong-severity DATA path stays phase-scoped and
+    # unaffected by the feedback-keying change -- same assertion as the
+    # pre-amendment test_eligibility_gate_allows_heavy_corrector_on_
+    # strong_multi_corner, re-confirmed after this change, with zero
+    # feedback evidence in play at all.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["id"] == "lever_bridge:springs_front:soften:C7:apex_3"]
+    assert len(matches) == 1
+
+
 # --- DECISION LAYER SPEC Phase B4: breadth (2026-09-22) --------------------
 #
 # N resolved reviewer-side (thesis_notes.md "B4 breadth design
@@ -2483,3 +2587,197 @@ def test_data_and_feedback_agreeing_upgrades_to_both_agreeing():
     matrix_candidates = [c for c in candidates if c.get("rule_id") == "matrix_us_brk_med"]
     assert len(matrix_candidates) == 1
     assert matrix_candidates[0]["trigger_provenance"] == TRIGGER_BOTH_AGREEING
+
+
+# --- WP-DL Phase D (2026-09-22): top-line/tail rendering, D6 rule -------
+#
+# D6 STOP resolution (thesis_notes.md "Phase D: D6 top-line rendering
+# rule resolved"): a magnitude renders only when the action carries a
+# real delta AND the registry defines a linear unit for the lever; an
+# enum lever's symbolic +-1 (a routing sign, never a physical step) must
+# never render as a number. Real registry, hand-crafted action/candidate
+# dicts -- same convention this file's own scoring tests already use.
+
+def test_render_action_line_renders_magnitude_when_delta_and_unit_present():
+    registry = load_setup_parameters_registry()
+    line = render_action_line({"parameter": "arb_rl", "direction": "soften", "delta": -1}, registry)
+    assert line == f"{registry['arb_rl']['label']} -1 blade position"
+
+
+def test_render_action_line_direction_only_when_no_delta():
+    registry = load_setup_parameters_registry()
+    line = render_action_line({"parameter": "tc_lon", "direction": "decrease"}, registry)
+    assert line == f"{registry['tc_lon']['label']}: less intervention"
+    assert not any(ch.isdigit() for ch in line)
+
+
+def test_render_action_line_enum_lever_never_renders_symbolic_delta_as_number():
+    registry = load_setup_parameters_registry()
+    line = render_action_line({"parameter": "wing_position", "direction": "increase", "delta": 1}, registry)
+    assert line == f"{registry['wing_position']['label']}: higher position"
+    assert not any(ch.isdigit() for ch in line)
+
+
+def test_render_action_line_diff_position_gained_unit_phase_d():
+    registry = load_setup_parameters_registry()
+    assert registry["diff_position"]["value_space"]["unit"] == "position"
+    line = render_action_line({"parameter": "diff_position", "direction": "increase", "delta": 1}, registry)
+    assert line == f"{registry['diff_position']['label']} +1 position"
+
+
+def test_render_action_line_brake_bias_appends_direction_word_to_magnitude():
+    registry = load_setup_parameters_registry()
+    line = render_action_line({"parameter": "brake_bias", "direction": "more_rear", "delta": 2}, registry)
+    assert line == f"{registry['brake_bias']['label']} +2 clicks rearward"
+
+
+def test_render_top_line_no_actions_names_no_corner():
+    line = render_top_line({"actions": [], "corner": 7}, {})
+    assert line == "Engineer attention: no routed action"
+    assert "7" not in line
+
+
+def test_render_top_line_joins_multiple_actions():
+    registry = load_setup_parameters_registry()
+    c = {"actions": [
+        {"parameter": "arb_rl", "direction": "soften", "delta": -1},
+        {"parameter": "arb_rr", "direction": "soften", "delta": -1},
+    ]}
+    line = render_top_line(c, registry)
+    assert " + " in line
+    assert line.count("blade position") == 2
+
+
+def test_candidate_severity_first_severity_bearing_evidence_ref():
+    c = {"evidence_refs": [{"severity": None}, {"severity": "strong"}, {"severity": "moderate"}]}
+    assert candidate_severity(c) == "strong"
+
+
+def test_candidate_severity_none_when_nothing_backs_it():
+    c = {"evidence_refs": [{"type": "intervention_abs"}]}
+    assert candidate_severity(c) is None
+
+
+def test_render_tail_line_no_trigger_names_lever_only():
+    registry = load_setup_parameters_registry()
+    entry = {"status": STATUS_NO_TRIGGER, "lever": "camber_fl"}
+    line = render_tail_line(entry, registry)
+    assert line == f"{registry['camber_fl']['label']}: no trigger this session"
+
+
+def test_render_tail_line_blocked_at_edge_states_reason():
+    registry = load_setup_parameters_registry()
+    entry = {
+        "status": STATUS_BLOCKED_AT_EDGE,
+        "actions": [{"parameter": "splitter_offset", "direction": "increase", "delta": 1}],
+        "edge_reason": "splitter_offset already at its typical-window edge",
+    }
+    line = render_tail_line(entry, registry)
+    assert "BLOCKED" in line
+    assert "typical-window edge" in line
+
+
+def test_render_tail_line_contradicted_states_first_reason():
+    registry = load_setup_parameters_registry()
+    entry = {
+        "status": STATUS_CONTRADICTED,
+        "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}],
+        "condition_reasons": ["contradicted by C4 matrix_verdict"],
+    }
+    line = render_tail_line(entry, registry)
+    assert "contradicted by C4" in line
+
+
+def test_render_tail_line_not_assessable_states_reason():
+    registry = load_setup_parameters_registry()
+    entry = {
+        "status": STATUS_NOT_ASSESSABLE,
+        "actions": [{"parameter": "arb_rl", "direction": "soften", "delta": -1}],
+        "edge_reason": "setup sheet unfilled: arb_rl",
+    }
+    line = render_tail_line(entry, registry)
+    assert "not assessable" in line
+    assert "setup sheet unfilled: arb_rl" in line
+
+
+def test_render_tail_line_proposed_below_threshold_states_score():
+    registry = load_setup_parameters_registry()
+    entry = {
+        "status": STATUS_PROPOSED,
+        "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}],
+        "score": 0.12,
+    }
+    line = render_tail_line(entry, registry)
+    assert "0.12" in line
+    assert "below display threshold" in line
+
+
+def test_tyre_pressure_flags_empty_while_target_all_null():
+    # Stage 1 check-only item: no per-session pressure-vs-target evidence
+    # source exists yet, and tyre_pressure_target is all-null (channel-
+    # census correction, thesis_notes.md 2026-09-22) -- must stay silent,
+    # never fabricate a flag.
+    config = load_decision_frame_config()
+    assert tyre_pressure_flags(config) == []
+
+
+# --- Phase D feedback round, ITEM 1 (2026-09-23): display-layer grouping -
+
+def test_group_display_rows_collapses_identical_top_line():
+    registry = load_setup_parameters_registry()
+    a = {"id": "a", "corner": 4, "phase": "exit_4", "score": 0.30,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    b = {"id": "b", "corner": 9, "phase": "exit_4", "score": 0.55,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    grouped = group_display_rows([a, b], registry)
+    assert len(grouped) == 1
+    assert grouped[0]["group_members"] == [a, b]
+
+
+def test_group_display_rows_score_is_max_never_sum():
+    registry = load_setup_parameters_registry()
+    a = {"id": "a", "corner": 4, "phase": "exit_4", "score": 0.30,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    b = {"id": "b", "corner": 9, "phase": "exit_4", "score": 0.55,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    grouped = group_display_rows([a, b], registry)
+    assert grouped[0]["score"] == 0.55
+    assert grouped[0]["corner"] == 9  # representative fields come from the max-score member
+
+
+def test_group_display_rows_different_parameters_stay_separate():
+    registry = load_setup_parameters_registry()
+    a = {"id": "a", "corner": 4, "phase": "exit_4", "score": 0.30,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    b = {"id": "b", "corner": 6, "phase": "exit_4", "score": 0.40,
+         "actions": [{"parameter": "diff_position", "direction": "increase", "delta": 1}]}
+    grouped = group_display_rows([a, b], registry)
+    assert len(grouped) == 2
+    assert all("group_members" not in g for g in grouped)
+
+
+def test_group_display_rows_no_trigger_rows_never_collapse_across_levers():
+    registry = load_setup_parameters_registry()
+    a = {"status": STATUS_NO_TRIGGER, "lever": "camber_fl"}
+    b = {"status": STATUS_NO_TRIGGER, "lever": "camber_fr"}
+    grouped = group_display_rows([a, b], registry)
+    assert len(grouped) == 2
+
+
+def test_group_display_rows_unrouted_candidates_never_collapse():
+    # No parameter-set to match on -- two distinct corners each needing
+    # unrouted engineer attention must stay two distinct flags.
+    registry = load_setup_parameters_registry()
+    a = {"id": "a", "corner": 4, "phase": "entry_1_brake", "score": 0.2, "actions": []}
+    b = {"id": "b", "corner": 9, "phase": "entry_1_brake", "score": 0.3, "actions": []}
+    grouped = group_display_rows([a, b], registry)
+    assert len(grouped) == 2
+
+
+def test_group_display_rows_single_member_passes_through_unchanged():
+    registry = load_setup_parameters_registry()
+    a = {"id": "a", "corner": 4, "phase": "exit_4", "score": 0.30,
+         "actions": [{"parameter": "tc_lon", "direction": "increase", "delta": 1}]}
+    grouped = group_display_rows([a], registry)
+    assert grouped == [a]
+    assert "group_members" not in grouped[0]

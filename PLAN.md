@@ -2,12 +2,24 @@
 
 ### NOW
 
-(1) Decision-layer spec: designed with the reviewer in chat, stage by
-    stage; implemented afterward as ONE package, mostly config. Governs
-    all remaining decision-frame work.
-(2) Pipeline performance: profile first -- read-only per-module timing
-    on both sessions, machine untouched during the run -- then decide.
-    Observed unprofiled: Modules 1-5 832s, fit chain 188-383s.
+(1) Decision-layer spec (WP-DL): Phases A-F COMPLETE, 2026-09-23 --
+    registry/config schema, per-candidate statuses, three trigger
+    provenances, window edges, corroboration/contradiction, six-term
+    cost function + Settings weight editing, UI rendering (D6 magnitude
+    rule, display grouping, band confidence), eligibility-gate corner+
+    sign amendment, two generated figures (diagnostics/plots_decision_
+    layer/, gitignored). Census baseline Dubai 6 / v3 21 re-confirmed
+    stable at close-out (F3). Full suite: 417 passed / 9 skipped / 1
+    xfailed / 0 failed (F4). thesis_notes.md completeness-checked against
+    the whole package (F2) -- one gap found and closed (Phase E entry had
+    been missed, backfilled same turn). STOP BEFORE COMMIT -- ready for
+    the package's own commit boundary, awaiting the user's go-ahead.
+(2) Pipeline performance: PROFILING DONE (2026-09-23, diagnostics/
+    inspect_pipeline_wall_times.py, thesis_notes.md "Pipeline wall-clock
+    timing") -- estimate_longitudinal_stiffness, the fit chain's own EKF
+    run, and estimate_cornering_stiffness are 97-98% of wall time on both
+    real sessions. DECIDE step (what, if anything, to do about it) not
+    yet done -- next session's own first question.
 (3) Big cleanup: diagnostics inventory, HANDOVER regeneration,
     protected-set audit, module map document for the author.
 (4) Commit and push at end of every working day.
@@ -205,6 +217,27 @@ rows; reviewer-confirmed 2026-09-22.
 interaction_table signed entries, cheapest eligible, one candidate;
 matrix-rule relaxation rejected (severity floors are part of the
 elicited meaning); reviewer 2026-09-22.
+
+## Addendum 2026-09-22 (Phase D, D6 STOP resolution): a top line renders
+a magnitude only when the action carries a real delta AND the registry
+defines a linear unit for the lever; otherwise direction-only, in the
+lever's own registry vocabulary (correct output, not degraded).
+Refinements deferred: top lines upgrade to explicit from->to steps for
+enum levers (springs, wing_position) when setup_data is present --
+future, honest-degrade to direction-word without it. Full record:
+thesis_notes.md "Phase D: D6 top-line rendering rule resolved".
+
+## Addendum 2026-09-23 (Phase D feedback round, ITEM 1): output stage:
+identical changes group for display, max-score, user-elicited
+2026-09-23.
+
+## Addendum 2026-09-23 (eligibility gate amendment, from item (a)
+findings): the |feedback|>=4 heavy-corrector relaxation matches at
+CORNER level with sign consistency, not phase-exact -- driver feedback
+is corner-granular testimony, phase attribution is the pipeline's own
+job. The >=2-corner strong-severity data path stays phase-scoped,
+unchanged. Full record: thesis_notes.md "Item (a) term listing +
+eligibility gate amendment".
 
 # FRAME DEPTH PROGRAMME (2026-09-22, reviewer + project lead) (SUPERSEDED 2026-09-22 by DECISION LAYER SPEC — Steps 1-2 shipped as WP-FD1+2, Steps 3-5 fold into the spec, never run as standalone packages)
 

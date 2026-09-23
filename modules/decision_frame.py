@@ -663,11 +663,30 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
 # MIN-confidence rule every other corroborating source already uses) when
 # its own corner/phase/verdict agrees, via _attach_feedback_evidence.
 
+def _feedback_confidence(magnitude, feedback_cfg):
+    """Phase D feedback round, ITEM 2(c) (2026-09-23, reviewer+user
+    decision): band-shaped, not linear -- the feedback scale's own
+    recorded semantics (ui/views/outing_form.py's caption: |1|=slight,
+    |3|=strong, |5|=undrivable) are three qualitatively different
+    regimes, not one continuous ramp. Bands are config-driven (SHAPE is
+    the decision; each band's own VALUE stays tunable, provisional
+    pending elicitation -- see config/decision_frame.json's own
+    derived_from per band). First band whose max_abs the magnitude does
+    not exceed wins; a magnitude past every band's own max_abs (should
+    not occur for the current -5..+5 scale) falls to the last band's own
+    value, still 1.0, never higher (confidence is capped at 1.0 project-
+    wide) rather than raising an error over an out-of-range input.
+    """
+    bands = feedback_cfg["confidence_bands"]
+    for band in bands:
+        if magnitude <= band["max_abs"]:
+            return band["value"]
+    return bands[-1]["value"]
+
+
 def _build_driver_feedback_evidence(feedback_data, aggregated, feedback_cfg):
     if not feedback_data:
         return []
-    floor = feedback_cfg.get("confidence_floor", 0.1)
-    full_at = feedback_cfg.get("full_confidence_at_raw_abs", 4)
 
     evidence = []
     for cid, corner in aggregated.items():
@@ -682,17 +701,16 @@ def _build_driver_feedback_evidence(feedback_data, aggregated, feedback_cfg):
             if not raw:
                 continue
             magnitude = abs(raw)
-            ramp = min(1.0, max(0.0, (magnitude - 1.0) / (full_at - 1.0))) if full_at > 1 else 1.0
-            confidence = round(floor + (1.0 - floor) * ramp, 3)
+            confidence = _feedback_confidence(magnitude, feedback_cfg)
             evidence.append({
                 "type": "driver_feedback",
                 "corner": cid, "phase": phase,
                 "speed_class": corner.get("speed_class"),
                 "verdict": "oversteer" if raw > 0 else "understeer",
                 "severity": None, "confidence": confidence, "raw_feedback": raw,
-                "source": f"driver feedback {raw:+g} at {phase} (magnitude {magnitude:g}; confidence ramps "
-                          f"{floor} at |1| to 1.0 at |{full_at}| -- Deepening Phase 4d, user decision "
-                          f"'counts from 1, very little weight')",
+                "source": f"driver feedback {raw:+g} at {phase} (magnitude {magnitude:g}; "
+                          f"band-shaped confidence {confidence} -- Phase D ITEM 2(c), 2026-09-23, "
+                          f"band values provisional pending elicitation)",
             })
     return evidence
 
@@ -1824,11 +1842,23 @@ def _apply_eligibility_gate(candidates, evidence, config):
     if not heavy:
         return candidates
 
-    feedback_magnitude = {}
+    # ELIGIBILITY GATE AMENDMENT (2026-09-23, reviewer decision from item
+    # (a) findings, thesis_notes.md "Eligibility gate amendment"): the
+    # |feedback|>=4 relaxation matches at CORNER level with SIGN
+    # CONSISTENCY, not phase-exact -- keyed on (corner, verdict), not
+    # (corner, phase) as before. Rationale for record: driver feedback is
+    # corner-granular testimony -- drivers do not phase-segment their own
+    # complaint; phase attribution is the pipeline's own job, not
+    # something the eligibility check should demand agreement on. The
+    # >=2-corner strong-severity DATA path below is phase-scoped and
+    # UNCHANGED by this amendment.
+    feedback_magnitude_by_corner_verdict = {}
     for e in evidence:
         if e["type"] == "driver_feedback":
-            key = (e["corner"], e["phase"])
-            feedback_magnitude[key] = max(feedback_magnitude.get(key, 0), abs(e["raw_feedback"]))
+            key = (e["corner"], e["verdict"])
+            feedback_magnitude_by_corner_verdict[key] = max(
+                feedback_magnitude_by_corner_verdict.get(key, 0), abs(e["raw_feedback"])
+            )
 
     def _is_heavy(c):
         return any(a["parameter"] in heavy for a in c["actions"])
@@ -1856,7 +1886,9 @@ def _apply_eligibility_gate(candidates, evidence, config):
     kept = []
     for c in heavy_candidates:
         eligible = False
-        fb_mag = feedback_magnitude.get((c["corner"], c["phase"]), 0)
+        primary = c["evidence_refs"][0] if c["evidence_refs"] else None
+        candidate_verdict = primary.get("verdict") if primary else None
+        fb_mag = feedback_magnitude_by_corner_verdict.get((c["corner"], candidate_verdict), 0)
         for a in c["actions"]:
             if a["parameter"] not in heavy:
                 continue
@@ -2442,6 +2474,232 @@ def generate_display_split(candidates, evidence, current_setup, config, registry
             visible_ids.add(id(c))
     tail = [c for c in inventory if id(c) not in visible_ids]
     return {"shortlist": visible, "tail": tail}
+
+
+# --- DECISION LAYER SPEC Phase D: top-line rendering (2026-09-22) -------
+#
+# D6 STOP raised during Phase D UI work and resolved by the reviewer
+# (thesis_notes.md "Phase D D6 top-line rendering rule", 2026-09-22): a
+# top line renders a magnitude ONLY when the action carries a real delta
+# AND the registry defines a linear unit for the lever (value_space type
+# int/float with a unit) -- never for an enum lever (springs_front/rear,
+# wing_position, arb_front_mount), where the +-1 some generators attach is
+# a routing SIGN (see _bridge_candidates_for_levers' own comment above),
+# not a physical step. Otherwise the line is direction-only, in the
+# lever's own registry vocabulary -- correct output, not a degraded
+# fallback: TC/ABS's own Stage-1 vocabulary is direction-only by design.
+#
+# Phrase sourcing: symmetric registry words (soften/stiffen, more/less
+# negative or positive) render as their plain-English opposite. Lever-
+# specific words are pulled from that lever's own direction_semantics text
+# where one exists (tc_lat/tc_lon "MORE/LESS...TC intervention",
+# diff_position "locking torque" -> "more/less locking", wing_position's
+# enum options are literally named positions -> "higher/lower position",
+# brake_bias's forward/rearward wording already established at the B7
+# bridge). Every phrase here is existing registry/candidate vocabulary in
+# plain English -- no new physical claim, no invented magnitude.
+
+_SYMMETRIC_PHRASES = {
+    "soften": "softer", "stiffen": "stiffer",
+    "more_negative": "more negative", "less_negative": "less negative",
+    "more_positive": "more positive", "less_positive": "less positive",
+}
+
+_LEVER_DIRECTION_PHRASES = {
+    ("brake_bias", "more_rear"): "rearward",
+    ("brake_bias", "more_front"): "forward",
+    ("abs_position", "more_fa_stability"): "more front-axle stability",
+    ("abs_position", "more_ra_stability"): "more rear-axle stability",
+    ("tc_lat", "increase"): "more intervention",
+    ("tc_lat", "decrease"): "less intervention",
+    ("tc_lon", "increase"): "more intervention",
+    ("tc_lon", "decrease"): "less intervention",
+    ("diff_position", "increase"): "more locking",
+    ("diff_position", "decrease"): "less locking",
+    ("wing_position", "increase"): "higher position",
+    ("wing_position", "decrease"): "lower position",
+    ("ride_height_front", "decrease"): "lower to the ground",
+    ("ride_height_front", "increase"): "higher off the ground",
+}
+
+
+def _direction_phrase(parameter, direction):
+    return (_LEVER_DIRECTION_PHRASES.get((parameter, direction))
+            or _SYMMETRIC_PHRASES.get(direction)
+            or direction.replace("_", " "))
+
+
+def render_action_line(action, registry):
+    """One action's own top-line fragment -- see module comment above for
+    the D6 magnitude-vs-direction-only rule."""
+    param = action["parameter"]
+    entry = registry.get(param, {})
+    label = entry.get("label", param)
+    delta = action.get("delta")
+    value_space = entry.get("value_space") or {}
+    unit = value_space.get("unit")
+    is_linear = value_space.get("type") in ("int", "float")
+
+    if delta and is_linear and unit:
+        sign = "+" if delta > 0 else "-"
+        line = f"{label} {sign}{abs(delta)} {unit}"
+        if param == "brake_bias":
+            line += f" {_direction_phrase(param, action['direction'])}"
+        return line
+    return f"{label}: {_direction_phrase(param, action['direction'])}"
+
+
+def render_top_line(candidate, registry):
+    """Stage 6 output rule: 'top line = THE CHANGE ONLY' -- no corner id,
+    no verdict, no provenance. A candidate with no routed action (the
+    brake_balance_unrouted case) still names no corner on this line; the
+    corner lives in the dropdown like everything else."""
+    actions = candidate.get("actions")
+    if not actions:
+        return "Engineer attention: no routed action"
+    return " + ".join(render_action_line(a, registry) for a in actions)
+
+
+# --- DECISION LAYER SPEC Phase D: row severity colour (D1) --------------
+#
+# "Severity via existing row colour" -- reuses modules.recommendation's
+# own SEVERITY_RANK vocabulary (strong/moderate/normal), the same mapping
+# ui/views/outing_form.py already applies to stability-card severity
+# (colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}). No new
+# colour convention invented here -- ui/ applies that existing map to this
+# function's string result, falling back to NEUTRAL (the existing "no
+# data" colour) when nothing backs a severity.
+
+def candidate_severity(candidate):
+    """First severity-bearing evidence_ref backing this candidate, or None
+    when nothing in evidence_refs carries one (e.g. intervention-only or
+    feedback-only evidence)."""
+    for e in candidate.get("evidence_refs", []):
+        sev = e.get("severity")
+        if sev is not None:
+            return sev
+    return None
+
+
+# --- DECISION LAYER SPEC Phase D: tail row rendering (D2) ---------------
+
+def render_tail_line(entry, registry):
+    """One line for the collapsed 'assessed, not proposed' tail (Stage 6):
+    a no_trigger synthetic row names its lever only; a real non-proposed
+    candidate reuses render_top_line for the change text and appends its
+    own status reason -- never a second, disagreeing wording for the same
+    change."""
+    status = entry.get("status")
+    if status == STATUS_NO_TRIGGER:
+        lever = entry["lever"]
+        label = registry.get(lever, {}).get("label", lever)
+        return f"{label}: no trigger this session"
+
+    line = render_top_line(entry, registry)
+    if status == STATUS_BLOCKED_AT_EDGE:
+        return f"{line} -- BLOCKED ({entry.get('edge_reason', 'at edge')})"
+    if status == STATUS_CONTRADICTED:
+        reasons = entry.get("condition_reasons") or ["contradicted"]
+        return f"{line} -- {reasons[0]}"
+    if status == STATUS_NOT_ASSESSABLE:
+        reasons = entry.get("condition_reasons")
+        reason = reasons[0] if reasons else entry.get("edge_reason", "not assessable")
+        return f"{line} -- not assessable ({reason})"
+    if status == STATUS_PROPOSED:
+        return f"{line} -- below display threshold (score {entry.get('score', 0):.2f})"
+    return line
+
+
+# --- DECISION LAYER SPEC Stage 1: tyre-pressure check-only flags (D3) ---
+#
+# "Deviation flags shown beside shortlist, never in it." No per-session
+# pressure-vs-target evidence source exists yet: TPMS channels are real
+# (thesis_notes.md channel-census correction, 2026-09-22) but no target
+# pressure is elicited anywhere in this repo, so tyre_pressure_target
+# stays all-null. This returns [] honestly rather than fabricating a
+# check -- wire a real evidence builder here once both a target and a
+# per-corner cornering-phase pressure source exist.
+
+def tyre_pressure_flags(config, evidence=None):
+    targets = config.get("tyre_pressure_target", {})
+    if not any(isinstance(v, dict) and v.get("min_psi") is not None for v in targets.values()):
+        return []
+    return []
+
+
+# --- Phase D feedback round, ITEM 1 (2026-09-23): display-layer grouping -
+#
+# Reviewer+user decision, user visual check on v3: identical (parameter-
+# set, direction, rendered magnitude) rows collapse into ONE display row.
+# The grouping key IS render_top_line's own output, not a separately
+# re-derived tuple of (parameters, directions, deltas) -- render_top_line
+# already folds parameter-set, direction and magnitude into one
+# deterministic string (that is what D6 built it to do), so a second key
+# definition would risk disagreeing with it over time. Group score = MAX
+# member score, never summed -- Stage 6 severity is a property of each
+# problem instance, not additive just because the same lever happens to
+# also help another corner (that is what the breadth term already scores
+# separately). The candidate model itself is untouched: this groups
+# generate_display_split's own output for DISPLAY only, strictly after
+# scoring/status/conflict-resolution has already run on the ungrouped
+# list -- ui/ calls this once for the shortlist and once for the tail.
+#
+# Two candidate shapes are deliberately EXCLUDED from grouping, kept one
+# row each regardless of a matching render_top_line string:
+# - no_trigger synthetic rows (STATUS_NO_TRIGGER): render_top_line has no
+#   lever-specific branch for these (they carry no "actions"), so every
+#   no_trigger row would otherwise render the same generic "no routed
+#   action" fallback and collapse into one meaningless group. Each is
+#   already unique per lever by construction (generate_lever_inventory),
+#   so keying on ("no_trigger", lever) is a correctness guard, not
+#   expected to ever merge anything.
+# - real candidates with NO routed action (the brake_balance_unrouted
+#   case): these have no parameter-set to match on at all, so "identical
+#   parameter-set" cannot apply by definition; two distinct corners each
+#   needing unrouted engineer attention must stay two distinct flags, not
+#   fold into one that loses which corner it was.
+
+def _group_key(candidate, registry):
+    if candidate.get("status") == STATUS_NO_TRIGGER:
+        return ("no_trigger", candidate.get("lever"))
+    if not candidate.get("actions"):
+        return ("unrouted", id(candidate))
+    return render_top_line(candidate, registry)
+
+
+def group_display_rows(rows, registry):
+    """Collapses rows whose _group_key matches into one display row,
+    carrying every member under "group_members" (dropdown reads this to
+    render one reasoning block per contributing corner+phase, reusing
+    _build_decision_frame_detail_host per member unchanged). The
+    representative row's own fields (score, status, actions, corner,
+    phase, ...) are a shallow copy of whichever member scored highest --
+    a single, consistent rule, not two disagreeing ones for "which score"
+    versus "which corner/status to show up front." Order preserved:
+    first occurrence of each key keeps its position, single-member groups
+    pass through unchanged (not even given a "group_members" key), so
+    every existing caller that never groups anything sees byte-identical
+    output.
+    """
+    grouped, order = {}, []
+    for c in rows:
+        key = _group_key(c, registry)
+        if key not in grouped:
+            grouped[key] = []
+            order.append(key)
+        grouped[key].append(c)
+
+    result = []
+    for key in order:
+        members = grouped[key]
+        if len(members) == 1:
+            result.append(members[0])
+            continue
+        best = max(members, key=lambda m: m.get("score", float("-inf")))
+        merged = dict(best)
+        merged["group_members"] = members
+        result.append(merged)
+    return result
 
 
 # --- Conflict resolver, Stage 2 (Phase 3b) -------------------------------

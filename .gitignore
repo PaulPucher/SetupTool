@@ -31,6 +31,7 @@ diagnostics/*.png
 diagnostics/*.json
 diagnostics/plots/
 diagnostics/plots_step2/
+diagnostics/plots_decision_layer/
 
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/
