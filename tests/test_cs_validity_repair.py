@@ -134,6 +134,44 @@ def test_reconstruct_cs_window_start_omitting_cap_is_unbounded_as_before():
     assert start_uncapped == 0  # walks all the way back, never reaching 0.1 rad
 
 
+def test_reconstruct_cs_window_start_true_extremum_at_oldest_end():
+    """WP-PERF (thesis_notes.md): reconstruct_cs_window_start now
+    maintains a running max/min incrementally instead of re-scanning the
+    whole growing slice every widening step (compute_cs_for_axle's own
+    inline loop mirrors this exactly, kept in sync). The bug an
+    incremental fold gets wrong first is discarding or never folding in
+    the value at the OLDEST (just-added, final) end of the window -- here
+    the span floor is only clearable once the very last widening step
+    (start=0) admits a single large value; everything else is flat."""
+    n = 60
+    alpha = np.full(n, 0.001)
+    alpha[0] = 0.2  # true max, reachable ONLY at the final widening step
+    i = 60
+    start = reconstruct_cs_window_start(alpha, i, 10, 0.05)
+    assert start == 0, "must have widened all the way to the oldest sample to admit the spike"
+    achieved_span = alpha[start:i].max() - alpha[start:i].min()
+    assert achieved_span >= 0.05 - 1e-9
+
+
+def test_reconstruct_cs_window_start_nan_in_window_forces_full_widening():
+    """WP-PERF: the running-extremum update uses np.maximum/np.minimum
+    (not np.max/np.min's array reduction) because they propagate NaN the
+    same order-independent way np.max/np.min's own reduce does --
+    verified, not assumed (thesis_notes.md). A NaN entering the window
+    must poison the running max/min for the rest of THIS call, exactly as
+    it would poison a fresh np.max/np.min recompute over any slice that
+    includes it: span becomes NaN, `NaN >= min_span` is always False, so
+    widening can never clear the span condition again, even though a
+    legitimate large span exists further back, past the NaN."""
+    n = 50
+    alpha = np.full(n, 0.001)
+    alpha[20] = np.nan  # sits inside the window once widening reaches it
+    alpha[5] = 100.0  # would trivially clear the span floor IF reachable
+    i = 40
+    start = reconstruct_cs_window_start(alpha, i, 10, 0.05)
+    assert start == 0, "NaN must force widening to the start=0 boundary, never clearing span"
+
+
 def test_distance_cap_disabled_when_s_m_is_none():
     # No distance channel available -- the metre-based cap must fall back
     # to no cap at all (min_window/min_span floors alone), not crash.

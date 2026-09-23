@@ -162,8 +162,21 @@ def reconstruct_ls_window_start(kappa, i, min_window, min_span, s_m=None, max_wi
     s_i = s_m[i - 1] if (s_m is not None and max_window_m is not None) else None
     if s_i is not None and not np.isfinite(s_i):
         s_i = None
+    # WP-PERF (2026-09-23, thesis_notes.md): the window only ever grows by
+    # one element per iteration (start decrements, i is fixed, no break
+    # path mutates start) -- an incrementally maintained running max/min
+    # is therefore exact, not an approximation: max/min composition has no
+    # floating-point rounding and np.maximum/np.minimum propagate NaN the
+    # same order-independent way np.max/np.min's own reduce does. This
+    # replaces re-scanning the whole growing slice with np.max/np.min
+    # (O(window) numpy array reduction) at every widening step with an
+    # O(1) scalar ufunc update -- profiled as >95% of this function's own
+    # cost before this change (thesis_notes.md, "WP-PERF Phase 0").
+    if start > 0:
+        window_max = np.max(kappa[start:i])
+        window_min = np.min(kappa[start:i])
     while start > 0:
-        span = np.max(kappa[start:i]) - np.min(kappa[start:i])
+        span = window_max - window_min
         if span >= min_span:
             break
         if s_i is not None:
@@ -171,6 +184,8 @@ def reconstruct_ls_window_start(kappa, i, min_window, min_span, s_m=None, max_wi
             if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
                 break
         start -= 1
+        window_max = np.maximum(window_max, kappa[start])
+        window_min = np.minimum(window_min, kappa[start])
     return max(start, 0)
 
 

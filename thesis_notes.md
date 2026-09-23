@@ -20106,3 +20106,181 @@ Cleanup verified after every run (including the 4 failed ones): data/
 analysis_cache/ empty, no leftover DB rows -- git status and a directory
 listing both checked directly, not assumed from the finally block's own
 presence.
+
+## WP-PERF Phase 0: cost-driver localisation for the two window
+estimators + measured CS Dubai-vs-v3 asymmetry answer [2026-09-23,
+diagnostics/profiling only, no fix applied, no branch]
+
+Follows on from the 2026-09-23 "Pipeline wall-clock timing" entry above,
+whose own DECIDE step (PLAN.md ### NOW item (3)) this package is: speed
+up estimate_longitudinal_stiffness (modules/longitudinal_stiffness.py)
+and estimate_cornering_stiffness (modules/stability_analysis.py) with
+proven byte-identical output, implementation only, method untouched. This
+entry is Phase 0's own measurement record; no code changed yet.
+
+BEFORE-BASELINE (this package's own re-run of diagnostics/inspect_
+pipeline_wall_times.py, machine idle, single run): Dubai LS 436.03s / CS
+273.06s / fit-chain EKF 243.60s (grand total 969.82s); v3 LS 396.63s / CS
+81.06s / EKF 201.17s (grand total 697.61s). Close to the 2026-09-23
+reference numbers (405/277/242 Dubai, 389/82/205 v3) -- the ~5-8%
+difference is ordinary single-run wall-clock variance (no repetitions,
+same limitation the original profiling entry already flagged), not a
+regression.
+
+COST-DRIVER LOCALISATION, cProfile, estimate_longitudinal_stiffness alone
+on Dubai (585.1s profiled, cProfile overhead included): 574.9s (98.3%)
+is inside reconstruct_ls_window_start (modules/longitudinal_stiffness.py)
+-- the adaptive window-widening search called once per sample by
+_centered_slopes. Of that, 328.7s is spent inside numpy's np.max/np.min
+call machinery itself: 157,857 calls to reconstruct_ls_window_start make
+57.3 million calls each to np.max and np.min (~363 backward-widening
+steps per call on average), and the bulk of that time (186.3s of it) is
+numpy's generic ufunc.reduce dispatch overhead, not arithmetic -- each
+step re-scans the growing window [start:i] from scratch via a full
+array reduction, instead of tracking a running max/min incrementally as
+one more sample enters the window at each widening step. The identical
+shape exists in modules/stability_analysis.py's own window search
+(compute_cs_for_axle's inline while loop, which the module's own comment
+already notes "mirrors reconstruct_cs_window_start exactly").
+
+CS DUBAI-VS-V3 ASYMMETRY, ANSWERED FROM MEASUREMENT (flagged, not
+diagnosed, in the prior profiling entry): cProfile of
+estimate_cornering_stiffness alone, both sessions -- Dubai: 33.34M
+np.max calls / 33.24M np.min calls (moving_mask = 78,929 samples,
+compute_cs_for_axle cumtime 365.84s); v3: 10.18M / 10.10M calls
+(moving_mask = 67,378 samples, cumtime 108.42s). Moving-sample ratio
+(Dubai/v3) = 1.17x -- nowhere near the 3.4x cost ratio. Max/min
+call-count ratio = 3.27x -- tracks the cost ratio almost exactly.
+CONCLUSION: the asymmetry is not about how much data each file has (both
+sessions have a similar number of moving samples); it is about how many
+backward-widening steps the adaptive window needs per accepted sample.
+Dubai's alpha (slip-angle) signal needs roughly 2.8x more widening
+iterations per sample than v3's on average -- i.e. Dubai has
+proportionally more/longer stretches where the local slip-angle span is
+too narrow to clear cs_min_slip_angle_span_rad, forcing the window to
+walk back much further before a stiffness estimate can be computed. A
+data characteristic of the two sessions' own driving/track (Dubai's
+7-lap sample vs v3's larger file), not a defect and not sample-count
+driven.
+
+IMPLICATION FOR PHASE 1/2 (implementation only, proposed separately,
+this entry is measurement, not a decision): the window-widening search's
+repeated full-array np.max/np.min recomputation is the dominant,
+almost-exclusive cost in both estimators. An incremental running max/min
+(updated by one new sample per widening step, via np.maximum/np.minimum
+scalar ufunc calls rather than np.max/np.min array reduction, chosen
+specifically because np.maximum/np.minimum propagate NaN the same
+element-order-independent way np.max/min's own reduce does -- verified,
+not assumed, before proposing it) reduces the widening search from
+O(window) work per step to O(1), with no change to which samples ever
+enter a window, the floors, the distance cap, or NaN semantics -- output
+is expected to be exactly reproducible since max/min composition is
+exact (no floating-point rounding, order-independent for both real
+values and NaN propagation).
+
+## WP-PERF close-out: byte-identical speedup of the two window
+estimators [2026-09-23, branch perf-estimators off main, STOP BEFORE
+COMMIT -- not yet merged]
+
+Implements the DECIDE step this package's own Phase 0 entry (above)
+left open. Method untouched throughout -- windowing logic, floors,
+spans, caps, and NaN semantics are byte-for-byte identical before and
+after; only HOW the same computation executes changed.
+
+MECHANICAL CHANGE, one fix applied at three call sites: the adaptive
+window-widening search (present in both estimators, and duplicated a
+second time inside estimate_cornering_stiffness's own per-axle inner
+function) was re-scanning the whole growing window with np.max/np.min
+at every widening step -- Phase 0's own cProfile measurement traced
+95-98% of both estimators' cost to exactly this. Since the window only
+ever grows by one sample per step within a single search (verified
+monotonic -- no shrink/reset/re-anchor path -- at each site
+individually before implementing, per reviewer condition), the fix
+maintains a running max/min incrementally: computed once for the
+initial window, then updated by a single np.maximum/np.minimum scalar
+call (not np.max/np.min's array-reduction machinery) each time one more
+sample enters. np.maximum/np.minimum propagate NaN the same order-
+independent way np.max/np.min's own reduce does -- checked directly,
+not assumed, before relying on it. Sites changed: modules/longitudinal_
+stiffness.py's reconstruct_ls_window_start; modules/stability_analysis.
+py's reconstruct_cs_window_start AND compute_cs_for_axle's own inline
+duplicate of the same loop (the pre-existing "mirrors ... exactly, keep
+both in sync" contract between these two now explicitly covers the
+incremental-extrema pattern too).
+
+BYTE-IDENTITY, PROVEN NOT ASSUMED: diagnostics/capture_wp_perf_
+reference.py (new, [keep-reproduces]) dumps every key of both
+estimators' output dicts to a gitignored .npz per session; diagnostics/
+compare_wp_perf_reference.py (new, [keep-reproduces]) checks exact
+equality per key two ways (np.array_equal with equal_nan=True, AND raw
+tobytes() equality) -- self-tested on itself first (accepts an
+identical file, catches a single corrupted value at its exact key/
+index) before being trusted for this package's own hard bar. Frozen
+pass-1 reference captured BEFORE any code change; each phase's own
+post-change capture written to a suffixed file (never overwriting the
+frozen one -- a near-miss during Phase 1b, caught before any file was
+touched, is why the script now requires an explicit suffix argument)
+and compared against it. RESULT: BYTE-IDENTICAL on every cs__*/ls__*
+key, both sessions, after Phase 1 (LS) and again after Phase 2 (CS) --
+proof run BEFORE each phase's own re-timing, per the reviewer's fixed
+order, never the reverse.
+
+TIMING, before (Phase 0a baseline, this package's own re-run of
+diagnostics/inspect_pipeline_wall_times.py, machine idle, single run,
+no repetitions) vs after (Phase 3a, same script, same conditions):
+
+  Dubai (grand total parse_csv..summarise_corners):
+    estimate_longitudinal_stiffness   436.03s -> 182.88s  (-58%, 2.38x)
+    estimate_cornering_stiffness      273.06s -> 115.86s  (-58%, 2.36x)
+    fit chain: EKF run (UNTOUCHED)    243.60s -> 228.38s  (normal run-
+      to-run variance, out of scope, now the dominant remaining cost)
+    GRAND TOTAL                       969.82s -> 541.41s  (-44%, 1.79x)
+
+  v3 (grand total parse_csv..summarise_corners):
+    estimate_longitudinal_stiffness   396.63s -> 158.49s  (-60%, 2.50x)
+    estimate_cornering_stiffness       81.06s -> 41.33s   (-49%, 1.96x)
+    fit chain: EKF run (UNTOUCHED)    201.17s -> 209.78s  (normal run-
+      to-run variance, out of scope)
+    GRAND TOTAL                       697.61s -> 428.23s  (-39%, 1.63x)
+
+Isolated-function re-timing (1c/2c, function alone, no cProfile
+overhead, LS skips the fit chain entirely since it has no beta
+dependency) corroborates the census numbers closely: LS 436.03->183.20s
+Dubai / 396.63->169.27s v3; CS 273.06->120.63s Dubai / 81.06->40.57s
+v3.
+
+CS DUBAI-VS-V3 ASYMMETRY: answered from measurement in this package's
+own Phase 0 entry above (widening-step count, not sample count, tracks
+the 3.4x cost ratio almost exactly) -- unaffected by this package's own
+change, since the fix does not alter how many widening steps any window
+search takes, only the cost of each step.
+
+TESTS: 4 new targeted tests (tests/test_longitudinal_stiffness.py x2,
+tests/test_cs_validity_repair.py x2) directly against reconstruct_ls_
+window_start/reconstruct_cs_window_start -- (1) a constructed array
+where the true extremum sits at the OLDEST end of the final window (the
+failure mode a broken incremental fold hits first: discarding/never
+folding in the last-added, most-backward sample), (2) a NaN placed
+inside the reachable window, proving it poisons the running extrema for
+the rest of that call exactly as it would poison a fresh np.max/np.min
+recompute, forcing full widening rather than silently accepting an
+under-qualified window. compute_cs_for_axle's own inline duplicate has
+no equivalent direct unit seam (it is a closure-local loop, not an
+importable function) -- covered instead by the byte-identity proof
+above and by the golden suite (next paragraph), per reviewer decision.
+
+FULL SUITE, once at package close (per CLAUDE.md discipline -- targeted
+tests only during implementation): 436 passed, 9 skipped, 1 xfailed, 0
+failed (+4 vs the WP-CACHE baseline of 432, exactly the new tests
+above; no golden moved). tests/test_golden_pipeline.py and tests/
+test_golden_auto_modes.py -- the suite's own CS/LS path coverage --
+passed UNREGENERATED, confirming the golden proof and the npz byte-
+identity proof agree; per the reviewer's own binding condition, a
+disagreement between the two would have been a STOP requiring
+understanding before anything shipped, not a discrepancy that
+happened here.
+
+STOP BEFORE COMMIT: ready for this package's own commit boundary on
+perf-estimators (not yet merged to main), awaiting the user's go-ahead,
+per CLAUDE.md's "never leave a WP boundary uncommitted, never commit
+mid-implementation" -- this IS the WP boundary.

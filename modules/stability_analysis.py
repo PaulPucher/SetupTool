@@ -924,13 +924,23 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
     CS_ratio (compute_cs_for_axle itself enforces the cap when producing
     that value; an index with no finite CS_ratio never had a qualifying
     window to reconstruct in the first place).
+
+    WP-PERF (2026-09-23, thesis_notes.md): the running max/min below are
+    maintained incrementally rather than re-scanned from the whole
+    growing slice every widening step -- part of the "mirrors compute_cs_
+    for_axle's internal growth loop exactly" contract above: BOTH sites
+    use the identical incremental pattern, and the next person editing
+    either site's widening logic must carry the change to the other.
     """
     start = i - min_window
     s_i = s_m[i - 1] if (s_m is not None and max_window_m is not None) else None
     if s_i is not None and not np.isfinite(s_i):
         s_i = None
+    if start > 0:
+        window_max = np.max(alpha[start:i])
+        window_min = np.min(alpha[start:i])
     while start > 0:
-        span = np.max(alpha[start:i]) - np.min(alpha[start:i])
+        span = window_max - window_min
         if span >= min_span:
             break
         if s_i is not None:
@@ -938,6 +948,8 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
             if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
                 break
         start -= 1
+        window_max = np.maximum(window_max, alpha[start])
+        window_min = np.minimum(window_min, alpha[start])
     return max(start, 0)
 
 
@@ -992,14 +1004,18 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             # locality bound) so a near-flat-alpha stretch (a straight, a
             # slow lift) cannot chase min_span arbitrarily far back and
             # blend in unrelated track sections -- see cs_max_window_m's own
-            # config comment. Mirrors reconstruct_cs_window_start exactly;
-            # keep both in sync.
+            # config comment. Mirrors reconstruct_cs_window_start exactly,
+            # incremental running max/min (WP-PERF, thesis_notes.md)
+            # included; keep both sites in sync.
             start = i - min_window
             s_i = s_m[i - 1] if s_m is not None else None
             if s_i is not None and not np.isfinite(s_i):
                 s_i = None
+            if start > 0:
+                window_max = np.max(alpha[start:i])
+                window_min = np.min(alpha[start:i])
             while start > 0:
-                span = np.max(alpha[start:i]) - np.min(alpha[start:i])
+                span = window_max - window_min
                 if span >= min_span:
                     break
                 if s_i is not None:
@@ -1007,6 +1023,8 @@ def estimate_cornering_stiffness(slip, forces, state, params):
                     if not np.isfinite(s_start) or s_start > s_i or (s_i - s_start) >= max_window_m:
                         break
                 start -= 1
+                window_max = np.maximum(window_max, alpha[start])
+                window_min = np.minimum(window_min, alpha[start])
 
             window_alpha = alpha[start:i]
             window_Fy = Fy[start:i]

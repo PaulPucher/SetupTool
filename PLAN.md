@@ -5,31 +5,32 @@
 (1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
     A-F complete per its own close-out record (thesis_notes.md). No
     longer an open item.
-(2) Sidecar cache + Analyse-button contract (WP-CACHE, branch cache-
-    sidecar off main): Phases 1-2 COMPLETE, 2026-09-23/24 -- gzip-pickle
-    sidecar per outing (modules/pipeline_sidecar.py, atomic write,
-    8-field identity incl. its own format version), write/load hooks in
-    ui/views/outing_form.py, Analyse-button fast path (zero recompute
-    when nothing changed, explicit recompute control, honest "why
-    recomputing" status line). Phase 1e real-data gate: Dubai 21.04MB/
-    0.205s load, v3 17.67MB/0.159s load -- both far under the 500MB/10s
-    gate, no trimming needed. Acceptance condition proven end to end on
-    real data (diagnostics/smoke_test_cache_sidecar_analyse_contract.py):
-    restart -> open v3 outing -> graphs/trace dialogs usable in
-    0.270s -> ZERO pipeline run. Targeted tests: 15 new (tests/test_
-    pipeline_sidecar.py) + 2 existing tests repaired after a harmless
-    refactor broke their own source-slicing markers (tests/test_config_
-    schema_integrity.py). Full suite: 432 passed / 9 skipped / 1 xfailed
-    / 0 failed (+15 vs the WP-DL baseline, exactly the new sidecar tests,
-    no golden moved). STOP BEFORE COMMIT -- ready for the package's own
-    commit boundary on cache-sidecar, awaiting the user's go-ahead
-    (branch not yet merged to main).
-(3) Pipeline performance: PROFILING DONE (2026-09-23, diagnostics/
-    inspect_pipeline_wall_times.py, thesis_notes.md "Pipeline wall-clock
-    timing") -- estimate_longitudinal_stiffness, the fit chain's own EKF
-    run, and estimate_cornering_stiffness are 97-98% of wall time on both
-    real sessions. DECIDE step (what, if anything, to do about it) not
-    yet done -- next session's own first question.
+(2) Sidecar cache + Analyse-button contract (WP-CACHE): DONE, merged to
+    main (0f1731d, verified via git log). No longer an open item.
+(3) Pipeline performance (WP-PERF, branch perf-estimators off main):
+    Phases 0-3 COMPLETE, 2026-09-23 -- byte-identical speedup of the two
+    window estimators (estimate_longitudinal_stiffness, estimate_
+    cornering_stiffness), full record thesis_notes.md "WP-PERF close-
+    out". Method untouched (windowing logic/floors/spans/caps/NaN
+    semantics identical); the shared adaptive-window-widening search (3
+    call sites: reconstruct_ls_window_start, reconstruct_cs_window_start,
+    compute_cs_for_axle's own inline duplicate) now maintains a running
+    max/min incrementally instead of re-scanning the whole growing window
+    with np.max/np.min at every widening step. Byte-identity PROVEN
+    (diagnostics/compare_wp_perf_reference.py, new gitignored .npz
+    references, both sessions, every output key) before each phase's own
+    re-timing, never after. Wall-clock, both real sessions, machine idle:
+    Dubai LS 436.03->182.88s (-58%), CS 273.06->115.86s (-58%), grand
+    total 969.82->541.41s (-44%, 1.79x); v3 LS 396.63->158.49s (-60%), CS
+    81.06->41.33s (-49%), grand total 697.61->428.23s (-39%, 1.63x). Fit
+    chain (EKF run) untouched and out of scope, now the dominant
+    remaining cost on both sessions. 4 new targeted tests (oldest-end-
+    extremum + NaN-propagation-forces-full-widening, both window-start
+    functions). Full suite: 436 passed / 9 skipped / 1 xfailed / 0 failed
+    (+4 vs the WP-CACHE baseline of 432, exactly the new tests, no golden
+    moved -- goldens passed UNREGENERATED). STOP BEFORE COMMIT -- ready
+    for the package's own commit boundary on perf-estimators, awaiting
+    the user's go-ahead (branch not yet merged to main).
 (4) Big cleanup: diagnostics inventory, HANDOVER regeneration,
     protected-set audit, module map document for the author.
 (5) Commit and push at end of every working day.

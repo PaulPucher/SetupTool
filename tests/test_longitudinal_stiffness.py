@@ -286,6 +286,52 @@ def test_reconstruct_ls_window_start_respects_distance_cap():
     assert start > 0, "must not have walked all the way back to index 0"
 
 
+def test_reconstruct_ls_window_start_true_extremum_at_oldest_end():
+    """WP-PERF (thesis_notes.md, 'WP-PERF Phase 0'/'Phase 1a'): the window-
+    widening search now maintains a running max/min incrementally instead
+    of re-scanning the whole growing slice every step. The bug an
+    incremental fold gets wrong first is discarding or never folding in
+    the value at the OLDEST (just-added, final) end of the window -- here
+    the span floor is only clearable once the very last widening step
+    (start=0) admits a single large value; everything else is flat. If the
+    running max were not correctly updated on that final step, the
+    function would either stop widening too early (insufficient span) or
+    return a start whose actual achieved span does not clear min_span."""
+    n = 60
+    kappa = np.full(n, 0.001)
+    kappa[0] = 0.1  # true max, reachable ONLY at the final widening step
+    min_window = 10
+    min_span = 0.05
+    i = 60
+    start = reconstruct_ls_window_start(kappa, i, min_window, min_span)
+    assert start == 0, "must have widened all the way to the oldest sample to admit the spike"
+    achieved_span = kappa[start:i].max() - kappa[start:i].min()
+    assert achieved_span >= min_span - 1e-9
+
+
+def test_reconstruct_ls_window_start_nan_in_window_forces_full_widening():
+    """WP-PERF: the running-extremum update uses np.maximum/np.minimum
+    (not np.max/np.min's array reduction) specifically because they
+    propagate NaN the same order-independent way np.max/np.min's own
+    reduce does -- verified, not assumed, before relying on it (thesis_
+    notes.md). A NaN entering the window must poison the running max/min
+    permanently for the rest of THIS call, exactly as it would poison a
+    fresh np.max/np.min recompute over any slice that includes it: span
+    becomes NaN, `NaN >= min_span` is always False, so widening can never
+    stop on the span condition again, even though a legitimate large span
+    exists further back, past the NaN, unreachable because the span check
+    can never see past a NaN in the window."""
+    n = 50
+    kappa = np.full(n, 0.001)
+    kappa[20] = np.nan  # sits inside the window once widening reaches it
+    kappa[5] = 100.0  # would trivially clear the span floor IF reachable
+    min_window = 10
+    min_span = 0.05
+    i = 40
+    start = reconstruct_ls_window_start(kappa, i, min_window, min_span)
+    assert start == 0, "NaN must force widening to the start=0 boundary, never clearing span"
+
+
 def test_centered_slopes_nan_when_widening_cannot_clear_span_within_cap():
     """Integration: a perfectly flat kappa region, real s_m, a tight
     max_window_m -- every sample must report NaN/invalid (no signal),
