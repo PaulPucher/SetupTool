@@ -4,737 +4,208 @@ One-off read-only scripts used during development to produce methodology
 evidence for the thesis. Not part of the app; run manually from the project
 root (`python diagnostics/<script>.py`) against the sample data.
 
-STANDING RULE (2026-08-30, CLAUDE.md): a diagnostic script is disposable
-by default. Once its finding is recorded in thesis_notes.md and its work
-package commits, it gets deleted in that same commit unless it is still
-referenced from outside its own file (a docstring pointer, a config
-`derived_from`/provenance string, the frozen pass-1 validation baseline,
-or a PLAN.md open item) or is live tooling still needed to reproduce
-something (a golden-value generator, the frozen-baseline script, a smoke
-test, a production import source). This file lists every surviving
-script's reason to exist -- if a script is here without one, that is a
-bug in this README, not license to leave a future one uncommented.
+REWRITTEN FROM SCRATCH 2026-09-24 (WP-CLEAN Phase 1, hard pass). Every
+script below cleared one of seven load-bearing tests (K1-K7), verified
+against the actual current state of config/modules/docs/thesis_material_index.md
+-- not against this file's own prior claims. 37 scripts that do not clear
+any of K1-K7 moved to `diagnostics/_attic/` (git mv, reversible, nothing
+deleted) even where their finding is recorded in thesis_notes.md -- the
+record is the deliverable, the script was scaffolding.
+`diagnostics/_attic/` awaits a final user decision (keep/delete) at
+orphan-branch time; do not delete from it without that explicit decision.
 
-Every entry below survived the 2026-08-30 full-inventory sweep
-(thesis_notes.md "10. Second diagnostics sweep: full-inventory
-classification") or the 2026-09-02 threshold-anchoring/arc-closure
-sweep (thesis_notes.md "Threshold anchoring + arc closure, Phase 6:
-diagnostics classification") -- the latter classified every script
-from the CS validity repair investigation arc plus one pre-existing
-gap (inspect_tyre_variant_comparison.py, unrelated to that arc, never
-previously listed here). Category in brackets: **[keep-referenced]** = cited
-from outside diagnostics/ (config provenance, PLAN.md, or a docstring/
-test pointer); **[keep-reproduces]** = live tooling (frozen baseline,
-smoke test, or an actual production import source); **[dependency]** =
-kept because a surviving script imports it, not for its own findings.
+Plot directories: three are gitignored (`plots/`, `plots_step2/`,
+`plots_decision_layer/`), seven are tracked (`plots_deepening/`,
+`plots_fz_integration/`, `plots_ground_truth/`, `plots_ls_evidence/`,
+`plots_metrology/`, `plots_threshold_investigation/`, `plots_v3/`) --
+a historical accident, deliberately left as-is (WP-CLEAN Phase 2,
+2026-09-24). The orphan branch curates what ships.
 
-- **scan_channels.py** `[keep-referenced]` — inventories every channel
-  actually present in a Cosworth Pi Toolbox file, regardless of the
-  `channels.json` whitelist. Used to discover that the file's real GPS
-  position channels are `log_gps_lat`/`log_gps_lon`, not
-  `gpsa_lat`/`gpsa_long`/`VBOX_*` — evidence for the WP1 GPS channel scan
-  and whitelist decision (those six placeholder entries were removed
-  from channels.json in the WP-A registry-consolidation rider,
-  2026-07-26). Cited by name in PLAN.md (cp1252-decoding precedent).
-- **inspect_corner_distribution.py** `[keep-referenced]` — prints
-  per-corner worst-phase CS_ratio and stability-margin percentiles, and
-  how many corners each candidate threshold would flag. Basis for the
-  live `classification.STRONG_CSF/STRONG_CSR/MODERATE_CSF/MODERATE_CSR`
-  thresholds in config/parameters.json, cited there by exact filename in
-  every `derived_from` field. Load-bearing threshold provenance --
-  deleting this would leave those thresholds unsourced.
-- **inspect_yaw_stability_b2.py** `[keep-referenced]` — same role as
-  above for `classification.stab_neg_thresh_Nm_per_deg`, cited by exact
-  filename in its `derived_from` field.
-- **inspect_beta_gps_validation.py** `[keep-referenced]` — cited by
-  filename in modules/stability_analysis.py's own docstring
-  (estimate_sideslip_gps's per-lap check).
-- **sideslip_kalman_observer.py** `[keep-referenced]` — the diagnostics-
-  only linear Kalman sideslip observer candidate. Cited by exact
-  filename twice in config/parameters.json (vehicle.yaw_inertia_kalman_
-  note and its accuracy_levels.yaw_inertia_kalman node) as the consumer
-  of those two placeholder values.
-- **fit_dugoff_first_pass.py** `[keep-referenced]` — WP-N1b Dugoff
-  c_alpha/mu_fz first-pass fit. Cited by exact filename in config/
-  parameters.json (tyre_model_fit._comment, tyre_model_ekf.pass_0.
-  frozen_from) and in modules/tyre_fit_auto.py's own docstring
-  (explains what the automated fit chain does and does not reproduce
-  from this script).
-- **fit_dugoff_first_pass_manifest.json** `[keep-referenced]` —
-  fit_dugoff_first_pass.py's own output, cited by exact path in config/
-  parameters.json's tyre_model_ekf.pass_0.frozen_from as the source of
-  the frozen c_alpha/mu_fz numbers. Gitignored (regenerable), kept on
-  disk so the citation is directly verifiable without re-running.
-- **inspect_ekf_pass1_rQ_sweep.py** `[keep-referenced]` — the pass-1 R
-  noise-model 2-D grid sweep. Cited by exact filename in config/
-  parameters.json (tyre_model_ekf.pass_1.r_q_sweep_note) and modules/
-  tyre_fit_auto.py's own docstring/comments (its band/grid values are
-  reproduced there).
-- **inspect_ekf_dugoff_sanity_checks.py** `[keep-referenced]` — cited by
-  filename in PLAN.md (WP-N1 sanity-check record).
-- **inspect_combined_slip_premise.py** `[keep-referenced]` — cited by
-  filename in modules/longitudinal_forces.py's own docstring (the
-  external validation this module's Fx/kappa output was checked
-  against, exact digit match recorded in PLAN.md/thesis_notes.md).
-- **inspect_tyre_fit_auto_acceptance.py** `[keep-referenced]` — cited by
-  filename in tests/test_auto_fit_wiring.py's own docstring (states
-  what that test does NOT re-cover, already covered here).
-- **inspect_washout_cutoff_sweep.py** `[keep-referenced]` — cited by
-  filename in PLAN.md (Phase 1 washout-cutoff sweep, the entry that
-  blocked the washout-cutoff decision). Also **[dependency]**: imports
-  diagnostics/sideslip_ekf_dugoff.py and diagnostics/inspect_wheel_
-  speed_sources.py (AY_STRAIGHT_MAX_G/YAW_STRAIGHT_MAX_DEGPS).
-- **inspect_ls_cs_disambiguation.py** `[keep-referenced]` — cited by
-  filename in PLAN.md (STEP 3 LS_ratio disambiguation record).
-- **inspect_ls_ratio_span_dependence.py** `[keep-referenced]` — cited by
-  filename in thesis_notes.md ("PLAN.md unsupervised package, Phase 3:
-  LS_ratio span-dependence" entry), which also cites the PNG it
-  produces (diagnostics/plots_step2/ls_ratio_span_dependence.png) as
-  supporting evidence for the longitudinal_stiffness.min_slip_span=
-  0.004 config gate.
-- **inspect_nis_tyre_mismatch_gate.py** `[keep-referenced]` — the WP-N3
-  NIS mismatch-gate prototype. Cited by filename in modules/nis_gate.py's
-  own docstring (states it ports this prototype) and tests/
-  test_nis_gate.py's docstring.
-- **inspect_saturation_coverage.py** `[keep-referenced]` — the WP-N0
-  saturation-coverage diagnostic. Cited by description (its own
-  candidate-threshold list) in config/parameters.json's tyre_model_fit
-  comment as the source of ay_linear_threshold_g=0.3's default.
-- **inspect_kerb_wheel_speed_spikes.py** `[keep-referenced]` — cited by
-  exact filename in config/parameters.json's longitudinal_stiffness.
+Categories:
+- **K1** config-cited provenance -- filename (or verified descriptive
+  citation) appears in a live config `derived_from`/`_comment` backing a
+  CURRENT value. A stale or superseded citation does not qualify.
+- **K2** golden-value generator or the frozen pass-1 validation baseline.
+- **K3** live figure source -- generates a figure the thesis or
+  supervisor materials actually use (verified either by exact filename in
+  docs/thesis_material_index.md, or by reading the script's own output
+  path against a PNG the index lists).
+- **K4** working smoke test (`smoke_test_*.py`) -- regression tooling,
+  not investigation.
+- **K5** named census/measurement tooling still in active use.
+- **K6** imported by another K1-K5 keeper (verified against the actual
+  `from diagnostics.X import` graph, not assumed).
+- **K7** regenerates committed repo content, or is the sole tool for a
+  recurring PLAN.md checklist task (new-data-file channel discovery).
+
+RELOCATED (2026-09-24, WP-CLEAN relocation mini-package):
+sideslip_ekf_dugoff.py and sideslip_ekf_pacejka.py -- both were
+production dependencies of modules/tyre_fit_auto.py living here by
+historical accident (their own module docstrings claimed "diagnostics-
+only, no modules/ consumer", which was already stale). Moved to
+modules/sideslip_ekf_dugoff.py and modules/sideslip_ekf_pacejka.py;
+every import and reference across the repo updated in the same commit.
+No longer part of this directory's own inventory -- 90 scripts remain
+here (53 keepers + 37 in diagnostics/_attic/).
+
+## K1 -- config-cited provenance (24)
+
+- **fit_dugoff_first_pass.py** -- config/parameters.json's tyre_model_fit
+  and tyre_model_ekf._comment blocks cite it as the WP-N1 c_alpha/mu_fz
+  first-pass fit source (pass_0 numbers copied from its output).
+- **fit_dugoff_pass4_refit.py** -- config/parameters.json's
+  `_comment_pass_4_removed` explicitly states it is "intentionally KEPT
+  for now" and still reads the live pass_3 block as its own EKF source.
+- **inspect_beta_gps_validation.py** -- cited in config/parameters.json's
+  gps_course_latency_s_derived_from.
+- **inspect_c3_leaked_windows.py** -- cited in config/parameters.json's
   kerb_investigation_reference.
-- **inspect_c3_leaked_windows.py** `[keep-referenced]` — same
-  config/parameters.json citation as above.
-- **sideslip_ekf_dugoff.py** `[keep-reproduces]` — NOT diagnostics-only
-  despite its location: `modules/tyre_fit_auto.py` imports
-  `estimate_sideslip_ekf_dugoff` from this file directly, as does
-  tests/test_pure_functions.py and tests/test_nis_gate.py. A real
-  production dependency living in diagnostics/ by historical accident,
-  not by design -- flagged, not relocated, out of this sweep's scope.
-  Also `[dependency]`-consumed from inside diagnostics/ itself:
-  inspect_step2_chair_plots.py (PLAN.md STEP 2) imports
-  `estimate_sideslip_ekf_dugoff` from here directly for its ekf_pass_1
-  side-by-side plots -- one more reason this file cannot be deleted or
-  relocated without updating a second caller.
-- **sideslip_ekf_pacejka.py** `[keep-reproduces]` — same as above,
-  imported by modules/tyre_fit_auto.py.
-- **fit_dugoff_pass3_refit_manifest.json** `[keep-referenced]` —
-  config/parameters.json's tyre_model_ekf.pass_3.frozen_from cites this
-  exact path. The pass_3 config block is itself live (fit_dugoff_
-  pass4_refit.py below still reads it), so this manifest stays even
-  though its own producing script (fit_dugoff_pass3_refit.py) was
-  deleted in the first diagnostics sweep (2026-08-20).
-- **inspect_pass1_final_validation.py** `[keep-reproduces]` — THE
-  frozen pass-1 EKF validation baseline. Cited throughout PLAN.md/
-  thesis_notes.md as "the reference any future estimator work is
-  compared against." Do not delete without a deliberate, explicit
-  decision to retire the pass-1 baseline itself.
-- **pass1_final_validation_manifest.json** `[keep-reproduces]` — the
-  above script's own frozen numeric output. Gitignored, kept on disk as
-  the actual evidence backing the baseline claim.
-- **inspect_combined_slip_premise.py, inspect_slip_channel_sweep.py** —
-  see individual entries; inspect_slip_channel_sweep.py kept as a
-  BORDERLINE case (2026-08-30 sweep): its raw-channel keyword-scan
-  finding may already be folded into the WP2b-1 full channel census
-  (thesis_notes.md "Full channel census + targeted verification"), but
-  this was not confirmed with full certainty -- kept per "when unsure,
-  keep, list" rather than risk losing an unrecorded finding.
-- **fit_dugoff_pass4_refit.py** `[keep-reproduces]` — reads the still-
-  live pass_3 config block as its own EKF source. Kept explicitly in
-  the first diagnostics sweep (2026-08-20) specifically so pass_3
-  wouldn't be orphaned; that dependency is unchanged.
-- **smoke_test_corner_trace_dialog.py** `[keep-reproduces]` — reusable
-  headless Qt smoke test for CornerTraceDialog/LapTraceDialog (offscreen
-  platform, real analysis result, catches runtime errors a syntax check
-  cannot). Not part of the regression suite, run manually.
-- **inspect_ls_cs_disambiguation.py, inspect_kerb_wheel_speed_spikes.py,
-  inspect_c3_leaked_windows.py** — see individual entries above.
-- **smoke_test_measurement_points_widget.py** `[keep-reproduces]` —
-  reusable headless Qt smoke test for the measurement-points form widget
-  (splitter/diffuser points), same pattern as smoke_test_corner_trace_
-  dialog.py. Cited by filename in PLAN.md and tests/test_setup_data_
-  points.py's own comment.
-- **inspect_wheel_speed_sources.py** `[dependency]` — kept solely because
-  inspect_washout_cutoff_sweep.py imports AY_STRAIGHT_MAX_G/
-  YAW_STRAIGHT_MAX_DEGPS from it. Misclassified for deletion in the
-  2026-08-30 sweep's first pass, caught by the post-deletion compile
-  check, restored. No independent external reference of its own.
-- **inspect_step2_chair_plots.py** `[keep-reproduces]` — PLAN.md STEP 2
-  is now marked DONE there, citing this script by filename, with the
-  headline finding (rear CS extremes at C6/C9 are largely beta
-  artifacts; C4's front saturation is not). Findings recorded in
-  thesis_notes.md "12. PLAN.md STEP 2: chair-comparable result plots,
-  kinematic vs ekf_pass_1". Kept as the reusable generator behind the
-  session's 28 PNGs -- the thesis figure source for this finding, not a
-  one-off investigation script; re-run whenever the sideslip source or
-  the CS estimator changes and the figures need regenerating. Output
-  diagnostics/plots_step2/ (gitignored). Imports `estimate_sideslip_ekf_
-  dugoff` from sideslip_ekf_dugoff.py directly (see that entry above).
-- **inspect_cs_window_floor_derivation.py** `[keep-referenced]` — the CS
-  validity repair's first-attempt window-floor bootstrap (superseded as a
-  DECIDING criterion, thesis_notes.md "CS validity repair, part A, Phase
-  1: window-floor re-derivation" and its own REVISION entry) -- but its
-  linear_region_end finding is still the LIVE source config/parameters.
-  json's cs_linear_slip_threshold_rad_derived_from cites directly by exact
-  filename (that specific finding was never superseded, only the window-
-  floor N/span choice was). Deleting this would leave that citation
-  dangling.
-- **inspect_cs_duration_only_comparison.py** `[keep-referenced]` — the
-  sign-off clarification round's 0.1s-vs-0.2s duration-only bootstrap
-  (thesis_notes.md "CS validity repair, sign-off clarification round").
-  Cited by exact filename in config/parameters.json's cs_min_window_s_
-  derived_from as joint provenance (with inspect_cs_floor_candidate_
-  validation.py) for the live 0.1s floor.
-- **inspect_cs_max_window_locality_sizing.py** `[keep-referenced]` —
-  measures the natural (uncapped) CS window's own metre extent. Cited by
-  exact filename in config/parameters.json's _comment_cs_max_window_m as
-  the source of the live cs_max_window_m=53.0 value; re-run at least
-  twice across this arc's own floor revisions (thesis_notes.md "100 Hz
-  time-base work package, Phase 4" also cites its re-run numbers).
-- **inspect_native_channel_rates.py** `[keep-referenced]` — per-channel
-  native sample-rate census (ecu_speed 50 Hz vs the other five CS-chain
-  channels at 100 Hz). Cited by exact filename in config/parameters.
-  json's _comment_grid_rate as the evidence behind the adaptive 50-100 Hz
-  grid design.
-- **inspect_corner_bracket_geometry.py** `[keep-referenced]` — corner
-  bracket length vs corner-to-corner gap geometry (thesis_notes.md "CS
-  validity repair, limitation: cs_max_window_m does not guarantee
-  locality..."). Cited by exact filename in PLAN.md's PARKED new-data-
-  file checklist ("re-run diagnostics/inspect_corner_bracket_geometry.py
-  ... on the new track's own corner sequence") -- a live, forward-looking
-  reference for whenever a second track's data arrives, not just a past
-  finding.
-- **inspect_cs_floor_candidate_validation.py** `[keep-reproduces]` — the
-  CS validity repair's direct real-data floor validation (thesis_notes.md
-  "100 Hz time-base work package, Phase 1 FINAL" and "CS validity repair,
-  sign-off clarification round"). THE generator behind diagnostics/
-  threshold_anchoring_input.md (cited there by exact filename as its own
-  source) and the threshold-anchoring Phase 1/2 work (thesis_notes.md
-  "Threshold anchoring, Phase 1/2") -- also jointly cited in config/
-  parameters.json's cs_min_window_s_derived_from and _comment_cs_max_
-  window_m. Load-bearing provenance for the live STRONG/MODERATE_CS*
-  thresholds; re-run whenever the CS window floor or the anchoring
-  population needs re-deriving.
-- **inspect_cs_phase_median_floor_derivation_v2.py** `[keep-reproduces]`
-  — the CS window floor's final bootstrap methodology (cornering-only
-  population; thesis_notes.md "100 Hz time-base work package, Phase 1:
-  floor derivation, third pass"), the version that led directly to the
-  direct-real-data-validation pivot above. Kept as the final methodology
-  version of this investigation branch, superseding v1 (inspect_cs_
-  phase_median_floor_derivation.py, deleted 2026-09-02 -- its own
-  earlier finding is fully recorded in thesis_notes.md "CS validity
-  repair, part A, Phase 1 REVISION").
-- **inspect_run_ground_truth.py** `[keep-reproduces]` — per-run ground-
-  truth verdicts (fold/loop tyre-curve pictures + LS_ratio/kappa +
-  steering-rate/stability evidence) for the 10 named C2/C3/C4 runs
-  (thesis_notes.md "Ground-truth workup: per-run verdicts for the long-
-  run corners..."). The single strongest evidence line in this entire
-  investigation arc (C4 confirmed REAL via actual fold pictures, C2
-  front/C3 rear confirmed ARTIFACT via loop pictures) and the basis for
-  which corners are excluded from the live STRONG_CSF/CSR noise-margin
-  population (config/parameters.json derived_from citations). Imports
-  `_canonical_window_slice`/`_build_track_map` from inspect_step2_
-  chair_plots.py (already `[keep-reproduces]` below).
-- **inspect_tyre_variant_comparison.py** `[keep-referenced]` — WP-N3
-  Phase 3's Dugoff-vs-Pacejka fit comparison (thesis_notes.md "3.
-  WP-N3..., Phase 3: Pacejka variant"). Backs the still-open "fit-variant
-  choice" decision listed in PLAN.md's own carry-forward items --
-  unrelated to the CS validity repair/threshold anchoring arc, out of
-  that arc's own disposal sweep, kept here since it had no README entry
-  at all (a gap this sweep also closes). NOTE: thesis_notes.md's own
-  "10. Second diagnostics sweep" entry (2026-08-30) lists this exact
-  filename as DELETED that day -- `git log --follow` on this path shows
-  only its original 2026-08-20 add, never a deletion, so that historical
-  record entry appears to be in error (flagged, not corrected -- CLAUDE.md
-  forbids rewriting past thesis_notes.md entries).
-- **generate_channel_requirements.py** `[keep-reproduces]` — regenerates
-  the two committed deliverables docs/channel_requirements.md (the
-  telemetry-export checklist for a new event, with per-channel WHY) and
-  docs/channel_list.txt (the same channels, bare one-per-line, for a
-  literal tick-off) from config/channels.json, real read-site greps of
-  modules/core/ui, and channel_list.txt (repo root, the real Dubai
-  channel inventory -- not to be confused with the generated docs/
-  channel_list.txt). Both outputs come from one run, so they can never
-  disagree with each other. Re-run whenever channels.json or a channel-
-  consuming module changes; the two docs/ files are the deliverables,
-  this script is what keeps them from drifting. Not a one-off
-  investigation -- a reusable generator, kept by design, not by the
-  disposal-rule
-  exceptions above.
-- **inspect_prc_v3_sample_rates.py** `[keep-reproduces]` — read-only
-  per-channel-block sample-rate/layout census (streamed, never loads a
-  full multi-GB file into memory). Written for GT3_PRC_MLA-v3.txt (2026-
-  09-02, thesis_notes.md "GT3_PRC_MLA-v3 census: per-channel-block layout,
-  100 Hz dampers"), the first real damper-channel-bearing telemetry file
-  this project has seen -- kept as a reusable data-provenance check for
-  future telemetry files, not a one-off finding: any new export can be
-  re-run through this script to confirm layout (wide-table vs per-channel
-  block), per-channel-family rates, and TC LAT/TC LON/ABS/brake-bias
-  header candidates before it is trusted as an analysis input.
-- **smoke_test_decision_frame_widget.py** `[keep-reproduces]` — reusable
-  headless Qt smoke test for the "Decision Frame (preview)" section
-  (decision-matrix frame, Stage 1, 2026-09-02), same technique and role as
-  smoke_test_measurement_points_widget.py: verifies the widget binding
-  (toggle show/hide, button enable/disable, row rendering against a real
-  constructed OutingForm) that tests/test_decision_frame.py's pytest suite
-  cannot reach (conftest.py deliberately keeps PyQt6 out of pytest).
-- **inspect_v3_wheel_load_validation.py** `[keep-reproduces]` — damper
-  package (thesis_notes.md "Damper package: wheel loads from pushrod/
-  suspension-travel channels, Phases 1-6", 2026-09-03) Phase 2 validation
-  of modules/wheel_loads.py against real damper/suspension-travel data:
-  straight-line total load vs config weight, fuel-drift trend, transfer
-  signs/magnitudes vs ax/ay, and the ARB sign-convention empirical check
-  the module's own docstring flags as needing re-confirmation. Re-run
-  whenever the estimator changes or a new damper-equipped session arrives.
-- **inspect_v3_wheel_load_comparison_figure.py** `[keep-reproduces]` — the
-  same package's Phase 3 static-split-vs-damper-derived Fz comparison
-  figure generator (rear axle, chosen over front because log_dms_dam_fr
-  is corrupted for the whole GT3_PRC_MLA-v3.txt session). Reusable figure
-  source, not a one-off -- re-run for a new session or corner choice.
-- **inspect_v3_tc_eb_abs_channels.py** `[keep-reproduces]` — the same
-  package's Phase 4 channel survey (traction control, engine braking, ABS
-  activity-vs-position, brake bias), extending the v3 census's own tc_lat/
-  tc_lon/abs/brake_bias search with tract/asr/eb/ebrake/engine_brake/map
-  token-matched terms and per-candidate rate/range/changes-during-session
-  detail. Identification evidence only, no mapping conclusion. Reusable
-  for any future telemetry file, same role as inspect_prc_v3_sample_
-  rates.py for layout/rate census.
-- **inspect_v3_sawtooth_mechanism.py** `[keep-reproduces]` — damper
-  package Phase 7 (thesis_notes.md "v3 sawtooth mechanism investigation:
-  corner selection, window stats, floor-fraction and alpha-character
-  comparison vs Dubai", 2026-09-02), read-only. Diagnosed v3's CS_ratio
-  sawtooth artifact (C13/C12/C5) as CORNER CHARACTER, not a floor
-  miscalibration: v3 and Dubai resolve to numerically identical CS
-  window floors at 100Hz, but v3's own alpha signal is ~31% faster and
-  ~1.8x noisier at matched corner speed, so the same window-growth floor
-  is hit sooner and more often. Open thread (PLAN.md STATUS), will need
-  re-running once CS window floors or thresholds are revisited.
-- **inspect_v3_fuel_drift_recheck.py** `[keep-reproduces]` — follow-up to
-  the damper package's own Phase 2(b) inconclusive fuel-drift finding
-  (thesis_notes.md "Session-measured split fractions..."): normalises
-  each lap's straight-line total by the session-fit aero coefficient
-  (c_session, relative to the session's own reference speed) to remove
-  the speed confound that made the raw per-lap totals uninterpretable.
-  Re-run whenever the session-correction model or a new session changes.
-- **inspect_v3_wheel_load_reconstruction_figure.py** `[keep-reproduces]`
-  — morning follow-up Item 2 (thesis_notes.md "Morning follow-up to the
-  damper package...", 2026-09-03): front-axle comparison figure, measured
-  FL vs RECONSTRUCTED FR (modules.wheel_loads.reconstruct_missing_
-  corner), companion to inspect_v3_wheel_load_comparison_figure.py's
-  rear-axle figure. Reusable figure source, not a one-off.
-- **inspect_v3_abs_consistency_check.py** `[keep-reproduces]` — morning
-  follow-up Item 3: read-only ABS switch-position/activity consistency
-  check on GT3_PRC_MLA-v3.txt (streams 8 named channels directly, no
-  channels.json change). No mapping conclusion -- identification/
-  consistency evidence only. Re-run for any future ABS-question or new
-  damper-equipped session.
-- **inspect_v3_nis_gate_failure.py** `[keep-referenced]` — pre-existing
-  script (v3 work package), gap in this README until now. Cited by
-  filename in PLAN.md's NIS gate redesign proposal (damper package Phase
-  8, 2026-09-03) as the source of the live Dubai-vs-v3 health-score/
-  rate-correction numbers that proposal's PROBLEM section quotes exactly
-  (Dubai 0.1417->0.1351, v3 0.1163->0.0849 under a rate-corrected
-  window). Re-run whenever the NIS gate window/thresholds change --
-  the proposal's own numbers would need re-confirming.
-- **inspect_v3_aero_load_diagnostic.py** `[keep-reproduces]` — the same
-  package's Phase 5 aero diagnostic: damper-derived total Fz regressed
-  against v^2 (with an ax term to remove longitudinal-transfer
-  contamination) on straight-line stretches. Trusts nothing downstream
-  (a pure top-level Fz regression, feeds no estimator); does not write
-  back to config (vehicle.aero.lift_coeff/cross_track_area_m2 stay at
-  their 0.0 placeholders -- only their product is identifiable from a
-  constant-speed regression). Re-run whenever a new damper-equipped
-  session arrives or the wheel-load estimator changes.
-- **inspect_dubai_wheel_load_validation.py** `[keep-reproduces]` —
-  Fz-integration Phase 1 (2026-09-03): the Dubai counterpart to inspect_v3_
-  wheel_load_validation.py/inspect_v3_aero_load_diagnostic.py, run after
-  the premise-correction finding that Sample_Dubai.txt actually has real
-  damper/travel channels (thesis_notes.md "Fz-integration Phase 1: premise
-  correction..."). Per-gauge plausibility, straight-line-vs-config-weight,
-  transfer sign/magnitude, ARB sign-convention, and aero v^2 checks for a
-  SECOND real session -- re-run whenever the wheel-load estimator, the
-  dead-channel guard, or Dubai's own file changes.
-- **inspect_fz_before_after.py** `[keep-reproduces]` — Fz-integration
-  Phase 1 finish (2026-09-03): static-vs-measured before/after for
-  stability_estimation.vertical_load_source on both real sessions
-  (thesis_notes.md "Fz-integration Phase 1 (finish)..."). Reports what
-  actually changes under the flag (fz_*_N/fy_norm values, per-corner
-  damper/reconstructed/static_fallback share) -- explicitly NOT CS_ratio/
-  stability/verdicts, which are proven independent of this flag (same
-  entry). Generates the front/rear-axle static-vs-measured trace figures
-  at named + auto-picked corners. Re-run whenever the wheel-load
-  estimator changes or a third damper-equipped session arrives.
-- **inspect_fz_mu_tyre_fit.py** `[keep-reproduces]` — Fz-integration
-  Phase 2 (2026-09-03): free-D vs load-normalised (mu) Pacejka fit on
-  both real sessions (thesis_notes.md "Fz-integration Phase 2: load-
-  normalised (mu) Pacejka tyre fit..."). Reports B/C/D/E (or mu),
-  residuals, and the resulting EKF's NIS/gate numbers per axle; flags a
-  fitted mu outside config tyre_fit_auto.mu_plausibility_band_low/high.
-  Writes diagnostics/fz_mu_tyre_fit_results.json (gitignored). Re-run
-  whenever the mu fit, the measured-Fz cascade, or the Pacejka model
-  changes, or a third damper-equipped session arrives.
-- **inspect_fz_mu_cross_check.py** `[keep-reproduces]` — Fz-integration
-  Phase 2 gate resolution (2026-09-03): the decisive cross-check
-  (thesis_notes.md "Fz-integration Phase 2 gate resolution") comparing
-  each axle/session's joint-fit mu against (free-D fit's own D) /
-  (median measured Fz in that axle's fit population). Reuses
-  diagnostics/fz_mu_tyre_fit_results.json, only recomputes the median
-  Fz (cheap). Re-run whenever the mu fit or the measured-Fz cascade
-  changes.
-- **inspect_fz_mu_v3_rear_divergence.py** `[keep-reproduces]` — Fz-
-  integration Phase 2 gate resolution, v3 rear divergence dig (2026-09-
-  03, thesis_notes.md "v3 rear divergence dig..."). v3 front (control)
-  and rear (the +20.76% cross-check divergence) tyre-cloud figures
-  coloured by measured Fz with free-D/mu-median/mu-p25-p75-band curves
-  overlaid, plus correlation and Fz-tercile residual numbers. Concluded
-  LEGITIMATE LOAD EFFECT, not a fit artifact. Re-run whenever the mu fit
-  or the measured-Fz cascade changes.
-- **inspect_fz_mu_refit_evaluation.py** `[keep-reproduces]` — Fz-
-  integration Phase 3 (2026-09-03, thesis_notes.md "Fz-integration
-  Phase 3: bounded refit loop under mu..."). Mirrors inspect_v3_
-  pacejka_refit_evaluation.py's exact 4-iteration refit chain, one
-  substitution (_fit_axle_pacejka_mu, D=mu*Fz, in place of the free-D
-  axle fit). Classifies BOUNDED/CREEPING/WANDERING per axle per the
-  amended per-axle +/-15%-of-iteration-1 mu growth band. Result: both
-  sessions non-convergent (Dubai CREEPING, v3 WANDERING). Re-run
-  whenever the mu fit, the EKF Pacejka path, or the measured-Fz cascade
-  changes.
-- **inspect_v3_wheel_speed_census.py** `[keep-reproduces]` — Fz-
-  integration Phase 5 pre-implementation census (2026-09-03, thesis_
-  notes.md "Fz-integration Phase 5: wheel-speed plausibility guard +
-  ABS-domain fallback"). Raw-channel-name scan for ABS-domain wheel-
-  SPEED alternatives (found abs_speed_fl/fr/rl/rr, 100Hz, both
-  sessions) plus log_speed_rr dropout/stuck/spike diagnosis vs its own
-  mates and ecu_speed. Re-run whenever a third session arrives or the
-  guard's own thresholds need re-deriving.
-- **inspect_wheel_speed_guard_before_after.py** `[keep-reproduces]` —
-  Fz-integration Phase 5 (2026-09-03). Loads the pre-Phase-5 module
-  straight from git HEAD (via a system temp file, not a tracked copy)
-  and compares it against the current guarded behaviour on both real
-  sessions: per-corner wheel_speed_source share, LS_ratio_r no-signal
-  fraction before/after. The tool that caught BOTH real calibration
-  bugs before shipping (std_min_kmh initially 10x too high; the mate-
-  ratio check initially penalised v3's healthy log_speed_rl almost as
-  often as its actually-faulty mate log_speed_rr). Re-run whenever the
-  guard's thresholds or the wheel-speed channels change.
-- **inspect_v3_pit_limiter_lap_census.py** `[keep-reproduces]` — Fz-
-  integration Phase 4 (2026-09-03, thesis_notes.md "Fz-integration Phase
-  4: pit-limiter-based out/in-lap classification"). Read-only census of
-  lap_number/ecu_B_speedlimit_en/lap_distance boundaries on both real
-  sessions before/after the fix -- the tool that found v3's real bug
-  (last lap wrongly is_valid_for_analysis=True despite its final ~22s
-  running under the pit limiter). Re-run whenever the lap-splitting
-  logic changes or a third session arrives.
-- **inspect_v3_pacejka_refit_evaluation.py** `[keep-reproduces]` — corner
-  canonicalisation + refit evaluation work order (2026-09-03), Phase 2 and
-  its same-day extension: runs the Pacejka B/C/D/E refit chain (up to 4
-  iterations, each seeded from the previous iteration's own EKF beta
-  instead of kinematic beta) on BOTH Dubai (confirmation) and v3, reusing
-  modules.tyre_fit_auto.fit_session_pacejka/_fit_axle_pacejka and
-  diagnostics.sideslip_ekf_pacejka directly. THE load-bearing provenance
-  for PLAN.md BACKLOG A's "data-identified tyre curve" sub-item closure
-  (thesis_notes.md "Refit-loop conclusion: structural non-convergence
-  confirmed on two sessions, two failure directions") -- the run that
-  found D grows without plateauing on both files across 4 iterations
-  (Dugoff's own historical failure mode instead collapsed D). Re-run if
-  this closure is ever revisited, or a further-iteration/production-
-  adoption question is reopened.
-- **inspect_v3_fr_gauge_forensics.py** `[keep-reproduces]` — Frame-Stage-2
-  Phase 0 (2026-09-04, thesis_notes.md "Frame-Stage-2 Phase 0: FR damper-
-  force gauge forensics"). Full-session (not 9-point) census of log_dms_
-  dam_fr[N] plus its previously-unknown log_dms_dam_fr_dash[kgf] sibling;
-  decoding hypotheses and time-aligned correlation vs ay/ax/the other
-  three corners on the pipeline's own reference grid. Found the channel
-  carries real, correctly-signed signal under a corrupted offset -- open
-  engineer question (PLAN.md), reopens if a calibration reference for this
-  gauge ever surfaces.
-- **inspect_v3_speed_channel_survey.py** `[keep-reproduces]` — Frame-
-  Stage-2 Phase 1 (2026-09-04). Broad raw-header + full-block census of
-  every speed-shaped channel in GT3_PRC_MLA-v3.txt (wheel/GPS/NMEA/radar
-  families) -- found log_gps_speed/NMEA/an independent MRR radar ego-speed
-  all exist and are populated, correcting the work order's own "census
-  said gps_speed absent" premise. Re-run whenever a new file's own speed-
-  channel inventory needs checking before trusting an assumption about it.
-- **inspect_v3_ecu_speed_forensics.py** `[keep-reproduces]` — Frame-
-  Stage-2 Phase 1 (2026-09-04, thesis_notes.md "Frame-Stage-2 Phase 1").
-  ecu_speed cross-plot vs wheel/GPS/radar references and the RR-fault-
-  window overlap check (both real sessions); synthesizes a plausibility-
-  guarded left-side+healthy-wheel reference speed, cross-checked against
-  integrated ax; substitutes it for ecu_speed in a real C13 CS-chain
-  re-run (all else identical) via a local, deepcopy'd channel override --
-  found NO material change (speed exonerated) plus the unplanned finding
-  that v3's own sawtooth artifact has already substantially resolved.
-  Re-run if the sawtooth thread or the ecu_speed-derivation engineer
-  question reopens.
-- **inspect_v3_intervention_channel_classification.py** `[keep-reproduces]`
-  — Frame-Stage-2 Phase 2 (2026-09-04). Boolean/level/continuous
-  classification plus real co-occurrence-with-braking/traction numbers for
-  every ABS/TC/EB/brake-bias candidate the damper package's own Phase 4
-  survey named but did not classify -- the source of modules.decision_
-  frame.py's own USABLE-NOW (abs_active, ecu_B_tc_act) determination. Re-
-  run whenever a new session needs the same classification, or a READ-
-  AND-RECORD/UNCLEAR candidate's engineer question above gets answered.
-- **inspect_frame_stage2_parity.py** `[keep-reproduces]` — Frame-Stage-2
-  Phase 3d (2026-09-04/05, thesis_notes.md "Frame-Stage-2 Phase 3: decision-
-  frame Stage 2, full migration"). Runs BOTH the old 39-rule engine
-  (modules.recommendation.generate_recommendations) and the new decision
-  frame (modules.decision_frame) on real Dubai and v3 data and checks
-  every old-engine recommendation has a matching candidate in the new
-  frame; includes a diagnostic-only loosened-consistency-gate stress test
-  (never touches live config) specifically so the parity claim is not
-  vacuously true when production thresholds fire zero old-engine results.
-  THE load-bearing provenance for the Stage 2 migration's own parity
-  claim -- re-run whenever config/recommendations.json's rules or modules/
-  decision_frame.py's bridge logic change, to re-verify parity still
-  holds.
-- **inspect_deepening_phase1_ripple.py** `[keep-reproduces]` — Deepening
-  Phase 1 (2026-09-18, thesis_notes.md "Deepening Phase 1: per-outing
-  corner weights..."). Reconstructs v3's OLD stored corner weighing (from
-  the pre-edit DB census, since the DB write already happened) and runs
-  the real production chain (resolve_accuracy -> apply_resolved_vehicle
-  -> Modules 1-5, cap=None) old-vs-new -- the tool that found the 4
-  verdict flips this phase's own STOP condition is built on, and traced
-  them to CS_ratio's own window-floor sensitivity rather than a fit-chain
-  divergence. Re-run if the mass/corner-weight mechanism or that
-  sensitivity thread reopens.
-- **inspect_deepening_phase2_fr_correction.py** `[keep-reproduces]` —
-  Deepening Phase 2 (2026-09-18, thesis_notes.md "Deepening Phase 2: FR
-  gauge decoding correction, SHIPPED"). The load-bearing acceptance-chain
-  validation for the shipped config/channels.json channel_corrections
-  entry -- injects a candidate-corrected log_dms_dam_fr into the real
-  modules.wheel_loads decomposition and checks straight-line total load,
-  transfer correlations, front L/R consistency against the real outing
-  weighing, and fuel drift. Re-run if the correction is ever revisited or
-  a new session's own log_dms_dam_fr needs the same test.
-- **inspect_deepening_phase4e_ls_thresholds.py** `[keep-reproduces]` —
-  Deepening Phase 4e (2026-09-18, thesis_notes.md "Deepening Phase 4e: LS_
-  ratio threshold groundwork"). Worst-phase/worst-lap LS_ratio_f/r
-  distribution on both real sessions, the tool that found the SAME
-  wholesale-negative pattern CS_ratio itself showed before its own
-  validity repair -- the load-bearing provenance for the PARKED "LS_ratio
-  threshold proposal, BLOCKED on its own validity repair" item. Re-run
-  once an LS_ratio validity-repair pass (mirroring CS_ratio's own) lands.
-- **inspect_deepening_phase4f_before_after.py** `[keep-reproduces]` —
-  Deepening Phase 4f (2026-09-18). Dynamically execs modules/decision_
-  frame.py's own git-HEAD content against a git-HEAD copy of its config,
-  never touching the real working tree, to diff shortlist output before/
-  after a decision-frame change on real data -- a reusable technique
-  (not specific to this one comparison), kept for whenever a future
-  decision-frame change needs the same before/after check without
-  stashing real uncommitted work.
-- **inspect_metrology_phase1_sensitivity.py** `[keep-reproduces]` —
-  Metrology Phase 1 (2026-09-19, thesis_notes.md "Metrology Phase 1:
-  verdict sensitivity map"). The "big compute": perturbs each of 5
-  Level-1/2 scalar vehicle inputs +/-1% on both real sessions and
-  re-runs the full production chain (22 pipeline runs, ~38 min via a
-  6-way process pool), saving per-task results to diagnostics/
-  results_metrology/*.json. The load-bearing provenance for the PARKED
-  "Verdict-stability annotation" proposal's own anchor constant. Re-run
-  if a future estimator change needs the sensitivity map redone, or to
-  extend the input set.
-- **inspect_metrology_phase1_analysis.py** `[keep-reproduces]` —
-  companion to the above: post-processes the saved JSON results (no
-  pipeline re-run, seconds) into the flip census, the pre-registration
-  threshold-distance check, the margin table, and the CS_ratio margin-
-  distribution figures. Re-run whenever results_metrology/ is
-  regenerated.
-- **inspect_metrology_phase1_corner_map.py** `[keep-reproduces]` —
-  companion figure generator: GPS is invalid on both real sessions
-  (censused directly, not assumed), so the corner-sequence figure uses
-  each corner's own lap-distance position instead of a true 2-D map,
-  explicitly labelled as a proxy. Re-run alongside the analysis script.
-- **inspect_metrology_phase3_rear_residual.py** `[keep-reproduces]` —
-  Metrology Phase 3 (2026-09-19, thesis_notes.md "Metrology Phase 3:
-  rear axle-total residual decomposition"). Decomposes the v3/Dubai
-  straight-line Fz residual (measured vs the outing's own real
-  weighing) against BACKLOG item B's three candidate mechanisms --
-  the load-bearing provenance for that BACKLOG item's own updated
-  finding (aero split confirmed, geometric transfer ruled out, motion-
-  ratio region narrowed). Cheap (no fitting), re-run whenever the
-  wheel-load chain or the aero-split placeholder is revisited.
-- **inspect_ls_window_floor_derivation.py** `[keep-reproduces]` --
-  Metrology extension Phase 2a (2026-09-19, thesis_notes.md "Metrology
-  extension Phase 2: LS_ratio validity repair"). Bootstrap-resampled
-  phase-median-stability window-floor derivation for LS_ratio, applying
-  CS_ratio's own Phase 1 REVISION method to real kappa/Fx on both
-  sessions -- the load-bearing provenance for config/parameters.json's
-  own longitudinal_stiffness.min_window_s/min_window_samples_floor/
-  min_slip_span. Re-run if this car's own kappa/Fx noise characteristics
-  change materially (new track, new tyre) or a third session becomes
-  available.
-- **inspect_ls_max_window_locality_sizing.py** `[keep-reproduces]` --
-  companion to the above: natural (uncapped) window footprint under the
-  chosen floors, real track distance via s_m, demand-population samples
-  only -- the load-bearing provenance for max_window_m=900. Re-run
-  alongside the floor-derivation script if the floors themselves change.
-- **inspect_ls_repair_frame_verification.py** `[keep-reproduces]` --
-  Metrology extension Phase 2g. Verifies modules.decision_frame's
-  ls_disambiguation evidence and Dubai C3's own raw LS_ratio signature
-  under the repaired estimator -- found and recorded a real premise
-  correction (C3 is not an exit-oversteer corner, so the "exit-oversteer
-  routing" and "C3's own traction-limited signature" are different
-  checks, not one). Re-run whenever the LS estimator or the frame's own
-  ls_disambiguation evidence source changes.
-- **inspect_ls_negative_cooccurrence.py** `[keep-reproduces]` -- LS-
-  evidence work package (2026-09-20, thesis_notes.md "LS-evidence work
-  package: negative-population co-occurrence census"). Censuses every
-  negative repaired-LS worst-phase instance (both sessions) against
-  brake/throttle/ABS/TC/|ax| and cross-lap repeatability in its own
-  worst-lap's own phase window -- the load-bearing provenance for
-  PLAN.md's own LS_ratio threshold-proposal verdict (MIXED, phase-
-  conditioned: braking/turn-in corroborated, exit uncorroborated because
-  TC is session-silent, not because the signal is shown false). Cheap
-  (CS/stability deliberately not computed, unused by this script). Re-
-  run if the LS estimator changes again, or a session with real TC
-  activity becomes available to close the exit-phase evidence gap named
-  here.
-- **inspect_frame_candidate_census.py** `[keep-reproduces]` — general-
-  purpose decision-frame candidate census (2026-09-22, thesis_notes.md
-  "Frame candidate census: single-lap evidence confirmed on both real
-  sessions"). Reuses inspect_frame_stage2_parity.py's own run_full_
-  pipeline/DUBAI_FILE/V3_FILE directly (same cap=1, same file paths).
-  RECONCILED at DECISION LAYER SPEC B8 (2026-09-22): originally hand-
-  re-implemented generate_candidates' own body (calling each generator
-  function individually) purely to label candidates by generator -- by
-  Phase B's end that body had grown to 7 steps and the hand-kept copy had
-  already drifted twice (missing the eligibility gate and the
-  feedback-only generator for a full sub-phase each). Now calls
-  generate_candidates() directly and derives each candidate's generator
-  label from fields the production dict already carries (id prefix,
-  scenario, rule_id, effect_class) -- no logic reimplemented anywhere,
-  so it cannot drift from production again the way the old copy did.
-  Live uses: the original census (found EVERY corner_verdict/matrix_
-  verdict evidence item on both real sessions rests on exactly 1
-  repeating lap, the numeric basis for WP-FD1's own no-repeat-condition
-  design decision), the WP-FD1+2 Phase 1 byte-stability re-run (exact
-  match, zero difference), and the DECISION LAYER SPEC Phase B close-out
-  re-run (new baseline after the status model/feedback-only trigger/
-  eligibility gate/breadth/window-edge/contradiction/three new bridges,
-  thesis_notes.md "WP-DL Phase B close-out"). THE standard byte-stability
-  tool for DECISION LAYER SPEC work going forward (PLAN.md) -- every
-  stage of that spec touches candidate generation and will need the same
-  before/after check this script already performs; re-run at each stage
-  boundary, not just once.
-- **inspect_damper_motion_sign_and_threshold.py** `[keep-reproduces]` --
-  WP-FD1+2 Step 2 groundwork (2026-09-22, thesis_notes.md "Damper motion
-  sign-convention and threshold derivation"). Two real-data questions
-  modules/damper_motion.py's classification logic depends on, CITED
-  DIRECTLY from config/decision_frame.json's own damper_motion block
-  (rate_threshold_mm_s_derived_from, min_valid_fraction_derived_from) and
-  from tests/test_damper_motion.py's own header comment: (1) sign
-  convention -- correlates front-axle travel against braking ax (same
-  method as the existing ARB sign-convention check), found POSITIVE on
-  both real sessions (decreasing travel = compression = loading, the
-  opposite of the first unverified guess); (2) motion-vs-noise rate
-  threshold -- originally planned to compare apex_3 (near-zero by
-  construction) against transient-phase rates, abandoned when both
-  sessions' own apex_3 segments proved too narrow for any >=2-sample rate
-  window (n=0) -- reused this project's own existing straight-line mask
-  (|ax|<0.5,|ay|<0.5 g) as the reference population instead. Re-run if a
-  third session's own distribution should ever revisit either value.
-- **smoke_test_settings_view.py** `[keep-reproduces]` — reusable headless
-  Qt smoke test for SettingsView's Section 4 (decision-frame cost-
-  function weights, DECISION LAYER SPEC C2, 2026-09-22), same technique
-  as smoke_test_decision_frame_widget.py/smoke_test_measurement_points_
-  widget.py. Verifies the specific claim C2 needed checked -- values
-  ACTUALLY persist across a restart, not just within one already-running
-  instance -- by constructing SettingsView, changing a weight, clicking
-  Save, then constructing a SECOND, fresh SettingsView instance (the
-  closest headless proxy for "restart") and confirming it reads the new
-  value back from disk; also confirms the provenance-note tooltip is
-  populated (C2: "each with provenance note display"). Restores config/
-  decision_frame.json to its original content in a finally block either
-  way -- writes to the real config file to prove real persistence, so it
-  must never leave that file mutated behind it.
-- **smoke_test_decision_frame_phase_d.py** `[keep-reproduces]` — WP-DL
-  Phase D (2026-09-22, thesis_notes.md "Phase D: D6 top-line rendering
-  rule resolved"), same offscreen-Qt technique as smoke_test_decision_
-  frame_widget.py, but checking CONTENT the D6 STOP made load-bearing
-  rather than the widget binding: rebuilds the real Dubai shortlist/tail
-  directly and confirms no shortlist top line carries a corner id (D1),
-  no direction-only candidate (no real delta) renders a digit it does
-  not have (D6) -- both from real data AND from two hand-built synthetic
-  actions so the direction-only path is checked deterministically
-  regardless of which candidates this file's own kinematic-mode verdicts
-  happen to fire -- and tail ordering (real candidates by descending
-  score before unranked no_trigger rows, D2). Also constructs a real
-  OutingForm and confirms the actually-rendered widget tree agrees (no
-  corner id in any rendered badge, tail toggle collapsed by default,
-  "> reasoning" dropdowns present). Re-run whenever render_top_line/
-  render_tail_line or the row-building code in ui/views/outing_form.py's
-  Decision Frame section changes.
-- **inspect_pipeline_wall_times.py** `[keep-reproduces]` — PLAN.md ###
-  NOW item (2) profiling pass (2026-09-23, thesis_notes.md "Pipeline
-  wall-clock timing, per-stage, both real sessions"). Re-issues
-  inspect_frame_stage2_parity.py's own run_full_pipeline call sequence
-  one call at a time (same DUBAI_FILE/V3_FILE/FIXED_CAP constants,
-  imported not re-typed), each wrapped in time.perf_counter() -- the
-  fit chain's own Pacejka-fit/EKF-run split (no external call boundary
-  in production) comes from cProfile wrapped around the single fit_
-  session_pacejka call, bucketed by function name after the fact, never
-  by editing modules/. Found estimate_longitudinal_stiffness, the fit
-  chain's own EKF run, and estimate_cornering_stiffness are 97-98% of
-  total wall time on both real sessions -- the load-bearing measurement
-  behind PLAN.md NOW item (2)'s own "profile first" half; re-run
-  whenever the pipeline's own default sideslip/vertical-load source or
-  any of these three estimators changes, to re-check whether the
-  concentration still holds.
-- **capture_wp_perf_reference.py** `[keep-reproduces]` — WP-PERF's frozen
-  pass-1 byte-identity baseline (thesis_notes.md "WP-PERF close-out").
-  Dumps every key of estimate_cornering_stiffness's and estimate_
-  longitudinal_stiffness's own output dicts to a gitignored .npz per
-  real session. The no-suffix run is the frozen ground truth, never
-  regenerated by a later phase -- pass a suffix (e.g. `_phase2`) for a
-  later phase's own proof capture, compared against the frozen files via
-  compare_wp_perf_reference.py. Re-run (no suffix) only if the two window
-  estimators' own method ever changes on purpose and a new hard-bar
-  baseline is needed.
-- **compare_wp_perf_reference.py** `[keep-reproduces]` — the byte-identity
-  comparison helper WP-PERF's own proof steps run against capture_wp_
-  perf_reference.py's output: exact equality per key two ways (np.
-  array_equal with equal_nan=True, and raw tobytes() equality), self-
-  tested against itself (run with no arguments) before being trusted.
-  Live tooling for any future re-verification of the two window
-  estimators' byte-identity, not a one-off.
-- **generate_decision_layer_figure.py** `[keep-reproduces]` — regenerates
-  the thesis/supervisor figures for the decision layer (WP-DL Phase E,
-  2026-09-23) from live config only: config/setup_parameters.json,
-  config/decision_frame.json, config/recommendations.json, plus the
-  production rule_bridge_status classifier (modules/decision_frame.py) --
-  so neither figure can drift from what the pipeline actually does.
-  Outputs diagnostics/plots_decision_layer/ (gitignored): a six-stage
-  flow diagram (PLAN.md DECISION LAYER SPEC Stage 1-6, live counts and
-  cost_function weights printed as-is) and a two-panel lever coverage
-  table (35 rows -- axle-paired per Stage 1 for camber/dampers, ARB kept
-  per-corner per the registry's own no-pairing note -- covering all 42
-  recommendation_target=true registry keys + the tyre-pressure check-only
-  item + the 4 written exclusions, proving every registry entry appears
-  exactly once). Re-run whenever config/decision_frame.json's
-  eligibility_classes/cost_function/lever_bridges/interaction_table,
-  config/setup_parameters.json's registry, or config/recommendations.json's
-  rules change, so the figures stay in sync.
-- **inspect_pipeline_sidecar_size.py** `[keep-reproduces]` — WP-CACHE
-  Phase 1e (2026-09-23/24, thesis_notes.md "WP-CACHE Phase 1: sidecar
-  implementation + Phase 1e real-data measurement"). Real sidecar size
-  and load-wall-time measurement on both real sessions (production
-  defaults, same FIXED_CAP convention as inspect_frame_stage2_parity.py),
-  writing into a throwaway temp dir, never data/analysis_cache/. Found
-  Dubai 21.04MB/0.205s load, v3 17.67MB/0.159s load -- both far under the
-  500MB/10s acceptance gate. Re-run whenever modules/pipeline_sidecar.py's
-  payload shape, the gzip compresslevel, or the underlying pipeline
-  outputs (state/cs/stab/fz/ls/slip/forces) change materially, to
-  re-confirm the gate still holds.
-- **smoke_test_cache_sidecar_analyse_contract.py** `[keep-reproduces]` —
-  headless Qt smoke test proving WP-CACHE's own acceptance condition end
-  to end on real data (2026-09-23/24): restart the app (WP6 in-memory
-  cache cleared), open the v3 outing, graphs/trace dialogs fully usable
-  in seconds with zero pipeline run (Phase 1d), the Analyse-button fast
-  path renders instantly when nothing changed (Phase 2a), an identity
-  mismatch names which field changed and forces a real run (Phase 2b),
-  and the explicit recompute control forces a run unconditionally (Phase
-  2a). Uses a throwaway RaceWeekend+Outing row and sidecar file, both
-  deleted in a finally block -- never touches real user data. One real
-  full pipeline run is unavoidable (~15 min, v3) to produce the sidecar
-  this test then exercises; re-run whenever the sidecar payload shape,
-  the DB/sidecar identity fields, or the Analyse-button contract's own
-  control flow changes.
+- **inspect_corner_distribution.py** -- cited in config/parameters.json's
+  STRONG/MODERATE_CSF/CSR derived_from fields. Also K3.
+- **inspect_cs_floor_candidate_validation.py** -- cited in
+  config/parameters.json's cs_min_window_s/cs_max_window_m provenance.
+- **inspect_cs_max_window_locality_sizing.py** -- cited in
+  config/parameters.json's `_comment_cs_max_window_m`.
+- **inspect_cs_window_floor_derivation.py** -- cited in
+  config/parameters.json's cs_linear_slip_threshold_rad_derived_from.
+- **inspect_damper_motion_sign_and_threshold.py** -- cited in
+  config/decision_frame.json's damper_motion.rate_threshold_mm_s_derived_from
+  and min_valid_fraction_derived_from.
+- **inspect_deepening_phase2_fr_correction.py** -- cited in
+  config/channels.json's log_dms_dam_fr channel_corrections derived_from.
+- **inspect_ekf_pass1_rQ_sweep.py** -- cited in config/parameters.json's
+  r_q_sweep_note.
+- **inspect_kerb_wheel_speed_spikes.py** -- cited in
+  config/parameters.json's kerb_investigation_reference.
+- **inspect_ls_max_window_locality_sizing.py** -- cited in
+  config/parameters.json's max_window_m_derived_from.
+- **inspect_ls_window_floor_derivation.py** -- cited in
+  config/parameters.json's min_slip_span_derived_from (current 0.016
+  value, supersedes the old 0.004).
+- **inspect_metrology_phase1_sensitivity.py** -- cited in
+  config/parameters.json's verdict_stability_margin derived_from.
+- **inspect_native_channel_rates.py** -- cited in config/parameters.json's
+  `_comment_grid_rate`.
+- **inspect_nis_tyre_mismatch_gate.py** -- cited in
+  config/parameters.json's nis_gate._comment.
+- **inspect_saturation_coverage.py** -- cited by description (not exact
+  filename), config/parameters.json's tyre_model_fit._comment: "the
+  WP-N0 saturation-coverage diagnostic's own candidate-threshold list."
+- **inspect_v3_brake_phase_stability.py** -- cited in
+  config/parameters.json's `_comment_stab_phase_no_braking_floor_bar`
+  (stab_phase_no_braking_floor_bar=3.0). Previously undocumented gap,
+  closed this pass.
+- **inspect_v3_nis_gate_failure.py** -- cited in config/parameters.json's
+  nis_gate threshold_derived_from.
+- **inspect_v3_wheel_speed_census.py** -- cited in
+  config/parameters.json's ratio_max_deviation_derived_from.
+- **inspect_wheel_speed_guard_before_after.py** -- cited in
+  config/parameters.json's window_s_note/std_min_kmh_note.
+- **inspect_yaw_stability_b2.py** -- cited in config/parameters.json's
+  stab_neg_thresh_Nm_per_deg derived_from.
+- **sideslip_kalman_observer.py** -- cited in config/parameters.json's
+  yaw_inertia_kalman note and accuracy_levels node.
+
+## K2 -- golden generator / frozen pass-1 baseline (1)
+
+- **inspect_pass1_final_validation.py** -- THE frozen pass-1 EKF
+  validation baseline; do not delete without a deliberate decision to
+  retire it. Also K3.
+
+## K3 -- live figure sources (18 not already listed above)
+
+- **capture_wp_perf_reference.py** -- WP-PERF byte-identity baseline
+  capture, cited docs/thesis_material_index.md Ch.6. Also K5, K6 (imports
+  inspect_frame_stage2_parity.py).
+- **compare_wp_perf_reference.py** -- byte-identity comparison companion
+  to the above, same Ch.6 citation. Also K5.
+- **generate_decision_layer_figure.py** -- generates
+  diagnostics/plots_decision_layer/six_stage_flow.png and
+  lever_coverage_table.png, cited docs/thesis_material_index.md Ch.5.
+- **inspect_dubai_wheel_load_validation.py** -- named in
+  docs/thesis_material_index.md Ch.4 as underlying the wheel-load
+  figures.
+- **inspect_frame_candidate_census.py** -- cited
+  docs/thesis_material_index.md Ch.5, re-run at every decision-layer
+  phase boundary. Also K5, K6 (imports inspect_frame_stage2_parity.py).
+- **inspect_fz_before_after.py** -- generates
+  diagnostics/plots_fz_integration/, cited
+  docs/thesis_material_index.md Ch.4.
+- **inspect_metrology_phase1_analysis.py** -- code-verified: writes
+  `{session}_margin_distribution.png`, exact match to the Ch.3 figure
+  docs/thesis_material_index.md cites (script not named in index prose).
+- **inspect_metrology_phase1_corner_map.py** -- code-verified: writes
+  `{session}_corner_sequence_marginal.png`, exact match to the Ch.3
+  figure the index cites.
+- **inspect_metrology_phase3_rear_residual.py** -- code-verified: writes
+  `{name}_residual_vs_speed.png`, exact match to the Ch.4 figure the
+  index cites.
+- **inspect_pipeline_wall_times.py** -- cited
+  docs/thesis_material_index.md Ch.5/6. Also K5, K6 (imports
+  inspect_frame_stage2_parity.py).
+- **inspect_prc_v3_sample_rates.py** -- cited
+  docs/thesis_material_index.md Ch.3 (damper-channel-capability finding).
+- **inspect_step2_chair_plots.py** -- generates the 28 chair-comparable
+  PNGs in diagnostics/plots_step2/, cited
+  docs/thesis_material_index.md Ch.2/3. Imports
+  modules/sideslip_ekf_dugoff.py (relocated 2026-09-24, an ordinary
+  modules/ import now, not a diagnostics-internal K6 relationship).
+- **inspect_v3_fr_gauge_forensics.py** -- cited
+  docs/thesis_material_index.md Ch.3.
+- **inspect_v3_reconstruction_ground_truth.py** -- named in
+  docs/thesis_material_index.md Ch.4 as underlying the wheel-load
+  figures; also cited directly in modules/wheel_loads.py:479's own
+  docstring.
+- **inspect_v3_sawtooth_mechanism.py** -- cited
+  docs/thesis_material_index.md Ch.2. Also K6 (imports
+  inspect_step2_chair_plots.py).
+- **inspect_v3_wheel_load_comparison_figure.py** -- code-verified: writes
+  wheel_load_comparison_C12_lap8.png, exact match to the Ch.4 figure the
+  index cites (script not named in index prose).
+- **inspect_v3_wheel_load_reconstruction_figure.py** -- code-verified:
+  writes wheel_load_reconstruction_C12_lap8.png, exact match to the Ch.4
+  figure the index cites (script not named in index prose).
+- **inspect_v3_wheel_load_showcase.py** -- generates
+  wheel_load_showcase_fastest_lap8.png and heavy_braking_zoom.png, cited
+  docs/thesis_material_index.md Ch.4.
+
+## K4 -- working smoke tests (6)
+
+- **smoke_test_cache_sidecar_analyse_contract.py** -- WP-CACHE
+  Analyse-button contract, end to end on real data.
+- **smoke_test_corner_trace_dialog.py** -- CornerTraceDialog/
+  LapTraceDialog headless smoke test.
+- **smoke_test_decision_frame_phase_d.py** -- D1/D2/D6 top-line/tail
+  rendering rules against real and synthetic candidates.
+- **smoke_test_decision_frame_widget.py** -- Decision Frame section
+  widget binding.
+- **smoke_test_measurement_points_widget.py** -- splitter/diffuser
+  measurement-points form widget.
+- **smoke_test_settings_view.py** -- SettingsView Section 4 cost-function
+  weights, restart-persistence check.
+
+## K5 -- named census/measurement tooling (1 not already listed above)
+
+- **inspect_pipeline_sidecar_size.py** -- WP-CACHE sidecar size/load-time
+  measurement, both real sessions against the acceptance gate.
+
+## K6 -- imported by a K1-K5 keeper (1 not already listed above)
+
+- **inspect_frame_stage2_parity.py** -- imported by
+  capture_wp_perf_reference.py, inspect_damper_motion_sign_and_threshold.py,
+  inspect_frame_candidate_census.py, inspect_pipeline_wall_times.py (all
+  keepers above). The standard byte-stability tool for decision-layer
+  work; old-vs-new engine parity check.
+
+## K7 -- regenerates committed content / recurring checklist tool (2)
+
+- **scan_channels.py** -- the tool that found this project's real GPS
+  channel names, driving the WP1 channels.json whitelist fix. Sole tool
+  for the recurring PLAN.md new-data-file channel-discovery checklist
+  item; re-run whenever a new telemetry file needs its own channel
+  census.
+- **generate_channel_requirements.py** -- regenerates the two committed
+  deliverables docs/channel_requirements.md and docs/channel_list.txt
+  from config/channels.json and real read-site greps, in one run so the
+  two can never disagree. Re-run whenever channels.json or a
+  channel-consuming module changes.

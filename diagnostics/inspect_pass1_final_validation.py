@@ -19,7 +19,7 @@ from modules.stability_analysis import (
     load_parameters, prepare_vehicle_state, estimate_sideslip,
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
 )
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.tyre_model import dugoff_lateral_force
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"

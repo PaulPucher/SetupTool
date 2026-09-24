@@ -8,7 +8,7 @@
 # that reference is interactive Plotly, this is static matplotlib PNGs).
 #
 # Read-only diagnostic. Calls production pipeline functions directly
-# (modules/stability_analysis.py, modules/geo.py, diagnostics/
+# (modules/stability_analysis.py, modules/geo.py, modules/
 # sideslip_ekf_dugoff.py) -- no estimation logic is reimplemented here.
 # The only local logic is worst-phase/window-slice bookkeeping below,
 # needed because estimate_cornering_stiffness returns only per-sample
@@ -41,7 +41,7 @@ from modules.stability_analysis import (
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
     reconstruct_cs_window_start, resolve_cs_min_window_samples,
 )
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.geo import project_latlon_to_xy
 from core import figure_render, plot_style
 

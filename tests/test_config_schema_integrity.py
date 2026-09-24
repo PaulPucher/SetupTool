@@ -11,7 +11,7 @@
 # full and can enumerate with confidence (modules/stability_analysis.py's
 # estimate_sideslip/estimate_slip_angles/estimate_lateral_forces/
 # estimate_yaw_moment_stability, ui/views/outing_form.py's
-# _classify_corner/_stability_colour, diagnostics/sideslip_ekf_dugoff.py's
+# _classify_corner/_stability_colour, modules/sideslip_ekf_dugoff.py's
 # tyre_model_ekf.pass_1 consumer). This is NOT an exhaustive static-
 # analysis sweep of every params[...]/cfg[...] access in the codebase --
 # see the final report's "chose not to do" section for why that was

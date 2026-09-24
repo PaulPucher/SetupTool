@@ -28,7 +28,7 @@ from modules.stability_analysis import (
     estimate_lateral_forces, estimate_vertical_loads, estimate_cornering_stiffness,
 )
 from modules.tyre_model import dugoff_lateral_force
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 MANIFEST_PATH = "diagnostics/fit_dugoff_pass4_refit_manifest.json"

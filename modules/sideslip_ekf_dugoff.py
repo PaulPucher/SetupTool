@@ -1,7 +1,12 @@
+# PRODUCTION DEPENDENCY -- imported at runtime by modules/tyre_fit_auto.py
+# (estimate_sideslip_ekf_dugoff), also by tests/test_pure_functions.py and
+# tests/test_nis_gate.py. Moved from diagnostics/ 2026-09-24 (WP-CLEAN
+# relocation mini-package); production dependency of tyre_fit_auto (EKF
+# sideslip sources), not diagnostics-only as this file's own header used
+# to claim.
+#
 # Nonlinear single-track EKF sideslip observer, Dugoff tyre model,
-# pass 0. Diagnostics-only candidate, mirrors diagnostics/
-# sideslip_kalman_observer.py's placement and never-production status --
-# no modules/ or ui/ consumer.
+# pass 0. No ui/ consumer (still no PyQt6 import, verified at relocation).
 #
 # Method anchors recorded in thesis_notes.md, "WP-N2: nonlinear Dugoff
 # EKF proposal" entry (model equations: Rajamani sec. 2.3/2.6 + Ulsoy,

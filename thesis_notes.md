@@ -20284,3 +20284,190 @@ STOP BEFORE COMMIT: ready for this package's own commit boundary on
 perf-estimators (not yet merged to main), awaiting the user's go-ahead,
 per CLAUDE.md's "never leave a WP boundary uncommitted, never commit
 mid-implementation" -- this IS the WP boundary.
+
+### WP-CLEAN Phase 1: diagnostics inventory hard pass [2026-09-24]
+
+Tier B (repository hygiene / process, not a vehicle-dynamics or
+signal-engineering method -- included here because the discovery below
+is genuinely thesis-relevant: scaffolding-vs-production hygiene, not a
+result about the car).
+
+Re-judged all 92 diagnostics/*.py scripts against a strict load-bearing
+test, superseding the two-pass Phase 1 confirmation earlier the same
+session (a first pass had proposed keeping anything cited anywhere,
+including PLAN.md/thesis_notes.md notes and modules-docstring mentions;
+the user tightened this to config-citation-only plus five other narrow
+categories, explicitly accepting that scripts whose finding is already
+recorded in thesis_notes.md would move regardless -- "the record IS the
+deliverable, the script is scaffolding"). Seven categories: K1
+config-cited provenance (verified against actual current config/*.json
+content, not assumed -- one stale citation caught this way:
+inspect_ls_ratio_span_dependence.py's own claimed config gate,
+longitudinal_stiffness.min_slip_span, had been silently superseded from
+0.004 to 0.016 by a later, different script's derivation
+2026-09-19 -- the old citation no longer backs any live value, so the
+script lost its keeper status); K2 golden generator/frozen pass-1
+baseline; K3 live figure sources (verified two ways -- exact filename in
+docs/thesis_material_index.md, and for 5 scripts the index does not name
+by filename, by reading the script's own output path against the exact
+PNG the index cites as a thesis figure -- inspect_v3_wheel_load_
+comparison_figure.py, inspect_v3_wheel_load_reconstruction_figure.py,
+inspect_metrology_phase1_analysis.py, inspect_metrology_phase1_
+corner_map.py, inspect_metrology_phase3_rear_residual.py); K4 working
+smoke tests; K5 named census/measurement tooling; K6 imported by another
+K1-K5 keeper (verified against the real `from diagnostics.X import`
+graph, 21 edges, traced to a fixpoint -- only inspect_frame_stage2_
+parity.py survived on this basis alone); K7, a user amendment mid-review
+for two scripts that fit none of K1-K6 but are clearly still load-
+bearing: scan_channels.py (found this project's real GPS channel names,
+the sole tool for the recurring PLAN.md new-data-file channel-discovery
+checklist item) and generate_channel_requirements.py (regenerates two
+still-committed docs/ deliverables from config/channels.json in one run
+so they cannot drift apart).
+
+GENUINE FINDING, not just classification bookkeeping: this pass
+discovered two scripts labelled "diagnostics-only" in their own module
+docstrings are actually PRODUCTION DEPENDENCIES -- modules/
+tyre_fit_auto.py imports estimate_sideslip_ekf_dugoff and estimate_
+sideslip_ekf_pacejka directly from diagnostics/sideslip_ekf_dugoff.py
+and diagnostics/sideslip_ekf_pacejka.py at runtime (also imported by
+tests/test_pure_functions.py and tests/test_nis_gate.py for the Dugoff
+file). This was flagged, not new -- the diagnostics/README.md predating
+this pass already called it out for the Dugoff file ("NOT
+diagnostics-only despite its location... a real production dependency
+living in diagnostics/ by historical accident, not by design") -- but
+sideslip_ekf_dugoff.py's own module docstring still claimed "never-
+production status -- no modules/ or ui/ consumer" until this pass
+corrected it. Both files' own headers now state the dependency plainly
+and name relocation to modules/ as a named follow-up task, not done
+this pass (scope: cleanup, not refactor). The general lesson: a
+script's own self-description can go stale exactly like any other
+claim in this codebase -- the channel-census rule's spirit (verify
+against the actual file/import graph, not the file's own prior claim
+about itself) applies as much to a diagnostics script's docstring as
+to a telemetry file's channel list.
+
+RESULT: 37 scripts (of 92) moved to diagnostics/_attic/ via git mv
+(nothing deleted, fully reversible) -- including all three scripts from
+the first-pass confirmation (inspect_v3_corner_census.py, inspect_v3_
+corner_separation.py, inspect_ls_ratio_span_dependence.py) plus, per
+the tightened rule, scripts whose only prior justification was a
+PLAN.md or modules-docstring citation (e.g. inspect_washout_cutoff_
+sweep.py, inspect_wheel_speed_sources.py, inspect_corner_bracket_
+geometry.py, inspect_tyre_fit_auto_acceptance.py, inspect_tyre_variant_
+comparison.py, inspect_ls_cs_disambiguation.py) -- each a real,
+substantive investigation with its finding intact in this file, moved
+because the record now carries the finding, not the script. 55 scripts
+kept. diagnostics/README.md rewritten from scratch, keepers only, each
+with its specific K-reason; diagnostics/_attic/ explicitly flagged as
+awaiting a final user keep/delete decision at orphan-branch time, not
+resolved by this pass.
+
+VERIFIED SAFE before moving anything: grepped the full `from
+diagnostics.X import` graph (21 edges) and confirmed zero keepers
+import any of the 37 attic-bound scripts, and zero tests/*.py files
+import one (one tests/test_tyre_fit_auto_mu.py comment references
+inspect_fz_mu_tyre_fit.py by path -- a stale comment after the move,
+not a functional import, left for the later comment-polish pass, not
+fixed here as it is out of this package's stated scope).
+
+FULL SUITE after the moves: 436 passed, 9 skipped, 1 xfailed, 0 failed
+-- byte-identical to the pre-move WP-PERF baseline, confirming the
+moves changed nothing about test collection or behaviour. test_
+stability.py (real Dubai sample, full pipeline) also re-run standalone
+as an explicit real-pipeline check on the production-import finding:
+exit 0, clean, no import errors -- the two sideslip EKF files staying
+in place (not attic) is proven sufficient, not merely argued.
+
+PHASE 2 PROTECTED-SET AUDIT, one finding, deliberately left as-is (user
+decision): three diagnostics/plots_* directories are gitignored
+(plots/, plots_step2/, plots_decision_layer/), seven are tracked
+(plots_deepening/, plots_fz_integration/, plots_ground_truth/,
+plots_ls_evidence/, plots_metrology/, plots_threshold_investigation/,
+plots_v3/, 54 PNGs) -- a historical .gitignore accident, not touched
+per the plots-directories-untouchable hard rule (no .gitignore edit,
+no git rm --cached). The orphan branch curates what actually ships;
+this stays a documented quirk until then.
+
+PHASE 1 AMENDMENT (K7) AND RELOCATION MINI-PACKAGE (same day,
+2026-09-24, reviewer + user decisions after the hard-pass report):
+
+(1) K7 added -- two scripts that fit none of K1-K6 but are clearly
+still load-bearing were kept rather than moved: scan_channels.py
+(found this project's real GPS channel names; the sole tool for the
+recurring PLAN.md new-data-file channel-discovery checklist item) and
+generate_channel_requirements.py (regenerates the two still-committed
+docs/channel_requirements.md/channel_list.txt deliverables from
+config/channels.json in one run). Final split: 55 keepers, 37 attic
+(revised down from the mechanical pass's 53/39).
+
+(2) RELOCATION: modules/sideslip_ekf_dugoff.py and modules/sideslip_
+ekf_pacejka.py, moved from diagnostics/ (git mv, both commands).
+Reason, restated for the record: modules/tyre_fit_auto.py imports
+estimate_sideslip_ekf_dugoff/estimate_sideslip_ekf_pacejka from these
+files directly at runtime (also tests/test_pure_functions.py and
+tests/test_nis_gate.py for the Dugoff file) -- a real production
+dependency, not a diagnostics-only script, and both files' own module
+docstrings had claimed "diagnostics-only, no modules/ consumer" right
+up to this move, which is exactly the stale-self-description problem
+the earlier discovery flagged.
+
+EVERY import and reference updated, found by grep across the whole
+repo (not from memory), file by file:
+- Real `from diagnostics.X import` statements corrected to `from
+  modules.X import` in: diagnostics/fit_dugoff_pass4_refit.py,
+  diagnostics/inspect_ekf_pass1_rQ_sweep.py, diagnostics/inspect_nis_
+  tyre_mismatch_gate.py, diagnostics/inspect_pass1_final_validation.py,
+  diagnostics/inspect_step2_chair_plots.py, modules/tyre_fit_auto.py
+  (both EKF imports), tests/test_nis_gate.py, tests/test_pure_
+  functions.py.
+- Prose/comment path references corrected in: modules/tyre_fit_auto.py
+  (header method-lineage pointers, the now-obsolete "dependency
+  inversion" paragraph rewritten to state the inversion is resolved,
+  three inline comments), tests/test_config_schema_integrity.py,
+  tests/test_pure_functions.py (two docstring/comment mentions),
+  config/parameters.json (two _comment fields -- one also corrected a
+  pre-existing, doubly-stale "Diagnostics-only, no modules/ consumer"
+  claim on the pass_0 EKF block), diagnostics/README.md (K1 entry
+  removed, PRODUCTION DEPENDENCY section replaced with a one-line
+  RELOCATED tombstone naming both new paths, K1 count corrected 25->24,
+  the inspect_step2_chair_plots.py K3 entry's import note corrected),
+  docs/module_map.md (tyre_fit_auto.py section corrected, two new
+  standalone sections added for the relocated files under modules/,
+  moved out of being folded into tyre_fit_auto.py's own section).
+- Deliberately NOT touched, per standing rules: tests/golden/*.json
+  (frozen comment text is part of the byte-for-byte golden payload --
+  editing it would itself be a golden change, the explicit STOP
+  condition for this mini-package); thesis_notes.md's own historical
+  entries and PLAN.md's dated historical narrative (never rewritten,
+  per CLAUDE.md); diagnostics/_attic/*.py files that still import the
+  old diagnostics.sideslip_ekf_* path (inspect_ekf_dugoff_sanity_
+  checks.py, inspect_washout_cutoff_sweep.py, inspect_fz_mu_refit_
+  evaluation.py, inspect_v3_pacejka_refit_evaluation.py) -- archived,
+  not expected to run, out of the "diagnostics keeper" scope the work
+  order named.
+
+Both relocated files' own headers now state the production-dependency
+status plainly and name relocation-already-done (not a future task)
+explicitly, replacing the stale "diagnostics-only" self-description
+each carried before.
+
+PROOF (own run, all three items, 2026-09-24):
+(1) Fast import check (modules.sideslip_ekf_dugoff, modules.sideslip_
+ekf_pacejka, modules.tyre_fit_auto) -- clean.
+(2) One real pipeline invocation, live Dubai sample, sideslip_source=
+'ekf_auto_pacejka' end to end (parse_csv -> prepare_vehicle_state ->
+resolve_sideslip_beta): fit status 'ok', gate_verdict 'pass',
+fallback_used False -- no ImportError, the exact failure mode this
+proof exists to catch.
+(3) Full suite: 436 passed, 9 skipped, 1 xfailed, 0 failed -- BYTE-
+IDENTICAL to the pre-relocation count (WP-PERF baseline, this same
+session). Every golden covering the EKF path (pipeline_dubai_ekf_
+auto_dugoff/pacejka_cap1.json, recommendations_dubai_ekf_auto_pacejka_
+cap1.json) passed UNREGENERATED -- a pure file move changes no numbers,
+confirmed rather than assumed.
+(4) test_stability.py (real Dubai sample, full pipeline, standalone):
+exit 0, clean, no errors.
+
+No dependency inversion remains anywhere in modules/ -- every import
+between modules/ files is now an ordinary same-package import.

@@ -17,7 +17,7 @@ import pytest
 from modules.stability_analysis import estimate_slip_angles, load_parameters
 from modules.tyre_model import dugoff_lateral_force, dugoff_lateral_stiffness
 from modules.recommendation import _nanmedian_or_nan
-from diagnostics.sideslip_ekf_dugoff import (
+from modules.sideslip_ekf_dugoff import (
     slip_angles as ekf_slip_angles, process_jacobian, measurement_jacobian,
 )
 from modules.tyre_model import dugoff_lateral_force as dlf, dugoff_lateral_stiffness as dls
@@ -243,7 +243,7 @@ def test_dugoff_empty_array_input():
 
 def _ekf_f(x, u, Vx, m, a, b, Iz, c_alpha_f, c_alpha_r, mu_fz_f, mu_fz_r):
     """Reproduces the per-sample loop's own state-derivative construction
-    (diagnostics/sideslip_ekf_dugoff.py estimate_sideslip_ekf_dugoff,
+    (modules/sideslip_ekf_dugoff.py estimate_sideslip_ekf_dugoff,
     predict step) as a standalone function so it can be finite-
     differenced -- not a copy that could drift silently, the formula is
     the same three lines, checked against dugoff_lateral_force directly.
@@ -270,7 +270,7 @@ _EKF_TEST_PARAMS = dict(u=math.radians(2.0), Vx=35.0, m=1450.0, a=1.5, b=1.4, Iz
 
 
 def test_ekf_process_jacobian_matches_finite_difference():
-    """process_jacobian (diagnostics/sideslip_ekf_dugoff.py) against a
+    """process_jacobian (modules/sideslip_ekf_dugoff.py) against a
     central-difference Jacobian of the actual nonlinear f(x,u) the
     filter's predict step integrates -- the check the module's own
     comment says exists ("Verified against central-difference... during

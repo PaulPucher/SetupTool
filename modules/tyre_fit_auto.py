@@ -1,12 +1,12 @@
 # One-shot per-session Dugoff tyre-curve fit + EKF validation chain.
-# EXPERIMENTAL (PLAN.md unsupervised package, Phase 2) -- automates the
-# procedure that was previously run by hand, one script per step, for
-# the carried-forward pass-0/pass-1 estimator (thesis_notes.md "WP-N2
-# carry-forward decision: pass 1"). NOT wired into the UI or the
-# production analysis thread (ui/views/outing_form.py's
-# StabilityAnalysisThread never imports this module). Pure Python/
-# numpy/scipy, no Qt -- same modules/ contract as every other file in
-# this package.
+# The fit/validation machinery below (fit_session, fit_session_pacejka)
+# started EXPERIMENTAL (PLAN.md unsupervised package, Phase 2) and is
+# still not called from the UI directly -- but resolve_sideslip_beta at
+# the bottom of this file IS the live production dispatcher: ui/views/
+# outing_form.py's StabilityAnalysisThread calls it for every
+# sideslip_source, including the two auto modes that run this file's
+# own fit chain per session. Pure Python/numpy/scipy, no Qt -- same
+# modules/ contract as every other file in this package.
 #
 # Method lineage, pointer lines only (CLAUDE.md citation-location
 # rule; full anchors in thesis_notes.md):
@@ -15,18 +15,21 @@
 #   step (c) R derivation  -- config/parameters.json tyre_model_ekf.pass_1's
 #                              R_ay_derivation/R_yaw_rate_derivation/r_q_sweep_note,
 #                              and diagnostics/inspect_ekf_pass1_rQ_sweep.py's 2-D grid
-#   step (d) EKF run       -- diagnostics/sideslip_ekf_dugoff.py (imported directly,
-#                              not duplicated -- see the note on that dependency below)
+#   step (d) EKF run       -- modules/sideslip_ekf_dugoff.py (imported directly,
+#                              not duplicated -- see the note below)
 #   step (e) validation    -- diagnostics/inspect_pass1_final_validation.py's
 #                              five sections (NIS, sign check, self-consistency
 #                              R^2 is NOT reproduced here, onset/coverage, h2-vs-ay)
 #
-# DEPENDENCY NOTE (neutral engineering, not a science decision): this
-# file lives in modules/ but imports diagnostics/sideslip_ekf_dugoff.py
-# for the actual EKF recursion, inverting the project's usual one-way
-# diagnostics-depends-on-modules direction. Deliberate: the EKF loop is
-# ~150 lines of numerically sensitive Jacobian/update code; duplicating
-# it here would let the two copies silently diverge. Every other
+# RELOCATION NOTE (2026-09-24, WP-CLEAN): modules/sideslip_ekf_dugoff.py
+# and modules/sideslip_ekf_pacejka.py were moved here from diagnostics/
+# after this pass found they are production dependencies (this file
+# imports their EKF recursion directly), not diagnostics-only scripts --
+# the two files' own historical "diagnostics-only" self-description had
+# gone stale. The import below is now an ordinary modules/-internal one;
+# no dependency inversion remains. The EKF loop is ~150 lines of
+# numerically sensitive Jacobian/update code, imported rather than
+# duplicated here so the two copies can never silently diverge. Every
 # tyre_model_ekf.pass_N config comment's "no modules/ consumer" note
 # describes historical fact as of when it was written and is not
 # retroactively edited by this file's existence (CLAUDE.md: config
@@ -54,8 +57,8 @@ from modules.stability_analysis import (
 from modules.tyre_model import dugoff_lateral_force
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
 from modules.nis_gate import evaluate_gate
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
-from diagnostics.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
 PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair's own starting guess, PLAN.md Phase 3 work order
 
@@ -388,7 +391,7 @@ def fit_session(data, params, data_file_path=None):
     # raw "beta"/"nis" arrays above are for THIS module's own validation
     # figures only. Production callers must use beta_ekf_with_fallback,
     # never beta_ekf -- the raw series keeps diverged-window artifacts by
-    # design (see diagnostics/sideslip_ekf_dugoff.py's own header), the
+    # design (see modules/sideslip_ekf_dugoff.py's own header), the
     # same "never feed a silently-diverged state downstream" rule the
     # existing ekf_pass_1 production path already follows. base_mask and
     # the full-length nis array are exposed so a caller can run modules.
@@ -618,7 +621,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     """Phase 3: same one-shot chain as fit_session, fitting the reduced
     4-parameter Magic Formula (modules/tyre_model_pacejka.py) instead
     of Dugoff, and running the EKF with Pacejka's analytic stiffness in
-    the Jacobians (diagnostics/sideslip_ekf_pacejka.py -- a separate
+    the Jacobians (modules/sideslip_ekf_pacejka.py -- a separate
     code path, Dugoff's own EKF file is untouched). Structure mirrors
     fit_session's steps (c)-(e) exactly (R derivation, 2-D sweep,
     validation); only the per-axle fit (step a/b) and the EKF call
@@ -874,7 +877,7 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
     """
     if sideslip_source == "ekf_pass_1":
         # beta_with_fallback, never the raw pre-fallback series: raw keeps
-        # diverged-window artifacts for diagnostics (see diagnostics/
+        # diverged-window artifacts for diagnostics (see modules/
         # sideslip_ekf_dugoff.py's own docstring) -- production must never
         # feed a silently-diverged state into the rest of the pipeline.
         ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_1")

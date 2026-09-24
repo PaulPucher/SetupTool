@@ -27,7 +27,7 @@ from scipy.stats import chi2
 
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import load_parameters, prepare_vehicle_state
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 

@@ -40,7 +40,7 @@ from modules.csv_parser import parse_csv
 from modules.stability_analysis import load_parameters, prepare_vehicle_state
 from modules.tyre_fit_auto import fit_session, _base_mask
 from modules.nis_gate import compute_health_score, classify_score, evaluate_gate, resolve_nis_window_samples
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 
