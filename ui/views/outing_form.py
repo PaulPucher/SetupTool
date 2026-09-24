@@ -4006,6 +4006,9 @@ class OutingForm(QWidget):
         split_layout.addWidget(map_panel, 2)
         layout.addWidget(split)
 
+        # Per-value wording still a placeholder; tracked in PLAN.md (WP2b-2
+        # follow-up, 2026-07-27) pending a one-line meaning for each of -5/
+        # -3/-1/0/+1/+3/+5.
         scale_desc = QLabel(
             "Scale: -5 undrivable understeer | -3 strong understeer | -1 slight understeer | "
             "0 neutral | +1 slight oversteer | +3 strong oversteer | +5 undrivable oversteer\n"

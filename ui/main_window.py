@@ -84,7 +84,8 @@ class MainWindow(QMainWindow):
         nav.setSpacing(4)
         nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        icon_paths = [                  # icons in separate svg files -- TODO: replace with a proper icon set
+        # Placeholder SVGs; a proper icon set is tracked in PLAN.md (WP7 Housekeeping).
+        icon_paths = [
             "ui/icons/weekends.svg",
             "ui/icons/drivers.svg",
             "ui/icons/settings.svg"

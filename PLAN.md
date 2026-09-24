@@ -4604,6 +4604,8 @@ after caching (measure first, ask the user).
 
 ## WP7 — Housekeeping
 
+- Replace the sidebar's placeholder SVGs (`ui/main_window.py` `icon_paths`)
+  with a proper icon set. Tier C, cosmetic.
 - Replace `generate_handover.py` with the walk-everything version (already
   supplied in chat on 2026-07-22; it writes a file inventory header). Verify
   the inventory lists csv_parser.py, all root scripts, all configs.

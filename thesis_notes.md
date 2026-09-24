@@ -8695,9 +8695,14 @@ needed.
 Verification: full regression suite run twice. The first run (8
 errors) was not caused by this pass -- config/parameters.json's
 sideslip_source was at the user's own live value (ekf_auto_pacejka)
-rather than "kinematic", which every golden fixture requires; this is
+rather than "kinematic", ~~which every golden fixture requires; this is
 the same temporarily-flip-and-restore step every prior full-suite run
-in this project's history has used (see NOW section above). Restored
+in this project's history has used (see NOW section above)~~
+[SUPERSEDED 2026-09-24: tests/conftest.py guard now hard-fails any
+suite run without the live ekf_auto_pacejka config (goldens +
+thresholds calibrated for it since 2026-09-01); suite runs happen
+against the live config, no flip. Verified live this session (flip
+produced 12 errors, restore clean)]. Restored
 to kinematic, reran: 110 passed, 1 xfailed -- byte-identical to the
 recorded baseline. sideslip_source restored to the user's own live
 value afterward, verified byte-identical to git HEAD via diff. No
