@@ -2513,7 +2513,7 @@ class OutingForm(QWidget):
         from modules.decision_frame import (
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
             generate_candidates, generate_display_split, resolve_conflicts,
-            tyre_pressure_flags, group_display_rows,
+            tyre_pressure_flags, group_display_rows, apply_display_top_n,
         )
         from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
@@ -2544,11 +2544,17 @@ class OutingForm(QWidget):
         # not derivable from `evidence` alone (see _attach_breadth's own
         # comment in modules/decision_frame.py).
         assessed_corner_ids = set(_group_by_corner(summaries).keys())
+        # WP-ELICIT Phase C1 (2026-09-24): driving_level resolved here, not
+        # queried inside modules/ -- same plain-value-boundary convention
+        # modules.recommendation.generate_recommendations already uses.
+        driving_level = (self.outing.driver.driving_level
+                          if self.outing.driver_id and self.outing.driver else None)
         # DECISION LAYER SPEC B5 (2026-09-22): setup_data also drives the
         # window-edge (blocked_at_edge) check now, not just generate_
         # shortlist's own settings-window scoring component below.
         candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
-                                          assessed_corner_ids=assessed_corner_ids)
+                                          assessed_corner_ids=assessed_corner_ids,
+                                          driving_level=driving_level)
         # Phase D (2026-09-22): generate_display_split replaces generate_
         # shortlist as this form's own entry point -- Stage 6's "ranking
         # never hides" rule requires the full lever inventory (shortlist +
@@ -2562,17 +2568,27 @@ class OutingForm(QWidget):
         # step over the already-scored/resolved list, never re-scores).
         shortlist = group_display_rows(shortlist, registry)
         tail = group_display_rows(tail, registry)
+        # WP-ELICIT Phase A2 (author-elicited 2026-09-24): rank-based top-N
+        # distinct proposals is the real visibility cutoff now, applied
+        # after grouping so "distinct" matches these already-grouped rows.
+        shortlist, tail, tail_note = apply_display_top_n(shortlist, tail, config)
 
         self._clear_decision_frame_rows()
 
-        flags = tyre_pressure_flags(config, evidence)
+        flags = tyre_pressure_flags(
+            config,
+            channels=(self.parsed_data or {}).get("channels"),
+            corners=self.stability_result.get("corners"),
+            state=self.stability_result.get("state"),
+        )
         self.decision_frame_tyre_flags_label.setText(" | ".join(flags))
         self.decision_frame_tyre_flags_label.setVisible(bool(flags))
 
-        self.decision_frame_summary_label.setText(
-            f"{len(evidence)} evidence item(s), {len(shortlist)} proposed, "
-            f"{len(tail)} in the assessed-not-proposed tail."
-        )
+        summary_text = f"{len(evidence)} evidence item(s), {len(shortlist)} proposed"
+        if tail_note:
+            summary_text += f", {tail_note} in the assessed-not-proposed tail"
+        summary_text += f" ({len(tail)} total in tail)."
+        self.decision_frame_summary_label.setText(summary_text)
 
         insert_pos = self.decision_frame_host_layout.count() - 1
         for c in shortlist:
@@ -2728,6 +2744,15 @@ class OutingForm(QWidget):
 
         if c.get("rationale"):
             add_line(c["rationale"])
+        # WP-ELICIT Phase B3 (2026-09-24): standing-practice doctrine notes
+        # land as annotation only -- the engineer-verbatim rule's own
+        # actions stay byte-identical, this is display-only context.
+        if c.get("practice_note"):
+            add_line(c["practice_note"], colour=TEXT_DIM)
+        # WP-ELICIT HANDOFF C6 (2026-09-24): lower-TC-intervention safety
+        # caution -- display-only, never a score term, never a suppression.
+        if c.get("tc_safety_note"):
+            add_line(c["tc_safety_note"], colour=WARN)
 
         # DECISION LAYER SPEC B4: breadth note, already worded by
         # _attach_breadth ("helps CX -- rebalances N-1 corners currently
@@ -2739,6 +2764,11 @@ class OutingForm(QWidget):
         if c.get("edge_reason"):
             add_line(f"window: {c.get('edge_label', c.get('status'))} -- {c['edge_reason']}",
                       colour=WARN)
+        # WP-ELICIT Phase C2 (2026-09-24): exempted edge -- normal resting
+        # state for this action, not a block; candidate stays proposed on
+        # its other (live) action.
+        if c.get("edge_normal_state_note"):
+            add_line(c["edge_normal_state_note"], colour=TEXT_DIM)
         if c.get("condition_reasons"):
             add_line(f"condition: {'; '.join(c['condition_reasons'])}", colour=TEXT_DIM)
 

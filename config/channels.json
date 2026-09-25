@@ -388,6 +388,46 @@
       ],
       "required": false,
       "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+    },
+    "tpms_press_fl": {
+      "label": "Tyre Pressure FL",
+      "unit": "bar",
+      "range": [
+        0.5,
+        4.0
+      ],
+      "required": false,
+      "note": "WP-ELICIT Phase B2 (2026-09-24): whitelisted for modules/decision_frame.py's tyre_pressure_flags check-only display. Previously present in both real exports but unread (docs/channel_requirements.md, 371 tpms* channels total on this car -- only these 8 press/temp channels wanted). Range [0.5,4.0] bar excludes every known startup/dropout glitch found by direct census (Dubai ~20.47 bar spike at channel start; v3 ~6.2 bar at start, one isolated ~296.7 bar dropout) while covering the full plausible cold-to-hot range -- verified real cornering-phase values on both sessions sit 1.6-1.9 bar (diagnostics/inspect_tpms_pressure_cornering_phase.py, thesis_notes.md)."
+    },
+    "tpms_press_fr": {
+      "label": "Tyre Pressure FR",
+      "unit": "bar",
+      "range": [
+        0.5,
+        4.0
+      ],
+      "required": false,
+      "note": "Same channel family as tpms_press_fl -- see its note."
+    },
+    "tpms_press_rl": {
+      "label": "Tyre Pressure RL",
+      "unit": "bar",
+      "range": [
+        0.5,
+        4.0
+      ],
+      "required": false,
+      "note": "Same channel family as tpms_press_fl -- see its note."
+    },
+    "tpms_press_rr": {
+      "label": "Tyre Pressure RR",
+      "unit": "bar",
+      "range": [
+        0.5,
+        4.0
+      ],
+      "required": false,
+      "note": "Same channel family as tpms_press_fl -- see its note."
     }
   },
   "corner_speed_thresholds": {

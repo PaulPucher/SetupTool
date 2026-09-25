@@ -27,6 +27,7 @@ from modules.decision_frame import (
     TRIGGER_DATA_ONLY,
     TRIGGER_FEEDBACK_ONLY,
     aggregate_ls_by_corner,
+    apply_display_top_n,
     build_evidence,
     candidate_severity,
     generate_candidates,
@@ -299,6 +300,238 @@ def test_springs_rear_soften_settings_window_no_keyerror():
     assert result["components"]["headroom"] != 0.0
 
 
+# --- WP-ELICIT Phase C1 (2026-09-24): driver-level trust-arbitration veto -
+#
+# Reviewer-redirected design: NOT a new admission path (a single strong
+# corner must never unlock a heavy corrector via driver level -- Q11 did
+# not elicit a loosening) -- a VETO that can only ever HOLD BACK what the
+# pre-existing multi-corner DATA path would otherwise admit, when the
+# driver's own rating at that candidate's (corner, verdict) is moderate
+# (|fb| 2-3, reusing driver_feedback_weighting's own band split) AND their
+# effective trust level is at/above neutral (unknown level treated as
+# neutral itself -- "unknown trust never unlocks the heavier move").
+
+def test_eligibility_veto_high_level_moderate_feedback_blocks_multi_corner_heavy():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},
+        {**_make_oversteer_evidence(corner=9), "severity": "strong"},
+        _feedback_evidence(corner=4, phase="exit_4", raw=2),  # moderate, oversteer
+    ]
+    candidates = generate_candidates(evidence, registry, config, driving_level=8)  # high trust
+    assert not any(c["id"] == "springs_rear_soften:C4:exit_4" for c in candidates)
+
+
+def test_eligibility_veto_low_level_moderate_feedback_admits_multi_corner_heavy():
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},
+        {**_make_oversteer_evidence(corner=9), "severity": "strong"},
+        _feedback_evidence(corner=4, phase="exit_4", raw=2),
+    ]
+    candidates = generate_candidates(evidence, registry, config, driving_level=3)  # low trust
+    assert any(c["id"] == "springs_rear_soften:C4:exit_4" for c in candidates)
+
+
+def test_eligibility_veto_unknown_level_moderate_feedback_vetoes():
+    # "Unknown trust never unlocks the heavier move" -- driving_level=None
+    # behaves like an at-neutral (>= threshold) level, not like low trust.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},
+        {**_make_oversteer_evidence(corner=9), "severity": "strong"},
+        _feedback_evidence(corner=4, phase="exit_4", raw=3),
+    ]
+    candidates = generate_candidates(evidence, registry, config, driving_level=None)
+    assert not any(c["id"] == "springs_rear_soften:C4:exit_4" for c in candidates)
+
+
+def test_eligibility_veto_no_feedback_leaves_multi_corner_heavy_unchanged():
+    # No driver_feedback evidence at all -> fb_mag=0 for every candidate,
+    # moderate_feedback is False unconditionally -- the veto can never
+    # fire regardless of driving_level. This is also the real-session
+    # census guarantee: neither real session's own build_evidence call
+    # supplies feedback_data, so this item cannot move either baseline
+    # count (Dubai 6 / v3 21) on its own.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},
+        {**_make_oversteer_evidence(corner=9), "severity": "strong"},
+    ]
+    candidates = generate_candidates(evidence, registry, config, driving_level=9)  # high trust, no feedback
+    assert any(c["id"] == "springs_rear_soften:C4:exit_4" for c in candidates)
+
+
+def test_eligibility_veto_never_creates_single_corner_admission():
+    # Guards the REJECTED reading explicitly: a single strong corner, low
+    # (unlock-favouring) driver level, and moderate feedback must still
+    # NOT unlock a heavy corrector -- the veto only ever holds back an
+    # ALREADY-multi-corner-eligible candidate, it never admits one.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    evidence = [
+        {**_make_oversteer_evidence(), "severity": "strong"},  # only ONE corner
+        _feedback_evidence(corner=4, phase="exit_4", raw=2),
+    ]
+    candidates = generate_candidates(evidence, registry, config, driving_level=2)  # low trust
+    assert not any(c["id"] == "springs_rear_soften:C4:exit_4" for c in candidates)
+
+
+# --- WP-ELICIT Phase C3 (2026-09-24): kerb-strike-severity blowoff -------
+
+def _kerb_evidence_fixture(peaks, sample_rate_hz=50.0, samples_per_lap=100):
+    """One synthetic corner (id=1), len(peaks) lap instances each its own
+    contiguous time block; a short kerb-masked spike of the given peak
+    |az_g| sits mid-block."""
+    n = len(peaks) * samples_per_lap
+    t = np.arange(n) / sample_rate_hz
+    az_g = np.zeros(n)
+    kerb_mask = np.zeros(n, dtype=bool)
+    corners = []
+    for i, peak in enumerate(peaks):
+        lo = i * samples_per_lap
+        mid = lo + samples_per_lap // 2
+        kerb_mask[mid - 2:mid + 2] = True
+        az_g[mid - 2:mid + 2] = peak
+        hi = lo + samples_per_lap - 1
+        start_t, mid_t, end_t = t[lo], t[mid], t[hi]
+        corners.append({
+            "stable_corner_id": 1, "lap_number": i + 1,
+            "segments": {
+                "entry_1_brake": (start_t, start_t), "entry_2_turnin": (start_t, mid_t),
+                "apex_3": (mid_t, mid_t), "exit_4": (mid_t, end_t), "exit_5": (end_t, end_t),
+            },
+        })
+    return {"time": t, "az_g": az_g, "kerb_mask": kerb_mask}, corners
+
+
+def test_build_kerb_blowoff_evidence_fires_on_repeated_severe_hits():
+    from modules.decision_frame import _build_kerb_blowoff_evidence
+    kb_cfg = {"severity_threshold_g": 2.0, "repeat_min_laps": 2}
+    wl_cfg = {"dead_channel_std_max_travel_mm": 1.0}
+    state, corners = _kerb_evidence_fixture([2.5, 2.5, 1.0])  # 2 over, 1 under
+    evidence = _build_kerb_blowoff_evidence(corners, state, {}, kb_cfg, wl_cfg)
+    assert len(evidence) == 1
+    e = evidence[0]
+    assert e["type"] == "kerb_blowoff" and e["corner"] == 1
+    assert e["confidence"] == pytest.approx(2 / 3, rel=1e-3)
+    assert e["axle"] is None  # no travel channels supplied -> not attributable
+
+
+def test_build_kerb_blowoff_evidence_silent_on_single_lap():
+    from modules.decision_frame import _build_kerb_blowoff_evidence
+    kb_cfg = {"severity_threshold_g": 2.0, "repeat_min_laps": 2}
+    wl_cfg = {"dead_channel_std_max_travel_mm": 1.0}
+    state, corners = _kerb_evidence_fixture([2.5, 1.0, 1.0])  # only 1 lap over
+    assert _build_kerb_blowoff_evidence(corners, state, {}, kb_cfg, wl_cfg) == []
+
+
+def test_build_kerb_blowoff_evidence_silent_below_threshold():
+    from modules.decision_frame import _build_kerb_blowoff_evidence
+    kb_cfg = {"severity_threshold_g": 3.0, "repeat_min_laps": 2}
+    wl_cfg = {"dead_channel_std_max_travel_mm": 1.0}
+    state, corners = _kerb_evidence_fixture([2.5, 2.5, 2.5])  # kerb contact every lap, none severe enough
+    assert _build_kerb_blowoff_evidence(corners, state, {}, kb_cfg, wl_cfg) == []
+
+
+def _travel_channel(t, amplitude):
+    return {"time": t, "data": amplitude * np.sin(2 * np.pi * 5 * t), "unit_raw": "mm", "quality": "valid"}
+
+
+def test_kerb_axle_attribution_front_dominant():
+    from modules.decision_frame import _kerb_axle_attribution
+    t = np.arange(100) / 50.0
+    wl_cfg = {"dead_channel_std_max_travel_mm": 1.0}
+    channels = {
+        "log_susp_travel_fl": _travel_channel(t, 20.0), "log_susp_travel_fr": _travel_channel(t, 25.0),
+        "log_susp_travel_rl": _travel_channel(t, 2.0), "log_susp_travel_rr": _travel_channel(t, 2.0),
+    }
+    assert _kerb_axle_attribution([(0, 100)], t, channels, wl_cfg) == "front"
+
+
+def test_kerb_axle_attribution_not_attributable_when_axle_dead():
+    from modules.decision_frame import _kerb_axle_attribution
+    t = np.arange(100) / 50.0
+    wl_cfg = {"dead_channel_std_max_travel_mm": 1.0}
+    channels = {
+        "log_susp_travel_fl": _travel_channel(t, 20.0), "log_susp_travel_fr": _travel_channel(t, 25.0),
+        "log_susp_travel_rl": {"time": t, "data": np.full(100, 5.0), "unit_raw": "mm", "quality": "valid"},  # flat/dead
+        "log_susp_travel_rr": _travel_channel(t, 3.0),
+    }
+    # rear axle needs BOTH rl+rr evaluable; rl is dead -> rear score unavailable -> not attributable
+    assert _kerb_axle_attribution([(0, 100)], t, channels, wl_cfg) is None
+
+
+def test_kerb_blowoff_candidates_single_axle_when_attributable():
+    from modules.decision_frame import _kerb_blowoff_candidates
+    registry = load_setup_parameters_registry()
+    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": "front",
+                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
+    candidates = _kerb_blowoff_candidates(evidence, registry)
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert {a["parameter"] for a in c["actions"]} == {"damper_blowoff_fl", "damper_blowoff_fr"}
+    assert all(a["direction"] == "increase" and a["delta"] == 2 for a in c["actions"])
+    assert c["effect_class"] == "secondary" and c["grade"] == "proposed"
+
+
+def test_kerb_blowoff_candidates_both_axles_when_not_attributable():
+    from modules.decision_frame import _kerb_blowoff_candidates
+    registry = load_setup_parameters_registry()
+    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": None,
+                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
+    candidates = _kerb_blowoff_candidates(evidence, registry)
+    assert len(candidates) == 2
+    axles_covered = {frozenset(a["parameter"] for a in c["actions"]) for c in candidates}
+    assert axles_covered == {frozenset({"damper_blowoff_fl", "damper_blowoff_fr"}),
+                              frozenset({"damper_blowoff_rl", "damper_blowoff_rr"})}
+    for c in candidates:
+        assert "not attributable" in c["rationale"]
+
+
+def test_kerb_blowoff_candidates_rationale_never_mentions_platform_priority():
+    # Reviewer requirement: rear blowoff is proposable like front -- no
+    # "platform priority / deliberate no relief" framing written into any
+    # NEW rationale here (a pre-existing registry note is untouched
+    # elsewhere, but this candidate must not restate it as a reason).
+    from modules.decision_frame import _kerb_blowoff_candidates
+    registry = load_setup_parameters_registry()
+    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": "rear",
+                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
+    candidates = _kerb_blowoff_candidates(evidence, registry)
+    assert len(candidates) == 1
+    assert "platform priority" not in candidates[0]["rationale"].lower()
+    assert "deliberate" not in candidates[0]["rationale"].lower()
+
+
+def test_kerb_blowoff_evidence_config_present():
+    config = load_decision_frame_config()
+    kb = config["kerb_blowoff_evidence"]
+    assert kb["enabled"] is True
+    assert kb["severity_threshold_g"] == pytest.approx(2.9571)
+    assert kb["repeat_min_laps"] == 2
+
+
+def test_kerb_blowoff_evidence_real_dubai_matches_census(parsed_data, state):
+    # Acceptance demonstration: matches diagnostics/inspect_kerb_severity_
+    # census.py's own finding exactly -- Dubai's only firing corner is 1,
+    # not attributable (RR travel channel is the known dead one, Fz-
+    # integration Phase 1).
+    from modules.decision_frame import _build_kerb_blowoff_evidence
+    from modules.stability_analysis import load_parameters as _load_params
+    config = load_decision_frame_config()
+    kb_cfg = config["kerb_blowoff_evidence"]
+    wl_cfg = _load_params()["wheel_loads"]
+    evidence = _build_kerb_blowoff_evidence(parsed_data["corners"], state, parsed_data["channels"], kb_cfg, wl_cfg)
+    assert len(evidence) == 1
+    assert evidence[0]["corner"] == 1
+    assert evidence[0]["axle"] is None
+
+
 # --- End to end: real Dubai analysis -> frame output ---------------------
 
 def test_end_to_end_real_dubai(pipeline_result):
@@ -397,6 +630,29 @@ def test_bridge_candidate_matches_matrix_us_brk_med():
     params = {a["parameter"] for a in c["actions"]}
     assert params == {"damper_bump_ls_fl", "damper_bump_ls_fr"}
     assert all(a["direction"] == "soften" for a in c["actions"])
+
+
+def test_c6_tc_safety_note_on_lower_tc_intervention_only():
+    # WP-ELICIT HANDOFF C6 (Q6b, author-elicited 2026-09-24): a candidate
+    # whose direction LOWERS TC intervention (tc_lon decrease, matrix_us_
+    # exit_low -- "TC LON down") carries the display-only safety caution;
+    # a candidate that RAISES intervention (tc_lon increase, matrix_os_
+    # exit_low -- "TC LON up") does not. Display-only: never a score
+    # term, never a suppression -- both candidates are otherwise ordinary.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+
+    lower_tc_evidence = [_matrix_verdict_evidence(4, ["exit_4", "exit_5"], "understeer", "moderate", "low")]
+    candidates = generate_candidates(lower_tc_evidence, registry, config)
+    lower = [c for c in candidates if c.get("rule_id") == "matrix_us_exit_low"]
+    assert len(lower) == 1
+    assert lower[0]["tc_safety_note"] == "uses more tyre, reduces safety margin"
+
+    higher_tc_evidence = [_matrix_verdict_evidence(4, ["exit_4", "exit_5"], "oversteer", "moderate", "low")]
+    candidates = generate_candidates(higher_tc_evidence, registry, config)
+    higher = [c for c in candidates if c.get("rule_id") == "matrix_os_exit_low"]
+    assert len(higher) == 1
+    assert higher[0]["tc_safety_note"] is None
 
 
 def test_bridge_candidate_absent_below_min_severity():
@@ -508,6 +764,33 @@ def test_lever_bridge_springs_front_soften_fires_on_understeer():
     assert len(matches) == 1
     assert matches[0]["grade"] == "proposed"
     assert matches[0]["actions"] == [{"parameter": "springs_front", "direction": "soften", "delta": -1}]
+
+
+def test_c5_springs_understeer_mirror_both_alternatives_gate_together():
+    # WP-ELICIT HANDOFF C5 (Q12, author-elicited 2026-09-24): understeer
+    # must route to BOTH front-soften and rear-stiffen springs as
+    # alternatives under the two-sided principle. BACKLOG H (2026-09-20)
+    # already seeded both entries with the identical condition/phase_groups
+    # -- this test pins that they fire TOGETHER on a severe multi-corner
+    # case and that the pre-existing heavy-corrector eligibility gate
+    # (unchanged by C5) holds BOTH back on a mild single-corner case, not
+    # a new mechanism.
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    strong_multi_corner = [
+        _matrix_verdict_evidence(7, ["apex_3"], "understeer", "strong", "medium"),
+        _matrix_verdict_evidence(9, ["apex_3"], "understeer", "strong", "medium"),
+    ]
+    candidates = generate_candidates(strong_multi_corner, registry, config)
+    ids = {c["id"] for c in candidates}
+    assert "lever_bridge:springs_front:soften:C7:apex_3" in ids
+    assert "lever_bridge:springs_rear:stiffen:C7:apex_3" in ids
+
+    mild_single_corner = [_matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium")]
+    candidates = generate_candidates(mild_single_corner, registry, config)
+    ids = {c["id"] for c in candidates}
+    assert "lever_bridge:springs_front:soften:C7:apex_3" not in ids
+    assert "lever_bridge:springs_rear:stiffen:C7:apex_3" not in ids
 
 
 def test_lever_bridge_springs_front_stiffen_fires_on_oversteer():
@@ -1426,7 +1709,8 @@ def test_decision_frame_config_still_validates():
     # the four new ones checked above.
     config = load_decision_frame_config()
     required_keys = {"parameter", "direction", "performance_axis", "sign", "grade", "note"}
-    legal_grades = {"derived-from-matrix", "proposed", "proposed (Segers ch.9/10)"}
+    legal_grades = {"derived-from-matrix", "proposed", "proposed (Segers ch.9/10)",
+                     "author-elicited", "author-elicited (Segers ch.11, C11-2)"}
     for e in config["interaction_table"]:
         assert required_keys <= e.keys()
         assert e["grade"] in legal_grades
@@ -1474,16 +1758,41 @@ def test_heavy_correctors_are_exactly_springs_camber_toe():
     }
 
 
-def test_cost_function_and_display_threshold_are_placeholders():
+def test_eligibility_classes_driver_level_threshold_matches_recommendations_neutral():
+    # WP-ELICIT Phase A3 (2026-09-24): data only -- the threshold value
+    # itself, reusing config/recommendations.json's own driver_level_
+    # weighting.neutral_level (5) rather than inventing a second number.
+    # The gate condition that CONSUMES this value is Phase C1's own job.
+    config = load_decision_frame_config()
+    assert config["eligibility_classes"]["driver_level_threshold"] == 5
+
+
+def test_cost_function_severity_and_change_time_elicited_others_placeholder():
+    # WP-ELICIT Phase A1 (2026-09-24): severity/change_time now carry a
+    # real elicited shape; breadth/headroom/interaction remain unelicited
+    # neutral placeholders (1.0) until their own elicitation lands.
     config = load_decision_frame_config()
     cost = config["cost_function"]
     for key in ("severity", "change_time", "breadth", "headroom", "interaction"):
         assert key in cost
         assert isinstance(cost[key], (int, float))
+    assert "author-elicited" in cost["derived_from"]
     assert "placeholder" in cost["derived_from"]
+    assert cost["change_time"] == 2.5
+    assert cost["breadth"] == cost["headroom"] == cost["interaction"] == 1.0
+
+
+def test_display_top_n_supersedes_display_score_threshold_as_primary():
+    # WP-ELICIT Phase A2 (2026-09-24, elicitation item 9 RESOLVED):
+    # display_top_n is the new primary cutoff; display_score_threshold is
+    # kept (score field stays real/shown) but its own derived_from no
+    # longer describes an active gate.
+    config = load_decision_frame_config()
+    top_n = config["display_top_n"]
+    assert top_n["value"] == 3
     threshold = config["display_score_threshold"]
     assert isinstance(threshold["value"], (int, float))
-    assert "placeholder" in threshold["derived_from"]
+    assert "No longer primary" in threshold["derived_from"]
 
 
 def test_cost_function_six_governed_keys_scoring_weights_retired():
@@ -1500,17 +1809,21 @@ def test_cost_function_six_governed_keys_scoring_weights_retired():
     assert cost["effect_class"]["secondary"] == 0.6
 
 
-def test_tyre_pressure_target_ships_all_null():
-    # Per-corner (not per-axle) target, ALL null -- no target pressure
-    # exists anywhere in this repo (checked directly, not assumed); this
-    # must stay silent, same honesty posture as plausibility_checks.
-    # tyre_pressure_window, until a real number is supplied.
+def test_tyre_pressure_target_filled_with_elicited_bands_in_bar():
+    # WP-ELICIT Phase B2 (2026-09-24, elicitation item 2 RESOLVED):
+    # per-corner target, front (fl/fr) inherits the front band, rear
+    # (rl/rr) inherits the rear band. Fields renamed min_bar/max_bar
+    # (were min_psi/max_psi -- a unit-naming bug caught while activating
+    # this check: the live channel and the elicited band are both bar).
     config = load_decision_frame_config()
     target = config["tyre_pressure_target"]
-    for corner in ("fl", "fr", "rl", "rr"):
-        assert target[corner]["min_psi"] is None
-        assert target[corner]["max_psi"] is None
-    assert target["compound_note"] is None
+    for corner in ("fl", "fr"):
+        assert target[corner]["min_bar"] == pytest.approx(1.85)
+        assert target[corner]["max_bar"] == pytest.approx(1.95)
+    for corner in ("rl", "rr"):
+        assert target[corner]["min_bar"] == pytest.approx(1.80)
+        assert target[corner]["max_bar"] == pytest.approx(1.90)
+    assert target["compound_note"]  # compound-scoped disclaimer, not null anymore
 
 
 def test_splitter_offset_and_brake_bias_promoted_to_recommendation_targets():
@@ -1672,19 +1985,39 @@ def _inject_click_class_bridge(config, parameter, direction, axis, sign=1, grade
         f"test fixture error: {parameter} is not click-class-eligible")
 
 
-def test_feedback_only_gap_zero_candidates_on_real_config():
-    # The reported gap itself: real config, real magnitude-2 feedback, no
-    # matching data verdict -- must produce nothing (honest gap, no
-    # fallback), for both oversteer and understeer.
+def test_feedback_only_gap_now_closed_and_multi_alternative_ties_emit_both():
+    # SUPERSEDES the old "gap = zero candidates" assumption: WP-ELICIT
+    # Phase C4 (2026-09-24) deliberately closed that gap by adding real
+    # click-class helping-sign ARB entries on both axes (elicitation item
+    # 10, RESOLVED). WP-ELICIT Phase C4 fallout, HANDOFF item 1 (reviewer,
+    # 2026-09-24): giving an axis TWO equally cheap, equally-uncorroborated
+    # click-class alternatives (soften one axle / stiffen the other) is
+    # ORDINARY for isolated feedback with no other evidence to break the
+    # tie (the Q9 two-sided-balance case) -- no longer raised as an error.
+    # Cost and interaction penalty are genuinely equal here and no setup
+    # sheet is supplied (headroom tie-break inapplicable), so both
+    # alternatives are emitted as separate pick-one candidates.
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
-    evidence = [_feedback_evidence(4, "exit_4", 3), _feedback_evidence(4, "exit_4", -3)]
-    candidates = generate_candidates(evidence, registry, config)
-    assert not any(c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY for c in candidates)
+    for raw in (3, -3):  # oversteer, understeer -- both axes hit the same tie
+        evidence = [_feedback_evidence(4, "exit_4", raw)]
+        candidates = generate_candidates(evidence, registry, config)
+        matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+        assert len(matches) == 2
+        for c in matches:
+            assert "ALTERNATIVE: genuinely tied with" in c["rationale"]
+        lever_families = {c["lever_family"] for c in matches}
+        assert len(lever_families) == 2  # two distinct lever families, not a duplicate
 
 
 def test_feedback_only_fires_at_magnitude_2_with_injected_click_class_entry():
+    # Isolated from this package's own new real ARB entries (WP-ELICIT
+    # Phase C4) on the SAME axis, which would otherwise compete with the
+    # injected entry and tie -- this test is about the injection
+    # mechanism and magnitude-2 firing, not about C4's own real content.
     config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if e["performance_axis"] != "understeer_tendency"]
     registry = load_setup_parameters_registry()
     _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
     evidence = [_feedback_evidence(4, "exit_4", -2)]  # understeer, magnitude 2
@@ -1723,6 +2056,10 @@ def test_feedback_only_picks_cheapest_eligible_lever():
 
 def test_feedback_only_phase_affinity_filters_out_incompatible_lever():
     config = copy.deepcopy(load_decision_frame_config())
+    # Isolated from this package's own new real ARB entries (WP-ELICIT
+    # Phase C4) on the SAME axis, same reason as the injection test above.
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if e["performance_axis"] != "understeer_tendency"]
     registry = load_setup_parameters_registry()
     # toe_front's own phase_affinity is ["entry_2_turnin"] only -- must not
     # fire for exit_4 feedback even though it would be cheaper (minutes vs
@@ -1766,18 +2103,98 @@ def test_feedback_only_dedupes_against_existing_data_candidate():
     assert springs_rear_soften[0]["trigger_provenance"] == TRIGGER_BOTH_AGREEING
 
 
-def test_feedback_only_tie_raises_when_unresolvable():
+def test_feedback_only_damper_pair_fires_as_one_candidate_no_crash():
+    # WP-ELICIT Phase C4 (2026-09-24, reviewer-redirected): damper_
+    # rebound_ls_fl/fr (C11-2, Segers ch.11) are axle-paired -- the router
+    # must emit ONE candidate carrying both actions, never crash on a
+    # false fl-vs-fr tie (no competing single-wheel candidate exists).
+    config = load_decision_frame_config()  # real, unmodified -- C11-2 entry ships live
+    registry = load_setup_parameters_registry()
+    evidence = [_feedback_evidence(6, "entry_2_turnin", -2)]  # understeer, turn-in, magnitude 2
+    candidates = generate_candidates(evidence, registry, config)  # must not raise
+    matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+    assert len(matches) == 1
+    c = matches[0]
+    assert {a["parameter"] for a in c["actions"]} == {"damper_rebound_ls_fl", "damper_rebound_ls_fr"}
+    assert all(a["direction"] == "increase" for a in c["actions"])
+    # damper (seconds) strictly cheaper than ARB (minutes) -- chosen over
+    # the also-eligible arb_fl/fr soften entries, not tied with them.
+    assert c["lever_family"] == "damper_rebound_ls_fl+damper_rebound_ls_fr"
+
+
+def test_feedback_only_damper_direction_inversion_pin():
+    # PIN: click direction is a SEPARATE provenance from the Segers
+    # physics claim (car_data.json's dyno-chart digitisation, not the
+    # literature) -- 'increase' (more clicks = softer = LESS damping
+    # force, config/setup_parameters.json direction_semantics) is the
+    # correct encoding of C11-2's "front rebound could be decreased"
+    # (decreased DAMPING FORCE). A future edit flipping this to
+    # 'decrease' would silently invert the recommendation's real-world
+    # effect -- this test exists specifically to catch that.
+    config = load_decision_frame_config()
+    damper_entries = [e for e in config["interaction_table"]
+                       if e["parameter"] in ("damper_rebound_ls_fl", "damper_rebound_ls_fr")]
+    assert len(damper_entries) == 2
+    for e in damper_entries:
+        assert e["direction"] == "increase"
+        assert e["performance_axis"] == "understeer_tendency"
+        assert e["sign"] == 1
+    assert any("dyno" in e["note"].lower() for e in damper_entries)  # click-direction provenance stated, not from Segers
+
+
+def test_feedback_only_unseeded_damper_cells_produce_no_candidate():
+    # The three cells C11 does NOT cover (understeer-exit->rear,
+    # oversteer-entry->rear, oversteer-exit->front) must never route to a
+    # damper -- an honest gap per the reviewer's own "do not construct a
+    # mechanism for any cell" ruling. Isolated at the _feedback_only_
+    # candidates level (not generate_candidates) with the real ARB
+    # entries stripped out, so this test asserts only the damper-coverage
+    # question -- a SEPARATE, real issue (the 4 new same-cost/same-axis
+    # ARB entries alone genuinely tie and raise on real oversteer/
+    # understeer feedback with no other evidence) is reported to the
+    # reviewer directly, not routed around here.
+    from modules.decision_frame import _feedback_only_candidates
+    config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["parameter"].startswith("arb_")]
+    for phase, verdict, raw in (("exit_4", "understeer", -2), ("entry_2_turnin", "oversteer", 2),
+                                 ("exit_4", "oversteer", 2)):
+        evidence = [_feedback_evidence(6, phase, raw)]
+        result = _feedback_only_candidates(evidence, [], load_setup_parameters_registry(), config)
+        assert not any(a["parameter"].startswith("damper_")
+                        for c in result for a in c["actions"]), (phase, verdict)
+
+
+def test_feedback_only_tie_emits_both_alternatives_when_unresolvable():
+    # HANDOFF item 1 (reviewer, 2026-09-24): a genuine cross-family tie --
+    # identical effort class, identical (zero) interaction penalty, no
+    # setup sheet for the headroom tie-break -- is no longer resolved
+    # arbitrarily or raised as an error; every tied alternative is emitted
+    # as a separate pick-one candidate instead. This injects a SECOND
+    # arb_rl/arb_rr-soften bridge alongside the real config's own C4 ARB
+    # entries (arb_fl+fr soften and arb_rl+rr stiffen, both already
+    # understeer_tendency/sign+1) -- the axle-pairing step (HANDOFF item 1
+    # background) groups the injected pair with itself, but NOT with the
+    # real arb_fl+fr entry (different lever), so this is a real 3-way
+    # cross-family tie, not 2 -- exactly the same "match count agnostic"
+    # shape the old ValueError-based version of this test had (a bare
+    # regex match on "tie unresolved" never distinguished 2-way from
+    # 3-way either).
     config = copy.deepcopy(load_decision_frame_config())
     registry = load_setup_parameters_registry()
-    # Two levers, identical effort class (both "minutes"), identical
-    # (zero) interaction penalty (no other active evidence at this corner
-    # for either to collide with) -- genuinely unresolvable without
-    # picking arbitrarily.
     _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
     _inject_click_class_bridge(config, "arb_rr", "soften", "understeer_tendency")
     evidence = [_feedback_evidence(4, "exit_4", -2)]
-    with pytest.raises(ValueError, match="tie unresolved"):
-        generate_candidates(evidence, registry, config)
+    candidates = generate_candidates(evidence, registry, config)
+    matches = [c for c in candidates if c["trigger_provenance"] == TRIGGER_FEEDBACK_ONLY]
+    assert len(matches) == 3
+    # three distinct (lever_family, direction) actions -- arb_rl+arb_rr
+    # soften (injected) and stiffen (real C4 entry) share a lever_family
+    # label but are different actions, not a duplicate candidate.
+    actions = {(c["lever_family"], c["actions"][0]["direction"]) for c in matches}
+    assert len(actions) == 3
+    for c in matches:
+        assert "ALTERNATIVE: genuinely tied with" in c["rationale"]
 
 
 def test_data_only_candidate_stays_data_only_without_feedback():
@@ -1926,7 +2343,16 @@ def test_eligibility_gate_feedback_bypass_matches_corner_not_phase():
     # the feedback bypass can make this eligible. Feedback fires at a
     # DIFFERENT phase (entry_1_brake) than the matrix evidence
     # (apex_3) -- same corner, same verdict sign (understeer).
-    config = load_decision_frame_config()
+    # Isolated from this package's own new real ARB entries (WP-ELICIT
+    # Phase C4): |feedback|>=4 here is incidental to what this test is
+    # actually about (eligibility-gate corner/phase keying), but at real
+    # config it would ALSO feed _feedback_only_candidates' own pool on
+    # this axis and hit the still-open genuine-tie ValueError (thesis_
+    # notes.md "WP-ELICIT Phase C4") -- stripped so this test exercises
+    # only the mechanism it names.
+    config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["grade"].startswith("author-elicited")]
     registry = load_setup_parameters_registry()
     evidence = [
         _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
@@ -1939,8 +2365,11 @@ def test_eligibility_gate_feedback_bypass_matches_corner_not_phase():
 
 def test_eligibility_gate_feedback_bypass_sign_mismatch_does_not_unlock():
     # Same corner, |feedback|>=4, but the OPPOSITE sign (oversteer) from
-    # the candidate's own understeer verdict -- must NOT unlock.
-    config = load_decision_frame_config()
+    # the candidate's own understeer verdict -- must NOT unlock. Isolated
+    # from this package's own new real ARB entries, same reason as above.
+    config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["grade"].startswith("author-elicited")]
     registry = load_setup_parameters_registry()
     evidence = [
         _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
@@ -1953,7 +2382,11 @@ def test_eligibility_gate_feedback_bypass_sign_mismatch_does_not_unlock():
 def test_eligibility_gate_feedback_bypass_different_corner_does_not_unlock():
     # Sanity check: the relaxation is still CORNER-scoped, not session-
     # wide -- feedback at a different corner must not unlock this one.
-    config = load_decision_frame_config()
+    # Isolated from this package's own new real ARB entries, same reason
+    # as the two tests above.
+    config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["grade"].startswith("author-elicited")]
     registry = load_setup_parameters_registry()
     evidence = [
         _matrix_verdict_evidence(7, ["apex_3"], "understeer", "moderate", "medium"),
@@ -2034,6 +2467,10 @@ def test_breadth_no_note_when_helped_covers_every_assessed_corner():
 
 def test_breadth_reports_directly_opposed_corner_separately():
     config = copy.deepcopy(load_decision_frame_config())
+    # Isolated from this package's own new real ARB entries (WP-ELICIT
+    # Phase C4), same reason as the eligibility-gate tests above.
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["grade"].startswith("author-elicited")]
     registry = load_setup_parameters_registry()
     _inject_click_class_bridge(config, "arb_rl", "soften", "understeer_tendency")
     # Two feedback-only candidates for the SAME lever, opposite directions,
@@ -2154,6 +2591,69 @@ def test_window_edge_check_skips_target_style_actions_with_no_delta():
     assert result is None
 
 
+def test_edge_normal_state_exemption_lets_rear_action_stay_live():
+    # WP-ELICIT Phase C2 (2026-09-24): composition proof, constructed
+    # filled-sheet fixture matching matrix_us_brk_high's own real shape
+    # (wing_position increase + ride_height_front decrease + ride_height_
+    # rear increase). Front sits at its documented practice-pinned lower
+    # edge (94mm, decision_frame.json parameter_windows nominal=96/span=2)
+    # -- decrease direction hits the soft edge check the exemption covers.
+    # Rear sits at its own nominal (134mm, not at any edge). Expected: the
+    # candidate stays STATUS_PROPOSED (front's edge is exempted, not a
+    # block) and carries edge_normal_state_note -- the rear action is what
+    # actually remains live/proposable, per the reviewer's own spec.
+    from modules.decision_frame import _apply_window_edge_status
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    candidate = _dummy_candidate()
+    candidate["status"] = STATUS_PROPOSED
+    candidate["actions"] = [
+        {"parameter": "wing_position", "direction": "increase", "delta": 1},
+        {"parameter": "ride_height_front", "direction": "decrease", "delta": -1},
+        {"parameter": "ride_height_rear", "direction": "increase", "delta": 1},
+    ]
+    setup_data = {
+        "car": {"wing_position": "P9"},
+        "front_left": {"ride_height_fia": 94},
+        "rear_left": {"ride_height_fia": 134},
+    }
+    _apply_window_edge_status([candidate], setup_data, registry, config)
+    assert candidate["status"] == STATUS_PROPOSED
+    assert "edge_reason" not in candidate
+    assert candidate["edge_normal_state_note"] == (
+        "ride_height_front: already at practice position "
+        "(ride_height_front already at its typical-window edge "
+        "(current=94.0, nominal=96, span=2))"
+    )
+
+
+def test_edge_normal_state_exemption_does_not_swallow_real_coaction_block():
+    # Same package, but ride_height_rear is ALSO at its own (non-exempted)
+    # edge -- proves the front exemption does not swallow a genuine block
+    # on a different action: the candidate DOES end up blocked (on the
+    # rear action), and the front's exemption note is still shown
+    # alongside it, never silently dropped.
+    from modules.decision_frame import _apply_window_edge_status
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    candidate = _dummy_candidate()
+    candidate["status"] = STATUS_PROPOSED
+    candidate["actions"] = [
+        {"parameter": "wing_position", "direction": "increase", "delta": 1},
+        {"parameter": "ride_height_front", "direction": "decrease", "delta": -1},
+        {"parameter": "ride_height_rear", "direction": "increase", "delta": 1},
+    ]
+    setup_data = {
+        "car": {"wing_position": "P9"},
+        "front_left": {"ride_height_fia": 94},
+        "rear_left": {"ride_height_fia": 139},  # nominal 134 + span 5 -- at the soft edge
+    }
+    _apply_window_edge_status([candidate], setup_data, registry, config)
+    assert candidate["status"] == STATUS_BLOCKED_AT_EDGE
+    assert "ride_height_rear" in candidate["edge_reason"]
+    assert candidate["edge_normal_state_note"].startswith("ride_height_front: already at practice position")
+
+
 def test_window_edge_integration_none_setup_data_is_byte_identical():
     config = load_decision_frame_config()
     registry = load_setup_parameters_registry()
@@ -2268,7 +2768,11 @@ def test_contradiction_integration_real_candidate_contradicted_and_excluded():
 
 
 def test_conflicting_feedback_attached_for_opposite_verdict():
-    config = load_decision_frame_config()
+    # Isolated from this package's own new real ARB entries (WP-ELICIT
+    # Phase C4), same reason as the eligibility-gate tests above.
+    config = copy.deepcopy(load_decision_frame_config())
+    config["interaction_table"] = [e for e in config["interaction_table"]
+                                    if not e["grade"].startswith("author-elicited")]
     registry = load_setup_parameters_registry()
     evidence = [
         _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "moderate", "medium"),
@@ -2474,11 +2978,20 @@ def test_score_components_are_the_six_named_cost_function_terms():
     }
 
 
-def test_score_term_order_severity_beats_change_time():
-    # A STRONG candidate with the WORST effort class still outranks a
-    # MODERATE candidate with the BEST effort class -- severity's own
-    # multiplicative reach (via sev_rank) exceeds change_time's bounded
-    # inverse-effort spread at today's placeholder (all 1.0) weights.
+def test_score_term_order_change_time_beats_severity_in_normal_case():
+    # Term order per author-elicited 2026-09-24 decision (one change at a
+    # time, session rhythm) -- supersedes the placeholder-era
+    # worst-problem-first characterization this test previously pinned.
+    #
+    # A MODERATE candidate with the BEST effort class now outranks a
+    # STRONG candidate with the WORST effort class -- change_time's own
+    # weight (2.5) was sized specifically so this flips relative to the
+    # old placeholder-weight (all 1.0) behaviour: in the NORMAL case
+    # (severity one rank apart), cheap beats expensive regardless of
+    # which one has the worse problem. See
+    # test_score_term_order_heavy_corrector_competitive_at_ceiling below
+    # for the complementary ceiling case, where severity DOES punch
+    # through (full normal->strong range, not one rank).
     config = load_decision_frame_config()
     strong_evidence = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
                          "verdict": "oversteer", "severity": "strong", "confidence": 1.0, "source": "test"}]
@@ -2486,8 +2999,56 @@ def test_score_term_order_severity_beats_change_time():
                            "verdict": "oversteer", "severity": "moderate", "confidence": 1.0, "source": "test"}]
     strong_expensive = _dummy_candidate(effort_class="garage_hours", evidence_refs=strong_evidence)
     moderate_cheap = _dummy_candidate(effort_class="seconds", evidence_refs=moderate_evidence)
-    assert (score(strong_expensive, strong_evidence, None, config)["total"]
-            > score(moderate_cheap, moderate_evidence, None, config)["total"])
+    assert (score(moderate_cheap, moderate_evidence, None, config)["total"]
+            > score(strong_expensive, strong_evidence, None, config)["total"])
+
+
+def test_score_term_order_click_fix_beats_park_the_car_for_worse_problem():
+    # WP-ELICIT Phase A1, constructed case (a): a click-class fix (arb_rl,
+    # seconds) for a MODERATE problem outranks a heavy-corrector fix
+    # (springs_front, garage_hours) for a WORSE (strong) problem -- the
+    # elicited "one change at a time" preference in a realistic lever
+    # pairing, at a different phase (apex_3, phase_importance=1.0) than
+    # the term-order test above (exit_4, 1.2) to show the shape isn't an
+    # artifact of one particular phase weight.
+    config = load_decision_frame_config()
+    moderate_evidence = [{"type": "corner_verdict", "corner": 6, "phase": "apex_3",
+                           "verdict": "oversteer", "severity": "moderate", "confidence": 1.0, "source": "test"}]
+    strong_evidence = [{"type": "corner_verdict", "corner": 9, "phase": "apex_3",
+                         "verdict": "understeer", "severity": "strong", "confidence": 1.0, "source": "test"}]
+    click_fix = _dummy_candidate(param="arb_rl", direction="soften", effort_class="seconds",
+                                  evidence_refs=moderate_evidence)
+    click_fix["phase"] = "apex_3"
+    park_the_car = _dummy_candidate(param="springs_front", direction="stiffen",
+                                     effort_class="garage_hours", evidence_refs=strong_evidence)
+    park_the_car["phase"] = "apex_3"
+    assert (score(click_fix, moderate_evidence, None, config)["total"]
+            > score(park_the_car, strong_evidence, None, config)["total"])
+
+
+def test_score_term_order_heavy_corrector_competitive_at_ceiling():
+    # WP-ELICIT Phase A1, constructed case (b): "severity punches through
+    # only at the ceiling" -- a heavy corrector already past the
+    # eligibility gate (strong severity, full breadth across every corner
+    # it touches, primary effect_class) beats a click-class candidate
+    # whose OWN problem is only NORMAL severity (a bare note, not even
+    # moderate) with a secondary effect_class -- the full normal->strong
+    # severity span is what lets the heavy corrector punch through
+    # change_time's normal-case dominance, unlike the one-rank
+    # (moderate->strong) gap in the two tests above, where it cannot.
+    config = load_decision_frame_config()
+    strong_evidence = [{"type": "corner_verdict", "corner": 6, "phase": "exit_4",
+                         "verdict": "understeer", "severity": "strong", "confidence": 1.0, "source": "test"}]
+    normal_evidence = [{"type": "corner_verdict", "corner": 9, "phase": "exit_4",
+                         "verdict": "oversteer", "severity": "normal", "confidence": 1.0, "source": "test"}]
+    heavy_corrector = _dummy_candidate(param="springs_front", direction="stiffen",
+                                        effort_class="garage_hours", effect_class="primary",
+                                        evidence_refs=strong_evidence)
+    heavy_corrector["corners_helped"] = heavy_corrector["corners_touched"] = [6, 7]
+    click_class_weak = _dummy_candidate(param="arb_rl", direction="soften", effort_class="seconds",
+                                         effect_class="secondary", evidence_refs=normal_evidence)
+    assert (score(heavy_corrector, strong_evidence, None, config)["total"]
+            > score(click_class_weak, normal_evidence, None, config)["total"])
 
 
 def test_score_term_order_change_time_beats_breadth():
@@ -2507,10 +3068,13 @@ def test_score_term_order_change_time_beats_breadth():
             > score(expensive_full_breadth, evidence, None, config)["total"])
 
 
-def test_display_score_threshold_splits_shortlist_and_tail():
+def test_display_split_shortlist_is_every_proposed_status_ungated_by_score():
+    # WP-ELICIT Phase A2 (2026-09-24): generate_display_split no longer
+    # gates on display_score_threshold -- every status==proposed candidate
+    # lands in the shortlist regardless of score; the real visibility
+    # cutoff is applied downstream by apply_display_top_n.
     config = copy.deepcopy(load_decision_frame_config())
     registry = load_setup_parameters_registry()
-    config["display_score_threshold"]["value"] = 1.0  # deliberately high, to force a real split
     evidence = [
         _matrix_verdict_evidence(6, ["entry_1_brake"], "understeer", "strong", "medium", confidence=1.0),
         _matrix_verdict_evidence(6, ["entry_2_turnin"], "understeer", "moderate", "medium", confidence=0.1),
@@ -2518,17 +3082,38 @@ def test_display_score_threshold_splits_shortlist_and_tail():
     candidates = generate_candidates(evidence, registry, config)
     split = generate_display_split(candidates, evidence, None, config, registry)
     assert split["shortlist"]
-    assert split["tail"]
     shortlist_ids = {c["id"] for c in split["shortlist"]}
     tail_ids = {c["id"] for c in split["tail"]}
     assert shortlist_ids.isdisjoint(tail_ids)
     for c in split["shortlist"]:
         assert c["status"] == STATUS_PROPOSED
-        assert c["score"] >= 1.0
+    for c in split["tail"]:
+        assert c["status"] != STATUS_PROPOSED
     # No fixed candidate count anywhere -- every inventory entry lands in
     # exactly one of the two lists, none dropped.
     inventory = generate_lever_inventory(candidates, evidence, None, config, registry)
     assert len(split["shortlist"]) + len(split["tail"]) == len(inventory)
+
+
+def test_apply_display_top_n_slices_and_notes_overflow():
+    config = copy.deepcopy(load_decision_frame_config())
+    config["display_top_n"]["value"] = 3
+    shortlist = [{"id": f"c{i}", "score": 10 - i} for i in range(5)]  # already sorted, as real callers pass
+    tail = [{"id": "blocked1", "status": STATUS_BLOCKED_AT_EDGE}]
+    visible, combined_tail, note = apply_display_top_n(shortlist, tail, config)
+    assert [c["id"] for c in visible] == ["c0", "c1", "c2"]
+    assert [c["id"] for c in combined_tail] == ["c3", "c4", "blocked1"]
+    assert note == "2 further alternatives"
+
+
+def test_apply_display_top_n_no_note_when_nothing_overflows():
+    config = copy.deepcopy(load_decision_frame_config())
+    config["display_top_n"]["value"] = 3
+    shortlist = [{"id": "c0", "score": 1.0}]
+    visible, combined_tail, note = apply_display_top_n(shortlist, [], config)
+    assert visible == shortlist
+    assert combined_tail == []
+    assert note is None
 
 
 def test_weight_change_reranks_only_verdict_and_evidence_byte_identical():
@@ -2712,13 +3297,131 @@ def test_render_tail_line_proposed_below_threshold_states_score():
     assert "below display threshold" in line
 
 
-def test_tyre_pressure_flags_empty_while_target_all_null():
-    # Stage 1 check-only item: no per-session pressure-vs-target evidence
-    # source exists yet, and tyre_pressure_target is all-null (channel-
-    # census correction, thesis_notes.md 2026-09-22) -- must stay silent,
-    # never fabricate a flag.
-    config = load_decision_frame_config()
+def test_tyre_pressure_flags_null_target_wheel_stays_silent():
+    # Null target for a wheel -> fully silent for that wheel, unchanged
+    # honesty posture, regardless of channel/state (none supplied here).
+    config = copy.deepcopy(load_decision_frame_config())
+    for wheel in ("fl", "fr", "rl", "rr"):
+        config["tyre_pressure_target"][wheel] = {"min_bar": None, "max_bar": None}
     assert tyre_pressure_flags(config) == []
+
+
+def test_tyre_pressure_flags_dead_channel_with_filled_target_not_silent():
+    # A FILLED target (the live default now) whose channel is dead/missing
+    # is NOT silent -- reviewer amendment: report "not evaluable" rather
+    # than saying nothing, since a real target exists to check against.
+    config = load_decision_frame_config()
+    flags = tyre_pressure_flags(config)  # no channels/corners/state at all
+    assert len(flags) == 4
+    for label in ("FL", "FR", "RL", "RR"):
+        assert any(f"{label}: pressure not evaluable (channel dead/missing)" == f for f in flags)
+
+
+def _tpms_fixture(cornering_value, brake_value=None, wheel="fl", quality="valid"):
+    # 200 samples @ 50Hz = 4s span (tests._synthetic_state_channels
+    # convention). entry_1_brake sits at the START, deliberately given a
+    # DIFFERENT value than the cornering phases, to prove phase-masking
+    # actually excludes it -- if it leaked in, the median would move.
+    state, t = _synthetic_state_channels()
+    data = np.full(len(t), cornering_value, dtype=float)
+    if brake_value is not None:
+        data[t < 1.0] = brake_value
+    channels = {f"tpms_press_{wheel}": {"time": t, "data": data, "quality": quality}}
+    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {
+        "entry_1_brake": (0.0, 1.0),
+        "entry_2_turnin": (1.0, 1.8),
+        "apex_3": (1.8, 2.2),
+        "exit_4": (2.2, 3.0),
+        "exit_5": (3.0, 3.8),
+    }}]
+    return channels, corners, state
+
+
+def test_tyre_pressure_flags_in_band_produces_no_flag():
+    config = load_decision_frame_config()  # fl target 1.85-1.95
+    channels, corners, state = _tpms_fixture(cornering_value=1.90, wheel="fl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert not any(f.startswith("FL") for f in flags)
+
+
+def test_tyre_pressure_flags_under_band():
+    config = load_decision_frame_config()  # fl target 1.85-1.95
+    channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert any(f.startswith("FL 1.70") and "under target 1.85-1.95" in f for f in flags)
+
+
+def test_tyre_pressure_flags_over_band():
+    config = load_decision_frame_config()  # rl target 1.80-1.90
+    channels, corners, state = _tpms_fixture(cornering_value=2.00, wheel="rl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert any(f.startswith("RL 2.00") and "over target 1.80-1.90" in f for f in flags)
+
+
+def test_tyre_pressure_flags_carries_compound_note():
+    config = load_decision_frame_config()
+    channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    fl_flag = next(f for f in flags if f.startswith("FL"))
+    assert "[compound:" in fl_flag
+
+
+def test_tyre_pressure_flags_cornering_phase_only_masking():
+    # entry_1_brake carries a wildly different (but still in-range) value
+    # -- if phase masking were broken and it leaked into the median, the
+    # median would be pulled far from 1.90 and this in-band assertion
+    # would fail.
+    config = load_decision_frame_config()
+    channels, corners, state = _tpms_fixture(cornering_value=1.90, brake_value=3.50, wheel="fl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert not any(f.startswith("FL") for f in flags)  # stayed in-band -> no flag
+
+
+def test_tyre_pressure_flags_excludes_in_window_glitch_and_reports_count():
+    # A single in-window sample outside config/channels.json's own range
+    # ([0.5, 4.0] bar) is excluded from the median (reused range, no
+    # second hardcoded bound) and its count appended to the flag line
+    # when nonzero.
+    config = load_decision_frame_config()
+    state, t = _synthetic_state_channels()
+    data = np.full(len(t), 1.70, dtype=float)
+    # one glitch sample inside the apex_3 window (t in [1.8, 2.2))
+    glitch_idx = np.searchsorted(t, 1.9)
+    data[glitch_idx] = 250.0  # far outside [0.5, 4.0] bar
+    channels = {"tpms_press_fl": {"time": t, "data": data, "quality": "valid"}}
+    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {
+        "entry_2_turnin": (1.0, 1.8), "apex_3": (1.8, 2.2),
+        "exit_4": (2.2, 3.0), "exit_5": (3.0, 3.8),
+    }}]
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    fl_flag = next(f for f in flags if f.startswith("FL"))
+    assert "1 glitch sample excluded" in fl_flag
+    assert "1.70" in fl_flag  # median unaffected by the excluded glitch
+
+
+def test_tyre_pressure_flags_real_dubai_produces_under_target_flags(parsed_data, state):
+    # ACCEPTANCE DEMONSTRATION (real data, both project rules: channel
+    # census + "real data only"). Dubai's cornering-phase pressures sit
+    # consistently below the elicited band on this session (diagnostics/
+    # inspect_tpms_pressure_cornering_phase.py census: fl median ~1.72,
+    # fr ~1.72, rl ~1.70, rr ~1.70 bar vs target 1.85-1.95/1.80-1.90).
+    # Per author clarification (thesis_notes.md 'WP-ELICIT Phase B'):
+    # this is EXPECTED compound-mismatch output, not a system defect --
+    # the target is compound-scoped and Dubai ran a different tyre. The
+    # check firing correctly here, with the compound note attached, IS
+    # the acceptance demonstration.
+    config = load_decision_frame_config()
+    flags = tyre_pressure_flags(
+        config,
+        channels=parsed_data["channels"],
+        corners=parsed_data["corners"],
+        state=state,
+    )
+    for label in ("FL", "FR", "RL", "RR"):
+        matching = [f for f in flags if f.startswith(label)]
+        assert matching, f"expected an under-target flag for {label}"
+        assert "under target" in matching[0]
+        assert "[compound:" in matching[0]
 
 
 # --- Phase D feedback round, ITEM 1 (2026-09-23): display-layer grouping -

@@ -240,6 +240,12 @@
     "typical_window": {
       "reference_point_NBR": 10
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -271,6 +277,12 @@
     "typical_window": {
       "reference_point_NBR": 14
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -300,6 +312,12 @@
     "typical_window": {
       "reference_point_NBR": 6
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; 0 means no relief is given, a deliberate platform-over-protection choice.",
     "phase_affinity": null,
@@ -329,6 +347,12 @@
     "typical_window": {
       "reference_point_NBR": 7
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -361,6 +385,12 @@
     "typical_window": {
       "reference_point_NBR": 8
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -390,6 +420,12 @@
     "typical_window": {
       "reference_point_NBR": 10
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -421,6 +457,12 @@
     "typical_window": {
       "reference_point_NBR": 14
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -450,6 +492,12 @@
     "typical_window": {
       "reference_point_NBR": 6
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits.",
     "phase_affinity": null,
@@ -479,6 +527,12 @@
     "typical_window": {
       "reference_point_NBR": 7
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -511,6 +565,12 @@
     "typical_window": {
       "reference_point_NBR": 8
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -540,6 +600,12 @@
     "typical_window": {
       "reference_point_NBR": 10
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -571,6 +637,12 @@
     "typical_window": {
       "reference_point_NBR": 8
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -600,6 +672,12 @@
     "typical_window": {
       "reference_point_NBR": 0
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
     "phase_affinity": null,
@@ -629,6 +707,12 @@
     "typical_window": {
       "reference_point_NBR": 13
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -661,6 +745,12 @@
     "typical_window": {
       "reference_point_NBR": 13
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -690,6 +780,12 @@
     "typical_window": {
       "reference_point_NBR": 10
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -721,6 +817,12 @@
     "typical_window": {
       "reference_point_NBR": 8
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -750,6 +852,12 @@
     "typical_window": {
       "reference_point_NBR": 0
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
     "phase_affinity": null,
@@ -779,6 +887,12 @@
     "typical_window": {
       "reference_point_NBR": 13
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -811,6 +925,12 @@
     "typical_window": {
       "reference_point_NBR": 13
     },
+    "adjustment_step": {
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    },
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,

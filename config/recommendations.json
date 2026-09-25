@@ -402,7 +402,8 @@
       ],
       "weight": 1.0,
       "rationale": "One wing step up plus 1mm of forward rake (front ride height down, rear up) adds rear downforce and shifts the aero balance rearward, raising braking-phase stability so more front grip stays available. Applied together as one package.",
-      "elicitation_provenance": "engineer-verbatim"
+      "elicitation_provenance": "engineer-verbatim",
+      "practice_note": "ride_height_front is typically pinned at its lower limit by standing practice (author-elicited 2026-09-24); the rear action usually carries this package."
     },
     {
       "id": "matrix_us_brk_high_esc",
@@ -1128,7 +1129,8 @@
       ],
       "weight": 1.0,
       "rationale": "Reduce rake by 1mm (front ride height up, rear down) to shift the aero pressure centre forward and calm destabilising yaw while trail-braking.",
-      "elicitation_provenance": "engineer-verbatim"
+      "elicitation_provenance": "engineer-verbatim",
+      "practice_note": "ride_height_front is typically pinned at its lower limit by standing practice (author-elicited 2026-09-24); the rear action usually carries this package."
     },
     {
       "id": "matrix_inst_brk_high",

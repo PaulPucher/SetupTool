@@ -48,7 +48,7 @@ every import and reference across the repo updated in the same commit.
 No longer part of this directory's own inventory -- 90 scripts remain
 here (53 keepers + 37 in diagnostics/_attic/).
 
-## K1 -- config-cited provenance (24)
+## K1 -- config-cited provenance (26)
 
 - **fit_dugoff_first_pass.py** -- config/parameters.json's tyre_model_fit
   and tyre_model_ekf._comment blocks cite it as the WP-N1 c_alpha/mu_fz
@@ -77,6 +77,9 @@ here (53 keepers + 37 in diagnostics/_attic/).
   r_q_sweep_note.
 - **inspect_kerb_wheel_speed_spikes.py** -- cited in
   config/parameters.json's kerb_investigation_reference.
+- **inspect_kerb_severity_census.py** -- cited in
+  config/decision_frame.json's kerb_blowoff_evidence.derived_from (WP-
+  ELICIT Phase C3, 2026-09-24). Previously undocumented gap, closed here.
 - **inspect_ls_max_window_locality_sizing.py** -- cited in
   config/parameters.json's max_window_m_derived_from.
 - **inspect_ls_window_floor_derivation.py** -- cited in
@@ -88,6 +91,10 @@ here (53 keepers + 37 in diagnostics/_attic/).
   `_comment_grid_rate`.
 - **inspect_nis_tyre_mismatch_gate.py** -- cited in
   config/parameters.json's nis_gate._comment.
+- **inspect_tpms_pressure_cornering_phase.py** -- cited in
+  config/channels.json's tpms_press_fl note and config/decision_frame.
+  json's tyre_pressure_target derived_from (WP-ELICIT Phase B2,
+  2026-09-24). Previously undocumented gap, closed here.
 - **inspect_saturation_coverage.py** -- cited by description (not exact
   filename), config/parameters.json's tyre_model_fit._comment: "the
   WP-N0 saturation-coverage diagnostic's own candidate-threshold list."
@@ -184,8 +191,14 @@ here (53 keepers + 37 in diagnostics/_attic/).
 - **smoke_test_settings_view.py** -- SettingsView Section 4 cost-function
   weights, restart-persistence check.
 
-## K5 -- named census/measurement tooling (1 not already listed above)
+## K5 -- named census/measurement tooling (2 not already listed above)
 
+- **inspect_brake_bias_channel_identity.py** -- WP-ELICIT HANDOFF item 5
+  (2026-09-25, Phase D brake-bias channel identity): recomputes percent-
+  front from raw brake pressure during real braking events and
+  correlates it against every Frame-Stage-2 Phase 2 candidate channel,
+  both real sessions. Re-run whenever a new session or a resolved
+  candidate channel warrants re-checking the identity.
 - **inspect_pipeline_sidecar_size.py** -- WP-CACHE sidecar size/load-time
   measurement, both real sessions against the acceptance gate.
 

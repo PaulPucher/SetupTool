@@ -2,39 +2,84 @@
 
 ### NOW
 
+(0) WP-ELICIT (branch `elicit` off main@647582f, NOT merged, NOT
+    committed -- working tree dirty, awaiting the author's own commit
+    decision): lands the 2026-09-24/25 elicitation interview plus a
+    reviewer HANDOFF package. ALL OF HANDOFF ITEMS 0-7 COMPLETE this
+    session (2026-09-25) -- record check (0), router tie fix removing a
+    real production crash (1), C4 residue config comments (2), C5
+    springs-understeer mirror / C6 TC safety note / C7 EB exclusion
+    rewrite (3), literature read seeding nothing (4), Phase D brake-bias
+    channel identity, not-evaluable (5), elicitation-list bookkeeping
+    (6), Phase E close-out -- census, full suite, this STATUS rewrite,
+    protected-set check (7). Full record: thesis_notes.md's own
+    "WP-ELICIT close-out: consolidated record" entry, which indexes
+    every phase/item's own full record by name -- read that first,
+    before any of the individual phase entries it points to.
+    FULL REPO SUITE (own run, this session, once, not just test_
+    decision_frame.py): 472 passed / 9 skipped / 1 xfailed / 0 failed --
+    reconciles exactly to the pre-branch baseline (436, main@647582f)
+    plus this branch's own 36 new tests, all inside tests/test_
+    decision_frame.py (the only test file this branch touches). No
+    golden failed; goldens UNREGENERATED throughout.
+    CANDIDATE CENSUS (own run): Dubai 6->8, v3 21->25 vs the pre-
+    WP-ELICIT baseline -- both deltas traced entirely to WP-ELICIT Phase
+    C3's kerb_blowoff evidence, zero unexplained residual (thesis_
+    notes.md "WP-ELICIT Phase E close-out (a)").
+    STILL OPEN, carried forward for the next session (not resolved this
+    session, listed here so it does not have to be rediscovered):
+    - elicitation item 5's TC/EB CHANNEL MAPPING half (the EB-as-lever
+      half is resolved; channel identity is untouched).
+    - brake_bias channel identity: nothing correlated cleanly on either
+      real session (own diagnostic run, HANDOFF item 5) -- stays not-
+      evaluable; its current-state window check stays WITHHELD
+      (propose-first change, needs the reviewer present).
+    - literature hits C11-4/C11-5 (Segers ch.11, high-speed damping /
+      front-rebound-as-rake-lever) await a per-hit reviewer ruling --
+      seeded nothing per this session's own instruction.
+    - docs/literature/'s non-Segers texts (Werner_2021_MA.pdf, Rajamani,
+      the two Automotive Control Systems books) were NOT actually
+      searchable this session -- no extractable text layer via Grep, no
+      page rendering via Read (pdftoppm/poppler-utils not installed).
+      Their coverage of item 4's questions is UNKNOWN, not "not
+      covered" -- a tool limitation to fix or work around next session,
+      not a content finding.
+    - elicitation item 10's own PLAN.md text still describes the
+      feedback-router ValueError as a live crash risk needing a
+      reviewer decision -- that crash is FIXED (HANDOFF item 1), but
+      item 10's own text was not rewritten this session (out of item 6's
+      explicitly stated scope) -- a known stale passage, flagged here
+      rather than silently left implying the crash still exists.
+    NO COMMIT THIS SESSION -- branch `elicit` stays open, uncommitted;
+    the user runs git.
 (1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
     A-F complete per its own close-out record (thesis_notes.md). No
     longer an open item.
 (2) Sidecar cache + Analyse-button contract (WP-CACHE): DONE, merged to
     main (0f1731d, verified via git log). No longer an open item.
-(3) Pipeline performance (WP-PERF, branch perf-estimators off main):
-    Phases 0-3 COMPLETE, 2026-09-23 -- byte-identical speedup of the two
-    window estimators (estimate_longitudinal_stiffness, estimate_
-    cornering_stiffness), full record thesis_notes.md "WP-PERF close-
-    out". Method untouched (windowing logic/floors/spans/caps/NaN
-    semantics identical); the shared adaptive-window-widening search (3
-    call sites: reconstruct_ls_window_start, reconstruct_cs_window_start,
-    compute_cs_for_axle's own inline duplicate) now maintains a running
-    max/min incrementally instead of re-scanning the whole growing window
-    with np.max/np.min at every widening step. Byte-identity PROVEN
-    (diagnostics/compare_wp_perf_reference.py, new gitignored .npz
-    references, both sessions, every output key) before each phase's own
-    re-timing, never after. Wall-clock, both real sessions, machine idle:
-    Dubai LS 436.03->182.88s (-58%), CS 273.06->115.86s (-58%), grand
-    total 969.82->541.41s (-44%, 1.79x); v3 LS 396.63->158.49s (-60%), CS
-    81.06->41.33s (-49%), grand total 697.61->428.23s (-39%, 1.63x). Fit
-    chain (EKF run) untouched and out of scope, now the dominant
-    remaining cost on both sessions. 4 new targeted tests (oldest-end-
-    extremum + NaN-propagation-forces-full-widening, both window-start
-    functions). Full suite: 436 passed / 9 skipped / 1 xfailed / 0 failed
-    (+4 vs the WP-CACHE baseline of 432, exactly the new tests, no golden
-    moved -- goldens passed UNREGENERATED). STOP BEFORE COMMIT -- ready
-    for the package's own commit boundary on perf-estimators, awaiting
-    the user's go-ahead (branch not yet merged to main).
-(4) Big cleanup: diagnostics inventory, HANDOVER regeneration,
-    protected-set audit, module map document for the author.
-(5) Commit and push at end of every working day.
-(6) Thesis writing starts after (1)-(4); later building remains
+(3) Pipeline performance (WP-PERF): DONE, merged to main (224e591,
+    verified directly via `git log` on branch `elicit` -- CORRECTED this
+    rewrite: the previous STATUS text here claimed this was still on an
+    unmerged perf-estimators branch awaiting the user's go-ahead; that
+    was stale, main@647582f's own history already contains it). Byte-
+    identical speedup of the two window estimators (estimate_
+    longitudinal_stiffness, estimate_cornering_stiffness) via an
+    incremental running max/min instead of re-scanning the whole growing
+    window at every widening step. Wall-clock, both real sessions:
+    Dubai 969.82->541.41s (1.79x), v3 697.61->428.23s (1.63x). Full
+    record thesis_notes.md "WP-PERF close-out".
+(4) Diagnostics inventory / module map / hygiene audit: DONE, merged to
+    main (8248186, WP-CLEAN) -- CORRECTED this rewrite: previously
+    listed here as a future to-do; it already happened (55 diagnostics
+    keepers verified against seven load-bearing tests, 37 moved to
+    diagnostics/_attic/, the two EKF production files relocated from
+    diagnostics/ to modules/, module map + thesis material index
+    written). No longer an open item.
+(5) Comment-style humanization pass: DONE, merged to main (647582f,
+    WP-COMMENTS) -- not previously listed in this STATUS block at all;
+    added here for main@647582f completeness.
+(6) Commit and push at end of every working day.
+(7) Thesis writing starts after (1)-(4); later building remains
     possible but chapter-driven.
 
 STANDING WARNINGS -- carry these into every future session
@@ -123,7 +168,11 @@ Check-only (never recommended):
   never in it.
 Written exclusions (not in-weekend levers): kinematic_variants (whole-
 car directness, pre-event), gear_ratios, diff_package, engine_curves
-(EB-as-lever question pending [E]) [A].
+(real lever family for rotation; excluded -- no rotation-deficit
+measurement exists to trigger from; reopens with a usable rotation
+metric -- Q6, author-elicited 2026-09-24, WP-ELICIT HANDOFF C7,
+resolving the EB-as-lever half of elicitation item 5; the TC/EB
+CHANNEL MAPPING half stays open, see that item below) [A].
 
 ## Stage 2 — Triggers
 Three trigger provenances, all labelled: data-only (verdicts, matrix
@@ -186,26 +235,110 @@ colour; only BLOCKED may join the top line [A].
 
 ## Elicitation list (engineer talk — gates weight/window finalisation,
 not implementation)
-1. Cost-function weights (severity, change-time, breadth, headroom).
-2. Tyre pressure target windows, current compound.
-3. Damper step sizes: exploratory vs fine, per adjuster.
-4. Brake-bias channel identity (4 candidates, 2 scales).
-5. TC/EB channel mapping; EB-as-lever yes/no.
-6. Rake package 1mm default confirm.
-7. The 14 non-verbatim matrix cells (standing list).
-8. Aero split 25/75 expectation check (standing).
-9. Display cutoff score threshold.
+1. Cost-function weights (severity, change-time, breadth, headroom) --
+   PARTIAL, WP-ELICIT Phase A1 (2026-09-24, author-elicited): severity/
+   change_time shape landed (change_time dominates in the normal case,
+   severity punches through only at the eligibility gate's own ceiling).
+   breadth/headroom/interaction remain unelicited placeholders (1.0). See
+   thesis_notes.md "WP-ELICIT Phase A: cost-function weights + display
+   cutoff" for the full record, including the term-order test conflict
+   found and its resolution.
+2. Tyre pressure target windows, current compound -- RESOLVED 2026-09-24
+   (WP-ELICIT Phase B2, author-elicited, expanded to full activation):
+   front 1.85-1.95 / rear 1.80-1.90 bar, compound-scoped (see thesis_
+   notes.md "WP-ELICIT Phase B" for the compound-mismatch finding
+   correction and full activation record).
+3. Damper step sizes: exploratory vs fine, per adjuster -- RESOLVED
+   2026-09-24 (WP-ELICIT Phase B1, author-elicited): exploratory=2
+   clicks, fine=1 click, all 20 damper registry entries. See thesis_
+   notes.md "WP-ELICIT Phase B".
+4. Brake-bias channel identity (4 candidates, 2 scales) -- STILL OPEN,
+   2026-09-25 (WP-ELICIT HANDOFF item 5): a real diagnostic was run
+   this time (diagnostics/inspect_brake_bias_channel_identity.py),
+   correlating recomputed percent-front against the FIVE actual named
+   candidates (the record has five, not four -- Math_Brake_Bias_Hold
+   plus abs_brk_bal_prop/_prop_ad/_at50/_at50_adv) on both real
+   sessions during real braking events. NOTHING CORRELATED CLEANLY
+   (best |corr|~0.67 on v3, ~0.04 on Dubai for the same channels --
+   inconsistent across sessions, not a real identity match); Math_
+   Brake_Bias_Hold is entirely ABSENT from the Dubai raw file. brake_
+   bias stays not-evaluable, unchanged. See thesis_notes.md "WP-ELICIT
+   HANDOFF item 5" for the full correlation figures. The brake_bias
+   current-state window check stays WITHHELD (propose-first, not
+   authorized this session).
+5. TC/EB channel mapping; EB-as-lever yes/no -- SPLIT, 2026-09-24
+   (WP-ELICIT HANDOFF C7, Q6, author-elicited): the EB-AS-LEVER half is
+   RESOLVED -- excluded (Stage 1's own Written exclusions, engine_curves:
+   "real lever family for rotation; excluded -- no rotation-deficit
+   measurement exists to trigger from; reopens with a usable rotation
+   metric"). The TC/EB CHANNEL MAPPING half stays OPEN, not touched this
+   session -- do not read this item as fully resolved.
+6. Rake package 1mm default confirm -- RESOLVED, 2026-09-25 (WP-ELICIT
+   HANDOFF item 6, author-elicited): 1mm confirmed; front ride height
+   is pinned at its lower limit by standing practice (the doctrine
+   WP-ELICIT Phase B3/C2 already landed as annotation + edge-exemption,
+   engineer-verbatim matrix content never edited -- thesis_notes.md
+   "WP-ELICIT Phase B"), rear ride height is the actual balance lever.
+7. The 14 non-verbatim matrix cells (standing list) -- RESOLVED,
+   2026-09-25 (WP-ELICIT HANDOFF item 6, Q9/Q12): the mirror (two-sided
+   balance) principle is confirmed STRUCTURALLY -- already embedded in
+   the feedback-router's own ARB entries (WP-ELICIT Phase C4) and the
+   springs understeer mirror (WP-ELICIT HANDOFF C5), both offering
+   paired alternatives under the same principle. This resolves the
+   STANDING QUESTION (whether the mirror principle governs these cells);
+   it is not a claim that all 14 individual cells were re-audited
+   one by one this session.
+8. Aero split 25/75 expectation check (standing) -- RESOLVED,
+   2026-09-25 (WP-ELICIT HANDOFF item 6, Q10, author-elicited): the
+   25/75 front/rear aero split is ACCEPTED AS FACT, conditional on a
+   presentable derivation existing -- that derivation itself was not
+   produced this session (no new document/figure), so the acceptance
+   is the interview answer being recorded, not a completed derivation
+   deliverable.
+9. Display cutoff score threshold -- RESOLVED 2026-09-24 (WP-ELICIT
+   Phase A2, author-elicited): rank-based top-3 distinct proposals
+   supersedes the score-threshold as the primary cutoff. See thesis_
+   notes.md "WP-ELICIT Phase A".
 10. Feedback-router click-class entries: B2's own feedback-only
     trigger mechanism (interaction_table signed entries, click-class
     only) currently has zero matching entries on either tendency axis
     (confirmed, config/decision_frame.json) -- needs at least one
     click-class lever with a helping-sign entry before it can ever
-    fire on real data. OPEN.
+    fire on real data. RESOLVED 2026-09-24 (WP-ELICIT Phase C4,
+    author-elicited): 8 ARB entries (both axes, both directions) plus
+    one Segers-anchored damper entry (C11-2, turn-in understeer only --
+    the other 3 damper cells are NOT covered by C11, left unseeded per
+    the reviewer's own "do not construct a mechanism for any cell"
+    ruling). REAL ISSUE FOUND WHILE LANDING THIS, NOW RESOLVED: giving
+    an axis two equally-cheap click-class alternatives (soften one axle
+    / stiffen the other) with no other evidence to break the tie made
+    _feedback_only_candidates' own "tie unresolved" ValueError fire on
+    the ORDINARY case, not just a rare edge case -- see thesis_notes.md
+    "WP-ELICIT Phase C4" for the full reproduction. TIE POLICY DECIDED,
+    2026-09-24 (reviewer, landed as WP-ELICIT HANDOFF item 1,
+    2026-09-25): cost (effort class) breaks the tie first, then window
+    headroom (only when the setup sheet fully resolves it for every
+    tied alternative), then interaction penalty; if a genuine tie still
+    survives all three, EVERY remaining alternative is surfaced as its
+    own ordinary pick-one candidate instead of raising. The ValueError
+    path is REMOVED -- production no longer crashes on this case. The
+    two tests that used to assert the ValueError now assert both (or,
+    for one injected-config case, all three) alternatives appear,
+    each carrying an explicit "ALTERNATIVE: genuinely tied with..."
+    clause. See thesis_notes.md "WP-ELICIT HANDOFF item 1: feedback-
+    router tie fix (reviewer correction)" for the full record.
 11. Splitter sign convention -- RESOLVED 2026-09-22 (Phase C, author-
     elicited): negative offset = more front downforce (hard edge,
     front-splitter/track contact), positive = less (soft edge, range
     limit only). See thesis_notes.md "Phase C: splitter_offset
     direction convention resolved" for the full record.
+12. Damper click convention verification -- RAISED then WITHDRAWN,
+    2026-09-24 (WP-ELICIT Phase C4): author flagged the click-to-force
+    mapping as an unverified manufacturer convention; record check found
+    it IS already verified (car_data.json dampers.dyno_metadata, a real
+    dyno chart digitisation, WP2b-1) -- no new elicitation item needed.
+    See thesis_notes.md "WP-ELICIT Phase C4" for the full verification-
+    chain sequence.
 
 ## Verify items (small read tasks, not elicitation)
 - TC_reference and ABS_2(V2) tables digitised in car_data.json with a

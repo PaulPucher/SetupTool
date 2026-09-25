@@ -23,6 +23,11 @@ import json
 import numpy as np
 
 from modules.stability_analysis import load_parameters
+from modules.csv_parser import load_channels_config
+from modules.wheel_loads import (
+    CORNERS as _WHEEL_CORNERS, AXLE_CORNERS, TRAVEL_CHANNEL,
+    _interp_channel, _normalize_travel_to_mm, _channel_is_dead,
+)
 from modules.recommendation import (
     PHASE_KEYS,
     PHASE_TO_FEEDBACK_KEY,
@@ -654,6 +659,171 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
     return evidence
 
 
+# --- Kerb-strike-severity blowoff evidence (WP-ELICIT Phase C3, 2026-09-24) -
+#
+# Author-elicited direction: "curb strikes / hard bumps -> more blowoff".
+# Reviewer-redirected trigger: kerb-strike SEVERITY repeating across laps
+# at a corner (peak |log_acc_z| inside the EXISTING kerb_mask -- modules.
+# stability_analysis._compute_kerb_mask_from_az, the SAME signal estimators
+# already mask kerb events with), never kerb_fraction alone -- kerb
+# contact itself is normal driving, not evidence on its own. Threshold
+# gap-selected against both real sessions' own per-corner-instance peak-
+# severity distribution (diagnostics/inspect_kerb_severity_census.py,
+# thesis_notes.md): pooled p75 (2.9571 g) is the LOWEST candidate where
+# firing is a clear minority of corners on BOTH sessions (Dubai 1/14, v3
+# 4/17) while still firing on both -- p50 fires on ~half the corners on
+# both sessions (too permissive for a standout, actionable pattern), p90
+# is more selective still but p75 is already the lowest minority point.
+# Repeat requirement reuses _count_repeating's own cross-lap shape (>=2 of
+# a corner's own lap instances over threshold), exactly like every other
+# evidence source in this file -- not a new counting convention.
+
+def _corner_overall_window(corner, t):
+    segments = corner.get("segments", {})
+    starts = [s for s, e in segments.values() if e >= s]
+    ends = [e for s, e in segments.values() if e >= s]
+    if not starts:
+        return None
+    return _phase_window_indices(t, (min(starts), max(ends)))
+
+
+def _kerb_axle_attribution(instances_lo_hi, t, channels, wl_cfg):
+    # Per-wheel peak |travel rate| INSIDE the firing kerb windows (the
+    # opposite filtering direction from modules.damper_motion.
+    # classify_window_motion, which EXCLUDES kerb-masked samples to keep
+    # its own platform-loading read clean -- here the kerb impact itself
+    # is exactly what is being measured). Reuses modules.wheel_loads' own
+    # channel-access/dead-channel/unit-normalisation helpers, the same
+    # ones modules.damper_motion.py already uses for this exact channel
+    # family -- not a second, independently-maintained copy.
+    dead_std_max = wl_cfg["dead_channel_std_max_travel_mm"]
+    peak_rate_by_wheel = {}
+    for wheel in _WHEEL_CORNERS:
+        ch = channels.get(TRAVEL_CHANNEL[wheel])
+        raw_native = _interp_channel(channels, TRAVEL_CHANNEL[wheel], t)
+        if ch is None or raw_native is None or ch.get("quality") != "valid":
+            continue
+        raw_mm = _normalize_travel_to_mm(raw_native, ch.get("unit_raw"))
+        if _channel_is_dead(raw_mm, dead_std_max):
+            continue
+        peaks = []
+        for lo, hi in instances_lo_hi:
+            seg_t, seg_travel = t[lo:hi], raw_mm[lo:hi]
+            valid = np.isfinite(seg_travel)
+            if valid.sum() < 2:
+                continue
+            idx = np.where(valid)[0]
+            rates = np.gradient(seg_travel[idx], seg_t[idx])
+            peaks.append(float(np.max(np.abs(rates))))
+        if peaks:
+            peak_rate_by_wheel[wheel] = max(peaks)
+
+    axle_score = {}
+    for axle, wheels in AXLE_CORNERS.items():
+        scores = [peak_rate_by_wheel[w] for w in wheels if w in peak_rate_by_wheel]
+        if len(scores) == len(wheels):  # both wheels of this axle evaluable
+            axle_score[axle] = max(scores)
+
+    if len(axle_score) < 2:
+        return None  # not attributable -- car-wide evidence, propose both axles
+    return max(axle_score, key=axle_score.get)
+
+
+def _build_kerb_blowoff_evidence(corners, state, channels, kb_cfg, wl_cfg):
+    if state is None or channels is None or not corners:
+        return []
+    t = state["time"]
+    az_g = state.get("az_g")
+    kerb_mask = state.get("kerb_mask")
+    if az_g is None or kerb_mask is None:
+        return []
+
+    threshold = kb_cfg["severity_threshold_g"]
+    repeat_min = kb_cfg.get("repeat_min_laps", 2)
+
+    by_corner = {}
+    for c in corners:
+        cid = c.get("stable_corner_id")
+        if cid is not None:
+            by_corner.setdefault(cid, []).append(c)
+
+    evidence = []
+    for cid, instances in by_corner.items():
+        peaks = []  # (lo, hi, peak_g)
+        for c in instances:
+            w = _corner_overall_window(c, t)
+            if w is None:
+                continue
+            lo, hi = w
+            window_kerb = kerb_mask[lo:hi]
+            peak = float(np.max(np.abs(az_g[lo:hi][window_kerb]))) if window_kerb.any() else 0.0
+            peaks.append((lo, hi, peak))
+        if not peaks:
+            continue
+        total = len(peaks)
+        firing = [(lo, hi) for lo, hi, p in peaks if p >= threshold]
+        if len(firing) < repeat_min:
+            continue  # _count_repeating shape: not enough of this corner's own laps repeat the pattern
+
+        axle = _kerb_axle_attribution(firing, t, channels, wl_cfg)
+        max_severity = max(p for _, _, p in peaks if p >= threshold)
+        evidence.append({
+            "type": "kerb_blowoff",
+            "corner": cid, "phase": None,
+            "axle": axle,  # None -> not attributable, both axles proposed
+            "severity": None, "confidence": round(len(firing) / total, 3),
+            "peak_severity_g": round(max_severity, 3),
+            "source": f"peak |log_acc_z| inside kerb_mask exceeded {threshold:.4f}g on "
+                      f"{len(firing)}/{total} laps at this corner -- author-elicited 2026-09-24: "
+                      f"curb strikes / hard bumps -> more blowoff. Axle attribution: "
+                      f"{axle or 'not attributable (car-wide kerb evidence)'}.",
+        })
+    return evidence
+
+
+def _kerb_blowoff_candidates(evidence, registry):
+    """WP-ELICIT Phase C3 (2026-09-24): click-class, advisory, one
+    exploratory step per axle (config/setup_parameters.json damper_
+    blowoff_*'s own adjustment_step.exploratory, Phase B1) -- rear
+    blowoff is proposable exactly like front, no policy assumption
+    encoded here (config/setup_parameters.json's typical front-6/rear-0
+    reference values are a registry FACT, not restated as a reason not to
+    propose rear). When the evidence's own axle attribution is None (car-
+    wide kerb hit, not attributable to one axle -- see
+    _kerb_axle_attribution), BOTH axles are proposed, honestly labelled
+    rather than guessed.
+    """
+    candidates = []
+    for e in evidence:
+        if e["type"] != "kerb_blowoff":
+            continue
+        attributable = e["axle"] is not None
+        axles = [e["axle"]] if attributable else ["front", "rear"]
+        for axle in axles:
+            params = [f"damper_blowoff_{w}" for w in AXLE_CORNERS[axle]]
+            step = registry[params[0]].get("adjustment_step", {}).get("exploratory", 1)
+            actions = [{"parameter": p, "direction": "increase", "delta": step} for p in params]
+            axle_note = (f"{axle} axle" if attributable else
+                         "car-wide kerb evidence, axle not attributable -- both axles proposed")
+            candidates.append({
+                "id": f"kerb_blowoff_increase_{axle}:C{e['corner']}",
+                "scenario": "kerb_blowoff",
+                "corner": e["corner"], "phase": None,
+                "lever_family": "damper_blowoff",
+                "actions": actions,
+                "effort_class": _effort_class_for_actions(params, registry),
+                "effect_class": "secondary",
+                "grade": "proposed",
+                "cell_id": None,
+                "evidence_refs": [e],
+                "rationale": f"Repeated hard kerb contact at this corner (peak "
+                             f"{e['peak_severity_g']}g, {axle_note}) -- author-elicited 2026-09-24: "
+                             f"curb strikes / hard bumps call for more blowoff relief to protect the "
+                             f"contact patch over the worst hits.",
+            })
+    return candidates
+
+
 # --- Driver-feedback evidence (Deepening Phase 4d, 2026-09-18) ---------
 #
 # A genuinely new evidence dimension -- Stage 1/2 had none ("this frame
@@ -920,6 +1090,15 @@ def build_evidence(summaries, ls_stats, config, classify_fn, corners=None, state
                 corners, state, channels, aggregated, dm_cfg, wl_cfg)
             evidence += dm_evidence
 
+        # WP-ELICIT Phase C3 (2026-09-24): kerb-strike-severity blowoff
+        # evidence, same corners-not-None gate as ABS/TC/damper-motion
+        # above (needs per-instance overall time windows summaries alone
+        # do not carry).
+        kb_cfg = config.get("kerb_blowoff_evidence", {})
+        if kb_cfg.get("enabled", False):
+            wl_cfg = load_parameters()["wheel_loads"]
+            evidence += _build_kerb_blowoff_evidence(corners, state, channels, kb_cfg, wl_cfg)
+
     if feedback_data:
         evidence += _build_driver_feedback_evidence(
             feedback_data, aggregated, config.get("driver_feedback_weighting", {}))
@@ -1063,7 +1242,13 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                              "(registry mechanism: sets rear-axle ride stiffness independent of roll "
                              "stiffness). Not itself a matrix cell for this scenario -- proposed "
                              "grade, advisory-capped, a heavier-effort alternative to the ARB lever, "
-                             "not a substitute recommendation on equal footing.",
+                             "not a substitute recommendation on equal footing. Companion note "
+                             "(author-elicited 2026-09-24, WP-ELICIT Phase B1): softer rear springs "
+                             "and stiffer rear dampers are compensatory, same axle -- if the springs "
+                             "move, the rear dampers may need a matching stiffen to hold the platform "
+                             "where the springs alone would let it move. Informational only, not a "
+                             "competing candidate; no separate damper action is generated from this "
+                             "note.",
             })
 
         if ls_class in (None, "traction_limited"):
@@ -1310,6 +1495,7 @@ def _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, interve
             "cell_id": rule.get("cell_id"),
             "evidence_refs": evidence_refs,
             "rationale": rule["rationale"],
+            "practice_note": rule.get("practice_note"),
             "rule_id": rule["id"], "rule_status": rule.get("status"),
         }
 
@@ -1729,7 +1915,76 @@ def _phase_compatible(phase, phase_affinity):
     return phase_affinity is None or phase in phase_affinity
 
 
-def _feedback_only_candidates(evidence, existing_candidates, registry, config):
+_AXLE_PAIR_SUFFIXES = {"_fl": "_fr", "_fr": "_fl", "_rl": "_rr", "_rr": "_rl"}
+
+
+_AXLE_PAIRED_PREFIXES = ("damper_", "arb_")
+
+
+def _axle_partner_param(param):
+    # WP-ELICIT Phase C4 (2026-09-24, reviewer-redirected then corrected
+    # again after real-suite fallout, same session): dampers are AXLE-
+    # PAIRED, never asymmetric (Stage 1 design principle). ARB was
+    # initially left OUT of this pairing (the registry's own arb_fl note
+    # says "Four fully independent per-corner targets, no pairing
+    # concept" -- describing VALUE STORAGE independence, not the
+    # recommendation convention) -- but every OTHER ARB-generating
+    # candidate in this codebase already issues fl+fr (or rl+rr) as ONE
+    # paired action (_exit_oversteer_candidates' own arb_soften
+    # candidate), and running the real suite after adding this package's
+    # 4 same-cost/same-axis ARB entries per axis proved the omission was
+    # a real bug, not a faithful reading of that note: an fl-vs-fr (or
+    # rl-vs-rr) same-direction "tie" is never a genuine choice, it is the
+    # SAME physical recommendation asked twice. Extending pairing to ARB
+    # here fixes exactly that false tie -- it does NOT and cannot resolve
+    # a genuine front-vs-rear cross-family tie (soften one axle vs
+    # stiffen the other), which the ValueError correctly still raises on;
+    # see thesis_notes.md WP-ELICIT Phase C4 for that open item.
+    if not param.startswith(_AXLE_PAIRED_PREFIXES):
+        return None
+    for suffix, partner_suffix in _AXLE_PAIR_SUFFIXES.items():
+        if param.endswith(suffix):
+            return param[: -len(suffix)] + partner_suffix
+    return None
+
+
+def _group_axle_pairs(pool):
+    # Collapses two same-direction, axle-paired pool entries (fl+fr, or
+    # rl+rr) into ONE grouped item carrying both parameters -- the router
+    # then competes AXLE-PAIRED FAMILIES against each other (one damper
+    # bridge vs one ARB entry), never a same-family fl-vs-fr false choice
+    # that would otherwise tie and crash despite there being no real
+    # alternative (WP-ELICIT Phase C4: "no tie exists because no competing
+    # single-wheel candidates exist"). A partner absent from the pool
+    # (filtered out earlier for its own reason -- phase/click-class/
+    # existing-key) degrades to an ungrouped singleton, never blocked on
+    # its missing sibling.
+    by_key = {(p, d): (p, d, r, e) for p, d, r, e in pool}
+    grouped, seen = [], set()
+    for param, direction, reg_entry, entry in pool:
+        if (param, direction) in seen:
+            continue
+        partner = _axle_partner_param(param)
+        partner_item = by_key.get((partner, direction)) if partner else None
+        if partner_item is not None:
+            seen.add((param, direction))
+            seen.add((partner, direction))
+            grouped.append({
+                "params": tuple(sorted((param, partner))),
+                "direction": direction,
+                "reg_entries": {param: reg_entry, partner: partner_item[2]},
+                "entry": entry,
+            })
+        else:
+            seen.add((param, direction))
+            grouped.append({
+                "params": (param,), "direction": direction,
+                "reg_entries": {param: reg_entry}, "entry": entry,
+            })
+    return grouped
+
+
+def _feedback_only_candidates(evidence, existing_candidates, registry, config, current_setup=None):
     feedback_items = [e for e in evidence if e["type"] == "driver_feedback" and abs(e["raw_feedback"]) >= 2]
     if not feedback_items:
         return []
@@ -1762,50 +2017,93 @@ def _feedback_only_candidates(evidence, existing_candidates, registry, config):
         if not pool:
             continue  # honest gap -- no fallback, no invention (B2 reviewer decision)
 
-        def _effort_rank(item):
-            return EFFORT_RANK.get(item[2].get("change_effort"), len(EFFORT_RANK))
+        grouped_pool = _group_axle_pairs(pool)
 
-        min_rank = min(_effort_rank(item) for item in pool)
-        cheapest = [item for item in pool if _effort_rank(item) == min_rank]
+        def _effort_rank(item):
+            efforts = [item["reg_entries"][p].get("change_effort") for p in item["params"]]
+            return max(EFFORT_RANK.get(e, len(EFFORT_RANK)) for e in efforts)
+
+        min_rank = min(_effort_rank(item) for item in grouped_pool)
+        cheapest = [item for item in grouped_pool if _effort_rank(item) == min_rank]
+
+        if len(cheapest) > 1:
+            # HANDOFF item 1 (reviewer, 2026-09-24): window headroom breaks
+            # the tie BEFORE interaction penalty -- the axle with more room
+            # left before its own window edge wins, reusing
+            # _settings_window_component's own score (weight*(1-distance),
+            # higher = closer to nominal = more room). Only applied when
+            # EVERY tied item is actually computable (the setup sheet is
+            # filled for every parameter involved) -- a partially-filled
+            # sheet would make this step guess for the missing side, so it
+            # is skipped entirely rather than half-trusted, same "neutral
+            # unless fully computable" posture _settings_window_component
+            # itself already uses per action.
+            def _headroom_score(item):
+                probe_actions = [{"parameter": p, "direction": item["direction"],
+                                   "delta": _DIRECTION_SIGN.get(item["direction"], 1)}
+                                  for p in item["params"]]
+                score, flags = _settings_window_component(
+                    {"actions": probe_actions}, current_setup, registry, config, 1.0)
+                return score, len(flags) < len(probe_actions)
+            headroom = [_headroom_score(item) for item in cheapest]
+            if all(computable for _, computable in headroom):
+                max_headroom = max(score for score, _ in headroom)
+                cheapest = [item for item, (score, _) in zip(cheapest, headroom) if score == max_headroom]
+
         if len(cheapest) > 1:
             def _penalty_magnitude(item):
-                param, direction, _reg_entry, _entry = item
                 probe = {"corner": fb["corner"], "evidence_refs": [fb],
-                         "actions": [{"parameter": param, "direction": direction}]}
+                         "actions": [{"parameter": p, "direction": item["direction"]} for p in item["params"]]}
                 penalty, _notes = _interaction_penalty(probe, evidence, config,
                                                         config["cost_function"]["interaction"])
                 return abs(penalty)
             max_pen = max(_penalty_magnitude(item) for item in cheapest)
             cheapest = [item for item in cheapest if _penalty_magnitude(item) == max_pen]
-        if len(cheapest) > 1:
-            # Reviewer decision 2026-09-22: a genuine tie is reported, never
-            # resolved arbitrarily.
-            raise ValueError(
-                "feedback-only routing tie unresolved: "
-                f"corner={fb['corner']} phase={fb['phase']} axis={axis} "
-                f"candidates={[(p, d) for p, d, _, _ in cheapest]}"
-            )
 
-        param, direction, reg_entry, entry = cheapest[0]
-        delta = _DIRECTION_SIGN.get(direction, 1)
-        candidates.append({
-            "id": f"feedback_only:{param}:{direction}:C{fb['corner']}:{fb['phase']}",
-            "scenario": f"feedback_only:{param}:{direction}",
-            "corner": fb["corner"], "phase": fb["phase"],
-            "lever_family": param,
-            "actions": [{"parameter": param, "direction": direction, "delta": delta}],
-            "effort_class": reg_entry.get("change_effort"),
-            "effect_class": "secondary",
-            "grade": entry["grade"],
-            "cell_id": None,
-            "evidence_refs": [fb],
-            "rationale": f"Driver reported {fb['verdict']} at {fb['phase']} "
-                         f"(feedback {fb['raw_feedback']:+g}) -- {param} {direction} routed via "
-                         f"interaction_table's own {axis} entry (grade={entry['grade']}), "
-                         f"cheapest click-class lever available.",
-            "status": STATUS_PROPOSED,
-            "trigger_provenance": TRIGGER_FEEDBACK_ONLY,
-        })
+        # HANDOFF item 1 (reviewer, 2026-09-24): a genuine remaining tie --
+        # different lever families, equal cost, equal headroom, equal
+        # interaction penalty -- is real and ORDINARY for isolated feedback
+        # with nothing else to break it (the Q9 two-sided-balance case:
+        # soften one axle / stiffen the other). No longer resolved
+        # arbitrarily and no longer raised as an error (that crashed
+        # production on the ordinary case, not a rare one) -- both
+        # alternatives are emitted as separate, ordinary pick-one
+        # candidates, exactly like any other two competing shortlist rows
+        # (DECISION LAYER SPEC Stage 4: "alternative single moves... ranked
+        # normally, no suppression machinery"). Axle-paired same-family
+        # fl/fr entries never reach this point (grouped above), so this
+        # only ever fires for a real cross-family tie.
+        tie_labels = ["+".join(item["params"]) + " " + item["direction"] for item in cheapest]
+
+        for chosen, own_label in zip(cheapest, tie_labels):
+            params, direction, entry = chosen["params"], chosen["direction"], chosen["entry"]
+            delta = _DIRECTION_SIGN.get(direction, 1)
+            param_label = "+".join(params)
+            paired_note = " (axle-paired action, Stage 1 design principle)" if len(params) > 1 else ""
+            tie_note = ""
+            if len(cheapest) > 1:
+                others = [label for label in tie_labels if label != own_label]
+                tie_note = (f" ALTERNATIVE: genuinely tied with {', '.join(others)} -- cost, window "
+                            f"headroom and interaction penalty all agree; no evidence here breaks it, "
+                            f"engineer's call.")
+            candidates.append({
+                "id": f"feedback_only:{param_label}:{direction}:C{fb['corner']}:{fb['phase']}",
+                "scenario": f"feedback_only:{param_label}:{direction}",
+                "corner": fb["corner"], "phase": fb["phase"],
+                "lever_family": param_label,
+                "actions": [{"parameter": p, "direction": direction, "delta": delta} for p in params],
+                "effort_class": _effort_class_for_actions(list(params), registry),
+                "effect_class": "secondary",
+                "grade": entry["grade"],
+                "cell_id": None,
+                "evidence_refs": [fb],
+                "rationale": f"Driver reported {fb['verdict']} at {fb['phase']} "
+                             f"(feedback {fb['raw_feedback']:+g}) -- {param_label} {direction} routed via "
+                             f"interaction_table's own {axis} entry (grade={entry['grade']}), "
+                             f"cheapest click-class lever available{paired_note}.{tie_note}",
+                "status": STATUS_PROPOSED,
+                "trigger_provenance": TRIGGER_FEEDBACK_ONLY,
+            })
     return candidates
 
 
@@ -1837,10 +2135,34 @@ def _axle_family(parameter):
     return _CAMBER_AXLE_FAMILY.get(parameter, parameter)
 
 
-def _apply_eligibility_gate(candidates, evidence, config):
+def _apply_eligibility_gate(candidates, evidence, config, driving_level=None):
     heavy = set(config.get("eligibility_classes", {}).get("heavy_correctors", []))
     if not heavy:
         return candidates
+
+    # WP-ELICIT Phase C1 (2026-09-24, reviewer-redirected -- the author's
+    # own driver-level Q11 answer did NOT elicit a new single-corner
+    # unlock route; it elicited TRUST ARBITRATION on the existing
+    # multi-corner DATA path: "a calm expert's moderate rating is
+    # evidence of manageability", not a route to a heavier move on its
+    # own. driving_level is the outing's driver's plain Driver.
+    # driving_level int (1-10) or None -- resolved by the UI caller from
+    # self.outing.driver, never queried from a DB session in modules/,
+    # same plain-value-boundary convention modules.recommendation.
+    # generate_recommendations already uses for the identical field.
+    driver_level_threshold = config.get("eligibility_classes", {}).get("driver_level_threshold", 5)
+    # "Unknown trust never unlocks the heavier move": an unresolved level
+    # sits AT the neutral threshold itself (>= comparison below reaches
+    # it), not below it -- the same conservative-default direction
+    # driver_level_weighting.neutral_level already uses project-wide.
+    effective_driving_level = driving_level if driving_level is not None else driver_level_threshold
+    feedback_cfg = config.get("driver_feedback_weighting", {})
+    _confidence_bands = feedback_cfg.get("confidence_bands", [])
+    # "Moderate |fb| 2-3" reuses driver_feedback_weighting's OWN band
+    # boundaries (low/mid split) rather than a second hardcoded 2/3 --
+    # the mid band IS this project's own definition of "moderate".
+    _moderate_lo = _confidence_bands[0]["max_abs"] if _confidence_bands else 1
+    _moderate_hi = _confidence_bands[1]["max_abs"] if len(_confidence_bands) > 1 else 3
 
     # ELIGIBILITY GATE AMENDMENT (2026-09-23, reviewer decision from item
     # (a) findings, thesis_notes.md "Eligibility gate amendment"): the
@@ -1889,11 +2211,25 @@ def _apply_eligibility_gate(candidates, evidence, config):
         primary = c["evidence_refs"][0] if c["evidence_refs"] else None
         candidate_verdict = primary.get("verdict") if primary else None
         fb_mag = feedback_magnitude_by_corner_verdict.get((c["corner"], candidate_verdict), 0)
+        moderate_feedback = _moderate_lo < fb_mag <= _moderate_hi
         for a in c["actions"]:
             if a["parameter"] not in heavy:
                 continue
             group = (_axle_family(a["parameter"]), a["direction"])
             multi_corner_ok = len(strong_corners_by_group.get(group, set())) >= 2
+            # WP-ELICIT Phase C1 veto: holds back what the multi-corner
+            # DATA path would otherwise admit when the driver's OWN
+            # rating at this corner/verdict is only moderate AND their
+            # trust level is at/above neutral -- read as "an experienced
+            # driver finds this manageable", not as new evidence against
+            # the data. A tightening only: no feedback, feedback outside
+            # the moderate band, or a below-neutral (less-trusted) level
+            # leaves multi_corner_ok exactly as the pre-existing rule
+            # computed it. Applies to camber too (its multi-corner
+            # requirement is the FLOOR this tightens, never a route
+            # around it -- camber still gets no feedback_ok bypass below).
+            if multi_corner_ok and moderate_feedback and effective_driving_level >= driver_level_threshold:
+                multi_corner_ok = False
             # Camber never gets the feedback bypass -- always multi-corner.
             feedback_ok = fb_mag >= 4 and not a["parameter"].startswith("camber_")
             if multi_corner_ok or feedback_ok:
@@ -1972,6 +2308,29 @@ def _attach_breadth(candidates, assessed_corner_ids):
     return candidates
 
 
+def _attach_tc_safety_note(candidates, config):
+    # WP-ELICIT HANDOFF C6 (Q6b, author-elicited 2026-09-24): a LOWER-TC-
+    # intervention action (direction=decrease on tc_lat/tc_lon -- "less
+    # permitted rotation/spin" per the TC_reference table's own semantics,
+    # never raw position arithmetic) trades safety margin for rotation.
+    # Display-only dropdown caution -- never a score term, never a
+    # suppression -- applied uniformly to every candidate regardless of
+    # which generator produced it, same pattern as _attach_breadth above.
+    # Text and the covered (parameter, direction) pairs both live in
+    # config/decision_frame.json's tc_safety_note, not hardcoded.
+    tc_cfg = config.get("tc_safety_note")
+    if not tc_cfg:
+        for c in candidates:
+            c["tc_safety_note"] = None
+        return candidates
+    flagged = {(p, tc_cfg["direction"]) for p in tc_cfg["parameters"]}
+    for c in candidates:
+        c["tc_safety_note"] = tc_cfg["text"] if any(
+            (a["parameter"], a.get("direction")) in flagged for a in c["actions"]
+        ) else None
+    return candidates
+
+
 # --- DECISION LAYER SPEC B5: window edge -> blocked_at_edge (2026-09-22) -
 #
 # Stage 3: "AT EDGE: candidate shown BLOCKED at its earned rank, reason
@@ -2042,6 +2401,17 @@ def _window_edge_check(action, setup_data, registry, config):
     return None
 
 
+def _edge_normal_state_label(action, config):
+    # WP-ELICIT Phase C2 (2026-09-24): config/decision_frame.json's
+    # edge_normal_state_params -- see its own comment for the full
+    # provenance-integrity reasoning (doctrine lands as annotation/
+    # exemption here, never as an edit to an engineer-verbatim rule).
+    for entry in config.get("edge_normal_state_params", []):
+        if entry["parameter"] == action["parameter"] and entry["direction"] == action.get("direction"):
+            return entry["label"]
+    return None
+
+
 def _apply_window_edge_status(candidates, setup_data, registry, config):
     if setup_data is None:
         return candidates
@@ -2053,6 +2423,14 @@ def _apply_window_edge_status(candidates, setup_data, registry, config):
             if result is None:
                 continue
             kind, reason = result
+            normal_label = _edge_normal_state_label(action, config) if kind in ("hard", "soft") else None
+            if normal_label is not None:
+                # Exempted: this action's own edge is its documented normal
+                # resting state, not a block -- annotate and keep checking
+                # the candidate's OTHER actions (a real co-action edge must
+                # still be able to block normally).
+                c["edge_normal_state_note"] = f"{action['parameter']}: {normal_label} ({reason})"
+                continue
             if kind == "not_assessable":
                 c["status"] = STATUS_NOT_ASSESSABLE
                 c["edge_reason"] = reason
@@ -2065,7 +2443,8 @@ def _apply_window_edge_status(candidates, setup_data, registry, config):
     return candidates
 
 
-def generate_candidates(evidence, registry, config, setup_data=None, assessed_corner_ids=None):
+def generate_candidates(evidence, registry, config, setup_data=None, assessed_corner_ids=None,
+                         driving_level=None):
     """Candidate layer. See module-level comment above for Stage 1's own
     scope; Stage 2 (Frame-Stage-2 Phase 3, 2026-09-04) adds
     _bridge_candidates_for_matrix_rules (all 39 config/recommendations.json
@@ -2093,6 +2472,16 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     NOT derivable from `evidence` alone -- see _attach_breadth's own
     comment). None -> breadth fields present but null on every candidate,
     byte-identical to pre-B4 behaviour for every existing caller.
+
+    `driving_level` (WP-ELICIT Phase C1, 2026-09-24, additive, default
+    None) is the outing's driver's plain Driver.driving_level int (1-10)
+    or None -- resolved by the UI caller from self.outing.driver, never
+    queried from a DB session in modules/ (same plain-value-boundary
+    convention modules.recommendation.generate_recommendations already
+    uses for the identical field). Threaded through to
+    _apply_eligibility_gate's trust-arbitration veto only; None leaves
+    that veto exactly as conservative as an at-or-above-neutral level
+    (see that function's own comment).
     """
     config_recs = load_recommendations_config()
 
@@ -2122,13 +2511,17 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
                                                         intervention_abs_masking_by_corner)
     candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates, setup_data)
+    # WP-ELICIT Phase C3 (2026-09-24): kerb-strike-severity blowoff
+    # candidates -- click-class (dampers), so untouched by the heavy-
+    # corrector eligibility gate immediately below.
+    candidates += _kerb_blowoff_candidates(evidence, registry)
     # DECISION LAYER SPEC B3 (2026-09-22): heavy correctors (springs/camber/
     # toe) only survive at strong+multi-corner or (non-camber) |feedback|>=4
     # -- applied BEFORE the feedback-only generator below, so a heavy
     # corrector gated out here never blocks a cheaper click-class
     # alternative from firing at the same corner via _feedback_only_
     # candidates' own existing_keys dedupe.
-    candidates = _apply_eligibility_gate(candidates, evidence, config)
+    candidates = _apply_eligibility_gate(candidates, evidence, config, driving_level=driving_level)
     # DECISION LAYER SPEC B1 (2026-09-22): every candidate carries a status.
     # Only _bridge_candidates_for_levers currently has a mechanism that can
     # produce anything other than "proposed" (its evaluate_conditions call);
@@ -2145,7 +2538,7 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     # already covered by a data-driven candidate never gets a second,
     # competing feedback-only proposal for the same (parameter, direction,
     # corner).
-    candidates += _feedback_only_candidates(evidence, candidates, registry, config)
+    candidates += _feedback_only_candidates(evidence, candidates, registry, config, current_setup=setup_data)
     # Deepening Phase 4d: attaches any driver_feedback evidence (built by
     # build_evidence when feedback_data was supplied) to every candidate
     # whose own evidence_refs share its corner/phase/verdict -- corroborates
@@ -2167,6 +2560,9 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     # None for every pre-existing caller -- byte-identical (fields present,
     # null, no invented number).
     candidates = _attach_breadth(candidates, assessed_corner_ids)
+    # WP-ELICIT HANDOFF C6 (2026-09-24): display-only TC safety caution,
+    # applied last so it covers every candidate regardless of generator.
+    candidates = _attach_tc_safety_note(candidates, config)
     return candidates
 
 
@@ -2455,25 +2851,56 @@ def generate_lever_inventory(candidates, evidence, current_setup, config, regist
 
 def generate_display_split(candidates, evidence, current_setup, config, registry):
     """DECISION LAYER SPEC C1 (2026-09-22), Stage 6: "display cutoff is a
-    config threshold on score. Ranking never hides: below-threshold/
-    blocked/contradicted/no-trigger levers live in a collapsed 'assessed,
-    not proposed' tail, one line each." The VISIBLE shortlist is
-    status==proposed AND score>=display_score_threshold; every other
-    inventory entry (low-score proposed, blocked_at_edge, contradicted,
-    not_assessable, no_trigger) lives in the tail -- the tail still
-    carries every one of them with its own status, never a silent drop.
-    No fixed candidate count anywhere: both lists can be any length,
-    including empty.
+    config threshold on score. Ranking never hides." SUPERSEDED by
+    WP-ELICIT Phase A2 (author-elicited 2026-09-24): display_score_threshold
+    is no longer read here -- the shortlist is every status==proposed
+    candidate (any score), and the real visibility cutoff (rank-based top
+    N distinct proposals) is applied downstream by apply_display_top_n,
+    AFTER resolve_conflicts and group_display_rows have run on this
+    shortlist (grouping must happen on distinct display rows, not on the
+    raw per-corner candidate list -- see apply_display_top_n's own
+    docstring). Every other inventory entry (blocked_at_edge, contradicted,
+    not_assessable, no_trigger) lives in the tail here, same as before --
+    the tail still carries every one of them with its own status, never a
+    silent drop. No fixed candidate count anywhere: both lists can be any
+    length, including empty.
     """
     inventory = generate_lever_inventory(candidates, evidence, current_setup, config, registry)
-    threshold = config["display_score_threshold"]["value"]
-    visible, visible_ids = [], set()
-    for c in inventory:
-        if c.get("status") == STATUS_PROPOSED and c.get("score", float("-inf")) >= threshold:
-            visible.append(c)
-            visible_ids.add(id(c))
+    visible = [c for c in inventory if c.get("status") == STATUS_PROPOSED]
+    visible_ids = {id(c) for c in visible}
     tail = [c for c in inventory if id(c) not in visible_ids]
     return {"shortlist": visible, "tail": tail}
+
+
+def apply_display_top_n(shortlist, tail, config):
+    """WP-ELICIT Phase A2 (author-elicited 2026-09-24, elicitation item 9
+    RESOLVED): rank-based top N distinct proposals is now the PRIMARY
+    display cutoff, replacing display_score_threshold (config key kept,
+    no longer read for visibility -- see its own retirement comment).
+
+    Called AFTER group_display_rows, not before: `shortlist` here must
+    already be the grouped, conflict-resolved display rows (one row per
+    distinct parameter-set/direction/magnitude, DECISION LAYER SPEC Phase D
+    feedback round ITEM 1) -- "distinct proposals" means distinct in that
+    same sense the engineer already sees on screen, not distinct per
+    underlying per-corner candidate. Applying this before grouping would
+    silently under-fill the visible list whenever one lever's own
+    candidates from several corners would have collapsed into a single row.
+
+    "Ranking never hides" still holds: candidates[top_n:] move into the
+    tail (already-sorted by score, so this is the lowest-ranked overflow),
+    never dropped. Returns (visible, combined_tail, tail_note) where
+    tail_note is a plain "N further alternatives" string, or None when
+    nothing overflowed.
+    """
+    top_n = config["display_top_n"]["value"]
+    visible = shortlist[:top_n]
+    overflow = shortlist[top_n:]
+    combined_tail = overflow + tail
+    tail_note = None
+    if overflow:
+        tail_note = f"{len(overflow)} further alternative{'s' if len(overflow) != 1 else ''}"
+    return visible, combined_tail, tail_note
 
 
 # --- DECISION LAYER SPEC Phase D: top-line rendering (2026-09-22) -------
@@ -2620,11 +3047,97 @@ def render_tail_line(entry, registry):
 # check -- wire a real evidence builder here once both a target and a
 # per-corner cornering-phase pressure source exist.
 
-def tyre_pressure_flags(config, evidence=None):
+_TPMS_CORNERING_PHASES = ("entry_2_turnin", "apex_3", "exit_4", "exit_5")
+# WP-ELICIT Phase B2 (2026-09-24): DECISION LAYER SPEC Stage 1's own rule --
+# "evaluated on CORNERING-PHASE samples only, straight-line pressure drop is
+# physics, never a flag". entry_1_brake is excluded (braking zone, not yet
+# turned in) -- same four phases used for the channel-census verification
+# this activation is based on (diagnostics/inspect_tpms_pressure_cornering_
+# phase.py, thesis_notes.md).
+
+_TPMS_WHEEL_LABELS = {"fl": "FL", "fr": "FR", "rl": "RL", "rr": "RR"}
+
+
+def _tpms_cornering_median(channels, corners, state, wheel):
+    # Reuses _phase_window_indices (same searchsorted mechanism modules.
+    # stability_analysis.summarise_corners's own private _phase_slice uses)
+    # and the _log_abs_pos_at/_build_intervention_abs_evidence dead-channel
+    # guard (ch.get("quality") in ("missing", "failed")) -- no new pattern.
+    # Returns (median_bar, glitch_count) or (None, 0) if not evaluable.
+    # glitch_count is the number of in-window samples excluded because they
+    # fell outside this channel's OWN config/channels.json range -- reused
+    # directly, not a second hardcoded bound, so this can never drift from
+    # the range that already governs the channel's whole-session quality
+    # flag. A single such sample cannot meaningfully move a median (the
+    # real-data census behind this activation found zero such samples in
+    # either real session's cornering-phase windows) -- excluded anyway,
+    # per the reviewer's explicit requirement, and reported when nonzero.
+    ch = (channels or {}).get(f"tpms_press_{wheel}")
+    if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None or state is None:
+        return None, 0
+    t = state["time"]
+    interp = np.interp(t, ch["time"], ch["data"])
+    samples = []
+    for c in corners or []:
+        segments = c.get("segments", {})
+        for phase in _TPMS_CORNERING_PHASES:
+            idx = _phase_window_indices(t, segments.get(phase))
+            if idx is None:
+                continue
+            lo, hi = idx
+            samples.append(interp[lo:hi])
+    if not samples:
+        return None, 0
+    vals = np.concatenate(samples)
+    vals = vals[np.isfinite(vals)]
+    if vals.size == 0:
+        return None, 0
+    lo_range, hi_range = load_channels_config()["channels"][f"tpms_press_{wheel}"]["range"]
+    in_range = (vals >= lo_range) & (vals <= hi_range)
+    glitch_count = int((~in_range).sum())
+    sane = vals[in_range]
+    if sane.size == 0:
+        return None, glitch_count
+    return float(np.median(sane)), glitch_count
+
+
+def tyre_pressure_flags(config, channels=None, corners=None, state=None):
+    """DECISION LAYER SPEC Stage 1, activated WP-ELICIT Phase B2
+    (2026-09-24): check-only, display-beside-shortlist ONLY -- no
+    candidate, no score, no evidence_refs, never consumed by any
+    generator (Stage 1's own "written exclusion": tyre pressures are
+    NEVER recommended). Per wheel: session-level median over cornering-
+    phase samples only, compared against tyre_pressure_target's band.
+
+    Null target for a wheel -> fully silent for that wheel (unchanged
+    honesty posture: no target exists, nothing to check). A FILLED
+    target whose channel is dead/missing is NOT silent -- it reports
+    "pressure not evaluable" rather than saying nothing, since a real
+    target exists and the engineer should know it could not be checked.
+    """
     targets = config.get("tyre_pressure_target", {})
-    if not any(isinstance(v, dict) and v.get("min_psi") is not None for v in targets.values()):
-        return []
-    return []
+    flags = []
+    for wheel in ("fl", "fr", "rl", "rr"):
+        target = targets.get(wheel)
+        if not isinstance(target, dict) or target.get("min_bar") is None or target.get("max_bar") is None:
+            continue
+        label = _TPMS_WHEEL_LABELS[wheel]
+        median, glitch_count = _tpms_cornering_median(channels, corners, state, wheel)
+        if median is None:
+            flags.append(f"{label}: pressure not evaluable (channel dead/missing)")
+            continue
+        lo, hi = target["min_bar"], target["max_bar"]
+        if lo <= median <= hi:
+            continue
+        direction = "under" if median < lo else "over"
+        line = f"{label} {median:.2f} — {direction} target {lo:.2f}-{hi:.2f}"
+        compound_note = targets.get("compound_note")
+        if compound_note:
+            line += f" [compound: {compound_note}]"
+        if glitch_count:
+            line += f" ({glitch_count} glitch sample{'s' if glitch_count != 1 else ''} excluded)"
+        flags.append(line)
+    return flags
 
 
 # --- Phase D feedback round, ITEM 1 (2026-09-23): display-layer grouping -

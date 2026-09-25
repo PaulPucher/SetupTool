@@ -65,24 +65,25 @@
   },
   "_comment_tyre_pressure_target": "DECISION LAYER SPEC 2026-09-22, Stage 1 check-only item: tyre pressures are NEVER recommended (no lever), only flagged beside the shortlist when out of window -- and only evaluated on CORNERING-PHASE samples (straight-line pressure drop is physics, never a flag). Per-corner (not just per-axle, unlike the older plausibility_checks.tyre_pressure_window above, which this supersedes for decision-frame purposes) with a compound note, since target pressure is compound-dependent. Tier B, config-driven, all null -- ships silent exactly like tyre_pressure_window above and for the identical reason (see that block's derived_from and its 2026-09-22 channel-census correction): the tpms_press_* channel now confirmed present on both real sessions is a MEASUREMENT, not a TARGET -- no target pressure number exists anywhere in this repo's config or docs, so filling one here would be inventing it. Deviation flags shown beside the shortlist, never inside it (Stage 1 'Written exclusions').",
   "tyre_pressure_target": {
+    "_comment_units": "WP-ELICIT Phase B2 (2026-09-24): RENAMED min_psi/max_psi -> min_bar/max_bar. The original 'psi' field names predate channel-identity verification and were never correct -- the live tpms_press_* channels (config/channels.json) and this elicited band are both bar (docs/channel_requirements.md; diagnostics/inspect_tpms_pressure_cornering_phase.py census). Caught and fixed while activating this check rather than shipping a target that reads correctly in code but is mislabeled in the schema.",
     "fl": {
-      "min_psi": null,
-      "max_psi": null
+      "min_bar": 1.85,
+      "max_bar": 1.95
     },
     "fr": {
-      "min_psi": null,
-      "max_psi": null
+      "min_bar": 1.85,
+      "max_bar": 1.95
     },
     "rl": {
-      "min_psi": null,
-      "max_psi": null
+      "min_bar": 1.80,
+      "max_bar": 1.90
     },
     "rr": {
-      "min_psi": null,
-      "max_psi": null
+      "min_bar": 1.80,
+      "max_bar": 1.90
     },
-    "compound_note": null,
-    "derived_from": "NEEDS USER INPUT (DECISION LAYER SPEC elicitation item 2) -- current compound and its target hot-pressure window, per corner, from tyre data sheet or team practice. Until supplied: wired but permanently silent, same honesty posture as plausibility_checks.tyre_pressure_window."
+    "compound_note": "Author-elicited 2026-09-24: this band is COMPOUND-SCOPED, not universal -- it assumes one specific tyre compound. The tool has no per-outing compound field or channel (verified: neither exists anywhere in this codebase), so it cannot detect or auto-suppress a session run on a different compound. A session whose cornering-phase pressure sits consistently and uniformly below/above this band on all four corners may simply be a different compound, not a real pressure problem -- read this note before acting on a flag. A per-outing compound field is a named future refinement, not built here.",
+    "derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B2, elicitation item 2 RESOLVED): front 1.85-1.95 bar, rear 1.80-1.90 bar; per-corner fields inherit their axle's band (fl/fr share the front band, rl/rr share the rear band -- no per-corner distinction elicited). Verified live before activating (channel census rule): tpms_press_fl/fr/rl/rr confirmed present, unit bar, real cornering-phase variation on both sessions (diagnostics/inspect_tpms_pressure_cornering_phase.py, thesis_notes.md) -- channel identity/semantics check out; v3's cornering-phase readings sit near/inside this band, Dubai's sit consistently below it (see compound_note above for why that is not treated as a pressure fault)."
   },
   "_comment_scoring_weights_retired": "DECISION LAYER SPEC C1 (2026-09-22): the scoring_weights block (Stage 1/2/4, 2026-09-02 through 2026-09-18) is RETIRED -- fully migrated into cost_function below, not kept as a second, parallel weight system (reviewer instruction: 'zero components outside cost_function control'). severity_weight/phase_importance moved into cost_function.severity/cost_function.phase_importance (problem-weight term); effect_weight/effect_class_multiplier moved into cost_function.effect_class (lever-fit term, NOT problem weight -- see thesis_notes.md 'C1: scoring-term fold' for the category-error reasoning); effort_weight moved into cost_function.change_time; settings_window_weight moved into cost_function.headroom; interaction_weight moved into cost_function.interaction; confidence_weight is now folded directly into the problem-weight multiplication (confidence is not an independent term in Stage 6's own text, it multiplies severity) and has no separate cost_function key. score() (modules/decision_frame.py) reads cost_function exclusively.",
   "driver_feedback_weighting": {
@@ -743,11 +744,96 @@
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
       "note": "Mirror of the increase entry above -- either direction moves the front aero platform. Same reasoning and same deliberate absence of a directional lever_bridges entry, for the identical unresolved-sign-convention reason."
+    },
+    {
+      "parameter": "arb_fl",
+      "direction": "soften",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors existing matrix cells -- matrix_us_apx_low already uses front ARB soften for understeer). Closes the feedback-only router's own documented gap (elicitation item 10): every existing sign=+1 entry on understeer_tendency/oversteer_tendency belonged to springs (heavy corrector, excluded by click_class), so _feedback_only_candidates had zero eligible click-class levers on either axis until this package."
+    },
+    {
+      "parameter": "arb_fr",
+      "direction": "soften",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "Same lever and reasoning as arb_fl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "arb_rl",
+      "direction": "stiffen",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_us_exit_med/high's own existing rear-ARB-stiffen-for-understeer direction). Second click-class understeer alternative alongside front soften above."
+    },
+    {
+      "parameter": "arb_rr",
+      "direction": "stiffen",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "Same lever and reasoning as arb_rl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "arb_rl",
+      "direction": "soften",
+      "performance_axis": "oversteer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_os_brk_med/high/matrix_os_exit_med's own existing rear-ARB-soften-for-oversteer direction). Mirror of the understeer pair above."
+    },
+    {
+      "parameter": "arb_rr",
+      "direction": "soften",
+      "performance_axis": "oversteer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "Same lever and reasoning as arb_rl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "arb_fl",
+      "direction": "stiffen",
+      "performance_axis": "oversteer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_os_apx_low's own existing front-ARB-stiffen-for-oversteer direction). Second click-class oversteer alternative alongside rear soften above."
+    },
+    {
+      "parameter": "arb_fr",
+      "direction": "stiffen",
+      "performance_axis": "oversteer_tendency",
+      "sign": 1,
+      "grade": "author-elicited",
+      "note": "Same lever and reasoning as arb_fl above (axle-symmetric pair)."
+    },
+    {
+      "parameter": "damper_rebound_ls_fl",
+      "direction": "increase",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited (Segers ch.11, C11-2)",
+      "note": "PHYSICS anchored to Segers ch.11 C11-2 (p.262-263, Table 11.1, Zolder T1 worked example, docs/segers_bridge_review.md): 'in the case of understeer during initial cornering, front rebound could be decreased' -- less LOW-SPEED rebound damping force lets the unloading front wheel extend into rebound faster at turn-in, regaining contact-patch compliance sooner, which the driver reads as less understeer. Scoped to entry_2_turnin ONLY (registry phase_affinity already matches; C11-1's own boundary statement rules out apex/exit -- no shaft velocity at steady-state cornering for a damping change to act on). CLICKS-TO-FORCE MAPPING IS A SEPARATE PROVENANCE, NOT FROM SEGERS: direction='increase' here means MORE clicks (softer, per config/setup_parameters.json direction_semantics 'increasing: softer'), i.e. LESS damping force -- the click-count convention itself comes from car_data.json dampers.dyno_metadata.front.click_semantics (Level 4, a real dyno chart digitisation, WP2b-1, '0 0 0 0 outermost/stiffest, 18 18 18 18 innermost/softest'), never from the literature, which only ever states a physical damping-force direction. This assumes the installed units match the digitised dyno chart (same model/valving) -- the one link this record cannot verify. Symmetric axle-pairing (fl+fr together) per C11-3's own annotation (p.263, 'apply symmetric L/R deltas even when the diagnosis is asymmetric') -- modules.decision_frame._feedback_only_candidates groups this pair into one candidate, not two competing single-wheel ones."
+    },
+    {
+      "parameter": "damper_rebound_ls_fr",
+      "direction": "increase",
+      "performance_axis": "understeer_tendency",
+      "sign": 1,
+      "grade": "author-elicited (Segers ch.11, C11-2)",
+      "note": "Same lever and reasoning as damper_rebound_ls_fl above (axle-symmetric pair, C11-3's own annotation)."
     }
   ],
+  "_comment_c4_residue": "HANDOFF item 2 (reviewer, 2026-09-24), C4 residue -- documentation only, no candidate, no score, no code path touched. (1) THE THREE UNSEEDED DAMPER CELLS: of the four understeer/oversteer x entry/exit damper cells named in docs/segers_bridge_review.md's C11 section, only understeer-entry->front is covered (C11-2, seeded above as damper_rebound_ls_fl/fr). The other three (understeer-exit->rear, oversteer-entry->rear, oversteer-exit->front) carry no single first reach (author, 2026-09-24) -- no literature coverage was found for them (C11-1's own boundary statement and the reviewer's 'do not construct a mechanism for any cell; do not infer one cell from another' ruling both apply), so they stay unseeded until a verified source (literature anchor or a real engineer elicitation) covers them specifically -- never inferred from the one seeded cell or from each other. (2) EXIT-UNDERSTEER ARB COMPANION NOTE: the click-class exit-understeer ARB entries above (arb_rl/arb_rr stiffen, author-elicited, WP-ELICIT Phase C4) have one possibility (author, 2026-09-24) worth recording alongside them, informational only: rear bump damper stiffer trades a little rear traction for front balance -- the same axle-compensation shape as the springs/damper companion notes already landed in lever_bridges (WP-ELICIT Phase B1), but NOT implemented the same way (no rationale-field edit, no lever_bridges entry, no interaction_table entry) -- this is a documentation-only author aside, not a verified mechanism, not a candidate, and not a score input.",
   "_comment_interaction_table_open_items": "Updated Deepening Phase 4b (2026-09-18) -- springs_front/rear and ride_height_front/rear now HAVE entries (see _comment_interaction_table above for exactly which and why). Literature-bridge work package (2026-09-20): ride_height_front/rear gained Segers ch.9/10 platform_stability entries (grounded in their own registry mechanism text, 'aero platform height'), completing the same balance/platform split springs already had -- a coverage-check finding, not a redo of Phase 4b (which had already shipped the springs half and the ARB/camber/diff_position/tc_lon/toe_front interaction-table bidirectionality this same check re-verified as already complete). NOT extended by that check, because closing it needs a module-logic (candidate-bridge) change, not a config entry: springs_front (zero candidate-generating bridge in either direction anywhere in modules/decision_frame.py -- interaction_table entries alone never generate a candidate, see that module's own generate_candidates) and springs_rear's stiffen direction (only soften has a bridge, hardcoded in _exit_oversteer_candidates) -- named as a READY PROPOSAL in PLAN.md BACKLOG (generic per-lever candidate-bridge mechanism), not implemented here. camber_rl/rr carry the identical interaction-table-only gap but are not a Segers lever and were out of this work order's scope -- flagged only. Genuinely still uncovered, each for its own stated reason: all 20 damper channels and tc_lat (used by only one rule each in the 39-rule matrix, no opposite-direction cross-reference exists to extract, and not one of the work order's own literature-anchored bullets either; damper TRANSIENT-PHASE bridges specifically were also considered this session and deferred -- interaction_table has no phase field and no transient-phase axis in _AXIS_TO_VERDICT, listed pending schema support rather than extending the schema); arb_front_mount (no numeric quantity underlies its enum anywhere in this codebase); wing_position (the matrix itself uses 'increase' for BOTH understeer and oversteer fixes on different phases -- genuinely phase-dependent/non-monotonic, a single signed entry would misrepresent it); toe_rear (never appears as a suggestion in any of the 39 rules, only toe_front does); abs_position (categorical, direction_semantics.type is explicitly non-monotonic).",
   "_comment_lever_bridges": "Generic per-lever candidate-bridge mechanism (BACKLOG item H, named 2026-09-20, implemented 2026-09-20). Closes the gap the comment above names: an interaction_table entry alone never generates a candidate, it only adjusts another candidate's score (_interaction_penalty) -- so springs_front/rear could never actually be SUGGESTED as an action despite carrying literature-anchored (Segers ch.9/10) interaction_table entries. Each entry below is consumed generically by modules.decision_frame._bridge_candidates_for_levers (the same matrix_verdict evidence + phase-group + verdict/min_severity gate _bridge_candidates_for_matrix_rules already uses, mirrored -- convergent, not novel), rather than a new hardcoded per-lever function. 'condition' reuses the SAME verdict vocabulary matrix_verdict evidence carries (understeer/oversteer/unstable_yaw); 'phase_groups' is a list of the matrix's own phase-group tuples (config/recommendations.json rules[].phases), one candidate per group where matching evidence fires. Deliberately excludes 'entry_1_brake' and the combined ['entry_1_brake','entry_2_turnin'] group for every spring entry below: roll-stiffness-distribution (Segers ch.9/10) only acts under LATERAL load transfer -- straight-line braking has no roll-couple mechanism for a spring-rate change to act through, that is a brake-balance/bias question (a different lever family). 'grade' is 'proposed' on every entry and is NOT read as authoritative by the generator -- _bridge_candidates_for_levers hardcodes grade='proposed' on every candidate it emits regardless of what this field says (advisory-capped STRUCTURALLY, same policy _grade_for_provenance already gives every proposed-grade bridge in this file, since no cell_id backs any of these), the field exists here only so a config reader sees the same value the code enforces; a schema test asserts no entry ever declares anything else. Dedupe: springs_rear/soften's exit_4+exit_5 group overlaps the existing hardcoded _exit_oversteer_candidates springs_rear_soften secondary candidate -- the generator skips emitting there (hardcoded path wins, richer LS-disambiguation-aware evidence); no other entry/group below has a hardcoded equivalent to collide with. camber_rl/rr carry the identical interaction_table gap (see comment above) but are flagged, not seeded, per the work order's own scope. FRAME DEPTH PROGRAMME Step 1 (2026-09-22): any entry below MAY now additionally carry an optional 'conditions' list (see the top-level 'conditions' key's own comment for the schema and modules.decision_frame.evaluate_conditions for the semantics) -- NONE of the 4 entries below carry one yet (verified by the byte-stability re-run against the 2026-09-22 candidate-census baseline, thesis_notes.md), so every existing bridge's behaviour is completely unchanged by Step 1's own addition; conditions are Step 3's own job to attach, once modules/damper_motion.py (Step 2) gives them something real to corroborate against.",
   "_comment_conditions": "FRAME DEPTH PROGRAMME Step 1 (2026-09-22, PLAN.md 'FRAME DEPTH PROGRAMME', reviewer-approved fixed design). Adds an optional per-lever_bridges-entry 'conditions' list (schema: each item is {type: evidence_corroboration|setup_state|phase_transient, required: bool, ...type-specific fields}) so a candidate's confidence can depend on MORE than the single matrix_verdict evidence item that fires it -- corroborating evidence (e.g. lockup, damper motion) and the CURRENT setup state (a lever already at its window edge), not just the verdict pattern. Deliberately excludes any cross-lap repeat/consistency requirement, per the 2026-09-22 candidate-census finding (thesis_notes.md 'Frame candidate census: single-lap evidence confirmed on both real sessions'): every corner_verdict/matrix_verdict evidence item on both real sessions rests on exactly 1 repeating lap, so a repeat-count condition would suppress 100% of candidates on both sessions -- repeatability stays the EXISTING confidence discount's own job (repeat_fraction x valid_fraction, already computed per evidence item), never re-litigated as a second, stricter gate here. evaluate_conditions() (modules/decision_frame.py) returns one of PASS (every condition evaluable and passing -- confidence untouched) / SUPPRESS (a REQUIRED condition evaluable and failing -- candidate not emitted at all) / CAP_ADVISORY (a non-required condition failing, OR ANY condition not-evaluable for any reason -- missing evidence source this run, unfilled setup sheet, missing registry window -- applies not_evaluable_confidence_cap below via the EXISTING min()-confidence machinery, no new formula). 'CAP_ADVISORY, never SUPPRESS, for an evidence gap' is the load-bearing distinction: a condition this frame simply CANNOT check (no signal, not corroborated one way or the other) is not the same claim as a condition that was checked and found false -- 'cannot corroborate' is not 'contradicted', so it degrades confidence rather than deleting the candidate, the same honesty posture build_evidence's own docstring states project-wide ('an honest [], never a fabricated fallback').",
+  "_comment_edge_normal_state_params": "WP-ELICIT Phase C2 (2026-09-24, author-elicited, resolving Phase B3's rake doctrine without editing the engineer-verbatim matrix rules that carry ride_height_front). PROVENANCE-INTEGRITY PRECEDENT: standing-practice doctrine (ride_height_front is typically pinned at its lower limit) is never encoded by rewriting an engineer-verbatim rule's own suggestion -- it lands here, as a per-(parameter,direction) exemption from the normal window-edge/blocked-at-edge treatment (modules.decision_frame._apply_window_edge_status), plus an annotation. For an entry here, hitting the edge that direction would normally trigger does NOT set STATUS_BLOCKED_AT_EDGE (no blocked label -- it is this parameter's normal resting state, not an exceptional one) and does NOT short-circuit checking the candidate's OTHER actions (a genuinely blockable co-action, e.g. ride_height_rear at its own edge, still blocks normally). Instead the candidate stays proposed and carries an edge_normal_state_note ('label', filled in with the live current value) so the dropdown shows the front action as already-satisfied while the rear action remains the one actually being proposed. Only 'decrease' is listed for ride_height_front -- 'increase' (matrix_inst_brk_med's own direction, moving OFF the pin) is a normal, uncomplicated move and gets no exemption; if it independently hits some other real edge, that is a genuine block, not this doctrine.",
+  "edge_normal_state_params": [
+    {"parameter": "ride_height_front", "direction": "decrease", "label": "already at practice position"}
+  ],
   "_comment_eligibility_classes": "DECISION LAYER SPEC 2026-09-22, Stage 6 term (2) magnitude matching. heavy_correctors = every registry key the spec names a HEAVY CORRECTOR (springs_front/rear, camber x4, toe_front/rear) -- these generate ONLY on strong+multi-corner (same axle, same direction, >=2 corners) or |feedback|>=4 (Phase B gate, not implemented here -- Phase A ships the DATA only). click_class = every other recommendation_target=true registry key (verified against config/setup_parameters.json directly by script, not counted by hand: 42 recommendation_target=true keys total, 8 heavy_correctors, 34 click_class) -- reachable at mild/single-corner severity too. Damper levers are listed per registry key (5 types x 4 corners = 20), matching this file's own parameter_windows/interaction_table convention of addressing dampers per-corner, not as the spec prose's conceptual '10 axle-paired levers' (axle-pairing is enforced elsewhere, at candidate-generation time, never asymmetric -- this list is eligibility only).",
   "eligibility_classes": {
     "heavy_correctors": [
@@ -796,9 +882,11 @@
       "abs_position",
       "brake_bias"
     ],
-    "camber_multi_corner_gate": "Camber ADDITIONALLY always requires the multi-corner gate per spec (no |feedback|>=4 bypass for camber specifically) -- flagged here as a DATA note; the distinct-from-springs/toe gate logic itself is Phase B's own job."
+    "camber_multi_corner_gate": "Camber ADDITIONALLY always requires the multi-corner gate per spec (no |feedback|>=4 bypass for camber specifically) -- flagged here as a DATA note; the distinct-from-springs/toe gate logic itself is Phase B's own job.",
+    "driver_level_threshold": 5,
+    "driver_level_threshold_derived_from": "WP-ELICIT Phase A3 (author-elicited 2026-09-24, elicitation item 5 area -- driver-level trust arbitration). DATA ONLY here: the gate condition itself (heavy correctors reachable in the eligibility gate's middle band -- strong data + moderate |feedback| 2-3 -- only when Driver.driving_level < this threshold) is Phase C1's own job (modules/decision_frame.py _apply_eligibility_gate). Value 5 reused directly from config/recommendations.json settings.driver_level_weighting.neutral_level (models/driver.py Driver.driving_level, 1-10 scale) -- the SAME 'neutral' point that scale already establishes project-wide, not a second, independently-chosen number: below neutral (lower-trust/less-experienced reading) admits the relaxation on data-corroborated-but-not-yet-overwhelming problems; at or above neutral, the gate stays conservative (a high-level driver's own moderate feedback is read as manageable, not as license to fire a heavy corrector early)."
   },
-  "_comment_cost_function": "DECISION LAYER SPEC 2026-09-22, Stage 6, REVISED Phase C (2026-09-22, reviewer-confirmed, thesis_notes.md 'C1: scoring-term fold'). SIX governed keys, zero scoring components live outside this block (scoring_weights above fully retired, see its own retirement comment for the exact key-by-key migration): (1) severity -- problem weight = severity x sev_rank x phase_importance x confidence (phase_importance folded IN here: it qualifies the problem itself, not any one lever's fit to it); (2) change_time (inverse-effort, track time is the scarce resource); (3) breadth (global-lever-helping-1-of-N penalty, new Tier B formula this phase -- see cost_function.breadth_derived_from); (4) headroom (settings-window distance); (5) interaction (interaction-table penalty); (6) effect_class (lever-fit/solution-quality: primary vs secondary, grouped with interaction at Stage 6's own 'within class' step, deliberately NOT folded into problem weight -- the SAME problem can yield different effect classes from different candidate levers, so this is a property of the lever-problem fit, a category distinct from the problem's own severity). ALL VALUES PLACEHOLDERS pending engineer elicitation (elicitation item 1) -- neutral (1.0) except phase_importance's already-elicited exit>entry ordering and effect_class's already-elicited primary>secondary ordering, carried over unchanged from the retired scoring_weights block, not re-elicited from scratch.",
+  "_comment_cost_function": "DECISION LAYER SPEC 2026-09-22, Stage 6, REVISED Phase C (2026-09-22, reviewer-confirmed, thesis_notes.md 'C1: scoring-term fold'). SIX governed keys, zero scoring components live outside this block (scoring_weights above fully retired, see its own retirement comment for the exact key-by-key migration): (1) severity -- problem weight = severity x sev_rank x phase_importance x confidence (phase_importance folded IN here: it qualifies the problem itself, not any one lever's fit to it); (2) change_time (inverse-effort, track time is the scarce resource); (3) breadth (global-lever-helping-1-of-N penalty, new Tier B formula this phase -- see cost_function.breadth_derived_from); (4) headroom (settings-window distance); (5) interaction (interaction-table penalty); (6) effect_class (lever-fit/solution-quality: primary vs secondary, grouped with interaction at Stage 6's own 'within class' step, deliberately NOT folded into problem weight -- the SAME problem can yield different effect classes from different candidate levers, so this is a property of the lever-problem fit, a category distinct from the problem's own severity). WP-ELICIT Phase A1 (author-elicited 2026-09-24, elicitation item 1, PARTIAL): severity/change_time now carry the elicited SHAPE ('one change at a time, session rhythm 45-50 min, driver keeps context in quick changes' -- change_time dominates severity in the normal case, severity orders candidates only WITHIN one effort class, and only punches through change_time's dominance at the eligibility gate's own ceiling, i.e. once a candidate has already survived the strong+multi-corner/|feedback|>=4 heavy-corrector gate). breadth/headroom/interaction remain neutral (1.0) PLACEHOLDERS, still pending their own elicitation; phase_importance/effect_class orderings are the pre-existing already-elicited exceptions, unchanged.",
   "cost_function": {
     "severity": 1.0,
     "phase_importance": {
@@ -809,7 +897,8 @@
       "exit_4": 1.2,
       "exit_5": 1.2
     },
-    "change_time": 1.0,
+    "change_time": 2.5,
+    "change_time_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase A1, elicitation item 1, PARTIAL -- severity/change_time shape only). Sized against severity=1.0 so the two constructed proofs both hold at typical phase_importance/confidence (exit_4, pi=1.2, confidence=1.0): (a) a click-class fix for a MODERATE problem outranks a heavy-corrector fix one severity rank up (garage_hours effort) -- normal-case change_time dominance; (b) a heavy corrector at STRONG severity with full breadth/primary effect_class still beats a NORMAL-severity click-class distractor -- severity punches through only across the FULL normal->strong range, i.e. at the eligibility gate's own ceiling, never merely one rank up. See tests/test_decision_frame.py term-order tests for the exact constructed proofs; thesis_notes.md 'WP-ELICIT Phase A' for the full derivation.",
     "breadth": 1.0,
     "breadth_derived_from": "Tier B formula, new Phase C (Stage 6 names the CONCEPT -- 'global lever helping 1 of N corners is penalised' -- not a formula): penalty = -(1 - corners_helped/corners_touched) when breadth data is available and the lever is not exempt (0 when exempt -- corners_touched==corners_helped by construction, modules/decision_frame.py _attach_breadth; 0, flagged, when assessed_corner_ids was not supplied to generate_candidates at all). Fraction-based, clamped at 0 when the candidate helps every assessed corner -- same normalized-distance style this file's own _settings_window_component formula already uses ('1 - distance/span'), not a new invented style.",
     "headroom": 1.0,
@@ -819,12 +908,24 @@
       "primary": 1.0,
       "secondary": 0.6
     },
-    "derived_from": "placeholder pending engineer elicitation, DECISION LAYER SPEC (elicitation item 1) -- phase_importance/effect_class orderings are already-elicited exceptions, carried over from the retired scoring_weights block, not re-elicited"
+    "derived_from": "severity/change_time: author-elicited 2026-09-24 (WP-ELICIT Phase A1, elicitation item 1 PARTIAL -- see change_time_derived_from above for the exact shape and proof). breadth/headroom/interaction: still placeholder pending engineer elicitation. phase_importance/effect_class orderings are the pre-existing already-elicited exceptions, carried over from the retired scoring_weights block, not re-elicited."
   },
-  "_comment_display_score_threshold": "DECISION LAYER SPEC 2026-09-22, Stage 6: 'display cutoff is a config threshold on score'. Splits shortlist (>= threshold) from the collapsed 'assessed, not proposed' tail (< threshold) -- ranking never hides, the tail still carries every candidate with its status. Placeholder pending elicitation item 9.",
+  "_comment_display_score_threshold": "DECISION LAYER SPEC 2026-09-22, Stage 6: 'display cutoff is a config threshold on score'. SUPERSEDED as the PRIMARY visibility gate by WP-ELICIT Phase A2 (author-elicited 2026-09-24, elicitation item 9 RESOLVED) -- display_top_n below now decides shortlist visibility; this field is kept (score stays a real, shown field on every candidate) but is no longer read for the shortlist/tail split. Retained rather than deleted in case a future secondary use (e.g. a floor beneath which even a top-N slot is suppressed) is elicited later.",
   "display_score_threshold": {
     "value": 0.5,
-    "derived_from": "placeholder pending engineer elicitation, DECISION LAYER SPEC (elicitation item 9) -- round neutral midpoint, not gap-selected against any real scored-output distribution yet"
+    "derived_from": "No longer primary (WP-ELICIT Phase A2, author-elicited 2026-09-24, elicitation item 9 RESOLVED by display_top_n instead) -- value kept unchanged from its original placeholder pending any future secondary use; not gap-selected against any real scored-output distribution."
+  },
+  "_comment_display_top_n": "WP-ELICIT Phase A2 (author-elicited 2026-09-24, elicitation item 9 RESOLVED). Stage 6's own 'display cutoff is a config threshold on score' is superseded here by a RANK-based cutoff: the top N distinct proposals (post group_display_rows, so 'distinct' matches the grouped view the engineer actually sees, not the underlying per-corner candidate count) are shown by default, replacing display_score_threshold as the primary gate. 'Ranking never hides' still holds -- overflow beyond top_n moves into the tail (modules.decision_frame.apply_display_top_n), never dropped, with a plain-language 'N further alternatives' note.",
+  "display_top_n": {
+    "value": 3,
+    "derived_from": "Author-elicited 2026-09-24: session rhythm is 45-50 min, one change at a time -- a short, scannable list matches how the engineer actually works a session, rather than a score-threshold cliff that could show zero or a dozen depending on the session's own score distribution."
+  },
+  "_comment_tc_safety_note": "WP-ELICIT HANDOFF C6 (Q6b, author-elicited 2026-09-24). A LOWER-TC-intervention action trades tyre life/safety margin for more permitted rotation/spin (config/setup_parameters.json tc_lat/tc_lon direction_semantics: 'increasing_2_to_11: LESS permitted rotation/spin = MORE TC intervention' -- so direction='decrease' is the LESS-intervention side of that same table, never raw position arithmetic). Display-only dropdown caution (modules.decision_frame._attach_tc_safety_note, applied to every candidate regardless of which generator produced it) -- never a score term, never a suppression. Text lives here, not hardcoded in modules/ or ui/.",
+  "tc_safety_note": {
+    "parameters": ["tc_lat", "tc_lon"],
+    "direction": "decrease",
+    "text": "uses more tyre, reduces safety margin",
+    "derived_from": "Author-elicited 2026-09-24 (Q6b, WP-ELICIT HANDOFF C6)."
   },
   "conditions": {
     "not_evaluable_confidence_cap": 0.5,
@@ -844,6 +945,13 @@
     "rate_threshold_mm_s_derived_from": "Pooled straight-line (|ax|<0.5,|ay|<0.5 g, kerb-excluded) |travel rate| median across both real sessions and all non-dead wheels: 0.975 mm/s (n=1830, Dubai 510 windows p50=0.825, v3 1320 windows p50=1.061) -- rounded to a clean 1.0 mm/s just above it. This is NOT a clean bimodal gap (the straight-line population's own upper tail, p90=4.67/p95=6.68 mm/s, genuinely overlaps the transient population's own median, 1.87 mm/s pooled -- real road-texture/engine-vibration chassis motion exists even on a straight, this is not pure sensor noise) -- the median of the 'nothing deliberately dynamic happening' reference population is the honest, data-grounded choice available, not a cleanly-separated threshold; revisit if a future session's own distribution suggests otherwise. diagnostics/inspect_damper_motion_sign_and_threshold.py, thesis_notes.md.",
     "min_valid_fraction": 0.7,
     "min_valid_fraction_derived_from": "Pooled transient-phase window valid_fraction (non-kerb-masked, finite samples / window length) across both real sessions: p5=0.712, p10=0.783, p25=0.934, p50~1.0 (n=1258) -- most windows are nearly fully valid, only a small tail is meaningfully kerb-degraded. 0.7 sits just below p5, flagging roughly the bottom 5% sparsest windows as not-evaluable without discarding the typical (>=0.78, ~90% of) window. diagnostics/inspect_damper_motion_sign_and_threshold.py, thesis_notes.md."
+  },
+  "_comment_kerb_blowoff_evidence": "WP-ELICIT Phase C3 (2026-09-24, author-elicited direction: 'curb strikes / hard bumps -> more blowoff'). Trigger is kerb-strike SEVERITY repeating across laps at a corner (peak |log_acc_z| inside the EXISTING kerb_mask -- modules.stability_analysis._compute_kerb_mask_from_az, the same signal estimators already mask kerb events with), reviewer-redirected away from kerb_fraction alone (kerb contact itself is normal driving, not evidence). Axle attribution via per-wheel travel VELOCITY inside the firing kerb windows (WP-FD1+2 damper_motion channels/dead-channel guard, reused -- modules.wheel_loads' own helpers, not a second copy); when either axle is not evaluable, both axles are proposed, honestly labelled car-wide/not-attributable. Rear blowoff is proposable exactly like front -- config/setup_parameters.json's typical front-6/rear-0 reference values are a registry FACT this package does not restate as a policy reason to exclude rear (open question for the author: whether rear-0 IS a deliberate team policy is unconfirmed, flagged, not encoded).",
+  "kerb_blowoff_evidence": {
+    "enabled": true,
+    "severity_threshold_g": 2.9571,
+    "repeat_min_laps": 2,
+    "derived_from": "Pooled p75 of per-corner-instance peak |log_acc_z| inside kerb_mask, nonzero-instance population, both real sessions (n=79): diagnostics/inspect_kerb_severity_census.py, thesis_notes.md. Percentile chosen per the reviewer's own minority-firing rule: the lowest candidate (of p50/p75/p90) where firing (>=2 of a corner's own laps over threshold) is a clear minority of corners on BOTH sessions while still firing on at least one corner on each -- p50 (2.630g) fires on 6/14 Dubai and 8/17 v3 corners (43-47%, not a minority, too permissive for a standout actionable pattern); p75 (2.9571g) fires on 1/14 Dubai and 4/17 v3 (7%/24%, a clear minority on both, still real); p90 (3.3273g) is more selective still but p75 is already the lowest point satisfying the minority rule. repeat_min_laps=2 reuses _count_repeating's own cross-lap shape, not a new counting convention."
   },
   "lever_bridges": [
     {
@@ -868,8 +976,8 @@
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
-      "derived_from": "interaction_table: springs_front/soften/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
-      "rationale": "Softening the front axle reduces front roll stiffness, shifting balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped."
+      "derived_from": "interaction_table: springs_front/soften/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b). Q12 confirmation (author-elicited 2026-09-24, WP-ELICIT HANDOFF C5): this entry is the FRONT half of the understeer mirror pair (springs_rear/stiffen below is the rear half) -- both were already seeded by BACKLOG H (2026-09-20); Q12 confirms offering both as alternatives under the two-sided principle, it did not add a new one.",
+      "rationale": "Softening the front axle reduces front roll stiffness, shifting balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped. Companion note (author-elicited 2026-09-24, WP-ELICIT Phase B1): softer front springs and stiffer front dampers are compensatory, same axle -- if the springs move, the front dampers may need a matching stiffen to hold the platform where the springs alone would let it move. Informational only, not a competing candidate; no separate damper action is generated from this note. Springs-understeer-mirror note (author-elicited 2026-09-24, WP-ELICIT HANDOFF C5): the author's own caution, 'springs are really a heavy instrument', is enforced structurally by the existing heavy-corrector eligibility gate (strong+multi-corner, or |feedback|>=4, or the C1 driver-level-conditioned path) -- unchanged by this note, no new gate mechanism (thesis_notes.md 'WP-ELICIT HANDOFF C5')."
     },
     {
       "lever": "springs_front",
@@ -894,7 +1002,7 @@
       "effect_class": "secondary",
       "grade": "proposed",
       "derived_from": "interaction_table: springs_front/stiffen/oversteer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
-      "rationale": "Stiffening the front axle increases front roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped."
+      "rationale": "Stiffening the front axle increases front roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_front at all, proposed grade, advisory-capped. Companion note (author-elicited 2026-09-24, WP-ELICIT Phase B1): stiffer front springs and softer front dampers are compensatory, same axle -- if the springs move, the front dampers may need a matching soften to keep the platform compliant over bumps/kerbs that the stiffer springs alone would transmit harder. Informational only, not a competing candidate; no separate damper action is generated from this note."
     },
     {
       "lever": "springs_rear",
@@ -918,8 +1026,8 @@
       "lever_family": "springs",
       "effect_class": "secondary",
       "grade": "proposed",
-      "derived_from": "interaction_table: springs_rear/stiffen/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
-      "rationale": "Stiffer rear axle roll rate shifts balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_rear stiffen at all (only soften has a hardcoded exit-oversteer bridge), proposed grade, advisory-capped."
+      "derived_from": "interaction_table: springs_rear/stiffen/understeer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b). Q12 confirmation (author-elicited 2026-09-24, WP-ELICIT HANDOFF C5): this entry is the REAR half of the understeer mirror pair (springs_front/soften above is the front half) -- both were already seeded by BACKLOG H (2026-09-20); Q12 confirms offering both as alternatives under the two-sided principle, it did not add a new one.",
+      "rationale": "Stiffer rear axle roll rate shifts balance away from understeer (Segers ch.9/10, front/rear roll-stiffness distribution). Garage-effort tier -- no matrix cell uses springs_rear stiffen at all (only soften has a hardcoded exit-oversteer bridge), proposed grade, advisory-capped. Companion note (author-elicited 2026-09-24, WP-ELICIT Phase B1): stiffer rear springs and softer rear dampers are compensatory, same axle -- if the springs move, the rear dampers may need a matching soften to keep the platform compliant over bumps/kerbs. Informational only, not a competing candidate; no separate damper action is generated from this note. Springs-understeer-mirror note (author-elicited 2026-09-24, WP-ELICIT HANDOFF C5): the author's own caution, 'springs are really a heavy instrument', is enforced structurally by the existing heavy-corrector eligibility gate (strong+multi-corner, or |feedback|>=4, or the C1 driver-level-conditioned path) -- unchanged by this note, no new gate mechanism (thesis_notes.md 'WP-ELICIT HANDOFF C5')."
     },
     {
       "lever": "springs_rear",
@@ -944,7 +1052,7 @@
       "effect_class": "secondary",
       "grade": "proposed",
       "derived_from": "interaction_table: springs_rear/soften/oversteer_tendency (sign+1, Segers ch.9/10, Deepening Phase 4b)",
-      "rationale": "Softening the rear axle reduces rear roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Same mechanism the hardcoded exit-oversteer bridge already uses at exit phases (deduped there, this entry additionally covers turn-in/apex)."
+      "rationale": "Softening the rear axle reduces rear roll stiffness, shifting balance away from oversteer (Segers ch.9/10, front/rear roll-stiffness distribution). Same mechanism the hardcoded exit-oversteer bridge already uses at exit phases (deduped there, this entry additionally covers turn-in/apex). Companion note (author-elicited 2026-09-24, WP-ELICIT Phase B1): softer rear springs and stiffer rear dampers are compensatory, same axle -- if the springs move, the rear dampers may need a matching stiffen to hold the platform where the springs alone would let it move. Informational only, not a competing candidate; no separate damper action is generated from this note."
     },
     {
       "lever": "diff_position",

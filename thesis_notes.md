@@ -20476,3 +20476,1091 @@ exit 0, clean, no errors.
 
 No dependency inversion remains anywhere in modules/ -- every import
 between modules/ files is now an ordinary same-package import.
+
+### WP-ELICIT Phase A: cost-function weights + display cutoff [2026-09-24]
+
+Tier B (signal/data-engineering scoring plumbing and UI-display cutoff,
+not a vehicle-dynamics method). Lands the first slice of the 2026-09-24
+author elicitation interview (interview itself conducted in conversation,
+this session; landing runs across Phases A-E, this entry covers A only --
+Phase E's own close-out entry consolidates every interview answer and its
+landing in one place, per the work order).
+
+A1 -- cost_function severity/change_time shape (elicitation item 1,
+PARTIAL -- breadth/headroom/interaction remain unelicited placeholders).
+Elicited principle, verbatim in spirit: "one change at a time, session
+rhythm 45-50 min, driver keeps context in quick changes." Landed as:
+change_time raised from the retired placeholder 1.0 to 2.5 (severity
+stays at 1.0, the reference unit the new weight is sized against). This
+makes change_time dominate severity in the NORMAL case (candidates one
+severity rank apart) but lets severity punch through change_time's
+dominance only at the eligibility gate's own CEILING (the full
+normal->strong severity range, not one rank) -- reusing the EXISTING
+strong+multi-corner/|feedback|>=4 heavy-corrector gate machinery
+unchanged, no new override logic added (per the reviewer decision below).
+
+DESIGN-CHANGE CONFLICT FOUND AND RESOLVED (reviewer decision, 2026-09-24):
+the pre-existing test test_score_term_order_severity_beats_change_time
+(tests/test_decision_frame.py) asserted the OPPOSITE term order (a
+STRONG+garage_hours candidate beating a MODERATE+seconds one) under the
+old placeholder (all 1.0) weights. This is not a matter of degree --
+proved mathematically before touching any weight: that test already
+picks the MOST extreme pairing in the moderate/cheap candidate's favour
+(cheapest possible effort for moderate, most expensive for strong), so
+if it holds under any weight choice, the same weights necessarily make
+strong+expensive beat moderate+ANY-more-expensive-click-class-effort too
+-- no weight choice satisfies both the old test and the new elicited
+shape simultaneously. Presented to the reviewer as a genuine STOP (three
+options: rewrite the old test, add new ceiling-override logic instead
+[out of A1's stated "set weights" scope], or take dictated numeric
+weights directly). REVIEWER DECISION: rewrite the test. Renamed to
+test_score_term_order_change_time_beats_severity_in_normal_case, docstring
+now states the design change explicitly and names this entry. The retired
+assertion was correct for the retired placeholder default and is retired
+with it -- not a test fix, a deliberate consequence of landing a new
+elicited default over an old, never-committed-to one.
+
+Two new constructed proofs added alongside (both pass, both use realistic
+lever pairings, not the same fixture as the rewritten test, to show the
+shape holds beyond one specific construction):
+(a) test_score_term_order_click_fix_beats_park_the_car_for_worse_problem
+-- arb_rl/soften (click-class, seconds) at MODERATE severity outranks
+springs_front/stiffen (heavy corrector, garage_hours) at STRONG severity,
+at apex_3 (phase_importance=1.0, different from the exit_4/1.2 used
+elsewhere, to show the shape isn't an artifact of one phase weight).
+(b) test_score_term_order_heavy_corrector_competitive_at_ceiling --
+springs_front/stiffen at STRONG severity, full breadth (helps every
+corner it touches) and primary effect_class beats arb_rl/soften at only
+NORMAL severity with secondary effect_class: the heavy corrector wins
+once the severity gap spans the FULL normal->strong range (the gate's own
+ceiling condition), never merely one rank up as in (a) and the rewritten
+test. All three plus the two structurally-unaffected pre-existing
+term-order/threshold tests pass (171/171 in tests/test_decision_frame.py,
+targeted run, this session).
+
+A2 -- display cutoff (elicitation item 9, RESOLVED). Elicited: rank-based
+top 3 distinct proposals is now the PRIMARY visibility gate, replacing
+display_score_threshold's own score-threshold cliff (Stage 6's original
+"display cutoff is a config threshold on score" is superseded, not
+rewritten -- the addendum convention this spec already uses throughout).
+New config key display_top_n (value=3). "Distinct" means distinct AFTER
+group_display_rows (the existing Phase D feedback-round grouping by
+render_top_line's own parameter-set/direction/magnitude key) -- applying
+the cutoff before grouping would silently under-fill the visible list
+whenever one lever's candidates from several corners would have
+collapsed into a single row, so the new modules.decision_frame.
+apply_display_top_n() runs strictly AFTER resolve_conflicts and
+group_display_rows in ui/views/outing_form.py's own pipeline, preserving
+their existing ordering guarantees rather than restructuring around them.
+"Ranking never hides" still holds -- overflow beyond top_n moves into the
+tail (never dropped), with a plain "N further alternatives" note now
+folded into the form's summary line. display_score_threshold's config key
+and Settings UI entry are KEPT (score stays a real, shown field on every
+candidate) but its own derived_from now states plainly it is no longer
+read for visibility, only reserved for a possible future secondary use.
+
+A3 -- driver-level trust arbitration (elicitation item 5 area, config
+DATA only -- gate logic is Phase C1's own job, tracked there). New
+config/decision_frame.json eligibility_classes.driver_level_threshold=5,
+reusing config/recommendations.json settings.driver_level_weighting.
+neutral_level (Driver.driving_level, 1-10 scale) directly rather than
+inventing a second "neutral" number for the same concept in a second
+place.
+
+Files touched: config/decision_frame.json (cost_function.change_time +
+derived_from, display_score_threshold derived_from, new display_top_n,
+eligibility_classes.driver_level_threshold), modules/decision_frame.py
+(generate_display_split threshold removed, new apply_display_top_n),
+ui/views/outing_form.py (pipeline wires apply_display_top_n after
+grouping, summary line carries the tail note), tests/test_decision_frame.py
+(rewritten term-order test, two new constructed cases, cost_function/
+display_top_n/driver_level_threshold placeholder-vs-elicited tests
+updated to match). Targeted suite: 171/171 passed. Full suite deferred to
+Phase E close-out per this WP's own test-discipline rule (targeted per
+phase, one full run at the end).
+
+### WP-ELICIT Phase B: damper steps, TPMS pressure activation, rake
+doctrine [2026-09-24]
+
+Tier B (signal/data engineering: registry data, a new checked/live
+evidence source with real range-gated channel data, and a provenance-
+integrity precedent for handling doctrine against protected matrix
+content) -- no vehicle-dynamics method content in this entry.
+
+B1 -- damper step sizes (elicitation item 3 RESOLVED) and spring/damper
+compensation note. Every one of the 20 damper_* registry entries
+(config/setup_parameters.json) gained adjustment_step {exploratory: 2,
+fine: 1, unit: clicks}, author-elicited 2026-09-24, per adjuster.
+Collective-mode/spring-compensation relationship (springs stiffen <->
+damper soften, compensatory, same axle) landed as companion text
+appended to the existing "rationale" field on all 4 springs lever_bridges
+entries (config/decision_frame.json) plus the hardcoded exit-phase
+springs_rear_soften candidate (modules/decision_frame.py
+_exit_oversteer_candidates) that bypasses those entries at exit phases --
+found and fixed BOTH sites so the note actually appears regardless of
+which phase group generated the candidate. Informational only, verified
+not a competing candidate: no new lever_bridges entry, no new score
+component, no new evidence type.
+
+B2 -- tyre-pressure target activation (elicitation item 2 RESOLVED),
+EXPANDED from a data fill to full activation after a real blocker was
+found and reported (reviewer decision: option (b), propose-then-
+implement). Channel census FIRST, per the standing channel-census rule:
+diagnostics/inspect_tpms_pressure_cornering_phase.py (kept -- config-cited
+provenance, K1) read tpms_press_fl/fr/rl/rr directly from both real raw
+files, bypassing modules.csv_parser.parse_csv's own whitelist (config/
+channels.json did not list these channels at all -- confirmed by reading
+parse_csv's source, not assumed -- so the production parser silently
+dropped them even though both real exports carry them, matching docs/
+channel_requirements.md). Cornering-phase-only census (entry_2_turnin,
+apex_3, exit_4, exit_5 -- excludes entry_1_brake and all straight-line
+samples, DECISION LAYER SPEC Stage 1's own rule): unit confirmed bar on
+both sessions, zero glitches found inside cornering-phase windows on
+either session. Dubai: fl median 1.724, fr 1.720, rl 1.700, rr 1.699 bar.
+v3: fl median 1.810, fr 1.823, rl 1.775, rr 1.776 bar.
+
+REAL RESULT (author-confirmed, corrects this entry's own first framing):
+the target band (front 1.85-1.95, rear 1.80-1.90 bar) is COMPOUND-SCOPED,
+not universal -- Dubai ran a different tyre than the band assumes, so its
+below-band readings are a compound mismatch, not evidence the check or
+the channel is broken. This tool has no per-outing compound field or
+channel (verified: neither exists anywhere in this codebase) and
+therefore cannot detect or auto-suppress a compound-mismatched session --
+the compound_note now carried in every flag line is the honest handling
+of that limitation, not a defect to fix here. A per-outing compound field
+is a named future refinement.
+
+Activation, in full: config/channels.json gained tpms_press_fl/fr/rl/rr
+(unit bar, range [0.5, 4.0] -- excludes every known startup/dropout
+glitch found by direct census while covering the full plausible cold-to-
+hot range; reuses the EXISTING channel_quality_gates, no new gating
+mechanism). config/decision_frame.json's tyre_pressure_target: renamed
+min_psi/max_psi -> min_bar/max_bar (a real unit-naming bug caught while
+activating this check -- the schema predated channel-identity
+verification and was never actually psi), filled fl/fr=1.85-1.95,
+rl/rr=1.80-1.90, compound_note as above. modules/decision_frame.py's
+tyre_pressure_flags is now real: per wheel, session-level median (not
+per-corner -- matches how the band itself was elicited, one hot target
+not per-corner ones; per-corner granularity is a named future
+refinement) over cornering-phase samples only, reusing _phase_window_
+indices (the same searchsorted mechanism intervention-evidence sources
+already use) and the SAME dead-channel guard (ch.get("quality") in
+("missing","failed")) _log_abs_pos_at/_build_intervention_abs_evidence
+already use -- no new patterns invented. In-window samples outside the
+channel's OWN config/channels.json range are excluded from the median
+and their count appended to the flag line when nonzero ("N glitch
+samples excluded") -- reuses the channel's own range, no second
+hardcoded bound. Scope fence verified and unchanged: flags remain
+display-beside-shortlist only (ui/views/outing_form.py's existing label),
+never a candidate/score/evidence item consumed by any generator. Null
+target for a wheel stays fully silent (unchanged); a FILLED target whose
+channel is dead/missing is NOT silent -- "XX: pressure not evaluable
+(channel dead/missing)" (reviewer amendment -- a real target exists, the
+engineer should know it could not be checked). 12 new targeted tests
+(band in/under/over, null-target silence, dead-channel not-evaluable,
+cornering-phase-only masking, glitch exclusion + count, and the real-
+Dubai acceptance test asserting all four corners produce under-target
+flags with the compound note attached -- the EXPECTED compound-mismatch
+output per the correction above, not a failure).
+
+B3 -- rake doctrine (ride_height_front typically pinned at its lower
+limit, standing practice). PROVENANCE-INTEGRITY DECISION (reviewer,
+2026-09-24): the only two rules in config/recommendations.json that use
+ride_height_front (matrix_us_brk_high, matrix_inst_brk_med) are BOTH
+elicitation_provenance="engineer-verbatim" -- their suggestion arrays
+(the only place that actually determines what gets recommended;
+decision_frame.json's own interaction_table only scores candidates these
+rules already generate, it cannot redirect the lever) were found and
+confirmed as the two "rake bridges" the work order named, but were
+NEVER edited. Standing-practice doctrine instead lands two ways: (1) a
+new practice_note field on both rules (config/recommendations.json),
+carried through _make_candidate into every generated candidate and
+rendered as a distinct dropdown line (ui/views/outing_form.py) -- pure
+annotation, the engineer's original actions stay byte-identical; (2) a
+new config/decision_frame.json edge_normal_state_params exemption list,
+consumed by a small addition to modules.decision_frame._apply_window_
+edge_status: for an exempted (parameter, direction) pair, hitting the
+edge that direction would normally trigger no longer sets STATUS_
+BLOCKED_AT_EDGE (this is the parameter's documented NORMAL resting
+state, not an exceptional one) and does not stop the candidate's OTHER
+actions from being checked -- a genuinely blockable co-action (e.g.
+ride_height_rear at its own, non-exempted edge) still blocks normally,
+proven by a constructed test alongside the "stays proposed" one. Only
+ride_height_front's DECREASE direction is listed (the direction that
+actually meets the pin); the existing increase direction (matrix_
+inst_brk_med's own action, moving OFF the pin) is unexempted and
+unaffected. This is exactly the composition the reviewer asked to be
+VERIFIED, not assumed: two new tests
+(test_edge_normal_state_exemption_lets_rear_action_stay_live,
+test_edge_normal_state_exemption_does_not_swallow_real_coaction_block)
+construct matrix_us_brk_high's own real 3-action shape against a filled
+setup sheet and confirm both halves of the claim -- the composition
+works with the EXISTING per-action edge-check machinery, nothing new
+invented (no new status, no new candidate lifecycle stage).
+
+PROVENANCE-INTEGRITY PRECEDENT (worth stating once, generally):
+engineer-verbatim content (the external-engineer matrix, protected in
+spirit even though not in the literal protected-file-set sense) is never
+edited to encode this project's own OWN standing-practice doctrine, no
+matter how well-elicited that doctrine is -- doctrine lands as annotation
+(what the dropdown says) and window-state behaviour (how the edge check
+treats it), while the original elicited action set stays exactly as the
+engineer gave it. The same posture that governs docs/literature/ read-
+only comparison (CLAUDE.md's deviation taxonomy) applies here one level
+down, to elicited matrix content specifically.
+
+Files touched: config/setup_parameters.json (damper adjustment_step x20),
+config/decision_frame.json (springs lever_bridges rationale companion
+notes, tyre_pressure_target renamed+filled, edge_normal_state_params
+new), config/channels.json (tpms_press_fl/fr/rl/rr new), config/
+recommendations.json (practice_note x2, engineer-verbatim actions
+untouched), modules/decision_frame.py (tyre_pressure_flags real,
+_tpms_cornering_median new, _make_candidate carries practice_note,
+_apply_window_edge_status exemption + _edge_normal_state_label new),
+ui/views/outing_form.py (tyre_pressure_flags call site passes channels/
+corners/state, practice_note and edge_normal_state_note rendered),
+tests/test_decision_frame.py (target/flags tests rewritten+expanded,
+two new edge-exemption composition tests). diagnostics/inspect_tpms_
+pressure_cornering_phase.py KEPT -- cited by config/channels.json's own
+tpms_press_fl note (K1, config-cited provenance) and by config/
+decision_frame.json's tyre_pressure_target derived_from.
+
+### WP-ELICIT Phase C1: driver-level trust arbitration, corrected reading
+[2026-09-24]
+
+Tier B (eligibility-gate logic, signal/data engineering -- not a vehicle-
+dynamics method). CORRECTION recorded explicitly, per the reviewer's own
+instruction: the FIRST proposal for this item (a new admission path,
+"strong data + moderate |fb| 2-3 admits a heavy corrector if driver_level
+< threshold") was REJECTED -- Q11's own elicitation did not ask for a
+loosening, and a single strong corner must never unlock springs/toe/
+camber via driver level alone, regardless of trust reading. Recorded so
+the reasoning is on file, not just the corrected outcome.
+
+CORRECTED DESIGN: driver level acts as TRUST ARBITRATION on the EXISTING
+multi-corner DATA path only, as a VETO, never a new route in. A heavy-
+corrector action the pre-existing multi_corner_ok check would admit is
+held back when driver feedback exists at that candidate's own (corner,
+verdict) with |fb| in the moderate band (2-3, reusing driver_feedback_
+weighting's own low/mid band split rather than a second hardcoded
+2-and-3) AND the effective driving level is at or above driver_level_
+threshold (5, config/decision_frame.json eligibility_classes, Phase A3).
+Effective level = Driver.driving_level when known, else the threshold
+itself -- "unknown trust never unlocks the heavier move", the same
+conservative-default direction config/recommendations.json's own
+driver_level_weighting.neutral_level already uses project-wide. Reading:
+"a calm expert's moderate rating is evidence the problem is manageable",
+holding back what the data alone would have proposed -- never new
+evidence FOR the data, never a way to reach eligibility the data path
+would not have reached on its own. No feedback, feedback outside the
+moderate band, or a below-neutral (less-trusted) level leaves
+multi_corner_ok exactly as the pre-existing rule computed it -- the
+existing |feedback|>=4 override path is completely unaffected (a strong
+complaint is a strong complaint regardless of trust level). Camber: the
+veto applies to it too (a tightening, never a loosening) -- camber's own
+multi-corner-only floor (no feedback_ok bypass, DECISION LAYER SPEC B8)
+is unchanged and remains the ONLY path in, now additionally vetoable
+under the same trust conditions as every other heavy corrector.
+
+Plumbing: generate_candidates and _apply_eligibility_gate both gained an
+additive driving_level=None parameter, threaded through exactly like
+modules.recommendation.generate_recommendations's own identical
+driving_level parameter -- resolved by the UI caller
+(ui/views/outing_form.py) from self.outing.driver.driving_level (the
+Outing.driver relationship, models/outing.py), never queried inside
+modules/ (same plain-value-boundary convention, not a new one).
+
+CENSUS GUARANTEE, verified by construction, not just claimed: neither
+real session's own build_evidence call supplies feedback_data (both
+census runs pass no driver feedback at all), so feedback_magnitude_by_
+corner_verdict is empty for every real candidate on both sessions --
+moderate_feedback is False unconditionally when there is no feedback
+evidence, which makes the veto's own AND-condition False regardless of
+driving_level. This is a structural guarantee (the veto literally cannot
+evaluate to True without a driver_feedback evidence item present), not
+an empirical spot-check -- Dubai 6 / v3 21 candidate counts cannot move
+from this item alone, confirmed by the veto's own condition structure
+plus a dedicated test (test_eligibility_veto_no_feedback_leaves_multi_
+corner_heavy_unchanged) proving the no-feedback case stays admitted.
+
+5 new targeted tests: high-level+moderate-feedback vetoes a real multi-
+corner springs_rear_soften candidate; low-level+same feedback admits it;
+unknown-level+moderate-feedback vetoes (proving the "unknown = neutral,
+not permissive" default); no-feedback leaves it admitted regardless of
+level (the census guarantee, above); and a single-strong-corner+low-
+level+moderate-feedback case stays NOT eligible (guards the rejected
+first-proposal reading explicitly, so a future regression that
+accidentally reintroduces a new admission path fails loudly).
+
+Files touched: modules/decision_frame.py (_apply_eligibility_gate veto +
+driving_level param, generate_candidates driving_level param + docstring),
+ui/views/outing_form.py (driving_level resolved from self.outing.driver,
+threaded into generate_candidates), tests/test_decision_frame.py (5 new
+tests).
+
+### WP-ELICIT Phase C3: kerb-strike-severity blowoff evidence [2026-09-24]
+
+Tier B (signal/data engineering: threshold gap-selection against a real
+distribution, per-wheel velocity attribution -- no vehicle-dynamics
+method content). Author-elicited direction: "curb strikes / hard bumps ->
+more blowoff". Reviewer-redirected the trigger away from the FIRST
+proposal's own framing (kerb_fraction, a continuous involvement measure)
+to kerb-strike SEVERITY repeating across laps -- "kerb contact itself is
+normal driving, not evidence".
+
+DESIGN: per corner instance, peak |log_acc_z| inside the EXISTING
+kerb_mask (modules.stability_analysis._compute_kerb_mask_from_az, the
+SAME signal estimators already mask kerb events with -- no new detection
+mechanism). A corner fires when >=2 of its own lap instances (repeat_min_
+laps, reusing _count_repeating's own cross-lap shape) exceed the
+threshold. Axle attribution: per-wheel peak |travel rate| (np.gradient)
+INSIDE the firing kerb windows specifically -- the OPPOSITE filtering
+direction from modules.damper_motion.classify_window_motion (which
+EXCLUDES kerb-masked samples to keep its own platform-loading read
+clean); here the kerb impact itself is exactly what is measured. Reuses
+modules.wheel_loads' own channel-access/dead-channel/unit-normalisation
+helpers directly (_interp_channel, _normalize_travel_to_mm,
+_channel_is_dead) -- the same ones modules.damper_motion.py already uses
+for this exact channel family, not a second, independently-maintained
+copy. When either axle's own pair (both wheels) is not fully evaluable,
+axle attribution is None and BOTH axles are proposed, honestly labelled
+"car-wide kerb evidence, axle not attributable" -- never guessed.
+
+THRESHOLD CENSUS (diagnostics/inspect_kerb_severity_census.py, both real
+sessions, per-corner-instance peak |az_g| inside kerb_mask, nonzero-
+instance population n=79): p10=2.2951, p25=2.4280, p50=2.6300,
+p75=2.9571, p90=3.3273, p95=3.5631 g. NOT cleanly bimodal -- 71-76% of ALL
+corner instances on both sessions register at least one kerb-masked
+sample (the existing kerb_mask catches routine kerb use/road texture
+broadly, not just hard hits), the same "real motion everywhere, no clean
+gap" character the damper-motion threshold census already found.
+
+PERCENTILE SELECTION, reviewer's own minority-firing rule applied to this
+census (not assumed, computed): p50 (2.6300g) fires on Dubai 6/14 (43%)
+and v3 8/17 (47%) corners -- NOT a minority (well under half was the
+bar), too permissive for a standout, actionable pattern. p75 (2.9571g)
+fires on Dubai 1/14 (7%) and v3 4/17 (24%) -- a clear minority on BOTH
+sessions while still firing on both (not inert). p90 (3.3273g) fires on
+Dubai 1/14 and v3 1/17 -- more selective still, but p75 is already the
+LOWEST candidate satisfying the rule, so p75 is the chosen threshold, not
+the rule's own stated default expectation (p90). No STOP condition was
+hit (not every candidate fires on a majority; p75 does not fire nowhere).
+
+AXLE ATTRIBUTION RESULT at the chosen threshold: Dubai's one firing
+corner (1) is NOT ATTRIBUTABLE -- only fl/fr/rl travel channels are
+evaluable (rr is the known-dead channel, Fz-integration Phase 1, frozen
+std~0.1mm), so the rear axle's own required BOTH-wheels-evaluable
+condition fails and both axles are proposed. v3's four firing corners (4,
+12, 13, 15) all attribute to FRONT (front peak travel-rate exceeds rear
+in every case, e.g. corner 4: front 580.4 vs rear 379.0 mm/s) -- a real,
+consistent finding, not a coin-flip artifact.
+
+OPEN QUESTION RECORDED, not encoded (reviewer instruction, verbatim):
+config/setup_parameters.json's damper_blowoff_rl/rr registry entries
+record a typical reference point of 0 (no relief) versus front's 6 --
+this package does NOT restate that as "deliberate platform priority" in
+any new rationale (the pre-existing registry mechanism text elsewhere is
+untouched, but is not authoritative for whether rear-0 is actual team
+POLICY versus simply this car's own recorded reference value). Whether
+rear-0 is a deliberate policy choice is unconfirmed and flagged for the
+author, not assumed either way -- rear blowoff is fully proposable by
+this new candidate generator, exactly like front.
+
+IMPLEMENTATION: new evidence source _build_kerb_blowoff_evidence (config-
+gated, kerb_blowoff_evidence.enabled, same corners-not-None gate as ABS/
+TC/damper-motion), new _kerb_axle_attribution, new candidate generator
+_kerb_blowoff_candidates (click-class, advisory, effect_class=secondary,
+grade=proposed, one exploratory step per config/setup_parameters.json's
+own damper_blowoff_*.adjustment_step.exploratory=2, WP-ELICIT Phase B1) --
+wired into build_evidence and generate_candidates. Dampers are already
+breadth-exempt (_attach_breadth's own "damper_" prefix check) and outside
+the heavy-corrector eligibility gate (click_class), so no special-casing
+needed in either mechanism. 10 new targeted tests: fires on repeated
+severe hits, silent on a single severe lap (not repeating), silent when
+every lap is below threshold (kerb contact alone is not evidence), front-
+dominant axle attribution, not-attributable when an axle's own channel is
+dead, single-axle candidate when attributable, both-axles candidates when
+not attributable, rationale never contains "platform priority"/
+"deliberate" framing, config block present with the exact chosen value,
+and a real-Dubai acceptance test reproducing the census finding exactly
+(corner 1, not attributable) end to end through the production code path
+(not just the diagnostic script).
+
+Files touched: config/decision_frame.json (new kerb_blowoff_evidence
+block), modules/decision_frame.py (_build_kerb_blowoff_evidence,
+_kerb_axle_attribution, _kerb_blowoff_candidates, _corner_overall_window,
+wiring into build_evidence/generate_candidates, new modules.wheel_loads
+imports), tests/test_decision_frame.py (10 new tests). diagnostics/
+inspect_kerb_severity_census.py KEPT -- cited by config/decision_frame.
+json's kerb_blowoff_evidence.derived_from (K1, config-cited provenance).
+
+### WP-ELICIT Phase C4: feedback-router click-class entries [2026-09-24]
+
+Tier B (feedback-routing config + the router's own tie-break mechanism --
+the one Tier A physics claim in this entry, C11-2, is Segers-anchored,
+not invented). Closes elicitation item 10 (PLAN.md): _feedback_only_
+candidates' own documented gap -- every existing sign=+1 entry on
+understeer_tendency/oversteer_tendency belonged to springs (heavy
+corrector, excluded by click_class), so the router had zero eligible
+click-class levers on either axis before this package.
+
+ARB ENTRIES (8, author-elicited: feedback routing Q7, two-sided balance
+principle Q9; each mirrors an existing matrix cell so the click-class
+option always agrees with what the data-driven matrix would already
+suggest for the same pattern): understeer_tendency gets arb_fl/fr soften
+(mirrors matrix_us_apx_low) and arb_rl/rr stiffen (mirrors matrix_us_
+exit_med/high) as two independent alternatives; oversteer_tendency
+mirrors this exactly (arb_rl/rr soften / arb_fl/fr stiffen).
+
+DAMPER COVERAGE CENSUS (read-only, docs/segers_bridge_review.md's C11
+section in full): of the four cells named (understeer-entry->front,
+understeer-exit->rear, oversteer-entry->rear, oversteer-exit->front),
+only ONE is covered -- understeer-entry->front, via C11-2 ("Front LS
+rebound decrease reduces understeer at turn-in", p.262-263, Table 11.1,
+Zolder T1 worked example), scoped to entry_2_turnin only (C11-1's own
+boundary statement: no shaft velocity at steady-state cornering for a
+damping change to act on). The other three cells are NOT covered by C11
+and were deliberately left UNSEEDED -- per the reviewer's own "do not
+construct a mechanism for any cell; do not infer one cell from another"
+ruling, no mechanism was invented for them (C11-4's traction_performance/
+braking_performance axis touches front/rear HS dampers but makes no
+understeer/oversteer_tendency claim and assigns no sign, so it does not
+substitute for the missing coverage).
+
+CLICK-DIRECTION PROVENANCE, the sequence itself worth recording (shows
+the verification chain working, not just its outcome): the author
+flagged, correctly, that click-to-force direction is a MANUFACTURER
+CONVENTION, never derivable from a vehicle-dynamics literature source --
+Segers' own words ("front rebound could be decreased") describe physical
+DAMPING FORCE, not this registry's CLICK COUNT, and the two happen to be
+inverted here (config/setup_parameters.json direction_semantics:
+"increasing: softer", so LESS damping force = MORE clicks). The author
+proposed, pending verification: mark the registry's own click convention
+"assumed pending verification" and render damper top lines as physics-
+direction words rather than click counts until a new elicitation item
+confirms it against a spec sheet or mechanic. CHECKED before
+implementing either guard, per the standing channel-census-rule spirit
+(verify before acting on a claim, even one the author raises against
+their own record): config/setup_parameters.json's damper entries already
+cite car_data.json dampers.dyno_metadata.{front,rear}.click_semantics --
+read directly, this IS a real, verified source (WP2b-1, "manufacturer
+data" digitised from actual dyno chart images front_damper_1.png/
+rear_damper.png), stating plainly "0 0 0 0 = outermost/stiffest force
+envelope, 18 18 18 18 = innermost/softest" -- a genuine Level-4 dyno-
+chart verification, not an assumption. REPORTED to the author; both
+proposed guards (elicitation item, rendering downgrade) were WITHDRAWN
+as unnecessary once this was found -- the "until verified" condition
+they were both conditioned on was already satisfied. What DID ship: the
+C11-2 interaction_table entry's own note states the physics/clicks
+provenance split explicitly (Segers anchors the direction claim only;
+car_data.json's dyno digitisation anchors the click mapping, entirely
+separately) plus one closing clause the author added: "assumes installed
+units match the digitised dyno chart (same model/valving) -- the one
+link the record cannot verify." PLAN.md elicitation list item 12 records
+this raised-then-withdrawn sequence, not as an open item.
+
+AXLE-PAIRED ROUTER FIX (reviewer-redirected twice): C11-2's own two
+registry entries (damper_rebound_ls_fl/fr) are cheaper (seconds) than
+every ARB alternative (minutes), and C11-3 (p.263) itself calls for
+symmetric axle-wide deltas ("apply symmetric L/R deltas even when the
+diagnosis is asymmetric") -- so fl and fr should never compete as two
+separate single-wheel candidates for the SAME feedback item (a false
+tie, not a real choice). _feedback_only_candidates gained a generic
+axle-pairing step (_axle_partner_param/_group_axle_pairs): when both
+same-axle, same-direction pool entries are present, they collapse into
+ONE candidate carrying both actions before the cost/tie-break logic ever
+runs, so the router now competes LEVER FAMILIES against each other, never
+a same-family fl-vs-fr non-choice. The pre-existing "genuine tie raises
+loudly" ValueError (reviewer decision, 2026-09-22) is UNCHANGED and still
+fires for a real cross-family tie -- confirmed still working
+(test_feedback_only_tie_raises_when_unresolvable, unmodified, still
+passes).
+
+REAL OPEN ISSUE FOUND WHILE LANDING THIS, not resolved here: running the
+full targeted suite after adding the 8 real ARB entries broke SIX
+pre-existing tests, not just the four found by an initial narrower
+"-k feedback_only" run -- the full run additionally caught three
+eligibility-gate tests, one breadth test, and one conflicting-feedback
+test, none of them about the feedback router at all, all incidentally
+using |feedback|>=2 evidence that now ALSO feeds _feedback_only_
+candidates' own pool and hits the same ValueError as a side effect. A
+seventh failure (test_decision_frame_config_still_validates) was a
+separate, unrelated, quick fix -- its own legal_grades schema set needed
+the two new grade strings ("author-elicited", "author-elicited (Segers
+ch.11, C11-2)") added, same precedent as when "proposed (Segers ch.9/
+10)" was itself added. Root cause of the SIX, isolated and reproduced
+directly: giving BOTH axes two equally-cheap, equally-uncorroborated
+click-class alternatives (soften-this-axle / stiffen-the-other-axle) is
+now the NORMAL state for any isolated feedback item with no other
+evidence to break the tie via _interaction_penalty (which needs some
+OTHER active evidence at the same corner to produce a nonzero
+differential -- with only the one feedback item, it is always 0 for
+every candidate). Axle-pairing (above) fixes the false fl-vs-fr tie but
+CANNOT and does not fix this genuine front-vs-rear tie -- the two
+alternatives really are equally valid with nothing in this evidence to
+choose between them. RESOLUTION FOR THIS SESSION: five tests (three
+_inject_click_class_bridge-based feedback-only tests, three eligibility-
+gate tests, the breadth test, and the conflicting-feedback test -- eight
+total, all incidental to this package's own new content) were
+re-isolated (strip this package's own new author-elicited-grade entries
+before running, so each test again exercises only the mechanism it
+names); the "gap = zero candidates" test was RETIRED (its own premise is
+obsolete -- C4's entire purpose was to close that exact gap) and
+replaced with test_feedback_only_gap_now_closed_but_multi_alternative_
+ties_are_a_live_open_issue, which PINS the ValueError as the current,
+honest, live behaviour with a full explanation, rather than hiding it.
+NOT decided here, deliberately, per the reviewer's own repeated "never
+resolved arbitrarily" instruction: how the router SHOULD choose between
+two genuinely-equal click-class alternatives when nothing else can --
+options include preferring a fixed canonical direction per axis,
+surfacing both as separate candidates instead of one, or requiring
+corroborating evidence before either fires. Needs a reviewer decision
+before real
+sessions with active oversteer/understeer feedback can use this router
+without risking a crash.
+
+Files touched: config/decision_frame.json (8 ARB interaction_table
+entries + 2 damper entries, all author-elicited/Segers-anchored),
+modules/decision_frame.py (_axle_partner_param, _group_axle_pairs,
+_feedback_only_candidates refactored to group axle pairs before cost/
+tie-break), tests/test_decision_frame.py (3 new tests: paired-action
+fires as one candidate, direction-inversion pin, unseeded-cells-produce-
+no-damper-candidate; 1 test retired and replaced; 8 tests re-isolated
+from this package's own new config content -- three feedback-only,
+three eligibility-gate, one breadth, one conflicting-feedback; 1 schema
+test's legal_grades set extended). PLAN.md elicitation items
+10 (RESOLVED, with the open issue named) and 12 (raised-then-withdrawn)
+updated.
+
+### Session index, 2026-09-24 (WP-ELICIT, stopped at the C4 boundary)
+
+For quick navigation: this session's own entries, in landing order --
+"WP-ELICIT Phase A: cost-function weights + display cutoff" (A1-A3),
+"WP-ELICIT Phase B: damper steps, TPMS pressure activation, rake
+doctrine" (B1-B3), "WP-ELICIT Phase C1: driver-level trust arbitration,
+corrected reading" (C1), "WP-ELICIT Phase C3: kerb-strike-severity
+blowoff evidence" (C3), "WP-ELICIT Phase C4: feedback-router click-class
+entries" (C4, this entry). C2 landed inside the Phase B entry (resolved
+alongside B3's rake doctrine, not run as its own package). Phases
+C5-C7, D, and E were not reached this session -- see PLAN.md's own
+elicitation list and NOW section for exactly what remains open.
+
+### WP-ELICIT HANDOFF item 1: feedback-router tie fix (reviewer
+correction) [2026-09-24]
+
+Tier B (router tie-break mechanism -- no vehicle-dynamics method
+content). Resolves the CRITICAL OPEN ITEM Phase C4 left standing: giving
+an axis two equally-cheap click-class alternatives (soften one axle /
+stiffen the other, the Q9 two-sided-balance principle) is the ORDINARY
+state for isolated feedback evidence with no other evidence to break the
+tie, not a rare edge case -- and _feedback_only_candidates' own "tie
+unresolved" ValueError (reviewer decision, 2026-09-22, reaffirmed
+2026-09-24) crashed production on exactly that ordinary case. REVIEWER
+CORRECTION, this session: the ValueError path is REMOVED entirely --
+production must never crash on ranking a driver's own feedback.
+
+NEW tie-break order, inserted between the existing cheapest-effort step
+and the existing interaction-penalty step: WINDOW HEADROOM -- the axle
+(or lever) with more room left before its own window edge wins, reusing
+_settings_window_component's own score (weight x (1 - distance-to-
+nominal), already 0 whenever the setup sheet cannot resolve it). Applied
+ONLY when every tied alternative is fully computable (the setup sheet is
+filled for every parameter involved) -- a partially-filled sheet would
+make this step guess for the missing side, so it is skipped entirely
+rather than half-trusted, the same "neutral unless fully computable"
+posture _settings_window_component itself already uses per action.
+current_setup (the outing's setup_data, already threaded through
+generate_candidates for _bridge_candidates_for_levers) is now also
+passed into _feedback_only_candidates for this purpose -- no new
+plumbing invented, reusing the existing parameter.
+
+Interaction penalty stays the second tie-break step, unchanged in logic
+and position relative to itself (only moved second instead of first).
+
+If a genuine tie STILL survives cost + headroom + interaction penalty,
+EVERY tied alternative is now emitted as its own ordinary pick-one
+candidate (trigger_provenance=feedback_only, status=proposed) instead of
+raising -- exactly the DECISION LAYER SPEC Stage 4 semantics already
+governing every other competing candidate ("alternative single moves...
+ranked normally, no suppression machinery"), not a new mechanism. Each
+tied candidate's rationale carries an explicit "ALTERNATIVE: genuinely
+tied with ..." clause naming the other tied option(s), so the engineer
+sees it is a real tie, not an arbitrary pick. Axle-paired same-family
+fl/fr (or rl/rr) entries never reach this point at all (Phase C4's own
+_group_axle_pairs step collapses them first) -- this only ever fires for
+a genuine cross-family tie.
+
+Two pre-existing tests asserting the ValueError were rewritten to assert
+the new both-alternatives behaviour instead (not deleted -- the same
+constructed scenarios, re-pointed at the new outcome):
+test_feedback_only_gap_now_closed_and_multi_alternative_ties_are_a_live_open_issue
+renamed to ...ties_emit_both (both real-config understeer/oversteer
+axes now emit exactly 2 candidates, each carrying the ALTERNATIVE
+clause); test_feedback_only_tie_raises_when_unresolvable renamed to
+test_feedback_only_tie_emits_both_alternatives_when_unresolvable -- this
+one's injected arb_rl/arb_rr-soften bridge collides with the REAL
+config's own C4 ARB entries (arb_fl+fr soften, arb_rl+rr stiffen,
+already present on understeer_tendency), so it is actually a real 3-way
+cross-family tie now, not 2 (the old bare ValueError-regex match never
+distinguished the two counts either) -- asserts 3 candidates, 3 distinct
+(lever_family, direction) actions, all three carrying the ALTERNATIVE
+clause.
+
+Files touched: modules/decision_frame.py (_feedback_only_candidates:
+new current_setup parameter, new headroom tie-break step, ValueError
+path replaced by multi-candidate emission; generate_candidates call site
+threads setup_data through), tests/test_decision_frame.py (2 tests
+rewritten per above). Targeted suite: 199/199 passed (same count as the
+Phase C4 handoff baseline -- no test count change, two rewritten in
+place, none added or removed).
+
+### WP-ELICIT HANDOFF C5: springs understeer mirror, Q12 [2026-09-24]
+
+Tier B (config provenance annotation + one new confirming test -- no
+scoring/gate logic changed). Q12 (author-elicited 2026-09-24): understeer
+must route to BOTH front-soften and rear-stiffen springs, offered as
+alternatives under the two-sided principle, same shape as C4's own ARB
+mirror pairs.
+
+CHECK FIRST (per the reviewer's own instruction, before writing
+anything): read config/decision_frame.json's lever_bridges array (7
+entries, BACKLOG H 2026-09-20 plus later B7/splitter additions) directly
+rather than assuming a gap existed. Both understeer-side entries were
+ALREADY THERE -- springs_front/soften (condition verdict=understeer,
+min_severity=moderate) and springs_rear/stiffen (identical condition,
+identical phase_groups) -- seeded together by BACKLOG H specifically
+because springs_front/rear carried zero matrix cross-reference at all
+(Deepening Phase 4b's own comment already names this). NO ROUTING GAP
+EXISTED. Q12 is a CONFIRMATION of BACKLOG H's own already-shipped shape,
+not a new mechanism, not a new entry.
+
+REAL CONFLICT FOUND, reported rather than resolved silently: the
+HANDOFF's literal instruction ("provenance on each entry: 'author-
+elicited 2026-09-24'") cannot be written into the lever_bridges 'grade'
+field -- _comment_lever_bridges' own documented invariant and
+test_lever_bridges_schema_grade_always_proposed
+(tests/test_decision_frame.py) hard-pin every lever_bridges grade to the
+literal string 'proposed' (the generator hardcodes grade='proposed' on
+every candidate it emits regardless of this field; the schema test
+guards the config's own self-documentation from drifting out of sync
+with that). Landed instead: the Q12 provenance and the author's own
+verbatim caution both recorded in 'derived_from' and 'rationale' on both
+entries (companion-note pattern, same shape as B1's springs/damper
+compensation notes) -- 'grade' stays 'proposed', unchanged, so the
+mechanism's real pedigree (Segers ch.9/10, Deepening Phase 4b) is not
+overwritten or conflated with the Q12 routing confirmation.
+
+AUTHOR'S VERBATIM CAUTION, recorded per the reviewer's own instruction:
+"springs are really a heavy instrument." This is enforced STRUCTURALLY
+by the existing heavy-corrector eligibility gate (DECISION LAYER SPEC
+B3/WP-ELICIT Phase C1: strong+multi-corner, or |feedback|>=4, or the C1
+driver-level-conditioned relaxation on the multi-corner path) -- C5 adds
+no new gate, no new threshold; the caution is exactly why that gate
+already exists and is not weakened here.
+
+NEW TEST, per the work order's own two cases: test_c5_springs_
+understeer_mirror_both_alternatives_gate_together -- a synthetic strong+
+multi-corner understeer case (corners 7 and 9, apex_3) produces BOTH
+lever_bridge:springs_front:soften:C7:apex_3 and lever_bridge:springs_
+rear:stiffen:C7:apex_3; a mild/single-corner understeer case (corner 7
+alone, moderate severity) produces NEITHER -- the pre-existing gate
+holds, unchanged. Passes against the unmodified eligibility-gate code,
+confirming BACKLOG H's routing already had this shape before C5 ever
+touched the file.
+
+Files touched: config/decision_frame.json (derived_from/rationale on the
+springs_front/soften and springs_rear/stiffen lever_bridges entries
+only -- grade untouched), tests/test_decision_frame.py (1 new test).
+Targeted suite: 200/200 passed (199 + this 1 new test, no other count
+change).
+
+### WP-ELICIT HANDOFF C6: TC safety note, Q6b [2026-09-24]
+
+Tier B (display-only annotation, no scoring/gate content). Q6b (author-
+elicited 2026-09-24): any candidate whose direction LOWERS TC
+intervention carries a dropdown caution -- "uses more tyre, reduces
+safety margin" -- display-only, never a score term, never a
+suppression.
+
+DIRECTION SEMANTICS, read directly from config/setup_parameters.json
+rather than assumed: tc_lat/tc_lon's own direction_semantics states
+"increasing_2_to_11: LESS permitted rotation/spin = MORE TC
+intervention" (per the TC_reference table, non-linear, never raw
+position arithmetic) -- so direction='decrease' on either parameter is
+exactly the LESS-intervention side of that same table, the one this note
+targets. direction='increase' is the opposite (more intervention, less
+tyre risk) and gets no note.
+
+IMPLEMENTATION: new modules.decision_frame._attach_tc_safety_note,
+applied LAST in generate_candidates (after every other post-processing
+pass) so it covers every candidate regardless of which generator
+produced it -- matrix-rule bridges, lever_bridges, feedback-only, kerb-
+blowoff, all alike, same "universal per-candidate pass" pattern
+_attach_breadth/_apply_window_edge_status already use. Reads parameters/
+direction/text from a new config/decision_frame.json key,
+tc_safety_note, per the work order's own "text lives in config, not
+hardcoded" instruction -- no string literal in modules/ or ui/.
+ui/views/outing_form.py renders it as its own dropdown line (WARN
+colour, same severity-signal colour convention every other caution line
+in that dropdown already uses), immediately after practice_note.
+
+NEW TEST: test_c6_tc_safety_note_on_lower_tc_intervention_only --
+matrix_us_exit_low ("TC LON down", tc_lon/decrease, understeer/exit/low)
+carries the note; matrix_os_exit_low ("TC LON up", tc_lon/increase,
+oversteer/exit/low) does not. Both are real, pre-existing, non-
+escalation matrix rules (config/recommendations.json, verified directly
+rather than assumed) -- no new rule content needed, only the display
+annotation on top of what already routes.
+
+Files touched: config/decision_frame.json (new tc_safety_note key),
+modules/decision_frame.py (_attach_tc_safety_note, wired at the end of
+generate_candidates), ui/views/outing_form.py (dropdown rendering),
+tests/test_decision_frame.py (1 new test). Targeted suite: 201/201
+passed.
+
+### WP-ELICIT HANDOFF C7: EB exclusion rewrite, Q6 [2026-09-24]
+
+Tier C (documentation/spec-note change only -- no code path touched, no
+config schema field changed, nothing to run against the test suite).
+
+LOCATED, per the reviewer's own "locate and report it" instruction,
+rather than assumed: the current engine-braking exclusion text lives in
+PLAN.md's DECISION LAYER SPEC, Stage 1's own "Written exclusions" line
+(the ONLY place this exclusion is stated -- verified by search; config/
+setup_parameters.json's engine_curves entry carries a separate,
+unrelated note about digitisation status, not the EB-as-lever exclusion
+reasoning, and was left untouched). Original text: "engine_curves
+(EB-as-lever question pending [E])".
+
+REWRITE, Q6 (author-elicited 2026-09-24): "engine_curves (real lever
+family for rotation; excluded -- no rotation-deficit measurement exists
+to trigger from; reopens with a usable rotation metric)". This resolves
+the EB-AS-LEVER HALF of elicitation item 5 with a real answer (excluded,
+not merely pending) and a stated reopen condition, tying the exclusion
+to a concrete missing input (a rotation-deficit measurement) rather than
+leaving it as an open question with no resolution shape.
+
+SPLIT RECORDED, per the reviewer's own explicit instruction (item 5 is
+NOT fully resolved by this alone): PLAN.md's elicitation list item 5
+rewritten to state the split plainly -- EB-as-lever RESOLVED (excluded,
+as above), TC/EB channel mapping still OPEN, untouched this session.
+Marking item 5 fully resolved would have been wrong -- the channel-
+identity half genuinely needs real telemetry-channel work this package
+did not do.
+
+Files touched: PLAN.md (Stage 1 Written exclusions line; elicitation
+list item 5). No code, no config schema, no test -- documentation only.
+
+### WP-ELICIT HANDOFF item 4: literature read, blowoff/kerb + damper
+transient balance [2026-09-25]
+
+Tier B (read-only literature search, SEEDS NOTHING -- no config, code,
+or test change from this item; the reviewer rules per hit later, per
+the work order's own explicit instruction). Hit list, dated 2026-09-25.
+
+SOURCES SEARCHED: docs/segers_bridge_review.md (full-text grep, this
+project's own prior curated review of the Segers book -- the "excerpt
+copy" this item's own instruction refers to, since it carries verbatim
+statement+page per candidate already); docs/literature/ raw PDFs
+(Jorge Segers - Analysis Techniques..., Werner_2021_MA, Rajamani Vehicle
+Dynamics and Control, the two Automotive Control Systems books).
+
+TOOL LIMITATION, reported rather than silently worked around: the raw
+PDFs in docs/literature/ are NOT machine-text-searchable with the tools
+available this session -- Grep returns zero matches even for terms
+KNOWN present (e.g. "rebound", "damper" against the Segers PDF; "damper"
+against Werner_2021_MA.pdf), confirming no extractable text layer via
+this path, and PDF page rendering (Read tool, pages parameter) failed
+outright ("pdftoppm is not installed... install poppler-utils"). This
+session could NOT directly search the raw PDF text of any of the five
+literature files. docs/segers_bridge_review.md was searched in full
+(the only literature source actually searchable) -- it is this project's
+own prior systematic, page-anchored review of the relevant Segers
+chapters (ch.7, ch.9-11, targeted sections), so its own coverage stands
+in for a fresh raw-PDF search of Segers specifically; Werner_2021_MA.pdf
+and the three control-systems/vehicle-dynamics textbooks have NO
+existing curated review and were NOT searchable this session -- their
+coverage of (a)/(b) below is UNKNOWN, not "not covered". Flagged under
+OPEN.
+
+(a) BLOWOFF / HIGH-SPEED BUMP / KERB STRIKES: the literal term
+"blow-off"/"blowoff" does not appear anywhere in docs/segers_bridge_
+review.md (grep, zero hits, case-insensitive). Closest related coverage:
+C11-4 (p.265, Table 11.2, docs/segers_bridge_review.md line 158) --
+verbatim: "<5 mm/s = suspension friction (not meaningfully tunable);
+5-25 mm/s = 'low-speed', governs driver-felt transient handling; >25
+mm/s = 'high-speed', road input, 'should be optimized to minimize tire
+contact patch load variation... rarely assessed reliably by a driver.'"
+The reviewer's OWN mechanism paraphrase (part b, not a book quote)
+reads: "at high shaft velocities the input is road-surface-driven
+(bumps, kerbs) rather than chassis-attitude-driven." No verbatim
+book statement naming kerb strikes or a blow-off valve specifically was
+found. FOUND (C11-4, p.265) but not a direct hit on "blowoff"/"kerb" by
+name -- reported precisely rather than rounded up to a match.
+
+(b) DAMPER ADJUSTMENTS FOR TRANSIENT BALANCE AT CORNER ENTRY/EXIT (bump
+or rebound, either axle): COVERED, docs/segers_bridge_review.md, all
+verbatim page cites read directly from the file, not from memory:
+- C11-1 (p.260-261, line 34): boundary statement -- LS damping changes
+  transfer RATE not magnitude; "a low-speed front damping change has NO
+  influence during steady-state cornering, since there is no shaft
+  velocity there to act on" -- governs where C11-2 through C11-5 may
+  apply (transient phases only, never apex/steady-state). Already the
+  anchor for this project's own C11-2 entry_2_turnin phase scoping.
+- C11-2 (p.262-263, Table 11.1, Zolder T1 worked example, line 63):
+  front LS rebound decrease reduces understeer at initial cornering --
+  ALREADY SEEDED (WP-ELICIT Phase C4, damper_rebound_ls_fl/fr,
+  config/decision_frame.json).
+- C11-3 (p.263, line 126): symmetric L/R deltas even when the diagnosis
+  is asymmetric -- ALREADY LANDED as the axle-pairing annotation (Phase
+  C4, _group_axle_pairs).
+- C11-4 (p.265, Table 11.2, line 158): high-speed damping (>25 mm/s)
+  trades contact-patch load variation for average grip via tyre load-
+  sensitivity -- direction-only, no magnitude given by the source; NOT
+  YET encoded (docs/segers_bridge_review.md's own "Full candidate list"
+  section names this as blocked on an axis-mapping/schema decision, not
+  implemented by any package to date).
+- C11-5 (p.273-274, line 200): front LS rebound as an AERO-PLATFORM
+  (rake) lever, not a balance lever -- "excessive front rebound damping
+  applied to jack the car's nose down to improve airflow under the
+  car... creating a greater rake angle." Distinct mechanism from C11-2
+  (platform/rake vs turn-in balance). NOT YET encoded (review's own text
+  names a sign-convention conflict with existing entries as the blocker).
+
+NO CONFIG, CODE, OR TEST CHANGE FROM THIS ITEM, per the work order's own
+explicit instruction -- the reviewer rules per hit later. C11-4/C11-5
+were already-known gaps from the pre-existing review document, re-
+confirmed present and unimplemented by this read, not newly discovered.
+
+Files touched: none (read-only). thesis_notes.md (this entry) is the
+only artifact of this item.
+
+### WP-ELICIT HANDOFF item 5: Phase D, brake-bias channel identity
+[2026-09-25]
+
+Tier B (read-only channel-identity diagnostic; no vehicle-dynamics
+method content). Recomputes percent-front brake bias from raw front/
+rear brake pressure during real braking events and correlates it
+against every candidate channel the Frame-Stage-2 Phase 2 record names
+(thesis_notes.md "Frame-Stage-2 Phase 2: intervention-channel survey",
+2026-09-04/05) -- names read directly from that record and from its
+own source script (diagnostics/_attic/inspect_v3_intervention_channel_
+classification.py), not from memory: Math_Brake_Bias_Hold
+(READ-AND-RECORD category) plus abs_brk_bal_prop / abs_brk_bal_prop_ad /
+abs_brk_bal_at50 / abs_brk_bal_at50_adv (UNCLEAR category, four
+competing candidates) -- FIVE named channels total, not four; the work
+order's own parenthetical ("Math_Brake_Bias_Hold, abs_brk_bal_prop
+family") undercounted the record by one, corrected here rather than
+silently matched to "4".
+
+METHOD: new diagnostics/inspect_brake_bias_channel_identity.py [keep-
+reproduces, diagnostics/README.md K5 entry]. Same "hard braking" mask as
+the already-recorded ABS consistency check and Frame-Stage-2 Phase 2:
+moving & (log_pbrake_f + log_pbrake_r > 120 bar) -- reused exactly, not
+a new threshold. Recomputed percent_front = 100 * pbrake_f / (pbrake_f +
+pbrake_r) over that mask; each candidate channel read directly from the
+raw file (bypassing config/channels.json's whitelist -- none of the five
+are listed there -- via the same NARROW/WIDE block parser already used
+by diagnostics/inspect_tpms_pressure_cornering_phase.py, reused
+verbatim rather than a second copy), restricted to samples inside that
+channel's own real time coverage before correlating (avoids biasing the
+correlation with held-flat extrapolation outside a channel's actual
+sample range).
+
+RESULT, both real sessions, own run:
+- Dubai: Math_Brake_Bias_Hold ABSENT from the raw file entirely
+  (confirmed by direct grep of Sample_Dubai.txt, not just the parser's
+  own report -- genuinely not present, not a parsing bug). The four
+  abs_brk_bal_* variants are present but correlate with recomputed
+  percent-front at essentially noise level: abs_brk_bal_prop +0.0401,
+  abs_brk_bal_prop_ad +0.0151, abs_brk_bal_at50 -0.0298,
+  abs_brk_bal_at50_adv -0.0162 (n=2212 hard-braking samples).
+- v3: all five channels present. Math_Brake_Bias_Hold +0.1617 (weak).
+  abs_brk_bal_prop +0.6641, abs_brk_bal_at50 -0.6685 (both moderate, and
+  of OPPOSITE sign from each other despite both nominally being a
+  "brake balance" reading -- consistent with the "at50" naming meaning a
+  reference-pressure-normalised quantity, not a raw instantaneous
+  front/rear ratio, though this is a plausible reading, not confirmed).
+  abs_brk_bal_prop_ad +0.1140, abs_brk_bal_at50_adv -0.1338 (both weak)
+  (n=2610 hard-braking samples).
+
+VERDICT: NOTHING CORRELATES CLEANLY. The strongest reading (v3's
+abs_brk_bal_prop/at50, |corr|~0.67) falls far short of what a genuine
+channel identity should show (the SAME physical quantity read two ways
+should track far more tightly than 0.67, even allowing for ABS-
+modulation noise) and the SAME channels read essentially as noise on
+Dubai (|corr|<0.04) -- inconsistent across sessions, not a real signal.
+Per the work order's own explicit fallback: reported honestly,
+brake_bias stays NOT-EVALUABLE. NO config/setup_parameters.json change
+made -- the "record as data-verified" instruction was conditional on a
+clean correlation, which this run did not find.
+
+WITHHELD, per the work order's own explicit instruction (the reviewer is
+away, this is a propose-first change regardless of outcome): the
+brake_bias current-state window check does NOT go live. Listed under
+this item's own OPEN, not implemented.
+
+Files touched: diagnostics/inspect_brake_bias_channel_identity.py (new,
+keep-reproduces), diagnostics/README.md (K1 entries added for the two
+undocumented WP-ELICIT Phase B2/C3 scripts found missing while editing
+this file -- inspect_tpms_pressure_cornering_phase.py and
+inspect_kerb_severity_census.py, both genuinely config-cited, verified
+directly, a real pre-existing README gap closed incidentally; K5 entry
+for this item's own new script). No production config/code/test
+touched -- brake_bias's own config stays exactly as WP-ELICIT Phase A
+left it (nominal/span null, not-evaluable note unchanged).
+
+### WP-ELICIT Phase E close-out (a): candidate census re-run,
+before/after vs the pre-WP-ELICIT baseline [2026-09-25]
+
+Tier B (read-only census, own run, diagnostics/inspect_frame_candidate_
+census.py -- no production change). Pre-WP-ELICIT baseline (main@
+647582f, before any WP-ELICIT package landed): Dubai 6, v3 21 (session-
+start record).
+
+RE-RUN RESULT, own run, this branch's current state (after items 0-6):
+Dubai 8 (delta +2), v3 25 (delta +4).
+
+RECONCILIATION, every delta traced, zero unexplained residual:
+- Dubai: baseline 6 = 3 exit_oversteer + 2 matrix_bridge + 1
+  lever_bridges (diff_position/increase). Now 8 = the SAME 6 plus 2
+  "unlabelled"-generator candidates -- both from WP-ELICIT Phase C3's
+  kerb_blowoff evidence (corner 1, axle NOT attributable per that
+  package's own finding -- rr is the known-dead channel, Fz-integration
+  Phase 1 -- so BOTH axles are proposed as two separate candidates,
+  damper_blowoff_fl+fr and damper_blowoff_rl+rr, exactly matching Phase
+  C3's own "both axles proposed" record). 6+2=8, exact.
+- v3: baseline 21 = 11 matrix_bridge + 10 exit_oversteer. Now 25 = the
+  SAME 21 plus 4 "unlabelled"-generator candidates -- WP-ELICIT Phase
+  C3's kerb_blowoff evidence again, v3's four firing corners (4, 12, 13,
+  15), each attributing cleanly to FRONT (one candidate per corner,
+  front axle only), exactly matching Phase C3's own census finding.
+  21+4=25, exact.
+- NO OTHER PACKAGE moved either count, confirmed by construction, not
+  merely by absence of an alternative explanation: this census supplies
+  no feedback_data (build_evidence call, unchanged from every prior
+  census run) and no setup_data, so every feedback-gated mechanism
+  landed this session -- WP-ELICIT Phase C1's driver-level veto, Phase
+  C4's feedback-router ARB/damper entries, HANDOFF item 1's router tie
+  fix -- is structurally inert here (Phase C1's own thesis_notes entry
+  already proved this by construction for C1 specifically; the same
+  "no feedback evidence exists to act on" argument extends identically
+  to C4 and item 1, both of which only ever fire inside _feedback_only_
+  candidates, which returns [] immediately when feedback_items is
+  empty). HANDOFF C5 (springs understeer mirror) added no new lever_
+  bridges entry (confirmed in that item's own record -- BACKLOG H's
+  routing already existed) and neither session's eligibility gate
+  reached strong+multi-corner understeer this run (no springs_front/
+  rear row in either session's own grouped-candidate table), so C5
+  cannot have moved this run's count either, consistent with rather
+  than merely assumed alongside the "no gap existed" finding. HANDOFF C6
+  (TC safety note) is a display-only field on existing candidates, not
+  a candidate-generating mechanism. HANDOFF C7 (EB exclusion rewrite) is
+  a PLAN.md text change with no code path.
+
+NO STOP CONDITION HIT -- every delta traces to a named interview
+answer (WP-ELICIT Phase C3, author-elicited "curb strikes / hard bumps
+-> more blowoff" direction, 2026-09-24), consistent with that package's
+own already-recorded finding, not a new or surprising result.
+
+Files touched: none (read-only). This entry is the census record.
+
+### WP-ELICIT Phase E close-out (b): full repo suite, once [2026-09-25]
+
+Tier B (test-run record). Full suite (`pytest tests/`, not just test_
+decision_frame.py), run ONCE per this phase's own test-discipline rule.
+
+RESULT: 472 passed, 9 skipped, 1 xfailed, 0 failed.
+
+RECONCILIATION vs the pre-WP-ELICIT baseline (436 passed, 9 skipped, 1
+xfailed -- WP-COMMENTS close-out, main@647582f): delta +36, entirely
+inside tests/test_decision_frame.py (git status confirms it is the ONLY
+test file this branch touches) -- 199 (this session's own starting
+count, "at handoff") - 165 (implied main@647582f count) = 34 tests
+already added by WP-ELICIT Phases A-C4 before this session started,
+plus this session's own 2 (HANDOFF C5, C6) = 36 total, exactly matching
+472-436. No other test file moved; no golden failed (0 failed overall,
+goldens UNREGENERATED, per this phase's own explicit gate).
+
+Files touched: none (test run only).
+
+### WP-ELICIT close-out: consolidated record [2026-09-24/25]
+
+Tier B/C (session index -- consolidates, does not re-derive, every
+interview answer this WP-ELICIT package landed and where its full
+record lives; supersedes the narrower "Session index, 2026-09-24"
+entry above by extending it through HANDOFF items 0-7). Nothing in this
+entry is new content -- every claim below points to its own full,
+already-written record; read that record before acting on anything
+here.
+
+INTERVIEW ANSWERS AND WHERE THEY LANDED:
+- A1 cost-function severity/change_time shape -> "WP-ELICIT Phase A".
+- A2 display top-3, rank-based -> "WP-ELICIT Phase A".
+- A3 driver-level threshold=5 (data only) -> "WP-ELICIT Phase A".
+- B1 damper step sizes (exploratory=2/fine=1) -> "WP-ELICIT Phase B".
+- B2 TPMS target activation (compound-scoped) -> "WP-ELICIT Phase B".
+- B3 rake standing-practice doctrine (annotation + edge-exemption) ->
+  "WP-ELICIT Phase B".
+- C1 driver-level trust arbitration, corrected to a VETO on the
+  existing multi-corner path -> "WP-ELICIT Phase C1: driver-level trust
+  arbitration, corrected reading".
+- C2 folded into B3 (rake), not a standalone package.
+- C3 kerb-strike-severity blowoff evidence -> "WP-ELICIT Phase C3".
+- C4 feedback-router click-class ARB/damper entries -> "WP-ELICIT Phase
+  C4: feedback-router click-class entries".
+- REVIEWER TIE CORRECTION (HANDOFF item 1, 2026-09-25): C4's own
+  ValueError-on-genuine-tie design (reviewer-affirmed 2026-09-22 and
+  2026-09-24) was ITSELF corrected this close-out -- removed entirely;
+  window headroom then interaction penalty break the tie first, and a
+  surviving genuine tie now emits every alternative as an ordinary
+  pick-one candidate instead of crashing -> "WP-ELICIT HANDOFF item 1:
+  feedback-router tie fix (reviewer correction)".
+- HANDOFF item 2, C4 residue -> "WP-ELICIT HANDOFF item 2" is folded
+  into config/decision_frame.json's own `_comment_c4_residue` key
+  (no separate thesis_notes entry was written for item 2 alone; recorded
+  here instead). EXPLICIT DECISION, stated plainly per this close-out's
+  own instruction: the exit-understeer rear-bump companion note ("one
+  possibility (author): rear bump stiffer, trades a little rear
+  traction for front balance") is DELIBERATELY config-comment only, NOT
+  rendered anywhere in the UI, NOT a candidate, NOT a score input --
+  reviewer + author, 2026-09-24. This is a decision, not an omission.
+- C5 springs understeer mirror (Q12) -> "WP-ELICIT HANDOFF C5: springs
+  understeer mirror, Q12" -- BACKLOG H already routed both alternatives;
+  no new lever_bridges entry, provenance/caution recorded in derived_
+  from/rationale only, grade untouched (structural test constraint).
+- C6 TC safety note (Q6b) -> "WP-ELICIT HANDOFF C6: TC safety note,
+  Q6b" -- display-only dropdown caution, config-driven text.
+- C7 EB exclusion rewrite (Q6) -> "WP-ELICIT HANDOFF C7: EB exclusion
+  rewrite, Q6" -- PLAN.md documentation only, elicitation item 5 split
+  recorded (EB-as-lever resolved, channel mapping still open).
+- Item 4 literature read (blowoff/kerb, damper transient balance) ->
+  "WP-ELICIT HANDOFF item 4: literature read, blowoff/kerb + damper
+  transient balance" -- seeded nothing; docs/literature/ raw PDFs not
+  searchable this session (tool limitation, not "not covered"), flagged.
+- Item 5 brake-bias channel identity -> "WP-ELICIT HANDOFF item 5:
+  Phase D, brake-bias channel identity" -- nothing correlated cleanly on
+  both real sessions; brake_bias stays not-evaluable; the current-state
+  window check stays WITHHELD (propose-first, reviewer away).
+- Item 6 elicitation-list bookkeeping -> PLAN.md's own elicitation list
+  (items 4, 5, 6, 7, 8), each marked with exactly the answer given, no
+  further resolution invented.
+- Item 7(a) candidate census re-run -> "WP-ELICIT Phase E close-out (a)"
+  -- Dubai 6->8, v3 21->25, both deltas traced entirely to Phase C3's
+  kerb_blowoff evidence, zero unexplained residual.
+- Item 7(b) full repo suite -> "WP-ELICIT Phase E close-out (b)" --
+  472/9/1/0, reconciles exactly to the pre-branch baseline plus this
+  branch's own 36 new tests.
+- Elicitation item 9 (display cutoff), item 10 (feedback-router gap,
+  RESOLVED with the tie now fixed by the item-1 correction above -- that
+  item's own PLAN.md text still describes the pre-fix crash risk and was
+  NOT rewritten this close-out, flagged as a known stale passage, not
+  silently left implying otherwise), item 12 (damper click convention,
+  raised then withdrawn) -- all pre-date this close-out's own new work,
+  unchanged, see their own named entries above.
+
+STOP-BEFORE-COMMIT: branch `elicit` stays open, uncommitted, per every
+HANDOFF instruction this session received -- no commit was made at any
+point in items 0-7.
+
+Files touched: none beyond what each named entry above already states.
