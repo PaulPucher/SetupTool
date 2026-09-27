@@ -2,22 +2,65 @@
 
 ### NOW
 
-(0) WP-STYLE (branch `style` off main@45850e9, NOT committed -- awaiting
-    the author's commit decision): comment volume reduction across the
-    release file set (64 files; README.md and .gitignore out of scope).
-    Text-only: every .py file AST-identical to HEAD with docstrings
-    stripped, every config JSON value-identical with _comment keys
-    excluded, all ASCII. 45 files, ~2000 insertions / ~6500 deletions
-    (incl. CLAUDE.md, thesis_notes.md, PLAN.md). CLAUDE.md Tier A citation
-    rule amended (short source name in code, no thesis_notes.md pointer)
-    and recorded in thesis_notes.md "WP-STYLE". diagnostics/*.py filename
-    mentions kept (author ruling). FULL SUITE (once, commit boundary):
-    472 passed / 9 skipped / 1 xfailed / 0 failed, identical to the
-    WP-ELICIT baseline; goldens unregenerated; test_stability.py clean.
-    NEXT: follow-up WP for process records inside runtime STRINGS
-    (decision_frame.py source strings, accuracy_resolution "WP-B") --
-    per-string inventory, UI-shown vs payload, provenance kept, internal
-    doc/WP names stripped, own suite + golden check.
+(0) WP-STRINGS (branch `strings` off main@e65b45f, NOT committed --
+    awaiting the author's commit decision): internal process records
+    removed from runtime strings (UI-shown evidence/rationale, Settings
+    tooltips, candidate payload). Provenance content and dates kept;
+    PLAN/thesis_notes/WP/phase/list names removed; product-file
+    references kept. Feedback-scale caption: placeholder tail replaced
+    by the 7 recorded anchor lines, #444 -> TEXT_DIM. Brake_bias
+    derived_from reduced to "Segers ch.5" (ch.5 page unverified).
+    MARGINAL test repointed from "Metrology Phase 1" to the "~1% ...
+    change" wording. 7 files + records. FULL SUITE (once): 472 passed /
+    9 skipped / 1 xfailed, identical to WP-STYLE; goldens unregenerated;
+    test_stability.py clean. Record: thesis_notes.md "WP-STRINGS".
+    ADDENDUM (same session, reviewer ruling): process framing in
+    UI-read strings the marker scan missed also landed here --
+    lever_bridges[4].rationale ("HONEST DEGRADE, stated per the work
+    order" -> plain "Limitation: ..."), classification derived_from
+    ("per the checklist item", "per the amendment", "the work order's
+    own stop condition", "instruction" -> the reason or nothing),
+    decision_frame.py ABS/TC evidence ("per the user's own rule" ->
+    "per the author-elicited rule") and the exit diff rationale tail
+    ("per the work order's own instruction" dropped). Also fixed a
+    lost space from this package's first round ("rule:'TC"), and the
+    log-only [PERF] fit-chain warning lost its "per the work order"
+    tail (measured time + 30s budget kept). 4 targeted
+    test files 256 passed (full suite not re-run: same inert string
+    class, per ruling).
+    NEXT on this branch: brake-bias refined check (read-only diagnostic).
+    OPEN, named follow-up WP-CONFTEXT: the 178 config values no code
+    reads (channels 6, decision_frame 77, parameters 57,
+    setup_parameters 38 -- note/derived_from/source/notes fields) ship
+    readable in the release and carry the same internal-name leak. Same
+    rules: provenance and dates stay, doc/WP/phase names go; the two
+    test-pinned derived_from values (test_decision_frame "placeholder",
+    "No longer primary") handled with repoint-or-keep care. Scan for
+    process FRAMING too ("work order", "checklist", "amendment",
+    "instruction", "per the user"), not only doc/WP/phase names -- the
+    WP-STRINGS marker scan missed that class on the first pass.
+(0') WP-WEIGHTS (same branch `strings`, NOT committed): cost_function
+    breadth 0.0 (annotation-only; 1.0 was an additive-score misread),
+    headroom 0.1, interaction 0.1 (joint bound 0.2 < 0.2083, the
+    smallest change_time class step), author-elicited 2026-09-26.
+    _interaction_penalty: adverse (-1) entries only, counted once;
+    +1 couplings note-only. splitter_offset window filled (0 +- 4,
+    registry value space). Settings tooltips repointed. Tests: two
+    new interaction tests, weight-pin test repointed (WP-WEIGHTS).
+    Record: thesis_notes.md "WP-WEIGHTS" (incl. Pair-1 latent
+    effort-order violation under the old weights). effect_class 1.0/0.6
+    confirmed (author-elicited 2026-09-26), own derived_from, no WARN --
+    all six cost_function terms now elicited. Accepted limitation:
+    splitter at its default 0 reads as "unknown" in the shared setup
+    reader, so headroom stays neutral there (conservative, flagged).
+    COMBINED COMMIT-BOUNDARY RUN (strings + weights, once): 474 passed /
+    9 skipped / 1 xfailed (472 baseline + 2 new interaction tests);
+    tests/golden/ verified unchanged (git status/diff empty);
+    test_stability.py exit 0. Commit: the author's, after the manual UI
+    check (feedback caption, Settings tooltips/WARN rows).
+(0a) WP-STYLE: DONE, committed to main (e65b45f) -- CORRECTED this
+    rewrite: the previous STATUS said "NOT committed"; main's tip is
+    that commit.
 (0b) WP-ELICIT: DONE, committed to main (4e85ff1); data/ directory
     first-run fix committed on top (45850e9).
     STILL OPEN from WP-ELICIT (carried forward unchanged):

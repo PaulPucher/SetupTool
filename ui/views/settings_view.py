@@ -121,22 +121,22 @@ SECTION4_FIELDS = [
     {"path": ("cost_function", "breadth"), "label": "Breadth weight", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
      "note_path": ("cost_function", "breadth_derived_from"),
-     "short_note": "Penalises a global lever that helps only some assessed corners."},
+     "short_note": "Penalises a global lever that helps only some assessed corners (0 = annotation only)."},
     {"path": ("cost_function", "headroom"), "label": "Headroom weight", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "derived_from"),
+     "note_path": ("cost_function", "headroom_derived_from"),
      "short_note": "How much settings-window distance from nominal matters."},
     {"path": ("cost_function", "interaction"), "label": "Interaction weight", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "derived_from"),
-     "short_note": "Penalises side-effects on other active problems (interaction_table)."},
+     "note_path": ("cost_function", "interaction_derived_from"),
+     "short_note": "Penalises adverse side-effects on other active problems (interaction_table)."},
     {"path": ("cost_function", "effect_class", "primary"), "label": "Effect class: primary", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "derived_from"),
+     "note_path": ("cost_function", "effect_class_derived_from"),
      "short_note": "Multiplier for a primary (matrix-exact) candidate."},
     {"path": ("cost_function", "effect_class", "secondary"), "label": "Effect class: secondary", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "derived_from"),
+     "note_path": ("cost_function", "effect_class_derived_from"),
      "short_note": "Multiplier for a secondary (side-effect) candidate."},
     {"path": ("display_score_threshold", "value"), "label": "Display cutoff score", "unit": "",
      "decimals": 2, "min": 0.0, "max": 20.0,
@@ -494,7 +494,7 @@ class SettingsView(QWidget):
 
         rule_note = QLabel(
             "Re-rank the shortlist only -- never touch verdicts, evidence, or which "
-            "candidates are generated (DECISION LAYER SPEC addendum, PLAN.md)."
+            "candidates are generated."
         )
         rule_note.setWordWrap(True)
         rule_note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")

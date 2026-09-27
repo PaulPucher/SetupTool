@@ -21647,3 +21647,196 @@ Result: 44 files text-only (AST / parsed-value identical to HEAD), full
 suite 472 passed / 9 skipped / 1 xfailed, goldens untouched,
 test_stability.py clean. Process records inside runtime strings are
 deferred to their own WP (strings are behaviour).
+
+## WP-STRINGS: internal process records removed from runtime strings [2026-09-27, branch strings]
+
+DESIGN PRINCIPLE (extends WP-STYLE to strings). A string the tool shows
+or carries at runtime states what the evidence IS, not where or when the
+project decided it. Provenance content stays and is a feature
+("author-elicited 2026-09-24", "reviewer-confirmed ... 2026-09-22",
+dated derived_from audit trails). Internal doc, WP, phase and list names
+go (PLAN.md, thesis_notes.md, "WP-ELICIT Phase B1", "Phase D ITEM 2(c)",
+"elicitation item 4", "Q12", "BACKLOG H"): the release ships without
+those documents, so a user or examiner reading them in the UI gets a
+dangling pointer. Real product-file references (config/parameters.json,
+car_data.json, config/recommendations.json) are not process records and
+stay.
+
+INVENTORY METHOD. Tokenizer scan of every non-docstring string literal
+in modules/, core/, ui/, main.py plus every non-_comment config value,
+then each hit traced to its consumer. Classes found: UI-shown (candidate
+evidence source / rationale in the decision-frame detail, Settings
+tooltips and the classification "last confirmed" line), payload-only
+(candidate derived_from, accuracy_resolution per-node source, which
+resolve_accuracy never returns), none PDF-shown, none log-only.
+Golden files: every marker sat under _meta (config snapshot), which
+diff_json never compares -- no string edit could move a golden.
+
+BEHAVIOUR-CARRYING TEXT (found, deliberately kept). Two text features
+are functional, not decorative: (1) settings_view._is_placeholder_note
+WARN-flags a Settings row whose note contains "placeholder" --
+cost_function / display_score_threshold derived_from and
+vehicle.aero.lift_coeff_note keep that word because the values really
+are placeholders; (2) settings_view._short_derived_from builds the
+visible "last confirmed" line from the latest date in each
+classification derived_from -- every date kept, verified unchanged for
+all five thresholds (latest date 2026-09-02 before and after).
+
+FINDINGS. (a) A UI-shown LS-split evidence string pointed users at
+diagnostics/inspect_ls_cs_disambiguation.py, which WP-CLEAN had already
+moved to diagnostics/_attic/ -- a dangling path in the product, now
+replaced by what the evidence is ("population-relative split, n corners;
+no absolute LS_ratio threshold is configured"). (b) The brake_bias
+candidate carried "Segers ch.5 p.107 Eq.5.3". ch.5 p.107 is not on the
+verified-anchor list (only ch.9 p.199 and ch.10 pp.221-256 were verified
+2026-09-03), so the page/equation precision was unverified; reduced to
+"Segers ch.5" -- chapter granularity is the honest claim, and the
+amended citation rule now applies to payload strings as well as
+comments (reviewer ruling, uniformity).
+
+FEEDBACK SCALE CAPTION. The driver-feedback caption ended in a
+"Placeholder -- full description to be added per value" tail. It now
+lists exactly the seven recorded anchor points, one per line: -5
+undrivable understeer, -3 clearly felt understeer, -1 slight understeer,
+0 balanced, +1 slight oversteer, +3 clearly felt oversteer, +5
+undrivable oversteer. No wording for +-2/+-4 (the recorded semantics
+anchor only these points; in-between values read as between anchors).
+Note: the ITEM 2(c) entry above quotes the old caption's "|3|=strong";
+the recorded band semantics ("clearly felt" for |2..3|) are unchanged,
+only the caption now uses the recorded word. Caption colour moved from
+the literal #444 to TEXT_DIM (colour rule, rider).
+
+TEST REPOINT. test_cs_validity_repair's MARGINAL test pinned the
+process label "Metrology Phase 1"; repointed to the meaning-bearing
+"~1% measurement/parameterisation change" wording.
+
+Result: 7 files (decision_frame.py, accuracy_resolution.py,
+outing_form.py, settings_view.py, parameters.json, decision_frame.json,
+one test). Config edits raw-text, structure and all non-string values
+verified identical. Full suite 472 passed / 9 skipped / 1 xfailed
+(identical to WP-STYLE), goldens unregenerated, test_stability.py clean.
+Out of scope, own follow-up WP-CONFTEXT: 178 config values no code
+reads (documentation in value slots), same rules.
+
+WP-STRINGS ADDENDUM [2026-09-27, same session, reviewer ruling]. The
+first-pass scan matched doc/WP/phase NAMES but not process FRAMING,
+and reading the UI-read config texts in full surfaced a second class:
+wording that cites the work process as the reason ("HONEST DEGRADE,
+stated per the work order", "per the checklist item", "per the
+amendment", "satisfies the work order's own stop condition", "per the
+user's own rule", "per the work order's own instruction"). Same rule
+applied: the factual core stays, the process framing goes. The EB/diff
+limitation now reads as a plain "Limitation: ..." statement of the
+degrade behaviour (EB program not mapped to a channel, so the
+braking-phase diff candidate stays advisory-capped and unvalidated);
+"re-validate per the checklist item" became "re-validate against a
+second session"; the STRONG_CSF exclusion states the rule itself (C9/C3
+excluded from the noise population, threshold required to flag them).
+"Per the user's own rule" became "per the author-elicited rule",
+matching the provenance vocabulary used elsewhere. Also caught and
+fixed: this package's own first round had dropped a space in the TC
+evidence text ("rule:'TC") -- string-seam inspection of the full diff
+now part of the check. Lesson for WP-CONFTEXT: scan for framing
+phrases as well as names. Verification: 4 targeted test files 256
+passed; dates and the "last confirmed" line unchanged; full suite not
+re-run (same inert string class, already proven this session).
+Remaining, out of this ruling: a log-only [PERF] console print in
+outing_form.py ("per the work order -- reported, not fixed").
+[2026-09-27, reviewer ruling] The log-only [PERF] fit-chain warning in outing_form.py (release ships it, visible in any terminal run) now ends "exceeds the 30s budget (this path is not performance-optimised)" -- measured time and budget kept, process tail dropped.
+
+## WP-WEIGHTS: cost-function weight resolutions, breadth/headroom/interaction [2026-09-27, branch strings; elicited 2026-09-26]
+
+Three author-elicited resolutions (2026-09-26, relayed by the reviewer)
+close the last three unelicited cost_function weights. Standing
+constraints held: weights re-rank only (never verdicts, thresholds,
+evidence); A1's term order (change_time dominates severity in the
+normal case) unchanged -- the term-order tests pass untouched.
+
+BREADTH = 0.0. Author: "deliberately neutral, annotation-only -- the
+'helps X, risks others' dropdown line carries the caution; the real
+gate for lonely-corner problems is driver corroboration (no complaint +
+single corner = no change; the existing 0.5 no-corroboration confidence
+cap implements this)."
+
+ADDITIVE-NEUTRAL CORRECTION. The work order first said breadth "stays
+1.0", assuming 1.0 is the neutral value of a multiplier. score() is a
+SUM of six terms; each weight scales an additive term, so the neutral
+value of a weight is 0.0, not 1.0. At 1.0 the breadth term was an active
+penalty: "helps 1 of 3" scored -0.667, larger than the minutes ->
+half_hour change_time step (0.4167), so breadth could overturn the
+effort order. Annotation-only therefore means weight 0.0 -- the
+breadth_note line stays in the UI, the term adds nothing. Reviewer
+corrected the premise (own false premise, stated as such). General
+lesson for the write-up: "neutral" must be derived from the combining
+operation, never assumed.
+
+HEADROOM = 0.1. Author: "near a physical limit, prefer the lever with
+more room -- 'stay inside its comfort range'; weaker than change_time,
+decides between comparable-effort options only." Bound derived from the
+live arithmetic: change_time = 2.5/(effort_rank+1) gives 2.5 / 1.25 /
+0.8333 / 0.625, class steps 1.25 / 0.4167 / 0.2083; the smallest step
+(half_hour -> garage_hours, 0.2083) is binding. The headroom term is a
+bonus 0.1 x (1 - clipped window distance), range [0, 0.1]; neutral 0
+where no window or no setup value exists (existing honest-degrade rule).
+
+INTERACTION = 0.1, adverse-only, counted once. Author: "adverse
+side-effects downrank, mere coupling informs." The previous rule summed
+weight x sign over every firing interaction_table entry: +1 couplings
+earned a bonus (contradicting "coupling informs" and Stage 4's
+"overlapping effect, ranked normally"), and an axle package
+(arb_rl + arb_rr stiffen with oversteer and unstable_yaw active) fired
+four adverse entries. New rule (modules/decision_frame.py
+_interaction_penalty): -weight once if any sign -1 entry fires, else 0;
+every firing entry, +1 included, still gets a dropdown note. A
+2-axis-adverse and a 1-axis-adverse lever now rank equal; the notes
+name every firing entry, which is where that difference belongs
+(reviewer ruling). JOINT BOUND: headroom + interaction = 0.1 + 0.1 =
+0.2 < 0.2083, so the two terms together can never flip adjacent effort
+classes. The once-only count is what makes the bound hold: summed,
+the package case reached -0.4 at weight 0.1.
+
+LATENT VIOLATION FOUND (Pair 1, live score(), real matrix deltas, C6
+apex_3 moderate understeer, confidence 1.0). A = arb_rl stiffen 5->6
+(minutes, at its window edge, one adverse yaw entry firing) vs B =
+camber_fl less_negative -3.5->-3.4 (half_hour, room 0.93). Under the
+old weights (headroom 1.0, interaction 1.0, signed sum): B 3.3619 > A
+1.8500 -- the costlier lever won on headroom + interaction alone, i.e.
+the placeholder weights already violated the elicited "change_time
+dominates" order whenever a window and a side-effect coincided. The
+term-order tests never saw it because they run with current_setup=None
+and no other active evidence (both terms 0). After: A 2.7500 > B
+2.5262, effort order holds. Other pairs, after: tie-break inside one
+class arb_rl 3->4 2.9500 vs toe_front at limit 2.8500 (room decides,
+by 0.1); +1 overlap pairs arb_fl soften / arb_rl stiffen 3.85 -> 2.85
+each (bonus removed, note kept); axle package interaction -0.4
+(summed) -> -0.1. All four reproduced exactly against the implemented
+code.
+
+SPLITTER WINDOW FILLED: nominal 0, span 4 from the registry's recorded
+value_space (-4..+4 mm, default 0, full range = typical window; sign
+convention author-elicited 2026-09-22). The author named splitter as a
+headroom lever, so leaving it unevaluable would contradict the
+elicitation. The hard forward edge stays with Stage 3's edge labels.
+LIMITATION FOUND: the shared setup-sheet reader treats a stored 0 as
+"unknown" (0 cannot be told from an empty spinbox), and 0 is the
+splitter default -- at the default position splitter headroom stays
+neutral (flagged), evaluable only at a non-zero offset.
+
+EFFECT_CLASS PROVENANCE, stated as found. The shared cost_function
+derived_from now says per term: severity/change_time author-elicited
+2026-09-24 (A1); breadth/headroom/interaction author-elicited
+2026-09-26; effect_class ordering and lever-fit placement per the
+decision-layer spec's Phase C decision (reviewer-confirmed 2026-09-22),
+with the 1.0/0.6 magnitudes carried over from the retired
+scoring_weights block. No separate record of the 0.6 value being
+elicited was found in PLAN.md or this file.
+
+Files: config/decision_frame.json (weights, three derived_from keys,
+splitter window), modules/decision_frame.py (_interaction_penalty),
+ui/views/settings_view.py (Headroom/Interaction tooltips repointed,
+Breadth/Interaction short notes made accurate), tests (two new
+interaction tests; weight-pin test repointed and renamed). Settings
+WARN flag clears on the rows that shared the old "placeholder" note.
+
+[2026-09-27, reviewer ruling] Splitter default-0 limitation ACCEPTED as recorded, shared setup reader untouched: the failure direction is conservative (at the default a splitter candidate misses the up-to +0.1 headroom bonus, never gains one) and the score flag states it.
+[2026-09-27] EFFECT_CLASS RESOLVED -- supersedes the 'EFFECT_CLASS PROVENANCE' paragraph above: author-elicited 2026-09-26 (relayed), the 0.6 side-effect magnitude CONFIRMED as-is after the author reviewed its semantics (a lever answering the problem as a side-effect scores 0.6 vs the primary answer's 1.0). effect_class now carries its own derived_from ('side-effect answers worth ~60% of a primary answer, magnitudes 1.0/0.6 confirmed; term placement reviewer-confirmed 2026-09-22'), no placeholder, no WARN; all six cost_function terms are now elicited.

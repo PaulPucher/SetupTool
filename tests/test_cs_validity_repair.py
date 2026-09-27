@@ -429,7 +429,9 @@ def test_classify_corner_marginal_marker_fires_within_anchored_margin():
     assert "understeer" in short
     assert "[MARGINAL]" in short
     assert "[MARGINAL]" in long_
-    assert "Metrology Phase 1" in long_
+    # WP-STRINGS: repointed on purpose from the removed process label to the
+    # meaning-bearing part of the annotation
+    assert "~1% measurement/parameterisation change" in long_
 
 
 def test_classify_corner_marginal_marker_absent_far_from_threshold():

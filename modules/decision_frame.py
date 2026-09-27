@@ -195,8 +195,7 @@ def _build_ls_disambiguation_evidence(aggregated, aggregated_ls, corner_verdict_
             "ls_class": "traction_limited" if ls_r < ls_median else "cornering_limited",
             "source": f"LS_ratio_r={ls_r:.3f} vs session median {ls_median:.3f} "
                       f"(population-relative split, n={len(population)} corners; "
-                      f"method: diagnostics/inspect_ls_cs_disambiguation.py, "
-                      f"no absolute LS_ratio threshold exists in config -- see PLAN.md STEP 4)",
+                      f"no absolute LS_ratio threshold is configured)",
         })
     return evidence
 
@@ -261,7 +260,7 @@ def _build_ls_threshold_evidence(aggregated_ls, by_corner_laps, config):
                     "phase_scope": "exit" if is_exit else "braking_turnin",
                     "source": f"LS_ratio_{('f' if axle=='front' else 'r')}={val:.3f} < "
                               f"{'STRONG_LSF' if axle=='front' else 'STRONG_LSR'}={thresh:.2f} "
-                              f"(LS-evidence census, thesis_notes.md 'LS-evidence work package'); "
+                              f"(LS-evidence census); "
                               f"repeats on {repeat}/{total} laps, signal on {valid_laps}/{total} laps"
                               + (f"; exit-phase confidence capped at {exit_discount} "
                                  f"(TC corroboration structurally unavailable this session, "
@@ -463,7 +462,7 @@ def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, cha
                 "speed_class": aggregated.get(cid, {}).get("speed_class"),
                 "verdict": "unstable_yaw", "severity": None, "confidence": confidence,
                 "source": f"abs_active read 0 throughout entry_1_brake on {inactive_count}/{total} analysed "
-                          f"laps{pos_txt} -- corroborates braking-phase instability per the user's own rule: "
+                          f"laps{pos_txt} -- corroborates braking-phase instability per the author-elicited rule: "
                           f"'ABS inactive + instability under braking -> more ABS'.",
             })
 
@@ -481,7 +480,7 @@ def _build_intervention_abs_evidence(corners, by_corner_laps_ignored, state, cha
                 "verdict": None, "severity": None, "confidence": confidence,
                 "masked_by_heavy_abs": True,
                 "source": f"abs_active duty cycle >= {heavy_threshold:.0%} of entry_1_brake on {heavy_count}/"
-                          f"{total} analysed laps{pos_txt} -- per the user's own rule, this corner/phase's own "
+                          f"{total} analysed laps{pos_txt} -- per the author-elicited rule, this corner/phase's own "
                           f"braking-phase verdict may reflect ABS regulation rather than raw mechanical "
                           f"balance; prefer brake-balance/platform levers over a literal reading.",
             })
@@ -521,8 +520,8 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
             "speed_class": aggregated.get(cid, {}).get("speed_class"),
             "verdict": "oversteer", "severity": None, "confidence": confidence,
             "source": f"ecu_B_tc_act read 1 during exit_4/exit_5 on {active_count}/{total} analysed laps "
-                      f"(USABLE-NOW boolean, Frame-Stage-2 Phase 2) -- corroborates traction-limited per "
-                      f"the user's own rule: 'TC cutting hard + exit oversteer -> corroborates "
+                      f"(clean boolean channel) -- corroborates traction-limited per "
+                      f"the author-elicited rule: 'TC cutting hard + exit oversteer -> corroborates "
                       f"traction-limited'.",
         })
     return evidence
@@ -710,7 +709,7 @@ def _build_driver_feedback_evidence(feedback_data, aggregated, feedback_cfg):
                 "verdict": "oversteer" if raw > 0 else "understeer",
                 "severity": None, "confidence": confidence, "raw_feedback": raw,
                 "source": f"driver feedback {raw:+g} at {phase} (magnitude {magnitude:g}; "
-                          f"band-shaped confidence {confidence} -- Phase D ITEM 2(c), 2026-09-23, "
+                          f"band-shaped confidence {confidence} -- 2026-09-23, "
                           f"band values provisional pending elicitation)",
             })
     return evidence
@@ -964,7 +963,7 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                              "stiffness). Not itself a matrix cell for this scenario -- proposed "
                              "grade, advisory-capped, a heavier-effort alternative to the ARB lever, "
                              "not a substitute recommendation on equal footing. Companion note "
-                             "(author-elicited 2026-09-24, WP-ELICIT Phase B1): softer rear springs "
+                             "(author-elicited 2026-09-24): softer rear springs "
                              "and stiffer rear dampers are compensatory, same axle -- if the springs "
                              "move, the rear dampers may need a matching stiffen to hold the platform "
                              "where the springs alone would let it move. Informational only, not a "
@@ -1009,8 +1008,7 @@ def _exit_oversteer_candidates(corner_verdicts_by_key, ls_by_key, registry, conf
                              "stabilising the rear on corner exit -- the same mechanism the matrix "
                              "already uses for turn-in/apex oversteer (cells OS-TIN-med, OS-APX-med), "
                              "generalised here to exit. No matrix cell exists for diff_position at "
-                             "exit specifically -- PROPOSED grade, advisory-capped, per the work "
-                             "order's own instruction.",
+                             "exit specifically -- PROPOSED grade, advisory-capped.",
             })
     return candidates
 
@@ -1105,11 +1103,10 @@ def _brake_bias_candidates(evidence):
             "grade": "proposed",
             "cell_id": None,
             "evidence_refs": [e],
-            "derived_from": "Segers ch.5 p.107 Eq.5.3 (docs/segers_bridge_review.md C5-1), "
-                             "reviewer-confirmed direction convention 2026-09-22",
+            "derived_from": "Segers ch.5; reviewer-confirmed direction convention 2026-09-22",
             "rationale": mechanism + f" Severity-scaled {clicks} click(s) (max 3). Direction is "
                          "an output word only -- the channel's own sign/scale and current-state "
-                         "window are elicitation item 4, not resolved here.",
+                         "window are not yet resolved.",
         })
     return candidates
 
@@ -1978,8 +1975,13 @@ def _interaction_penalty(candidate, evidence, decision_config, weight):
                     and e.get("severity") not in (None, "normal")]
     other_verdicts = {e["verdict"] for e in other_active if e.get("verdict")}
 
+    # Adverse side-effects downrank, mere coupling informs: only sign -1
+    # scores, and only once per candidate -- summing per entry would let an
+    # axle package (4 adverse entries) exceed the joint headroom+interaction
+    # bound that keeps both terms below one change_time class step. Every
+    # firing entry, +1 included, still gets a note.
     param_directions = {(a["parameter"], a.get("direction")) for a in candidate["actions"]}
-    penalty = 0.0
+    any_adverse = False
     notes = []
     for entry in table:
         if (entry["parameter"], entry["direction"]) not in param_directions:
@@ -1987,10 +1989,11 @@ def _interaction_penalty(candidate, evidence, decision_config, weight):
         target_verdict = _AXIS_TO_VERDICT.get(entry["performance_axis"])
         if target_verdict is None or target_verdict not in other_verdicts:
             continue  # no other problem on this axis
-        penalty += weight * entry["sign"]
+        if entry["sign"] < 0:
+            any_adverse = True
         notes.append(f"{entry['parameter']} {entry['direction']} -> {entry['performance_axis']} "
                      f"(sign={entry['sign']:+d}, grade={entry['grade']})")
-    return penalty, notes
+    return (-weight if any_adverse else 0.0), notes
 
 
 def _breadth_penalty(candidate, weight):

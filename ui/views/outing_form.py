@@ -174,8 +174,7 @@ class StabilityAnalysisThread(QThread):
                     print(f"[PERF] {sideslip_source} fit chain: {fit_time_s:.3f}s")
                     if fit_time_s > 30.0:
                         print(f"[PERF] *** WARNING: {sideslip_source} fit chain took {fit_time_s:.3f}s, "
-                              f"exceeds the 30s budget (production performance NOT optimised for this "
-                              f"per the work order -- reported, not fixed) ***")
+                              f"exceeds the 30s budget (this path is not performance-optimised) ***")
                 slip = estimate_slip_angles(state, beta, effective_params)
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
@@ -466,7 +465,7 @@ class OutingForm(QWidget):
             if marginal_marker:
                 long_parts.append(
                     "this verdict can flip under a realistic ~1% measurement/parameterisation "
-                    "change (Metrology Phase 1, thesis_notes.md)"
+                    "change"
                 )
 
         if destabilising:
@@ -2805,7 +2804,7 @@ class OutingForm(QWidget):
             "Corner-weighing convention: driver seated + 35 kg fuel reference. "
             "When all four FL/FR/RL/RR are entered, the analysis uses them as the "
             "session's own mass/front-rear split (Level 2) instead of the config "
-            "default (Level 1) -- see modules/accuracy_resolution.py."
+            "default (Level 1)."
         )
         weights_group.setStyleSheet("""
             QGroupBox {
@@ -3521,13 +3520,18 @@ class OutingForm(QWidget):
         split_layout.addWidget(map_panel, 2)
         layout.addWidget(split)
 
-        # per-value wording still a placeholder
+        # only the recorded anchor points are worded; even values sit between them
         scale_desc = QLabel(
-            "Scale: -5 undrivable understeer | -3 strong understeer | -1 slight understeer | "
-            "0 neutral | +1 slight oversteer | +3 strong oversteer | +5 undrivable oversteer\n"
-            "Placeholder -- full description to be added per value."
+            "Scale:\n"
+            "-5  undrivable understeer\n"
+            "-3  clearly felt understeer\n"
+            "-1  slight understeer\n"
+            " 0  balanced\n"
+            "+1  slight oversteer\n"
+            "+3  clearly felt oversteer\n"
+            "+5  undrivable oversteer"
         )
-        scale_desc.setStyleSheet("color: #444; font-size: 10px; margin-top: 4px;")
+        scale_desc.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; margin-top: 4px;")
         scale_desc.setWordWrap(True)
         layout.addWidget(scale_desc)
 

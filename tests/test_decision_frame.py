@@ -182,6 +182,36 @@ def test_interaction_penalty_sign_negative_against_other_active_problem():
     assert without_other_problem["interaction_notes"] == []
 
 
+def test_interaction_positive_coupling_is_note_only():
+    # arb_fl soften -> understeer_tendency is sign=+1. Another active
+    # understeer at the same corner fires it: coupling informs (note) but
+    # scores nothing.
+    config = load_decision_frame_config()
+    own = {"type": "corner_verdict", "corner": 4, "phase": "apex_3",
+           "verdict": "understeer", "severity": "moderate", "confidence": 1.0, "source": "test"}
+    other_understeer = dict(own, phase="exit_4")
+    candidate = _dummy_candidate(param="arb_fl", direction="soften", evidence_refs=[own])
+    result = score(candidate, [own, other_understeer], None, config)
+    assert result["components"]["interaction"] == 0.0
+    assert any("sign=+1" in n for n in result["interaction_notes"])
+
+
+def test_interaction_adverse_entries_count_once():
+    # arb_rl + arb_rr stiffen, other oversteer AND unstable_yaw active: four
+    # adverse entries fire, the penalty is still exactly one weight -- the
+    # once-only count keeps the headroom+interaction bound for packages.
+    config = load_decision_frame_config()
+    own = {"type": "corner_verdict", "corner": 4, "phase": "apex_3",
+           "verdict": "understeer", "severity": "moderate", "confidence": 1.0, "source": "test"}
+    others = [dict(own, phase="exit_4", verdict="oversteer"),
+              dict(own, phase="entry_1_brake", verdict="unstable_yaw")]
+    candidate = _dummy_candidate(param="arb_rl", direction="stiffen", delta=1, evidence_refs=[own])
+    candidate["actions"].append({"parameter": "arb_rr", "direction": "stiffen", "delta": 1})
+    result = score(candidate, [own] + others, None, config)
+    assert sum("sign=-1" in n for n in result["interaction_notes"]) == 4
+    assert result["components"]["interaction"] == -config["cost_function"]["interaction"]
+
+
 # --- No-signal evidence lowers confidence --------------------------------
 
 def test_no_signal_phases_lower_confidence():
@@ -1767,19 +1797,28 @@ def test_eligibility_classes_driver_level_threshold_matches_recommendations_neut
     assert config["eligibility_classes"]["driver_level_threshold"] == 5
 
 
-def test_cost_function_severity_and_change_time_elicited_others_placeholder():
-    # WP-ELICIT Phase A1 (2026-09-24): severity/change_time now carry a
-    # real elicited shape; breadth/headroom/interaction remain unelicited
-    # neutral placeholders (1.0) until their own elicitation lands.
+def test_cost_function_weights_elicited_values_pinned():
+    # severity/change_time elicited 2026-09-24 (A1); breadth/headroom/
+    # interaction/effect_class elicited 2026-09-26 (WP-WEIGHTS).
     config = load_decision_frame_config()
     cost = config["cost_function"]
     for key in ("severity", "change_time", "breadth", "headroom", "interaction"):
         assert key in cost
         assert isinstance(cost[key], (int, float))
-    assert "author-elicited" in cost["derived_from"]
-    assert "placeholder" in cost["derived_from"]
+    # WP-WEIGHTS: repointed on purpose -- breadth/headroom/interaction are no
+    # longer placeholders; pin the elicited 2026-09-26 values and provenance.
+    assert "author-elicited 2026-09-24" in cost["derived_from"]
+    assert "author-elicited 2026-09-26" in cost["derived_from"]
+    assert "placeholder" not in cost["derived_from"]
     assert cost["change_time"] == 2.5
-    assert cost["breadth"] == cost["headroom"] == cost["interaction"] == 1.0
+    assert cost["breadth"] == 0.0
+    assert cost["headroom"] == cost["interaction"] == 0.1
+    for key in ("breadth_derived_from", "headroom_derived_from", "interaction_derived_from",
+                "effect_class_derived_from"):
+        assert "author-elicited 2026-09-26" in cost[key]
+        assert "placeholder" not in cost[key]
+    assert cost["effect_class"]["primary"] == 1.0
+    assert cost["effect_class"]["secondary"] == 0.6
 
 
 def test_display_top_n_supersedes_display_score_threshold_as_primary():

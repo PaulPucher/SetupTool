@@ -68,7 +68,7 @@ def _resolve_steering_ratio(params, cap):
                 "table_ratio": ratio,
                 "constant": config_value,
             },
-            "source": "car_data.json steering_ratio_table (WP-B, manufacturer digitised)",
+            "source": "car_data.json steering_ratio_table (manufacturer data, digitised)",
             "best_available_level": best_available_level,
         }
 
