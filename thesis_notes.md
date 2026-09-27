@@ -21563,4 +21563,60 @@ STOP-BEFORE-COMMIT: branch `elicit` stays open, uncommitted, per every
 HANDOFF instruction this session received -- no commit was made at any
 point in items 0-7.
 
+## Release-branch handover: fresh-clone data/ directory bug found and
+fixed [2026-09-25]
+
+Per PLAN.md "Repo handover procedure (decided 2026-07-26)", this session
+built the orphan `release` branch (single root commit, exactly the
+runtime-derived file whitelist: source tree + non-protected config/
+images/icons + requirements.txt + a new README.md and a wider
+release-only .gitignore; `git ls-files` verified empty on every
+protected path; main verified untouched afterward). Full record of the
+whitelist derivation and the branch build is in this session's own
+work-order exchange, not duplicated here -- this entry covers only the
+bug the clone-and-run verification step surfaced.
+
+FINDING. The work order's step 3 required booting the app in a genuinely
+fresh clone with no pre-existing `data/` directory (SQLite DB created at
+first run, per the release README). This crashed immediately at
+import-time `init_db()` (`models/base.py`):
+`sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to
+open database file`. Root cause: `DATABASE_PATH = "data/setuptool.db"`
+is a relative path; `create_engine()` connects lazily, so the actual
+`sqlite3.connect()` call happens inside `Base.metadata.create_all(engine)`,
+and SQLite creates the `.db` file but never a missing parent directory.
+Nothing in the codebase created `data/` -- the only prior auto-mkdir
+anywhere is `modules/pipeline_sidecar.py`'s own cache-directory creation,
+which doesn't cover this path. This is a pre-existing bug on `main`,
+independent of the release-branch work: the author's own long-lived
+working copy has had a stray, gitignored `data/` folder sitting around
+(apparently created once, months ago, never removed) that silently
+masked it on every machine the app had actually been run on. The
+release branch's fresh-clone check was the first genuinely clean
+environment and caught it immediately.
+
+FIX (neutral engineering, Tier C -- a first-run environment guarantee,
+no method/threshold/schema content). `models/base.py`: added
+`os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)` at module
+level, right after `DATABASE_PATH` is defined and before
+`create_engine()` is constructed -- derived from `DATABASE_PATH` itself
+rather than a hardcoded `"data"` literal, so it can't drift if the path
+ever changes. Comment states the WHY (SQLite doesn't create parent
+directories; fresh checkouts crashed at import-time `init_db()`).
+
+VERIFICATION (three checks, no full suite -- no analysis path touched).
+(1) Fresh throwaway directory with no `data/`: `init_db()` created both
+the directory and `data/setuptool.db`, no `OperationalError`. (2) The
+author's own working copy, where `data/setuptool.db` already existed
+(1,245,184 bytes): re-ran `init_db()`, file size unchanged afterward --
+confirmed idempotent, no behaviour change. (3) `test_stability.py` run
+clean against the real Dubai sample, full printed output unchanged in
+shape from prior runs (81,599 samples, 56 corners detected, 14 stable
+corner clusters, same accuracy-level dict) -- confirms the fix touches
+only DB-directory creation, nothing on the analysis path.
+
+Release branch was not yet refreshed with this fix at the point this
+entry was written; that is the next step, on the reviewer's own
+instruction.
+
 Files touched: none beyond what each named entry above already states.
