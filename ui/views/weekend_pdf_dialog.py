@@ -1,6 +1,5 @@
-# Weekend PDF export -- outing-selection dialog. Tier C UI, no business
-# logic beyond the "which outings" selection and the file-save dialog;
-# document generation itself lives entirely in core/weekend_pdf_export.py.
+# Weekend PDF export: outing selection + save dialog. Document built in
+# core/weekend_pdf_export.py.
 
 import os
 import traceback
@@ -26,9 +25,7 @@ class WeekendPdfDialog(QDialog):
         self.setWindowTitle("Export Weekend PDF")
         self.setModal(True)
         self.resize(480, 440)
-        # Follow-up item 1: native minimise/maximise buttons -- this
-        # dialog's outing list can scroll, so maximising is genuinely
-        # useful for a weekend with many outings.
+        # min/max buttons -- the outing list can get long
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
 
         layout = QVBoxLayout(self)
@@ -49,8 +46,7 @@ class WeekendPdfDialog(QDialog):
             .order_by(Outing.date_time.desc())
             .all()
         )
-        # Scalar columns are already loaded by the query above; only the
-        # (unused here) relationships would need the session kept open.
+        # scalar columns already loaded; only relationships would need the session
         self._outing_rows = [
             (o.id, o.number, o.name, o.date_time) for o in outings
         ]
@@ -127,12 +123,8 @@ class WeekendPdfDialog(QDialog):
             .filter(Outing.id.in_(selected_ids))
             .all()
         )
-        # Same pattern as OutingsView._open_edit_outing: read the ORM rows
-        # while the session is open, close it, then hand the (already
-        # scalar-loaded) objects to code that runs after close -- no
-        # relationship access happens post-close anywhere downstream
-        # (generate_weekend_pdf resolves driver name/level via its own
-        # fresh Session, never outing.driver).
+        # read rows, close the session, then hand over scalar-loaded objects --
+        # nothing downstream touches relationships (the PDF opens its own session)
         session.close()
 
         from core.weekend_pdf_export import generate_weekend_pdf
@@ -145,10 +137,7 @@ class WeekendPdfDialog(QDialog):
             )
             return
         except Exception as e:
-            # Reliability pass: full traceback to the console/log, a
-            # friendly one-line message in the dialog (repr() shows
-            # Python syntax like ClassName('message'), not prose a race
-            # engineer should have to parse).
+            # traceback to the console, one readable line in the dialog
             from core.error_text import friendly_error_text
             print(traceback.format_exc())
             QMessageBox.critical(

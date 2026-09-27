@@ -1,7 +1,5 @@
-# Shared GPS -> local x/y (metres) projection primitives.
-# Pure Python/numpy. No Qt imports.
-# Equirectangular approximation anchored at a chosen origin -- fine at
-# track scale (a few km), no need for a proper geodesic projection.
+# GPS -> local x/y in metres. Equirectangular about an origin -- fine at
+# track scale (a few km).
 
 import numpy as np
 
@@ -16,16 +14,9 @@ def project_latlon_to_xy(lat, lon, origin_lat, origin_lon):
 
 
 def compute_gps_origin(gps_lat_channel, gps_lon_channel):
-    # Origin = the GPS channel's own first sample. Used where only raw
-    # channels are available (no resampled vehicle state yet) -- e.g.
-    # corner apex positions computed immediately after parsing, before any
-    # stability analysis has run. This can differ by a fraction of a
-    # second (and so a small distance) from prepare_vehicle_state's origin
-    # in modules/stability_analysis.py, which anchors on the GPS value
-    # interpolated onto ecu_speed's first sample time. Both are valid
-    # local origins for the SAME projection formula above; only the
-    # projection math is shared between the two call sites, not the
-    # origin's exact anchor instant.
+    # origin = first raw GPS sample, for use before any resampled state exists.
+    # Can sit slightly off prepare_vehicle_state's origin (anchored on
+    # ecu_speed's first time) -- same projection, different anchor instant.
     if gps_lat_channel is None or gps_lon_channel is None:
         return None, None
     if (gps_lat_channel.get("quality") in ("missing", "failed")

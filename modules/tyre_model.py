@@ -1,23 +1,9 @@
-# Dugoff lateral tyre model. Pure Python/numpy, no Qt imports.
+# Dugoff lateral tyre model, pure cornering (no combined slip).
+# Rajamani ch. 13.10.
 #
-# Method anchor recorded in thesis_notes.md, "WP-N1: Dugoff tyre model
-# chosen + first-pass fit, identifiability finding" entry. Pure-cornering
-# reduction (no combined slip, no longitudinal slip ratio term) -- the
-# form this project needs, since the nonlinear observer this feeds only
-# estimates lateral state.
-#
-# Sign convention: the literature form is Fy = -c_alpha*tan(alpha)*f(lambda)
-# (SAE-style, force opposes slip). This codebase's slip-angle definitions
-# (modules/stability_analysis.py estimate_slip_angles, sign convention
-# anchor recorded in thesis_notes.md, "CS_ratio (cornering stiffness
-# ratio) -- Werner MA method" entry, alpha_r carries its own leading
-# minus) already produce a
-# POSITIVE Fy-vs-alpha slope -- confirmed empirically on Dubai data (both
-# axles, corr(alpha, Fy_filt) > 0, matching the positive C_alpha the
-# pipeline reports throughout Module 4b). This module drops the literature
-# minus sign to match: Fy = +c_alpha*tan(alpha)*f(lambda). c_alpha and
-# mu_fz are still both positive parameters; only the overall sign differs
-# from the textbook formula, not the shape.
+# Sign: literature has Fy = -c_alpha*tan(alpha)*f(lambda). Our slip angles
+# (Werner S2.2.3 convention) give a positive Fy-alpha slope on real data,
+# so the minus is dropped: Fy = +c_alpha*tan(alpha)*f(lambda).
 
 import numpy as np
 
@@ -25,16 +11,9 @@ _TAN_EPS = 1e-9  # guards the lambda division as alpha -> 0
 
 
 def dugoff_lateral_force(alpha_rad, c_alpha, mu_fz):
-    """Compute Fy(alpha) for one axle. mu_fz is the friction force ceiling
-    (mu * Fz, Newtons) -- a single lumped parameter here, not mu and Fz
-    passed separately; the caller decides whether it's a fixed scalar or
-    a per-sample array.
-
-    lambda < 1 is the sliding/saturated branch (large slip relative to
-    the available friction force); lambda >= 1 is the adhesion branch,
-    where f is capped at 1 and Fy reduces to the linear c_alpha*tan(alpha)
-    relation. This threshold is the model's adhesion/sliding boundary, not
-    a tunable.
+    """Fy(alpha) for one axle. mu_fz = mu*Fz [N], lumped; scalar or per-sample.
+    lambda < 1 = sliding, lambda >= 1 = adhesion (f = 1, linear). Model
+    boundary, not a tunable.
     """
     alpha_rad = np.asarray(alpha_rad, dtype=float)
     tan_a = np.tan(alpha_rad)
@@ -45,20 +24,13 @@ def dugoff_lateral_force(alpha_rad, c_alpha, mu_fz):
 
 
 def dugoff_lateral_stiffness(alpha_rad, c_alpha, mu_fz):
-    """Compute dFy/dalpha analytically, matching dugoff_lateral_force's
-    sign convention. Piecewise-continuous at lambda=1 by construction (the
-    Dugoff f(lambda) has a continuous first derivative there):
+    """Analytic dFy/dalpha, same sign convention as dugoff_lateral_force:
 
     lambda >= 1: dFy/dalpha = c_alpha / cos^2(alpha)
     lambda <  1: dFy/dalpha = c_alpha / cos^2(alpha) * lambda^2
 
-    Both branches collapse to the single expression below using
-    min(lambda, 1)^2 -- and since lambda depends on |tan(alpha)|, the
-    result is already an even function of alpha (correct: stiffness is
-    the derivative of an odd force curve), no separate sign handling
-    needed. Verified against central-difference numerical differentiation
-    of dugoff_lateral_force (max relative error ~2.5e-9) during
-    implementation.
+    -> one expression with min(lambda, 1)^2; even in alpha via |tan|.
+    Checked against central differences (max rel. error ~2.5e-9).
     """
     alpha_rad = np.asarray(alpha_rad, dtype=float)
     cos_a = np.cos(alpha_rad)

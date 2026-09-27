@@ -1,41 +1,14 @@
-# Per-session accuracy-level resolution (WP-C).
+# Per-session accuracy levels: registry (parameters.json accuracy_levels)
+# + outing setup_data + optional cap (int 1-4, None = best available)
+# -> values the pipeline uses and the level map the UI shows.
 #
-# Resolves the WP-A static registry (config/parameters.json accuracy_levels)
-# against per-outing setup_data and an optional global cap, producing both
-# the values Modules 1-5 actually consume and the level map the UI/cache
-# layers report. Pure Python, no Qt -- the cap crosses the UI/modules
-# boundary as a plain int (1-4) or None ("best available"), the same shape
-# lap_filter already uses (ui/views/outing_form.py).
+# Resolved live: mass, corner_weights, steering_ratio; cog_position and
+# steering_angle cascade from those. Everything else stays at its registry
+# level -- no alternative value to switch to.
+# yaw_inertia not cascaded: method ceiling 1 (m*a*b) -> always level 1.
 #
-# Three dynamically-wired leaf nodes today: mass, corner_weights,
-# steering_ratio. cog_position and steering_angle are pure cascades (no
-# source list of their own -- cog_position from corner_weights,
-# steering_angle from steering_ratio). Every other registry node
-# (yaw_inertia, lateral_force_split, sideslip_angle, speed, yaw_rate,
-# lateral_acc, wheelbase_m) stays single-source at its registry-declared
-# level regardless of cap -- there is no alternate value to fall back to
-# yet, so capping its label without capping its computation would
-# misrepresent what was actually used. yaw_inertia and lateral_force_split
-# are chain-limited by mass_kg/corner_weights per the registry's capped_by
-# field, but are not cascaded dynamically here: yaw_inertia's m*a*b
-# estimate carries its own method_ceiling (1) regardless of how well its
-# inputs are known, so min(method_ceiling=1, mass_level, cog_position_level)
-# always equals 1 under today's registry -- wiring the cascade would be a
-# no-op until the ceiling itself changes (a different Iz measurement
-# method, not a better-measured mass or cog position). lateral_force_split
-# inherits that same ceiling transitively through yaw_inertia, for the
-# same reason.
-#
-# steering_ratio (WP-B) is a genuine parameterization upgrade, not a
-# deviation from any chair scientific position -- the 15.7 constant was
-# never a chair-adopted method, it is this car's own mechanical steering
-# geometry, digitised from a manufacturer table (config/car_data.json
-# steering_ratio_table) at Level 4. Unlike mass/corner_weights, this node
-# has no per-outing setup_data involvement at all: availability depends
-# only on whether the local, gitignored car_data.json file exists and its
-# table parses and is monotonic, never on anything about the current
-# outing -- so a run on a machine without that file falls back to the
-# Level 1 constant transparently, by construction, not by special-casing.
+# steering_ratio L4 = manufacturer table in car_data.json (local,
+# gitignored); file missing or table bad -> L1 constant.
 
 import copy
 
@@ -51,14 +24,9 @@ def _cap_ceiling(cap):
 
 
 def _load_steering_ratio_table():
-    """Load and validate car_data.json's steering_ratio_table. Returns
-    (angle_deg, ratio) as plain Python lists (not numpy arrays -- this
-    result flows into resolve_accuracy's JSON-serialised "values", which
-    the WP5 cache payload and WP6 identity check both need to compare/
-    persist directly), or None if the file is absent, malformed, or the
-    table's lookup axis (steering_wheel_angle_deg) isn't strictly
-    increasing -- np.interp requires that precondition, and a table
-    failing it is not safely usable regardless of why it failed.
+    """(angle_deg, ratio) as plain lists (goes into JSON-serialised "values"),
+    or None if missing, malformed, or angle axis not strictly increasing
+    (np.interp needs that).
     """
     car_data = load_car_data()
     if not car_data:
@@ -118,9 +86,7 @@ def _resolve_steering_ratio(params, cap):
 
 
 def _resolve_steering_angle(steering_ratio_resolved):
-    # Pure cascade -- delta_f_rad's accuracy is exactly steering_ratio's
-    # own, nothing else approximates on top of the conversion (unlike
-    # yaw_inertia's method ceiling).
+    # pure cascade, no approximation on top
     return {
         "level": steering_ratio_resolved["level"],
         "source": f"derived from steering_ratio ({steering_ratio_resolved['source']})",
@@ -135,11 +101,8 @@ def _resolve_corner_weights(params, setup_data, cap):
     session_car = (setup_data or {}).get("car", {}) or {}
     keys = ("corner_weight_fl", "corner_weight_fr", "corner_weight_rl", "corner_weight_rr")
     raw = [session_car.get(k) for k in keys]
-    # Zero-sentinel availability check, scoped to this field specifically: a
-    # real car's corner load can never be 0 kg, so 0.0 (the setup_data JSON
-    # blob's unfilled default) is a safe "not entered" proxy here. All four
-    # must be present -- a partial fill would silently mix a measured corner
-    # with a defaulted one in the same front/rear fraction split.
+    # 0.0 = not entered (no real corner weighs 0 kg). All four or none --
+    # no mixing measured and default corners.
     session_available = all(v is not None and v != 0.0 for v in raw)
     best_available_level = 2 if session_available else 1
 
@@ -166,8 +129,7 @@ def _resolve_mass(params, setup_data, cap, corner_weights_resolved):
 
     session_car = (setup_data or {}).get("car", {}) or {}
     total_raw = session_car.get("total_weight")
-    # Same zero-sentinel scoping as corner_weights: total mass can never be
-    # 0 kg for a real car.
+    # 0.0 = not entered
     explicit_available = total_raw is not None and total_raw != 0.0
 
     derived_available = corner_weights_resolved["level"] == 2
@@ -186,11 +148,7 @@ def _resolve_mass(params, setup_data, cap, corner_weights_resolved):
 
     best_available_level = 2 if (explicit_available or derived_available) else 1
 
-    # Priority when multiple L2 sources are available at once: explicit
-    # setup_data.total_weight wins over the derived corner-weight sum --
-    # never blended/averaged, per the standing "highest available wins"
-    # rule. The consistency warning above fires independently of which one
-    # is actually used.
+    # explicit total_weight beats corner sum; never averaged
     if explicit_available and 2 <= ceiling:
         return (
             {
@@ -223,15 +181,9 @@ def _resolve_mass(params, setup_data, cap, corner_weights_resolved):
 
 
 def _resolve_cog_position(params, corner_weights_resolved):
-    # Pure cascade -- no cap check of its own, since corner_weights_resolved
-    # already reflects whatever cap was applied. At Level 1 this reads the
-    # stored config constants directly rather than recomputing a = L*rear_
-    # fraction from config's own corner weights: the two are numerically
-    # equal in principle (the constants were derived that way, per vehicle.
-    # cog_note), but config stores them rounded to 3 decimals, so recomputing
-    # would introduce a sub-millimetre floating-point drift against every
-    # existing byte-identical baseline. Only Level 2 (real session corner
-    # weights, no precomputed constant to fall back on) actually recomputes.
+    # Cascade from corner_weights (cap already applied there).
+    # L1 reads the stored a/b constants rather than recomputing -- config
+    # rounds them to 3 dp, recomputing would drift the baselines.
     if corner_weights_resolved["level"] == 1:
         value = {
             "cog_to_front_axle_m": params["vehicle"]["cog_to_front_axle_m"],
@@ -259,39 +211,12 @@ def _resolve_cog_position(params, corner_weights_resolved):
 
 
 def resolve_accuracy(params, setup_data=None, cap=None):
-    """Resolve per-session accuracy for the dynamically-wired registry
-    nodes (mass, corner_weights, cog_position, steering_ratio,
-    steering_angle) against setup_data and an optional global cap (int
-    1-4, or None for "best available" -- no ceiling). Every other
-    registry node mirrors its static declared level unchanged.
+    """Resolve mass, corner_weights, cog_position, steering_ratio and
+    steering_angle for this session; other nodes keep their registry level.
 
-    Returns {"levels": {node: level}, "values": {mass_kg, corner_weights,
-    cog_to_front_axle_m, cog_to_rear_axle_m, steering_ratio, plus the
-    static section-1 physics constants below}, "clipped": bool,
-    "warnings": [str, ...]}. "values" is JSON-serialisable (plain
-    floats/lists/dicts, no numpy arrays) since it flows directly into the
-    WP5 cache payload and the WP6 identity check. "clipped" is true iff
-    the cap actually lowered a dynamically-resolved node below its own
-    best-available level -- selecting a cap that happens not to bind on
-    today's data (or today's car_data.json availability) must not read
-    as a comparison run.
-
-    PART B amendment (2026-07-27): "values" also carries cog_height_m,
-    track_width_front_m, track_width_rear_m, wheelbase_m,
-    yaw_inertia_kgm2, and the four aero.* fields -- straight passthrough
-    from params["vehicle"], no per-session resolution logic of their own
-    (unlike the five dynamically-wired fields above). They exist in this
-    dict SOLELY so the WP5/WP6 cache identity checks (both compare this
-    whole dict for equality) notice a settings-window edit to any of
-    them -- apply_resolved_vehicle below never reads these keys, so
-    adding them cannot change what Modules 1-5 compute, only whether a
-    cached result is judged reusable. A settings save that changes one of
-    these values makes this dict compare unequal to any previously
-    cached/persisted snapshot; an OLD snapshot recorded before this
-    amendment simply lacks these keys entirely, which is already unequal
-    to a dict that has them -- no ANALYSIS_SCHEMA_VERSION bump needed,
-    same "no cache" fallback Guard B already provides for a schema
-    mismatch.
+    Returns {"levels", "values", "clipped", "warnings"}. "values" is
+    JSON-serialisable (goes into the cache identity check).
+    clipped = cap actually lowered a node below its best available level.
     """
     registry = params["accuracy_levels"]
     vehicle = params["vehicle"]
@@ -323,8 +248,8 @@ def resolve_accuracy(params, setup_data=None, cap=None):
         "cog_to_front_axle_m": cog_position["value"]["cog_to_front_axle_m"],
         "cog_to_rear_axle_m": cog_position["value"]["cog_to_rear_axle_m"],
         "steering_ratio": steering_ratio["value"],
-        # PART B amendment: static passthrough, cache-identity only (see
-        # docstring above) -- never read by apply_resolved_vehicle.
+        # passthrough for cache identity only -- a settings edit must
+        # invalidate the cache; apply_resolved_vehicle ignores these
         "cog_height_m": vehicle["cog_height_m"],
         "track_width_front_m": vehicle["track_width_front_m"],
         "track_width_rear_m": vehicle["track_width_rear_m"],
@@ -345,14 +270,7 @@ def resolve_accuracy(params, setup_data=None, cap=None):
 
 
 def apply_resolved_vehicle(params, resolved):
-    """Return a deep-copied params dict with vehicle.mass_kg/corner_weights/
-    cog_to_front_axle_m/cog_to_rear_axle_m/steering_ratio overridden by
-    resolved["values"] (resolve_accuracy's output). prepare_vehicle_state
-    and estimate_lateral_forces read these same params["vehicle"] keys
-    (plus the new optional steering_ratio_table) exactly as documented at
-    each call site -- this is the only call-site change needed to wire
-    per-session resolution through the existing pipeline.
-    """
+    """Deep copy of params with the resolved vehicle values written in."""
     effective = copy.deepcopy(params)
     effective["vehicle"]["mass_kg"] = resolved["values"]["mass_kg"]
     effective["vehicle"]["corner_weights"] = dict(resolved["values"]["corner_weights"])
@@ -361,11 +279,7 @@ def apply_resolved_vehicle(params, resolved):
 
     steering_ratio_value = resolved["values"].get("steering_ratio")
     if steering_ratio_value and steering_ratio_value.get("mode") == "table":
-        # Injected only at Level 4 -- prepare_vehicle_state checks for this
-        # key's presence (vp.get("steering_ratio_table")) and falls back to
-        # the plain vehicle.steering_ratio scalar (already correct via the
-        # deepcopy above) when it's absent, exactly as a raw, un-resolved
-        # params dict already does today.
+        # L4 only; absent -> prepare_vehicle_state uses the scalar
         effective["vehicle"]["steering_ratio_table"] = {
             "angle_deg": np.array(steering_ratio_value["table_angle_deg"], dtype=float),
             "ratio": np.array(steering_ratio_value["table_ratio"], dtype=float),

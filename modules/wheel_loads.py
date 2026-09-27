@@ -1,36 +1,15 @@
-# Damper/suspension-travel-derived per-wheel vertical load (Fz) for SetupTool.
-# Pure Python/numpy. No Qt imports. Additive module, not yet wired into the
-# production pipeline/UI -- same incremental scope as modules/longitudinal_
-# forces.py's own first phase.
+# Per-wheel Fz from pushrod force + suspension travel.
+# Segers ch. 9 (pushrod force -> wheel via motion ratio), ch. 10 (geometric
+# vs elastic load transfer).
 #
-# Method anchor recorded in thesis_notes.md, the wheel-load estimation entry:
-# Segers, "Analysis Techniques for Racecar Data Acquisition" (SAE, 2014),
-# ch.9 (pushrod/damper force to wheel load via motion ratio) and ch.10
-# (roll-centre geometric vs spring-path elastic load-transfer split) --
-# page anchors (ch.9 p.199, ch.10 pp.221-256) verified 2026-09-03 by the
-# reviewer against the docs/literature excerpt copy (thesis_notes.md).
+# Fz = four additive terms per wheel:
+#   1. sprung: pushrod force x motion ratio -- static weight, aero, pitch
+#      and the elastic share of lateral transfer (all through the spring)
+#   2. ARB: parallel load path, gauge doesn't see it
+#   3. unsprung lateral transfer: straight to the contact patch, bypasses gauge
+#   4. geometric (roll-centre) lateral transfer -- elastic share already in 1
 #
-# DECOMPOSITION (four additive terms per wheel):
-#   1. sprung force at the wheel, from the measured pushrod/damper force
-#      and the digitised motion-ratio table -- captures static sprung
-#      weight, aero, longitudinal (pitch) transfer, AND the ELASTIC
-#      (spring-compression) share of lateral load transfer, because all
-#      of those act through the spring/damper and the pushrod gauge sees
-#      them directly.
-#   2. ARB force -- a separate load path in parallel with the main spring/
-#      damper (the anti-roll bar does not compress the main spring), so it
-#      is invisible to the pushrod gauge and must be added independently.
-#   3. unsprung-mass lateral transfer -- the unsprung assembly's own
-#      inertia reacts directly through the upright/tyre contact patch,
-#      bypassing the spring/damper entirely; also invisible to the gauge.
-#   4. sprung-mass GEOMETRIC lateral transfer (via the roll centre) -- the
-#      portion of the sprung mass's own lateral transfer carried through
-#      the suspension linkage geometry rather than through spring
-#      compression. Only this portion is added; the ELASTIC portion is
-#      already inside term 1 and must not be double-counted.
-#
-# Bump-rubber engagement is NOT modelled (config wheel_loads.bump_rubber_
-# note) -- a documented underestimate at extreme compression, not a defect.
+# Bump rubbers not modelled -> underestimate at extreme compression.
 
 import numpy as np
 
@@ -41,13 +20,7 @@ DAMPER_CHANNEL = {c: f"log_dms_dam_{c}" for c in CORNERS}
 TRAVEL_CHANNEL = {c: f"log_susp_travel_{c}" for c in CORNERS}
 AXLE_CORNERS = {"front": ("fl", "fr"), "rear": ("rl", "rr")}
 
-# Lateral-transfer sign convention: reused verbatim from modules.
-# stability_analysis.estimate_vertical_loads (fz_fl = fz_f/2 -
-# lateral_transfer/2, fz_fr = fz_f/2 + lateral_transfer/2) so a positive
-# ay_mps2 adds load to the right-side wheels (fr/rr) and removes it from
-# the left-side wheels (fl/rl) here too, exactly as it already does in
-# the static-split estimator -- deliberately the SAME convention, not an
-# independently chosen one, so the two estimators agree at zero-ay.
+# ay > 0 loads the right wheels -- same convention as estimate_vertical_loads
 SIDE_SIGN = {"left": -1.0, "right": +1.0}
 
 
@@ -59,15 +32,8 @@ def _interp_channel(channels, ch_name, t_ref):
 
 
 def _normalize_travel_to_mm(data, unit_raw):
-    """log_susp_travel_* varies by export -- Sample_Dubai.txt logs metres,
-    GT3_PRC_MLA-v3.txt logs millimetres already (both confirmed directly
-    against their own raw files, Fz-integration Phase 1, 2026-09-03) --
-    the same per-file-unit hazard as lap_distance's own ft-vs-m fix
-    (modules.stability_analysis._normalize_lap_distance_to_metres), same
-    remedy: check the file's own claimed unit before trusting the number
-    rather than assuming every export shares one convention. car_data.
-    json's motion_ratio_vs_wheel_travel table and this module's own ARB
-    rate/geometry math are both calibrated in millimetres throughout.
+    """log_susp_travel_* unit differs per export (Dubai: m, v3: mm) -- trust
+    unit_raw. Everything downstream (motion-ratio table, ARB) is in mm.
     """
     if unit_raw == "mm":
         return data
@@ -80,11 +46,7 @@ def _normalize_travel_to_mm(data, unit_raw):
 
 
 def _check_damper_force_unit(unit_raw, ch_name):
-    # Unlike travel, a force channel logged in anything other than
-    # Newtons has no meaningful fixed-factor conversion this module could
-    # apply on its own (a hypothetical "bar" or "kgf" reading would need a
-    # gauge-specific calibration, not a unit multiplier) -- a check, not a
-    # normalisation: refuse rather than silently misinterpret the number.
+    # non-N force needs a gauge calibration, not a factor -> refuse
     if unit_raw != "N":
         raise ValueError(
             f"{ch_name} unit {unit_raw!r} not recognised (expected 'N') -- "
@@ -93,30 +55,16 @@ def _check_damper_force_unit(unit_raw, ch_name):
 
 
 def _channel_is_dead(data, std_max):
-    """Session-long near-zero-variance guard (Fz-integration Phase 1,
-    2026-09-03 -- Sample_Dubai.txt's log_susp_travel_rr finding: frozen at
-    a perfectly plausible VALUE for the whole session while its own axle-
-    mate and every other travel channel checked show real variation). The
-    existing channel_quality_gates range check cannot catch this -- it
-    tests whether a value falls inside a plausible band, not whether the
-    channel ever moves at all. std, not range: range is a two-sample
-    statistic, vulnerable to one real reading on an otherwise-flat trace.
+    """Frozen-at-a-plausible-value sensor (Dubai log_susp_travel_rr) -- the
+    range gate can't see it. std, not range: one spike would fool range.
     """
     return bool(np.nanstd(data) < std_max)
 
 
 def _motion_ratio(travel_mm, axle, car_data):
-    """damper_ratio = damper_travel / wheel_travel, from car_data.json's
-    motion_ratio_vs_wheel_travel[axle] table. Every digitised point on
-    both axles sits below 1 (front 0.615-0.691, rear 0.763-0.781) --
-    checked directly, not assumed -- which confirms the standard pushrod/
-    rocker convention by conservation of virtual work through the
-    linkage: F_damper * damper_travel = F_wheel * wheel_travel, so
-    F_wheel = F_damper * (damper_travel / wheel_travel) = F_damper *
-    motion_ratio. Interpolated against the table's own wheel_travel_mm
-    axis; travel outside the table's digitised range clips to the
-    nearest endpoint (a fixed lookup table, no physical basis for
-    extrapolating beyond its own measured points).
+    """MR = damper travel / wheel travel (car_data table, all < 1).
+    Virtual work: F_wheel = F_damper * MR. Clipped at table ends, no
+    extrapolation.
     """
     table = car_data["motion_ratio_vs_wheel_travel"][axle]
     xs = np.array([p[0] for p in table["points"]], dtype=float)
@@ -126,11 +74,8 @@ def _motion_ratio(travel_mm, axle, car_data):
 
 
 def _arb_rate_n_per_mm(axle, position, car_data):
-    """ARB rate at the drop link (config/car_data.json arb[axle]), scaled
-    to the wheel via the table's own ratio_to_wheel factor. position is
-    clamped to the digitised 1-7 range rather than raising, since a
-    session with no real setup record (e.g. GT3_PRC_MLA-v3.txt) supplies
-    only the config fallback position, which must always resolve.
+    """ARB rate at the wheel (car_data arb[axle] x ratio_to_wheel).
+    position clamped to 1-7 -- fallback position must always resolve.
     """
     arb = car_data["arb"][axle]
     position = int(min(max(position, 1), 7))
@@ -139,36 +84,16 @@ def _arb_rate_n_per_mm(axle, position, car_data):
 
 
 def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=None):
-    """Per-wheel vertical load Fz_c_N (c in fl/fr/rl/rr), damper/suspension-
-    travel-derived where both channels validate for that corner, else the
-    static-split fallback (modules.stability_analysis.estimate_vertical_
-    loads's own fz_fl_N/fz_fr_N/fz_rl_N/fz_rr_N, passed in via
-    static_fallback_fz).
+    """Per-corner damper-derived Fz where both channels are usable.
 
-    arb_position: optional {"front": int, "fl": int, "fr": int, ...} or a
-    single int applied to all four corners -- per-corner session setup
-    values (setup_parameters arb_fl/fr/rl/rr) when available. Falls back
-    to config wheel_loads.arb_position_fallback per corner otherwise.
+    arb_position: int for all corners, or {"front"/"fl"/...: int};
+    missing -> wheel_loads.arb_position_fallback.
+    Corner valid = both channels "valid", known units (else ValueError),
+    and not dead (_channel_is_dead).
 
-    A corner's damper/travel channels validate only if BOTH pass quality
-    ("valid") AND clear two further checks, added Fz-integration Phase 1
-    (2026-09-03) after Sample_Dubai.txt exposed both: log_susp_travel_*'s
-    unit (mm vs m, per-file, mirroring lap_distance's own ft/m fix) is
-    normalised, never assumed, and log_dms_dam_*'s unit is checked against
-    "N" -- both raise ValueError on an unrecognised unit rather than
-    silently misinterpreting the number; and a channel logged "valid" but
-    with near-zero variance for the whole session (a plausible-looking but
-    dead sensor -- Sample_Dubai.txt's own log_susp_travel_rr) is flagged
-    invalid regardless of where its value sits in the normal range.
-
-    Returns a dict keyed by corner with fz_N (array), valid (bool array),
-    dead_channel (bool, whole-session), arb_valid (bool array -- False
-    wherever this corner's AXLE could not compute a real ARB term, e.g.
-    its mate's travel channel is dead; fz_N still has an answer, ARB just
-    contributes 0 to it, never a value derived from a flat channel), and
-    the four component arrays (sprung_N, arb_N, unsprung_transfer_N,
-    geometric_transfer_N, NaN where the fallback applies) for validation/
-    plotting.
+    Returns per corner: fz_N, valid, dead_channel, arb_valid (False where
+    the axle has no ARB term -> ARB contributes 0), and the four component
+    arrays.
     """
     wl = params["wheel_loads"]
     vp = params["vehicle"]
@@ -191,9 +116,7 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     }
     g = 9.81
 
-    # Raw per-corner channels, damper force offset-corrected and motion-
-    # ratio-scaled to a sprung wheel force; travel channels for the
-    # motion-ratio lookup and the ARB's left-right delta.
+    # pushrod force - offset, x MR -> sprung wheel force
     pushrod_N = {}
     travel_mm = {}
     mr = {}
@@ -229,27 +152,11 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
             mr[c] = np.full(n, np.nan)
             pushrod_N[c] = np.full(n, np.nan)
 
-    # ARB: per-axle left-right travel delta x ARB table rate / ARB motion
-    # ratio (approximated by the same axle's own damper motion ratio,
-    # wheel_loads.arb_motion_ratio_approximation_note -- no dedicated ARB
-    # linkage motion-ratio table exists in car_data.json). Sign convention
-    # matches SIDE_SIGN: the wheel with the LARGER travel value under this
-    # file's own logging convention is treated as the more-compressed
-    # (outside, in a corner) wheel and gets the positive ARB contribution
-    # -- same-direction as the existing lateral-transfer term, since the
-    # ARB amplifies (not opposes) the outside wheel's load gain. VERIFIED
-    # against real ay correlation in the Phase 2 validation run (thesis_
-    # notes.md); flip SIDE_SIGN here if a future session contradicts it.
-    # arb_valid records, per corner per sample, whether THIS axle's ARB
-    # term could be computed at all (both travels valid) -- needed because
-    # the final fz_N combination below zeroes a NaN arb_N via nan_to_num
-    # (a real corner still needs an Fz answer even without ARB), which
-    # would otherwise silently absorb a missing ARB contribution into a
-    # "valid" corner's own total with no trace (Fz-integration Phase 1,
-    # 2026-09-03: the finding that motivated this flag -- one dead travel
-    # channel on an axle invalidates that WHOLE axle's ARB term, per the
-    # left-right delta the term is defined on, even though the OTHER
-    # corner's own sprung/transfer terms remain individually trustworthy).
+    # ARB = left-right travel delta x rate / MR (damper MR as proxy, no ARB
+    # linkage table). Larger travel = outside wheel = positive; sign
+    # checked against ay on real data.
+    # One dead travel channel kills the whole axle's ARB term -> arb_valid,
+    # since fz_N below zeroes a NaN arb_N.
     arb_N = {c: np.full(n, np.nan) for c in CORNERS}
     arb_valid = {c: np.zeros(n, dtype=bool) for c in CORNERS}
     for axle, (left_c, right_c) in (("front", ("fl", "fr")), ("rear", ("rl", "rr"))):
@@ -267,8 +174,7 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
         arb_N[left_c] = np.where(both_ok, -force_half, arb_N[left_c])
         arb_N[right_c] = np.where(both_ok, force_half, arb_N[right_c])
 
-    # Unsprung-mass and sprung-mass-geometric lateral transfer, one pair
-    # per axle, split by SIDE_SIGN (see module docstring/comment above).
+    # terms 3 and 4
     unsprung_N = {}
     geometric_N = {}
     for c in CORNERS:
@@ -282,9 +188,7 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
 
     result = {}
     for c in CORNERS:
-        # ARB degrades to no-signal (0 contribution), not fabricated from a
-        # flat channel -- arb_valid is the explicit flag a caller/report
-        # must check before treating fz_N as including a real ARB term.
+        # missing ARB -> 0, flagged via arb_valid
         fz_damper = pushrod_N[c] + np.nan_to_num(arb_N[c], nan=0.0) + unsprung_N[c] + geometric_N[c]
         result[c] = {
             "fz_N": fz_damper,
@@ -301,12 +205,8 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
 
 
 def combine_with_static_fallback(damper_result, static_fallback_fz):
-    """Per-corner, per-sample: use the damper-derived Fz where valid, the
-    static-split estimate (modules.stability_analysis.estimate_vertical_
-    loads's fz_fl_N/fz_fr_N/fz_rl_N/fz_rr_N) elsewhere. static_fallback_fz
-    is a dict keyed the same way as CORNERS. Never a whole-session
-    switch -- GT3_PRC_MLA-v3.txt's own faulted log_dms_dam_fr means FR
-    falls back for every sample while FL/RL/RR use the damper source.
+    """Damper Fz where valid, static split elsewhere -- per corner and
+    sample, never a whole-session switch.
     """
     combined = {}
     for c in CORNERS:
@@ -322,42 +222,12 @@ AXLE_TOTAL_KEY = {"fl": "fz_f_N", "fr": "fz_f_N", "rl": "fz_r_N", "rr": "fz_r_N"
 
 
 def _axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c):
-    """Per-axle total Fz for estimate_session_corrected_axle_totals's own
-    straight-line fits: a corner's REAL value where it validates, else its
-    axle-mate's real value scaled by the STATIC config mass ratio (this
-    corner's own corner_weights_kg / the mate's) where exactly one of the
-    two is invalid.
-
-    Fz-integration Phase 1 bug fix (2026-09-03): the original version of
-    this logic was hardcoded to always proxy FR from FL (v3's own failure
-    pattern, FR permanently dead) and always summed rl+rr assuming both
-    real -- correct for v3, but SILENTLY NaN on Dubai, where the dead
-    corner is RR instead (found visually, from a corner figure with a
-    missing rear-axle trace, not from a number -- the render-and-look
-    habit this project already leans on for figure QA caught it here
-    too). Generalising to "real where valid, ratio-proxied from the
-    mate where not" per axle fixes both sessions with one rule instead
-    of a session-specific special case.
-
-    RATIO, not equality: front's original trick implicitly used ratio
-    1.0 because config vehicle.corner_weights states FL_kg==FR_kg
-    exactly (both 290.0) -- true by construction for v3's own FR-from-FL
-    case, reproduced byte-identically here. The REAR axle has no such
-    exact symmetry (RL_kg=395.0, RR_kg=381.0, config) -- proxying RR from
-    RL (Dubai's case) at ratio RR_kg/RL_kg carries the STATIC left/right
-    split onto what is really a DYNAMIC (roll-dependent) quantity, which
-    is a weaker approximation than front's exact case, not an equally
-    clean one. Still strictly better than a silent NaN; stated here, not
-    hidden.
-
-    Where BOTH corners of an axle are invalid at a sample, there is no
-    real value on either side to proxy from -- that sample's total is
-    NaN (propagates to the caller's straight-line means/fits, which then
-    read NaN rather than a silently-wrong number) and `degraded` is
-    flagged True with a stated reason, rather than left for the caller
-    to discover only as an unexplained NaN downstream.
-
-    Returns (total_N array, degraded: bool, reason: str or None).
+    """Axle total for the straight-line fits: real corner values where valid;
+    one invalid -> mate x static corner-weight ratio. Rear ratio != 1, so
+    that proxy puts a static L/R split on a roll-dependent quantity -- weaker
+    than front, still better than NaN.
+    Both invalid -> NaN, degraded = True with reason.
+    Returns (total_N, degraded, reason).
     """
     left_valid = damper_result[left_c]["valid"]
     right_valid = damper_result[right_c]["valid"]
@@ -385,107 +255,27 @@ def _axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c):
 
 
 def estimate_session_corrected_axle_totals(state, damper_result, params):
-    """Session-derived correction to the axle-total model consumed by
-    reconstruct_missing_corner/combine_with_reconstruction_and_fallback
-    ONLY -- never touches modules.stability_analysis.estimate_vertical_
-    loads or vehicle.aero.lift_coeff, both of which stay exactly as they
-    are for every other production consumer. Config Cl remains a global,
-    unsourced Level-1 placeholder; the correction here is a genuinely
-    per-session MEASUREMENT (Level 2), not a new global constant.
+    """Session-measured axle totals for the corner reconstruction only --
+    estimate_vertical_loads and config lift_coeff stay untouched. Level 2.
 
-    MOTIVATION (thesis_notes.md "Closing the reconstruction's aero gap"):
-    the ground-truth reconstruction test (drop a real RL/RR, reconstruct
-    it, compare to its own measurement) found the static axle-total model
-    underestimates the true rear axle total by ~25% on a fast lap --
-    traced to two separate, additive gaps in the STATIC model: (a) config
-    vehicle.mass_kg under-reads this session's own real loaded mass (the
-    already-recorded +10.4% straight-line total finding), and (b) config
-    aero.lift_coeff=0.0 omits real, substantial aero downforce entirely.
-    Both are corrected here from this session's OWN damper data.
+    Static model under-reads the rear total by ~25%: config mass too low,
+    lift_coeff = 0 has no aero.
+    (1)/(2) one joint fit on straight_wide (moving, |ay| < 1.5):
+        total(v) = static_total + c_session * v^2
+        intercept -> mass_kg_session, all speed dependence -> c_session, no
+        double count. No ax term -- axle total is invariant to long. transfer.
+    (3) front_mass_fraction = measured front/(front+rear) on straights, for
+        the static term only. Aero split stays config (aero_front_fraction):
+        straights give no signal for it.
+    (4) rear_left_fraction: measured RL/(RL+RR), reported only, never proxied.
+        NaN if a rear corner is dead all session.
 
-    (1)/(2) MASS AND AERO, JOINTLY (UPDATED 2026-09-19, Metrology close-out
-    extension Phase 1, thesis_notes.md "Metrology extension Phase 1:
-    mass/aero double-counting fix"): mass_kg_session and c_session are
-    recovered from ONE regression, total_fz_for_fit_N(v) = static_total_N
-    + c_session*v^2, fit jointly on the straight_wide population (moving,
-    |ay|<1.5) -- static_total_N is the fit's own v->0 intercept
-    (mass_kg_session = static_total_N/g), so aero's entire speed
-    dependence lives in c_session, by construction, with no overlap.
-    F_aero(v) = c_session*v^2 is then split front/rear by wheel_loads.
-    aero_front_fraction (see (3) below). SUPERSEDES the original two-fit
-    version (a separate straight_tight MEAN for mass, a separate 3-term
-    ax/v^2 regression for c_session) which double-counted: the mean
-    already contained real aero at its own reference speed, and the
-    separate v^2 term added more on top -- found and quantified via the
-    Deepening/Metrology aero_front_fraction 0.40->0.25 update's own
-    ground-truth regression (thesis_notes.md "Metrology close-out: aero_
-    front_fraction shipped, mass/aero double-counting found"). The ax
-    term is DROPPED from this fit: the axle TOTAL (front+rear) is
-    physically transfer-invariant under longitudinal acceleration (weight
-    transfer redistributes between axles, it does not change their sum)
-    -- ax's presence in the old 3-term fit was absorbing noise/artifact,
-    not a real dependency of the total on ax.
-    (3) FRONT/REAR MASS SPLIT: front_mass_fraction is the session's own
-    measured axle-total ratio at straight-line samples (front_total /
-    (front_total+rear_total), same FL-doubling proxy as (1)/(2) for the
-    invalid FR), replacing the static geometric fraction (cog_to_front/
-    rear_axle_m / wheelbase_m) for the MASS/static term only -- the
-    longitudinal-transfer term keeps the geometric h_cog/wheelbase_m
-    formula unchanged (a different physical quantity, not a weight
-    split). This closes the gap the first version of this function left
-    open (thesis_notes.md "...closing the reconstruction's aero gap":
-    funnelling the corrected, larger total through the OLD static
-    fraction over-allocated load to the front, since this car's real
-    dynamic front/rear split (found separately, Phase 2(d), 37%/63%)
-    differs from the static config split). The AERO front/rear fraction
-    is explicitly NOT given the same treatment: straight-line data alone
-    cannot measure how aero downforce splits front/rear (both wheels of
-    an axle see essentially the same speed and near-zero roll at
-    straight line, so there is no differential signal to fit an aero
-    split from) -- wheel_loads.aero_front_fraction stays the Level 1
-    config placeholder, unchanged, and this is stated here rather than
-    silently left implied.
-    (4) REAR LEFT/RIGHT (reported, not consumed): rear_left_fraction is
-    the session's own measured RL/(RL+RR) ratio at straight-line samples
-    -- deliberately NOT proxied like the totals above (proxying one side
-    from the other would make the ratio trivially equal to the config
-    ratio by construction, not a measurement of anything). Reads NaN on
-    a session where either rear corner is dead all session (e.g. Dubai's
-    RR) -- an honest "not measurable this session", not silently
-    defaulted. Not used anywhere in this
-    function's own fz_f_N/fz_r_N (the per-wheel L/R split still comes
-    from estimate_wheel_loads_from_dampers's own ARB/unsprung/geometric
-    decomposition, which already uses real per-corner data) -- returned
-    purely for the caller's own reporting/comparison against config's
-    static RL_kg/RR_kg split.
+    Only real corner data feeds the fits (_axle_total_with_proxy), never the
+    reconstruction itself -- no self-correction loop.
+    Check: diagnostics/inspect_v3_reconstruction_ground_truth.py.
 
-    NON-CIRCULARITY: both fits need a whole-car Fz_total, but a session
-    can have exactly one dead corner per axle (v3: FR; Dubai: RR) --
-    using the (biased) axle-total-model-based reconstruction for that
-    corner here would make this function correct itself against its own
-    error. Instead each axle's total comes from _axle_total_with_proxy
-    (see its own docstring for the ratio-proxy rule and the front/rear
-    asymmetry caveat) -- ONLY real per-corner measurements feed these two
-    fits, never a model output, on either axle.
-
-    KNOWN IMPERFECTION, now CLOSED (was open until 2026-09-19): mass_kg_
-    session used to be a straight-line MEAN across a real speed range,
-    which already contains some of the real aero present at that range's
-    own typical speed -- adding a full, separate c_session*v^2 term on
-    top double-counted a share of it. The joint (1)/(2) fit above removes
-    this structurally (the static term is the v->0 intercept, not a mean
-    at some nonzero reference speed) rather than by re-tuning a split
-    fraction to compensate for it. ACCEPTANCE: the reconstruction ground-
-    truth check (diagnostics/inspect_v3_reconstruction_ground_truth.py,
-    lap 8, v3) dropped from +1451.4N/+27-29% mean error (the double-
-    counted state, aero_front_fraction=0.25) back below the original
-    +916.6N/+17-18% baseline (aero_front_fraction=0.40, pre-double-count-
-    discovery) -- full numbers: thesis_notes.md "Metrology extension
-    Phase 1: mass/aero double-counting fix".
-
-    Returns fz_f_N/fz_r_N arrays plus the derived scalars (mass_kg_
-    session, c_session_N_per_mps2, aero_front_fraction) for the caller to
-    record/report -- computed at analysis time, never persisted to config.
+    Returns fz_f_N/fz_r_N + mass_kg_session, c_session_N_per_mps2,
+    aero_front_fraction. Never written back to config.
     """
     ls = params["stability_estimation"]
     vp = params["vehicle"]
@@ -512,27 +302,8 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         damper_result, corner_weight_kg, "rl", "rr")
     total_fz_for_fit_N = front_total_N + rear_total_N
 
-    # Metrology close-out, Phase 1 (2026-09-19, thesis_notes.md "Metrology
-    # extension Phase 1: mass/aero double-counting fix"): mass_kg_session
-    # and c_session are now recovered from ONE joint regression, total(v)
-    # = m*g + c*v^2, on the straight_wide population -- the static term IS
-    # the fit's own v->0 intercept, so aero's speed-dependent contribution
-    # lives ONLY in the explicit c*v^2 term, by construction. Previously,
-    # mass_kg_session was a separate straight_tight MEAN (which already
-    # contains real aero at that population's own mean speed, its own
-    # long-standing documented caveat, quantified for the first time by
-    # the ground-truth regression this fix responds to) and c_session came
-    # from a SEPARATE 3-term (intercept, ax, v^2) regression on straight_
-    # wide -- two different fits of overlapping physical content, double-
-    # counting the aero share once inside each. The ax term is DROPPED
-    # here deliberately: the axle TOTAL (front+rear) is physically
-    # transfer-invariant under longitudinal acceleration (weight transfer
-    # redistributes between axles, it does not change their sum) -- ax's
-    # own presence in the old 3-term fit was absorbing noise/artifact, not
-    # a real physical dependency of the total on ax, and the joint 2-
-    # parameter fit below is the model this function's own docstring (1)/
-    # (2) always intended, made structurally double-count-free rather than
-    # patched after the fact.
+    # joint fit total(v) = m*g + c*v^2 -- intercept = static, v^2 = aero, no
+    # overlap; no ax term (docstring (1)/(2))
     X_total = np.column_stack([np.ones(int(straight_wide.sum())), v[straight_wide] ** 2])
     y_total = total_fz_for_fit_N[straight_wide]
     coeffs_total, _, _, _ = np.linalg.lstsq(X_total, y_total, rcond=None)
@@ -544,13 +315,12 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     mean_rear_straight_N = float(np.mean(rear_total_N[straight_tight]))
     front_mass_fraction = mean_front_straight_N / (mean_front_straight_N + mean_rear_straight_N)
 
-    # Reported only -- deliberately NOT proxied, see docstring (4). NaN on
-    # a session where either rear corner is dead all session (Dubai's RR).
+    # (4) reported only, no proxy; NaN if a rear corner is dead
     mean_rl_straight_N = float(np.mean(damper_result["rl"]["fz_N"][straight_tight]))
     mean_rr_straight_N = float(np.mean(damper_result["rr"]["fz_N"][straight_tight]))
     rear_left_fraction = mean_rl_straight_N / (mean_rl_straight_N + mean_rr_straight_N)
 
-    aero_front_fraction = wl["aero_front_fraction"]  # NOT session-measurable, see docstring (3)
+    aero_front_fraction = wl["aero_front_fraction"]  # not measurable from straights
 
     wb = vp["wheelbase_m"]
     h_cog = vp["cog_height_m"]
@@ -572,10 +342,7 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         "aero_front_fraction": aero_front_fraction,
         "front_mass_fraction": front_mass_fraction,
         "rear_left_fraction": rear_left_fraction,
-        # "Never silently" (Fz-integration Phase 1 bug fix): True only
-        # when BOTH corners of that axle are invalid at some sample --
-        # fz_f_N/fz_r_N are NaN there, with the reason stated here rather
-        # than left for a caller to discover as an unexplained NaN.
+        # True where both corners of the axle are invalid somewhere (NaN there)
         "front_correction_degraded": front_degraded,
         "front_correction_degraded_reason": front_degraded_reason,
         "rear_correction_degraded": rear_degraded,
@@ -584,55 +351,17 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
 
 
 def reconstruct_missing_corner(damper_result, fz_axle_totals):
-    """Reconstruct a single invalid corner from the surviving three gauges
-    via a Segers-style modal decomposition (thesis_notes.md "FR
-    reconstruction: quasi-static modal decomposition" -- pointer only,
-    full method there), restricted to the ONE mode that is exactly
-    observable with three real corners and no roll/ARB model at all:
+    """One invalid corner = axle total - measured mate (Segers modal
+    decomposition, heave+pitch mode only). Roll only shifts load within an
+    axle -> no roll/ARB model; the mate carries the real split.
 
-    HEAVE+PITCH (axle total): fz_axle_totals["fz_f_N"]/["fz_r_N"] --
-    modules.stability_analysis.estimate_vertical_loads's own weight +
-    longitudinal-transfer + aero-share axle total, which does not depend
-    on ay/roll at all (roll only redistributes load WITHIN an axle, never
-    changes the axle's own total). Left+right on that axle must sum to
-    this total regardless of how roll splits them -- so when exactly one
-    corner of an axle is invalid and its axle-mate IS damper-valid, the
-    missing corner is exactly axle_total - measured_mate, with NO roll/
-    ARB model needed for the split at all (the real mate measurement
-    already contains whatever the true roll split was).
+    Limits:
+    - single-wheel events on the reconstructed corner are invisible
+    - warp (FL+RR)-(FR+RL) unobservable with three sensors
+    - inherits the L1 placeholders in fz_axle_totals -> registered Level 1
 
-    This is DELIBERATELY not "axle total x modelled roll-balance
-    fraction" (a plausible alternative reading of "left/right from roll
-    balance") -- that would throw away the real axle-mate measurement in
-    favour of the same approximate ARB/lateral-transfer model already
-    used for the full static fallback, which is strictly less accurate
-    once a real measurement on that axle exists.
-
-    LIMITATIONS (recorded here and in thesis_notes.md, not glossed over):
-    - Single-wheel events on the RECONSTRUCTED corner are INVISIBLE: the
-      axle-total model is a heave/pitch/aero estimate with no knowledge
-      of a road input (bump, kerb) unique to one wheel. If the true axle
-      total spikes because the missing wheel alone hit something, the
-      model does not see that spike, and the reconstruction silently
-      absorbs the whole model/reality gap into an UNDER-reaction at the
-      reconstructed corner while leaving the measured mate untouched.
-    - WARP (the fourth modal DOF, (FL+RR)-(FR+RL), chassis torsion or an
-      unevenly-loaded three-wheel condition) is UNOBSERVABLE with three
-      sensors and a heave/pitch-only axle-total model -- this
-      reconstruction has no mechanism to represent it, by construction.
-    - Inherits every Level-1 placeholder already inside fz_axle_totals
-      (cog_height_m, aero lift_coeff/cross_track_area_m2/diff_cog_x_m) --
-      accuracy_levels.wheel_load_damper_reconstructed is registered at
-      Level 1 for exactly this reason (chained-constant), even though it
-      is built from three real sensors, since the accuracy-level system
-      records provenance TIER, not within-tier confidence.
-
-    Only applies where EXACTLY ONE of an axle's two corners is invalid
-    (per sample) -- if both are invalid, no reconstruction is possible
-    from this method and the caller must fall back further (static
-    split). Returns a dict per corner: {"fz_N": reconstructed value or
-    NaN, "reconstructable": bool array marking where this method could
-    apply}.
+    Both corners invalid -> NaN, caller falls back to static.
+    Returns per corner {"fz_N", "reconstructable"}.
     """
     n = len(damper_result["fl"]["valid"])
     out = {}
@@ -648,15 +377,9 @@ def reconstruct_missing_corner(damper_result, fz_axle_totals):
 
 
 def combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz):
-    """Three-tier per-corner, per-sample cascade: damper-measured (Level
-    4) where valid; else RECONSTRUCTED from the axle-mate + axle-total
-    model (accuracy_levels.wheel_load_damper_reconstructed, Level 1 --
-    see reconstruct_missing_corner's own docstring for why a real-sensor-
-    informed method still sits at Level 1) where exactly one corner of
-    that axle is invalid and its mate is damper-valid; else the plain
-    static-split estimate (per_wheel_load_split, Level 1). "source" is a
-    per-sample string array so a caller/plot never has to re-derive which
-    tier produced a given value.
+    """Per corner and sample: damper (L4) -> reconstructed from mate + axle
+    total (L1, see reconstruct_missing_corner) -> static split (L1).
+    "source" = per-sample tier label.
     """
     reconstructed = reconstruct_missing_corner(damper_result, fz_axle_totals)
     combined = {}

@@ -1,46 +1,13 @@
-# One-shot per-session Dugoff tyre-curve fit + EKF validation chain.
-# The fit/validation machinery below (fit_session, fit_session_pacejka)
-# started EXPERIMENTAL (PLAN.md unsupervised package, Phase 2) and is
-# still not called from the UI directly -- but resolve_sideslip_beta at
-# the bottom of this file IS the live production dispatcher: ui/views/
-# outing_form.py's StabilityAnalysisThread calls it for every
-# sideslip_source, including the two auto modes that run this file's
-# own fit chain per session. Pure Python/numpy/scipy, no Qt -- same
-# modules/ contract as every other file in this package.
+# Per-session tyre-curve fit (Dugoff or Pacejka) + EKF validation, and
+# resolve_sideslip_beta -- the live beta dispatcher for every sideslip_source.
 #
-# Method lineage, pointer lines only (CLAUDE.md citation-location
-# rule; full anchors in thesis_notes.md):
-#   step (a) c_alpha       -- diagnostics/fit_dugoff_first_pass.py, WP-N1b entry
-#   step (b) mu_fz         -- same script, bounded-search widening loop
-#   step (c) R derivation  -- config/parameters.json tyre_model_ekf.pass_1's
-#                              R_ay_derivation/R_yaw_rate_derivation/r_q_sweep_note,
-#                              and diagnostics/inspect_ekf_pass1_rQ_sweep.py's 2-D grid
-#   step (d) EKF run       -- modules/sideslip_ekf_dugoff.py (imported directly,
-#                              not duplicated -- see the note below)
-#   step (e) validation    -- diagnostics/inspect_pass1_final_validation.py's
-#                              five sections (NIS, sign check, self-consistency
-#                              R^2 is NOT reproduced here, onset/coverage, h2-vs-ay)
-#
-# RELOCATION NOTE (2026-09-24, WP-CLEAN): modules/sideslip_ekf_dugoff.py
-# and modules/sideslip_ekf_pacejka.py were moved here from diagnostics/
-# after this pass found they are production dependencies (this file
-# imports their EKF recursion directly), not diagnostics-only scripts --
-# the two files' own historical "diagnostics-only" self-description had
-# gone stale. The import below is now an ordinary modules/-internal one;
-# no dependency inversion remains. The EKF loop is ~150 lines of
-# numerically sensitive Jacobian/update code, imported rather than
-# duplicated here so the two copies can never silently diverge. Every
-# tyre_model_ekf.pass_N config comment's "no modules/ consumer" note
-# describes historical fact as of when it was written and is not
-# retroactively edited by this file's existence (CLAUDE.md: config
-# changes stay additive, existing keys/comments untouched).
-#
-# WHAT THIS DOES NOT REPRODUCE: fit_dugoff_first_pass.py's superseded
-# raw-OLS c_alpha comparison (explicitly "not used" in the frozen
-# procedure) and Module-4b's C_linear_ref self-consistency R^2 (pass-1
-# validation Section 3 -- a comparison against the REJECTED linear
-# observer's own R^2, meaningless without that observer's output on
-# hand, which no per-session caller of this module is assumed to have).
+# Steps, as in the frozen diagnostics chain:
+#   (a) c_alpha, (b) mu_fz -- diagnostics/fit_dugoff_first_pass.py
+#   (c) R derivation       -- diagnostics/inspect_ekf_pass1_rQ_sweep.py
+#   (d) EKF run            -- modules/sideslip_ekf_dugoff.py
+#   (e) validation         -- diagnostics/inspect_pass1_final_validation.py
+# Not reproduced: the raw-OLS c_alpha comparison and the linear-observer
+# R^2 check (needs that observer's output).
 
 import subprocess
 from datetime import datetime, timezone
@@ -60,11 +27,11 @@ from modules.nis_gate import evaluate_gate
 from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
-PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair's own starting guess, PLAN.md Phase 3 work order
+PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E)
 
 CHI2_DF1_95 = float(chi2.ppf(0.95, df=1))
 CHI2_DF2_95 = float(chi2.ppf(0.95, df=2))
-NEAR_ZERO_SLIP_DEG = 0.2  # matches WP-S3b/S3c/S4b/pass-1-validation's own near-zero-alpha_r population
+NEAR_ZERO_SLIP_DEG = 0.2  # same near-zero alpha_r population as earlier validation
 
 
 def _base_mask(state, laps):
@@ -81,13 +48,9 @@ def _base_mask(state, laps):
 
 
 def _fit_axle(alpha, Fy, Fz, C_alpha, CS_ratio, base_mask, cfg):
-    """Steps (a)+(b): c_alpha from Module 4b's own linear-regime
-    indicator (CS_ratio==1.0), then a bounded mu_fz least-squares fit,
-    c_alpha held fixed. Bracket widening and the >=0.95 non-interior-
-    optimum check reproduce fit_dugoff_first_pass.py's loop exactly --
-    this is the safeguard that must catch the pass-4 rear degeneracy
-    (mu_fz drifting to the bracket ceiling, curve collapsing to pure-
-    linear) rather than silently accepting it.
+    """Steps (a)+(b): c_alpha from the CS_ratio == 1 linear region, then bounded
+    mu_fz least squares with c_alpha fixed. Bracket widening + >= 0.95
+    non-interior check catch the rear collapse to pure linear.
     """
     m_c4b = base_mask & np.isfinite(C_alpha) & (CS_ratio == 1.0)
     c_alpha_pop = C_alpha[m_c4b]
@@ -148,15 +111,10 @@ def _fit_axle(alpha, Fy, Fz, C_alpha, CS_ratio, base_mask, cfg):
 
 
 def _r_from_residuals(resid_front_full, resid_rear_full, common_mask, mass_kg):
-    """Step (c), Method A: fit-residual-based R_ay, inter-axle
-    correlation MEASURED (not assumed) on this session's own fit
-    residuals -- reproduces tyre_model_ekf.pass_1.R_ay_derivation's
-    formula (combined variance of two correlated error sources, each
-    converted from a force residual to an acceleration residual by
-    dividing by vehicle mass, since ay's measurement model is
-    (Fy_f+Fy_r)/m). resid_front_full/resid_rear_full are full-length
-    (zero outside each axle's own fit mask); common_mask selects the
-    population both axles' residuals are actually defined over.
+    """Step (c), Method A: R_ay from fit residuals, inter-axle correlation
+    measured on this session. Force residual / m -> ay residual (h = (Fy_f +
+    Fy_r)/m). Inputs full length, zero outside each axle mask; common_mask =
+    where both are defined.
     """
     rf = resid_front_full[common_mask]
     rr = resid_rear_full[common_mask]
@@ -233,38 +191,16 @@ def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bra
 
 
 def fit_session(data, params, data_file_path=None):
-    """Run the one-shot per-session Dugoff fit + EKF validation chain
-    (steps a-e) and return a fit manifest dict. `data` is modules.
-    csv_parser.parse_csv's output; `params` is load_parameters's raw
-    dict (or an accuracy-resolved variant -- this function reads
-    params["tyre_fit_auto"] plus whatever prepare_vehicle_state/
-    estimate_* already need, nothing more).
+    """One-shot per-session Dugoff fit + EKF validation (steps a-e) -> manifest.
+    data = parse_csv output.
 
-    STATUS FIELD ("ok"/"marginal"/"degenerate"), proposed boundaries
-    (config tyre_fit_auto.sign_check_degenerate_fraction/marginal_
-    fraction, nis_gross_miscalibration_fraction, mu_fz_bound_fraction_
-    degenerate_threshold -- all a PROPOSAL, not reviewed):
-      DEGENERATE if any of: either axle's c_alpha sign check fails or
-        has <10 fit samples; either axle's mu_fz fit hits its widened
-        bracket ceiling (the pass-4 rear failure mode -- a curve that
-        has collapsed to pure-linear must never be reported as ok);
-        the racing-speed sign-check median-gate fraction is below
-        sign_check_degenerate_fraction (0.5 -- beta's sign would be no
-        better than a coin flip, the estimator conveys no directional
-        information); OR the best available R grid point still leaves
-        either channel's NIS exceedance above nis_gross_miscalibration_
-        fraction (0.5 -- half of all samples statistically inconsistent
-        with the filter's own uncertainty model, an order of magnitude
-        beyond the 3-15% target band).
-      MARGINAL if not degenerate but either: no grid point landed both
-        NIS channels inside [nis_band_low, nis_band_high] (the 2-D
-        sweep found only a nearest-candidate, not a genuine in-band
-        point); or the racing-speed sign-check median-gate fraction is
-        below sign_check_marginal_fraction (0.7) -- directionally
-        mostly right but not to the standard the frozen pass-1
-        baseline met (8/11 = 0.727 on Dubai).
-      OK otherwise: an in-band R grid point exists, sign check clears
-        0.7, and neither axle degenerated.
+    status (thresholds in config tyre_fit_auto, proposed, not reviewed):
+      degenerate: c_alpha sign check fails or < 10 samples; mu_fz at bracket
+        ceiling (curve collapsed to linear); sign-check fraction < 0.5 (coin
+        flip); or best R still leaves NIS exceedance > 0.5 on a channel.
+      marginal: no R grid point with both NIS channels in band; or sign-check
+        fraction < 0.7 (frozen pass-1 baseline: 8/11 on Dubai).
+      ok: otherwise.
     """
     cfg = params["tyre_fit_auto"]
     vp = params["vehicle"]
@@ -284,7 +220,7 @@ def fit_session(data, params, data_file_path=None):
     fz = estimate_vertical_loads(state, forces, params)
     cs_kin = estimate_cornering_stiffness(slip_kin, forces, state, params)
 
-    # --- steps (a)+(b): per-axle fit ------------------------------------
+    # (a)+(b) per-axle fit
     front_fit = _fit_axle(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"],
                            cs_kin["C_alpha_f"], cs_kin["CS_ratio_f"], base_mask, cfg)
     rear_fit = _fit_axle(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"],
@@ -311,7 +247,7 @@ def fit_session(data, params, data_file_path=None):
         )
         return manifest
 
-    # --- step (c): R derivation ------------------------------------------
+    # (c) R derivation
     common_mask = front_fit["residual_mask"] & rear_fit["residual_mask"]
     resid_front_full = np.zeros_like(base_mask, dtype=float)
     resid_rear_full = np.zeros_like(base_mask, dtype=float)
@@ -341,7 +277,7 @@ def fit_session(data, params, data_file_path=None):
         "r_ay_var_derived": r_ay_var_derived, "r_yaw_rate_var_derived": r_yaw_rate_var_derived,
     }
 
-    # --- 2-D NIS-gated sweep, anchored at the just-derived baseline ------
+    # 2-D NIS-gated sweep around the derived baseline
     sweep_results = []
     for r_ay_scale in cfg["r_sweep_ay_scales"]:
         for r_yaw_scale in cfg["r_sweep_yaw_scales"]:
@@ -372,7 +308,7 @@ def fit_session(data, params, data_file_path=None):
         sweep_found_in_band = False
     manifest["r_sweep"] = {"grid_points": sweep_results, "chosen": chosen, "found_in_band": sweep_found_in_band}
 
-    # --- step (d): final EKF run with the chosen R ------------------------
+    # (d) final EKF run with chosen R
     final_cfg = dict(interim_cfg)
     final_cfg["R_ay_var"] = chosen["R_ay_var"]
     final_cfg["R_yaw_rate_var"] = chosen["R_yaw_rate_var"]
@@ -383,19 +319,12 @@ def fit_session(data, params, data_file_path=None):
     beta_ekf = final_result["beta"]
     manifest["final_config"] = final_cfg
 
-    # --- step (e): validation summary -------------------------------------
+    # (e) validation
     innovation = final_result["innovation"][base_mask]
     nis_combined = final_result["nis"][base_mask]
     S_diag = final_result["S_diag"][base_mask]
-    # Production consumer note (fresh-session work package, Phase 1): the
-    # raw "beta"/"nis" arrays above are for THIS module's own validation
-    # figures only. Production callers must use beta_ekf_with_fallback,
-    # never beta_ekf -- the raw series keeps diverged-window artifacts by
-    # design (see modules/sideslip_ekf_dugoff.py's own header), the
-    # same "never feed a silently-diverged state downstream" rule the
-    # existing ekf_pass_1 production path already follows. base_mask and
-    # the full-length nis array are exposed so a caller can run modules.
-    # nis_gate.evaluate_gate without re-deriving the masking logic.
+    # raw beta/nis are for validation figures only -- production uses
+    # beta_ekf_with_fallback. base_mask + full nis exposed for nis_gate.
     nis_yaw = innovation[:, 0] ** 2 / S_diag[:, 0]
     nis_ay = innovation[:, 1] ** 2 / S_diag[:, 1]
     f_yaw = float((nis_yaw > CHI2_DF1_95).mean())
@@ -450,7 +379,7 @@ def fit_session(data, params, data_file_path=None):
     r_h2 = float(np.corrcoef(h2_pred, ay[idx])[0, 1]) if len(idx) > 2 else float("nan")
     manifest["h2_vs_ay_apex"] = {"n": int(len(idx)), "correlation": r_h2}
 
-    # --- status classification ---------------------------------------------
+    # status
     gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
     worst_channel_exceedance = max(f_yaw, f_ay)
     if gate_frac < cfg["sign_check_degenerate_fraction"] or worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
@@ -460,37 +389,25 @@ def fit_session(data, params, data_file_path=None):
     else:
         manifest["status"] = "ok"
 
-    manifest["beta_ekf"] = beta_ekf  # not JSON-serialisable directly -- caller's responsibility to strip/summarise
-    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
-    manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
+    manifest["beta_ekf"] = beta_ekf  # numpy, caller strips
+    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production uses this
+    manifest["nis_full"] = final_result["nis"]  # full length, for nis_gate
     manifest["base_mask"] = base_mask
     return manifest
 
 
 def _fit_axle_pacejka(alpha, Fy, base_mask):
-    """Phase 3 variant of step (a)+(b): joint 4-parameter (B,C,D,E) fit
-    via Powell (chair's own starting guess), same base_mask population
-    as the Dugoff chain. No explicit search bracket to hit -- Powell's
-    own convergence flag is the closest analogue to Dugoff's bound-
-    fraction check, but per the Phase 3 pre-registration this is NOT
-    expected to be a reliable degeneracy signal for this axle-fit
-    identifiability question (see thesis_notes.md).
+    """Steps (a)+(b), Pacejka: joint (B, C, D, E) Powell fit from the chair
+    start guess, same base_mask. No bracket to hit -- Powell convergence is
+    the nearest analogue, not a reliable degeneracy signal.
     """
     m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy)
     a2, f2 = alpha[m2], Fy[m2]
 
     if len(a2) == 0:
-        # Empty population -- e.g. every lap failed is_valid_for_analysis
-        # (a real v3 case, thesis_notes.md "v3 IndexError: empty fit
-        # population"). np.percentile below has no defined behaviour on an
-        # empty array and raises IndexError deep inside numpy's quantile
-        # internals rather than a clean error -- must never reach it.
-        # Matches _fit_axle's own established no-signal convention
-        # (early return, sign_ok=False) instead of feeding Powell/
-        # percentile an empty array; fit_session_pacejka's own degeneracy
-        # check (sign_ok and powell_converged on both axles) already turns
-        # this into a clean status="degenerate" manifest, so no separate
-        # check is needed at that caller.
+        # empty population (e.g. no valid laps on v3) -> np.percentile
+        # would raise deep in numpy. Return no-signal like _fit_axle; the
+        # caller turns it into status="degenerate".
         return {
             "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
             "powell_converged": False,
@@ -512,12 +429,9 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
     resid = f2 - pred
     rms = float(np.sqrt(np.mean(resid ** 2)))
 
-    # Peak location: dense grid search over the visited alpha range
-    # extended to +/-90 deg (the model's own domain), refined by
-    # bisection on the analytic stiffness's sign change nearest the
-    # data. A peak outside the visited range is reported as such, not
-    # silently clamped -- exactly the extrapolation risk the Phase 3
-    # pre-registration is testing for.
+    # peak: grid over visited alpha range out to +/-90 deg, refined by
+    # bisection on the stiffness sign change. Peak outside the data is
+    # reported as such, not clamped.
     grid_deg = np.linspace(0.01, 89.9, 4000)
     grid_rad = np.radians(grid_deg)
     stiffness_grid = pacejka_lateral_stiffness(grid_rad, B, C, D, E)
@@ -542,26 +456,15 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
 
 
 def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
-    """Fz-integration Phase 2: load-normalised variant of _fit_axle_
-    pacejka -- fits (B, C, mu, E) instead of (B, C, D, E), with the peak
-    term evaluated per-sample as D = mu * Fz inside the objective (Fz the
-    measured per-axle load, same base_mask population as the free-D fit).
-    # method: thesis_notes.md, "Pacejka load-normalised (mu) tyre fit"
-
-    Returns the same dict shape as _fit_axle_pacejka (D holds a
-    REPRESENTATIVE value, mu * mean(Fz) over the fit population, so every
-    downstream consumer that already treats D as one axle-wide constant --
-    the EKF Jacobian config, onset_coverage, h2_vs_ay_apex -- needs no
-    change), plus two extra keys: "mu" (the fitted peak friction
-    coefficient itself) and "mean_axle_fz_N" (the Fz this D was evaluated
-    at, so a caller can reconstruct D at any other Fz if needed).
+    """(B, C, mu, E) with D = mu * Fz per sample (Milliken RCVD, tyre chapter).
+    Same dict as _fit_axle_pacejka; D = mu * mean(Fz) as representative
+    value for the constant-D consumers, plus "mu" and "mean_axle_fz_N".
     """
     m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz)
     a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
 
     if len(a2) == 0:
-        # Same empty-population guard as _fit_axle_pacejka -- never let an
-        # empty array reach Powell/percentile.
+        # empty population guard, as in _fit_axle_pacejka
         return {
             "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
             "mu": float("nan"), "mean_axle_fz_N": float("nan"),
@@ -574,11 +477,7 @@ def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
         }
 
     mean_fz = float(np.mean(z2))
-    # Data-derived starting mu: the chair's own free-D starting guess
-    # (PACEJKA_START_GUESS[2] = 8000N) divided by this axle's own mean Fz
-    # -- keeps the same starting PEAK FORCE the free-D fit starts from,
-    # expressed as a friction coefficient, rather than an arbitrarily
-    # chosen mu constant.
+    # start mu = chair start peak force (8000 N) / this axle's mean Fz
     mu_start = PACEJKA_START_GUESS[2] / mean_fz if mean_fz else 1.5
 
     def _sse(p):
@@ -618,28 +517,12 @@ def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
 
 
 def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False):
-    """Phase 3: same one-shot chain as fit_session, fitting the reduced
-    4-parameter Magic Formula (modules/tyre_model_pacejka.py) instead
-    of Dugoff, and running the EKF with Pacejka's analytic stiffness in
-    the Jacobians (modules/sideslip_ekf_pacejka.py -- a separate
-    code path, Dugoff's own EKF file is untouched). Structure mirrors
-    fit_session's steps (c)-(e) exactly (R derivation, 2-D sweep,
-    validation); only the per-axle fit (step a/b) and the EKF call
-    differ. See fit_session's own docstring for the shared status-
-    threshold design (identical thresholds, config tyre_fit_auto.*).
+    """fit_session with the reduced Magic Formula instead of Dugoff; steps
+    (c)-(e) and status thresholds identical, only the axle fit and EKF differ.
 
-    Fz-integration Phase 2 (2026-09-03): load_normalised=True switches
-    the per-axle fit from a free peak FORCE D to D = mu * Fz (Fz the
-    measured per-axle load, mu the fitted peak friction coefficient --
-    method: thesis_notes.md, "Pacejka load-normalised (mu) tyre fit").
-    Requires measured Fz (modules.wheel_loads via stability_estimation.
-    vertical_load_source="measured"); returns a degenerate manifest if
-    unavailable (no damper channels this session, or car_data.json
-    missing) rather than silently falling back to free-D. Default False
-    reproduces the exact free-D behaviour, byte-identical -- steps
-    (c)-(e) below are UNCHANGED either way, since _fit_axle_pacejka_mu
-    returns the same dict shape (D holds a representative mu*mean(Fz)
-    value for those steps' own constant-D usage).
+    load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD, tyre
+    chapter). No measured Fz -> degenerate manifest, no silent free-D
+    fallback. Default False = free-D.
     """
     cfg = params["tyre_fit_auto"]
     vp = params["vehicle"]
@@ -662,13 +545,8 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         if car_data is None:
             return {"status": "degenerate", "degenerate_reason": "load_normalised=True requires "
                     "car_data.json, not available", "data_file": data_file_path}
-        # Force "measured" for THIS call regardless of the live config's own
-        # stability_estimation.vertical_load_source -- load_normalised=True
-        # is an explicit request for measured Fz, not a reflection of the
-        # global flag (which stays "static" by default everywhere else in
-        # production; without this override the mu fit would silently
-        # degenerate to "static resolved" and never run, exactly the bug
-        # this comment replaced after finding it empirically).
+        # force measured Fz for this call -- the global flag defaults to
+        # "static" and the mu fit would silently never run
         params_measured_fz = dict(params)
         params_measured_fz["stability_estimation"] = dict(params["stability_estimation"])
         params_measured_fz["stability_estimation"]["vertical_load_source"] = "measured"
@@ -804,7 +682,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         else:
             frac_beyond = float("nan")
         coverage[axle_name] = {"peak_alpha_deg": fit["peak_alpha_deg"], "coverage_fraction": frac_beyond}
-    manifest["onset_coverage"] = coverage  # field name kept consistent with fit_session's for direct comparison
+    manifest["onset_coverage"] = coverage  # same key as fit_session
 
     apex_half = params["stability_estimation"]["apex_half_window_samples"]
     apex_mask = np.zeros_like(t, dtype=bool)
@@ -835,9 +713,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         manifest["status"] = "ok"
 
     if load_normalised:
-        # mu plausibility (config tyre_fit_auto.mu_plausibility_band_low/
-        # high) -- reported, never silently accepted or discarded (this
-        # project's standing rule on an implausible Tier-A numeric result).
+        # mu outside plausibility band -> reported, not dropped
         mu_lo, mu_hi = cfg["mu_plausibility_band_low"], cfg["mu_plausibility_band_high"]
         manifest["mu_plausibility"] = {
             "mu_front": front_fit["mu"], "mu_rear": rear_fit["mu"],
@@ -854,32 +730,17 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
 
 
 def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
-    """Fresh-session work package, Phase 1: single source of truth for
-    "which beta does this sideslip_source actually produce", used by
-    ui/views/outing_form.py's StabilityAnalysisThread. Extracted into
-    modules/ (not left inline in the QThread) so it is directly
-    testable without any Qt dependency -- tests/test_auto_fit_wiring.py
-    calls this exact function, not a reimplementation, matching this
-    project's "no business logic in ui/" rule slightly more strictly
-    than the pre-existing ekf_pass_1 branch did.
+    """Which beta a given sideslip_source produces. Lives here, not in the
+    QThread, so it is testable without Qt (tests/test_auto_fit_wiring.py).
 
-    Returns (beta, fit_manifest, gate_verdict, fallback_used,
-    fallback_reason). fit_manifest is the JSON-safe subset of fit_
-    session's/fit_session_pacejka's manifest (numpy-array keys
-    stripped) -- None for every sideslip_source except the two auto
-    modes. gate_verdict is modules.nis_gate.evaluate_gate's return
-    dict, None outside the auto modes or when the fit itself degenerated
-    (the gate never runs against a curve already known unusable).
-    fallback_used/fallback_reason are False/None unless an auto mode's
-    fit degenerated or its gate verdicted 'fail' -- in either case beta
-    falls back to kinematic (estimate_sideslip), the reason is recorded
-    as text, never silent. Never mutates params.
+    Returns (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason).
+    fit_manifest: JSON-safe manifest, auto modes only. gate_verdict: from
+    nis_gate.evaluate_gate, None outside auto modes or after a degenerate fit.
+    Degenerate fit or gate "fail" -> kinematic beta, reason as text.
+    Never mutates params.
     """
     if sideslip_source == "ekf_pass_1":
-        # beta_with_fallback, never the raw pre-fallback series: raw keeps
-        # diverged-window artifacts for diagnostics (see modules/
-        # sideslip_ekf_dugoff.py's own docstring) -- production must never
-        # feed a silently-diverged state into the rest of the pipeline.
+        # beta_with_fallback, never raw -- raw keeps diverged-window artifacts
         ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_1")
         return ekf_result["beta_with_fallback"], None, None, False, None
 
@@ -887,10 +748,7 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
         if sideslip_source == "ekf_auto_dugoff":
             raw_fit_manifest = fit_session(data, params, data_file_path=csv_path)
         else:
-            # Fz-integration Phase 2: config-gated, default False -- see
-            # fit_session_pacejka's own docstring. fit_session (Dugoff) has
-            # no load_normalised mode; this phase only touches the Pacejka
-            # path, per the work order.
+            # config-gated, default False; Pacejka path only
             load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
             raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,
                                                     load_normalised=load_normalised)

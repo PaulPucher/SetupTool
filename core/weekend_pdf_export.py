@@ -1,27 +1,12 @@
-# Weekend PDF export (Tier C UI feature, approved proposal + three
-# corrections; PDF layout rework package: shared strip renderer, see
-# thesis_notes.md). One multi-page document covering a user-selected
-# subset of a race weekend's outings: a cover summary page, a dedicated
-# Setup/Setdown sheets section (landscape strips, core/pdf_export.py's
-# build_session_strip at 'small' scale, two strips/page = one outing's
-# own Setup+Setdown pair, chronological, page break per outing -- follow-
-# up item 4, was four strips/two outings' pairs per page), then one
-# section per outing for what setup sheets don't cover: resolved accuracy
-# footer, verdict summary, recommendations, driver feedback. reportlab
-# tables throughout for the non-strip sections -- CORNER_LABELS/
-# CAR_LABELS/WEIGHT_TOTALS_LABELS/_fmt are reused from core/pdf_export.py
-# so the parameter-label mapping has one source.
+# Weekend PDF for a selected set of outings: cover summary, Setup/Setdown
+# strips (build_session_strip "small", one outing's pair per page), then
+# per outing: accuracy footer, verdicts, recommendations, driver feedback.
+# Labels and _fmt shared with core/pdf_export.py.
 #
-# Verdict trust rule (Guard-A/B consistency): a verdict is only ever
-# printed for an outing whose cached analysis_data.schema_version matches
-# the CURRENT modules.stability_analysis.ANALYSIS_SCHEMA_VERSION, and even
-# then it is classified LIVE from current config (OutingForm._classify_
-# corner) against the stored summaries -- never a value read out of the
-# cache. This mirrors exactly how ui/views/outing_form.py's own render
-# path works (Guard A: verdicts never persisted, always classified live;
-# Guard B: a schema-version mismatch is treated as no cache at all). A
-# stale-schema or missing analysis prints "Not analysed under current
-# version -- re-run Analyse." instead of any verdict/recommendation section.
+# Verdicts only for outings whose cached schema_version matches the current
+# ANALYSIS_SCHEMA_VERSION, and then classified live from current config --
+# never read from the cache (same as the app). Stale or missing ->
+# "Not analysed under current version -- re-run Analyse."
 
 import json
 from xml.sax.saxutils import escape
@@ -43,11 +28,8 @@ from models.driver import Driver
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN = 14 * mm
 CONTENT_W = PAGE_W - 2 * MARGIN
-# Follow-up item 4: two strips per page (one outing's own Setup+Setdown
-# pair), not four (two outings' pairs) -- roughly doubles STRIP_H, the
-# real fix for the content-density ceiling a previous round's own report
-# flagged as open (the wheel-grid corner boxes alone needed ~77mm against
-# a 44mm budget at four-per-page).
+# two strips per page -- at four, the wheel-grid boxes needed ~77 mm of a
+# 44 mm strip
 STRIPS_PER_PAGE = 2
 STRIP_GAP = 2 * mm
 STRIP_H = (PAGE_H - 2 * MARGIN - (STRIPS_PER_PAGE - 1) * STRIP_GAP) / STRIPS_PER_PAGE
@@ -91,8 +73,7 @@ def _p(value, style):
 
 
 def _table(rows, col_widths, styles, header=True):
-    # header row bold/highlighted, plain grid otherwise -- "tables-only",
-    # no corner-grid/card layout for this document.
+    # bold header row, plain grid -- tables only
     para_rows = []
     for i, row in enumerate(rows):
         style = styles["cell_head"] if (header and i == 0) else styles["cell"]
@@ -116,22 +97,15 @@ def _table(rows, col_widths, styles, header=True):
 
 
 def _classify_corner(summary):
-    # Reuses the UI's own classifier unmodified -- OutingForm._classify_
-    # corner never touches self (only load_parameters() + the summary
-    # dict), the same None-self call already used by this session's
-    # diagnostics/*.py scripts. Guarantees a PDF verdict can never disagree
-    # with what the live app would show for the same summary.
+    # the app's own classifier, called with self=None (doesn't use self) ->
+    # PDF can't disagree with the app
     from ui.views.outing_form import OutingForm
     return OutingForm._classify_corner(None, summary)
 
 
 def _sideslip_source_calibrated():
-    # WP-N2 Step 1b: mirrors ui/views/outing_form.py's OutingForm.
-    # _sideslip_source_calibrated exactly (same two config keys, same
-    # comparison) -- not imported from there because that method reads
-    # self only implicitly (never touches it), so duplicating the two-line
-    # comparison here avoids pulling a QWidget-bound method into a
-    # non-Qt-instance PDF-generation context for no benefit.
+    # same two-key comparison as OutingForm._sideslip_source_calibrated,
+    # duplicated to keep a QWidget method out of PDF code
     from modules.stability_analysis import load_parameters
     params = load_parameters()
     active = params["stability_estimation"].get("sideslip_source", "kinematic")
@@ -171,9 +145,7 @@ def _load_json(raw):
 
 
 def analysis_status(outing):
-    """'current' | 'stale' | 'absent'. The ONLY gate for whether a verdict/
-    recommendation section may be printed at all -- see module docstring.
-    """
+    """'current' | 'stale' | 'absent' -- the only gate for printing verdicts."""
     if not outing.analysis_data:
         return "absent"
     parsed = _load_json(outing.analysis_data)
@@ -201,16 +173,9 @@ def _session_meta(outing, driver_name, sheet_label, weekend):
 
 
 def _build_setup_sheets_section(weekend, outings, styles):
-    """Dedicated Setup/Setdown strips section (PDF layout rework package):
-    core/pdf_export.py's build_session_strip at 'small' scale, TWO strips
-    per landscape page = one outing's own Setup+Setdown pair (follow-up
-    item 4 -- was four strips/two outings' pairs per page; doubling
-    STRIP_H is the real fix for the small-scale content-density ceiling a
-    previous round flagged as open, not a tunable-constant tweak).
-    Chronological (outings arrive pre-sorted from generate_weekend_pdf). A
-    page break is inserted before every outing after the first, so a pair
-    is never split across pages -- an outing's Setdown always sits
-    directly under its own Setup.
+    """Setup/Setdown strips, "small" scale, one outing's pair per landscape page,
+    chronological. Page break before each outing after the first -> Setdown
+    always under its Setup.
     """
     from core.pdf_export import build_session_strip
 
@@ -231,12 +196,8 @@ def _build_setup_sheets_section(weekend, outings, styles):
 
 
 def _estimator_status_text(sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason):
-    # Fresh-session work package, Phase 3d: reuses OutingForm's own
-    # formatting (None-self call, same precedent as _classify_corner
-    # above) so the PDF's wording can never drift from what the live app
-    # shows for the same analysis -- only the text is used, not the
-    # returned ui.style colour (this module has its own reportlab
-    # paragraph styles, selected by fallback_used instead).
+    # text from OutingForm's formatter (self=None) so wording matches the app;
+    # colour chosen here from fallback_used
     if sideslip_source is None:
         return None
     from ui.views.outing_form import OutingForm
@@ -256,22 +217,15 @@ def _verdict_flowables(summaries, styles, sideslip_source=None, fit_manifest=Non
         rows.append([f"C{cid}", agg.get("speed_class") or "-", severity, long_v])
     w = CONTENT_W
     flow = []
-    # Fresh-session work package, Phase 3d: estimator/fit/gate/fallback
-    # status line in the PDF header, same information and same "loud,
-    # can't-scroll-past" placement as the UI's estimator_status_label --
-    # printed ABOVE the calibration banner so a reader sees "what
-    # produced this" before "are the thresholds valid for it".
+    # estimator/fit/gate/fallback line, above the calibration banner: "what
+    # produced this" before "are the thresholds valid for it"
     status_text = _estimator_status_text(
         sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
     )
     if status_text:
         flow.append(Paragraph(status_text, styles["warn"] if fallback_used else styles["muted"]))
         flow.append(Spacer(1, 1.5 * mm))
-    # WP-N2 Step 1b: same gate as OutingForm._sideslip_source_calibrated's
-    # banner -- individual verdict cells above already carry the
-    # "[UNCAL]" marker (inherited from _classify_corner unmodified), this
-    # is the persistent, can't-scroll-past caveat for the printed page.
-    # Placeholder wording, pending review.
+    # page-level caveat to the per-cell "[UNCAL]" markers; placeholder wording
     if not _sideslip_source_calibrated():
         flow.append(Paragraph(
             "PLACEHOLDER: sideslip estimator changed, verdict thresholds not "
@@ -295,22 +249,15 @@ def _recommendations_flowables(outing, summaries, driving_level, styles):
     if not results:
         return [Paragraph("No recommendations at current thresholds.", styles["muted"])]
 
-    # situational/provenance are per-RULE, not carried on the bucket result
-    # directly -- cross-referenced by rules_fired, same pattern the UI uses
-    # for its "unvalidated rule" (seed-status) check.
+    # situational/provenance are per rule -> looked up via rules_fired, as in the UI
     rule_situational = {r["id"]: bool(r.get("situational")) for r in config["rules"]}
     rule_provenance = {r["id"]: r.get("elicitation_provenance") for r in config["rules"]}
 
     rows = [["Action", "Score", "Trigger", "Cell ID(s)", "Provenance", "Situational",
              "Class", "Selected", "Conflicts / limits"]]
     for r in results:
-        # Reliability pass: a synthetic urgent row (action_class
-        # "urgent_gap", ui/views/outing_form.py's own FIX 1) has no setup-
-        # parameter action and no numeric score -- it flags a driver/data
-        # direction contradiction, not a tunable recommendation. Mirrors
-        # the UI's badge_text fallback (corner + verdict, since there is
-        # no lever to name) instead of assuming parameter/actions/score
-        # are always populated.
+        # urgent_gap rows have no action or score -> corner + verdict, like the
+        # UI badge
         if r["action_class"] == "urgent_gap":
             c0 = r["corners"][0] if r["corners"] else None
             action_text = f"C{c0['stable_corner_id']}: {c0['short_verdict']}" if c0 else "engineer attention"
@@ -466,21 +413,11 @@ def _cover_page_flowables(weekend, outings, styles):
 
 
 def generate_weekend_pdf(weekend, outings, output_path):
-    """Build the multi-outing weekend PDF at output_path.
-
-    `outings` is the user's selected subset (Outing ORM rows, any order --
-    re-sorted here by date_time). Structure: cover page, then a dedicated
-    Setup/Setdown strips section (landscape, two strips/page, one page
-    per outing -- follow-up item 4), then one page per outing for analysis/
-    recommendations/feedback -- unchanged from before except the page is
-    now landscape like the rest of the document. Each outing's analysis
-    section is built inside its own try/except: one outing's malformed
-    data (bad JSON, a corrupted summaries payload) renders as an inline
-    error note for that outing only and the rest of the document still
-    builds -- a single bad outing must never abort the whole export. An
-    empty or all-stale/absent selection still produces a valid PDF (cover
-    page + setup strips + per-outing "not analysed" sections), since
-    nothing here assumes at least one outing has a current analysis.
+    """Weekend PDF at output_path. outings = selected Outing rows, sorted here
+    by date_time. Cover, setup strips, one page per outing.
+    Each outing's analysis section in its own try/except -> one bad outing
+    becomes an inline note, never aborts the export. Works with no current
+    analysis at all.
     """
     styles = _styles()
     ordered = sorted(outings, key=lambda o: o.date_time or o.id)
@@ -501,12 +438,7 @@ def generate_weekend_pdf(weekend, outings, output_path):
         try:
             story.extend(_build_outing_section(outing, styles))
         except Exception as e:
-            # Reliability pass: this per-outing try/except already does the
-            # right thing structurally (one bad outing renders a visible
-            # inline note instead of aborting the whole export) -- only the
-            # message itself was raw repr() (Python syntax like
-            # ClassName('message')), not prose a race engineer should have
-            # to parse.
+            # readable message, not a raw repr()
             from core.error_text import friendly_error_text
             label = f"Outing {outing.number or outing.id}"
             story.append(Paragraph(escape(f"{label}: ERROR building this section -- {friendly_error_text(e)}"),

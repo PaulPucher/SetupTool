@@ -21,52 +21,31 @@ from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM,
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
 
-# WARN boundary as a fraction of the BAD (stab_neg_thresh) boundary -- ratio
-# inherited from the original -200/-500 design so detail colours track the
-# verdict threshold automatically. [neutral engineering]
+# WARN boundary as a fraction of the BAD boundary (stab_neg_thresh), so
+# detail colours follow the verdict threshold. [neutral engineering]
 STAB_COLOUR_WARN_FRACTION = 0.4
 
-# Corner-map marker click hit-test radius, px -- matches the marker dot's
-# own on-screen size (size=26 in _update_corner_map_markers) so the click
-# target feels like "the dot", not a much larger or smaller invisible zone.
-# Converted to view (data) coordinates at click time via viewPixelSize().
+# click radius in px = marker dot size; converted via viewPixelSize()
 CORNER_MARKER_CLICK_RADIUS_PX = 26
 
 
 def _norm_path(path):
-    # Shared csv_path comparison for both the WP5 DB cache and the WP6
-    # in-memory pipeline cache -- normalises case and separators so the
-    # same file picked via different casing/slashes still matches.
+    # normalise case and separators for the DB and pipeline caches
     if not path:
         return path
     return os.path.normcase(os.path.normpath(path))
 
 
 def invalidate_all_pipeline_caches():
-    # PART B amendment: called by the settings page after a section-1 save.
-    # Redundant safety net, not the primary defense (resolved_vehicle_
-    # snapshot already carries the section-1 constants, so a genuine
-    # physics edit is caught structurally by the identity check below
-    # regardless). FIX 2 moved the pipeline cache from per-OutingForm-
-    # instance to this module-level singleton, so clearing it here is the
-    # only thing this function needs to do now -- no per-instance loop.
+    # called after a settings save; safety net only -- the vehicle snapshot
+    # in the identity already catches physics edits
     _pipeline_cache_store.clear()
 
 
-# FIX 2 (session-persistent pipeline cache, 2026-07-28): previously an
-# OutingForm INSTANCE attribute, reset to None on every fresh CSV load --
-# closing an outing (discarding its OutingForm) and reopening it, or
-# opening a second outing that points at the SAME csv_path, always forced
-# a full Modules-1-5 recompute even though the exact same file had already
-# been analysed once this session. Keyed by the same normalised csv_path
-# _norm_path already produces; capped at _PIPELINE_CACHE_MAX_ENTRIES,
-# OLDEST-ACCESSED entry evicted first (collections.OrderedDict.move_to_end
-# on every hit, so "oldest" tracks recency of USE, not just of insertion)
-# -- bounded memory footprint regardless of how many different files get
-# analysed in one session. All existing identity fields (accuracy_cap,
-# resolved_vehicle_snapshot) are unchanged and still checked at read time
-# (_pipeline_cache_get's caller) -- only WHERE the entry lives changed,
-# not what makes an entry valid.
+# Session-wide pipeline cache (Modules 1-5), keyed by normalised csv_path,
+# so reopening an outing or a second outing on the same file skips the
+# recompute. LRU, capped at _PIPELINE_CACHE_MAX_ENTRIES. Identity fields
+# still checked by the caller.
 _PIPELINE_CACHE_MAX_ENTRIES = 2
 _pipeline_cache_store = collections.OrderedDict()
 
@@ -111,8 +90,7 @@ class CsvLoaderThread(QThread):
             result = parse_csv(self.path)
             self.finished.emit(result)
         except Exception as e:
-            # Reliability pass: full traceback to the console/log (for
-            # diagnosis), a friendly one-line message to the UI.
+            # traceback to the console, one line to the UI
             print(traceback.format_exc())
             self.error.emit(friendly_error_text(e))
 
@@ -126,32 +104,19 @@ class StabilityAnalysisThread(QThread):
         super().__init__()
         self.parsed_data = parsed_data
         self.lap_filter = lap_filter
-        # Fresh-session work package (auto-fit modes): passed through to
-        # modules.tyre_fit_auto's fit_session(s) as data_file_path, purely
-        # for manifest traceability (git hash/timestamp are the real
-        # reproducibility anchors) -- never read for control flow.
+        # for the fit manifest only, never control flow
         self.csv_path = csv_path
-        # WP6: {corners, state, cs, stab, accuracy_cap, resolved_vehicle_
-        # snapshot} from a prior full run on this same csv_path AND the same
-        # cap/resolved-vehicle-snapshot (matched by the caller before
-        # constructing this thread -- a cap or resolved-value change behaves
-        # like a csv_path change, full Modules-1-5 recompute, not a
-        # lap-filter-only Module-6 recompute). When present, Modules 1-5 and
-        # corner detection are NOT re-run -- only summarise_corners
-        # (Module 6) re-executes for the new lap_filter. None means run the
-        # full pipeline as before.
+        # cached Modules 1-5 result for the same csv_path, cap and vehicle
+        # snapshot (matched by the caller). Present -> only summarise_corners
+        # re-runs for the new lap_filter. None -> full pipeline.
         self.pipeline_cache = pipeline_cache
-        # WP-C: the global accuracy-level cap (None = "best available", or
-        # int 1-4) and the already-resolved per-session accuracy (modules.
-        # accuracy_resolution.resolve_accuracy's output), both computed once
-        # by the caller so the same resolution backs both the pipeline-cache
-        # identity check and the actual computation below.
+        # cap (None = best available, or 1-4) and resolved accuracy, computed once
+        # by the caller for both the cache check and the run
         self.cap = cap
         self.resolved_accuracy = resolved_accuracy
 
     def run(self):
-        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
-        # manual timing run, then keep or remove per user decision.
+        # temporary timing instrumentation
         import time
         t0 = time.perf_counter()
         try:
@@ -162,17 +127,10 @@ class StabilityAnalysisThread(QThread):
                 estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
-            # PLAN.md STEP 3 (LS_ratio) Phase 3: longitudinal counterpart to
-            # estimate_lateral_forces/estimate_cornering_stiffness above,
-            # same "read-only diagnostic, feeds Module 6/UI only" status Fz
-            # had at its own Phase-3-equivalent turn -- no classify_fn input.
+            # LS: display/diagnostic only, not a classifier input
             from modules.longitudinal_forces import estimate_longitudinal_forces, estimate_slip_ratio
             from modules.longitudinal_stiffness import estimate_longitudinal_stiffness
-            # WP-N2 Step 1b / fresh-session work package: which beta a given
-            # sideslip_source produces (kinematic, ekf_pass_1, or the two
-            # auto-fit modes) is modules.tyre_fit_auto.resolve_sideslip_
-            # beta's job now, called below -- estimate_sideslip and the
-            # Dugoff EKF are imported there, not here.
+            # beta per sideslip_source is chosen in tyre_fit_auto.resolve_sideslip_beta
             pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
@@ -180,40 +138,21 @@ class StabilityAnalysisThread(QThread):
                 cs = self.pipeline_cache["cs"]
                 stab = self.pipeline_cache["stab"]
                 fz = self.pipeline_cache["fz"]
-                # PLAN.md STEP 3 Phase 3: .get() so a pipeline-cache entry
-                # written by a pre-this-package session (no "ls" key)
-                # degrades to None instead of KeyError -- same convention
-                # as slip/forces below.
+                # .get(): older cache entries have no "ls"
                 ls = self.pipeline_cache.get("ls")
-                # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt) join the
-                # cache alongside cs/stab/fz -- same precedent as fz's own
-                # WP5b(b) addition. Only the corner-trace dialog's tyre-curve
-                # tab reads these; .get() so an entry cached by an older
-                # session (before this key existed) degrades to None there
-                # instead of KeyError.
+                # slip/forces for the tyre-curve tab; .get() for older entries
                 slip = self.pipeline_cache.get("slip")
                 forces = self.pipeline_cache.get("forces")
                 sideslip_source = self.pipeline_cache.get("sideslip_source", "kinematic")
-                # Fresh-session work package: fit_manifest/gate_verdict/
-                # fallback_used/fallback_reason join the cache alongside
-                # slip/forces above, same reasoning -- a lap-filter-only
-                # re-Analyse under an auto mode must not lose the estimator-
-                # status line just because Modules 1-5 were reused rather
-                # than recomputed. .get() with None/False defaults so a
-                # pre-this-package cached entry degrades to None/False
-                # instead of KeyError.
+                # fit/gate/fallback cached too, so a lap-filter-only rerun keeps the
+                # estimator status line; defaults for older entries
                 fit_manifest = self.pipeline_cache.get("fit_manifest")
                 gate_verdict = self.pipeline_cache.get("gate_verdict")
                 fallback_used = self.pipeline_cache.get("fallback_used", False)
                 fallback_reason = self.pipeline_cache.get("fallback_reason")
             else:
                 params = load_parameters()
-                # WP-C: substitute the resolved (and cap-clipped) mass/
-                # corner_weights/cog values wherever Modules 1-5 read
-                # params["vehicle"] -- neither function's own body changes,
-                # they read the same keys as always, just off this
-                # deep-copied effective dict instead of the shared
-                # lru_cache'd one.
+                # resolved (cap-clipped) vehicle values in a deep-copied params dict
                 effective_params = apply_resolved_vehicle(params, self.resolved_accuracy)
                 state = prepare_vehicle_state(self.parsed_data["channels"], effective_params)
                 if state is None:
@@ -222,16 +161,8 @@ class StabilityAnalysisThread(QThread):
                 sideslip_source = effective_params["stability_estimation"].get(
                     "sideslip_source", "kinematic"
                 )
-                # Fresh-session work package: dispatch (ekf_pass_1 / the two
-                # auto-fit modes / kinematic) lives in modules/tyre_fit_auto.
-                # resolve_sideslip_beta, not inline here -- keeps this QThread
-                # a thin caller and makes the dispatch logic directly
-                # testable without Qt (tests/test_auto_fit_wiring.py calls
-                # the exact same function). Timed separately from the rest
-                # of Modules 1-5 so the fit chain's own wall-clock is visible
-                # regardless of which mode is active (near-zero for
-                # kinematic/ekf_pass_1, the actual fit+sweep cost for the
-                # two auto modes).
+                # sideslip dispatch lives in tyre_fit_auto (testable without Qt); timed
+                # separately so the fit chain's cost is visible
                 from modules.tyre_fit_auto import resolve_sideslip_beta
                 t_fit0 = time.perf_counter()
                 beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
@@ -249,16 +180,11 @@ class StabilityAnalysisThread(QThread):
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
-                # WP5b(b) phase 1 turn (b): read-only Fz/fy_norm diagnostic,
-                # feeds Module 6/UI only -- no classify_fn input. Fz-
-                # integration Phase 1: channels/car_data are passed through
-                # unconditionally -- estimate_vertical_loads itself only
-                # touches modules.wheel_loads when config's
-                # vertical_load_source is "measured" (default "static"
-                # ignores both args, byte-identical to before this package).
+                # Fz / fy_norm: diagnostic only. channels/car_data only used when
+                # vertical_load_source is "measured".
                 fz = estimate_vertical_loads(state, forces, effective_params,
                                              channels=self.parsed_data["channels"], car_data=load_car_data())
-                # PLAN.md STEP 3 Phase 3: same read-only-diagnostic status.
+                # diagnostic only
                 long_forces = estimate_longitudinal_forces(state, self.parsed_data["channels"], effective_params)
                 slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)
                 ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
@@ -280,11 +206,7 @@ class StabilityAnalysisThread(QThread):
                 "forces": forces,
                 "corners": corners,
                 "cap": self.cap,
-                # Cleanup pass, Phase 1: lets CornerTraceDialog respect the
-                # analysis's own lap selection (single lap chosen -> traces
-                # default to that lap only) instead of always defaulting
-                # every valid lap to checked regardless of what was
-                # actually analysed.
+                # lets the trace dialog default to the analysed lap selection
                 "lap_filter": self.lap_filter,
                 "resolved_accuracy": self.resolved_accuracy,
                 "sideslip_source": sideslip_source,
@@ -296,9 +218,7 @@ class StabilityAnalysisThread(QThread):
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
         except Exception as e:
-            # Reliability pass: same convention as CsvLoaderThread.run()
-            # above -- full traceback to the console/log, a one-line
-            # message to the UI's status label.
+            # traceback to the console, one line to the status label
             print(traceback.format_exc())
             self.error.emit(friendly_error_text(e))
 
@@ -316,54 +236,27 @@ class OutingForm(QWidget):
         self.parsed_data = None
         self.loaded_csv_path = None
         self.stability_result = None
-        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
-        # attempt (True/False + reason); Phase 2's status line reads these
-        # to say WHY it is or isn't offering the fast path. None before any
-        # cache attempt this instance has made (e.g. a fresh/never-analysed
-        # outing, or a brand-new CSV load).
+        # result + reason of the last cache attempt, for the status line; None
+        # before any attempt
         self._sidecar_hit = None
         self._sidecar_miss_reason = None
-        # WP-CACHE Phase 2a: the exact kwargs the last successful
-        # _render_stability_summaries call used, captured at every one of
-        # its 3 call sites (fresh run, DB-cache hit, fast-path re-render) --
-        # lets the fast path replay an identical render without needing to
-        # know which of the two differently-shaped stability_result origins
-        # (a fresh run's nested resolved_accuracy vs a sidecar-merged flat
-        # resolved_vehicle_snapshot) produced it. None until the first
-        # render this instance has done.
+        # kwargs of the last _render_stability_summaries call -- the fast path
+        # replays them without caring which result shape produced them
         self._last_render_kwargs = None
         self.corner_positions_cache = None
         self.corner_map_trace_xy = None
-        # PART C: lazily-created, reused per-corner trace window (see
-        # ui/views/corner_trace_dialog.py) -- None until first opened.
+        # lazily created, reused corner trace window
         self._corner_trace_dialog = None
-        # Lap-trace-view work package: same lazy/reused convention as
-        # _corner_trace_dialog, a separate window/instance (LapTraceDialog
-        # shares CornerTraceDialog's base class but is its own dialog, not
-        # a mode switch on the same one) -- None until first opened.
+        # lazily created, reused lap trace window (separate dialog)
         self._lap_trace_dialog = None
-        # WP6: {csv_path, corners, state, cs, stab} from the last full
-        # WP5: JSON string mirroring whatever analysis_data should be
-        # persisted on next save (fresh analysis result, or an untouched
-        # cache-hit's raw string), or None. FIX 2: the WP6 Modules-1-5
-        # pipeline cache itself is no longer instance state -- see the
-        # module-level _pipeline_cache_store/_pipeline_cache_get/_put
-        # near the top of this file.
+        # JSON to persist as analysis_data on next save, or None. The pipeline
+        # cache itself is module-level (_pipeline_cache_*).
         self._analysis_data_json = None
-        # WP-small: the resolved_vehicle_snapshot (modules.accuracy_
-        # resolution.resolve_accuracy's "values") behind whatever is
-        # currently rendered in the stability section, or None if nothing
-        # is rendered -- lets an explicit Save compare newly-saved setup
-        # data against what the displayed analysis actually used.
+        # vehicle snapshot behind the rendered analysis, so Save can detect a
+        # setup change against it
         self._displayed_resolved_vehicle_snapshot = None
-        # Fix turn: (stored_version, current_version) when
-        # _try_render_cached_analysis rejects a persisted cache purely for
-        # a schema_version mismatch -- lets _generate_decision_frame (and
-        # any other stability_result consumer) tell that case apart from
-        # "never analysed" and say so instead of rendering nothing.
-        # Cleared in _render_stability_summaries, the single shared render
-        # call site both a fresh Analyse and a successful cache-hit go
-        # through.
+        # (stored_version, current_version) when the cache was rejected only for
+        # its schema version -- lets the decision frame say so. Cleared on render.
         self._cached_schema_mismatch = None
 
         outer_layout = QVBoxLayout(self)
@@ -401,13 +294,8 @@ class OutingForm(QWidget):
         outer_layout.addWidget(scroll)
 
     def _sideslip_source_calibrated(self):
-        # WP-N2 Step 1b: single source of truth for the traces-vs-verdicts
-        # gate, shared by the stability banner, the recommendations banner,
-        # and (indirectly, via _classify_corner) every per-verdict marker
-        # and the PDF export. Pure config comparison -- independent of which
-        # data is currently rendered, since the WP5/WP6 cache identity
-        # checks already guarantee rendered data matches the live config's
-        # sideslip_source.
+        # one traces-vs-verdicts gate for the banners, [UNCAL] markers and PDF;
+        # pure config comparison
         from modules.stability_analysis import load_parameters
         params = load_parameters()
         active = params["stability_estimation"].get("sideslip_source", "kinematic")
@@ -417,8 +305,8 @@ class OutingForm(QWidget):
         return active == calibrated_for
 
     def _stability_colour(self, kind, value, axle="f"):
-        # Align with _classify_corner thresholds so details colours match verdicts.
-        # CS thresholds differ front vs rear because rear normally stays stiffer.
+        # same thresholds as _classify_corner; CS thresholds differ front vs rear
+        # (rear normally stays stiffer)
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
         if kind == "cs":
@@ -446,34 +334,21 @@ class OutingForm(QWidget):
         return TEXT_MUTED
 
     def _classify_corner(self, summary):
-        # Returns (severity, short_verdict, long_verdict, colour).
-        # Thresholds are config-driven (config/parameters.json classification
-        # block); each carries its own derived_from note there. Values only,
-        # not the derivation history -- see thesis_notes.md for that.
+        # Returns (severity, short_verdict, long_verdict, colour). Thresholds from
+        # parameters.json classification.
         from modules.stability_analysis import load_parameters
         params = load_parameters()
         cls_cfg = params["classification"]
-        # WP-N2 Step 1b: thresholds below are only known-valid for the
-        # sideslip source named in thresholds_calibrated_for_sideslip_source
-        # (re-derived only at Step 4, deliberately deferred -- PLAN.md
-        # PARKED). A mismatch means the CS_ratio/stability distribution
-        # feeding this classification has shifted out from under thresholds
-        # fitted to a different source; the verdict below is not wrong, but
-        # its severity boundaries are unvalidated for this data. Placeholder
-        # marker text -- wording to be finalised after visual review.
+        # thresholds valid only for thresholds_calibrated_for_sideslip_source;
+        # other source -> [UNCAL] marker (verdict fine, boundaries unvalidated).
+        # Placeholder wording.
         active_sideslip_source = params["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
         calibrated_for = cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic")
         uncalibrated_marker = "" if active_sideslip_source == calibrated_for else " [UNCAL]"
-        # Threshold anchoring, Phase 2 (2026-09-02): stab_neg_thresh itself
-        # was NOT re-derived for ekf_auto_pacejka (no negative population to
-        # anchor a margin against, thesis_notes.md "Threshold anchoring,
-        # Phase 2") and stays on its kinematic-era gap-selected value --
-        # a second, narrower marker than [UNCAL] above (which now reports
-        # CS-threshold calibration only), appended only to a firing
-        # unstable-yaw verdict specifically, since that is the only verdict
-        # this legacy value governs.
+        # stab_neg_thresh not re-derived for ekf_auto_pacejka (no negative
+        # population) -> separate marker on a firing unstable-yaw verdict only
         stab_calibrated_for = cls_cfg.get("stab_thresh_calibrated_for_sideslip_source", "kinematic")
         stab_legacy_marker = "" if active_sideslip_source == stab_calibrated_for else " [stab thresh: kinematic-era, not re-derived]"
         STRONG_CSF = cls_cfg["STRONG_CSF"]["value"]
@@ -481,12 +356,8 @@ class OutingForm(QWidget):
         MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
         MODERATE_CSR = cls_cfg["MODERATE_CSR"]["value"]
         STAB_NEG_THRESH = cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"]
-        # Metrology Phase 2 (2026-09-19, PLAN.md PARKED "Verdict-stability
-        # annotation", now implemented): CS_MARGIN anchors a MARGINAL tag on
-        # top of the verdict below -- a robustness qualifier, not a new
-        # severity tier -- appended only to whichever axle is actually
-        # driving the verdict (primary_axle/primary_val, decided further
-        # down), never computed independently of it.
+        # MARGINAL tag: the verdict-driving axle is within CS_MARGIN of a
+        # threshold. Qualifier, not a severity tier.
         CS_MARGIN = cls_cfg["verdict_stability_margin"]["cs_margin"]
 
         worst_f_phase = None
@@ -511,12 +382,8 @@ class OutingForm(QWidget):
             "exit_5": "late exit",
         }
 
-        # CS validity repair part A, Phase 3: apex_3's CS reads come from
-        # apex_region (a distance-based window around the apex, config
-        # cs_apex_region_half_length_m) instead of apex_3's own structurally
-        # fixed 11-sample slice (thesis_notes.md "apex_3 structural
-        # finding") -- apex_3 still supplies its own stability median and
-        # every other phase's CS reads are unaffected.
+        # apex_3 CS read from apex_region (distance window) instead of the fixed
+        # 11-sample slice; apex_3 stability unchanged
         apex_region = summary.get("apex_region")
         for phase, p in summary["phases"].items():
             if phase == "apex_3" and apex_region is not None:
@@ -543,15 +410,13 @@ class OutingForm(QWidget):
         destabilising = (worst_stab_val == worst_stab_val
                          and worst_stab_val < STAB_NEG_THRESH)
 
-        # Vocabulary intentionally limited to: understeer / oversteer / unstable yaw.
-        # We pick the dominant axle behaviour and the phase where it's worst.
-        # Front issue -> understeer. Rear issue -> oversteer. Both -> the worse one.
+        # vocabulary: understeer / oversteer / unstable yaw. Front -> understeer,
+        # rear -> oversteer, both -> the worse one, at its worst phase.
         short_parts = []
         long_parts = []
         severity = "normal"
 
-        # Decide which axle leads the verdict
-        # (rear collapse is rarer and more consequential, so it wins ties)
+        # rear wins ties -- rarer and more consequential
         front_active = front_strong_cs or front_moderate_cs
         rear_active = rear_strong_cs or rear_moderate_cs
 
@@ -636,9 +501,7 @@ class OutingForm(QWidget):
         btn_back.setStyleSheet("background-color: #252525; color: #888;")
         btn_back.clicked.connect(self._save_outing)
 
-        # Small WP: explicit Save, enabled in both new-outing and edit
-        # modes -- persists via the same _persist_outing() core Back uses,
-        # but stays on the page (see _on_save_clicked).
+        # explicit Save: same _persist_outing as Back, stays on the page
         self.btn_save = QPushButton("Save")
         self.btn_save.setFixedWidth(80)
         self.btn_save.setStyleSheet("background-color: #252525; color: #888;")
@@ -779,58 +642,26 @@ class OutingForm(QWidget):
         self.btn_analyse.clicked.connect(self._run_stability_analysis)
         self.btn_analyse.setEnabled(False)
 
-        # Lap-trace-view work package: enabled alongside Generate
-        # (_render_stability_summaries, the single shared render call site
-        # for both a fresh Analyse and a cache-hit) -- "an analysis
-        # exists" is the same precondition both features need.
+        # enabled with Generate, once an analysis exists
         self.btn_lap_traces = QPushButton("Lap traces")
         self.btn_lap_traces.setFixedWidth(100)
         self.btn_lap_traces.clicked.connect(self._open_lap_trace)
         self.btn_lap_traces.setEnabled(False)
 
-        # WP-C: global accuracy-level cap. A plain UI-selected value threaded
-        # into the analysis call like lap_filter -- modules/ never reads this
-        # combo box directly, only the int (or None for "best available")
-        # _get_accuracy_cap_from_selector() returns.
+        # global accuracy cap; modules/ only sees the int (or None)
         self.accuracy_cap_combo = QComboBox()
         self.accuracy_cap_combo.addItems(
             ["Best available", "Level 1", "Level 2", "Level 3", "Level 4"]
         )
         self.accuracy_cap_combo.setFixedWidth(130)
 
-        # Fresh-session work package, Phase 3a: sideslip-estimator mode
-        # selector. Replaces config-file-only switching -- selecting an
-        # item WRITES config/parameters.json's stability_estimation.
-        # sideslip_source directly (imitates ui/views/settings_view.py's
-        # own _on_save_clicked persistence pattern: full read-modify-
-        # write of the JSON file, then load_parameters.cache_clear() +
-        # invalidate_all_pipeline_caches() -- investigated first, see
-        # thesis_notes.md for why this pattern was chosen over an
-        # ephemeral per-session QComboBox value like accuracy_cap_combo:
-        # accuracy_cap_combo has NO cross-restart persistence at all
-        # (verified by reading _prefill/_carryon_from_last, neither
-        # touches it), which fails this phase's explicit "persists across
-        # restarts" requirement, whereas config-file persistence already
-        # exists for this exact field and is restart-persistent by
-        # construction). Participates in cache identity exactly as the
-        # config key does today because it IS the config key -- no new
-        # identity field needed anywhere.
-        # UI cleanup package: "EKF (frozen Dubai fit)" / "ekf_pass_1"
-        # REMOVED from the SELECTABLE items -- it is the validated
-        # baseline (the frozen pass-1 manifest tests/diagnostics compare
-        # against) and stays fully reachable by editing config/parameters.
-        # json's stability_estimation.sideslip_source directly, which is
-        # why it must not be deleted from _ESTIMATOR_LABELS above (that
-        # mapping is still used for the status line/PDF whenever ekf_
-        # pass_1 IS the active mode, config-selected). Only the DROPDOWN's
-        # own selectable set shrinks to the three modes users are meant
-        # to choose day to day.
-        # ekf_auto_dugoff marked experimental in the dropdown (CS validity
-        # repair, Phase 4, user decision): its rear-axle fit degenerates on
-        # this car's data under the final CS window floor and falls back to
-        # kinematic on every run -- kept selectable (a designed, loud
-        # fallback, not a crash) rather than removed, but the label must
-        # not imply it is as trustworthy as the other two modes.
+        # Sideslip estimator selector. Writes stability_estimation.sideslip_source
+        # to parameters.json (read-modify-write + cache clear, as the settings
+        # page) -- persists across restarts, and the config key is already part
+        # of cache identity.
+        # ekf_pass_1 (frozen validated baseline) not selectable, still reachable
+        # via config. ekf_auto_dugoff labelled experimental: its rear fit
+        # degenerates on this car and it falls back to kinematic every run.
         self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
             "Kinematic": "kinematic",
             "EKF auto Dugoff (experimental)": "ekf_auto_dugoff",
@@ -846,22 +677,12 @@ class OutingForm(QWidget):
         _current_mode = _load_params_for_init()["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
-        # If config is currently "ekf_pass_1" (config-level selection,
-        # not reachable from this dropdown any more), the lookup below
-        # misses and falls back to "Kinematic" -- the combo cannot
-        # display a value outside its own item list (same accepted,
-        # already-shipped QComboBox.setCurrentText() no-op-on-unmatched-
-        # value behaviour as wing_position's own legacy-value handling).
-        # This does NOT affect what actually runs: Analyse always reads
-        # sideslip_source from config, never from the combo's current
-        # display text, and estimator_status_label (post-analysis)
-        # correctly names "EKF (frozen pass-1 Dugoff fit)" regardless of
-        # what the dropdown shows. Documented, not silently accepted.
+        # config "ekf_pass_1" isn't in the list -> combo shows Kinematic. Display
+        # only: Analyse reads config, and the status line names the real estimator.
         self.sideslip_mode_combo.setCurrentText(
             self._SIDESLIP_MODE_VALUE_TO_DISPLAY.get(_current_mode, "Kinematic")
         )
-        # Connected AFTER the initial setCurrentText above, so populating
-        # the widget at construction time never triggers a config write.
+        # connected after setCurrentText -> building the combo never writes config
         self.sideslip_mode_combo.currentTextChanged.connect(self._on_sideslip_mode_changed)
 
         self.csv_status_label = QLabel("No file loaded")
@@ -870,13 +691,7 @@ class OutingForm(QWidget):
         self.stability_status_label = QLabel("")
         self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
 
-        # WP-CACHE Phase 2a: explicit recompute control, shown only when an
-        # Analyse click rendered from a matching cache (fast path, zero
-        # pipeline run) -- the one way to force a real recompute even
-        # though nothing in the tracked identity changed. Same link-button
-        # styling as the decision-frame "> reasoning" toggle (transparent
-        # background, no border, muted colour, ui/views/outing_form.py's
-        # own existing btn_expand construction).
+        # forces a real recompute after a fast-path render; link-button style
         self.btn_recompute_stale_cache = QPushButton("recompute")
         self.btn_recompute_stale_cache.setStyleSheet(
             f"background-color: transparent; color: {TEXT_MUTED}; font-size: 11px; "
@@ -886,9 +701,7 @@ class OutingForm(QWidget):
         self.btn_recompute_stale_cache.clicked.connect(self._on_recompute_clicked)
         self.btn_recompute_stale_cache.setVisible(False)
 
-        # Fresh-session work package, Phase 3b: which estimator actually
-        # produced beta (auto modes can fall back!), fit status, gate
-        # verdict, fallback reason -- see _format_estimator_status.
+        # estimator actually used (auto modes can fall back), fit, gate, fallback
         self.estimator_status_label = QLabel("")
         self.estimator_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         self.estimator_status_label.setWordWrap(True)
@@ -946,9 +759,7 @@ class OutingForm(QWidget):
         lap_controls_layout.addStretch()
         layout.addWidget(lap_controls_row)
 
-        # Tracks the lap_table's effective selection so a repeat click on the
-        # same lap can toggle it off (Qt's SingleSelection alone can't tell
-        # "clicked the already-selected row" from a fresh selection).
+        # lets a repeat click on the selected lap toggle it off
         self._selected_lap_value = None
 
         self.lap_table = QTableWidget()
@@ -1098,8 +909,7 @@ class OutingForm(QWidget):
         return None
 
     def _clear_lap_selection(self):
-        # Move the highlight to "All laps" rather than leaving no row
-        # selected -- the effective scope must stay visible, not just correct.
+        # highlight "All laps" -- the effective scope stays visible
         all_row = self._all_laps_row()
         if all_row is not None:
             self.lap_table.selectRow(all_row)
@@ -1204,19 +1014,10 @@ class OutingForm(QWidget):
         self.progress.close()
         self.parsed_data = result
         self.loaded_csv_path = self.loader_thread.path
-        # A previous file's analysis/marker cache must never leak into a
-        # newly loaded file -- same bug class as stale UI widgets (WP4).
-        # FIX 2: the WP6 pipeline cache itself is deliberately NOT reset
-        # here any more -- it is module-level and keyed by csv_path, so
-        # loading a different file simply looks up a different key (no
-        # leakage risk), and reloading THIS SAME file is exactly the case
-        # this fix exists to make fast.
+        # no analysis state from the previous file. Pipeline cache not reset --
+        # it's keyed by csv_path.
         self.stability_result = None
-        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
-        # attempt (True/False + reason); Phase 2's status line reads these
-        # to say WHY it is or isn't offering the fast path. None before any
-        # cache attempt this instance has made (e.g. a fresh/never-analysed
-        # outing, or a brand-new CSV load).
+        # last cache attempt, for the status line
         self._sidecar_hit = None
         self._sidecar_miss_reason = None
         self._last_render_kwargs = None
@@ -1239,8 +1040,7 @@ class OutingForm(QWidget):
         self._update_corner_map_trace()
         self._update_corner_map_markers()
         self.btn_analyse.setEnabled(True)
-        # WP5: render immediately from a matching persisted cache, if any --
-        # no lap-selector reconstruction, just the summaries as last analysed.
+        # render from a matching persisted cache right away
         self._try_render_cached_analysis()
 
     def _on_csv_error(self, error_msg):
@@ -1249,8 +1049,7 @@ class OutingForm(QWidget):
         self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
 
     def _on_clear_data_clicked(self):
-        # Decisions batch (Phase 2d): nothing to clear yet -- avoid a
-        # confirmation dialog over an already-empty Data section.
+        # nothing loaded -> no confirmation dialog
         if not self.parsed_data and not self.loaded_csv_path:
             return
         from PyQt6.QtWidgets import QMessageBox
@@ -1264,21 +1063,12 @@ class OutingForm(QWidget):
             self._reset_data_state()
 
     def _reset_data_state(self):
-        # Data lifecycle (Phase 2d): undo everything _on_csv_loaded and a
-        # completed Analyse populate, back to the pre-load state. In-memory/
-        # widget state only -- self.loaded_csv_path=None is what _save_
-        # outing later persists as csv_path="" (same "stage in memory, Save
-        # writes it" convention every other form field already follows), so
-        # this needs no DB write of its own and a Back-without-Save discards
-        # the clear exactly like it discards any other unsaved edit.
+        # back to the pre-load state, in memory only; Save persists csv_path="",
+        # Back without Save discards it
         self.parsed_data = None
         self.loaded_csv_path = None
         self.stability_result = None
-        # WP-CACHE Phase 1d/2: set on every _try_render_cached_analysis
-        # attempt (True/False + reason); Phase 2's status line reads these
-        # to say WHY it is or isn't offering the fast path. None before any
-        # cache attempt this instance has made (e.g. a fresh/never-analysed
-        # outing, or a brand-new CSV load).
+        # last cache attempt, for the status line
         self._sidecar_hit = None
         self._sidecar_miss_reason = None
         self._last_render_kwargs = None
@@ -1324,12 +1114,8 @@ class OutingForm(QWidget):
         self._update_corner_map_trace()
 
     def _get_lap_filter_from_selector(self):
-        # Decisions batch (Phase 2b): the lap_table selection only scopes the
-        # raw-channel plot view below (_on_lap_selected/_update_plots) -- it
-        # no longer has any say over which laps get analysed. Analysis
-        # always covers every is_valid_for_analysis lap; a file with none
-        # (e.g. every lap flagged in/out) falls back to every lap in the
-        # file rather than analysing nothing.
+        # lap selection only scopes the channel plot. Analysis = every valid lap,
+        # or every lap if none is valid.
         if not self.parsed_data:
             return None
         all_laps = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
@@ -1338,19 +1124,14 @@ class OutingForm(QWidget):
         return valid_laps if valid_laps else all_laps
 
     def _get_accuracy_cap_from_selector(self):
-        # WP-C: None means "Best available" -- no ceiling. Otherwise the
-        # plain int (1-4) crossing the UI/modules boundary like lap_filter.
+        # None = best available, else int 1-4
         text = self.accuracy_cap_combo.currentText()
         if text == "Best available":
             return None
         return int(text.replace("Level ", ""))
 
     def _on_sideslip_mode_changed(self, display_text):
-        # Fresh-session work package, Phase 3a: writes config/parameters.
-        # json directly, same read-modify-write + cache-clear + pipeline-
-        # invalidate pattern as ui/views/settings_view.py's _on_save_
-        # clicked -- see the sideslip_mode_combo construction comment for
-        # why this pattern (not an ephemeral UI value) was chosen.
+        # writes parameters.json, same pattern as the settings page
         new_value = self._SIDESLIP_MODE_DISPLAY_TO_VALUE.get(display_text)
         if new_value is None:
             return
@@ -1361,14 +1142,8 @@ class OutingForm(QWidget):
         if params["stability_estimation"].get("sideslip_source", "kinematic") == new_value:
             return
         params["stability_estimation"]["sideslip_source"] = new_value
-        # ensure_ascii=False: found during this package's own verification
-        # (thesis_notes.md) -- json.dump's default (True) silently escapes
-        # every non-ASCII character anywhere else in the file (e.g. this
-        # very file's own "x"/"^-1" in an unrelated comment)
-        # into \uXXXX sequences on every save. Same latent behaviour exists
-        # in ui/views/settings_view.py's _on_save_clicked (not fixed here,
-        # out of this phase's permitted files) -- fixed here since this is
-        # this package's own new code, not inherited silently.
+        # ensure_ascii=False -- the default escapes any non-ASCII in the file to
+        # uXXXX on every save
         with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
             json.dump(params, f, indent=2, ensure_ascii=False)
             f.write("\n")
@@ -1380,11 +1155,7 @@ class OutingForm(QWidget):
         self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
 
     def _get_setup_data_dict(self):
-        # WP-C resolver input: the PERSISTED setup_data for this outing, not
-        # any unsaved live form edits -- same convention core.pdf_export
-        # already uses. A brand-new unsaved outing (self.outing is None) or
-        # an outing with no setup_data yet resolves at Level 1 everywhere,
-        # same as today.
+        # resolver uses the PERSISTED setup_data, not unsaved edits; none -> L1
         if not self.outing or not self.outing.setup_data:
             return None
         import json
@@ -1394,13 +1165,8 @@ class OutingForm(QWidget):
             return None
 
     def _current_analysis_identity(self):
-        # WP-CACHE Phase 2: the 5 fields that decide whether ANYTHING needs
-        # recomputing for the Analyse-button contract -- narrower than the
-        # 7-field DB/sidecar identity (no schema_version: that only governs
-        # deserialising a STORED payload, irrelevant when comparing two
-        # live in-memory states) and narrower than WP6's own 4-field check
-        # (adds lap_filter: a lap-filter-only change still needs Module 6
-        # re-run, so it counts as "something changed" for this contract).
+        # fields that decide whether anything needs recomputing: identity without
+        # schema_version (only matters for stored payloads), plus lap_filter
         from modules.stability_analysis import load_parameters, _resolve_grid_rate
         from modules.accuracy_resolution import resolve_accuracy
         cap = self._get_accuracy_cap_from_selector()
@@ -1413,16 +1179,9 @@ class OutingForm(QWidget):
         return cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter
 
     def _recompute_reason(self, cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter):
-        # WP-CACHE Phase 2b: "no silent recomputes when nothing changed" --
-        # when a recompute IS about to happen, name which tracked field(s)
-        # differ from whatever was last known, so the status line never
-        # just says "Analysing..." when something stale actually triggered
-        # it. Compares against this instance's own last render first (the
-        # most relevant "what the user is currently looking at" reference);
-        # falls back to the WP6 cross-instance cache's own 4 fields (no
-        # lap_filter there) if this instance never rendered anything yet.
-        # Returns None when there is nothing to compare against (a truly
-        # first-ever Analyse this session) OR nothing detectably differs.
+        # name what changed when a recompute happens. Compared against this form's
+        # last render, else the pipeline cache's fields. None = nothing to compare
+        # or nothing differs.
         prev = self._last_render_kwargs
         if prev is not None:
             checks = [
@@ -1454,11 +1213,8 @@ class OutingForm(QWidget):
             self._current_analysis_identity()
         )
 
-        # WP-CACHE Phase 2a: fast path -- a full pipeline result (state/cs/
-        # stab/... present, not just summaries) already rendered by THIS
-        # instance, under EXACTLY this identity including lap_filter. When
-        # true there is nothing to compute at all, not even Module 6 --
-        # render is skipped too, since the display already shows it.
+        # fast path: this form already rendered a full result under exactly this
+        # identity -> nothing to compute or render
         prev = self._last_render_kwargs
         full_result_available = (
             prev is not None and isinstance(self.stability_result, dict)
@@ -1483,10 +1239,7 @@ class OutingForm(QWidget):
         self._force_recompute(cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter)
 
     def _on_recompute_clicked(self):
-        # WP-CACHE Phase 2a: the explicit control that forces a real run
-        # even when the fast path judged the cache current -- bypasses
-        # _run_stability_analysis' own identity check entirely, unlike a
-        # normal Analyse click.
+        # forced run, skips the identity check
         if not self.parsed_data:
             return
         cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter = (
@@ -1497,8 +1250,7 @@ class OutingForm(QWidget):
 
     def _force_recompute(self, cap, resolved_accuracy, sideslip_source, grid_rate_hz, lap_filter,
                           forced=False):
-        # TEMPORARY perf instrumentation (WP6 timing verification) -- one
-        # manual timing run, then keep or remove per user decision.
+        # temporary timing instrumentation
         import time
         self._analyse_click_time = time.perf_counter()
         all_lap_nums = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
@@ -1512,19 +1264,9 @@ class OutingForm(QWidget):
         self.stability_status_label.setText(f"{status_text}Analysing laps {lap_filter}...")
         self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
 
-        # WP6: reuse the last full Modules-1-5 run if it's for this same
-        # file AND the same cap/resolved-vehicle-snapshot -- a cap change or
-        # a setup_data edit invalidates this exactly like a csv_path change
-        # would (full Modules-1-5 recompute), not like a lap-filter-only
-        # change (Module-6-only recompute). StabilityAnalysisThread then
-        # only re-runs summarise_corners on a genuine hit. FIX 2: the cache
-        # is now a module-level, session-persistent singleton keyed by
-        # csv_path (_pipeline_cache_get) -- so this hit-check can succeed
-        # even for an outing this OutingForm instance never analysed
-        # itself, as long as some instance analysed this same file earlier
-        # in the session. The cap/resolved_vehicle_snapshot identity check
-        # is unchanged; sideslip_source joins it (WP-N2 Step 1b), same
-        # pattern as accuracy_cap.
+        # reuse the cached Modules 1-5 run for the same file, cap, vehicle snapshot,
+        # sideslip_source and grid rate -> only summarise_corners re-runs. Cache is
+        # session-wide, so another form's run of this file counts.
         pipeline_cache = None
         cached_entry = _pipeline_cache_get(self.loaded_csv_path)
         if (cached_entry is not None
@@ -1543,59 +1285,32 @@ class OutingForm(QWidget):
 
     def _on_stability_done(self, result):
         self.stability_result = result
-        # WP6: cache Modules 1-5's output for this file, self-contained
-        # (corners included -- fast path must never re-run corner detection).
-        # WP-C: accuracy_cap + resolved_vehicle_snapshot join this identity --
-        # see the hit-check in _run_stability_analysis. FIX 2: stored in the
-        # module-level singleton (_pipeline_cache_put), not this instance --
-        # outliving this OutingForm so a later reopen of this same file, in
-        # this same session, from any OutingForm instance, still hits.
-        # WP-CACHE Phase 1: built once, reused for both the WP6 in-memory
-        # cache and the sidecar payload below -- same shape, same content,
-        # one place to keep them from drifting apart.
+        # cache Modules 1-5 output incl. corners (fast path never re-detects);
+        # same dict feeds the sidecar
         pipeline_cache_entry = {
             "csv_path": _norm_path(self.loaded_csv_path),
             "corners": result["corners"],
             "state": result["state"],
             "cs": result["cs"],
             "stab": result["stab"],
-            # WP5b(b) phase 1 turn (b): fz (estimate_vertical_loads output)
-            # joins the WP6 in-memory cache identity alongside state/cs/stab
-            # -- a lap-filter-only re-Analyse must reuse it, not recompute
-            # it, same as the other Modules-1-5 outputs it's cached with.
+            # fz, ls, slip/forces cached too -- reused on lap-filter-only reruns
             "fz": result["fz"],
-            # PLAN.md STEP 3 Phase 3: ls (estimate_longitudinal_stiffness
-            # output) joins the WP6 in-memory cache identity alongside fz --
-            # same lap-filter-only-reuse reasoning.
             "ls": result["ls"],
-            # WP-A item 3: slip/forces (alpha_*_filt/Fy_*_filt), same
-            # cache-reuse reasoning as fz above -- the corner-trace dialog's
-            # tyre-curve tab needs them and they must survive a lap-filter-
-            # only re-Analyse exactly like every other Modules-1-5 output.
             "slip": result["slip"],
             "forces": result["forces"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
-            # WP-N2 Step 1b: joins the WP6 identity alongside accuracy_cap --
-            # see the hit-check in _run_stability_analysis.
+            # identity fields
             "sideslip_source": result["sideslip_source"],
-            # 100 Hz time-base work package: joins the identity alongside
-            # sideslip_source -- see the hit-check in _run_stability_analysis.
             "grid_rate_hz": result["state"]["sample_rate_hz"],
-            # Fresh-session work package: NOT new identity fields (sideslip_
-            # source alone already differentiates auto modes from each other
-            # and from kinematic/ekf_pass_1) -- cached alongside slip/forces
-            # above purely so a lap-filter-only re-Analyse doesn't lose the
-            # estimator-status line.
+            # not identity -- cached so the status line survives a lap-filter rerun
             "fit_manifest": result["fit_manifest"],
             "gate_verdict": result["gate_verdict"],
             "fallback_used": result["fallback_used"],
             "fallback_reason": result["fallback_reason"],
         }
         _pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)
-        # WP5: build (not yet write) the cache payload for this analysis;
-        # _save_outing uses whatever this holds, so a save after a cache-hit
-        # render (no fresh Analyse this session) still persists correctly.
+        # payload for the next save (also after a cache-hit render)
         lap_filter = self.stab_thread.lap_filter
         self._analysis_data_json = self._build_analysis_data_json(
             result["summaries"], lap_filter, result["cap"], result["resolved_accuracy"],
@@ -1606,10 +1321,7 @@ class OutingForm(QWidget):
         )
         if self.outing:
             self._persist_analysis_cache()
-            # WP-CACHE Phase 1c: sidecar write, alongside the DB write above,
-            # never gating it -- write_sidecar never raises (logs and
-            # swallows any failure internally), so a sidecar problem can
-            # never fail the analysis that just completed.
+            # sidecar write never raises, never blocks the DB write
             from modules.pipeline_sidecar import build_identity, write_sidecar
             from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
             sidecar_identity = build_identity(
@@ -1622,15 +1334,10 @@ class OutingForm(QWidget):
                 lap_filter=lap_filter,
             )
             write_sidecar(self.outing.id, sidecar_identity, pipeline_cache_entry)
-        # TEMPORARY perf instrumentation (WP6 timing verification).
+        # temporary timing instrumentation
         import time
         t_render0 = time.perf_counter()
-        # WP-CACHE Phase 2a: captured here (not just passed positionally)
-        # so the Analyse-button fast path can replay an identical render
-        # later without caring that a fresh result's own shape (nested
-        # "resolved_accuracy") differs from a sidecar-merged one's (flat
-        # "resolved_vehicle_snapshot") -- see the _last_render_kwargs
-        # attribute's own comment.
+        # captured for the fast path (see _last_render_kwargs)
         render_kwargs = dict(
             lap_filter=lap_filter,
             cap=result["cap"], resolved_accuracy=result["resolved_accuracy"],
@@ -1669,44 +1376,28 @@ class OutingForm(QWidget):
             "summaries": summaries,
             "generated_at": datetime.datetime.now().isoformat(),
             "schema_version": ANALYSIS_SCHEMA_VERSION,
-            # WP-C: the cap this run was generated under, the resolved
-            # per-node levels (footer display), the resolved vehicle
-            # snapshot (WP5/WP6 cache identity -- level alone is not a
-            # sufficient identity token, two different real corner-weight
-            # measurements could both resolve to L2 with different numbers),
-            # whether the cap actually clipped anything, and any resolver
-            # warnings (e.g. the mass/corner-sum consistency check).
+            # cap, resolved levels (footer), vehicle snapshot (identity -- two
+            # different L2 weights are both "L2"), clipped flag, resolver warnings
             "accuracy_cap": cap,
             "resolved_levels": resolved_accuracy["levels"],
             "resolved_vehicle_snapshot": resolved_accuracy["values"],
             "resolved_clipped": resolved_accuracy["clipped"],
             "resolved_warnings": resolved_accuracy["warnings"],
-            # WP-N2 Step 1b: which beta this run used -- schema v5 identity
-            # field, see ANALYSIS_SCHEMA_VERSION's own bump comment.
+            # identity: which beta this run used
             "sideslip_source": sideslip_source,
-            # Fresh-session work package: schema v6. fit_manifest/gate_
-            # verdict are None for kinematic/ekf_pass_1 (no fit chain runs
-            # for those modes); fallback_used/fallback_reason are always
-            # present (False/None outside the two auto modes) -- "a saved
-            # outing carries the curve it was analysed under", including
-            # the never-silent fallback record when the gate didn't pass.
+            # fit_manifest/gate_verdict None outside auto modes; fallback fields
+            # always present -- a saved outing records the curve it ran under
             "fit_manifest": fit_manifest,
             "gate_verdict": gate_verdict,
             "fallback_used": fallback_used,
             "fallback_reason": fallback_reason,
-            # 100 Hz time-base work package: the grid rate this run's
-            # Modules 1-5 actually ran at (thesis_notes.md "PHASE 0") --
-            # cache identity field, checked in _try_render_cached_analysis.
-            # v8 payload shape extension, not a new schema_version bump
-            # (still within this same, still-uncommitted v7->8 package).
+            # grid rate this run used; identity field
             "grid_rate_hz": grid_rate_hz,
         }
         return json.dumps(payload)
 
     def _persist_analysis_cache(self):
-        # WP5 write trigger for an EXISTING outing: on analysis completion,
-        # independent of the Back-button save (_save_outing has its own
-        # symmetry addition for the new-outing / re-save cases).
+        # existing outing: write the cache on completion, independent of Back
         if not self.outing or self._analysis_data_json is None:
             return
         from sqlalchemy import update
@@ -1721,18 +1412,11 @@ class OutingForm(QWidget):
         self.outing.analysis_data = self._analysis_data_json
 
     def _try_render_cached_analysis(self):
-        # WP5 cache-hit path, called from _on_csv_loaded. Guards: existing
-        # outing, parseable JSON, matching schema_version (guard B -- a
-        # mismatch, e.g. from the pre-B1 estimator, is treated as no cache
-        # at all), matching csv_path (normalised), and (WP-C) a matching
-        # accuracy_cap + a freshly-recomputed resolved_vehicle_snapshot --
-        # this is what catches "setup_data was edited since this cache was
-        # written" without needing a separate content hash: recomputing the
-        # resolution is cheap (plain field reads/compares), not a Modules-1-5
-        # recompute. Verdicts are never part of the stored payload --
-        # _render_stability_summaries always classifies live from current
-        # config (guard A).
-        # TEMPORARY perf instrumentation (WP6 timing verification).
+        # DB cache-hit path. Guards: existing outing, valid JSON, schema_version
+        # (mismatch = no cache), csv_path, accuracy_cap, and a freshly recomputed
+        # vehicle snapshot (catches setup edits, cheap). Verdicts never stored --
+        # always classified live.
+        # temporary timing instrumentation
         import time
         t0 = time.perf_counter()
         if not self.outing or not self.outing.analysis_data:
@@ -1764,19 +1448,13 @@ class OutingForm(QWidget):
         current_resolved = resolve_accuracy(load_parameters(), self._get_setup_data_dict(), cap)
         if current_resolved["values"] != cached.get("resolved_vehicle_snapshot"):
             return False
-        # WP-N2 Step 1b: same guard family as accuracy_cap/resolved_vehicle_
-        # snapshot above -- a config-switch flip since this payload was
-        # written must not silently render numbers from the other estimator.
+        # estimator switched since -> don't render the other estimator's numbers
         current_sideslip_source = load_parameters()["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
         if cached.get("sideslip_source") != current_sideslip_source:
             return False
-        # 100 Hz time-base work package: same reasoning as sideslip_source
-        # above -- a target_sample_rate_hz/min_sample_rate_hz config edit
-        # (or this file's own channel timing somehow differing) since the
-        # cache was written must not silently render a payload computed at
-        # a different grid rate.
+        # grid rate changed since -> miss
         current_grid_rate, _grid_status = _resolve_grid_rate(self.parsed_data["channels"], load_parameters())
         if cached.get("grid_rate_hz") != current_grid_rate:
             return False
@@ -1784,24 +1462,12 @@ class OutingForm(QWidget):
         if not summaries:
             return False
         lap_filter = cached.get("lap_filter")
-        # Decisions batch (Phase 2b): analysis now always covers every
-        # is_valid_for_analysis lap (or every lap if none are valid) -- a
-        # cached payload written under the old exclude-toggle/single-lap
-        # selector can carry a different lap_filter than that policy would
-        # produce today (e.g. one lap only, or all laps including in/out).
-        # Such a payload no longer reflects current policy and must be
-        # treated as a cache miss, not rendered as if it were current.
+        # lap_filter that current policy wouldn't produce (old selector) -> miss
         if sorted(lap_filter or []) != sorted(self._get_lap_filter_from_selector() or []):
             return False
         self.stability_result = {"summaries": summaries}
-        # WP-CACHE Phase 1d: attempt the sidecar next, using the SAME
-        # identity already established above (every field just matched the
-        # DB cache). On a hit, merge the full Modules-1-5 outputs into
-        # stability_result and warm the WP6 in-memory cache too, so trace
-        # dialogs/plots work exactly as if the pipeline had just run,
-        # without paying for a rerun. A miss/mismatch changes nothing --
-        # stability_result stays exactly the summaries-only hull the DB
-        # cache already produced (today's behaviour, honest cascade).
+        # sidecar with the same identity: hit -> merge full outputs and warm the
+        # pipeline cache; miss -> summaries-only result, unchanged
         from modules.pipeline_sidecar import build_identity, load_sidecar
         sidecar_identity = build_identity(
             schema_version=ANALYSIS_SCHEMA_VERSION,
@@ -1825,13 +1491,7 @@ class OutingForm(QWidget):
             "clipped": cached.get("resolved_clipped"),
             "warnings": cached.get("resolved_warnings") or [],
         }
-        # WP-CACHE Phase 2a: same capture as the fresh-run path -- see
-        # _last_render_kwargs' own comment. Only meaningful as a Tier-A
-        # fast-render source once a sidecar hit has ALSO populated the full
-        # pipeline fields (checked via "state" in self.stability_result at
-        # the Analyse-click site) -- a DB-only hit (summaries alone) still
-        # gets its kwargs captured here for consistency, but the fast path
-        # will decline it as a source.
+        # captured for the fast path; a DB-only hit (no "state") is declined there
         render_kwargs = dict(
             lap_filter=lap_filter, cap=cap, resolved_accuracy=cached_resolved_accuracy,
             sideslip_source=current_sideslip_source,
@@ -1849,8 +1509,7 @@ class OutingForm(QWidget):
               f"render+sync total: {t1 - t0:.3f}s")
         return True
 
-    # WP-C: short display labels for the resolved-level footer -- not every
-    # registry node name is worth spelling out in a compact one-line strip.
+    # short labels for the accuracy footer
     _ACCURACY_FOOTER_LABELS = [
         ("mass", "mass"),
         ("corner_weights", "corners"),
@@ -1876,11 +1535,8 @@ class OutingForm(QWidget):
         ]
         return " | ".join(parts)
 
-    # Fresh-session work package, Phase 3b: which estimator actually
-    # produced beta, plus fit/gate status -- separate from the [UNCAL]
-    # calibration banner (that answers "are verdict thresholds valid for
-    # this estimator", this answers "what estimator, and did the auto
-    # chain fall back"). Pure formatting, no state -- testable without Qt.
+    # estimator/fit/gate status, separate from the [UNCAL] banner. Pure
+    # formatting, no Qt.
     _ESTIMATOR_LABELS = {
         "kinematic": "kinematic (production default)",
         "ekf_pass_1": "EKF (frozen pass-1 Dugoff fit)",
@@ -1890,17 +1546,10 @@ class OutingForm(QWidget):
 
     def _format_estimator_status(self, sideslip_source, fit_manifest, gate_verdict,
                                   fallback_used, fallback_reason):
-        # Class attribute accessed via the class, not self -- self is None
-        # under the same reuse convention _classify_corner/core/weekend_
-        # pdf_export.py's _estimator_status_text already rely on (found by
-        # tests/test_auto_fit_wiring.py: self._ESTIMATOR_LABELS raised
-        # AttributeError on None, which would have crashed real PDF
-        # generation on any fallback render, not just this test).
+        # via the class, not self -- called with self=None (PDF reuse)
         label = OutingForm._ESTIMATOR_LABELS.get(sideslip_source, sideslip_source)
         if fallback_used:
-            # Deliberately loud and impossible to mistake for a real EKF
-            # render: the requested mode is named, but the word KINEMATIC
-            # (capitalised, WARN colour) is what actually produced beta.
+            # loud: requested mode named, KINEMATIC (WARN colour) is what ran
             text = (
                 f"Estimator: KINEMATIC (fallback -- requested {label} could not be trusted: "
                 f"{fallback_reason})"
@@ -1909,9 +1558,7 @@ class OutingForm(QWidget):
         if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
             fit_status = fit_manifest.get("status") if fit_manifest else "?"
             if gate_verdict and gate_verdict["verdict"] == "warn":
-                # NIS gate band decision (2026-09-03, thesis_notes.md): WARN means
-                # the gate's divergence check did not clear PASS but the EKF beta
-                # is still used -- short, no dates/provenance in the live banner.
+                # WARN: gate didn't clear PASS, EKF beta still used
                 gate_text = "fit usable, provisional confidence (self-check warning)"
             elif gate_verdict:
                 gate_text = (
@@ -1928,24 +1575,13 @@ class OutingForm(QWidget):
                                      fit_manifest=None, gate_verdict=None,
                                      fallback_used=False, fallback_reason=None,
                                      grid_rate_hz=None):
-        # Shared by the live analysis-finished path and the WP5 cache-hit
-        # path -- the ONLY place that builds cards/classifies from a
-        # summaries list, so a threshold re-derivation always shows up here
-        # on next render regardless of which path produced the summaries.
-        # Reaching this call means a valid (version-matched) render is
-        # about to happen, so any earlier outdated-schema flag no longer
-        # applies.
+        # The only place cards are built and classified from summaries (fresh run
+        # and cache hit alike) -> threshold changes always show. Clears the
+        # outdated-schema flag.
         self._cached_schema_mismatch = None
         #
-        # WP-C comparison-run tag: fires only when the cap actually clipped
-        # a dynamically-resolved node below its own best-available level for
-        # this setup_data -- selecting a non-default cap that happens not to
-        # bind on today's data must not read as a comparison run. Thresholds
-        # themselves are never re-derived for a capped run (see thesis_notes.
-        # md "Accuracy cap is a viewing choice, not a reference-configuration
-        # change") -- the caveat that verdicts still come from the reference-
-        # configuration thresholds surfaces here, next to the same label a
-        # capped run's own numbers are shown under.
+        # comparison-run tag only when the cap actually clipped something.
+        # Thresholds are never re-derived for a capped run -- caveat shown here.
         comparison_tag = ""
         if resolved_accuracy and resolved_accuracy.get("clipped"):
             cap_label = f"Level<={cap}" if cap is not None else "Level<=?"
@@ -1970,7 +1606,7 @@ class OutingForm(QWidget):
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
         )
-        # WP-N2 Step 1b: placeholder wording, pending review.
+        # placeholder wording
         if self._sideslip_source_calibrated():
             self.calibration_banner_label.setVisible(False)
             self.calibration_banner_label.setText("")
@@ -1983,19 +1619,13 @@ class OutingForm(QWidget):
         self._displayed_resolved_vehicle_snapshot = (
             resolved_accuracy.get("values") if resolved_accuracy else None
         )
-        # Fresh-session work package, Phase 3b: estimator/fit/gate/fallback
-        # status line -- always rendered (even for kinematic/ekf_pass_1,
-        # where it just names the estimator) so "which estimator produced
-        # this" is never ambiguous regardless of mode.
+        # estimator status line, always shown
         if sideslip_source is not None:
             status_text, status_color = self._format_estimator_status(
                 sideslip_source, fit_manifest, gate_verdict, fallback_used, fallback_reason
             )
-            # 100 Hz time-base work package: the one status line the work
-            # order asks for, appended rather than folded into _format_
-            # estimator_status's own tested/PDF-shared text -- keeps that
-            # function's existing contract untouched. target_sample_rate_hz
-            # read fresh (not cached) so a config edit shows immediately.
+            # grid-rate line appended (keeps _format_estimator_status unchanged);
+            # target rate read fresh
             if grid_rate_hz is not None:
                 from modules.stability_analysis import load_parameters as _load_params_for_grid
                 target = _load_params_for_grid()["stability_estimation"]["target_sample_rate_hz"]
@@ -2048,8 +1678,7 @@ class OutingForm(QWidget):
         self.stability_summary_label.setTextFormat(Qt.TextFormat.RichText)
         self.stability_summary_label.setStyleSheet("font-size: 11px;")
 
-        # Columns are keyed by stable_corner_id: the full set across all
-        # analysed laps, ascending, so every lap row has the same slots.
+        # columns = all stable_corner_ids, ascending -> same slots in every row
         all_stable_ids = sorted({
             s["stable_corner_id"] for s in summaries
             if s.get("stable_corner_id") is not None
@@ -2067,14 +1696,13 @@ class OutingForm(QWidget):
             insert_pos += 1
 
     def _build_lap_row(self, lap_num, entries_by_id, all_stable_ids):
-        # Container with the lap header row, the corner cells row, and a
-        # placeholder for the inline details panel that expands below.
+        # lap header row, corner cells row, placeholder for the details panel
         wrapper = QWidget()
         w_layout = QVBoxLayout(wrapper)
         w_layout.setContentsMargins(0, 0, 0, 0)
         w_layout.setSpacing(0)
 
-        # Header + cells row
+        # header + cells
         row = QWidget()
         row.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         row_layout = QHBoxLayout(row)
@@ -2094,7 +1722,7 @@ class OutingForm(QWidget):
         details_layout.setSpacing(0)
         details_host.setVisible(False)
 
-        # Track which cell is currently expanded for this lap
+        # currently expanded cell
         state = {"active_corner": None, "details_widget": None}
 
         def show_details(entry):
@@ -2134,7 +1762,7 @@ class OutingForm(QWidget):
         return wrapper
 
     def _build_corner_cell(self, entry, show_details, hide_details, state):
-        # Compact horizontal cell for one corner inside its lap row.
+        # compact cell for one corner
         s = entry["summary"]
         stable_id = s["stable_corner_id"]
         colour = entry["colour"]
@@ -2166,7 +1794,7 @@ class OutingForm(QWidget):
         return cell
 
     def _build_placeholder_cell(self):
-        # Dim, non-interactive cell for a lap with no corner at this stable id.
+        # dim placeholder, no corner at this id on this lap
         cell = QPushButton("-")
         cell.setEnabled(False)
         cell.setStyleSheet(
@@ -2182,7 +1810,7 @@ class OutingForm(QWidget):
         return cell
 
     def _build_corner_details(self, summary):
-        # Inline details panel: long verdict, the per-phase table, and plot jump.
+        # details panel: long verdict, phase table, plot jump
         severity, _short, long_v, colour = self._classify_corner(summary)
 
         panel = QWidget()
@@ -2193,7 +1821,7 @@ class OutingForm(QWidget):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(8)
 
-        # Header line: corner identifier + verdict + plot jump
+        # header: corner id, verdict, plot jump
         header = QWidget()
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(0, 0, 0, 0)
@@ -2227,7 +1855,7 @@ class OutingForm(QWidget):
         h_layout.addWidget(btn_trace)
         layout.addWidget(header)
 
-        # Per-phase table
+        # per-phase table
         phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
         phase_labels = {
             "entry_1_brake": "Brake",
@@ -2237,18 +1865,9 @@ class OutingForm(QWidget):
             "exit_5": "Exit 5",
         }
 
-        # Fzf/Fzr columns: read-only diagnostic (WP5b(b) phase 1 turn (b)),
-        # no severity colour -- nothing here feeds _classify_corner. Shown
-        # in kN for table-width readability. fy_f_norm_N/fy_r_norm_N are
-        # computed (summarise_corners) but NOT shown here yet -- a further
-        # two-column pair does not fit this panel's width cleanly alongside
-        # CSf/CSr/Stab; deferred to a later UI pass rather than cramped in.
-        # LSf/LSr columns: PLAN.md STEP 3 Phase 3, DISPLAY ONLY -- formatted
-        # identically to CSf/CSr (median [p25..p75], same 2-decimal
-        # precision, same scale) but rendered with the Fz columns' neutral
-        # TEXT_MUTED colour, not _stability_colour -- no CS-style severity
-        # thresholds exist for LS_ratio in this package, and none should be
-        # implied by colour-coding it as if they did.
+        # Fzf/Fzr (kN) and LSf/LSr: diagnostic, muted colour, no severity
+        # colouring -- no LS thresholds exist and none should be implied.
+        # fy_norm computed but not shown (no room).
         rows_html = (
             f"<table cellpadding='2' style='font-size:10px;'>"
             f"<tr>"
@@ -2337,21 +1956,15 @@ class OutingForm(QWidget):
         self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.stability_summary_label)
 
-        # WP-N2 Step 1b: persistent, does-not-scroll-away caveat -- shown
-        # whenever config/parameters.json stability_estimation.sideslip_
-        # source doesn't match classification.thresholds_calibrated_for_
-        # sideslip_source (_sideslip_source_calibrated below). Complements
-        # the per-verdict "[UNCAL]" marker _classify_corner appends -- that
-        # marker can scroll out of view on a long corner grid, this banner
-        # cannot. Hidden (empty text) when calibrated. Placeholder wording.
+        # banner when sideslip_source != thresholds_calibrated_for_sideslip_source;
+        # the per-verdict [UNCAL] can scroll away, this can't. Placeholder wording.
         self.calibration_banner_label = QLabel("")
         self.calibration_banner_label.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: bold;")
         self.calibration_banner_label.setWordWrap(True)
         self.calibration_banner_label.setVisible(False)
         panel_layout.addWidget(self.calibration_banner_label)
 
-        # WP-C: compact per-node resolved-accuracy footer, always rendered
-        # alongside the summary line above (live analysis or cache-hit).
+        # resolved-accuracy footer, always shown
         self.accuracy_footer_label = QLabel("")
         self.accuracy_footer_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         self.accuracy_footer_label.setWordWrap(True)
@@ -2389,20 +2002,8 @@ class OutingForm(QWidget):
                 w.deleteLater()
 
     def _build_decision_frame_toggle(self):
-        # Decision-matrix frame (modules/decision_frame.py): Stage 1
-        # (2026-09-02) shipped the exit-oversteer/brake-balance scenario as
-        # a preview section parallel to the old 39-rule Recommendations
-        # section; Stage 2 (Frame-Stage-2, 2026-09-04) migrated all 39
-        # rules into this frame as candidate bridges, added a conflict
-        # resolver and (config-gated, default off) intervention evidence,
-        # and PASSED PARITY on both real sessions (Dubai and v3) -- every
-        # recommendation the old engine produced has a matching candidate
-        # here (diagnostics/inspect_frame_stage2_parity.py). The old
-        # Recommendations section is REMOVED (this is now the only
-        # recommendation UI); modules/recommendation.py itself is
-        # unchanged and still supplies this frame's own rule definitions
-        # (config/recommendations.json), only its parallel display is
-        # gone -- "(preview)" dropped from the toggle label accordingly.
+        # Decision frame -- the recommendation UI; all 39 rules run here as
+        # bridges (parity: diagnostics/inspect_frame_stage2_parity.py).
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -2433,9 +2034,7 @@ class OutingForm(QWidget):
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
 
-        # Migrated from the old Recommendations section's own calibration
-        # banner (same mechanism: rules key on _classify_corner's verdict
-        # text, which already carries the "[UNCAL]" marker).
+        # calibration banner (rules key on verdicts carrying [UNCAL])
         self.decision_frame_calibration_banner_label = QLabel("")
         self.decision_frame_calibration_banner_label.setStyleSheet(
             f"color: {WARN}; font-size: 11px; font-weight: bold;"
@@ -2450,9 +2049,7 @@ class OutingForm(QWidget):
         self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.decision_frame_summary_label)
 
-        # D3: tyre-pressure deviation flags, beside the shortlist, never in
-        # it -- silent (hidden) while tyre_pressure_target is all-null,
-        # today's actual state (modules.decision_frame.tyre_pressure_flags).
+        # tyre-pressure flags beside the shortlist; hidden while no target is set
         self.decision_frame_tyre_flags_label = QLabel("")
         self.decision_frame_tyre_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
         self.decision_frame_tyre_flags_label.setWordWrap(True)
@@ -2484,9 +2081,7 @@ class OutingForm(QWidget):
                 w.deleteLater()
 
     def _generate_decision_frame(self):
-        # Synchronous: a handful of corners through evidence/candidate/
-        # scoring/conflict-resolution is fast enough not to need a worker
-        # thread.
+        # synchronous -- fast enough
         if self._sideslip_source_calibrated():
             self.decision_frame_calibration_banner_label.setVisible(False)
             self.decision_frame_calibration_banner_label.setText("")
@@ -2523,14 +2118,8 @@ class OutingForm(QWidget):
         setup_data = json.loads(self._collect_setup_data())
 
         ls_stats = aggregate_ls_by_corner(summaries)
-        # corners/state/channels feed the (config-gated per source, ABS on
-        # by default since Deepening Phase 4c) intervention-evidence
-        # sources -- build_evidence silently skips them without these
-        # (Stage-1-compatible default), so this is always safe to pass,
-        # flags on or off. feedback_data (Deepening Phase 4d) feeds the
-        # driver-feedback corroboration evidence -- same source
-        # _collect_feedback_data() already provides everywhere else in
-        # this form.
+        # corners/state/channels for intervention evidence (skipped without
+        # them); feedback_data for driver-feedback evidence
         evidence = build_evidence(
             summaries, ls_stats, config, self._classify_corner,
             corners=self.stability_result.get("corners"),
@@ -2538,39 +2127,23 @@ class OutingForm(QWidget):
             channels=(self.parsed_data or {}).get("channels"),
             feedback_data=json.loads(self._collect_feedback_data()),
         )
-        # DECISION LAYER SPEC B4 (2026-09-22): assessed_corner_ids feeds the
-        # breadth penalty (corners_helped vs corners_touched) -- every
-        # corner this session actually assessed, including normal verdicts,
-        # not derivable from `evidence` alone (see _attach_breadth's own
-        # comment in modules/decision_frame.py).
+        # every assessed corner, normal included -> breadth
         assessed_corner_ids = set(_group_by_corner(summaries).keys())
-        # WP-ELICIT Phase C1 (2026-09-24): driving_level resolved here, not
-        # queried inside modules/ -- same plain-value-boundary convention
-        # modules.recommendation.generate_recommendations already uses.
+        # driving_level resolved here, plain value into modules/
         driving_level = (self.outing.driver.driving_level
                           if self.outing.driver_id and self.outing.driver else None)
-        # DECISION LAYER SPEC B5 (2026-09-22): setup_data also drives the
-        # window-edge (blocked_at_edge) check now, not just generate_
-        # shortlist's own settings-window scoring component below.
+        # setup_data also drives the window-edge check
         candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
                                           assessed_corner_ids=assessed_corner_ids,
                                           driving_level=driving_level)
-        # Phase D (2026-09-22): generate_display_split replaces generate_
-        # shortlist as this form's own entry point -- Stage 6's "ranking
-        # never hides" rule requires the full lever inventory (shortlist +
-        # collapsed tail), not just the visible-threshold subset.
+        # full inventory (shortlist + tail) -- ranking never hides
         split = generate_display_split(candidates, evidence, setup_data, config, registry)
         shortlist, tail = split["shortlist"], split["tail"]
         resolve_conflicts(shortlist)
-        # Phase D feedback round, ITEM 1 (2026-09-23): identical (parameter-
-        # set, direction, rendered magnitude) rows collapse into one display
-        # row -- AFTER resolve_conflicts (grouping is purely a display-layer
-        # step over the already-scored/resolved list, never re-scores).
+        # group identical rows, after conflict resolution; display only
         shortlist = group_display_rows(shortlist, registry)
         tail = group_display_rows(tail, registry)
-        # WP-ELICIT Phase A2 (author-elicited 2026-09-24): rank-based top-N
-        # distinct proposals is the real visibility cutoff now, applied
-        # after grouping so "distinct" matches these already-grouped rows.
+        # top-N distinct proposals, after grouping
         shortlist, tail, tail_note = apply_display_top_n(shortlist, tail, config)
 
         self._clear_decision_frame_rows()
@@ -2600,15 +2173,8 @@ class OutingForm(QWidget):
             self.decision_frame_host_layout.insertWidget(insert_pos, tail_section)
 
     def _build_decision_frame_row(self, c, registry):
-        # Phase D (2026-09-22), DECISION LAYER SPEC Stage 6 output rule:
-        # top line = THE CHANGE ONLY -- no corners, no urgency prose, no
-        # provenance on the line. Severity via the existing strong/
-        # moderate/normal colour map (same mapping this form's own
-        # stability cards already use, ui.style constants only); NEUTRAL
-        # (existing "no data" colour) when nothing backs a severity.
-        # Everything else that used to sit in the always-visible header
-        # (score, grade, cell_id, conflict labels, evidence/effort/effect)
-        # moves into the "> reasoning" dropdown, same pattern as before.
+        # top line = the change only; severity via the usual row colours (NEUTRAL
+        # if none). Score, grade, cell, conflicts etc. in the reasoning dropdown.
         from modules.decision_frame import render_top_line, candidate_severity
         card = QWidget()
         card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
@@ -2653,13 +2219,7 @@ class OutingForm(QWidget):
         return card
 
     def _build_decision_frame_reasoning_host(self, c):
-        # Phase D feedback round, ITEM 1 (2026-09-23): a grouped row's
-        # dropdown lists every contributing corner+phase, each with its
-        # own full reasoning block -- the exact same _build_decision_
-        # frame_detail_host an ungrouped candidate gets, reused per
-        # member unchanged, never a merged/summarised reasoning that
-        # would hide which corners are actually behind the one displayed
-        # change.
+        # grouped row: one full reasoning block per contributing corner+phase
         members = c.get("group_members")
         if not members:
             return self._build_decision_frame_detail_host(c)
@@ -2675,16 +2235,13 @@ class OutingForm(QWidget):
                 divider.setStyleSheet(f"background-color: {BORDER};")
                 layout.addWidget(divider)
             member_host = self._build_decision_frame_detail_host(member)
-            member_host.setVisible(True)  # visibility is the group host's own toggle's job, not each member's
+            member_host.setVisible(True)  # the group toggle handles visibility
             layout.addWidget(member_host)
         host.setVisible(False)
         return host
 
     def _build_decision_frame_detail_host(self, c):
-        # Shared "> reasoning" dropdown content -- used by both a
-        # shortlist row and a real (non-no_trigger) tail row, so a
-        # candidate's full reasoning is worded exactly once regardless of
-        # which list it lands in.
+        # reasoning content, shared by shortlist and tail rows
         detail_host = QWidget()
         detail_layout = QVBoxLayout(detail_host)
         detail_layout.setContentsMargins(12, 2, 0, 0)
@@ -2716,8 +2273,7 @@ class OutingForm(QWidget):
         if c.get("cell_id"):
             add_line(f"matrix cell: {c['cell_id']}", colour=TEXT_DIM)
 
-        # Stage 2 trigger provenance: data-only / feedback-only / both-
-        # agreeing (the spec's own three labelled classes).
+        # trigger provenance: data-only / feedback-only / both agreeing
         provenance_words = {
             "data_only": "data-only",
             "driver_reported": "driver feedback only, zero data verdict",
@@ -2727,8 +2283,7 @@ class OutingForm(QWidget):
         if trigger:
             add_line(f"trigger: {provenance_words.get(trigger, trigger)}", colour=TEXT_DIM)
 
-        # Conflict resolver (Frame-Stage-2 Phase 3b): never hides a
-        # conflicting candidate, always labels it.
+        # conflicts: always labelled, never hidden
         conflict_status = c.get("conflict_status")
         if conflict_status == "platform_calming_available":
             add_line("PLATFORM-CALMING: addresses a compound problem at this corner",
@@ -2744,36 +2299,28 @@ class OutingForm(QWidget):
 
         if c.get("rationale"):
             add_line(c["rationale"])
-        # WP-ELICIT Phase B3 (2026-09-24): standing-practice doctrine notes
-        # land as annotation only -- the engineer-verbatim rule's own
-        # actions stay byte-identical, this is display-only context.
+        # standing-practice notes: annotation only
         if c.get("practice_note"):
             add_line(c["practice_note"], colour=TEXT_DIM)
-        # WP-ELICIT HANDOFF C6 (2026-09-24): lower-TC-intervention safety
-        # caution -- display-only, never a score term, never a suppression.
+        # lower-TC safety caution, display only
         if c.get("tc_safety_note"):
             add_line(c["tc_safety_note"], colour=WARN)
 
-        # DECISION LAYER SPEC B4: breadth note, already worded by
-        # _attach_breadth ("helps CX -- rebalances N-1 corners currently
-        # assessed good") -- never re-derived here.
+        # breadth note, worded by _attach_breadth
         if c.get("breadth_note"):
             add_line(f"breadth: {c['breadth_note']}", colour=TEXT_DIM)
 
-        # DECISION LAYER SPEC B5/B7: window-edge / condition-gap reasons.
+        # window-edge / condition-gap reasons
         if c.get("edge_reason"):
             add_line(f"window: {c.get('edge_label', c.get('status'))} -- {c['edge_reason']}",
                       colour=WARN)
-        # WP-ELICIT Phase C2 (2026-09-24): exempted edge -- normal resting
-        # state for this action, not a block; candidate stays proposed on
-        # its other (live) action.
+        # exempt edge: normal resting state, not a block
         if c.get("edge_normal_state_note"):
             add_line(c["edge_normal_state_note"], colour=TEXT_DIM)
         if c.get("condition_reasons"):
             add_line(f"condition: {'; '.join(c['condition_reasons'])}", colour=TEXT_DIM)
 
-        # DECISION LAYER SPEC B6: driver-vs-data disagreement -- never
-        # suppresses, always shown side by side.
+        # driver vs data disagreement, shown side by side
         for fb in c.get("conflicting_feedback", []):
             add_line(
                 f"driver feedback disagrees: {fb.get('raw_feedback') or fb.get('verdict')} "
@@ -2797,11 +2344,8 @@ class OutingForm(QWidget):
         return detail_host
 
     def _build_decision_frame_tail_section(self, tail, registry):
-        # D2: collapsed "assessed, not proposed" tail, collapsed by
-        # default -- real candidates first (blocked_at_edge/contradicted/
-        # not_assessable/below-threshold, ranked by earned score), then
-        # synthetic no_trigger rows, unranked. generate_lever_inventory
-        # already produces this exact order; this just renders it.
+        # collapsed tail in generate_lever_inventory's order: real candidates by
+        # score, then no_trigger rows
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 4, 0, 0)
@@ -2847,8 +2391,7 @@ class OutingForm(QWidget):
         row_layout.addWidget(line)
 
         if entry.get("status") == STATUS_NO_TRIGGER:
-            # generate_lever_inventory's own rationale IS the line above --
-            # no evidence, no score, nothing further to expand.
+            # nothing further to expand
             return row
 
         btn_expand = QPushButton("> reasoning")
@@ -2871,9 +2414,7 @@ class OutingForm(QWidget):
         return row
 
     def _open_corner_trace(self, summary):
-        # PART C: reused, non-modal per-corner trace window (ui/views/
-        # corner_trace_dialog.py) -- created lazily, replotted in place on
-        # every click rather than spawned per corner.
+        # lazily created, replotted in place
         from ui.views.corner_trace_dialog import CornerTraceDialog
         if self._corner_trace_dialog is None:
             self._corner_trace_dialog = CornerTraceDialog(self)
@@ -2882,13 +2423,8 @@ class OutingForm(QWidget):
         )
 
     def _open_lap_trace(self):
-        # Lap-trace-view work package: reused, non-modal full-lap trace
-        # window -- same lazy-create/replot-in-place convention as
-        # _open_corner_trace, a separate instance/window (LapTraceDialog),
-        # not the corner dialog reused in a different mode. on_corner_click
-        # is bound to _open_corner_trace directly -- a band click reuses
-        # the exact same open path a corner card's own "trace" button does,
-        # nothing duplicated.
+        # lazily created lap window; band click -> _open_corner_trace, same path
+        # as a card's trace button
         if not self.stability_result:
             return
         from ui.views.corner_trace_dialog import LapTraceDialog
@@ -2943,10 +2479,7 @@ class OutingForm(QWidget):
             lap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             lap_item.setData(Qt.ItemDataRole.UserRole, lap["lap_number"])
 
-            # Show only as much precision as is actually held: the precise
-            # channel value (hundredths) when the parser adopted it, the
-            # computed 0.2s-grid value (tenths) otherwise -- never claim
-            # more precision than the underlying number has.
+            # hundredths if the precise channel value was adopted, else tenths (0.2 s grid)
             precise = lap.get("lap_time_precise")
             use_precise = precise is not None
             display_time = precise if use_precise else lap["lap_time"]
@@ -3369,9 +2902,7 @@ class OutingForm(QWidget):
             widget.setDecimals(2)
             widget.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
             if param == "splitter_offset":
-                # Distinguishes the SETTING (this field, car-referenced) from
-                # the floor-referenced CHECK points added below -- both
-                # coexist, neither replaces the other.
+                # car-referenced SETTING; the floor-referenced check points are separate
                 widget.setToolTip("Splitter offset -- setting, vs car")
             self._active_inputs["car"][param] = widget
             car_layout.addWidget(self._setup_row(label_text, widget))
@@ -3399,15 +2930,8 @@ class OutingForm(QWidget):
         self._active_inputs["car"]["arb_front_mount"] = arb_mount_combo
         car_layout.addWidget(self._setup_row("ARB Front Mount", arb_mount_combo))
 
-        # Legal set is P8/P9/P10 only (config/setup_parameters.json
-        # wing_position registry entry, cross-checked against car_data.json
-        # wing_position_table's GT3 R 2026 column) -- was a free-range
-        # spinbox that permitted illegal intermediate values (WP4 UI-polish
-        # note). A pre-existing outing whose stored value isn't one of these
-        # three (from before this fix) silently falls back to this combo's
-        # first item (P8) on load -- QComboBox.setCurrentText() on a
-        # non-editable combo is a no-op for unmatched text, verified
-        # empirically, not "nothing selected" as originally assumed.
+        # legal set P8/P9/P10 (registry). A stored value outside it loads as P8 --
+        # setCurrentText is a no-op on unmatched text.
         wing_position_combo = QComboBox()
         wing_position_combo.addItems(["P8", "P9", "P10"])
         self._active_inputs["car"]["wing_position"] = wing_position_combo
@@ -3500,19 +3024,10 @@ class OutingForm(QWidget):
                         car[f"differential_locking_torque_measured_{pos}"] = torque[key]
         return json.dumps(data)
 
-    # Splitter/diffuser measurement points (mm, floor-referenced -- distinct
-    # from the existing splitter_offset SETTING, which is car-referenced
-    # and untouched). Reshape logic lives in core/setup_data_points.py (pure
-    # JSON transform, no Qt) rather than here, so it's testable without
-    # importing this PyQt6 module -- same reason tests/conftest.py's own
-    # pipeline_result fixture keeps this file out of the regression suite.
-    # Same pop-based mechanism as the diff-torque reshape above; widgets
-    # bind to flat splitter_point_1.._5 / diffuser_point_1.._5 keys
-    # (ui/views/measurement_points_widget.py), folded to/from a plain array
-    # under car[...] on save/load so a missing array (any outing saved
-    # before this feature) leaves the flat keys entirely absent -- the
-    # normal _load_inputs "skip unknown param" path then leaves those
-    # widgets at their default empty state, no explicit migration needed.
+    # Splitter/diffuser points (mm, floor-referenced; separate from the
+    # car-referenced splitter_offset). Reshape in core/setup_data_points.py.
+    # Flat widget keys <-> car[...] arrays on save/load; older outings without
+    # the arrays just leave the widgets empty.
     def _reshape_points_out(self, json_string):
         from core.setup_data_points import reshape_points_out
         return reshape_points_out(json_string)
@@ -3667,11 +3182,8 @@ class OutingForm(QWidget):
                 f"Could not save {os.path.basename(path)}.\nThe file may be open in another program."
             )
         except Exception as e:
-            # Reliability pass: PermissionError was the only exception
-            # this ever caught -- anything else (e.g. a KeyError from
-            # malformed setup data) propagated unhandled out of this Qt
-            # slot with no dialog telling the user the export failed.
-            # Full traceback to the console/log, a friendly message here.
+            # any exception, not just PermissionError: traceback to the console,
+            # readable message here
             print(traceback.format_exc())
             QMessageBox.warning(
                 self, "Save failed",
@@ -3679,15 +3191,9 @@ class OutingForm(QWidget):
             )
 
     def _build_corner_map(self):
-        # WP3b interim: GPS outline of the reference lap + one marker per
-        # stable_corner_id, as the visual legend for the feedback table's
-        # row numbers below. Static v1 -- no click interaction; that's the
-        # WP3b follow-up (PLAN.md). Sits above Stability Analysis, not in
-        # Driver Feedback: this is the legend for the ANALYSIS layer
-        # (stable_corner_id, matching the grid/recommendations), not the
-        # human/official-name layer the driver feedback table and its
-        # separate image-loader track map use -- the two-layer corner
-        # identity design (thesis_notes.md) reflected directly in layout.
+        # GPS outline of the reference lap + one marker per stable_corner_id -- the
+        # legend for the feedback table's row numbers. Analysis layer
+        # (stable_corner_id), separate from the driver-feedback track map.
         import pyqtgraph as pg
 
         container = QWidget()
@@ -3705,10 +3211,7 @@ class OutingForm(QWidget):
         self.corner_map_plot.hideAxis('bottom')
         self.corner_map_plot.getViewBox().setMouseEnabled(x=False, y=False)
         self.corner_map_plot.getViewBox().wheelEvent = lambda event: None
-        # Corner click-through: one shared scene-click handler, same pattern
-        # as LapTraceDialog._on_scene_clicked (corner_trace_dialog.py) --
-        # hit-tests against stored marker positions rather than per-item
-        # signals, so a click on either the dot or its text label counts.
+        # one scene-click handler hit-testing stored positions (dot or label)
         self.corner_map_plot.scene().sigMouseClicked.connect(self._on_corner_map_clicked)
         layout.addWidget(self.corner_map_plot)
 
@@ -3719,7 +3222,7 @@ class OutingForm(QWidget):
         self.corner_map_trace_curve = None
         self.corner_map_trace_xy = None
         self.corner_map_markers = {}
-        self.corner_map_marker_xy = {}  # stable_corner_id -> (x_m, y_m), for click hit-testing
+        self.corner_map_marker_xy = {}  # id -> (x_m, y_m) for hit-testing
         self._show_corner_map_placeholder("Load a CSV to see the track map.")
 
         return container
@@ -3737,12 +3240,8 @@ class OutingForm(QWidget):
         self.corner_map_plot.setRange(xRange=(-1, 1), yRange=(-1, 1))
 
     def _snap_to_trace(self, x, y):
-        # Cross-lap median apex position vs a single reference lap's drawn
-        # trace can float off the line (worst in compound corners, where
-        # the apex position itself is unstable lap-to-lap). Position
-        # estimate stays the cross-lap median; only the DISPLAYED point is
-        # snapped to the nearest vertex on the drawn polyline, so markers
-        # always sit on the line the driver/engineer is actually reading.
+        # position = cross-lap median apex; displayed point snapped to the nearest
+        # vertex of the drawn trace so it sits on the line
         import numpy as np
         if self.corner_map_trace_xy is None:
             return x, y
@@ -3803,7 +3302,7 @@ class OutingForm(QWidget):
         from modules.corner_analysis import compute_stable_corner_positions
 
         if not self.parsed_data or self.corner_map_trace_curve is None:
-            return  # no trace drawn -- no GPS, or nothing loaded yet
+            return  # no GPS or nothing loaded
 
         if self.corner_positions_cache is None:
             corners = self.parsed_data.get("corners", [])
@@ -3822,7 +3321,7 @@ class OutingForm(QWidget):
                 _severity, _short, _long, colour = self._classify_corner(agg)
                 colour_by_id[cid] = colour
 
-        # Drop markers for corners that no longer exist (new file loaded).
+        # drop markers of corners that no longer exist
         for cid in list(self.corner_map_markers.keys()):
             if cid not in positions:
                 scatter, text = self.corner_map_markers.pop(cid)
@@ -3837,9 +3336,7 @@ class OutingForm(QWidget):
                 scatter.setBrush(pg.mkBrush(colour))
             else:
                 snap_x, snap_y = self._snap_to_trace(pos["x_m"], pos["y_m"])
-                # Marker dot size, px -- CORNER_MARKER_CLICK_RADIUS_PX (top
-                # of file, used by _on_corner_map_clicked) matches this
-                # value so the click target tracks the dot's own footprint.
+                # dot size px; CORNER_MARKER_CLICK_RADIUS_PX matches it
                 scatter = pg.ScatterPlotItem(
                     [snap_x], [snap_y], size=26,
                     brush=pg.mkBrush(colour), pen=pg.mkPen(None)
@@ -3855,11 +3352,7 @@ class OutingForm(QWidget):
                 self.corner_map_marker_xy[cid] = (snap_x, snap_y)
 
     def _on_corner_map_clicked(self, event):
-        # Same scene-click + hit-test pattern as LapTraceDialog.
-        # _on_scene_clicked (ui/views/corner_trace_dialog.py) -- one shared
-        # handler against stored positions, not a signal per marker item
-        # (pg.TextItem has no native click signal, so a per-item-signal
-        # approach would miss clicks on the label half of each marker).
+        # scene click + hit test -- TextItem has no click signal
         pos = event.scenePos()
         if not self.corner_map_plot.sceneBoundingRect().contains(pos):
             return
@@ -3885,11 +3378,8 @@ class OutingForm(QWidget):
         self._open_corner_trace_from_map(best_cid)
 
     def _resolve_worst_lap_summary_for_corner(self, stable_corner_id):
-        # Mirrors ui/views/corner_trace_dialog.py's _aggregate_worst_severity
-        # (the logic that already decides this same marker's colour) but
-        # returns the SUMMARY that produced the worst rank, not just the
-        # colour -- the map marker is per-stable_corner_id, but
-        # CornerTraceDialog.show_corner needs one specific lap's instance.
+        # like _aggregate_worst_severity, but returns the summary behind the worst
+        # rank (the trace window needs one lap's instance)
         if not self.stability_result:
             return None
         summaries = self.stability_result.get("summaries")
@@ -3909,12 +3399,7 @@ class OutingForm(QWidget):
         max_rank = max(rank for rank, _s in ranked)
         worst = [s for rank, s in ranked if rank == max_rank]
 
-        # A single genuine worst-severity instance wins outright. A tie
-        # (>1 candidate sharing the worst rank) or no spread at all (every
-        # lap "normal" -- the same case the marker's own colour shows as
-        # NEUTRAL) falls back to the fastest valid lap, same is_fastest
-        # flag _update_corner_map_trace already uses for the map's own
-        # reference lap.
+        # one worst instance wins; tie or all normal -> fastest valid lap
         if len(worst) == 1 and max_rank > SEVERITY_RANK["normal"]:
             return worst[0]
 
@@ -4036,9 +3521,7 @@ class OutingForm(QWidget):
         split_layout.addWidget(map_panel, 2)
         layout.addWidget(split)
 
-        # Per-value wording still a placeholder; tracked in PLAN.md (WP2b-2
-        # follow-up, 2026-07-27) pending a one-line meaning for each of -5/
-        # -3/-1/0/+1/+3/+5.
+        # per-value wording still a placeholder
         scale_desc = QLabel(
             "Scale: -5 undrivable understeer | -3 strong understeer | -1 slight understeer | "
             "0 neutral | +1 slight oversteer | +3 strong oversteer | +5 undrivable oversteer\n"
@@ -4254,14 +3737,9 @@ class OutingForm(QWidget):
         self.on_back()
 
     def _persist_outing(self):
-        # Shared persistence core for both Back (_save_outing) and the
-        # explicit Save button (_on_save_clicked). Creates the row on the
-        # first call in new-outing mode and sets self.outing to it -- every
-        # later call (another Save, or Back) then takes the update path,
-        # so a new outing can never be inserted twice. Returns the just-
-        # written setup_data JSON string so a caller can react to it
-        # (e.g. the post-save stale-analysis check) without re-reading
-        # the DB.
+        # shared by Back and Save. First call in new-outing mode creates the row
+        # and sets self.outing -> later calls update, never insert twice. Returns
+        # the written setup_data JSON.
         driver_id = self.driver_combo.currentData()
         setup_data_json = self._collect_setup_data()
         field_values = dict(
@@ -4302,21 +3780,13 @@ class OutingForm(QWidget):
             session.add(outing)
         session.commit()
         if outing is not None:
-            # session.commit() expires every attribute on the object by
-            # default; refresh while the session is still open so id and
-            # every column are safely cached before the session closes --
-            # reading an expired attribute on an already-detached instance
-            # raises DetachedInstanceError (hit by the synthetic test this
-            # WP added, not by any prior code path, since every existing
-            # post-close use of self.outing only ever WRITES to it).
+            # commit expires attributes -> refresh while the session is open, else
+            # DetachedInstanceError after close
             session.refresh(outing)
         session.close()
 
         if outing is not None:
-            # First save in new-outing mode: the row now exists -- from
-            # here on this form behaves exactly like edit mode, so a
-            # later Save or Back updates this same row instead of
-            # inserting a second one.
+            # row exists now -> behave like edit mode
             self.outing = outing
         else:
             for key, value in field_values.items():
@@ -4335,10 +3805,7 @@ class OutingForm(QWidget):
         self._warn_if_setup_data_changed_since_analysis(setup_data_json)
 
     def _warn_if_setup_data_changed_since_analysis(self, setup_data_json):
-        # Post-save hint (no auto-rerun): only meaningful if a stability
-        # analysis is currently rendered at all -- _displayed_resolved_
-        # vehicle_snapshot is set exactly there (_render_stability_
-        # summaries), for both the live-run and cache-hit paths.
+        # stale-analysis hint only if an analysis is rendered (snapshot set)
         if self._displayed_resolved_vehicle_snapshot is None:
             return
         import json

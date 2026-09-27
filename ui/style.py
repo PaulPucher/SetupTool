@@ -1,8 +1,6 @@
-# Global application stylesheet.
-# All colors and styles are defined here and applied once at startup.
+# Global stylesheet, applied once at startup.
 
-# Colour palette -- used by stylesheet and by widget code for status colouring.
-# Keep all colour literals here so the app has one source of truth.
+# All colour literals live here.
 
 # Base
 BG          = "#141414"
@@ -22,9 +20,9 @@ ACCENT      = "#C0A060"
 ACCENT_HOVER = "#d4b472"
 ACCENT_PRESSED = "#a88c50"
 
-# Status colours (used for stability cards, validity flags, etc.)
+# status colours (stability cards, validity flags)
 OK          = "#4CAF50"   # healthy / stabilising
-WARN        = "#C0A060"   # transition / borderline (same hue as accent on purpose)
+WARN        = "#C0A060"  # same hue as ACCENT on purpose
 BAD         = "#c0392b"   # saturated / destabilising
 NEUTRAL     = "#444"      # no data / NaN
 

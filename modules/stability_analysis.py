@@ -1,14 +1,8 @@
-# Stability analysis module for SetupTool.
-# Pure Python/numpy/scipy. No Qt imports.
-# Units: SI throughout (m, s, rad, N, Nm, kg).
-# Cornering-stiffness (Module 4b) target relation and cross-lap yaw-moment-
-# stability target relation (Module 5): method anchors recorded in
-# thesis_notes.md, "CS_ratio (cornering stiffness ratio) -- Werner MA
-# method" and "Yaw moment stability dMz/dbeta" entries. Effective-
-# stiffness estimation (Module 4b) is adapted; Module 5's estimator
-# (modules/yaw_stability.py) is after the chair performance_analysis
-# tooling (internal), not Werner's own construction. See thesis_notes.md
-# for both attribution splits.
+# Vehicle state, sideslip, slip angles, axle forces, Fz, cornering
+# stiffness (Module 4b) and yaw-moment stability (Module 5). SI units.
+# CS_ratio framework: Werner 2021; stiffness estimation adapted (windowed
+# regression on logged Fy/alpha). Module 5 estimator (yaw_stability.py)
+# after the chair performance_analysis tooling (internal).
 
 import functools
 import numpy as np
@@ -20,98 +14,34 @@ from modules.yaw_stability import calculate_filtered_yaw_acceleration, calculate
 PARAMETERS_PATH = "config/parameters.json"
 CAR_DATA_PATH = "config/car_data.json"
 
-# WP5 persisted-analysis-cache version tag (models/outing.py analysis_data).
-# Bump whenever a change to Modules 1-6 would alter summarise_corners()'s
-# stored numeric output for the same input file (an estimator rebuild, a
-# Fy/Fz formula change, a new regressor) -- NOT for changes that only affect
-# how summaries are read or rendered (config-driven thresholds, UI, caching)
-# -- OR whenever the analysis_data payload's own SHAPE changes (new fields
-# the cache-hit check now requires), since an older payload has nothing to
-# compare against for those fields either. A stored value that doesn't
-# match this one is treated as no cache at all (see ui/views/outing_form.py's
-# cache-hit check). Bumped 1->2 (WP-C): payload gained accuracy_cap/
-# resolved_levels/resolved_vehicle_snapshot/resolved_clipped/resolved_
-# warnings; a pre-WP-C payload has none of these and must not be read as a
-# hit against the new cap/snapshot check. Bumped 2->3 (WP5b(b) phase 1 turn
-# (b)): each phase dict inside summaries now carries fz_f_N/fz_r_N/
-# fy_f_norm_N/fy_r_norm_N stat blocks; a pre-turn-(b) payload has none of
-# these and must fall to no-cache, not render a details panel expecting
-# keys that aren't there. Bumped 3->4 (fix turn): each corner summary now
-# carries bracket_start_m/bracket_end_m (the canonical, post-WP1-Turn-3-
-# partition corner window already computed in modules/corner_analysis.py,
-# previously only on the raw corner dicts, not the persisted summary) --
-# a pre-bump payload has neither key, so the trace window's margin
-# computation must not read them off a stale cache. Bumped 4->5 (WP-N2 Step
-# 1b): payload gained sideslip_source (which beta the analysis ran under --
-# "kinematic" or "ekf_pass_1", config/parameters.json stability_estimation.
-# sideslip_source), so a persisted run is never silently re-read under a
-# different estimator after a config-switch flip and app restart. Bumped
-# regardless of the default ("kinematic") producing byte-identical numbers --
-# the payload SHAPE changed, which this version tag also covers per the rule
-# above. Bumped 5->6 (fresh-session work package: per-session tyre auto-fit
-# + NIS gate wired into production): sideslip_source gained two new values
-# ("ekf_auto_dugoff", "ekf_auto_pacejka"); the payload gained fit_manifest
-# (a stripped/JSON-safe summary of modules.tyre_fit_auto's fit result --
-# axle parameters, R-sweep choice, validation numbers -- present only for
-# the two auto modes, null otherwise), gate_verdict (modules.nis_gate's
-# verdict dict, same null-elsewhere rule), and fallback_used/fallback_reason
-# (whether the auto mode's gate failed/fit degenerated and kinematic beta
-# was substituted, and why -- False/None for every other mode). A pre-bump
-# payload has none of these keys; falling to no-cache on a version mismatch
-# is the existing rule (ui/views/outing_form.py's cache-hit check), not a
-# new one. kinematic and ekf_pass_1 modes' own OWN numeric content
-# (summaries, sideslip_source, every pre-existing key) is byte-identical --
-# only the payload's shape gained new, always-present-but-often-null keys.
-# Bumped 6->7 (PLAN.md STEP 3, Phase 3): summarise_corners's optional ls=
-# argument, when passed, adds ls_ratio_f/ls_ratio_r stat blocks to each
-# phase dict (same _stats() shape as cs_ratio_f/cs_ratio_r) -- a
-# pre-bump payload has neither key, so a persisted result predating this
-# change must fall to no-cache, not render an LS trace/detail-card
-# column against data that was never computed. DISPLAY ONLY: no
-# classification/recommendation logic reads ls_ratio_f/r.
-# Bumped 7->8 (CS validity repair part A, Phase 3): each corner summary
-# gains a top-level apex_region dict (n_samples, cs_ratio_f, cs_ratio_r --
-# same _stats() shape as a phase's own cs_ratio_f/r), a DISTANCE-based
-# statistic around the apex replacing apex_3's structurally fixed
-# 11-sample slice wherever an apex_3-keyed CS read feeds classification
-# (_classify_corner/_phase_verdict). A pre-bump payload has no
-# apex_region key, so a persisted result predating this change must fall
-# to no-cache rather than have those call sites read a missing key.
-# Existing phase dicts' own cs_ratio_f/r may also now report NaN in a few
-# more cases than before (cs_phase_min_valid_samples gate) -- same
-# pre-existing NaN-safe consumption, no new shape for that part.
-# v8 EXTENDED, same package, no further bump (100 Hz time-base work
-# order): ui/views/outing_form.py's _build_analysis_data_json payload
-# (not summarise_corners's own output -- a payload-builder field, same
-# scoping as sideslip_source/fit_manifest above) gained grid_rate_hz, the
-# common-grid rate this run actually used (thesis_notes.md "PHASE 0").
-# Not bumped to 9: this whole v7->8 package is still uncommitted, so v8's
-# own documented shape is extended rather than versioned again for a
-# change nothing has yet observed as "8" externally.
-ANALYSIS_SCHEMA_VERSION = 8  # unchanged literal -- extension noted above, not a new bump
+# Cache version for the persisted analysis payload. Bump when
+# summarise_corners' numbers or the payload shape change for the same
+# input; not for read/render-only changes. Mismatch = no cache.
+#   2: accuracy_cap / resolved_* fields
+#   3: fz / fy_norm stat blocks per phase
+#   4: bracket_start_m / bracket_end_m per corner
+#   5: sideslip_source
+#   6: auto-fit modes, fit_manifest, gate_verdict, fallback_*
+#   7: ls_ratio_f/r stat blocks (display only)
+#   8: apex_region per corner; grid_rate_hz in the payload
+ANALYSIS_SCHEMA_VERSION = 8
 
-# Method-defining constants (CLAUDE.md grounding rule): these fix what the
-# estimator IS, not how it is tuned to this car/track, so they stay as named
-# constants rather than config entries.
-BUTTERWORTH_ORDER = 4  # standard 4th-order digital filter; defines roll-off shape, not a physical threshold
-SPAN_WEIGHT_EXPONENT = 4  # steep smooth-step so a section only counts once its alpha span nears cs_min_slip_angle_span_rad
-R2_WEIGHT_EXPONENT = 1  # linear R^2 blend between window- and section-slope estimates, no extra shaping
+# method-defining, not tunables
+BUTTERWORTH_ORDER = 4  # roll-off shape
+SPAN_WEIGHT_EXPONENT = 4  # steep smooth-step: a section counts once its span nears cs_min_slip_angle_span_rad
+R2_WEIGHT_EXPONENT = 1  # plain linear R^2 blend
 
 
-@functools.lru_cache(maxsize=1)  # config only re-read after an app restart
+@functools.lru_cache(maxsize=1)  # re-read only after restart
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-@functools.lru_cache(maxsize=1)  # same re-read-after-restart convention as load_parameters
+@functools.lru_cache(maxsize=1)  # same as load_parameters
 def load_car_data():
-    # config/car_data.json is gitignored/local-only digitised manufacturer
-    # reference data (WP2b-1) -- not guaranteed to exist on every machine
-    # this tool runs on, so a missing or malformed file degrades to None
-    # rather than raising, mirroring core.config_loader.load_car_config's
-    # existing convention for car.json. Never log this file's contents --
-    # local-only means local-only, including in stdout/print debugging.
+    # car_data.json is local-only (gitignored) -> missing/bad = None.
+    # Never print its contents.
     try:
         with open(CAR_DATA_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -145,28 +75,15 @@ def _estimate_sample_rate(time_arr):
     return 1.0 / dt_median
 
 
-# 100 Hz time-base work package: the channels whose OWN native rate
-# determines how fast the common grid can genuinely run (method-defining
-# -- which channels constitute "the CS chain" is a fact about this
-# estimator, not a per-car tunable). ecu_speed is deliberately excluded:
-# it is always allowed to be the slower channel and gets upsampled onto
-# whatever grid the OTHER five support (see prepare_vehicle_state's own
-# comment on why that upsampling is safe).
+# channels whose native rate limits the grid rate. ecu_speed excluded --
+# it may be slower and gets upsampled (see prepare_vehicle_state).
 CS_CHAIN_FAST_CHANNELS = ["sclu_yaw_rate", "log_asteer", "log_acc_y", "log_acc_z", "lap_distance"]
 
 
 def _resolve_grid_rate(channels, params):
-    """100 Hz time-base work package (thesis_notes.md 'PHASE 0'). Picks
-    the common time grid's own rate: min(target_sample_rate_hz, the
-    slowest CS_CHAIN_FAST_CHANNELS channel's own native rate) -- a file
-    whose fast channels only support 50 Hz gets a 50 Hz grid (channel-
-    limited, not refused); one supporting 100 Hz+ gets the 100 Hz target.
-    Refuses only below min_sample_rate_hz (the GT3 Paul Ricard 20 Hz
-    case), naming the binding (slowest present) channel. A fast channel
-    that is entirely absent cannot bind the rate (nothing to measure) --
-    its own absence is a separate, pre-existing degrade-to-None concern
-    handled elsewhere (kerb_mask/s_m already tolerate a missing log_acc_z/
-    lap_distance), not this guard's job.
+    """Grid rate = min(target_sample_rate_hz, slowest native rate among
+    CS_CHAIN_FAST_CHANNELS). Refuses below min_sample_rate_hz, naming the
+    binding channel. An absent channel can't bind the rate.
     """
     se = params["stability_estimation"]
     target_rate = se["target_sample_rate_hz"]
@@ -202,10 +119,8 @@ def _resolve_grid_rate(channels, params):
     return grid_rate, status
 
 
-# Tier B signal conditioning for the Module 4b CS_alpha blend (see
-# thesis_notes.md "CS_ratio (cornering stiffness ratio)"): smooth-step
-# weighting, monotonic-section splitting, and per-section OLS slopes are
-# preprocessing on noisy measured data, not part of Werner's method itself.
+# CS_alpha blend preprocessing (smooth-step weights, monotonic sections,
+# section OLS) -- signal conditioning, not part of Werner's method
 def _smooth_weight(value, lower, upper, order):
     v = np.clip(value, lower, upper)
     rng = upper - lower
@@ -257,15 +172,8 @@ def _section_slopes(alpha, Fy, sections):
 
 
 def _normalize_lap_distance_to_metres(data, unit_raw):
-    # lap_distance's own [unit] varies by export -- Dubai logs feet,
-    # a real Paul Ricard export logs metres already (2026-08-31
-    # investigation). The parser never validates a channel's actual file
-    # unit against what code assumes (config's "unit" field is a display
-    # label only, never checked against the file) -- this is the one
-    # place a wrong assumption would silently scale every distance-
-    # derived quantity (corner brackets, apex positions, Module 5's
-    # s-anchored regression) by ~3.28x, so it is the one place that must
-    # check the file's own claim before converting.
+    # lap_distance unit differs per export (Dubai ft, Paul Ricard m). A wrong
+    # guess scales every distance quantity by 3.28 -> check unit_raw.
     if unit_raw == "ft":
         return data * 0.3048
     if unit_raw == "m":
@@ -277,17 +185,10 @@ def _normalize_lap_distance_to_metres(data, unit_raw):
 
 
 def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
-    # lap_distance resets to ~0 at every lap boundary. Linearly interpolating
-    # across that boundary sample pair (as plain np.interp would) fabricates
-    # a mid-range s value corresponding to no real track position, so any
-    # t_ref sample whose bracketing native-sample pair straddles a reset is
-    # set NaN instead. SetupTool-specific channel-alignment guard (Tier B):
-    # the chair receives s_m natively at its own timeline and never needs
-    # this interpolation step. [neutral engineering]
-    # ld_data_m is already in metres -- callers normalise via
-    # _normalize_lap_distance_to_metres before reaching here (2026-08-31,
-    # the unit is a per-file fact, not something this shared helper can
-    # know on its own).
+    # lap_distance resets each lap -> interpolating across the reset invents a
+    # position; those samples go NaN. Needed only because we resample s_m.
+    # [neutral engineering]
+    # ld_data_m already in metres.
     s_m = np.interp(t_ref, ld_time, ld_data_m)
 
     reset_after = np.zeros(len(ld_time), dtype=bool)
@@ -297,13 +198,9 @@ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
 
 
 def _build_inout_lap_mask(t_ref, laps):
-    # Module 5 production exclusion (independent of the UI's is_valid_for_
-    # analysis / lap_filter display toggle, per WP6/PLAN.md): cold-tyre in-
-    # and out-lap samples violate the local-regression assumption that the
-    # underlying vehicle condition is stationary across laps at the same
-    # track position (see thesis_notes.md). Same epistemic category as the
-    # kerb mask -- both exclude samples not representative of the racing
-    # condition being modelled. [domain improvement]
+    # Module 5 excludes in/out laps regardless of the UI lap_filter: cold
+    # tyres break the cross-lap stationarity the regression assumes (same
+    # idea as the kerb mask). [domain improvement]
     mask = np.zeros(len(t_ref), dtype=bool)
     for lap in laps or []:
         if lap.get("is_outlap") or lap.get("is_inlap"):
@@ -312,14 +209,13 @@ def _build_inout_lap_mask(t_ref, laps):
 
 
 def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
-    # Threshold flags the impact itself; dilating the mask catches the
-    # ringdown oscillation on either side that the raw threshold misses.
+    # threshold catches the hit, dilation the ringdown around it
     if az_g is None:
         return None
     raw = np.abs(az_g - baseline_g) > threshold_g
     if dilation_samples <= 0:
         return raw
-    # Symmetric dilation: OR the mask with itself shifted +/-1..dilation_samples.
+    # OR with itself shifted +/- 1..dilation_samples
     n = len(raw)
     out = raw.copy()
     for shift in range(1, dilation_samples + 1):
@@ -338,29 +234,14 @@ def prepare_vehicle_state(channels, params):
         if ch is None or ch["quality"] in ("missing", "failed") or ch["time"] is None:
             return None
 
-    # 100 Hz time-base work package (thesis_notes.md "PHASE 0"): the
-    # common grid is no longer ecu_speed's own raw timestamps -- ecu_speed
-    # is natively 50 Hz on this car (confirmed, diagnostics/inspect_
-    # native_channel_rates.py), while the other five CS-chain channels
-    # (CS_CHAIN_FAST_CHANNELS) are natively 100 Hz, and downsampling them
-    # onto ecu_speed's own coarser grid was silently discarding half their
-    # real resolution. _resolve_grid_rate picks the grid's own rate
-    # (target, or slower if the fast channels can't support it -- refusing
-    # only below the hard floor) and a synthetic, evenly-spaced grid at
-    # that rate is built here, spanning ecu_speed's own observed time
-    # range (still the anchor -- ecu_speed remains a required channel).
-    # ecu_speed itself is then upsampled onto this grid via the SAME
-    # np.interp every other channel already uses below: safe because
-    # vehicle speed is an inertia-limited signal (cannot jump between
-    # real samples), so linear interpolation between genuine readings
-    # invents no meaningfully wrong information, unlike upsampling a
-    # fast-changing quantity would.
+    # Synthetic even grid at the resolved rate over ecu_speed's time span.
+    # ecu_speed is 50 Hz, the CS chain 100 Hz
+    # (diagnostics/inspect_native_channel_rates.py) -- resampling onto
+    # ecu_speed threw half of it away. ecu_speed upsampled linearly: speed
+    # is inertia-limited, can't jump between samples.
     sr, grid_rate_status = _resolve_grid_rate(channels, params)
     ecu_speed_t = channels["ecu_speed"]["time"]
-    # np.arange's own stop-EXCLUSIVE semantics silently dropped the file's
-    # final sample here (invisible on a real ~80k-sample file, glaring on
-    # a small fixture) -- np.linspace with an explicit, rounded sample
-    # count is endpoint-inclusive and immune to step-accumulation drift.
+    # linspace, not arange -- arange dropped the last sample
     n_grid = int(round((ecu_speed_t[-1] - ecu_speed_t[0]) * sr)) + 1
     t_ref = np.linspace(ecu_speed_t[0], ecu_speed_t[-1], n_grid)
 
@@ -378,14 +259,9 @@ def prepare_vehicle_state(channels, params):
 
     steer_sw_deg = interp_channel("log_asteer")
     steer_sw_rad = steer_sw_deg * np.pi / 180.0
-    # steering_ratio_table (WP-B, Level 4): present only when modules.
-    # accuracy_resolution resolved it there (car_data.json's manufacturer
-    # steering_ratio_table available and cap allows it) -- absent on any
-    # raw, un-resolved params dict (e.g. test_stability.py's direct call),
-    # which keeps the plain constant division below byte-identical to
-    # before this WP. np.interp clamps outside the table's own domain by
-    # default -- the deliberate choice (config/car_data.json's table spans
-    # +/-291 deg full-lock, well beyond any steering angle actually seen).
+    # steering_ratio_table only present after accuracy resolution at L4;
+    # otherwise the plain constant. np.interp clamps outside the table
+    # (+/-291 deg, beyond anything driven).
     steering_ratio_table = vp.get("steering_ratio_table")
     if steering_ratio_table is not None:
         i_s = np.interp(steer_sw_deg, steering_ratio_table["angle_deg"], steering_ratio_table["ratio"])
@@ -396,7 +272,7 @@ def prepare_vehicle_state(channels, params):
     ay_mps2 = interp_channel("log_acc_y") * 9.81
     ax_mps2 = interp_channel("log_acc_x") * 9.81
 
-    # Vertical accel (g) for kerb detection; optional -- stays None if the channel is missing/failed/untimed.
+    # az [g] for kerb detection; None if the channel is unusable
     az_g = None
     az_ch = channels.get("log_acc_z")
     if az_ch is not None and az_ch.get("quality") not in ("missing", "failed") and az_ch.get("time") is not None:
@@ -415,9 +291,7 @@ def prepare_vehicle_state(channels, params):
 
     moving_mask = v_mps > se["moving_speed_min_mps"]
 
-    # GPS position (Level 3, optional). Used for apex_position_x/y_m via a
-    # local equirectangular projection anchored at the first sample -- fine
-    # at track scale, no need for a proper geodesic projection.
+    # GPS (L3, optional), local projection anchored at the first sample
     gps_lat = interp_channel("log_gps_lat")
     gps_lon = interp_channel("log_gps_lon")
     gps_origin_lat = None
@@ -429,9 +303,7 @@ def prepare_vehicle_state(channels, params):
         gps_lat = None
         gps_lon = None
 
-    # Track-distance coordinate for Module 5's s-anchored regression (see
-    # modules/yaw_stability.py). Optional -- None if lap_distance is missing
-    # or invalid, same missing-channel-degrades-to-None pattern as az_g/GPS above.
+    # track distance for Module 5; None if lap_distance unusable
     s_m = None
     ld_ch = channels.get("lap_distance")
     if ld_ch is not None and ld_ch.get("quality") not in ("missing", "failed") and ld_ch.get("time") is not None:
@@ -470,10 +342,8 @@ def prepare_vehicle_state(channels, params):
 
 
 def estimate_sideslip(state, params):
-    """Kinematic identity ay = v*(beta_dot + psi_dot). Method anchor
-    recorded in thesis_notes.md, WP-S4 entry. Washout integration below
-    is Tier B signal conditioning (drift correction), not part of the
-    cited identity itself.
+    """Kinematic identity ay = v*(beta_dot + psi_dot) (Rajamani ch. 2).
+    Washout integration = drift correction, signal conditioning only.
     """
     se = params["stability_estimation"]
     v = state["v_mps"]
@@ -494,12 +364,8 @@ def estimate_sideslip(state, params):
 
 
 def _interp_circular_deg(t_query, t_src, deg_src):
-    """Circular-safe interpolation of an angle in degrees onto a new time
-    base. Naive linear interpolation across the 0/360 wrap corrupts values
-    near the wrap point (e.g. 359 -> 1 deg reads as a -358 deg jump); the
-    sin/cos components are interpolated separately and the angle recovered
-    via atan2 instead -- standard technique for circular quantities.
-    Returns radians, wrapped to (-pi, pi].
+    """Angle interpolation via sin/cos + atan2 -- linear breaks at the 0/360
+    wrap. Returns rad in (-pi, pi].
     """
     rad_src = np.radians(deg_src)
     sin_i = np.interp(t_query, t_src, np.sin(rad_src))
@@ -508,69 +374,21 @@ def _interp_circular_deg(t_query, t_src, deg_src):
 
 
 def estimate_sideslip_gps(state, channels, params):
-    """WP5b(c): GPS-course-based sideslip estimate (beta_gps), a Level-3
-    validation candidate. VALIDATION ONLY in this phase -- not called from
-    any pipeline or UI path; production beta stays estimate_sideslip's
-    kinematic integration + washout, unchanged. See diagnostics/inspect_
-    beta_gps_validation.py for the comparison report and thesis_notes.md
-    for the full write-up.
+    """beta_gps = GPS course over ground - heading. Validation only, not used
+    in the pipeline (diagnostics/inspect_beta_gps_validation.py).
+    Heading isn't logged -> integrated yaw rate, re-anchored to course at
+    low-slip samples.
 
-    Concept, Tier A: beta = course-over-ground minus vehicle heading, the
-    GPS-aided kinematic sideslip estimation family (thesis_notes.md
-    limitations register item 4; primary source to verify before citing).
-    Heading is not logged (log_a_car refuted as a heading channel,
-    thesis_notes.md channel census); reconstructed here by integrating
-    yaw_rate_radps and periodically re-anchoring the drift to
-    log_gps_course at trustworthy low-slip samples -- the same "linear
-    reference held while inside a small window" pattern already used in
-    estimate_cornering_stiffness's cs_linear_slip_threshold_rad. Tier B,
-    standard drift-correction/bias-resync technique.
-
-    ROTATION CONVENTION (empirical finding, diagnostics/inspect_beta_gps_
-    validation.py, WP5b(c), laps 1-4 (valid-for-analysis), n=5014 moving
-    samples): log_gps_course is a compass bearing (0-360 deg, clockwise-
-    positive from North -- standard GPS/NMEA course-over-ground
-    convention). Correlating wrap-safe d(course)/dt against +yaw_rate_radps
-    gives r=-0.9548; against -yaw_rate_radps gives r=+0.9548.
-    -yaw_rate_radps is adopted below (the strong positive correlation) --
-    i.e. yaw_rate_radps in this project's convention is counter-clockwise-
-    positive, the OPPOSITE rotational sense from the compass bearing. This
-    does not follow from the z-down accelerometer convention already
-    established for kerb detection (thesis_notes.md) -- tested
-    independently here, not assumed from that precedent.
-
-    GPS LATENCY (same diagnostic, cross-correlation over lags -1..+1 s):
-    peak r=0.9898 at lag=+0.32 s -- course-derived rate lags yaw_rate by
-    ~0.32 s, a real, measurable GPS pipeline delay (zero-lag r was only
-    0.9575). CORRECTED as of iteration 2 (WP5b(c)): course is sampled
-    gps_course_latency_s seconds ahead of each query time (config,
-    derived_from the cross-correlation evidence above) before anchoring or
-    subtraction -- a stale course reading recorded at time t describes the
-    vehicle's true state at t - latency, so querying it at t + latency
-    recovers the value that actually corresponds to "now".
-
-    Anchor gate (Tier B, data-derived, diagnostics/inspect_beta_gps_
-    validation.py): a sample qualifies once gps_course_anchor_smooth_
-    window_s-smoothed |ay| stays below gps_course_anchor_max_ay_g for a
-    contiguous run of at least gps_course_anchor_min_duration_s (smoothing
-    was necessary -- the raw per-sample gate produced only sub-0.1 s runs
-    on Dubai, too brittle to anchor anything). Each qualifying run
-    contributes one anchor point (its time midpoint, its median course-
-    minus-gyro offset, unwrapped within the run first) -- 6 anchors,
-    20.4 s total anchor time, found on the Dubai sample.
-
-    DRIFT ALLOCATION (iteration 2, WP5b(c)): iteration 1 interpolated the
-    anchor offset linearly in ELAPSED TIME between anchors and produced a
-    large, poorly-correlated beta_gps (see thesis_notes.md). A closed-loop
-    per-lap check (diagnostics/inspect_beta_gps_validation.py Section 1b)
-    diagnosed why: the ~6 deg/lap gyro-integration shortfall is a
-    scale-type error that accumulates in proportion to ROTATION
-    (concentrated in the laps' ~15 corners), not in proportion to clock
-    time, so a time-linear correction under-corrected exactly where
-    cornering (and beta) happens. Fixed here: the offset is interpolated
-    in proportion to accumulated |yaw_rate| integral between the anchor
-    pair instead -- a monotonic "rotation clock" replaces the time axis
-    for this one interpolation, still via np.interp, no new machinery.
+    Rotation: course is compass (clockwise from North); corr(d course/dt,
+    -yaw_rate) = +0.95 -> yaw_rate is counter-clockwise positive. Checked,
+    not assumed.
+    GPS latency: course lags yaw rate ~0.32 s -> course read
+    gps_course_latency_s ahead.
+    Anchors: smoothed |ay| < gps_course_anchor_max_ay_g for at least
+    gps_course_anchor_min_duration_s; one anchor per run (midpoint, median
+    offset). Raw per-sample gate gave only sub-0.1 s runs.
+    Drift allocated by accumulated |yaw rate| between anchors, not time --
+    the gyro shortfall scales with rotation, i.e. with corners.
     """
     se = params["stability_estimation"]
     t_ref = state["time"]
@@ -584,8 +402,7 @@ def estimate_sideslip_gps(state, channels, params):
     latency_s = se.get("gps_course_latency_s", 0.0)
     course_rad = _interp_circular_deg(t_ref + latency_s, course_ch["time"], course_ch["data"])
 
-    # Open-loop heading from yaw rate, sign per the rotation-convention
-    # finding above (matches course's clockwise-from-North sense).
+    # open-loop heading, sign per the rotation finding above
     psi_gyro_dot = -state["yaw_rate_radps"]
     dt = 1.0 / sr
     psi_gyro = np.cumsum(psi_gyro_dot) * dt
@@ -619,17 +436,12 @@ def estimate_sideslip_gps(state, channels, params):
         anchor_offsets.append(float(np.median(np.unwrap(raw_offset[s_idx:e_idx]))))
 
     if len(anchor_times) == 0:
-        # No qualifying straight-line window in this file -- drift is
-        # unresolved, beta_gps is not trustworthy anywhere. Degenerate
-        # case, not exercised by the Dubai sample (6 anchors found there).
+        # no anchor window at all -> drift unresolved, beta_gps unusable
         return np.full_like(t_ref, np.nan)
 
     anchor_offsets_unwrapped = np.unwrap(np.array(anchor_offsets))
-    # Iteration 2: allocate the correction by accumulated |rotation|, not
-    # elapsed time -- a monotonic "rotation clock" (cumulative |yaw_rate|
-    # integral) replaces the time axis for this one interpolation, still
-    # via np.interp (holds the boundary value outside the anchored range,
-    # same as the time-linear version did).
+    # rotation clock (cumulative |yaw rate|) instead of time; np.interp holds
+    # end values outside the anchored range
     yaw_abs_cum = np.cumsum(np.abs(state["yaw_rate_radps"])) * dt
     anchor_rotation = np.interp(anchor_times, t_ref, yaw_abs_cum)
     drift_offset = np.interp(yaw_abs_cum, anchor_rotation, anchor_offsets_unwrapped)
@@ -641,10 +453,7 @@ def estimate_sideslip_gps(state, channels, params):
 
 
 def estimate_slip_angles(state, beta, params):
-    """Single-track slip-angle relations; method anchor recorded in
-    thesis_notes.md, "CS_ratio (cornering stiffness ratio) -- Werner
-    MA method" entry.
-    """
+    """Single-track slip angles, Werner S2.2.3 convention."""
     vp = params["vehicle"]
     se = params["stability_estimation"]
 
@@ -680,27 +489,12 @@ def estimate_slip_angles(state, beta, params):
 
 
 def estimate_lateral_forces(state, params):
-    """Module 4a: axle lateral forces via 2-DOF planar force/moment
-    balance -- Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,
-    Fy_r = m*ay - Fy_f. Method anchor recorded in thesis_notes.md,
-    "Fy yaw-moment term (Module 4a)" entry. Same construction as the
-    chair performance_analysis tooling's own fy_f_N/fy_r_N (internal);
-    no deviation, this is adopted as-is.
-
-    psidd is the RAW yaw acceleration (np.gradient of yaw_rate_radps),
-    computed here independently of Module 5's 0.15 s rolling-mean-
-    filtered signal (modules/yaw_stability.py) -- the chair keeps these
-    separate too: raw for this instantaneous per-sample force balance,
-    filtered only for the windowed stability regression. Pre-smoothing
-    psidd here with a different time constant before Module 4b's own
-    downstream Butterworth filter (cs_filter_cutoff_hz) would
-    double-filter with inconsistent time constants.
-
-    Method upgrade only, not an accuracy-level upgrade:
-    accuracy_levels.lateral_force_split stays 1 -- Iz and the static
-    corner-weight fractions are still Level 1, so the new yaw term
-    inherits their ~10-20% uncertainty rather than adding a
-    better-characterised signal.
+    """Module 4a: 2-DOF planar balance (Milliken RCVD), as in the chair
+    performance_analysis tooling (internal):
+        Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,  Fy_r = m*ay - Fy_f
+    psidd = raw gradient of yaw rate, not Module 5's smoothed one -- the CS
+    Butterworth downstream would otherwise double-filter.
+    Still Level 1: Iz and the static fractions are L1.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -741,44 +535,16 @@ def estimate_lateral_forces(state, params):
 
 
 def estimate_vertical_loads(state, forces, params, channels=None, car_data=None):
-    """WP5b(b) phase 1: axle and per-wheel vertical tyre loads (Fz), plus
-    the normalised-force diagnostic fy_f_norm_N/fy_r_norm_N.
+    """Axle and per-wheel Fz + diagnostic fy_*_norm_N = Fy_filt / Fz.
+    As in the chair performance_analysis tooling (internal): per-axle
+    lateral-transfer split, no roll-stiffness apportionment.
+    fy_*_norm_N: display only, not a classifier input.
+    Level 1 (cog height, track widths, aero are placeholders).
 
-    Method anchor recorded in thesis_notes.md, "WP5b(b) phase 1:
-    chair-parity vertical loads (Fz)" entry. Same construction as the chair
-    performance_analysis tooling's own fz_f_N/fz_r_N/fz_fl_N/fz_fr_N/
-    fz_rl_N/fz_rr_N and fy_f_norm_N/fy_r_norm_N
-    (docs/literature/data_handler.py:1548-1621, internal) -- adopted as-is,
-    no deviation. The per-wheel split is the chair's own independent-
-    per-axle lateral-transfer split, NOT a roll-stiffness apportionment
-    (that stays a documented later DOMAIN IMPROVEMENT, damper-validated,
-    PLAN.md WP5b(b)).
-
-    fy_f_norm_N/fy_r_norm_N = Fy_f_filt/fz_f_N, Fy_r_filt/fz_r_N -- a
-    diagnostic only in phase 1 turn (b): read-only, surfaced in Module 6/
-    the UI details panel, feeds no classification (_classify_corner is
-    untouched). It is a separate quantity from CS_ratio (Module 4b's
-    Calpha-ratio metric), not a replacement.
-
-    accuracy_levels.vertical_load_split / per_wheel_load_split stay at
-    Level 1: cog_height_m, track_width_front/rear_m and the aero
-    coefficients are all unsourced placeholders (config/parameters.json
-    notes).
-
-    Fz-integration Phase 1 (2026-09-03, Tier B: a consumption switch, not
-    a new vehicle-dynamics method -- modules.wheel_loads's own Segers
-    anchor is unchanged and does all the physics here): when config
-    stability_estimation.vertical_load_source is "measured" and both
-    channels/car_data are supplied, the static model above is computed
-    exactly as before but used only as the CASCADE'S OWN innermost
-    fallback (modules.wheel_loads.combine_with_reconstruction_and_
-    fallback) instead of as the final answer -- fz_fl_N/fz_fr_N/fz_rl_N/
-    fz_rr_N (and therefore fz_f_N/fz_r_N, resummed from them so the two
-    always agree) become damper-measured where valid, axle-total-
-    reconstructed where exactly one corner of an axle is invalid, static
-    otherwise. channels/car_data default to None so every existing call
-    site is unaffected; "static" (the config default) never touches
-    modules.wheel_loads at all.
+    vertical_load_source == "measured" with channels + car_data -> damper
+    cascade (wheel_loads: measured -> reconstructed -> this static model).
+    Axle totals then re-summed from the wheels. "static" never touches
+    wheel_loads.
     """
     vp = params["vehicle"]
     aero = vp["aero"]
@@ -790,11 +556,11 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     l_r_cog = vp["cog_to_rear_axle_m"]
     h_cog = vp["cog_height_m"]
 
-    # --- 1. Static load distribution (positive downwards) ---
+    # 1. static distribution (positive down)
     fz_static_f_N = m * g * l_r_cog / wb
     fz_static_r_N = m * g * l_f_cog / wb
 
-    # --- 2. Aerodynamic load component (positive for downforce) ---
+    # 2. aero (positive = downforce)
     rho = aero["air_density_kgm3"]
     cl = aero["lift_coeff"]
     a_aero = aero["cross_track_area_m2"]
@@ -803,13 +569,13 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     dfz_aero_f_N = fz_aero_total_N * (l_r_cog - x_cp_cog) / wb
     dfz_aero_r_N = fz_aero_total_N * (l_f_cog + x_cp_cog) / wb
 
-    # --- 3. Longitudinal load transfer component ---
+    # 3. longitudinal transfer
     dfz_long_transfer_N = m * state["ax_mps2"] * h_cog / wb
 
     fz_f_N = fz_static_f_N + dfz_aero_f_N - dfz_long_transfer_N
     fz_r_N = fz_static_r_N + dfz_aero_r_N + dfz_long_transfer_N
 
-    # --- 4. Per-wheel split: independent per-axle lateral-transfer, chair-identical ---
+    # 4. per-wheel: independent per-axle lateral transfer
     front_track = vp["track_width_front_m"]
     rear_track = vp["track_width_rear_m"]
     lateral_transfer_front = m * state["ay_mps2"] * h_cog / front_track
@@ -820,8 +586,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     fz_rl_N = fz_r_N / 2 - lateral_transfer_rear / 2
     fz_rr_N = fz_r_N / 2 + lateral_transfer_rear / 2
 
-    # --- Fz-integration Phase 1: swap in the damper cascade, static model
-    # stays available as its own innermost fallback (see docstring). ---
+    # damper cascade, static model as innermost fallback
     vertical_load_source = params["stability_estimation"].get("vertical_load_source", "static")
     fz_source_per_sample = None
     if vertical_load_source == "measured" and channels is not None and car_data is not None:
@@ -836,23 +601,15 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
             session_corrected = estimate_session_corrected_axle_totals(state, damper_result, params)
             fz_axle_totals = {"fz_f_N": session_corrected["fz_f_N"], "fz_r_N": session_corrected["fz_r_N"]}
         else:
-            # No corner has ANY real damper sample this session (e.g. Dubai
-            # -- no damper channels at all): estimate_session_corrected_
-            # axle_totals's own straight-line means would average nothing
-            # (NaN), and reconstruct_missing_corner never selects this value
-            # anyway once every corner is invalid (an invalid corner's own
-            # axle-mate is also always invalid, so reconstructable is False
-            # everywhere) -- skip the unused fit rather than compute NaN.
+            # no real damper sample anywhere (e.g. Dubai) -> skip the fit, it would
+            # average nothing and nothing could be reconstructed anyway
             fz_axle_totals = {"fz_f_N": fz_f_N, "fz_r_N": fz_r_N}
         combined = combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz)
         fz_fl_N = combined["fl"]["fz_N"]
         fz_fr_N = combined["fr"]["fz_N"]
         fz_rl_N = combined["rl"]["fz_N"]
         fz_rr_N = combined["rr"]["fz_N"]
-        # Axle total = sum of the cascade's own per-wheel outputs, not the
-        # static axle formula above or the session-corrected model directly
-        # -- keeps fz_f_N/fz_r_N always consistent with fz_fl_N+fz_fr_N /
-        # fz_rl_N+fz_rr_N regardless of which tier produced each sample.
+        # axle total = sum of the cascade wheels, so axle and wheel values always agree
         fz_f_N = fz_fl_N + fz_fr_N
         fz_r_N = fz_rl_N + fz_rr_N
         fz_source_per_sample = {c: combined[c]["source"] for c in WHEEL_CORNERS}
@@ -860,7 +617,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     else:
         vertical_load_source = "static"
 
-    # --- 5. Normalised-force diagnostic, chair's own fy_*_norm_N construction ---
+    # 5. normalised force diagnostic
     fy_f_norm_N = forces["Fy_f_filt"] / fz_f_N
     fy_r_norm_N = forces["Fy_r_filt"] / fz_r_N
 
@@ -881,56 +638,25 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
 
 
 def resolve_cs_min_window_samples(params, sample_rate_hz):
-    """CS validity repair part A, Phase 1 (rate-corrected): cs_min_window_s
-    is a PHYSICAL window duration, not a sample count -- the chair's own
-    literal default (10 samples) was always a 100 Hz-calibrated value
-    (10/100 = 0.1 s), silently treated as rate-independent until this
-    correction. Converts to samples at THIS file's own measured rate,
-    same pattern as modules.longitudinal_stiffness's own 50 Hz min_samples
-    adaptation (regression_window_s * sample_rate_hz, floored). Shared by
-    estimate_cornering_stiffness and every UI/diagnostics caller that
-    reconstructs a window, so the derivation can never drift between them.
+    """cs_min_window_s [s] -> samples at this file's rate, floored. The chair's
+    10-sample default was implicitly 100 Hz. Shared by the estimator and all
+    window reconstructions.
     """
     se = params["stability_estimation"]
     return max(se["cs_min_window_samples_floor"], int(round(se["cs_min_window_s"] * sample_rate_hz)))
 
 
 def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_window_m=None):
-    """Reconstruct the sliding window's own start index for target index
-    `i` -- mirrors compute_cs_for_axle's internal growth loop below
-    exactly, for callers that only have the per-sample CS_ratio/C_alpha
-    output and need to know which raw samples produced one particular
-    estimate (the corner-trace track map's front/rear "estimation window"
-    highlight, and various diagnostics scripts' tyre-curve window
-    scatter). Reconstruction only, not a second implementation of the
-    estimator -- the CS value itself always comes from this function's
-    own returned arrays, never recomputed here. Verified against a
-    captured C_window_f/r trace to 1e-6 relative tolerance before this
-    was factored out of the (then diagnostics-only) copy of this loop.
+    """Start index of the window compute_cs_for_axle used at index i -- for
+    trace-window highlights and diagnostics. Reconstruction only, never
+    recomputes CS. Matched the live loop to 1e-6.
 
-    min_window is already a resolved SAMPLE COUNT here (see
-    resolve_cs_min_window_samples) -- this function has no opinion on
-    physical units, only the caller does.
-
-    s_m/max_window_m (CS validity repair part A, Phase 2, DISTANCE-based
-    per the locality-bound revision): caps how far the window may grow by
-    real track distance travelled, not a converted sample count -- a
-    corner's own physical scale is a distance, not a duration, so the cap
-    must not silently change meaning between a slow and a fast corner at
-    the same sample count. Omitting either (or an unreadable s_m at the
-    boundary -- NaN across a lap-distance reset, or a lap-boundary
-    crossing) falls back to NO distance cap for that reconstruction --
-    safe ONLY when called on an index already known to carry a finite
-    CS_ratio (compute_cs_for_axle itself enforces the cap when producing
-    that value; an index with no finite CS_ratio never had a qualifying
-    window to reconstruct in the first place).
-
-    WP-PERF (2026-09-23, thesis_notes.md): the running max/min below are
-    maintained incrementally rather than re-scanned from the whole
-    growing slice every widening step -- part of the "mirrors compute_cs_
-    for_axle's internal growth loop exactly" contract above: BOTH sites
-    use the identical incremental pattern, and the next person editing
-    either site's widening logic must carry the change to the other.
+    min_window = sample count (resolve_cs_min_window_samples).
+    s_m/max_window_m cap growth by track distance, so the cap means the same
+    in slow and fast corners. Either missing, or NaN s_m at the boundary ->
+    no cap; only safe on indices with a finite CS_ratio.
+    Same incremental running max/min as compute_cs_for_axle -- change both
+    together.
     """
     start = i - min_window
     s_i = s_m[i - 1] if (s_m is not None and max_window_m is not None) else None
@@ -954,12 +680,9 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
 
 
 def estimate_cornering_stiffness(slip, forces, state, params):
-    """Module 4b: effective cornering stiffness / CS ratio.
-
-    Method anchor recorded in thesis_notes.md, "CS_ratio (cornering
-    stiffness ratio) -- Werner MA method" entry. Effective-stiffness
-    estimation is adapted (windowed regression from logged Fy/alpha in
-    place of Werner's Pacejka-model evaluation) -- see thesis_notes.md.
+    """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
+    Stiffness by windowed regression on logged Fy/alpha instead of Werner's
+    Pacejka evaluation.
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -986,9 +709,8 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         R2 = np.full(n, np.nan)
         CS_ratio = np.full(n, np.nan)
         C_linear_ref = np.nan
-        # Per-sample record of the linear-region reference slope in effect
-        # at each index (CS_ratio's denominator) -- exposed for the
-        # tyre-curve audit plot (WP-A item 3), not used elsewhere.
+        # linear reference in effect per sample (CS_ratio denominator), for the
+        # tyre-curve audit plot
         C_linear_ref_arr = np.full(n, np.nan)
 
         sections, section_id = _find_monotonic_sections(alpha)
@@ -998,15 +720,9 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             if not moving[i]:
                 continue
 
-            # Adaptive widening (CS validity repair part A, Phase 2): grow the
-            # window until it clears BOTH floors, capped at max_window_m (a
-            # real TRACK DISTANCE, not a sample count -- Phase 1 REVISION's
-            # locality bound) so a near-flat-alpha stretch (a straight, a
-            # slow lift) cannot chase min_span arbitrarily far back and
-            # blend in unrelated track sections -- see cs_max_window_m's own
-            # config comment. Mirrors reconstruct_cs_window_start exactly,
-            # incremental running max/min (WP-PERF, thesis_notes.md)
-            # included; keep both sites in sync.
+            # widen until both floors clear, capped at max_window_m of track -- a
+            # flat-alpha stretch can't pull in unrelated sections.
+            # Same loop as reconstruct_cs_window_start; keep in sync.
             start = i - min_window
             s_i = s_m[i - 1] if s_m is not None else None
             if s_i is not None and not np.isfinite(s_i):
@@ -1030,7 +746,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             window_Fy = Fy[start:i]
             achieved_span = np.max(window_alpha) - np.min(window_alpha)
             if achieved_span < min_span:
-                continue  # widening could not clear the span floor within the cap -- no signal
+                continue  # span floor not reached -> no signal
 
             alpha_mean = np.mean(window_alpha)
             Fy_mean = np.mean(window_Fy)
@@ -1106,41 +822,19 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
 
 def estimate_yaw_moment_stability(state, beta, params, laps=None):
-    """Module 5: yaw moment stability dMz/dbeta.
+    """Module 5: dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid (Werner
+    S4.5.2 Eq. 4.3); D_psi not computed yet. Estimator in yaw_stability.py,
+    after the chair performance_analysis tooling (internal).
+    Front vs rear saturation = controllability vs stability loss (Hoffman et
+    al. 2008, sec. 2); saddle-node framing as motivation only (Ono et al.
+    1998), no bifurcation analysis.
 
-    Target relation method anchor recorded in thesis_notes.md, "Yaw
-    moment stability dMz/dbeta" entry (Mz = Iz*psidd + D_psi*psid);
-    D_psi term not yet computed (no wheel-load sensor); see
-    thesis_notes.md "Completing Werner Eq. 4.3" and WP5b. The estimator
-    itself (yaw-accel rolling mean, s-anchored Gaussian-weighted local
-    ridge regression) is modules.yaw_stability, after the chair
-    performance_analysis tooling (internal) -- see thesis_notes.md for
-    the attribution split and the call-site sample-exclusion adaptation
-    notes below.
-
-    Front/rear saturation as controllability-loss vs stability-loss,
-    and the saddle-node framing (motivation only, no bifurcation
-    analysis implemented): method anchors recorded in thesis_notes.md,
-    "Front/rear saturation and saddle-node concept anchors closed"
-    entry.
-
-    Sample exclusions (moving mask, kerb mask, structural in/out-lap
-    exclusion) are all applied HERE, at the call site, by NaN-ing
-    excluded samples before handing arrays to the chair-derived
-    estimator; the estimator itself runs unmasked on whatever it is
-    given, exactly as the chair's own tooling does on a full session.
-    [neutral engineering]
-    In/out-lap exclusion is production behaviour, independent of the
-    UI's display lap_filter (WP6): cold tyres change stiffness, which
-    would corrupt the cross-lap pooling this estimator relies on.
-    [domain improvement]
-
-    The chair estimator carries a time-anchored fallback mode when s_m
-    is unusable; SetupTool deliberately does not port it: the fallback
-    is a differently-behaving estimator (time-local, no cross-lap
-    pooling) whose output the s-grid-derived thresholds could not
-    classify meaningfully -- no stability verdict is more honest than
-    a silently degraded one.
+    Exclusions (moving, kerb, in/out lap) applied here by NaN-ing samples;
+    the estimator itself runs unmasked. [neutral engineering]
+    In/out laps always excluded, independent of the UI lap_filter -- cold
+    tyres corrupt the cross-lap pooling. [domain improvement]
+    The chair's time-anchored fallback (no s_m) not ported: different
+    estimator, the s-grid thresholds don't apply -> no verdict instead.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -1201,21 +895,9 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                        apex_half_window_samples=None, cs_phase_min_valid_samples=None,
                        cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None,
                        ls_phase_min_valid_samples=None):
-    # fz (modules.stability_analysis.estimate_vertical_loads's output) is
-    # optional and additive only: passing it adds fz_f_N/fz_r_N/
-    # fy_f_norm_N/fy_r_norm_N stat blocks per phase; omitting it (older
-    # diagnostics/*.py call sites predating WP5b(b)) reproduces the exact
-    # pre-turn-(b) summary shape, no behaviour change for those callers.
-    # ls (modules.longitudinal_stiffness.estimate_longitudinal_stiffness's
-    # output, PLAN.md STEP 3 Phase 3) is the same additive-optional
-    # pattern: passing it adds ls_ratio_f/ls_ratio_r stat blocks per
-    # phase, same _stats() treatment as cs_ratio_f/cs_ratio_r; omitting
-    # it reproduces the exact pre-Phase-3 summary shape.
-    # v3 diagnostics Part C2 (2026-09-03): stability_observed_Nm_per_deg
-    # now goes through _gate_stab_stat, same no-signal-on-too-few-samples
-    # gate CS_ratio already had (_gate_cs_stat) plus a brake-specific
-    # no-actual-braking check for entry_1_brake -- see that helper and
-    # stab_phase_no_braking_floor_bar's own config comment.
+    # fz and ls optional: each adds its stat blocks per phase, omitted ->
+    # older summary shape. stability_observed goes through _gate_stab_stat
+    # (sample-count gate + no-braking check for entry_1_brake).
     if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
             or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None
             or ls_phase_min_valid_samples is None):
@@ -1263,33 +945,22 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         }
 
     def _gate_cs_stat(stat):
-        # CS validity repair part A, Phase 2: a CS_ratio stat block backed
-        # by too few finite samples reports NaN (no signal) rather than a
-        # median that is really just one or two extreme readings -- see
-        # cs_phase_min_valid_samples's own config comment.
+        # too few finite samples -> NaN, not a median of one or two outliers
         if stat["n"] < cs_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
     def _gate_ls_stat(stat):
-        # LS validity repair (Metrology extension Phase 2, 2026-09-19):
-        # same no-signal-on-too-few-samples gate CS_ratio already has,
-        # its own separately-derived floor (ls_phase_min_valid_samples,
-        # not cs_phase_min_valid_samples reused) since LS's own windowed-
-        # regression noise characteristics differ from CS's.
+        # same gate for LS, own floor (ls_phase_min_valid_samples) -- different
+        # noise than CS
         if stat["n"] < ls_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
     def _gate_stab_stat(stat, phase, brake_vals):
-        # v3 diagnostics Part B2/C2 (2026-09-03): stability_observed_Nm_
-        # per_deg gets the SAME sample-count gate CS_ratio already has
-        # (cs_phase_min_valid_samples reused, not re-derived -- see
-        # stab_phase_no_braking_floor_bar's own config comment) plus a
-        # second, brake-specific check found evidenced on GT3_PRC_MLA-v3's
-        # C7/C15: an entry_1_brake phase with no real braking (max brake
-        # pressure never clears the floor) reports no-signal instead of a
-        # median computed from an essentially-unloaded phase.
+        # stability: same sample-count gate as CS (cs floor reused), plus
+        # entry_1_brake with no real braking (max pressure under the floor) ->
+        # no signal (v3 C7/C15)
         if stat["n"] < cs_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         if phase == "entry_1_brake" and brake_f_bar is not None:
@@ -1298,14 +969,9 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         return stat
 
     def _apex_region_idx(c):
-        # CS validity repair part A, Phase 3: a DISTANCE-based (not sample-
-        # count) window around the apex, replacing apex_3's structurally
-        # fixed 11-sample slice for CS reads (thesis_notes.md "apex_3
-        # structural finding"). Bounded in TIME to this corner's own
-        # instance first (union of its own 5 phase segments) before
-        # applying the distance band -- s_m resets every lap, so a pure
-        # distance-band search would otherwise pull in every other lap's
-        # samples passing the same track distance.
+        # distance band around the apex instead of the fixed 11-sample apex_3
+        # slice (CS reads). Limited to this instance's own time span first --
+        # s_m resets every lap, a pure distance band would grab other laps.
         if s_m is None:
             return np.array([], dtype=int)
         apex_s = c.get("apex_lap_distance_m")
@@ -1327,7 +993,7 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         lo = int(np.searchsorted(t, start_t, side="left"))
         hi = int(np.searchsorted(t, end_t, side="right"))
         if is_apex and hi <= lo:
-            # Apex is a single instant -- expand to +/- N samples
+            # apex is one instant -> +/- N samples
             centre = lo
             lo = max(0, centre - apex_half_window_samples)
             hi = min(len(t), centre + apex_half_window_samples + 1)
@@ -1378,8 +1044,7 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             if sl.stop > sl.start:
                 phase_moving = moving[sl]
                 idx = np.where(phase_moving)[0] + sl.start
-                # Kerb fraction: of the moving samples in this phase,
-                # how many were flagged as kerb-affected
+                # share of moving samples flagged as kerb
                 if kerb_mask is not None:
                     n_phase_moving = int(phase_moving.sum())
                     if n_phase_moving > 0:

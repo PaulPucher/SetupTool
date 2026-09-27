@@ -1389,6 +1389,10 @@ HOW TO USE:
   Applied here first (diagnostics/sideslip_kalman_observer.py's
   docstring carries the model/state-space definition and the pointer
   line only, no author/title/page).
+  [2026-09-27] PARTLY SUPERSEDED: ~~code-side pointer line into
+  thesis_notes.md~~ -> code now carries a short source name only
+  (chapter/section max), see "WP-STYLE" entry at the end of this file.
+  The "full citation lives in thesis_notes.md only" half still holds.
 - [2026-08-19] CORRECTION, citation set: the lecture anchor listed above
   as "TO VERIFY by user" for the Kalman algorithm has been DROPPED by
   user decision and is no longer part of this entry's citation set. The
@@ -10269,6 +10273,8 @@ stiffness docstring, which cites this same Ch. 2 relationship for its
 inputs rather than restating it.
 
 ### RULE APPLICATION, Phase 2a citation sweep [2026-09-01]
+[2026-09-27] SUPERSEDED in code-side form by the WP-STYLE entry: the
+~~one-line thesis_notes.md pointers~~ are replaced by short source names.
 Per the [2026-08-19] RULE CHANGE above (citation location), swept
 modules/ for remaining inline author/title/page citations and replaced
 each with a one-line pointer to its thesis_notes.md entry, following
@@ -21620,3 +21626,24 @@ entry was written; that is the next step, on the reviewer's own
 instruction.
 
 Files touched: none beyond what each named entry above already states.
+## WP-STYLE: comment volume reduction + Tier A citation-form amendment [2026-09-27, branch style]
+
+DESIGN PRINCIPLE. Process records (dates, WP/phase numbers, deviation
+histories, "an earlier version did X") live in thesis_notes.md only;
+code carries terse WHY notes and nothing else. Pass covers the 64-file
+release set (README.md and .gitignore excluded), text-only, verified
+AST-identical per file with docstrings stripped.
+
+CITATION RULE AMENDMENT (supersedes the "# method: thesis_notes.md,
+<entry>" pointer form in CLAUDE.md). Tier A anchors in code = a short
+source name at chapter/section granularity max ("after the chair
+performance_analysis tooling (internal)", "Segers ch. 11"); no page
+numbers, no thesis_notes.md pointer. Reason: the release branch ships
+without thesis_notes.md, so pointers into it dangle for the code's
+actual readers. Full verified citations remain here, in thesis_notes.md.
+Load-bearing design constraints (e.g. LS plausibility guard: exclude
+on az-coincidence, never on kappa alone) survive in the code as one line.
+Result: 44 files text-only (AST / parsed-value identical to HEAD), full
+suite 472 passed / 9 skipped / 1 xfailed, goldens untouched,
+test_stability.py clean. Process records inside runtime strings are
+deferred to their own WP (strings are behaviour).

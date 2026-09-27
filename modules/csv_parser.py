@@ -1,16 +1,8 @@
-# Pi Toolbox ASCII CSV parser for Cosworth datalogger files.
-# Reads only channels defined in config/channels.json.
-# Handles European decimal notation, variable sample rates,
-# lap splitting, and corner detection with speed classification.
-# Two ChannelBlock layouts, both real Pi Toolbox exports (2026-08-31,
-# GT3 Paul Ricard investigation): NARROW, one {ChannelBlock} section per
-# channel with its own Time/Value pairs (Dubai's own export); WIDE, a
-# single {ChannelBlock} section whose header row is Time followed by
-# every channel name as a column, one data row per timestamp. Detected
-# per file from the header row's own column count -- both may in
-# principle appear in the same file (untested, no such export seen),
-# handled independently per {ChannelBlock} section either way.
-# Pure Python/numpy/pandas -- no Qt imports.
+# Pi Toolbox ASCII export parser (Cosworth logger). Only channels listed in
+# config/channels.json; comma decimals, per-channel rates, lap splitting.
+# Two {ChannelBlock} layouts, detected per section from the header width:
+#   narrow = one channel per section (Dubai), wide = Time + all channels
+#   as columns (Paul Ricard).
 
 import numpy as np
 import pandas as pd
@@ -28,12 +20,9 @@ def load_channels_config():
 
 
 def _split_name_unit(raw_name):
-    # "log_asteer[deg]" -> ("log_asteer", "deg"); "lap_number" (no
-    # brackets) -> ("lap_number", None). unit_raw is the FILE's own
-    # claim, never validated against config's "unit" label anywhere in
-    # this parser -- consumers that convert by unit (e.g. lap_distance's
-    # ft/m normalisation) must check unit_raw themselves, not assume it
-    # matches config.
+    # "log_asteer[deg]" -> ("log_asteer", "deg"); no brackets -> unit None.
+    # unit_raw = the file's claim, not checked against config -- unit
+    # conversions downstream must read it themselves.
     raw_name = raw_name.strip()
     if "[" in raw_name and raw_name.endswith("]"):
         return raw_name[:raw_name.index("[")].strip(), raw_name[raw_name.index("[") + 1:-1].strip()
@@ -48,13 +37,8 @@ def parse_csv(file_path):
     metadata = {}
     raw_channels = {}
 
-    # latin-1 (ISO-8859-1): both real exports seen (Dubai, Paul Ricard)
-    # are single-byte Pi Toolbox text, confirmed via `file`. latin-1
-    # maps every byte 0x00-0xFF to a character, so it never raises and
-    # never needs errors="replace" -- the previous utf-8+replace combination
-    # silently turned every degree sign (and any other non-ASCII byte) into
-    # U+FFFD, which would have defeated a unit check like lap_distance's
-    # ft/m normalisation the day a unit string needed a real symbol.
+    # latin-1: exports are single-byte text; maps every byte, never raises.
+    # utf-8 + replace turned the degree sign into U+FFFD.
     with open(file_path, "r", encoding="latin-1") as f:
         lines = f.readlines()
 
@@ -77,7 +61,7 @@ def parse_csv(file_path):
             if i < n:
                 header_parts = lines[i].strip().split("\t")
                 if len(header_parts) == 2:
-                    # NARROW: this section is one channel.
+                    # narrow
                     channel_name, unit_raw = _split_name_unit(header_parts[1])
                     i += 1
                     if channel_name in wanted_channels:
@@ -102,10 +86,7 @@ def parse_csv(file_path):
                         while i < n and not lines[i].strip().startswith("{"):
                             i += 1
                 elif len(header_parts) > 2 and header_parts[0].strip() == "Time":
-                    # WIDE: this section is every channel, one row per
-                    # timestamp. Only build column->channel for the ones
-                    # this app actually wants -- a 4000+-column row is
-                    # expensive to fully materialise per sample otherwise.
+                    # wide -- map wanted columns only, rows can be 4000+ wide
                     wanted_cols = {}
                     for col_idx, raw in enumerate(header_parts[1:], start=1):
                         name, unit_raw = _split_name_unit(raw)
@@ -115,14 +96,8 @@ def parse_csv(file_path):
                     col_values = {idx: [] for idx in wanted_cols}
                     i += 1
                     while i < n and not lines[i].strip().startswith("{"):
-                        # Tolerate short/partial rows (a bare timestamp with
-                        # no values at all is a real thing seen in a real
-                        # export, not malformed data) -- len(parts) > 1 just
-                        # means "at least a timestamp plus something", every
-                        # per-column read below already tolerates parts
-                        # being shorter than the header via the col_idx <
-                        # len(parts) bound, so a row with only some columns
-                        # present degrades per-channel, not row-by-row.
+                        # short rows are real (bare timestamps) -- missing
+                        # cells drop per channel, not per row
                         parts = lines[i].rstrip("\r\n").split("\t")
                         if len(parts) > 1:
                             try:
@@ -130,7 +105,7 @@ def parse_csv(file_path):
                             except ValueError:
                                 i += 1
                                 continue
-                            if t != t:  # NaN timestamp -- positionally meaningless, skip the row
+                            if t != t:  # NaN timestamp -> skip row
                                 i += 1
                                 continue
                             for col_idx in wanted_cols:
@@ -138,12 +113,9 @@ def parse_csv(file_path):
                                     try:
                                         v = float(parts[col_idx].replace(",", "."))
                                     except ValueError:
-                                        # covers non-Python-parseable tokens
-                                        # like "-nan(ind)" (MSVC's textual
-                                        # NaN) -- a missing cell for this one
-                                        # channel/sample, not a row failure.
+                                        # e.g. "-nan(ind)" (MSVC NaN)
                                         continue
-                                    if v != v:  # NaN idiom -- "nan" DOES parse via float(), unlike "-nan(ind)"
+                                    if v != v:  # plain "nan" does parse
                                         continue
                                     col_times[col_idx].append(t)
                                     col_values[col_idx].append(v)
@@ -159,19 +131,11 @@ def parse_csv(file_path):
         else:
             i += 1
 
-    # Build result with quality flags
     channels_config = config["channels"]
     quality_gates = config["channel_quality_gates"]
-    # Deepening Phase 2 (2026-09-18): decoding corrections for a specific
-    # channel/session's own known-corrupted raw signal (e.g. GT3_PRC_MLA-
-    # v3.txt's log_dms_dam_fr, thesis_notes.md "Deepening Phase 2: FR
-    # gauge decoding" -- a pure additive offset recovers real, correctly-
-    # signed signal). Evidence-gated by precondition_mean_range, never a
-    # blind unconditional patch: if THIS file's own raw mean for the
-    # channel does not sit inside the range the correction's own evidence
-    # was derived from, it is left untouched -- guards against silently
-    # mis-correcting a HEALTHY reading of the same channel name in a
-    # future, differently-faulted (or unfaulted) export.
+    # Offset corrections for known-corrupt channels (e.g. v3 log_dms_dam_fr).
+    # Applied only if this file's raw mean is inside precondition_mean_range
+    # -- a healthy channel of the same name stays untouched.
     corrections = config.get("channel_corrections", {})
     result_channels = {}
 
@@ -221,11 +185,7 @@ def parse_csv(file_path):
 
     laps = _split_laps(result_channels, config)
 
-    # Measured, not assumed -- modules.stability_analysis.prepare_vehicle_
-    # state's rate guard (config stability_estimation.expected_sample_
-    # rate_hz) reads this rather than re-deriving it, so a file whose
-    # primary time reference (ecu_speed) is missing/unusable is reported
-    # as "rate unknown" (None) here, not silently treated as matching.
+    # measured from ecu_speed; None = unknown, not "matches expected"
     measured_rate = None
     speed_ch = result_channels.get("ecu_speed")
     if speed_ch is not None and speed_ch["time"] is not None and len(speed_ch["time"]) > 1:
@@ -248,19 +208,8 @@ def parse_csv(file_path):
 
 
 def _merge_trailing_pit_fragment(laps, channels, config):
-    # SCOPE: handles the SESSION-TRAILING fragment only -- the final
-    # lap_number segment after the pit-in beacon, e.g. Dubai's 8s "lap 6"
-    # (log_beacon_pitin at t=1121.65s, 0.27s before the lap_number 5->6
-    # transition). The true inlap -- pit committed, decelerating to pit
-    # speed under the limiter -- is the PRECEDING lap: on Dubai the
-    # pit-speed limiter (ecu_B_speedlimit_en) engages at t=1108.78s, 13.14s
-    # before that transition, entirely inside what was "lap 5".
-    # Multi-stint race files have no such trailing fragment (the stop lap
-    # runs line-to-line through the pit box as one lap_number) -- they will
-    # need stint-aware in/out/stop-lap classification via MID-lap limiter
-    # engagement instead. That is deferred until multi-stint data arrives
-    # (see PLAN.md IDEAS); the limiter channel whitelisted here is the
-    # enabler for that later work, not a solution to it.
+    # Session-trailing fragment only (e.g. Dubai's 8 s "lap 6" after the
+    # pit-in beacon) -> merged into the previous lap, which is the real inlap.
     if len(laps) < 2:
         return
 
@@ -271,13 +220,12 @@ def _merge_trailing_pit_fragment(laps, channels, config):
     merge = False
     if (limiter_ch is not None and limiter_ch.get("quality") not in ("missing", "failed")
             and limiter_ch.get("time") is not None and len(limiter_ch["time"]) > 0):
-        # Level 3: limiter already engaged at the fragment's first sample.
+        # L3: limiter on at the fragment's first sample
         idx = min(np.searchsorted(limiter_ch["time"], last["start_time"]),
                   len(limiter_ch["data"]) - 1)
         merge = bool(limiter_ch["data"][idx] >= 0.5)
     else:
-        # Level 1 fallback: no limiter channel -- fragment shorter than
-        # any real lap could plausibly be.
+        # L1: no limiter channel -> too short to be a real lap
         max_dur = config.get("lap_splitting", {}).get("pit_fragment_max_duration_s", 20)
         merge = last["lap_time"] < max_dur
 
@@ -291,12 +239,7 @@ def _merge_trailing_pit_fragment(laps, channels, config):
 
 
 def _limiter_active_at(limiter_ch, t):
-    """Channel value (>=0.5 threshold, same convention as _merge_trailing_
-    pit_fragment's own check) at the sample nearest t. None if the channel
-    is absent/unusable -- distinct from False (usable but not active),
-    so a caller can fall back to positional logic only in the True
-    "channel absent" case, not silently treat "not active" as "absent".
-    """
+    """Limiter on (>= 0.5) at t. None = channel unusable, not the same as False."""
     if (limiter_ch is None or limiter_ch.get("quality") in ("missing", "failed")
             or limiter_ch.get("time") is None or len(limiter_ch["time"]) == 0):
         return None
@@ -305,36 +248,12 @@ def _limiter_active_at(limiter_ch, t):
 
 
 def _classify_out_in_laps_by_limiter(laps, channels):
-    # Fz-integration Phase 4 (2026-09-03): laps are classified out/in by
-    # pit-limiter engagement (ecu_B_speedlimit_en) AT the lap's own start/
-    # end, ADDITIVE to the existing lap_number==0 positional rule (never
-    # removes a flag the positional rule already set) -- this is what
-    # guarantees Dubai's own classification stays byte-identical: no
-    # limiter-active run on Dubai overlaps any lap boundary the positional
-    # rule did not already flag (verified, tests/test_csv_parser_formats.py
-    # and the real-file diagnostic census both confirm this empirically,
-    # not just by this argument).
-    #
-    # Handles a pit box BEFORE start/finish (found on GT3_PRC_MLA-v3.txt,
-    # diagnostics/inspect_v3_pit_limiter_lap_census.py): the limiter can
-    # still be engaged AFTER the lap-counter has already incremented past
-    # the outlap's own lap_number (the pit-exit zone straddles the start/
-    # finish line) -- checking "limiter active at THIS lap's own start",
-    # not just "was there ever a limiter run inside this lap somewhere",
-    # correctly flags v3's lap 5 as an outlap continuation even though its
-    # own lap_number is not 0. Symmetrically for the inlap side: v3's
-    # session ends WITHOUT a separate short trailing fragment lap_number
-    # (unlike Dubai) -- the pit-committed tail runs inside the SAME
-    # lap_number as the rest of that lap (matches this module's own prior
-    # comment on _merge_trailing_pit_fragment: "the stop lap runs line-to-
-    # line through the pit box as one lap_number... need stint-aware in/
-    # out/stop-lap classification via MID-lap limiter engagement instead"
-    # -- this function is that classification, now implemented). Checking
-    # the limiter's state at the lap's own END catches this directly.
-    #
-    # Falls back to the existing positional-only result when the channel
-    # is absent/unusable (both _limiter_active_at calls return None) --
-    # every lap's is_outlap/is_inlap stays exactly what it already was.
+    # Limiter on at lap start -> outlap, at lap end -> inlap. Only adds
+    # flags, never clears the positional ones.
+    # Catches pit boxes before start/finish, where the limiter is still on
+    # after the lap counter ticks (v3 lap 5,
+    # diagnostics/inspect_v3_pit_limiter_lap_census.py), and inlaps with no
+    # trailing fragment. No channel -> positional result unchanged.
     limiter_ch = channels.get("ecu_B_speedlimit_en")
     for lap in laps:
         if _limiter_active_at(limiter_ch, lap["start_time"]):
@@ -344,20 +263,10 @@ def _classify_out_in_laps_by_limiter(laps, channels):
 
 
 def _attach_precise_lap_time(laps, channels, config):
-    # lap_time (computed) is bounded by the lap_number channel's own
-    # sample interval (0.2 s on Dubai) -- boundaries land on that grid, so
-    # two genuinely different lap durations can quantise to the identical
-    # float and only "tie-break" by list order. The file's own lap_time
-    # channel is logged independently, at its own (finer) sample interval,
-    # and carries the logger's real sub-tenth timing. We take its max
-    # value inside the lap's window (same pattern _verify_laps already
-    # uses) as lap_time_precise, gated against the computed duration so a
-    # boundary that doesn't correspond to this channel's own lap concept
-    # (the outlap -- channel hasn't started counting; the merged inlap --
-    # channel reflects the pre-merge, un-merged lap) falls back to
-    # computed rather than silently substituting an unrelated number. Max
-    # possible undercount from this method is bounded by one lap_time
-    # channel sample interval, which is well inside the gate.
+    # Computed lap_time is quantised to lap_number's 0.2 s grid -> ties.
+    # lap_time channel has the logger's finer timing: take its max in the
+    # lap window, but only if within max_delta of the computed value
+    # (outlap / merged inlap don't match the channel's own lap).
     max_delta = config.get("lap_splitting", {}).get("lap_time_precise_max_delta_s", 1.0)
     lt_ch = channels.get("lap_time")
     for lap in laps:
@@ -423,25 +332,9 @@ def _split_laps(channels, config=None):
     lap_time_min_s = ls.get("lap_time_min_s", 10)
     valid_lap_max_ratio = ls.get("valid_lap_max_ratio", 1.10)
 
-    # Bug fix (2026-09-02, v3 pit-exit-fragment investigation): this
-    # candidate list used to check ONLY lap_time_min_s, not the same
-    # outlap/inlap/warnings conditions is_valid_for_analysis checks below
-    # -- so a corrupted fragment lap (e.g. a pit-exit crossing of start/
-    # finish that _verify_laps already flagged via a lap_time-channel
-    # disagreement) could still win min() as "fastest" purely for being
-    # short. Every genuine lap then reads as "too far above fastest_time"
-    # by valid_lap_max_ratio and is excluded from is_valid_for_analysis --
-    # on a session where this fires, ZERO laps analyse, corner detection
-    # returns nothing, and downstream indexing into an assumed-nonempty
-    # per-lap/per-corner array crashes. Candidacy for "fastest" must use
-    # the SAME reliability bar the resulting flag does (minus the
-    # self-referential ratio-vs-fastest_time check, which cannot apply
-    # until fastest_time is known) -- _verify_laps has already run and
-    # populated warnings by this point, so this list is never lying stale.
-    # Provably no behaviour change on Dubai: its outlap/warned laps were
-    # never the shortest-duration lap there, so excluding them from
-    # candidacy cannot change which lap already won min() -- confirmed via
-    # the golden pipeline test, not just argued (see thesis_notes.md).
+    # Fastest-lap candidates need the same bar as is_valid_for_analysis --
+    # a short corrupt fragment winning min() would push every real lap
+    # past valid_lap_max_ratio -> zero laps analysed.
     valid = [lap for lap in laps
              if _effective_lap_time(lap) > lap_time_min_s
              and not lap["is_outlap"]
@@ -478,7 +371,7 @@ def _verify_laps(laps, channels, config=None):
         end_t = lap["end_time"]
         duration = lap["lap_time"]
 
-        # Check 1 -- file's own lap_time channel agrees with our computed duration
+        # lap_time channel vs computed duration
         if file_lap_time and file_lap_time["quality"] not in ("missing", "failed"):
             t = file_lap_time["time"]
             d = file_lap_time["data"]
@@ -491,7 +384,7 @@ def _verify_laps(laps, channels, config=None):
                         f"computed duration ({duration:.1f}s)"
                     )
 
-        # Check 2 -- lap_distance should ramp up within the lap (skip outlap)
+        # lap_distance must actually ramp up (outlap skipped)
         if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
             t = lap_distance["time"]
             d = lap_distance["data"]

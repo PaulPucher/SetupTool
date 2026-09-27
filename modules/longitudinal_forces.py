@@ -1,11 +1,5 @@
-# Longitudinal axle forces and per-axle slip ratio for SetupTool.
-# Pure Python/numpy. No Qt imports.
-# Units: SI throughout (m, s, N, kg), except kappa (dimensionless fraction).
-#
-# PLAN.md STEP 3 (LS_ratio), Phase 1. Inputs for modules/longitudinal_
-# stiffness.py's Module-4b-equivalent estimator, mirroring the chair's
-# own two-stage construction: axle Fx first (this module), then the
-# windowed dFx/dkappa regression (modules/longitudinal_stiffness.py).
+# Axle Fx and per-axle slip ratio kappa -- inputs to longitudinal_stiffness.
+# SI units, kappa dimensionless.
 
 import numpy as np
 
@@ -26,13 +20,8 @@ def _interp_channel(channels, ch_name, t_ref):
 
 
 def _normalize_wheel_speed_to_kmh(data, unit_raw):
-    """abs_speed_* varies by export -- GT3_PRC_MLA-v3.txt logs kph
-    already, Sample_Dubai.txt logs mph (both confirmed directly against
-    their own raw files, Fz-integration Phase 5, 2026-09-03) -- the same
-    per-file-unit hazard as lap_distance's ft/m fix and log_susp_travel's
-    mm/m fix, same remedy: check the file's own claimed unit, never
-    assume. log_speed_* (this module's own primary wheel-speed source)
-    is always km/h, so this normalises the FALLBACK source to match it.
+    """abs_speed_* unit differs per export (v3: kph, Dubai: mph) -- trust the
+    file's unit_raw. Brings the fallback source to log_speed_*'s km/h.
     """
     if unit_raw in ("kph", "km/h"):
         return data
@@ -46,35 +35,14 @@ def _normalize_wheel_speed_to_kmh(data, unit_raw):
 
 def _rolling_plausibility_mask(corner_kmh, mate_kmh, ecu_kmh, moving_mask, window_samples,
                                 std_min_kmh, ratio_max_deviation):
-    """Fz-integration Phase 5: per-window (non-overlapping, same discrete-
-    window convention as modules.wheel_loads._channel_is_dead's whole-
-    session std guard, generalised here to a window so a TRANSIENT fault
-    is caught without demoting the channel for the whole session).
+    """Per-window validity of one wheel speed (non-overlapping windows, so a
+    transient fault doesn't kill the whole session). Moving samples only.
 
-    Two conditions, NOT symmetric between corner/mate:
-    (1) STUCK -- this corner's own speed shows near-zero variance while
-        the car is moving (evaluated on moving samples only, so genuine
-        standstill is never mistaken for a stuck sensor). Single-channel,
-        no ambiguity -- flags this corner directly.
-    (2) MATE DISAGREEMENT -- mean ratio to the axle-mate deviates from 1.0
-        beyond ratio_max_deviation (dropout/spike). Real per-corner
-        cornering speed differential (outer wheel travels a longer arc)
-        is a genuine, expected effect, not a fault -- ratio_max_deviation
-        is gap-selected to sit above that population and below the fault
-        population (config's own derived_from comment). A DISAGREEING
-        PAIR DOES NOT MEAN BOTH ARE WRONG -- found empirically (Fz-
-        integration Phase 5, thesis_notes.md): a first version of this
-        check flagged v3's own healthy log_speed_rl almost as often as
-        its genuinely faulty mate log_speed_rr, purely because a mate-
-        only ratio check cannot tell which side of a disagreement is at
-        fault. ecu_speed (ax le-independent, not affected by either
-        wheel's own fault) is the tie-breaker: only the corner whose OWN
-        mean deviation from ecu_speed exceeds its mate's is flagged.
-        (Not used as a primary check on its own -- real slip/braking
-        events are LEGITIMATE large deviations from ecu_speed, the same
-        reason modules.longitudinal_stiffness's kerb guard never
-        excludes on kappa magnitude alone; ecu_speed here only breaks a
-        tie the mate-disagreement check already raised.)
+    (1) stuck: std < std_min_kmh -> flag this corner.
+    (2) mate disagreement: mean |ratio to axle mate - 1| > ratio_max_deviation.
+        A disagreeing pair isn't two bad sensors -- ecu_speed decides which
+        side is off. ecu_speed is only a tie-breaker, never a check on its
+        own: real slip deviates from it legitimately.
     """
     n = len(corner_kmh)
     valid = np.ones(n, dtype=bool)
@@ -102,22 +70,15 @@ def _rolling_plausibility_mask(corner_kmh, mate_kmh, ecu_kmh, moving_mask, windo
             dev_mate = np.abs(np.where(w_ecu != 0, w_mate / w_ecu, np.nan) - 1.0)
         m_corner = np.nanmean(dev_corner) if np.isfinite(dev_corner).any() else np.nan
         m_mate = np.nanmean(dev_mate) if np.isfinite(dev_mate).any() else np.nan
-        # Flag this corner if it is the worse-attributed side, OR if
-        # attribution itself is impossible (ecu_speed unusable this
-        # window) -- conservative default when the tie-breaker has no
-        # evidence to offer, same "never silently trust" posture as the
-        # rest of this guard.
+        # worse side, or ecu_speed unusable here -> flag (conservative)
         if not (np.isfinite(m_corner) and np.isfinite(m_mate)) or m_corner >= m_mate:
             valid[start:end][w_moving] = False
     return valid
 
 
 def _guarded_wheel_speed_kmh(channels, corner, t_ref, moving_mask, sample_rate_hz, params):
-    """Fz-integration Phase 5: guarded log_speed_{corner} -- invalid
-    windows (see _rolling_plausibility_mask) are replaced by the
-    corresponding abs_speed_{corner} channel (unit-normalised), where
-    available; NaN where no fallback exists. Returns (kmh array or None
-    if log_speed_{corner} itself is unavailable, source array of str).
+    """log_speed_{corner} with invalid windows replaced by abs_speed_{corner},
+    NaN if no fallback. Returns (kmh or None, per-sample source label).
     """
     wg = params["wheel_speed_guard"]
     mate = CORNER_AXLE_MATE[corner]
@@ -129,11 +90,7 @@ def _guarded_wheel_speed_kmh(channels, corner, t_ref, moving_mask, sample_rate_h
 
     n = len(t_ref)
     if mate_kmh is None or ecu_kmh is None:
-        # No mate to ratio-check against, or no ecu_speed to attribute a
-        # disagreement with -- log_speed_{corner} is used as-is (the
-        # stuck check alone, without a mate, would be too weak/one-sided
-        # a guard to act on; same "cannot attribute, do not guess" stance
-        # as the mate-disagreement branch above).
+        # no mate or no ecu_speed -> can't attribute, use as-is
         return corner_kmh, np.full(n, "log_speed", dtype=object)
 
     window_samples = max(1, round(wg["window_s"] * sample_rate_hz))
@@ -155,27 +112,11 @@ def _guarded_wheel_speed_kmh(channels, corner, t_ref, moving_mask, sample_rate_h
 
 
 def estimate_longitudinal_forces(state, channels, params):
-    """Compute axle longitudinal force Fx_f/Fx_r -- fallback tier only (no direct
-    per-wheel or per-axle Fx channel exists in the Cosworth log).
-
-    Method anchor recorded in thesis_notes.md, "Citation cross-
-    reference, modules/longitudinal_forces.py" entry. Same construction
-    as the chair performance_analysis tooling's own
-    calculate_longitudinal_axle_forces() third fallback tier
-    (docs/literature/longitudinal_stiffness_estimator.py, internal) --
-    adopted as-is, no deviation: fx_total = m*ax + drag + rolling
-    recovers the tyre-contact-patch force from the measured net
-    acceleration by adding back the resistive forces the tyres had to
-    overcome. Braking split by measured front/rear brake pressure
-    (log_pbrake_f/log_pbrake_r, both whitelisted); driving force
-    assigned entirely to the rear axle (rear-wheel-drive GT3R, same
-    drive_front_fraction=0.0 the chair's own fallback tier hardcodes).
-
-    ax_mps2 sign convention (state["ax_mps2"], stability_analysis.py
-    prepare_vehicle_state): negative under braking -- confirmed against
-    this session's own data in the WP5b(b) Fz sign-convention check
-    (thesis_notes.md), reused here rather than re-verified, since it is
-    the same channel/convention.
+    """Axle Fx_f/Fx_r. No Fx channel in the log -> fallback tier only.
+    fx_total = m*ax + drag + rolling (Rajamani ch. 2); chair performance_analysis
+    tooling (internal), fallback tier, as-is.
+    Braking split by log_pbrake_f/r; drive all rear (RWD).
+    ax < 0 under braking.
     """
     ls = params["longitudinal_stiffness"]
     vp = params["vehicle"]
@@ -207,7 +148,7 @@ def estimate_longitudinal_forces(state, channels, params):
 
     fx_brake_N = np.minimum(fx_total_N, 0.0)
     fx_drive_N = np.maximum(fx_total_N, 0.0)
-    drive_front_fraction = 0.0  # rear-wheel-drive GT3R, chair-identical fallback assumption
+    drive_front_fraction = 0.0  # RWD
 
     fx_f_N = fx_brake_N * brake_front_fraction + fx_drive_N * drive_front_fraction
     fx_r_N = fx_brake_N * (1.0 - brake_front_fraction) + fx_drive_N * (1.0 - drive_front_fraction)
@@ -223,37 +164,15 @@ def estimate_longitudinal_forces(state, channels, params):
 
 
 def estimate_slip_ratio(state, channels, params):
-    """Compute per-axle kinematic slip ratio kappa = (v_axle_corrected - v_ref) /
-    v_ref, v_ref = ecu_speed. Tier B (signal/data engineering -- standard
-    slip-ratio construction, method anchor recorded in thesis_notes.md,
-    "Citation cross-reference, modules/longitudinal_forces.py" entry;
-    no per-corner kinematic correction, a wheel-speed-vs-vehicle-speed
-    proxy). Reproduces diagnostics/inspect_combined_slip_premise.py's
-    formula exactly (same v_ref, same rear rolling-radius correction) so
-    this module's output is externally checkable against that entry's
-    already-recorded percentile figures (thesis_notes.md).
+    """Per-axle slip ratio kappa = (v_axle - v_ref) / v_ref, v_ref = ecu_speed
+    (Rajamani ch. 2.2). Axle-level proxy, no per-corner kinematics.
+    Same formula as diagnostics/inspect_combined_slip_premise.py.
 
-    log_speed_fl/fr/rl/rr are the WP-S1-designated wheel-speed family
-    (byte-identical to ecu_speed_wheels_*), whitelisted by this phase.
-    Rear axle speed is divided by (1 + rear_rolling_radius_offset) --
-    WP-S1's measured, throttle-independent +1.41% rolling-radius
-    difference, not a slip artifact (thesis_notes.md "Wheel-speed source
-    characterization (WP-S1)"). Front axle is left uncorrected: its own
-    off-braking offset is ~0%, and its braking-specific deviation IS the
-    front-slip-under-braking signal this ratio exists to measure.
-
-    Fz-integration Phase 5 (2026-09-03): each corner's own log_speed_*
-    passes through _guarded_wheel_speed_kmh first (per-window stuck/
-    implausible-ratio-to-mate guard, config wheel_speed_guard.*, falling
-    back to abs_speed_* where the guard trips and that channel exists --
-    real bug motivating this, GT3_PRC_MLA-v3.txt's own log_speed_rr:
-    diagnostics/inspect_v3_wheel_speed_census.py, thesis_notes.md "Fz-
-    integration Phase 5..."). Axle speed is the mean of the two GUARDED
-    corner speeds, not the two raw ones -- kappa_f/kappa_r therefore
-    already reflect the guarded/fallback channel with no separate wiring
-    needed at either of this function's own two consumers (this module's
-    slip ratio and modules.longitudinal_stiffness's kerb-adjacent
-    plausibility guard, which reads kappa_r/kappa_f from here).
+    Rear divided by (1 + rear_rolling_radius_offset) -- measured +1.41%
+    rolling-radius difference, not slip. Front uncorrected: ~0% offset off
+    the brakes; the braking deviation is the signal.
+    Axle speed = mean of the two guarded corner speeds (_guarded_wheel_speed_kmh;
+    trigger case: v3 log_speed_rr, diagnostics/inspect_v3_wheel_speed_census.py).
     """
     ls = params["longitudinal_stiffness"]
     t_ref = state["time"]
@@ -276,14 +195,8 @@ def estimate_slip_ratio(state, channels, params):
     v_front_kmh = axle_speed_kmh(("fl", "fr"))
     v_rear_kmh = axle_speed_kmh(("rl", "rr"))
 
-    # v_ecu_kmh sits at/near zero for every stationary (pit/grid) sample --
-    # dividing there gives +/-inf, not NaN, which poisons Phase 2's
-    # Butterworth filtfilt across the WHOLE array (a linear filter, unlike
-    # pandas .interpolate(), does not stop at a single bad sample). Floored
-    # at the same min_speed_mps gate Phase 2's estimator applies anyway
-    # (longitudinal_stiffness.min_speed_mps), so kappa is NaN, never inf,
-    # below it -- physically correct too: slip ratio is undefined at zero
-    # reference speed.
+    # below min_speed -> NaN, not inf: inf would spread through the whole
+    # filtfilt output. kappa undefined at v_ref = 0 anyway.
     v_floor_kmh = ls["min_speed_mps"] * 3.6
     speed_ok = v_ecu_kmh >= v_floor_kmh
 
@@ -300,5 +213,5 @@ def estimate_slip_ratio(state, channels, params):
         "kappa_f": kappa_f if kappa_f is not None else np.full(n, np.nan),
         "kappa_r": kappa_r if kappa_r is not None else np.full(n, np.nan),
         "source_available": v_front_kmh is not None and v_rear_kmh is not None,
-        "wheel_speed_source": wheel_speed_source,  # {"fl": array[str], ...} -- see _guarded_wheel_speed_kmh
+        "wheel_speed_source": wheel_speed_source,  # {"fl": array[str], ...}
     }

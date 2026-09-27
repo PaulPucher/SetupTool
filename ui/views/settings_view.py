@@ -1,11 +1,7 @@
-# Settings page (PLAN.md Tier C UI work package "PART B").
-# Three sections against config/parameters.json (vehicle constants +
-# analysis tunables + classification thresholds), config/channels.json
-# (speed-class thresholds), and config/recommendations.json (consistency
-# gate / change budget / driver-level weight table). No business logic
-# beyond reading/writing these JSON files and clearing the two lru_cache
-# loaders that read them -- classification/analysis logic itself lives
-# entirely in modules/.
+# Settings page: vehicle constants, analysis tunables and thresholds
+# (parameters.json), speed-class thresholds (channels.json), rule-engine
+# settings (recommendations.json), cost weights (decision_frame.json).
+# Only reads/writes the JSON and clears the loader caches.
 
 import json
 import re
@@ -24,13 +20,8 @@ CHANNELS_PATH = "config/channels.json"
 RECOMMENDATIONS_PATH = "config/recommendations.json"
 DECISION_FRAME_PATH = "config/decision_frame.json"
 
-# --- Section 1: vehicle physics constants (config/parameters.json) --------
-# Scope is exactly the field list approved for PART B: mass, cog_height,
-# tracks, wheelbase, Iz, aero block, steering constant. corner_weights and
-# cog_to_front/rear_axle_m are deliberately NOT here -- both have their own
-# per-session Level-2 dynamic resolution (modules/accuracy_resolution.py),
-# so editing their Level-1 config default from a generic settings window
-# would sit awkwardly next to that mechanism; out of scope for this pass.
+# Section 1: vehicle constants. corner_weights and cog_to_*_axle_m left
+# out -- they have per-session resolution (accuracy_resolution).
 SECTION1_FIELDS = [
     {"path": ("vehicle", "mass_kg"), "label": "Mass", "unit": "kg",
      "decimals": 1, "min": 500.0, "max": 2000.0,
@@ -77,11 +68,8 @@ SECTION1_FIELDS = [
      "short_note": "Aero centre-of-pressure offset from CoG. Estimate."},
 ]
 
-# --- Section 2: analysis tunables, three target files ----------------------
-# corner_detection tunables (channels.json) deliberately excluded -- those
-# feed corner DETECTION/realization, a materially riskier class of change
-# than tuning an already-detected corner's analysis, per the PART B
-# proposal's own call-out.
+# Section 2: analysis tunables. Corner-detection tunables left out --
+# riskier than tuning analysis of an already-detected corner.
 SECTION2_PARAMS_FIELDS = [
     {"path": ("stability_estimation", "moving_speed_min_mps"), "label": "Moving speed min", "unit": "m/s",
      "decimals": 2, "min": 0.0, "max": 20.0},
@@ -118,17 +106,9 @@ SECTION2_RECS_FLOAT_FIELDS = [
 ]
 DRIVER_WEIGHT_LEVELS = [str(i) for i in range(1, 11)]
 
-# --- Section 4: decision-frame cost-function weights (config/decision_
-# frame.json) -- DECISION LAYER SPEC C2 (2026-09-22). Uses the WORKING
-# JSON-file read-modify-write pattern this file already established for
-# sections 1/2 (batched, on "Save" click) -- NOT outing_form.py's own
-# accuracy_cap_combo pattern, which has no persistence at all (verified
-# by reading it directly: no write path exists anywhere for that
-# control). Weights affect ranking only -- never verdicts/evidence/
-# candidate generation (modules/decision_frame.py generate_candidates
-# never reads cost_function at all; only score() does), confirmed by a
-# dedicated test (tests/test_decision_frame.py test_weight_change_
-# reranks_only_verdict_and_evidence_byte_identical).
+# Section 4: decision-frame cost weights, saved with the others. Ranking
+# only -- generate_candidates never reads cost_function, only score() does
+# (tested).
 SECTION4_FIELDS = [
     {"path": ("cost_function", "severity"), "label": "Severity weight", "unit": "",
      "decimals": 2, "min": 0.0, "max": 10.0,
@@ -165,7 +145,7 @@ SECTION4_FIELDS = [
 ]
 
 
-# --- Section 3: classification thresholds (read-only) ----------------------
+# Section 3: classification thresholds, read-only
 SECTION3_FIELDS = [
     ("STRONG_CSF", "Strong front CS threshold"),
     ("STRONG_CSR", "Strong rear CS threshold"),
@@ -200,12 +180,8 @@ _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 def _short_derived_from(text):
-    # Fix turn: Section 3's derived_from strings are full re-derivation
-    # audit trails (every re-confirmation date and its reasoning) -- useful
-    # on hover, not as a wall of text under every threshold. The visible
-    # line keeps only the most recent date mentioned (these strings are
-    # append-only per CLAUDE.md's thesis_notes convention, so the last date
-    # is the last time this value was checked against fresh data).
+    # derived_from strings are full audit trails -> tooltip; visible line
+    # keeps only the latest date (strings are append-only)
     dates = _DATE_RE.findall(text or "")
     if dates:
         return f"Derived from data, last confirmed {max(dates)} - read-only."
@@ -295,13 +271,8 @@ class SettingsView(QWidget):
 
     def _field_row(self, spec, widget, note_text=None, short_note=None, accuracy_text=None,
                    accuracy_tooltip=None):
-        # Fix turn (UI text humanization): the full audit-trail note_text
-        # (config-side provenance, e.g. car_data source, correction history)
-        # moves to a tooltip -- hover to read it, it's still there for the
-        # record. The visible label is short_note, one plain sentence: what
-        # the value is, its unit, and "estimate - replace with team figure"
-        # where it's a placeholder. Neither note_text nor short_note is
-        # written back on Save -- only the numeric leaves are ever edited.
+        # full note_text in the tooltip, short_note visible (what, unit, "estimate
+        # - replace with team figure"). Neither is written back on Save.
         row = QWidget()
         row_layout = QVBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -345,11 +316,7 @@ class SettingsView(QWidget):
         return row
 
     def _build_section1(self, params):
-        # note_text/accuracy_text are baked into the row once, from the
-        # file content at construction time -- this tool never edits note/
-        # derived_from strings or the accuracy_levels registry itself, only
-        # numeric values, so these labels never need to change afterwards
-        # (including across a Save, which only rewrites the numeric leaves).
+        # labels built once from file content -- Save only rewrites numeric leaves
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -365,16 +332,7 @@ class SettingsView(QWidget):
             self.section1_widgets[spec["path"]] = widget
 
             note_text = _get_path(params, spec["note_path"]) if spec["note_path"] else None
-            # Cleanup pass, Phase 2: the visible accuracy tag is JUST the
-            # compact "L1"/"L2"/... prefix now -- entry['source']/
-            # 'capped_by' used to be appended verbatim and could run to a
-            # full sentence with a file path and deviation-taxonomy wording
-            # (e.g. steering_ratio's own accuracy_levels entry names
-            # modules/accuracy_resolution.py and "chair-comparison
-            # deviation" inline). That detail still exists -- it moves to
-            # a tooltip on the same convention note_text/short_note
-            # already use, not lost, just not part of the always-visible
-            # row.
+            # visible tag just "L1"/"L2"/...; source / capped_by go to the tooltip
             accuracy_text = None
             accuracy_tooltip = None
             if spec["accuracy_key"]:
@@ -527,10 +485,7 @@ class SettingsView(QWidget):
         return container
 
     def _build_section4(self, decision_frame):
-        # DECISION LAYER SPEC C2 (2026-09-22). note_text/short_note baked
-        # in once from the file content at construction time, same
-        # convention as _build_section1 -- this tool never edits
-        # derived_from strings, only the numeric leaves.
+        # notes baked in once, as in _build_section1; only numbers are edited
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -559,9 +514,7 @@ class SettingsView(QWidget):
         return container
 
     def _load_from_disk(self):
-        # Always a fresh file read, never through the lru_cache'd loaders --
-        # this view must reflect the true on-disk content regardless of
-        # whatever an already-running analysis has cached in memory.
+        # fresh file read, not the cached loaders -- show what's on disk
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
@@ -644,11 +597,7 @@ class SettingsView(QWidget):
             widget = self.section4_widgets[spec["path"]]
             _set_path(decision_frame, spec["path"], widget.value())
 
-        # newline="" disables Python's universal-newline translation on
-        # write -- without it, text-mode "w" on Windows turns every "\n"
-        # json.dump emits into "\r\n", rewriting every line's ending even
-        # though no value changed (these files are LF on disk, found via
-        # a raw byte-diff during PART B verification).
+        # newline="" -- text mode on Windows would turn every LF into CRLF
         with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
             json.dump(params, f, indent=2)
             f.write("\n")
@@ -665,18 +614,10 @@ class SettingsView(QWidget):
         from modules.stability_analysis import load_parameters, load_car_data
         load_parameters.cache_clear()
         load_car_data.cache_clear()
-        # load_decision_frame_config() (modules/decision_frame.py) is NOT
-        # lru_cache-wrapped -- it re-reads the file on every call (verified
-        # directly), so there is no cache to clear for the write above;
-        # the next "Generate" click in the decision-frame panel already
-        # sees the new weights with no extra invalidation step needed.
+        # load_decision_frame_config isn't cached -> nothing to clear
 
-        # Redundant safety net (the structural fix is resolved_vehicle_
-        # snapshot now carrying these constants, modules/accuracy_
-        # resolution.py -- this catches the one path that isn't covered by
-        # a snapshot COMPARISON: a still-open OutingForm whose in-memory
-        # _pipeline_cache was built before this save and hasn't triggered
-        # a fresh Analyse/reopen since).
+        # safety net for an open OutingForm whose in-memory pipeline cache predates
+        # this save (the snapshot comparison covers everything else)
         from ui.views.outing_form import invalidate_all_pipeline_caches
         invalidate_all_pipeline_caches()
 

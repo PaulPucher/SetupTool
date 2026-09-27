@@ -1,63 +1,21 @@
-# PRODUCTION DEPENDENCY -- imported at runtime by modules/tyre_fit_auto.py
-# (estimate_sideslip_ekf_dugoff), also by tests/test_pure_functions.py and
-# tests/test_nis_gate.py. Moved from diagnostics/ 2026-09-24 (WP-CLEAN
-# relocation mini-package); production dependency of tyre_fit_auto (EKF
-# sideslip sources), not diagnostics-only as this file's own header used
-# to claim.
+# Single-track EKF sideslip observer, Dugoff tyres. Used by tyre_fit_auto.
+# Model: Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3.
+# EKF: Rajamani ch. 14.
 #
-# Nonlinear single-track EKF sideslip observer, Dugoff tyre model,
-# pass 0. No ui/ consumer (still no PyQt6 import, verified at relocation).
+# x = [beta, yaw_rate], u = delta_f, z = [yaw_rate, ay]. Vx scheduled per
+# sample (floored at moving_speed_min_mps), not a state.
+# Tyre params and Q/R/P0 all from config (tyre_model_ekf.<pass>) -- a pass
+# is reproducible from config alone.
 #
-# Method anchors recorded in thesis_notes.md, "WP-N2: nonlinear Dugoff
-# EKF proposal" entry (model equations: Rajamani sec. 2.3/2.6 + Ulsoy,
-# Peng, Cakmakci sec. 14.1/14.3; EKF/Kalman treatment: Rajamani Ch. 14).
+# Explicit Euler. State propagated through the nonlinear f(x,u); Jacobian F
+# only for P. F at x_k|k, H at x_k+1|k. Tyre slopes from the analytic
+# dugoff_lateral_stiffness.
 #
-# States x = [beta, yaw_rate]. Input u = delta_f (front steering angle).
-# Vx is a per-sample scheduled parameter (production ecu_speed, floored
-# at moving_speed_min_mps), not a state -- same convention as the
-# rejected linear observer. Measurements z = [yaw_rate, ay]: IDENTICAL
-# sensor set to the rejected filter (sclu_yaw_rate, log_acc_y); only h()
-# is now nonlinear instead of a fixed C matrix.
-#
-# c_alpha_f/r, mu_fz_f/r are FROZEN pass-0 parameters (config/
-# parameters.json tyre_model_ekf.pass_0, sourced from WP-N1b's Module-4b-
-# seeded Dugoff fit) -- this file never refits them. Q/R/P0 are also read
-# from that same config block (seeded from the tuned linear observer,
-# QR_RATIO=0.3162, see the block's own seeded_from note) -- unlike the
-# rejected filter, nothing here is a hardcoded module-level constant: a
-# numbered pass must be fully reproducible from recorded parameters
-# alone.
-#
-# Discretization: explicit Euler, matching the rejected filter's own
-# documented choice, for direct comparability. IMPORTANT mechanical
-# difference from that filter (which was fully linear, so Ad@x and F@x
-# were the same operation): the STATE is propagated by integrating the
-# true nonlinear f(x,u) directly (x_pred = x + dt*f(x,u)), never by
-# F@x -- the Jacobian F is used ONLY to propagate the covariance P. F is
-# evaluated at the prior state estimate x_k|k; the measurement Jacobian H
-# is evaluated at the predicted state x_k+1|k -- both standard EKF
-# convention. Tyre slope terms (Cf_eff, Cr_eff) come exclusively from
-# modules/tyre_model.py's analytic dugoff_lateral_stiffness -- no
-# numerical differencing, no re-derivation.
-#
-# Divergence monitoring: a windowed Normalized Innovation Squared (NIS)
-# check against a chi-square bound, plus a hard physical ceiling on
-# |beta|. The ceiling (config: beta_hard_bound_deg) is deliberately NOT
-# derived from the kinematic estimate's own observed range -- that
-# estimate is documented elsewhere (thesis_notes.md, "Linear observer"
-# entries) to under-read mid-corner, so its range would clip exactly the
-# signal this filter exists to recover. 15 deg is a physically anchored
-# ceiling instead: controlled racing sideslip on this class of car stays
-# well below it, while a genuinely diverged filter exceeds it by orders
-# of magnitude. On either trigger the sample's state resets: beta -> the
-# kinematic estimate at that instant, yaw_rate state -> the measured yaw
-# rate at that instant, P -> P0. The raw (pre-fallback) EKF output is
-# still returned alongside the fallback-corrected series and the
-# diverged_mask flag -- never a silent substitution. Per-channel
-# innovation and predicted-variance diagonal (S_diag) are also returned,
-# additive-only -- not used by the divergence monitor itself (which acts
-# on the combined 2-DOF nis_out), exposed so a caller can compute
-# per-channel NIS without duplicating the measurement-update math.
+# Divergence: windowed NIS vs chi^2 bound, or |beta| > beta_hard_bound_deg.
+# Bound is physical (15 deg), not from the kinematic beta range -- that
+# under-reads mid-corner and would clip the real signal.
+# On divergence: beta -> kinematic, yaw state -> measured, P -> P0.
+# Raw EKF beta returned alongside, plus diverged_mask.
 
 import numpy as np
 
@@ -66,18 +24,15 @@ from modules.tyre_model import dugoff_lateral_force, dugoff_lateral_stiffness
 
 
 def slip_angles(beta, r, u, Vx, a, b):
-    # Small-angle form, same definitions/sign convention as modules/
-    # stability_analysis.py estimate_slip_angles.
+    # small-angle, same convention as estimate_slip_angles
     alpha_f = u - beta - a * r / Vx
     alpha_r = -beta + b * r / Vx
     return alpha_f, alpha_r
 
 
 def process_jacobian(Cf_eff, Cr_eff, Vx, m, a, b, Iz):
-    # F = df/dx at the state the slip angles (hence Cf_eff/Cr_eff) were
-    # evaluated at. Exposed as its own function so the unit-level sanity
-    # check (diagnostics/inspect_ekf_dugoff_sanity_checks.py) can call the
-    # exact same formula the filter loop uses, not a duplicate copy.
+    # F = df/dx. Separate function so diagnostics/inspect_ekf_dugoff_sanity_checks.py
+    # tests the same formula.
     return np.array([
         [-(Cf_eff + Cr_eff) / (m * Vx), (-a * Cf_eff + b * Cr_eff) / (m * Vx ** 2) - 1.0],
         [(-a * Cf_eff + b * Cr_eff) / Iz, -(a ** 2 * Cf_eff + b ** 2 * Cr_eff) / (Iz * Vx)],
@@ -85,7 +40,7 @@ def process_jacobian(Cf_eff, Cr_eff, Vx, m, a, b, Iz):
 
 
 def measurement_jacobian(Cf_eff, Cr_eff, Vx, m, a, b):
-    # H = dh/dx, same exposure rationale as process_jacobian above.
+    # H = dh/dx
     return np.array([
         [0.0, 1.0],
         [-(Cf_eff + Cr_eff) / m, (-a * Cf_eff + b * Cr_eff) / (m * Vx)],
@@ -93,10 +48,7 @@ def measurement_jacobian(Cf_eff, Cr_eff, Vx, m, a, b):
 
 
 def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
-    # pass_id selects which config/parameters.json tyre_model_ekf.pass_N
-    # block to run with -- defaults to pass_0 so existing call sites are
-    # unaffected. Each block's own changed_from_previous field records
-    # what differs from the prior pass (tyre curve, noise model, or both).
+    # pass_id -> tyre_model_ekf.<pass_id> config block
     vp = params["vehicle"]
     se = params["stability_estimation"]
     cfg = params["tyre_model_ekf"][pass_id]
@@ -104,11 +56,7 @@ def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
     m = vp["mass_kg"]
     a = vp["cog_to_front_axle_m"]
     b = vp["cog_to_rear_axle_m"]
-    # AMENDMENT (this WP): production Iz, not yaw_inertia_kalman_kgm2 --
-    # estimate_lateral_forces built the Fy_f/Fy_r that WP-N1b's frozen
-    # c_alpha/mu_fz were fit against using this same Iz. Using the
-    # Kalman-candidate Iz (1800.0) instead would make this filter's own
-    # moment balance inconsistent with its training data's Iz by ~14%.
+    # production Iz -- the tyre params were fitted on Fy built with it
     Iz = vp["yaw_inertia_kgm2"]
 
     c_alpha_f = cfg["c_alpha_front_n_per_rad"]
@@ -139,19 +87,15 @@ def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
     dt = 1.0 / sr
     eye2 = np.eye(2)
 
-    beta_out = np.zeros(n)          # raw EKF beta, pre-fallback -- kept for transparency
+    beta_out = np.zeros(n)          # raw, pre-fallback
     yaw_rate_state_out = np.zeros(n)
     nis_out = np.full(n, np.nan)
     diverged_mask = np.zeros(n, dtype=bool)
     beta_with_fallback = np.zeros(n)
-    # Per-channel innovation/predicted-variance, additive-only outputs --
-    # not consumed by the divergence monitor itself (which uses the
-    # combined 2-DOF nis_out above), exposed so per-channel NIS
-    # (innovation^2 / S_diag) can be computed downstream without
-    # duplicating the measurement-update math elsewhere.
+    # per-channel outputs for downstream NIS = nu^2 / S_diag; monitor uses combined nis
     innovation_out = np.full((n, 2), np.nan)   # columns: yaw_rate, ay
     S_diag_out = np.full((n, 2), np.nan)       # columns: yaw_rate, ay
-    K_ay_out = np.full((n, 2), np.nan)         # Kalman gain's ay column: [K_beta_ay, K_r_ay]
+    K_ay_out = np.full((n, 2), np.nan)         # [K_beta_ay, K_r_ay]
 
     x = np.zeros(2)
     P = P0.copy()
@@ -170,7 +114,7 @@ def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
         Vx = max(float(v[i]), v_min)
         u = float(delta_f[i])
 
-        # --- predict: nonlinear state propagation, Jacobian at prior x ---
+        # predict
         beta_x, r_x = x[0], x[1]
         alpha_f, alpha_r = slip_angles(beta_x, r_x, u, Vx, a, b)
 
@@ -187,7 +131,7 @@ def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
         Ad = eye2 + F * dt
         P_pred = Ad @ P @ Ad.T + Q
 
-        # --- update: measurement Jacobian at predicted state ---
+        # update
         beta_p, r_p = x_pred[0], x_pred[1]
         alpha_f_p, alpha_r_p = slip_angles(beta_p, r_p, u, Vx, a, b)
 
@@ -228,8 +172,6 @@ def estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_0"):
         diverged_mask[i] = diverged
 
         if diverged:
-            # Fixed fallback (not optional): beta -> kinematic at this
-            # instant, yaw-rate state -> measured yaw rate, P -> P0.
             beta_with_fallback[i] = beta_kinematic[i]
             x = np.array([beta_kinematic[i], yaw_rate_meas[i]])
             P = P0.copy()

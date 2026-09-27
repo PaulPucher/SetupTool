@@ -39,11 +39,9 @@ class Outing(Base):
     session_type = Column(String(20), nullable=True)
     comments = Column(String(5000), nullable=True)
 
-    # cached analysis (WP5): {csv_path, lap_filter, summaries, generated_at,
-    # schema_version} JSON. No length cap -- summaries for a full lap set can
-    # exceed the other JSON columns' 10000-char sizing. Raw summaries only,
-    # never verdicts -- classification always runs live at render time from
-    # current config thresholds (see ui/views/outing_form.py).
+    # cached analysis JSON {csv_path, lap_filter, summaries, generated_at,
+    # schema_version}; no length cap. Summaries only, never verdicts --
+    # those are classified live from current config.
     analysis_data = Column(String, nullable=True)
     
                           

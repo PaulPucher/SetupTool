@@ -1,25 +1,7 @@
-# PRODUCTION DEPENDENCY -- imported at runtime by modules/tyre_fit_auto.py
-# (estimate_sideslip_ekf_pacejka). Moved from diagnostics/ 2026-09-24
-# (WP-CLEAN relocation mini-package); production dependency of
-# tyre_fit_auto (EKF sideslip sources), not diagnostics-only.
-#
-# Nonlinear single-track EKF sideslip observer, Pacejka (reduced
-# 4-parameter Magic Formula) tyre model -- Phase 3 variant.
-#
-# NEW CODE PATH per PLAN.md's Phase 3 work order ("do not modify the
-# existing Dugoff path"): a structural mirror of modules/
-# sideslip_ekf_dugoff.py with modules/tyre_model_pacejka.py's
-# pacejka_lateral_force/pacejka_lateral_stiffness substituted for
-# Dugoff's dugoff_lateral_force/dugoff_lateral_stiffness in both the
-# state propagation and both Jacobians. Everything else (states,
-# measurements, discretization, divergence monitor, fallback
-# behaviour) is IDENTICAL to the Dugoff filter -- see that file's own
-# header for the full method anchors and design rationale, not
-# repeated here.
-#
-# Per-axle tyre parameters are (B, C, D, E) instead of Dugoff's
-# (c_alpha, mu_fz) -- the pass config dict's keys change shape
-# accordingly (b_front/c_front/d_front/e_front, b_rear/... ).
+# Single-track EKF sideslip observer, Magic Formula tyres. Used by
+# tyre_fit_auto.
+# Mirror of sideslip_ekf_dugoff.py -- only the tyre force/stiffness calls
+# differ; see that file for the method. Per-axle params (B, C, D, E).
 
 import numpy as np
 

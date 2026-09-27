@@ -2,32 +2,25 @@
 
 ### NOW
 
-(0) WP-ELICIT (branch `elicit` off main@647582f, NOT merged, NOT
-    committed -- working tree dirty, awaiting the author's own commit
-    decision): lands the 2026-09-24/25 elicitation interview plus a
-    reviewer HANDOFF package. ALL OF HANDOFF ITEMS 0-7 COMPLETE this
-    session (2026-09-25) -- record check (0), router tie fix removing a
-    real production crash (1), C4 residue config comments (2), C5
-    springs-understeer mirror / C6 TC safety note / C7 EB exclusion
-    rewrite (3), literature read seeding nothing (4), Phase D brake-bias
-    channel identity, not-evaluable (5), elicitation-list bookkeeping
-    (6), Phase E close-out -- census, full suite, this STATUS rewrite,
-    protected-set check (7). Full record: thesis_notes.md's own
-    "WP-ELICIT close-out: consolidated record" entry, which indexes
-    every phase/item's own full record by name -- read that first,
-    before any of the individual phase entries it points to.
-    FULL REPO SUITE (own run, this session, once, not just test_
-    decision_frame.py): 472 passed / 9 skipped / 1 xfailed / 0 failed --
-    reconciles exactly to the pre-branch baseline (436, main@647582f)
-    plus this branch's own 36 new tests, all inside tests/test_
-    decision_frame.py (the only test file this branch touches). No
-    golden failed; goldens UNREGENERATED throughout.
-    CANDIDATE CENSUS (own run): Dubai 6->8, v3 21->25 vs the pre-
-    WP-ELICIT baseline -- both deltas traced entirely to WP-ELICIT Phase
-    C3's kerb_blowoff evidence, zero unexplained residual (thesis_
-    notes.md "WP-ELICIT Phase E close-out (a)").
-    STILL OPEN, carried forward for the next session (not resolved this
-    session, listed here so it does not have to be rediscovered):
+(0) WP-STYLE (branch `style` off main@45850e9, NOT committed -- awaiting
+    the author's commit decision): comment volume reduction across the
+    release file set (64 files; README.md and .gitignore out of scope).
+    Text-only: every .py file AST-identical to HEAD with docstrings
+    stripped, every config JSON value-identical with _comment keys
+    excluded, all ASCII. 45 files, ~2000 insertions / ~6500 deletions
+    (incl. CLAUDE.md, thesis_notes.md, PLAN.md). CLAUDE.md Tier A citation
+    rule amended (short source name in code, no thesis_notes.md pointer)
+    and recorded in thesis_notes.md "WP-STYLE". diagnostics/*.py filename
+    mentions kept (author ruling). FULL SUITE (once, commit boundary):
+    472 passed / 9 skipped / 1 xfailed / 0 failed, identical to the
+    WP-ELICIT baseline; goldens unregenerated; test_stability.py clean.
+    NEXT: follow-up WP for process records inside runtime STRINGS
+    (decision_frame.py source strings, accuracy_resolution "WP-B") --
+    per-string inventory, UI-shown vs payload, provenance kept, internal
+    doc/WP names stripped, own suite + golden check.
+(0b) WP-ELICIT: DONE, committed to main (4e85ff1); data/ directory
+    first-run fix committed on top (45850e9).
+    STILL OPEN from WP-ELICIT (carried forward unchanged):
     - elicitation item 5's TC/EB CHANNEL MAPPING half (the EB-as-lever
       half is resolved; channel identity is untouched).
     - brake_bias channel identity: nothing correlated cleanly on either
@@ -50,8 +43,6 @@
       item 10's own text was not rewritten this session (out of item 6's
       explicitly stated scope) -- a known stale passage, flagged here
       rather than silently left implying the crash still exists.
-    NO COMMIT THIS SESSION -- branch `elicit` stays open, uncommitted;
-    the user runs git.
 (1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
     A-F complete per its own close-out record (thesis_notes.md). No
     longer an open item.

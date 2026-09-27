@@ -1,22 +1,10 @@
-# NIS tyre-mismatch health gate. PROVISIONAL (config/parameters.json
-# nis_gate namespace, every threshold commented as such -- five data
-# points from one session, thesis_notes.md "Phase 4: NIS tyre-mismatch
-# gate -- results"). Ports diagnostics/inspect_nis_tyre_mismatch_gate.py's
-# WP-N3 prototype into a reusable module -- same windowed-NIS-exceedance
-# statistic, same acceptance band, now with an explicit "warn" tier
-# between "pass" (trust EKF beta) and "fail" (fall back to kinematic).
+# NIS tyre-mismatch gate: does the fitted tyre curve fit this session well
+# enough to trust EKF beta? pass / warn / fail (-> kinematic beta).
+# Session score = share of samples whose windowed NIS exceedance sits in band.
+# Thresholds provisional (one session). Prototype:
+# diagnostics/inspect_nis_tyre_mismatch_gate.py.
 #
-# Answers: "does the fitted tyre curve match this session's data well
-# enough to trust EKF beta?" Reuses the EKF's own windowed-NIS
-# machinery (a rolling exceedance-fraction check) as a continuous
-# session-level score rather than a new statistic -- see the WP-N3
-# Phase 4 pre-registration/results entries in thesis_notes.md for the
-# full design rationale and the two pre-registered predictions that
-# were tested and found to have FAILED (recorded there, not restated
-# here): the score's absolute ceiling is far below the naive ~85%
-# expectation (small-window binomial noise caps it near 60-65% even
-# for a perfectly calibrated filter), and mu_fz mismatches hurt scoring
-# MORE than c_alpha mismatches, not less as originally predicted.
+# Score ceiling ~60-65% even for a perfect filter (small-window binomial noise).
 
 import numpy as np
 from scipy.stats import chi2
@@ -25,16 +13,10 @@ _CHI2_DF2_95 = float(chi2.ppf(0.95, df=2))
 
 
 def compute_health_score(nis_combined_full, mask, window_samples, band_low, band_high):
-    """Compute the rolling trailing-window (width window_samples)
-    combined-NIS exceedance fraction at every sample; return the
-    fraction of MASKED samples whose local window's exceedance
-    fraction sits inside [band_low, band_high]. nis_combined_full is
-    the EKF's full-length nis array (not pre-masked) so the rolling
-    window can look back across mask boundaries exactly like the
-    EKF's own divergence monitor does. Returns NaN if the window is
-    longer than the data or no masked sample has a fully-populated
-    window (degenerate/short-session inputs) -- callers must not
-    treat NaN as a passing score.
+    """Fraction of masked samples whose trailing-window NIS exceedance lies
+    in [band_low, band_high]. nis_combined_full is unmasked -- the window
+    looks back across mask gaps, like the EKF divergence monitor.
+    NaN on degenerate input; NaN never counts as a pass.
     """
     window_samples = int(window_samples)
     n = len(nis_combined_full)
@@ -53,13 +35,8 @@ def compute_health_score(nis_combined_full, mask, window_samples, band_low, band
 
 
 def classify_score(health_score, threshold_use_ekf, threshold_warn):
-    """Classify health_score by pure threshold logic, split out from
-    compute_health_score so boundary behaviour can be unit-tested without
-    a real EKF run.
-    NaN (score != score) always classifies 'fail' -- never 'pass',
-    matching the "never silently pass" requirement for degenerate
-    inputs. Boundaries are >= on both sides (a score exactly at
-    threshold_use_ekf passes, exactly at threshold_warn warns).
+    """Threshold logic only, testable without an EKF run.
+    NaN -> 'fail'. Both boundaries inclusive (>=).
     """
     if health_score != health_score:
         return "fail"
@@ -71,28 +48,14 @@ def classify_score(health_score, threshold_use_ekf, threshold_warn):
 
 
 def resolve_nis_window_samples(params, sample_rate_hz):
-    """nis_gate.nis_window_s is a PHYSICAL window duration (0.4s), not a
-    sample count -- the literal window_samples=20 this replaces was
-    always a 50Hz-calibrated value (20/50=0.4s), silently wrong on any
-    other grid rate (config nis_gate.nis_window_s_derived_from has the
-    full defect history). Same rate-derivation pattern as modules.
-    stability_analysis.resolve_cs_min_window_samples; no floor here
-    (unlike that function) since this project's own min_sample_rate_hz
-    floor (50Hz) already keeps the derived count away from anything
-    pathologically small.
+    """nis_window_s [s] -> samples at this grid rate. No floor needed:
+    min_sample_rate_hz (50 Hz) already keeps the count sane.
     """
     return int(round(params["nis_gate"]["nis_window_s"] * sample_rate_hz))
 
 
 def evaluate_gate(nis_combined_full, mask, params, sample_rate_hz):
-    """Evaluate the gate as the top-level entry point. params is the raw
-    or accuracy-resolved parameters dict (reads params["nis_gate"] only,
-    apart from window_samples which is now rate-derived from sample_
-    rate_hz via resolve_nis_window_samples). Returns a dict with the
-    verdict plus every number behind it, so a caller (the production
-    analysis thread, a diagnostic script) never has to re-derive what
-    produced the verdict.
-    """
+    """Entry point. Returns the verdict plus every number behind it."""
     cfg = params["nis_gate"]
     window_samples = resolve_nis_window_samples(params, sample_rate_hz)
     band_low, band_high = cfg["nis_band_low"], cfg["nis_band_high"]

@@ -20,10 +20,8 @@ class Base(DeclarativeBase):
     pass
 
 def _migrate_add_missing_columns():
-    # create_all only creates missing TABLES, not missing columns on
-    # existing ones -- SQLite ALTER TABLE ADD COLUMN is the safe, additive
-    # path (no drop/recreate). Idempotent: checked via PRAGMA table_info
-    # every startup, so re-running this is always a no-op once applied.
+    # create_all adds tables, not columns -> ALTER TABLE ADD COLUMN, checked
+    # via PRAGMA table_info each start (idempotent)
     with engine.connect() as conn:
         cols = [row[1] for row in conn.execute(text("PRAGMA table_info(outings)"))]
         if "analysis_data" not in cols:

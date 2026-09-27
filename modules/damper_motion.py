@@ -1,21 +1,8 @@
-# Damper motion-state evidence, FRAME DEPTH PROGRAMME Step 2 (PLAN.md
-# "FRAME DEPTH PROGRAMME", 2026-09-22). Per-corner, per-TRANSIENT-phase
-# loading/unloading classification from the 100 Hz log_susp_travel_*
-# channels -- the evidence source Step 1's condition schema (modules.
-# decision_frame.evaluate_conditions, evidence_corroboration type) was
-# built to consume, and the missing ingredient docs/segers_bridge_
-# review.md's C11-2 named as blocking a front-LS-rebound/turn-in-
-# understeer bridge (method pointer: thesis_notes.md "Frame depth
-# programme..." entries; docs/segers_bridge_review.md C11-1/C11-2 --
-# Segers ch.11, dampers develop force only while the shaft has velocity,
-# never at steady-state apex cornering). Tier B throughout: standard
-# signal engineering (derivative, threshold, validity floor), never
-# presented as a vehicle-dynamics method of its own. No Qt.
-#
-# Reuses modules.wheel_loads' own channel-access/dead-channel/unit-
-# normalisation helpers directly (same channels, same known dead-channel
-# case -- Dubai RR travel pot, std~0.1mm) rather than a second,
-# independently-maintained copy of that logic.
+# Damper motion evidence: loading / unloading / no-motion per corner,
+# transient phase and wheel, from log_susp_travel_* (100 Hz).
+# Dampers only act with shaft velocity, not at steady apex -- Segers ch. 11.
+# Plain signal processing (derivative, threshold, validity floor).
+# Channel helpers shared with wheel_loads.
 
 import numpy as np
 
@@ -27,26 +14,14 @@ from modules.wheel_loads import (
 
 
 def classify_window_motion(travel_mm, t, lo, hi, kerb_mask, rate_threshold_mm_s, min_valid_fraction):
-    """Pure function -- the testable core unit. Classifies ONE phase-
-    window instance of one corner's own travel trace as "loading" /
-    "unloading" / "no-motion", or None if the window's own signal is too
-    sparse to trust (below min_valid_fraction of real, non-kerb-masked
-    samples).
+    """One phase window of one wheel -> "loading" / "unloading" /
+    "no-motion", or None if under min_valid_fraction valid samples.
 
-    `travel_mm`/`t` are the FULL-SESSION arrays (already unit-normalised);
-    lo/hi are this window's own index bounds into them (modules.decision_
-    frame._phase_window_indices' own output shape). `kerb_mask` is state's
-    own full-session boolean array (True = kerb-affected, to EXCLUDE) or
-    None. Returns (direction_or_None, rate_mm_s_or_None, valid_fraction).
-
-    Rate = the MEDIAN of the windowed travel's own first derivative
-    (np.gradient against time, not a simple endpoint slope -- robust to a
-    single noisy sample at either edge of a short window). direction is
-    "no-motion" when |rate| stays below rate_threshold_mm_s (the noise-
-    vs-real-motion floor, config-derived from both sessions' own rate
-    distributions -- see config/decision_frame.json damper_motion block),
-    "loading"/"unloading" by SIGN once the empirical sign-convention check
-    (thesis_notes.md) has determined which sign corresponds to which.
+    travel_mm, t: full-session arrays; lo/hi index into them.
+    kerb_mask: True = exclude, or None.
+    Rate = median of d(travel)/dt, not an endpoint slope -- robust to one
+    noisy edge sample. |rate| < rate_threshold_mm_s -> "no-motion".
+    Returns (direction, rate_mm_s, valid_fraction).
     """
     window_len = hi - lo
     if window_len < 2:
@@ -62,10 +37,7 @@ def classify_window_motion(travel_mm, t, lo, hi, kerb_mask, rate_threshold_mm_s,
     if valid_fraction < min_valid_fraction:
         return None, None, valid_fraction
 
-    # Kerb-masked/NaN samples are excluded from the RATE computation (not
-    # just counted) by working on the valid-only sub-sequence -- a
-    # gradient across a masked gap would otherwise blend a real motion
-    # rate with a kerb-impact artifact.
+    # gradient over valid samples only -- across a masked gap it would mix in the kerb hit
     idx = np.where(valid)[0]
     if idx.size < 2:
         return None, None, valid_fraction
@@ -74,15 +46,8 @@ def classify_window_motion(travel_mm, t, lo, hi, kerb_mask, rate_threshold_mm_s,
 
     if abs(rate) < rate_threshold_mm_s:
         return "no-motion", rate, valid_fraction
-    # SIGN CONVENTION (thesis_notes.md "Damper motion sign-convention
-    # check", empirically verified on BOTH real sessions, not assumed):
-    # corr(front-axle travel, ax) is POSITIVE on both Dubai (+0.49) and v3
-    # (+0.20) under braking -- travel DECREASES as braking gets harder
-    # (ax more negative), and harder braking physically COMPRESSES the
-    # front axle. Therefore DECREASING log_susp_travel_* = compression =
-    # "loading"; INCREASING = extension = "unloading". If a future
-    # session's own check ever disagrees, that entry is the one to
-    # revisit, not this line silently.
+    # Sign checked on both real sessions: front travel falls under braking
+    # (corr(travel, ax) > 0) -> decreasing travel = compression = loading.
     return ("unloading" if rate > 0 else "loading"), rate, valid_fraction
 
 
@@ -96,24 +61,13 @@ def _corner_instances_by_id(corners):
 
 
 def build_damper_motion_evidence(corners, state, channels, aggregated, dm_cfg, wl_cfg):
-    """Returns (evidence_list, summary). `evidence_list` is build_evidence's
-    own flat shape (appended directly, same as every other _build_*_
-    evidence function). `summary` is a diagnostics-only dict (per-wheel
-    dead-channel flags, per-(corner,phase,wheel) evaluable/not-evaluable
-    instance counts) -- build_evidence itself discards it (matching the
-    fixed interface every other evidence builder already has); the real-
-    session verification script (Step 2 item 8) uses it directly to report
-    "Dubai RR not-evaluable" precisely, since an evidence item's own
-    ABSENCE is ambiguous on its own (never emitted at all vs. genuinely
-    evaluated as no-motion) without this side channel.
+    """Returns (evidence_list, summary). evidence_list has build_evidence's
+    flat shape. summary (dead wheels, per-(corner, phase, wheel) evaluable
+    counts) is diagnostics only -- a missing evidence item alone can't tell
+    "not evaluable" from "never emitted".
 
-    `dm_cfg` is config/decision_frame.json's own damper_motion block
-    (rate_threshold_mm_s, min_valid_fraction). `wl_cfg` is config/
-    parameters.json's own wheel_loads block, reused ONLY for its existing
-    dead_channel_std_max_travel_mm -- the exact same channel, the exact
-    same known-frozen case (Dubai RR) that value was already derived from
-    (modules.wheel_loads._channel_is_dead's own docstring), not a second,
-    duplicate number.
+    dm_cfg = decision_frame.json damper_motion block. wl_cfg = parameters.json
+    wheel_loads block, used only for dead_channel_std_max_travel_mm.
     """
     if state is None or channels is None:
         return [], {"skipped": "state or channels not supplied"}
@@ -130,7 +84,7 @@ def build_damper_motion_evidence(corners, state, channels, aggregated, dm_cfg, w
         ch = channels.get(TRAVEL_CHANNEL[wheel])
         raw_native = _interp_channel(channels, TRAVEL_CHANNEL[wheel], t)
         if ch is None or raw_native is None or ch.get("quality") != "valid":
-            dead_wheels.add(wheel)  # missing/failed channel -- same not-evaluable treatment as a frozen one
+            dead_wheels.add(wheel)  # missing/failed = same as frozen
             continue
         raw_mm = _normalize_travel_to_mm(raw_native, ch.get("unit_raw"))
         if _channel_is_dead(raw_mm, dead_std_max):
@@ -171,12 +125,10 @@ def build_damper_motion_evidence(corners, state, channels, aggregated, dm_cfg, w
                     "evaluable": len(directions), "not_evaluable": n_not_evaluable, "total": n_total,
                 }
                 if not directions or n_total == 0:
-                    continue  # nothing usable this corner/phase/wheel -- no evidence item, not a guess
+                    continue  # no evidence rather than a guess
 
-                # Majority-direction aggregation, same repeat/total-style
-                # confidence formula every other evidence builder in this
-                # frame already uses (repeat_fraction x valid_fraction) --
-                # no new confidence formula introduced here.
+                # majority direction; confidence = repeat fraction x evaluable
+                # fraction, as in the other evidence builders
                 counts = {}
                 for d in directions:
                     counts[d] = counts.get(d, 0) + 1

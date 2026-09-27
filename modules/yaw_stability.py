@@ -1,33 +1,20 @@
-# Yaw-moment-stability estimator: raw yaw acceleration and the local
-# s-anchored ridge regression for dMz/dbeta.
-#
-# Concept and target relation (Mz = Iz*psidd + D_psi*psid, dMz/dbeta sign
-# convention): method anchor recorded in thesis_notes.md, "Yaw moment
-# stability dMz/dbeta" entry. The estimator construction below (centred
-# rolling-mean yaw acceleration; s-anchored Gaussian-weighted local ridge regression
-# pooling samples across laps at the same track position) is after the
-# chair performance_analysis tooling (internal), not part of Werner's
-# method -- the reference implementation is read-only in
-# docs/literature/, never imported from.
+# Yaw-moment stability dMz/dbeta: yaw acceleration + local ridge regression
+# over track distance, pooled across laps.
+# Concept and sign (positive = restoring): Werner S2.2.3.
+# Estimator after the chair performance_analysis tooling (internal).
 
 import numpy as np
 import pandas as pd
 
-# Gaussian kernel sigma = window_m / GAUSS_SIGMA_DIVISOR. Fixes the
-# weighting SHAPE (how fast influence decays inside the window), not a
-# per-track calibration, so it stays a named constant (CLAUDE.md
-# method-defining-constant rule) rather than a config entry.
+# sigma = window_m / 2.5 -- kernel shape, method-defining, not a tunable
 GAUSS_SIGMA_DIVISOR = 2.5
 
 _PREDICTOR_COLUMNS = ("beta_rad", "delta_f_rad", "v_mps", "ax_mps2", "az_mps2")
 
 
 def calculate_filtered_yaw_acceleration(yaw_rate_radps, time_s, sample_rate_hz, window_s):
-    """Differentiate yaw rate, then a centred rolling mean (chair-exact
-    window/min_periods construction, raw-yaw-rate path only -- the
-    chair's function also accepts a pre-smoothed yaw-rate input from a
-    chair-external filter list that is outside this reference's scope,
-    so only the raw-signal differentiation path is reproduced here).
+    """d(yaw rate)/dt, then centred rolling mean (chair window/min_periods).
+    Raw-yaw-rate path only -- chair's pre-smoothed input path not available.
     [forced adaptation]
     """
     window = max(5, int(round(window_s * sample_rate_hz)))
@@ -51,34 +38,16 @@ def calculate_observed_stability(
     s_m, beta_rad, delta_f_rad, v_mps, ax_mps2, az_mps2, mz_inertial_Nm,
     valid_mask, grid_step_m, window_m, min_samples, ridge, min_beta_std_rad,
 ):
-    """Compute local weighted-ridge dMz/dbeta [Nm/deg] in track-distance space
-    (after the chair performance_analysis tooling, internal).
+    """Local weighted-ridge dMz/dbeta [Nm/deg] over track distance.
 
-    s_m is SetupTool's lap_distance channel converted to metres --
-    within-lap track position, resetting every lap. Sorting samples by
-    s_m interleaves every lap's pass through the same corner, so the
-    local window at a given s pools samples across laps rather than
-    depending on one lap's own excitation (this is the chair's own
-    semantics for s_m; SetupTool interpolates it onto a common sample
-    timeline where the chair receives it natively -- see
-    stability_analysis.py for the lap-reset interpolation guard this
-    requires, a channel-alignment necessity, not a method change).
-    [neutral engineering]
+    s_m = lap distance [m], resets each lap -> sorting by s interleaves all
+    laps through the same corner. Interpolated onto the common timeline
+    (lap-reset guard in stability_analysis.py). [neutral engineering]
+    az_mps2 optional: None drops it from the regressors.
+    valid_mask = samples to keep; the rest go NaN before dropna.
 
-    az_mps2 is an OPTIONAL regressor (chair-identical): pass None to
-    drop it from the set (beta + delta_f + v + ax used instead) rather
-    than invalidating the estimate when the channel is unavailable.
-
-    valid_mask marks samples to KEEP; excluded samples (moving/kerb/
-    in-out-lap gates -- SetupTool call-site adaptations, see
-    stability_analysis.py) are NaN'd before the internal dropna step,
-    identical to how the chair estimator ignores missing data. The
-    estimator itself carries no knowledge of what was excluded or why.
-
-    Returns (stability_Nm_per_deg, valid, diagnostics) -- diagnostics is
-    reporting-only (method string, grid coverage, per-grid-point skip
-    reasons, per-window sample counts), not consumed by the production
-    pipeline.
+    Returns (stability_Nm_per_deg, valid, diagnostics); diagnostics is
+    reporting only.
     """
     predictor_arrays = {
         "beta_rad": np.asarray(beta_rad, dtype=float),

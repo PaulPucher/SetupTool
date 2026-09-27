@@ -1,5 +1,4 @@
-# Main application window. Defines the overall layout -- topbar, sidebar, content area.
-# No business logic here, only layout and navigation.
+# Main window: topbar, sidebar, content area. Layout and navigation only.
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
@@ -29,7 +28,7 @@ class MainWindow(QMainWindow):
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(0)
 
-        self.nav = self._build_sidebar()                 # kept as instance attrs: needed below for setCurrentRow and the row-changed connection
+        self.nav = self._build_sidebar()  # kept for setCurrentRow and the row-changed hook
         self.stack = QStackedWidget()
 
         body_layout.addWidget(self.nav)
@@ -84,7 +83,7 @@ class MainWindow(QMainWindow):
         nav.setSpacing(4)
         nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        # Placeholder SVGs; a proper icon set is tracked in PLAN.md (WP7 Housekeeping).
+        # placeholder SVGs
         icon_paths = [
             "ui/icons/weekends.svg",
             "ui/icons/drivers.svg",

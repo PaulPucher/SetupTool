@@ -16,9 +16,7 @@ class DriverDialog(QDialog):
         self.setWindowTitle("New Driver")
         self.setFixedWidth(400)
         self.setModal(True)
-        # Follow-up item 1: native minimise/maximise buttons on every
-        # dialog -- fixed-width here, so maximise mostly just grows the
-        # height, but the flag is applied uniformly per the work order.
+        # native min/max buttons on every dialog
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
 
         layout = QVBoxLayout(self)

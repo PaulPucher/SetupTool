@@ -1,11 +1,7 @@
-# PDF export for the car setup/setdown sheet.
-# Landscape A4, monochrome. One shared strip renderer (build_session_strip)
-# is reused at two scales: "large" fills a whole page here (single-session
-# print); "small" is reused by core/weekend_pdf_export.py to pack four
-# strips (two outings' Setup/Setdown pairs) onto one landscape page. Keeping
-# one renderer for both is the point -- see thesis_notes.md "PDF layout
-# rework: shared strip renderer".
-# Swap config/images/team_logo.png to rebrand - no code changes needed.
+# Setup/setdown sheet PDF, landscape A4, monochrome. One strip renderer
+# (build_session_strip) at two scales: "large" = one sheet per page,
+# "small" = four strips per weekend page (weekend_pdf_export).
+# Rebrand by swapping config/images/team_logo.png.
 
 import json
 import os
@@ -63,18 +59,12 @@ WEIGHT_TOTALS_LABELS = {
     "total_weight": "Total (kg)", "cross_percentage": "Cross %",
 }
 
-# Splitter/diffuser floor-referenced measurement points (thesis_notes.md
-# "8. Splitter/diffuser measurement points"). Positions come from the one
-# shared table in core/setup_data_points.py -- both this file and ui/
-# views/measurement_points_widget.py import from there now (both live in
-# a package core/ can reach; the earlier hand-duplicated copy was only
-# needed because core/ cannot import the PyQt6 widget module directly).
+# splitter/diffuser point positions from core/setup_data_points.py (shared
+# with the form widget)
 from core.setup_data_points import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS
 
-# Fraction of the splitter shape's height, from the rear, where the
-# straight sides end and the curved leading edge begins -- must match
-# ui/views/measurement_points_widget.py's SPLITTER_SIDE_FRACTION so the
-# form and the PDF draw the same silhouette.
+# where the splitter's straight sides end (fraction of height from the
+# rear); must match the widget's SPLITTER_SIDE_FRACTION
 SPLITTER_SIDE_FRACTION = 0.45
 
 
@@ -89,21 +79,11 @@ def _fmt(value):
 
 
 def _strip_styles(size):
-    """Two font-size presets sharing one layout -- 'large' fills a whole
-    landscape page (single-session print) at type sized to use most of
-    the page, 'small' is one of four strips on a weekend page. Values
-    only differ in point size, never in what's shown.
-    """
-    # A3 revision: every numeric value cell (core row, damper, advanced
-    # list, diff torque, weight grid, car params) now shares ONE fixed
-    # "value" font size per scale, sized so a 6-digit value ("888888" /
-    # "-88888") fits every cell at its ACTUAL width with no shrinking --
-    # verified against every value-cell width formula in this file (see
-    # thesis_notes.md). No dynamic per-value autofit: a cell that can't
-    # fit at this size is a layout bug, fixed by widening the cell (see
-    # the DAMPER_W_FRAC/DAMPER_LABEL_FRAC/ADVANCED_VAL_FRAC/CAR_PARAM_
-    # VAL_FRAC constants and the diff-torque row's 3-across layout below),
-    # never by shrinking the number.
+    """Font presets for "large" and "small"; same layout, only sizes differ."""
+    # One "value" size per scale, sized so a 6-digit value ("888888" /
+    # "-88888") fits every value cell at its real width. No autofit: a cell
+    # that doesn't fit gets wider (the *_FRAC constants), the number never
+    # shrinks.
     if size == "large":
         f = dict(header=16, corner_title=16, core_label=12.5, value=9,
                   table_label=11.5,
@@ -114,61 +94,19 @@ def _strip_styles(size):
                   table_label=5,
                   section_title=6, notes=5.2)
         pad = 1.1
-    # Follow-up item 3: car_label is no longer its own key -- it shares
-    # the "value" size exactly, one number, so the two can never drift
-    # apart again the way large scale's car_label=11 (bigger than its
-    # own value=9) did before this fix.
+    # car_label uses the value size -- one number, can't drift
     f["car_label"] = f["value"]
-    # Cleanup pass, Phase 3: several inter-block Spacer heights below used
-    # to be hardcoded in millimetres regardless of `size` -- fine at
-    # "large" scale, but at "small" scale (STRIP_H=44mm, four strips per
-    # weekend page) those same fixed gaps ate a disproportionate share of
-    # an already tight height budget relative to the font sizes actually
-    # shrinking around them. That mismatch was the real driver behind
-    # KeepInFrame's shrink search collapsing each strip -- including the
-    # Car column -- to roughly a quarter of its intended width (confirmed
-    # by rendering the real Dubai weekend sheet: content stopped at ~30mm
-    # of a ~269mm-wide strip). Scaled to the same large/small ratio as
-    # `pad` above so gaps shrink in proportion to everything around them.
+    # spacer gaps scale with size -- fixed mm gaps at small scale made
+    # KeepInFrame shrink the whole strip to ~1/4 width
     gap_lg = 2.5 * mm if size == "large" else 0.6 * mm
     gap_sm = 1.5 * mm if size == "large" else 0.4 * mm
-    # Cleanup pass, Phase 3, same finding as gap_lg/gap_sm above but for
-    # the splitter/diffuser MeasurementDiagram flowables specifically:
-    # _measurement_diagram_boxes used to size them from the car column's
-    # own WIDTH alone (car_col_w is nearly the same in mm at both scales
-    # -- only STRIP_H shrinks, from ~190mm large to 44mm small), so the
-    # two diagrams alone rendered at ~33mm+36mm tall regardless of `size`,
-    # already exceeding the entire "small" strip height budget before
-    # counting anything else in the car column.
-    # Corrections round 3, item 6: shrinking the diagram's WIDTH to make
-    # it fit was the wrong lever -- it shrank the value boxes along with
-    # it, since box_w used to be a fraction of diagram_w. box_w is now
-    # sized directly from the value font's own worst-case string width
-    # (see POINT_VALUE_WORST_CASE / _measurement_diagram_boxes), so the
-    # diagrams can always span the FULL car-column width at both scales
-    # without the boxes growing or shrinking with the outline. Only the
-    # HEIGHT (this factor) shrinks at "small" scale, verified by checking
-    # dy = |fy1-fy2|*diagram_h against box_h for every position pair in
-    # SPLITTER_POINT_POSITIONS / DIFFUSER_POINT_POSITIONS whose boxes are
-    # close enough in x to be a collision candidate -- not assumed, see
-    # thesis_notes.md.
+    # Diagram height factor: only the height shrinks at small scale; the
+    # diagram always spans the car-column width. Value box width comes from
+    # the font, not the diagram, so boxes don't scale with the outline.
+    # Checked: no two close-in-x boxes collide at the flatter height.
     diagram_height_scale = 1.0 if size == "large" else 0.36
-    # Cleanup pass, Phase 3: ParagraphStyle's own `leading` (line-box
-    # height) defaults to a FLAT 12pt regardless of fontSize when left
-    # unset -- every style below left it unset. At "large" scale
-    # (fontSize up to 16) that under-sizes the box relative to the glyph
-    # ink, so the next stacked Paragraph (e.g. the header's own muted
-    # subtitle line, or a section_title sitting right above its table)
-    # visually collides with the one above it. At "small" scale (fontSize
-    # down to 4.6) the same flat 12pt is far MORE than needed, over-
-    # sizing every label/value pair's box -- inflating the whole strip's
-    # natural height well past what 4-per-page (STRIP_H, core/weekend_
-    # pdf_export.py) budgets for, which is what forced KeepInFrame's
-    # shrink search to collapse the entire strip (car column included)
-    # down to roughly a quarter of its intended width, confirmed by
-    # rendering the real Dubai weekend sheet before this fix. Standard
-    # typographic ratio (1.2x fontSize), applied uniformly instead of
-    # reportlab's flat constant, fixes both symptoms with one change.
+    # leading = 1.2 x fontSize -- reportlab's flat 12 pt default collided
+    # lines at large scale and bloated the strip at small scale
     def _lead(size):
         return size * 1.2
 
@@ -225,16 +163,10 @@ def _bordered_table(rows, col_widths, styles, row_heights=None, pad_scale=1.0):
 
 
 class MeasurementDiagram(Flowable):
-    """Splitter/diffuser floor-referenced check points, drawn as the
-    outline shape (curved-leading-edge blade / rectangle) with each
-    point's value in a small bordered box at its physical position --
-    monochrome, matching the rest of the sheet. Front-up: fy=0 (in
-    `positions`) is the top of the drawn shape, i.e. the front of the
-    car, same convention as the 2x2 wheel grid and the UI widget this
-    mirrors. reportlab's canvas is y-up (y=0 at the bottom) -- the
-    opposite of Qt's y-down widget frame -- so "front" here is the TOP
-    of the local height, matching measurement_points_widget.py's
-    _splitter_path by construction, not by coincidence.
+    """Splitter/diffuser outline with each point's value in a bordered box at
+    its position. Front up: fy = 0 is the top (front of car), as in the wheel
+    grid and the form widget. reportlab is y-up (Qt is y-down) -> front =
+    top of the local height.
     """
 
     def __init__(self, outline, positions, values, width, height, box_w, box_h, font_size):
@@ -247,12 +179,8 @@ class MeasurementDiagram(Flowable):
         self.box_w = box_w
         self.box_h = box_h
         self.font_size = font_size
-        # Some points sit exactly on (or, per the reference annotation,
-        # just past) the outline's own edge -- e.g. splitter point 5 at
-        # fy=0, or diffuser's bottom row at fy~0.96. Reserve half a box on
-        # every side so those boxes never clip the flowable's own bounds;
-        # positions stay normalised to the OUTLINE's box (self.width/
-        # self.height), not the padded total this Flowable occupies.
+        # half a box of margin on every side -- some points sit on or just past
+        # the outline edge. Positions stay relative to the outline box.
         self.margin_x = box_w / 2
         self.margin_y = box_h / 2
 
@@ -260,12 +188,9 @@ class MeasurementDiagram(Flowable):
         return self.width + 2 * self.margin_x, self.height + 2 * self.margin_y
 
     def _splitter_path(self):
-        """Wide, shallow plan-view with a curved leading edge (front) --
-        straight rear edge and sides, one cubic-bezier arc across the
-        front. Mirrors ui/views/measurement_points_widget.py's
-        _splitter_path in reportlab's y-up frame (front = y=height here,
-        vs. Qt's y=0 there). Coordinates are local to the outline's own
-        box; draw() translates by (margin_x, margin_y) before painting.
+        """Plan view: straight rear and sides, one bezier arc across the front. Same
+        shape as the widget's _splitter_path, in reportlab's y-up frame. Local to
+        the outline box; draw() translates by the margins.
         """
         side_y = self.height * SPLITTER_SIDE_FRACTION
         p = self.canv.beginPath()
@@ -289,7 +214,7 @@ class MeasurementDiagram(Flowable):
             c.rect(0, 0, self.width, self.height, stroke=1, fill=1)
 
         for (fx, fy), value in zip(self.positions, self.values):
-            # canvas y grows upward; fy=0 (front) is the TOP of the shape.
+            # y up: fy = 0 (front) at the top
             cx = fx * self.width
             cy = (1 - fy) * self.height
             x0, y0 = cx - self.box_w / 2, cy - self.box_h / 2
@@ -302,26 +227,18 @@ class MeasurementDiagram(Flowable):
         c.restoreState()
 
 
-# A3 revision: structural width fractions chosen (see thesis_notes.md)
-# so the uniform "value" font (f["value"], _strip_styles) fits a 6-digit
-# value in every one of these cells with margin, at both scales -- solved
-# once against the tightest cell (damper LS/HS, a 2-way split within an
-# already-narrow sub-table) and re-checked against every other cell
-# formula below. Changing any of these without re-checking that margin
-# (core/pdf_export.py's own verification script, not committed) reopens
-# the overflow bug this constant set closes.
-DAMPER_W_FRAC = 0.54        # of corner_w, was 0.42
-DAMPER_LABEL_FRAC = 0.33    # of damper_w, was 0.4
-ADVANCED_VAL_FRAC = 0.42    # of advanced_w, was 0.38
-CAR_PARAM_VAL_FRAC = 0.26   # of car_col_w, was 0.22
-DIFF_TORQUE_COLS = 3        # was 5-across (one row); car_col_w/5 cannot
-                             # hold a 6-digit value at any legible size
+# Width fractions sized so a 6-digit "value" fits every cell at both
+# scales (tightest: damper LS/HS). Changing one -> re-check all cells.
+DAMPER_W_FRAC = 0.54  # of corner_w
+DAMPER_LABEL_FRAC = 0.33  # of damper_w
+ADVANCED_VAL_FRAC = 0.42  # of advanced_w
+CAR_PARAM_VAL_FRAC = 0.26  # of car_col_w
+DIFF_TORQUE_COLS = 3  # 5 across can't fit a 6-digit value
 
 
 def _damper_table(data, styles, width):
-    """Bump/Reb x LS/HS as a real small table -- each label written once,
-    not repeated per cell. Blowoff is its own row, value spanning both
-    data columns since it has no LS/HS split.
+    """Bump/Reb x LS/HS table, each label once. Blowoff row spans both columns
+    (no LS/HS split).
     """
     label_w = width * DAMPER_LABEL_FRAC
     val_w = (width - label_w) / 2
@@ -385,15 +302,8 @@ def _corner_box(label, data, styles, width):
 
 
 def _diff_torque_row(car, styles, width):
-    """One bordered cell per measured locking-torque position (position
-    number over value, same stacked-cell convention as before), wrapped
-    at DIFF_TORQUE_COLS per row instead of one 5-across row -- five equal
-    columns across the full car-column width left too little room for a
-    6-digit value at the shared "value" font size (car_col_w/5 vs the
-    2-column damper split's own already-tight car_col_w/2-ish budget);
-    wrapping to rows of DIFF_TORQUE_COLS gives each cell car_col_w/
-    DIFF_TORQUE_COLS instead, verified against the "value" font's needed
-    width in the same check as every other cell in this file.
+    """One cell per locking-torque position (number over value), DIFF_TORQUE_COLS
+    per row -- five across left no room for a 6-digit value.
     """
     torque = car.get("differential_locking_torque_measured") or {}
     cell_w = width / DIFF_TORQUE_COLS
@@ -420,47 +330,22 @@ def _weight_grid(car, styles, width):
     return _bordered_table(rows, [lw, vw, lw, vw], styles)
 
 
-# Worst-case string these value boxes must fit, at whatever font_size is in
-# play -- these are floor-referenced mm offsets (core/setup_data_points.py),
-# a narrower physical range than the generic "888888"/"-88888" 6-digit
-# convention the rest of this file's value cells use for unbounded fields
-# like spring rates. One decimal place, signed, three integer digits is
-# already a generous margin over any plausible clearance measurement.
+# worst-case point value: signed, 3 digits + 1 decimal (mm offsets)
 POINT_VALUE_WORST_CASE = "-999.9"
 
 
 def _measurement_diagram_boxes(title, outline, positions, points, styles, width):
-    """Outline shape with a small value box at each physical position --
-    same visual language as the setup-form widget, used at both scales.
-    A values-only-row alternative (no outline, point-number header +
-    value cells) was built and rendered at weekend scale for comparison
-    and rejected: it overflowed its column width, while this outline
-    stayed legible and correctly bounded. See thesis_notes.md "8.
-    Splitter/diffuser measurement points, Phase 3".
-
-    Corrections round 3, item 6: diagram_w is always the full car-column
-    width at both scales -- box_w is sized from POINT_VALUE_WORST_CASE at
-    the ACTUAL font_size in play (pdfmetrics.stringWidth, not a fraction
-    of diagram_w), so the box a value sits in is only ever as wide as the
-    text needs, and diagram_w takes back whatever that leaves. font_size
-    is pinned to the same "value" size the surrounding tables use, so a
-    box digit reads at identical size to a table value next to it at
-    both scales; only diagram_h (via _diagram_height_scale) shrinks
-    beyond its natural aspect ratio, to fit the tight "small" strip
-    budget -- checked against every position pair in SPLITTER_POINT_
-    POSITIONS / DIFFUSER_POINT_POSITIONS so a flatter outline never
-    brings two value boxes into contact (see thesis_notes.md).
+    """Outline with a value box at each position, both scales. (A values-only
+    row overflowed its column at small scale -- rejected.)
+    diagram_w = full car-column width; box_w from POINT_VALUE_WORST_CASE at
+    the actual font size (same size as the table values). Only diagram_h
+    shrinks for the small strip; checked box pairs don't touch.
     """
     font_size = styles["_fontsizes"]["value"]
-    # 1.2x margin over the bare text width -- a box that fills exactly to
-    # the glyph edge would look correct-but-suspiciously-tight in print.
+    # 1.2x text width -- a box flush with the glyphs looks cramped in print
     box_w = stringWidth(POINT_VALUE_WORST_CASE, "Helvetica-Bold", font_size) * 1.2
     box_h = box_w * 0.6
-    # diagram_w + box_w (the value box's full width, which MeasurementDiagram
-    # reserves as margin on each side for a point centred right at fx=0/1)
-    # sums to exactly `width` -- some points sit ON the outline's own edge
-    # (splitter point 5 at fy=0, diffuser's bottom row near fy=0.96), so
-    # this margin isn't optional headroom, it is where those boxes live.
+    # diagram_w + box_w = width: the margin is where edge points' boxes live
     diagram_w = width - box_w
     aspect = 0.55 if outline == "splitter" else 0.6
     diagram_h = diagram_w * aspect * styles["_diagram_height_scale"]
@@ -471,18 +356,9 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
 
 
 def _car_column(car, styles, width):
-    """Narrow right-hand column (Decision: car-level block is ONE column,
-    sized to content, not a co-equal quadrant). Numeric cells are sized to
-    their value, not stretched. Splitter/diffuser points always render as
-    outline+value-boxes at both scales -- a values-only row alternative
-    was built and rendered at weekend (small) scale for comparison and
-    rejected: it overflowed its column width, while the outline stayed
-    legible and correctly bounded. See thesis_notes.md "8. Splitter/
-    diffuser measurement points, Phase 3". Wing position and ARB front
-    mount are plain rows in the param table below (corrections round 3,
-    item 7) -- position-coded fields ("P8", "P0", ...), not coordinates,
-    so a marked-position schematic added drawing cost without adding
-    information a label/value row doesn't already give.
+    """Narrow right column, cells sized to content. Splitter/diffuser as outline
+    + value boxes at both scales. Wing position and ARB front mount are plain
+    rows -- position codes ("P8"), a schematic added nothing.
     """
     title_gap = 2.5 * mm if styles["_fontsizes"]["section_title"] >= 10 else 0.8 * mm
     elements = [Paragraph("Car", styles["section_title"]), Spacer(1, title_gap)]
@@ -527,17 +403,11 @@ def _scaled_image(path, target_height):
 
 
 def build_session_strip(meta, data, size, strip_w, strip_h):
-    """One full Setup or Setdown sheet, at 'large' (single full page) or
-    'small' (one of four weekend strips) scale. `data` is the parsed
-    setup_data/setdown_data dict (front_left/front_right/rear_left/
-    rear_right/car); `meta` carries the header text
-    (number/name/session_type/date_str/driver_name/sheet_label).
-
-    Layout: the 2x2 wheel grid (FL/FR top, RL/RR bottom -- front-up) is
-    its own clean Table, no column spanning, so it can never clip against
-    a neighbour; the car-level block is a single narrow column beside it.
-    Wrapped in KeepInFrame(mode='shrink') so a strip that runs long
-    shrinks to fit its allotted box rather than overflowing the page grid.
+    """One Setup or Setdown sheet at "large" (full page) or "small" (weekend
+    strip) scale. data = setup/setdown dict (front_left .. rear_right, car);
+    meta = header text fields.
+    2x2 wheel grid (front up) as its own table, no spanning; car block as a
+    narrow column beside it. KeepInFrame(shrink) keeps a long strip in its box.
     """
     styles = _strip_styles(size)
     fl = data.get("front_left", {}) or {}
@@ -610,11 +480,9 @@ def build_session_strip(meta, data, size, strip_w, strip_h):
 
 
 def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
-    """Single-session sheet -- one call, one sheet_type, one landscape
-    page, the shared strip renderer at 'large' scale. Reads outing.setup_
-    data regardless of sheet_type (the caller, ui/views/outing_form.py's
-    _print_sheet, already puts whichever data applies under that one
-    attribute name) -- unchanged calling contract, layout only.
+    """Single-session sheet, one landscape page, "large" scale. Reads
+    outing.setup_data for either sheet_type -- the caller puts the right
+    data there.
     """
     doc = SimpleDocTemplate(
         output_path, pagesize=(PAGE_W, PAGE_H),
@@ -627,13 +495,7 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
         try:
             setup = json.loads(outing.setup_data)
         except Exception as e:
-            # Reliability pass: this used to swallow the error and render
-            # a fully blank-but-otherwise-normal-looking sheet -- zero
-            # indication anywhere that the stored setup_data was corrupt
-            # rather than genuinely empty. A visible note in the PDF
-            # itself, same "surface it in the document, don't abort the
-            # export" convention core/weekend_pdf_export.py's own per-
-            # outing error handling already uses.
+            # corrupt setup_data -> visible note in the PDF, not a blank-looking sheet
             from core.error_text import friendly_error_text
             parse_error = friendly_error_text(e)
 
@@ -650,10 +512,8 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
     strip_h = PAGE_H - 2 * MARGIN
     story = []
     if parse_error is not None:
-        # Reserve real space for the banner instead of stacking it in
-        # front of a KeepInFrame already sized to the FULL page -- that
-        # would push the frame past the bottom margin and overflow the
-        # page, trading one Phase 3 overlap bug for a new one.
+        # reserve space for the banner -- stacking it on a full-page KeepInFrame
+        # overflows the page
         warn_h = 8 * mm
         warn_style = ParagraphStyle("setup_data_error", fontSize=11, fontName="Helvetica-Bold",
                                      textColor=colors.HexColor("#c0392b"))
