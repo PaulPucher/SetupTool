@@ -5,7 +5,8 @@
 # bar during CORNERING-phase samples specifically (the check only ever
 # fires there -- straight-line pressure drop is physics, never a flag,
 # per DECISION LAYER SPEC Stage 1). The 2026-09-22 channel census
-# (config/decision_frame.json plausibility_checks.tyre_pressure_window)
+# (recorded in config/decision_frame.json plausibility_checks.
+# tyre_pressure_window, a key removed 2026-09-28 as superseded)
 # found these channels present/populated whole-session; that is not the
 # same claim as "cornering-phase values sit near 1.85-1.95/1.80-1.90
 # bar" -- the channel census rule requires checking the actual claim

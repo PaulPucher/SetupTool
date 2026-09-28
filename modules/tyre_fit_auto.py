@@ -456,7 +456,7 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
 
 
 def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
-    """(B, C, mu, E) with D = mu * Fz per sample (Milliken RCVD, tyre chapter).
+    """(B, C, mu, E) with D = mu * Fz per sample (Milliken RCVD ch. 2 (sec. 2.1)).
     Same dict as _fit_axle_pacejka; D = mu * mean(Fz) as representative
     value for the constant-D consumers, plus "mu" and "mean_axle_fz_N".
     """
@@ -520,8 +520,8 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     """fit_session with the reduced Magic Formula instead of Dugoff; steps
     (c)-(e) and status thresholds identical, only the axle fit and EKF differ.
 
-    load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD, tyre
-    chapter). No measured Fz -> degenerate manifest, no silent free-D
+    load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD ch. 2
+    (sec. 2.1)). No measured Fz -> degenerate manifest, no silent free-D
     fallback. Default False = free-D.
     """
     cfg = params["tyre_fit_auto"]

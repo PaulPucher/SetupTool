@@ -5,56 +5,23 @@
     "abs": {
       "enabled": true,
       "confidence": 0.8,
-      "confidence_derived_from": "Deepening Phase 4c (2026-09-18), user decision -- 'sensor boolean, single-session semantics, revisit'. Supersedes Stage 2's own autonomous confidence=1.0 default for this same evidence.",
-      "abs_inactive_corroborates_braking_instability": {
-        "_comment": "Engineer rule: 'instability/locking under braking + ABS not intervening -> ABS map up'. Fires when abs_active is 0 over the WHOLE entry_1_brake window of a lap AND the corner has unstable_yaw matrix-verdict evidence there. Current log_abs_pos goes into the source text only -- positions are non-monotonic, nothing to route on. Corroborating only, never its own action.",
-        "phase": "entry_1_brake",
-        "verdict": "unstable_yaw",
-        "grade": "engineer-verbatim"
-      },
+      "confidence_derived_from": "2026-09-18, user decision -- 'sensor boolean, single-session semantics, revisit'. Supersedes the earlier confidence=1.0 default for this evidence.",
       "abs_heavy_masks_verdict": {
         "_comment": "Engineer rule: 'ABS regulating heavily through braking zones -> flag as masking, prefer brake-balance/platform levers'. Fires when abs_active duty cycle in entry_1_brake > heavy_duty_cycle_threshold. A flag (masked_by_heavy_abs), not verdict evidence: the braking-phase reading may be ABS regulation, not mechanical balance. Never creates an action.",
         "phase": "entry_1_brake",
         "heavy_duty_cycle_threshold": 0.5,
-        "heavy_duty_cycle_threshold_derived_from": "ROUND number, NOT gap-selected -- only 5 real per-instance ABS duty-cycle observations exist on GT3_PRC_MLA-v3.txt (range 26%-57%, too few for a robust gap), Deepening Phase 4c census. 0.5 (more than half the braking phase under ABS regulation) is deliberately conservative/rare -- only 1 of the 5 observed instances would qualify -- revisit once more sessions provide a real distribution to gap-select against.",
+        "heavy_duty_cycle_threshold_derived_from": "ROUND number, NOT gap-selected -- only 5 real per-instance ABS duty-cycle observations exist on GT3_PRC_MLA-v3.txt (range 26%-57%, too few for a robust gap), 2026-09-18 census. 0.5 (more than half the braking phase under ABS regulation) is deliberately conservative/rare -- only 1 of the 5 observed instances would qualify -- revisit once more sessions provide a real distribution to gap-select against.",
         "grade": "engineer-verbatim"
       }
     },
     "tc": {
       "enabled": false,
       "confidence": 1.0,
-      "confidence_note": "Unchanged from Stage 2 -- TC stays dormant (Deepening Phase 4c, user decision: 'TC/EB stay dormant pending mapping'), so this confidence value is not yet load-bearing either way.",
-      "tc_active_corroborates_traction_limited": {
-        "_comment": "Fires when ecu_B_tc_act is 1 anywhere in exit_4/exit_5 of a lap AND the corner/phase has oversteer matrix-verdict evidence. Corroborates traction_limited (or stands alone where LS is invalid). Evidence only, never an action.",
-        "phases": [
-          "exit_4",
-          "exit_5"
-        ],
-        "verdict": "oversteer",
-        "grade": "engineer-verbatim"
-      }
+      "confidence_note": "TC stays dormant (2026-09-18, user decision: 'TC/EB stay dormant pending mapping'), so this confidence value is not yet load-bearing either way."
     }
   },
   "plausibility_checks": {
     "_comment": "Cheap checks, generated whenever their evidence fires. Data checks against config bounds, not vehicle-dynamics claims.",
-    "tyre_pressure_window": {
-      "_comment": "Per-axle hot-pressure window. No source for it anywhere in the repo -> null on purpose rather than a guessed limit.",
-      "front": {
-        "min_psi": null,
-        "max_psi": null
-      },
-      "rear": {
-        "min_psi": null,
-        "max_psi": null
-      },
-      "per_corner_override": {
-        "fl": null,
-        "fr": null,
-        "rl": null,
-        "rr": null
-      },
-      "derived_from": "NEEDS USER INPUT -- no target hot-pressure window exists anywhere in this project's config or docs. Supply front/rear (or per-corner) min/max in psi from tyre data sheet or team practice before this check can ever fire; until then it is wired but permanently silent (no evidence, not a false negative). CHANNEL-CENSUS CORRECTION 2026-09-22 (DECISION LAYER SPEC Phase A5): the claim above ('zero tyre-pressure entries anywhere') was checked only against config/channels.json, config/parameters.json, config/setup_parameters.json, config/car_data.json -- it was never checked against the raw telemetry files themselves, which the channel census rule requires. Direct census of both real sessions found tpms_press_fl/fr/rl/rr[bar] (plus _abs/_raw/_dash variants) IS present and populated on both Sample_Dubai.txt and GT3_PRC_MLA-v3.txt, 1 Hz, real varying values (~1.6-1.8 bar plausible range) alongside clear startup/dropout glitches (Dubai: 20.47 bar spike at channel start; v3: 6.2 bar at start, an isolated 296.7 bar dropout spike) that would need a Tier B exclusion mask before any production use. This corrects the earlier premise, not the target-window gap: the LIVE CHANNEL exists, but the TARGET pressure (this file's own min/max here and in tyre_pressure_target below) still does not -- no data sheet or team-practice number exists anywhere in this repo, so both blocks stay null on purpose, unchanged in effect. No production wiring done this session (out of Phase A's own scope)."
-    },
     "brake_balance_signature": {
       "_comment": "Front axle past its limit while the rear stays healthy under braking. Uses classify_fn's severity labels, not raw CS numbers -- the classification thresholds are never duplicated here.",
       "phase": "entry_1_brake",
@@ -63,7 +30,7 @@
       "derived_from": "Tier B. 'Beyond limit' = front axle's classify_fn severity on entry_1_brake reaches front_beyond_severity_min (today: 'moderate', i.e. CS_ratio_f at or past config/parameters.json classification.MODERATE_CSF). 'Healthy' = rear axle's severity on the same phase stays at/below rear_healthy_severity_max (today: 'normal', i.e. rear CS_ratio_r has not crossed even MODERATE_CSR). Reuses the existing _phase_verdict/classify_fn path (modules/recommendation.py) unmodified, per-axle -- guarantees this check can never disagree with what the stability grid already shows for the same corner/phase."
     }
   },
-  "_comment_tyre_pressure_target": "Tyre pressures are never recommended, only flagged beside the shortlist when out of window, on the apex-window median only (apex = peak lateral load; author decision 2026-09-28). Per corner, with a compound note. Replaces plausibility_checks.tyre_pressure_window for the decision frame. tpms_press_* is a measurement, not a target -- no target exists, so all null.",
+  "_comment_tyre_pressure_target": "Tyre pressures are never recommended, only flagged beside the shortlist when out of window, on the apex-window median only (apex = peak lateral load; author decision 2026-09-28). Per corner, with a compound note. Replaces the former plausibility_checks.tyre_pressure_window (removed 2026-09-28). tpms_press_* is the measurement, not the target: the target bands are author-elicited 2026-09-24 (tyre_pressure_target: front fl/fr 1.85-1.95 bar, rear rl/rr 1.8-1.9 bar), compound-scoped -- see its compound_note.",
   "tyre_pressure_target": {
     "_comment_units": "Units are bar (min_bar/max_bar), like the tpms_press_* channels -- the earlier psi names were wrong (docs/channel_requirements.md; diagnostics/inspect_tpms_pressure_cornering_phase.py).",
     "fl": {
@@ -85,7 +52,7 @@
     "location_all_but_max_in_band": 3,
     "location_all_but_max_in_band_derived_from": "Author 2026-09-28 (display): when this many corners or fewer sit IN band, an off-band wheel is written \"all but C.../C...\" instead of the positive corner list.",
     "compound_note": "Author-elicited 2026-09-24: this band is COMPOUND-SCOPED, not universal -- it assumes one specific tyre compound. The tool has no per-outing compound field or channel (verified: neither exists anywhere in this codebase), so it cannot detect or auto-suppress a session run on a different compound. A session whose apex pressure sits consistently and uniformly below/above this band on all four corners may simply be a different compound, not a real pressure problem -- read this note before acting on a flag. A per-outing compound field is a named future refinement, not built here.",
-    "derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B2, elicitation item 2 RESOLVED): front 1.85-1.95 bar, rear 1.80-1.90 bar; per-corner fields inherit their axle's band (fl/fr share the front band, rl/rr share the rear band -- no per-corner distinction elicited). Verified live before activating (channel census rule): tpms_press_fl/fr/rl/rr confirmed present, unit bar, real cornering-phase variation on both sessions (diagnostics/inspect_tpms_pressure_cornering_phase.py, thesis_notes.md) -- channel identity/semantics check out; v3's cornering-phase readings sit near/inside this band, Dubai's sit consistently below it (see compound_note above for why that is not treated as a pressure fault)."
+    "derived_from": "Author-elicited 2026-09-24: front 1.85-1.95 bar, rear 1.80-1.90 bar; per-corner fields inherit their axle's band (fl/fr share the front band, rl/rr share the rear band -- no per-corner distinction elicited). Verified live before activating (channel census rule): tpms_press_fl/fr/rl/rr confirmed present, unit bar, real cornering-phase variation on both sessions (diagnostics/inspect_tpms_pressure_cornering_phase.py) -- channel identity/semantics check out; v3's cornering-phase readings sit near/inside this band, Dubai's sit consistently below it (see compound_note above for why that is not treated as a pressure fault)."
   },
   "_comment_scoring_weights_retired": "scoring_weights retired -- everything lives in cost_function: severity_weight/phase_importance -> severity/phase_importance (problem weight); effect_weight/effect_class_multiplier -> effect_class (lever fit, not problem weight); effort_weight -> change_time; settings_window_weight -> headroom; interaction_weight -> interaction; confidence_weight folded into the problem-weight product. score() reads cost_function only.",
   "driver_feedback_weighting": {
@@ -94,7 +61,7 @@
       {"max_abs": 1, "value": 0.1, "label": "low (|1|, a note)",
        "derived_from": "Unchanged from the original linear ramp's own floor -- user decision (prior session, quoted verbatim): 'counts from 1, very little weight'. Band shape per feedback-scale semantics, values provisional pending elicitation, 2026-09-23."},
       {"max_abs": 3, "value": 0.75, "label": "mid (|2|-|3|, clearly felt)",
-       "derived_from": "Provisional, 2026-09-23 (Phase D ITEM 2(c), reviewer+user decision) -- deliberately ABOVE the old linear ramp's own value across this whole band (0.4 at |2|, 0.7 at |3|), the 'proportionate strengthening' this item's own name describes: a clearly-felt complaint should already carry most of a corroborating item's own weight, not a fraction of it. Band shape per feedback-scale semantics, values provisional pending elicitation, 2026-09-23."},
+       "derived_from": "Provisional, 2026-09-23 (reviewer+user decision) -- deliberately ABOVE the old linear ramp's own value across this whole band (0.4 at |2|, 0.7 at |3|), a proportionate strengthening: a clearly-felt complaint should already carry most of a corroborating item's own weight, not a fraction of it. Band shape per feedback-scale semantics, values provisional pending elicitation, 2026-09-23."},
       {"max_abs": 5, "value": 1.0, "label": "undrivable (|4|-|5|, saturates)",
        "derived_from": "Same full-weight anchor the old linear ramp already reached at |4| (config/recommendations.json settings.consistency_gate.feedback_override.feedback_override_raw_min=4, the scale's own established 'approaching undrivable' floor, modules/recommendation.py VERDICT_EXPECTED_FEEDBACK_SIGN/_override_direction_ok) -- |5|='undrivable' per the feedback-table's own caption saturates at the same 1.0, exactly, never higher (confidence is capped at 1.0 project-wide). Band shape per feedback-scale semantics, values provisional pending elicitation, 2026-09-23."}
     ]
@@ -103,7 +70,7 @@
     "_comment": "LS thresholds, phase-scoped, kept here on purpose -- not in parameters.json classification, so they can never become a verdict tier or severity colour. Read by _build_ls_threshold_evidence. Derived from 71 negative worst-phase instances on both sessions, checked against brake/throttle/ABS/TC/|ax|/repeatability.",
     "enabled": true,
     "STRONG_LSF": -0.79,
-    "STRONG_LSF_derived_from": "LS-evidence census pooled p10 (front), same physical anchor logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force point, minus a data-sized margin) -- Metrology extension Phase 2's own repaired-estimator distribution, n=31 pooled corners. Reopen condition: a validity-repair-scale re-derivation if a third session's own distribution shifts this materially; small-n caveat carried over unchanged from the original proposal.",
+    "STRONG_LSF_derived_from": "LS-evidence census pooled p10 (front), same physical anchor logic as CS_ratio's own STRONG_CSF/CSR (0 = the ratio's own peak-force point, minus a data-sized margin) -- the repaired estimator's distribution (2026-09-19), n=31 pooled corners. Reopen condition: a validity-repair-scale re-derivation if a third session's own distribution shifts this materially; small-n caveat carried over unchanged from the original proposal.",
     "STRONG_LSR": -0.6,
     "STRONG_LSR_derived_from": "Same population/method as STRONG_LSF, rear axle pooled p10. Reopen condition identical.",
     "braking_turnin_phases": [
@@ -116,7 +83,7 @@
       "exit_5"
     ],
     "exit_phase_confidence_discount": 0.5,
-    "exit_phase_confidence_discount_derived_from": "LS-evidence census, 2026-09-20: exit-phase negative instances corroborate at only 34% (15/44) vs braking 89% (8/9) and turn-in/apex 72% (13/18) -- the discriminating factor is NAMED, not just observed: TC (the natural exit/traction corroborator) fires on only 3 samples in v3's entire session (0.0044%, thesis_notes.md 'Frame-Stage-2 Phase 2: intervention-channel survey'), so exit-phase readings are structurally unable to be TC-corroborated this session regardless of whether the underlying signal is real -- an evidence gap, not a demonstrated absence of signal. 0.5 reuses intervention_evidence.abs.confidence's own 0.8-cap PRECEDENT (a MIN-confidence ceiling, not a new discount mechanism) at a value matching this source's own weaker (34%, vs ABS's 41.92% co-occurrence) corroboration rate. Applied via min() against the SAME repeat-fraction confidence _build_corner_verdict_evidence already computes -- repeatability across a corner's own laps (the Dubai C3 pattern: exit_5 rear, repeat=4/4, corroborated via repeatability alone with zero TC activity) is what lifts a reading UP TO this ceiling rather than leaving it at a low one-off fraction; min() cannot inflate a genuinely low fraction past what it already is. REOPEN CONDITION, stated explicitly per the work order: a session with real, non-trivial TC activity re-derives this discount (or removes the need for it) by closing the evidence gap directly instead of working around it."
+    "exit_phase_confidence_discount_derived_from": "LS-evidence census, 2026-09-20: exit-phase negative instances corroborate at only 34% (15/44) vs braking 89% (8/9) and turn-in/apex 72% (13/18) -- the discriminating factor is NAMED, not just observed: TC (the natural exit/traction corroborator) fires on only 3 samples in v3's entire session (0.0044%, intervention-channel survey), so exit-phase readings are structurally unable to be TC-corroborated this session regardless of whether the underlying signal is real -- an evidence gap, not a demonstrated absence of signal. 0.5 reuses intervention_evidence.abs.confidence's own 0.8-cap PRECEDENT (a MIN-confidence ceiling, not a new discount mechanism) at a value matching this source's own weaker (34%, vs ABS's 41.92% co-occurrence) corroboration rate. Applied via min() against the SAME repeat-fraction confidence _build_corner_verdict_evidence already computes -- repeatability across a corner's own laps (the Dubai C3 pattern: exit_5 rear, repeat=4/4, corroborated via repeatability alone with zero TC activity) is what lifts a reading UP TO this ceiling rather than leaving it at a low one-off fraction; min() cannot inflate a genuinely low fraction past what it already is. REOPEN CONDITION: a session with real, non-trivial TC activity re-derives this discount (or removes the need for it) by closing the evidence gap directly instead of working around it."
   },
   "_comment_parameter_windows": "One entry per registry key (46). nominal + span from the registry's typical_window/value_space: span = half the typical window width (one-sided, e.g. arb_fl 4 +/- 1 from 3..5); no typical window -> nominal = value_space midpoint, span = half the legal range (wider, weaker, flagged). Plain enums without an underlying number stay null (arb_front_mount, wing_position). Null window or non-numeric current value -> neutral headroom term.",
   "parameter_windows": {
@@ -143,22 +110,22 @@
     "arb_front_mount": {
       "nominal": null,
       "span": null,
-      "note": "STAYS UNFILLABLE, per Deepening Phase 4a's own review (2026-09-18), for a stronger reason than the old 'no team preference recorded': no numeric quantity underlies this enum ANYWHERE in this codebase (verified -- car_data.json's own 'arb' table is BLADE stiffness by position 1-7, a completely different parameter from arb_front_mount's P0/P1/P2 MOUNT-POINT selection). A plain enum-index midpoint (e.g. index 1 = 'P1') would have no physical referent, same category as abs_position below -- not filled."
+      "note": "STAYS UNFILLABLE (review 2026-09-18), for a stronger reason than the old 'no team preference recorded': no numeric quantity underlies this enum ANYWHERE in this codebase (verified -- car_data.json's own 'arb' table is BLADE stiffness by position 1-7, a completely different parameter from arb_front_mount's P0/P1/P2 MOUNT-POINT selection). A plain enum-index midpoint (e.g. index 1 = 'P1') would have no physical referent, same category as abs_position below -- not filled."
     },
     "springs_front": {
       "nominal": 265,
       "span": 45,
-      "source": "Deepening Phase 4a: value_space.options=[220,250,280,310] N/mm (a NUMERIC enum, unlike arb_front_mount/wing_position) -- nominal=range midpoint (220+310)/2, span=half-width (310-220)/2, per the work order's own rule. Not one of the 4 legal option values itself (no option sits at the midpoint) -- stated as the window CENTRE for distance purposes, not a recommendable setting."
+      "source": "2026-09-18: value_space.options=[220,250,280,310] N/mm (a NUMERIC enum, unlike arb_front_mount/wing_position) -- nominal=range midpoint (220+310)/2, span=half-width (310-220)/2. Not one of the 4 legal option values itself (no option sits at the midpoint) -- stated as the window CENTRE for distance purposes, not a recommendable setting."
     },
     "springs_rear": {
       "nominal": 270,
       "span": 30,
-      "source": "Deepening Phase 4a: value_space.options=[240,260,280,300] N/mm -- nominal=(240+300)/2, span=(300-240)/2. Same non-option-value caveat as springs_front."
+      "source": "2026-09-18: value_space.options=[240,260,280,300] N/mm -- nominal=(240+300)/2, span=(300-240)/2. Same non-option-value caveat as springs_front."
     },
     "damper_bump_ls_fl": {
       "nominal": 10,
       "span": 9,
-      "source": "typical_window.reference_point_NBR=10; span=Deepening Phase 4a fallback, HALF the full legal value_space range (0-18 clicks)/2=9 -- no team-typical SPAN exists, only the reference point, so this is deliberately a wide, weak window (the full legal range), not a real team-typical tolerance."
+      "source": "typical_window.reference_point_NBR=10; span=fallback (2026-09-18), HALF the full legal value_space range (0-18 clicks)/2=9 -- no team-typical SPAN exists, only the reference point, so this is deliberately a wide, weak window (the full legal range), not a real team-typical tolerance."
     },
     "damper_bump_hs_fl": {
       "nominal": 14,
@@ -274,12 +241,12 @@
     "diff_position": {
       "nominal": 3,
       "span": 2,
-      "source": "Deepening Phase 4a: no typical_window nominal exists, so nominal=value_space range midpoint (1+5)/2=3 per the work order's own rule (previously deliberately left null under the OLDER Stage-1 policy of never filling a plain midpoint -- Phase 4a's own work order explicitly asks for exactly this fill, so the two are not in tension, this supersedes the earlier caution); span=half the full range (5-1)/2=2."
+      "source": "2026-09-18: no typical_window nominal exists, so nominal=value_space range midpoint (1+5)/2=3 (supersedes the earlier policy of leaving a plain midpoint null); span=half the full range (5-1)/2=2."
     },
     "wing_position": {
       "nominal": null,
       "span": null,
-      "note": "STAYS UNFILLABLE IN CURRENT FORM, Deepening Phase 4a (2026-09-18) -- distinct from arb_front_mount's reason: a real physical anchor DOES exist (setup_parameters.json's own angles_deg=[7.3,8.3,9.3], midpoint 8.3 degrees, which lands exactly on option P9), but Outing.setup_data stores this parameter's value as the ENUM LABEL string ('P9'), not the angle -- modules.decision_frame._current_setup_value would return 'P9' as-is, and a nominal/span filled in DEGREES would be compared against a value in a different representation entirely, silently unusable (now caught defensively, not crashing, by this same phase's _settings_window_component fix, but still not a working window). Filling the number without also adding a label->angle mapping in code would misrepresent this as functional when it is not -- left null and flagged rather than shipping a false impression of coverage; a real fix needs a small code change (map the stored label through value_space.options/angles_deg before the numeric comparison), out of this phase's own config-only scope."
+      "note": "STAYS UNFILLABLE IN CURRENT FORM (2026-09-18) -- distinct from arb_front_mount's reason: a real physical anchor DOES exist (setup_parameters.json's own angles_deg=[7.3,8.3,9.3], midpoint 8.3 degrees, which lands exactly on option P9), but Outing.setup_data stores this parameter's value as the ENUM LABEL string ('P9'), not the angle -- modules.decision_frame._current_setup_value would return 'P9' as-is, and a nominal/span filled in DEGREES would be compared against a value in a different representation entirely, silently unusable (caught defensively in _settings_window_component, not crashing, but still not a working window). Filling the number without also adding a label->angle mapping in code would misrepresent this as functional when it is not -- left null and flagged rather than shipping a false impression of coverage; a real fix needs a small code change (map the stored label through value_space.options/angles_deg before the numeric comparison)."
     },
     "toe_front": {
       "nominal": -2,
@@ -294,7 +261,7 @@
     "camber_fl": {
       "nominal": -3.5,
       "span": 1.4,
-      "source": "typical_window.base=-3.5; span=Deepening Phase 4a fallback, half the full legal value_space range (-4.8 to -2.0 deg)/2=1.4 -- no team-typical span exists, only the base value, so this is deliberately the full legal range, not a real tolerance."
+      "source": "typical_window.base=-3.5; span=fallback (2026-09-18), half the full legal value_space range (-4.8 to -2.0 deg)/2=1.4 -- no team-typical span exists, only the base value, so this is deliberately the full legal range, not a real tolerance."
     },
     "camber_fr": {
       "nominal": -3.5,
@@ -314,7 +281,7 @@
     "tc_lat": {
       "nominal": 5,
       "span": 5.5,
-      "source": "typical_window.baseline=5 ('normal conditions'); span=Deepening Phase 4a fallback, half the full legal value_space range (0-11)/2=5.5 -- no team-typical span exists, only the baseline, so this is deliberately the full legal range."
+      "source": "typical_window.baseline=5 ('normal conditions'); span=fallback (2026-09-18), half the full legal value_space range (0-11)/2=5.5 -- no team-typical span exists, only the baseline, so this is deliberately the full legal range."
     },
     "tc_lon": {
       "nominal": 5,
@@ -324,12 +291,12 @@
     "abs_position": {
       "nominal": null,
       "span": null,
-      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal+span distance doesn't apply; Phase 4 must treat this parameter's settings-window component as neutral/skipped, not null-as-zero"
+      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal+span distance doesn't apply; scoring treats this parameter's settings-window component as neutral/skipped, not null-as-zero"
     },
     "brake_bias": {
       "nominal": null,
       "span": null,
-      "note": "CORRECTED 2026-09-23 (Phase F close-out, WP-DL): brake_bias was PROMOTED to recommendation_target=true in config/setup_parameters.json on 2026-09-22 (DECISION LAYER SPEC, an oversight fix) -- this note's own former 'context-only, recommendation_target=false' framing predated that promotion and was stale, found by the Phase E coverage-table audit (thesis_notes.md). nominal/span stay null for an independent, still-current reason: current-state window is not evaluable until the brake-bias channel itself is identified (elicitation item 4, config/setup_parameters.json brake_bias notes)."
+      "note": "CORRECTED 2026-09-23: brake_bias was PROMOTED to recommendation_target=true in config/setup_parameters.json on 2026-09-22 (an oversight fix); this note's former 'context-only' framing predated that and was stale. nominal/span stay null for an independent, still-current reason: current-state window is not evaluable until the brake-bias channel itself is identified (config/setup_parameters.json brake_bias notes)."
     },
     "splitter_offset": {
       "nominal": 0,
@@ -401,7 +368,7 @@
       "performance_axis": "braking_performance",
       "sign": -1,
       "grade": "proposed",
-      "note": "User-elicited 2026-09-02 (decision-frame Stage 1 session): increasing front negative camber decreases braking performance -- reduced longitudinal contact-patch area under camber angle. Consistent with camber_fl's own registry mechanism text ('dictated by tyre usage/temperature distribution across the contact patch') but this specific braking-phase pairing was not previously recorded anywhere in this codebase (verified by search across config/recommendations.json, config/setup_parameters.json, thesis_notes.md, modules/ -- every existing camber rule ties to the apex phase only). Proposed grade, advisory-capped until engineering-reviewed."
+      "note": "User-elicited 2026-09-02: increasing front negative camber decreases braking performance -- reduced longitudinal contact-patch area under camber angle. Consistent with camber_fl's own registry mechanism text ('dictated by tyre usage/temperature distribution across the contact patch') but this specific braking-phase pairing was not previously recorded anywhere in this codebase (verified by search across config/recommendations.json, config/setup_parameters.json, modules/ -- every existing camber rule ties to the apex phase only). Proposed grade, advisory-capped until engineering-reviewed."
     },
     {
       "parameter": "camber_fr",
@@ -433,7 +400,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Softening front ARB is used elsewhere (matrix_us_apx_low, matrix_us_brk_med_esc) to fix UNDERSTEER -- the opposite direction (stiffen) is what matrix_os_apx_low uses to fix OVERSTEER, so softening trades that oversteer-control margin away. Deepening Phase 4b (2026-09-18), systematic extraction from all 39 rules."
+      "note": "Softening front ARB is used elsewhere (matrix_us_apx_low, matrix_us_brk_med_esc) to fix UNDERSTEER -- the opposite direction (stiffen) is what matrix_os_apx_low uses to fix OVERSTEER, so softening trades that oversteer-control margin away. Systematic extraction from all 39 rules (2026-09-18)."
     },
     {
       "parameter": "arb_fl",
@@ -441,7 +408,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Stiffening front ARB (matrix_os_apx_low's own oversteer fix) trades away the understeer-control margin that softening (matrix_us_apx_low/matrix_us_brk_med_esc) provides -- opposite-direction cross-reference. Deepening Phase 4b."
+      "note": "Stiffening front ARB (matrix_os_apx_low's own oversteer fix) trades away the understeer-control margin that softening (matrix_us_apx_low/matrix_us_brk_med_esc) provides -- opposite-direction cross-reference. (2026-09-18)"
     },
     {
       "parameter": "arb_fr",
@@ -449,7 +416,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Softening front ARB is used elsewhere (matrix_us_apx_low, matrix_us_brk_med_esc) to fix UNDERSTEER -- the opposite direction (stiffen) is what matrix_os_apx_low uses to fix OVERSTEER, so softening trades that oversteer-control margin away. Deepening Phase 4b (2026-09-18), systematic extraction from all 39 rules."
+      "note": "Softening front ARB is used elsewhere (matrix_us_apx_low, matrix_us_brk_med_esc) to fix UNDERSTEER -- the opposite direction (stiffen) is what matrix_os_apx_low uses to fix OVERSTEER, so softening trades that oversteer-control margin away. Systematic extraction from all 39 rules (2026-09-18)."
     },
     {
       "parameter": "arb_fr",
@@ -457,7 +424,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Stiffening front ARB (matrix_os_apx_low's own oversteer fix) trades away the understeer-control margin that softening (matrix_us_apx_low/matrix_us_brk_med_esc) provides -- opposite-direction cross-reference. Deepening Phase 4b."
+      "note": "Stiffening front ARB (matrix_os_apx_low's own oversteer fix) trades away the understeer-control margin that softening (matrix_us_apx_low/matrix_us_brk_med_esc) provides -- opposite-direction cross-reference. (2026-09-18)"
     },
     {
       "parameter": "arb_rl",
@@ -465,7 +432,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Stiffening rear ARB (matrix_us_exit_med/high's own understeer fix) trades away the oversteer-control margin that softening (matrix_os_brk_med/high, matrix_os_exit_med) provides. Deepening Phase 4b."
+      "note": "Stiffening rear ARB (matrix_us_exit_med/high's own understeer fix) trades away the oversteer-control margin that softening (matrix_os_brk_med/high, matrix_os_exit_med) provides. (2026-09-18)"
     },
     {
       "parameter": "arb_rl",
@@ -473,7 +440,7 @@
       "performance_axis": "yaw_stability",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "The retired seed rule yaw_entry_unstable records that softening rear ARB frees up rear grip and adds yaw damping while trail-braking -- stiffening (matrix_us_exit_med/high's own direction) is the opposite of that yaw-damping lever. Deepening Phase 4b, inverted cross-reference from the same retired-rule mechanism the existing (arb_rl/rr, soften) -> yaw_stability(+1) entries already use."
+      "note": "The retired seed rule yaw_entry_unstable records that softening rear ARB frees up rear grip and adds yaw damping while trail-braking -- stiffening (matrix_us_exit_med/high's own direction) is the opposite of that yaw-damping lever. Inverted cross-reference (2026-09-18) from the same retired-rule mechanism the existing (arb_rl/rr, soften) -> yaw_stability(+1) entries already use."
     },
     {
       "parameter": "arb_rr",
@@ -481,7 +448,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Stiffening rear ARB (matrix_us_exit_med/high's own understeer fix) trades away the oversteer-control margin that softening (matrix_os_brk_med/high, matrix_os_exit_med) provides. Deepening Phase 4b."
+      "note": "Stiffening rear ARB (matrix_us_exit_med/high's own understeer fix) trades away the oversteer-control margin that softening (matrix_os_brk_med/high, matrix_os_exit_med) provides. (2026-09-18)"
     },
     {
       "parameter": "arb_rr",
@@ -489,7 +456,7 @@
       "performance_axis": "yaw_stability",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "The retired seed rule yaw_entry_unstable records that softening rear ARB frees up rear grip and adds yaw damping while trail-braking -- stiffening (matrix_us_exit_med/high's own direction) is the opposite of that yaw-damping lever. Deepening Phase 4b, inverted cross-reference from the same retired-rule mechanism the existing (arb_rl/rr, soften) -> yaw_stability(+1) entries already use."
+      "note": "The retired seed rule yaw_entry_unstable records that softening rear ARB frees up rear grip and adds yaw damping while trail-braking -- stiffening (matrix_us_exit_med/high's own direction) is the opposite of that yaw-damping lever. Inverted cross-reference (2026-09-18) from the same retired-rule mechanism the existing (arb_rl/rr, soften) -> yaw_stability(+1) entries already use."
     },
     {
       "parameter": "camber_fl",
@@ -497,7 +464,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "More negative camber (matrix_us_apx_high's own understeer fix) trades away the oversteer-control margin that less-negative camber (matrix_os_apx_high) provides. Deepening Phase 4b -- distinct from this parameter's existing user-elicited braking_performance entry (a different, additional side-effect, not a duplicate)."
+      "note": "More negative camber (matrix_us_apx_high's own understeer fix) trades away the oversteer-control margin that less-negative camber (matrix_os_apx_high) provides. (2026-09-18) -- distinct from this parameter's existing user-elicited braking_performance entry (a different, additional side-effect, not a duplicate)."
     },
     {
       "parameter": "camber_fl",
@@ -505,7 +472,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Less negative camber (matrix_os_apx_high's own oversteer fix) trades away the understeer-control margin that more-negative camber (matrix_us_apx_high) provides. Deepening Phase 4b."
+      "note": "Less negative camber (matrix_os_apx_high's own oversteer fix) trades away the understeer-control margin that more-negative camber (matrix_us_apx_high) provides. (2026-09-18)"
     },
     {
       "parameter": "camber_fr",
@@ -513,7 +480,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "More negative camber (matrix_us_apx_high's own understeer fix) trades away the oversteer-control margin that less-negative camber (matrix_os_apx_high) provides. Deepening Phase 4b -- distinct from this parameter's existing user-elicited braking_performance entry (a different, additional side-effect, not a duplicate)."
+      "note": "More negative camber (matrix_us_apx_high's own understeer fix) trades away the oversteer-control margin that less-negative camber (matrix_os_apx_high) provides. (2026-09-18) -- distinct from this parameter's existing user-elicited braking_performance entry (a different, additional side-effect, not a duplicate)."
     },
     {
       "parameter": "camber_fr",
@@ -521,7 +488,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Less negative camber (matrix_os_apx_high's own oversteer fix) trades away the understeer-control margin that more-negative camber (matrix_us_apx_high) provides. Deepening Phase 4b."
+      "note": "Less negative camber (matrix_os_apx_high's own oversteer fix) trades away the understeer-control margin that more-negative camber (matrix_us_apx_high) provides. (2026-09-18)"
     },
     {
       "parameter": "diff_position",
@@ -529,7 +496,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Decreasing diff_position (matrix_us_tin_med/matrix_us_apx_med's own understeer fix) trades away the oversteer-control margin that increasing (matrix_os_tin_med/matrix_os_apx_med) provides -- the mirror of this parameter's existing (increase -> understeer_tendency) entry. Deepening Phase 4b."
+      "note": "Decreasing diff_position (matrix_us_tin_med/matrix_us_apx_med's own understeer fix) trades away the oversteer-control margin that increasing (matrix_os_tin_med/matrix_os_apx_med) provides -- the mirror of this parameter's existing (increase -> understeer_tendency) entry. (2026-09-18)"
     },
     {
       "parameter": "ride_height_front",
@@ -537,7 +504,7 @@
       "performance_axis": "yaw_stability",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Decreasing front ride height (matrix_us_brk_high's own understeer fix) is the opposite of increasing it, which matrix_inst_brk_med uses to address braking-phase yaw instability -- trades that margin away. Deepening Phase 4b."
+      "note": "Decreasing front ride height (matrix_us_brk_high's own understeer fix) is the opposite of increasing it, which matrix_inst_brk_med uses to address braking-phase yaw instability -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "ride_height_front",
@@ -545,7 +512,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Increasing front ride height (matrix_inst_brk_med's own yaw-instability fix) is the opposite of decreasing it, which matrix_us_brk_high uses to address understeer -- trades that margin away. Deepening Phase 4b."
+      "note": "Increasing front ride height (matrix_inst_brk_med's own yaw-instability fix) is the opposite of decreasing it, which matrix_us_brk_high uses to address understeer -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "ride_height_rear",
@@ -553,7 +520,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Decreasing rear ride height (matrix_inst_brk_med's own yaw-instability fix) is the opposite of increasing it, which matrix_us_brk_high uses to address understeer -- trades that margin away. Deepening Phase 4b."
+      "note": "Decreasing rear ride height (matrix_inst_brk_med's own yaw-instability fix) is the opposite of increasing it, which matrix_us_brk_high uses to address understeer -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "ride_height_rear",
@@ -561,7 +528,7 @@
       "performance_axis": "yaw_stability",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Increasing rear ride height (matrix_us_brk_high's own understeer fix) is the opposite of decreasing it, which matrix_inst_brk_med uses to address braking-phase yaw instability -- trades that margin away. Deepening Phase 4b."
+      "note": "Increasing rear ride height (matrix_us_brk_high's own understeer fix) is the opposite of decreasing it, which matrix_inst_brk_med uses to address braking-phase yaw instability -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "tc_lon",
@@ -569,7 +536,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Decreasing TC LON (matrix_us_exit_low's own understeer fix, more permitted wheel spin) is the opposite of increasing it, which matrix_os_exit_low uses to cut power-on oversteer -- trades that control away. Deepening Phase 4b."
+      "note": "Decreasing TC LON (matrix_us_exit_low's own understeer fix, more permitted wheel spin) is the opposite of increasing it, which matrix_os_exit_low uses to cut power-on oversteer -- trades that control away. (2026-09-18)"
     },
     {
       "parameter": "tc_lon",
@@ -577,7 +544,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Increasing TC LON (matrix_os_exit_low's own oversteer fix) is the opposite of decreasing it, which matrix_us_exit_low uses to free up rotation for understeer -- trades that margin away. Deepening Phase 4b."
+      "note": "Increasing TC LON (matrix_os_exit_low's own oversteer fix) is the opposite of decreasing it, which matrix_us_exit_low uses to free up rotation for understeer -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "toe_front",
@@ -585,7 +552,7 @@
       "performance_axis": "yaw_stability",
       "sign": 1,
       "grade": "derived-from-matrix",
-      "note": "matrix_inst_brk_high uses more-negative front toe to address braking-phase yaw instability directly -- a genuine SAME-direction side-benefit for a candidate whose own primary purpose is understeer (matrix_us_brk_low/matrix_us_tin_low, the same direction). Deepening Phase 4b."
+      "note": "matrix_inst_brk_high uses more-negative front toe to address braking-phase yaw instability directly -- a genuine SAME-direction side-benefit for a candidate whose own primary purpose is understeer (matrix_us_brk_low/matrix_us_tin_low, the same direction). (2026-09-18)"
     },
     {
       "parameter": "toe_front",
@@ -593,7 +560,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "More-negative front toe (matrix_us_brk_low/tin_low/inst_brk_high's own direction) is the opposite of less-negative, which matrix_os_tin_low uses to fix oversteer -- trades that margin away. Deepening Phase 4b."
+      "note": "More-negative front toe (matrix_us_brk_low/tin_low/inst_brk_high's own direction) is the opposite of less-negative, which matrix_os_tin_low uses to fix oversteer -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "toe_front",
@@ -601,7 +568,7 @@
       "performance_axis": "yaw_stability",
       "sign": -1,
       "grade": "derived-from-matrix",
-      "note": "Less-negative front toe (matrix_os_tin_low's own oversteer fix) is the opposite of more-negative, which matrix_inst_brk_high uses to address yaw instability -- trades that margin away. Deepening Phase 4b."
+      "note": "Less-negative front toe (matrix_os_tin_low's own oversteer fix) is the opposite of more-negative, which matrix_inst_brk_high uses to address yaw instability -- trades that margin away. (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -609,7 +576,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Stiffer front axle roll rate shifts balance toward more understeer (Segers ch.9/10, front/rear roll-stiffness distribution) -- worsens an active problem on this axis. PROPOSED: no matrix cell uses springs_front/rear at all (verified by search across all 39 rules) -- this is a literature-anchored bridge, not matrix-derived, advisory-capped until engineering-reviewed. Deepening Phase 4b."
+      "note": "Stiffer front axle roll rate shifts balance toward more understeer (Segers ch.9/10, front/rear roll-stiffness distribution) -- worsens an active problem on this axis. PROPOSED: no matrix cell uses springs_front/rear at all (verified by search across all 39 rules) -- this is a literature-anchored bridge, not matrix-derived, advisory-capped until engineering-reviewed. (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -617,7 +584,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": 1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Same roll-stiffness-distribution mechanism, opposite axis: stiffening the front axle shifts balance AWAY from oversteer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Same roll-stiffness-distribution mechanism, opposite axis: stiffening the front axle shifts balance AWAY from oversteer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -625,7 +592,7 @@
       "performance_axis": "understeer_tendency",
       "sign": 1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the stiffen entries above: softening reduces front roll stiffness, shifting balance AWAY from understeer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Mirror of the stiffen entries above: softening reduces front roll stiffness, shifting balance AWAY from understeer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -633,7 +600,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the stiffen entries above: softening shifts balance TOWARD oversteer -- worsens an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Mirror of the stiffen entries above: softening shifts balance TOWARD oversteer -- worsens an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -641,7 +608,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_front",
@@ -649,7 +616,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -657,7 +624,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Stiffer rear axle roll rate shifts balance toward more oversteer (Segers ch.9/10, front/rear roll-stiffness distribution) -- worsens an active problem on this axis. PROPOSED: no matrix cell uses springs_front/rear at all (verified by search across all 39 rules) -- this is a literature-anchored bridge, not matrix-derived, advisory-capped until engineering-reviewed. Deepening Phase 4b."
+      "note": "Stiffer rear axle roll rate shifts balance toward more oversteer (Segers ch.9/10, front/rear roll-stiffness distribution) -- worsens an active problem on this axis. PROPOSED: no matrix cell uses springs_front/rear at all (verified by search across all 39 rules) -- this is a literature-anchored bridge, not matrix-derived, advisory-capped until engineering-reviewed. (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -665,7 +632,7 @@
       "performance_axis": "understeer_tendency",
       "sign": 1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Same roll-stiffness-distribution mechanism, opposite axis: stiffening the rear axle shifts balance AWAY from understeer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Same roll-stiffness-distribution mechanism, opposite axis: stiffening the rear axle shifts balance AWAY from understeer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -673,7 +640,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": 1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the stiffen entries above: softening reduces rear roll stiffness, shifting balance AWAY from oversteer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Mirror of the stiffen entries above: softening reduces rear roll stiffness, shifting balance AWAY from oversteer -- helps an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -681,7 +648,7 @@
       "performance_axis": "understeer_tendency",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the stiffen entries above: softening shifts balance TOWARD understeer -- worsens an active problem on this axis. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Mirror of the stiffen entries above: softening shifts balance TOWARD understeer -- worsens an active problem on this axis. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -689,7 +656,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "springs_rear",
@@ -697,7 +664,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). Deepening Phase 4b."
+      "note": "Segers ch.9/10: a spring-rate change alters that axle's roll stiffness AND its ride/aero-platform behaviour together -- ARB does not touch this axis at all (a separate load path, invisible to ride height/platform), which is WHY the matrix prefers ARB over springs when only balance is sought (see this table's own top-level comment). Structurally INERT in current scoring, same as the existing braking_performance/traction_performance entries -- no evidence source in this frame produces a platform_stability-verdict-mapped item yet (_AXIS_TO_VERDICT has no mapping for it), so this never actually contributes a penalty today; documented for completeness and for whenever a platform/ride evidence source is added. PROPOSED (Segers ch.9/10). (2026-09-18)"
     },
     {
       "parameter": "ride_height_front",
@@ -705,7 +672,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Literature-bridge work package (2026-09-20), coverage-check follow-up to Deepening Phase 4b's springs entries above -- ride_height_front already carries derived-from-matrix understeer_tendency/yaw_stability entries (its BALANCE side-effect, from matrix_us_brk_high/matrix_inst_brk_med); this is the SEPARATE platform axis those don't cover. Grounded directly in the parameter's own registry mechanism text (config/setup_parameters.json ride_height_front.mechanism): 'sets front floor/splitter proximity to the ground -- aero platform height'. Same Segers ch.9/10 ride/aero-platform anchor already used for springs above (ch.10 pp.221-256, roll-centre/load-transfer and ride-related aero platform). Structurally INERT in current scoring, identical status to the springs platform_stability entries -- no evidence source maps to platform_stability yet (_AXIS_TO_VERDICT has no entry for it). PROPOSED (Segers ch.9/10)."
+      "note": "2026-09-20, coverage-check follow-up to the springs entries above -- ride_height_front already carries derived-from-matrix understeer_tendency/yaw_stability entries (its BALANCE side-effect, from matrix_us_brk_high/matrix_inst_brk_med); this is the SEPARATE platform axis those don't cover. Grounded directly in the parameter's own registry mechanism text (config/setup_parameters.json ride_height_front.mechanism): 'sets front floor/splitter proximity to the ground -- aero platform height'. Same Segers ch.9/10 ride/aero-platform anchor already used for springs above (ch.10 pp.221-256, roll-centre/load-transfer and ride-related aero platform). Structurally INERT in current scoring, identical status to the springs platform_stability entries -- no evidence source maps to platform_stability yet (_AXIS_TO_VERDICT has no entry for it). PROPOSED (Segers ch.9/10)."
     },
     {
       "parameter": "ride_height_front",
@@ -713,7 +680,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the decrease entry above -- either direction moves the front aero platform, not just balance (same non-monotonic-axis convention the springs stiffen/soften pair above already uses for platform_stability: sign is -1 regardless of direction, since ANY change trades platform margin, not a directional 'helps/hurts' claim the way understeer_tendency/oversteer_tendency are). Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). Literature-bridge work package, 2026-09-20."
+      "note": "Mirror of the decrease entry above -- either direction moves the front aero platform, not just balance (same non-monotonic-axis convention the springs stiffen/soften pair above already uses for platform_stability: sign is -1 regardless of direction, since ANY change trades platform margin, not a directional 'helps/hurts' claim the way understeer_tendency/oversteer_tendency are). Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). 2026-09-20."
     },
     {
       "parameter": "ride_height_rear",
@@ -721,7 +688,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Literature-bridge work package (2026-09-20), same reasoning as ride_height_front above. Grounded in the parameter's own registry mechanism text (config/setup_parameters.json ride_height_rear.mechanism): 'sets rear floor/diffuser exit height -- aero platform height and rake (with ride_height_front)'. Same Segers ch.9/10 anchor. Structurally INERT in current scoring (_AXIS_TO_VERDICT has no platform_stability mapping). PROPOSED (Segers ch.9/10)."
+      "note": "2026-09-20, same reasoning as ride_height_front above. Grounded in the parameter's own registry mechanism text (config/setup_parameters.json ride_height_rear.mechanism): 'sets rear floor/diffuser exit height -- aero platform height and rake (with ride_height_front)'. Same Segers ch.9/10 anchor. Structurally INERT in current scoring (_AXIS_TO_VERDICT has no platform_stability mapping). PROPOSED (Segers ch.9/10)."
     },
     {
       "parameter": "ride_height_rear",
@@ -729,7 +696,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "Mirror of the decrease entry above -- either direction moves the rear aero platform and rake, not just balance. Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). Literature-bridge work package, 2026-09-20."
+      "note": "Mirror of the decrease entry above -- either direction moves the rear aero platform and rake, not just balance. Structurally INERT, same reason as above. PROPOSED (Segers ch.9/10). 2026-09-20."
     },
     {
       "parameter": "splitter_offset",
@@ -737,7 +704,7 @@
       "performance_axis": "platform_stability",
       "sign": -1,
       "grade": "proposed (Segers ch.9/10)",
-      "note": "DECISION LAYER SPEC B7 (2026-09-22), reviewer-confirmed: splitter_offset promoted to a lever in Phase A, spec Stage 1 names it front-aero 'pair-lever to wing (same axis); ride_height_front (shared ground clearance)' -- mirrors those two parameters' own platform_stability convention exactly (sign=-1 regardless of direction, since ANY change trades front-platform margin, not a directional helps/hurts claim). Same Segers ch.9/10 ride/aero-platform anchor already used for wing_position/ride_height_front above. Structurally INERT in current scoring (_AXIS_TO_VERDICT has no platform_stability mapping), identical status to those entries. NO lever_bridges entry accompanies this pairing -- splitter_offset's own direction sign convention (which extreme is 'forward'/more front downforce) is unresolved (config/setup_parameters.json splitter_offset.direction_semantics, Phase A), so a directional recommendation would have to invent it; this entry needs no such resolution (sign=-1 both ways, same as wing/ride_height's own convention), but a real recommend-splitter bridge is deliberately NOT built this package -- reported as a gap, not worked around."
+      "note": "2026-09-22, reviewer-confirmed: splitter_offset promoted to a lever; it is named front-aero 'pair-lever to wing (same axis); ride_height_front (shared ground clearance)' -- mirrors those two parameters' own platform_stability convention exactly (sign=-1 regardless of direction, since ANY change trades front-platform margin, not a directional helps/hurts claim). Same Segers ch.9/10 ride/aero-platform anchor already used for wing_position/ride_height_front above. Structurally INERT in current scoring (_AXIS_TO_VERDICT has no platform_stability mapping), identical status to those entries. NO lever_bridges entry accompanies this pairing -- splitter_offset's own direction sign convention (which extreme is 'forward'/more front downforce) is unresolved (config/setup_parameters.json splitter_offset.direction_semantics, at the time), so a directional recommendation would have to invent it; this entry needs no such resolution (sign=-1 both ways, same as wing/ride_height's own convention), a real recommend-splitter bridge was deliberately not built here -- a gap, not worked around."
     },
     {
       "parameter": "splitter_offset",
@@ -753,7 +720,7 @@
       "performance_axis": "understeer_tendency",
       "sign": 1,
       "grade": "author-elicited",
-      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors existing matrix cells -- matrix_us_apx_low already uses front ARB soften for understeer). Closes the feedback-only router's own documented gap (elicitation item 10): every existing sign=+1 entry on understeer_tendency/oversteer_tendency belonged to springs (heavy corrector, excluded by click_class), so _feedback_only_candidates had zero eligible click-class levers on either axis until this package."
+      "note": "Author-elicited 2026-09-24 (feedback routing, two-sided balance principle; mirrors existing matrix cells -- matrix_us_apx_low already uses front ARB soften for understeer). Closes the feedback-only router's documented gap: every existing sign=+1 entry on understeer_tendency/oversteer_tendency belonged to springs (heavy corrector, excluded by click_class), so _feedback_only_candidates had zero eligible click-class levers on either axis until then."
     },
     {
       "parameter": "arb_fr",
@@ -769,7 +736,7 @@
       "performance_axis": "understeer_tendency",
       "sign": 1,
       "grade": "author-elicited",
-      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_us_exit_med/high's own existing rear-ARB-stiffen-for-understeer direction). Second click-class understeer alternative alongside front soften above."
+      "note": "Author-elicited 2026-09-24 (feedback routing, two-sided balance principle; mirrors matrix_us_exit_med/high's own existing rear-ARB-stiffen-for-understeer direction). Second click-class understeer alternative alongside front soften above."
     },
     {
       "parameter": "arb_rr",
@@ -785,7 +752,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": 1,
       "grade": "author-elicited",
-      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_os_brk_med/high/matrix_os_exit_med's own existing rear-ARB-soften-for-oversteer direction). Mirror of the understeer pair above."
+      "note": "Author-elicited 2026-09-24 (feedback routing, two-sided balance principle; mirrors matrix_os_brk_med/high/matrix_os_exit_med's own existing rear-ARB-soften-for-oversteer direction). Mirror of the understeer pair above."
     },
     {
       "parameter": "arb_rr",
@@ -801,7 +768,7 @@
       "performance_axis": "oversteer_tendency",
       "sign": 1,
       "grade": "author-elicited",
-      "note": "WP-ELICIT Phase C4 (2026-09-24, author-elicited: feedback routing Q7, two-sided balance principle Q9; mirrors matrix_os_apx_low's own existing front-ARB-stiffen-for-oversteer direction). Second click-class oversteer alternative alongside rear soften above."
+      "note": "Author-elicited 2026-09-24 (feedback routing, two-sided balance principle; mirrors matrix_os_apx_low's own existing front-ARB-stiffen-for-oversteer direction). Second click-class oversteer alternative alongside rear soften above."
     },
     {
       "parameter": "arb_fr",
@@ -817,7 +784,7 @@
       "performance_axis": "understeer_tendency",
       "sign": 1,
       "grade": "author-elicited (Segers ch.11, C11-2)",
-      "note": "PHYSICS anchored to Segers ch.11 C11-2 (p.262-263, Table 11.1, Zolder T1 worked example, docs/segers_bridge_review.md): 'in the case of understeer during initial cornering, front rebound could be decreased' -- less LOW-SPEED rebound damping force lets the unloading front wheel extend into rebound faster at turn-in, regaining contact-patch compliance sooner, which the driver reads as less understeer. Scoped to entry_2_turnin ONLY (registry phase_affinity already matches; C11-1's own boundary statement rules out apex/exit -- no shaft velocity at steady-state cornering for a damping change to act on). CLICKS-TO-FORCE MAPPING IS A SEPARATE PROVENANCE, NOT FROM SEGERS: direction='increase' here means MORE clicks (softer, per config/setup_parameters.json direction_semantics 'increasing: softer'), i.e. LESS damping force -- the click-count convention itself comes from car_data.json dampers.dyno_metadata.front.click_semantics (Level 4, a real dyno chart digitisation, WP2b-1, '0 0 0 0 outermost/stiffest, 18 18 18 18 innermost/softest'), never from the literature, which only ever states a physical damping-force direction. This assumes the installed units match the digitised dyno chart (same model/valving) -- the one link this record cannot verify. Symmetric axle-pairing (fl+fr together) per C11-3's own annotation (p.263, 'apply symmetric L/R deltas even when the diagnosis is asymmetric') -- modules.decision_frame._feedback_only_candidates groups this pair into one candidate, not two competing single-wheel ones."
+      "note": "PHYSICS anchored to Segers ch.11 C11-2 (p.262-263, Table 11.1, Zolder T1 worked example, docs/segers_bridge_review.md): 'in the case of understeer during initial cornering, front rebound could be decreased' -- less LOW-SPEED rebound damping force lets the unloading front wheel extend into rebound faster at turn-in, regaining contact-patch compliance sooner, which the driver reads as less understeer. Scoped to entry_2_turnin ONLY (registry phase_affinity already matches; C11-1's own boundary statement rules out apex/exit -- no shaft velocity at steady-state cornering for a damping change to act on). CLICKS-TO-FORCE MAPPING IS A SEPARATE PROVENANCE, NOT FROM SEGERS: direction='increase' here means MORE clicks (softer, per config/setup_parameters.json direction_semantics 'increasing: softer'), i.e. LESS damping force -- the click-count convention itself comes from car_data.json dampers.dyno_metadata.front.click_semantics (Level 4, a real dyno chart digitisation, '0 0 0 0 outermost/stiffest, 18 18 18 18 innermost/softest'), never from the literature, which only ever states a physical damping-force direction. This assumes the installed units match the digitised dyno chart (same model/valving) -- the one link this record cannot verify. Symmetric axle-pairing (fl+fr together) per C11-3's own annotation (p.263, 'apply symmetric L/R deltas even when the diagnosis is asymmetric') -- modules.decision_frame._feedback_only_candidates groups this pair into one candidate, not two competing single-wheel ones."
     },
     {
       "parameter": "damper_rebound_ls_fr",
@@ -884,9 +851,8 @@
       "abs_position",
       "brake_bias"
     ],
-    "camber_multi_corner_gate": "Camber ADDITIONALLY always requires the multi-corner gate per spec (no |feedback|>=4 bypass for camber specifically) -- flagged here as a DATA note; the distinct-from-springs/toe gate logic itself is Phase B's own job.",
     "driver_level_threshold": 5,
-    "driver_level_threshold_derived_from": "WP-ELICIT Phase A3 (author-elicited 2026-09-24, elicitation item 5 area -- driver-level trust arbitration). DATA ONLY here: the gate condition itself (heavy correctors reachable in the eligibility gate's middle band -- strong data + moderate |feedback| 2-3 -- only when Driver.driving_level < this threshold) is Phase C1's own job (modules/decision_frame.py _apply_eligibility_gate). Value 5 reused directly from config/recommendations.json settings.driver_level_weighting.neutral_level (models/driver.py Driver.driving_level, 1-10 scale) -- the SAME 'neutral' point that scale already establishes project-wide, not a second, independently-chosen number: below neutral (lower-trust/less-experienced reading) admits the relaxation on data-corroborated-but-not-yet-overwhelming problems; at or above neutral, the gate stays conservative (a high-level driver's own moderate feedback is read as manageable, not as license to fire a heavy corrector early)."
+    "driver_level_threshold_derived_from": "Author-elicited 2026-09-24 (driver-level trust arbitration). DATA ONLY here: the gate condition itself (heavy correctors reachable in the eligibility gate's middle band -- strong data + moderate |feedback| 2-3 -- only when Driver.driving_level < this threshold) lives in modules/decision_frame.py _apply_eligibility_gate. Value 5 reused directly from config/recommendations.json settings.driver_level_weighting.neutral_level (models/driver.py Driver.driving_level, 1-10 scale) -- the SAME 'neutral' point that scale already establishes project-wide, not a second, independently-chosen number: below neutral (lower-trust/less-experienced reading) admits the relaxation on data-corroborated-but-not-yet-overwhelming problems; at or above neutral, the gate stays conservative (a high-level driver's own moderate feedback is read as manageable, not as license to fire a heavy corrector early)."
   },
   "_comment_cost_function": "Six scoring terms, nothing outside this block: (1) problem weight = severity x sev_rank x phase_importance x confidence; (2) change_time (inverse effort -- track time is scarce); (3) breadth (global lever helping 1 of N, see breadth_derived_from); (4) headroom (settings-window distance); (5) interaction; (6) effect_class (lever fit, primary vs secondary -- not part of problem weight: one problem, different effect classes per lever). severity/change_time shape elicited: one change at a time, 45-50 min session rhythm -> change_time dominates, severity orders within an effort class and only overrides past the heavy-corrector gate. Terms are additive, so a weight's neutral value is 0.0. breadth 0.0 (annotation-only), headroom/interaction 0.1 each (joint 0.2 < 0.2083, the smallest change_time class step), effect_class 1.0/0.6 -- all author-elicited 2026-09-26; phase_importance ordering elicited.",
   "speed_qualified_effect": {
@@ -910,7 +876,7 @@
   "cost_function": {
     "severity": 1.0,
     "phase_importance": {
-      "_comment": "Exit phases weigh most for lap time (user instruction). The ordering is the content (entry < turn-in < apex < exit); magnitudes are placeholders.",
+      "_comment": "Exit phases weigh most for lap time (user decision). The ordering is the content (entry < turn-in < apex < exit); magnitudes are placeholders.",
       "entry_1_brake": 0.8,
       "entry_2_turnin": 0.9,
       "apex_3": 1.0,
@@ -923,9 +889,9 @@
       "half_hour": 0.8333,
       "garage_hours": 0.625
     },
-    "change_time_derived_from": "Per-class table, author-elicited 2026-09-28: \"electronic mitigation like TC still costs lap time (cutting power); the mechanical fix adds grip -- halve the while-driving favor.\" Seconds 2.5 -> 1.875, so the seconds-minutes gap halves (1.25 -> 0.625); minutes/half_hour/garage_hours keep their former values (2.5/(rank+1): 1.25, 0.8333, 0.625), so the smallest class step stays 0.2083 and the headroom+interaction joint bound 0.2 still clears it. Intended consequence: at exit a strong-problem minutes fix now outranks a moderate-problem seconds fix. Earlier record: Author-elicited 2026-09-24 (WP-ELICIT Phase A1, elicitation item 1, PARTIAL -- severity/change_time shape only). Sized against severity=1.0 so the two constructed proofs both hold at typical phase_importance/confidence (exit_4, pi=1.2, confidence=1.0): (a) a click-class fix for a MODERATE problem outranks a heavy-corrector fix one severity rank up (garage_hours effort) -- normal-case change_time dominance; (b) a heavy corrector at STRONG severity with full breadth/primary effect_class still beats a NORMAL-severity click-class distractor -- severity punches through only across the FULL normal->strong range, i.e. at the eligibility gate's own ceiling, never merely one rank up. See tests/test_decision_frame.py term-order tests for the exact constructed proofs; thesis_notes.md 'WP-ELICIT Phase A' for the full derivation.",
+    "change_time_derived_from": "Per-class table, author-elicited 2026-09-28: \"electronic mitigation like TC still costs lap time (cutting power); the mechanical fix adds grip -- halve the while-driving favor.\" Seconds 2.5 -> 1.875, so the seconds-minutes gap halves (1.25 -> 0.625); minutes/half_hour/garage_hours keep their former values (2.5/(rank+1): 1.25, 0.8333, 0.625), so the smallest class step stays 0.2083 and the headroom+interaction joint bound 0.2 still clears it. Intended consequence: at exit a strong-problem minutes fix now outranks a moderate-problem seconds fix. Earlier record: Author-elicited 2026-09-24 (severity/change_time shape only). Sized against severity=1.0 so the two constructed proofs both hold at typical phase_importance/confidence (exit_4, pi=1.2, confidence=1.0): (a) a click-class fix for a MODERATE problem outranks a heavy-corrector fix one severity rank up (garage_hours effort) -- normal-case change_time dominance; (b) a heavy corrector at STRONG severity with full breadth/primary effect_class still beats a NORMAL-severity click-class distractor -- severity punches through only across the FULL normal->strong range, i.e. at the eligibility gate's own ceiling, never merely one rank up. See tests/test_decision_frame.py term-order tests for the exact constructed proofs.",
     "breadth": 0.0,
-    "breadth_derived_from": "author-elicited 2026-09-26: deliberately neutral, annotation-only -- the 'helps X, risks others' dropdown line carries the caution; the real gate for lonely-corner problems is driver corroboration (no complaint + single corner = no change; the existing 0.5 no-corroboration confidence cap implements this). Weight 0.0 = annotation-only in the additive score: the breadth_note line stays shown, the term adds nothing. Formula kept (inert at weight 0.0), Tier B (Stage 6 names the CONCEPT -- 'global lever helping 1 of N corners is penalised' -- not a formula): penalty = -(1 - corners_helped/corners_touched) when breadth data is available and the lever is not exempt (0 when exempt -- corners_touched==corners_helped by construction, modules/decision_frame.py _attach_breadth; 0, flagged, when assessed_corner_ids was not supplied to generate_candidates at all). Fraction-based, clamped at 0 when the candidate helps every assessed corner -- same normalized-distance style this file's own _settings_window_component formula already uses ('1 - distance/span'), not a new invented style.",
+    "breadth_derived_from": "author-elicited 2026-09-26: deliberately neutral, annotation-only -- the 'helps X, risks others' dropdown line carries the caution; the real gate for lonely-corner problems is driver corroboration (no complaint + single corner = no change; the existing 0.5 no-corroboration confidence cap implements this). Weight 0.0 = annotation-only in the additive score: the breadth_note line stays shown, the term adds nothing. Formula kept (inert at weight 0.0), Tier B (the design names only the CONCEPT -- 'global lever helping 1 of N corners is penalised' -- not a formula): penalty = -(1 - corners_helped/corners_touched) when breadth data is available and the lever is not exempt (0 when exempt -- corners_touched==corners_helped by construction, modules/decision_frame.py _attach_breadth; 0, flagged, when assessed_corner_ids was not supplied to generate_candidates at all). Fraction-based, clamped at 0 when the candidate helps every assessed corner -- same normalized-distance style this file's own _settings_window_component formula already uses ('1 - distance/span'), not a new invented style.",
     "headroom": 0.1,
     "headroom_derived_from": "author-elicited 2026-09-26: near a physical limit, prefer the lever with more room -- 'stay inside its comfort range'; weaker than change_time, decides between comparable-effort options only. Term = headroom x (1 - |new - nominal|/span, clipped), so it adds between 0 (window edge) and 0.1 (nominal); neutral 0 where no window or no setup value exists. Bound from the live arithmetic: change_time = 2.5/(effort_rank+1) gives class steps 1.25 / 0.4167 / 0.2083; the smallest is 0.2083 (half_hour -> garage_hours). Joint bound with interaction: 0.1 + 0.1 = 0.2 < 0.2083, so headroom and interaction together can never flip adjacent effort classes.",
     "interaction": 0.1,
@@ -953,7 +919,7 @@
     "parameters": ["tc_lat", "tc_lon"],
     "direction": "decrease",
     "text": "uses more tyre, reduces safety margin",
-    "derived_from": "Author-elicited 2026-09-24 (Q6b, WP-ELICIT HANDOFF C6)."
+    "derived_from": "Author-elicited 2026-09-24."
   },
   "conditions": {
     "not_evaluable_confidence_cap": 0.5,
@@ -964,22 +930,22 @@
       "intervention_tc",
       "lockup"
     ],
-    "contradiction_sources_derived_from": "DECISION LAYER SPEC B6 (2026-09-22), Stage 5: 'data contradicts data (direct measurement vs estimator verdict): SUPPRESSED from shortlist -> tail, contradicted by X'. A required evidence_corroboration condition failing (evidence exists globally but disagrees at this corner/phase) produces status=contradicted instead of silent SUPPRESS when its own evidence_type is listed here; every other required-condition failure (phase_transient, setup_state, or an evidence_corroboration type NOT listed here) stays a silent, structural non-generation -- that is inapplicability, not a data disagreement. Wired only for evidence types that exist today (damper_motion: modules/damper_motion.py; intervention_abs/intervention_tc: Stage 2 Phase 3c) -- 'lockup' is listed as a deliberate placeholder for docs/segers_bridge_review.md's own reviewed C5-2 lockup-evidence proposal, not yet built (PLAN.md FRAME DEPTH PROGRAMME Step 5); it can never match today (no evidence item of type 'lockup' is ever produced), by design, per the work order's own 'wire only those that exist today... leave the list config-driven and extensible' instruction. No lever_bridges entry declares a damper_motion/intervention_abs/intervention_tc condition yet (that is Step 3's own job, PLAN.md), so this mechanism is complete and tested but currently inert on real data -- the same 'gap, not a bug' posture as B2's own feedback-only routing finding."
+    "contradiction_sources_derived_from": "Decision-layer spec, 2026-09-22: 'data contradicts data (direct measurement vs estimator verdict): SUPPRESSED from shortlist -> tail, contradicted by X'. A required evidence_corroboration condition failing (evidence exists globally but disagrees at this corner/phase) produces status=contradicted instead of silent SUPPRESS when its own evidence_type is listed here; every other required-condition failure (phase_transient, setup_state, or an evidence_corroboration type NOT listed here) stays a silent, structural non-generation -- that is inapplicability, not a data disagreement. Wired only for evidence types that exist today (damper_motion: modules/damper_motion.py; intervention_abs/intervention_tc: the intervention-evidence builders) -- 'lockup' is listed as a deliberate placeholder for docs/segers_bridge_review.md's own reviewed C5-2 lockup-evidence proposal, not yet built; it can never match today (no evidence item of type 'lockup' is ever produced), by design -- the list stays config-driven and extensible. No lever_bridges entry declares a damper_motion/intervention_abs/intervention_tc condition yet yet, so this mechanism is complete and tested but currently inert on real data -- a gap, not a bug."
   },
   "_comment_damper_motion": "Damper motion evidence (damper_motion.py): loading/unloading per corner, transient phase (entry/exit, never apex -- Segers ch. 11) and wheel, from log_susp_travel_*. Sign checked on both sessions: corr(front travel, braking ax) +0.49 Dubai, +0.20 v3 -> decreasing travel = compression = loading. Threshold reference population = straight-line mask (|ax| < 0.5, |ay| < 0.5 g); apex_3 segments too short to use.",
   "damper_motion": {
     "enabled": true,
     "rate_threshold_mm_s": 1.0,
-    "rate_threshold_mm_s_derived_from": "Pooled straight-line (|ax|<0.5,|ay|<0.5 g, kerb-excluded) |travel rate| median across both real sessions and all non-dead wheels: 0.975 mm/s (n=1830, Dubai 510 windows p50=0.825, v3 1320 windows p50=1.061) -- rounded to a clean 1.0 mm/s just above it. This is NOT a clean bimodal gap (the straight-line population's own upper tail, p90=4.67/p95=6.68 mm/s, genuinely overlaps the transient population's own median, 1.87 mm/s pooled -- real road-texture/engine-vibration chassis motion exists even on a straight, this is not pure sensor noise) -- the median of the 'nothing deliberately dynamic happening' reference population is the honest, data-grounded choice available, not a cleanly-separated threshold; revisit if a future session's own distribution suggests otherwise. diagnostics/inspect_damper_motion_sign_and_threshold.py, thesis_notes.md.",
+    "rate_threshold_mm_s_derived_from": "Pooled straight-line (|ax|<0.5,|ay|<0.5 g, kerb-excluded) |travel rate| median across both real sessions and all non-dead wheels: 0.975 mm/s (n=1830, Dubai 510 windows p50=0.825, v3 1320 windows p50=1.061) -- rounded to a clean 1.0 mm/s just above it. This is NOT a clean bimodal gap (the straight-line population's own upper tail, p90=4.67/p95=6.68 mm/s, genuinely overlaps the transient population's own median, 1.87 mm/s pooled -- real road-texture/engine-vibration chassis motion exists even on a straight, this is not pure sensor noise) -- the median of the 'nothing deliberately dynamic happening' reference population is the honest, data-grounded choice available, not a cleanly-separated threshold; revisit if a future session's own distribution suggests otherwise. diagnostics/inspect_damper_motion_sign_and_threshold.py.",
     "min_valid_fraction": 0.7,
-    "min_valid_fraction_derived_from": "Pooled transient-phase window valid_fraction (non-kerb-masked, finite samples / window length) across both real sessions: p5=0.712, p10=0.783, p25=0.934, p50~1.0 (n=1258) -- most windows are nearly fully valid, only a small tail is meaningfully kerb-degraded. 0.7 sits just below p5, flagging roughly the bottom 5% sparsest windows as not-evaluable without discarding the typical (>=0.78, ~90% of) window. diagnostics/inspect_damper_motion_sign_and_threshold.py, thesis_notes.md."
+    "min_valid_fraction_derived_from": "Pooled transient-phase window valid_fraction (non-kerb-masked, finite samples / window length) across both real sessions: p5=0.712, p10=0.783, p25=0.934, p50~1.0 (n=1258) -- most windows are nearly fully valid, only a small tail is meaningfully kerb-degraded. 0.7 sits just below p5, flagging roughly the bottom 5% sparsest windows as not-evaluable without discarding the typical (>=0.78, ~90% of) window. diagnostics/inspect_damper_motion_sign_and_threshold.py."
   },
   "_comment_kerb_blowoff_evidence": "Kerb-event flag (informational since 2026-09-28, author ruling: no setup candidate is generated -- the threshold is session-relative and no available channel separates a damper that cannot cope from ordinary hard kerb use). Trigger = kerb-strike SEVERITY repeating across laps (peak |log_acc_z| inside the existing kerb_mask), not kerb_fraction -- kerb contact is normal. Axle from per-wheel travel velocity inside the kerb windows (wheel_loads helpers); axle not evaluable -> stated as not attributable.",
   "kerb_blowoff_evidence": {
     "enabled": true,
     "severity_threshold_g": 2.9571,
     "repeat_min_laps": 2,
-    "derived_from": "Pooled p75 of per-corner-instance peak |log_acc_z| inside kerb_mask, nonzero-instance population, both real sessions (n=79): diagnostics/inspect_kerb_severity_census.py, thesis_notes.md. Percentile chosen per the reviewer's own minority-firing rule: the lowest candidate (of p50/p75/p90) where firing (>=2 of a corner's own laps over threshold) is a clear minority of corners on BOTH sessions while still firing on at least one corner on each -- p50 (2.630g) fires on 6/14 Dubai and 8/17 v3 corners (43-47%, not a minority, too permissive for a standout actionable pattern); p75 (2.9571g) fires on 1/14 Dubai and 4/17 v3 (7%/24%, a clear minority on both, still real); p90 (3.3273g) is more selective still but p75 is already the lowest point satisfying the minority rule. repeat_min_laps=2 reuses _count_repeating's own cross-lap shape, not a new counting convention."
+    "derived_from": "Pooled p75 of per-corner-instance peak |log_acc_z| inside kerb_mask, nonzero-instance population, both real sessions (n=79): diagnostics/inspect_kerb_severity_census.py. Percentile chosen per the reviewer's own minority-firing rule: the lowest candidate (of p50/p75/p90) where firing (>=2 of a corner's own laps over threshold) is a clear minority of corners on BOTH sessions while still firing on at least one corner on each -- p50 (2.630g) fires on 6/14 Dubai and 8/17 v3 corners (43-47%, not a minority, too permissive for a standout actionable pattern); p75 (2.9571g) fires on 1/14 Dubai and 4/17 v3 (7%/24%, a clear minority on both, still real); p90 (3.3273g) is more selective still but p75 is already the lowest point satisfying the minority rule. repeat_min_laps=2 reuses _count_repeating's own cross-lap shape, not a new counting convention."
   },
   "lever_bridges": [
     {

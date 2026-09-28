@@ -489,7 +489,8 @@ def estimate_slip_angles(state, beta, params):
 
 
 def estimate_lateral_forces(state, params):
-    """Module 4a: 2-DOF planar balance (Milliken RCVD), as in the chair
+    """Module 4a: 2-DOF planar balance (Milliken RCVD ch. 5 (sec. 5.7);
+    Rajamani sec. 2.3 (Eqs. 2.21/2.22)), as in the chair
     performance_analysis tooling (internal):
         Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,  Fy_r = m*ay - Fy_f
     psidd = raw gradient of yaw rate, not Module 5's smoothed one -- the CS

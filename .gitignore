@@ -33,6 +33,8 @@ diagnostics/*.npz
 diagnostics/plots/
 diagnostics/plots_step2/
 diagnostics/plots_decision_layer/
+diagnostics/plots_gated_kinematic/
+diagnostics/plots_yaw_damping/
 
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/

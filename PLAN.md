@@ -2,6 +2,42 @@
 
 ### NOW
 
+(000000) BRANCH `backlog-g` (off main f6a2add), NOT committed -- author runs
+    git. Closed 2026-09-29. Carries:
+    - BACKLOG G: CLOSED, BLOCKED ON LITERATURE. Five texts searched; all
+      anchor the current moment-balance split, none splits axle Fy by
+      measured Fz. Reopen only with a real anchor. (See BACKLOG G.)
+    - Gated-kinematic sideslip diagnostic: run on both sessions, ruled
+      FAILED 2026-09-29 (reviewer, author-delegated). ekf_auto_pacejka
+      stays production; EKF deletion off the table; washout-cutoff stays
+      BLOCKED (addendum there). Scripts kept as provenance.
+    - WP-CONFTEXT: DONE. Config text scrubbed of process names/framing,
+      7 no-reader dead keys deleted; keys still read by diagnostics/tests
+      kept.
+    - Werner Eq. 4.3 v1: DONE. modules/yaw_damping.py, tests/
+      test_yaw_damping.py, accuracy_levels.yaw_damping (Level 1),
+      diagnostics/inspect_yaw_damping_eq43.py. Completes WITHOUT Fz
+      (effective stiffness from Module 4b). Nothing wired to production
+      (Module 5, payload, UI untouched). Damping > inertia in 77 %/60 %
+      of corner-phases, >10x in 5 %/1 % -- Werner's finding partly
+      reproduces.
+    - v3 NIS health-score drift 0.0849 -> 0.0985: CLOSED, explained --
+      the 2026-09-03 pit-limiter fix removed lap 9 (in-lap) from the fit
+      population; 0.084871 reproduced exactly with lap 9 restored. Both
+      PASS, no verdict affected.
+    - Citation pointers verified to section level: Milliken RCVD ch. 5
+      (sec. 5.7) and ch. 2 (sec. 2.1), Rajamani sec. 2.3.
+    FOLLOW-UPS ON RECORD, NOT STARTED: apex-region D_psi variant (apex_3
+    never clears 4b's phase floor); Eq. 4.3 v2 = Module 5 wiring (Tier A,
+    proposal-first, blocked with the stab_neg_thresh re-derivation);
+    mu-band (1.2-2.0) and C_alpha/Fz = 12 rad^-1 citations -> author's
+    anchor afternoon.
+    FULL SUITE: nothing on this branch changed an estimator input --
+    targeted + golden coverage stands; next full suite at the merge
+    boundary per the author's rule.
+    NOTE: items (00000)-(0) below were written on branch `fix-driver`;
+    that work is merged in main f6a2add -- their "NOT committed" lines
+    are historical.
 (00000) WP-POLISH-2 (branch `fix-driver`, NOT committed): items 1-3
     done -- compound caveat one sentence (full note in tooltip),
     pressure header states population (N corners, laps a-b) with
@@ -133,7 +169,8 @@
     test files 256 passed (full suite not re-run: same inert string
     class, per ruling).
     (Brake-bias refined check: moved to item (0) NEXT.)
-    OPEN, named follow-up WP-CONFTEXT: the 178 config values no code
+    DONE 2026-09-28 on branch backlog-g (see item (000000)), named
+    follow-up WP-CONFTEXT: the 178 config values no code
     reads (channels 6, decision_frame 77, parameters 57,
     setup_parameters 38 -- note/derived_from/source/notes fields) ship
     readable in the release and carry the same internal-name leak. Same
@@ -835,7 +872,8 @@ B - Forces: damper-derived Level-4 wheel loads -- IMPLEMENTED AND
     and unaffected -- this was never about the FR gauge, it is a
     straight-line-data-with-three-gauges limitation that a fourth real
     gauge does not resolve on its own.
-G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
+G - BLOCKED ON LITERATURE (2026-09-28). Originally PROPOSAL-FIRST
+    (named 2026-09-04, Fz-integration close-out --
     formalises the open item already flagged inline under BACKLOG B
     above, "Fy split upgrade -> CS threshold re-derivation", into its
     own tracked package rather than leaving it as a buried aside):
@@ -866,6 +904,27 @@ G - PROPOSAL-FIRST (named 2026-09-04, Fz-integration close-out --
     a measured-load-informed Fy split method; the proposal itself,
     reviewed before implementation; CS threshold re-derivation as part
     of the same package, not a follow-up.
+    BLOCKED 2026-09-28 (branch backlog-g, full record: thesis_notes.md
+    "BACKLOG G anchor search: outcome" and "BACKLOG G close-out"). Five
+    texts searched (Milliken RCVD, Rajamani, Segers, Kiencke & Nielsen,
+    Werner 2021): all anchor the CURRENT moment-balance split (Milliken
+    sec. 5.7, Rajamani Eqs. 2.21/2.22); none splits axle Fy by measured
+    normal load. Reasoning: ay and yaw acceleration give exactly two
+    independent equations for the two unknown axle forces, so the
+    moment-balance split is the unique solution (verified numerically,
+    a*Fy_f - b*Fy_r = Iz*psidd to max deviation 7.3e-12 Nm, WP-N2 pass 0
+    record). Measured Fz measures an axle's capacity, not the force
+    flowing through it; forcing Fy proportional to Fz would bake into
+    the input exactly the front/rear imbalance CS_ratio exists to detect.
+    REOPEN CONDITION: a real literature anchor for a load-informed split.
+    ~~The measured-Fz question MOVES to the Werner Eq. 4.3 yaw-damping
+    (D_psi) item -- Werner sec. 4.5.2 needs Fz there, for the tyre
+    model's effective cornering stiffness -- as its own future Tier A
+    package, proposal-first.~~ [CORRECTED 2026-09-29: Werner needed Fz
+    only for his tyre-model route to the effective stiffness; Module 4b
+    measures it directly, so Eq. 4.3 completes WITHOUT Fz.] No
+    estimator input changed, so no CS
+    threshold re-derivation and no full-suite G boundary exist.
 H - SHIPPED 2026-09-20 (branch lever-bridges, full record: thesis_notes.md
     "Generic lever-bridge candidate mechanism (BACKLOG item H): shipped").
     Originally PROPOSAL-FIRST (named 2026-09-20, literature-bridge work package
@@ -2213,6 +2272,16 @@ WHERE THE PROJECT STANDS
   method note also recorded there: _highpass_filter (scipy filtfilt)
   is zero-phase/acausal -- any future drift or boundary claim about
   it must use causal checkpoints, not arbitrary segment lengths.
+  ADDENDUM 2026-09-29 (reviewer ruling, author-delegated; record:
+  thesis_notes.md "Gated-kinematic sideslip diagnostic"): an ay-gated
+  kinematic beta was measured against this criterion on both sessions
+  and FAILS its pre-registered bars -- C9 met in sign only via +1.0
+  pinning, C4 saturation threshold-fragile, an unidentified in-corner
+  drift (median ~2 deg, max 10-14 deg; gyro scale explains 5-27 %),
+  mid-corner sign agreement with the EKF 0.11/0.18. ekf_auto_pacejka
+  stays production; EKF deletion is off the table; the fade-out gate
+  variant is not pursued. This decision stays BLOCKED, with that
+  diagnostic added to its evidence.
 - FRESH-SESSION WORK PACKAGE COMPLETED (2026-08-2X: per-session tyre
   auto-fit + NIS gate wired into production -- full record: thesis_
   notes.md "4. Fresh-session work package: per-session tyre auto-fit +

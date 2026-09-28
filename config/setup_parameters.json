@@ -28,7 +28,7 @@
     "change_effort": "minutes",
     "mechanism": "Sets front-axle roll-stiffness share, which sets front lateral-load-transfer share, which sets front grip share relative to rear.",
     "phase_affinity": null,
-    "notes": "Stiffness lookup: car_data.json arb.front (6.3..20.6 N/mm at drop link, ratio_to_wheel 1.07) -- verified: position 1->6.3 N/mm, position 7->20.6 N/mm, monotonic increasing, confirms 1=softest. Position-to-stiffness convention (linear vs squared) unresolved -- flagged convention_unresolved, resolve in WP5b. Four fully independent per-corner targets, no pairing concept.",
+    "notes": "Stiffness lookup: car_data.json arb.front (6.3..20.6 N/mm at drop link, ratio_to_wheel 1.07) -- verified: position 1->6.3 N/mm, position 7->20.6 N/mm, monotonic increasing, confirms 1=softest. Position-to-stiffness convention (linear vs squared) unresolved -- flagged convention_unresolved, unresolved. Four fully independent per-corner targets, no pairing concept.",
     "recommendation_target": true
   },
   "arb_fr": {
@@ -147,7 +147,7 @@
     },
     "typical_window": {
       "options": ["P0", "P1", "P2"],
-      "notes": "DECISION LAYER SPEC 2026-09-22: full legal enum is the window -- no numeric quantity underlies this parameter anywhere in this codebase (decision_frame.json parameter_windows.arb_front_mount), so no narrower nominal+span is fillable; documented here as the option set only."
+      "notes": "2026-09-22: full legal enum is the window -- no numeric quantity underlies this parameter anywhere in this codebase (decision_frame.json parameter_windows.arb_front_mount), so no narrower nominal+span is fillable; documented here as the option set only."
     },
     "change_effort": "minutes",
     "mechanism": "Upright mount couples steering input to ARB preload -- higher position gives a more direct/snappy turn-in response.",
@@ -245,7 +245,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -282,7 +282,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -317,7 +317,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; 0 means no relief is given, a deliberate platform-over-protection choice.",
     "phase_affinity": null,
@@ -352,7 +352,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -390,7 +390,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -425,7 +425,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -462,7 +462,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -497,7 +497,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits.",
     "phase_affinity": null,
@@ -532,7 +532,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -570,7 +570,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -605,7 +605,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -642,7 +642,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -677,7 +677,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
     "phase_affinity": null,
@@ -712,7 +712,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -750,7 +750,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -785,7 +785,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
     "phase_affinity": [
@@ -822,7 +822,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel motion over kerbs/bumps.",
     "phase_affinity": null,
@@ -857,7 +857,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
     "phase_affinity": null,
@@ -892,7 +892,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls platform recovery speed after compression -- floating control.",
     "phase_affinity": [
@@ -930,7 +930,7 @@
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B1, elicitation item 3): exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
+    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
     "change_effort": "seconds",
     "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
     "phase_affinity": null,
@@ -1040,7 +1040,7 @@
     "typical_window": {
       "min": 1,
       "max": 5,
-      "notes": "DECISION LAYER SPEC 2026-09-22: full 5 sheet positions are the window, no narrower team-typical sub-range recorded"
+      "notes": "2026-09-22: full 5 sheet positions are the window, no narrower team-typical sub-range recorded"
     },
     "change_effort": "minutes",
     "mechanism": "Sets clutch-pack preload/locking torque on the installed diff package -- more locking torque resists axle-speed difference under power, affecting exit rotation vs. traction.",
@@ -1048,7 +1048,7 @@
       "exit_4",
       "exit_5"
     ],
-    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously) -- TASK 3. DECISION LAYER SPEC 2026-09-22: escalation_tier corrected pitlane (was garage, wrong), change_effort corrected minutes (was seconds, wrong); triggers now include straight-line stability under braking AND acceleration, not only exit cells -- coupled to engine braking (teams run high diff, per-corner EB weakens it in-corner; diff recommendations degrade honestly, 'EB program unknown', until TC/EB channel mapping lands). PHASE D (2026-09-22): value_space gained unit 'position' -- the D6 top-line rendering STOP found this was the one registry lever with a real delta but no unit string at all (the 5 sheet positions were already the elicited Stage 1 value space; this only names their unit, no new number).",
+    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1->70 Nm .. 5->250 Nm, monotonic increasing) -- verified, confirms 1=least. NEW car.json fields required: measured locking torque (Nm) per position 1-5 on the setup sheet (drifts with wear, measured continuously). 2026-09-22: escalation_tier corrected pitlane (was garage, wrong), change_effort corrected minutes (was seconds, wrong); triggers now include straight-line stability under braking AND acceleration, not only exit cells -- coupled to engine braking (teams run high diff, per-corner EB weakens it in-corner; diff recommendations degrade honestly, 'EB program unknown', until TC/EB channel mapping lands). 2026-09-22: value_space gained unit 'position' -- this was the one registry lever with a real delta but no unit string at all (the 5 sheet positions were already the elicited value space; this only names their unit, no new number).",
     "recommendation_target": true
   },
   "wing_position": {
@@ -1078,7 +1078,7 @@
     },
     "typical_window": {
       "options": ["P8", "P9", "P10"],
-      "notes": "DECISION LAYER SPEC 2026-09-22: full legal enum is the window -- a numeric anchor exists (angles_deg above) but Outing.setup_data stores the enum label, not the angle (decision_frame.json parameter_windows.wing_position), so a numeric nominal+span would silently compare against the wrong representation; documented here as the option set only."
+      "notes": "2026-09-22: full legal enum is the window -- a numeric anchor exists (angles_deg above) but Outing.setup_data stores the enum label, not the angle (decision_frame.json parameter_windows.wing_position), so a numeric nominal+span would silently compare against the wrong representation; documented here as the option set only."
     },
     "change_effort": "minutes",
     "mechanism": "Rear wing angle sets rear downforce -- affects high-speed balance (more angle = more rear grip/stability, less top speed).",
@@ -1180,7 +1180,7 @@
     "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer). WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves were pruned as no-consumer). Step 0.3deg originally added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the earlier 0.3deg default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_fr": {
@@ -1208,7 +1208,7 @@
     "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing. Step 0.3deg originally added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the earlier 0.3deg default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_rl": {
@@ -1236,7 +1236,7 @@
     "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. Step 0.3deg originally added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the earlier 0.3deg default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "camber_rr": {
@@ -1264,7 +1264,7 @@
     "change_effort": "half_hour",
     "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
     "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. WP2b-2: step 0.3deg added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the 0.3deg WP2b-2 elicited-default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. DECISION LAYER SPEC 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing. Step 0.3deg originally added from the engineer decision matrix (US-APX-high/OS-APX-high camber cells) -- not previously in the team-knowledge registry pass, no car_data.json table to cross-check against; treat as elicited pending engineering review. CORRECTED 2026-07-26 (matrix v2, project-lead review): step is 0.1deg, not the earlier 0.3deg default -- typical field practice is a 0.2deg change (two 0.1deg clicks); a tyre-surface/wear-pattern inspection is a precondition before applying any camber change, and a one-sided (single-corner) change is sometimes preferred over the symmetric FL+FR pair the recommendation rules encode -- both noted in the citing rules' rationale text. 2026-09-22: change_effort set to new class half_hour (20-30 min), heavy corrector -- fires only on multi-corner same-axle strong patterns or |feedback|>=4.",
     "recommendation_target": true
   },
   "tc_lat": {
@@ -1290,7 +1290,7 @@
       "min": 1,
       "max": 11,
       "baseline": 5,
-      "notes": "DECISION LAYER SPEC 2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 (off) excluded from the tuning window, it is a distinct state, not the window floor. 5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation."
+      "notes": "2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 (off) excluded from the tuning window, it is a distinct state, not the window floor. 5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation."
     },
     "change_effort": "seconds",
     "mechanism": "Sets how much car rotation the TC system permits during the lateral-loaded cornering phase (power applied while cornering); higher position = less permitted rotation = more intervention.",
@@ -1325,7 +1325,7 @@
       "min": 1,
       "max": 11,
       "baseline": 5,
-      "notes": "DECISION LAYER SPEC 2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 excluded from the tuning window (does NOT disable TC for tc_lon, see direction_semantics, but is still not part of the intervention-severity scale). 5 = 'normal conditions' per source table."
+      "notes": "2026-09-22: window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 excluded from the tuning window (does NOT disable TC for tc_lon, see direction_semantics, but is still not part of the intervention-severity scale). 5 = 'normal conditions' per source table."
     },
     "change_effort": "seconds",
     "mechanism": "Sets how much wheel spin the TC system permits during high-torque longitudinal phases (1st/2nd gear power-down on exit); higher position = less permitted spin = more intervention, useful for managing rear-tyre degradation.",
@@ -1360,14 +1360,14 @@
       "dry_high": [1, 4],
       "dry_medium": [5, 8],
       "wet": [9, 11],
-      "notes": "DECISION LAYER SPEC 2026-09-22, per ABS_2 V2 table (car_data.json abs, installed_config V2): sweet-spot search stays WITHIN the bracket appropriate to conditions; jumping across brackets (e.g. 4 to 9) is not a valid tuning move."
+      "notes": "2026-09-22, per ABS_2 V2 table (car_data.json abs, installed_config V2): sweet-spot search stays WITHIN the bracket appropriate to conditions; jumping across brackets (e.g. 4 to 9) is not a valid tuning move."
     },
     "change_effort": "seconds",
     "mechanism": "Selects the ABS intervention map; team practice is a sweet-spot search within the dry or wet bracket appropriate to conditions, not a linear soft-to-hard sweep.",
     "phase_affinity": [
       "entry_1_brake"
     ],
-    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value. SWITCH-POSITION CHANNEL RESOLVED, 2026-09-18 (Deepening Phase 3, user decision): log_abs_pos is the trusted channel (config/channels.json), not abs_switch_pos -- the two disagree on GT3_PRC_MLA-v3.txt (log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5, dash/steering-wheel domain, mutually agreeing; abs_switch_pos reads a constant 6, ECU domain, for the same session) and this decision resolves that in favour of the dash/steering-wheel-domain reading. Installed config V2 (verified: ABS_2.png header reads 'Map for ABS configuration option \"V2\"'). Full table: car_data.json abs. Monza2/CTMP/V4 not digitised (not installed) -- archived in docs/car_data/ only. SUPERSEDED-IN-PRACTICE ANNOTATION 2026-07-26 (matrix v2, project-lead review) -- NOT a deletion of the direction_semantics finding above, which remains true (abs_position is categorical, not one monotonic axis, and jumping across grip-level brackets, e.g. position 4 to 9, is still nonsensical). What is superseded in practice: WITHIN one grip-level bracket, an ordinal +1/+2 step IS used as a practical stability lever by the matrix v2 rules (see config/recommendations.json US-BRK-low-esc, INST-BRK-low) -- 'try-and-error' nudges toward the front- or rear-axle-stable variant, not a claim that the whole 0-11 range is monotonic. See those rules' rationale for the elicitation context.",
+    "notes": "Driver-adjustable mid-session from the steering wheel (changed on feel, tyre life, fuel load) -- truth is a logged-data trace, not a setup-sheet value. SWITCH-POSITION CHANNEL RESOLVED, 2026-09-18 (user decision): log_abs_pos is the trusted channel (config/channels.json), not abs_switch_pos -- the two disagree on GT3_PRC_MLA-v3.txt (log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5, dash/steering-wheel domain, mutually agreeing; abs_switch_pos reads a constant 6, ECU domain, for the same session) and this decision resolves that in favour of the dash/steering-wheel-domain reading. Installed config V2 (verified: ABS_2.png header reads 'Map for ABS configuration option \"V2\"'). Full table: car_data.json abs. Monza2/CTMP/V4 not digitised (not installed) -- archived in docs/car_data/ only. SUPERSEDED-IN-PRACTICE ANNOTATION 2026-07-26 (matrix v2, project-lead review) -- NOT a deletion of the direction_semantics finding above, which remains true (abs_position is categorical, not one monotonic axis, and jumping across grip-level brackets, e.g. position 4 to 9, is still nonsensical). What is superseded in practice: WITHIN one grip-level bracket, an ordinal +1/+2 step IS used as a practical stability lever by the matrix v2 rules (see config/recommendations.json US-BRK-low-esc, INST-BRK-low) -- 'try-and-error' nudges toward the front- or rear-axle-stable variant, not a claim that the whole 0-11 range is monotonic. See those rules' rationale.",
     "recommendation_target": true
   },
   "brake_bias": {
@@ -1382,7 +1382,7 @@
       "min": 1,
       "max": 3,
       "unit": "clicks",
-      "note": "direction convention (fwd vs rear) and the channel's own identity are elicitation item 4 -- not invented here"
+      "note": "direction convention (fwd vs rear) and the channel's own identity are still open -- not invented here"
     },
     "direction_semantics": null,
     "typical_window": null,
@@ -1391,7 +1391,7 @@
     "phase_affinity": [
       "entry_1_brake"
     ],
-    "notes": "DECISION LAYER SPEC 2026-09-22: brake_bias promoted to a recommendation target (was deliberately omitted -- an oversight, per the spec). Step 1 click default, max 3, severity-scaled; lockup chain behind it (Segers C5-1/2, docs/segers_bridge_review.md). Value read from logged data, not set on the setup sheet -- brake bias channel name TBD (elicitation item 4), so direction_semantics stays null and typical_window stays not-assessable rather than invented.",
+    "notes": "2026-09-22: brake_bias promoted to a recommendation target (its earlier omission was an oversight). Step 1 click default, max 3, severity-scaled; lockup chain behind it (Segers C5-1/2, docs/segers_bridge_review.md). Value read from logged data, not set on the setup sheet -- brake bias channel name TBD, so direction_semantics stays null and typical_window stays not-assessable rather than invented.",
     "recommendation_target": true
   },
   "splitter_offset": {
@@ -1421,14 +1421,14 @@
       "min": -4,
       "max": 4,
       "step": 1,
-      "notes": "DECISION LAYER SPEC 2026-09-22: full legal range is the window; hard forward limit (negative extreme only) is track-dependent, not a fixed sub-range"
+      "notes": "2026-09-22: full legal range is the window; hard forward limit (negative extreme only) is track-dependent, not a fixed sub-range"
     },
     "change_effort": "minutes",
     "mechanism": "Front aero balance trim -- high-speed balance lever, paired to wing_position (same aero axis) and ride_height_front (shared ground clearance).",
     "phase_affinity": [
       "high_speed_corners"
     ],
-    "notes": "DECISION LAYER SPEC 2026-09-22: splitter_offset promoted to a real lever (was context-only). change_effort corrected minutes (was garage_hours, wrong) -- 2 min sloppy / 20 min precise per spec elicitation. No car_data digitisation for the offset-to-effect relationship itself. Direction convention author-elicited 2026-09-22 (Phase C): negative=more front downforce, positive=less; the two directions are NOT symmetric (negative approaches a hard physical edge, positive only a range limit) -- modules/decision_frame.py's own window-edge check (_window_edge_check) is symmetric per lever, not per direction, so it currently labels BOTH extremes 'hard' for this parameter; known simplification, not rebuilt this package (see thesis_notes.md).",
+    "notes": "2026-09-22: splitter_offset promoted to a real lever (was context-only). change_effort corrected minutes (was garage_hours, wrong) -- 2 min sloppy / 20 min precise (author-elicited). No car_data digitisation for the offset-to-effect relationship itself. Direction convention author-elicited 2026-09-22: negative=more front downforce, positive=less; the two directions are NOT symmetric (negative approaches a hard physical edge, positive only a range limit) -- modules/decision_frame.py's own window-edge check (_window_edge_check) is symmetric per lever, not per direction, so it currently labels BOTH extremes 'hard' for this parameter; known simplification.",
     "recommendation_target": true
   },
   "kinematic_variants": {

@@ -18166,7 +18166,12 @@ double-count fix changes v3's own fitted SESSION MASS, which feeds
 Fy=m*ay upstream of both the free-D fit (via Fy) and Fz (via wheel_
 loads) -- so "free-D is Fz-independent" is true of the FORMULA but not
 of the full pipeline on a session whose own mass fit changed. Flagged
-as an open observation, not chased further here.
+as an open observation, not chased further here. [SUPERSEDED
+2026-09-29: the mechanism above is wrong -- the free-D fit uses config
+mass (Fy = m*ay), not the session-fitted mass. The move is fully
+explained by the 2026-09-03 pit-limiter fix removing lap 9 from the fit
+population (0.084871 reproduced exactly with lap 9 restored), see "v3
+NIS health-score drift 0.0849 -> 0.0985: bisect by mechanism".]
 
 v3 mu: front B=7.801 C=1.935 D=8722.9 E=-1.211 mu=1.4443 (mean_axle_
 fz_N=6039.7, rms=3728.5N), vs old B=7.827 C=1.875 D=8603.8 E=-1.220
@@ -22322,3 +22327,667 @@ target" to "in target" when the front minimum moves 1.85 -> 1.70.
 section caption. Save guard: if an axle's band minimum is above its
 maximum, Save is refused with a message naming the axle and nothing is
 written -- the whole save, not just the band, so no file half-persists.
+
+## BACKLOG G step 1: Milliken anchor read STOPPED -- source absent [2026-09-28, branch backlog-g, read-only]
+First read attempt (same day, earlier session): Milliken & Milliken,
+Race Car Vehicle Dynamics (RCVD) was not present in docs/literature/ nor
+anywhere under the thesis folder (filename search for milliken / race
+car vehicle / RCVD). The only hit was Hoffman et al. 2008 (SAE paper
+applying the Milliken Moment Method), which is not the book and was not
+used as a substitute. The step stopped without quoting anything; nothing
+was reconstructed from memory.
+CITATION GAP recorded by the same search: the codebase already cites
+"Milliken RCVD" without page references and without the source having
+been available to the project -- modules/stability_analysis.py Module 4a
+(2-DOF planar Fy balance, PLAN.md record "p. TBD verify"),
+modules/tyre_fit_auto.py (D = mu*Fz, twice), and three
+config/parameters.json comments (cs fallback C_alpha/Fz, load-normalised
+fit, mu plausibility band). Until today these citations were unverified
+against the text.
+AMENDED same day: the book has since been supplied as a scan,
+docs/literature/Racecar_vehicle_dynamics.pdf (34,713,117 bytes). The
+anchor read resumes against that scan (BACKLOG G anchor search, next
+entry).
+
+## BACKLOG G anchor search: outcome [2026-09-28, branch backlog-g, read-only]
+TARGET CLAIM searched for (stated precisely, not "load transfer in
+general"): a construction attributing per-axle lateral force using
+measured/known vertical axle load -- axle Fy in proportion to, or as a
+stated function of, its normal load. Context: Module 4a computes
+Fy_f = m*ay*front_fraction + Iz*psidd/L, Fy_r = m*ay - Fy_f (rigid-body
+force + yaw-moment balance, no Fz); BACKLOG G asks whether measured Fz
+should inform that split.
+VERDICT: NO DIRECT ANCHOR in any of the five available texts. BACKLOG G
+is BLOCKED ON LITERATURE per CLAUDE.md's stop-and-ask rule (Tier A, no
+anchor -> stop). Every text that constructs an axle Fy split does so from
+force and moment equilibrium with the CG-to-axle distances; none brings
+measured normal load into that split. Physical reading (mine, stated as
+reasoning, not a quote): the moment balance is exact for the rigid body,
+so a load-proportional split would contradict it whenever axle load
+fractions differ from b/L (longitudinal transfer, aero), unless a further
+modelled force/moment is added -- which no text supplies.
+READABILITY: Milliken & Milliken, Race Car Vehicle Dynamics
+(docs/literature/Racecar_vehicle_dynamics.pdf, 928 pp.) has NO text
+layer; read visually from pymupdf renders, locators are PRINTED page
+numbers read off each page (PDF index offset drifts: +31 in ch.5, +33 in
+ch.7/18). Kiencke & Nielsen has a garbled text layer (broken font
+encoding) -> read visually (offset +10 in ch.9). Rajamani, Segers,
+Werner (German) have usable text layers; Rajamani equations read from
+renders. This corrects the WP-ELICIT note that the non-Segers texts were
+"not searchable": a tool gap (no PDF library in the venv), since fixed by
+installing pymupdf into the venv for this package.
+PER-TEXT RECORD (verbatim; [DIRECT]/[NEAR-MISS]/[CURRENT-CODE ANCHOR]):
+1. Milliken RCVD.
+ - Sec. 5.4, p.130 [CURRENT-CODE ANCHOR, steady state]: "The centrifugal
+   force effectively pulling sideways on the vehicle must be reacted in
+   a steady turn by the front and rear tire cornering forces which in
+   this case are obviously equal. In general, the vehicle acts as a
+   horizontal beam in lateral force and moment equilibrium" -- "Force
+   Equilibrium: CF = Y_F + Y_R" / "Moment Equilibrium: C_F a_F a =
+   C_R a_R b (also called yaw moment balance)".
+ - Sec. 5.5, p.135 [CURRENT-CODE ANCHOR; the closest wording to the
+   target, and it states the lever, not the load]: "The vehicle acts as
+   a horizontal beam or lever. The side force must be reacted at the
+   individual tracks in inverse proportion to the CG to track distances
+   (in ratio to the wheelbase). Thus the front track takes 2/3 of the
+   cornering force and the rear 1/3." Same page: "The static load on the
+   front wheels is now 2/3 W and that on the rear 1/3 W". The split
+   equals the STATIC load fraction only because both follow from the
+   same CG position; the stated mechanism is the lever.
+ - Sec. 5.7, p.144 [CURRENT-CODE ANCHOR, transient]: "N = I_z dr/dt",
+   "Y = ma_y", "where N and Y are the resultant yawing moment and
+   lateral force that the tires apply to the vehicle (aerodynamic forces
+   are not included in the elementary vehicle)." p.149, Eq. 5.6:
+   "N = N_F + N_R = Y_F a - Y_R b". Solving gives exactly Module 4a's
+   Fy_f = (m*ay*b + Iz*r_dot)/l.
+ - Sec. 5.7, p.146 [stated limit]: "The so-called unbalanced forces and
+   moments causing acceleration arise totally from the tires in this
+   simple model. Since load transfer, camber and aerodynamic effects are
+   omitted, only slip angle effects need to be included at the
+   appropriate static loads." Footnote 26: "An extension of this model
+   could include constant aerodynamic downforce at the front and rear
+   and also longitudinal load transfer effects associated with constant
+   longitudinal acceleration." -- load enters the TIRE characteristics,
+   not the force/moment split; no such extension is given there.
+ - Ch.7 intro, p.280 [CURRENT-CODE ANCHOR]: "the yawing moment on the
+   vehicle is simply the difference between the total lateral forces at
+   the front and the rear, times their respective distances from the
+   CG." / "The total lateral tire force is the sum of the lateral track
+   forces."
+ - Sec. 7.1, pp.283-285 [NEAR-MISS, capacity/normalisation]: "Any
+   calculation of this type assumes the availability of tire data."
+   (p.283); "In the general case, W_a should take into account any
+   changes in static wheel loads plus longitudinal load transfer if the
+   situation of interest involves longitudinal acceleration." (p.284);
+   "The lateral track force is the sum of the lateral forces of the two
+   wheels ... This force divided by W_a is the lateral acceleration of
+   the track (A_Y)_a." (p.285). Load is the NORMALISER of a forward,
+   tire-data-driven axle capacity ("lateral force potential diagram"),
+   not an attribution of measured Fy. Supports load-normalised axle
+   force (the existing fy_*_norm_N display), not G.
+ - Sec. 18.4, pp.678-679 and 18.5, p.684 [NEAR-MISS, reverse
+   direction]: loads computed FROM lateral/longitudinal acceleration
+   ("Total lateral load transfer", "Delta W_X = (h/l) W A_X"). Stated
+   limit, p.679: "The information in this section applies only to steady
+   turns, no consideration is given to combined lateral and longitudinal
+   accelerations or other dynamic situations (i.e., power on/off,
+   braking, or rough roads)."
+ - Not read this session: ch.2 (tire lateral force vs load), 8.5 (limit
+   behavior), 18.3/18.8. These would be "load changes tire capacity"
+   material, insufficient for G by the work order's own rule.
+2. Rajamani, Vehicle Dynamics and Control.
+ - Sec. 2.3, p.28 [CURRENT-CODE ANCHOR]: Eq. 2.21 "m(y_dd + psi_d V_x)
+   = F_yf + F_yr"; "Moment balance about the z axis yields the equation
+   for the yaw dynamics as" Eq. 2.22 "I_z psi_dd = l_f F_yf - l_r F_yr".
+ - Ch.3, p.55 [CURRENT-CODE ANCHOR, steady state]: "Steady state force
+   and moment equilibrium equations for the vehicle yield" Eq. 3.17
+   "F_yf + F_yr = m V_x^2/R", Eq. 3.18 "F_yf l_f - F_yr l_r = 0",
+   Eq. 3.19 "F_yf = (l_r/l_f) F_yr".
+ - Sec. 4.1.5, p.97 [NOTHING for G]: normal loads from pitch balance
+   ("The normal force distribution on the tires can be determined by
+   assuming that the net pitch torque on the vehicle is zero.").
+3. Segers, Analysis Techniques for Racecar Data Acquisition.
+ - Ch.10 sec. 10.1, pp.221-222 [NEAR-MISS, reverse direction]:
+   Eq. 10.1 "F = W . Glat", Eq. 10.2 "Delta W_Lat = W . Glat . h_COG /
+   T" -- loads from lateral acceleration.
+ - Ch.15 (Simulation Tools, tire-model subsection before 15.3.5),
+   pp.412-415 [NEAR-MISS, capacity model]: "In this equation the lateral
+   tire force is dependent of the tire slip angle and the normal load on
+   the tire." (Eq. 15.18, Fy = f(alpha) . f(F_N)); "f(FN) is what
+   describes the maximum lateral tire force the tire can produce for a
+   given vertical tire load." (p.413); "Equations 15.20 and 15.21
+   estimate the total lateral tire force of both front and rear wheels,
+   respectively, by applying a force equilibrium around the front and
+   rear axles." (p.414). A peak-capacity fit for a lap-time-simulation
+   tire model from max-load snapshots, not a time-series split of
+   measured Fy.
+4. Kiencke & Nielsen, Automotive Control Systems.
+ - Sec. 9.5, p.387 [NEAR-MISS, model-based]: "One of the most important
+   tasks of the identification is to obtain the forces acting upon the
+   wheels, which are very difficult to obtain in terms of measurement
+   techniques. The longitudinal and lateral wheel forces, F_X and F_Y can
+   be determined from the friction co-efficients mu_S, mu_L and the
+   wheel ground contact forces F_Zij (Section 8.3.4)."
+ - Sec. 9.5.1, pp.388-389: wheel loads from a_X/a_Y (Eqs. 9.47-9.54);
+   "During cornering the lateral acceleration causes a roll torque as
+   shown in Figure 9.34, whose distribution over the front and rear axle
+   depends on the axle load."
+ - Sec. 9.5.2, pp.391-392 [NEAR-MISS, the closest in kind]: Eq. 9.57
+   "F_Sij = k_red,ij (k1 - F_Zij/k2) . F_Zij . arctan(k3 . alpha_ij)";
+   "Equation 9.57 considers the influence of varying wheel loads F_Zij
+   (see Section 9.5.1) on the lateral wheel forces." "Based on the
+   lateral wheel forces in Equation 9.57 the tire side slip constants
+   are recalculated in every time step." (Eq. 9.58 c_ij = F_Sij/alpha_ij).
+   Fz-dependent per-wheel Fy, but produced by a TIRE MODEL fed with slip
+   angle -- adopting it would make Module 4b's model-free CS estimate
+   (dFy/dalpha from measured Fy) circular in alpha and in the tire curve,
+   i.e. it runs straight into the documented beta/tire-curve
+   identifiability wall. Not a licence for G.
+5. Werner 2021 (MA, German).
+ - Sec. 4.5.2, p.56 [NEAR-MISS, different consumer]: "Um die effektiven
+   Schraeglaufsteifigkeiten mithilfe des Reifenmodells zu jedem Zeitpunkt
+   zu berechnen, sind neben den Schraeglaeufen Informationen zur Radlast
+   Fz erforderlich. Aufgrund fehlender Sensoren zur Ermittlung der
+   Radlasten stehen diese Daten nicht zur Verfuegung, was die Berechnung
+   des gierdaempfungsabhaengigen Teils des Giermoments verhindert."
+   (umlauts transliterated). Fz is needed for C_alpha,eff inside D_psi
+   (Eq. 4.3/4.4) -- the separate "Completing Werner Eq. 4.3" item, not
+   the Fy split. ~~Measured Fz is thus better placed as a D_psi input than
+   as a split input; that remains its own Tier A question.~~ [SUPERSEDED
+   2026-09-29: Werner needed Fz only for his tyre-model route to the
+   effective stiffness; this project measures effective stiffness
+   directly (Module 4b, model-free), so Eq. 4.3 completes WITHOUT Fz --
+   see "Werner Eq. 4.3 completion: anchor check".]
+WHAT THE TEXTS DO NOT SUPPORT: attributing measured total Fy (m*ay) to
+the axles by measured axle-load fractions; replacing front_fraction
+with Fz_f/(Fz_f+Fz_r) in the moment-balance split; any time-series Fy
+attribution that uses Fz without a tire model and slip angle.
+SIDE FINDING (citation gap from the prior entry, partly closed): Module
+4a's "Milliken RCVD" citation is now verified against the text at
+section granularity -- ch.5, sec. 5.7 (Eqs. 5.1 and 5.6, pp.144-149),
+consistent with sec. 5.4/5.5 and with Rajamani sec. 2.3 Eqs. 2.21/2.22.
+Code pointer, if later updated, is "Milliken RCVD ch.5 (sec. 5.7)" per
+CLAUDE.md's chapter-granularity rule; no code touched this package. The
+tyre_fit_auto.py / parameters.json "Milliken RCVD, tyre chapter" (D =
+mu*Fz) citations remain UNVERIFIED -- ch.2 was not read this session.
+OUTCOME: successful negative result. G does not proceed to a proposal.
+The current Module 4a construction stands, now literature-anchored.
+
+## BACKLOG G close-out [2026-09-28, branch backlog-g]
+BACKLOG G (Fy split from measured axle loads) is BLOCKED ON LITERATURE.
+Evidence: the five-text anchor search (entry "BACKLOG G anchor search:
+outcome" above) -- Milliken RCVD, Rajamani, Segers, Kiencke & Nielsen,
+Werner 2021 all anchor the current moment-balance split (Milliken sec.
+5.7; Rajamani Eqs. 2.21/2.22); none splits axle Fy by measured normal
+load.
+REASONING that makes the negative result structural, not a gap in the
+search: m*ay and Iz*psidd give exactly two independent equations for the
+two unknown axle lateral forces, so the moment-balance split is the
+unique solution given those inputs (verified numerically in the WP-N2
+pass 0 record: a*Fy_f - b*Fy_r = Iz*psidd to a max deviation of 7.3e-12
+Nm). A measured Fz measures what an axle CAN carry (capacity), not the
+lateral force actually flowing through it. Forcing Fy proportional to Fz
+would bake into the CS_ratio input exactly the front/rear imbalance that
+CS_ratio exists to detect -- the estimator would lose its signal by
+construction.
+REOPEN CONDITION: a real literature anchor for a load-informed split.
+~~REDIRECT: the measured-Fz question moves to the Werner Eq. 4.3
+yaw-damping (D_psi) item. Werner sec. 4.5.2 (p.56) needs Fz exactly
+there, to evaluate the tyre model's effective cornering stiffness; he
+could not complete D_psi because his car lacked wheel-load sensors. That
+is its own future Tier A package, proposal-first.~~ [SUPERSEDED
+2026-09-29: Werner needed Fz only for his tyre-model route to the
+effective stiffness; this project measures effective stiffness directly
+(Module 4b, model-free), so Eq. 4.3 completes WITHOUT Fz. The measured-Fz
+question therefore has no destination at present; Eq. 4.3 proceeds as
+its own package without it.]
+CONSEQUENCE: no estimator input changed, so there is no CS threshold
+re-derivation and no full-suite G boundary. The gated-kinematic
+diagnostic that follows is read-only and does not create one either.
+CITATION POINTERS updated (comment-only): modules/stability_analysis.py
+estimate_lateral_forces -> "Milliken RCVD ch. 5 (sec. 5.7); Rajamani
+sec. 2.3 (Eqs. 2.21/2.22)".
+
+## Milliken RCVD ch. 2 read: D = mu*Fz citation check [2026-09-28, branch backlog-g]
+Read visually from renders (printed pp.13-27, sec. 2.1; no text layer).
+SUPPORTED, sec. 2.1 "Tire Load Sensitivity", pp.25-27 (verbatim):
+ - p.26: "concept of a friction coefficient defined as mu = Frictional
+   force between two bodies / Normal force between two bodies. This
+   suggests normalizing (also referred to as nondimensionalizing) the
+   lateral force vs. slip angle curve by dividing by the load to give a
+   dimensionless measure of the amount of lateral force obtained in
+   relation to the load: Lateral force / Load on tire = Lateral Force
+   Coefficient, F_y/F_z".
+ - p.27: "If they all reached exactly the same value, the peak lateral
+   force for any load would be simply (lateral force coefficient) x
+   (load on tire)."
+ - p.27, the stated LIMIT: "Actually, the peak lateral force coefficient
+   (or lateral friction coefficient) is normally higher for the lighter
+   loads or, conversely, falls off as the load increases. This effect is
+   called the tire load sensitivity." and "For a current Grand Prix tire
+   the coefficient may run as high as 1.8 at light load."
+ - p.25: "When a particular tire is tested at a series of loads, the
+   lateral force curves appear as in Figure 2.8. It will be noted that as
+   the load increases, the peak lateral force occurs at a somewhat higher
+   slip angle. Also, the cornering stiffness (slope in the elastic range)
+   increases."
+So D = mu*Fz is anchored as the DEFINITION of the peak lateral friction
+coefficient, with Milliken's own caveat that mu is not load-independent
+-- which is exactly the load-sensitivity signature the Fz-integration
+Phase 2/3 mu-fit found in real data (thesis_notes.md "Fz-integration
+Phase 2/3"). The citation now carries its limit.
+POINTERS UPDATED (comment-only): modules/tyre_fit_auto.py (two
+docstrings) and config/parameters.json _comment_load_normalised ->
+"Milliken RCVD ch. 2 (sec. 2.1)".
+STILL TO VERIFY, deliberately left untouched:
+ - config/parameters.json _comment_mu_plausibility_band cites "Milliken
+   RCVD, tyre chapter" for a GT3-slick peak-mu band of 1.2-2.0. Sec. 2.1
+   supports the D = mu*Fz definition but gives no GT3 band; its only
+   number is "as high as 1.8 at light load" for a Grand Prix tire. The
+   band values are not from this text.
+ - config/parameters.json _comment_cs_fallback cites "Milliken RCVD, GT3
+   slick" for C_alpha/Fz = 12 rad^-1 (diagnostics-only consumer). Not
+   looked for this session (sec. 2.1 shows cornering stiffness rising
+   with load, p.25, but gives no normalised value).
+
+## Gated-kinematic sideslip diagnostic [2026-09-28, branch backlog-g, read-only]
+PURPOSE: evidence for the BLOCKED washout-cutoff / sideslip-source
+decision. Measures; decides nothing. No production file, config value or
+threshold changed. Scripts: diagnostics/inspect_gated_kinematic_run.py
+(compute + cache), _cs.py, _drift.py, _scale_sign.py, helpers
+gated_kinematic_common.py / gated_kinematic_style.py. Figures in
+diagnostics/plots_gated_kinematic/ (gitignored): cs_worst_by_source_
+{dubai,v3}.png, drift_vs_time_{dubai,v3}.png, gate_exit_residual_
+{dubai,v3}.png, mid_corner_beta_{dubai,v3}.png; numbers in cs_results.
+json, drift_results.json, scale_sign_results.json.
+METHOD (Tier B preprocessing variant of the same Tier A identity as
+estimate_sideslip, Rajamani ch. 2): beta_dot = ay/v - r integrated ONLY
+while moving and |ay| > gate threshold; the integrator restarts at 0 on
+every gate entry and beta is held at 0 outside the gate (straight-line
+sideslip taken as zero). Fully causal (cumulative sum with resets).
+Threshold from each session's own racing |ay| distribution by Otsu's
+method: Dubai 7.192 m/s^2 (44.9th percentile), v3 8.114 m/s^2 (47.1th);
+sensitivity at 0.75x and 1.5x. Comparison sources: production kinematic
+(0.05 Hz filtfilt, ZERO-PHASE/ACAUSAL -- never used for a drift claim),
+causal lfilter washouts at 0.05 and 0.02 Hz (same Butterworth order),
+ekf_auto_pacejka via the production dispatch (resolve_sideslip_beta).
+Full production chain per source (slip -> Fy -> CS -> yaw stability ->
+summarise_corners), cap=1 config defaults (golden convention).
+EKF gate this run: Dubai PASS 0.1351 (matches record), v3 PASS 0.0985
+~~(record 0.0849 was measured with the outing's real weighing; this run
+uses cap=1 defaults -- stated, not chased).~~ [CORRECTED 2026-09-29:
+that explanation was wrong. The 0.0849 record came from diagnostics/
+inspect_v3_nis_gate_failure.py, which uses raw load_parameters() --
+config defaults, not the weighing. Re-run today through the production
+dispatch: raw load_parameters() 0.098474, cap=1 defaults 0.098474, cap=2
+with the outing's stored weighing (FL/FR/RL/RR 300.3/298.9/396.2/386.5
+kg, mass 1381.9 kg) 0.093809. The weighing moves the score by 0.0047;
+the like-for-like gap (defaults, 0.0849 on 2026-09-03 vs 0.0985 now) is
+NOT explained by weighing -- it arose from pipeline changes between
+those dates, not identified. Not chased further, per order. Verdict is
+PASS under all three bases.] [2026-09-29, later: bisected by mechanism
+-- rate-correction, FR decoding, representative-lap filter and weighing
+all excluded; ~~still unexplained~~ EXPLAINED in the final round by the
+pit-limiter lap-9 reclassification (0.084871 reproduced exactly), see
+"v3 NIS health-score drift 0.0849 -> 0.0985: bisect by mechanism".]
+RECORD NUMBERS NOT REPRODUCIBLE AS SUCH: STEP 2's C9 rear -362508
+(kinematic) / -74581 (ekf_pass_1) N/rad and C6 -311382 / -13064 were
+measured before the CS validity repair, with ekf_pass_1. On today's chain
+production kinematic reads Dubai C9 rear C_alpha -74328 N/rad at the
+worst sample and C6 rear is non-negative under every source -- the
+beta-artefact gap the record describes is already largely closed by the
+CS repair itself, for kinematic too.
+BAR 1 (C9/C6 gap), Dubai, worst-lap worst-phase CS_ratio_r:
+C9: kinematic -0.163 (below STRONG_CSR -0.07), ekf +0.084, gated
++1.000 / +0.285 / +1.000 (x1 / x0.75 / x1.5). C6: kinematic +1.000,
+ekf +0.601, gated +0.343 / +0.277 / +0.252. Gating removes the C9
+negative as the EKF does -- but at x1 and x1.5 by PINNING at +1.000, not
+by a plausible curve. Pinned-at-+1.0 corner count (both axles): Dubai
+kinematic 5, ekf 0, gated 7 / 8 / 8; v3 kinematic 3, ekf 2, gated
+7 / 6 / 13. Mechanism: beta = 0 before the gate opens makes alpha pure
+steer/yaw geometry at turn-in (+1.0 = "linear" by construction), and the
+hard reset at gate exit steps alpha, which CS windows spanning the edge
+fit as garbage -- v3 shows it most (front C6 -4.745 at x1, rear C1
+-34.199 at x0.75). MET in sign at C9; NOT MET as a credible curve.
+BAR 2 (C4 front saturation must survive), Dubai worst CS_ratio_f:
+kinematic -0.308, ekf -0.134, gated x1 -0.325, x0.75 -0.375 (all L3/L1
+exit_4) -- SURVIVES at x1 and x0.75; at x1.5 +0.291 -- DOES NOT
+SURVIVE. Pass/fail depends on the threshold choice.
+BAR 3 (drift vs time, causal only): past corner exit the gated sources
+are 0 by construction on both sessions. Causal washout, median |beta| on
+straight-like samples at 0/1/2/3/4 s: 0.02 Hz v3 2.18/1.75/3.19/4.09/
+3.29 deg -- the recorded 0.02 Hz failure mode reproduces on v3; Dubai
+2.00/0.95/1.21/1.10/0.41 (no growth). 0.05 Hz v3 2.06/0.30/0.96/1.44/
+1.45; Dubai 1.09/1.36/1.42/0.76/0.40. ekf_auto_pacejka v3 1.41 ->
+0.38, Dubai 0.86 -> 0.14 (reference). THE GATED DRIFT MOVES INSIDE THE
+CORNER: integrator value at gate exit, before the reset (x1): Dubai
+median 2.00, p90 4.96, max 10.05 deg; v3 1.76 / 5.66 / 14.44 deg; grows
+with run length (|residual| slope 0.79 deg/s Dubai, 1.50 deg/s v3).
+GYRO SCALE, measured directly (closed-lap heading closure after bias
+removal): Dubai -1.04 % (closure residual 3.45-3.86 deg/lap -- same order
+as the recorded ~6 deg/lap, somewhat smaller), v3 -0.32 % (0.08-1.24
+deg/lap). The in-gate residual scales with the run's heading change
+(slope +0.039 rad/rad, R^2 0.74 Dubai; +0.062, R^2 0.70 v3), but gyro
+scale predicts only +0.0104 (Dubai, ~27 %) and +0.0032 (v3, ~5 %) of
+that slope. So gyro scale drift is real but is NOT the dominant in-gate
+error; the rest scales with turn direction and heading change from a
+source this diagnostic does not identify (candidates, not tested: roll-
+gravity contamination of the lateral accelerometer, ay or speed scale,
+and the true beta at the moment |ay| crosses the threshold). Per-corner
+lap spread of the residual 0.3-3.6 deg Dubai, 0.4-6.5 deg v3.
+BAR 4 (sign and magnitude, mid-corner middle third, |beta| >= 0.1 deg):
+sign agreement gated_x1 vs ekf 0.11 (Dubai, n=47) / 0.18 (v3, n=39);
+kinematic vs ekf 0.56 / 0.90; gated vs kinematic 0.37 / 0.08. Median
+|mid-corner beta|: kinematic 0.56 / 0.92, ekf 2.31 / 4.46, gated 1.09 /
+0.53 deg. Dubai historic disagreement corners (kinematic vs the linear
+observer, WP-S5): C6 kinematic +0.84, ekf -2.36, gated -0.28; C10
+kinematic -0.56, ekf +1.24, gated +0.00. Gated beta mostly takes the
+OPPOSITE sign to the EKF mid-corner, consistent with the in-gate
+residual having the sign of the turn.
+SUMMARY OF PRE-REGISTERED BARS (no recommendation): Bar 1 met in sign at
+C9, not met as a credible curve (pinning/edge artefacts); Bar 2 met at
+x1 and x0.75, failed at x1.5; Bar 3: the straight-line drift is removed
+by construction, but an in-corner drift of median ~2 deg (max 10-14 deg)
+takes its place, dominated by a heading-change-proportional error that
+gyro scale explains only in part; Bar 4 not met (sign agreement with the
+EKF 0.11-0.18). The hard-reset variant is the only gate behaviour tested;
+a decaying reset (no step at gate exit) is untested.
+[2026-09-29, reviewer ruling, author-delegated] The diagnostic FAILS its
+pre-registered bars: Bar 1 met in sign only, via pinning (6-13 corners
+at +1.000 vs EKF 0-2; v3 gate-edge extremes to -34.2); Bar 2 threshold-
+fragile (C4 front saturation dies at x1.5); Bar 3 dominated by an
+UNIDENTIFIED in-corner drift (median ~2 deg, max 10-14 deg; gyro scale
+explains only 5-27 %); Bar 4 near-random sign agreement with the EKF
+(0.11/0.18). Consequence: ekf_auto_pacejka stays production; the
+EKF-deletion simplification is off the table; the fade-out gate variant
+is NOT pursued -- an edge treatment cannot address Bars 3/4. The
+washout-cutoff decision stays BLOCKED, with this diagnostic added to its
+evidence (PLAN.md washout-cutoff entry, addendum 2026-09-29).
+
+## WP-CONFTEXT: config text scrub + dead keys [2026-09-28, branch backlog-g]
+Tier C, text only; no value that code reads as a number or switch changed.
+SCOPE: note / notes / derived_from / source / _comment fields in
+config/channels.json, decision_frame.json, parameters.json,
+setup_parameters.json (recommendations.json had no process-name leak --
+its three marker hits were ordinary words). Rule applied: provenance
+content and DATES stay; doc/WP/phase/PLAN/thesis_notes names go; process
+framing ("work order", "checklist", "amendment", "instruction", "per the
+user", "per the spec") goes. Kept deliberately: provenance roles with
+dates ("author-elicited 2026-09-24", "reviewer-confirmed", "user
+decision"), product-file references (diagnostics/*.py, modules/*.py,
+docs/car_data), method identifiers (pass_0, entry_2_turnin, apex_region).
+EDITS: 140 fields in round 1 (channels 6, setup_parameters 30,
+parameters 35, decision_frame 69), 9 more in round 2 (seven
+setup_parameters typical_window notes opening "DECISION LAYER SPEC
+2026-09-22", one "Stage 1", one "WP-N3" -- the first marker list had
+missed the spec name; the second scan caught it). Applied as exact
+in-file string replacements, never re-serialised, so the diff is the
+changed lines only.
+LEFT UNCHANGED, stated:
+ - Test-pinned: tests/test_decision_frame.py asserts substrings in
+   decision_frame.json cost_function.derived_from, change_time_derived_
+   from, breadth/headroom/interaction/effect_class_derived_from,
+   display_score_threshold.derived_from, and the two lever entries
+   carrying "harder cut into the platform" / "screams ARB". Per the
+   order these fields keep their values; change_time_derived_from
+   ("Phase A", "WP-ELICIT", "elicitation item", thesis_notes) and
+   breadth_derived_from ("Stage 6") still carry process names because
+   of it.
+ - Record-shaped: parameters.json tyre_model_ekf pass blocks (pass_0/1/3
+   notes and provenance fields) -- the dead-key map marks them
+   record-not-parameter; left whole, text included.
+DEAD KEYS DELETED (map category "no reader in code", each re-checked by
+a whole-repo grep incl. diagnostics/ and tests/ before deletion):
+parameters.json vehicle.driver_mass_ref_kg / fuel_mass_ref_kg (their
+content survives in mass_note: "75kg driver, 35kg fuel"),
+longitudinal_stiffness.kerb_investigation_reference; decision_frame.json
+plausibility_checks.tyre_pressure_window (superseded by
+tyre_pressure_target), intervention_evidence.abs.
+abs_inactive_corroborates_braking_instability, intervention_evidence.tc.
+tc_active_corroborates_traction_limited, eligibility_classes.
+camber_multi_corner_gate. The one comment naming tyre_pressure_window
+(diagnostics/inspect_tpms_pressure_cornering_phase.py, and the
+_comment_tyre_pressure_target sentence) repointed to "removed
+2026-09-28".
+KEPT although the map lists them as having no reader in code, because a
+surviving diagnostic or test reads them: vehicle.yaw_inertia_kalman_kgm2,
+stability_estimation.cs_front/rear_fallback_reference_n_per_rad
+(diagnostics/sideslip_kalman_observer.py), tyre_model_fit incl.
+ay_linear_threshold_g (diagnostics/fit_dugoff_first_pass.py);
+display_score_threshold (test-pinned + two diagnostics) and
+recommendations.json settings.driver_level_weighting.neutral_level
+(tests/test_decision_frame.py) -- the map's "read by Settings only"
+category, not its no-reader list.
+[2026-09-29 addendum] The two "test-pinned" fields were not in fact
+pinned on their process names: tests/test_decision_frame.py asserts only
+content substrings ("halve the while-driving favor", "cutting power",
+"author-elicited 2026-09-26", no "placeholder"). Cleaned without any test
+repoint: change_time_derived_from lost "(WP-ELICIT Phase A1, elicitation
+item 1, PARTIAL -- ...)" and its thesis_notes pointer; breadth_derived_
+from "Stage 6 names the CONCEPT" -> "the design names only the CONCEPT".
+_comment_tyre_pressure_target's stale tail ("no target exists, so all
+null") replaced by the live values read from tyre_pressure_target (front
+fl/fr 1.85-1.95 bar, rear rl/rr 1.8-1.9 bar, author-elicited 2026-09-24,
+compound-scoped per its compound_note). Remaining scan hits are
+product filenames, the tyre_model_ekf record block, and step-size false
+positives only.
+
+## Werner Eq. 4.3 completion: anchor check [2026-09-29, branch backlog-g, read-only]
+Tier A. Werner_2021_MA.pdf (German, text layer usable); page numbers are
+the printed ones. Translations are MINE, marked [tr.].
+1. Definition, sec. 4.5.2 "Korrelation des Giermoments", p.56:
+   "Das Giermoment kann für die Messdaten mithilfe der
+   Differentialgleichung aus Gleichung 4.3 und Gleichung 4.4 berechnet
+   werden. Das Giermoment setzt sich zusammen aus einem Teil, der von der
+   Rotationsträgheit abhängt und einem Teil, der von der Gierdämpfung
+   abhängt." [tr.: The yaw moment can be computed for the measured data
+   using the differential equation of Eq. 4.3 and Eq. 4.4. The yaw moment
+   consists of a part that depends on the rotational inertia and a part
+   that depends on the yaw damping.]
+   "Die Gierdämpfung ergibt sich aus den effektiven
+   Schräglaufsteifigkeiten der Vorder- und Hinterachse sowie den
+   Hebelarmen der Achsen zum Schwerpunkt und der Fahrzeuggeschwindigkeit.
+   Bei der Ermittlung der effektiven Schräglaufsteifigkeiten ist zu
+   beachten, dass diese im nichtlinearen Bereich des Reifens keine
+   Konstante mehr darstellen." [tr.: The yaw damping follows from the
+   effective cornering stiffnesses of the front and rear axle, the axles'
+   lever arms to the centre of gravity and the vehicle speed. When
+   determining the effective cornering stiffnesses, note that they are no
+   longer constant in the tyre's nonlinear range.]
+   Eq. 4.3: Mz = Iz * psi_ddot + D_psi * psi_dot
+   Eq. 4.4: D_psi = (C_alpha,f,eff * l_f^2 + C_alpha,r,eff * l_r^2) / v
+2. What Fz is needed FOR, p.56:
+   "Um die effektiven Schräglaufsteifigkeiten mithilfe des Reifenmodells
+   zu jedem Zeitpunkt zu berechnen, sind neben den Schrägläufen
+   Informationen zur Radlast Fz erforderlich. Aufgrund fehlender Sensoren
+   zur Ermittlung der Radlasten stehen diese Daten nicht zur Verfügung,
+   was die Berechnung des gierdämpfungsabhängigen Teils des Giermoments
+   verhindert." [tr.: To compute the effective cornering stiffnesses WITH
+   THE TYRE MODEL at every instant, information on the wheel load Fz is
+   required besides the slip angles. Because sensors for determining the
+   wheel loads are missing, these data are not available, which prevents
+   the computation of the damping-dependent part of the yaw moment.]
+   -> Fz is needed ONLY to evaluate C_alpha,eff through his Pacejka tyre
+   model (sec. 2.1.3, MF parameters load-dependent), at the operating
+   (alpha, Fz). He assumes Fz comes from wheel-load SENSORS (their absence
+   is his stated blocker).
+3. What "effective" means, p.56-57: "Da die effektiven
+   Schräglaufsteifigkeiten im nichtlinearen Bereich des Reifens abnehmen
+   und beim Querkraftmaximum des Reifens den Wert Null annehmen, ..."
+   [tr.: Since the effective cornering stiffnesses decrease in the tyre's
+   nonlinear range and reach zero at the lateral-force maximum, ...] --
+   i.e. the LOCAL TANGENT slope dFy/dalpha at the operating point, per
+   axle.
+4. His own finding, p.57: "Der trägheitsabhängige Teil des Giermoments
+   nach Gleichung 4.3 ist im Vergleich zum dämpfungsabhängigen Teil für
+   den Fall des Devbots betraglich zu vernachlässigen. Ebenfalls sind die
+   Schräglaufsteifigkeiten von der Radlast Fz abhängig." [tr.: The
+   inertia-dependent part of the yaw moment per Eq. 4.3 is negligible in
+   magnitude compared with the damping-dependent part for the Devbot.
+   The cornering stiffnesses also depend on the wheel load Fz.] He
+   continued with a constant C_alpha = 100000 N/rad ("linear tyre at
+   Fz = 5000 N") and dropped the comparison as of little added value.
+   p.57 also: "Die Gierdämpfung ... die invers von der Geschwindigkeit
+   abhängig ist." [tr.: the yaw damping, which depends inversely on
+   speed.] Context p.12 (sec. 2.2.2): the transient to steady state is
+   "Verzögert durch die Gierträgheit Iz und die Gierdämpfung Dpsi"
+   [tr.: delayed by the yaw inertia Iz and the yaw damping D_psi].
+SECOND ANCHOR -- Milliken RCVD sec. 5.7, Eq. 5.6, p.149 (read visually
+2026-09-28): "N = (aC_F - bC_R)beta + (1/V)(a^2 C_F + b^2 C_R) r - aC_F
+delta" -- the r-coefficient (1/V)(a^2 C_F + b^2 C_R) is exactly Werner's
+D_psi (Milliken's C are negative by his Table 5.1 sign convention, so
+D_psi = -N_r). This, not the sec. 2.1 load-sensitivity material, is the
+natural second anchor: sec. 2.1 (p.25: "as the load increases ... the
+cornering stiffness ... increases") is qualitative and only matters on
+Werner's tyre-model route.
+FINDING -- CORRECTS the BACKLOG G redirect written 2026-09-28: the
+project's documented adaptation (framing correction 2026-07-24, top of
+this file) already estimates the effective per-axle stiffness directly
+from logged Fy/alpha (Module 4b, C_alpha_f/C_alpha_r, local windowed
+slope, goes to zero/negative past the peak -- the same quantity Werner
+defines in point 3). So Eq. 4.4 is COMPUTABLE WITH THIS PROJECT'S
+QUANTITIES WITHOUT ANY Fz: C_alpha,eff from Module 4b, l_f/l_r from
+cog_position, v from ecu_speed, psi_dot from sclu_yaw_rate. Measured Fz
+would only be needed on Werner's own route (tyre model evaluated at the
+operating load), which here would run through the kinematic-seeded
+fitted Pacejka curve (and the non-production load-normalised D = mu*Fz
+fit) and so inherit the documented beta/tyre-curve identifiability
+limit. The G note's "measured Fz is better placed as a D_psi input" is
+therefore true for Werner's route only, not needed for the adapted
+route. Anchor HOLDS for the adapted construction -> proposal written
+(docs/proposal_werner_eq43.md).
+BOUNDARY: Module 5 regresses mz_inertial only (estimate_yaw_moment_
+stability, "D_psi not computed yet"); the chair's reference also uses
+the inertial moment only. Adding D_psi*psi_dot to the Module 5
+regressand would be an estimator-input change (stab_neg_thresh
+re-derivation, itself blocked) AND a chair deviation -- out of v1.
+
+## Werner Eq. 4.3 proposal: approved [2026-09-29, reviewer, author-delegated]
+docs/proposal_werner_eq43.md approved for v1 implementation (pure
+function + one diagnostic, no Module 5 / payload / UI wiring), with two
+implementation conditions:
+(a) The hand-worked test case states every input (C_af_eff, C_ar_eff,
+    l_f, l_r, v) and its expected value; the diagnostic checks the
+    damping-vs-inertia magnitude against Werner's own finding (sec.
+    4.5.2 p.57: the inertia part negligible next to the damping part for
+    his car) and reports plainly whether it reproduces.
+(b) Negative effective stiffness passes through as negative damping,
+    presented as physics -- a post-peak axle (Werner p.56-57: effective
+    stiffness falls to zero at the lateral-force maximum; beyond it the
+    local slope is negative), in the saddle-node stability-loss context
+    this project already cites as motivation (Ono et al. 1998, via
+    Hoffman et al. 2008) -- never clipped, never replaced.
+
+## Werner Eq. 4.3 v1: damping vs inertial yaw moment [2026-09-29, branch backlog-g]
+IMPLEMENTED per docs/proposal_werner_eq43.md: modules/yaw_damping.py
+(estimate_yaw_damping, yaw_damping_moment; pure, no config reads), new
+registry node accuracy_levels.yaw_damping (Level 1), tests/test_yaw_
+damping.py (hand-worked case C_af_eff = C_ar_eff = 100000 N/rad, l_f =
+1.1 m, l_r = 1.4 m, v = 40 m/s -> D_psi = 7925 N m s/rad, recomputed
+independently before writing; NaN paths; negative pass-through), one
+diagnostic diagnostics/inspect_yaw_damping_eq43.py. Nothing wired into
+Module 5, the payload or the UI. Production chain as the goldens run it
+(ekf_auto_pacejka, cap=1); lever arms l_f = 1.434 m, l_r = 1.071 m from
+the static corner-weight split (both sessions, config defaults). Floor:
+v <= stability_estimation.moving_speed_min_mps -> undefined.
+Figures: diagnostics/plots_yaw_damping/yaw_damping_vs_inertia_{dubai,v3}
+.png (gitignored); numbers in yaw_damping_results.json.
+COVERAGE: D_psi defined on 59.1 % (Dubai) / 64.7 % (v3) of moving
+non-kerb samples -- elsewhere at least one axle's 4b stiffness is
+invalid. Corner-phase instances clearing 4b's own phase floor
+(cs_phase_min_valid_samples): 158 / 149; apex_3 contributes none (its
+fixed window is below the floor, the known reason apex_region exists).
+WERNER'S FINDING (inertia negligible next to damping, his sec. 4.5.2
+p.57): PARTLY REPRODUCES. Ratio median|D_psi*psi_dot| /
+median|Iz*psi_ddot| per corner-phase: Dubai p10 0.72, p50 1.87, p90
+7.58, damping larger in 77 %, more than 10x in 5 %; v3 p10 0.45, p50
+1.21, p90 3.27, larger in 60 %, more than 10x in 1 %. Damping is
+typically the larger term here but does NOT dwarf the inertial term the
+way Werner reports for the Devbot -- stated as a finding. By phase
+(median ratio): Dubai entry_1 2.33, turn-in 2.86, exit_4 1.37, exit_5
+1.51; v3 0.74, 1.32, 1.28, 0.99. Consequence for limitation #6 ("Iz*psidd
+only ... same order of magnitude"): the omitted term is of the same
+order and usually the larger one -- the limitation is real and not
+negligible, but not the order-of-magnitude gap Werner found.
+NEGATIVE D_psi (post-peak, passed through unclipped): Dubai 1 of 158
+instances (C9 L2 exit_4, front axle negative, 87 % of samples); v3 9 of
+149, all exit_4 (C1 L7/L8, C5 L7/L8, C6 L7, C8 L8, C9 L7, C13 L6, C16
+L7; front, rear and mixed). These coincide with the negative worst-CS
+instances of the same chain (e.g. Dubai C9 front -0.410 L2 exit_4; v3
+C1 L8, C5 L8, C8 L8 exit_4) -- expected, both come from the same 4b
+stiffness, so this is consistency, not independent confirmation.
+Cross-reference: Dubai C4 front saturation (exit_4) -- NOT negative
+(per-lap median D_psi 2175 / 1995; only 2 laps clear the floor there,
+front contribution positive 1721 / 1925); C3 traction (exit_5) -- NOT
+negative on any of 4 laps (3293-11306). A saturated axle at the
+worst-CS SAMPLE does not have to make the phase MEDIAN of D_psi
+negative; the other axle's damping usually outweighs it.
+
+## v3 NIS health-score drift 0.0849 -> 0.0985: bisect by mechanism [2026-09-29, read-only]
+Question: what moved v3's ekf_auto_pacejka health_score from 0.0849
+(recorded 2026-09-03) to 0.0985 (2026-09-20 onward) on identical config
+inputs? One isolated run per candidate, in order, in memory only
+(monkeypatched channels.json readers; no file edited; scratch script,
+not a diagnostics deliverable):
+1. NIS window rate-correction: EXCLUDED by provenance -- 0.0849 IS the
+   post-fix number (entry "Morning follow-up...": v3 0.1163 -> 0.0849
+   under the rate-corrected window).
+2. channel_corrections / FR gauge decoding: EXCLUDED -- removed in
+   memory, score 0.098474 unchanged (structurally expected: the free-D
+   fit never reads damper channels).
+3. Corner canonicalisation / representative-lap filter: EXCLUDED on
+   today's data -- disabling the filter leaves 17 stable corners and the
+   score 0.098474 unchanged, because lap 9 is already excluded as
+   analysis-invalid (valid laps 6, 7, 8), so the filter has nothing to
+   remove. This isolates the filter; it does not isolate the lap-validity
+   classification itself.
+4. Session weighing: EXCLUDED earlier (0.093809 with the real weighing,
+   not 0.0849).
+OUTCOME: UNEXPLAINED by the four named candidates. Both values PASS the
+current gate (threshold_use_ekf 0.08); no gate verdict is affected.
+The 2026-09-20 entry already observed the move and offered the mass/aero
+double-count fix as a guess; that path does not reach the free-D fit
+(Fy = config mass * ay), so the guess is not supported either. One
+plausible, UNTESTED mechanism in the same "fit population" family is
+the pit-limiter lap-validity reclassification (also 2026-09-03), which
+changes base_mask directly; not on the ordered list, not chased.
+AMENDS the gated-kinematic entry's 2026-09-29 correction ("cause not
+identified"): candidates 1-4 now excluded as above.
+[2026-09-29, FINAL ROUND -- EXPLAINED, entry CLOSED] ~~OUTCOME:
+UNEXPLAINED by the four named candidates.~~ Candidate 5, the pit-limiter
+lap-validity reclassification (2026-09-03, "Fz-integration Phase 4"),
+isolated in memory: v3's lap 9 set back to analysis-valid (its pre-fix
+state) in a copied lap list handed to the fit only, parse/corners/files
+untouched (scratch script outside the repo). Result: health_score
+0.084871 with laps 6-9 vs 0.098474 with laps 6-8 -- the recorded value
+reproduced EXACTLY (0.084871 is the six-decimal figure in the NIS gate
+band decision entry). The 0.0849 was therefore measured on 2026-09-03
+before that day's pit-limiter fix removed lap 9 (which ends ~22 s under
+the limiter, an in-lap) from the fit population; the move to 0.0985 is
+the intended consequence of the fix, not an unexplained drift. Both
+values PASS; no gate verdict affected. The 2026-09-20 entry's guess
+(mass/aero double-count fix) is superseded by this. Closed.
+
+## Branch backlog-g: close-out [2026-09-29]
+Off main f6a2add, uncommitted at close (author runs git). Contents, each
+with its own entry above:
+- BACKLOG G: blocked on literature. Milliken RCVD read from the scan
+  (no text layer); none of five texts splits axle Fy by measured Fz; the
+  moment-balance split is the unique solution for two unknowns.
+- Gated-kinematic sideslip diagnostic: failed its pre-registered bars;
+  ekf_auto_pacejka stays production, washout-cutoff stays blocked.
+- WP-CONFTEXT: config text free of process names/framing; 7 dead keys
+  removed after a whole-repo reader check.
+- Werner Eq. 4.3 v1: yaw-damping term computed from Module 4b's measured
+  effective stiffness, no Fz; diagnostic-only consumer. Damping usually
+  exceeds inertia here but does not dwarf it as for Werner's car.
+- v3 NIS drift 0.0849 -> 0.0985: explained by the pit-limiter lap-9
+  reclassification (exact reproduction), closed.
+- Citations verified at section level: Milliken ch. 5 sec. 5.7 (Fy
+  split; yaw damping, Eq. 5.6), ch. 2 sec. 2.1 (D = mu*Fz, with its
+  load-sensitivity limit); Rajamani sec. 2.3 (Eqs. 2.21/2.22).
+No estimator input changed on this branch, so no threshold re-derivation
+and no full-suite boundary; targeted tests + goldens cover it, full
+suite at the merge boundary. Open, not started: apex-region D_psi
+variant; Eq. 4.3 v2 (Module 5 wiring, Tier A, blocked with the stability
+threshold); mu-band and C_alpha/Fz = 12 citations.

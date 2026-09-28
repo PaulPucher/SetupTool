@@ -14,8 +14,8 @@ record is the deliverable, the script was scaffolding.
 `diagnostics/_attic/` awaits a final user decision (keep/delete) at
 orphan-branch time; do not delete from it without that explicit decision.
 
-Plot directories: three are gitignored (`plots/`, `plots_step2/`,
-`plots_decision_layer/`), seven are tracked (`plots_deepening/`,
+Plot directories: five are gitignored (`plots/`, `plots_step2/`,
+`plots_decision_layer/`, `plots_gated_kinematic/`, `plots_yaw_damping/`), seven are tracked (`plots_deepening/`,
 `plots_fz_integration/`, `plots_ground_truth/`, `plots_ls_evidence/`,
 `plots_metrology/`, `plots_threshold_investigation/`, `plots_v3/`) --
 a historical accident, deliberately left as-is (WP-CLEAN Phase 2,
@@ -191,7 +191,7 @@ here (53 keepers + 37 in diagnostics/_attic/).
 - **smoke_test_settings_view.py** -- SettingsView Section 4 cost-function
   weights, restart-persistence check.
 
-## K5 -- named census/measurement tooling (2 not already listed above)
+## K5 -- named census/measurement tooling (7 not already listed above)
 
 - **inspect_brake_bias_channel_identity.py** -- WP-ELICIT HANDOFF item 5
   (2026-09-25, Phase D brake-bias channel identity): recomputes percent-
@@ -201,9 +201,27 @@ here (53 keepers + 37 in diagnostics/_attic/).
   candidate channel warrants re-checking the identity.
 - **inspect_pipeline_sidecar_size.py** -- WP-CACHE sidecar size/load-time
   measurement, both real sessions against the acceptance gate.
+- **inspect_gated_kinematic_run.py**, **inspect_gated_kinematic_cs.py**,
+  **inspect_gated_kinematic_drift.py**, **inspect_gated_kinematic_scale_sign.py**
+  (2026-09-28, keep-reproduces) -- gated-kinematic sideslip evidence
+  (run/cache, CS comparison, causal drift-vs-time, gyro-scale + sign),
+  both real sessions. Keep-reason: provenance for the 2026-09-29
+  gated-kinematic fail-ruling (thesis_notes.md "Gated-kinematic sideslip
+  diagnostic"; ekf_auto_pacejka stays production). Plots in
+  `plots_gated_kinematic/` (gitignored).
+- **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
+  v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
+  without Fz): damping vs inertial yaw moment per corner-phase and the
+  negative-D_psi population, both real sessions. Reproduces the
+  thesis_notes.md "Werner Eq. 4.3 v1" figures; `--replot` redraws from the
+  saved JSON. Plots in `plots_yaw_damping/` (gitignored).
 
-## K6 -- imported by a K1-K5 keeper (1 not already listed above)
+## K6 -- imported by a K1-K5 keeper (3 not already listed above)
 
+- **gated_kinematic_common.py**, **gated_kinematic_style.py**
+  (keep-reproduces) -- shared helpers and fixed series styling imported
+  by the four inspect_gated_kinematic_* scripts (K5); same keep-reason:
+  provenance for the 2026-09-29 gated-kinematic fail-ruling.
 - **inspect_frame_stage2_parity.py** -- imported by
   capture_wp_perf_reference.py, inspect_damper_motion_sign_and_threshold.py,
   inspect_frame_candidate_census.py, inspect_pipeline_wall_times.py (all
