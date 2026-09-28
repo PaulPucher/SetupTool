@@ -209,6 +209,57 @@ here (53 keepers + 37 in diagnostics/_attic/).
   gated-kinematic fail-ruling (thesis_notes.md "Gated-kinematic sideslip
   diagnostic"; ekf_auto_pacejka stays production). Plots in
   `plots_gated_kinematic/` (gitignored).
+- **inspect_new_laps_cs_sweep.py** (2026-09-29, keep-reproduces) -- new-
+  session checklist (rate guard, corner clustering, bracket gaps vs
+  cs_max_window_m, lever-channel content census), CS_ratio extremity/
+  flapping baselines and the ten-row CS smoothing/persistence sweep over
+  all nine sessions. Keep-reason: the smoothing decision (input filter vs
+  output persistence) is open with the author and supervisor and will be
+  re-run against any chosen variant; also the reusable tool for the
+  PLAN.md new-data-file checklist on the next file. Records: thesis_notes.md
+  "New-session checklist", "CS_ratio extremity and flapping baselines",
+  "CS smoothing/persistence sweep" (2026-09-29). Caches, logs, figure in
+  `plots/new_laps/` (gitignored).
+- **inspect_cs_value_lens.py** (2026-09-29, keep-reproduces) -- value-
+  level CS_ratio lens on the sweep caches: NBR outing mapping (headers +
+  logged rake), full-lap traces, within-corner roughness/autocorrelation
+  vs window length, lap-to-lap reproduction, demand-gated band shares and
+  axle gap, NBR A (outing 21) vs B (outing 29), fold/loop on worst
+  windows. Imports inspect_new_laps_cs_sweep (caches, session list).
+  Keep-reason: evidence base for the open CS smoothing decision and the
+  A-vs-B known-answer check; re-run against any chosen variant. Records:
+  thesis_notes.md "NBR outing mapping and full-lap CS traces" and "CS_ratio
+  value lens" (2026-09-29). Outputs in `plots/cs_value_lens/` (gitignored).
+- **inspect_cs_readout_evidence.py** (2026-09-29, keep-reproduces) --
+  evidence and prototype for the CS read-out decision: slip-vs-force lag
+  (both beta sources, lag-only synthetic tyre), run-scale fold/loop with
+  lag correction and healthy-corner specificity control, sawtooth
+  window-start repair (diagnostic copy of compute_cs_for_axle with parity
+  check against production), four read-outs (worst lap, repeat floor,
+  pooled median, pooled p25) scored on the pre-registered criteria, and a
+  census with the pooled read-out fed to the frame in memory plus TC score
+  decomposition. Imports inspect_new_laps_cs_sweep and
+  inspect_cs_value_lens. Keep-reason: the read-out decision and its
+  production package are open; the scoring re-runs against the re-derived
+  thresholds there. Records: thesis_notes.md "Slip-vs-force lag check",
+  "Fold/loop at run scale", "Sawtooth window-start repair", "Pooled
+  read-out prototype", "Synthesis for the CS read-out decision"
+  (2026-09-29). Outputs in `plots/cs_readout_evidence/` (gitignored).
+- **inspect_cs_decision_table.py** (2026-09-29, keep-reproduces) -- final
+  CS read-out round: pooled-p25 thresholds by the recorded procedure
+  (rules checked against the recorded Dubai derivation), cs_margin
+  analogue from a re-run of the recorded +/-1 % sensitivity set (reuses
+  inspect_metrology_phase1_sensitivity's SESSIONS/build_variant and
+  run_one's call sequence), display-layer hardening prototype (evidence
+  floor sweep, session-level lever-conflict cards), and the A0 / A / B
+  decision table with the sawtooth sensitivity line. Imports
+  inspect_new_laps_cs_sweep and inspect_cs_readout_evidence. Keep-reason:
+  the author's read-out decision and evidence-floor elicitation are open;
+  the table re-runs against whatever is chosen. Records: thesis_notes.md
+  "Pooled-p25 thresholds by the recorded procedure", "Hardened
+  production, display layer", "Three-way decision table", "Decision
+  synthesis" (2026-09-29). Outputs in `plots/cs_decision_table/`
+  (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

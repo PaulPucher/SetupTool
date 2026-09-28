@@ -2,6 +2,46 @@
 
 ### NOW
 
+(0000000) BRANCH `new-laps` (off main 21c032a), NOT committed -- read-only
+    diagnosis, 2026-09-29. No production, config or threshold change.
+    New diagnostics/inspect_new_laps_cs_sweep.py [keep-reproduces].
+    Records: thesis_notes.md "New-session checklist", "CS_ratio extremity
+    and flapping baselines", "CS smoothing/persistence sweep".
+    - Seven new .txt sessions censused. MLA-SE07_US-v1 = the v3 outing
+      (re-export). All NBR files are the GP layout. Le Mans has 1 analysis
+      lap. NBR damper channels failed.
+    - Flapping is general: Dubai shows the same sub-resolution share
+      (0.74) and lap-to-lap verdict switching 7/11; pooled 0.47.
+    - Extremity = v3 mechanism on every new track (floor reached 6-19x
+      Dubai's rate), amplified by worst_lap's lap-count dependence.
+    - Sweep: B (1.0/0.5 Hz) and C x2 DISQUALIFIED (Dubai C4 lost); C x1.5
+      survives with 0.017 margin; D/E survive but cannot change verdicts.
+      No winner declared -- author's choice, supervisor tiebreak.
+    - Value lens (same branch, diagnostics/inspect_cs_value_lens.py): NBR
+      A = JST outing 21, B = outing 29 (author-confirmed). CS_ratio
+      decorrelates over 6-12 m, shorter than its own 10-24 m window, in
+      every session incl. Dubai; window-start jumps carry 12-19 % of |dCS|.
+      Lap-to-lap r 0.31-0.74. A -> B shift within B's lap scatter on
+      11/14 corners. Worst-window fold/loop test has no power (monotonic
+      alpha, span floor).
+    - Read-out evidence (same branch, diagnostics/inspect_cs_readout_
+      evidence.py): no systematic slip-force lag (lag explains 8-22 % of
+      negatives); C4 DOWNGRADED to unconfirmed (fold not reproduced,
+      fold/loop test powerless at 1 window, non-specific at 100 m);
+      sawtooth repair cosmetic by rule, windows +25-40 %; pooled read-out
+      resolves NBR A/B 3/14 vs production 4/14 (p25 6/14), empties the
+      census under current thresholds. TC tops on the +0.625 seconds
+      favour. Synthesis in thesis_notes.md.
+    - Final round (diagnostics/inspect_cs_decision_table.py): pooled-p25
+      thresholds by the recorded procedure are degenerate over 8 tracks
+      (STRONG_CSF -1.41, MODERATE_CSF 0.65, MODERATE_CSR undefined); row B
+      calls nearly every corner understeer and empties the census. Row A
+      (display hardening) removes all both-direction pairs and thin #1s,
+      no re-derivation owed. v3 C11 CS_ratio discontinuity (1.00 <-> 0.19
+      under +/-1 %) found. Decision table in thesis_notes.md.
+    NEXT: author decision A0 / A / B and the evidence-floor value; the
+    conflict-card-clears-floor design point; C11 discontinuity as its own
+    item.
 (000000) BRANCH `backlog-g` (off main f6a2add), NOT committed -- author runs
     git. Closed 2026-09-29. Carries:
     - BACKLOG G: CLOSED, BLOCKED ON LITERATURE. Five texts searched; all

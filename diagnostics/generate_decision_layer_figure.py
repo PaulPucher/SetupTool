@@ -107,6 +107,14 @@ def _collect_data():
         sugg = r["suggestion"] if isinstance(r["suggestion"], list) else [r["suggestion"]]
         for a in sugg:
             matrix_params.add(a["parameter"])
+    # held-secondary matrix rules still generate candidates (effect class
+    # secondary) -- a real data-only route, not inert
+    held_rules = [r for r in recs["rules"] if rule_bridge_status(r).startswith("secondary")]
+    held_params = set()
+    for r in held_rules:
+        sugg = r["suggestion"] if isinstance(r["suggestion"], list) else [r["suggestion"]]
+        for a in sugg:
+            held_params.add(a["parameter"])
 
     # Mirrors modules/decision_frame.py _feedback_only_candidates' own gate
     # exactly: axis = "oversteer_tendency"/"understeer_tendency" (per the
@@ -116,9 +124,10 @@ def _collect_data():
     # sign=+1 entries are on yaw_stability, an axis B2 never checks) as
     # feedback-eligible when they are not.
     _B2_AXES = {"understeer_tendency", "oversteer_tendency"}
-    feedback_eligible = {e["parameter"] for e in interaction_table
-                          if e["sign"] == 1 and e["parameter"] in click
-                          and e["performance_axis"] in _B2_AXES}
+    fb_entries = [e for e in interaction_table
+                  if e and e.get("sign") == 1 and e.get("parameter") in click
+                  and e.get("performance_axis") in _B2_AXES]
+    feedback_eligible = {e["parameter"] for e in fb_entries}
     lever_bridge_params = {e["lever"] for e in lever_bridges}
 
     return {
@@ -128,6 +137,7 @@ def _collect_data():
         "interaction_table": interaction_table, "lever_bridges": lever_bridges,
         "parameter_windows": parameter_windows,
         "primary_rules": primary_rules, "matrix_params": matrix_params,
+        "held_rules": held_rules, "held_params": held_params, "fb_entries": fb_entries,
         "feedback_eligible": feedback_eligible, "lever_bridge_params": lever_bridge_params,
     }
 
@@ -156,7 +166,7 @@ def render_flow_diagram(data, out_path_base):
     reachable = data["reachable"]
     excluded = data["excluded"]
     cf = dfc["cost_function"]
-    threshold = dfc["display_score_threshold"]["value"]
+    top_n = dfc["display_top_n"]["value"]
     cond = dfc["conditions"]
 
     n_reachable = len(reachable)
@@ -164,7 +174,7 @@ def render_flow_diagram(data, out_path_base):
     n_matrix = len(data["primary_rules"])
     n_bridges = len(data["lever_bridges"])
     n_fb_eligible = len(data["feedback_eligible"])
-    data_only_levers = data["matrix_params"] | data["lever_bridge_params"] \
+    data_only_levers = data["matrix_params"] | data["held_params"] | data["lever_bridge_params"] \
         | _EXIT_OVERSTEER_BRIDGE_PARAMS | _BRAKE_BIAS_DEDICATED_PARAMS
     n_data_only_levers = len(data_only_levers & reachable.keys())
 
@@ -183,7 +193,7 @@ def render_flow_diagram(data, out_path_base):
     fig.text(0.5, 0.975, "Decision Layer: Six-Stage Flow", ha="center",
               fontsize=14, fontweight="bold")
     fig.text(0.5, 0.955,
-              "PLAN.md DECISION LAYER SPEC -- generated from live config, "
+              "Generated from live config, "
               "values printed as-is (config/decision_frame.json, config/setup_parameters.json)",
               ha="center", fontsize=7.5, style="italic", color="0.25")
 
@@ -206,14 +216,13 @@ def render_flow_diagram(data, out_path_base):
 
     _box(ax, (xs[1], row1_y), w, h, "2. Triggers",
          f"Three labelled provenances:\n\n"
-         f"data-only: {n_matrix}, primary matrix rules\n"
+         f"data-only: {n_matrix} primary matrix rules\n"
+         f" + {len(data['held_rules'])} held-secondary matrix rules\n"
          f" + {n_bridges} lever_bridges entries\n"
          f" -> reach {n_data_only_levers} levers today\n\n"
-         f"feedback-only (|fb|>=2): {n_fb_eligible} click-class\n"
-         f" levers carry a sign=+1 tendency-axis\n"
-         f" interaction_table entry" +
-         (" -- OPEN gap\n (elicitation item 10): 0 today"
-          if n_fb_eligible == 0 else "") + "\n\n"
+         f"feedback-only (|fb|>=2): {len(data['fb_entries'])} sign=+1\n"
+         f" tendency-axis interaction_table entries\n"
+         f" on {n_fb_eligible} click-class levers\n\n"
          f"both-agreeing: data-only candidate\n"
          f" + matching feedback -> upgraded")
 
@@ -251,14 +260,15 @@ def render_flow_diagram(data, out_path_base):
     _box(ax, (xs[2], row2_y), w, h, "6. Cost function + output",
          f"6 governed terms (cost_function,\n"
          f"live values):\n"
-         f" severity={cf['severity']}  change_time={cf['change_time']}\n"
+         f" severity={cf['severity']}\n"
+         f" change_time per class:\n" + "".join(f"  {k} {v}\n" for k, v in cf["change_time"].items()) +
          f" breadth={cf['breadth']}  headroom={cf['headroom']}\n"
          f" interaction={cf['interaction']}\n"
          f" effect_class: primary={cf['effect_class']['primary']}"
          f" secondary={cf['effect_class']['secondary']}\n\n"
-         f"display_score_threshold={threshold}\n"
-         f"OUTPUT: shortlist (score>=threshold)\n"
-         f" | assessed-not-proposed tail (rest)")
+         f"display_top_n={top_n} (rank-based, after grouping)\n"
+         f"OUTPUT: top {top_n} distinct rows visible\n"
+         f" | every other row in the tail, never dropped")
 
     # arrows: 1->2->3 (row 1, left to right), then an elbow from 3's bottom
     # over to 4's top (row 2 starts again at the left column), then 4->5->6
@@ -287,16 +297,25 @@ def render_flow_diagram(data, out_path_base):
 def _trigger_provenance(member_keys, data):
     tags = []
     if any(k in data["matrix_params"] for k in member_keys):
-        tags.append("matrix (data-only)")
+        tags.append("matrix")
+    if any(k in data["held_params"] for k in member_keys):
+        tags.append("matrix held-sec.")
     if any(k in _EXIT_OVERSTEER_BRIDGE_PARAMS for k in member_keys):
-        tags.append("exit-bridge (data-only)")
+        tags.append("exit-bridge")
     if any(k in data["lever_bridge_params"] for k in member_keys):
-        tags.append("lever_bridge (data-only)")
+        tags.append("lever_bridge")
     if any(k in _BRAKE_BIAS_DEDICATED_PARAMS for k in member_keys):
-        tags.append("dedicated fn (data-only)")
+        tags.append("dedicated fn")
     if any(k in data["feedback_eligible"] for k in member_keys):
-        tags.append("feedback-eligible")
-    return "\n".join(tags) if tags else "none (inert)"
+        tags.append("fb-eligible")
+    base = ", ".join(tags) if tags else "none (inert)"
+    # speed_qualified_effect cells re-grade an existing trigger's effect
+    # class; they never create one, so they annotate rather than un-inert
+    for e in data["dfc"].get("speed_qualified_effect", {}).get("entries", []):
+        if any(k in e["levers"] for k in member_keys):
+            base += (f", SQ {'/'.join(v[:2].upper() for v in e['verdicts'])} "
+                     f"{'/'.join(s[:3] for s in e['speed_classes'])}->{e['effect_class'][:3]}")
+    return "\n".join(textwrap.wrap(base, width=30))
 
 
 def _eligibility_class(member_keys, data):
@@ -320,7 +339,7 @@ def _notes(member_keys, data):
     if any(k in _BRAKE_BIAS_DEDICATED_PARAMS for k in member_keys):
         parts.append(_BRAKE_BIAS_DEDICATED_NOTE)
     prov = _trigger_provenance(member_keys, data)
-    if prov == "none (inert)":
+    if prov.startswith("none (inert)"):
         parts.append("inert: no click-class routing reaches this lever today")
     rep = member_keys[0]
     pw = (data["parameter_windows"].get(rep) or {})
@@ -362,7 +381,9 @@ def build_coverage_rows(data):
         "check-only",
         "no",
         "n/a",
-        "target window null -- " + tpt["derived_from"][:100] + "...",
+        "target band (bar): " + ", ".join(
+            f"{w.upper()} {tpt[w]['min_bar']}-{tpt[w]['max_bar']}" for w in ("fl", "fr", "rl", "rr"))
+        + "; compound-scoped",
     ])
 
     # written exclusions
@@ -414,7 +435,9 @@ def render_coverage_table(data, out_path_base):
               ha="center", fontsize=7.5, style="italic", color="0.25")
     fig.text(0.5, 0.028,
               "EB = dedicated exit-oversteer bridge (_exit_oversteer_candidates, LS-routed). "
-              "'inert' = no data-only or feedback-only routing currently reaches this lever.",
+              "'inert' = no data-only or feedback-only routing currently reaches this lever. "
+              "All provenances are data-only except fb-eligible (driver feedback). "
+              "SQ = speed_qualified_effect cell (verdict, speed classes -> effect class).",
               ha="center", fontsize=6.5, style="italic", color="0.35")
 
     panel_bounds = [(0.01, 0.47), (0.52, 0.98)]

@@ -22991,3 +22991,730 @@ and no full-suite boundary; targeted tests + goldens cover it, full
 suite at the merge boundary. Open, not started: apex-region D_psi
 variant; Eq. 4.3 v2 (Module 5 wiring, Tier A, blocked with the stability
 threshold); mu-band and C_alpha/Fz = 12 citations.
+
+## New-session checklist: seven new files [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_new_laps_cs_sweep.py (channels / compute /
+report). Production pipeline unchanged (ekf_auto_pacejka, accuracy cap 1,
+no sheet, no feedback, no driver). Sessions: Dubai and v3 (baselines) plus
+every .txt on D:/Data_Bachelorthesis (.pds files are not parseable, not
+used).
+
+FILE IDENTITY (each file's own OutingInformation header). MLA-SE07_US-
+v1.txt is the SAME outing as the v3 baseline (car 73, MLA, session 7,
+outing 25, first lap 4): every censused channel identical in content,
+time base shifted by 0.027 s (a different export). Six sessions are new:
+PR session 10/outing 32 (US-v2), NBR JST outings 21 and 29, Le Mans MLA
+outing 5 (2024), NBR qualifying CDR outing 69 and MLA outing 70. US-v1 was
+kept as an export-invariance check: same lap/corner structure, CS
+statistics shift from the 27 ms re-gridding alone (worst-lap CS_f p10
+-0.326 -> -0.426; flapping 7.36 -> 7.66 transitions/100 m).
+
+RATE GUARD. All files: 100 Hz grid, no binding channel; CS-chain natives
+ecu_speed 50 Hz, the other five 100 Hz. All four NBR files: every
+log_dms_dam_* and log_rideheight_fl FAILED quality (vertical loads fall
+back to the static model there); ecu_aps failed or partial everywhere.
+Lap-distance unit ft on Dubai, NBR JST and Le Mans; m on Paul Ricard and
+NBR qualifying.
+
+LAYOUT AND CORNER CLUSTERING. Every NBR file is the GP circuit, not the
+Nordschleife: analysis-lap lap_distance max 16,448-16,495 ft (5.01-5.03 km)
+for JST, 5,015-5,042 m for qualifying. Stable corners: JST 15 and 15,
+qualifying CDR 16 and MLA 15 -- one layout, two cluster counts. Paul Ricard
+US-v2 17 (as v3; lap 5,678-5,692 m). Le Mans 28 stable ids on ONE analysis
+lap (13.49 km): cross-lap stability not assessable. Every other session:
+every stable id on every analysis lap (no partial or singleton ids), no
+C17-C20-type fragmentation. Analysis laps: Dubai 4, v3 3, US-v2 9, JST 2
+and 6, Le Mans 1, qualifying 6 and 6.
+
+BRACKET GAP vs cs_max_window_m (53 m). Gaps under 53 m: Dubai 7/13, v3
+11/16, US-v2 12/16, JST 8/14 and 8/14, Le Mans 13/27, qualifying 8/15 and
+8/14. Bridging is LIVE but small: share of finite-CS corner samples whose
+window starts inside the previous corner's bracket 0.0-1.3 % (Dubai
+1.2/1.3 % front/rear highest; v3 0.2/0.4 %). Median window footprint
+10.6-23.4 m (Paul Ricard shortest).
+
+LEVER CHANNELS (content, not only names; nothing wired). Two logger
+layouts. Dubai and Le Mans carry log_tc_lat_pos and log_tc_lon_pos (the
+registry's own lever names), 10 Hz, discrete, changing a few times per
+session (Dubai lat 3/4/6, lon 3/4; Le Mans lat 2/3, lon 3/4/5). Paul
+Ricard and NBR carry log_tc_int_pos/log_tc_tim_pos (plus ecu_TC_*/stw_rt*
+copies of the same values) and no lat/lon names; whether int/tim map to
+lat/lon is an identity question the data cannot answer. ABS: log_abs_pos
+constant within every session; abs_switch_pos differs from it by +1 in all
+files (e.g. v3 5 vs 6). Brake bias: dash setting in log_brkbias/
+log_brkbias_dash (0.25 steps, PR/NBR), r_brkbias (PR, NBR qualifying);
+abs_brk_bal_prop and brake_balance vary continuously (measured balance,
+not a setting).
+
+## CS_ratio extremity and flapping baselines, nine sessions [2026-09-29, branch new-laps, read-only]
+
+Production estimator, worst-lap aggregation, per stable corner.
+
+EXTREMITY (share of corners beyond STRONG_CSF -0.10 / STRONG_CSR -0.07;
+worst-lap p10 front/rear): Dubai 21/7 % (-0.274/-0.042); v3 35/41 %
+(-0.326/-0.481); US-v2 65/71 % (-0.748/-0.520); JST 21: 27/13 %
+(-0.346/-0.173); JST 29: 73/53 % (-0.552/-0.499); Le Mans 14/7 %
+(-0.211/+0.015); qualifying CDR 62/50 % (-1.302/-0.457, min CS_f -2.605);
+qualifying MLA 73/47 % (-1.057/-0.602). Values below -1 are not a
+physically credible stiffness ratio.
+
+LAP-COUNT DEPENDENCE OF worst_lap (mechanism). worst_lap is a minimum over
+laps, so its tail deepens with the number of analysis laps alone. Same
+statistic on every window of 3 consecutive laps: US-v2 front 65 -> 44 %
+(range 31-56), rear 71 -> 47 %; JST 29 front 73 -> 59 %, rear 53 -> 39 %;
+qualifying CDR 62 -> 60 %, MLA 73 -> 59 %; Dubai unchanged. Lap count
+inflates cross-session comparison (a 9-lap session is not comparable with
+a 3-lap one) but does not explain the NBR qualifying extremity, which
+persists at N = 3.
+
+v3-MECHANISM TEST (front axle). Window termination at the duration floor
+(span met inside 0.1 s), among finite CS: Dubai 0.003; v3 0.052, US-v2
+0.051, JST 0.028/0.025, Le Mans 0.057, qualifying 0.041/0.020. Median
+window 60 samples on Dubai vs 30-47 elsewhere. Straight-line alpha jitter
+(v3 sawtooth script's definition): Dubai 0.0226 deg/sample; v3 0.0323,
+US-v2 0.0346, JST 0.0227/0.0330, Le Mans 0.0161, qualifying 0.0383/0.0322.
+Median |dalpha_f/dt|, medium speed class: Dubai 2.02 deg/s; v3 4.07, US-v2
+4.20, JST 3.04/2.82, Le Mans 3.30, qualifying 2.96/2.57. Every new session
+reaches the floor 6-19x more often than Dubai at identical floor values
+(all 100 Hz, 10 samples / 0.02 rad): the floors are the same number
+everywhere, what differs is how fast and noisily each file's alpha
+reaches them -- the v3 mechanism (2026-09-02), now on every new track. Le
+Mans is the counter-case: jitter below Dubai, least extreme after Dubai.
+
+FLAPPING (pre-registered in the script header). Leading-axle call per
+sample = the more saturated axle (CS_f < CS_r -> front-led). Transitions
+per 100 m inside corner brackets: Dubai 3.77, Le Mans 4.37, qualifying
+4.78/4.96, JST 4.85/5.29, US-v2 6.95, v3 7.36. Share of interior runs
+shorter than the session's own median CS window footprint (the shortest
+balance change the estimator can resolve): Dubai 0.74, all others 0.68-
+0.73. Phase level (adjacent phases switching axle): Dubai 54/138 = 0.39,
+pooled 0.37. Lap level (consecutive analysis laps where a corner's verdict
+axle switches): Dubai 7/11, v3 9/20, US-v2 31/83, JST 29 31/50, qualifying
+21/38 and 17/37; pooled 126/269 = 0.47.
+DECISIVE COMPARISON: Dubai flaps under this metric too -- lowest rate, but
+the same sub-resolution share as the new files and the highest lap-to-lap
+verdict switch share (0.64). The flapping is a general property of the
+estimator at its resolution limit; Dubai's slower, cleaner alpha lowers
+the rate, it does not remove it. Not a generalisation failure specific to
+the new tracks.
+
+NBR PHASE PATTERN (per-lap single-phase verdicts). Oversteer at
+entry_1_brake: 0 in every NBR file. Oversteer at turn-in: 3/30, 2/90,
+1/96, 2/90 corner-laps (JST 21, JST 29, qualifying CDR, MLA). Understeer at
+apex: 7/30, 21/90, 21/96, 15/90. Corners with both patterns: 1 per file.
+Best cross-lap repeatability of apex understeer: 2/2 (JST 21 C9), 4/6 (JST
+29 C4; CDR C2). The estimator does not produce an entry-oversteer/apex-
+understeer signature at NBR; apex understeer appears on a minority of laps
+per corner.
+
+CANDIDATE CENSUS (data only). A TC row is the visible #1 on 6 of 9
+sessions (Dubai, US-v2, JST 21 and 29, qualifying CDR and MLA) and in the
+visible top 3 on all 9. Five of the six #1 TC rows rest on 1-2 corners
+with 1-2 evidence items (exception: CDR tc_lat, 4 corners). Dubai #1 is
+tc_lon decrease from a single C9 exit_5 understeer matrix_verdict (C9
+front -0.410 is the most extreme value of the STRONG_CSF derivation's
+standout group). On four
+sessions the top two rows are tc_lon DECREASE and tc_lon INCREASE together
+(Dubai, US-v2, JST 29, qualifying MLA) -- opposite directions of one
+lever from different corners' verdicts: the corner/lap-level flapping
+above, reaching the display. Score decomposition not measured here; the
+seconds-class change_time favour (WP-DISPLAY record) is the probable rank
+mechanism, unverified in this entry.
+
+## CS smoothing/persistence sweep, ten rows x nine sessions [2026-09-29, branch new-laps, read-only]
+
+Variants in memory, production functions unchanged. B: alpha and Fy
+low-pass cutoff (both via cs_filter_cutoff_hz) 1.0 and 0.5 Hz (production
+2.0). C: cs_min_slip_angle_span_rad x1.5, x2 (0.03, 0.04 rad; cap 53 m
+unchanged). D: read-out persistence of the leading-axle call, 10/25 m. E:
+rolling median on CS_ratio, 5/11 samples within finite runs. B1.0+D25.
+HARD bar: Dubai C4 worst-lap CS_f < -0.10 (baseline -0.134) AND C3 LS rear
+exit_5 negative on 4/4 laps. Figure: diagnostics/plots/new_laps/
+flapping_vs_fidelity.png (gitignored).
+
+- A baseline: C4 -0.134, C3 LS 4/4, C3 CS_f -0.333 (record reproduced
+  exactly). Mean corner-sample coverage 0.80; lap switch 0.47.
+- B 1.0 Hz: DISQUALIFIED (C4 -> +0.365; C3 CS_f -> +0.199). Sample
+  flapping x0.52 (mean over sessions); coverage 0.66 (Dubai 0.72 -> 0.46);
+  lap switch 0.35, but called lap pairs fall 269 -> 142 -- fewer verdicts,
+  not steadier ones. Dubai: 7 of 14 corners to ok.
+- B 0.5 Hz: DISQUALIFIED (C4 +0.817, C4 verdict ok -- the driver-flagged
+  corner lost). Flapping x0.28, coverage 0.58, lap pairs 56.
+- C span x1.5: SURVIVES (C4 -0.117, 0.017 inside the bar; C3 CS_f reading
+  lost, +0.088). Flapping x0.73, phase 0.34, lap switch 0.46 (unchanged).
+  Coverage 0.63 (Dubai 0.42). Dubai C4 verdict "oversteer @ exit" (rear
+  -0.134 wins the tie) -> "understeer @ exit" (rear +0.046).
+- C span x2: DISQUALIFIED (C4 +0.422). Flapping x0.52, coverage 0.48
+  (Dubai 0.24).
+- D 10 m / 25 m: SURVIVE; CS values, verdicts and candidates identical by
+  construction. Sample flapping x0.20 / x0.06, phase- and lap-level
+  switching unchanged (0.37 / 0.47): verdicts are built from phase
+  medians, not from the per-sample call.
+- E median 5 / 11: SURVIVE. Sample flapping x0.92 / x0.83; phase medians,
+  verdicts and lap switching unchanged (a median of a rolling median is
+  nearly the median). No measurable cost, no verdict-level benefit.
+- B1.0 + D25: DISQUALIFIED (B1.0's C4 loss). Sample flapping x0.04.
+
+READING BY FAMILY. Input filtering (B) is the only family that reduces
+verdict-level switching, and it does so by suppressing the estimator:
+slower alpha grows windows into the 53 m cap (NaN, coverage loss), and
+the surviving windows span more track, so the regression averages across
+the saturation dip -- Dubai C4 erased at both cutoffs. The span floor (C)
+acts the same way, more weakly: x1.5 is the only estimator-side row that
+keeps C4 (0.017 margin) and it barely changes lap-level switching.
+Persistence (D) and output smoothing (E) act only on the sample signal
+the verdict does not read: a quieter trace display, no verdict stability.
+Driver-report agreement (Dubai: US >= OS, no strong severity, C4 flagged)
+holds on every row except B 0.5 Hz. The C3 LS traction signature is 4/4
+on every row by construction (LS is a separate estimator no variant
+touches); the CS-side C3 reading (CS_f -0.333) survives only A, D and E.
+A persistence rule that reaches verdicts would have to act on the phase/
+lap verdict sequence itself -- a design change not tested here. No winner
+declared.
+
+## NBR outing mapping and full-lap CS traces [2026-09-29, branch new-laps, read-only; mapping confirmed by the author 2026-09-29]
+
+Script: diagnostics/inspect_cs_value_lens.py (mapping, traces).
+MAPPING (file headers + logged rake). Four NBR files, all car 73, GP
+layout. JST session 2 outing 21 (first lap 71, 4 laps in file, analysis
+72-73, 116.6/116.8 s): its file exists twice (repo root and D:, byte-
+identical) -> read as outing A. JST session 2 outing 29 (first lap 101, 9
+laps, analysis 103-108, 115.6-117.0 s) -> read as outing B. Logged
+log_rideheight_rake, medians within speed bands (A -> B): 100-150 kph
+-94.98 -> -97.49 mm, 150-200 kph -89.75 -> -92.75 mm, 200-260 kph -85.19
+-> -88.91 mm, i.e. 2.5-3.7 mm more rake in B at matched speed; rear ride
+height up 1.2-2.7 mm (RL, RR), front FR down 0.9-1.2 mm. Consistent with
+the described rake increase. Damper clicks are not logged in any channel
+found (no setup/click channel), so that half is unverifiable from data.
+The two qualifying files are session 5, outings 69 (CDR) and 70 (MLA),
+other drivers -- neither A nor B; kept as unlabelled context (author,
+2026-09-29), not part of the A vs B comparison. Fz on all four NBR files
+runs static (damper channels failed quality); CS_ratio does not consume
+Fz -- estimate_cornering_stiffness takes slip and Fy only, and the
+production sideslip fit is the free-D Pacejka (tyre_fit_auto
+load_normalised_fit_enabled false), so no Fz enters beta either.
+TRACES. One figure per session (diagnostics/plots/cs_value_lens/,
+gitignored), front and rear CS_ratio vs lap distance, one line per
+analysis lap, y fixed at the app's corner-trace range (-3.5..1.2, config
+cs_ls_panel_y_min/max). Only nbr_qp_cdr exceeds the range (16 front
+samples below -3.5). Outside corner brackets CS_ratio sits at the 1.0 clip
+or is NaN; all structure is inside brackets.
+
+## CS_ratio value lens: smoothness, reproduction, demand bands, A vs B, fold/loop [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_value_lens.py (smooth / util / ab /
+foldloop; definitions fixed in its header before the runs). Production
+chain, value level only (no verdicts or thresholds). Qualifying files
+and Le Mans are context rows.
+
+SMOOTHNESS (per corner, then median over corners). Mean |dCS| per 10 ms
+sample: front 0.009 (Dubai) to 0.018 (v3), rear 0.006-0.016. The
+autocorrelation length of CS_ratio(s) inside corners is 6.3-11.6 m
+everywhere, SHORTER than the regression window that produces it (median
+footprint 10.2-24.4 m): ratio 0.31-0.74, and below 1 on 12/15 to 14/14
+corners per session, Dubai 14/14 on both axles (0.45 front, 0.31 rear).
+Brackets are 134-183 m long, so the value varies on a sub-window scale,
+not at corner scale. Mechanism, measured: the adaptive window runs as a
+sawtooth -- its start stays pinned on an old alpha extreme while the
+window grows, then leaps forward in one sample when that extreme leaves.
+These start jumps (footprint drop > 2 m between adjacent samples) are
+1.1-1.7 % of samples and carry 12-19 % of all |dCS| in every session
+(Dubai 15/17 % front/rear), about 10x their share. They are a
+concentrated contributor, not the majority. Worked figure:
+diagnostics/plots/cs_value_lens/worked_corner_dubai.png (Dubai C7 front,
+median pairwise r 0.66; C10 front, r -0.07 -- C10 sits at the 1.0 clip
+with windows at the 53 m cap, so r is uninformative there, rms 0.04).
+
+LAP-TO-LAP REPRODUCTION (median pairwise Pearson r of CS(s) on a 1 m
+grid, front / rear, session median over corners): Dubai 0.31/0.48, v3
+0.33/0.52, US-v2 0.42/0.45, NBR A 0.67/0.74 (2 laps, one pair per
+corner), NBR B 0.55/0.58, qualifying CDR 0.50/0.57, MLA 0.60/0.59; Le Mans
+not assessable (1 lap). Per-corner range 0.01-0.93. Dubai front
+highest C7 0.66, C1 0.52, C14 0.51; lowest C12 0.18, C2 0.03. Dubai C4
+(the ground-truth saturation corner) reproduces weakly: front 0.24, rear
+0.01.
+
+DEMAND-GATED BANDS (exploratory; |ay| >= 0.6 g = channels.json
+ay_entry_threshold_g, inside brackets). Session-mean shares front > 0.5 /
+< 0: Dubai 0.58/0.06, v3 0.44/0.18, US-v2 0.41/0.16, NBR A 0.39/0.20,
+NBR B 0.43/0.20, Le Mans 0.62/0.07, CDR 0.51/0.20, MLA 0.48/0.17. Rear
+shares > 0.5 are higher and < 0 lower than the front's in every session,
+i.e. the front sits closer to or past its peak than the rear under
+cornering demand, everywhere. Largest pooled front-lower gaps (CS_r -
+CS_f): Dubai C3 +0.198 (same sign 4/4 laps), v3 C5 +0.108 (3/3), US-v2
+C13 +0.106 (9/9), NBR A C2 +0.263 (2/2), NBR B C9 +0.181 (5/6), CDR C1
++0.182 (6/6), MLA C3 +0.158 (6/6). No time-loss figure computed (no
+reference-lap model).
+
+NBR A (outing 21) vs B (outing 29). Inputs: rake +2.5-3.7 mm at matched
+speed measured in the logs; damper clicks reported by the author, not
+recorded in any channel, so the change is partly unquantified; Fz static
+on both (damper channels failed), which CS_ratio does not consume. All 15
+corners matched by bracket overlap (same numbering); C6 has no finite
+apex value in either. Per-lap apex_region medians: front median higher
+in B on 9/14 corners (median over corners +0.245 -> +0.282); apex gap
+CS_r - CS_f smaller in B on 6/14 (median +0.155 -> +0.121); demand-gated
+gap smaller on 8/14 (+0.054 -> +0.032). The A -> B front change exceeds
+B's own lap-to-lap interquartile range on only 3/14 corners (C2 +0.12 ->
++0.44, C11 -0.04 -> +0.21, C12 +0.45 -> +0.68); elsewhere B's lap scatter
+(IQR up to 1.16, C10) is as large as or larger than the change, and A
+has only two laps. Value-level reading: the median front value rises and
+the median gap narrows slightly, in the direction of the reported
+change, but the shift is within the estimator's lap-to-lap scatter on 11
+of 14 corners. Figure: diagnostics/plots/cs_value_lens/nbr_a_vs_b.png.
+
+FOLD/LOOP ON THE WORST WINDOWS (self-crossing count, today's chain).
+Dubai C4, 4 laps x 2 axles, plus the two deepest NBR A/B instances (both
+NBR B C1 front, laps 107 and 103, min CS -2.677 / -2.070): 0 crossings on
+all 10. The test has no power at this scale: every window spans only
+1.15-1.24 deg of alpha (the 0.02 rad span floor), 15-56 samples, and 8
+of 10 have zero alpha reversals -- a path whose alpha never reverses
+cannot self-cross, so "fold" is guaranteed by construction. The 2026-09-02
+ground-truth fold/loop reads used long runs (100 m+), not single windows.
+Direction of travel, recorded as found: in all three strongly negative
+front windows |alpha| FALLS by about 1.2 deg while |Fy| RISES -- Dubai
+C4 lap 3 5.71 -> 4.55 deg, 6.41 -> 7.57 kN; NBR B C1 lap 107 9.75 -> 8.60
+deg, 6.34 -> 10.50 kN; lap 103 7.67 -> 6.51 deg, 5.68 -> 11.43 kN (|Fy|
+doubles within 0.19-0.28 s at 6.5-9.8 deg of slip). A negative slope
+results either way; whether this is the post-peak branch traversed back
+toward the peak or alpha lagging the force build-up cannot be decided
+from the window alone. Figure: diagnostics/plots/cs_value_lens/
+fold_loop.png.
+
+## Slip-vs-force lag check [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_readout_evidence.py (lag; definitions in
+its header). Signals: filtered axle slip angle vs filtered axle Fy (both
+through the production 2 Hz zero-phase filter, so any lag is upstream);
+lag = peak of corr(alpha(t), Fy(t+k)), |k| <= 50 samples (500 ms);
+k > 0 force follows slip, k < 0 slip follows force.
+
+POPULATION (every traversal x axle, production ekf chain): median lag
+-2 to +2 samples in every session (Dubai +2, v3 0, US-v2 0, NBR A 0,
+NBR B 0, Le Mans -1, qualifying -2/-1); p10/p90 from -4/+2 (Le Mans) to
+-12/+26 (v3); share with |lag| >= 5 samples 0.16-0.58. No systematic lag
+of window order (windows 30-60 samples): the lag is centred on zero with
+a wide per-traversal spread.
+
+CONSEQUENCE. A synthetic LINEAR tyre driven by the real slip trace with
+the measured lag, through the production window rule, manufactures
+negative CS on its own. Share of production negative samples it
+reproduces at the same sample: Dubai 10.2 %, v3 14.9 %, US-v2 8.3 %, NBR A
+8.2 %, NBR B 13.7 %, Le Mans 12.5 %, qualifying 22.0 % / 15.3 %. The lag
+explains a minority (8-22 %) of the negative population, not the bulk.
+
+DUBAI C4 (front). Lags +4, -8, +14, 0 samples (laps 1-4, i.e. -80 to
++140 ms, at most 7.9 m at local speed). Lap 3 (production min -0.67, 23 negative samples):
+the lag-only tyre reaches -0.07 with 1 negative sample -- the lag does
+not produce C4's negative reading. Controls (C12, C11, C6): -5..+11
+samples. Kinematic beta shifts C4 front to +21..+34 samples and several
+control traversals to the +50 search limit: the kinematic chain carries
+a large positive lag of its own; the EKF chain's is small.
+
+NBR B C1 (front), the first corner after the long straight. EKF chain:
+whole-corner lag -5 to -14 samples on all 6 laps (slip follows force by
+50-140 ms); entry segment -23..-30 on 6/6 laps and apex -20..-30 on 6/6,
+i.e. at or near the 30-sample search limit, exit -5..-14. Kinematic
+beta: whole-corner lag 0 to +15 (the negative whole-corner lag moves
+with the beta source -> it lives in the EKF beta dynamics), but the entry
+segment stays at -21..-30 on 5 of 6 laps under both sources (not beta-
+specific; an entry segment with braking and little lateral content makes
+the correlation poorly conditioned). The entry-concentrated pattern after
+the low-slip straight is CONFIRMED at NBR C1 under the EKF chain and NOT
+present at Dubai C4 (entry +4, -6, -30, 0). Consequence at C1: lap 105
+lag-only min -1.42, 60 of its 90 negative samples reproduced; laps 103
+and 107 (the deepest, -2.07 / -2.68) 15/179 and 1/88; laps 104, 106, 108
+none. The lag explains one C1 lap largely and the deepest ones barely.
+STOP condition (systematic lag of window order) NOT met; later results
+are not marked conditional, with the stated 8-22 % caveat.
+
+## Fold/loop at run scale, with lag correction and a specificity control [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_readout_evidence.py (foldrun). Run =
+[s_w - 60 m, s_w + 40 m] around the traversal's minimum-CS sample, all
+samples (kerbs included; masking them had cut runs to 42-81 m), front
+axle, self-crossing count (the recorded test) plus a post-peak-arm rule.
+Lag correction: Fy shifted by the traversal's measured lag.
+
+RESULTS (lag-corrected label; uncorrected identical unless noted): Dubai
+C4 lap 1 loop (2 crossings), lap 2 loop (1 -> 2), lap 3 loop (4; the
+-0.67 lap: a self-crossing knot at 3.7-5.7 deg, 6.0-8.3 kN, not
+untangled by the +14-sample shift), lap 4 at-peak (0 crossings, |Fy| max
+9.10 kN at 5.47 deg, no post-peak arm). NBR B C1 lap 107 loop (2 -> 1),
+lap 103 loop (4 -> 7). No instance shows a post-peak arm (|Fy| falling
+by >= 5 % while |alpha| grows by >= 0.02 rad) in forward time. POST-HOC
+amendment, stated as such: the C1 runs start at high slip (9.3 deg) and
+unwind, i.e. a peaked curve traversed backwards; a time-agnostic fold
+criterion was added -- it changes no label, because crossings decide
+first.
+SPECIFICITY CONTROL (added after the first read labelled almost
+everything a loop): the same test on the healthy control corners (Dubai
+C12/C11/C6, NBR B C12/C13/C8, all laps): 22 of 30 read loop, 6 at-peak,
+1 rising, 1 lag-artifact; median 3 crossings. A loop at 100 m is what a
+healthy corner shows too -- the loading and unloading arms of any
+corner cross once there is any hysteresis between them. The test has no
+power at single-window scale (value-lens entry) and no specificity at
+100 m scale.
+C4 STATUS. The 2026-09-02 fold reads (17-32 m runs, visual, then-current
+chain: C4 lap 3 peaked at 5.7 deg / 7.5 kN and declined to 7.3 deg) do
+not reproduce under today's chain (C4 lap 3 front |alpha| stays within
+3.7-5.7 deg over 100 m), and neither run scale can discriminate. C4 is
+DOWNGRADED from "confirmed by fold geometry" to UNCONFIRMED: not shown
+to be an artifact, but its geometric confirmation no longer stands.
+Lag-artifact: no focus instance (the lag shift changes no label).
+
+## Sawtooth window-start repair, measured in isolation [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_readout_evidence.py (sawtooth, sawreport;
+rule and criteria in its header). Rule: start_rep(i) = max(cap limit,
+min(start_prod(i), start_rep(i-1) + 2)) -- the start may advance at most
+2 samples per step, the window shrinks by at most 1 sample per step. (The
+work order's "at most one" would freeze the window length: start and end
+both advancing 1 per step means the window can never shrink.) The
+repaired window always contains the production window, so the qualifying
+set is identical by construction -- verified: identical finite masks in
+all 8 sessions, both axles. The diagnostic copy of compute_cs_for_axle
+reproduces cached production to median |diff| 1e-8 (float32 cached
+inputs; two isolated samples at 3e-3), identical finite masks. The
+diagnostic phase slicing reproduces all 5,940 production per-lap phase
+medians exactly.
+
+EFFECT (production -> repaired, front; rear alike). Window-start jumps
+1.1-1.7 % of samples carrying 12-19 % of |dCS| -> 0 / 0 in every session.
+Mean |dCS| step -10 to -16 % (Dubai 0.0094 -> 0.0080, v3 0.0180 ->
+0.0162, NBR B 0.0150 -> 0.0130). Autocorrelation length +0.3 to +1.7 m
+(Dubai 8.3 -> 8.8, v3 6.6 -> 6.9, NBR B 7.9 -> 8.4 m; Le Mans and MLA
+front -0.1/-0.4) -- still well below the window. Median window footprint
++4.1 to +5.8 m (Dubai front 19.5 -> 24.8, v3 10.7 -> 14.9 m), i.e. the
+repaired windows are about 25-40 % longer.
+CLASSIFICATION by the pre-registered rule: per-lap phase-median shift,
+all sessions, median 0.0147 / p90 0.146 (max 1.13, CDR) against the
+re-export noise floor (v3 vs US-v1, same outing, 27 ms re-gridding, n =
+389) of 0.0156 / 0.159 -> within noise, qualifying set identical ->
+COSMETIC. Caveats stated with it: the repair lengthens the regression
+support by 25-40 %, so it changes which samples each regression sees even
+though it changes no qualification; and the noise floor is itself large
+(a 27 ms re-gridding moves phase medians by up to 0.16 at p90), so
+"within noise" is a weak statement. The repair removes the jump
+component; it does not change the decorrelation scale materially.
+
+## Pooled read-out prototype vs production, all sessions [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_readout_evidence.py (readout, census;
+statistics and criteria fixed in its header). Four read-outs per corner
+and phase over the analysis laps: PROD (worst lap, production), REPEAT
+(second-smallest per-lap value), POOLED (median of all laps' samples
+pooled, primary), POOLED25 (their 25th percentile). Current thresholds,
+production classifier. Sanity: PROD reproduces the production verdicts
+on 137/137 corners.
+
+(a) RESOLVABILITY, NBR A vs B, apex region, change > 2 x combined
+leave-one-lap-out SE: front / gap resolved -- PROD 4/14 / 1/14, POOLED
+3/14 / 2/14, POOLED25 6/14 / 1/14, REPEAT not computable (A has 2 laps;
+leaving one out leaves no second value). Resolved changes point both
+ways (e.g. POOLED front C2 +0.12 -> +0.43, C9 -0.31 -> +0.15, C4 +0.15 ->
++0.01). The pooled median does not resolve the known-answer comparison
+better than production.
+(b) SURVIVAL. C4 (UNCONFIRMED after the run-scale check; reported, not
+disqualifying): worst-phase front PROD -0.134 (rank 3 of 14), REPEAT
++0.500 (rank 12), POOLED +0.450 (rank 10), POOLED25 +0.101 (rank 6) --
+the negative C4 reading exists only in the single worst lap. C3 LS rear
+exit_5 negative on 4/4 laps under every read-out (LS is a separate
+estimator; verified). No read-out disqualified.
+(c) CALL STABILITY, split-half (odd vs even laps), same call / corners:
+Dubai PROD 5/14, REPEAT 9/14, POOLED 9/14, POOLED25 6/14; US-v2 13/17,
+11/17, 7/17, 13/17; NBR B 9/15, 8/15, 7/15, 7/15; qualifying CDR 8/16,
+8/16, 10/16, 10/16; MLA 10/15, 5/15, 5/15, 11/15. No read-out is
+consistently more stable; POOLED is better on 2 sessions, worse on 3.
+Caveat: pooled values cluster inside the current threshold bands, so
+calls flip across thresholds derived for another distribution.
+(d) VERDICT SHIFT vs PROD, changed corner calls: POOLED 0-11 per session
+(Dubai 11/14, NBR B 9/15, CDR 9/16; Le Mans 0, one lap), POOLED25 0-4,
+REPEAT 2-9. Mostly toward "ok" (Dubai POOLED US 1 / OS 2 / ok 11 vs PROD
+6 / 6 / 2).
+(e) DRIVER AGREEMENT. Dubai (US >= OS, no strong, C4 flagged): PROD yes /
+yes / yes; POOLED no (US 1 < OS 2) / yes / yes; POOLED25 no (3 < 5) /
+yes / yes; REPEAT no (1 < 5) / yes / no. NBR A (labelled understeer): US
+vs OS PROD 4 / 8, POOLED 4 / 8, POOLED25 5 / 8, REPEAT 6 / 4 -- only
+REPEAT matches the label's direction.
+(f) LAP-COUNT BIAS, PR US-v2, beyond current STRONG front, all 9 laps vs
+3-lap mean: PROD 65 % vs 44 % (ratio 1.46), REPEAT 44 vs 6 % (7.0),
+POOLED 0 vs 4 %, POOLED25 29 vs 37 % (0.79). POOLED is lap-count-
+insensitive trivially (its values almost never reach the tail-derived
+thresholds); POOLED25 is the only read-out that stays populated and
+roughly lap-count-neutral.
+TC DECOMPOSITION (score = problem_weight + change_time + breadth +
+headroom + interaction + effect_class, production). Every #1 TC row
+carries change_time 1.875 (seconds class) against 1.250 for the
+minutes-class ARB/diff rows -- a fixed +0.625 -- and its problem weight
+is 0.13-0.60 (US-v2 #1 tc_lon decrease: 0.133 from one corner, one
+evidence item, total 3.008). A minutes-class alternative needs a
+problem weight at least 0.625 higher to outrank it; typical weights here
+are 0.2-0.7. Both-directions pairs under PROD: Dubai, US-v2, NBR B, MLA
+(tc_lon decrease #1 and increase #2, each from different corners). Under
+POOLED the census collapses to 0-4 candidates on 7 of 8 sessions (Le
+Mans unchanged, one lap): evidence needs severity above "normal", which
+needs a STRONG crossing, which the pooled values almost never reach. The
+both-directions pairs disappear with the evidence, not because the
+read-out resolved them.
+
+## Synthesis for the CS read-out decision [2026-09-29, branch new-laps, read-only]
+
+Written for the author's decision; no recommendation, no implementation.
+1. RESOLUTION. CS_ratio decorrelates over 6-12 m inside a 10-24 m window
+   on every session including Dubai; lap-to-lap shape correlation
+   0.31-0.74; 47 % of consecutive-lap verdict pairs switch axle.
+2. LAG. No systematic slip-vs-force lag (session medians -2..+2 samples).
+   A lag-only linear tyre reproduces 8-22 % of negative CS samples. NBR C1
+   carries an entry-concentrated slip-after-force lag under the EKF chain
+   (partly beta-source dependent); Dubai C4's -0.67 is not lag-made.
+3. C4 STATUS. Downgraded from fold-confirmed to UNCONFIRMED: the recorded
+   fold does not reproduce under today's chain, the single-window test
+   has no power and the 100 m test no specificity (healthy controls loop
+   22/30). Its negative reading exists only in the worst lap (pooled
+   median +0.45).
+4. SAWTOOTH REPAIR. Cosmetic by the pre-registered rule (qualifying set
+   identical by construction and measured; phase-median shift 0.015 /
+   0.146 vs re-export floor 0.016 / 0.159); removes the jump component,
+   leaves decorrelation length essentially unchanged; lengthens windows
+   25-40 %.
+5. READ-OUTS (criteria a-f, current thresholds):
+   - PROD: resolves A/B 4 front, 1 gap; call stability 5-13 per session;
+     driver agreement 3/3 on Dubai; lap-count ratio 1.46; TC tops on
+     seconds favour, both-directions pairs on 4 sessions.
+   - REPEAT: A/B not computable (2-lap A); stability mixed; loses C4 and
+     the Dubai US >= OS check; lap-count ratio 7.0; only read-out with
+     NBR A US > OS.
+   - POOLED: resolves 3 front, 2 gap; stability mixed (better 2, worse 3
+     sessions); moves 0-11 calls per session, mostly to ok; Dubai US >=
+     OS lost; lap-count-insensitive but nearly empty under current
+     thresholds; census collapses to 0-4 candidates.
+   - POOLED25: resolves 6 front, 1 gap (the highest front count);
+     stability mixed; moves 0-4 calls; Dubai US >= OS lost; lap-count
+     ratio 0.79; stays populated under current thresholds.
+   None clears the primary criterion convincingly: the best front
+   resolvability is 6/14 (POOLED25), against 4/14 for production, with
+   2-lap A limiting every read-out.
+6. SHAPE OF A PRODUCTION PACKAGE, whichever read-out is chosen:
+   config/parameters.json classification.cs_cross_lap_aggregation (new
+   value) and its note; STRONG_CSF, STRONG_CSR, MODERATE_CSF, MODERATE_CSR
+   values and derived_from re-derived on the new statistic's
+   distribution (the standing rule applies in full -- the read-out
+   changes the distribution); verdict_stability_margin.cs_margin
+   re-derived (its sensitivity sweep ran on the worst-lap statistic);
+   modules/recommendation.aggregate_by_corner gains the new combiner
+   (pooling needs sample access, today it sees per-lap medians only);
+   the decision-frame evidence "source" strings that name the worst-lap
+   aggregate. Goldens regenerated: tests/golden/recommendations_dubai_
+   ekf_auto_pacejka_cap1.json and recommendations_dubai_kinematic_cap1.
+   json; the three pipeline_* goldens as well if the sawtooth repair
+   lands (it changes CS values), then with an ANALYSIS_SCHEMA_VERSION
+   bump (currently 8) and a method-defining start-advance constant in
+   code. Tests pinning the aggregation/thresholds to review:
+   test_cs_validity_repair, test_decision_frame, test_nan_empty_paths,
+   test_settings_thresholds, test_config_schema_integrity. Full suite at
+   that boundary.
+7. THE SUPERVISOR'S QUESTION (window-scale pooled read-out). Measured
+   answer: pooling at the estimator's honest scale does not by itself
+   resolve the known-answer comparison better than production, removes
+   the single-lap C4 reading, and under today's thresholds empties the
+   recommendation list; its call stability is not systematically better.
+   Whether it becomes better after a threshold re-derivation on its own
+   distribution is untested here -- that re-derivation is the
+   production package, not this one.
+
+## Pooled-p25 thresholds by the recorded procedure [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_decision_table.py (thresholds, margin;
+procedure in its header). The recorded STRONG/MODERATE derivation made
+explicit: STRONG = physical anchor 0, noise population = negatives minus
+ground-truth events (none remain, C4 unconfirmed) minus the standout
+group beyond the largest gap between consecutive negatives; STRONG = the
+noise floor moved outward to the next 0.01. MODERATE = midpoint of the
+first gap >= 0.10 among positive values below the clip. Population: per
+corner the worst phase of the statistic, per axle. Nothing from driver
+reports, A-vs-B or any other check entered.
+CHECK against the recorded case (Dubai, worst lap): rear standout {C4},
+floor -0.065 -> -0.07 (recorded -0.07); front standout {C9 -0.410, C3
+-0.333} (recorded standout group) and floor -0.134 -> -0.14 (recorded
+-0.10 additionally excluded C4 as ground truth); MODERATE front 0.074 |
+0.229 -> 0.15 (recorded 0.15), rear 0.159 | 0.293 -> 0.23 (recorded 0.20,
+placed inside the gap). The rules reproduce the recorded judgement where
+its inputs still hold.
+POOLED-P25, all eight sessions pooled (derived_from-style trail):
+- front: n = 129, p5/p25/median/p75 -0.567/-0.214/-0.049/+0.189;
+  negatives n = 74; standout {-1.954} (gap 0.545); noise floor -1.409 ->
+  STRONG_CSF -1.41. MODERATE: 51 positives below clip, first gap >= 0.10
+  is 0.590 | 0.719 -> MODERATE_CSF 0.65.
+- rear: n = 128, p5/p25/median/p75 -0.305/-0.078/+0.064/+0.305;
+  negatives n = 48; standout {-0.686, -0.589, -0.587} (gap 0.115); noise
+  floor -0.472 -> STRONG_CSR -0.48. MODERATE: 77 positives, no gap >= 0.10
+  -> MODERATE_CSR undefined (row B uses an empty moderate band).
+PER SESSION (STRONG f / r; MODERATE f / r): Dubai -0.04 / -0.04; 0.31 /
+0.27. v3 -0.27 / -0.16; 0.24 / 0.21. US-v2 -0.39 / -0.29; 0.31 / 0.46.
+NBR A -0.31 / -0.08; undefined / 0.23. NBR B -0.26 / -0.08; 0.37 / 0.46.
+Le Mans -0.52 / -0.15; 0.10 / 0.39. CDR -0.70 / -0.18; 0.24 / 0.27. MLA
+-0.58 / -0.05; 0.08 / undefined. Front STRONG spans -0.04 to -0.70 across
+tracks.
+READING: the recorded procedure presupposes a near-zero noise cluster
+separated by a gap from a few genuine events. On one track that holds
+(Dubai). Pooled over eight sessions the front population has no such
+cluster -- its MEDIAN is already negative (-0.049), 74 of 129 corners sit
+below the peak, and the negative tail is continuous -- so the largest-gap
+rule lands deep in the tail (-1.41) and the rear finds no moderate gap
+at all. The procedure applied faithfully yields degenerate multi-track
+thresholds; the track-to-track spread is itself the finding.
+MARGIN (cs_margin analogue), recorded method: the 22 recorded +/-1 %
+sensitivity runs (5 inputs x 2 signs x Dubai, v3, plus baselines;
+setup-sheet corner weights, no accuracy cap, full production chain incl.
+the Pacejka refit) re-run keeping the sample arrays; per-phase verdicts
+on pooled p25 under the thresholds above. 11 distinct corner-phases
+flip. v3 C11 (apex 0.350, turn-in 0.347, exit 0.196) flips under FIVE
+unrelated inputs by the same step: its front CS_ratio jumps 1.00 <->
+0.19 in PROD and POOLED25 alike -- a discontinuity of the ratio itself
+(the linear-reference denominator switches), not a proportional
+sensitivity. Excluded as a different mechanism, as the recorded
+derivation excluded Dubai C1; 2nd-largest remaining distance 0.057 ->
+cs_margin 0.06. Without the exclusion: 0.35 (would mark nearly every
+verdict MARGINAL). The C11 discontinuity is a production property too
+(PROD jumps identically); under the current thresholds 0.19 and 1.00
+both read "ok", which is why the 2026-09-19 sweep did not show it.
+
+## Hardened production, display layer [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_decision_table.py (part2). In memory,
+estimator untouched. Evidence floor: a row enters the visible top 3 only
+if problem weight >= floor or its evidence spans >= 2 corners. Lever
+conflict: opposite directions of one lever anywhere in the session merge
+into one conflict card (the resolve_conflicts vocabulary extended from
+one corner to the session).
+- Opposite-direction pairs in the top 3 before: Dubai 1, US-v2 1, NBR B 1,
+  MLA 1 (all tc_lon); all rows: 1/0/2/1/4/1/1/2 per session. After the
+  merge: 0 in every top 3 (1-4 conflict cards per session).
+- Floor sweep, original #1 demoted: floor 0.3 none; 0.5 none; 0.75 NBR A
+  only (tc_lon increase, pw 0.600, one corner). Rows below the floor (not
+  #1): Dubai 0 / 4 / 4, US-v2 3 / 3 / 3, NBR B 2 / 2 / 2, CDR 2 / 2 / 3,
+  MLA 1 / 2 / 2, v3 0 / 1 / 1, NBR A 0 / 0 / 5, Le Mans 0.
+- Interaction found: a merged conflict card spans two corners by
+  construction, so it always clears the ">= 2 corners" branch -- on
+  Dubai, US-v2, NBR B and MLA the new #1 is a tc_lon conflict card (pw
+  0.30-0.60).
+- MARGINAL overlap: of rows falling below the floor, MARGINAL-tagged:
+  Dubai 4/4 (at 0.5), US-v2 3/3, CDR 2/2, NBR B 1/2, MLA 1/2, NBR A 1/5
+  (at 0.75). The two guards overlap heavily on Dubai and US-v2 and
+  partly elsewhere. The MARGINAL confidence cap (0.8) never binds on the
+  thin top rows: their evidence confidence is already 0.25 (Dubai), 0.111
+  (US-v2), 0.333 (MLA) from the lap-repeat fraction, so the marker tags
+  them but the discount that ranks them low comes from repetition, not
+  from the cap.
+
+## Three-way decision table: A0 / A / B [2026-09-29, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_decision_table.py (table). A0 = production
+untouched; A = production + display hardening; B = pooled p25 under the
+Part-1 pooled thresholds (STRONG_CSF -1.41, STRONG_CSR -0.48,
+MODERATE_CSF 0.65, MODERATE_CSR undefined = empty band, cs_margin 0.06)
++ the same hardening. A and A0 share every read-out criterion; they
+differ only in census health.
+1. SURVIVAL BATTERY.
+   - C3 LS rear exit_5 negative 4/4: PASS in A0, A, B (read-out
+     independent).
+   - Utilization gaps (worst-phase r - f > 0): A0/A Dubai C3 +0.268,
+     US-v2 C13 +0.507, NBR B C9 +0.168 -- PASS; B +0.162, +0.056, +0.350
+     -- PASS.
+   - Dubai mild understeer (US >= OS corners): A0/A 6 vs 6 PASS; B 13 vs 0
+     PASS.
+   - NBR A understeer label: A0/A 4 vs 8 FAIL; B 14 vs 0 PASS.
+   - NBR A -> B direction (front up and gap narrower, median over matched
+     corners, apex): A0/A front -0.295, gap +0.128 FAIL; B front -0.024,
+     gap +0.063 FAIL. A's two laps against B's six bias any minimum-based
+     statistic downward on B (worst lap over more laps).
+2. RESOLVABILITY (2-sigma jackknife, A has 2 laps): A0/A front 4/14, gap
+   1/14; B front 6/14, gap 1/14.
+3. DRIVER DIRECTIONS: in the battery above.
+4. LAP-COUNT BIAS, PR US-v2 beyond STRONG all laps vs 3-lap mean: A0/A
+   front 65 vs 44 %, rear 75 vs 47 %; B front 0 vs 0 %, rear 6 vs 6 %.
+5. VERDICT SHIFT vs A0 (changed calls): B Dubai 7/14, v3 14/17, US-v2
+   13/17, NBR A 10/15, NBR B 10/15, Le Mans 14/28, CDR 12/16, MLA 8/15.
+   B's distribution: understeer 12-19 corners per session, oversteer 0-2
+   (Dubai 13 / 0 / ok 1). With MODERATE_CSF at 0.65 nearly every front
+   worst phase falls into the moderate band -- B's call is "understeer"
+   almost everywhere, which is why it passes both driver checks.
+6. CENSUS HEALTH. A0: TC recommendation #1 on 6/8 sessions;
+   both-direction pairs in the top 3 on 4 sessions; thin #1 (pw < 0.5,
+   one corner) on 3 (Dubai, US-v2, MLA). A: pairs left 0 everywhere; thin
+   #1 0 at every floor; TC recommendation #1 (conflict cards not counted)
+   2/8 at floors 0.3 and 0.5, 1/8 at 0.75; the #1 is a tc_lon conflict
+   card on Dubai, US-v2, NBR B, MLA. B: candidates 0/2/0/0/0/1/1/5 per
+   session (Dubai, v3, US-v2, NBR A, NBR B, Le Mans, CDR, MLA) -- moderate
+   verdicts carry severity "normal" and fire no evidence, so the list is
+   empty on four sessions; TC #1 3/8 at floor 0.3, 0/8 at 0.5 and 0.75.
+7. CALL STABILITY, split-half same call (session-level agreement, not a
+   lap-pair rate): A0/A Dubai 5/14, US-v2 13/17, NBR B 9/15, CDR 8/16, MLA
+   10/15; B 14/14, 16/17, 13/15, 14/16, 12/15 -- high because B calls
+   nearly every corner the same thing.
+8. C4 (not load-bearing): A0/A front -0.134, rank 3/14, "oversteer @ exit
+   [MARGINAL]"; B +0.101, rank 6/14, "understeer @ exit".
+SENSITIVITY (pooled p25 with the sawtooth repair, Part-1 procedure
+re-run): STRONG_CSF -1.41 -> -1.28 (shift 0.13), STRONG_CSR -0.48 ->
+-0.53 (0.05); MODERATE_CSF 0.65 -> undefined, MODERATE_CSR undefined ->
+undefined. The front anchor moves by 8x the export-noise median (0.016),
+below its p90 (0.159); the front moderate gap disappears. The Part-1
+thresholds are not robust to a cosmetic-by-rule change.
+
+## Decision synthesis: CS read-out, final diagnostic round [2026-09-29, branch new-laps, read-only]
+
+NO winner is declared; the choice and the evidence-floor value are the
+author's. Where A's two laps cap a criterion it is stated.
+ROW A0 (production untouched): keeps every battery element except the
+NBR A label and the A->B direction; resolves 4/14 front (A's 2 laps cap
+this); lap-count ratio 1.46; TC recommendation #1 on 6/8 sessions, both-
+direction pairs on 4, thin #1 on 3.
+ROW A (production + display hardening): identical read-out and verdicts
+to A0 (no re-derivation owed); removes every both-direction pair and
+every thin #1; TC recommendation #1 falls to 1-2/8; the evidence floor
+between 0.3 and 0.75 changes one #1 (NBR A at 0.75). Open design point:
+a conflict card clears the ">= 2 corners" branch by construction and
+becomes #1 on four sessions.
+ROW B (pooled p25 under its own recorded-procedure thresholds): the
+procedure yields degenerate multi-track thresholds (front STRONG -1.41,
+MODERATE 0.65, rear MODERATE undefined; per-track front STRONG -0.04 to
+-0.70). Under them B calls nearly every corner understeer, which passes
+both driver checks and stabilises calls trivially, empties the census on
+four sessions, and shifts 7-14 calls per session; resolvability 6/14
+front (A's 2 laps cap it); thresholds move with the cosmetic repair. B
+as derived answers the supervisor's window-scale question: pooling at the
+honest scale, thresholded by the recorded procedure over all tracks,
+does not produce a discriminating verdict.
+PRODUCTION-PACKAGE SHAPE PER OUTCOME.
+- A: no estimator, statistic or threshold change -> no re-derivation.
+  Code: modules/decision_frame.py display path (evidence floor after
+  resolve_conflicts / group_display_rows; session-level lever conflict
+  extending resolve_conflicts' conflict_status vocabulary);
+  ui/views/outing_form.py card rendering. Config: one new decision_frame
+  key for the floor value (author-elicited) with derived_from. Goldens:
+  recommendations_* only if the display split is part of the golden
+  payload (check); pipeline goldens unaffected; no schema bump. Tests:
+  test_decision_frame (+ new floor/conflict tests). Full suite at the
+  boundary.
+- B: config classification.cs_cross_lap_aggregation, STRONG_CSF/CSR,
+  MODERATE_CSF/CSR (re-derived; the standing rule applies in full),
+  verdict_stability_margin.cs_margin; modules/recommendation.
+  aggregate_by_corner gains sample-level pooling; decision-frame
+  evidence source strings; goldens recommendations_dubai_ekf_auto_
+  pacejka_cap1.json and recommendations_dubai_kinematic_cap1.json; tests
+  test_cs_validity_repair, test_decision_frame, test_nan_empty_paths,
+  test_settings_thresholds, test_config_schema_integrity; plus A's
+  display changes if both. Full suite at the boundary.
+- Either, if the sawtooth repair rides along: method-defining start-
+  advance constant in modules/stability_analysis.py, ANALYSIS_SCHEMA_
+  VERSION 8 -> 9, all three pipeline_* goldens regenerate, and any
+  CS threshold is re-derived after it (it moves B's anchors by 0.13).
+CROSS-CUTTING FINDING, independent of the choice: the CS_ratio of v3 C11
+jumps 1.00 <-> 0.19 under +/-1 % input changes (linear-reference
+denominator switch) -- a production discontinuity worth its own item.
+
+[2026-09-29, render addendum, read-only] Rendered for the author's own inspection, no finding added: plan-B traces (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed -3.5..1.2 axes), worst-lap vs pooled-p25 per corner, 8 sessions each, and a references-only C4 provenance sheet (18 dated entries, figure paths) -- diagnostics/inspect_cs_decision_table.py render, outputs in diagnostics/plots/cs_decision_table/render/ (gitignored).
+
+[2026-09-29, figures regenerated] Decision-layer figures (six_stage_flow, lever_coverage_table; diagnostics/plots_decision_layer/, PDF + PNG; 2026-09-23 set kept as *_20260923) regenerated from live config by diagnostics/generate_decision_layer_figure.py, generator fixed to compute: rank-based display_top_n instead of the retired score threshold, per-class change_time, held-secondary matrix routes, feedback-only entry count, tyre bands, speed_qualified_effect cells; process text removed.
