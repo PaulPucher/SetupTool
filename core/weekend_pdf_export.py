@@ -22,8 +22,7 @@ from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
 from modules.recommendation import (
     aggregate_by_corner, generate_recommendations, load_recommendations_config,
 )
-from models.base import Session
-from models.driver import Driver
+from models.driver import driver_name_and_level
 
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN = 14 * mm
@@ -124,17 +123,6 @@ def _accuracy_footer_text(levels):
     return " | ".join(parts)
 
 
-def _driver_name_and_level(driver_id):
-    if driver_id is None:
-        return None, None
-    session = Session()
-    driver = session.get(Driver, driver_id)
-    name = driver.name if driver else None
-    level = driver.driving_level if driver else None
-    session.close()
-    return name, level
-
-
 def _load_json(raw):
     if not raw:
         return {}
@@ -183,7 +171,7 @@ def _build_setup_sheets_section(weekend, outings, styles):
     for i, outing in enumerate(outings):
         if i > 0:
             flow.append(PageBreak())
-        driver_name, _level = _driver_name_and_level(outing.driver_id)
+        driver_name, _level = driver_name_and_level(outing.driver_id)
         setup = _load_json(outing.setup_data)
         setdown = _load_json(outing.setdown_data)
         strip_w = CONTENT_W
@@ -335,7 +323,7 @@ def _outing_meta_line(outing, driver_name):
 
 def _build_outing_section(outing, styles):
     flow = []
-    driver_name, driving_level = _driver_name_and_level(outing.driver_id)
+    driver_name, driving_level = driver_name_and_level(outing.driver_id)
     title = f"Outing {outing.number or outing.id}" + (f" -- {outing.name}" if outing.name else "")
     flow.append(Paragraph(escape(title), styles["h1"]))
     flow.append(Paragraph(escape(_outing_meta_line(outing, driver_name)), styles["muted"]))
@@ -391,7 +379,7 @@ def _cover_page_flowables(weekend, outings, styles):
     for o in outings:
         if o.driver_id and o.driver_id not in seen:
             seen.add(o.driver_id)
-            name, _level = _driver_name_and_level(o.driver_id)
+            name, _level = driver_name_and_level(o.driver_id)
             if name:
                 driver_names.append(name)
     if driver_names:
@@ -400,7 +388,7 @@ def _cover_page_flowables(weekend, outings, styles):
 
     rows = [["#", "Name", "Date", "Driver", "Session", "Status"]]
     for o in outings:
-        name, _level = _driver_name_and_level(o.driver_id)
+        name, _level = driver_name_and_level(o.driver_id)
         rows.append([
             str(o.number or "-"), o.name or "(unnamed)",
             o.date_time.strftime("%d.%m.%Y %H:%M") if o.date_time else "-",

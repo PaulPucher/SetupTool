@@ -21840,3 +21840,111 @@ WARN flag clears on the rows that shared the old "placeholder" note.
 
 [2026-09-27, reviewer ruling] Splitter default-0 limitation ACCEPTED as recorded, shared setup reader untouched: the failure direction is conservative (at the default a splitter candidate misses the up-to +0.1 headroom bonus, never gains one) and the score flag states it.
 [2026-09-27] EFFECT_CLASS RESOLVED -- supersedes the 'EFFECT_CLASS PROVENANCE' paragraph above: author-elicited 2026-09-26 (relayed), the 0.6 side-effect magnitude CONFIRMED as-is after the author reviewed its semantics (a lever answering the problem as a side-effect scores 0.6 vs the primary answer's 1.0). effect_class now carries its own derived_from ('side-effect answers worth ~60% of a primary answer, magnitudes 1.0/0.6 confirmed; term placement reviewer-confirmed 2026-09-22'), no placeholder, no WARN; all six cost_function terms are now elicited.
+
+## WP-FIX-DRIVER: detached-Outing crash in decision-frame Generate [2026-09-28, branch fix-driver]
+
+FINDING. Generate crashed on any reopened outing with a driver. The
+WP-ELICIT C1 driver-level veto read self.outing.driver, a lazy
+relationship, but the form holds a detached Outing (outings.py reopen:
+session.get, session.close). Headless reproduction (offscreen Qt,
+throwaway SQLite DB, real Dubai summaries) found three crashing paths,
+not one: (A) reopen with a driver -> DetachedInstanceError; (B) new
+outing after its first Save -> same error, because session.refresh()
+reloads columns but leaves lazy relationships unloaded (SQLAlchemy
+2.0.49) -- the 2026-07-26 Save-button precedent's refresh-before-close
+covers columns only; (D) new outing never saved -> AttributeError on
+None.driver_id. By code reading, (C): in edit mode _persist_outing
+writes the new driver_id onto the detached object, which does not
+re-point .driver -- eager loading would have fixed A/B but left the
+veto reading the OLD driver's level after a driver change.
+
+SILENT FAILURE. The Generate button connected straight to the method
+with no handler: the author's run showed no reaction at all, only the
+unrelated cached-status line ("re-run Analyse to refresh"). The
+exception reached nowhere visible.
+
+FIX. (1) driving_level is read by id in a short session
+(models/driver.py driver_name_and_level, promoted from the PDF export's
+private helper, both call sites switched; column reads only, never the
+relationship). (2) The id comes from the on-screen driver combo, not the
+saved outing. UNIFORMITY POINT (reviewer ruling): the decision frame
+already reads setup_data from the current form state, saved or not; the
+driver-level veto now follows the same convention, so it reflects the
+displayed driver before Save. Consequence: the combo has no "no driver"
+entry, so an outing saved without a driver displays (and on Save
+writes) the first driver, and the veto uses that driver's level. (3) A
+wrapper on the Generate slot prints "[DECISION_FRAME] Generate failed:"
+plus the full traceback and shows "Generate failed: <error>" in the
+decision-frame label.
+
+VERIFICATION. tests/test_outing_form_driver_level.py: six cases (A, B,
+D, displayed-driver C, no driver in DB -> None, failure surfacing), all
+failing on the old code and passing on the fix; throwaway DB,
+data/setuptool.db mtime/size unchanged.
+
+[2026-09-28, reviewer ruling] NO-DRIVER ENTRY. The driver combo gets an explicit "(no driver)" first entry (data None), the default for a new outing when nothing is stored (carry-on from the weekend's last outing still preselects that outing's driver). DOCTRINE ANCHOR: an unknown driver is conservative, not first-alphabetical. Before this, an outing without a driver displayed and saved the alphabetically first driver, and the veto used that driver's level. Now Save stores driver_id NULL (column nullable=True; reopen round-trips it), and the veto receives driving_level None. Verified by reading _apply_eligibility_gate: None is mapped to driver_level_threshold (config 5, the recommendations.json neutral level) and used nowhere else, so the at/above-neutral branch applies -- the moderate-feedback multi-corner heavy-corrector unlock is held back, the WP-ELICIT A3 doctrine (unknown level = neutral = never unlocks the heavier move). PDF paths show no name for None (driver_name_and_level(None) returns (None, None) without a DB call; setup-sheet PDF maps the no-driver entry to an empty name).
+
+## Kerb-blowoff trigger diagnostic, both sessions [2026-09-28, read-only, no fix]
+
+Question: the blowoff candidate fired top-of-shortlist on both sessions
+in the author's acceptance run -- real kerb abuse, or a relative
+threshold firing on normal kerb use, compounded by effort=seconds?
+Production evidence builder and candidate/score/display path, both real
+sessions, ekf_auto_pacejka, analysis laps from the lap table's own
+is_valid_for_analysis (Dubai laps 0-5 in file, analysis 1-4; v3 laps
+4-9, analysis 6-8 -- corners exist only for analysis laps, so blowoff
+counts no out/in laps).
+
+(1) FIRING at 2.9571 g, repeat >= 2 laps. Dubai: 1 of 14 corners, C1,
+laps 2+4 of 4 (3.552 / 3.922 g), axle not attributable -> front AND
+rear candidates. v3: 4 of 17 corners, all front: C4 (laps 6,7,8; peak
+3.547 g), C12 (6,7,8; 4.148), C13 (6,7,8; 3.785), C15 (6,7; 3.156).
+
+(2) THRESHOLD DERIVATION as recorded: pooled p75 of nonzero per-corner-
+instance peaks over these same two sessions (n=79), percentile picked by
+the minority-firing rule (lowest of p50/p75/p90 firing on a minority of
+corners on both). Applied as an absolute number, but CALIBRATED
+RELATIVE to the sessions at hand -- by construction it fires on roughly
+the top quarter of these sessions' own kerb hits; it encodes no physical
+limit of the damper or tyre.
+
+(3) DISTRIBUTION. Dubai: firing peaks sit at p97-p100 of corner
+instances and of all 95 session kerb events (10.5% of events exceed the
+threshold) -- an exceptional tail. v3 (kerb-heavy Paul Ricard): 38.5% of
+nonzero corner instances and 20.8% of 144 session kerb events exceed it;
+firing laps sit at p67-p100 of instances -- upper bulk, not a tail. On
+v3 the trigger marks the track's ordinary big kerbs.
+
+(4) INDEPENDENT DISCRIMINATORS (all channels present and valid on both
+files: log_susp_travel_*, log_dms_dam_* force, log_speed_*). Per kerb
+event, max over wheels: travel use (fraction of the wheel's own session
+p0.1-p99.9 range), peak travel velocity, peak damper force, wheel-speed
+deviation from the four-wheel median. Events above the threshold have
+higher median velocity (Dubai 271 vs 172 mm/s, v3 286 vs 233), damper
+force (13958 vs 11719 N; 13203 vs 11163 N) and wheel-speed deviation --
+but these co-vary with the severity itself (same impact), they do not
+add independent evidence. Travel use does not separate at all (0.97 vs
+0.96; 0.91 vs 0.89): nearly every kerb event already uses most of the
+travel range. Per firing lap the percentile ranks scatter from p6 to p99
+with no consistent saturation signature. Conclusion: nothing in the
+available per-event channels separates "damper cannot cope" from
+"ordinary hard kerb use". A physically pointed test would be damper
+force vs travel velocity at kerb events (a force plateau at high
+velocity = blowoff already open), which needs a method anchor and the
+valve/dyno characteristic -- not evaluated. No bump-stop gap is
+recorded (car_data holds one generic bump-stop curve, no engagement
+travel), so bump-stop contact cannot be located absolutely.
+
+(5) RANK MECHANICS. The kerb evidence has severity None, so problem
+weight = 0 and confidence never enters the score; the candidate scores a
+constant 2.5 (change_time, seconds) + 0.6 (secondary) = 3.1 wherever it
+fires. That beats every minutes-class candidate unless its problem
+weight exceeds 0.85 (primary) or 1.25 (secondary) -- typical real values
+are 0.3-0.8 -- and loses only to seconds-class candidates with any
+problem weight. Dubai: blowoff ranks #2/#3 (front+rear, both in the
+visible top 3). v3 with no sheet: #6-#9 behind five seconds-class
+candidates; it reaches the top whenever those drop out (e.g. an
+unfilled sheet sends them to the not-assessable tail). The repetition
+bar (>= 2 laps) is the only gate. Candidate endpoints for the ruling:
+absolute threshold, stricter repetition, or demotion to an
+informational flag. No fix implemented.

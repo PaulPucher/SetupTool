@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
 from models.base import Session
-from models.driver import Driver
+from models.driver import Driver, driver_name_and_level
 from models.outing import Outing
 from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
@@ -27,6 +27,8 @@ STAB_COLOUR_WARN_FRACTION = 0.4
 
 # click radius in px = marker dot size; converted via viewPixelSize()
 CORNER_MARKER_CLICK_RADIUS_PX = 26
+
+NO_DRIVER_LABEL = "(no driver)"
 
 
 def _norm_path(path):
@@ -2028,7 +2030,7 @@ class OutingForm(QWidget):
         self.btn_generate_decision_frame = QPushButton("Generate")
         self.btn_generate_decision_frame.setFixedWidth(100)
         self.btn_generate_decision_frame.setEnabled(False)
-        self.btn_generate_decision_frame.clicked.connect(self._generate_decision_frame)
+        self.btn_generate_decision_frame.clicked.connect(self._on_generate_decision_frame)
         gen_row_layout.addWidget(self.btn_generate_decision_frame)
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
@@ -2079,6 +2081,17 @@ class OutingForm(QWidget):
             if w is not None:
                 w.deleteLater()
 
+    def _on_generate_decision_frame(self):
+        # an exception in a slot otherwise vanishes: no console context, no UI
+        # reaction (seen with the detached-driver crash)
+        try:
+            self._generate_decision_frame()
+        except Exception as e:
+            print("[DECISION_FRAME] Generate failed:")
+            traceback.print_exc()
+            self.decision_frame_summary_label.setText(f"Generate failed: {friendly_error_text(e)}")
+            self.decision_frame_summary_label.setStyleSheet(f"color: {BAD}; font-size: 11px;")
+
     def _generate_decision_frame(self):
         # synchronous -- fast enough
         if self._sideslip_source_calibrated():
@@ -2128,9 +2141,9 @@ class OutingForm(QWidget):
         )
         # every assessed corner, normal included -> breadth
         assessed_corner_ids = set(_group_by_corner(summaries).keys())
-        # driving_level resolved here, plain value into modules/
-        driving_level = (self.outing.driver.driving_level
-                          if self.outing.driver_id and self.outing.driver else None)
+        # on-screen driver, like setup_data above (unsaved form state counts);
+        # looked up by id -- self.outing is detached or None here
+        _name, driving_level = driver_name_and_level(self.driver_combo.currentData())
         # setup_data also drives the window-edge check
         candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
                                           assessed_corner_ids=assessed_corner_ids,
@@ -3171,7 +3184,8 @@ class OutingForm(QWidget):
         temp.number = self.outing.number if self.outing else "new"
         temp.name = self.name_input.text().strip()
         temp.session_type = self.session_type_combo.currentText()
-        temp.driver_name = self.driver_combo.currentText()
+        temp.driver_name = (self.driver_combo.currentText()
+                            if self.driver_combo.currentData() is not None else "")
 
         try:
             generate_setup_pdf(temp, self.weekend, path, sheet_type=label)
@@ -3647,6 +3661,10 @@ class OutingForm(QWidget):
         return section
 
     def _load_drivers(self):
+        # explicit "no driver" first: without it an outing with no driver showed
+        # (and saved) the alphabetically first one, and the level veto used that
+        # driver's level instead of the conservative unknown-level path
+        self.driver_combo.addItem(NO_DRIVER_LABEL, userData=None)
         session = Session()
         drivers = session.query(Driver).order_by(Driver.name).all()
         for driver in drivers:

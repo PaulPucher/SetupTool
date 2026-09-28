@@ -2,8 +2,27 @@
 
 ### NOW
 
-(0) WP-STRINGS (branch `strings` off main@e65b45f, NOT committed --
-    awaiting the author's commit decision): internal process records
+(0) WP-FIX-DRIVER (branch `fix-driver` off main@8fc918b, NOT
+    committed -- awaiting the author's commit): production crash in
+    decision-frame Generate, found in the author's manual UI run.
+    Detached Outing + lazy Outing.driver (WP-ELICIT C1 veto) crashed on
+    reopen (A), after a new outing's first Save (B, refresh() leaves
+    relationships unloaded) and on a never-saved outing (D,
+    None.driver_id); stale-driver risk after an edit-mode driver change
+    (C). Fix: driving_level by id via models/driver.py
+    driver_name_and_level (promoted from the PDF export, both call sites
+    switched), id from the on-screen combo (same convention as
+    setup_data -- veto follows the displayed driver before Save);
+    Generate slot wrapper logs "[DECISION_FRAME]" + traceback and shows
+    "Generate failed: ..." (the crash was silent). Regression:
+    tests/test_outing_form_driver_level.py, 6 cases, all fail on old
+    code, pass on fix; throwaway DB only. Record: thesis_notes.md
+    "WP-FIX-DRIVER". Plus: explicit "(no driver)" combo entry (None ->
+    NULL on Save, round-trips on reopen; veto gets None -> threshold 5
+    -> conservative branch; PDFs show no name). Regression file 9 cases.
+    NEXT: brake-bias refined check (read-only diagnostic), own package.
+(0b) WP-STRINGS: DONE, committed and merged to main (8fc918b) together
+    with WP-WEIGHTS; record below kept for reference. Internal process records
     removed from runtime strings (UI-shown evidence/rationale, Settings
     tooltips, candidate payload). Provenance content and dates kept;
     PLAN/thesis_notes/WP/phase/list names removed; product-file
@@ -28,7 +47,7 @@
     tail (measured time + 30s budget kept). 4 targeted
     test files 256 passed (full suite not re-run: same inert string
     class, per ruling).
-    NEXT on this branch: brake-bias refined check (read-only diagnostic).
+    (Brake-bias refined check: moved to item (0) NEXT.)
     OPEN, named follow-up WP-CONFTEXT: the 178 config values no code
     reads (channels 6, decision_frame 77, parameters 57,
     setup_parameters 38 -- note/derived_from/source/notes fields) ship
@@ -39,7 +58,7 @@
     process FRAMING too ("work order", "checklist", "amendment",
     "instruction", "per the user"), not only doc/WP/phase names -- the
     WP-STRINGS marker scan missed that class on the first pass.
-(0') WP-WEIGHTS (same branch `strings`, NOT committed): cost_function
+(0') WP-WEIGHTS: DONE, committed and merged to main (8fc918b): cost_function
     breadth 0.0 (annotation-only; 1.0 was an additive-score misread),
     headroom 0.1, interaction 0.1 (joint bound 0.2 < 0.2083, the
     smallest change_time class step), author-elicited 2026-09-26.
@@ -56,7 +75,7 @@
     COMBINED COMMIT-BOUNDARY RUN (strings + weights, once): 474 passed /
     9 skipped / 1 xfailed (472 baseline + 2 new interaction tests);
     tests/golden/ verified unchanged (git status/diff empty);
-    test_stability.py exit 0. Commit: the author's, after the manual UI
+    test_stability.py exit 0. Committed 8fc918b after the author's manual UI
     check (feedback caption, Settings tooltips/WARN rows).
 (0a) WP-STYLE: DONE, committed to main (e65b45f) -- CORRECTED this
     rewrite: the previous STATUS said "NOT committed"; main's tip is
