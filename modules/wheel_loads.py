@@ -254,6 +254,14 @@ def _axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c):
     return total, degraded, reason
 
 
+def effective_cl_area(c_session, air_density_kgm3):
+    """c_session [N/(m/s)^2] as the Cl*A [m^2] of the config aero model.
+    From c*v^2 = -0.5*rho*A*Cl*v^2 (Cl < 0 = downforce, same sign as
+    estimate_vertical_loads). Display only -- config is not filled from it:
+    the fit is level 2 and already outranks a level-1 config value."""
+    return -2.0 * c_session / air_density_kgm3
+
+
 def estimate_session_corrected_axle_totals(state, damper_result, params):
     """Session-measured axle totals for the corner reconstruction only --
     estimate_vertical_loads and config lift_coeff stay untouched. Level 2.

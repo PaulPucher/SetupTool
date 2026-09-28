@@ -496,46 +496,39 @@ def test_kerb_axle_attribution_not_attributable_when_axle_dead():
     assert _kerb_axle_attribution([(0, 100)], t, channels, wl_cfg) is None
 
 
-def test_kerb_blowoff_candidates_single_axle_when_attributable():
-    from modules.decision_frame import _kerb_blowoff_candidates
+# Blowoff candidates superseded 2026-09-28 (author ruling, Part B kerb
+# diagnostic): kerb evidence renders as an informational flag, never as a
+# ranked candidate. These three tests replace the former
+# _kerb_blowoff_candidates tests (single axle / both axles / rationale).
+
+def _kerb_evidence_item(axle, laps=(2, 4), counted=(1, 2, 3, 4)):
+    return {"type": "kerb_blowoff", "corner": 1, "phase": None, "axle": axle,
+            "severity": None, "peak_severity_g": 3.922, "confidence": 0.5,
+            "laps": list(laps), "laps_counted": list(counted), "source": "test"}
+
+
+def test_kerb_blowoff_never_generates_candidates():
     registry = load_setup_parameters_registry()
-    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": "front",
-                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
-    candidates = _kerb_blowoff_candidates(evidence, registry)
-    assert len(candidates) == 1
-    c = candidates[0]
-    assert {a["parameter"] for a in c["actions"]} == {"damper_blowoff_fl", "damper_blowoff_fr"}
-    assert all(a["direction"] == "increase" and a["delta"] == 2 for a in c["actions"])
-    assert c["effect_class"] == "secondary" and c["grade"] == "proposed"
+    config = load_decision_frame_config()
+    candidates = generate_candidates([_kerb_evidence_item("front")], registry, config)
+    assert not any(a["parameter"].startswith("damper_blowoff")
+                   for c in candidates for a in c["actions"])
 
 
-def test_kerb_blowoff_candidates_both_axles_when_not_attributable():
-    from modules.decision_frame import _kerb_blowoff_candidates
-    registry = load_setup_parameters_registry()
-    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": None,
-                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
-    candidates = _kerb_blowoff_candidates(evidence, registry)
-    assert len(candidates) == 2
-    axles_covered = {frozenset(a["parameter"] for a in c["actions"]) for c in candidates}
-    assert axles_covered == {frozenset({"damper_blowoff_fl", "damper_blowoff_fr"}),
-                              frozenset({"damper_blowoff_rl", "damper_blowoff_rr"})}
-    for c in candidates:
-        assert "not attributable" in c["rationale"]
+def test_kerb_event_flags_line_names_corner_laps_peak_axle():
+    from modules.decision_frame import kerb_event_flags
+    laps = [{"lap_number": n, "is_outlap": n == 0, "is_inlap": n == 5} for n in range(6)]
+    assert kerb_event_flags([_kerb_evidence_item("front")], laps) == [
+        "kerb events C1, laps 2, 4, peak 3.92g, front axle"]
+    assert kerb_event_flags([_kerb_evidence_item(None)], laps)[0].endswith("axle not attributable")
 
 
-def test_kerb_blowoff_candidates_rationale_never_mentions_platform_priority():
-    # Reviewer requirement: rear blowoff is proposable like front -- no
-    # "platform priority / deliberate no relief" framing written into any
-    # NEW rationale here (a pre-existing registry note is untouched
-    # elsewhere, but this candidate must not restate it as a reason).
-    from modules.decision_frame import _kerb_blowoff_candidates
-    registry = load_setup_parameters_registry()
-    evidence = [{"type": "kerb_blowoff", "corner": 1, "axle": "rear",
-                 "peak_severity_g": 3.1, "confidence": 0.67, "source": "test"}]
-    candidates = _kerb_blowoff_candidates(evidence, registry)
-    assert len(candidates) == 1
-    assert "platform priority" not in candidates[0]["rationale"].lower()
-    assert "deliberate" not in candidates[0]["rationale"].lower()
+def test_kerb_event_population_note_states_counted_analysis_laps():
+    from modules.decision_frame import kerb_event_population_note
+    laps = [{"lap_number": n, "is_outlap": n == 0, "is_inlap": n == 5} for n in range(6)]
+    note = kerb_event_population_note([_kerb_evidence_item(None)], laps, load_decision_frame_config())
+    assert "analysis laps 1, 2, 3, 4" in note
+    assert "2.96g" in note
 
 
 def test_kerb_blowoff_evidence_config_present():
@@ -560,6 +553,9 @@ def test_kerb_blowoff_evidence_real_dubai_matches_census(parsed_data, state):
     assert len(evidence) == 1
     assert evidence[0]["corner"] == 1
     assert evidence[0]["axle"] is None
+    # corners exist only on analysis laps 1-4; laps 2 and 4 fire (census)
+    assert evidence[0]["laps"] == [2, 4]
+    assert evidence[0]["laps_counted"] == [1, 2, 3, 4]
 
 
 # --- End to end: real Dubai analysis -> frame output ---------------------
@@ -1802,7 +1798,7 @@ def test_cost_function_weights_elicited_values_pinned():
     # interaction/effect_class elicited 2026-09-26 (WP-WEIGHTS).
     config = load_decision_frame_config()
     cost = config["cost_function"]
-    for key in ("severity", "change_time", "breadth", "headroom", "interaction"):
+    for key in ("severity", "breadth", "headroom", "interaction"):
         assert key in cost
         assert isinstance(cost[key], (int, float))
     # WP-WEIGHTS: repointed on purpose -- breadth/headroom/interaction are no
@@ -1810,7 +1806,13 @@ def test_cost_function_weights_elicited_values_pinned():
     assert "author-elicited 2026-09-24" in cost["derived_from"]
     assert "author-elicited 2026-09-26" in cost["derived_from"]
     assert "placeholder" not in cost["derived_from"]
-    assert cost["change_time"] == 2.5
+    # WP-POLISH, deliberate repoint (author 2026-09-28): change_time is a
+    # per-class table; the seconds favour is halved (2.5 -> 1.875), the
+    # other classes keep their former 2.5/(rank+1) values
+    assert cost["change_time"] == {"seconds": 1.875, "minutes": 1.25,
+                                   "half_hour": 0.8333, "garage_hours": 0.625}
+    assert "halve the while-driving favor" in cost["change_time_derived_from"]
+    assert "cutting power" in cost["change_time_derived_from"]
     assert cost["breadth"] == 0.0
     assert cost["headroom"] == cost["interaction"] == 0.1
     for key in ("breadth_derived_from", "headroom_derived_from", "interaction_derived_from",
@@ -2621,6 +2623,22 @@ def test_window_edge_check_skips_non_numeric_enum_value():
     assert result is None  # not numerically checkable -- same defensive skip as scoring's own
 
 
+def test_window_edge_check_skips_levers_without_sheet_field():
+    # WP-DISPLAY (reviewer ruling 2026-09-28): a lever the sheet has no field
+    # for is not "unfilled" -- previously tc_lon/tc_lat/abs_position/
+    # brake_bias went not_assessable on every filled sheet.
+    from modules.decision_frame import _window_edge_check
+    config = load_decision_frame_config()
+    registry = load_setup_parameters_registry()
+    no_field = sorted(k for k, v in registry.items()
+                      if isinstance(v, dict) and v.get("recommendation_target") and not v.get("maps_to"))
+    assert no_field == ["abs_position", "brake_bias", "tc_lat", "tc_lon"]
+    setup_data = {"car": {"wing_position": "P9"}}  # a filled sheet
+    for param in no_field:
+        assert _window_edge_check({"parameter": param, "direction": "increase", "delta": 1},
+                                  setup_data, registry, config) is None
+
+
 def test_window_edge_check_skips_target_style_actions_with_no_delta():
     from modules.decision_frame import _window_edge_check
     config = load_decision_frame_config()
@@ -3163,7 +3181,9 @@ def test_weight_change_reranks_only_verdict_and_evidence_byte_identical():
     config_a = load_decision_frame_config()
     config_b = copy.deepcopy(config_a)
     config_b["cost_function"]["severity"] = 3.0
-    config_b["cost_function"]["change_time"] = 0.1
+    # WP-POLISH, deliberate repoint: change_time is a per-class table now
+    config_b["cost_function"]["change_time"] = {"seconds": 0.1, "minutes": 0.1,
+                                                "half_hour": 0.1, "garage_hours": 0.1}
     config_b["cost_function"]["breadth"] = 5.0
     config_b["cost_function"]["headroom"] = 2.0
     config_b["cost_function"]["interaction"] = 4.0
@@ -3350,10 +3370,12 @@ def test_tyre_pressure_flags_dead_channel_with_filled_target_not_silent():
     # is NOT silent -- reviewer amendment: report "not evaluable" rather
     # than saying nothing, since a real target exists to check against.
     config = load_decision_frame_config()
+    # WP-DISPLAY: one line per state listing all its wheels
     flags = tyre_pressure_flags(config)  # no channels/corners/state at all
-    assert len(flags) == 4
-    for label in ("FL", "FR", "RL", "RR"):
-        assert any(f"{label}: pressure not evaluable (channel dead/missing)" == f for f in flags)
+    # WP-POLISH-2, deliberate repoint: the header states the population
+    # (no corners supplied here -> no count or lap span)
+    assert flags == ["Tyre pressure (apex median; analysis laps only):",
+                     "not evaluable (channel dead/missing): FL; FR; RL; RR"]
 
 
 def _tpms_fixture(cornering_value, brake_value=None, wheel="fl", quality="valid"):
@@ -3380,40 +3402,64 @@ def test_tyre_pressure_flags_in_band_produces_no_flag():
     config = load_decision_frame_config()  # fl target 1.85-1.95
     channels, corners, state = _tpms_fixture(cornering_value=1.90, wheel="fl")
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    assert not any(f.startswith("FL") for f in flags)
+    # WP-DISPLAY: in-band wheels are listed too (all wheels shown), no caveat
+    assert "in target: FL 1.90 [1.85-1.95]" in flags
+    assert not any(f.startswith("compound:") for f in flags)
 
 
 def test_tyre_pressure_flags_under_band():
     config = load_decision_frame_config()  # fl target 1.85-1.95
     channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    assert any(f.startswith("FL 1.70") and "under target 1.85-1.95" in f for f in flags)
+    # WP-POLISH-2 addendum, deliberate repoint: an off-band wheel names
+    # where (one corner on one lap here -> all corners, laps 1)
+    assert "under target: FL 1.70 [1.85-1.95] \u2014 all corners, laps 1" in flags
 
 
 def test_tyre_pressure_flags_over_band():
     config = load_decision_frame_config()  # rl target 1.80-1.90
     channels, corners, state = _tpms_fixture(cornering_value=2.00, wheel="rl")
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    assert any(f.startswith("RL 2.00") and "over target 1.80-1.90" in f for f in flags)
+    # WP-POLISH-2 addendum, deliberate repoint: an off-band wheel names
+    # where (one corner on one lap here -> all corners, laps 1)
+    assert "over target: RL 2.00 [1.80-1.90] \u2014 all corners, laps 1" in flags
 
 
 def test_tyre_pressure_flags_carries_compound_note():
     config = load_decision_frame_config()
     channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    fl_flag = next(f for f in flags if f.startswith("FL"))
-    assert "[compound:" in fl_flag
+    # WP-DISPLAY: caveat once, as its own line
+    assert sum(f.startswith("compound: ") for f in flags) == 1
 
 
-def test_tyre_pressure_flags_cornering_phase_only_masking():
-    # entry_1_brake carries a wildly different (but still in-range) value
-    # -- if phase masking were broken and it leaked into the median, the
-    # median would be pulled far from 1.90 and this in-band assertion
-    # would fail.
+def test_tyre_pressure_flags_apex_only_masking():
+    # WP-POLISH (author decision 2026-09-28): the population moved from the
+    # cornering phases to the apex window. Turn-in and exit carry a wildly
+    # different (still in-range) value; only apex_3 (1.8-2.2 s) holds 1.90.
+    # If any non-apex phase leaked in, the median would leave the band.
     config = load_decision_frame_config()
-    channels, corners, state = _tpms_fixture(cornering_value=1.90, brake_value=3.50, wheel="fl")
+    channels, corners, state = _tpms_fixture(cornering_value=3.50, wheel="fl")
+    t = state["time"]
+    channels["tpms_press_fl"]["data"][(t >= 1.8) & (t < 2.2)] = 1.90
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    assert not any(f.startswith("FL") for f in flags)  # stayed in-band -> no flag
+    assert "in target: FL 1.90 [1.85-1.95]" in flags
+
+
+def test_tyre_pressure_instant_apex_widened_like_summarise_corners():
+    # real apex_3 segments are one instant; between two grid samples the
+    # window is widened by +/- apex_half_window_samples, never dropped
+    from modules.decision_frame import _tpms_apex_median
+    from modules.stability_analysis import load_parameters
+    half = load_parameters()["stability_estimation"]["apex_half_window_samples"]
+    state, t = _synthetic_state_channels()  # 50 Hz
+    data = np.full(len(t), 3.50)
+    centre = int(np.searchsorted(t, 2.01))
+    data[centre - half:centre + half + 1] = 1.90
+    channels = {"tpms_press_fl": {"time": t, "data": data, "quality": "valid"}}
+    corners = [{"stable_corner_id": 1, "lap_number": 1, "segments": {"apex_3": (2.01, 2.01)}}]
+    median, glitches = _tpms_apex_median(channels, corners, state, "fl")
+    assert median == pytest.approx(1.90) and glitches == 0
 
 
 def test_tyre_pressure_flags_excludes_in_window_glitch_and_reports_count():
@@ -3433,9 +3479,9 @@ def test_tyre_pressure_flags_excludes_in_window_glitch_and_reports_count():
         "exit_4": (2.2, 3.0), "exit_5": (3.0, 3.8),
     }}]
     flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
-    fl_flag = next(f for f in flags if f.startswith("FL"))
-    assert "1 glitch sample excluded" in fl_flag
-    assert "1.70" in fl_flag  # median unaffected by the excluded glitch
+    # WP-POLISH-2 addendum, deliberate repoint: an off-band wheel names
+    # where (one corner on one lap here -> all corners, laps 1)
+    assert "under target: FL 1.70 [1.85-1.95, 1 glitch sample excluded] \u2014 all corners, laps 1" in flags
 
 
 def test_tyre_pressure_flags_real_dubai_produces_under_target_flags(parsed_data, state):
@@ -3456,11 +3502,21 @@ def test_tyre_pressure_flags_real_dubai_produces_under_target_flags(parsed_data,
         corners=parsed_data["corners"],
         state=state,
     )
+    # WP-POLISH-2: header names the population
+    assert flags[0] == "Tyre pressure (apex median across 14 corners, laps 1-4; analysis laps only):"
+    under = next(f for f in flags if f.startswith("under target: "))
     for label in ("FL", "FR", "RL", "RR"):
-        matching = [f for f in flags if f.startswith(label)]
-        assert matching, f"expected an under-target flag for {label}"
-        assert "under target" in matching[0]
-        assert "[compound:" in matching[0]
+        assert f"{label} " in under, f"expected an under-target entry for {label}"
+    assert sum(f.startswith("compound: ") for f in flags) == 1
+
+
+def test_tyre_pressure_population_is_analysis_laps_only(parsed_data):
+    # WP-DISPLAY: the header says "analysis laps only". That holds because
+    # the median is taken over corner windows and corners exist only on
+    # analysis laps; measured 2026-09-28, an explicit lap filter left all
+    # four medians bit-identical on both sessions. Pins that premise.
+    analysis = {l["lap_number"] for l in parsed_data["laps"] if l.get("is_valid_for_analysis")}
+    assert {c["lap_number"] for c in parsed_data["corners"]} == analysis == {1, 2, 3, 4}
 
 
 # --- Phase D feedback round, ITEM 1 (2026-09-23): display-layer grouping -
@@ -3523,3 +3579,313 @@ def test_group_display_rows_single_member_passes_through_unchanged():
     grouped = group_display_rows([a], registry)
     assert grouped == [a]
     assert "group_members" not in grouped[0]
+
+
+# --- WP-DISPLAY (2026-09-28): banner, header/situation tag, marker, --------
+# --- evidence lines, shared lap label --------------------------------------
+
+def _display_candidate(cid, corner, phases, verdict, speed_class, score, **extra):
+    c = {"id": cid, "corner": corner, "phase": phases[-1], "phases": phases, "score": score,
+         "actions": [{"parameter": "wing_position", "direction": "increase", "delta": 1}],
+         "evidence_refs": [{"type": "matrix_verdict", "corner": corner, "phases": tuple(phases),
+                            "verdict": verdict, "severity": "moderate", "speed_class": speed_class}]}
+    c.update(extra)
+    return c
+
+
+def test_group_key_is_change_text_only_and_tag_reads_all_members():
+    # A4: two corners, same change -> one card; the situation tag names both
+    # corners although the fields come from the higher-scoring member.
+    from modules.decision_frame import render_card_header, situation_tag
+    registry = load_setup_parameters_registry()
+    a = _display_candidate("a", 3, ["exit_4", "exit_5"], "oversteer", "high", 2.5)
+    b = _display_candidate("b", 4, ["exit_4", "exit_5"], "oversteer", "high", 2.4)
+    grouped = group_display_rows([a, b], registry)
+    assert len(grouped) == 1
+    assert situation_tag(grouped[0]) == "C3/C4 exit oversteer, high speed"
+    header = render_card_header(grouped[0], registry)
+    assert header == f"{render_top_line(a, registry)} \u2014 C3/C4 exit oversteer, high speed"
+
+
+def test_render_tail_line_stays_change_only_for_grouped_rows():
+    registry = load_setup_parameters_registry()
+    a = _display_candidate("a", 3, ["exit_4"], "oversteer", "high", 2.5, status="proposed")
+    b = _display_candidate("b", 4, ["exit_4"], "oversteer", "high", 2.4, status="proposed")
+    row = group_display_rows([a, b], registry)[0]
+    assert render_tail_line(row, registry).startswith(render_top_line(a, registry) + " -- ")
+    assert "C3" not in render_tail_line(row, registry)
+
+
+def test_situation_tag_lists_distinct_phases_and_speeds():
+    from modules.decision_frame import situation_tag
+    registry = load_setup_parameters_registry()
+    a = _display_candidate("a", 13, ["apex_3"], "oversteer", "medium", 2.9)
+    b = _display_candidate("b", 2, ["entry_2_turnin"], "oversteer", "high", 2.8)
+    row = group_display_rows([a, b], registry)[0]
+    assert situation_tag(row) == "C2/C13 apex/turn-in oversteer, medium/high speed"
+
+
+def test_driver_disagreement_propagates_to_merged_card():
+    # A2: the disagreeing member is not the highest-scoring one, so the
+    # merged card's own fields carry no conflicting_feedback.
+    from modules.decision_frame import card_driver_disagrees
+    registry = load_setup_parameters_registry()
+    clean = _display_candidate("clean", 3, ["exit_4"], "oversteer", "high", 2.5)
+    disputed = _display_candidate("disputed", 4, ["exit_4"], "oversteer", "high", 2.4,
+                                  conflicting_feedback=[{"raw_feedback": -4, "phase": "exit_4"}])
+    row = group_display_rows([clean, disputed], registry)[0]
+    assert "conflicting_feedback" not in row
+    assert card_driver_disagrees(row) is True
+    assert card_driver_disagrees(clean) is False
+
+
+def test_driver_disagreement_propagates_to_grouped_tail_row():
+    # OPEN-1 ruling 2026-09-28: tail rows carry the marker too; the tail
+    # line text itself stays change-only.
+    from modules.decision_frame import card_driver_disagrees
+    registry = load_setup_parameters_registry()
+    clean = _display_candidate("clean", 3, ["exit_4"], "oversteer", "high", 2.5,
+                               status=STATUS_NOT_ASSESSABLE, edge_reason="setup sheet unfilled: diff_position")
+    disputed = _display_candidate("disputed", 4, ["exit_4"], "oversteer", "high", 2.4,
+                                  status=STATUS_NOT_ASSESSABLE, edge_reason="setup sheet unfilled: diff_position",
+                                  conflicting_feedback=[{"raw_feedback": -4, "phase": "exit_4"}])
+    row = group_display_rows([clean, disputed], registry)[0]
+    assert card_driver_disagrees(row) is True
+    assert "disagree" not in render_tail_line(row, registry)
+
+
+def test_unfilled_sheet_banner_counts_rows_and_names_families():
+    from modules.decision_frame import unfilled_sheet_banner
+    tail = [
+        {"status": STATUS_NOT_ASSESSABLE, "edge_reason": "setup sheet unfilled: arb_rl"},
+        {"status": STATUS_NOT_ASSESSABLE, "edge_reason": "setup sheet unfilled: arb_fl"},
+        {"status": STATUS_NOT_ASSESSABLE,
+         "condition_reasons": ["setup sheet unfilled: diff_position"]},
+        {"status": STATUS_NOT_ASSESSABLE, "edge_reason": "no settings window: x"},  # not a sheet gap
+        {"status": STATUS_BLOCKED_AT_EDGE, "edge_reason": "arb_rl already at its hard minimum"},
+    ]
+    assert unfilled_sheet_banner(tail) == (
+        "Setup sheet unfilled (arb, diff position) \u2014 3 candidates not assessable, see tail.")
+    assert unfilled_sheet_banner(tail[3:]) is None
+
+
+def test_lap_display_label_shared_helper():
+    from modules.csv_parser import lap_display_label, lap_labels_by_number
+    assert lap_display_label({"lap_number": 0, "is_outlap": True}) == "Out"
+    assert lap_display_label({"lap_number": 5, "is_inlap": True}) == "In"
+    assert lap_display_label({"lap_number": 4, "is_outlap": True, "is_inlap": True}) == "Out"
+    assert lap_labels_by_number([{"lap_number": 2}]) == {2: "2"}
+
+
+def test_render_evidence_line_situation_first():
+    from modules.decision_frame import render_evidence_line
+    laps = [{"lap_number": n, "is_outlap": n == 0, "is_inlap": n == 5} for n in range(6)]
+    e = {"type": "corner_verdict", "corner": 4, "phase": "exit_5", "verdict": "oversteer",
+         "severity": "strong", "laps": [1, 2, 4], "laps_total": 4, "apex_speed_kmh": (141.6, 150.9)}
+    assert render_evidence_line(e, laps) == (
+        "C4 late exit \u2014 strong oversteer, laps 1, 2, 4 (of 4), 142-151 km/h apex; "
+        "repeats on 3 of 4 laps")
+    fb = {"type": "driver_feedback", "corner": 4, "phase": "exit_4", "verdict": "understeer",
+          "raw_feedback": -4}
+    assert render_evidence_line(fb, laps) == "C4 early exit \u2014 driver reports understeer (-4)"
+
+
+def test_repeat_facts_keeps_matching_laps_and_speed_range():
+    from modules.decision_frame import _repeat_facts
+    by_corner = {7: [{"lap_number": 1, "apex_speed": 120.0}, {"lap_number": 2, "apex_speed": 131.0},
+                     {"lap_number": 3, "apex_speed": 125.0}]}
+    facts = _repeat_facts(7, by_corner, lambda lap: lap["lap_number"] != 2)
+    assert facts == {"laps": [1, 3], "laps_total": 3, "apex_speed_kmh": (120.0, 125.0)}
+    assert _repeat_facts(8, by_corner, lambda lap: True) == {"laps": [], "laps_total": 0, "apex_speed_kmh": None}
+
+
+# --- WP-POLISH (2026-09-28): seconds favour halved, intervention depth -----
+
+def test_score_crossing_strong_minutes_beats_moderate_seconds_at_exit():
+    # The elicitation made executable (author 2026-09-28): "electronic
+    # mitigation like TC still costs lap time (cutting power); the
+    # mechanical fix adds grip -- halve the while-driving favor." At exit,
+    # a mechanical minutes fix for a STRONG problem now outranks a seconds
+    # fix for a MODERATE one: 2.4 + 1.25 + 1.0 = 4.65 vs 1.2 + 1.875 + 1.0
+    # = 4.075. Under the old 2.5 the seconds fix won (4.70 vs 4.65).
+    config = load_decision_frame_config()
+    strong = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+               "verdict": "oversteer", "severity": "strong", "confidence": 1.0, "source": "test"}]
+    moderate = [{"type": "corner_verdict", "corner": 4, "phase": "exit_4",
+                 "verdict": "oversteer", "severity": "moderate", "confidence": 1.0, "source": "test"}]
+    mechanical = _dummy_candidate(param="diff_position", direction="increase", delta=1,
+                                  effort_class="minutes", evidence_refs=strong)
+    electronic = _dummy_candidate(param="tc_lon", direction="increase", delta=1,
+                                  effort_class="seconds", evidence_refs=moderate)
+    s_mech = score(mechanical, strong, None, config)["total"]
+    s_elec = score(electronic, moderate, None, config)["total"]
+    assert s_mech == pytest.approx(4.65) and s_elec == pytest.approx(4.075)
+    assert s_mech > s_elec
+
+
+def _depth_row(cid, param, score_value):
+    return {"id": cid, "score": score_value,
+            "actions": [{"parameter": param, "direction": "increase", "delta": 1}]}
+
+
+def test_depth_tie_order_puts_arb_before_diff_on_equal_score():
+    # author 2026-09-28: at similar time and equal evidence, ARB before diff
+    from modules.decision_frame import _apply_depth_tie_order
+    order = load_decision_frame_config()["intervention_depth"]["order"]
+    rows = [_depth_row("a_diff", "diff_position", 2.75), _depth_row("b_arb", "arb_rl", 2.75)]
+    assert [c["id"] for c in _apply_depth_tie_order(rows, order)] == ["b_arb", "a_diff"]
+
+
+def test_depth_tie_order_never_crosses_a_score_difference():
+    from modules.decision_frame import _apply_depth_tie_order
+    order = load_decision_frame_config()["intervention_depth"]["order"]
+    rows = [_depth_row("diff", "diff_position", 2.9670), _depth_row("arb", "arb_rl", 2.7496)]
+    assert [c["id"] for c in _apply_depth_tie_order(rows, order)] == ["diff", "arb"]
+
+
+def test_depth_tie_order_leaves_unranked_levers_in_place():
+    # only the elicited pair is ranked; wing has no depth relation to either
+    from modules.decision_frame import _apply_depth_tie_order
+    order = load_decision_frame_config()["intervention_depth"]["order"]
+    rows = [_depth_row("a_diff", "diff_position", 2.5), _depth_row("b_wing", "wing_position", 2.5),
+            _depth_row("c_mount", "arb_front_mount", 2.5)]
+    assert [c["id"] for c in _apply_depth_tie_order(rows, order)] == ["c_mount", "b_wing", "a_diff"]
+
+
+def test_intervention_depth_config_ranks_front_mount_with_arbs():
+    cfg = load_decision_frame_config()["intervention_depth"]
+    assert cfg["order"][0] == ["arb_fl", "arb_fr", "arb_rl", "arb_rr", "arb_front_mount"]
+    assert cfg["order"][1] == ["diff_position"]
+    assert "harder cut into the platform" in cfg["derived_from"]
+
+
+# --- WP-POLISH-2 (2026-09-28): compound caveat, pressure population ------
+
+def test_tyre_pressure_caveat_is_one_sentence_full_note_in_tooltip():
+    from modules.decision_frame import tyre_pressure_tooltip, TPMS_COMPOUND_CAVEAT
+    config = load_decision_frame_config()
+    channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert flags[-1] == f"compound: {TPMS_COMPOUND_CAVEAT}"
+    assert not any("Author-elicited" in f for f in flags)
+    tip = tyre_pressure_tooltip(config, channels=channels, corners=corners, state=state)
+    assert tip.startswith(config["tyre_pressure_target"]["compound_note"])
+
+
+def test_tyre_pressure_header_counts_corners_and_lap_span():
+    config = load_decision_frame_config()
+    channels, corners, state = _tpms_fixture(cornering_value=1.90, wheel="fl")
+    second = copy.deepcopy(corners[0]); second["stable_corner_id"] = 2; second["lap_number"] = 2
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners + [second], state=state)
+    assert flags[0] == "Tyre pressure (apex median across 2 corners, laps 1-2; analysis laps only):"
+
+
+def test_tyre_pressure_tooltip_lists_per_corner_apex_medians():
+    from modules.decision_frame import tyre_pressure_tooltip
+    config = load_decision_frame_config()
+    channels, corners, state = _tpms_fixture(cornering_value=1.70, wheel="fl")
+    tip = tyre_pressure_tooltip(config, channels=channels, corners=corners, state=state).splitlines()
+    assert "Apex median per corner (bar):" in tip
+    assert "C1: FL 1.70, FR -, RL -, RR -" in tip
+
+
+def test_split_tail_rows_keeps_reasons_and_collapses_no_trigger():
+    # WP-POLISH-2: below-threshold, BLOCKED and not-assessable rows stay one
+    # line each; "no trigger this session" rows become one count line
+    from modules.decision_frame import split_tail_rows
+    registry = load_setup_parameters_registry()
+    tail = [
+        {"id": "p", "status": STATUS_PROPOSED, "score": 2.6},
+        {"id": "b", "status": STATUS_BLOCKED_AT_EDGE},
+        {"id": "n", "status": STATUS_NOT_ASSESSABLE},
+        {"id": "no_trigger:tc_lat", "status": STATUS_NO_TRIGGER, "lever": "tc_lat"},
+        {"id": "no_trigger:toe_front", "status": STATUS_NO_TRIGGER, "lever": "toe_front"},
+    ]
+    reasoned, summary = split_tail_rows(tail, registry)
+    assert [e["id"] for e in reasoned] == ["p", "b", "n"]
+    assert summary["text"] == "2 levers: no trigger this session"
+    assert summary["tooltip"].splitlines() == [registry["tc_lat"]["label"], registry["toe_front"]["label"]]
+    assert split_tail_rows(tail[:3], registry) == (tail[:3], None)
+
+
+# --- WP-POLISH-2 item 4 (2026-09-28): speed-qualified lever fit ----------
+
+def _sq_candidate(params, verdict, speed, effect="primary", trigger=TRIGGER_DATA_ONLY):
+    return {"id": "sq", "corner": 6, "phase": "exit_4", "effect_class": effect,
+            "trigger_provenance": trigger,
+            "actions": [{"parameter": p, "direction": "increase", "delta": 1} for p in params],
+            "evidence_refs": [{"type": "corner_verdict", "corner": 6, "phase": "exit_4",
+                               "verdict": verdict, "severity": "moderate", "speed_class": speed}]}
+
+
+def _apply_sq(c):
+    from modules.decision_frame import _apply_speed_qualified_effect
+    return _apply_speed_qualified_effect([c], load_decision_frame_config())[0]
+
+
+def test_speed_qualifier_tc_vs_low_and_medium_oversteer_secondary_high_unchanged():
+    for speed in ("low", "medium"):
+        c = _apply_sq(_sq_candidate(["tc_lon"], "oversteer", speed))
+        assert c["effect_class"] == "secondary" and "cutting power" in c["effect_class_note"]
+    assert _apply_sq(_sq_candidate(["tc_lon"], "oversteer", "high"))["effect_class"] == "primary"
+
+
+def test_speed_qualifier_leaves_tc_lat_vs_understeer_alone():
+    # v3 C16: TC lat against understeer is outside the seeded cells
+    c = _apply_sq(_sq_candidate(["tc_lat"], "understeer", "medium"))
+    assert c["effect_class"] == "primary" and "effect_class_note" not in c
+
+
+def test_speed_qualifier_mixed_package_with_unqualified_lever_untouched():
+    c = _apply_sq(_sq_candidate(["wing_position", "ride_height_front"], "understeer", "low"))
+    assert c["effect_class"] == "primary"
+
+
+def test_speed_qualifier_arb_vs_low_oversteer_primary():
+    c = _apply_sq(_sq_candidate(["arb_rl", "arb_rr"], "oversteer", "low", effect="secondary"))
+    assert c["effect_class"] == "primary"
+
+
+def test_speed_qualifier_aero_low_speed_secondary_high_unchanged():
+    for lever in ("wing_position", "splitter_offset"):
+        for verdict in ("oversteer", "understeer"):
+            assert _apply_sq(_sq_candidate([lever], verdict, "low"))["effect_class"] == "secondary"
+        assert _apply_sq(_sq_candidate([lever], "oversteer", "high"))["effect_class"] == "primary"
+
+
+def test_speed_qualifier_skips_driver_only_candidates():
+    # their secondary is evidence class (driver-only), not lever fit
+    c = _apply_sq(_sq_candidate(["arb_rl"], "oversteer", "low", effect="secondary",
+                                trigger=TRIGGER_FEEDBACK_ONLY))
+    assert c["effect_class"] == "secondary" and "effect_class_note" not in c
+
+
+def test_speed_qualifier_config_seeds_only_the_elicited_cells():
+    cfg = load_decision_frame_config()["speed_qualified_effect"]
+    seeded = [(tuple(e["levers"]), tuple(e["verdicts"]), tuple(e["speed_classes"]), e["effect_class"])
+              for e in cfg["entries"]]
+    assert seeded == [
+        (("tc_lon", "tc_lat"), ("oversteer",), ("low", "medium"), "secondary"),
+        (("arb_fl", "arb_fr", "arb_rl", "arb_rr", "arb_front_mount"), ("oversteer",), ("low", "medium"), "primary"),
+        (("wing_position", "splitter_offset"), ("oversteer", "understeer"), ("low",), "secondary"),
+    ]
+    assert "screams ARB" in cfg["derived_from"] and "doctrine-demoted" in cfg["derived_from"]
+
+
+def test_tyre_pressure_under_line_names_corner_subset_and_laps():
+    # WP-POLISH-2 addendum: the wheel is under band overall (2 of 3 apex
+    # readings), but only C1 and C2 are, both on lap 1; C3 (lap 2) is in
+    # band -> lap 1 only; with one corner in band (<= the config's 3) the
+    # corners read "all but C3" (author 2026-09-28, deliberate repoint)
+    config = load_decision_frame_config()  # fl 1.85-1.95
+    state, t = _synthetic_state_channels()
+    data = np.full(len(t), 1.60)
+    data[(t >= 2.8) & (t < 3.2)] = 1.90  # C3's apex window
+    channels = {"tpms_press_fl": {"time": t, "data": data, "quality": "valid"}}
+    corners = [
+        {"stable_corner_id": 1, "lap_number": 1, "segments": {"apex_3": (0.4, 0.8)}},
+        {"stable_corner_id": 2, "lap_number": 1, "segments": {"apex_3": (1.8, 2.2)}},
+        {"stable_corner_id": 3, "lap_number": 2, "segments": {"apex_3": (2.8, 3.2)}},
+    ]
+    flags = tyre_pressure_flags(config, channels=channels, corners=corners, state=state)
+    assert "under target: FL 1.60 [1.85-1.95] \u2014 all but C3, laps 1" in flags, flags

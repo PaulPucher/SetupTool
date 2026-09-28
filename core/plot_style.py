@@ -54,8 +54,9 @@ SESSION_CLOUD_COLOR_SCREEN = "#3A3A3A"
 SESSION_CLOUD_COLOR_PRINT = "#DDDDDD"
 SESSION_CLOUD_SIZE_SCREEN = 1
 SESSION_CLOUD_SIZE_PRINT = 2
-# smaller now that the axis fits the corner samples; print ~3.5x screen px
-LAP_SAMPLE_SIZE_SCREEN = 1.5
+# one px step up from 1.5 so laps separate in the dialog (author
+# 2026-09-28); still below the window rings
+LAP_SAMPLE_SIZE_SCREEN = 2.5
 # print only: smaller again so rings and tangent stay readable over the
 # marker cloud (screen can zoom)
 LAP_SAMPLE_SIZE_PRINT = 3.3

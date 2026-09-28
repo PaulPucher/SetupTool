@@ -205,9 +205,12 @@ shortlist_labels = [
     if "font-weight: 600; padding: 3px 8px" in w.styleSheet()
 ]
 print(f"rendered {len(shortlist_labels)} shortlist badge label(s): {shortlist_labels}")
+# D6's change-only badge superseded 2026-09-26 (WP-DISPLAY A4): the badge
+# is "<change> -- <situation>" (em dash); the change part stays corner-free.
 for text in shortlist_labels:
-    assert not CORNER_ID_RE.search(text), f"widget-rendered top line leaked a corner id: {text!r}"
-print("OK -- no corner id in any widget-rendered shortlist badge")
+    change = text.split(" \u2014 ")[0]
+    assert not CORNER_ID_RE.search(change), f"widget-rendered change text leaked a corner id: {text!r}"
+print("OK -- no corner id in the change part of any widget-rendered shortlist badge")
 assert len(shortlist_labels) == len(set(shortlist_labels)), \
     f"ITEM 1 violated -- widget rendered two visible rows with identical top-line text: {shortlist_labels}"
 print("OK -- no two widget-rendered shortlist badges are identical (ITEM 1)")

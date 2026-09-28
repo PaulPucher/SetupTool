@@ -589,6 +589,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     # damper cascade, static model as innermost fallback
     vertical_load_source = params["stability_estimation"].get("vertical_load_source", "static")
     fz_source_per_sample = None
+    c_session = None  # session-fitted aero coefficient, level 2; None on the static path
     if vertical_load_source == "measured" and channels is not None and car_data is not None:
         from modules.wheel_loads import (
             estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
@@ -600,9 +601,11 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
         if any_damper_valid:
             session_corrected = estimate_session_corrected_axle_totals(state, damper_result, params)
             fz_axle_totals = {"fz_f_N": session_corrected["fz_f_N"], "fz_r_N": session_corrected["fz_r_N"]}
+            c_session = session_corrected["c_session_N_per_mps2"]
         else:
-            # no real damper sample anywhere (e.g. Dubai) -> skip the fit, it would
-            # average nothing and nothing could be reconstructed anyway
+            # no real damper sample anywhere -> skip the fit, it would average
+            # nothing and nothing could be reconstructed anyway (both real
+            # sessions have damper data; Dubai only lacks RR)
             fz_axle_totals = {"fz_f_N": fz_f_N, "fz_r_N": fz_r_N}
         combined = combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz)
         fz_fl_N = combined["fl"]["fz_N"]
@@ -634,6 +637,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
         "accuracy_level_wheel": params["accuracy_levels"]["per_wheel_load_split"]["level"],
         "vertical_load_source_used": vertical_load_source,
         "vertical_load_source_per_sample": fz_source_per_sample,
+        "c_session_N_per_mps2": c_session,
     }
 
 

@@ -286,6 +286,20 @@ def _effective_lap_time(lap):
     return lap["lap_time_precise"] if lap.get("lap_time_precise") is not None else lap["lap_time"]
 
 
+# Single source for how a lap is named on screen (lap table, decision-frame
+# evidence and flags). Out wins over In: a one-lap outing is flagged both.
+def lap_display_label(lap):
+    if lap.get("is_outlap"):
+        return "Out"
+    if lap.get("is_inlap"):
+        return "In"
+    return str(lap["lap_number"])
+
+
+def lap_labels_by_number(laps):
+    return {lap["lap_number"]: lap_display_label(lap) for lap in laps or []}
+
+
 def _split_laps(channels, config=None):
     config = config or {}
     laps = []

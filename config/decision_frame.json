@@ -63,7 +63,7 @@
       "derived_from": "Tier B. 'Beyond limit' = front axle's classify_fn severity on entry_1_brake reaches front_beyond_severity_min (today: 'moderate', i.e. CS_ratio_f at or past config/parameters.json classification.MODERATE_CSF). 'Healthy' = rear axle's severity on the same phase stays at/below rear_healthy_severity_max (today: 'normal', i.e. rear CS_ratio_r has not crossed even MODERATE_CSR). Reuses the existing _phase_verdict/classify_fn path (modules/recommendation.py) unmodified, per-axle -- guarantees this check can never disagree with what the stability grid already shows for the same corner/phase."
     }
   },
-  "_comment_tyre_pressure_target": "Tyre pressures are never recommended, only flagged beside the shortlist when out of window, on cornering-phase samples only (straight-line drop is physics). Per corner, with a compound note. Replaces plausibility_checks.tyre_pressure_window for the decision frame. tpms_press_* is a measurement, not a target -- no target exists, so all null.",
+  "_comment_tyre_pressure_target": "Tyre pressures are never recommended, only flagged beside the shortlist when out of window, on the apex-window median only (apex = peak lateral load; author decision 2026-09-28). Per corner, with a compound note. Replaces plausibility_checks.tyre_pressure_window for the decision frame. tpms_press_* is a measurement, not a target -- no target exists, so all null.",
   "tyre_pressure_target": {
     "_comment_units": "Units are bar (min_bar/max_bar), like the tpms_press_* channels -- the earlier psi names were wrong (docs/channel_requirements.md; diagnostics/inspect_tpms_pressure_cornering_phase.py).",
     "fl": {
@@ -82,7 +82,9 @@
       "min_bar": 1.80,
       "max_bar": 1.90
     },
-    "compound_note": "Author-elicited 2026-09-24: this band is COMPOUND-SCOPED, not universal -- it assumes one specific tyre compound. The tool has no per-outing compound field or channel (verified: neither exists anywhere in this codebase), so it cannot detect or auto-suppress a session run on a different compound. A session whose cornering-phase pressure sits consistently and uniformly below/above this band on all four corners may simply be a different compound, not a real pressure problem -- read this note before acting on a flag. A per-outing compound field is a named future refinement, not built here.",
+    "location_all_but_max_in_band": 3,
+    "location_all_but_max_in_band_derived_from": "Author 2026-09-28 (display): when this many corners or fewer sit IN band, an off-band wheel is written \"all but C.../C...\" instead of the positive corner list.",
+    "compound_note": "Author-elicited 2026-09-24: this band is COMPOUND-SCOPED, not universal -- it assumes one specific tyre compound. The tool has no per-outing compound field or channel (verified: neither exists anywhere in this codebase), so it cannot detect or auto-suppress a session run on a different compound. A session whose apex pressure sits consistently and uniformly below/above this band on all four corners may simply be a different compound, not a real pressure problem -- read this note before acting on a flag. A per-outing compound field is a named future refinement, not built here.",
     "derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase B2, elicitation item 2 RESOLVED): front 1.85-1.95 bar, rear 1.80-1.90 bar; per-corner fields inherit their axle's band (fl/fr share the front band, rl/rr share the rear band -- no per-corner distinction elicited). Verified live before activating (channel census rule): tpms_press_fl/fr/rl/rr confirmed present, unit bar, real cornering-phase variation on both sessions (diagnostics/inspect_tpms_pressure_cornering_phase.py, thesis_notes.md) -- channel identity/semantics check out; v3's cornering-phase readings sit near/inside this band, Dubai's sit consistently below it (see compound_note above for why that is not treated as a pressure fault)."
   },
   "_comment_scoring_weights_retired": "scoring_weights retired -- everything lives in cost_function: severity_weight/phase_importance -> severity/phase_importance (problem weight); effect_weight/effect_class_multiplier -> effect_class (lever fit, not problem weight); effort_weight -> change_time; settings_window_weight -> headroom; interaction_weight -> interaction; confidence_weight folded into the problem-weight product. score() reads cost_function only.",
@@ -887,6 +889,24 @@
     "driver_level_threshold_derived_from": "WP-ELICIT Phase A3 (author-elicited 2026-09-24, elicitation item 5 area -- driver-level trust arbitration). DATA ONLY here: the gate condition itself (heavy correctors reachable in the eligibility gate's middle band -- strong data + moderate |feedback| 2-3 -- only when Driver.driving_level < this threshold) is Phase C1's own job (modules/decision_frame.py _apply_eligibility_gate). Value 5 reused directly from config/recommendations.json settings.driver_level_weighting.neutral_level (models/driver.py Driver.driving_level, 1-10 scale) -- the SAME 'neutral' point that scale already establishes project-wide, not a second, independently-chosen number: below neutral (lower-trust/less-experienced reading) admits the relaxation on data-corroborated-but-not-yet-overwhelming problems; at or above neutral, the gate stays conservative (a high-level driver's own moderate feedback is read as manageable, not as license to fire a heavy corrector early)."
   },
   "_comment_cost_function": "Six scoring terms, nothing outside this block: (1) problem weight = severity x sev_rank x phase_importance x confidence; (2) change_time (inverse effort -- track time is scarce); (3) breadth (global lever helping 1 of N, see breadth_derived_from); (4) headroom (settings-window distance); (5) interaction; (6) effect_class (lever fit, primary vs secondary -- not part of problem weight: one problem, different effect classes per lever). severity/change_time shape elicited: one change at a time, 45-50 min session rhythm -> change_time dominates, severity orders within an effort class and only overrides past the heavy-corrector gate. Terms are additive, so a weight's neutral value is 0.0. breadth 0.0 (annotation-only), headroom/interaction 0.1 each (joint 0.2 < 0.2083, the smallest change_time class step), effect_class 1.0/0.6 -- all author-elicited 2026-09-26; phase_importance ordering elicited.",
+  "speed_qualified_effect": {
+    "entries": [
+      {"levers": ["tc_lon", "tc_lat"], "verdicts": ["oversteer"], "speed_classes": ["low", "medium"], "effect_class": "secondary",
+       "note": "low/medium-speed oversteer: TC masks by cutting power, a mechanical fix adds grip"},
+      {"levers": ["arb_fl", "arb_fr", "arb_rl", "arb_rr", "arb_front_mount"], "verdicts": ["oversteer"], "speed_classes": ["low", "medium"], "effect_class": "primary",
+       "note": "low/medium-speed oversteer: ARB is the mechanical fix"},
+      {"levers": ["wing_position", "splitter_offset"], "verdicts": ["oversteer", "understeer"], "speed_classes": ["low"], "effect_class": "secondary",
+       "note": "low speed: aero barely works"}
+    ],
+    "derived_from": "Author-elicited 2026-09-28: \"Low/mid-speed oversteer screams ARB; TC masks by cutting power, the mechanical fix adds grip.\" Scope FINAL: \"low speed targets mechanical, high speed aero; not all and everything.\" Seeded cells only; high speed unchanged everywhere; the wider lever x verdict x speed elicitation is deliberately closed (depth capped, progress over completeness). Overrides matrix-exact cells: OS-EXIT-low's TC lon suggestion is doctrine-demoted to secondary, not deleted. splitter_offset is an aero device (author ruling 2026-09-28); ride height stays out (mechanical). Driver-only (feedback-only) candidates are skipped: their secondary encodes evidence class, not lever fit."
+  },
+  "intervention_depth": {
+    "order": [
+      ["arb_fl", "arb_fr", "arb_rl", "arb_rr", "arb_front_mount"],
+      ["diff_position"]
+    ],
+    "derived_from": "Author-elicited 2026-09-28: \"diff is a harder cut into the platform than ARB; at similar time and equal evidence, ARB is preferred.\" Shallower first. arb_front_mount joins the ARB rank (it is an ARB change, author ruling 2026-09-28). Used only as a tie-order between candidates with identical score (_score_and_sort); it never reorders unequal scores, so it cannot move effort classes. Accepted: real scores rarely tie exactly, so it acts only when it can. Unlisted levers carry no rank and keep their order."
+  },
   "cost_function": {
     "severity": 1.0,
     "phase_importance": {
@@ -897,8 +917,13 @@
       "exit_4": 1.2,
       "exit_5": 1.2
     },
-    "change_time": 2.5,
-    "change_time_derived_from": "Author-elicited 2026-09-24 (WP-ELICIT Phase A1, elicitation item 1, PARTIAL -- severity/change_time shape only). Sized against severity=1.0 so the two constructed proofs both hold at typical phase_importance/confidence (exit_4, pi=1.2, confidence=1.0): (a) a click-class fix for a MODERATE problem outranks a heavy-corrector fix one severity rank up (garage_hours effort) -- normal-case change_time dominance; (b) a heavy corrector at STRONG severity with full breadth/primary effect_class still beats a NORMAL-severity click-class distractor -- severity punches through only across the FULL normal->strong range, i.e. at the eligibility gate's own ceiling, never merely one rank up. See tests/test_decision_frame.py term-order tests for the exact constructed proofs; thesis_notes.md 'WP-ELICIT Phase A' for the full derivation.",
+    "change_time": {
+      "seconds": 1.875,
+      "minutes": 1.25,
+      "half_hour": 0.8333,
+      "garage_hours": 0.625
+    },
+    "change_time_derived_from": "Per-class table, author-elicited 2026-09-28: \"electronic mitigation like TC still costs lap time (cutting power); the mechanical fix adds grip -- halve the while-driving favor.\" Seconds 2.5 -> 1.875, so the seconds-minutes gap halves (1.25 -> 0.625); minutes/half_hour/garage_hours keep their former values (2.5/(rank+1): 1.25, 0.8333, 0.625), so the smallest class step stays 0.2083 and the headroom+interaction joint bound 0.2 still clears it. Intended consequence: at exit a strong-problem minutes fix now outranks a moderate-problem seconds fix. Earlier record: Author-elicited 2026-09-24 (WP-ELICIT Phase A1, elicitation item 1, PARTIAL -- severity/change_time shape only). Sized against severity=1.0 so the two constructed proofs both hold at typical phase_importance/confidence (exit_4, pi=1.2, confidence=1.0): (a) a click-class fix for a MODERATE problem outranks a heavy-corrector fix one severity rank up (garage_hours effort) -- normal-case change_time dominance; (b) a heavy corrector at STRONG severity with full breadth/primary effect_class still beats a NORMAL-severity click-class distractor -- severity punches through only across the FULL normal->strong range, i.e. at the eligibility gate's own ceiling, never merely one rank up. See tests/test_decision_frame.py term-order tests for the exact constructed proofs; thesis_notes.md 'WP-ELICIT Phase A' for the full derivation.",
     "breadth": 0.0,
     "breadth_derived_from": "author-elicited 2026-09-26: deliberately neutral, annotation-only -- the 'helps X, risks others' dropdown line carries the caution; the real gate for lonely-corner problems is driver corroboration (no complaint + single corner = no change; the existing 0.5 no-corroboration confidence cap implements this). Weight 0.0 = annotation-only in the additive score: the breadth_note line stays shown, the term adds nothing. Formula kept (inert at weight 0.0), Tier B (Stage 6 names the CONCEPT -- 'global lever helping 1 of N corners is penalised' -- not a formula): penalty = -(1 - corners_helped/corners_touched) when breadth data is available and the lever is not exempt (0 when exempt -- corners_touched==corners_helped by construction, modules/decision_frame.py _attach_breadth; 0, flagged, when assessed_corner_ids was not supplied to generate_candidates at all). Fraction-based, clamped at 0 when the candidate helps every assessed corner -- same normalized-distance style this file's own _settings_window_component formula already uses ('1 - distance/span'), not a new invented style.",
     "headroom": 0.1,
@@ -949,7 +974,7 @@
     "min_valid_fraction": 0.7,
     "min_valid_fraction_derived_from": "Pooled transient-phase window valid_fraction (non-kerb-masked, finite samples / window length) across both real sessions: p5=0.712, p10=0.783, p25=0.934, p50~1.0 (n=1258) -- most windows are nearly fully valid, only a small tail is meaningfully kerb-degraded. 0.7 sits just below p5, flagging roughly the bottom 5% sparsest windows as not-evaluable without discarding the typical (>=0.78, ~90% of) window. diagnostics/inspect_damper_motion_sign_and_threshold.py, thesis_notes.md."
   },
-  "_comment_kerb_blowoff_evidence": "'Curb strikes / hard bumps -> more blowoff'. Trigger = kerb-strike SEVERITY repeating across laps (peak |log_acc_z| inside the existing kerb_mask), not kerb_fraction -- kerb contact is normal. Axle from per-wheel travel velocity inside the kerb windows (wheel_loads helpers); axle not evaluable -> both axles, labelled. Rear proposable like front; whether the typical rear 0 is team policy is unconfirmed -- flagged, not encoded.",
+  "_comment_kerb_blowoff_evidence": "Kerb-event flag (informational since 2026-09-28, author ruling: no setup candidate is generated -- the threshold is session-relative and no available channel separates a damper that cannot cope from ordinary hard kerb use). Trigger = kerb-strike SEVERITY repeating across laps (peak |log_acc_z| inside the existing kerb_mask), not kerb_fraction -- kerb contact is normal. Axle from per-wheel travel velocity inside the kerb windows (wheel_loads helpers); axle not evaluable -> stated as not attributable.",
   "kerb_blowoff_evidence": {
     "enabled": true,
     "severity_threshold_g": 2.9571,

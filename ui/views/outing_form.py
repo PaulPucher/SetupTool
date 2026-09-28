@@ -20,6 +20,7 @@ from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
+from modules.csv_parser import lap_display_label
 
 # WARN boundary as a fraction of the BAD boundary (stab_neg_thresh), so
 # detail colours follow the verdict threshold. [neutral engineering]
@@ -58,6 +59,14 @@ def _pipeline_cache_get(csv_path):
     if entry is not None:
         _pipeline_cache_store.move_to_end(key)
     return entry
+
+
+def latest_pipeline_entry():
+    # most recently analysed or reopened session in this process, or None;
+    # read by Settings for the session-fitted aero row
+    if not _pipeline_cache_store:
+        return None
+    return next(reversed(_pipeline_cache_store.values()))
 
 
 def _pipeline_cache_put(csv_path, entry):
@@ -368,20 +377,8 @@ class OutingForm(QWidget):
         worst_stab_phase = None
         worst_stab_val = 1e9
 
-        phase_labels_short = {
-            "entry_1_brake": "brake",
-            "entry_2_turnin": "turn-in",
-            "apex_3": "apex",
-            "exit_4": "exit",
-            "exit_5": "exit",
-        }
-        phase_labels_long = {
-            "entry_1_brake": "brake",
-            "entry_2_turnin": "turn-in",
-            "apex_3": "apex",
-            "exit_4": "early exit",
-            "exit_5": "late exit",
-        }
+        from modules.decision_frame import PHASE_WORD_SHORT as phase_labels_short
+        from modules.decision_frame import PHASE_WORD_LONG as phase_labels_long
 
         # apex_3 CS read from apex_region (distance window) instead of the fixed
         # 11-sample slice; apex_3 stability unchanged
@@ -2057,6 +2054,21 @@ class OutingForm(QWidget):
         self.decision_frame_tyre_flags_label.setVisible(False)
         panel_layout.addWidget(self.decision_frame_tyre_flags_label)
 
+        # kerb events: informational, same class as the tyre-pressure check
+        self.decision_frame_kerb_flags_label = QLabel("")
+        self.decision_frame_kerb_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+        self.decision_frame_kerb_flags_label.setWordWrap(True)
+        self.decision_frame_kerb_flags_label.setVisible(False)
+        panel_layout.addWidget(self.decision_frame_kerb_flags_label)
+
+        # directly above the candidate list: the sheet blocked assessment
+        self.decision_frame_unfilled_banner_label = QLabel("")
+        self.decision_frame_unfilled_banner_label.setStyleSheet(
+            f"color: {WARN}; font-size: 11px; font-weight: bold;")
+        self.decision_frame_unfilled_banner_label.setWordWrap(True)
+        self.decision_frame_unfilled_banner_label.setVisible(False)
+        panel_layout.addWidget(self.decision_frame_unfilled_banner_label)
+
         self.decision_frame_host = QWidget()
         self.decision_frame_host_layout = QVBoxLayout(self.decision_frame_host)
         self.decision_frame_host_layout.setContentsMargins(0, 0, 0, 0)
@@ -2120,7 +2132,8 @@ class OutingForm(QWidget):
         from modules.decision_frame import (
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
             generate_candidates, generate_display_split, resolve_conflicts,
-            tyre_pressure_flags, group_display_rows, apply_display_top_n,
+            tyre_pressure_flags, tyre_pressure_tooltip, group_display_rows, apply_display_top_n,
+            kerb_event_flags, kerb_event_population_note, unfilled_sheet_banner,
         )
         from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
@@ -2166,8 +2179,25 @@ class OutingForm(QWidget):
             corners=self.stability_result.get("corners"),
             state=self.stability_result.get("state"),
         )
-        self.decision_frame_tyre_flags_label.setText(" | ".join(flags))
+        self.decision_frame_tyre_flags_label.setText("\n".join(flags))
+        self.decision_frame_tyre_flags_label.setToolTip(tyre_pressure_tooltip(
+            config,
+            channels=(self.parsed_data or {}).get("channels"),
+            corners=self.stability_result.get("corners"),
+            state=self.stability_result.get("state"),
+        ) if flags else "")
         self.decision_frame_tyre_flags_label.setVisible(bool(flags))
+
+        laps = (self.parsed_data or {}).get("laps", [])
+        kerb_flags = kerb_event_flags(evidence, laps)
+        self.decision_frame_kerb_flags_label.setText("\n".join(kerb_flags))
+        self.decision_frame_kerb_flags_label.setToolTip(
+            kerb_event_population_note(evidence, laps, config) if kerb_flags else "")
+        self.decision_frame_kerb_flags_label.setVisible(bool(kerb_flags))
+
+        banner = unfilled_sheet_banner(tail)
+        self.decision_frame_unfilled_banner_label.setText(banner or "")
+        self.decision_frame_unfilled_banner_label.setVisible(banner is not None)
 
         summary_text = f"{len(evidence)} evidence item(s), {len(shortlist)} proposed"
         if tail_note:
@@ -2185,9 +2215,9 @@ class OutingForm(QWidget):
             self.decision_frame_host_layout.insertWidget(insert_pos, tail_section)
 
     def _build_decision_frame_row(self, c, registry):
-        # top line = the change only; severity via the usual row colours (NEUTRAL
+        # header = change + situation; severity via the usual row colours (NEUTRAL
         # if none). Score, grade, cell, conflicts etc. in the reasoning dropdown.
-        from modules.decision_frame import render_top_line, candidate_severity
+        from modules.decision_frame import render_card_header, candidate_severity, card_driver_disagrees
         card = QWidget()
         card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         card_layout = QVBoxLayout(card)
@@ -2202,12 +2232,17 @@ class OutingForm(QWidget):
         severity_colour = {"strong": BAD, "moderate": WARN, "normal": OK}.get(
             candidate_severity(c), NEUTRAL
         )
-        badge = QLabel(render_top_line(c, registry))
+        badge = QLabel(render_card_header(c, registry))
+        badge.setWordWrap(True)
         badge.setStyleSheet(
             f"background-color: {severity_colour}; color: #111; font-size: 11px; "
             "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
         )
         header_layout.addWidget(badge)
+        if card_driver_disagrees(c):
+            disagree = QLabel("driver disagrees")
+            disagree.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: 600;")
+            header_layout.addWidget(disagree)
         header_layout.addStretch()
         card_layout.addWidget(header)
 
@@ -2253,13 +2288,20 @@ class OutingForm(QWidget):
         return host
 
     def _build_decision_frame_detail_host(self, c):
-        # reasoning content, shared by shortlist and tail rows
+        # reasoning content, shared by shortlist and tail rows: the situation
+        # first, the scoring machinery one fold deeper
+        from modules.decision_frame import render_evidence_line
         detail_host = QWidget()
         detail_layout = QVBoxLayout(detail_host)
         detail_layout.setContentsMargins(12, 2, 0, 0)
         detail_layout.setSpacing(2)
 
-        def add_line(text, colour=TEXT_MUTED, italic=False, bold=False):
+        method_host = QWidget()
+        method_layout = QVBoxLayout(method_host)
+        method_layout.setContentsMargins(12, 0, 0, 0)
+        method_layout.setSpacing(2)
+
+        def add_line(text, colour=TEXT_MUTED, italic=False, bold=False, layout=detail_layout, tooltip=None):
             line = QLabel(text)
             line.setWordWrap(True)
             style = f"color: {colour}; font-size: 10px;"
@@ -2268,22 +2310,25 @@ class OutingForm(QWidget):
             if bold:
                 style += " font-weight: 600;"
             line.setStyleSheet(style)
-            detail_layout.addWidget(line)
+            if tooltip:
+                line.setToolTip(tooltip)
+            layout.addWidget(line)
 
-        corner_phase = (f"C{c['corner']} {c.get('phase')}" if c.get("corner") is not None
-                         else "no corner (unrouted)")
-        add_line(
-            f"{corner_phase} -- {len(c.get('evidence_refs', []))} evidence item(s), "
-            f"effort={c.get('effort_class')}, effect={c.get('effect_class')}, "
-            f"score {c.get('score', 0):.2f}"
-        )
+        laps = (self.parsed_data or {}).get("laps", [])
+        for e in c.get("evidence_refs", []):
+            add_line(render_evidence_line(e, laps), colour=TEXT, tooltip=e.get("source"))
+
+        # driver vs data disagreement, shown side by side
+        for fb in c.get("conflicting_feedback", []):
+            add_line(
+                f"driver feedback disagrees: {fb.get('raw_feedback') or fb.get('verdict')} "
+                f"at {fb.get('phase')}", colour=WARN
+            )
 
         if c.get("grade") == "proposed":
             add_line("ADVISORY (proposed, not matrix-reviewed)", bold=True)
         elif c.get("grade") is not None:
             add_line("derived-from-matrix", colour=ACCENT, bold=True)
-        if c.get("cell_id"):
-            add_line(f"matrix cell: {c['cell_id']}", colour=TEXT_DIM)
 
         # trigger provenance: data-only / feedback-only / both agreeing
         provenance_words = {
@@ -2314,6 +2359,9 @@ class OutingForm(QWidget):
         # standing-practice notes: annotation only
         if c.get("practice_note"):
             add_line(c["practice_note"], colour=TEXT_DIM)
+        # speed-qualified lever fit (doctrine cell), display only
+        if c.get("effect_class_note"):
+            add_line(c["effect_class_note"], colour=TEXT_DIM)
         # lower-TC safety caution, display only
         if c.get("tc_safety_note"):
             add_line(c["tc_safety_note"], colour=WARN)
@@ -2332,32 +2380,49 @@ class OutingForm(QWidget):
         if c.get("condition_reasons"):
             add_line(f"condition: {'; '.join(c['condition_reasons'])}", colour=TEXT_DIM)
 
-        # driver vs data disagreement, shown side by side
-        for fb in c.get("conflicting_feedback", []):
-            add_line(
-                f"driver feedback disagrees: {fb.get('raw_feedback') or fb.get('verdict')} "
-                f"at {fb.get('phase')}", colour=WARN
-            )
-
+        # method detail: how the row was scored and where each evidence item came from
+        corner_phase = (f"C{c['corner']} {c.get('phase')}" if c.get("corner") is not None
+                         else "no corner (unrouted)")
+        add_line(
+            f"{corner_phase} -- {len(c.get('evidence_refs', []))} evidence item(s), "
+            f"effort={c.get('effort_class')}, effect={c.get('effect_class')}, "
+            f"score {c.get('score', 0):.2f}", layout=method_layout
+        )
+        if c.get("cell_id"):
+            add_line(f"matrix cell: {c['cell_id']}", colour=TEXT_DIM, layout=method_layout)
         if c.get("score_components"):
             components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
-            add_line(f"score breakdown: {components_text}", colour=TEXT_DIM)
-
+            add_line(f"score breakdown: {components_text}", colour=TEXT_DIM, layout=method_layout)
         for note in c.get("score_interaction_notes", []):
-            add_line(f"interaction: {note}", colour=TEXT_DIM)
-
+            add_line(f"interaction: {note}", colour=TEXT_DIM, layout=method_layout)
         for flag in c.get("score_flags", []):
-            add_line(flag, colour=TEXT_DIM, italic=True)
-
+            add_line(flag, colour=TEXT_DIM, italic=True, layout=method_layout)
         for e in c.get("evidence_refs", []):
-            add_line(f"evidence ({e['type']}): {e.get('source', '')}", colour=TEXT_DIM)
+            add_line(f"evidence ({e['type']}): {e.get('source', '')}", colour=TEXT_DIM, layout=method_layout)
+
+        btn_method = QPushButton("> method detail")
+        btn_method.setCheckable(True)
+        btn_method.setStyleSheet(
+            f"background-color: transparent; color: {TEXT_DIM}; font-size: 10px; "
+            "text-align: left; border: none; padding: 2px 0;"
+        )
+        detail_layout.addWidget(btn_method)
+        detail_layout.addWidget(method_host)
+        method_host.setVisible(False)
+
+        def toggle_method(checked):
+            method_host.setVisible(checked)
+            btn_method.setText("v method detail" if checked else "> method detail")
+        btn_method.toggled.connect(toggle_method)
 
         detail_host.setVisible(False)
         return detail_host
 
     def _build_decision_frame_tail_section(self, tail, registry):
         # collapsed tail in generate_lever_inventory's order: real candidates by
-        # score, then no_trigger rows
+        # score, then one count line for the no_trigger levers
+        from modules.decision_frame import split_tail_rows
+        reasoned, no_trigger = split_tail_rows(tail, registry)
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 4, 0, 0)
@@ -2376,8 +2441,13 @@ class OutingForm(QWidget):
         rows_layout = QVBoxLayout(rows_host)
         rows_layout.setContentsMargins(0, 4, 0, 0)
         rows_layout.setSpacing(4)
-        for entry in tail:
+        for entry in reasoned:
             rows_layout.addWidget(self._build_decision_frame_tail_row(entry, registry))
+        if no_trigger is not None:
+            count_line = QLabel(no_trigger["text"])
+            count_line.setToolTip(no_trigger["tooltip"])
+            count_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; padding: 2px 8px;")
+            rows_layout.addWidget(count_line)
         rows_host.setVisible(False)
         layout.addWidget(rows_host)
 
@@ -2390,7 +2460,7 @@ class OutingForm(QWidget):
         return container
 
     def _build_decision_frame_tail_row(self, entry, registry):
-        from modules.decision_frame import render_tail_line, STATUS_NO_TRIGGER
+        from modules.decision_frame import render_tail_line, card_driver_disagrees, STATUS_NO_TRIGGER
         row = QWidget()
         row.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
         row_layout = QVBoxLayout(row)
@@ -2401,6 +2471,11 @@ class OutingForm(QWidget):
         line.setWordWrap(True)
         line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
         row_layout.addWidget(line)
+        # never silent at any tier: a disagreement shows on the tail row too
+        if card_driver_disagrees(entry):
+            disagree = QLabel("driver disagrees")
+            disagree.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
+            row_layout.addWidget(disagree)
 
         if entry.get("status") == STATUS_NO_TRIGGER:
             # nothing further to expand
@@ -2486,8 +2561,7 @@ class OutingForm(QWidget):
 
             is_outlap = lap.get("is_outlap", False)
             is_inlap = lap.get("is_inlap", False)
-            display_text = "Out" if is_outlap else ("In" if is_inlap else str(lap["lap_number"]))
-            lap_item = QTableWidgetItem(display_text)
+            lap_item = QTableWidgetItem(lap_display_label(lap))
             lap_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             lap_item.setData(Qt.ItemDataRole.UserRole, lap["lap_number"])
 

@@ -2,8 +2,93 @@
 
 ### NOW
 
-(0) WP-FIX-DRIVER (branch `fix-driver` off main@8fc918b, NOT
-    committed -- awaiting the author's commit): production crash in
+(00000) WP-POLISH-2 (branch `fix-driver`, NOT committed): items 1-3
+    done -- compound caveat one sentence (full note in tooltip),
+    pressure header states population (N corners, laps a-b) with
+    per-corner apex medians in the tooltip, tail no-trigger rows
+    collapse to one count line. Item 4 (speed qualifier) IMPLEMENTED:
+    decision_frame.json speed_qualified_effect (TC vs low/med OS ->
+    secondary, ARB vs low/med OS -> primary, wing+splitter at low ->
+    secondary), last pass of generate_candidates, overrides matrix-exact
+    cells, skips driver-only candidates. v3 #1 now diff +1 (ARB
+    edge-blocked, accepted); Dubai unchanged. Addendum: off-band tyre
+    wheels name their corners and laps ("all corners" when all, "all
+    but C.." when <= 3 in band, config); tyre bands editable in
+    Settings (per axle, writes both wheels; Save refused if min > max).
+    PUNCH LIST: tyre-curve
+    stray colours (WP-POLISH 2a) -- author owes the reproduction route.
+    Record: thesis_notes.md "WP-POLISH-2".
+(0000) WP-POLISH (branch `fix-driver`, NOT committed): items 1-3 done --
+    tyre pressure median now over the apex window (summarise_corners'
+    +/- apex_half_window_samples; measured shifts <= 0.011 bar, all
+    wheels still under target on both sessions); tyre-curve lap
+    visibility NOT reproduced headlessly (all panels clean after
+    unchecking, v3 C4/C12, Dubai C4) -- needs the author's route; lap
+    markers 1.5 -> 2.5 px on screen; Settings marker bar scoped to its
+    row + indent (author screenshot verifies). Item 5: change_time is a
+    per-class table (seconds 1.875, minutes 1.25, half_hour 0.8333,
+    garage_hours 0.625), joint bound unchanged (smallest step 0.2083),
+    four Settings rows; v3 diff +1 now #2 above TC lat. Item 4:
+    intervention_depth tie-order (ARB incl. front mount before diff),
+    near-inert by accepted ruling. Config pressure wording corrected.
+    Item 2(a) OPEN pending the author's reproduction route. Records:
+    thesis_notes.md "WP-POLISH" + "WP-POLISH items 4/5".
+(000) WP-SETTINGS (branch `fix-driver`, on top of WP-DISPLAY, NOT
+    committed): classification thresholds editable in Settings as
+    recorded manual overrides (core/threshold_overrides.py:
+    derived_default on first override, never overwritten, restore
+    reads it; "manual" tag + "restore derived" control); stab row
+    states its kinematic-era default, verdict marker untouched.
+    CLAUDE.md amended (override allowed, derivation duty on defaults).
+    Row notes rewritten to what-it-does, date line removed
+    (_short_derived_from deleted, Settings was its only reader).
+    "Display cutoff score" and "neutral level" rows removed (no
+    reader; keys stay). Aero: config rows noted inactive while
+    Cl*A = 0, read-only session-fitted row added
+    (estimate_vertical_loads returns c_session_N_per_mps2;
+    wheel_loads.effective_cl_area). Stale Dubai damper comment in
+    stability_analysis fixed. Left label column 260 px + wrap (21
+    clipped labels -> 0). Dead-key map filed under WP-CONFTEXT.
+    Guard A verified in fresh processes (31/56 Dubai verdicts moved).
+    Record: thesis_notes.md "WP-SETTINGS". UI check: author, tonight.
+    TESTS (targeted, full suite tonight): test_settings_thresholds.py
+    10 passed; test_wheel_loads + test_vertical_load_source_default +
+    test_golden_pipeline + test_golden_auto_modes 40 passed, goldens
+    unchanged; smoke_test_settings_view passes; test_stability.py exit
+    0. INCIDENT (recovered): a background pytest and the settings smoke
+    test raced on the real config files; recommendations.json was
+    transiently truncated. Verified afterwards: all four config files
+    parse and equal HEAD (only the intended WP-DISPLAY kerb comment
+    differs). Rule: config-writing tests never run concurrently.
+(00) WP-DISPLAY (branch `fix-driver`, on top of 7895aa0, NOT committed
+    -- awaiting the author's manual UI check and commit): decision-frame
+    presentation redesign. Kerb blowoff demoted to an informational flag
+    (no candidates; evidence/threshold kept) -- author ruling 2026-09-28,
+    C3 supersede. Levers without a sheet field (tc_lat, tc_lon,
+    abs_position, brake_bias) skip the window-edge check (was a false
+    "sheet unfilled"). Unfilled-sheet banner; "driver disagrees" on
+    merged cards; header "<change> -- <situation>" (D6 supersede);
+    situation-first evidence lines with a method-detail fold; shared
+    lap-label helper (csv_parser.lap_display_label); tyre pressure one
+    line per state, "analysis laps only" (measured no-change, no filter
+    code). CLAUDE.md Dubai lap fact corrected (0-5, analysis 1-4).
+    Visible #1 is now TC lon +1 on both sessions. Records:
+    thesis_notes.md "WP-DISPLAY" + retroactive "Feedback trace, Dubai
+    C4". Phase-D smoke test repointed (badge change part corner-free).
+    Tail rows carry the "driver disagrees" marker too (reviewer ruling,
+    never-silent at every tier). UI check: author, tonight's boundary
+    together with the Settings work.
+    TESTS (author suite amendment 2026-09-28: full suite only at the
+    day's merge boundary): targeted set -- test_decision_frame.py + the
+    outing_form-importing files + test_golden_pipeline.py -- 315 passed;
+    tests/golden/ unchanged (git status/diff empty); test_stability.py
+    exit 0; both decision-frame smoke tests pass, data/setuptool.db
+    untouched. FULL SUITE PENDING: once tonight, after Settings/aero land
+    on this branch, before the merge to main.
+    NEXT: brake-bias refined check (read-only diagnostic), own package.
+(0) WP-FIX-DRIVER: DONE, committed on `fix-driver` (7895aa0) --
+    CORRECTED this rewrite (the previous STATUS said "NOT committed");
+    not yet merged to main. Record kept for reference: production crash in
     decision-frame Generate, found in the author's manual UI run.
     Detached Outing + lazy Outing.driver (WP-ELICIT C1 veto) crashed on
     reopen (A), after a new outing's first Save (B, refresh() leaves
@@ -20,7 +105,7 @@
     "WP-FIX-DRIVER". Plus: explicit "(no driver)" combo entry (None ->
     NULL on Save, round-trips on reopen; veto gets None -> threshold 5
     -> conservative branch; PDFs show no name). Regression file 9 cases.
-    NEXT: brake-bias refined check (read-only diagnostic), own package.
+    (NEXT moved to item (00).)
 (0b) WP-STRINGS: DONE, committed and merged to main (8fc918b) together
     with WP-WEIGHTS; record below kept for reference. Internal process records
     removed from runtime strings (UI-shown evidence/rationale, Settings
@@ -58,6 +143,42 @@
     process FRAMING too ("work order", "checklist", "amendment",
     "instruction", "per the user"), not only doc/WP/phase names -- the
     WP-STRINGS marker scan missed that class on the first pass.
+    DEAD-KEY MAP (WP-SETTINGS sweep 2026-09-28; start from this, do not
+    re-scan; record only, deletions are WP-CONFTEXT's). Method: every
+    non-documentation config key's quoted name searched in
+    modules/core/ui/models + main.py, then hand-checked. No reader in
+    code:
+    - parameters.json: vehicle.driver_mass_ref_kg (75.0),
+      vehicle.fuel_mass_ref_kg (35.0); vehicle.yaw_inertia_kalman_kgm2
+      (1800.0, diagnostics only); stability_estimation.
+      cs_front_fallback_reference_n_per_rad (68268) and
+      cs_rear_fallback_reference_n_per_rad (91343), diagnostics only;
+      tyre_model_fit block incl. ay_linear_threshold_g (0.3),
+      diagnostics only; longitudinal_stiffness.
+      kerb_investigation_reference (a thesis_notes pointer string);
+      tyre_model_ekf.pass_0/pass_1/pass_3 provenance fields
+      (frozen_from, seeded_from, changed_from_previous,
+      R_ay_derivation, R_yaw_rate_derivation) -- record-shaped, not
+      parameters.
+    - decision_frame.json: plausibility_checks.tyre_pressure_window
+      (front/rear min_psi/max_psi all null, per_corner_override all
+      null; superseded by tyre_pressure_target in bar);
+      intervention_evidence.abs.
+      abs_inactive_corroborates_braking_instability and
+      intervention_evidence.tc.tc_active_corroborates_traction_limited
+      (rule descriptors; phase/verdict hard-coded in the builders);
+      eligibility_classes.camber_multi_corner_gate (prose note).
+    - channels.json, recommendations.json, car.json: none.
+    - Read by Settings only (rows removed from Settings in WP-SETTINGS,
+      keys kept): decision_frame.json display_score_threshold (display
+      cuts by display_top_n; test-pinned derived_from "No longer
+      primary", also read by diagnostics/smoke_test_decision_frame_
+      phase_d.py); recommendations.json settings.driver_level_weighting.
+      neutral_level (value copied into decision_frame.json
+      eligibility_classes.driver_level_threshold, which is the live one).
+    - Checked and LIVE (scan false positives): wheel_loads.
+      pushrod_offset_*_N (f-string read), channels.json
+      channel_corrections (iterated).
 (0') WP-WEIGHTS: DONE, committed and merged to main (8fc918b): cost_function
     breadth 0.0 (annotation-only; 1.0 was an additive-score misread),
     headroom 0.1, interaction 0.1 (joint bound 0.2 < 0.2083, the
@@ -423,6 +544,14 @@ Refinements deferred: top lines upgrade to explicit from->to steps for
 enum levers (springs, wing_position) when setup_data is present --
 future, honest-degrade to direction-word without it. Full record:
 thesis_notes.md "Phase D: D6 top-line rendering rule resolved".
+
+## Addendum 2026-09-28 (WP-DISPLAY): the D6 top line is no longer
+change-only -- card header "<change> -- <situation>" (author
+2026-09-26), situation from all group members; grouping keys on the
+change text alone; tail lines stay change-only. Kerb blowoff no longer
+generates candidates (informational flag, author ruling 2026-09-28).
+Levers without a setup-sheet field skip the window-edge check. Full
+record: thesis_notes.md "WP-DISPLAY".
 
 ## Addendum 2026-09-23 (Phase D feedback round, ITEM 1): output stage:
 identical changes group for display, max-score, user-elicited

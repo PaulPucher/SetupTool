@@ -19187,6 +19187,8 @@ census check, superseding the B8 5/21 figure.
 ## Phase D: D6 top-line rendering rule resolved [2026-09-22, reviewer
 decision]
 
+[2026-09-28] ~~SUPERSEDED in part: the top line is no longer change-only~~ -- the card header is now '<change> -- <situation>' (author 2026-09-26, WP-DISPLAY A4). The magnitude/direction-word rule below is unchanged and still governs the change part; grouping still keys on the change text alone. See 'WP-DISPLAY' (2026-09-28).
+
 WP-DL Phase D (UI). D1's own two example top lines ("Bias +1 click
 rearward", "Splitter -1 mm") imply every candidate carries a direction
 plus a real numeric magnitude. Direct read of every candidate generator
@@ -20806,6 +20808,8 @@ tests).
 
 ### WP-ELICIT Phase C3: kerb-strike-severity blowoff evidence [2026-09-24]
 
+[2026-09-28] ~~SUPERSEDED in part (candidate generation only): kerb evidence no longer generates damper_blowoff candidates~~ -- author ruling 2026-09-28, conscious supersede of this elicitation, grounded in the Kerb-blowoff trigger diagnostic (Part B, 2026-09-28). The detection and threshold below stand; the recommendation derived from them does not. See 'WP-DISPLAY' (2026-09-28).
+
 Tier B (signal/data engineering: threshold gap-selection against a real
 distribution, per-wheel velocity attribution -- no vehicle-dynamics
 method content). Author-elicited direction: "curb strikes / hard bumps ->
@@ -21948,3 +21952,373 @@ unfilled sheet sends them to the not-assessable tail). The repetition
 bar (>= 2 laps) is the only gate. Candidate endpoints for the ruling:
 absolute threshold, stricter repetition, or demotion to an
 informational flag. No fix implemented.
+
+## Feedback trace, Dubai C4 [2026-09-28, RETROACTIVE record]
+
+RETROACTIVE: this trace ran in a prior session on 2026-09-28 and was
+reported in chat only -- a process miss (findings go into thesis_notes
+in the same turn). Recorded here in WP-DISPLAY, from the reviewer's
+summary of that session.
+
+Path: driver feedback reaches the decision frame from the live form
+state (unsaved edits count), the same convention as setup_data. The
+Dubai entry C4 -4 was mapped correctly to stable corner 4, exit_4 and
+exit_5; evidence was built at confidence 1.0 (the |4..5| band). The
+driver level weights nothing in the evidence -- it enters only the
+heavy-corrector veto of the eligibility gate. The feedback router fired
+four ARB alternatives; _apply_window_edge_status sent all four to the
+tail as not assessable, because the sheet's ARB fields were stored as
+0.0, which the shared setup reader treats as unknown. The contradiction
+class (driver vs data) was computed on all five C4 data candidates, but
+rendered only inside the collapsed reasoning dropdown; the one visible
+card hid it entirely, because grouping had merged C4 under C3's clean
+member and the card header was taken from that member. Index mapping
+(form row -> stable corner id) verified correct.
+
+Consequence: the pipeline was right and the display hid it. This is
+the direct motivation for WP-DISPLAY's unfilled-sheet banner (A1) and
+the contradiction marker on merged cards (A2).
+
+## WP-DISPLAY: decision-frame presentation redesign + kerb-blowoff demotion [2026-09-28, branch fix-driver]
+
+Tier C (display) throughout, except item 1, which removes a candidate
+generator (a decision-layer change, author ruling) and item 4, which
+corrects a false status (reviewer ruling). No estimator, threshold or
+score weight touched.
+
+1. KERB BLOWOFF -> INFORMATIONAL FLAG (author ruling 2026-09-28,
+conscious supersede of the WP-ELICIT C3 elicitation "curb strikes /
+hard bumps -> more blowoff"). Reason, from the Part B diagnostic
+(same day): (a) the 2.9571 g threshold is session-relative -- pooled
+p75 of these same two sessions, it marks the top quarter of their own
+kerb hits and encodes no physical limit; on v3 it fires on the track's
+ordinary big kerbs; (b) no available channel discriminates -- travel
+use, travel velocity, damper force and wheel-speed deviation either
+co-vary with the severity itself or do not separate at all, so nothing
+tells "damper cannot cope" from "ordinary hard kerb use"; (c) scoring
+hole -- the evidence has severity None, so problem weight is 0 and the
+candidate scored a constant 3.1 wherever it fired, beating most
+minutes-class candidates independent of any problem. The detection
+stays (it is sound as a detection); only the recommendation is
+removed. Display: "kerb events C<x>, laps <..>, peak <g>g, <axle>" per
+firing corner, tooltip names the counted population (analysis laps)
+and states that the threshold is session-relative.
+
+2. NO-SHEET-FIELD LEVERS SKIP THE EDGE CHECK (reviewer ruling,
+structural rule). tc_lat, tc_lon, abs_position and brake_bias have no
+setup-sheet field (registry maps_to None). _window_edge_check returned
+"setup sheet unfilled" for them on EVERY sheet, filled or not -- a
+false statement, which sent all four to the not-assessable tail
+whenever any sheet existed. Now they skip the check (current state
+unknown, no edge to test), the same outcome the enum-valued wing
+already had. Consistent with the spec's brake_bias line ("not
+evaluable until the bias channel is identified", not "blocked by the
+sheet").
+
+3. DISPLAY: unfilled-sheet banner above the list (A1); "driver
+disagrees" on the merged card header when ANY member carries
+conflicting feedback (A2); card header "<change> -- <situation>",
+situation built from all group members, grouping still keyed on the
+change text alone, tail lines change-only (A4, supersedes D6's
+change-only top line); evidence lines situation first -- "<corner>
+<phase word> -- <phenomenon>, laps <labels> (of N), <apex speed range>;
+repeats on k of N laps", with the method source as tooltip and the
+scoring machinery one fold deeper (A5). Lap labels from one shared
+helper (modules/csv_parser.lap_display_label), also used by the lap
+table. Apex speed = ecu_speed [kph], level 3 (census: channel present
+as ecu_speed[kph] in both raw files).
+
+4. TYRE PRESSURE POPULATION (A6) -- MEASURED NO-CHANGE. The median is
+taken over corner-phase windows, and corners are only ever built on
+analysis laps (corner_analysis.analyse_corners skips
+is_valid_for_analysis False). Measured on both saved outings with the
+production sidecar: an explicit analysis-lap filter leaves all four
+medians bit-identical -- Dubai FL 1.7207 / FR 1.7196 / RL 1.7000 /
+RR 1.6951 bar (corner laps = analysis laps = 1-4, 56 corners), v3
+FL 1.8088 / FR 1.8249 / RL 1.7790 / RR 1.7814 bar (laps 6-8, 51
+corners). So the outlap was never in the population; the display now
+says "analysis laps only" truthfully, with no filter code, and a test
+pins the premise on real Dubai data. Output: one line per state
+listing all its wheels (in-band wheels now shown too), compound
+caveat once.
+
+BEFORE / AFTER visible shortlist (saved outings, sidecar pipeline,
+ekf_auto_pacejka, real sheet/feedback/driver level from the DB, read
+only):
+- Dubai (outing 1, sheet partly filled, driver level 10). Before: #1
+  FL+FR blowoff +2 (3.156), #2 wing higher (2.550). After: #1 TC lon +1
+  -- C4 exit oversteer, high speed (3.800), #2 wing higher -- C3/C4
+  exit oversteer, high speed (2.550); both cards now "driver
+  disagrees" (C4 -4). Only two rows visible: banner "Setup sheet
+  unfilled (arb, diff position, splitter offset) -- 5 candidates not
+  assessable". Kerb flag: C1, laps 2 and 4, 3.92 g, axle not
+  attributable.
+- v3 (outing 3, sheet filled, driver level 5). Before: #1 FL+FR blowoff
+  +2 (3.178), #2 diff +1 (2.967), #3 rear ARB +1 (2.750). After: #1 TC
+  lon +1 -- C6/C9 exit oversteer (3.900), #2 TC lat +1 -- C16 apex
+  understeer (3.433), #3 diff +1 (2.967); rear ARB +1 drops to the tail
+  (below the top-3 cut). No banner. Kerb flags: C4, C12, C13 (laps
+  6-8) and C15 (laps 6-7), all front axle.
+- Why it moved: blowoff removed (item 1); TC lon/TC lat released from
+  the false "sheet unfilled" status (item 2). abs_position and
+  brake_bias have no trigger on either session, so the structural rule
+  moves nothing there today.
+
+V3 FILLED-SHEET QUESTION. The author's saved v3 outing has a filled
+sheet, contradicting the sheetless reproduction's explanation for
+blowoff's top rank. What actually ranked it top: under the filled sheet
+both seconds-class TC candidates (TC lon 3.900, TC lat 3.433 after the
+fix) were in the not-assessable tail as "setup sheet unfilled: tc_lon /
+tc_lat" -- the no-sheet-field defect of item 2 -- so the constant 3.1
+blowoff score met no seconds-class competition. Same mechanism as the
+sheetless case, different trigger.
+
+LIMITATION, accepted: the situation tag of a large group is long (v3
+diff +1: six corners, three phases). It is built from all members by
+ruling; shortening it would drop corners.
+
+[2026-09-28, reviewer ruling, WP-DISPLAY] TAIL-ROW MARKER: "driver disagrees" also shows on tail rows (grouped or single), same test as the cards (any member carries conflicting feedback). The spec's never-silent principle applies at every tier; on Dubai it surfaces the diff +1 and splitter +1 tail rows, whose C4 disagreement was otherwise visible only inside the reasoning. The tail line text stays change-only. Also ruled: the long situation tag of large groups is accepted as recorded; the full compound-note text in the tyre-pressure caveat is WP-CONFTEXT's scope.
+
+## WP-SETTINGS: editable thresholds, explanation-first notes, aero map [2026-09-28, branch fix-driver]
+
+AERO MAP (read-only sweep). Two aero models coexist. (1) Config block
+parameters.json vehicle.aero (air density 1.225, Cl 0.0, frontal area
+0.0, CoP-CoG offset 0.0, all level 1): consumed by the static vertical-
+load model (stability_analysis.estimate_vertical_loads, aero load
+-0.5*rho*v^2*A*Cl split by the CoP offset), by the drag term of the
+fallback longitudinal forces (rho*drag_coeff*A, drag_coeff also 0.0)
+and by the cache identity snapshot. The static model is live only as
+the last per-wheel tier of the damper cascade -- measured from both
+production sidecars, 0% of samples on both sessions (Dubai's dead RR is
+100% reconstructed, v3 100% damper) -- and as the Fz input of the
+Dugoff auto-fit (not the live mode; the live Pacejka fit ignores Fz,
+load_normalised_fit_enabled false). All four rows are therefore inert
+today, at any value, on both sessions. (2) Session fit, level 2:
+wheel_loads.estimate_session_corrected_axle_totals fits total Fz =
+static + c*v^2 on straights, split by aero_front_fraction 0.25; feeds
+the reconstruction axle totals. Runs on BOTH sessions (Dubai has
+FL/FR/RL damper data; the code comment claiming otherwise was stale,
+corrected). Live values, recomputed from the sidecars: Dubai c =
+1.3387 N/(m/s)^2, v3 c = 1.5979 (identical to the 2026-09-19 record).
+As an effective Cl*A in the config model's sign convention (c*v^2 =
+-0.5*rho*A*Cl*v^2, so Cl*A = -2c/rho): Dubai -2.19 m^2, v3 -2.61 m^2
+(downforce; ~6.2 / 7.4 kN at 68 m/s).
+
+DESIGN RULING (reviewer 2026-09-28): the config aero is NOT filled from
+the fit. Reason: the two are different accuracy levels of the same
+quantity -- the session fit (level 2) already outranks a config value
+(level 1) under the accuracy-level system, so a filled config Cl*A
+would be dead code by design. Settings keeps the config rows with the
+note "inactive while Cl*A = 0; live aero is fitted per session (level
+2)" and adds a read-only row showing the most recently analysed
+session's fitted c and effective Cl*A (the fit value is now returned
+by estimate_vertical_loads as c_session_N_per_mps2, None on the static
+path; a cached result from before this field says so).
+
+EDITABLE THRESHOLDS (decided; CLAUDE.md amended). The five
+classification thresholds are editable in Settings. An edit is a
+recorded manual override (core/threshold_overrides.py): the first
+override stores the data-derived value as a machine-readable
+derived_default (never overwritten by later edits), derived_from gains
+"manually set <date>; data-derived default: <value>"; setting the value
+back to derived_default -- via the restore control or by typing it --
+is a restore (key removed, "restored to data-derived default <date>"
+appended). The derivation duty attaches to the derived defaults, never
+to overrides. The stab_neg_thresh kinematic-era status is untouched:
+the verdict marker stays keyed on
+stab_thresh_calibrated_for_sideslip_source, and the row states the
+same fact while the estimators differ. GUARD A re-verified in fresh
+processes: an edit saved through Settings (STRONG_CSR -0.07 -> 0.5)
+changed 31 of 56 real Dubai corner-lap verdicts on reload; config
+bytes restored.
+
+SETTINGS CLEANUP. Two rows removed (keys kept for WP-CONFTEXT):
+"Display cutoff score" (display_score_threshold, no reader since
+display_top_n, and its note described an effect that no longer
+existed) and "Driver weighting: neutral level" (no reader; the veto
+uses decision_frame.json driver_level_threshold). Row notes state what
+the value does, no dates or "derived from data" lines; provenance
+stays in config and the tooltips. Rule-engine rows are labelled
+"Weekend report" -- they reach only core/weekend_pdf_export.py via
+modules/recommendation.py. Left label column: fixed 240 px without
+wrap clipped 21 labels (offscreen measurement of the committed view);
+now 260 px with word wrap, 0 clipped at 900 and 1280 px window width.
+
+## WP-POLISH: tyre pressure at apex, tyre-curve dialog, Settings marker bar [2026-09-28, branch fix-driver]
+
+TYRE PRESSURE POPULATION -> APEX (author decision 2026-09-28). Physics:
+the apex is the peak lateral load, where the working pressure matters.
+The median now runs over the apex window per corner instance instead
+of the cornering phases (turn-in, apex, exit). Code finding: on real
+data apex_3 is a single instant (0.000 s on all 56 Dubai corners), so
+the old cornering-phase population took nothing from the apex itself.
+The apex window is summarise_corners' own: the instant widened by
++/- apex_half_window_samples (5 -> 11 samples, 0.11 s at 100 Hz).
+tpms_press_* logs at 1 Hz on both sessions, so each window holds an
+interpolation between two readings -- about one reading per
+corner-lap, 56 (Dubai) / 51 (v3) per wheel. BEHAVIOUR CHANGE, measured
+(bar, cornering-phase -> apex median): Dubai FL 1.7207->1.7242, FR
+1.7196->1.7221, RL 1.7000->1.7016, RR 1.6951->1.6955; v3 FL
+1.8088->1.7985, FR 1.8249->1.8222, RL 1.7790->1.7678, RR 1.7814->1.7719.
+Largest shift 0.011 bar; every wheel stays "under target" on both
+sessions. Limitation: at 1 Hz with sensor lag, "apex pressure" is the
+reading nearest the apex, not an instantaneous peak-load value.
+
+TYRE-CURVE LAP VISIBILITY: NOT REPRODUCED. Headless run of
+CornerTraceDialog on the real saved outings (v3 C4 and C12, Dubai C4):
+after unchecking every lap, no coloured item remains in any panel --
+tyre curves front/rear keep only the grey session cloud (#3a3a3a),
+trace panels are empty, the track map keeps only the grey lap trace
+(#444444). Checkboxes and tyre curves are fed the same instance list;
+the export path uses the same checked set. The author's screenshot
+route is not yet identified -- no fix made. Lap sample markers one
+step up on screen (1.5 -> 2.5 px, still below the 3.5 px window rings);
+print sizes unchanged.
+
+SETTINGS MARKER BAR. Root cause: the placeholder bar was an unscoped
+style sheet on the row (border-left without a selector), which Qt
+cascades to every child -- each label drew its own 2 px border inside
+its fixed width. Now scoped to the row (object-name selector,
+WA_StyledBackground), drawn inside an 8 px row margin, with the label
+column and note offset reduced by the same indent so the value column
+stays aligned. The offscreen renderer does not show the cascaded
+border in QLabel geometry (checked both versions), so the author's
+screenshot is the verification.
+
+## WP-POLISH items 4/5: intervention depth and halved seconds favour [2026-09-28, branch fix-driver, author-elicited 2026-09-28]
+
+SECONDS FAVOUR HALVED (elicitation). Author: "electronic mitigation
+like TC still costs lap time (cutting power); the mechanical fix adds
+grip -- halve the while-driving favor." change_time is now a per-class
+table instead of 2.5/(rank+1), because that formula fixes the ratios
+between classes and cannot halve one gap alone: seconds 1.875, minutes
+1.25, half_hour 0.8333, garage_hours 0.625 (only seconds changed). The
+seconds-minutes gap halves (1.25 -> 0.625). Joint bound re-checked
+against the new steps (0.625, 0.4167, 0.2083): the smallest step is
+unchanged at 0.2083, so headroom + interaction (0.1 + 0.1 = 0.2) still
+clears it with the same 0.0083 margin; no weight adjusted. Executable
+form: at exit (phase_importance 1.2, confidence 1.0) a strong-problem
+minutes fix now outranks a moderate-problem seconds fix, 4.65 vs 4.075
+(under 2.5 the seconds fix won, 4.70 vs 4.65) -- pinned as a test. The
+"cheap beats expensive" term-order test (moderate seconds vs strong
+garage_hours) now passes by 0.05 instead of 0.675: INTENDED, not
+fragile -- it is the halved favour itself, the margin the author asked
+for. Live shortlists: Dubai unchanged in order (TC lon 3.800 -> 3.175,
+wing 2.550); v3 #1 TC lon 3.900 -> 3.275, #2 diff +1 2.967 (was #3),
+#3 TC lat 3.433 -> 2.808 (was #2), #4 rear ARB +1 2.750. Settings shows
+the four class values as separate rows.
+
+INTERVENTION DEPTH (doctrine). Author: "diff is a harder cut into the
+platform than ARB; at similar time and equal evidence, ARB is
+preferred." Encoded as a pure tie-order (decision_frame.json
+intervention_depth, ARB rank incl. arb_front_mount -- an ARB change,
+author ruling -- before diff_position), applied in _score_and_sort
+after the score sort: within a run of identical scores, ranked
+candidates take the run's ranked slots shallow-first; unranked
+candidates and mixed packages keep their slots, so no depth relation is
+invented for levers the author did not rank. It never reorders unequal
+scores, hence never crosses effort classes, and effort_class values are
+untouched. ACCEPTED NEAR-INERTNESS (author ruling 2026-09-28): real
+scores (rounded to 4 decimals) rarely tie exactly, so on today's
+sessions it changes nothing -- on v3 diff +1 (2.967) stays above rear
+ARB +1 (2.750) because its evidence is stronger (problem weight 0.667
+vs 0.400), which is not "equal evidence"; at equal evidence ARB already
+leads by headroom (0.10 vs 0.05) at the current settings. The
+tie-order is a statement of principle that acts when it can; a score
+term was rejected because the budget below the smallest class step
+(0.0083) would need an unanchored weight.
+
+TYRE-PRESSURE WORDING. Two config phrases still described the old
+cornering-phase population (the tyre_pressure_target comment and the
+compound note) and were corrected to the apex wording; the census
+derived_from keeps its historical wording, which records what was
+verified then.
+
+## WP-POLISH-2: pressure display, tail, speed-qualifier elicitation [2026-09-28, branch fix-driver]
+
+PRESSURE DISPLAY. The shown compound caveat is one sentence ("band is
+compound-scoped; a uniform offset on all four wheels may be a different
+compound, not a pressure problem"); the full elicited note moved to the
+tooltip. The header states the population ("apex median across N
+corners, laps a-b"): Dubai 14 corners, laps 1-4; v3 17 corners, laps
+6-8. The tooltip lists the apex median per corner and wheel. Medians
+unchanged from WP-POLISH (e.g. FL 1.7242 / 1.7985 bar).
+
+TAIL. Rows with a reason (below the top-N cut, BLOCKED, not assessable,
+contradicted) keep one line each; the no-trigger levers collapse to one
+count line whose tooltip names them. The toggle keeps the full count:
+every lever was assessed.
+
+SPEED-QUALIFIER DOCTRINE (author-elicited 2026-09-28). "Low/mid-speed
+oversteer screams ARB; TC masks by cutting power, the mechanical fix
+adds grip." Scope FINAL: "low speed targets mechanical, high speed aero;
+not all and everything." Seeded cells, nothing else qualified, high
+speed unchanged everywhere: (1) TC lon/lat vs oversteer at low and
+medium speed -> secondary (0.6); (2) ARB vs oversteer at low and medium
+speed -> primary; (3) wing/aero levers vs oversteer or understeer at
+low speed -> secondary (aero barely works there -- the mirror of the
+same doctrine). DELIBERATELY CLOSED: the wider speed elicitation (every
+lever x verdict x speed) is not pursued -- author 2026-09-28: depth
+capped, progress over completeness. Verified before design: on v3 the
+TC lon card's corners are C6 low (apex 76-79 km/h) and C9 medium
+(81-88 km/h), so the doctrine moves this case; C16 (medium) is TC lat
+against UNDERSTEER (cell US-APX-med-esc, already secondary), outside the
+seeded cells. Matrix finding: every matrix cell already carries a
+speed class as its trigger, and the matrix's own OS-EXIT-low cell
+suggests TC lon +1 -- the seed downgrades that cell's lever fit.
+Implementation pending approval.
+
+[2026-09-28, WP-POLISH-2 item 4 IMPLEMENTED, author rulings] Speed
+qualifier as a generation-time table (decision_frame.json
+speed_qualified_effect), applied as the last step of
+generate_candidates: a candidate whose levers all sit in an entry, whose
+primary verdict and corner speed class match, takes the entry's
+effect_class and a reasoning note. Rulings: (1) the seed OVERRIDES
+matrix-exact cells -- the doctrine is about lever fit at that speed, and
+the matrix cell proposing TC at low speed is what the elicitation
+corrects; OS-EXIT-low's TC lon suggestion is doctrine-demoted to
+secondary, NOT deleted (the cell still fires and is still shown).
+(2) splitter_offset joins the low-speed aero entry (an aero device);
+ride height stays out (mechanical). (3) Driver-only candidates
+(trigger driver_reported) are skipped: their secondary encodes EVIDENCE
+class (driver-only, no data), not lever fit -- a different meaning that
+must not be overwritten. Live effect: Dubai unchanged (its TC lon and
+wing corners are high-speed). v3: three TC lon candidates demoted
+(C6 exit-oversteer bridge, C6 matrix OS-EXIT-low, C9); new order #1
+diff +1 2.967, #2 TC lon 2.875, #3 TC lat 2.808 (understeer, outside
+the seed), #4 rear ARB +1 2.750. Accepted by the author: the ARB the
+doctrine prefers is blocked on v3 at the rear-ARB soft window edge, so
+the diff surfaces -- correct reasoning, readable through the BLOCKED
+row. The ARB and aero entries change nothing on either session today.
+
+[2026-09-28, WP-POLISH-2 addendum] Tyre-pressure lines localise per
+off-band wheel: the corners whose apex median (all laps) is off-band --
+"all corners" when every corner is -- and the laps on which such a
+corner's own apex reading is off-band ("laps 1-4" when all, else joined
+with "+"). Applied to "under target" and, symmetrically, "over target";
+in-band wheels carry no location. Wheels on one line are separated by
+"; " (a localised entry has its own commas). Live: Dubai all four wheels
+"all corners, laps 1-4"; v3 names 14-16 of 17 corners per wheel, laps
+6-8. Tooltip and overall medians unchanged.
+
+[2026-09-28, WP-POLISH-2 addendum 2, author] When 3 or fewer corners
+sit IN band, an off-band wheel reads "all but C.../C..." instead of the
+positive list (threshold in config: tyre_pressure_target.
+location_all_but_max_in_band = 3). Live v3: FL "all but C17", FR "all
+but C9/C17", RL "all but C6/C10/C15", RR "all but C9/C14/C17", laps
+6-8; Dubai unchanged ("all corners, laps 1-4").
+
+[2026-09-28, WP-POLISH-2 addendum 3] Tyre-pressure target bands are
+editable in Settings (new section "Tyre Pressure Target (check only)"):
+front min/max and rear min/max in bar, 2 decimals, range bounded by the
+tpms_press_* channel range from channels.json. The config keeps one band
+per wheel while the elicited band is per axle, so each row writes both
+wheels of its axle. The one-sentence compound caveat is the section
+caption; the full elicited note is in the row tooltips. Verified in a
+test: an edited band acts on the next Generate without restart (the
+flag reads config at call time) -- FL at 1.72 bar goes from "under
+target" to "in target" when the front minimum moves 1.85 -> 1.70.
+[2026-09-28, WP-POLISH-2 addendum 3, author rulings] Caveat stays the
+section caption. Save guard: if an axle's band minimum is above its
+maximum, Save is refused with a message naming the axle and nothing is
+written -- the whole save, not just the band, so no file half-persists.

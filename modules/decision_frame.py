@@ -9,7 +9,7 @@ import json
 import numpy as np
 
 from modules.stability_analysis import load_parameters
-from modules.csv_parser import load_channels_config
+from modules.csv_parser import load_channels_config, lap_labels_by_number
 from modules.wheel_loads import (
     CORNERS as _WHEEL_CORNERS, AXLE_CORNERS, TRAVEL_CHANNEL,
     _interp_channel, _normalize_travel_to_mm, _channel_is_dead,
@@ -34,6 +34,8 @@ from modules.recommendation import (
 
 DECISION_FRAME_CONFIG_PATH = "config/decision_frame.json"
 
+EM_DASH = "\u2014"  # display separator; escaped to keep the source ASCII
+
 
 def load_decision_frame_config():
     with open(DECISION_FRAME_CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -52,13 +54,18 @@ def _axle_cs_severity(cs_median, strong_thresh, moderate_thresh):
     return "normal"
 
 
-def _count_repeating(cid, by_corner_laps, predicate):
+def _repeat_facts(cid, by_corner_laps, predicate):
     # lap count like _consistency_gate_ok, but feeds a graded confidence
-    # instead of a pass/fail gate
+    # instead of a pass/fail gate. Keeps WHICH laps matched and their apex
+    # speeds (ecu_speed, km/h, level 3) for the evidence line.
     laps = by_corner_laps.get(cid, [])
-    if not laps:
-        return 0, 0
-    return sum(1 for lap in laps if predicate(lap)), len(laps)
+    matching = [lap for lap in laps if predicate(lap)]
+    speeds = [lap["apex_speed"] for lap in matching if lap.get("apex_speed") is not None]
+    return {
+        "laps": sorted(lap["lap_number"] for lap in matching),
+        "laps_total": len(laps),
+        "apex_speed_kmh": (round(min(speeds), 1), round(max(speeds), 1)) if speeds else None,
+    }
 
 
 def _fraction(numerator, denominator):
@@ -126,7 +133,8 @@ def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
                     return (_verdict_present(lap_short, verdict)
                             and SEVERITY_RANK[lap_sev] >= SEVERITY_RANK[severity])
 
-                repeat, total = _count_repeating(cid, by_corner_laps, _lap_matches)
+                facts = _repeat_facts(cid, by_corner_laps, _lap_matches)
+                repeat, total = len(facts["laps"]), facts["laps_total"]
                 valid_laps = sum(
                     1 for lap in by_corner_laps.get(cid, [])
                     if lap["phases"].get(phase, {}).get("n_samples", 0) > 0
@@ -138,6 +146,7 @@ def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
 
                 evidence.append({
                     "type": "corner_verdict",
+                    **facts,
                     "corner": cid,
                     "phase": phase,
                     "speed_class": corner.get("speed_class"),
@@ -240,7 +249,8 @@ def _build_ls_threshold_evidence(aggregated_ls, by_corner_laps, config):
                     lv = lv_entry.get("median") if isinstance(lv_entry, dict) else None
                     return lv is not None and lv == lv and lv < thresh
 
-                repeat, total = _count_repeating(cid, by_corner_laps, _lap_crosses)
+                facts = _repeat_facts(cid, by_corner_laps, _lap_crosses)
+                repeat, total = len(facts["laps"]), facts["laps_total"]
                 valid_laps = sum(
                     1 for lap in by_corner_laps.get(cid, [])
                     if lap["phases"].get(phase, {}).get("n_samples", 0) > 0
@@ -252,6 +262,7 @@ def _build_ls_threshold_evidence(aggregated_ls, by_corner_laps, config):
 
                 evidence.append({
                     "type": "ls_threshold",
+                    **facts,
                     "corner": cid,
                     "phase": phase,
                     "axle": axle,
@@ -302,7 +313,8 @@ def _build_brake_balance_evidence(aggregated, by_corner_laps, config):
         if not _fires(corner):
             continue
         f_sev, r_sev = _axle_severities(corner)
-        repeat, total = _count_repeating(cid, by_corner_laps, _fires)
+        facts = _repeat_facts(cid, by_corner_laps, _fires)
+        repeat, total = len(facts["laps"]), facts["laps_total"]
         valid_laps = sum(
             1 for lap in by_corner_laps.get(cid, [])
             if lap["phases"].get(phase, {}).get("n_samples", 0) > 0
@@ -310,6 +322,7 @@ def _build_brake_balance_evidence(aggregated, by_corner_laps, config):
         confidence = round(_fraction(repeat, total) * _fraction(valid_laps, total), 3)
         evidence.append({
             "type": "plausibility_brake_balance",
+            **facts,
             "corner": cid,
             "phase": phase,
             "speed_class": corner.get("speed_class"),
@@ -358,7 +371,8 @@ def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
                     return (_verdict_present(lap_short, verdict)
                             and SEVERITY_RANK[lap_sev] >= SEVERITY_RANK[severity])
 
-                repeat, total = _count_repeating(cid, by_corner_laps, _lap_matches)
+                facts = _repeat_facts(cid, by_corner_laps, _lap_matches)
+                repeat, total = len(facts["laps"]), facts["laps_total"]
                 valid_laps = sum(
                     1 for lap in by_corner_laps.get(cid, [])
                     if any(lap["phases"].get(p, {}).get("n_samples", 0) > 0 for p in phases)
@@ -370,6 +384,7 @@ def _build_matrix_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
 
                 evidence.append({
                     "type": "matrix_verdict",
+                    **facts,
                     "corner": cid,
                     "phases": phase_group,
                     "speed_class": corner.get("speed_class"),
@@ -527,13 +542,13 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
     return evidence
 
 
-# Kerb-strike blowoff evidence ("curb strikes / hard bumps -> more
-# blowoff"). Trigger = strike SEVERITY repeating across laps (peak
+# Kerb-strike evidence, shown as a flag (kerb_event_flags), never a
+# candidate. Trigger = strike SEVERITY repeating across laps (peak
 # |log_acc_z| inside the existing kerb_mask), never kerb_fraction alone --
 # kerb contact itself is normal.
 # Threshold = pooled p75 (diagnostics/inspect_kerb_severity_census.py):
 # lowest candidate where firing is a minority on both sessions (Dubai
-# 1/14, v3 4/17); p50 fires on ~half. Repeat: >= 2 laps (_count_repeating).
+# 1/14, v3 4/17); p50 fires on ~half. Repeat: >= 2 laps, as in _repeat_facts.
 
 def _corner_overall_window(corner, t):
     segments = corner.get("segments", {})
@@ -600,7 +615,7 @@ def _build_kerb_blowoff_evidence(corners, state, channels, kb_cfg, wl_cfg):
 
     evidence = []
     for cid, instances in by_corner.items():
-        peaks = []  # (lo, hi, peak_g)
+        peaks = []  # (lo, hi, peak_g, lap_number)
         for c in instances:
             w = _corner_overall_window(c, t)
             if w is None:
@@ -608,64 +623,62 @@ def _build_kerb_blowoff_evidence(corners, state, channels, kb_cfg, wl_cfg):
             lo, hi = w
             window_kerb = kerb_mask[lo:hi]
             peak = float(np.max(np.abs(az_g[lo:hi][window_kerb]))) if window_kerb.any() else 0.0
-            peaks.append((lo, hi, peak))
+            peaks.append((lo, hi, peak, c.get("lap_number")))
         if not peaks:
             continue
         total = len(peaks)
-        firing = [(lo, hi) for lo, hi, p in peaks if p >= threshold]
+        firing = [(lo, hi) for lo, hi, p, _ in peaks if p >= threshold]
         if len(firing) < repeat_min:
             continue  # not enough laps repeat
 
         axle = _kerb_axle_attribution(firing, t, channels, wl_cfg)
-        max_severity = max(p for _, _, p in peaks if p >= threshold)
+        max_severity = max(p for _, _, p, _ in peaks if p >= threshold)
         evidence.append({
             "type": "kerb_blowoff",
             "corner": cid, "phase": None,
-            "axle": axle,  # None -> both axles proposed
+            "axle": axle,  # None -> not attributable to one axle
             "severity": None, "confidence": round(len(firing) / total, 3),
             "peak_severity_g": round(max_severity, 3),
+            # corners exist only on analysis laps, so both lists are
+            # analysis-lap populations
+            "laps": sorted(lap for _, _, p, lap in peaks if p >= threshold and lap is not None),
+            "laps_counted": sorted(lap for _, _, _, lap in peaks if lap is not None),
             "source": f"peak |log_acc_z| inside kerb_mask exceeded {threshold:.4f}g on "
-                      f"{len(firing)}/{total} laps at this corner -- author-elicited 2026-09-24: "
-                      f"curb strikes / hard bumps -> more blowoff. Axle attribution: "
+                      f"{len(firing)}/{total} laps at this corner. Axle attribution: "
                       f"{axle or 'not attributable (car-wide kerb evidence)'}.",
         })
     return evidence
 
 
-def _kerb_blowoff_candidates(evidence, registry):
-    """Advisory click-class candidates, one exploratory step per axle
-    (damper_blowoff_* adjustment_step.exploratory). Rear proposable like
-    front. Axle not attributable -> both axles, labelled.
-    """
-    candidates = []
-    for e in evidence:
-        if e["type"] != "kerb_blowoff":
-            continue
-        attributable = e["axle"] is not None
-        axles = [e["axle"]] if attributable else ["front", "rear"]
-        for axle in axles:
-            params = [f"damper_blowoff_{w}" for w in AXLE_CORNERS[axle]]
-            step = registry[params[0]].get("adjustment_step", {}).get("exploratory", 1)
-            actions = [{"parameter": p, "direction": "increase", "delta": step} for p in params]
-            axle_note = (f"{axle} axle" if attributable else
-                         "car-wide kerb evidence, axle not attributable -- both axles proposed")
-            candidates.append({
-                "id": f"kerb_blowoff_increase_{axle}:C{e['corner']}",
-                "scenario": "kerb_blowoff",
-                "corner": e["corner"], "phase": None,
-                "lever_family": "damper_blowoff",
-                "actions": actions,
-                "effort_class": _effort_class_for_actions(params, registry),
-                "effect_class": "secondary",
-                "grade": "proposed",
-                "cell_id": None,
-                "evidence_refs": [e],
-                "rationale": f"Repeated hard kerb contact at this corner (peak "
-                             f"{e['peak_severity_g']}g, {axle_note}) -- author-elicited 2026-09-24: "
-                             f"curb strikes / hard bumps call for more blowoff relief to protect the "
-                             f"contact patch over the worst hits.",
-            })
-    return candidates
+# Kerb events are an informational flag beside the shortlist, not a
+# candidate (author ruling 2026-09-28): the detection holds, but the
+# threshold is session-relative, no available channel separates a damper
+# that cannot cope from ordinary hard kerb use, and severity None gave the
+# candidate a constant score that outranked real problems.
+
+def kerb_event_flags(evidence, laps):
+    """One line per firing corner: laps that exceeded the threshold, peak,
+    axle where attributable."""
+    labels = lap_labels_by_number(laps)
+    lines = []
+    for e in sorted((e for e in evidence if e["type"] == "kerb_blowoff"), key=lambda e: e["corner"]):
+        lap_text = ", ".join(labels.get(n, str(n)) for n in e.get("laps", []))
+        axle = f"{e['axle']} axle" if e.get("axle") else "axle not attributable"
+        lines.append(f"kerb events C{e['corner']}, laps {lap_text}, peak {e['peak_severity_g']:.2f}g, {axle}")
+    return lines
+
+
+def kerb_event_population_note(evidence, laps, config):
+    """Tooltip text: which laps were counted and what the threshold means."""
+    kb_cfg = config.get("kerb_blowoff_evidence", {})
+    labels = lap_labels_by_number(laps)
+    counted = sorted({n for e in evidence if e["type"] == "kerb_blowoff" for n in e.get("laps_counted", [])})
+    counted_text = ", ".join(labels.get(n, str(n)) for n in counted) or "none"
+    return (f"Counted laps: analysis laps {counted_text} (out-lap and in-lap excluded). "
+            f"A corner is listed when peak |acc_z| inside the kerb mask reaches "
+            f"{kb_cfg.get('severity_threshold_g', float('nan')):.2f}g on at least "
+            f"{kb_cfg.get('repeat_min_laps', 2)} laps. The threshold is relative to the "
+            f"sessions it was derived from, so this is information, not a setup change.")
 
 
 # Driver-feedback evidence. Never its own candidate -- corroborates an
@@ -1781,6 +1794,11 @@ def _window_edge_check(action, setup_data, registry, config):
     entry = registry.get(param)
     if entry is None:
         return None
+    if not entry.get("maps_to"):
+        # the sheet has no field for this lever (TC, ABS, brake bias): its
+        # current state is unknown, not "unfilled", so there is no edge to
+        # check -- same outcome as the enum-valued wing below
+        return None
     current = _current_setup_value(setup_data, entry)
     if current is None:
         return ("not_assessable", f"setup sheet unfilled: {param}")
@@ -1849,7 +1867,8 @@ def _apply_window_edge_status(candidates, setup_data, registry, config):
 def generate_candidates(evidence, registry, config, setup_data=None, assessed_corner_ids=None,
                          driving_level=None):
     """Candidate layer: exit-oversteer bridge, matrix-rule bridges, lever
-    bridges, brake_bias, kerb blowoff; then eligibility gate, feedback-only
+    bridges, brake_bias (kerb events are a flag, kerb_event_flags); then
+    eligibility gate, feedback-only
     candidates, feedback attach, conflicting feedback, window edges,
     breadth, TC caution.
     registry = load_setup_parameters_registry(); config =
@@ -1886,8 +1905,6 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     candidates += _bridge_candidates_for_matrix_rules(evidence, registry, config_recs, intervention_abs_by_corner,
                                                         intervention_abs_masking_by_corner)
     candidates += _bridge_candidates_for_levers(evidence, registry, config, candidates, setup_data)
-    # kerb blowoff -- click-class, not affected by the gate below
-    candidates += _kerb_blowoff_candidates(evidence, registry)
     # heavy correctors (springs/camber/toe) gated before the feedback-only
     # generator, so a gated-out one doesn't block a click-class alternative
     candidates = _apply_eligibility_gate(candidates, evidence, config, driving_level=driving_level)
@@ -1908,6 +1925,35 @@ def generate_candidates(evidence, registry, config, setup_data=None, assessed_co
     candidates = _attach_breadth(candidates, assessed_corner_ids)
     # TC caution last, covers every candidate
     candidates = _attach_tc_safety_note(candidates, config)
+    # lever fit at this corner's speed class, after every generator
+    candidates = _apply_speed_qualified_effect(candidates, config)
+    return candidates
+
+
+def _apply_speed_qualified_effect(candidates, config):
+    """Seeded doctrine cells (decision_frame.json speed_qualified_effect):
+    a candidate whose levers all sit in an entry, whose primary verdict and
+    corner speed class match, takes that entry's effect_class -- also over a
+    matrix-exact cell (OS-EXIT-low's TC lon is demoted, not deleted).
+    Unqualified candidates are untouched. Driver-only candidates are
+    skipped: their secondary encodes evidence class, not lever fit."""
+    entries = config.get("speed_qualified_effect", {}).get("entries", [])
+    for c in candidates:
+        if c.get("trigger_provenance") == TRIGGER_FEEDBACK_ONLY:
+            continue
+        params = {a["parameter"] for a in c.get("actions", [])}
+        if not params:
+            continue
+        verdict = next((e["verdict"] for e in c.get("evidence_refs", []) if e.get("verdict")), None)
+        speed = next((e["speed_class"] for e in c.get("evidence_refs", []) if e.get("speed_class")), None)
+        for entry in entries:
+            if (params <= set(entry["levers"]) and verdict in entry["verdicts"]
+                    and speed in entry["speed_classes"]):
+                if c.get("effect_class") != entry["effect_class"]:
+                    c["effect_class_note"] = (f"effect class {c.get('effect_class')} -> "
+                                              f"{entry['effect_class']} ({entry['note']})")
+                    c["effect_class"] = entry["effect_class"]
+                break
     return candidates
 
 
@@ -2033,7 +2079,9 @@ def score(candidate, evidence, current_setup, config):
         c_change_time = 0.0
         flags.append("effort_class unset (unrouted candidate)")
     else:
-        c_change_time = weights["change_time"] / (EFFORT_RANK.get(candidate["effort_class"], 0) + 1)
+        # per-class table, not a formula: the seconds favour is set on its own
+        # (halved against the old 2.5/(rank+1), author 2026-09-28)
+        c_change_time = weights["change_time"].get(candidate["effort_class"], 0.0)
 
     c_breadth, breadth_flags = _breadth_penalty(candidate, weights["breadth"])
     flags += breadth_flags
@@ -2081,6 +2129,37 @@ def _score_and_sort(candidates, evidence, current_setup, config):
             "score_flags": result["flags"],
         })
     scored.sort(key=lambda c: (-c["score"], c["id"]))
+    return _apply_depth_tie_order(scored, config.get("intervention_depth", {}).get("order", []))
+
+
+def _depth_rank(candidate, rank_by_lever):
+    # deepest action decides; any unranked action -> no rank (a mixed package
+    # has no elicited depth relation)
+    ranks = [rank_by_lever.get(a["parameter"]) for a in candidate.get("actions", [])]
+    if not ranks or any(r is None for r in ranks):
+        return None
+    return max(ranks)
+
+
+def _apply_depth_tie_order(scored, order):
+    """Within a run of identical scores, ranked candidates take the run's
+    ranked slots shallow-first; unranked ones keep their slots. Never moves
+    anything across a score difference."""
+    rank_by_lever = {lever: i for i, group in enumerate(order) for lever in group}
+    if not rank_by_lever:
+        return scored
+    i = 0
+    while i < len(scored):
+        j = i
+        while j < len(scored) and scored[j]["score"] == scored[i]["score"]:
+            j += 1
+        slots = [k for k in range(i, j) if _depth_rank(scored[k], rank_by_lever) is not None]
+        if len(slots) > 1:
+            ranked = sorted((scored[k] for k in slots),
+                            key=lambda c: (_depth_rank(c, rank_by_lever), c["id"]))
+            for k, c in zip(slots, ranked):
+                scored[k] = c
+        i = j
     return scored
 
 
@@ -2216,6 +2295,130 @@ def render_top_line(candidate, registry):
     return " + ".join(render_action_line(a, registry) for a in actions)
 
 
+# Card header = "<change> -- <situation>". Grouping stays keyed on the
+# change text alone (_group_key); the situation is read from ALL group
+# members, so a merged card names every corner it stands for.
+# Supersedes the change-only top line (author, 2026-09-26).
+
+PHASE_WORD_SHORT = {
+    "entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
+    "exit_4": "exit", "exit_5": "exit",
+}
+PHASE_WORD_LONG = {
+    "entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
+    "exit_4": "early exit", "exit_5": "late exit",
+}
+
+
+def _members(candidate):
+    return candidate.get("group_members") or [candidate]
+
+
+def _primary_verdict(candidate):
+    for e in candidate.get("evidence_refs", []):
+        if e.get("verdict"):
+            return e["verdict"].replace("_", " ")
+    return None
+
+
+def situation_tag(candidate):
+    """Short on purpose: corners, phase+phenomenon, speed class."""
+    members = _members(candidate)
+    corners = sorted({m["corner"] for m in members if m.get("corner") is not None})
+    phases_by_verdict = {}
+    speeds = []
+    for m in members:
+        words = phases_by_verdict.setdefault(_primary_verdict(m), [])
+        for phase in (m.get("phases") or [m.get("phase")]):
+            word = PHASE_WORD_SHORT.get(phase)
+            if word and word not in words:
+                words.append(word)
+        for e in m.get("evidence_refs", []):
+            sc = e.get("speed_class")
+            if sc and sc not in speeds:
+                speeds.append(sc)
+    phenomena = []
+    for verdict, words in phases_by_verdict.items():
+        text = " ".join(p for p in ("/".join(words), verdict) if p)
+        if text:
+            phenomena.append(text)
+    parts = []
+    head = " ".join(p for p in ("/".join(f"C{c}" for c in corners), ", ".join(phenomena)) if p)
+    if head:
+        parts.append(head)
+    if speeds:
+        order = ["low", "medium", "high"]
+        speeds.sort(key=lambda s: order.index(s) if s in order else len(order))
+        parts.append(f"{'/'.join(speeds)} speed")
+    return ", ".join(parts)
+
+
+def render_card_header(candidate, registry):
+    tag = situation_tag(candidate)
+    line = render_top_line(candidate, registry)
+    return f"{line} {EM_DASH} {tag}" if tag else line
+
+
+# Evidence line, situation first: where, what, on which laps, how fast;
+# repetition after. The source string (method detail) stays available
+# for a tooltip.
+
+_EVIDENCE_PHENOMENON = {
+    "plausibility_brake_balance": "front past its limit, rear healthy",
+    "intervention_abs": "ABS not intervening",
+    "intervention_abs_masking": "ABS regulating heavily",
+    "intervention_tc": "TC cutting",
+    "kerb_blowoff": "hard kerb strikes",
+    "condition_gap": "condition not checkable",
+}
+
+
+def _evidence_phase_word(e):
+    phases = e.get("phases") or ([e["phase"]] if e.get("phase") else [])
+    if len(phases) == 1:
+        return PHASE_WORD_LONG.get(phases[0], phases[0])
+    words = []
+    for p in phases:
+        w = PHASE_WORD_SHORT.get(p, p)
+        if w not in words:
+            words.append(w)
+    return "/".join(words)
+
+
+def render_evidence_line(e, laps):
+    where = " ".join(p for p in (f"C{e['corner']}" if e.get("corner") is not None else "",
+                                 _evidence_phase_word(e)) if p)
+    if e["type"] == "driver_feedback":
+        what = f"driver reports {e.get('verdict')} ({e.get('raw_feedback'):+g})"
+    elif e["type"] == "ls_disambiguation":
+        what = f"{e.get('verdict')}, {(e.get('ls_class') or 'unclassified').replace('_', '-')}"
+    elif e["type"] in _EVIDENCE_PHENOMENON:
+        what = _EVIDENCE_PHENOMENON[e["type"]]
+    else:
+        what = " ".join(p for p in (e.get("severity"), (e.get("verdict") or "").replace("_", " ")) if p)
+        what = what or e["type"].replace("_", " ")
+    line = f"{where} {EM_DASH} {what}" if where else what
+
+    lap_numbers = e.get("laps")
+    if lap_numbers is None:
+        return line
+    labels = lap_labels_by_number(laps)
+    total = e.get("laps_total", len(e.get("laps_counted", [])))
+    line += f", laps {', '.join(labels.get(n, str(n)) for n in lap_numbers)} (of {total})"
+    speed = e.get("apex_speed_kmh")
+    if speed:
+        lo, hi = speed
+        line += f", {lo:.0f} km/h apex" if round(lo) == round(hi) else f", {lo:.0f}-{hi:.0f} km/h apex"
+    line += f"; repeats on {len(lap_numbers)} of {total} laps"
+    return line
+
+
+def card_driver_disagrees(candidate):
+    """True if any member carries driver feedback against the data --
+    grouping must not hide it behind a clean member."""
+    return any(m.get("conflicting_feedback") for m in _members(candidate))
+
+
 # row colour: SEVERITY_RANK words -> the UI's existing strong/moderate/
 # normal map; None -> NEUTRAL
 
@@ -2255,78 +2458,224 @@ def render_tail_line(entry, registry):
     return line
 
 
+def split_tail_rows(tail, registry):
+    """(rows with a reason, no-trigger summary or None). A no_trigger row
+    carries no reason worth a line each; they collapse into one count line
+    whose tooltip names the levers."""
+    reasoned = [e for e in tail if e.get("status") != STATUS_NO_TRIGGER]
+    levers = [registry.get(e["lever"], {}).get("label", e["lever"])
+              for e in tail if e.get("status") == STATUS_NO_TRIGGER]
+    if not levers:
+        return reasoned, None
+    summary = {"text": f"{len(levers)} lever{'s' if len(levers) != 1 else ''}: no trigger this session",
+               "tooltip": "\n".join(levers)}
+    return reasoned, summary
+
+
+# Unfilled-sheet banner: the tail explains each blocked row, but a
+# collapsed tail hides that most of the frame could not be assessed.
+
+_UNFILLED_PREFIX = "setup sheet unfilled: "
+_WHEEL_SUFFIXES = ("_fl", "_fr", "_rl", "_rr")
+
+
+def _unfilled_params(entry):
+    reasons = [entry.get("edge_reason") or ""] + list(entry.get("condition_reasons") or [])
+    params = []
+    for r in reasons:
+        for part in r.split(";"):
+            part = part.strip()
+            if part.startswith(_UNFILLED_PREFIX):
+                params.append(part[len(_UNFILLED_PREFIX):].strip())
+    return params
+
+
+def unfilled_sheet_banner(tail):
+    """One line above the candidate list, or None. Counts display rows (after
+    grouping), so N matches what the tail shows."""
+    families, count = [], 0
+    for entry in tail:
+        if entry.get("status") != STATUS_NOT_ASSESSABLE:
+            continue
+        params = _unfilled_params(entry)
+        if not params:
+            continue
+        count += 1
+        for p in params:
+            family = p[:-3] if p.endswith(_WHEEL_SUFFIXES) else p
+            family = family.replace("_", " ")
+            if family not in families:
+                families.append(family)
+    if not count:
+        return None
+    return (f"Setup sheet unfilled ({', '.join(families)}) {EM_DASH} {count} "
+            f"candidate{'s' if count != 1 else ''} not assessable, see tail.")
+
+
 # Tyre pressure: check-only flags beside the shortlist, never in it.
 
-_TPMS_CORNERING_PHASES = ("entry_2_turnin", "apex_3", "exit_4", "exit_5")
-# cornering phases only -- straight-line pressure drop is physics, not a
-# flag (diagnostics/inspect_tpms_pressure_cornering_phase.py)
+# Apex only (author decision 2026-09-28): apex is the peak lateral load,
+# where the working pressure matters. Same apex window as
+# summarise_corners -- apex_3 is one instant, widened by +/-
+# apex_half_window_samples. TPMS logs at 1 Hz, so each window holds an
+# interpolation between two readings: about one reading per corner-lap.
 
 _TPMS_WHEEL_LABELS = {"fl": "FL", "fr": "FR", "rl": "RL", "rr": "RR"}
 
 
-def _tpms_cornering_median(channels, corners, state, wheel):
-    # Returns (median_bar, glitch_count) or (None, 0). Samples outside the
-    # channel's channels.json range are dropped and counted (census: none on
-    # either session).
+def _tpms_apex_samples(channels, corners, state, wheel):
+    # {stable_corner_id: [(lap_number, apex-window samples), ...]} or None
+    # if the channel is dead/missing
     ch = (channels or {}).get(f"tpms_press_{wheel}")
     if ch is None or ch.get("quality") in ("missing", "failed") or ch.get("time") is None or state is None:
-        return None, 0
+        return None
     t = state["time"]
     interp = np.interp(t, ch["time"], ch["data"])
-    samples = []
+    half = load_parameters()["stability_estimation"]["apex_half_window_samples"]
+    by_corner = {}
     for c in corners or []:
-        segments = c.get("segments", {})
-        for phase in _TPMS_CORNERING_PHASES:
-            idx = _phase_window_indices(t, segments.get(phase))
-            if idx is None:
-                continue
-            lo, hi = idx
-            samples.append(interp[lo:hi])
-    if not samples:
+        segment = c.get("segments", {}).get("apex_3")
+        if segment is None or segment[1] < segment[0]:
+            continue
+        # summarise_corners' _phase_slice(is_apex=True), not
+        # _phase_window_indices, which drops an instant between samples
+        lo = int(np.searchsorted(t, segment[0], side="left"))
+        hi = int(np.searchsorted(t, segment[1], side="right"))
+        if hi <= lo:
+            lo, hi = max(0, lo - half), min(len(t), lo + half + 1)
+        by_corner.setdefault(c.get("stable_corner_id"), []).append((c.get("lap_number"), interp[lo:hi]))
+    return by_corner
+
+
+def _tpms_sane_median(chunks, wheel):
+    # (median_bar, glitch_count) or (None, glitch_count). Samples outside the
+    # channel's channels.json range are dropped and counted (census: none on
+    # either session).
+    if not chunks:
         return None, 0
-    vals = np.concatenate(samples)
+    vals = np.concatenate(chunks)
     vals = vals[np.isfinite(vals)]
     if vals.size == 0:
         return None, 0
     lo_range, hi_range = load_channels_config()["channels"][f"tpms_press_{wheel}"]["range"]
     in_range = (vals >= lo_range) & (vals <= hi_range)
-    glitch_count = int((~in_range).sum())
     sane = vals[in_range]
-    if sane.size == 0:
-        return None, glitch_count
-    return float(np.median(sane)), glitch_count
+    return (float(np.median(sane)) if sane.size else None), int((~in_range).sum())
+
+
+def _tpms_apex_median(channels, corners, state, wheel):
+    by_corner = _tpms_apex_samples(channels, corners, state, wheel)
+    if by_corner is None:
+        return None, 0
+    return _tpms_sane_median([a for chunks in by_corner.values() for _, a in chunks], wheel)
+
+
+def _lap_span_text(lap_numbers):
+    laps = sorted(set(lap_numbers))
+    if not laps:
+        return ""
+    if laps == list(range(laps[0], laps[-1] + 1)):
+        return f"{laps[0]}-{laps[-1]}" if len(laps) > 1 else str(laps[0])
+    return ", ".join(str(n) for n in laps)
+
+
+def _tpms_offband_where(by_corner, wheel, lo, hi, below, all_but_max=3):
+    """Where a wheel is off-band: corners whose apex median (all laps) is
+    off-band, and the laps on which such a corner's own apex reading is.
+    "all corners" / the full lap span when it holds everywhere; "all but
+    ..." when all_but_max or fewer corners are in band."""
+    def off(m):
+        return m is not None and (m < lo if below else m > hi)
+
+    all_cids = sorted(cid for cid in by_corner if cid is not None)
+    all_laps = sorted({lap for chunks in by_corner.values() for lap, _ in chunks if lap is not None})
+    cids = [cid for cid in all_cids
+            if off(_tpms_sane_median([a for _, a in by_corner[cid]], wheel)[0])]
+    if not cids:
+        return ""
+    laps = sorted({lap for cid in cids for lap, a in by_corner[cid]
+                   if lap is not None and off(_tpms_sane_median([a], wheel)[0])})
+    in_band = [cid for cid in all_cids if cid not in cids]
+    if not in_band:
+        where = "all corners"
+    elif len(in_band) <= all_but_max:
+        where = "all but " + "/".join(f"C{cid}" for cid in in_band)
+    else:
+        where = "/".join(f"C{cid}" for cid in cids)
+    lap_text = f"laps {_lap_span_text(laps)}" if laps == all_laps else "laps " + "+".join(str(n) for n in laps)
+    return f" {EM_DASH} {where}, {lap_text}"
+
+
+TPMS_COMPOUND_CAVEAT = ("band is compound-scoped; a uniform offset on all four wheels may be "
+                        "a different compound, not a pressure problem")
+
+
+_TPMS_STATE_ORDER = ("under target", "over target", "in target", "not evaluable (channel dead/missing)")
 
 
 def tyre_pressure_flags(config, channels=None, corners=None, state=None):
     """Check-only, displayed beside the shortlist -- pressures are never
-    recommended. Per wheel: median over cornering-phase samples vs the
-    tyre_pressure_target band.
-    Null target -> silent. Filled target, dead channel -> "pressure not
-    evaluable".
+    recommended. Per wheel: median over apex-window samples vs the
+    tyre_pressure_target band. Lines: a header naming the population, one
+    line per state listing its wheels, the compound caveat once if any
+    wheel is off-band.
+    Null target -> that wheel silent; no target at all -> [].
+    Corners exist only on analysis laps (corner_analysis), so the median
+    never sees the out- or in-lap; the header states that.
     """
     targets = config.get("tyre_pressure_target", {})
-    flags = []
+    by_state = {s: [] for s in _TPMS_STATE_ORDER}
     for wheel in ("fl", "fr", "rl", "rr"):
         target = targets.get(wheel)
         if not isinstance(target, dict) or target.get("min_bar") is None or target.get("max_bar") is None:
             continue
         label = _TPMS_WHEEL_LABELS[wheel]
-        median, glitch_count = _tpms_cornering_median(channels, corners, state, wheel)
+        median, glitch_count = _tpms_apex_median(channels, corners, state, wheel)
+        by_corner = _tpms_apex_samples(channels, corners, state, wheel)
         if median is None:
-            flags.append(f"{label}: pressure not evaluable (channel dead/missing)")
+            by_state["not evaluable (channel dead/missing)"].append(label)
             continue
         lo, hi = target["min_bar"], target["max_bar"]
-        if lo <= median <= hi:
-            continue
-        direction = "under" if median < lo else "over"
-        line = f"{label} {median:.2f} — {direction} target {lo:.2f}-{hi:.2f}"
-        compound_note = targets.get("compound_note")
-        if compound_note:
-            line += f" [compound: {compound_note}]"
+        state_word = "under target" if median < lo else ("over target" if median > hi else "in target")
+        detail = f"{lo:.2f}-{hi:.2f}"
         if glitch_count:
-            line += f" ({glitch_count} glitch sample{'s' if glitch_count != 1 else ''} excluded)"
-        flags.append(line)
-    return flags
+            detail += f", {glitch_count} glitch sample{'s' if glitch_count != 1 else ''} excluded"
+        where = (_tpms_offband_where(by_corner, wheel, lo, hi, below=(state_word == "under target"),
+                                     all_but_max=targets.get("location_all_but_max_in_band", 3))
+                 if state_word != "in target" else "")
+        by_state[state_word].append(f"{label} {median:.2f} [{detail}]{where}")
+
+    if not any(by_state.values()):
+        return []
+    n_corners = len({c.get("stable_corner_id") for c in corners or []})
+    laps = _lap_span_text(c.get("lap_number") for c in corners or [])
+    population = f"apex median across {n_corners} corners, laps {laps}" if n_corners else "apex median"
+    lines = [f"Tyre pressure ({population}; analysis laps only):"]
+    # "; " between wheels -- a localised entry carries its own commas
+    lines += [f"{s}: {'; '.join(wheels)}" for s, wheels in by_state.items() if wheels]
+    # the full elicited note goes to the tooltip (tyre_pressure_tooltip)
+    if targets.get("compound_note") and (by_state["under target"] or by_state["over target"]):
+        lines.append(f"compound: {TPMS_COMPOUND_CAVEAT}")
+    return lines
+
+
+def tyre_pressure_tooltip(config, channels=None, corners=None, state=None):
+    """Full compound note, then the apex median per corner and wheel."""
+    lines = []
+    note = config.get("tyre_pressure_target", {}).get("compound_note")
+    if note:
+        lines.append(note)
+    per_wheel = {w: _tpms_apex_samples(channels, corners, state, w) for w in ("fl", "fr", "rl", "rr")}
+    cids = sorted({cid for by_corner in per_wheel.values() if by_corner for cid in by_corner if cid is not None})
+    if cids:
+        lines.append("Apex median per corner (bar):")
+    for cid in cids:
+        parts = []
+        for w, by_corner in per_wheel.items():
+            median = _tpms_sane_median([a for _, a in (by_corner or {}).get(cid, [])], w)[0]
+            parts.append(f"{_TPMS_WHEEL_LABELS[w]} {median:.2f}" if median is not None else f"{_TPMS_WHEEL_LABELS[w]} -")
+        lines.append(f"C{cid}: {', '.join(parts)}")
+    return "\n".join(lines)
 
 
 # Display grouping: rows with the same render_top_line string collapse into

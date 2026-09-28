@@ -8,7 +8,7 @@ Bachelor thesis (TUM / Proton Competition). Windows, PowerShell, venv.
 - Run app: `python main.py`
 - Test pipeline (no UI): `python test_stability.py`
 - Sample data: `C:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt`
-  (7 laps: 0=outlap, 1-5=valid, 6=inlap)
+  (6 laps: 0-5, 0=outlap, 5=inlap; analysis laps 1-4)
 
 ## Work plan
 PLAN.md in this repo contains the work packages (WP1-WP7). Execute them in
@@ -114,6 +114,10 @@ Parameter categories, for clarity:
 - classification thresholds: differ from any chair values BY RULE;
   always re-derived from this car's own distribution, never carried
   over from the chair or from a prior estimator's distribution.
+  Manual threshold override via Settings is allowed: recorded
+  config-side (manually set + date + derived default), restorable,
+  and the derivation rule applies to the DERIVED defaults, which a
+  manual override never rewrites. (amended 2026-09-28)
 
 ## Comment style rule (project-wide)
 Comments and docstrings must read like a capable engineering student
