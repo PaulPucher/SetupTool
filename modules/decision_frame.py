@@ -1452,6 +1452,9 @@ def _bridge_candidates_for_levers(evidence, registry, decision_config, existing_
 TRIGGER_DATA_ONLY = "data_only"
 TRIGGER_FEEDBACK_ONLY = "driver_reported"
 TRIGGER_BOTH_AGREEING = "both_agreeing"
+# |feedback| that suffices to generate a feedback-only candidate; the
+# evidence floor reuses it (WP-HARDEN amendment 2026-09-30).
+FEEDBACK_MIN_MAGNITUDE = 2
 
 # symbolic one-step sign, same as the lever bridges; matches the rule
 # table's sign convention for these direction words
@@ -1515,7 +1518,7 @@ def _group_axle_pairs(pool):
 
 
 def _feedback_only_candidates(evidence, existing_candidates, registry, config, current_setup=None):
-    feedback_items = [e for e in evidence if e["type"] == "driver_feedback" and abs(e["raw_feedback"]) >= 2]
+    feedback_items = [e for e in evidence if e["type"] == "driver_feedback" and abs(e["raw_feedback"]) >= FEEDBACK_MIN_MAGNITUDE]
     if not feedback_items:
         return []
 
@@ -2203,7 +2206,8 @@ def generate_lever_inventory(candidates, evidence, current_setup, config, regist
 
 def generate_display_split(candidates, evidence, current_setup, config, registry):
     """(shortlist, tail). Shortlist = every proposed candidate; the visible
-    cutoff is apply_display_top_n, after conflict resolution and grouping.
+    cutoff is apply_display_top_n, after conflict resolution, grouping and
+    harden_display_rows.
     Tail = every other inventory entry with its status. Any length.
     """
     inventory = generate_lever_inventory(candidates, evidence, current_setup, config, registry)
@@ -2354,6 +2358,12 @@ def situation_tag(candidate):
 
 
 def render_card_header(candidate, registry):
+    # conflict card: every direction with its own situation, none ranked alone
+    if candidate.get("conflict_members"):
+        labels = ", ".join(registry.get(p, {}).get("label", p)
+                           for p in candidate.get("conflict_parameters", []))
+        sides = " vs ".join(render_card_header(m, registry) for m in candidate["conflict_members"])
+        return f"Lever conflict ({labels}) {EM_DASH} {sides}"
     tag = situation_tag(candidate)
     line = render_top_line(candidate, registry)
     return f"{line} {EM_DASH} {tag}" if tag else line
@@ -2444,6 +2454,15 @@ def render_tail_line(entry, registry):
         return f"{label}: no trigger this session"
 
     line = render_top_line(entry, registry)
+    if entry.get("conflict_members"):
+        line = render_card_header(entry, registry)
+    if entry.get("display_state") == DISPLAY_STATE_BELOW_FLOOR:
+        members = entry.get("conflict_members") or [entry]
+        facts = " / ".join(
+            f"problem weight {_row_problem_weight(m):.2f}, "
+            f"{len(_row_corners(m))} corner{'s' if len(_row_corners(m)) != 1 else ''}"
+            for m in members)
+        return f"{line} -- below evidence floor ({facts})"
     if status == STATUS_BLOCKED_AT_EDGE:
         return f"{line} -- BLOCKED ({entry.get('edge_reason', 'at edge')})"
     if status == STATUS_CONTRADICTED:
@@ -2796,3 +2815,120 @@ def resolve_conflicts(shortlist):
             )
 
     return shortlist
+
+
+# Display hardening (WP-HARDEN): session-level lever conflicts and the
+# evidence floor. Runs after group_display_rows, before apply_display_top_n.
+# Rows are only merged into cards or moved to the tail -- no candidate is
+# added, dropped or rescored (harden_display_rows asserts it).
+
+CONFLICT_ACROSS_CORNERS = "lever_conflict_across_corners"
+DISPLAY_STATE_BELOW_FLOOR = "below_evidence_floor"
+
+
+def _row_problem_weight(row):
+    # grouped row: its strongest member's, the same term the score carries
+    return max(m.get("score_components", {}).get("problem_weight", 0.0) for m in _members(row))
+
+
+def _row_corners(row):
+    return {m["corner"] for m in _members(row) if m.get("corner") is not None}
+
+
+def _row_action_keys(row):
+    return {(a["parameter"], _action_key(a)) for m in _members(row) for a in m.get("actions", [])}
+
+
+def _conflicting_parameters(rows):
+    keys_by_param = {}
+    for r in rows:
+        for param, key in _row_action_keys(r):
+            keys_by_param.setdefault(param, set()).add(key)
+    return sorted(p for p, keys in keys_by_param.items() if len(keys) > 1)
+
+
+def merge_lever_conflicts(rows):
+    """Rows that move one lever in different directions anywhere in the
+    session become one conflict card: resolve_conflicts' per-corner rule
+    (same parameter, different action key) applied across corners. Rows
+    linked through a shared lever form one card, placed at its best-ranked
+    member's position, fields copied from that member. The members keep
+    their own corner-level conflict_status.
+    """
+    keys = [_row_action_keys(r) for r in rows]
+    component = list(range(len(rows)))
+
+    def root(i):
+        while component[i] != i:
+            i = component[i]
+        return i
+
+    for i in range(len(rows)):
+        for j in range(i + 1, len(rows)):
+            if any(p == q and k != l for p, k in keys[i] for q, l in keys[j]):
+                component[root(j)] = root(i)
+
+    by_root = {}
+    for i in range(len(rows)):
+        by_root.setdefault(root(i), []).append(i)
+
+    result, emitted = [], set()
+    for i, row in enumerate(rows):
+        r = root(i)
+        if r in emitted:
+            continue
+        emitted.add(r)
+        idx = by_root[r]
+        if len(idx) == 1:
+            result.append(row)
+            continue
+        conflict_members = [rows[k] for k in idx]
+        card = dict(row)
+        card["conflict_members"] = conflict_members
+        card["group_members"] = [m for cm in conflict_members for m in _members(cm)]
+        card["conflict_status"] = CONFLICT_ACROSS_CORNERS
+        card["conflict_parameters"] = _conflicting_parameters(conflict_members)
+        card["conflict_with"] = sorted(m["id"] for cm in conflict_members[1:] for m in _members(cm))
+        result.append(card)
+    return result
+
+
+def passes_evidence_floor(row, floor):
+    # feedback-driven members pass on the generation gate: |fb| >= 2 was ruled
+    # sufficient evidence, and their problem weight is 0 by construction
+    feedback_ok = any(m.get("trigger_provenance") in (TRIGGER_FEEDBACK_ONLY, TRIGGER_BOTH_AGREEING)
+                      and any(e["type"] == "driver_feedback" and abs(e["raw_feedback"]) >= FEEDBACK_MIN_MAGNITUDE
+                              for e in m.get("evidence_refs", []))
+                      for m in _members(row))
+    return feedback_ok or _row_problem_weight(row) >= floor or len(_row_corners(row)) >= 2
+
+
+def apply_evidence_floor(rows, config):
+    """(ranked, below_floor), order kept. A conflict card is judged per
+    member: it ranks if at least one member clears the floor on its own,
+    otherwise the whole card goes to the tail as one conflict line. Judging
+    the card itself would be wrong -- it spans two corners by construction
+    and would always clear the ">= 2 corners" branch.
+    """
+    floor = config["display_evidence_floor"]["value"]
+    ranked, below = [], []
+    for row in rows:
+        members = row.get("conflict_members") or [row]
+        if any(passes_evidence_floor(m, floor) for m in members):
+            ranked.append(row)
+        else:
+            below.append({**row, "display_state": DISPLAY_STATE_BELOW_FLOOR})
+    return ranked, below
+
+
+def _candidate_ids(rows):
+    return sorted(m["id"] for r in rows for m in _members(r))
+
+
+def harden_display_rows(rows, config):
+    """Conflict merge, then evidence floor. Returns (ranked, below_floor);
+    apply_display_top_n cuts ranked, below_floor joins the tail."""
+    ranked, below = apply_evidence_floor(merge_lever_conflicts(rows), config)
+    assert _candidate_ids(ranked + below) == _candidate_ids(rows), \
+        "display hardening changed the candidate set"
+    return ranked, below

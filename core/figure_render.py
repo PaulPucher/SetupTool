@@ -94,6 +94,27 @@ def _add_threshold(ax, value, kind, label):
     ax.axhline(value, color=ps.THRESHOLD_GREY, linestyle=style_map[kind], linewidth=1.0, label=label)
 
 
+def _draw_kerb_bridges(ax, laps, styles, value_key):
+    # Dashed, lighter bridge across kerb gaps, in the lap's colour -- the
+    # dialog's convention. Drawn only for laps that carry a "kerb" mask; the
+    # caller passes it only when corner_trace_display.kerb_gap_bridge is on.
+    from core.trace_display import kerb_gap_bridge
+    drawn = False
+    for lap in laps:
+        kerb, y = lap.get("kerb"), lap.get(value_key)
+        if kerb is None or y is None:
+            continue
+        yb = kerb_gap_bridge(lap["s"], y, kerb)
+        if np.isfinite(yb).any():
+            ax.plot(lap["s"], yb, color=styles[lap["lap_number"]]["color"], linewidth=ps.PRINT_LAP_WIDTH,
+                    linestyle="--", alpha=ps.KERB_BRIDGE_ALPHA_PRINT, label="_nolegend_")
+            drawn = True
+    if drawn:
+        # one legend line per panel, not one per lap
+        ax.plot([], [], color=ps.THRESHOLD_GREY, linewidth=ps.PRINT_LAP_WIDTH, linestyle="--",
+                alpha=ps.KERB_BRIDGE_ALPHA_PRINT, label="Kerb bridge (not measured)")
+
+
 def _draw_speed_panel(ax, laps, styles, theme, legend_ax):
     for lap in laps:
         ax.plot(lap["s"], lap["v_kmh"], label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
@@ -105,6 +126,7 @@ def _draw_speed_panel(ax, laps, styles, theme, legend_ax):
 def _draw_stability_panel(ax, laps, styles, thresholds, theme, legend_ax):
     for lap in laps:
         ax.plot(lap["s"], lap["stab"], label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
+    _draw_kerb_bridges(ax, laps, styles, "stab")
     _add_threshold(ax, thresholds["stab"], "unstable", "Unstable below this")
     ax.set_xlabel("Track position s (m)")
     ax.set_ylabel("Stability (Nm/deg)")
@@ -121,6 +143,9 @@ def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
         if val is None:
             continue
         ax.plot(lap["s"], val, label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
+    # LS panels stay unbridged, as in the dialog
+    if value_key in ("cs_f", "cs_r"):
+        _draw_kerb_bridges(ax, laps, styles, value_key)
     if strong is not None:
         _add_threshold(ax, strong, "strong", "Strong")
     if moderate is not None:

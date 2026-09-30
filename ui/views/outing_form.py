@@ -657,12 +657,13 @@ class OutingForm(QWidget):
         # to parameters.json (read-modify-write + cache clear, as the settings
         # page) -- persists across restarts, and the config key is already part
         # of cache identity.
-        # ekf_pass_1 (frozen validated baseline) not selectable, still reachable
-        # via config. ekf_auto_dugoff labelled experimental: its rear fit
-        # degenerates on this car and it falls back to kinematic every run.
+        # ekf_pass_1 (frozen validated baseline) and ekf_auto_dugoff are not
+        # selectable here, both still reachable via config. Dugoff removed from
+        # the UI 2026-09-30 (simplicity principle): its rear fit degenerates on
+        # this car and it falls back to kinematic every run; the code stays as
+        # an experimental estimator for diagnostics.
         self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
             "Kinematic": "kinematic",
-            "EKF auto Dugoff (experimental)": "ekf_auto_dugoff",
             "EKF auto Pacejka": "ekf_auto_pacejka",
         }
         self._SIDESLIP_MODE_VALUE_TO_DISPLAY = {
@@ -675,7 +676,7 @@ class OutingForm(QWidget):
         _current_mode = _load_params_for_init()["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
-        # config "ekf_pass_1" isn't in the list -> combo shows Kinematic. Display
+        # config "ekf_pass_1"/"ekf_auto_dugoff" isn't in the list -> combo shows Kinematic. Display
         # only: Analyse reads config, and the status line names the real estimator.
         self.sideslip_mode_combo.setCurrentText(
             self._SIDESLIP_MODE_VALUE_TO_DISPLAY.get(_current_mode, "Kinematic")
@@ -2134,6 +2135,7 @@ class OutingForm(QWidget):
             generate_candidates, generate_display_split, resolve_conflicts,
             tyre_pressure_flags, tyre_pressure_tooltip, group_display_rows, apply_display_top_n,
             kerb_event_flags, kerb_event_population_note, unfilled_sheet_banner,
+            harden_display_rows,
         )
         from modules.recommendation import load_setup_parameters_registry, _group_by_corner
 
@@ -2168,8 +2170,11 @@ class OutingForm(QWidget):
         # group identical rows, after conflict resolution; display only
         shortlist = group_display_rows(shortlist, registry)
         tail = group_display_rows(tail, registry)
+        # session-level lever conflicts -> one card; rows below the evidence
+        # floor join the tail ahead of the non-proposed entries
+        shortlist, below_floor = harden_display_rows(shortlist, config)
         # top-N distinct proposals, after grouping
-        shortlist, tail, tail_note = apply_display_top_n(shortlist, tail, config)
+        shortlist, tail, tail_note = apply_display_top_n(shortlist, below_floor + tail, config)
 
         self._clear_decision_frame_rows()
 
@@ -2202,6 +2207,8 @@ class OutingForm(QWidget):
         summary_text = f"{len(evidence)} evidence item(s), {len(shortlist)} proposed"
         if tail_note:
             summary_text += f", {tail_note} in the assessed-not-proposed tail"
+        if below_floor:
+            summary_text += f", {len(below_floor)} below evidence floor"
         summary_text += f" ({len(tail)} total in tail)."
         self.decision_frame_summary_label.setText(summary_text)
 
@@ -2266,7 +2273,8 @@ class OutingForm(QWidget):
         return card
 
     def _build_decision_frame_reasoning_host(self, c):
-        # grouped row: one full reasoning block per contributing corner+phase
+        # grouped row: one full reasoning block per contributing corner+phase;
+        # conflict card: the same, under one heading per direction
         members = c.get("group_members")
         if not members:
             return self._build_decision_frame_detail_host(c)
@@ -2275,6 +2283,26 @@ class OutingForm(QWidget):
         layout = QVBoxLayout(host)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
+        if c.get("conflict_members"):
+            from modules.decision_frame import render_card_header
+            from modules.recommendation import load_setup_parameters_registry
+            registry = load_setup_parameters_registry()
+            note = QLabel("LEVER CONFLICT: this session asks for opposite directions on one lever; "
+                          "both are shown, neither is ranked alone")
+            note.setWordWrap(True)
+            note.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
+            layout.addWidget(note)
+            for side in c["conflict_members"]:
+                heading = QLabel(render_card_header(side, registry))
+                heading.setWordWrap(True)
+                heading.setStyleSheet(f"color: {TEXT}; font-size: 10px; font-weight: 600;")
+                layout.addWidget(heading)
+                for member in side.get("group_members") or [side]:
+                    member_host = self._build_decision_frame_detail_host(member)
+                    member_host.setVisible(True)
+                    layout.addWidget(member_host)
+            host.setVisible(False)
+            return host
         for i, member in enumerate(members):
             if i > 0:
                 divider = QWidget()

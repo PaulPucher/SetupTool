@@ -47,6 +47,10 @@ FITTED_CURVE_COLOR = "#E040FB"   # EKF auto-fit model curve (Dugoff/Pacejka)
 SCREEN_LAP_WIDTH = 1.5
 PRINT_LAP_WIDTH = 1.0
 
+# kerb-gap bridge in print: same lightness as the dialog's BRIDGE_ALPHA
+# (110 of 255), so an interpolated stretch never reads as measured
+KERB_BRIDGE_ALPHA_PRINT = 110 / 255
+
 # tyre-curve markers: session cloud light and first, lap samples medium,
 # window rings largest and last. Screen px and matplotlib `s` (pt^2)
 # scale differently -> set separately.

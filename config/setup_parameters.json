@@ -1456,7 +1456,7 @@
     "direction_semantics": null,
     "typical_window": null,
     "change_effort": "garage_hours",
-    "mechanism": "Fixed per-event gearbox setup; context only in this WP.",
+    "mechanism": "Fixed per-event gearbox setup; background context, excluded from recommendations.",
     "phase_affinity": null,
     "notes": "Not digitised into car_data.json -- no near-term consumer (stub there, reason: context-only). Source: docs/car_data/Gear_ratio.png.",
     "recommendation_target": false
@@ -1471,7 +1471,7 @@
     "direction_semantics": null,
     "typical_window": null,
     "change_effort": null,
-    "mechanism": "Fixed engine characteristic; context only in this WP.",
+    "mechanism": "Fixed engine characteristic; background context, excluded from recommendations.",
     "phase_affinity": null,
     "notes": "Not digitised into car_data.json -- no near-term consumer (stubs there). Source: docs/car_data/Engine_1.png, Engine_2.png.",
     "recommendation_target": false

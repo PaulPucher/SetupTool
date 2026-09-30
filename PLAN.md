@@ -67,11 +67,15 @@ CLOSED SINCE THE LAST REWRITE
   drift explained) is in main 21c032a.
 
 APPROVED, NOT IMPLEMENTED
-- WP-HARDEN (CS display hardening, variant A): specified and approved
+- ~~WP-HARDEN (CS display hardening, variant A): specified and approved
   (author, 2026-09-30); implementation deliberately deferred behind the
   post-meeting experiment arc (a)-(b), because estimator-input changes
   would shift the census numbers A is verified against. Full spec:
-  section "WP-HARDEN" below.
+  section "WP-HARDEN" below.~~ [IMPLEMENTED 2026-09-30, not yet committed
+  (author commits end of day, after the backlog-sweep commit; the sweep's
+  diff is saved in diagnostics/plots/predates_harden.diff for the split).
+  Census and divergences: thesis_notes.md "WP-HARDEN: CS display
+  hardening implemented"; arc closure: "CS diagnostic arc: closed".]
 
 NEXT
 - ~~Experiment (a), IMU offset characterisation (EXPERIMENT PLAN). Its
@@ -120,14 +124,44 @@ NEXT
   flags go forward as a display/evidence proposal; (d) stays gated.~~
   [RULED 2026-09-30: (c) split exit -- display approved and queued,
   evidence mechanism parked; see EXPERIMENT PLAN (c).]
-- NEXT: WP-HARDEN (its deferral condition, experiments (a)-(b) closed, is
+- ~~NEXT: WP-HARDEN (its deferral condition, experiments (a)-(b) closed, is
   now met), then "(c)-display" behind it; both display tier. (d) waits
-  on the engineer round.
+  on the engineer round.~~ [2026-09-30, author: NEXT: WP-HARDEN (fresh
+  session), then (c)-display, then (f) event-coincidence diagnostic
+  (EXPERIMENT PLAN).]
+- ~~NEXT: WP-HARDEN.~~ [IMPLEMENTED 2026-09-30, display layer only; see
+  APPROVED above.]
+- NEXT: "(c)-display" (EXPERIMENT PLAN (c)), then (f) event-coincidence
+  diagnostic. ~~Open from WP-HARDEN, for the author: Dubai shows an empty
+  top 3 under the per-member floor; feedback-only single-corner
+  candidates carry problem weight 0 and cannot rank (census data-only).~~
+  [RULED 2026-09-30: Dubai accepted as designed; feedback exemption added
+  as a spec amendment -- WP-HARDEN "CLOSE-OUT RULINGS".]
 
-BACKLOG SWEEP (approved small follow-ups; list created 2026-09-30)
-- Kerb-gap bridge in the figure exports: core/figure_render.py still
+BACKLOG SWEEP (approved small follow-ups; list created 2026-09-30) --
+SWEEP DONE 2026-09-30 (items 1-3, 5-7; item 4, worst-phase sentinel,
+skipped: it sits in the classifier's selector, no recorded fix)
+- ~~Kerb-gap bridge in the figure exports: core/figure_render.py still
   draws kerb holes; apply the same core/trace_display.kerb_gap_bridge at
-  its CS/stability call sites (approved 2026-09-30, display only).
+  its CS/stability call sites (approved 2026-09-30, display only).~~
+  [DONE 2026-09-30, backlog sweep: figure_render bridges the stability
+  and CS f/r panels (dashed, lap colour, dialog lightness) for laps that
+  carry a kerb mask; both trace windows pass it only when
+  corner_trace_display.kerb_gap_bridge is on. Guard: tests/
+  test_trace_display.py export-path test.]
+- Dugoff sideslip mode removed from the UI selector (2026-09-30, backlog
+  sweep, simplicity principle): ekf_auto_dugoff falls back to kinematic
+  on every run on this car. Code, tests, goldens and the fallback pinning
+  stay; the mode stays selectable via config
+  (stability_estimation.sideslip_source) for diagnostics, as an
+  experimental estimator. Its only "experimental" marker was the UI label
+  itself; the estimator code and config carry none -- the status now
+  lives in the ui/views/outing_form.py selector comment and here.
+- Dugoff config comment (added 2026-09-30, author; NOT NOW -- ride
+  along with the next package that edits config text): one clause in
+  parameters.json _comment_sideslip_source_auto_modes stating
+  ekf_auto_dugoff is experimental, config-selectable only, removed from
+  the UI 2026-09-30.
 
 CARRIED OPEN (not started; each keeps its own gate)
 - Werner Eq. 4.3 v2 = Module 5 wiring (Tier A, proposal-first),
@@ -144,7 +178,9 @@ CARRIED OPEN (not started; each keeps its own gate)
   (PARKED consolidated list).
 - Full test suite: next at the first estimator boundary (author rule,
   2026-09-28). Nothing since 21c032a changed an estimator input;
-  new-laps carries diagnostics and records only.
+  new-laps carries diagnostics and records only. [2026-09-30: full suite run
+  once at the WP-HARDEN implementation boundary, as its spec required:
+  546 passed, 9 skipped, 1 xfailed; tests/golden unchanged.]
 
 STANDING WARNINGS -- carry these into every future session
 
@@ -188,11 +224,13 @@ STATUS PER DIRECTION (current 2026-09-30):
   three sensor answers and a surviving roll constant.
 - (b) CS filtering at upstream insertion points: CLOSED, RULED -- nothing
   ships, production unchanged.
-- (c) Yaw-rate pooling: SPLIT -- "(c)-display" approved, queued behind
-  WP-HARDEN (display tier, no boundary); "(c)-evidence proposal" parked
-  on an engineer-round question.
+- (c) Yaw-rate pooling: SPLIT -- "(c)-display" approved, NEXT (WP-HARDEN
+  implemented 2026-09-30; display tier, no boundary); "(c)-evidence
+  proposal" parked on an engineer-round question.
 - (d) Tyre-curve baseline prior: GATED on the engineer round.
 - (e) Combined accelerations: PARKED, own proposal needed.
+- (f) Event-coincidence diagnostic (added 2026-09-30): QUEUED after
+  WP-HARDEN; read-only diagnostic.
 
 Boundary classes used below:
 - READ-ONLY DIAGNOSTIC: no production, config or threshold change;
@@ -345,6 +383,8 @@ inspect_yaw_pooling.py.
 - "(c)-display": APPROVED as a proposal, queued behind WP-HARDEN --
   pooled yaw-rate envelope, excess/deficit flags and the steering-rate
   sub-panel as a display element. Display tier, no boundary.
+  Ordering (2026-09-30, author): (c)-display precedes (f): the pooled
+  envelope is (f)'s yaw-channel detection reference.
 - "(c)-evidence proposal": NOT graduated. A 1.5-1.9x enrichment over a
   47-58 % base rate is too weak; the unwinding threshold must scale with
   in-corner steering activity, not straight-line noise. Parked on the
@@ -393,12 +433,72 @@ by its proposal; expected ESTIMATOR-INPUT CHANGE.
 STATUS (2026-09-30): PARKED; (a)/(a2) and (b) closed, (c) split, (d)
 gated -- the entry criterion is not met.
 
+## (f) Event-coincidence diagnostic -- queued after WP-HARDEN
+Source: author-designed (2026-09-30), reviewer-sequenced; not one of the
+five meeting directions.
+Goal: cross-validate large single-lap deviations across three
+independent channels, per corner-lap: yaw rate vs the pooled cross-lap
+envelope ((c)'s envelope); CS per-lap extremes vs the session p10; and
+stability-indicator extremes vs the session p10. Steering reaction is
+recorded as an attribute of each event, not as a channel.
+Carries: the open spike question -- deep CS falls that are independent
+of window-start jumps and survive the sawtooth repair, clustered at the
+C1 complex (PARKED "Sawtooth window-start repair", ruling 2026-09-30) --
+and the NBR C1 lag/flag cross-references (PARKED "NBR C1 EKF entry
+lag").
+Boundary class: READ-ONLY DIAGNOSTIC. Entry, exit and pass criteria
+written into its proposal before any run (PROCESS RULES).
+STATUS (2026-09-30): QUEUED after WP-HARDEN.
+Ordering (2026-09-30, author): (c)-display precedes (f): the pooled
+envelope is (f)'s yaw-channel detection reference.
+
 # WP-HARDEN - CS display hardening (variant A)
 
-STATUS: specified and approved (author, 2026-09-30); implementation
+STATUS: ~~specified and approved (author, 2026-09-30); implementation
 deliberately deferred behind the post-meeting experiment arc (a)-(b),
 because estimator-input changes would shift the census numbers A is
-verified against.
+verified against.~~ IMPLEMENTED 2026-09-30 (branch new-laps). Census
+re-measured on the current chain (no estimator input changed since the
+caches): diagnostics/inspect_cs_decision_table.py hardened; record
+thesis_notes.md "WP-HARDEN: CS display hardening implemented".
+Implementation choices inside the spec: conflict = same parameter,
+different action key (resolve_conflicts' rule; the prototype matched
+increase/decrease only and missed ARB soften/stiffen); a card ranks if at
+least one member clears the floor.
+CLOSE-OUT RULINGS (reviewer, 2026-09-30):
+1. Dubai empty top 3: ACCEPTED AS CORRECT, a designed outcome, not a
+   defect. Five single-corner rows at problem weight 0.300 are the thin
+   evidence the floor exists to demote; a session with no floor-clearing
+   problem shows no ranked proposal ("nothing worth changing" is a valid
+   output, the author's fewer-verdicts position). The tail shows all five
+   with their states. Dubai data-only was already known to carry no strong
+   problem. Floor value NOT revisited on this evidence. Closed-loop
+   consequence: a session where the team made a change but the tool shows
+   an empty top 3 is a scoreable divergence case, not a tool failure by
+   definition.
+2. Feedback-only floor exemption: see SPEC AMENDMENT below.
+3. Implementation choices CONFIRMED: action-key conflict matching (it
+   found a real pair the direction-only matcher missed -- CDR's rear ARB
+   stiffen + soften at rows 2 and 3, the fifth before-census pair); mixed
+   cards rank with both directions visible, header on the best member
+   (per-member judgement gates only the all-fail case; one passing member
+   is floor-clearing evidence and the conflict is what the engineer must
+   see).
+4. UI check (US-v2 / NBR B conflict card, Dubai tail lines): the
+   author's, before or after commit.
+SPEC AMENDMENT (2026-09-30, reviewer): rule 2 gains a feedback branch. A
+member whose trigger provenance is feedback-only or both-agreeing passes
+the floor when its driver feedback magnitude >= 2. Grounds: a genuine spec
+gap -- feedback-only candidates exist because |fb| >= 2 was ruled
+sufficient evidence to generate them, and their problem weight is 0 by
+construction (severity None), so the unamended floor would demote every
+single-corner feedback candidate, contradicting that ruling. The
+generation gate doubles as the floor: modules/decision_frame.py
+FEEDBACK_MIN_MAGNITUDE (the existing literal 2 of _feedback_only_
+candidates, lifted to a shared constant, generation unchanged) read by
+passes_evidence_floor. Data-only candidates keep the 0.5 / 2-corner rule.
+Tests: tests/test_display_hardening.py 15 passed (2 new). Census unchanged
+(data-only).
 Origin: the CS diagnostic arc's three-way decision (thesis_notes.md
 "Three-way decision table: A0 / A / B", "Decision synthesis: CS
 read-out, final diagnostic round"). A keeps estimator, read-out and
@@ -1191,6 +1291,10 @@ Added in the 2026-09-30 consolidation:
   coincide with the two deepest C1 CS laps (103, 107) and a DEFICIT flag
   with the lag-explained lap (105) -- a third independent flag on this
   corner.
+  Routing added 2026-09-30 (sawtooth ruling): the deep CS spikes that
+  survive the sawtooth repair cluster at the C1 complex (JST 29 near
+  620 m); their mechanism goes to the event-coincidence diagnostic
+  (queued after WP-HARDEN).
 - "(c)-evidence proposal" (added 2026-09-30, ruling). Reason: yaw-rate
   excess flags are followed by steering unwinding 1.5-1.9x as often as
   the positions' base rate (47-58 %) -- too weak to graduate; the
@@ -1204,6 +1308,13 @@ Added in the 2026-09-30 consolidation:
   Reopen: only bundled with an estimator-input boundary, since it
   changes CS values (method-defining constant, ANALYSIS_SCHEMA_VERSION
   bump, all three pipeline goldens, re-derivation after it).
+  RULING 2026-09-30 (author): stays PARKED. Grounds: the side-by-side
+  render (thesis_notes.md "Sawtooth repair side-by-side render") showed
+  the flagged deep spikes survive the repair (JST 29 front -2.68 at
+  620 m, US-v2 front -2.05 at 1297 m); the repair removes only small
+  jagged drops; jump-coincidence does not predict removal (0.35-0.60
+  shares). The spike mechanism is an OPEN question, routed to the
+  event-coincidence diagnostic (queued after WP-HARDEN).
 - Change-time weighting. Reason: the seconds-class change_time favour
   (a fixed +0.625 over minutes-class rows, recorded 2026-09-29) lifts
   thin TC rows to #1 (thesis_notes.md "Pooled read-out prototype vs
@@ -1622,8 +1733,12 @@ Beyond-peak verdict tier - shelved, reopens only with a validated
 sideslip estimate. Kerb-gap interpolation - optional cleanup.
 Compound-corner curvature detection - not worth destabilizing the
 realization. Worst-phase sentinel NaN quirk and valid_fraction_stab
-replacement metric - cosmetic, left alone. k=1.01211 application -
-gated on second-track data. New-data-file checklist - runs when a
+replacement metric - cosmetic, left alone. ~~k=1.01211 application -
+gated on second-track data.~~ [SUPERSEDED 2026-09-30, consolidation
+pass: k measured per session on all eight files (1.0050-1.0121); a
+single constant is superseded, k settles as per-session values inside
+"(a3) C3+C4 proposal" -- see the consolidated PARKED k entry.]
+New-data-file checklist - runs when a
 log arrives. Items so far:
   - cs_max_window_m locality check: re-run diagnostics/inspect_
     corner_bracket_geometry.py (or equivalent) on the new track's

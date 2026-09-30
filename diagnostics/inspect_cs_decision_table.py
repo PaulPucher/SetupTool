@@ -738,6 +738,72 @@ def render():
     print(f"rendered {len(ALL_KEYS)} x 2 figures and {p} into {out}")
 
 
+def hardened():
+    """WP-HARDEN census on the production display path (harden_display_rows,
+    per-member floor, action-key conflicts) against the same grouped rows
+    part2/table used: before = production without hardening (A0)."""
+    import modules.decision_frame as df
+    from diagnostics.inspect_frame_stage2_parity import classify_fn
+    from modules.recommendation import load_setup_parameters_registry, _group_by_corner
+    cfg = df.load_decision_frame_config()
+    floor = cfg["display_evidence_floor"]["value"]
+    top_n = cfg["display_top_n"]["value"]
+    registry = load_setup_parameters_registry()
+    res = load_all()
+
+    def pairs(rows):
+        keys = [df._row_action_keys(r) for r in rows]
+        return sum(1 for i in range(len(rows)) for j in range(i + 1, len(rows))
+                   if any(p == q and k != l for p, k in keys[i] for q, l in keys[j]))
+
+    def tc(row):
+        return any(a["parameter"].startswith("tc_") for a in row.get("actions", []))
+
+    def thin(row):
+        return not df.passes_evidence_floor(row, floor)
+
+    def label(row):
+        return df.render_card_header(row, registry)
+
+    tc_before = tc_after = tc_after_cards = 0
+    print(f"WP-HARDEN census, floor {floor}, top {top_n}, data-only (no sheet, feedback, driver)")
+    for key in ALL_KEYS:
+        sm = res[key]["summaries"]["A_baseline"]
+        ev = df.build_evidence(sm, df.aggregate_ls_by_corner(sm), cfg, classify_fn)
+        cands = df.generate_candidates(ev, registry, cfg, setup_data=None,
+                                       assessed_corner_ids=set(_group_by_corner(sm).keys()), driving_level=None)
+        split = df.generate_display_split(cands, ev, None, cfg, registry)
+        df.resolve_conflicts(split["shortlist"])
+        rows = df.group_display_rows(split["shortlist"], registry)
+        other_tail = df.group_display_rows(split["tail"], registry)
+        before = rows[:top_n]
+        ranked, below = df.harden_display_rows(rows, cfg)
+        visible, tail, _note = df.apply_display_top_n(ranked, below + other_tail, cfg)
+        tc_before += int(bool(before) and tc(before[0]))
+        tc_after += int(bool(visible) and tc(visible[0]) and not visible[0].get("conflict_members"))
+        tc_after_cards += int(bool(visible) and tc(visible[0]))
+        print(f"\n## {key}: {len(cands)} candidates, {len(rows)} proposed rows")
+        print(f"  before: #1 {label(before[0]) if before else '-'}; pairs in top {top_n} {pairs(before)}; "
+              f"thin #1 {int(bool(before) and thin(before[0]))}")
+        print(f"  after:  #1 {label(visible[0]) if visible else '-'}; pairs in top {top_n} {pairs(visible)}; "
+              f"thin #1 {int(bool(visible) and thin(visible[0]))}")
+        print(f"  tail: overflow {len(ranked) - len(visible)}, below floor {len(below)}, "
+              f"non-proposed {len(other_tail)}, total {len(tail)}")
+        for r in ranked + below:
+            if not r.get("conflict_members"):
+                continue
+            where = "visible" if any(r is v for v in visible) else ("tail (below floor)" if r in below else "tail (overflow)")
+            members = "; ".join(f"{df.render_top_line(m, registry)} C{'/C'.join(str(c) for c in sorted(df._row_corners(m)))} "
+                                f"pw {df._row_problem_weight(m):.3f} {'pass' if df.passes_evidence_floor(m, floor) else 'fail'}"
+                                for m in r["conflict_members"])
+            print(f"  conflict card -> {where}: {members}")
+        for r in below:
+            if not r.get("conflict_members"):
+                print(f"  below floor: {label(r)} (pw {df._row_problem_weight(r):.3f})")
+    print(f"\nTC recommendation as #1: before {tc_before}/{len(ALL_KEYS)}; after {tc_after}/{len(ALL_KEYS)} "
+          f"(conflict cards not counted), {tc_after_cards}/{len(ALL_KEYS)} counting TC conflict cards")
+
+
 class _nullctx:
     def __enter__(self):
         return self
@@ -748,4 +814,4 @@ class _nullctx:
 
 if __name__ == "__main__":
     {"sens": sens, "thresholds": thresholds, "part2": part2, "margin": margin, "table": table,
-     "render": render}[sys.argv[1]]()
+     "render": render, "hardened": hardened}[sys.argv[1]]()

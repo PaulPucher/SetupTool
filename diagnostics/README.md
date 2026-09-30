@@ -258,12 +258,17 @@ here (53 keepers + 37 in diagnostics/_attic/).
   inspect_cs_value_lens. Keep-reason (updated 2026-09-30): provenance of
   the closed CS diagnostic arc (read-out decision taken: variant A); its
   phase slicing and read-outs are imported by inspect_cs_decision_table,
-  which WP-HARDEN re-runs. Modes: supp2 <key>, sawtooth <key>; lag,
+  which WP-HARDEN re-runs. Modes: supp2 <key>, sawtooth <key>, sawrender
+  <key> (2026-09-30: production vs repair-active side-by-side trace sets
+  with window-start jumps marked and the deepest per-lap spikes listed,
+  JST 29 and US-v2; decision input for the sawtooth ruling of
+  2026-09-30, repair stays PARKED); lag,
   foldrun, sawreport, parity, readout, census. Records: thesis_notes.md
   "Slip-vs-force lag check",
   "Fold/loop at run scale", "Sawtooth window-start repair", "Pooled
   read-out prototype", "Synthesis for the CS read-out decision"
-  (2026-09-29). Outputs in `plots/cs_readout_evidence/` (gitignored).
+  (2026-09-29), "Sawtooth repair side-by-side render" (2026-09-30).
+  Outputs in `plots/cs_readout_evidence/` (gitignored).
 - **inspect_cs_decision_table.py** (2026-09-29, keep-reproduces) -- final
   CS read-out round: pooled-p25 thresholds by the recorded procedure
   (rules checked against the recorded Dubai derivation), cs_margin
@@ -277,7 +282,12 @@ here (53 keepers + 37 in diagnostics/_attic/).
   live tooling -- WP-HARDEN (variant A, approved, deferred) re-measures
   its census with part2 / table at implementation; the battery is reused
   by EXPERIMENT PLAN (b). Modes: sens, thresholds, part2, margin, table,
-  render. The single render mode draws, per session, the plan-B trace
+  render, hardened. hardened (2026-09-30, WP-HARDEN implementation): the
+  census on the production display path (modules/decision_frame.
+  harden_display_rows, per-member floor, action-key conflicts), before
+  vs after per session; record thesis_notes.md "WP-HARDEN: CS display
+  hardening implemented". part2 / table stay as the prototype's frozen
+  per-card, increase/decrease-only record. The single render mode draws, per session, the plan-B trace
   overlays (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed
   -3.5..1.2 axes -> `render/planb_trace_<key>.png`) and worst-lap vs
   pooled-p25 per corner (`render/worstlap_vs_p25_<key>.png`), plus the
@@ -362,7 +372,9 @@ here (53 keepers + 37 in diagnostics/_attic/).
   diagnostic: the standard trace set (front/rear CS_ratio vs lap
   distance, thin line per analysis lap, corner-bracket bands, y fixed to
   config corner_trace_display) factored from the value-lens layout.
-  Imported by inspect_cs_upstream_sweep.py (render). New packages call it;
+  Imported by inspect_cs_upstream_sweep.py (render) and
+  inspect_cs_readout_evidence.py (sawrender; optional markers overlay
+  added 2026-09-30). New packages call it;
   existing scripts keep their own copies (not refactored).
 
 ## K7 -- regenerates committed content / recurring checklist tool (2)

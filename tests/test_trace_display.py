@@ -82,7 +82,57 @@ def test_no_analysis_module_reads_the_bridge():
     pat = re.compile(r"kerb_gap_bridge|trace_display")
     for d in ("modules", "core"):
         for name in os.listdir(os.path.join(root, d)):
-            if not name.endswith(".py") or (d == "core" and name == "trace_display.py"):
+            # figure_render is the export render path (display only, draws
+            # the arrays it is given); it applies the bridge like the dialog.
+            # Widening confirmed by the author 2026-09-30: modules/ staying
+            # fully guarded is the part that matters.
+            if not name.endswith(".py") or (d == "core" and name in ("trace_display.py", "figure_render.py")):
                 continue
             with open(os.path.join(root, d, name), encoding="utf-8") as fh:
                 assert not pat.search(fh.read()), f"{d}/{name} references the display-only bridge"
+
+
+def test_export_draws_bridge_and_leaves_analysis_arrays_untouched(pipeline_result, parsed_data, state,
+                                                                  effective_params):
+    from core import figure_render, plot_style as ps
+    cs, stab = pipeline_result["cs"], pipeline_result["stab"]
+    stab_obs = stab["stability_observed_Nm_per_deg"]
+    before = {k: cs[k].tobytes() for k in ("CS_ratio_f", "CS_ratio_r")}
+    before_stab = stab_obs.tobytes()
+    t, s_m, kerb = state["time"], state["s_m"], state["kerb_mask"]
+    cls = effective_params["classification"]
+    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"],
+                  "strong_csf": cls["STRONG_CSF"]["value"], "moderate_csf": cls["MODERATE_CSF"]["value"],
+                  "strong_csr": cls["STRONG_CSR"]["value"], "moderate_csr": cls["MODERATE_CSR"]["value"]}
+
+    def laps(with_kerb):
+        out = []
+        for lap in parsed_data["laps"]:
+            if not lap.get("is_valid_for_analysis"):
+                continue
+            m = (t >= lap["start_time"]) & (t < lap["end_time"]) & np.isfinite(s_m)
+            out.append({"lap_number": lap["lap_number"], "s": s_m[m], "v_kmh": state["v_mps"][m] * 3.6,
+                        "stab": stab_obs[m], "cs_f": cs["CS_ratio_f"][m], "cs_r": cs["CS_ratio_r"][m],
+                        "kerb": kerb[m] if with_kerb else None})
+        return out
+
+    def bridge_lines(fig):
+        # stab, CS f, CS r data axes of render_lap_figure: every other axes
+        # is a side-legend strip
+        data_axes = fig.axes[0::2][1:4]
+        return sum(1 for ax in data_axes for ln in ax.get_lines()
+                   if ln.get_linestyle() == "--" and ln.get_alpha() == ps.KERB_BRIDGE_ALPHA_PRINT
+                   and ln.get_label() == "_nolegend_")
+
+    import matplotlib.pyplot as plt
+    fig_on = figure_render.render_lap_figure("Dubai", laps(True), thresholds, [])
+    fig_off = figure_render.render_lap_figure("Dubai", laps(False), thresholds, [])
+    try:
+        assert bridge_lines(fig_on) > 0, "Dubai analysis laps hold kerb gaps; the export must bridge them"
+        assert bridge_lines(fig_off) == 0, "no kerb mask passed (flag off) -> no bridge drawn"
+    finally:
+        plt.close(fig_on)
+        plt.close(fig_off)
+    for k in before:
+        assert cs[k].tobytes() == before[k], "rendering must not touch analysis arrays"
+    assert stab_obs.tobytes() == before_stab

@@ -16,10 +16,12 @@ def cs_panel_range():
     return cfg["cs_ls_panel_y_min"], cfg["cs_ls_panel_y_max"]
 
 
-def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_range=None):
+def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_range=None, markers=None):
     """laps: dicts with lap_number/start_time/end_time/is_valid_for_analysis;
-    corners: dicts with lap_number/bracket_start_m/bracket_end_m. Returns the
-    count of samples below the fixed y floor per axle (clipped from view)."""
+    corners: dicts with lap_number/bracket_start_m/bracket_end_m. markers:
+    optional {"f"/"r": {"s": [...], "y": [...], "label": str, "color": str,
+    "notes": [(s, y, text), ...]}} overlaid on the traces. Returns the count
+    of samples below the fixed y floor per axle (clipped from view)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -43,6 +45,14 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
             y = arr[m]
             clipped[key] += int(np.sum(np.isfinite(y) & (y < y_lo)))
             ax.plot(s_m[m], y, color=INK, lw=0.5, alpha=0.6, zorder=2)
+        mk = (markers or {}).get(key)
+        if mk:
+            ax.plot(mk["s"], np.clip(mk["y"], y_lo, y_hi), "o", ms=2.2, mew=0, color=mk["color"], alpha=0.8,
+                    zorder=3, label=mk["label"])
+            for xs, ys, text in mk.get("notes", []):
+                ax.annotate(text, (xs, max(ys, y_lo)), xytext=(0, -14), textcoords="offset points", ha="center",
+                            fontsize=8, color=mk["color"], fontweight="bold", zorder=4)
+            ax.legend(loc="lower left", frameon=False, fontsize=8)
         ax.set_ylim(y_lo, y_hi)
         ax.set_ylabel(lab, color=INK)
         ax.grid(axis="y", color=BAND, lw=0.6)

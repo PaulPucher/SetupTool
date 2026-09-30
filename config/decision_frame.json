@@ -914,6 +914,11 @@
     "value": 3,
     "derived_from": "Author-elicited 2026-09-24: session rhythm is 45-50 min, one change at a time -- a short, scannable list matches how the engineer actually works a session, rather than a score-threshold cliff that could show zero or a dozen depending on the session's own score distribution."
   },
+  "_comment_display_evidence_floor": "Display only (apply_evidence_floor). A proposal ranks in the visible top N only if its problem weight >= value OR its evidence spans >= 2 corners; otherwise it goes to the tail as 'below evidence floor'. A session-level lever-conflict card is judged per member, never by its merged corner span. Candidates, evidence and scores are untouched.",
+  "display_evidence_floor": {
+    "value": 0.5,
+    "derived_from": "Reviewer-chosen midpoint of the 0.3-0.75 near-inert sweep range (decision-table package 2026-09-29); revisit when real data makes it bind."
+  },
   "_comment_tc_safety_note": "Lower TC intervention (direction 'decrease' on tc_lat/tc_lon -- less intervention per their direction_semantics) trades tyre life / safety margin for rotation. Display-only caution on every candidate, never a score term or suppression. Text lives here.",
   "tc_safety_note": {
     "parameters": ["tc_lat", "tc_lon"],

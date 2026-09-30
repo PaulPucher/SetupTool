@@ -1265,6 +1265,8 @@ class CornerTraceDialog(_TraceDialogBase):
                 "cs_f": cs_f[sl][order], "cs_r": cs_r[sl][order],
                 "stab": stab_obs[sl][order],
                 "ls_f": ls_f_lap, "ls_r": ls_r_lap,
+                # export draws kerb bridges only when this is set (same flag)
+                "kerb": kerb_mask[sl][order] if (bridge_on and kerb_mask is not None) else None,
             })
 
         # legend = checked laps + threshold lines
@@ -1626,6 +1628,7 @@ class LapTraceDialog(_TraceDialogBase):
             export_laps.append({
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
                 "stab": data["stab"], "cs_f": data["csf"], "cs_r": data["csr"],
+                "kerb": data["kerb"] if bridge_on else None,
             })
 
         # colour assignment, same rule as the toggle re-render

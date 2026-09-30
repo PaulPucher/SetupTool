@@ -88,6 +88,21 @@
 #   so they compare on one metric (PROD also keeps its lap-pair rate).
 #   Lap-count bias (f) = PR US-v2, share of corners beyond the current STRONG
 #   thresholds (corner worst phase), all 9 laps vs mean over 3-lap windows.
+# Part 5 side-by-side render (2026-09-30, decision input for the unparking
+#   ruling). Standard trace set (trace_render) from the saw_<key>.npz arrays,
+#   production vs repaired, same axes. Jump = the value-lens definition:
+#   adjacent in-bracket moving samples (term_idx) whose footprint
+#   s[i-1] - s[start] shrinks by more than 2 m; marked at the later sample.
+#   Spike, per analysis lap and axle, on in-bracket moving samples, within
+#   index-contiguous finite runs: drop(i) = max CS over the samples j <= i
+#   with s[i] - s[j] <= 5 m, minus CS(i) (a "within metres" fall). Spikes are
+#   the local maxima of drop, one per 20 m (greedy, deepest first); the five
+#   deepest per session over both axles are listed. Repaired depth = the same
+#   drop on the repaired array, maximised over samples within +/- 5 m of the
+#   production spike (same lap, axle). Jump-coincident = a production jump
+#   sample lies inside the spike's drop span [j*, i].
+#   Spike and window lengths are display-selection choices of this
+#   diagnostic, not estimator parameters.
 
 import os
 import pickle
@@ -926,12 +941,131 @@ def sawtooth(key):
     print(f"[{key}] sawtooth arrays saved")
 
 
+SPIKE_SPAN_M, SPIKE_SEP_M, JUMP_FP_DROP_M = 5.0, 20.0, 2.0
+
+
+def _jump_samples(start, s, ti):
+    fp = np.where(start[ti] >= 0, s[ti - 1] - s[np.maximum(start[ti], 0)], np.nan)
+    d_fp = np.diff(fp)
+    ok = (np.diff(ti) == 1) & np.isfinite(d_fp)
+    return ti[1:][ok & (d_fp < -JUMP_FP_DROP_M)]
+
+
+def _drops(cs, s, idx):
+    """drop(i) and the reference sample j* for each i of idx (Part 5)."""
+    drop = np.full(idx.size, np.nan)
+    ref = np.full(idx.size, -1, dtype=np.int64)
+    run_start = 0
+    for k in range(idx.size):
+        if not np.isfinite(cs[idx[k]]):
+            run_start = k + 1
+            continue
+        if k > 0 and idx[k] - idx[k - 1] != 1:
+            run_start = k
+        j = k
+        while j - 1 >= run_start and s[idx[k]] - s[idx[j - 1]] <= SPIKE_SPAN_M:
+            j -= 1
+        seg = cs[idx[j:k + 1]]
+        jm = j + int(np.argmax(seg))
+        drop[k] = seg.max() - cs[idx[k]]
+        ref[k] = idx[jm]
+    return drop, ref
+
+
+def sawrender(key):
+    from diagnostics.trace_render import render_cs_traces
+    res = load_all()
+    r = res[key]
+    saw = np.load(os.path.join(OUT_DIR, f"saw_{key}.npz"))
+    t, s, ti = r["time"], r["s_m"], r["term_idx"]
+    an = [l for l in r["laps"] if l["is_valid_for_analysis"]]
+    spikes, jumps = [], {}
+    for axle in ("f", "r"):
+        prod, rep = saw[f"cs_prod_{axle}"].astype(float), saw[f"cs_rep_{axle}"].astype(float)
+        jumps[axle] = _jump_samples(saw[f"start_prod_{axle}"], s, ti)
+        jset = set(jumps[axle].tolist())
+        for l in an:
+            idx = ti[(t[ti] >= l["start_time"]) & (t[ti] <= l["end_time"])]
+            if idx.size == 0:
+                continue
+            d_p, ref_p = _drops(prod, s, idx)
+            d_r, _ = _drops(rep, s, idx)
+            order = np.argsort(np.where(np.isfinite(d_p), -d_p, np.inf))
+            taken = []
+            for k in order:
+                if not np.isfinite(d_p[k]) or d_p[k] <= 0:
+                    break
+                if any(abs(s[idx[k]] - s[idx[q]]) < SPIKE_SEP_M for q in taken):
+                    continue
+                taken.append(k)
+                near = np.abs(s[idx] - s[idx[k]]) <= SPIKE_SPAN_M
+                rep_drop = float(np.nanmax(d_r[near])) if np.isfinite(d_r[near]).any() else float("nan")
+                rep_min = float(np.nanmin(rep[idx[near]])) if np.isfinite(rep[idx[near]]).any() else float("nan")
+                j0, i0 = int(ref_p[k]), int(idx[k])
+                coinc = any(j0 <= q <= i0 for q in jset)
+                spikes.append({"axle": axle, "lap": l["lap_number"], "s": float(s[i0]), "i": i0, "j": j0,
+                               "drop_p": float(d_p[k]), "val_p": float(prod[i0]), "top_p": float(prod[j0]),
+                               "drop_r": rep_drop, "min_r": rep_min, "span_m": float(s[i0] - s[j0]), "jump": coinc})
+    spikes.sort(key=lambda x: -x["drop_p"])
+    top = spikes[:5]
+    lab = LABELS[key]
+    for variant in ("prod", "rep"):
+        markers = None
+        if variant == "prod":
+            markers = {}
+            for axle in ("f", "r"):
+                cs = saw[f"cs_prod_{axle}"].astype(float)
+                jm = jumps[axle]
+                markers[axle] = {"s": s[jm], "y": cs[jm], "color": "#dc2626",
+                                 "label": f"window-start jump (footprint drop > {JUMP_FP_DROP_M:.0f} m), n={jm.size}",
+                                 "notes": [(x["s"], x["val_p"], str(n)) for n, x in enumerate(top, 1) if x["axle"] == axle]}
+        p = os.path.join(OUT_DIR, f"sawrender_{key}_{variant}.png")
+        clipped = render_cs_traces(p, t, s, saw[f"cs_{variant}_f"].astype(float), saw[f"cs_{variant}_r"].astype(float),
+                                   r["laps"], r["corners"],
+                                   f"{lab} -- {'PRODUCTION' if variant == 'prod' else 'SAWTOOTH REPAIR ACTIVE (in memory)'}",
+                                   markers=markers)
+        print(f"figure: {p} (samples below y floor: front {clipped['f']}, rear {clipped['r']})")
+    print(f"\n## {lab}: jumps marked front {jumps['f'].size}, rear {jumps['r'].size}; spikes found {len(spikes)}")
+    print(f"five deepest per-lap spikes (drop within {SPIKE_SPAN_M:.0f} m, production vs repair at +/- {SPIKE_SPAN_M:.0f} m):")
+    for n, x in enumerate(top, 1):
+        print(f"  {n}. {'front' if x['axle'] == 'f' else 'rear'} lap {x['lap']} at {x['s']:.0f} m: production drop "
+              f"{x['drop_p']:.2f} ({x['top_p']:+.2f} -> {x['val_p']:+.2f} over {x['span_m']:.1f} m); repair drop "
+              f"{x['drop_r']:.2f} (min {x['min_r']:+.2f}); jump-coincident {'yes' if x['jump'] else 'no'}")
+    share = np.mean([x["jump"] for x in spikes]) if spikes else float("nan")
+    deep = [x for x in spikes if x["drop_p"] >= 1.0]
+    print(f"  context: jump-coincident share over all {len(spikes)} spikes {share:.2f}; over the {len(deep)} spikes "
+          f"with drop >= 1.0: {np.mean([x['jump'] for x in deep]) if deep else float('nan'):.2f}")
+    # the author's flagged points: per lap, the lowest front sample within
+    # +/- 60 m, with the same drop / repair / jump test applied at it
+    prod, rep = saw["cs_prod_f"].astype(float), saw["cs_rep_f"].astype(float)
+    jset = set(jumps["f"].tolist())
+    for s0 in {"nbr_jst_solution": (620.0,), "pr_us_v2": (1300.0,)}.get(key, ()):
+        print(f"  flagged ~{s0:.0f} m front, per analysis lap (lowest sample within +/- 60 m):")
+        for l in an:
+            idx = ti[(t[ti] >= l["start_time"]) & (t[ti] <= l["end_time"])]
+            if idx.size == 0:
+                continue
+            d_p, ref_p = _drops(prod, s, idx)
+            d_r, _ = _drops(rep, s, idx)
+            win = (np.abs(s[idx] - s0) <= 60) & np.isfinite(prod[idx])
+            if not win.any():
+                continue
+            k = int(np.flatnonzero(win)[np.argmin(prod[idx][win])])
+            near = np.abs(s[idx] - s[idx[k]]) <= SPIKE_SPAN_M
+            j0, i0 = int(ref_p[k]), int(idx[k])
+            print(f"    lap {l['lap_number']} at {s[i0]:.0f} m: production {prod[j0]:+.2f} -> {prod[i0]:+.2f} "
+                  f"(drop {d_p[k]:.2f} over {s[i0] - s[j0]:.1f} m); repair min {np.nanmin(rep[idx[near]]):+.2f}, "
+                  f"drop {np.nanmax(d_r[near]):.2f}; jump-coincident {'yes' if any(j0 <= q <= i0 for q in jset) else 'no'}")
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == "supp2":
         supp2(sys.argv[2])
     elif mode == "sawtooth":
         sawtooth(sys.argv[2])
+    elif mode == "sawrender":
+        sawrender(sys.argv[2])
     else:
         {"lag": lag, "foldrun": foldrun, "sawreport": sawreport, "parity": parity,
          "readout": readout, "census": census}[mode]()
