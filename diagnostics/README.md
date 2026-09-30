@@ -283,6 +283,31 @@ here (53 keepers + 37 in diagnostics/_attic/).
   production, display layer", "Three-way decision table", "Decision
   synthesis" and the render addendum (2026-09-29). Outputs in
   `plots/cs_decision_table/` (gitignored).
+- **inspect_imu_offsets.py** (2026-09-30, keep-reproduces) -- PLAN.md
+  EXPERIMENT PLAN (a): straight-line offsets of yaw rate, ay and the
+  kinematic residual ay/v - r per lap and session, heading closure per lap
+  (bias vs scale), degree 0/1/2 BIC gate against time and against
+  sclu_temp_rate_z, g-sensitivity on widened corner windows, and the
+  in-memory correction's effect on the gated-kinematic drift and the
+  straight-line kinematic-vs-EKF gap. Eight sessions (sweep mapping minus
+  US-v1); Part 4 on Dubai and v3 from the gated-kinematic caches. Imports
+  inspect_new_laps_cs_sweep (sessions), gated_kinematic_common,
+  inspect_gated_kinematic_drift and inspect_gated_kinematic_scale_sign.
+  Modes: census <key> (raw channel-name scan), compute <key> (slim cache
+  incl. the raw temperature block), report (Parts 1-3), consequence (Part
+  4), precheck (liveness of MRR_EgoYawRate and sclu_acc_y against the
+  production channels, one-lap overlays `precheck_yaw_<key>.png`, header
+  presence in the unmapped NBR files); (a2): a2compute <key> (production
+  state + raw sclu_acc_y, sclu_roll_rate, a_roll, GPS speed channels,
+  corner speed classes), referee (steady-state accelerometer vs r v, GPS
+  speed k, gyro/speed split, roll leakage), ratio (post-hoc median-ratio
+  referee per stratum), collapse (single and pairwise candidate
+  corrections on the gated-kinematic drift, Dubai / v3 / JST 29).
+  Keep-reason: evidence for the IMU-offset and turn-proportional-error
+  decisions; any correction package re-runs it. Records: thesis_notes.md
+  "IMU offsets, Part 1" to "Part 5", "Second IMU sources, liveness
+  pre-check" and "(a2) Part 1" to "Part 4" (2026-09-30). Outputs in `plots/imu_offsets/`
+  (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

@@ -58,6 +58,10 @@ CLOSED SINCE THE LAST REWRITE
   the author's simplicity principle recorded (EXPERIMENT PLAN below;
   thesis_notes.md "Intermediate meeting 2026-09-30 - directions
   received").
+- Experiments (a) IMU offsets and (a2) turn-proportional error
+  (2026-09-30, read-only): CLOSED AS CHARACTERISED, correction deferred
+  behind the conditional door "(a3) C3+C4 proposal" (author ruling).
+  Products and records: EXPERIMENT PLAN (a), STATUS paragraph.
 - Branch backlog-g's package (BACKLOG G blocked on literature,
   gated-kinematic fail-ruling, Werner Eq. 4.3 v1, WP-CONFTEXT, v3 NIS
   drift explained) is in main 21c032a.
@@ -70,9 +74,28 @@ APPROVED, NOT IMPLEMENTED
   section "WP-HARDEN" below.
 
 NEXT
-- Experiment (a), IMU offset characterisation (EXPERIMENT PLAN). Its
+- ~~Experiment (a), IMU offset characterisation (EXPERIMENT PLAN). Its
   script design, references and pre-registered exit criterion go to
-  the author as a proposal before anything runs.
+  the author as a proposal before anything runs.~~ [2026-09-30: (a) RUN,
+  read-only, on the author's work order (diagnostics/inspect_imu_offsets.py;
+  thesis_notes.md "IMU offsets, Part 1" to "Part 5"). Per-session
+  constant yaw bias measured (closure excess -0.35 to +0.05 deg/s), no
+  higher degree earned, gyro scale not identifiable at the percent level;
+  a constant correction moves the in-corner drift by at most 0.06 deg.]
+- ~~Author's exit ruling on (a) against its exit criterion ((i) closed, no
+  correction, or (ii) a correction proposal); then (b).~~ [2026-09-30:
+  (a2) RUN, read-only (inspect_imu_offsets.py a2 modes; thesis_notes.md
+  "(a2) Part 1" to "Part 4"). No single candidate collapses the
+  turn-proportional drift on all three test sessions; the formal pairwise
+  winner (ay scale + closure gyro scale) rests on an unidentifiable gyro
+  constant; GPS speed scale + roll leakage collapse 2 of 3. GPS k
+  measured on all eight sessions (1.0050-1.0121).]
+- ~~Author's exit ruling on (a)/(a2) together; then (b).~~ [2026-09-30:
+  ruled -- (a)/(a2) CLOSED AS CHARACTERISED, correction deferred behind
+  the conditional door "(a3) C3+C4 proposal"; see EXPERIMENT PLAN (a).]
+- Experiment (b), upstream-insertion CS filter sweep (EXPERIMENT PLAN),
+  on current inputs; results read against the (a2) characterisation
+  (known input errors of the ~1-2 % scale family). Then (c).
 
 CARRIED OPEN (not started; each keeps its own gate)
 - Werner Eq. 4.3 v2 = Module 5 wiring (Tier A, proposal-first),
@@ -175,6 +198,43 @@ correction; (ii) a stable, reproducible offset -> a correction proposal
 (degree, coefficient source, insertion point), which is itself an
 ESTIMATOR-INPUT CHANGE package, not part of (a).
 Boundary class: READ-ONLY DIAGNOSTIC. Tier B (signal preprocessing).
+STATUS: (a) and its follow-up (a2) CLOSED AS CHARACTERISED, correction
+DEFERRED WITH A CONDITION (author ruling, 2026-09-30). Records:
+thesis_notes.md "IMU offsets, Part 1" to "Part 5", "Second IMU sources,
+liveness pre-check", "(a2) Part 1" to "Part 4"; tooling
+diagnostics/inspect_imu_offsets.py. Products:
+- Per-session offset table: yaw bias as closure excess -0.35 to +0.05
+  deg/s, constant within every session (degree 0, no temperature or
+  consistent g dependence); straight-line ay offset +0.3 to +0.5 m/s^2
+  on serial 221.
+- Turn-proportional decomposition: speed scale 0.5-1.2 % (ecu_speed low
+  against GPS) and roll-gravity leakage 1.5-2.6 % (roll-gyro route) as
+  the measured pair; gyro scale not identifiable at the percent level;
+  drift-collapse table (no single candidate on all three test sessions;
+  speed + roll collapse Dubai and JST 29, v3 +0.036 against a 0.031 bar;
+  the formal pairwise winner rests on the unidentifiable gyro constant).
+- Accelerometer verdict: log_acc_y retained (agrees with speed x roll
+  physics within -2.2 to +1.7 %); sclu_acc_y reads low (0.7-4.2 % even
+  if roll-compensated). Clipping touches 0.000 % of the steady data.
+- k measured per session on all eight files, 1.0050-1.0121; Dubai
+  1.01212 reproduces the recorded 1.01211.
+MRR_EgoYawRate excluded as a reference (a delayed copy of the production
+yaw rate, 2026-09-30 pre-check).
+
+## (a3) C3+C4 proposal -- CONDITIONAL DOOR, not queued
+Opens only when BOTH hold: (1) the engineer round answers the three
+sensor questions (sclu_acc_y compensation, a_roll definition and unit,
+roll-gyro bias spec -- PARKED "Engineer round", item 3); (2) the roll
+term's constant survives those answers.
+If opened: per-session GPS speed factor (v_mps) plus a roll-leakage term
+(ay_mps2), both in prepare_vehicle_state, as ONE estimator-input boundary
+(STRONG/MODERATE CS thresholds and cs_margin re-derived, stab_neg_thresh
+revisited, goldens regenerated, ANALYSIS_SCHEMA_VERSION bumped). k is
+settled there as per-session values, not one constant. Proposal-first;
+the roll term's anchor to be stated in the proposal (Tier A method
+question; the leakage identity itself is standard accelerometer
+kinematics).
+Boundary class: ESTIMATOR-INPUT CHANGE, full re-derivation.
 
 ## (b) CS filtering at upstream insertion points
 Goal: test whether low-pass filtering the inputs of alpha construction
@@ -767,9 +827,13 @@ A - Numbers correct: nonlinear single-track Kalman filter with a
     with no external anchor) manifesting differently, not two
     unrelated bugs. A same-session external-reference census (v3, all
     4176 raw channels) found no sideslip/heading/lateral-velocity
-    sensor on either session, and confirmed v3 lacks GPS course/speed
+    sensor on either session, and ~~confirmed v3 lacks GPS course/speed
     entirely (worse-equipped than Dubai for the existing shelved GPS-
-    course method) with near-zero within-racing-lap anchor coverage on
+    course method)~~ [CORRECTED 2026-09-30, raw-file census: v3 carries
+    log_gps_speed, 10 Hz, live, and log_gps_course in its layout
+    (liveness of course not re-checked); the same claim in the
+    2026-09-20 archive is superseded by this note] with near-zero
+    within-racing-lap anchor coverage on
     BOTH sessions regardless (Dubai 0/5 anchors inside a valid lap, v3
     2/6). CLOSED as structurally infeasible from onboard sensors alone
     -- production keeps the first-pass, kinematic-seeded fit
@@ -1073,6 +1137,12 @@ Added in the 2026-09-30 consolidation:
   package" (WP2b-2). Reopen: the team can fit a reference, even for
   one calibration session, covering racing laps (BACKLOG A reopen
   condition).
+- (a3) C3+C4 proposal (added 2026-09-30, author ruling). Reason: speed
+  scale + roll leakage are the measured pair behind the turn-proportional
+  drift but collapse only 2 of 3 test sessions, and the roll term rests
+  on sensor facts not yet known. Reopen: the engineer round answers the
+  three sensor questions (item 3 below) AND the roll constant survives
+  them. Full shape: EXPERIMENT PLAN "(a3) C3+C4 proposal".
 - Engineer round. Reason: questions only the team can answer, bundled
   into one conversation (made concrete 2026-09-30, author):
   1. Inert levers = the 10 rows the regenerated coverage table
@@ -1090,6 +1160,16 @@ Added in the 2026-09-30 consolidation:
      registry's lat/lon names on the Paul Ricard/NBR logger layout); the
      25/75 aero split confirmation (accepted conditional on a
      presentable derivation, item 8).
+  3. Sensor questions from (a)/(a2), added 2026-09-30 (author ruling):
+     is sclu_acc_y gravity- or roll-compensated at the sensor; what is
+     a_roll (formula and unit; it tracks ay at correlation 0.99-1.00,
+     14.5-15.8 deg/g); what is the roll gyro's bias specification (its
+     corner integral drifts 1.5-5 deg). These three gate "(a3) C3+C4
+     proposal".
+  4. Mounting-tilt question, added 2026-09-30: is the logger /
+     accelerometer mounted with a static roll tilt? Named candidate for
+     the additive straight-line ay offset (+0.3 to +0.5 m/s^2, serial
+     221): g sin(tilt) gives 0.3-0.5 m/s^2 at 1.8-2.9 deg.
   Question lists: the DECISION LAYER SPEC "Elicitation list" and the
   WP2b-2 "Engineer follow-up questions" sections. Reopen: when the
   round is scheduled.
@@ -1112,7 +1192,10 @@ Still parked from earlier entries (long form below or where named):
   2026-09-30): applying it is a speed-input change, hence the
   estimator-input boundary class, so it queues behind experiment (a) --
   if an IMU offset correction lands, speed-adjacent corrections are
-  re-derived once, together, not twice.
+  re-derived once, together, not twice. [2026-09-30: k now measured per
+  session on all eight files (1.0050-1.0121, Dubai reproduces 1.01211);
+  a single constant is superseded -- k is settled as per-session values
+  inside "(a3) C3+C4 proposal" if that door opens.]
 - entry_1_brake bounded backward search. Reopen: an implausibly long
   entry_1_brake window.
 - cs_max_window_m locality (new-data-file checklist): measured on the

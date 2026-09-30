@@ -15873,9 +15873,12 @@ grid via prepare_vehicle_state):
     to which single wheel-speed channel is at fault this session -- not
     "RR contaminates ecu_speed" as the work order's own framing
     hypothesised, a real correction to that premise.
-  - DUBAI CONTROL: no GPS/radar channels exist on Dubai (log_gps_speed/
+  - DUBAI CONTROL: ~~no GPS/radar channels exist on Dubai (log_gps_speed/
     NMEA/MRR all genuinely absent there, unlike v3 -- confirmed, not
-    assumed). Wheel-speed deviations are smaller and more symmetric than
+    assumed).~~ [CORRECTED 2026-09-30, channel census from the raw file:
+    Dubai carries log_gps_speed (10 Hz, live, 2,090 distinct values; the
+    source of the recorded k 1.01211) and MRR_EgoYawRate (present, all
+    zeros). NMEA not re-checked.] Wheel-speed deviations are smaller and more symmetric than
     v3's own (std 1.98-2.33 kph across all four corners, no standout
     faulty wheel) and the RR-fault-window overlap check shows the same
     negative result (0.000 kph flagged vs 0.600 kph not-flagged -- if
@@ -23751,3 +23754,332 @@ above it (diagnostics and records only).
 Plan and specs: PLAN.md "EXPERIMENT PLAN - post-meeting directions
 (2026-09-30)" (entry and exit criteria, boundary classes per direction)
 and PLAN.md "WP-HARDEN" (the full variant A spec).
+
+## IMU offsets, Part 1: straight-line constants, eight sessions [2026-09-30, branch new-laps, read-only]
+
+Script: diagnostics/inspect_imu_offsets.py (census / compute / report /
+consequence; definitions and selection rules in its header before the
+runs). Inputs as production builds them (prepare_vehicle_state, cap 1).
+Sessions: the sweep mapping without US-v1 (the v3 outing re-exported).
+CENSUS (every file): sclu_yaw_rate rpm, 100 Hz, step 0.001666 rpm (0.01
+deg/s); log_acc_y G, 100 Hz, step 0.000742 g. Also present in every file,
+unused by production: sclu_acc_y (a second lateral accelerometer, in the
+sensor cluster), sclu_temp_rate_z (1 Hz, 1-unit steps, unit logged as
+"deg"), MRR_EgoYawRate (a second yaw-rate source, deg/s).
+POPULATION S0 (racing mask outside every corner bracket, analysis laps):
+35-39 % of racing samples, Le Mans 60 %; 8,878 (JST 21) to 38,868 (US-v2)
+samples. S1 (S0 and |ay| < 0.25 x Otsu): 5,570-30,784.
+YAW RATE, S0 median deg/s (S1): Dubai +0.01 (+0.02), v3 -0.25 (-0.36),
+US-v2 -0.20 (-0.28), JST 21 -0.19 (-0.26), JST 29 -0.105 (-0.19), Le Mans
+-0.12 (+0.04), CDR -0.22 (-0.33), MLA -0.30 (-0.41). Lap-median spread
+(std) 0.04-0.15; sample IQR about +/-0.8 deg/s. S0 and S1 differ by
+0.07-0.16 deg/s on every session except Dubai (0.01).
+Drift equivalent over the median gated_x1 run (1.06-2.02 s), yaw only:
+-0.02 (Dubai) to +0.52 deg (MLA), against the recorded gate-exit residual
+median 2.00 / 1.76 deg and max 10.05 / 14.44 deg (Dubai / v3, reproduced
+exactly).
+AY, S0 median m/s^2: Dubai +0.12, v3 +0.48, US-v2 +0.48, JST 21 +0.40,
+JST 29 +0.50, CDR +0.37, MLA +0.29, Le Mans -0.30. Straight-line ay can be
+physical (crossfall, banking); a sensor offset would read the same on
+every track. Drift equivalent, ay only (b_ay/v_gate x T): Dubai +0.44,
+Paul Ricard/NBR +0.84 to +1.51, Le Mans -0.37 deg.
+KINEMATIC RESIDUAL c = ay/v - r, S0 median deg/s: Dubai +0.14, v3 +0.71,
+US-v2 +0.67, NBR +0.53 to +0.54 (all four), Le Mans -0.02; lap-median std
+0.013-0.052.
+STABILITY (early vs late laps, pre-registered rule): ay and c CONSTANT on
+every session with at least 2 laps; yaw CONSTANT on all but Dubai, which
+reads ERRATIC because its lap medians straddle zero (-0.01 to +0.09): not
+distinguishable from zero. Le Mans (1 lap) not assessable. Across sessions
+NOT CONSISTENT for r, ay and c (within 2 SE of the weighted mean: 4/7,
+2/7, 4/7).
+GROUPING, from the file headers: Dubai and Le Mans were logged by logger
+serial 147 (metafile 16614), Paul Ricard and NBR by serial 221 (metafile
+24996/25016). The serial-221 sessions share sign and order of magnitude
+across two tracks (yaw -0.105 to -0.30, ay +0.29 to +0.50, c +0.53 to
++0.71); the serial-147 sessions differ from them and from each other in ay.
+Whether the grouping reflects logger, sensor installation or event is not
+identifiable from the data.
+
+## IMU offsets, Part 2: heading closure per lap [2026-09-30, branch new-laps, read-only]
+
+Closure residual E = integral of yaw rate over the lap minus 360 deg with
+the lap's sign. Every lap on every track has a negative net heading: one
+rotation direction throughout, so direction cannot help separate scale
+from bias; only time vs rotation can.
+E per lap: Dubai +5.95 to +6.37 deg (125 s), v3 -43.9 to -45.4 (125-126 s),
+US-v2 -40.4 to -42.5, JST 21 -31.0/-31.4 and JST 29 -30.2 to -31.6
+(116-117 s), CDR -29.9 to -31.3 (115-120 s), MLA -28.5 to -29.9 (114-118 s),
+Le Mans +11.5 (238 s). Spread within a session at most 2.2 deg.
+Scale e after removing the S0 bias: Dubai -1.39 %, v3 +3.50, US-v2 +4.40,
+JST 21 +2.51, JST 29 +5.13, CDR +1.40, MLA -1.47, Le Mans -11.1 %. With the
+recorded bias definition (racing, |ay| < 0.25 Otsu, moving samples): Dubai
+-1.04 % and v3 -0.32 % (the record, reproduced exactly), US-v2 +1.60,
+JST 21 +0.24, JST 29 +2.38, CDR -2.16, MLA -5.59, Le Mans -0.54 %.
+MECHANISM: 1 % of scale is 3.6 deg per lap, i.e. 0.03 deg/s of bias over a
+120 s lap, while the two straight-line bias references differ by up to 0.16
+deg/s (0.07-0.11 on the serial-221 sessions). The scale estimate inherits
+that uncertainty: the six serial-221 sessions spread from -1.47 to +5.13 %
+(S0) and from -5.59 to +2.38 % (recorded definition), which one logger
+cannot carry. Bias-only
+reading, E/T: Dubai +0.050, v3 -0.35, US-v2 -0.33, JST 21 -0.27, JST 29
+-0.26, CDR -0.26, MLA -0.25, Le Mans +0.048 deg/s; lap-to-lap within about
++/-0.01 deg/s, and within 0.01-0.16 deg/s of the S1 straight medians.
+Paul Ricard and NBR (both serial 221) cannot share one (bias, scale) pair:
+solving the two tracks' closures jointly gives about -1.1 deg/s and -28 %,
+which is not physical, so the bias differs between the two events.
+READING AGAINST THE RECORD: the recorded gyro scale (Dubai -1.04 %, v3
+-0.32 %) is reproduced under its own bias definition, but it is not
+identifiable at the percent level from this data: a 0.03 deg/s change of
+the bias reference moves it by 1 %, and no straight-line reference here is
+that accurate. The closures are consistent with a per-session constant
+bias and a scale near zero; they do not show that scale is zero. The
+recorded 5-27 % attribution, which used that scale, carries the same
+uncertainty.
+
+## IMU offsets, Part 3: polynomial gate, temperature, g-sensitivity [2026-09-30, branch new-laps, read-only]
+
+POLYNOMIAL (one point per straight segment >= 1 s, BIC, a higher degree
+adopted only at a BIC drop > 6): 16-58 segments over 3.8-18.8 min of
+analysis laps. Degree 0 wins for yaw rate, ay and c on all eight sessions;
+degree 1 raises BIC by 2.0-4.0 everywhere, so there is not even weak
+evidence of a time trend.
+TEMPERATURE (sclu_temp_rate_z, read raw): range over the analysis laps
+0-2 units (Dubai 107-109, v3 106-107, US-v2 108-109, JST 107-107.4 and
+107-108.2, MLA 107-108; constant on Le Mans 104 and CDR 106). Degree 0
+wherever it varies. With at most two quantisation steps inside a stint,
+the data cannot test a temperature dependence; none is visible.
+G-SENSITIVITY (per corner traversal widened to straight on both sides,
+Part-1 constants removed; 23-94 windows per session; c_k = a0 + a1
+mean|ay| + a2 mean r): a1 significant (|t| > 2) on 5 of 8 sessions, with
+the sign split by track: Paul Ricard v3 -0.033, US-v2 -0.035; NBR JST 29
++0.038, CDR +0.038, MLA +0.049 (deg/s)/(m/s^2); all five on logger serial
+221. By the pre-registered rule that is no consistent sensor g-sensitivity;
+a track-geometry term (corner banking or camber entering ay) is the
+simplest reading and is untested. a2 (odd in the turn direction) is
+positive and significant on all eight: +0.023 (Le Mans) to +0.066 (US-v2),
+t 3.7-47. Dubai +0.046 and v3 +0.063 match the recorded slopes of the
+gate-exit residual against heading change (+0.039, +0.062).
+VERDICTS: yaw rate constant on all eight sessions. The per-session
+"g-dependent" flag is set on v3, US-v2, JST 29, CDR and MLA; the
+cross-session sign test fails.
+
+## IMU offsets, Part 4: consequence for the in-corner drift [2026-09-30, branch new-laps, read-only]
+
+Dubai and v3 (the sessions of the recorded 2 / 14 deg finding), gated_x1
+re-integrated in memory with the cached Otsu threshold.
+PRE-REGISTERED CORRECTION (constant S0 medians for yaw rate and ay):
+Dubai gate-exit |residual| median 2.00 -> 2.27 deg, max 10.05 -> 12.04;
+v3 1.76 -> 2.13, max 14.44 -> 19.79. Slope against heading change +0.039 ->
++0.041 (Dubai), +0.062 -> +0.074 (v3). The correction makes the drift
+larger.
+POST-HOC DECOMPOSITION (added after that run, labelled as such): yaw only
+(S0) Dubai 2.01 / v3 1.86; yaw only with the closure excess (+0.050 /
+-0.351 deg/s) 1.96 / 1.82; ay only (S0) 2.26 / 1.98. A yaw-bias correction
+moves the median by at most 0.06 deg. On v3 it removes the turn-independent
+part (mean residual +0.68 -> +0.05 deg) and leaves the turn-proportional
+part (positive turns +3.61, negative -1.94 deg). The straight-line ay
+median, applied inside corners, shifts the mean residual by -0.5 to
+-1.5 deg: whatever sets straight-line ay does not act as a constant
+offset in corners.
+MECHANISM: a constant bias gives a drift of one sign in left and right
+turns alike. The recorded in-corner drift carries the sign of the turn:
+its slope against heading change stays at 0.038-0.075 rad/rad in every
+offset row and matches Part 3's odd term a2. Constant offsets
+explain almost none of the unexplained drift. It stays a
+heading-proportional error between ay/v and r of about 2-7 %; its source
+(gyro scale, ay scale, roll-gravity in ay, speed scale) is not separable
+here. Part 2 showed gyro scale is not identifiable at the percent level.
+STRAIGHTS, kinematic vs EKF (EKF inputs unchanged; EKF median |beta| on S0
+0.17 / 0.42 deg): kinematic_prod median |gap| 0.59 -> 0.66 (Dubai), 0.58
+-> 0.57 deg (v3); causal 0.05 Hz 0.56 -> 0.63, 0.93 -> 1.10 deg. No better
+agreement: the washout already removes a constant bias's integral.
+
+## IMU offsets, Part 5: synthesis [2026-09-30, branch new-laps, read-only]
+
+Per session, yaw bias as closure excess E/T (S0 median) / ay S0 median /
+gyro scale / polynomial verdict:
+- Dubai: +0.050 (+0.01) deg/s / +0.12 m/s^2 / not identifiable (-1.04 to
+  -1.39 % by definition) / constant.
+- v3: -0.35 (-0.25) / +0.48 / not identifiable (-0.32 to +3.50 %) /
+  constant.
+- US-v2: -0.33 (-0.20) / +0.48 / not identifiable (+1.60 to +4.40 %) /
+  constant.
+- NBR JST 21: -0.27 (-0.19) / +0.40 / not identifiable / constant.
+- NBR JST 29: -0.26 (-0.105) / +0.50 / not identifiable / constant.
+- NBR CDR: -0.26 (-0.22) / +0.37 / not identifiable / constant.
+- NBR MLA: -0.25 (-0.30) / +0.29 / not identifiable / constant.
+- Le Mans: +0.048 (-0.12) / -0.30 / not identifiable / constant (1 lap).
+No time trend, no visible temperature dependence, and no g-sensitivity
+consistent across sessions.
+CORRECTION CANDIDATE: only a per-session constant yaw bias is measured
+well: the closure excess repeats to about +/-0.01 deg/s lap to lap. Its
+simplest adequate form is degree 0; nothing higher earned its keep. Its
+measured effect on the in-corner drift is at most 0.06 deg median. A
+straight-line ay constant is not a candidate: applied in corners it
+worsens the drift. What a yaw-bias correction would touch, as an
+estimator-input change: prepare_vehicle_state's yaw_rate_radps and every
+consumer of it -- kinematic beta, the EKF measurement (no bias state), slip
+angles, CS_ratio, yaw stability (beta), Eq. 4.3 -- hence STRONG/MODERATE
+CS thresholds and cs_margin re-derived, the stab_neg_thresh item, pipeline
+goldens, ANALYSIS_SCHEMA_VERSION; k=1.01211 queued into the same boundary.
+WHAT IT DOES NOT FIX: the heading-proportional in-corner error (2-7 %
+between ay/v and r), which is the bulk of the recorded drift; the
+curve-beta identifiability, i.e. the absolute beta scale, which no IMU
+offset correction touches.
+
+## Second IMU sources, liveness pre-check for (a2) [2026-09-30, branch new-laps, read-only]
+
+Script: diagnostics/inspect_imu_offsets.py precheck (rule in its header:
+DEAD <= 2 distinct values or zero std over the analysis laps; LIVE =
+non-constant, plausible range, non-zero std inside corner brackets).
+MRR_EgoYawRate: deg/s as logged, 10 Hz everywhere. DEAD (all zeros) on
+Dubai and Le Mans (logger serial 147); LIVE on all six serial-221 sessions.
+Against sclu_yaw_rate (rpm x 6), first analysis lap: r at lag 0
+0.91-0.96, at the best lag 0.998-0.999; MRR lags by 0.24-0.30 s; same sign
+convention. Lag-aligned slope 0.993-0.996, std ratio 0.995-0.997,
+intercept -0.007 to -0.026 deg/s, against a per-session sclu bias of
+-0.25 to -0.35 deg/s (closure excess). On US-v2 the two channels share
+the same session minimum, -61.860 deg/s. Reading: consistent with a
+delayed, down-sampled copy of the same yaw signal; the data do not
+support an independent second sensor, so MRR is not an independent bias
+reference as logged.
+sclu_acc_y: G, 100 Hz, LIVE on all eight sessions (both loggers), 2-3x
+more distinct values than log_acc_y. Against log_acc_y: r 0.977-0.992 at
+a 0.01-0.02 s lag; lag-aligned slope 0.915-0.953, std ratio 0.936-0.961,
+intercept -0.010 to -0.015 g. log_acc_y reaches the +/-5 g limit on US-v2
+and Le Mans (so the plausibility rule marks it IMPLAUSIBLE there; it is
+live), while sclu_acc_y stays within +/-3.1 g. Reading: a second, distinct
+lateral accelerometer; its amplitude is 4-8.5 % below log_acc_y, and which
+one is correct is not decidable from these data.
+Unmapped NBR files (13, header presence only): all logger serial 221, all
+four channels present. Liveness was not checked there.
+
+## (a2) Part 1: steady-state referee, two accelerometers vs r v [2026-09-30, branch new-laps, read-only]
+
+Script: diagnostics/inspect_imu_offsets.py a2compute / referee / ratio
+(rules in its header before the runs; post-hoc items labelled there).
+Population: quasi-steady cornering inside corner brackets of analysis
+laps, |r v| above the session Otsu gate (selection on the regressor),
+|psi_dd| < 0.15 rad/s^2, |ax| < 2 m/s^2, all signals low-passed with the
+chain's 2 Hz zero-phase filter. n 582 (Le Mans) to 4,538 (US-v2), 17-115
+traversals. Clip rule (raw |log_acc_y| >= 5 g): 0.000 % of racing and of
+steady samples on every session, Le Mans and US-v2 included -- the +/-5 g
+excursions sit outside this population and do not touch the scale reading.
+POOLED OLS SLOPE a = s (r v) + i, 95 % traversal-bootstrap CI:
+- log_acc_y: Dubai 1.039 [1.029, 1.047], v3 1.033 [1.013, 1.053], US-v2
+  1.045 [1.028, 1.057], JST 21 1.013 [0.978, 1.032], JST 29 1.040 [1.027,
+  1.050], CDR 1.026 [1.011, 1.037], MLA 1.023 [1.006, 1.036], Le Mans 0.996
+  [0.958, 1.009].
+- sclu_acc_y: Dubai 1.005 [0.995, 1.012], v3 0.986 [0.966, 1.007], US-v2
+  0.997 [0.981, 1.010], JST 21 0.968 [0.937, 0.987], JST 29 0.994 [0.982,
+  1.004], CDR 0.981 [0.968, 0.991], MLA 0.978 [0.963, 0.991], Le Mans 0.963
+  [0.925, 0.978].
+- Reverse-regression bracket (1/s_rev) within 0.004-0.019 of s: noise
+  attenuation small in the pooled fits.
+- Intercepts, log_acc_y: +0.37 to +0.51 m/s^2 on serial 221, -0.07 (Dubai),
+  +0.05 (Le Mans) -- the straight-line ay offset of (a) Part 1 again.
+REFEREE READING (pre-registered): sclu_acc_y closer to 1 in the pooled
+fit on 6 of 8 sessions (not JST 21, Le Mans); by the both-CIs-on-one-side
+rule no session shows a shared same-side error in the pooled fits. Not
+"consistently closer": direction and speed-class OLS strata give slopes
+0.45-0.95 with intercepts of +/-5 to 9 m/s^2 and 1/s_rev up to 0.55 away --
+errors-in-variables attenuation from the range cut, not a scale.
+POST-HOC median ratio a/(r v) per stratum (not attenuated by a range
+cut): pooled log 0.997-1.055, sclu 0.961-1.016; closer: sclu on 4, log on
+4. On serial 221 the r>0 stratum reads 5-8 % above r<0 for log_acc_y (e.g.
+CDR 1.067 vs 0.994), which an additive ay offset b produces (+b/(r v) on
+one side, -b/(r v) on the other); Dubai shows no such split (1.037 vs
+1.047).
+Mutual scale, lag-aligned over racing samples: sclu_acc_y = 0.937-0.958 x
+log_acc_y on all eight sessions (both loggers).
+
+## (a2) Part 2: gyro vs speed split, GPS speed, roll leakage [2026-09-30, branch new-laps, read-only]
+
+GPS SPEED (log_gps_speed, 10 Hz, live on all eight; gpsa_speed and
+IMSA_GPS_vSpeed constant where present). Recorded method re-implemented
+(lag = cross-correlation peak, origin regression over racing samples):
+Dubai k 1.01212 (record 1.01211, reproduced), lag +0.31 s; v3 1.01006,
+US-v2 1.01077, JST 21 1.00671, JST 29 1.00947, CDR 1.00921, MLA 1.00666,
+Le Mans 1.00497; lags +0.20 to +0.32 s, r 0.993-0.9998. ecu_speed reads
+0.5-1.2 % low on every session, so r v under-reads by that much from speed
+alone.
+PRODUCT SPLIT ln s = ln(1+e_a) - ln(1+e_r) - ln(1+e_v), e_v from k, e_r
+over the two closure bias definitions of (a): DEGENERATE on 12 of 16
+session x accelerometer rows (e_r range 0.34-10.6 points wide against
+product errors of 0.3-4.5 %). Where not degenerate: log_acc_y implied e_a
++1.2 to +1.5 % (Dubai), +5.0 to +7.9 % (US-v2), +5.5 to +8.3 % (JST 29);
+these inherit the closure's unidentified gyro scale. Gyro and speed do not
+separate from closure plus referee.
+ROLL-GRAVITY LEAKAGE. Suspension route: a_roll (present on v3, US-v2, CDR,
+MLA) gives 14.5-15.8 deg/g at correlation 0.99-1.00 with ay -- an order
+above the IMU route, consistent with a channel computed from ay or an
+unverified unit; excluded as a roll source (post-hoc, labelled). IMU route
+(sclu_roll_rate integrated from 0 over each corner window, i.e. tilt
+relative to the straight-line attitude including bank change): 0.87-1.49
+deg/g on serial 221, 2.42 (Dubai), 0.75 (Le Mans); correlation with ay
+0.32-0.73; the integral fails to return to zero by 1.5-5.0 deg (median per
+window), so a roll-gyro bias or bank difference is in it. Predicted
+overread of a body-fixed, uncompensated accelerometer: +1.5 to +2.6 %
+(serial 221), +4.2 % (Dubai), +1.3 % (Le Mans). Against d = s_log - 1:
+EXPLAINS on Dubai, JST 21, CDR, MLA; CONTRIBUTES on v3, US-v2, JST 29;
+EXCLUDED on Le Mans (d -0.4 %). Against sclu_acc_y: excluded on 7 of 8 --
+sclu reads below r v, the opposite sign to leakage.
+POST-HOC CROSS-CHECK (labelled): with the gyro taken as exact, log_acc_y's
+pooled slope lies within -2.2 to +1.7 % of k_gps x (1 + IMU-route
+leakage) on all eight sessions; sclu_acc_y lies 3.0-5.4 % below it, and
+still 0.7-4.2 % below k_gps alone (the value a roll-compensated sensor
+would show).
+
+## (a2) Part 3: drift collapse [2026-09-30, branch new-laps, read-only]
+
+Gated_x1 gate-exit residual, recorded method, Otsu threshold fixed;
+before: Dubai median 2.00 / max 10.05 deg, slope +0.039 rad/rad; v3 1.76 /
+14.44, +0.062; JST 29 1.65 / 15.29, +0.026. Each candidate's constant from
+its own measurement (never from the referee or the drift).
+- C1 ay x s_ls (0.958 / 0.937 / 0.945, "trust sclu"): Dubai slope -0.005,
+  median 0.69; v3 -0.005, 1.46; JST 29 -0.031 (overshoot), 1.57.
+- C2a gyro 1/(1+e), e recorded-definition (-1.04 / -0.32 / +2.38 %):
+  +0.028, +0.059, +0.050 (JST 29 median 1.65 -> 2.32).
+- C2b gyro, e S0-definition (-1.38 / +3.50 / +5.13 %): +0.024, +0.100,
+  +0.078; medians up to 3.79.
+- C3 speed x k_gps (1.0121 / 1.0101 / 1.0095): +0.026, +0.052, +0.016;
+  medians 1.51, 1.55, 1.53.
+- C4 roll leakage /(1 + 0.042 / 0.015 / 0.017): -0.003, +0.047, +0.008;
+  medians 0.72, 1.54, 1.61.
+No single candidate meets the winner criterion (slope halved AND median
+not up by more than 2 % on all three). Pairwise fallback: C1+C2a meets it
+(-0.015 / -0.008 / -0.008, medians 0.74 / 1.56 / 1.64); C3+C4 meets it on
+Dubai and JST 29 (-0.015, -0.001) and misses on v3 (+0.036 against a bar
+of 0.031); C1+C2b, C1+C3, C1+C4 and every C2+C3/C4 pair fail at least one
+session. The winning pair's C2a constant is the closure gyro scale that
+(a) Part 2 found unidentifiable at the percent level: with the other,
+equally admissible bias reference (C1+C2b) it fails on JST 29 (+0.019).
+After any collapsing row a turn-independent residual stays (v3 after C1:
+positive turns +1.40, negative +1.36 deg), the additive ay offset.
+
+## (a2) Part 4: synthesis for the exit ruling [2026-09-30, branch new-laps, read-only]
+
+Candidates, measured magnitude / sign pattern / drift collapse:
+- Gyro scale: not identifiable at the percent level (closure range per
+  session up to 10 points wide); sign varies by session and definition;
+  alone never collapses, and on v3/JST 29 worsens with the S0 definition.
+- ay scale: sclu_acc_y reads 4.2-6.3 % below log_acc_y on all eight
+  sessions; pooled referee log 0.996-1.045, sclu 0.963-1.005; alone
+  collapses Dubai and v3, overshoots JST 29.
+- Roll-gravity leakage: +1.5 to +2.6 % (serial 221), +4.2 % (Dubai) from
+  the IMU roll route, the sign that raises a body-fixed |ay|; alone
+  collapses Dubai and JST 29, not v3.
+- Speed scale: ecu_speed 0.5-1.2 % low against GPS on all eight (Dubai k
+  reproduced); alone reduces the slope by 17-38 %, never collapses.
+No single candidate dominates. The formal pairwise winner (ay scale + gyro
+scale) rests on a gyro constant this data cannot pin down, so it is not a
+dominated, stable result. The two independently measured physical terms
+(speed scale from GPS, roll leakage from the roll gyro) together collapse
+two of three sessions and leave v3 at +0.036 rad/rad. Under exact gyro,
+log_acc_y agrees with speed scale x roll leakage within -2.2 to +1.7 % on
+every session; sclu_acc_y reads 0.7-4.2 % below even the
+roll-compensated expectation. The accelerometer clipping (+/-5 g on US-v2 and Le Mans)
+touches 0.000 % of the steady and racing populations and does not bear on
+the scale question.
+What no outcome fixes: the absolute beta scale (curve-beta
+identifiability) is untouched by any IMU scale or offset correction.
