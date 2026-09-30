@@ -23718,3 +23718,36 @@ denominator switch) -- a production discontinuity worth its own item.
 [2026-09-29, render addendum, read-only] Rendered for the author's own inspection, no finding added: plan-B traces (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed -3.5..1.2 axes), worst-lap vs pooled-p25 per corner, 8 sessions each, and a references-only C4 provenance sheet (18 dated entries, figure paths) -- diagnostics/inspect_cs_decision_table.py render, outputs in diagnostics/plots/cs_decision_table/render/ (gitignored).
 
 [2026-09-29, figures regenerated] Decision-layer figures (six_stage_flow, lever_coverage_table; diagnostics/plots_decision_layer/, PDF + PNG; 2026-09-23 set kept as *_20260923) regenerated from live config by diagnostics/generate_decision_layer_figure.py, generator fixed to compute: rank-based display_top_n instead of the retired score threshold, per-class change_time, held-secondary matrix routes, feedback-only entry count, tyre bands, speed_qualified_effect cells; process text removed.
+
+## Intermediate meeting 2026-09-30 - directions received [2026-09-30, branch new-laps, documentation only]
+
+The supervisor's five investigation directions, as relayed by the
+author, in execution order:
+a. IMU offset characterisation: polynomial, low degree first.
+   References: straight-line beta ~ 0, and the yaw-rate integral vs
+   heading closure over full laps. Read-only. Runs first -- upstream of
+   everything.
+b. CS filtering at upstream insertion points (yaw rate, ay, speed, beta
+   before alpha construction): read-only sweep, judged by the survival
+   battery (C3-LS, utilization gaps, driver directions, A-vs-B
+   directionality). Runs with or directly after (a); results
+   conditional on (a)'s outcome.
+c. Yaw-rate cross-lap pooling display (peaks vs pooled envelope as
+   instability candidate marker): display tier, low effort,
+   evidence-not-verdict wiring into the frame.
+d. Tyre-curve baseline prior from all sessions: a fixed prior, not
+   iterative; the per-session fit as a deviation from the prior.
+   Estimator-input change with the full re-derivation boundary
+   attached. Gated on (a) settling first.
+e. Combined accelerations (combined slip, rear axle): parked pending
+   (a)-(d); needs its own proposal.
+SELECTION PRINCIPLE (author, standing): comparable evidence -> the
+simpler candidate ships.
+Variant A approved as specified (floor 0.5, per-member card judgement);
+implementation deferred behind experiment arc.
+FALLBACK: annotated tag stable-2026-09-30 marks main 21c032a, the state
+at the meeting; the CS-arc diagnostics commit 6a583cf sits on new-laps
+above it (diagnostics and records only).
+Plan and specs: PLAN.md "EXPERIMENT PLAN - post-meeting directions
+(2026-09-30)" (entry and exit criteria, boundary classes per direction)
+and PLAN.md "WP-HARDEN" (the full variant A spec).

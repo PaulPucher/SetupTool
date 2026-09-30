@@ -2,336 +2,94 @@
 
 ### NOW
 
-(0000000) BRANCH `new-laps` (off main 21c032a), NOT committed -- read-only
-    diagnosis, 2026-09-29. No production, config or threshold change.
-    New diagnostics/inspect_new_laps_cs_sweep.py [keep-reproduces].
-    Records: thesis_notes.md "New-session checklist", "CS_ratio extremity
-    and flapping baselines", "CS smoothing/persistence sweep".
-    - Seven new .txt sessions censused. MLA-SE07_US-v1 = the v3 outing
-      (re-export). All NBR files are the GP layout. Le Mans has 1 analysis
-      lap. NBR damper channels failed.
-    - Flapping is general: Dubai shows the same sub-resolution share
-      (0.74) and lap-to-lap verdict switching 7/11; pooled 0.47.
-    - Extremity = v3 mechanism on every new track (floor reached 6-19x
-      Dubai's rate), amplified by worst_lap's lap-count dependence.
-    - Sweep: B (1.0/0.5 Hz) and C x2 DISQUALIFIED (Dubai C4 lost); C x1.5
-      survives with 0.017 margin; D/E survive but cannot change verdicts.
-      No winner declared -- author's choice, supervisor tiebreak.
-    - Value lens (same branch, diagnostics/inspect_cs_value_lens.py): NBR
-      A = JST outing 21, B = outing 29 (author-confirmed). CS_ratio
-      decorrelates over 6-12 m, shorter than its own 10-24 m window, in
-      every session incl. Dubai; window-start jumps carry 12-19 % of |dCS|.
-      Lap-to-lap r 0.31-0.74. A -> B shift within B's lap scatter on
-      11/14 corners. Worst-window fold/loop test has no power (monotonic
-      alpha, span floor).
-    - Read-out evidence (same branch, diagnostics/inspect_cs_readout_
-      evidence.py): no systematic slip-force lag (lag explains 8-22 % of
-      negatives); C4 DOWNGRADED to unconfirmed (fold not reproduced,
-      fold/loop test powerless at 1 window, non-specific at 100 m);
-      sawtooth repair cosmetic by rule, windows +25-40 %; pooled read-out
-      resolves NBR A/B 3/14 vs production 4/14 (p25 6/14), empties the
-      census under current thresholds. TC tops on the +0.625 seconds
-      favour. Synthesis in thesis_notes.md.
-    - Final round (diagnostics/inspect_cs_decision_table.py): pooled-p25
-      thresholds by the recorded procedure are degenerate over 8 tracks
-      (STRONG_CSF -1.41, MODERATE_CSF 0.65, MODERATE_CSR undefined); row B
-      calls nearly every corner understeer and empties the census. Row A
-      (display hardening) removes all both-direction pairs and thin #1s,
-      no re-derivation owed. v3 C11 CS_ratio discontinuity (1.00 <-> 0.19
-      under +/-1 %) found. Decision table in thesis_notes.md.
-    NEXT: author decision A0 / A / B and the evidence-floor value; the
-    conflict-card-clears-floor design point; C11 discontinuity as its own
-    item.
-(000000) BRANCH `backlog-g` (off main f6a2add), NOT committed -- author runs
-    git. Closed 2026-09-29. Carries:
-    - BACKLOG G: CLOSED, BLOCKED ON LITERATURE. Five texts searched; all
-      anchor the current moment-balance split, none splits axle Fy by
-      measured Fz. Reopen only with a real anchor. (See BACKLOG G.)
-    - Gated-kinematic sideslip diagnostic: run on both sessions, ruled
-      FAILED 2026-09-29 (reviewer, author-delegated). ekf_auto_pacejka
-      stays production; EKF deletion off the table; washout-cutoff stays
-      BLOCKED (addendum there). Scripts kept as provenance.
-    - WP-CONFTEXT: DONE. Config text scrubbed of process names/framing,
-      7 no-reader dead keys deleted; keys still read by diagnostics/tests
-      kept.
-    - Werner Eq. 4.3 v1: DONE. modules/yaw_damping.py, tests/
-      test_yaw_damping.py, accuracy_levels.yaw_damping (Level 1),
-      diagnostics/inspect_yaw_damping_eq43.py. Completes WITHOUT Fz
-      (effective stiffness from Module 4b). Nothing wired to production
-      (Module 5, payload, UI untouched). Damping > inertia in 77 %/60 %
-      of corner-phases, >10x in 5 %/1 % -- Werner's finding partly
-      reproduces.
-    - v3 NIS health-score drift 0.0849 -> 0.0985: CLOSED, explained --
-      the 2026-09-03 pit-limiter fix removed lap 9 (in-lap) from the fit
-      population; 0.084871 reproduced exactly with lap 9 restored. Both
-      PASS, no verdict affected.
-    - Citation pointers verified to section level: Milliken RCVD ch. 5
-      (sec. 5.7) and ch. 2 (sec. 2.1), Rajamani sec. 2.3.
-    FOLLOW-UPS ON RECORD, NOT STARTED: apex-region D_psi variant (apex_3
-    never clears 4b's phase floor); Eq. 4.3 v2 = Module 5 wiring (Tier A,
-    proposal-first, blocked with the stab_neg_thresh re-derivation);
-    mu-band (1.2-2.0) and C_alpha/Fz = 12 rad^-1 citations -> author's
-    anchor afternoon.
-    FULL SUITE: nothing on this branch changed an estimator input --
-    targeted + golden coverage stands; next full suite at the merge
-    boundary per the author's rule.
-    NOTE: items (00000)-(0) below were written on branch `fix-driver`;
-    that work is merged in main f6a2add -- their "NOT committed" lines
-    are historical.
-(00000) WP-POLISH-2 (branch `fix-driver`, NOT committed): items 1-3
-    done -- compound caveat one sentence (full note in tooltip),
-    pressure header states population (N corners, laps a-b) with
-    per-corner apex medians in the tooltip, tail no-trigger rows
-    collapse to one count line. Item 4 (speed qualifier) IMPLEMENTED:
-    decision_frame.json speed_qualified_effect (TC vs low/med OS ->
-    secondary, ARB vs low/med OS -> primary, wing+splitter at low ->
-    secondary), last pass of generate_candidates, overrides matrix-exact
-    cells, skips driver-only candidates. v3 #1 now diff +1 (ARB
-    edge-blocked, accepted); Dubai unchanged. Addendum: off-band tyre
-    wheels name their corners and laps ("all corners" when all, "all
-    but C.." when <= 3 in band, config); tyre bands editable in
-    Settings (per axle, writes both wheels; Save refused if min > max).
-    PUNCH LIST: tyre-curve
-    stray colours (WP-POLISH 2a) -- author owes the reproduction route.
-    Record: thesis_notes.md "WP-POLISH-2".
-(0000) WP-POLISH (branch `fix-driver`, NOT committed): items 1-3 done --
-    tyre pressure median now over the apex window (summarise_corners'
-    +/- apex_half_window_samples; measured shifts <= 0.011 bar, all
-    wheels still under target on both sessions); tyre-curve lap
-    visibility NOT reproduced headlessly (all panels clean after
-    unchecking, v3 C4/C12, Dubai C4) -- needs the author's route; lap
-    markers 1.5 -> 2.5 px on screen; Settings marker bar scoped to its
-    row + indent (author screenshot verifies). Item 5: change_time is a
-    per-class table (seconds 1.875, minutes 1.25, half_hour 0.8333,
-    garage_hours 0.625), joint bound unchanged (smallest step 0.2083),
-    four Settings rows; v3 diff +1 now #2 above TC lat. Item 4:
-    intervention_depth tie-order (ARB incl. front mount before diff),
-    near-inert by accepted ruling. Config pressure wording corrected.
-    Item 2(a) OPEN pending the author's reproduction route. Records:
-    thesis_notes.md "WP-POLISH" + "WP-POLISH items 4/5".
-(000) WP-SETTINGS (branch `fix-driver`, on top of WP-DISPLAY, NOT
-    committed): classification thresholds editable in Settings as
-    recorded manual overrides (core/threshold_overrides.py:
-    derived_default on first override, never overwritten, restore
-    reads it; "manual" tag + "restore derived" control); stab row
-    states its kinematic-era default, verdict marker untouched.
-    CLAUDE.md amended (override allowed, derivation duty on defaults).
-    Row notes rewritten to what-it-does, date line removed
-    (_short_derived_from deleted, Settings was its only reader).
-    "Display cutoff score" and "neutral level" rows removed (no
-    reader; keys stay). Aero: config rows noted inactive while
-    Cl*A = 0, read-only session-fitted row added
-    (estimate_vertical_loads returns c_session_N_per_mps2;
-    wheel_loads.effective_cl_area). Stale Dubai damper comment in
-    stability_analysis fixed. Left label column 260 px + wrap (21
-    clipped labels -> 0). Dead-key map filed under WP-CONFTEXT.
-    Guard A verified in fresh processes (31/56 Dubai verdicts moved).
-    Record: thesis_notes.md "WP-SETTINGS". UI check: author, tonight.
-    TESTS (targeted, full suite tonight): test_settings_thresholds.py
-    10 passed; test_wheel_loads + test_vertical_load_source_default +
-    test_golden_pipeline + test_golden_auto_modes 40 passed, goldens
-    unchanged; smoke_test_settings_view passes; test_stability.py exit
-    0. INCIDENT (recovered): a background pytest and the settings smoke
-    test raced on the real config files; recommendations.json was
-    transiently truncated. Verified afterwards: all four config files
-    parse and equal HEAD (only the intended WP-DISPLAY kerb comment
-    differs). Rule: config-writing tests never run concurrently.
-(00) WP-DISPLAY (branch `fix-driver`, on top of 7895aa0, NOT committed
-    -- awaiting the author's manual UI check and commit): decision-frame
-    presentation redesign. Kerb blowoff demoted to an informational flag
-    (no candidates; evidence/threshold kept) -- author ruling 2026-09-28,
-    C3 supersede. Levers without a sheet field (tc_lat, tc_lon,
-    abs_position, brake_bias) skip the window-edge check (was a false
-    "sheet unfilled"). Unfilled-sheet banner; "driver disagrees" on
-    merged cards; header "<change> -- <situation>" (D6 supersede);
-    situation-first evidence lines with a method-detail fold; shared
-    lap-label helper (csv_parser.lap_display_label); tyre pressure one
-    line per state, "analysis laps only" (measured no-change, no filter
-    code). CLAUDE.md Dubai lap fact corrected (0-5, analysis 1-4).
-    Visible #1 is now TC lon +1 on both sessions. Records:
-    thesis_notes.md "WP-DISPLAY" + retroactive "Feedback trace, Dubai
-    C4". Phase-D smoke test repointed (badge change part corner-free).
-    Tail rows carry the "driver disagrees" marker too (reviewer ruling,
-    never-silent at every tier). UI check: author, tonight's boundary
-    together with the Settings work.
-    TESTS (author suite amendment 2026-09-28: full suite only at the
-    day's merge boundary): targeted set -- test_decision_frame.py + the
-    outing_form-importing files + test_golden_pipeline.py -- 315 passed;
-    tests/golden/ unchanged (git status/diff empty); test_stability.py
-    exit 0; both decision-frame smoke tests pass, data/setuptool.db
-    untouched. FULL SUITE PENDING: once tonight, after Settings/aero land
-    on this branch, before the merge to main.
-    NEXT: brake-bias refined check (read-only diagnostic), own package.
-(0) WP-FIX-DRIVER: DONE, committed on `fix-driver` (7895aa0) --
-    CORRECTED this rewrite (the previous STATUS said "NOT committed");
-    not yet merged to main. Record kept for reference: production crash in
-    decision-frame Generate, found in the author's manual UI run.
-    Detached Outing + lazy Outing.driver (WP-ELICIT C1 veto) crashed on
-    reopen (A), after a new outing's first Save (B, refresh() leaves
-    relationships unloaded) and on a never-saved outing (D,
-    None.driver_id); stale-driver risk after an edit-mode driver change
-    (C). Fix: driving_level by id via models/driver.py
-    driver_name_and_level (promoted from the PDF export, both call sites
-    switched), id from the on-screen combo (same convention as
-    setup_data -- veto follows the displayed driver before Save);
-    Generate slot wrapper logs "[DECISION_FRAME]" + traceback and shows
-    "Generate failed: ..." (the crash was silent). Regression:
-    tests/test_outing_form_driver_level.py, 6 cases, all fail on old
-    code, pass on fix; throwaway DB only. Record: thesis_notes.md
-    "WP-FIX-DRIVER". Plus: explicit "(no driver)" combo entry (None ->
-    NULL on Save, round-trips on reopen; veto gets None -> threshold 5
-    -> conservative branch; PDFs show no name). Regression file 9 cases.
-    (NEXT moved to item (00).)
-(0b) WP-STRINGS: DONE, committed and merged to main (8fc918b) together
-    with WP-WEIGHTS; record below kept for reference. Internal process records
-    removed from runtime strings (UI-shown evidence/rationale, Settings
-    tooltips, candidate payload). Provenance content and dates kept;
-    PLAN/thesis_notes/WP/phase/list names removed; product-file
-    references kept. Feedback-scale caption: placeholder tail replaced
-    by the 7 recorded anchor lines, #444 -> TEXT_DIM. Brake_bias
-    derived_from reduced to "Segers ch.5" (ch.5 page unverified).
-    MARGINAL test repointed from "Metrology Phase 1" to the "~1% ...
-    change" wording. 7 files + records. FULL SUITE (once): 472 passed /
-    9 skipped / 1 xfailed, identical to WP-STYLE; goldens unregenerated;
-    test_stability.py clean. Record: thesis_notes.md "WP-STRINGS".
-    ADDENDUM (same session, reviewer ruling): process framing in
-    UI-read strings the marker scan missed also landed here --
-    lever_bridges[4].rationale ("HONEST DEGRADE, stated per the work
-    order" -> plain "Limitation: ..."), classification derived_from
-    ("per the checklist item", "per the amendment", "the work order's
-    own stop condition", "instruction" -> the reason or nothing),
-    decision_frame.py ABS/TC evidence ("per the user's own rule" ->
-    "per the author-elicited rule") and the exit diff rationale tail
-    ("per the work order's own instruction" dropped). Also fixed a
-    lost space from this package's first round ("rule:'TC"), and the
-    log-only [PERF] fit-chain warning lost its "per the work order"
-    tail (measured time + 30s budget kept). 4 targeted
-    test files 256 passed (full suite not re-run: same inert string
-    class, per ruling).
-    (Brake-bias refined check: moved to item (0) NEXT.)
-    DONE 2026-09-28 on branch backlog-g (see item (000000)), named
-    follow-up WP-CONFTEXT: the 178 config values no code
-    reads (channels 6, decision_frame 77, parameters 57,
-    setup_parameters 38 -- note/derived_from/source/notes fields) ship
-    readable in the release and carry the same internal-name leak. Same
-    rules: provenance and dates stay, doc/WP/phase names go; the two
-    test-pinned derived_from values (test_decision_frame "placeholder",
-    "No longer primary") handled with repoint-or-keep care. Scan for
-    process FRAMING too ("work order", "checklist", "amendment",
-    "instruction", "per the user"), not only doc/WP/phase names -- the
-    WP-STRINGS marker scan missed that class on the first pass.
-    DEAD-KEY MAP (WP-SETTINGS sweep 2026-09-28; start from this, do not
-    re-scan; record only, deletions are WP-CONFTEXT's). Method: every
-    non-documentation config key's quoted name searched in
-    modules/core/ui/models + main.py, then hand-checked. No reader in
-    code:
-    - parameters.json: vehicle.driver_mass_ref_kg (75.0),
-      vehicle.fuel_mass_ref_kg (35.0); vehicle.yaw_inertia_kalman_kgm2
-      (1800.0, diagnostics only); stability_estimation.
-      cs_front_fallback_reference_n_per_rad (68268) and
-      cs_rear_fallback_reference_n_per_rad (91343), diagnostics only;
-      tyre_model_fit block incl. ay_linear_threshold_g (0.3),
-      diagnostics only; longitudinal_stiffness.
-      kerb_investigation_reference (a thesis_notes pointer string);
-      tyre_model_ekf.pass_0/pass_1/pass_3 provenance fields
-      (frozen_from, seeded_from, changed_from_previous,
-      R_ay_derivation, R_yaw_rate_derivation) -- record-shaped, not
-      parameters.
-    - decision_frame.json: plausibility_checks.tyre_pressure_window
-      (front/rear min_psi/max_psi all null, per_corner_override all
-      null; superseded by tyre_pressure_target in bar);
-      intervention_evidence.abs.
-      abs_inactive_corroborates_braking_instability and
-      intervention_evidence.tc.tc_active_corroborates_traction_limited
-      (rule descriptors; phase/verdict hard-coded in the builders);
-      eligibility_classes.camber_multi_corner_gate (prose note).
-    - channels.json, recommendations.json, car.json: none.
-    - Read by Settings only (rows removed from Settings in WP-SETTINGS,
-      keys kept): decision_frame.json display_score_threshold (display
-      cuts by display_top_n; test-pinned derived_from "No longer
-      primary", also read by diagnostics/smoke_test_decision_frame_
-      phase_d.py); recommendations.json settings.driver_level_weighting.
-      neutral_level (value copied into decision_frame.json
-      eligibility_classes.driver_level_threshold, which is the live one).
-    - Checked and LIVE (scan false positives): wheel_loads.
-      pushrod_offset_*_N (f-string read), channels.json
-      channel_corrections (iterated).
-(0') WP-WEIGHTS: DONE, committed and merged to main (8fc918b): cost_function
-    breadth 0.0 (annotation-only; 1.0 was an additive-score misread),
-    headroom 0.1, interaction 0.1 (joint bound 0.2 < 0.2083, the
-    smallest change_time class step), author-elicited 2026-09-26.
-    _interaction_penalty: adverse (-1) entries only, counted once;
-    +1 couplings note-only. splitter_offset window filled (0 +- 4,
-    registry value space). Settings tooltips repointed. Tests: two
-    new interaction tests, weight-pin test repointed (WP-WEIGHTS).
-    Record: thesis_notes.md "WP-WEIGHTS" (incl. Pair-1 latent
-    effort-order violation under the old weights). effect_class 1.0/0.6
-    confirmed (author-elicited 2026-09-26), own derived_from, no WARN --
-    all six cost_function terms now elicited. Accepted limitation:
-    splitter at its default 0 reads as "unknown" in the shared setup
-    reader, so headroom stays neutral there (conservative, flagged).
-    COMBINED COMMIT-BOUNDARY RUN (strings + weights, once): 474 passed /
-    9 skipped / 1 xfailed (472 baseline + 2 new interaction tests);
-    tests/golden/ verified unchanged (git status/diff empty);
-    test_stability.py exit 0. Committed 8fc918b after the author's manual UI
-    check (feedback caption, Settings tooltips/WARN rows).
-(0a) WP-STYLE: DONE, committed to main (e65b45f) -- CORRECTED this
-    rewrite: the previous STATUS said "NOT committed"; main's tip is
-    that commit.
-(0b) WP-ELICIT: DONE, committed to main (4e85ff1); data/ directory
-    first-run fix committed on top (45850e9).
-    STILL OPEN from WP-ELICIT (carried forward unchanged):
-    - elicitation item 5's TC/EB CHANNEL MAPPING half (the EB-as-lever
-      half is resolved; channel identity is untouched).
-    - brake_bias channel identity: nothing correlated cleanly on either
-      real session (own diagnostic run, HANDOFF item 5) -- stays not-
-      evaluable; its current-state window check stays WITHHELD
-      (propose-first change, needs the reviewer present).
-    - literature hits C11-4/C11-5 (Segers ch.11, high-speed damping /
-      front-rebound-as-rake-lever) await a per-hit reviewer ruling --
-      seeded nothing per this session's own instruction.
-    - docs/literature/'s non-Segers texts (Werner_2021_MA.pdf, Rajamani,
-      the two Automotive Control Systems books) were NOT actually
-      searchable this session -- no extractable text layer via Grep, no
-      page rendering via Read (pdftoppm/poppler-utils not installed).
-      Their coverage of item 4's questions is UNKNOWN, not "not
-      covered" -- a tool limitation to fix or work around next session,
-      not a content finding.
-    - elicitation item 10's own PLAN.md text still describes the
-      feedback-router ValueError as a live crash risk needing a
-      reviewer decision -- that crash is FIXED (HANDOFF item 1), but
-      item 10's own text was not rewritten this session (out of item 6's
-      explicitly stated scope) -- a known stale passage, flagged here
-      rather than silently left implying the crash still exists.
-(1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
-    A-F complete per its own close-out record (thesis_notes.md). No
-    longer an open item.
-(2) Sidecar cache + Analyse-button contract (WP-CACHE): DONE, merged to
-    main (0f1731d, verified via git log). No longer an open item.
-(3) Pipeline performance (WP-PERF): DONE, merged to main (224e591,
-    verified directly via `git log` on branch `elicit` -- CORRECTED this
-    rewrite: the previous STATUS text here claimed this was still on an
-    unmerged perf-estimators branch awaiting the user's go-ahead; that
-    was stale, main@647582f's own history already contains it). Byte-
-    identical speedup of the two window estimators (estimate_
-    longitudinal_stiffness, estimate_cornering_stiffness) via an
-    incremental running max/min instead of re-scanning the whole growing
-    window at every widening step. Wall-clock, both real sessions:
-    Dubai 969.82->541.41s (1.79x), v3 697.61->428.23s (1.63x). Full
-    record thesis_notes.md "WP-PERF close-out".
-(4) Diagnostics inventory / module map / hygiene audit: DONE, merged to
-    main (8248186, WP-CLEAN) -- CORRECTED this rewrite: previously
-    listed here as a future to-do; it already happened (55 diagnostics
-    keepers verified against seven load-bearing tests, 37 moved to
-    diagnostics/_attic/, the two EKF production files relocated from
-    diagnostics/ to modules/, module map + thesis material index
-    written). No longer an open item.
-(5) Comment-style humanization pass: DONE, merged to main (647582f,
-    WP-COMMENTS) -- not previously listed in this STATUS block at all;
-    added here for main@647582f completeness.
-(6) Commit and push at end of every working day.
-(7) Thesis writing starts after (1)-(4); later building remains
-    possible but chapter-driven.
+Rewritten 2026-09-30 (post-meeting consolidation, branch new-laps). The
+NOW items this replaces are preserved verbatim under "SUPERSEDED
+NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)" in the history part of
+this file.
+
+READING ORDER. This block -> EXPERIMENT PLAN (next section, the work
+queue) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+REPO STATE
+- main @ 21c032a. Tag stable-2026-09-30 (annotated, "Pre-experiment
+  fallback: state as of intermediate meeting") marks main 21c032a.
+  Branch new-laps sits one commit above it: 6a583cf, the CS diagnostic
+  arc (four diagnostics scripts, the figure-generator fix, records;
+  production untouched). The tag does not contain that commit --
+  harmless: the tag is the production fallback and the arc changed no
+  production, config or threshold file.
+- Production chain as of the tag: sideslip ekf_auto_pacejka (the
+  gated-kinematic alternative was ruled FAILED 2026-09-29); CS_ratio
+  worst-lap read-out with the STRONG/MODERATE thresholds derived on
+  Dubai (2026-09-02) and cs_margin (2026-09-19); stab_neg_thresh still
+  kinematic-era, not re-derived (BACKLOG A).
+
+CLOSED SINCE THE LAST REWRITE
+- CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
+  the author's choice of variant A (WP-HARDEN below); A0 and B not
+  taken. Records, thesis_notes.md, six entries end to end:
+  1. "CS smoothing/persistence sweep, ten rows x nine sessions"
+  2. "CS_ratio value lens: smoothness, reproduction, demand bands, A vs
+     B, fold/loop"
+  3. "Pooled-p25 thresholds by the recorded procedure"
+  4. "Hardened production, display layer"
+  5. "Three-way decision table: A0 / A / B"
+  6. "Decision synthesis: CS read-out, final diagnostic round"
+  Supporting entries of the same date sit around them: the new-session
+  checklist and extremity/flapping baselines before 1, the NBR outing
+  mapping before 2, and the read-out evidence between 2 and 3 (lag
+  check, fold/loop at run scale, sawtooth repair, pooled read-out
+  prototype, synthesis for the read-out decision). Findings carried
+  forward: Dubai C4 is UNCONFIRMED (not load-bearing); the recorded
+  threshold procedure is degenerate on multi-track pooled data; the v3
+  C11 CS_ratio discontinuity (PARKED).
+- Decision-layer figures regenerated 2026-09-29 from live config
+  (six_stage_flow, lever_coverage_table; PDF + PNG in
+  diagnostics/plots_decision_layer/, gitignored; the 2026-09-23 set kept
+  as *_20260923). The generator, diagnostics/generate_decision_layer_
+  figure.py, now computes what it used to state (fix in 6a583cf).
+  Record: thesis_notes.md "[2026-09-29, figures regenerated]".
+- Intermediate meeting held 2026-09-30: five supervisor directions and
+  the author's simplicity principle recorded (EXPERIMENT PLAN below;
+  thesis_notes.md "Intermediate meeting 2026-09-30 - directions
+  received").
+- Branch backlog-g's package (BACKLOG G blocked on literature,
+  gated-kinematic fail-ruling, Werner Eq. 4.3 v1, WP-CONFTEXT, v3 NIS
+  drift explained) is in main 21c032a.
+
+APPROVED, NOT IMPLEMENTED
+- WP-HARDEN (CS display hardening, variant A): specified and approved
+  (author, 2026-09-30); implementation deliberately deferred behind the
+  post-meeting experiment arc (a)-(b), because estimator-input changes
+  would shift the census numbers A is verified against. Full spec:
+  section "WP-HARDEN" below.
+
+NEXT
+- Experiment (a), IMU offset characterisation (EXPERIMENT PLAN). Its
+  script design, references and pre-registered exit criterion go to
+  the author as a proposal before anything runs.
+
+CARRIED OPEN (not started; each keeps its own gate)
+- Werner Eq. 4.3 v2 = Module 5 wiring (Tier A, proposal-first),
+  blocked together with the stab_neg_thresh re-derivation (BACKLOG A).
+- Apex-region D_psi variant (apex_3 never clears 4b's phase floor).
+- Citations for the mu band (1.2-2.0) and C_alpha/Fz = 12 rad^-1:
+  author's anchor afternoon.
+- Brake-bias refined check: read-only diagnostic, own package.
+- WP-POLISH item 2a, tyre-curve stray colours: not reproduced
+  headlessly; the author owes the reproduction route.
+- Segers ch. 11 literature hits C11-4/C11-5: await a per-hit reviewer
+  ruling.
+- Channel identities and the other team-only questions: engineer round
+  (PARKED consolidated list).
+- Full test suite: next at the first estimator boundary (author rule,
+  2026-09-28). Nothing since 21c032a changed an estimator input;
+  new-laps carries diagnostics and records only.
 
 STANDING WARNINGS -- carry these into every future session
 
@@ -352,8 +110,204 @@ STANDING WARNINGS -- carry these into every future session
 - Protected set, never committed: docs/literature/, docs/car_data/,
   config/car_data.json, HANDOVER.md, docs/study/. Verify with
   git ls-files returning empty.
-- Full test suite only at commit points, once per package. Targeted
+- ~~Full test suite only at commit points, once per package.~~ Targeted
   tests during implementation. Never run the full suite mid-iteration.
+  [SUPERSEDED 2026-09-30, recording the author's 2026-09-28 rule: the
+  full suite runs only at an author-named boundary, currently the next
+  estimator boundary; a sub-package runs its targeted files plus
+  tests/test_golden_pipeline.py as the numeric guard.]
+
+# EXPERIMENT PLAN - post-meeting directions (2026-09-30)
+
+Source: the supervisor's five directions at the intermediate meeting
+of 2026-09-30, as relayed by the author (thesis_notes.md "Intermediate
+meeting 2026-09-30 - directions received"). Executed in the order
+below, one at a time, proposal-first (PROCESS RULES). Choosing between
+candidates follows the selection principle (PROCESS RULES): comparable
+evidence -> the simpler candidate ships.
+
+Boundary classes used below:
+- READ-ONLY DIAGNOSTIC: no production, config or threshold change;
+  in-memory variants, targeted runs; the diagnostics disposal rule
+  applies to its script. Adopting a result is a separate package.
+- DISPLAY TIER: presentation and evidence wiring only, no estimator
+  input changes; targeted tests + golden guard, author's UI check.
+- ESTIMATOR-INPUT CHANGE: changes a value the CS, LS or yaw-stability
+  estimators consume. Carries the full re-derivation boundary:
+  STRONG/MODERATE_CSF/CSR and verdict_stability_margin re-derived on the
+  new distribution (standing rule, CLAUDE.md); if beta changes, the
+  stab_neg_thresh item (BACKLOG A) is revisited; ANALYSIS_SCHEMA_VERSION
+  bump if cached analysis values change; affected goldens regenerated;
+  full suite once. Caveat on record: the recorded threshold procedure
+  gives degenerate thresholds on multi-track pooled data (thesis_notes.md
+  "Pooled-p25 thresholds by the recorded procedure"), so the first such
+  boundary must also settle which population the procedure runs on.
+
+## (a) IMU offset characterisation -- runs FIRST
+Goal: measure whether the IMU signals that feed beta and alpha carry an
+offset or slow drift, described per session as a low-degree polynomial
+in time.
+Simplest version first: degree 0 (one constant offset per session),
+then degree 1; a higher degree only if the lower one leaves a
+structured residual against both references.
+References (data-internal; no external sideslip or heading sensor was
+found on Dubai or v3, thesis_notes.md "Refit-loop conclusion" census):
+- straight-line beta ~ 0: on straight, low-|ay| samples an offset shows
+  up as a non-zero apparent sideslip;
+- heading closure: the yaw-rate integral over a full lap must close to
+  one net turn; the per-lap residual separates a time-proportional
+  offset from a rotation-proportional scale error.
+Starting point, not to be re-derived: gyro scale -1.04 % (Dubai) /
+-0.32 % (v3) by closed-lap heading closure after bias removal, and an
+unidentified heading-change-proportional in-corner drift that gyro
+scale explains only 5-27 % of (thesis_notes.md "Gated-kinematic
+sideslip diagnostic"; tooling diagnostics/inspect_gated_kinematic_
+scale_sign.py).
+Why first: it is upstream of everything -- beta, alpha, CS, LS, yaw
+stability and each later direction consume these signals.
+Entry criterion: channel census of the IMU channels used, on every
+session used (channel census rule); references and pass criteria
+written into the script header before the run.
+Exit criterion: per session, fitted coefficients with an uncertainty
+taken from the two references' disagreement, and one of: (i) offset
+indistinguishable from zero within that uncertainty -> closed, no
+correction; (ii) a stable, reproducible offset -> a correction proposal
+(degree, coefficient source, insertion point), which is itself an
+ESTIMATOR-INPUT CHANGE package, not part of (a).
+Boundary class: READ-ONLY DIAGNOSTIC. Tier B (signal preprocessing).
+
+## (b) CS filtering at upstream insertion points
+Goal: test whether low-pass filtering the inputs of alpha construction
+(yaw rate, ay, speed, beta) reduces CS_ratio flapping without losing
+what the survival battery requires. The 2026-09-29 sweep filtered only
+at the CS stage (alpha and Fy, cs_filter_cutoff_hz), where it
+suppressed the estimator (thesis_notes.md "CS smoothing/persistence
+sweep").
+Simplest version first: one input at a time, the filter family the
+chain already uses, a short cutoff list; combinations only if a single
+input shows a benefit.
+Judged by the survival battery (thesis_notes.md "Three-way decision
+table: A0 / A / B"): C3 LS rear exit_5 negative 4/4; utilization gaps
+(worst-phase r - f > 0 at Dubai C3, US-v2 C13, NBR B C9); driver
+directions (Dubai US >= OS, NBR A understeer label); A-vs-B
+directionality (front up, gap narrower). The benefit side uses the
+sweep's flapping and lap-switch metrics. Dubai C4 is not a bar (it is
+UNCONFIRMED since 2026-09-29).
+Entry criterion: runs with or directly after (a). Every result is
+conditional on (a)'s outcome; if (a) ends in a correction, (b) re-runs
+on corrected inputs before any reading.
+Exit criterion: per insertion point, battery pass/fail and the
+verdict-level switching change. Either an insertion point passes the
+battery with a verdict-level benefit -> an ESTIMATOR-INPUT CHANGE
+proposal, or none does -> closed and recorded.
+Boundary class: READ-ONLY DIAGNOSTIC (production functions unchanged).
+Tier B. Reuses the sweep caches and the decision-table battery
+(diagnostics/inspect_new_laps_cs_sweep.py, inspect_cs_decision_table.py).
+
+## (c) Yaw-rate cross-lap pooling display
+Goal: show each lap's yaw-rate peak per corner against the pooled
+cross-lap envelope of that corner, marking laps outside the envelope as
+instability candidates.
+Simplest version first: display only (per-lap peak markers against a
+pooled band over the analysis laps); then wiring into the frame as
+evidence, never as a verdict.
+Entry criterion: (a) closed (the displayed yaw rate is the signal (a)
+characterises); envelope statistic and band stated in config before
+the build (Tier B values), display Tier C.
+Exit criterion: author's manual UI check passes; classification and
+verdicts byte-identical; the evidence item appears in the frame with
+its source stated; targeted tests green.
+Boundary class: DISPLAY TIER. Low effort.
+
+## (d) Tyre-curve baseline prior from all sessions
+Goal: fit one baseline tyre curve per axle over all sessions, hold it
+FIXED, and express each session's own fit as a deviation from it.
+Simplest version first: the prior fitted once with the existing
+production fit; the smallest deviation form the proposal can justify
+(e.g. one scale factor on the prior), extended only on evidence.
+Not iterative, and why that matters: the refit loop failed because each
+pass fitted the curve to a beta produced by the previous pass's curve
+-- a closed loop in which curve and beta are jointly unobservable from
+ay and yaw rate, so it drifted (Dugoff toward linear, Pacejka D
+inflating; thesis_notes.md "Refit-loop conclusion: structural
+non-convergence confirmed on two sessions, two failure directions"). A
+fixed prior is computed once and never fed its own output again, so
+there is no loop to drift. What it does not do: make curve and beta
+identifiable. The prior inherits the beta source it was fitted on; that
+is stated as its provenance (accuracy level).
+Entry criterion: (a) settled first (otherwise any IMU offset is baked
+into the prior); a Tier A anchor for a prior-plus-deviation fit named
+in its proposal (STOP rule if none exists).
+Exit criterion: prior fitted and frozen with its derivation recorded;
+per-session deviations measured on every session; then either the
+battery improves at comparable complexity -> production package, or it
+does not -> closed.
+Boundary class: ESTIMATOR-INPUT CHANGE, full re-derivation boundary
+attached (the curve moves beta through the EKF, hence alpha, CS, LS and
+yaw stability).
+
+## (e) Combined accelerations (combined slip, rear axle) -- PARKED
+Goal: account for combined longitudinal and lateral demand on the rear
+axle, where a pure-lateral view cannot see traction limitation on exit.
+Simplest version first: rear axle only, as directed.
+Status: parked pending (a)-(d); needs its own proposal. Anchor already
+on record: Rajamani ch. 13 combined-slip formulation (the older PARKED
+entry "Combined-slip tyre model", superseded by this direction
+2026-09-30).
+Entry criterion: (a)-(d) closed. Exit criterion and boundary class: set
+by its proposal; expected ESTIMATOR-INPUT CHANGE.
+
+# WP-HARDEN - CS display hardening (variant A)
+
+STATUS: specified and approved (author, 2026-09-30); implementation
+deliberately deferred behind the post-meeting experiment arc (a)-(b),
+because estimator-input changes would shift the census numbers A is
+verified against.
+Origin: the CS diagnostic arc's three-way decision (thesis_notes.md
+"Three-way decision table: A0 / A / B", "Decision synthesis: CS
+read-out, final diagnostic round"). A keeps estimator, read-out and
+verdicts identical to production and fixes the census: opposite
+directions of one lever together in the top 3 (Dubai, US-v2, NBR B,
+MLA) and thin #1 rows (problem weight < 0.5, one corner).
+DECIDED (author with reviewer, 2026-09-29/30; no open questions):
+1. Evidence floor value 0.5. Config derived_from: "reviewer-chosen
+   midpoint of the 0.3-0.75 near-inert sweep range (decision-table
+   package 2026-09-29); revisit when real data makes it bind."
+2. Floor rule: a candidate ranks in the visible top 3 only if problem
+   weight >= 0.5 OR its evidence spans >= 2 corners; otherwise it goes
+   to the tail with the state "below evidence floor".
+3. Conflict cards: opposite directions of one lever anywhere in the
+   session merge into one conflict card (resolve_conflicts'
+   conflict_status vocabulary extended from one corner to the session).
+   The >= 2-corners branch is judged PER CONFLICT-CARD MEMBER, not per
+   card. A card whose members individually fail the floor renders as
+   one conflict LINE in the tail, never as a top-3 card. Reason: a
+   merged card spans two corners by construction and would otherwise
+   clear the floor automatically -- measured, it became #1 on Dubai,
+   US-v2, NBR B and MLA on thin paired evidence.
+4. Scope: modules/decision_frame.py display path only (floor after
+   resolve_conflicts / group_display_rows; session-level conflict).
+   Candidate generation, evidence and scoring stay byte-identical, and
+   the implementation asserts candidate-set invariance.
+   ui/views/outing_form.py card and conflict-line rendering. One new
+   config/decision_frame.json key (the floor, with the derived_from
+   above). New targeted tests plus the five review files named in the
+   2026-09-29 synthesis: tests/test_cs_validity_repair.py,
+   test_decision_frame.py, test_nan_empty_paths.py,
+   test_settings_thresholds.py, test_config_schema_integrity.py
+   (confirmed by the author 2026-09-30; the synthesis listed them for
+   variant B, but the display path and its config key touch the same
+   surfaces whichever variant they were listed for). No
+   ANALYSIS_SCHEMA_VERSION bump, no threshold re-derivation. Goldens:
+   recommendations_* only if the display split is part of the golden
+   payload (check at implementation). Full suite at the implementation
+   boundary.
+Verification basis: the decision-table census (2026-09-29) measured
+the floor under the per-CARD rule; per-member judgement is new, so its
+census is measured at implementation (diagnostics/inspect_cs_decision_
+table.py part2 / table on the then-current chain). If (a)-(b) changed
+estimator inputs, every census number is re-measured, not reused.
+Tier C (display/product) with one calibration value in config.
 
 # DECISION LAYER SPEC (governing document — elicited 2026-09-22,
 reviewer interview with author. Source key: [A]=author decision,
@@ -490,7 +444,10 @@ not implementation)
    PARTIAL, WP-ELICIT Phase A1 (2026-09-24, author-elicited): severity/
    change_time shape landed (change_time dominates in the normal case,
    severity punches through only at the eligibility gate's own ceiling).
-   breadth/headroom/interaction remain unelicited placeholders (1.0). See
+   ~~breadth/headroom/interaction remain unelicited placeholders (1.0).~~
+   [SUPERSEDED 2026-09-30: all six cost-function terms elicited
+   2026-09-26, WP-WEIGHTS, merged 8fc918b; thesis_notes.md
+   "WP-WEIGHTS".] See
    thesis_notes.md "WP-ELICIT Phase A: cost-function weights + display
    cutoff" for the full record, including the term-order test conflict
    found and its resolution.
@@ -773,8 +730,15 @@ A - Numbers correct: nonlinear single-track Kalman filter with a
     curve, calibrated noise model) is carried forward instead, with
     the kinematic circularity explicitly unresolved. Done when:
     sideslip has a defensible source and verdicts are recomputed on
-    it -- still open, gated on R re-derivation against pass 1 (NOW)
-    and the threshold re-derivation (PARKED).
+    it ~~-- still open, gated on R re-derivation against pass 1 (NOW)
+    and the threshold re-derivation (PARKED).~~ [SUPERSEDED 2026-09-30:
+    R re-derivation was decided NOT NEEDED on 2026-08-20; the CS
+    thresholds were re-derived for ekf_auto_pacejka on 2026-09-02
+    (thesis_notes.md "Threshold anchoring + arc closure, Phase 8: arc
+    CLOSED"); ekf_auto_pacejka stays production after the 2026-09-29
+    gated-kinematic fail-ruling. What remains open is the
+    stab_neg_thresh sub-item below; EXPERIMENT PLAN (a) and (d) sit
+    upstream of it.]
     NEW OPEN ITEM (2026-09-02, threshold anchoring): Module 5
     stability sign/scale under ekf_auto_pacejka + stab_neg_thresh
     re-derivation. estimate_yaw_moment_stability takes beta as a
@@ -814,19 +778,26 @@ A - Numbers correct: nonlinear single-track Kalman filter with a
     to anchor the identifiability, not merely present in a future
     export at all (this session's own census shows a declared
     reference can still provide ~zero usable racing-lap anchors).
-C - Decision-matrix depth: elicitation question set (own file, to
+C - ~~Decision-matrix depth: elicitation question set (own file, to
     be created in a later session, sorted by who answers - user or
     engineer); matrix expansion incl. the beyond-peak gap; cost
     function with elicited weights; feasibility/conflict logic.
-    Gated on elicitation answers.
+    Gated on elicitation answers.~~ [SUPERSEDED 2026-09-30: delivered
+    as the DECISION LAYER SPEC (WP-DL, merged bd0ec69) with its
+    elicitation run in WP-ELICIT and WP-WEIGHTS (all six cost-function
+    terms elicited 2026-09-26). The beyond-peak tier stays PARKED.]
 D - Output artifacts: weekend PDF expansion; per-corner CS overlay
     and g-g plots.
 
 BLOCKS WRITING
 
-E - Cleanup (after track A closes): diagnostics inventory + README,
-    archive dead one-offs; HANDOVER regeneration incl. diagnostics;
-    protected-set audit and push readiness.
+E - Cleanup (after track A closes): ~~diagnostics inventory + README,
+    archive dead one-offs;~~ HANDOVER regeneration incl. diagnostics;
+    protected-set audit and push readiness. [PARTLY SUPERSEDED
+    2026-09-30: the diagnostics inventory, README and archiving were
+    done in WP-CLEAN (merged 8248186); HANDOVER regeneration and push
+    readiness are out of scope here -- handled by the author's own
+    generate_handover.py flow at his cadence.]
 F - (optional thesis figure, not a work item) Rear Dugoff curve
     plotted at pass 0, 2, 3 and 4 on shared axes, showing the
     pass-4 rear curve as a straight line. A single figure
@@ -1055,6 +1026,105 @@ H - SHIPPED 2026-09-20 (branch lever-bridges, full record: thesis_notes.md
     scope, per the original proposal above).
 
 ### PARKED (decided, not forgotten)
+
+CONSOLIDATED LIST (2026-09-30). The one place parked items are
+tracked: each line states the reason and the reopen condition. The
+long-form entries after this list are the record; entries superseded
+on 2026-09-30 are struck through there with a dated note.
+
+Added in the 2026-09-30 consolidation:
+- v3 C11 CS_ratio denominator discontinuity. Reason: the front
+  CS_ratio jumps 1.00 <-> 0.19 under +/-1 % input changes (the
+  linear-reference denominator switches), identically under worst-lap
+  and pooled read-outs; under the current thresholds both values read
+  "ok", so no verdict is affected today (thesis_notes.md "Pooled-p25
+  thresholds by the recorded procedure", MARGIN). Reopen: a threshold
+  or read-out change that puts a threshold between the two values, or
+  a second corner showing the same switch.
+- NBR C1 EKF entry lag. Reason: slip follows force by 50-140 ms over
+  the corner, near the search limit on entry, 6/6 laps, under the EKF
+  chain (partly beta-source dependent); it explains one C1 lap largely
+  and the deepest laps barely; the population lag is not systematic
+  (thesis_notes.md "Slip-vs-force lag check"). Reopen: re-measure after
+  (a), and after (d) if it runs -- both can change it.
+- Sawtooth window-start repair. Reason: available and measured, but
+  COSMETIC by the pre-registered rule (qualifying set identical, phase
+  medians within export noise); it lengthens windows 25-40 % and moves
+  pooled thresholds (thesis_notes.md "Sawtooth window-start repair").
+  Reopen: only bundled with an estimator-input boundary, since it
+  changes CS values (method-defining constant, ANALYSIS_SCHEMA_VERSION
+  bump, all three pipeline goldens, re-derivation after it).
+- Change-time weighting. Reason: the seconds-class change_time favour
+  (a fixed +0.625 over minutes-class rows, recorded 2026-09-29) lifts
+  thin TC rows to #1 (thesis_notes.md "Pooled read-out prototype vs
+  production", TC DECOMPOSITION); the weights themselves are
+  author-elicited (WP-WEIGHTS). Reopen: reassess after closed-loop,
+  made concrete 2026-09-30 (author): 3 or more catalogued closed-loop
+  cases in which the tool's #1 recommendation (under WP-HARDEN display
+  rules) differs from the team's actual change AND the divergence
+  traces to change-time ordering rather than evidence. Until then the
+  elicited weights stand. The reassessment is an elicitation session
+  with the author, never a code-side retune.
+- External sideslip reference request. Reason: curve and beta are
+  jointly unobservable from onboard signals, and no sideslip, heading
+  or lateral-velocity sensor exists on Dubai or v3 (census 2026-09-03;
+  the seven 2026-09-29 files were not censused for it). The question
+  itself stands in "Engineer follow-up questions -- damper/wheel-load
+  package" (WP2b-2). Reopen: the team can fit a reference, even for
+  one calibration session, covering racing laps (BACKLOG A reopen
+  condition).
+- Engineer round. Reason: questions only the team can answer, bundled
+  into one conversation (made concrete 2026-09-30, author):
+  1. Inert levers = the 10 rows the regenerated coverage table
+     (2026-09-29 figure; re-listed from live config 2026-09-30 via the
+     generator's build_coverage_rows) marks inert: Front ARB Mount, Rear
+     Camber, Front Blowoff, Rear Blowoff, Rear Bump High-Speed, Rear Bump
+     Low-Speed, Front Rebound High-Speed, Rear Rebound High-Speed, Rear
+     Rebound Low-Speed, Rear Toe. Product: one elicited answer per row
+     from D. Martin -- the scenario/phase/speed for which this lever is
+     his first answer, or "none - stays inert" as a recorded answer.
+     Either outcome closes the row.
+  2. The two standing data questions: channel identities (brake_bias
+     with its five candidates, DECISION LAYER SPEC elicitation item 4;
+     TC/EB mapping, item 5; log_tc_int_pos/log_tc_tim_pos vs the
+     registry's lat/lon names on the Paul Ricard/NBR logger layout); the
+     25/75 aero split confirmation (accepted conditional on a
+     presentable derivation, item 8).
+  Question lists: the DECISION LAYER SPEC "Elicitation list" and the
+  WP2b-2 "Engineer follow-up questions" sections. Reopen: when the
+  round is scheduled.
+
+Still parked from earlier entries (long form below or where named):
+- Washout-cutoff decision: BLOCKED (2026-09-20 archive, "WASHOUT-CUTOFF
+  DECISION BLOCKED" + addendum 2026-09-29). Reopen: a drift-vs-time
+  acceptance criterion on multi-track data; now downstream of (a).
+- stab_neg_thresh re-derivation, with Werner Eq. 4.3 v2 blocked on it:
+  BACKLOG A sub-item. Reopen: a negative stability population under
+  the production beta.
+- BACKLOG G, load-informed Fy split: blocked on literature. Reopen: a
+  real anchor.
+- Aero front/rear split identifiability: BACKLOG B. Reopen: real
+  balance figures (engineer round).
+- v3 C17-C20 corner fragmentation. Reopen: a lap-level anomaly signal.
+- Beyond-peak verdict tier. Reopen: a validated sideslip estimate.
+- k=1.01211 application: gated on second-track data. Such data now
+  exists (seven files, 2026-09-29); stays parked, deliberately (author,
+  2026-09-30): applying it is a speed-input change, hence the
+  estimator-input boundary class, so it queues behind experiment (a) --
+  if an IMU offset correction lands, speed-adjacent corrections are
+  re-derived once, together, not twice.
+- entry_1_brake bounded backward search. Reopen: an implausibly long
+  entry_1_brake window.
+- cs_max_window_m locality (new-data-file checklist): measured on the
+  seven 2026-09-29 files, bridging live but 0.0-1.3 % of samples
+  (thesis_notes.md "New-session checklist"). Reopen: a track where it
+  binds.
+- Cosmetic, left alone: kerb-gap interpolation, compound-corner
+  curvature detection, worst-phase sentinel NaN quirk,
+  valid_fraction_stab replacement metric.
+- Named future work: hardcoded springs_rear_soften migration into
+  lever_bridges; camber_rl/rr unseeded (BACKLOG H).
+
 Verdict-stability annotation (STABLE / MARGINAL) -- IMPLEMENTED 2026-09-19
 (close-out work order, same day as the proposal below). Ships as
 described, with two real implementation differences from the original
@@ -1394,20 +1464,28 @@ log arrives. Items so far:
     sequencing than Dubai could make this a live, not theoretical,
     concern and might need a per-track cap or an explicit gap-aware
     clamp -- neither exists today.
-Combined-slip tyre model: pure-lateral Dugoff cannot represent
+~~Combined-slip tyre model: pure-lateral Dugoff cannot represent
 rear exit-traction or front entry-braking limitation, producing
 false negatives in both. Rajamani Ch. 13.10's own formulation is
 already combined-slip, so no new anchor is needed; log_speed_* is
 the designated wheel-speed source (WP-S1, not yet whitelisted).
 Gated on the EKF arc closing. Full reasoning and evidence:
-thesis_notes.md WP-N2 combined-slip subsection.
-Classification-threshold re-derivation against the EKF's CS_ratio
+thesis_notes.md WP-N2 combined-slip subsection.~~ [SUPERSEDED
+2026-09-30: now EXPERIMENT PLAN direction (e), rear axle, parked
+pending (a)-(d), own proposal; the anchor is carried there. Also
+stale here: log_speed_* has been in production use since the
+2026-09-03 wheel-speed plausibility guard.]
+~~Classification-threshold re-derivation against the EKF's CS_ratio
 distribution: deliberately deferred until the estimator is
 finalised (refit passes complete, combined-slip comparison done),
 because re-derivation is the step that commits to the EKF as the
 production sideslip source. Pass_1 flagged counts are NOT
 comparable to production verdicts in the meantime. Reasoning:
-thesis_notes.md "Threshold re-derivation deliberately deferred".
+thesis_notes.md "Threshold re-derivation deliberately deferred".~~
+[SUPERSEDED 2026-09-30: the CS thresholds were re-derived for
+ekf_auto_pacejka on 2026-09-02 (thesis_notes.md "Threshold anchoring
++ arc closure, Phase 8: arc CLOSED"). The stability threshold was not
+re-derived and stays open under BACKLOG A.]
 entry_1_brake bounded-backward-search hardening: the 2026-08-20 fix
 (off_throttle[0] -> [-1], modules/corner_analysis.py) corrects
 which off-throttle sample is picked but the backward search itself
@@ -1420,7 +1498,7 @@ second change with its own behaviour; bundling it with the index
 fix would have made verification ambiguous, so it was deliberately
 left out of that fix. Reopens if a spot-check or production use
 surfaces an implausibly long entry_1_brake window post-fix.
-CS_ratio aggregation-sensitivity: aggregate_by_corner's median-of-
+~~CS_ratio aggregation-sensitivity: aggregate_by_corner's median-of-
 medians across four laps washes out a single lap's real signal on a
 ceiling-pinned metric (found 2026-08-20 comparing entry_1_brake
 before/after its phase-boundary fix -- CS_ratio stayed pinned at
@@ -1434,7 +1512,11 @@ decision point as the deferred classification-threshold
 re-derivation above -- changing the aggregation is itself a
 production behaviour change affecting verdicts. Reasoning:
 thesis_notes.md "Production impact of the fix, and a structural
-finding about CS_ratio aggregation".
+finding about CS_ratio aggregation".~~ [SUPERSEDED 2026-09-30: the
+aggregation switched to worst lap in the 2026-09-02 arc closure;
+repeat, pooled-median and pooled-p25 read-outs were evaluated in the
+2026-09-29 CS diagnostic arc and not taken (variant A chosen,
+WP-HARDEN).]
 
 ### PROCESS RULES
 - One step at a time; proposal and implementation never combined;
@@ -1447,6 +1529,8 @@ finding about CS_ratio aggregation".
 - Tier A methods need a verified anchor; full citations live in
   thesis_notes.md, code carries a pointer only.
 - STATUS is rewritten at every work stop; history goes below.
+- Selection principle (author, 2026-09-30): comparable evidence -> the
+  simpler candidate ships.
 
 ### ANCHORS (verified)
 Rajamani, Vehicle Dynamics and Control, 2nd ed. 2012 - Ch. 2,
@@ -1454,9 +1538,11 @@ sec. 2.3 bicycle model p. 27, sec. 2.6 yaw-rate/slip-angle model
 p. 37; Ch. 14 Kalman application. Kiencke & Nielsen, Automotive
 Control Systems, 2nd ed. 2005 - "Vehicle Body Side Slip Angle
 Observer" section. Both confirmed visually by the user. Lecture
-anchor: dropped by decision. Open: Mitschke/Wallentowitz "p. TBD"
+anchor: dropped by decision. ~~Open: Mitschke/Wallentowitz "p. TBD"
 in estimate_sideslip to be REPLACED by Rajamani 2.6/2.3, not
-deleted (not yet done). Segers, Analysis Techniques for Racecar
+deleted (not yet done).~~ [DONE, checked 2026-09-30: no Mitschke/
+Wallentowitz reference remains in any .py file; modules/
+stability_analysis.py cites Rajamani ch. 2 and sec. 2.3.] Segers, Analysis Techniques for Racecar
 Data Acquisition, SAE International 2014 - Ch. 9 p. 199 (pushrod/
 damper force to wheel load via motion ratio), Ch. 10 pp. 221-256
 (roll-centre geometric vs spring-path elastic load-transfer split)
@@ -4090,9 +4176,360 @@ NOT DONE by this proposal: no gate code touched, no config/parameters.
 json nis_gate value edited, no threshold changed. Stop here per the work
 order.
 
+## SUPERSEDED NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)
+Verbatim text of ### NOW items (0000000) through (7) as they stood
+before the 2026-09-30 post-meeting consolidation, moved here unchanged
+(nothing deleted, nothing edited). Record, not instruction. Still-open
+items were carried into the new NOW ("CARRIED OPEN") or into the
+consolidated PARKED list. Resolved since they were written:
+(0000000)'s NEXT (A0 / A / B, floor value, conflict-card design point)
+is decided -- WP-HARDEN; its C11 item is PARKED. (000000)'s backlog-g
+package is in main 21c032a. (0b) WP-ELICIT's "non-Segers texts not
+searchable" was overtaken by the 2026-09-28 BACKLOG G search of five
+texts (Milliken, Rajamani, Segers, Kiencke & Nielsen, Werner). (0b)'s
+flag on elicitation item 10 as a "known stale passage" was itself
+stale: item 10's text already records the fix and the removed
+ValueError path (checked 2026-09-30).
+
+(0000000) BRANCH `new-laps` (off main 21c032a), NOT committed -- read-only
+    diagnosis, 2026-09-29. No production, config or threshold change.
+    New diagnostics/inspect_new_laps_cs_sweep.py [keep-reproduces].
+    Records: thesis_notes.md "New-session checklist", "CS_ratio extremity
+    and flapping baselines", "CS smoothing/persistence sweep".
+    - Seven new .txt sessions censused. MLA-SE07_US-v1 = the v3 outing
+      (re-export). All NBR files are the GP layout. Le Mans has 1 analysis
+      lap. NBR damper channels failed.
+    - Flapping is general: Dubai shows the same sub-resolution share
+      (0.74) and lap-to-lap verdict switching 7/11; pooled 0.47.
+    - Extremity = v3 mechanism on every new track (floor reached 6-19x
+      Dubai's rate), amplified by worst_lap's lap-count dependence.
+    - Sweep: B (1.0/0.5 Hz) and C x2 DISQUALIFIED (Dubai C4 lost); C x1.5
+      survives with 0.017 margin; D/E survive but cannot change verdicts.
+      No winner declared -- author's choice, supervisor tiebreak.
+    - Value lens (same branch, diagnostics/inspect_cs_value_lens.py): NBR
+      A = JST outing 21, B = outing 29 (author-confirmed). CS_ratio
+      decorrelates over 6-12 m, shorter than its own 10-24 m window, in
+      every session incl. Dubai; window-start jumps carry 12-19 % of |dCS|.
+      Lap-to-lap r 0.31-0.74. A -> B shift within B's lap scatter on
+      11/14 corners. Worst-window fold/loop test has no power (monotonic
+      alpha, span floor).
+    - Read-out evidence (same branch, diagnostics/inspect_cs_readout_
+      evidence.py): no systematic slip-force lag (lag explains 8-22 % of
+      negatives); C4 DOWNGRADED to unconfirmed (fold not reproduced,
+      fold/loop test powerless at 1 window, non-specific at 100 m);
+      sawtooth repair cosmetic by rule, windows +25-40 %; pooled read-out
+      resolves NBR A/B 3/14 vs production 4/14 (p25 6/14), empties the
+      census under current thresholds. TC tops on the +0.625 seconds
+      favour. Synthesis in thesis_notes.md.
+    - Final round (diagnostics/inspect_cs_decision_table.py): pooled-p25
+      thresholds by the recorded procedure are degenerate over 8 tracks
+      (STRONG_CSF -1.41, MODERATE_CSF 0.65, MODERATE_CSR undefined); row B
+      calls nearly every corner understeer and empties the census. Row A
+      (display hardening) removes all both-direction pairs and thin #1s,
+      no re-derivation owed. v3 C11 CS_ratio discontinuity (1.00 <-> 0.19
+      under +/-1 %) found. Decision table in thesis_notes.md.
+    NEXT: author decision A0 / A / B and the evidence-floor value; the
+    conflict-card-clears-floor design point; C11 discontinuity as its own
+    item.
+(000000) BRANCH `backlog-g` (off main f6a2add), NOT committed -- author runs
+    git. Closed 2026-09-29. Carries:
+    - BACKLOG G: CLOSED, BLOCKED ON LITERATURE. Five texts searched; all
+      anchor the current moment-balance split, none splits axle Fy by
+      measured Fz. Reopen only with a real anchor. (See BACKLOG G.)
+    - Gated-kinematic sideslip diagnostic: run on both sessions, ruled
+      FAILED 2026-09-29 (reviewer, author-delegated). ekf_auto_pacejka
+      stays production; EKF deletion off the table; washout-cutoff stays
+      BLOCKED (addendum there). Scripts kept as provenance.
+    - WP-CONFTEXT: DONE. Config text scrubbed of process names/framing,
+      7 no-reader dead keys deleted; keys still read by diagnostics/tests
+      kept.
+    - Werner Eq. 4.3 v1: DONE. modules/yaw_damping.py, tests/
+      test_yaw_damping.py, accuracy_levels.yaw_damping (Level 1),
+      diagnostics/inspect_yaw_damping_eq43.py. Completes WITHOUT Fz
+      (effective stiffness from Module 4b). Nothing wired to production
+      (Module 5, payload, UI untouched). Damping > inertia in 77 %/60 %
+      of corner-phases, >10x in 5 %/1 % -- Werner's finding partly
+      reproduces.
+    - v3 NIS health-score drift 0.0849 -> 0.0985: CLOSED, explained --
+      the 2026-09-03 pit-limiter fix removed lap 9 (in-lap) from the fit
+      population; 0.084871 reproduced exactly with lap 9 restored. Both
+      PASS, no verdict affected.
+    - Citation pointers verified to section level: Milliken RCVD ch. 5
+      (sec. 5.7) and ch. 2 (sec. 2.1), Rajamani sec. 2.3.
+    FOLLOW-UPS ON RECORD, NOT STARTED: apex-region D_psi variant (apex_3
+    never clears 4b's phase floor); Eq. 4.3 v2 = Module 5 wiring (Tier A,
+    proposal-first, blocked with the stab_neg_thresh re-derivation);
+    mu-band (1.2-2.0) and C_alpha/Fz = 12 rad^-1 citations -> author's
+    anchor afternoon.
+    FULL SUITE: nothing on this branch changed an estimator input --
+    targeted + golden coverage stands; next full suite at the merge
+    boundary per the author's rule.
+    NOTE: items (00000)-(0) below were written on branch `fix-driver`;
+    that work is merged in main f6a2add -- their "NOT committed" lines
+    are historical.
+(00000) WP-POLISH-2 (branch `fix-driver`, NOT committed): items 1-3
+    done -- compound caveat one sentence (full note in tooltip),
+    pressure header states population (N corners, laps a-b) with
+    per-corner apex medians in the tooltip, tail no-trigger rows
+    collapse to one count line. Item 4 (speed qualifier) IMPLEMENTED:
+    decision_frame.json speed_qualified_effect (TC vs low/med OS ->
+    secondary, ARB vs low/med OS -> primary, wing+splitter at low ->
+    secondary), last pass of generate_candidates, overrides matrix-exact
+    cells, skips driver-only candidates. v3 #1 now diff +1 (ARB
+    edge-blocked, accepted); Dubai unchanged. Addendum: off-band tyre
+    wheels name their corners and laps ("all corners" when all, "all
+    but C.." when <= 3 in band, config); tyre bands editable in
+    Settings (per axle, writes both wheels; Save refused if min > max).
+    PUNCH LIST: tyre-curve
+    stray colours (WP-POLISH 2a) -- author owes the reproduction route.
+    Record: thesis_notes.md "WP-POLISH-2".
+(0000) WP-POLISH (branch `fix-driver`, NOT committed): items 1-3 done --
+    tyre pressure median now over the apex window (summarise_corners'
+    +/- apex_half_window_samples; measured shifts <= 0.011 bar, all
+    wheels still under target on both sessions); tyre-curve lap
+    visibility NOT reproduced headlessly (all panels clean after
+    unchecking, v3 C4/C12, Dubai C4) -- needs the author's route; lap
+    markers 1.5 -> 2.5 px on screen; Settings marker bar scoped to its
+    row + indent (author screenshot verifies). Item 5: change_time is a
+    per-class table (seconds 1.875, minutes 1.25, half_hour 0.8333,
+    garage_hours 0.625), joint bound unchanged (smallest step 0.2083),
+    four Settings rows; v3 diff +1 now #2 above TC lat. Item 4:
+    intervention_depth tie-order (ARB incl. front mount before diff),
+    near-inert by accepted ruling. Config pressure wording corrected.
+    Item 2(a) OPEN pending the author's reproduction route. Records:
+    thesis_notes.md "WP-POLISH" + "WP-POLISH items 4/5".
+(000) WP-SETTINGS (branch `fix-driver`, on top of WP-DISPLAY, NOT
+    committed): classification thresholds editable in Settings as
+    recorded manual overrides (core/threshold_overrides.py:
+    derived_default on first override, never overwritten, restore
+    reads it; "manual" tag + "restore derived" control); stab row
+    states its kinematic-era default, verdict marker untouched.
+    CLAUDE.md amended (override allowed, derivation duty on defaults).
+    Row notes rewritten to what-it-does, date line removed
+    (_short_derived_from deleted, Settings was its only reader).
+    "Display cutoff score" and "neutral level" rows removed (no
+    reader; keys stay). Aero: config rows noted inactive while
+    Cl*A = 0, read-only session-fitted row added
+    (estimate_vertical_loads returns c_session_N_per_mps2;
+    wheel_loads.effective_cl_area). Stale Dubai damper comment in
+    stability_analysis fixed. Left label column 260 px + wrap (21
+    clipped labels -> 0). Dead-key map filed under WP-CONFTEXT.
+    Guard A verified in fresh processes (31/56 Dubai verdicts moved).
+    Record: thesis_notes.md "WP-SETTINGS". UI check: author, tonight.
+    TESTS (targeted, full suite tonight): test_settings_thresholds.py
+    10 passed; test_wheel_loads + test_vertical_load_source_default +
+    test_golden_pipeline + test_golden_auto_modes 40 passed, goldens
+    unchanged; smoke_test_settings_view passes; test_stability.py exit
+    0. INCIDENT (recovered): a background pytest and the settings smoke
+    test raced on the real config files; recommendations.json was
+    transiently truncated. Verified afterwards: all four config files
+    parse and equal HEAD (only the intended WP-DISPLAY kerb comment
+    differs). Rule: config-writing tests never run concurrently.
+(00) WP-DISPLAY (branch `fix-driver`, on top of 7895aa0, NOT committed
+    -- awaiting the author's manual UI check and commit): decision-frame
+    presentation redesign. Kerb blowoff demoted to an informational flag
+    (no candidates; evidence/threshold kept) -- author ruling 2026-09-28,
+    C3 supersede. Levers without a sheet field (tc_lat, tc_lon,
+    abs_position, brake_bias) skip the window-edge check (was a false
+    "sheet unfilled"). Unfilled-sheet banner; "driver disagrees" on
+    merged cards; header "<change> -- <situation>" (D6 supersede);
+    situation-first evidence lines with a method-detail fold; shared
+    lap-label helper (csv_parser.lap_display_label); tyre pressure one
+    line per state, "analysis laps only" (measured no-change, no filter
+    code). CLAUDE.md Dubai lap fact corrected (0-5, analysis 1-4).
+    Visible #1 is now TC lon +1 on both sessions. Records:
+    thesis_notes.md "WP-DISPLAY" + retroactive "Feedback trace, Dubai
+    C4". Phase-D smoke test repointed (badge change part corner-free).
+    Tail rows carry the "driver disagrees" marker too (reviewer ruling,
+    never-silent at every tier). UI check: author, tonight's boundary
+    together with the Settings work.
+    TESTS (author suite amendment 2026-09-28: full suite only at the
+    day's merge boundary): targeted set -- test_decision_frame.py + the
+    outing_form-importing files + test_golden_pipeline.py -- 315 passed;
+    tests/golden/ unchanged (git status/diff empty); test_stability.py
+    exit 0; both decision-frame smoke tests pass, data/setuptool.db
+    untouched. FULL SUITE PENDING: once tonight, after Settings/aero land
+    on this branch, before the merge to main.
+    NEXT: brake-bias refined check (read-only diagnostic), own package.
+(0) WP-FIX-DRIVER: DONE, committed on `fix-driver` (7895aa0) --
+    CORRECTED this rewrite (the previous STATUS said "NOT committed");
+    not yet merged to main. Record kept for reference: production crash in
+    decision-frame Generate, found in the author's manual UI run.
+    Detached Outing + lazy Outing.driver (WP-ELICIT C1 veto) crashed on
+    reopen (A), after a new outing's first Save (B, refresh() leaves
+    relationships unloaded) and on a never-saved outing (D,
+    None.driver_id); stale-driver risk after an edit-mode driver change
+    (C). Fix: driving_level by id via models/driver.py
+    driver_name_and_level (promoted from the PDF export, both call sites
+    switched), id from the on-screen combo (same convention as
+    setup_data -- veto follows the displayed driver before Save);
+    Generate slot wrapper logs "[DECISION_FRAME]" + traceback and shows
+    "Generate failed: ..." (the crash was silent). Regression:
+    tests/test_outing_form_driver_level.py, 6 cases, all fail on old
+    code, pass on fix; throwaway DB only. Record: thesis_notes.md
+    "WP-FIX-DRIVER". Plus: explicit "(no driver)" combo entry (None ->
+    NULL on Save, round-trips on reopen; veto gets None -> threshold 5
+    -> conservative branch; PDFs show no name). Regression file 9 cases.
+    (NEXT moved to item (00).)
+(0b) WP-STRINGS: DONE, committed and merged to main (8fc918b) together
+    with WP-WEIGHTS; record below kept for reference. Internal process records
+    removed from runtime strings (UI-shown evidence/rationale, Settings
+    tooltips, candidate payload). Provenance content and dates kept;
+    PLAN/thesis_notes/WP/phase/list names removed; product-file
+    references kept. Feedback-scale caption: placeholder tail replaced
+    by the 7 recorded anchor lines, #444 -> TEXT_DIM. Brake_bias
+    derived_from reduced to "Segers ch.5" (ch.5 page unverified).
+    MARGINAL test repointed from "Metrology Phase 1" to the "~1% ...
+    change" wording. 7 files + records. FULL SUITE (once): 472 passed /
+    9 skipped / 1 xfailed, identical to WP-STYLE; goldens unregenerated;
+    test_stability.py clean. Record: thesis_notes.md "WP-STRINGS".
+    ADDENDUM (same session, reviewer ruling): process framing in
+    UI-read strings the marker scan missed also landed here --
+    lever_bridges[4].rationale ("HONEST DEGRADE, stated per the work
+    order" -> plain "Limitation: ..."), classification derived_from
+    ("per the checklist item", "per the amendment", "the work order's
+    own stop condition", "instruction" -> the reason or nothing),
+    decision_frame.py ABS/TC evidence ("per the user's own rule" ->
+    "per the author-elicited rule") and the exit diff rationale tail
+    ("per the work order's own instruction" dropped). Also fixed a
+    lost space from this package's first round ("rule:'TC"), and the
+    log-only [PERF] fit-chain warning lost its "per the work order"
+    tail (measured time + 30s budget kept). 4 targeted
+    test files 256 passed (full suite not re-run: same inert string
+    class, per ruling).
+    (Brake-bias refined check: moved to item (0) NEXT.)
+    DONE 2026-09-28 on branch backlog-g (see item (000000)), named
+    follow-up WP-CONFTEXT: the 178 config values no code
+    reads (channels 6, decision_frame 77, parameters 57,
+    setup_parameters 38 -- note/derived_from/source/notes fields) ship
+    readable in the release and carry the same internal-name leak. Same
+    rules: provenance and dates stay, doc/WP/phase names go; the two
+    test-pinned derived_from values (test_decision_frame "placeholder",
+    "No longer primary") handled with repoint-or-keep care. Scan for
+    process FRAMING too ("work order", "checklist", "amendment",
+    "instruction", "per the user"), not only doc/WP/phase names -- the
+    WP-STRINGS marker scan missed that class on the first pass.
+    DEAD-KEY MAP (WP-SETTINGS sweep 2026-09-28; start from this, do not
+    re-scan; record only, deletions are WP-CONFTEXT's). Method: every
+    non-documentation config key's quoted name searched in
+    modules/core/ui/models + main.py, then hand-checked. No reader in
+    code:
+    - parameters.json: vehicle.driver_mass_ref_kg (75.0),
+      vehicle.fuel_mass_ref_kg (35.0); vehicle.yaw_inertia_kalman_kgm2
+      (1800.0, diagnostics only); stability_estimation.
+      cs_front_fallback_reference_n_per_rad (68268) and
+      cs_rear_fallback_reference_n_per_rad (91343), diagnostics only;
+      tyre_model_fit block incl. ay_linear_threshold_g (0.3),
+      diagnostics only; longitudinal_stiffness.
+      kerb_investigation_reference (a thesis_notes pointer string);
+      tyre_model_ekf.pass_0/pass_1/pass_3 provenance fields
+      (frozen_from, seeded_from, changed_from_previous,
+      R_ay_derivation, R_yaw_rate_derivation) -- record-shaped, not
+      parameters.
+    - decision_frame.json: plausibility_checks.tyre_pressure_window
+      (front/rear min_psi/max_psi all null, per_corner_override all
+      null; superseded by tyre_pressure_target in bar);
+      intervention_evidence.abs.
+      abs_inactive_corroborates_braking_instability and
+      intervention_evidence.tc.tc_active_corroborates_traction_limited
+      (rule descriptors; phase/verdict hard-coded in the builders);
+      eligibility_classes.camber_multi_corner_gate (prose note).
+    - channels.json, recommendations.json, car.json: none.
+    - Read by Settings only (rows removed from Settings in WP-SETTINGS,
+      keys kept): decision_frame.json display_score_threshold (display
+      cuts by display_top_n; test-pinned derived_from "No longer
+      primary", also read by diagnostics/smoke_test_decision_frame_
+      phase_d.py); recommendations.json settings.driver_level_weighting.
+      neutral_level (value copied into decision_frame.json
+      eligibility_classes.driver_level_threshold, which is the live one).
+    - Checked and LIVE (scan false positives): wheel_loads.
+      pushrod_offset_*_N (f-string read), channels.json
+      channel_corrections (iterated).
+(0') WP-WEIGHTS: DONE, committed and merged to main (8fc918b): cost_function
+    breadth 0.0 (annotation-only; 1.0 was an additive-score misread),
+    headroom 0.1, interaction 0.1 (joint bound 0.2 < 0.2083, the
+    smallest change_time class step), author-elicited 2026-09-26.
+    _interaction_penalty: adverse (-1) entries only, counted once;
+    +1 couplings note-only. splitter_offset window filled (0 +- 4,
+    registry value space). Settings tooltips repointed. Tests: two
+    new interaction tests, weight-pin test repointed (WP-WEIGHTS).
+    Record: thesis_notes.md "WP-WEIGHTS" (incl. Pair-1 latent
+    effort-order violation under the old weights). effect_class 1.0/0.6
+    confirmed (author-elicited 2026-09-26), own derived_from, no WARN --
+    all six cost_function terms now elicited. Accepted limitation:
+    splitter at its default 0 reads as "unknown" in the shared setup
+    reader, so headroom stays neutral there (conservative, flagged).
+    COMBINED COMMIT-BOUNDARY RUN (strings + weights, once): 474 passed /
+    9 skipped / 1 xfailed (472 baseline + 2 new interaction tests);
+    tests/golden/ verified unchanged (git status/diff empty);
+    test_stability.py exit 0. Committed 8fc918b after the author's manual UI
+    check (feedback caption, Settings tooltips/WARN rows).
+(0a) WP-STYLE: DONE, committed to main (e65b45f) -- CORRECTED this
+    rewrite: the previous STATUS said "NOT committed"; main's tip is
+    that commit.
+(0b) WP-ELICIT: DONE, committed to main (4e85ff1); data/ directory
+    first-run fix committed on top (45850e9).
+    STILL OPEN from WP-ELICIT (carried forward unchanged):
+    - elicitation item 5's TC/EB CHANNEL MAPPING half (the EB-as-lever
+      half is resolved; channel identity is untouched).
+    - brake_bias channel identity: nothing correlated cleanly on either
+      real session (own diagnostic run, HANDOFF item 5) -- stays not-
+      evaluable; its current-state window check stays WITHHELD
+      (propose-first change, needs the reviewer present).
+    - literature hits C11-4/C11-5 (Segers ch.11, high-speed damping /
+      front-rebound-as-rake-lever) await a per-hit reviewer ruling --
+      seeded nothing per this session's own instruction.
+    - docs/literature/'s non-Segers texts (Werner_2021_MA.pdf, Rajamani,
+      the two Automotive Control Systems books) were NOT actually
+      searchable this session -- no extractable text layer via Grep, no
+      page rendering via Read (pdftoppm/poppler-utils not installed).
+      Their coverage of item 4's questions is UNKNOWN, not "not
+      covered" -- a tool limitation to fix or work around next session,
+      not a content finding.
+    - elicitation item 10's own PLAN.md text still describes the
+      feedback-router ValueError as a live crash risk needing a
+      reviewer decision -- that crash is FIXED (HANDOFF item 1), but
+      item 10's own text was not rewritten this session (out of item 6's
+      explicitly stated scope) -- a known stale passage, flagged here
+      rather than silently left implying the crash still exists.
+(1) Decision-layer spec (WP-DL): DONE, merged to main (bd0ec69), Phases
+    A-F complete per its own close-out record (thesis_notes.md). No
+    longer an open item.
+(2) Sidecar cache + Analyse-button contract (WP-CACHE): DONE, merged to
+    main (0f1731d, verified via git log). No longer an open item.
+(3) Pipeline performance (WP-PERF): DONE, merged to main (224e591,
+    verified directly via `git log` on branch `elicit` -- CORRECTED this
+    rewrite: the previous STATUS text here claimed this was still on an
+    unmerged perf-estimators branch awaiting the user's go-ahead; that
+    was stale, main@647582f's own history already contains it). Byte-
+    identical speedup of the two window estimators (estimate_
+    longitudinal_stiffness, estimate_cornering_stiffness) via an
+    incremental running max/min instead of re-scanning the whole growing
+    window at every widening step. Wall-clock, both real sessions:
+    Dubai 969.82->541.41s (1.79x), v3 697.61->428.23s (1.63x). Full
+    record thesis_notes.md "WP-PERF close-out".
+(4) Diagnostics inventory / module map / hygiene audit: DONE, merged to
+    main (8248186, WP-CLEAN) -- CORRECTED this rewrite: previously
+    listed here as a future to-do; it already happened (55 diagnostics
+    keepers verified against seven load-bearing tests, 37 moved to
+    diagnostics/_attic/, the two EKF production files relocated from
+    diagnostics/ to modules/, module map + thesis material index
+    written). No longer an open item.
+(5) Comment-style humanization pass: DONE, merged to main (647582f,
+    WP-COMMENTS) -- not previously listed in this STATUS block at all;
+    added here for main@647582f completeness.
+(6) Commit and push at end of every working day.
+(7) Thesis writing starts after (1)-(4); later building remains
+    possible but chapter-driven.
+
 # SetupTool — Work Plan (Phase 6)
-Written: 2026-07-22. Point-by-point, no timeline. Execute work packages in order
-unless noted otherwise. Each package is self-contained for a smaller model.
+Written: 2026-07-22. Point-by-point, no timeline. ~~Execute work packages in order
+unless noted otherwise.~~ Each package is self-contained for a smaller model.
+[HISTORICAL, noted 2026-09-30: the original plan. As a work queue, WP1-WP7 and
+the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
+the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
+superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
+below stays live.]
 
 ---
 

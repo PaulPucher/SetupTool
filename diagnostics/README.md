@@ -126,9 +126,15 @@ here (53 keepers + 37 in diagnostics/_attic/).
   inspect_frame_stage2_parity.py).
 - **compare_wp_perf_reference.py** -- byte-identity comparison companion
   to the above, same Ch.6 citation. Also K5.
-- **generate_decision_layer_figure.py** -- generates
-  diagnostics/plots_decision_layer/six_stage_flow.png and
-  lever_coverage_table.png, cited docs/thesis_material_index.md Ch.5.
+- **generate_decision_layer_figure.py** (keep-reproduces) -- generates
+  diagnostics/plots_decision_layer/six_stage_flow and lever_coverage_table
+  (PNG + PDF each) from live config, cited docs/thesis_material_index.md
+  Ch.5. Fixed 2026-09-29 to compute rather than state (rank-based
+  display_top_n, per-class change_time, held-secondary routes,
+  feedback-only entry count, tyre bands, speed_qualified_effect cells);
+  last regenerated 2026-09-29, the 2026-09-23 set kept as *_20260923
+  (thesis_notes.md "[2026-09-29, figures regenerated]"). Run:
+  `python -m diagnostics.generate_decision_layer_figure`.
 - **inspect_dubai_wheel_load_validation.py** -- named in
   docs/thesis_material_index.md Ch.4 as underlying the wheel-load
   figures.
@@ -213,10 +219,11 @@ here (53 keepers + 37 in diagnostics/_attic/).
   session checklist (rate guard, corner clustering, bracket gaps vs
   cs_max_window_m, lever-channel content census), CS_ratio extremity/
   flapping baselines and the ten-row CS smoothing/persistence sweep over
-  all nine sessions. Keep-reason: the smoothing decision (input filter vs
-  output persistence) is open with the author and supervisor and will be
-  re-run against any chosen variant; also the reusable tool for the
-  PLAN.md new-data-file checklist on the next file. Records: thesis_notes.md
+  all nine sessions. Keep-reason (updated 2026-09-30): provenance of the
+  closed CS diagnostic arc; its caches and flapping metrics are the base
+  for PLAN.md EXPERIMENT PLAN (b), the upstream-filter sweep; also the
+  reusable tool for the PLAN.md new-data-file checklist on the next file.
+  Modes: channels <key>, compute <key>, report. Records: thesis_notes.md
   "New-session checklist", "CS_ratio extremity and flapping baselines",
   "CS smoothing/persistence sweep" (2026-09-29). Caches, logs, figure in
   `plots/new_laps/` (gitignored).
@@ -226,10 +233,15 @@ here (53 keepers + 37 in diagnostics/_attic/).
   vs window length, lap-to-lap reproduction, demand-gated band shares and
   axle gap, NBR A (outing 21) vs B (outing 29), fold/loop on worst
   windows. Imports inspect_new_laps_cs_sweep (caches, session list).
-  Keep-reason: evidence base for the open CS smoothing decision and the
-  A-vs-B known-answer check; re-run against any chosen variant. Records:
-  thesis_notes.md "NBR outing mapping and full-lap CS traces" and "CS_ratio
-  value lens" (2026-09-29). Outputs in `plots/cs_value_lens/` (gitignored).
+  Keep-reason (updated 2026-09-30): provenance of the closed CS diagnostic
+  arc and the A-vs-B known-answer check, which EXPERIMENT PLAN (b)'s
+  battery reuses. Modes: mapping; traces (full-lap front/rear CS_ratio vs
+  lap distance per session, one line per analysis lap ->
+  `plots/cs_value_lens/trace_<key>.png`); supplement <key>; smooth, util,
+  ab, foldloop (worked_corner_dubai.png, nbr_a_vs_b.png, fold_loop.png).
+  Records: thesis_notes.md "NBR outing mapping and full-lap CS traces" and
+  "CS_ratio value lens" (2026-09-29). Outputs in `plots/cs_value_lens/`
+  (gitignored).
 - **inspect_cs_readout_evidence.py** (2026-09-29, keep-reproduces) --
   evidence and prototype for the CS read-out decision: slip-vs-force lag
   (both beta sources, lag-only synthetic tyre), run-scale fold/loop with
@@ -239,9 +251,12 @@ here (53 keepers + 37 in diagnostics/_attic/).
   pooled median, pooled p25) scored on the pre-registered criteria, and a
   census with the pooled read-out fed to the frame in memory plus TC score
   decomposition. Imports inspect_new_laps_cs_sweep and
-  inspect_cs_value_lens. Keep-reason: the read-out decision and its
-  production package are open; the scoring re-runs against the re-derived
-  thresholds there. Records: thesis_notes.md "Slip-vs-force lag check",
+  inspect_cs_value_lens. Keep-reason (updated 2026-09-30): provenance of
+  the closed CS diagnostic arc (read-out decision taken: variant A); its
+  phase slicing and read-outs are imported by inspect_cs_decision_table,
+  which WP-HARDEN re-runs. Modes: supp2 <key>, sawtooth <key>; lag,
+  foldrun, sawreport, parity, readout, census. Records: thesis_notes.md
+  "Slip-vs-force lag check",
   "Fold/loop at run scale", "Sawtooth window-start repair", "Pooled
   read-out prototype", "Synthesis for the CS read-out decision"
   (2026-09-29). Outputs in `plots/cs_readout_evidence/` (gitignored).
@@ -253,13 +268,21 @@ here (53 keepers + 37 in diagnostics/_attic/).
   run_one's call sequence), display-layer hardening prototype (evidence
   floor sweep, session-level lever-conflict cards), and the A0 / A / B
   decision table with the sawtooth sensitivity line. Imports
-  inspect_new_laps_cs_sweep and inspect_cs_readout_evidence. Keep-reason:
-  the author's read-out decision and evidence-floor elicitation are open;
-  the table re-runs against whatever is chosen. Records: thesis_notes.md
+  inspect_new_laps_cs_sweep and inspect_cs_readout_evidence. Keep-reason
+  (updated 2026-09-30): provenance of the closed CS diagnostic arc, and
+  live tooling -- WP-HARDEN (variant A, approved, deferred) re-measures
+  its census with part2 / table at implementation; the battery is reused
+  by EXPERIMENT PLAN (b). Modes: sens, thresholds, part2, margin, table,
+  render. The single render mode draws, per session, the plan-B trace
+  overlays (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed
+  -3.5..1.2 axes -> `render/planb_trace_<key>.png`) and worst-lap vs
+  pooled-p25 per corner (`render/worstlap_vs_p25_<key>.png`), plus the
+  references-only C4 provenance sheet (`render/C4_provenance.txt`); value
+  level only, no thresholds or verdicts. Records: thesis_notes.md
   "Pooled-p25 thresholds by the recorded procedure", "Hardened
   production, display layer", "Three-way decision table", "Decision
-  synthesis" (2026-09-29). Outputs in `plots/cs_decision_table/`
-  (gitignored).
+  synthesis" and the render addendum (2026-09-29). Outputs in
+  `plots/cs_decision_table/` (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the
