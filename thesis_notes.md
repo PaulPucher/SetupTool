@@ -197,7 +197,7 @@ HOW TO USE:
   sensitivity loss: the corrected front Fy softens stable_corner_8's
   apparent CS collapse, while the re-derived stability branch still
   flags that corner on all 4 laps (3x stability-only, 1x both).
-- Against the June driver report ("balanced, mild understeer, no
+- Against the ~~June driver report~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"] ("balanced, mild understeer, no
   instability"), 0 strong / 14 moderate is the more consistent
   picture than the pre-correction 1 strong. Model upgrade moved the
   tool TOWARD the driver's ground truth - validation argument for
@@ -2571,7 +2571,7 @@ OPEN:
 - Whether the flagged corners are the CORRECT ones is not
   addressed. The specific testable claim is C4 and C14 flagged
   4/4 laps at both axles: either genuine problem corners or an
-  artifact concentrated there. Requires the June driver report.
+  artifact concentrated there. Requires the ~~June driver report~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"].
 
 ### WP-N2 pass 1: CS_ratio interpretability, linear-reference
 staleness hypothesis DISPROVED, and the WP-S4b reference-spread
@@ -5901,7 +5901,7 @@ package]
   reversal or a new regime -- three independent changes (Fy yaw term,
   steering-ratio L4, WP1 canonical realization), one consistent
   direction.
-- Against the June driver report ("balanced, mild understeer, no
+- Against the ~~June driver report~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"] ("balanced, mild understeer, no
   instability"): 0 strong (matches "no instability" as the most severe
   category) and a CS-branch-dominated moderate population (11 of 15,
   understeer/oversteer flags) rather than stability-branch (4 of 15) --
@@ -6150,7 +6150,7 @@ package]
 
 - beta: -4.29 to +2.91 deg, mean abs 0.87 deg — plausible GT magnitude.
 - alpha_f mean abs 1.64 deg > alpha_r 1.00 deg — understeer signature,
-  consistent with driver report.
+  consistent with ~~driver report~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"].
 - C_alpha front mean ~115k, rear ~178k N/rad; implied linear refs 161k /
   190k N/rad (expected band 80-180k) — rear stiffer matches 57.2% rear
   weight.
@@ -23168,7 +23168,7 @@ acts the same way, more weakly: x1.5 is the only estimator-side row that
 keeps C4 (0.017 margin) and it barely changes lap-level switching.
 Persistence (D) and output smoothing (E) act only on the sample signal
 the verdict does not read: a quieter trace display, no verdict stability.
-Driver-report agreement (Dubai: US >= OS, no strong severity, C4 flagged)
+~~Driver-report agreement~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"] (Dubai: US >= OS, no strong severity, C4 flagged)
 holds on every row except B 0.5 Hz. The C3 LS traction signature is 4/4
 on every row by construction (LS is a separate estimator no variant
 touches); the CS-side C3 reading (CS_f -0.333) survives only A, D and E.
@@ -23436,7 +23436,7 @@ calls flip across thresholds derived for another distribution.
 (Dubai 11/14, NBR B 9/15, CDR 9/16; Le Mans 0, one lap), POOLED25 0-4,
 REPEAT 2-9. Mostly toward "ok" (Dubai POOLED US 1 / OS 2 / ok 11 vs PROD
 6 / 6 / 2).
-(e) DRIVER AGREEMENT. Dubai (US >= OS, no strong, C4 flagged): PROD yes /
+(e) DRIVER AGREEMENT. Dubai [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"] (US >= OS, no strong, C4 flagged): PROD yes /
 yes / yes; POOLED no (US 1 < OS 2) / yes / yes; POOLED25 no (3 < 5) /
 yes / yes; REPEAT no (1 < 5) / yes / no. NBR A (labelled understeer): US
 vs OS PROD 4 / 8, POOLED 4 / 8, POOLED25 5 / 8, REPEAT 6 / 4 -- only
@@ -23484,7 +23484,7 @@ Written for the author's decision; no recommendation, no implementation.
    25-40 %.
 5. READ-OUTS (criteria a-f, current thresholds):
    - PROD: resolves A/B 4 front, 1 gap; call stability 5-13 per session;
-     driver agreement 3/3 on Dubai; lap-count ratio 1.46; TC tops on
+     ~~driver agreement~~ [CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"] 3/3 on Dubai; lap-count ratio 1.46; TC tops on
      seconds favour, both-directions pairs on 4 sessions.
    - REPEAT: A/B not computable (2-lap A); stability mixed; loses C4 and
      the Dubai US >= OS check; lap-count ratio 7.0; only read-out with
@@ -23626,7 +23626,7 @@ differ only in census health.
    - Utilization gaps (worst-phase r - f > 0): A0/A Dubai C3 +0.268,
      US-v2 C13 +0.507, NBR B C9 +0.168 -- PASS; B +0.162, +0.056, +0.350
      -- PASS.
-   - Dubai mild understeer (US >= OS corners): A0/A 6 vs 6 PASS; B 13 vs 0
+   - Dubai mild understeer (US >= OS corners) [DEMOTED 2026-09-30 from battery element to context: CORRECTED 2026-09-30: a session-type assumption, not a recorded driver report -- see "Provenance correction batch"]: A0/A 6 vs 6 PASS; B 13 vs 0
      PASS.
    - NBR A understeer label: A0/A 4 vs 8 FAIL; B 14 vs 0 PASS.
    - NBR A -> B direction (front up and gap narrower, median over matched
@@ -24083,3 +24083,225 @@ touches 0.000 % of the steady and racing populations and does not bear on
 the scale question.
 What no outcome fixes: the absolute beta scale (curve-beta
 identifiability) is untouched by any IMU scale or offset correction.
+
+## (b) Part 1: upstream insertion-point sweep [2026-09-30, branch new-laps, read-only]
+
+Script: diagnostics/inspect_cs_upstream_sweep.py (rules in its header
+before the runs). Variants feed modified RAW channels through the
+production fit (fit_session_pacejka builds its own state from the raw
+channels; filtering the prepared state would not reach the estimator):
+B4/B2 yaw rate + ay low-passed at 4 / 2 Hz before the fit and EKF; C
+ecu_speed at 2 Hz before the fit and in alpha; D2/D1 the EKF beta at 2 /
+1 Hz before alpha; E = C + D1 (pre-registered combination of the best
+single); F1/F2 floor references, speed x1.01 and ay x1.02 through the
+whole chain. Tiering by the author's mid-run amendment: Tier 1 Dubai, NBR
+JST 29 with JST 21 for the A-vs-B leg, US-v2; v3 complete before the
+amendment and kept; Tier 2 (Le Mans, CDR, MLA) only for survivors.
+Parity: the in-harness baseline reproduces the sweep cache's production
+CS exactly (identical finite masks, max |diff| 0.0) and every baseline
+phase median on all five Tier-1 sessions.
+EKF gate: pass on A, C, D, E, F1; warn on B4 and B2 (every session) and
+on F2 (Dubai, v3, US-v2); no fallback anywhere.
+ROUGHNESS (mean |dCS| per sample, front; baseline -> variant): B4 and B2
+lower it by 3-22 % (Dubai 0.0094 -> 0.0082 / 0.0073), except B2 on JST 21
+(0.0156 -> 0.0195); C and D2 within 3 %; D1 up to -12 %. Decorrelation
+length (baseline 6.5-8.3 m front) rises by at most 0.9 m under any
+candidate (B2 Dubai front 8.3 -> 9.2 m) and stays below the 10-24 m window
+everywhere; under D1 it shortens (front 5.8-7.7 m, rear shorter on every
+session, e.g. Dubai 7.1 -> 5.9 m). No filter lifts the scale CS varies on
+to window scale.
+COVERAGE (finite CS share of corner samples, rear): D1 cuts it most --
+Dubai 0.732 -> 0.487, JST 29 0.769 -> 0.618, US-v2 0.892 -> 0.743; B4/B2
+-2 to -11 % (B2 on JST 21 +6 %); C within 2 %, D2 within 6 %. Mechanism: a slower beta gives a slower
+alpha, so more windows reach the 53 m cap before the slip-span floor (NaN)
+-- the signal-suppression route of the 2026-09-29 sweep's B rows, reached
+upstream. Floor-termination share falls with it (D1 rear 0.0-1.7 % vs
+0.0-2.8 %).
+FLOOR ROWS: F1 (speed +1 %) and F2 (ay +2 %) move the median |per-lap
+phase median| by 0.131 and 0.151 -- as much as the strongest filter.
+
+## (b) Part 2: scoring against the battery and the (a2) floor [2026-09-30, branch new-laps, read-only]
+
+Battery at baseline (PROD read-out): C3 LS 4/4 PASS; gaps Dubai C3
++0.268, US-v2 C13 +0.507, JST 29 C9 +0.168 PASS; Dubai US 6 >= OS 6 PASS;
+NBR A US 4 vs OS 8 FAIL; A->B direction (front -0.295, gap +0.128) FAIL.
+The two baseline failures cannot disqualify.
+- B4: loses Dubai C3 gap (-0.058) and Dubai US >= OS (2 vs 7) ->
+  DISQUALIFIED. Switch 0.344 (45/131), gap resolved 3/13.
+- B2: loses Dubai C3 gap (-0.141) -> DISQUALIFIED. Switch 0.329, gap
+  resolved 5/13, front 3/14; Dubai calls 11 of 14 changed.
+- C: loses Dubai US >= OS (5 vs 7) -> DISQUALIFIED. Resolved front 5/14,
+  gap 4/14; switch 0.429.
+- D2: loses Dubai US >= OS (4 vs 7) -> DISQUALIFIED.
+- D1: loses nothing, gains NBR A US >= OS (5 vs 3). Resolved front 4/14,
+  gap 1/13 (baseline 4/14, 1/14). Switch 36/96 = 0.375 vs 82/174 = 0.471.
+  Changed calls 7-8 per session; Dubai US/OS/ok 6/6/2 -> 7/0/7.
+- E (C + D1): loses nothing, gains NBR A (5 vs 3). Resolved front 5/14,
+  gap 2/12; switch 38/101 = 0.376; changed calls 6-9 per session; Dubai
+  6/0/8.
+FLOOR (larger |change| of F1, F2 vs baseline): front resolved 2, gap
+resolved 2, switch rate 0.066, median |phase-median change| 0.151. The
+floor references are not benign: F1 (speed +1 %) alone LOSES three
+battery elements (Dubai C3 gap -0.080, US-v2 C13 gap -0.469, Dubai US 1
+vs OS 11), and F2 (ay +2 %) gains two resolved corners on each of front
+and gap. The battery and the resolvability count move as much under a
+known 1-2 % input-scale error as under any filter.
+PRE-REGISTERED EXIT: D1 and E meet it (no loss; switch rate lower than
+baseline by 0.096 / 0.095, above the 0.066 floor). B4 and B2 beat the
+floor on switch rate (0.128, 0.142) but are disqualified. D1's effect
+size (0.155) exceeds the floor effect (0.151) by 0.004.
+MECHANISM OF THE D1/E SWITCH-RATE GAIN: the called lap pairs fall from 174
+to 96 (D1) and 101 (E). The rate is computed over called pairs, so part of
+the gain is fewer verdicts, not steadier ones -- the same pattern as the
+2026-09-29 sweep's input-filter rows. Oversteer calls on Dubai go from 6 to
+0; the NBR A understeer label passes for the same reason.
+TIER 2 CONFIRMATION (baseline vs D1 / E): CDR switch 21/38 = 0.553 ->
+13/30 = 0.433 / 16/33 = 0.485; MLA 17/37 = 0.459 -> 5/23 = 0.217 / 6/19 =
+0.316 -- both CONFIRM, with fewer called pairs again. Le Mans has one
+analysis lap: no lap pairs, not assessable. Changed calls 2-7 per
+session; coverage down (rear CDR 0.827 -> 0.738, MLA 0.767 -> 0.648, Le
+Mans 0.695 -> 0.560).
+
+## (b) Part 3: synthesis [2026-09-30, branch new-laps, read-only]
+
+Families:
+- Yaw rate + ay upstream (B4, B2): smoother CS traces, the largest
+  switch-rate reductions, but both lose the Dubai C3 utilization gap; B4
+  also loses Dubai's understeer direction. Disqualified.
+- Speed upstream (C): nearly inert on the trace (roughness and coverage
+  within 2 %); +1/+3 resolved corners, within the 2/2 floor; loses
+  Dubai's understeer direction (5 vs 7). Disqualified.
+- Beta before alpha (D2, D1): D2 is a near-cascade of the production 2 Hz
+  alpha filter and loses Dubai's direction. D1 survives the battery and
+  clears the switch-rate floor, but with no resolvability gain, shorter
+  (not longer) decorrelation lengths, rear coverage down by up to a third,
+  about half as many called lap pairs, and 7-8 changed calls per session.
+- Combination E (C + D1): as D1 within noise (front +1, gap +1 resolved,
+  both inside the floor).
+EXIT BY THE PRE-REGISTERED CRITERION: D1 and E qualify for a variant
+proposal (no battery loss, switch rate improved beyond the 0.066 floor,
+confirmed on CDR and MLA). Measured beside that: the gain rests on fewer
+called verdicts; resolvability does not improve beyond the floor; the
+battery itself is not robust at the floor (a 1 % speed error alone loses
+three elements); a production adoption would shift 6-9 calls per session
+and owes the full re-derivation. The author rules between a D1/E proposal
+and closing (b) as tested-upstream-nothing-earned-production.
+
+## (c) Part 1: yaw-rate cross-lap pooling, flags and steering counteraction [2026-09-30, branch new-laps, read-only]
+
+Script: diagnostics/inspect_yaw_pooling.py (rules in its header before the
+runs). Screening JST 29, US-v2, MLA; Dubai only for the C3-LS
+cross-reference. Yaw rate low-passed at 4 Hz, pooled per corner on a 1 m
+track grid over the analysis laps (kerb samples excluded); envelope
+p10-p90; margin m = 3 x robust std of the filtered yaw rate's deviation
+from its 0.5 Hz trend on straights: JST 29 1.67, US-v2 1.74, MLA 1.91,
+Dubai 1.52 deg/s (noise sigma 0.51-0.64 deg/s). Flag = >= 5 m beyond the
+envelope by more than m.
+FLAGS: EXCESS (more rotation than the envelope in the turn direction)
+on 23 of 90 corner-laps (JST 29, 31 flags), 38 of 153 (US-v2, 53), 21 of
+90 (MLA, 23); Dubai 4 of 56. DEFICIT on 39 / 52 / 28 corner-laps (Dubai
+16). Peak excess 2-12 deg/s (US-v2 C12 lap 53 +12.3).
+COUNTERACTION (steering unwinding above T within 150-300 ms of the flag
+onset; T = 3 x robust std of steering rate on straights, 19-29 deg/s;
+steer/yaw sign +1 everywhere): corroborated 25/31 (0.81, JST 29), 41/53
+(0.77, US-v2), 21/23 (0.91, MLA), 4/4 Dubai; the same test at the same
+grid positions on the other laps gives 0.58, 0.48, 0.47, 0.58. Flags are
+followed by unwinding 1.5-1.9x as often as the positions' base rate. The
+threshold sits far below in-corner steering activity (+/-200-400 deg/s
+in the figure), so the base rate is near one half and the test is weakly
+specific.
+CROSS-REFERENCE: JST 29 C1 carries EXCESS flags on laps 103, 104, 107
+(corroborated) and 108 (not), and DEFICIT on lap 105 -- laps 103 and 107
+are the two deepest NBR B C1 CS readings (-2.07 / -2.68, 2026-09-29);
+lap 105 is the lap whose negatives the lag-only tyre largely reproduced.
+Dubai C3 (the C3-LS traction corner): DEFICIT on laps 1 and 2, no excess
+-- less rotation than the pooled envelope, as a traction-limited exit
+would show. Coincidences recorded, not validations.
+Figures: diagnostics/plots/yaw_pooling/yaw_pooling_<key>.png (gitignored).
+
+## (c) Part 2: retro-renders of (b) baseline vs D1 vs E [2026-09-30, branch new-laps, read-only]
+
+Nine standard trace sets (inspect_cs_upstream_sweep render, via the new
+diagnostics/trace_render.py helper), fixed -3.5..1.2, no sample below the
+floor. What the eye shows that the scores did not:
+- JST 29: D1/E are not smoother; the rear loses visible stretches
+  (coverage), and the front gains new deep dips absent at baseline (C5
+  near 1,780 m to -2.6, near 2,950 m to -2.2); the C1 depth persists (-2.5
+  vs -2.7).
+- US-v2: D1 lifts the rear traces toward 1 (the 4,000-4,500 m rear
+  negatives largely gone) and adds front dips (near 800 m to -2.1, 1,500-
+  1,700 m to about -1.8): the rear-side saturation is removed, the front
+  side deepened -- the mechanism of the lost oversteer calls.
+- MLA: the rear is visibly sparser and lifted toward 1; the front changes
+  little.
+- E is indistinguishable from D1 by eye (JST 29 checked).
+Reading: D1/E move reads from the rear axle to the front and thin the
+rear, rather than steadying the trace.
+
+## (c) Part 3: kerb-gap bridge in trace rendering [2026-09-30, branch new-laps]
+
+Display-layer only. core/trace_display.kerb_gap_bridge returns a new
+array holding a straight-line bridge across each NaN run that contains a
+kerb-flagged sample and has finite anchors on both sides; gaps without a
+kerb sample (window cap, not moving) stay gaps. ui/views/corner_trace_
+dialog draws it for the CS_ratio f/r and stability panels in both windows
+as a dashed, lighter curve in the lap's colour, with a legend line.
+Config: parameters.json corner_trace_display.kerb_gap_bridge = true (display
+continuity only, 2026-09-30). Guards: tests/test_trace_display.py (real
+Dubai data: the bridge never modifies its input and only spans kerb gaps;
+the kinematic analysis chain is byte-identical with the flag on and off;
+no module in modules/ or core/ other than trace_display references it) --
+15 passed with the config-schema file; diagnostics/smoke_test_kerb_bridge.py
+on a cached outing (outing 4, US-v1): 264 corner-window and 6 lap-window
+bridge items with the flag on, 0 with it off, analysis arrays byte-
+identical before and after rendering; test_stability.py exit 0. Full suite
+not run (no analysis-path change).
+
+## Provenance correction batch [2026-09-30, author ruling]
+
+1. Dubai "June driver report" ("balanced, mild understeer, no
+   instability"): not a recorded driver statement; it is an assumption
+   from the session type. Every entry citing it as a driver report is
+   struck through with a dated note (two earlier WP-era validation entries, the
+   Dubai validation section, the CS smoothing sweep, the pooled read-out
+   prototype, the read-out synthesis, the three-way decision table).
+2. The battery element "Dubai mild understeer (US >= OS)" is DEMOTED from
+   a disqualifying survival element to context. Consequence for (b),
+   re-read from its existing scores (no re-run): C (US 5 vs OS 7) and D2
+   (4 vs 7) were disqualified by that element alone and now lose no
+   element; C resolves front 5/14 and gap 4/14 against baseline 4/14 and
+   1/14, so its gap gain (+3) exceeds the 2-corner floor; D2 clears no
+   floor (gap +1, switch +0.036). B4 and B2 stay disqualified (Dubai C3
+   gap). D1 and E are unaffected.
+3. The NBR A (outing 21) understeer label is confirmed real and recent by
+   the author.
+
+## Rulings on (b) and (c) [2026-09-30, reviewer, author-relayed]
+
+(b) CLOSED, nothing ships; production unchanged. The three formal
+qualifiers are ruled out:
+- D1 and E on trace evidence ("(c) Part 2" retro-renders): they relocate
+  saturation from the rear axle to the front -- new front dips to -2.6
+  absent at baseline, rear stretches erased. A physics rewrite, not a
+  smoothing; the ground is visual inspection, not verdict counts.
+- C on a floor-sized gain: its only gain, +3 gap-resolvable NBR A/B
+  corners, is the size the (a2) floor row showed a 2 % ay input error
+  manufactures (F2: +2 front, +2 gap); otherwise inert within 2 %.
+Method finding: the scores qualified D1/E and the traces disqualified
+them. The per-iteration render requirement was decisive; it is the
+recorded justification of the standing render rule (PLAN.md PROCESS
+RULES).
+(c) SPLIT EXIT:
+- "(c)-display" approved as a proposal: pooled yaw-rate envelope,
+  excess/deficit flags and the steering-rate sub-panel as a display
+  element; queued behind WP-HARDEN; display tier, no boundary.
+- "(c)-evidence proposal" not graduated: a 1.5-1.9x enrichment over a
+  47-58 % base rate is too weak, and the unwinding threshold must scale
+  with in-corner steering activity rather than straight-line noise.
+  Parked on the engineer-round question "what steering response counts
+  as a correction?".
+- NBR C1: excess flags on the two deepest C1 CS laps (103, 107) and a
+  deficit flag on the lag-explained lap (105) -- a third independent
+  flag on that corner, recorded under its parked item.
+Follow-up approved: kerb-gap bridge for the figure exports
+(core/figure_render.py), same helper, backlog sweep.

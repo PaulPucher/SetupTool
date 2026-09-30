@@ -196,6 +196,10 @@ here (53 keepers + 37 in diagnostics/_attic/).
   measurement-points form widget.
 - **smoke_test_settings_view.py** -- SettingsView Section 4 cost-function
   weights, restart-persistence check.
+- **smoke_test_kerb_bridge.py** (2026-09-30) -- kerb-gap display bridge in
+  CornerTraceDialog/LapTraceDialog on one cached outing (sidecar read
+  read-only): bridges only with the flag on, analysis arrays
+  byte-identical before and after rendering.
 
 ## K5 -- named census/measurement tooling (7 not already listed above)
 
@@ -308,6 +312,33 @@ here (53 keepers + 37 in diagnostics/_attic/).
   "IMU offsets, Part 1" to "Part 5", "Second IMU sources, liveness
   pre-check" and "(a2) Part 1" to "Part 4" (2026-09-30). Outputs in `plots/imu_offsets/`
   (gitignored).
+- **inspect_cs_upstream_sweep.py** (2026-09-30, keep-reproduces) -- PLAN.md
+  EXPERIMENT PLAN (b): CS filtering at upstream insertion points (yaw rate
+  + ay before the sideslip fit, speed before fit and alpha, EKF beta
+  before alpha) plus the (a2)-floor reference rows (speed x1.01, ay x1.02)
+  through the production chain in memory; survival battery, NBR A-vs-B
+  jackknife resolvability, pooled lap-pair switch rate, verdict shift,
+  floor test. Own script because the variants must feed modified RAW
+  channels through fit_session_pacejka. Imports inspect_new_laps_cs_sweep,
+  inspect_cs_readout_evidence, inspect_cs_value_lens. Modes: compute <key>,
+  ecompute <key> <variant>, tier2 <key> <variants>, score, confirm
+  <variants>, render (baseline vs D1 vs E standard trace sets on JST 29,
+  US-v2, MLA via trace_render.py; thesis_notes.md "(c) Part 2"). Tiered per the author's amendment (Tier 1 Dubai, JST 21/29,
+  US-v2, v3 kept; Tier 2 Le Mans, CDR, MLA for survivors only).
+  Keep-reason: evidence for the (b) exit ruling; any filter proposal
+  re-runs it. Records: thesis_notes.md "(b) Part 1" to "Part 3"
+  (2026-09-30). Outputs in `plots/cs_upstream/` (gitignored).
+- **inspect_yaw_pooling.py** (2026-09-30, keep-reproduces) -- PLAN.md
+  EXPERIMENT PLAN (c): yaw rate pooled per corner on a 1 m track grid over
+  the analysis laps, p10-p90 envelope, excess/deficit flags beyond a
+  noise-derived margin, steering-unwinding check 150-300 ms after each
+  flag with a same-position control. Screening JST 29, US-v2, MLA; Dubai
+  for the C3 cross-reference. Imports inspect_new_laps_cs_sweep,
+  gated_kinematic_common, inspect_imu_offsets. Modes: compute <key>,
+  report. Keep-reason: evidence for the (c) ruling. Records:
+  thesis_notes.md "(c) Part 1". Outputs in `plots/yaw_pooling/`
+  (gitignored). The upstream-sweep script's `render` mode (Part 2 retro
+  renders) is listed under inspect_cs_upstream_sweep.py.
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the
@@ -326,6 +357,13 @@ here (53 keepers + 37 in diagnostics/_attic/).
   inspect_frame_candidate_census.py, inspect_pipeline_wall_times.py (all
   keepers above). The standard byte-stability tool for decision-layer
   work; old-vs-new engine parity check.
+
+- **trace_render.py** (2026-09-30) -- shared plotting helper, not a
+  diagnostic: the standard trace set (front/rear CS_ratio vs lap
+  distance, thin line per analysis lap, corner-bracket bands, y fixed to
+  config corner_trace_display) factored from the value-lens layout.
+  Imported by inspect_cs_upstream_sweep.py (render). New packages call it;
+  existing scripts keep their own copies (not refactored).
 
 ## K7 -- regenerates committed content / recurring checklist tool (2)
 

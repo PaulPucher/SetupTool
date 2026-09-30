@@ -93,9 +93,41 @@ NEXT
 - ~~Author's exit ruling on (a)/(a2) together; then (b).~~ [2026-09-30:
   ruled -- (a)/(a2) CLOSED AS CHARACTERISED, correction deferred behind
   the conditional door "(a3) C3+C4 proposal"; see EXPERIMENT PLAN (a).]
-- Experiment (b), upstream-insertion CS filter sweep (EXPERIMENT PLAN),
+- ~~Experiment (b), upstream-insertion CS filter sweep (EXPERIMENT PLAN),
   on current inputs; results read against the (a2) characterisation
-  (known input errors of the ~1-2 % scale family). Then (c).
+  (known input errors of the ~1-2 % scale family). Then (c).~~
+  [2026-09-30: (b) RUN, read-only, tiered per the author's amendment
+  (diagnostics/inspect_cs_upstream_sweep.py; thesis_notes.md "(b) Part 1"
+  to "Part 3"). B4, B2, C, D2 disqualified; D1 (EKF beta at 1 Hz before
+  alpha) and E (C + D1) meet the pre-registered exit (no battery loss,
+  switch rate 0.471 -> 0.375 beyond the 0.066 floor, confirmed on CDR and
+  MLA) with called lap pairs down to ~55 %, no resolvability gain beyond
+  the floor, and 6-9 changed calls per session.]
+- ~~Author's exit ruling on (b): D1/E variant proposal, or closure as
+  tested-upstream-nothing-earned-production. Then (c).~~ [2026-09-30: the
+  provenance correction demotes the Dubai US >= OS battery element; on
+  the existing (b) scores C and D2 then lose no element, and C's gap
+  resolvability gain (+3) clears the 2-corner floor -- the ruling now has
+  C beside D1/E. Record: thesis_notes.md "Provenance correction batch".]
+  [RULED 2026-09-30 (reviewer, author-relayed): (b) CLOSED, nothing
+  ships -- see EXPERIMENT PLAN (b).]
+- (c) RUN 2026-09-30, read-only (diagnostics/inspect_yaw_pooling.py;
+  thesis_notes.md "(c) Part 1"): excess flags on 21-38 corner-laps per
+  screening session, unwinding within 150-300 ms on 77-91 % of them vs
+  47-58 % base rate; weakly specific. Kerb-gap display bridge shipped in
+  the trace windows (display only, config corner_trace_display.
+  kerb_gap_bridge). ~~NEXT: author rulings on (b) and on whether (c)'s
+  flags go forward as a display/evidence proposal; (d) stays gated.~~
+  [RULED 2026-09-30: (c) split exit -- display approved and queued,
+  evidence mechanism parked; see EXPERIMENT PLAN (c).]
+- NEXT: WP-HARDEN (its deferral condition, experiments (a)-(b) closed, is
+  now met), then "(c)-display" behind it; both display tier. (d) waits
+  on the engineer round.
+
+BACKLOG SWEEP (approved small follow-ups; list created 2026-09-30)
+- Kerb-gap bridge in the figure exports: core/figure_render.py still
+  draws kerb holes; apply the same core/trace_display.kerb_gap_bridge at
+  its CS/stability call sites (approved 2026-09-30, display only).
 
 CARRIED OPEN (not started; each keeps its own gate)
 - Werner Eq. 4.3 v2 = Module 5 wiring (Tier A, proposal-first),
@@ -148,6 +180,19 @@ meeting 2026-09-30 - directions received"). Executed in the order
 below, one at a time, proposal-first (PROCESS RULES). Choosing between
 candidates follows the selection principle (PROCESS RULES): comparable
 evidence -> the simpler candidate ships.
+
+STATUS PER DIRECTION (current 2026-09-30):
+- (a)/(a2) IMU offsets and turn-proportional error: CLOSED AS
+  CHARACTERISED; correction deferred behind (a3).
+- (a3) C3+C4 proposal: CONDITIONAL DOOR, opens on the engineer round's
+  three sensor answers and a surviving roll constant.
+- (b) CS filtering at upstream insertion points: CLOSED, RULED -- nothing
+  ships, production unchanged.
+- (c) Yaw-rate pooling: SPLIT -- "(c)-display" approved, queued behind
+  WP-HARDEN (display tier, no boundary); "(c)-evidence proposal" parked
+  on an engineer-round question.
+- (d) Tyre-curve baseline prior: GATED on the engineer round.
+- (e) Combined accelerations: PARKED, own proposal needed.
 
 Boundary classes used below:
 - READ-ONLY DIAGNOSTIC: no production, config or threshold change;
@@ -249,7 +294,9 @@ input shows a benefit.
 Judged by the survival battery (thesis_notes.md "Three-way decision
 table: A0 / A / B"): C3 LS rear exit_5 negative 4/4; utilization gaps
 (worst-phase r - f > 0 at Dubai C3, US-v2 C13, NBR B C9); driver
-directions (Dubai US >= OS, NBR A understeer label); A-vs-B
+directions (~~Dubai US >= OS~~ [DEMOTED 2026-09-30 to context: a
+session-type assumption, not a driver report], NBR A understeer label,
+confirmed real and recent); A-vs-B
 directionality (front up, gap narrower). The benefit side uses the
 sweep's flapping and lap-switch metrics. Dubai C4 is not a bar (it is
 UNCONFIRMED since 2026-09-29).
@@ -263,6 +310,20 @@ proposal, or none does -> closed and recorded.
 Boundary class: READ-ONLY DIAGNOSTIC (production functions unchanged).
 Tier B. Reuses the sweep caches and the decision-table battery
 (diagnostics/inspect_new_laps_cs_sweep.py, inspect_cs_decision_table.py).
+EXIT (ruled 2026-09-30, reviewer, author-relayed): CLOSED, nothing ships;
+production unchanged. Records: thesis_notes.md "(b) Part 1" to "Part 3",
+"(c) Part 2", "Provenance correction batch"; tooling diagnostics/
+inspect_cs_upstream_sweep.py. The three formal qualifiers are ruled out:
+- D1 and E: on trace evidence (retro-renders) -- they relocate
+  saturation from the rear axle to the front (new front dips to -2.6
+  absent at baseline, rear stretches erased): a physics rewrite, not a
+  smoothing. Ground: the visual-inspection criterion, not verdict counts.
+- C: its only gain (+3 gap-resolvable corners) is the size the (a2)
+  floor row showed a 2 % ay input error manufactures; otherwise inert
+  within 2 %.
+The retro-render requirement proved decisive here: the scores qualified
+D1/E, the traces disqualified them -- the justification of the standing
+per-iteration render rule (PROCESS RULES).
 
 ## (c) Yaw-rate cross-lap pooling display
 Goal: show each lap's yaw-rate peak per corner against the pooled
@@ -278,6 +339,17 @@ Exit criterion: author's manual UI check passes; classification and
 verdicts byte-identical; the evidence item appears in the frame with
 its source stated; targeted tests green.
 Boundary class: DISPLAY TIER. Low effort.
+EXIT (ruled 2026-09-30, reviewer, author-relayed): SPLIT. Diagnostic
+record thesis_notes.md "(c) Part 1"; tooling diagnostics/
+inspect_yaw_pooling.py.
+- "(c)-display": APPROVED as a proposal, queued behind WP-HARDEN --
+  pooled yaw-rate envelope, excess/deficit flags and the steering-rate
+  sub-panel as a display element. Display tier, no boundary.
+- "(c)-evidence proposal": NOT graduated. A 1.5-1.9x enrichment over a
+  47-58 % base rate is too weak; the unwinding threshold must scale with
+  in-corner steering activity, not straight-line noise. Parked on the
+  engineer-round question "what steering response counts as a
+  correction?" (PARKED consolidated list).
 
 ## (d) Tyre-curve baseline prior from all sessions
 Goal: fit one baseline tyre curve per axle over all sessions, hold it
@@ -305,6 +377,8 @@ does not -> closed.
 Boundary class: ESTIMATOR-INPUT CHANGE, full re-derivation boundary
 attached (the curve moves beta through the EKF, hence alpha, CS, LS and
 yaw stability).
+STATUS (2026-09-30): GATED on the engineer round (in addition to the
+entry criterion above).
 
 ## (e) Combined accelerations (combined slip, rear axle) -- PARKED
 Goal: account for combined longitudinal and lateral demand on the rear
@@ -316,6 +390,8 @@ entry "Combined-slip tyre model", superseded by this direction
 2026-09-30).
 Entry criterion: (a)-(d) closed. Exit criterion and boundary class: set
 by its proposal; expected ESTIMATOR-INPUT CHANGE.
+STATUS (2026-09-30): PARKED; (a)/(a2) and (b) closed, (c) split, (d)
+gated -- the entry criterion is not met.
 
 # WP-HARDEN - CS display hardening (variant A)
 
@@ -1111,6 +1187,16 @@ Added in the 2026-09-30 consolidation:
   and the deepest laps barely; the population lag is not systematic
   (thesis_notes.md "Slip-vs-force lag check"). Reopen: re-measure after
   (a), and after (d) if it runs -- both can change it.
+  Cross-reference added 2026-09-30 ((c) Part 1): yaw-rate EXCESS flags
+  coincide with the two deepest C1 CS laps (103, 107) and a DEFICIT flag
+  with the lag-explained lap (105) -- a third independent flag on this
+  corner.
+- "(c)-evidence proposal" (added 2026-09-30, ruling). Reason: yaw-rate
+  excess flags are followed by steering unwinding 1.5-1.9x as often as
+  the positions' base rate (47-58 %) -- too weak to graduate; the
+  threshold must scale with in-corner steering activity. Reopen: the
+  engineer round answers item 5 ("what steering response counts as a
+  correction?").
 - Sawtooth window-start repair. Reason: available and measured, but
   COSMETIC by the pre-registered rule (qualifying set identical, phase
   medians within export noise); it lengthens windows 25-40 % and moves
@@ -1170,6 +1256,9 @@ Added in the 2026-09-30 consolidation:
      accelerometer mounted with a static roll tilt? Named candidate for
      the additive straight-line ay offset (+0.3 to +0.5 m/s^2, serial
      221): g sin(tilt) gives 0.3-0.5 m/s^2 at 1.8-2.9 deg.
+  5. Steering-correction question, added 2026-09-30 (ruling on (c)):
+     what steering response counts as a correction? Gates the
+     "(c)-evidence proposal".
   Question lists: the DECISION LAYER SPEC "Elicitation list" and the
   WP2b-2 "Engineer follow-up questions" sections. Reopen: when the
   round is scheduled.
@@ -1614,6 +1703,11 @@ WP-HARDEN).]
 - STATUS is rewritten at every work stop; history goes below.
 - Selection principle (author, 2026-09-30): comparable evidence -> the
   simpler candidate ships.
+- Per-iteration render rule (standing; first written into this file
+  2026-09-30): every scored iteration also renders its standard trace
+  set (diagnostics/trace_render.py) and the traces are inspected before
+  any score-based exit. Justification on record: in (b) the scores
+  qualified D1/E and the traces disqualified them.
 
 ### ANCHORS (verified)
 Rajamani, Vehicle Dynamics and Control, 2nd ed. 2012 - Ch. 2,
@@ -4800,7 +4894,8 @@ post-Turn-3; CS-side moderate-count movement traces to repaired
 realization defects, C11's misclassification and window jitter, not
 estimator drift). No value changes. Full detail and the verdict-
 distribution re-check (0/15/41 of 56, 26.8% flagged, vs. the historical
-~33% and ~27.5% points and the June driver report) in thesis_notes.md
+~33% and ~27.5% points and the ~~June driver report~~ [CORRECTED
+2026-09-30: a session-type assumption, not a driver report]) in thesis_notes.md
 "Threshold re-confirmation after WP1 consolidation" and "Verdict-
 distribution re-check after WP1 consolidation". Blocking gate from
 CLAUDE.md's grounding rule is now closed for this arc.

@@ -59,6 +59,14 @@ LAP_BAND_LEGEND_TEXT = (
 
 PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 
+# kerb-gap bridge: lighter than a measured trace (config corner_trace_display
+# kerb_gap_bridge switches it)
+BRIDGE_ALPHA = 110
+KERB_BRIDGE_LEGEND_TEXT = (
+    "Dashed, lighter stretch across a kerb band: straight-line bridge for "
+    "continuity only -- not measured, not used by any verdict."
+)
+
 # tyre-curve tab legend. Plot design after the chair performance_analysis
 # tooling (internal); no code copied.
 TYRE_CURVE_LEGEND_TEXT = (
@@ -277,6 +285,8 @@ class _TraceDialogBase(QDialog):
         pg.setConfigOptions(antialias=True)
 
         self.lap_curve_items = {}  # lap_number -> [curve items], checked laps only
+        # lap_number -> [kerb-gap bridge items]; drawn only, never analysed
+        self.lap_bridge_items = {}
         # quiet-lap dash (corner window only), ORed with the palette's past-10 dash
         self._lap_line_style = {}
         # lap_number -> {"color", "dash"} for the current checked set
@@ -402,6 +412,24 @@ class _TraceDialogBase(QDialog):
         qt_style = Qt.PenStyle.DashLine if is_dashed else Qt.PenStyle.SolidLine
         for item in items:
             item.setPen(self._pen(style["color"], SCREEN_LAP_WIDTH, qt_style))
+        # bridges: lap colour, always dashed and lighter, so an interpolated
+        # stretch never reads as measured
+        for item in self.lap_bridge_items.get(lap_number, []):
+            item.setPen(self._pen(style["color"], SCREEN_LAP_WIDTH, Qt.PenStyle.DashLine, alpha=BRIDGE_ALPHA))
+
+    def _plot_kerb_bridges(self, lap_number, x, kerb, series):
+        """series: [(panel_key, y)]. Returns True if anything was bridged."""
+        from core.trace_display import kerb_gap_bridge
+        items = []
+        for key, y in series:
+            yb = kerb_gap_bridge(x, y, kerb)
+            if np.isfinite(yb).any():
+                items.append(self.plots[key].plot(
+                    x, yb, connect="finite",
+                    pen=self._pen(THRESHOLD_GREY, SCREEN_LAP_WIDTH, Qt.PenStyle.DashLine, alpha=BRIDGE_ALPHA)))
+        if items:
+            self.lap_bridge_items[lap_number] = items
+        return bool(items)
 
     def _restyle_all_laps(self):
         # colour assignment from the current checked set; once per render
@@ -1076,6 +1104,7 @@ class CornerTraceDialog(_TraceDialogBase):
             plot.clear()
         self._clear_tyre_curves()
         self.lap_curve_items = {}
+        self.lap_bridge_items = {}
         self._render_ctx = None
 
         stable_corner_id = summary["stable_corner_id"]
@@ -1122,6 +1151,8 @@ class CornerTraceDialog(_TraceDialogBase):
         margin_after_m = margin_cfg.get("margin_after_m", 50.0)
         # LS drawn only where |ax_mps2| > bound (display mask, config)
         ls_display_min_ax = margin_cfg.get("ls_display_min_ax_mps2", 1.0)
+        bridge_on = margin_cfg.get("kerb_gap_bridge", True)
+        any_bridge = False
 
         v_kmh = state["v_mps"] * 3.6
         cs_f = cs["CS_ratio_f"]
@@ -1224,6 +1255,10 @@ class CornerTraceDialog(_TraceDialogBase):
                 curve_items.append(self.plots["ls_r"].plot(
                     x, ls_r_lap, connect="finite", pen=self._pen(**placeholder_pen_kwargs), name=lap_name))
             self.lap_curve_items[c["lap_number"]] = curve_items
+            if bridge_on and kerb_mask is not None:
+                any_bridge |= self._plot_kerb_bridges(
+                    c["lap_number"], x, kerb_mask[sl][order],
+                    [("stab", stab_obs[sl][order]), ("cs_f", cs_f[sl][order]), ("cs_r", cs_r[sl][order])])
             export_laps.append({
                 "lap_number": c["lap_number"], "selected": is_selected,
                 "s": x, "v_kmh": v_kmh[sl][order],
@@ -1311,6 +1346,8 @@ class CornerTraceDialog(_TraceDialogBase):
             legend_parts.append(
                 "Grey band, dotted edge: kerb strike -- the analysis fills this span in from clean data nearby."
             )
+        if any_bridge:
+            legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
         if any_not_moving:
             legend_parts.append(
                 "Grey band, dash-dot edge: car not up to speed here (out lap or pit lane)."
@@ -1482,6 +1519,7 @@ class LapTraceDialog(_TraceDialogBase):
         for plot in self.plots.values():
             plot.clear()
         self.lap_curve_items = {}
+        self.lap_bridge_items = {}
         self._corner_bands = []
         self._corner_summary_by_id = {}
 
@@ -1550,6 +1588,8 @@ class LapTraceDialog(_TraceDialogBase):
 
         any_kerb = False
         any_not_moving = False
+        bridge_on = margin_cfg.get("kerb_gap_bridge", True)
+        any_bridge = False
         export_laps = []
         for ln in checked_lap_numbers:
             data = self._load_lap_data(ln, stability_result, parsed_data)
@@ -1578,6 +1618,10 @@ class LapTraceDialog(_TraceDialogBase):
                                         pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
             ]
             self.lap_curve_items[ln] = curve_items
+            if bridge_on and data["kerb"] is not None:
+                any_bridge |= self._plot_kerb_bridges(
+                    ln, data["x"], data["kerb"],
+                    [("stab", data["stab"]), ("cs_f", data["csf"]), ("cs_r", data["csr"])])
             # figure_render key shape (s/v_kmh/stab/cs_f/cs_r), from the plotted slices
             export_laps.append({
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
@@ -1631,6 +1675,8 @@ class LapTraceDialog(_TraceDialogBase):
             legend_parts.append(
                 "Grey band, dotted edge: kerb strike -- the analysis fills this span in from clean data nearby."
             )
+        if any_bridge:
+            legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
         if any_not_moving:
             legend_parts.append(
                 "Grey band, dash-dot edge: car not up to speed here (out lap or pit lane)."
