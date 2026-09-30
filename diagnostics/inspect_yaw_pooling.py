@@ -5,6 +5,11 @@
 # verdict), and each flag is checked for a steering counteraction.
 # Nothing in modules/ or config/ changes. Tier B (grid resampling, zero-phase
 # low-pass, robust noise floors -- standard preprocessing).
+# Since 2026-09-30 the grid, envelope, margin and flags are computed by
+# core/yaw_pooling.py (the app's yaw panel, "(c)-display"); this script
+# passes its own pre-registered constants below and keeps the counteraction
+# test. Outputs byte-identical to the pre-refactor script on all four
+# cached sessions.
 #
 # Usage (repo root, venv active):
 #   python -m diagnostics.inspect_yaw_pooling compute <key>
@@ -47,9 +52,9 @@ import sys
 
 import numpy as np
 
+from core.yaw_pooling import lowpass, pool_yaw_rate, robust_std, session_masks
 from diagnostics.inspect_new_laps_cs_sweep import SESSIONS
-from diagnostics.gated_kinematic_common import FIXED_CAP, valid_corner_instances
-from diagnostics.inspect_imu_offsets import populations
+from diagnostics.gated_kinematic_common import FIXED_CAP
 
 KEYS = ["nbr_jst_solution", "pr_us_v2", "nbr_qp_mla", "dubai"]
 SCREEN = ["nbr_jst_solution", "pr_us_v2", "nbr_qp_mla"]
@@ -63,13 +68,6 @@ MARGIN_SIGMA = 3.0
 MIN_RUN_PTS = 5
 LAG_WIN_S = (0.15, 0.30)
 XREF = {"nbr_jst_solution": [1], "dubai": [3]}
-
-
-def _lp(x, fc, sr):
-    from scipy.signal import butter, filtfilt
-    from modules.stability_analysis import BUTTERWORTH_ORDER
-    b, a = butter(BUTTERWORTH_ORDER, fc / (0.5 * sr), btype="low")
-    return filtfilt(b, a, x)
 
 
 def compute(key):
@@ -97,98 +95,51 @@ def _load(key):
         return pickle.load(fh)
 
 
-def _robust_std(x):
-    x = x[np.isfinite(x)]
-    return float(1.4826 * np.median(np.abs(x - np.median(x))))
-
-
-def _runs(mask):
-    edges = np.diff(np.concatenate(([0], mask.astype(np.int8), [0])))
-    return list(zip(np.where(edges == 1)[0], np.where(edges == -1)[0]))
-
-
 def analyse(key):
+    # pooling and flags come from core.yaw_pooling (the app panel's code);
+    # only the counteraction test, which belongs to the parked evidence
+    # proposal, stays here. Refactor checked byte-identical on all four
+    # cached sessions (thesis_notes.md "(c)-display implemented").
     d = _load(key)
     sr = d["sample_rate_hz"]
-    st = d
-    racing, thr, s0, _s1, inst = populations(st, d["laps"], d["corners"])
-    r4 = _lp(np.degrees(d["yaw_rate_radps"]), FC_HZ, sr)
-    trend = _lp(np.degrees(d["yaw_rate_radps"]), TREND_HZ, sr)
-    sigma = _robust_std((r4 - trend)[s0])
-    m = MARGIN_SIGMA * sigma
-    steer = _lp(np.degrees(d["steer_sw_rad"]), FC_HZ, sr)
-    srate = np.gradient(steer, d["time"])
-    T = MARGIN_SIGMA * _robust_std(srate[s0])
-    k_sign = float(np.sign(np.corrcoef(steer[racing], r4[racing])[0, 1]))
-    kerb = d["kerb_mask"] if d["kerb_mask"] is not None else np.zeros(d["time"].size, bool)
-    by_corner = {}
-    for sid, lap, sl in inst:
-        by_corner.setdefault(sid, []).append((lap, sl))
-    res = {"key": key, "sigma": sigma, "margin": m, "T": T, "k_sign": k_sign, "corners": {}}
     t = d["time"]
-    for sid, trs in sorted(by_corner.items()):
-        s_lo = min(float(np.nanmin(d["s_m"][sl])) for _, sl in trs)
-        s_hi = max(float(np.nanmax(d["s_m"][sl])) for _, sl in trs)
-        grid = np.arange(np.floor(s_lo), np.ceil(s_hi) + GRID_M, GRID_M)
-        Y, TT, LAPS = [], [], []
-        for lap, sl in trs:
-            idx = np.arange(sl.start, sl.stop)
-            idx = idx[racing[idx] & ~kerb[idx]]
-            s = d["s_m"][idx]
-            ok = np.isfinite(s)
-            idx, s = idx[ok], s[ok]
-            if s.size < 5:
-                continue
-            o = np.argsort(s)
-            idx, s = idx[o], s[o]
-            y = np.interp(grid, s, r4[idx])
-            tg = np.interp(grid, s, t[idx])
-            pos = np.clip(np.searchsorted(s, grid), 1, s.size - 1)
-            near = np.minimum(np.abs(grid - s[pos - 1]), np.abs(grid - s[pos]))
-            bad = (near > GAP_M) | (grid < s[0]) | (grid > s[-1])
-            y[bad] = np.nan
-            tg[bad] = np.nan
-            Y.append(y); TT.append(tg); LAPS.append(lap)
-        if len(Y) < MIN_LAPS:
-            continue
-        Y, TT = np.array(Y), np.array(TT)
-        nlap = np.sum(np.isfinite(Y), axis=0)
-        with np.errstate(all="ignore"):
-            med = np.nanmedian(Y, axis=0)
-            p10 = np.nanpercentile(Y, 10, axis=0)
-            p90 = np.nanpercentile(Y, 90, axis=0)
-        env_ok = nlap >= MIN_LAPS
+    masks = session_masks(t, d["s_m"], d["moving_mask"], d["kerb_mask"], d["laps"], d["corners"])
+    racing, s0 = masks["racing"], masks["straight"]
+    pooled = pool_yaw_rate(t, d["s_m"], np.degrees(d["yaw_rate_radps"]), sr, racing, s0, d["kerb_mask"],
+                           masks["traversals"], fc_hz=FC_HZ, trend_hz=TREND_HZ, grid_m=GRID_M, gap_m=GAP_M,
+                           envelope_percentiles=(10, 90), min_laps=MIN_LAPS, margin_sigma=MARGIN_SIGMA,
+                           min_run_pts=MIN_RUN_PTS)
+    r4 = pooled["yaw_filt"]
+    steer = lowpass(np.degrees(d["steer_sw_rad"]), FC_HZ, sr)
+    srate = np.gradient(steer, t)
+    T = MARGIN_SIGMA * robust_std(srate[s0])
+    k_sign = float(np.sign(np.corrcoef(steer[racing], r4[racing])[0, 1]))
+    res = {"key": key, "sigma": pooled["sigma"], "margin": pooled["margin"], "T": T, "k_sign": k_sign,
+           "corners": {}}
+
+    def corroborated(t0, turn):
+        if not np.isfinite(t0):
+            return None
+        w = (t >= t0 + LAG_WIN_S[0]) & (t <= t0 + LAG_WIN_S[1])
+        if not w.any():
+            return None
+        unwind = -k_sign * turn * srate[w]
+        return bool(np.max(unwind) > T)
+
+    for sid, c in pooled["corners"].items():
+        TT, LAPS = c["T"], c["laps"]
+        sgn = np.sign(c["med"])
         flags = []
-        for j, lap in enumerate(LAPS):
-            y = Y[j]
-            sgn = np.sign(med)
-            outer = np.where(sgn > 0, p90, p10)
-            inner = np.where(sgn > 0, p10, p90)
-            exc = env_ok & np.isfinite(y) & (sgn * (y - outer) > m)
-            dfc = env_ok & np.isfinite(y) & (sgn * (inner - y) > m)
-            for kind, mask in (("EXCESS", exc), ("DEFICIT", dfc)):
-                for a, b in _runs(mask):
-                    if b - a < MIN_RUN_PTS:
-                        continue
-                    t_on = TT[j, a]
-                    turn = float(sgn[a])
-                    def corroborated(t0):
-                        if not np.isfinite(t0):
-                            return None
-                        w = (t >= t0 + LAG_WIN_S[0]) & (t <= t0 + LAG_WIN_S[1])
-                        if not w.any():
-                            return None
-                        unwind = -k_sign * turn * srate[w]
-                        return bool(np.max(unwind) > T)
-                    cor = corroborated(t_on)
-                    ctrl = [corroborated(TT[jj, a]) for jj in range(len(LAPS)) if jj != j]
-                    ctrl = [c for c in ctrl if c is not None]
-                    flags.append({"lap": lap, "kind": kind, "s_on": float(grid[a]), "len_m": int(b - a),
-                                  "peak": float(np.max(sgn[a:b] * (y[a:b] - (outer if kind == 'EXCESS' else inner)[a:b])))
-                                  if kind == "EXCESS" else float(np.max(sgn[a:b] * (inner[a:b] - y[a:b]))),
-                                  "corroborated": cor, "control_share": float(np.mean(ctrl)) if ctrl else None})
-        res["corners"][sid] = {"grid": grid, "Y": Y, "laps": LAPS, "med": med, "p10": p10, "p90": p90,
-                               "flags": flags, "n_laps": len(LAPS)}
+        for f in c["flags"]:
+            j, a, b = LAPS.index(f["lap"]), f["i0"], f["i1"]
+            turn = float(sgn[a])
+            ctrl = [corroborated(TT[jj, a], turn) for jj in range(len(LAPS)) if jj != j]
+            ctrl = [x for x in ctrl if x is not None]
+            flags.append({"lap": f["lap"], "kind": f["kind"], "s_on": f["s_on"], "len_m": int(b - a),
+                          "peak": f["peak"], "corroborated": corroborated(TT[j, a], turn),
+                          "control_share": float(np.mean(ctrl)) if ctrl else None})
+        res["corners"][sid] = {"grid": c["grid"], "Y": c["Y"], "laps": LAPS, "med": c["med"], "p10": c["p_lo"],
+                               "p90": c["p_hi"], "flags": flags, "n_laps": len(LAPS)}
     return res, d, r4, srate
 
 

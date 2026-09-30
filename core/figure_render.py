@@ -325,8 +325,10 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_CORNER, theme)
     # Small h_pad: it applies at every nested boundary and shrank the tyre
     # panels badly. Outer margins via rect instead, once: bottom 0.036 (~8 mm),
-    # left 0.035 (~5.6 mm) so the y label isn't clipped.
-    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.04, wspace=0.0, hspace=0.02, rect=(0.07, 0.036, 1.0, 1.0))
+    # left 0.035 (~5.6 mm) so the y label isn't clipped, top 0.96 (~9.6 mm):
+    # with the rect reaching 1.0 the speed panel was laid out up to the canvas
+    # top and the suptitle landed inside it.
+    fig.get_layout_engine().set(w_pad=0.0, h_pad=0.04, wspace=0.0, hspace=0.02, rect=(0.07, 0.036, 1.0, 0.96))
     gs = fig.add_gridspec(5, 2, height_ratios=[2.4, 2.4, 2.4, 0.9, 5.4])
     ax_speed, legend_speed = _side_legend_axes(fig, gs[0, :])
     ax_csf, legend_csf = _side_legend_axes(fig, gs[1, :])
@@ -443,6 +445,15 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT)
 
 
 def save_png(fig, path):
-    """Fixed dpi -> same result, same bytes. Closes the figure."""
-    fig.savefig(path, dpi=ps.PRINT_DPI, facecolor=fig.get_facecolor())
+    """Fixed dpi -> same result, same bytes. Closes the figure.
+
+    Tight crop: constrained_layout leaves the side-legend text and the
+    fixed-aspect map/tyre axes of the corner figure partly outside the
+    nominal 16 cm canvas, and a plain savefig cut them off at the edge. The
+    tight bbox grows the saved canvas to every drawn artist instead, so the
+    file can come out a little wider than PRINT_WIDTH_CM; the layout itself
+    is unchanged.
+    """
+    fig.savefig(path, dpi=ps.PRINT_DPI, facecolor=fig.get_facecolor(), bbox_inches="tight",
+                pad_inches=ps.PRINT_PAD_INCHES)
     plt.close(fig)

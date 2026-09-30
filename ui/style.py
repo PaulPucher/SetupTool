@@ -25,6 +25,7 @@ OK          = "#4CAF50"   # healthy / stabilising
 WARN        = "#C0A060"  # same hue as ACCENT on purpose
 BAD         = "#c0392b"   # saturated / destabilising
 NEUTRAL     = "#444"      # no data / NaN
+INFO        = "#4A90D9"   # opposite-side marker to BAD (yaw panel: deficit flag)
 
 STYLESHEET = """
     QMainWindow, QWidget {

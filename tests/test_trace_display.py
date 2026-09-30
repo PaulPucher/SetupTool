@@ -136,3 +136,45 @@ def test_export_draws_bridge_and_leaves_analysis_arrays_untouched(pipeline_resul
     for k in before:
         assert cs[k].tobytes() == before[k], "rendering must not touch analysis arrays"
     assert stab_obs.tobytes() == before_stab
+
+
+def test_export_png_holds_every_artist(pipeline_result, parsed_data, state, effective_params, tmp_path):
+    # constrained_layout leaves side-legend text partly outside the nominal
+    # canvas; save_png's tight crop must widen the file to every axes' drawn
+    # extent (legends included) instead of cutting at the edge
+    import matplotlib.pyplot as plt
+    from PIL import Image
+    from core import figure_render, plot_style as ps
+    cs, stab = pipeline_result["cs"], pipeline_result["stab"]
+    t, s_m, kerb = state["time"], state["s_m"], state["kerb_mask"]
+    cls = effective_params["classification"]
+    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"],
+                  "strong_csf": cls["STRONG_CSF"]["value"], "moderate_csf": cls["MODERATE_CSF"]["value"],
+                  "strong_csr": cls["STRONG_CSR"]["value"], "moderate_csr": cls["MODERATE_CSR"]["value"]}
+    laps = []
+    for lap in parsed_data["laps"]:
+        if lap.get("is_valid_for_analysis"):
+            m = (t >= lap["start_time"]) & (t < lap["end_time"]) & np.isfinite(s_m)
+            laps.append({"lap_number": lap["lap_number"], "s": s_m[m], "v_kmh": state["v_mps"][m] * 3.6,
+                         "stab": stab["stability_observed_Nm_per_deg"][m], "cs_f": cs["CS_ratio_f"][m],
+                         "cs_r": cs["CS_ratio_r"][m], "kerb": kerb[m]})
+    fig = figure_render.render_lap_figure("Dubai", laps, thresholds, [])
+    try:
+        fig.canvas.draw()
+        r = fig.canvas.get_renderer()
+        tight = fig.get_tightbbox(r)            # inches
+        dpi = fig.dpi
+        for ax in fig.axes:
+            bb = ax.get_tightbbox(r)
+            if bb is None:
+                continue
+            assert bb.x0 / dpi >= tight.x0 - 0.01 and bb.x1 / dpi <= tight.x1 + 0.01
+            assert bb.y0 / dpi >= tight.y0 - 0.01 and bb.y1 / dpi <= tight.y1 + 0.01
+        path = tmp_path / "lap.png"
+        figure_render.save_png(fig, str(path))
+    finally:
+        plt.close(fig)
+    w, h = Image.open(path).size
+    pad = 2 * ps.PRINT_PAD_INCHES
+    assert abs(w - (tight.width + pad) * ps.PRINT_DPI) <= 2
+    assert abs(h - (tight.height + pad) * ps.PRINT_DPI) <= 2

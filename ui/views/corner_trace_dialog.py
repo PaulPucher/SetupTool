@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFileDialog, QMessageBox,
 )
 
-from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
+from ui.style import BAD, BORDER, INFO, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
 
 # Colours/widths from core/plot_style.py, shared with the exports
 # (core/figure_render.py, diagnostics/inspect_step2_chair_plots.py).
@@ -66,6 +66,32 @@ KERB_BRIDGE_LEGEND_TEXT = (
     "Dashed, lighter stretch across a kerb band: straight-line bridge for "
     "continuity only -- not measured, not used by any verdict."
 )
+
+# yaw-pooling panels (config corner_trace_display.yaw_pooling_panel). The
+# pooling itself is core/yaw_pooling; the dialog only draws. Plain words, no
+# verdict language: this is a display, the evidence mechanism is parked.
+YAW_PANEL_TITLES = [("Yaw rate, 4 Hz (deg/s)", "yaw"), ("Steering rate (deg/s)", "steer")]
+YAW_MEDIAN_WIDTH = 2.5
+YAW_FLAG_WIDTH = 3.5
+YAW_FLAG_ALPHA = 210
+YAW_FLAG_MARKER_SIZE = 10
+
+
+def _yaw_legend_text(pooled, cfg):
+    p_lo, p_hi = cfg["envelope_percentiles"]
+    return (
+        f"Yaw panel: thin = lap (kerb samples removed), heavy = median over {pooled['n_analysis_laps']} "
+        f"analysis laps, shaded = their p{p_lo:g}-p{p_hi:g} spread. A red (up-triangle) or blue "
+        f"(down-triangle) stretch means the lap deviates from the cross-lap envelope by more than this "
+        f"session's yaw-noise margin (m = {pooled['margin']:.2f} deg/s): red = more rotation than the other "
+        f"laps, blue = less. Display only -- no verdict uses it. Steering-rate panel: grey, per lap."
+    )
+
+
+def _index_runs(mask):
+    edges = np.diff(np.concatenate(([0], np.asarray(mask).astype(np.int8), [0])))
+    return list(zip(np.where(edges == 1)[0], np.where(edges == -1)[0]))
+
 
 # tyre-curve tab legend. Plot design after the chair performance_analysis
 # tooling (internal); no code copied.
@@ -276,9 +302,20 @@ class _TraceDialogBase(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         import pyqtgraph as pg
+        from modules.stability_analysis import load_parameters
+
+        # yaw-pooling panels decided once per window: rows can't be added to a
+        # live GraphicsLayout cleanly, so toggling the flag needs a new window
+        display_cfg = load_parameters().get("corner_trace_display", {})
+        self._yaw_cfg = display_cfg["yaw_pooling"] if display_cfg.get("yaw_pooling_panel", False) else None
+        # (state, pooled) of the last pooling -- a checkbox toggle re-renders
+        # but the envelope pools all analysis laps, so it never changes
+        self._yaw_cache = None
+        self.panel_titles = list(self.PANEL_TITLES) + (YAW_PANEL_TITLES if self._yaw_cfg else [])
 
         self.setWindowTitle(self.WINDOW_TITLE)
-        self.resize(*self.WINDOW_SIZE)
+        width, height = self.WINDOW_SIZE
+        self.resize(width, height + (260 if self._yaw_cfg else 0))
         self.setModal(False)
         # native min/max buttons -- data-dense windows
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
@@ -322,8 +359,8 @@ class _TraceDialogBase(QDialog):
         self.plots = {}
         self.legends = {}
         first_plot = None
-        for i, (label, key) in enumerate(self.PANEL_TITLES):
-            is_last = (i == len(self.PANEL_TITLES) - 1)
+        for i, (label, key) in enumerate(self.panel_titles):
+            is_last = (i == len(self.panel_titles) - 1)
             plot = self.pg_layout.addPlot()
             plot.setLabel('left', label, color='#888', size='8pt')
             plot.showGrid(x=True, y=True, alpha=0.15)
@@ -341,10 +378,11 @@ class _TraceDialogBase(QDialog):
             self.plots[key] = plot
             self.pg_layout.nextRow()
 
-        # speed = context -> less stretch (ratio, survives resizing); LS panels
-        # get full stretch
-        for i, (_label, key) in enumerate(self.PANEL_TITLES):
-            self.pg_layout.ci.layout.setRowStretchFactor(i, 1 if key in self.CONTEXT_PANEL_KEYS else 3)
+        # speed and steering rate = context -> less stretch (ratio, survives
+        # resizing); the rest full stretch
+        for i, (_label, key) in enumerate(self.panel_titles):
+            context = key in self.CONTEXT_PANEL_KEYS or key == "steer"
+            self.pg_layout.ci.layout.setRowStretchFactor(i, 1 if context else 3)
 
     def _build_lap_checkbox_container(self):
         from PyQt6.QtWidgets import QWidget
@@ -428,8 +466,86 @@ class _TraceDialogBase(QDialog):
                     x, yb, connect="finite",
                     pen=self._pen(THRESHOLD_GREY, SCREEN_LAP_WIDTH, Qt.PenStyle.DashLine, alpha=BRIDGE_ALPHA)))
         if items:
-            self.lap_bridge_items[lap_number] = items
+            # extend: one lap can carry bridges on several panels and corners
+            self.lap_bridge_items.setdefault(lap_number, []).extend(items)
         return bool(items)
+
+    def _yaw_panel_data(self, stability_result, parsed_data):
+        """Pooled yaw data for this analysis result, or None (panel off or
+        channel missing). Pooled once per result; held with its state so a
+        recycled id() can never return a stale envelope."""
+        if self._yaw_cfg is None:
+            return None
+        state = stability_result.get("state")
+        if self._yaw_cache is None or self._yaw_cache[0] is not state:
+            from core.yaw_pooling import build_panel_data
+            pooled = build_panel_data(state, parsed_data.get("laps", []),
+                                      stability_result.get("corners") or [], self._yaw_cfg)
+            self._yaw_cache = (state, pooled)
+        return self._yaw_cache[1]
+
+    def _plot_yaw_corner(self, pc, checked_laps, bridge_on, named):
+        """One corner's envelope, median, checked laps' rows and their flags on
+        the yaw panel. named: set of legend names already registered (a lap
+        window draws many corners, each name once). Returns True if a kerb
+        bridge was drawn."""
+        import pyqtgraph as pg
+
+        plot = self.plots["yaw"]
+        g = pc["grid"]
+
+        def once(name):
+            if name in named:
+                return None
+            named.add(name)
+            return name
+
+        band = pg.mkColor(TEXT_DIM)
+        band.setAlpha(110)
+        ok = np.isfinite(pc["p_lo"]) & np.isfinite(pc["p_hi"])
+        for a, b in _index_runs(ok):
+            lo = plot.plot(g[a:b], pc["p_lo"][a:b], pen=None)
+            hi = plot.plot(g[a:b], pc["p_hi"][a:b], pen=None)
+            fill = pg.FillBetweenItem(lo, hi, brush=pg.mkBrush(band))
+            fill.setZValue(-1)
+            plot.addItem(fill)
+        name = once("envelope")
+        if name:
+            # FillBetweenItem has no legend swatch -> zero-point stand-in
+            plot.plot([], [], pen=pg.mkPen(band, width=8), name="Cross-lap envelope")
+        plot.plot(g, pc["med"], connect="finite", pen=self._pen(TEXT, YAW_MEDIAN_WIDTH, Qt.PenStyle.SolidLine),
+                  name="Pooled median" if once("median") else None).setZValue(3)
+
+        bridged = False
+        for j, ln in enumerate(pc["laps"]):
+            if ln not in checked_laps:
+                continue
+            item = plot.plot(g, pc["Y"][j], connect="finite",
+                             pen=self._pen(THRESHOLD_GREY, SCREEN_LAP_WIDTH, Qt.PenStyle.SolidLine),
+                             name=once(f"Lap {ln}"))
+            self.lap_curve_items.setdefault(ln, []).append(item)
+            if bridge_on:
+                bridged |= self._plot_kerb_bridges(ln, g, pc["K"][j], [("yaw", pc["Y"][j])])
+        for f in pc["flags"]:
+            if f["lap"] not in checked_laps:
+                continue
+            y = pc["Y"][pc["laps"].index(f["lap"])]
+            excess = f["kind"] == "EXCESS"
+            color = BAD if excess else INFO
+            seg = slice(f["i0"], f["i1"])
+            plot.plot(g[seg], y[seg], pen=self._pen(color, YAW_FLAG_WIDTH, Qt.PenStyle.SolidLine,
+                                                    alpha=YAW_FLAG_ALPHA)).setZValue(5)
+            label = "More rotation than envelope" if excess else "Less rotation than envelope"
+            plot.plot([g[f["i0"]]], [y[f["i0"]]], pen=None, symbol="t1" if excess else "t",
+                      symbolSize=YAW_FLAG_MARKER_SIZE, symbolBrush=pg.mkBrush(color), symbolPen=None,
+                      name=once(label)).setZValue(6)
+        return bridged
+
+    def _plot_steer_rate(self, x, y, named):
+        # neutral on purpose: context for the yaw panel, not lap-identified
+        self.plots["steer"].plot(x, y, connect="finite", pen=self._pen(TEXT_MUTED, 1, Qt.PenStyle.SolidLine),
+                                 name="Steering rate, per lap" if "steer" not in named else None)
+        named.add("steer")
 
     def _restyle_all_laps(self):
         # colour assignment from the current checked set; once per render
@@ -1153,6 +1269,8 @@ class CornerTraceDialog(_TraceDialogBase):
         ls_display_min_ax = margin_cfg.get("ls_display_min_ax_mps2", 1.0)
         bridge_on = margin_cfg.get("kerb_gap_bridge", True)
         any_bridge = False
+        yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
+        yaw_named = set()
 
         v_kmh = state["v_mps"] * 3.6
         cs_f = cs["CS_ratio_f"]
@@ -1259,6 +1377,8 @@ class CornerTraceDialog(_TraceDialogBase):
                 any_bridge |= self._plot_kerb_bridges(
                     c["lap_number"], x, kerb_mask[sl][order],
                     [("stab", stab_obs[sl][order]), ("cs_f", cs_f[sl][order]), ("cs_r", cs_r[sl][order])])
+            if yaw_pooled is not None and yaw_pooled["steer_rate"] is not None:
+                self._plot_steer_rate(x, yaw_pooled["steer_rate"][sl][order], yaw_named)
             export_laps.append({
                 "lap_number": c["lap_number"], "selected": is_selected,
                 "s": x, "v_kmh": v_kmh[sl][order],
@@ -1268,6 +1388,14 @@ class CornerTraceDialog(_TraceDialogBase):
                 # export draws kerb bridges only when this is set (same flag)
                 "kerb": kerb_mask[sl][order] if (bridge_on and kerb_mask is not None) else None,
             })
+
+        # yaw rows join lap_curve_items, so they must exist before the restyle.
+        # Envelope = all analysis laps; rows and flags = checked laps only.
+        yaw_corner = yaw_pooled["corners"].get(stable_corner_id) if yaw_pooled is not None else None
+        if yaw_corner is not None:
+            any_bridge |= self._plot_yaw_corner(
+                yaw_corner, {c["lap_number"] for c in checked_instances},
+                bridge_on and kerb_mask is not None, yaw_named)
 
         # legend = checked laps + threshold lines
         self._laps_by_number = laps_by_number
@@ -1326,9 +1454,10 @@ class CornerTraceDialog(_TraceDialogBase):
         # a wrong range back
         for plot in self.plots.values():
             plot.setXRange(x_lo, x_hi, padding=0.02)
-        # fixed y for ratio panels; stab/speed auto-range
-        for key in ("stab", "speed"):
-            self.plots[key].enableAutoRange(axis='y')
+        # fixed y for ratio panels; stab/speed/yaw/steer auto-range
+        for key in ("stab", "speed", "yaw", "steer"):
+            if key in self.plots:
+                self.plots[key].enableAutoRange(axis='y')
         self._apply_ratio_y_range()
 
         n_laps = len(instances)
@@ -1339,11 +1468,16 @@ class CornerTraceDialog(_TraceDialogBase):
         self.header_label.setText(
             f"C{stable_corner_id} -- {n_laps} valid lap(s) available{quiet_note}, unchecked laps hidden -- "
             f"context margin -{margin_before_m:g}m/+{margin_after_m:g}m outside the bracket"
+            + (f" -- yaw envelope over {yaw_pooled['n_analysis_laps']} analysis laps" if yaw_pooled else "")
         )
 
         legend_parts = [BASE_LEGEND_TEXT]
         if ls_f is not None and ls_r is not None:
             legend_parts.append(LS_PANEL_LEGEND_TEXT)
+        if yaw_pooled is not None:
+            legend_parts.append(_yaw_legend_text(yaw_pooled, self._yaw_cfg) if yaw_corner is not None else
+                                f"Yaw panel: no envelope for this corner (fewer than "
+                                f"{self._yaw_cfg['min_laps']} analysis laps pooled).")
         if any_kerb:
             legend_parts.append(
                 "Grey band, dotted edge: kerb strike -- the analysis fills this span in from clean data nearby."
@@ -1427,9 +1561,9 @@ class LapTraceDialog(_TraceDialogBase):
             self.show_lap(lap_number, stability_result, parsed_data, classify_fn,
                            preserve_visible=dict(self.lap_visible))
 
-    def _load_lap_data(self, lap_number, stability_result, parsed_data):
-        """state/cs/stab sliced to the whole lap via _lap_slice (no margin).
-        Arrays ready to plot, or None.
+    def _load_lap_data(self, lap_number, stability_result, parsed_data, steer_rate=None):
+        """state/cs/stab (and steer_rate, when given) sliced to the whole lap via
+        _lap_slice (no margin). Arrays ready to plot, or None.
         """
         # no LS here
         state = stability_result.get("state")
@@ -1459,6 +1593,7 @@ class LapTraceDialog(_TraceDialogBase):
             "speed": state["v_mps"][sl][order] * 3.6,
             "kerb": kerb_mask[sl][order] if kerb_mask is not None else None,
             "not_moving": ~moving_mask[sl][order] if moving_mask is not None else None,
+            "steer": steer_rate[sl][order] if steer_rate is not None else None,
         }
 
     def _add_corner_bands(self, corners_by_id, worst_colour_by_id):
@@ -1592,9 +1727,12 @@ class LapTraceDialog(_TraceDialogBase):
         any_not_moving = False
         bridge_on = margin_cfg.get("kerb_gap_bridge", True)
         any_bridge = False
+        yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
+        yaw_named = set()
         export_laps = []
         for ln in checked_lap_numbers:
-            data = self._load_lap_data(ln, stability_result, parsed_data)
+            data = self._load_lap_data(ln, stability_result, parsed_data,
+                                       steer_rate=yaw_pooled["steer_rate"] if yaw_pooled is not None else None)
             if data is None:
                 continue
 
@@ -1624,12 +1762,21 @@ class LapTraceDialog(_TraceDialogBase):
                 any_bridge |= self._plot_kerb_bridges(
                     ln, data["x"], data["kerb"],
                     [("stab", data["stab"]), ("cs_f", data["csf"]), ("cs_r", data["csr"])])
+            if data["steer"] is not None:
+                self._plot_steer_rate(data["x"], data["steer"], yaw_named)
             # figure_render key shape (s/v_kmh/stab/cs_f/cs_r), from the plotted slices
             export_laps.append({
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
                 "stab": data["stab"], "cs_f": data["csf"], "cs_r": data["csr"],
                 "kerb": data["kerb"] if bridge_on else None,
             })
+
+        # every pooled corner of the lap; rows join lap_curve_items -> before the
+        # restyle. Envelope = all analysis laps, rows/flags = checked laps.
+        if yaw_pooled is not None:
+            checked_set = set(checked_lap_numbers)
+            for _cid, pc in sorted(yaw_pooled["corners"].items()):
+                any_bridge |= self._plot_yaw_corner(pc, checked_set, bridge_on, yaw_named)
 
         # colour assignment, same rule as the toggle re-render
         self._restyle_all_laps()
@@ -1649,9 +1796,10 @@ class LapTraceDialog(_TraceDialogBase):
 
         for plot in self.plots.values():
             plot.enableAutoRange(axis='x')
-        # fixed y for ratio panels; stab/speed auto-range
-        for key in ("stab", "speed"):
-            self.plots[key].enableAutoRange(axis='y')
+        # fixed y for ratio panels; stab/speed/yaw/steer auto-range
+        for key in ("stab", "speed", "yaw", "steer"):
+            if key in self.plots:
+                self.plots[key].enableAutoRange(axis='y')
         self._apply_ratio_y_range()
 
         self._add_corner_bands(corners_by_id, worst_colour_by_id)
@@ -1671,9 +1819,12 @@ class LapTraceDialog(_TraceDialogBase):
             f"Lap {lap_number} -- full-lap trace, {len(valid_lap_numbers)} valid lap(s) "
             f"available, fastest {n_default} (incl. lap {lap_number}) shown by default -- "
             f"check other laps to overlay."
+            + (f" Yaw envelope over {yaw_pooled['n_analysis_laps']} analysis laps." if yaw_pooled else "")
         )
 
         legend_parts = [BASE_LEGEND_TEXT, LAP_BAND_LEGEND_TEXT]
+        if yaw_pooled is not None:
+            legend_parts.append(_yaw_legend_text(yaw_pooled, self._yaw_cfg))
         if any_kerb:
             legend_parts.append(
                 "Grey band, dotted edge: kerb strike -- the analysis fills this span in from clean data nearby."

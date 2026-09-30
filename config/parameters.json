@@ -64,7 +64,7 @@
     "min_sample_rate_hz": 50,
     "_comment_sideslip_source": "Which beta feeds Modules 4b/5. Default 'ekf_auto_pacejka' (per-session fit, gated, kinematic fallback). 'kinematic' = estimate_sideslip, the universal fallback. 'ekf_pass_1' = frozen Dugoff curve with calibrated noise (sideslip_ekf_dugoff.py). Traces are fine under any source; verdict thresholds are calibrated for thresholds_calibrated_for_sideslip_source only -> [UNCAL] banner otherwise.",
     "sideslip_source": "ekf_auto_pacejka",
-    "_comment_sideslip_source_auto_modes": "'ekf_auto_dugoff' / 'ekf_auto_pacejka': fit this session's tyre curve (tyre_fit_auto), run the NIS gate, use the EKF's beta_with_fallback only if gate = pass/warn and fit not degenerate; else kinematic, recorded as fallback_used/fallback_reason. Thresholds are never calibrated for these -> [UNCAL] always.",
+    "_comment_sideslip_source_auto_modes": "'ekf_auto_dugoff' / 'ekf_auto_pacejka': fit this session's tyre curve (tyre_fit_auto), run the NIS gate, use the EKF's beta_with_fallback only if gate = pass/warn and fit not degenerate; else kinematic, recorded as fallback_used/fallback_reason. Thresholds are never calibrated for these -> [UNCAL] always. ekf_auto_dugoff is experimental: selectable via this key only, removed from the UI selector 2026-09-30 (it falls back to kinematic on every run on this car).",
     "_comment_vertical_load_source": "'static' = estimate_vertical_loads' static/aero/transfer model. 'measured' = wheel_loads cascade (damper -> axle-total reconstruction -> static) for the Fz used by fy_norm and the tyre fit. No damper channels (e.g. Dubai) -> every corner invalid -> cascade returns static everywhere, identical by construction.",
     "vertical_load_source": "measured",
     "vertical_load_source_derived_from": "DEFAULT FLIPPED to 'measured' 2026-09-04 (user decision) -- verdict independence PROVEN, not assumed, before the flip: CS_ratio/stability (the only classification/verdict inputs) never receive fz as an argument at all (code-level: estimate_cornering_stiffness/estimate_yaw_moment_stability's own signatures) and both run BEFORE fz is computed in the pipeline; empirically confirmed on Dubai -- fz_f_N differed by up to 8591.8N between static and measured, but CS_ratio_f/CS_ratio_r/C_alpha_f/C_alpha_r/stability_observed_Nm_per_deg were BYTE-IDENTICAL. The flip therefore carries ZERO classification/verdict risk by construction -- it only changes fy_f_norm_N/fy_r_norm_N (display) and the Phase-2 diagnostic mu tyre-fit's own load input, both display/diagnostic quantities. tests/test_vertical_load_source_default.py confirms the live default is 'measured' and resolves correctly both with real damper channels present (measured cascade engages, every corner tier=damper) and without any (falls back automatically, numerically identical to an explicit 'static' run).",
@@ -299,7 +299,28 @@
     "default_laps_shown": 5,
     "default_laps_shown_note": "NEW, additive (trace-dialog addendum item 2, 2026-09-01). Corner trace default: when opened from an 'All laps' analysis (a single-lap analysis still defaults to just that lap, unchanged), the fastest N valid laps of this corner start CHECKED, the rest start unchecked but available -- avoids a wall of overlapping colours on a corner with many laps by default while never refusing to show more if the user checks them. N=5 chosen as a readable default under the addendum's own 10-colour palette (comfortably below the point where the dash-cycling fallback would ever trigger). Tier C UI default, not a science/analysis parameter.",
     "kerb_gap_bridge": true,
-    "kerb_gap_bridge_derived_from": "display continuity only, 2026-09-30. Corner and lap trace windows draw a dashed, lighter linear bridge across NaN runs that contain kerb-flagged samples (CS_ratio f/r and stability panels); plot code path only, no analysis array reads or receives it."
+    "kerb_gap_bridge_derived_from": "display continuity only, 2026-09-30. Corner and lap trace windows draw a dashed, lighter linear bridge across NaN runs that contain kerb-flagged samples (CS_ratio f/r and stability panels); plot code path only, no analysis array reads or receives it.",
+    "yaw_pooling_panel": true,
+    "yaw_pooling_panel_derived_from": "(c)-display, approved 2026-09-30, display continuity with diagnostic inspect_yaw_pooling. Corner and lap trace windows add a yaw-rate panel (per-lap yaw rate on a 1 m grid, pooled median, envelope, excess/deficit flag overlays) and a steering-rate sub-panel. Display only: no estimator, threshold, classification or evidence reads it. Read when the trace windows are built.",
+    "yaw_pooling": {
+      "_comment": "Tier B values for core/yaw_pooling.build_panel_data (author ruling 2026-09-30: config, each tied to the diagnostic's pre-registration; the diagnostic keeps its own constants). Changing one changes the display only.",
+      "lowpass_hz": 4.0,
+      "lowpass_hz_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Zero-phase low-pass of yaw rate and steering angle: removes vibration spikes, keeps 0.1 s-scale rotation.",
+      "noise_trend_hz": 0.5,
+      "noise_trend_hz_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Trend removed before the straight-line noise std, so slow heading changes on straights do not count as noise.",
+      "grid_m": 1.0,
+      "grid_m_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Track-position resampling step for cross-lap comparison.",
+      "max_gap_m": 2.0,
+      "max_gap_m_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Grid points farther than this from a kept sample stay NaN (kerb or not-moving holes), as in the CS value lens.",
+      "envelope_percentiles": [10, 90],
+      "envelope_percentiles_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Cross-lap envelope band per grid point.",
+      "min_laps": 3,
+      "min_laps_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Fewer laps at a grid point (or on a corner) -> no envelope there.",
+      "margin_sigma": 3.0,
+      "margin_sigma_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. Flag margin m = this x robust std (1.4826 MAD) of the 4 Hz yaw rate's deviation from its 0.5 Hz trend on straights, per session (measured 1.52-1.91 deg/s on Dubai, JST 29, US-v2, MLA).",
+      "min_run_points": 5,
+      "min_run_points_derived_from": "Pre-registered in diagnostics/inspect_yaw_pooling.py header ((c) Part 1, 2026-09-30); display continuity with that diagnostic. A flag needs this many consecutive grid points (5 m at 1 m grid) beyond envelope + m."
+    }
   },
   "classification": {
     "_comment": "Corner-verdict thresholds for _classify_corner. Each derived_from names the run and estimator it was picked on -- valid only for that distribution; re-derived per estimator/car, never taken from the chair.",

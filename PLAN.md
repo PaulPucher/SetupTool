@@ -131,8 +131,40 @@ NEXT
   (EXPERIMENT PLAN).]
 - ~~NEXT: WP-HARDEN.~~ [IMPLEMENTED 2026-09-30, display layer only; see
   APPROVED above.]
-- NEXT: "(c)-display" (EXPERIMENT PLAN (c)), then (f) event-coincidence
-  diagnostic. ~~Open from WP-HARDEN, for the author: Dubai shows an empty
+- ~~NEXT: "(c)-display" (EXPERIMENT PLAN (c)), then (f) event-coincidence
+  diagnostic.~~ [(c)-display IMPLEMENTED 2026-09-30, display tier, not yet
+  committed (author commits end of day); record thesis_notes.md
+  "(c)-display implemented". Awaits the author's manual UI check.]
+- Trace export clipping FIXED 2026-09-30 (not yet committed): save_png
+  tight crop; record thesis_notes.md "Trace export clipping fixed".
+- ~~NEXT: (f) event-coincidence diagnostic (EXPERIMENT PLAN (f)), proposal
+  first; its yaw-channel reference is core/yaw_pooling.pool_yaw_rate.~~
+  [(f) RUN 2026-09-30, read-only, on the approved proposal (diagnostics/
+  inspect_event_coincidence.py; thesis_notes.md "(f) Part 1" to "Part 5").
+  No cross-channel pair passes (Exit B); only CS-F x CS-R (intra-estimator)
+  passes 2/3; the stability indicator is corner-dominated; the C1 CS dip is
+  position-bound across JST 21 and 29. Corner-export title overlap also
+  fixed (thesis_notes addendum to "Trace export clipping fixed").]
+- ~~NEXT: author's exit ruling on (f).~~ [RULED 2026-09-30: Exit B
+  confirmed; see EXPERIMENT PLAN (f).]
+- ~~NEXT: C1 fixed-position dip follow-up (read-only, approved 2026-09-30),
+  recorded under PARKED "NBR C1 EKF entry lag".~~ [RUN 2026-09-30: kerb
+  strike at the C1 apex; kerb samples inside CS windows named as the
+  mechanism; see the PARKED item.]
+- ~~NEXT: author's ruling on the C1 finding (record only, or a proposal for
+  kerb-sample exclusion inside CS windows -- estimator-input boundary).~~
+  [RULED 2026-09-30: eight-session count run (thesis_notes.md "CS minima
+  at kerb-mask edges, eight sessions"); proposal written as EXPERIMENT
+  PLAN (g).]
+- ~~NEXT: author's decision on (g) step 0 (read-only counterfactual).~~
+  [RUN 2026-09-30: Tier 1 leg 1 fails for both variants; see (g).]
+- ~~NEXT: author's closing ruling on (g); open question whether a
+  kerb-DETECTION test (mask threshold/dilation) is worth a proposal.~~
+  [RULED 2026-09-30: (g) CLOSED; no kerb-detection proposal; the
+  association is a PARKED open limitation.]
+- NEXT: not set by the author at this stop. Open: the author's manual UI
+  check of the (c)-display panels; end-of-day commit of the uncommitted
+  work on new-laps. ~~Open from WP-HARDEN, for the author: Dubai shows an empty
   top 3 under the per-member floor; feedback-only single-corner
   candidates carry problem weight 0 and cannot rank (census data-only).~~
   [RULED 2026-09-30: Dubai accepted as designed; feedback exemption added
@@ -157,11 +189,12 @@ skipped: it sits in the classifier's selector, no recorded fix)
   experimental estimator. Its only "experimental" marker was the UI label
   itself; the estimator code and config carry none -- the status now
   lives in the ui/views/outing_form.py selector comment and here.
-- Dugoff config comment (added 2026-09-30, author; NOT NOW -- ride
+- ~~Dugoff config comment (added 2026-09-30, author; NOT NOW -- ride
   along with the next package that edits config text): one clause in
   parameters.json _comment_sideslip_source_auto_modes stating
   ekf_auto_dugoff is experimental, config-selectable only, removed from
-  the UI 2026-09-30.
+  the UI 2026-09-30.~~ [DONE 2026-09-30, rode along with (c)-display's
+  config edit.]
 
 CARRIED OPEN (not started; each keeps its own gate)
 - Werner Eq. 4.3 v2 = Module 5 wiring (Tier A, proposal-first),
@@ -224,13 +257,16 @@ STATUS PER DIRECTION (current 2026-09-30):
   three sensor answers and a surviving roll constant.
 - (b) CS filtering at upstream insertion points: CLOSED, RULED -- nothing
   ships, production unchanged.
-- (c) Yaw-rate pooling: SPLIT -- "(c)-display" approved, NEXT (WP-HARDEN
-  implemented 2026-09-30; display tier, no boundary); "(c)-evidence
+- (c) Yaw-rate pooling: SPLIT -- "(c)-display" IMPLEMENTED 2026-09-30
+  (display tier, no boundary; awaits the author's UI check); "(c)-evidence
   proposal" parked on an engineer-round question.
 - (d) Tyre-curve baseline prior: GATED on the engineer round.
 - (e) Combined accelerations: PARKED, own proposal needed.
-- (f) Event-coincidence diagnostic (added 2026-09-30): QUEUED after
-  WP-HARDEN; read-only diagnostic.
+- (f) Event-coincidence diagnostic (added 2026-09-30): CLOSED, RULED
+  2026-09-30 -- Exit B, yaw-flag evidence mechanism closed, display stays;
+  C1 dip follow-up approved (read-only).
+- (g) Kerb samples excluded inside CS windows (added 2026-09-30): CLOSED
+  2026-09-30 -- tested, near-inert, nothing ships.
 
 Boundary classes used below:
 - READ-ONLY DIAGNOSTIC: no production, config or threshold change;
@@ -390,6 +426,15 @@ inspect_yaw_pooling.py.
   in-corner steering activity, not straight-line noise. Parked on the
   engineer-round question "what steering response counts as a
   correction?" (PARKED consolidated list).
+- "(c)-display" IMPLEMENTED 2026-09-30 (not yet committed). core/
+  yaw_pooling.py holds the prototype's method unchanged (the diagnostic now
+  calls it; byte-identical on four sessions); both trace windows gain a
+  yaw-rate panel (envelope over all analysis laps, checked laps' rows and
+  flag overlays) and a steering-rate sub-panel. Config corner_trace_display.
+  yaw_pooling_panel = true plus the yaw_pooling block (eight Tier B values,
+  author ruling 2026-09-30). Colour constant ui/style.INFO added. Exports
+  unchanged. Exit: author's manual UI check. Record: thesis_notes.md
+  "(c)-display implemented".
 
 ## (d) Tyre-curve baseline prior from all sessions
 Goal: fit one baseline tyre curve per axle over all sessions, hold it
@@ -448,9 +493,112 @@ and the NBR C1 lag/flag cross-references (PARKED "NBR C1 EKF entry
 lag").
 Boundary class: READ-ONLY DIAGNOSTIC. Entry, exit and pass criteria
 written into its proposal before any run (PROCESS RULES).
-STATUS (2026-09-30): QUEUED after WP-HARDEN.
+STATUS (2026-09-30): ~~QUEUED after WP-HARDEN.~~ ~~NEXT -- WP-HARDEN and
+(c)-display implemented; the yaw-channel reference is core/yaw_pooling.~~
+RUN 2026-09-30 on the approved proposal (1000 within-corner shuffles, pass
+p < 0.05 on >= 2/3 screening sessions): Exit B for every cross-channel
+pair; CS-F x CS-R passes 2/3 (intra-estimator); stability indicator
+corner-dominated (within-corner variance share <= 2.3 %).
+EXIT RULED 2026-09-30 (author): Exit B CONFIRMED. Pass criterion result:
+0/3 for every cross-channel pair (yaw excess x CS front, x CS rear, x
+stability; CS x stability); only CS-F x CS-R passed (2/3, US-v2 p 0.003,
+MLA p 0.039). Consequences:
+- The yaw-flag evidence mechanism is CLOSED: yaw flags will not be wired
+  into the decision frame as evidence. The (c)-display stays.
+- CS-F x CS-R pass recorded as a SHARED-INPUT SUSPECT, not as whole-car-
+  at-limit (the skeptical reading): both axles share beta, yaw rate and
+  ay, and the test cannot separate the two readings.
+- Stability lap-deviation variant NOT built: the limitation (laps carry
+  <= 2.3 % of the indicator's variance) is recorded as a finding; no
+  consumer after Exit B.
+- C1 fixed-position dip: read-only follow-up approved (PARKED "NBR C1 EKF
+  entry lag").
+Record: thesis_notes.md "(f) exit rulings".
 Ordering (2026-09-30, author): (c)-display precedes (f): the pooled
 envelope is (f)'s yaw-channel detection reference.
+
+## (g) Kerb samples excluded inside CS windows -- PROPOSED, not approved
+Source: NBR C1 follow-up and the eight-session count (author rulings
+2026-09-30); records thesis_notes.md "NBR C1 fixed-position CS dip: kerb
+strike at the apex", "CS minima at kerb-mask edges, eight sessions".
+Written after the count, as ruled. No implementation.
+Measured size:
+- CS_ratio minima within 3 m of a kerb-mask edge, pooled over eight
+  sessions: front 16 % vs 5 % chance (3.05x), deep tail 32 % vs 6 %
+  (5.09x); rear 13 % vs 5 % (2.34x), deep tail 20 % vs 7 % (2.94x). Front
+  enrichment >= 1.96 on every session.
+- Reachable by this fix (the minimum's window holds kerb samples): 57 %
+  front / 54 % rear of the near-edge minima; 15 % / 16 % of ALL
+  corner-lap minima; 34 % of each deep tail.
+- Not reachable: the pre-mask unloading case (C1 family B, ~43-46 % of
+  near-edge minima): a kerb-DETECTION question (az threshold/dilation),
+  outside this proposal.
+- Confound: kerbs sit at apexes, where real saturation minima also sit;
+  the count is an association. Step 0 below separates the two.
+Fix (Tier B, standard masking inside a regression window): in
+compute_cs_for_axle, kerb-flagged samples are dropped from the window's
+regression sums; window growth counts only non-kerb samples toward
+min_window and the slip-angle span, within the same cs_max_window_m cap.
+reconstruct_cs_window_start changes in lockstep (its "keep in sync" rule
+and its 1e-6 match). Alternative considered and not proposed: windows
+that may not cross a kerb run (truncation) -- more NaN CS at apexes; the
+selection principle favours the masking variant unless step 0 shows the
+truncation variant is equally good and simpler.
+Deviation taxonomy: label to be confirmed against the chair reference
+(docs/literature, not read for this proposal) -- expected DOMAIN
+IMPROVEMENT ("based on their version, which is not wrong": kerb-rich
+tracks put strike samples inside short windows on this car's data).
+Step 0 (read-only, before any boundary): in-memory counterfactual on the
+eight cached sessions, both CS arrays re-estimated with the fix; report
+per session the changed corner-lap minima and verdicts, the near-edge
+enrichment after the fix (artifact share collapses -> the association was
+the artifact; it persists -> apex physics), and the standard trace set
+per the per-iteration render rule. Pre-registered exit: ships only if the
+near-edge enrichment of kerb-window minima drops toward chance AND the
+traces show no new deep dips elsewhere (the (b) D1/E failure mode).
+Boundary cost (ESTIMATOR-INPUT CHANGE, if step 0 earns it):
+- STRONG_CSF / MODERATE_CSF / STRONG_CSR / MODERATE_CSR re-derived by the
+  recorded procedure -- the population question must be settled first
+  (the procedure is degenerate on multi-track pooled data).
+- verdict_stability_margin.cs_margin (0.11) re-derived by its sensitivity
+  sweep.
+- stab_neg_thresh: untouched (beta and the stability estimator do not
+  change); BACKLOG A stays its own item.
+- ANALYSIS_SCHEMA_VERSION 8 -> 9 (cached CS values change).
+- Goldens regenerated: pipeline_dubai_{kinematic, ekf_auto_pacejka,
+  ekf_auto_dugoff}_cap1 and recommendations_dubai_{kinematic,
+  ekf_auto_pacejka}_cap1 (Dubai has kerb windows: 11 front, 15 rear
+  corner-lap minima).
+- Full suite once. WP-HARDEN census and the display floor re-checked
+  (candidate evidence shifts).
+Ship alone or bundle with (a3): ALONE is recommended. (a3)'s door is
+closed until the engineer round answers three sensor questions and a roll
+constant survives them; bundling would park this fix indefinitely. Cost
+of not bundling: a second full re-derivation when (a3) opens. The natural
+co-rider is the PARKED sawtooth window-start repair, whose reopen rule is
+"only bundled with an estimator-input boundary" and which changes the
+same function (compute_cs_for_axle's window construction) -- author's
+call whether it rides in the same boundary. If (a3) opens before this
+boundary executes, merge then.
+Boundary class: step 0 READ-ONLY DIAGNOSTIC; the fix ESTIMATOR-INPUT
+CHANGE, full re-derivation.
+STATUS (2026-09-30): ~~PROPOSED, awaiting the author's approval of step 0.~~
+STEP 0 RUN 2026-09-30 (approved with amendments: variants BASE / K / KS
+with the sawtooth co-rider, kerb-adjacent battery leg, chair-reference
+read; diagnostics/inspect_cs_kerb_window.py). Tier 1 (JST 29, US-v2, QP
+MLA): leg 1 FAILS for K and KS -- near-edge enrichment front 2.89 ->
+2.83 / 2.89, rear 2.18 -> 2.25 / 2.36; the C1 dips persist with kerb
+samples excluded. Leg 2: K pass, KS fail. Leg 3: both pass. Tier 2 not
+run (pre-registered). (g) as specified does NOT earn the boundary; the
+sawtooth repair stays PARKED. Chair reference: no kerb concept, windows
+contiguous -- class DOMAIN IMPROVEMENT. Record: thesis_notes.md "(g) step
+0: kerb samples excluded inside CS windows". ~~Awaiting the author's
+closing ruling.~~
+CLOSED 2026-09-30 (author): tested, near-inert, nothing ships; sawtooth
+stays PARKED; both step-0 thresholds (excess over chance must halve; <= 1
+new deep minimum per session and axle) accepted as recorded. The
+kerb-edge association goes to PARKED as an open limitation. Record:
+thesis_notes.md "(g) close-out rulings".
 
 # WP-HARDEN - CS display hardening (variant A)
 
@@ -1272,6 +1420,20 @@ tracked: each line states the reason and the reopen condition. The
 long-form entries after this list are the record; entries superseded
 on 2026-09-30 are struck through there with a dated note.
 
+Added 2026-09-30 ((g) close-out, author ruling):
+- CS minima cluster at kerb-mask edges (OPEN LIMITATION). Reason:
+  per-corner-lap CS_ratio minima sit within 3 m of a kerb-mask edge 3-5x
+  as often as chance (pooled over eight sessions: front 3.05x, deep tail
+  5.09x; rear 2.34x / 2.94x); cause unresolved -- apex physics next to
+  kerbs vs strike disturbance in samples the az mask does not flag
+  ((g) step 0 refuted kerb samples inside the windows as the driver);
+  verdict impact bounded small (1-3 changed calls per session under the
+  kerb-exclusion variant K). No kerb-detection proposal. Reopen: a
+  kerb-heavy track where the association demonstrably reaches verdicts.
+  Records: thesis_notes.md "CS minima at kerb-mask edges, eight
+  sessions", "(g) step 0: kerb samples excluded inside CS windows",
+  "(g) close-out rulings".
+
 Added in the 2026-09-30 consolidation:
 - v3 C11 CS_ratio denominator discontinuity. Reason: the front
   CS_ratio jumps 1.00 <-> 0.19 under +/-1 % input changes (the
@@ -1295,12 +1457,30 @@ Added in the 2026-09-30 consolidation:
   survive the sawtooth repair cluster at the C1 complex (JST 29 near
   620 m); their mechanism goes to the event-coincidence diagnostic
   (queued after WP-HARDEN).
+  Follow-up 2026-09-30 ((f) exit ruling 4, read-only, diagnostics/
+  inspect_nbr_c1_dip.py): the fixed-position front CS dip (612-626 m, all
+  laps of JST 21 and 29) sits at a kerb strike at the C1 apex (az to 0 g
+  then 3-4 g, dampers, ay, yaw rate and psidd all transient at one
+  instant). ~~Mechanism named: CS-estimator input transient at the kerb-mask
+  edges -- compute_cs_for_axle excludes kerb samples only as window end
+  points, so windows regress over the strike (laps 72, 103, 107: 9-17
+  kerb samples inside), and the unloading before the az threshold is
+  unmasked (laps 73, 104, 106, 108).~~ [CORRECTED 2026-09-30, (g) step 0:
+  excluding kerb samples inside the windows leaves the dips in place --
+  the window-contents mechanism is refuted as the driver; the strike's
+  disturbance in samples the az mask does not flag remains the lead.] Not a tyre event by this evidence;
+  the counterfactual (windows without kerb samples) changes CS values and
+  needs its own estimator-input proposal. Record: thesis_notes.md "NBR C1
+  fixed-position CS dip: kerb strike at the apex".
 - "(c)-evidence proposal" (added 2026-09-30, ruling). Reason: yaw-rate
   excess flags are followed by steering unwinding 1.5-1.9x as often as
   the positions' base rate (47-58 %) -- too weak to graduate; the
   threshold must scale with in-corner steering activity. Reopen: the
   engineer round answers item 5 ("what steering response counts as a
   correction?").
+  ~~Reopen condition above.~~ [CLOSED 2026-09-30 (author, (f) exit ruling):
+  (f) found no cross-channel coincidence beyond chance (Exit B); the
+  yaw-flag evidence mechanism will not be wired. The (c)-display stays.]
 - Sawtooth window-start repair. Reason: available and measured, but
   COSMETIC by the pre-registered rule (qualifying set identical, phase
   medians within export noise); it lengthens windows 25-40 % and moves
@@ -1308,6 +1488,9 @@ Added in the 2026-09-30 consolidation:
   Reopen: only bundled with an estimator-input boundary, since it
   changes CS values (method-defining constant, ANALYSIS_SCHEMA_VERSION
   bump, all three pipeline goldens, re-derivation after it).
+  Note 2026-09-30 ((g) close-out): tested as the (g) co-rider (KS) --
+  fails (g)'s leg 1 like K and adds two new deep front minima on US-v2;
+  (g) closed, so no boundary to ride in; stays PARKED.
   RULING 2026-09-30 (author): stays PARKED. Grounds: the side-by-side
   render (thesis_notes.md "Sawtooth repair side-by-side render") showed
   the flagged deep spikes survive the repair (JST 29 front -2.68 at

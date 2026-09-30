@@ -344,11 +344,56 @@ here (53 keepers + 37 in diagnostics/_attic/).
   noise-derived margin, steering-unwinding check 150-300 ms after each
   flag with a same-position control. Screening JST 29, US-v2, MLA; Dubai
   for the C3 cross-reference. Imports inspect_new_laps_cs_sweep,
-  gated_kinematic_common, inspect_imu_offsets. Modes: compute <key>,
-  report. Keep-reason: evidence for the (c) ruling. Records:
-  thesis_notes.md "(c) Part 1". Outputs in `plots/yaw_pooling/`
+  gated_kinematic_common and core/yaw_pooling. Refactored 2026-09-30
+  ("(c)-display"): grid, envelope, margin and flags now come from
+  core/yaw_pooling.py, the app's yaw panel code, called with the script's
+  own pre-registered constants; only the counteraction test stays local.
+  Outputs checked byte-identical to the pre-refactor script on all four
+  cached sessions. Modes: compute <key>, report. Keep-reason: evidence for
+  the (c) ruling, and the reference the app panel was lifted from. Records:
+  thesis_notes.md "(c) Part 1", "(c)-display implemented". Outputs in `plots/yaw_pooling/`
   (gitignored). The upstream-sweep script's `render` mode (Part 2 retro
   renders) is listed under inspect_cs_upstream_sweep.py.
+- **inspect_event_coincidence.py** (2026-09-30, keep-reproduces) -- PLAN.md
+  EXPERIMENT PLAN (f): per corner-lap events in three channels (yaw
+  excess/deficit from core/yaw_pooling via inspect_yaw_pooling.analyse; CS
+  worst-phase median below the session p10, front/rear; stability
+  worst-phase median below the session p10), coincidence counts against a
+  within-corner lap-shuffle null (1000 shuffles, fixed seed), steering
+  reaction as an attribute, the carried spike/NBR C1/Dubai C3-C4
+  questions. Reads the new_laps and yaw_pooling caches only; imports
+  inspect_yaw_pooling and inspect_frame_stage2_parity (classifier entry
+  check). Mode: report. Keep-reason: evidence for the (f) exit ruling.
+  Records: thesis_notes.md "(f) Part 1" to "(f) Part 5". Outputs in
+  `plots/event_coincidence/` (gitignored).
+- **inspect_nbr_c1_dip.py** (2026-09-30, referenced) -- follow-up to (f):
+  raw inputs (ay, yaw rate, psidd, steering, speed, az with kerb samples,
+  four damper travels) and the CS window at each lap's front CS minimum
+  across 600-640 m at NBR C1, JST 21 and JST 29. Keep-reason: cited by
+  PLAN.md PARKED "NBR C1 EKF entry lag"; any proposal on kerb samples
+  inside CS windows re-runs it. Records: thesis_notes.md "NBR C1
+  fixed-position CS dip: kerb strike at the apex". Outputs in
+  `plots/nbr_c1_dip/` (gitignored).
+- **inspect_cs_kerb_edge.py** (2026-09-30, keep-reproduces) -- share of
+  per-corner-lap CS_ratio minima within 3 m of a kerb-mask edge vs a
+  uniform-position chance rate, eight census sessions, front/rear, all
+  minima and deep tail; plus whether each minimum's CS window holds kerb
+  samples (fix coverage). Reads the new_laps and imu_offsets caches.
+  Keep-reason: sizes PLAN.md EXPERIMENT PLAN (g) (kerb samples inside CS
+  windows); re-run at its counterfactual step. Records: thesis_notes.md
+  "CS minima at kerb-mask edges, eight sessions". Outputs in
+  `plots/cs_kerb_edge/` (gitignored).
+- **inspect_cs_kerb_window.py** (2026-09-30, keep-reproduces) -- PLAN.md
+  EXPERIMENT PLAN (g) step 0: in-memory CS re-estimation, BASE / K (kerb
+  samples excluded inside windows) / KS (K + sawtooth start repair), one
+  pass per axle from the new_laps, value-lens supp and imu_offsets caches;
+  exit legs (near-edge enrichment, new deep dips, kerb-adjacent battery)
+  and the stacked standard trace sets. Imports inspect_cs_kerb_edge,
+  inspect_cs_readout_evidence, inspect_new_laps_cs_sweep, inspect_cs_value_lens,
+  trace_render. Modes: compute <key>, score tier1|all. Keep-reason:
+  evidence for the (g) exit ruling. Records: thesis_notes.md "(g) step 0:
+  kerb samples excluded inside CS windows". Outputs in
+  `plots/cs_kerb_window/` (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

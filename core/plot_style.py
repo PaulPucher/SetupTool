@@ -106,6 +106,9 @@ WINDOW_RING_COLOR = "#000000"  # estimation-window ring, fixed black
 # fixed print geometry -> exports reproducible regardless of window state
 PRINT_DPI = 300
 PRINT_WIDTH_CM = 16.0          # A4 text width
+# white border around the tight export crop (inches); keeps legend text and
+# tick labels off the file edge
+PRINT_PAD_INCHES = 0.05
 # both figures 24 cm (six stacked panels with side legends still readable)
 PRINT_HEIGHT_CM_CORNER = 24.0  # 4 rows: speed / CSf / CSr / tyre curves
 PRINT_HEIGHT_CM_VERDICT = 24.0  # 6-row stack
