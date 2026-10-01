@@ -176,7 +176,21 @@ NEXT
   established (NBR level = dead FL laser); tilt-check rulings recorded;
   per-file unit STANDING WARNING added.]
   [2026-09-30: laser-document close-out ruled -- both engineer-list
-  additions kept; laser-span assumption stated, no action.] ~~Open from WP-HARDEN, for the author: Dubai shows an empty
+  additions kept; laser-span assumption stated, no action.]
+  [2026-10-01: kerb-detection variants RUN, read-only, on the author's
+  work order (diagnostics/inspect_kerb_mask_variants.py; thesis_notes.md
+  "Kerb-detection variants, Part 1" to "Part 4"). Strike disturbance past
+  the az mask is short (ay/yaw union p75 80-100 ms); variants B
+  (dilation), C (unloading onset), D (disturbance envelope) all FAIL Tier-1
+  leg 1 (best D: front excess 1.89 -> 1.53, rear unchanged); Tier 2 not
+  run; no adoption proposal. ~~NEXT: author's exit ruling on the variants;
+  the open limitation's entry carries the result.~~ RULED 2026-10-01:
+  variants CLOSED, nothing ships; window-reach check approved.]
+  [2026-10-01: window-reach check RUN (read-only): no-crossing windows (T)
+  fail legs 1 and 2, enrichment rises; kerb-edge limitation CLOSED AS
+  CHARACTERISED (apex physics by elimination), per the author's ruling.
+  NEXT: not set by the author; the earlier open items (manual UI check of
+  the (c)-display panels, commit of new-laps) stand.] ~~Open from WP-HARDEN, for the author: Dubai shows an empty
   top 3 under the per-member floor; feedback-only single-corner
   candidates carry problem weight 0 and cannot rank (census data-only).~~
   [RULED 2026-09-30: Dubai accepted as designed; feedback exemption added
@@ -287,6 +301,10 @@ STATUS PER DIRECTION (current 2026-09-30):
   C1 dip follow-up approved (read-only).
 - (g) Kerb samples excluded inside CS windows (added 2026-09-30): CLOSED
   2026-09-30 -- tested, near-inert, nothing ships.
+- Kerb-detection variants (added 2026-10-01, read-only): RUN, no variant
+  passes Tier-1 leg 1; CLOSED 2026-10-01 (author), nothing ships. Window-
+  reach check (no-crossing windows) run the same day, fails; the kerb-edge
+  limitation is closed as characterised.
 
 Boundary classes used below:
 - READ-ONLY DIAGNOSTIC: no production, config or threshold change;
@@ -1471,6 +1489,28 @@ Added 2026-09-30 ((g) close-out, author ruling):
   Records: thesis_notes.md "CS minima at kerb-mask edges, eight
   sessions", "(g) step 0: kerb samples excluded inside CS windows",
   "(g) close-out rulings".
+  [2026-10-01, kerb-detection variants (read-only; thesis_notes.md
+  "Kerb-detection variants, Part 1" to "Part 4"): widening the mask by
+  dilation, az unloading onset or the measured ay/yaw disturbance
+  envelope does not collapse the association (front excess at best
+  -19 %, rear none); minima follow the new edge. Pre-onset minima partly
+  were under-detection (they shrink under D); post-end minima are not
+  reachable by mask width. Cause narrowed to the post-strike side: apex
+  physics, or the K window reaching back across the masked gap (named,
+  untested). Reopen condition unchanged.]
+  [RULED 2026-10-01 (author): kerb-detection variants CLOSED, nothing
+  ships; mask under-detection largely refuted as the driver; apex physics
+  promoted to the leading explanation. Window-reach check approved as the
+  last step (thesis_notes.md "Kerb-detection variant rulings").]
+  [2026-10-01, window-reach check (read-only; thesis_notes.md "Window-reach
+  check: CS windows across masked kerb gaps"): under K, post-end windows
+  straddle the strike (54-59 % vs 7-9 % base rate), but the no-crossing
+  variant T FAILS legs 1 and 2 -- enrichment rises (front 2.89 -> 4.53,
+  rear 2.18 -> 2.57) and the residual clustering sits in clean pre-strike
+  windows. CLOSED AS CHARACTERISED per the author's ruling: apex physics
+  by elimination (thesis_notes.md "Kerb-edge association: closed as
+  characterised"). Stays in this list as a characterised limitation;
+  reopen condition unchanged.]
 
 Added in the 2026-09-30 consolidation:
 - v3 C11 CS_ratio denominator discontinuity. Reason: the front

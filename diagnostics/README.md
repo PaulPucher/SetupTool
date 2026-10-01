@@ -404,6 +404,22 @@ here (53 keepers + 37 in diagnostics/_attic/).
   evidence for the (g) exit ruling. Records: thesis_notes.md "(g) step 0:
   kerb samples excluded inside CS windows". Outputs in
   `plots/cs_kerb_window/` (gitignored).
+- **inspect_kerb_mask_variants.py** (2026-10-01, keep-reproduces) --
+  kerb-detection variants for the PARKED open limitation "CS minima
+  cluster at kerb-mask edges": Part 1 strike disturbance envelope (ay,
+  yaw rate, az past the az-threshold mask, cubic-trend residual, null
+  control), variant masks A/B/C/D, K re-estimation under each and the
+  own-edge enrichment legs, stacked standard trace sets. Parses the raw
+  files (slim cache); imports inspect_cs_kerb_edge (its corner_laps gained
+  an optional kerb= override for this), inspect_cs_kerb_window,
+  inspect_cs_readout_evidence, trace_render. Modes: compute <key>, part1,
+  masks <key>, score tier1|all; window-reach check: reach tier1, trunc
+  <key> (no-crossing windows T), score_t tier1. Keep-reason: evidence for
+  the closure of the kerb-edge limitation, cited by the PARKED limitation
+  entry. Records: thesis_notes.md "Kerb-detection variants, Part 1" to
+  "Part 4", "Window-reach check: CS windows across masked kerb gaps",
+  "Kerb-edge association: closed as characterised".
+  Outputs in `plots/kerb_mask_variants/` (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

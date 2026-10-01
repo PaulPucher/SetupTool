@@ -57,15 +57,17 @@ def _load(d, key):
         return pickle.load(fh)
 
 
-def corner_laps(key, cs=None):
+def corner_laps(key, cs=None, kerb=None):
     """cs: optional (front, rear) arrays replacing the cached production CS
     (the (g) step-0 variants); window-kerb counts always use the production
-    window rule."""
+    window rule. kerb: optional mask replacing the production one for edges,
+    chance and window-kerb counts (kerb-detection variants, 2026-10-01)."""
     nl = _load("new_laps", key)
     st = _load("imu_offsets", key)
     st = st.get("state", st)
     assert st["time"].tobytes() == nl["time"].tobytes(), key
-    t, s, kerb = nl["time"], nl["s_m"], np.asarray(st["kerb_mask"], bool)
+    t, s = nl["time"], nl["s_m"]
+    kerb = np.asarray(st["kerb_mask"] if kerb is None else kerb, bool)
     laps = {l["lap_number"]: l for l in nl["laps"] if l.get("is_valid_for_analysis")}
     edges_by_lap = {}
     for ln, l in laps.items():
