@@ -162,9 +162,21 @@ NEXT
   kerb-DETECTION test (mask threshold/dilation) is worth a proposal.~~
   [RULED 2026-09-30: (g) CLOSED; no kerb-detection proposal; the
   association is a PARKED open limitation.]
-- NEXT: not set by the author at this stop. Open: the author's manual UI
+- ~~NEXT: not set by the author at this stop. Open: the author's manual UI
   check of the (c)-display panels; end-of-day commit of the uncommitted
-  work on new-laps. ~~Open from WP-HARDEN, for the author: Dubai shows an empty
+  work on new-laps.~~ [2026-09-30: roll closure check RUN (read-only);
+  (a3) gate answer recorded under EXPERIMENT PLAN (a3).]
+- NEXT: not set by the author. Open: the author's manual UI check of the
+  (c)-display panels; end-of-day commit of the uncommitted work on
+  new-laps. [2026-09-30: roll-check rulings recorded -- engineer item 3
+  widened, (a2) exit ruling stands, C3+C4 evidence downgraded in (a3).]
+  [2026-09-30: tilt-vs-attitude check RUN (read-only); hardware facts
+  recorded; engineer item 4 annotated; no proposal.]
+  [2026-09-30: team ride-height document read; rake channel definition
+  established (NBR level = dead FL laser); tilt-check rulings recorded;
+  per-file unit STANDING WARNING added.]
+  [2026-09-30: laser-document close-out ruled -- both engineer-list
+  additions kept; laser-span assumption stated, no action.] ~~Open from WP-HARDEN, for the author: Dubai shows an empty
   top 3 under the per-member floor; feedback-only single-corner
   candidates carry problem weight 0 and cannot rank (census data-only).~~
   [RULED 2026-09-30: Dubai accepted as designed; feedback exemption added
@@ -217,6 +229,12 @@ CARRIED OPEN (not started; each keeps its own gate)
 
 STANDING WARNINGS -- carry these into every future session
 
+- Per-file channel UNITS (added 2026-09-30, author): the same channel is
+  logged in different units in different files -- log_rideheight_rake in
+  [m] or [ft], log_rideheight_rl in [mm] or [m] (census of the eight
+  sessions). Every channel read, in any parser touch or diagnostic, must
+  convert by the file's own header unit; never assume a unit from another
+  file or from the channel name.
 - NEVER state a config value from memory or from an instruction.
   Read it from config and quote it. Two errors this week came from
   exactly that.
@@ -254,7 +272,9 @@ STATUS PER DIRECTION (current 2026-09-30):
 - (a)/(a2) IMU offsets and turn-proportional error: CLOSED AS
   CHARACTERISED; correction deferred behind (a3).
 - (a3) C3+C4 proposal: CONDITIONAL DOOR, opens on the engineer round's
-  three sensor answers and a surviving roll constant.
+  three sensor answers and a surviving roll constant. [2026-09-30 roll
+  closure check: the roll constant does NOT survive on data alone (yaw
+  cross-coupling in the roll-rate channel); the door stays shut.]
 - (b) CS filtering at upstream insertion points: CLOSED, RULED -- nothing
   ships, production unchanged.
 - (c) Yaw-rate pooling: SPLIT -- "(c)-display" IMPLEMENTED 2026-09-30
@@ -339,6 +359,10 @@ diagnostics/inspect_imu_offsets.py. Products:
   1.01212 reproduces the recorded 1.01211.
 MRR_EgoYawRate excluded as a reference (a delayed copy of the production
 yaw rate, 2026-09-30 pre-check).
+HARDWARE (author-supplied, 2026-09-30): the car carries ONE gyro cluster
+(SCLU) on the transmission tunnel at the centre console, near the CG,
+body-fixed and immovable relative to the body; MRR_EgoYawRate is
+therefore confirmed a bus copy of it.
 
 ## (a3) C3+C4 proposal -- CONDITIONAL DOOR, not queued
 Opens only when BOTH hold: (1) the engineer round answers the three
@@ -354,6 +378,20 @@ the roll term's anchor to be stated in the proposal (Tier A method
 question; the leakage identity itself is standard accelerometer
 kinematics).
 Boundary class: ESTIMATOR-INPUT CHANGE, full re-derivation.
+GATE ANSWER 2026-09-30 (roll closure check, read-only; thesis_notes.md
+"Roll closure check: the roll-rate channel carries yaw cross-coupling"):
+NOT proposable on data alone. The (a2) roll-leakage constant does not
+survive -- most of it is yaw rate leaking into sclu_roll_rate (implied
+axis angle 1.3-2.2 deg, not stable within serial 221); with that removed
+the serial-221 leakage is 0.1-0.6 % with the opposite sign, Dubai 1.3 %.
+The door condition stands and sharpens: the engineer's roll-gyro answer
+must cover axis alignment / cross-axis sensitivity, not only bias. No
+proposal written.
+RULING 2026-09-30 (author): the (a2) exit ruling STANDS (deferral
+confirmed, not reopened); the dated correction notes suffice. The C3+C4
+drift-collapse evidence is DOWNGRADED (it rests on the contaminated roll
+constant): any future (a3) re-derives the roll term from scratch and
+reuses none of (a2)'s roll numbers.
 
 ## (b) CS filtering at upstream insertion points
 Goal: test whether low-pass filtering the inputs of alpha construction
@@ -1546,13 +1584,44 @@ Added in the 2026-09-30 consolidation:
      14.5-15.8 deg/g); what is the roll gyro's bias specification (its
      corner integral drifts 1.5-5 deg). These three gate "(a3) C3+C4
      proposal".
+     Widened 2026-09-30 (author ruling after the roll closure check): the
+     roll-gyro question also asks (i) the roll-rate sensor's axis
+     alignment in the car (mounting pitch), (ii) its cross-axis
+     sensitivity to yaw rate, and (iii) whether sclu_roll_rate is a raw
+     body-axis rate or a processed/derived channel. Evidence: yaw rate
+     leaks into sclu_roll_rate as if the axis were tilted 1.3-2.2 deg
+     (thesis_notes.md "Roll closure check: the roll-rate channel carries
+     yaw cross-coupling").
   4. Mounting-tilt question, added 2026-09-30: is the logger /
      accelerometer mounted with a static roll tilt? Named candidate for
      the additive straight-line ay offset (+0.3 to +0.5 m/s^2, serial
      221): g sin(tilt) gives 0.3-0.5 m/s^2 at 1.8-2.9 deg.
+     Tilt-vs-attitude check 2026-09-30 (thesis_notes.md "Sensor tilt vs
+     static attitude, eight sessions"): the serial-221 ay intercept
+     (+0.37 to +0.51 m/s^2, PR and NBR alike) does not follow the logged
+     roll attitude (0.04-0.10 deg) -- consistent with a fixed mounting
+     roll tilt (~2.2-3.0 deg) or an accelerometer zero offset, which this
+     data cannot separate; serial 147 shows ~0. ~~Channel-definition
+     questions added by the same check: log_rideheight_rake reads about
+     -92 mm on the NBR files against a laser rear-minus-front of about +10
+     mm (different zero/definition per file); the header unit of the same
+     channel differs between files ([mm], [m], [ft]).~~ [2026-09-30: the
+     rake-channel question is ANSWERED -- identical definition in all
+     files, 1.056 x (front mean - rear mean), and the NBR level is the dead
+     FL laser; team document "Ride height measuring points" plus the
+     regression, thesis_notes.md "Ride-height measuring points (team
+     document) and the rake channel". The unit question is item 6.]
   5. Steering-correction question, added 2026-09-30 (ruling on (c)):
      what steering response counts as a correction? Gates the
      "(c)-evidence proposal".
+  6. Channel-unit question, added 2026-09-30 (tilt-check ruling): why is
+     the same channel logged in different units in different files
+     (log_rideheight_rake [m] vs [ft], log_rideheight_rl [mm] vs [m])? Is
+     it the logger/export configuration? No consumer is blocked (the
+     standing warning covers every read); asked for the record.
+     Also for the round (no consumer, low priority): the FL ride-height
+     laser reads a constant -101 mm on all four NBR files -- a known
+     failure on that car/weekend?
   Question lists: the DECISION LAYER SPEC "Elicitation list" and the
   WP2b-2 "Engineer follow-up questions" sections. Reopen: when the
   round is scheduled.

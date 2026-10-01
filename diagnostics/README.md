@@ -316,11 +316,21 @@ here (53 keepers + 37 in diagnostics/_attic/).
   corner speed classes), referee (steady-state accelerometer vs r v, GPS
   speed k, gyro/speed split, roll leakage), ratio (post-hoc median-ratio
   referee per stratum), collapse (single and pairwise candidate
-  corrections on the gated-kinematic drift, Dubai / v3 / JST 29).
-  Keep-reason: evidence for the IMU-offset and turn-proportional-error
-  decisions; any correction package re-runs it. Records: thesis_notes.md
-  "IMU offsets, Part 1" to "Part 5", "Second IMU sources, liveness
-  pre-check" and "(a2) Part 1" to "Part 4" (2026-09-30). Outputs in `plots/imu_offsets/`
+  corrections on the gated-kinematic drift, Dubai / v3 / JST 29);
+  rollcheck / rollcheck2 (2026-09-30, the (a3) gate: roll-integral closure
+  decomposed into constant bias, per-corner reproducibility and, post-hoc,
+  yaw cross-coupling; leakage constant recomputed; figure
+  roll_closure.png); attcompute <key> / attitude (2026-09-30, sensor tilt
+  vs static attitude: ride-height/rake channels read from all eight files
+  with header-unit conversion, matched-speed attitude, yaw-leak angle for
+  all eight, ay offsets, per-logger models; figure tilt_vs_attitude.png).
+  Keep-reason: evidence for the IMU-offset and
+  turn-proportional-error decisions and for the (a3) gate answer; any
+  correction package re-runs it. Records: thesis_notes.md "IMU offsets,
+  Part 1" to "Part 5", "Second IMU sources, liveness pre-check", "(a2)
+  Part 1" to "Part 4", "Roll closure check: the roll-rate channel
+  carries yaw cross-coupling" and "Sensor tilt vs static attitude, eight
+  sessions" (2026-09-30). Outputs in `plots/imu_offsets/`
   (gitignored).
 - **inspect_cs_upstream_sweep.py** (2026-09-30, keep-reproduces) -- PLAN.md
   EXPERIMENT PLAN (b): CS filtering at upstream insertion points (yaw rate

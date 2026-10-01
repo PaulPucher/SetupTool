@@ -1479,10 +1479,556 @@ def header_info_serial_only(path):
     return "?", None
 
 
+# ---------------------------------------------------------------- roll closure check (2026-09-30)
+# Mode "rollcheck" (author work order after the (g) close-out). (a2) Part 2.3
+# measured roll leakage 1.5-2.6 % (serial 221) / 4.2 % (Dubai) from
+# sclu_roll_rate integrated from 0 over each widened corner window, with NO
+# bias removed, and flagged that the integral fails to close by 1.5-5 deg
+# per window. Does the non-closure come from a roll-gyro bias or from real
+# road-bank change, and does the leakage constant survive? Read-only; a2
+# caches only. Sessions JST 29, US-v2 (serial 221) and Dubai (serial 147
+# control). Gates whether (a3) is proposable on measured grounds.
+# RULES (fixed before the first rollcheck run)
+# - Entry: with bias 0 the mode reproduces the recorded (a2) roll gradient
+#   (deg/g) and median |window-end phi| exactly.
+# - Windows, steady population, roll unit (rpm x 6 = deg/s) exactly as (a2)
+#   Part 2.3 (widened_windows, _steady).
+# - Bias: one constant roll-rate bias per session = median of the roll rate
+#   over S0 (racing and outside every corner bracket), the (a)/(a2) straight
+#   method; sensitivity row with the recorded definition (racing and |ay| <
+#   STRAIGHT_AY_FRACTION x Otsu).
+# - Part 1.1: per window closure C = integral of the roll rate over the
+#   window (deg), before and after removing the bias (C_after = C - b T).
+#   Constant-bias test: OLS C_before = beta T + c over windows; a constant
+#   bias predicts beta = b and c ~ 0; R^2 reported.
+# - Part 1.2: bank test on C_after: windows grouped by stable corner (>= 2
+#   laps); eta^2 = between-corner share of the C_after sum of squares;
+#   permutation null (corner labels shuffled across windows, 2000, seed 0);
+#   per corner mean, lap spread and turn direction (sign of median ay);
+#   residual duration slope of C_after reported (0 if the bias is gone).
+# - Part 1.3 shares of the mean-square closure before: bias = 1 -
+#   MS(C_after)/MS(C_before); bank = MS(C_after)/MS(C_before) x eta^2_excess,
+#   eta^2_excess = max(0, (eta^2 - eta^2_null)/(1 - eta^2_null)), eta^2_null
+#   = median of the permutation null; noise = the rest. Verdict: a share >=
+#   0.6 names it (bias- / bank- / noise-dominated), otherwise MIXED.
+# - Part 2.1: roll gradient k_phi (deg/g) and leakage scale g |k_phi| on the
+#   steady population, phi integrated with the bias removed; old (recorded)
+#   vs new. Sensitivity row, labelled: closure-forced phi (bias-removed phi
+#   minus the linear ramp that brings each window's end to 0) -- removes a
+#   net bank change between the window ends if it accrues linearly; an
+#   upper bound on what net bank change can take out of k_phi.
+# - Figure: per session, C_before vs T with the bias line, and C_after per
+#   corner with laps as points (plots/imu_offsets/roll_closure.png).
+ROLLCHECK_KEYS = ("nbr_jst_solution", "pr_us_v2", "dubai")
+ROLL_RPM_TO_RADPS = 6.0 * np.pi / 180.0
+ROLL_N_PERM = 2000
+ROLL_VERDICT_SHARE = 0.6
+
+
+def _roll_windows(key):
+    d = load_a2(key)
+    st = _a2_state(d)
+    racing, thr, s0, s1, inst = populations(st, d["laps"], d["corners"])
+    stdy = _steady(d, st, racing, thr, inst)
+    rr = _raw_on_grid(d, "sclu_roll_rate", ROLL_RPM_TO_RADPS)
+    wins = widened_windows(st, inst, STRAIGHT_AY_FRACTION * thr, racing)
+    rec_pop = racing & (np.abs(st["ay_mps2"]) < STRAIGHT_AY_FRACTION * thr)
+    return d, st, stdy, rr, wins, {"S0": float(np.median(rr[s0])), "recorded": float(np.median(rr[rec_pop]))}
+
+
+def _k_phi(stdy, phi):
+    ok = stdy["pop"] & np.isfinite(phi)
+    k = np.polyfit(stdy["alog"][ok], phi[ok], 1)[0]
+    return float(np.degrees(k) * G), float(G * abs(k)), float(np.corrcoef(stdy["alog"][ok], phi[ok])[0, 1])
+
+
+def _eta2(v, lab):
+    tot = np.sum((v - v.mean()) ** 2)
+    btw = sum(np.sum(lab == g) * (v[lab == g].mean() - v.mean()) ** 2 for g in np.unique(lab))
+    return btw / tot if tot > 0 else float("nan")
+
+
+def rollcheck():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    with open(os.path.join(OUT_DIR, "a2_referee.json")) as fh:
+        rec = json.load(fh)
+    fig, axes = plt.subplots(len(ROLLCHECK_KEYS), 2, figsize=(14, 4.2 * len(ROLLCHECK_KEYS)))
+    summary = {}
+    for row, key in enumerate(ROLLCHECK_KEYS):
+        d, st, stdy, rr, wins, bias = _roll_windows(key)
+        sr = d["sample_rate_hz"]
+        b = bias["S0"]
+        phi0 = np.full(st["time"].size, np.nan)
+        phib = np.full(st["time"].size, np.nan)
+        phic = np.full(st["time"].size, np.nan)
+        W = []
+        for sid, lap, w in wins:
+            x = rr[w]
+            p0 = np.cumsum(x) / sr
+            pb = np.cumsum(x - b) / sr
+            n = pb.size
+            ramp = pb[-1] * np.arange(1, n + 1) / n
+            phi0[w], phib[w], phic[w] = p0, pb, pb - ramp
+            W.append({"sid": sid, "lap": lap, "T": n / sr, "before": float(np.degrees(p0[-1])),
+                      "after": float(np.degrees(pb[-1])),
+                      "after_rec": float(np.degrees(np.sum(x - bias["recorded"]) / sr)),
+                      "turn": float(np.sign(np.median(st["ay_mps2"][w])))})
+        k0 = _k_phi(stdy, phi0)
+        r0 = rec[key]["roll"]["roll_rate_integral"]
+        end0 = float(np.median([abs(w_["before"]) for w_ in W]))
+        entry = abs(k0[0] - r0["deg_per_g"]) < 1e-9 and abs(end0 - r0["window_end_deg_median_abs"]) < 1e-9
+        print(f"\n== {key}: {len(W)} windows; entry reproduction (bias 0): {k0[0]:.4f} deg/g vs recorded "
+              f"{r0['deg_per_g']:.4f}, median |end| {end0:.3f} vs {r0['window_end_deg_median_abs']:.3f} deg -> "
+              f"{'OK' if entry else 'MISMATCH'}")
+        print(f"  bias: S0 median {np.degrees(b):+.4f} deg/s; recorded-definition median "
+              f"{np.degrees(bias['recorded']):+.4f} deg/s")
+        T = np.array([w_["T"] for w_ in W])
+        Cb = np.array([w_["before"] for w_ in W])
+        Ca = np.array([w_["after"] for w_ in W])
+        X = np.column_stack([T, np.ones_like(T)])
+        (beta, c), *_ = np.linalg.lstsq(X, Cb, rcond=None)
+        r2 = 1 - np.sum((Cb - X @ np.array([beta, c])) ** 2) / np.sum((Cb - Cb.mean()) ** 2)
+        (beta_a, c_a), *_ = np.linalg.lstsq(X, Ca, rcond=None)
+        print(f"  PART 1.1 closure |C| median before {np.median(np.abs(Cb)):.2f} deg -> after {np.median(np.abs(Ca)):.2f} deg "
+              f"(recorded-definition bias: {np.median(np.abs([w_['after_rec'] for w_ in W])):.2f}); "
+              f"duration {T.min():.1f}-{T.max():.1f} s")
+        print(f"    C_before = beta T + c: beta {beta:+.4f} deg/s (bias {np.degrees(b):+.4f}), c {c:+.2f} deg, R^2 {r2:.3f}; "
+              f"after: beta {beta_a:+.4f} deg/s, c {c_a:+.2f} deg")
+        by = {}
+        for w_ in W:
+            by.setdefault(w_["sid"], []).append(w_)
+        grp = {sid: ws for sid, ws in by.items() if len(ws) >= 2}
+        vals = np.array([w_["after"] for ws in grp.values() for w_ in ws])
+        labs = np.array([sid for sid, ws in grp.items() for _ in ws])
+        e = _eta2(vals, labs)
+        rng = np.random.default_rng(0)
+        null = np.array([_eta2(vals, rng.permutation(labs)) for _ in range(ROLL_N_PERM)])
+        e_null = float(np.median(null))
+        p = (1 + np.sum(null >= e)) / (1 + ROLL_N_PERM)
+        same_sign = sum(1 for ws in grp.values() if len({np.sign(w_["after"]) for w_ in ws}) == 1)
+        means = {sid: float(np.mean([w_["after"] for w_ in ws])) for sid, ws in grp.items()}
+        turn = {sid: float(np.sign(np.sum([w_["turn"] for w_ in ws]))) for sid, ws in grp.items()}
+        agree = sum(1 for sid in grp if np.sign(means[sid]) == turn[sid])
+        print(f"  PART 1.2 corners with >= 2 laps: {len(grp)} ({vals.size} windows); eta^2 {e:.3f} vs null median "
+              f"{e_null:.3f}, p {p:.4f}; corners with one sign on every lap {same_sign}/{len(grp)}; corner-mean sign = "
+              f"turn direction {agree}/{len(grp)}")
+        print("    per corner (mean C_after deg, lap sd, turn): " + "; ".join(
+            f"C{sid} {means[sid]:+.2f} (sd {np.std([w_['after'] for w_ in grp[sid]], ddof=1):.2f}, "
+            f"{'L' if turn[sid] < 0 else 'R'})" for sid in sorted(grp)))
+        msb, msa = np.mean(Cb ** 2), np.mean(Ca ** 2)
+        bias_sh = 1 - msa / msb
+        ex = max(0.0, (e - e_null) / (1 - e_null)) if e == e else 0.0
+        bank_sh = (msa / msb) * ex
+        noise_sh = 1 - bias_sh - bank_sh
+        verdict = ("BIAS-DOMINATED" if bias_sh >= ROLL_VERDICT_SHARE else
+                   "BANK-DOMINATED" if bank_sh >= ROLL_VERDICT_SHARE else
+                   "NOISE-DOMINATED" if noise_sh >= ROLL_VERDICT_SHARE else "MIXED")
+        print(f"  PART 1.3 shares of mean-square closure: bias {bias_sh:.2f}, bank {bank_sh:.2f}, noise {noise_sh:.2f} "
+              f"-> {verdict}")
+        kb, kc = _k_phi(stdy, phib), _k_phi(stdy, phic)
+        print(f"  PART 2.1 roll gradient / leakage: recorded {k0[0]:.3f} deg/g ({100 * k0[1]:+.2f} %, corr {k0[2]:.2f}) -> "
+              f"bias removed {kb[0]:.3f} deg/g ({100 * kb[1]:+.2f} %, corr {kb[2]:.2f}); closure-forced (sensitivity) "
+              f"{kc[0]:.3f} deg/g ({100 * kc[1]:+.2f} %, corr {kc[2]:.2f})")
+        summary[key] = {"entry": entry, "bias_deg_s": {k_: float(np.degrees(v)) for k_, v in bias.items()},
+                        "beta": float(beta), "c": float(c), "r2": float(r2), "beta_after": float(beta_a),
+                        "eta2": float(e), "eta2_null": e_null, "p": float(p),
+                        "shares": [float(bias_sh), float(bank_sh), float(noise_sh)], "verdict": verdict,
+                        "k_phi_deg_per_g": [k0[0], kb[0], kc[0]], "leak": [k0[1], kb[1], kc[1]]}
+        a1, a2_ = axes[row]
+        a1.scatter(T, Cb, s=8, color="#9ca3af", label="C before")
+        a1.scatter(T, Ca, s=8, color="#1f2937", label="C after bias removal")
+        tt = np.linspace(0, T.max(), 10)
+        a1.plot(tt, np.degrees(b) * tt, color="#b91c1c", lw=1, label=f"bias x T ({np.degrees(b):+.3f} deg/s)")
+        a1.axhline(0, color="#6b7280", lw=0.6)
+        a1.set_xlabel("window duration T (s)", fontsize=8)
+        a1.set_ylabel("roll-integral closure (deg)", fontsize=8)
+        a1.set_title(f"{key}: closure vs duration (R^2 {r2:.2f})", fontsize=9)
+        a1.legend(fontsize=7)
+        for j, sid in enumerate(sorted(grp)):
+            ys = [w_["after"] for w_ in grp[sid]]
+            a2_.scatter([j] * len(ys), ys, s=10, color="#1f2937")
+            a2_.plot([j - 0.3, j + 0.3], [means[sid]] * 2, color="#b91c1c", lw=1.2)
+        a2_.set_xticks(range(len(grp)), [f"C{sid}" for sid in sorted(grp)], fontsize=6, rotation=90)
+        a2_.axhline(0, color="#6b7280", lw=0.6)
+        a2_.set_ylabel("C after (deg)", fontsize=8)
+        a2_.set_title(f"{key}: closure after bias removal per corner (eta^2 {e:.2f}, null {e_null:.2f}) -- {verdict}",
+                      fontsize=9)
+        for a in (a1, a2_):
+            a.tick_params(labelsize=7)
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT_DIR, "roll_closure.png"), dpi=110)
+    plt.close(fig)
+    with open(os.path.join(OUT_DIR, "rollcheck.json"), "w") as fh:
+        json.dump(summary, fh, indent=1)
+
+
+# POST-HOC (after the first rollcheck run, labelled in the output). The
+# bias-removed closure is position-bound (eta^2 0.98-1.00) but its corner
+# means follow the TURN DIRECTION (7/10, 14/15, 9/9) and reach 15 deg --
+# the signature of yaw rate leaking into the roll-rate channel (sensor pitch
+# misalignment theta0: p_meas = p + r sin(theta0); or Euler coupling on a
+# road gradient), which integrates to sin(theta0) x heading change, not of
+# road bank. Mode "rollcheck2":
+# (1) Lap-closure bias: per analysis lap, the mean roll rate over the whole
+#     lap (the car returns to the same attitude at the same point, so a
+#     bias-free gyro integrates to ~0); median over laps.
+# (2) Coupling test: per window, OLS C_after = s x dpsi + c, dpsi = heading
+#     change over the window (integral of the production yaw rate, deg);
+#     R^2 and the implied angle asin(s). A constant, tight s = cross-axis
+#     coupling; corner-specific scatter around it = bank.
+# (3) Roll gradient with the coupling removed: phi_cc = bias-removed phi -
+#     s x psi(t) within each window (psi from the window start); k_phi and
+#     leakage scale beside the recorded and bias-removed values.
+# (4) Share of the bias-removed mean-square closure explained by (2).
+# Rows (2)-(4) run under both the S0 bias and the lap-closure bias of (1)
+# (added after the first rollcheck2 run, labelled: the S0 median has the
+# wrong sign on JST 29, +0.46 vs -0.147 deg/s).
+def rollcheck2():
+    out = {}
+    for key in ROLLCHECK_KEYS:
+        d, st, stdy, rr, wins, bias = _roll_windows(key)
+        sr = d["sample_rate_hz"]
+        t = st["time"]
+        yaw = st["yaw_rate_radps"]
+        lap_bias = []
+        for l in d["laps"]:
+            if not l.get("is_valid_for_analysis"):
+                continue
+            m = (t >= l["start_time"]) & (t < l["end_time"])
+            lap_bias.append(float(np.degrees(np.mean(rr[m]))))
+        b_lap = float(np.median(lap_bias))
+        print(f"\n== {key} (POST-HOC)")
+        print(f"  (1) lap-closure bias: median over {len(lap_bias)} laps {b_lap:+.4f} deg/s (per lap "
+              f"{', '.join(f'{x:+.3f}' for x in lap_bias)}); S0 median {np.degrees(bias['S0']):+.4f}, recorded-definition "
+              f"{np.degrees(bias['recorded']):+.4f} deg/s")
+        out[key] = {"lap_bias_deg_s": b_lap, "lap_biases": lap_bias}
+        labs = np.array([sid for sid, _l, _w in wins])
+        keep = np.array([np.sum(labs == x) >= 2 for x in labs])
+        # rows (2)-(4) under both bias definitions: S0 (pre-registered) and
+        # the lap-closure bias of (1), which the S0 median misses on JST 29
+        for bname, b in (("S0", bias["S0"]), ("lap-closure", np.radians(b_lap))):
+            Ca, dpsi = [], []
+            phib = np.full(t.size, np.nan)
+            psi_w = np.full(t.size, np.nan)
+            for sid, lap, w in wins:
+                pb = np.cumsum(rr[w] - b) / sr
+                ps = np.cumsum(yaw[w]) / sr
+                phib[w], psi_w[w] = pb, ps
+                Ca.append(float(np.degrees(pb[-1])))
+                dpsi.append(float(np.degrees(ps[-1])))
+            Ca, dpsi = np.array(Ca), np.array(dpsi)
+            X = np.column_stack([dpsi, np.ones_like(dpsi)])
+            (s_c, c_c), *_ = np.linalg.lstsq(X, Ca, rcond=None)
+            res = Ca - X @ np.array([s_c, c_c])
+            r2 = 1 - np.sum(res ** 2) / np.sum((Ca - Ca.mean()) ** 2)
+            ms_expl = 1 - np.mean(res ** 2) / np.mean(Ca ** 2)
+            kb = _k_phi(stdy, phib)
+            kc = _k_phi(stdy, phib - s_c * psi_w)
+            e_res = _eta2(res[keep], labs[keep])
+            ang = float(np.degrees(np.arcsin(np.clip(s_c, -1, 1))))
+            print(f"  [{bname} bias] (2) C_after = s x dpsi + c: s {s_c:+.4f} (implied axis angle {ang:+.2f} deg), "
+                  f"c {c_c:+.2f} deg, R^2 {r2:.3f}; |dpsi| {np.min(np.abs(dpsi)):.0f}-{np.max(np.abs(dpsi)):.0f} deg; "
+                  f"residual |C| median {np.median(np.abs(res)):.2f} deg (before {np.median(np.abs(Ca)):.2f}); "
+                  f"residual between-corner eta^2 {e_res:.3f}")
+            print(f"  [{bname} bias] (4) share of the bias-removed mean-square closure explained by the coupling term: "
+                  f"{ms_expl:.2f}")
+            print(f"  [{bname} bias] (3) roll gradient: bias removed {kb[0]:.3f} deg/g ({100 * kb[1]:+.2f} %, corr "
+                  f"{kb[2]:.2f}) -> coupling removed {kc[0]:.3f} deg/g ({100 * kc[1]:+.2f} %, corr {kc[2]:.2f})")
+            out[key][bname] = {"s": float(s_c), "c": float(c_c), "r2": float(r2), "axis_deg": ang,
+                               "ms_explained": float(ms_expl), "eta2_resid": float(e_res),
+                               "k_phi_bias_removed": kb[0], "k_phi_coupling_removed": kc[0],
+                               "leak_bias_removed": kb[1], "leak_coupling_removed": kc[1]}
+    with open(os.path.join(OUT_DIR, "rollcheck2.json"), "w") as fh:
+        json.dump(out, fh, indent=1)
+
+
+# ---------------------------------------------------------------- tilt vs static attitude (2026-09-30)
+# Modes "attcompute <key>" and "attitude" (author work order after the roll
+# check). HARDWARE (author-supplied, 2026-09-30): the car carries ONE gyro
+# cluster (SCLU) on the transmission tunnel at the centre console, near the
+# CG, body-fixed and immovable relative to the body; MRR_EgoYawRate is a bus
+# copy of it. A body-fixed sensor tilts with the car's static attitude, so
+# rake and ride-height changes between sessions change its alignment to the
+# road. Question: do the measured sensor-orientation estimates track the
+# per-session attitude? Read-only; eight sessions.
+# RULES (fixed before the first attitude run)
+# - Raw channels read from each file (channel census rule): log_rideheight_
+#   fl/fr/rl/rr, log_rideheight_rake(_mc), l_rake(_mc), ecu_speed. A ride-
+#   height channel is DEAD if its std over samples above 30 km/h is below
+#   0.5 mm or its median lies outside 0-200 mm; a rake channel if its std is
+#   below 0.1 mm or it has <= 2 distinct values. Dead channels drop out,
+#   stated per session.
+# - Entry: the recorded NBR A/B mapping check (inspect_cs_value_lens
+#   mapping: log_rideheight_rake median per ecu_speed band over the whole
+#   file) is reproduced: A -94.98 / -89.75 / -85.19, B -97.49 / -92.75 /
+#   -88.91 mm in 100-150 / 150-200 / 200-260 km/h.
+# - Attitude per session, same matched-speed method (whole file, ecu_speed
+#   bands 100-150 / 150-200 / 200-260 km/h) plus a stationary band (< 5
+#   km/h, labelled: pit/grid ground is not level): rake channel median;
+#   corner-derived rake = mean(live rear) - mean(live front); static roll
+#   difference left - right per axle where both sides live. In-corner rake:
+#   median rake channel over the (a2) widened corner windows, the population
+#   over which the yaw leak accumulates.
+# - Geometry: pitch angle = atan(rake / wheelbase), wheelbase 2.505 m
+#   (config vehicle.wheelbase_m; the laser positions are not the axles, so
+#   this is the expectation the author asked for, not a calibrated angle);
+#   roll angle = atan(L - R / track), config track widths 1.66 / 1.64 m,
+#   which config itself labels unsourced placeholders.
+# - Orientation estimates per session: (i) yaw-leak axis angle asin(s) from
+#   the rollcheck2 fit with the lap-closure bias (all eight); (ii) the (a)
+#   Part 1 straight-line ay offset (S0 median) and its tilt equivalent
+#   asin(b / g); (iii) the (a2) referee intercept of log_acc_y on r v.
+# - Correlation across sessions: Pearson r (n = live sessions); the two
+#   loggers (serial 147: Dubai, Le Mans; 221: the rest) as a grouping check.
+#   Models for the yaw-leak angle: A tilt = a x pitch + b (free); B tilt =
+#   m_logger + pitch (slope fixed at the geometric 1, one mounting offset
+#   per logger); B' tilt = m_logger + a x pitch. Same three models for the
+#   ay-tilt against the roll angle. RMS residual per model.
+# - Units (correction after the first attitude run, labelled): the channel
+#   header unit differs between files for the same channel -- [mm], [m] and
+#   [ft] all occur (log_rideheight_rake [m] on NBR/Dubai, [ft] on US-v2;
+#   log_rideheight_rl [m] on US-v2). Every channel is converted to mm by its
+#   header before the liveness rule and the medians; the first run applied
+#   the mm rules to raw values and failed the entry check.
+# POST-HOC (after the unit-corrected run, labelled): log_rideheight_rake is
+# not the laser rear-minus-front rake -- about -92 mm on the four NBR files
+# against a laser rake of about +10 mm, i.e. a different zero or definition
+# per file -- so the same three models are also fitted against the LASER
+# rake (mean live rear - mean live front, 150-200 km/h), and the yaw-leak
+# angle is listed per track family (NBR / Paul Ricard / Dubai / Le Mans).
+ATT_TRACK = {"dubai": "Dubai", "v3": "Paul Ricard", "pr_us_v2": "Paul Ricard", "nbr_jst_problem": "NBR",
+             "nbr_jst_solution": "NBR", "lmn_mla": "Le Mans", "nbr_qp_cdr": "NBR", "nbr_qp_mla": "NBR"}
+ATT_UNIT_TO_MM = {"mm": 1.0, "m": 1000.0, "ft": 304.8}
+ATT_CHANNELS = ("log_rideheight_fl", "log_rideheight_fr", "log_rideheight_rl", "log_rideheight_rr",
+                "log_rideheight_rake", "log_rideheight_rake_mc", "l_rake", "l_rake_mc", "ecu_speed")
+ATT_BANDS = ((0.0, 5.0), (100.0, 150.0), (150.0, 200.0), (200.0, 260.0))
+ATT_ENTRY = {"nbr_jst_problem": (-94.98, -89.75, -85.19), "nbr_jst_solution": (-97.49, -92.75, -88.91)}
+SERIAL_147 = ("dubai", "lmn_mla")
+BP = "B'"
+
+
+def attcompute(key):
+    blocks = read_raw_blocks(SWEEP_SESSIONS[key], ATT_CHANNELS)
+    with gzip.open(os.path.join(OUT_DIR, "cache", f"att_{key}.pkl.gz"), "wb") as fh:
+        pickle.dump(blocks, fh, protocol=pickle.HIGHEST_PROTOCOL)
+    print(f"[{key}] attitude blocks: " + ", ".join(f"{n} n={b[1].size}" for n, b in blocks.items()) +
+          "; absent: " + (", ".join(n for n in ATT_CHANNELS if n not in blocks) or "none"))
+
+
+def _att_live(name, t, v, vs):
+    fast = vs > 30.0
+    if v.size < 10 or not fast.any():
+        return False
+    if "rake" in name:
+        return np.std(v[fast]) >= 0.1 and np.unique(v).size > 2
+    return np.std(v[fast]) >= 0.5 and 0.0 <= np.median(v[fast]) <= 200.0
+
+
+def _yaw_leak_angle(key):
+    d, st, stdy, rr, wins, bias = _roll_windows(key)
+    sr = d["sample_rate_hz"]
+    t = st["time"]
+    lap_b = [np.mean(rr[(t >= l["start_time"]) & (t < l["end_time"])]) for l in d["laps"]
+             if l.get("is_valid_for_analysis")]
+    b = float(np.median(lap_b))
+    Ca, dpsi = [], []
+    for _sid, _lap, w in wins:
+        Ca.append(np.degrees(np.sum(rr[w] - b) / sr))
+        dpsi.append(np.degrees(np.sum(st["yaw_rate_radps"][w]) / sr))
+    Ca, dpsi = np.array(Ca), np.array(dpsi)
+    X = np.column_stack([dpsi, np.ones_like(dpsi)])
+    (s_c, _c), *_ = np.linalg.lstsq(X, Ca, rcond=None)
+    res = Ca - X @ np.array([s_c, _c])
+    r2 = 1 - np.sum(res ** 2) / np.sum((Ca - Ca.mean()) ** 2)
+    return float(np.degrees(np.arcsin(np.clip(s_c, -1, 1)))), float(r2), d, st, wins
+
+
+def _models(x, y, logger):
+    x, y, g = np.asarray(x, float), np.asarray(y, float), np.asarray(logger)
+    out = {}
+    X = np.column_stack([x, np.ones_like(x)])
+    (a, b), *_ = np.linalg.lstsq(X, y, rcond=None)
+    out["A"] = {"a": float(a), "b": float(b), "rms": float(np.sqrt(np.mean((y - X @ np.array([a, b])) ** 2)))}
+    groups = sorted(set(g))
+    m = {gg: float(np.mean(y[g == gg] - x[g == gg])) for gg in groups}
+    pred = np.array([m[gg] for gg in g]) + x
+    out["B"] = {"m": m, "rms": float(np.sqrt(np.mean((y - pred) ** 2)))}
+    Xb = np.column_stack([x] + [(g == gg).astype(float) for gg in groups])
+    coef, *_ = np.linalg.lstsq(Xb, y, rcond=None)
+    out["B'"] = {"a": float(coef[0]), "m": {gg: float(c) for gg, c in zip(groups, coef[1:])},
+                 "rms": float(np.sqrt(np.mean((y - Xb @ coef) ** 2)))}
+    out["r"] = float(np.corrcoef(x, y)[0, 1]) if x.size > 2 and np.std(x) > 0 else float("nan")
+    return out
+
+
+def attitude():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    with open(os.path.join(OUT_DIR, "report.json")) as fh:
+        rep = json.load(fh)
+    with open(os.path.join(OUT_DIR, "a2_referee.json")) as fh:
+        ref = json.load(fh)
+    wb = 2.505
+    tr_f, tr_r = 1.66, 1.64
+    rows = {}
+    print("=== ENTRY -- recorded NBR A/B log_rideheight_rake band medians (whole file, ecu_speed bands)")
+    for key in KEYS:
+        with gzip.open(os.path.join(OUT_DIR, "cache", f"att_{key}.pkl.gz"), "rb") as fh:
+            B = pickle.load(fh)
+        spd = B.get("ecu_speed")
+        live = {}
+        for n in ATT_CHANNELS[:-1]:
+            if n not in B or spd is None:
+                continue
+            t, v, _h = B[n]
+            unit = _h[_h.find("[") + 1:_h.find("]")] if "[" in _h else "mm"
+            v = v * ATT_UNIT_TO_MM[unit]
+            vs = np.interp(t, spd[0], spd[1])
+            live[n] = (t, v, vs, _att_live(n, t, v, vs))
+        if key in ATT_ENTRY:
+            t, v, vs, _ok = live["log_rideheight_rake"]
+            got = [float(np.median(v[(vs >= lo) & (vs < hi)])) for lo, hi in ATT_BANDS[1:]]
+            ok = all(abs(g_ - e_) < 0.005 for g_, e_ in zip(got, ATT_ENTRY[key]))
+            print(f"  {key}: {', '.join(f'{x:.2f}' for x in got)} vs recorded "
+                  f"{', '.join(f'{x:.2f}' for x in ATT_ENTRY[key])} -> {'OK' if ok else 'MISMATCH'}")
+        band = {}
+        for n, (t, v, vs, ok) in live.items():
+            if not ok:
+                continue
+            band[n] = [float(np.median(v[(vs >= lo) & (vs < hi)])) if np.sum((vs >= lo) & (vs < hi)) > 50 else None
+                       for lo, hi in ATT_BANDS]
+        fr_live = [n for n in ("log_rideheight_fl", "log_rideheight_fr") if n in band]
+        rr_live = [n for n in ("log_rideheight_rl", "log_rideheight_rr") if n in band]
+        derived = [(np.mean([band[n][i] for n in rr_live]) - np.mean([band[n][i] for n in fr_live]))
+                   if fr_live and rr_live and all(band[n][i] is not None for n in fr_live + rr_live) else None
+                   for i in range(len(ATT_BANDS))]
+        roll_r = [band["log_rideheight_rl"][i] - band["log_rideheight_rr"][i]
+                  if "log_rideheight_rl" in band and "log_rideheight_rr" in band
+                  and band["log_rideheight_rl"][i] is not None and band["log_rideheight_rr"][i] is not None else None
+                  for i in range(len(ATT_BANDS))]
+        roll_f = [band["log_rideheight_fl"][i] - band["log_rideheight_fr"][i]
+                  if "log_rideheight_fl" in band and "log_rideheight_fr" in band
+                  and band["log_rideheight_fl"][i] is not None and band["log_rideheight_fr"][i] is not None else None
+                  for i in range(len(ATT_BANDS))]
+        ang, r2, d, st, wins = _yaw_leak_angle(key)
+        rake_c = None
+        if "log_rideheight_rake" in band:
+            t, v, _vs, _ok = live["log_rideheight_rake"]
+            rk = np.interp(st["time"], t, v)
+            rake_c = float(np.median(np.concatenate([rk[w] for _s, _l, w in wins])))
+        ay_b = rep[key]["p1"]["ay"]["S0"]["median"]
+        rows[key] = {"logger": "147" if key in SERIAL_147 else "221",
+                     "dead": [n for n, x in live.items() if not x[3]], "absent": [n for n in ATT_CHANNELS[:-1] if n not in B],
+                     "rake_band": band.get("log_rideheight_rake"), "rake_derived": derived, "roll_r": roll_r,
+                     "roll_f": roll_f, "rake_in_corner": rake_c, "leak_angle": ang, "leak_r2": r2,
+                     "ay_offset": float(ay_b), "ay_tilt": float(np.degrees(np.arcsin(ay_b / G))),
+                     "ay_intercept": float(ref[key]["fits"]["log_acc_y"]["all"]["i"])}
+    print("\n=== PART 1 -- attitude per session (bands stationary / 100-150 / 150-200 / 200-260 km/h, mm)")
+    f = lambda xs: " / ".join("-" if x is None else f"{x:+.1f}" for x in xs) if xs else "n/a"
+    for key, r in rows.items():
+        print(f"  {key} (serial {r['logger']}): dead {r['dead'] or 'none'}; absent {r['absent'] or 'none'}")
+        rc = "n/a" if r["rake_in_corner"] is None else f"{r['rake_in_corner']:+.1f}"
+        print(f"    rake channel {f(r['rake_band'])}; derived rear-front {f(r['rake_derived'])}; in-corner rake {rc}; "
+              f"roll L-R rear {f(r['roll_r'])}, front {f(r['roll_f'])}")
+    print("\n=== PART 2 -- orientation estimates per session")
+    for key, r in rows.items():
+        print(f"  {key}: yaw-leak axis angle {r['leak_angle']:+.2f} deg (R^2 {r['leak_r2']:.2f}); ay offset "
+              f"{r['ay_offset']:+.3f} m/s^2 (tilt equivalent {r['ay_tilt']:+.2f} deg); referee intercept "
+              f"{r['ay_intercept']:+.3f} m/s^2")
+    print(f"\n=== PART 3 -- correlation and models (wheelbase {wb} m; track {tr_f}/{tr_r} m, config placeholders)")
+    keys = list(rows)
+    lg = [rows[k]["logger"] for k in keys]
+    res = {}
+    for xname, getter in (("rake channel 150-200 km/h", lambda r: r["rake_band"][2] if r["rake_band"] else None),
+                          ("in-corner rake", lambda r: r["rake_in_corner"]),
+                          ("rake channel stationary", lambda r: r["rake_band"][0] if r["rake_band"] else None)):
+        ks = [k for k in keys if getter(rows[k]) is not None]
+        x_deg = [float(np.degrees(np.arctan(getter(rows[k]) / 1000.0 / wb))) for k in ks]
+        y = [rows[k]["leak_angle"] for k in ks]
+        g = [rows[k]["logger"] for k in ks]
+        if len(ks) < 3:
+            print(f"  yaw-leak angle vs {xname}: n={len(ks)}, too few")
+            continue
+        m = _models(x_deg, y, g)
+        res[f"leak_vs_{xname}"] = {"keys": ks, "x_deg": x_deg, "y": y, "models": m}
+        spread_mm = max(getter(rows[k]) for k in ks) - min(getter(rows[k]) for k in ks)
+        print(f"  yaw-leak angle vs {xname} (n={len(ks)}: {', '.join(ks)}): pitch {min(x_deg):+.2f}..{max(x_deg):+.2f} deg "
+              f"(rake spread {spread_mm:.1f} mm = {np.degrees(spread_mm / 1000 / wb):.2f} deg), leak angle "
+              f"{min(y):+.2f}..{max(y):+.2f} deg; r {m['r']:+.2f}")
+        mb, mbp = m["B"], m["B'"]
+        print(f"    A free: tilt = {m['A']['a']:+.2f} x pitch {m['A']['b']:+.2f}, rms {m['A']['rms']:.2f} deg; "
+              f"B slope 1: mounting {', '.join(f'{gg} {v:+.2f}' for gg, v in mb['m'].items())} deg, rms "
+              f"{mb['rms']:.2f}; B' free slope {mbp['a']:+.2f}, mounting "
+              f"{', '.join(f'{gg} {v:+.2f}' for gg, v in mbp['m'].items())}, rms {mbp['rms']:.2f}")
+    for yname in ("ay_tilt", "ay_intercept"):
+        ks = [k for k in keys if rows[k]["roll_r"] and rows[k]["roll_r"][2] is not None]
+        if len(ks) < 3:
+            print(f"  {yname} vs rear roll attitude: n={len(ks)}, too few")
+            continue
+        x_deg = [float(np.degrees(np.arctan(rows[k]["roll_r"][2] / 1000.0 / tr_r))) for k in ks]
+        y = [rows[k][yname] if yname == "ay_tilt" else float(np.degrees(np.arcsin(rows[k][yname] / G))) for k in ks]
+        g = [rows[k]["logger"] for k in ks]
+        m = _models(x_deg, y, g)
+        res[f"{yname}_vs_roll"] = {"keys": ks, "x_deg": x_deg, "y": y, "models": m}
+        print(f"  {yname} (as tilt deg) vs rear roll attitude 150-200 km/h (n={len(ks)}): roll {min(x_deg):+.2f}.."
+              f"{max(x_deg):+.2f} deg, tilt {min(y):+.2f}..{max(y):+.2f} deg; r {m['r']:+.2f}; A {m['A']['a']:+.2f} x "
+              f"{m['A']['b']:+.2f} rms {m['A']['rms']:.2f}; B mounting {', '.join(f'{gg} {v:+.2f}' for gg, v in m['B']['m'].items())} "
+              f"rms {m['B']['rms']:.2f}; B' slope {m[BP]['a']:+.2f} rms {m[BP]['rms']:.2f}")
+    print("\n=== POST-HOC (labelled) -- laser rake, track families")
+    ks = [k for k in keys if rows[k]["rake_derived"][2] is not None]
+    LR = {k: rows[k]["rake_derived"][2] for k in ks}
+    x_deg = [float(np.degrees(np.arctan(rows[k]["rake_derived"][2] / 1000.0 / wb))) for k in ks]
+    y = [rows[k]["leak_angle"] for k in ks]
+    m = _models(x_deg, y, [rows[k]["logger"] for k in ks])
+    res["leak_vs_laser_rake"] = {"keys": ks, "x_deg": x_deg, "y": y, "models": m}
+    spread = max(rows[k]["rake_derived"][2] for k in ks) - min(rows[k]["rake_derived"][2] for k in ks)
+    print(f"  yaw-leak angle vs laser rake 150-200 km/h (n={len(ks)}): rake "
+          f"{', '.join(f'{k} {LR[k]:+.1f}' for k in ks)} mm; "
+          f"spread {spread:.1f} mm = {np.degrees(spread / 1000 / wb):.2f} deg; r {m['r']:+.2f}")
+    print(f"    A free: slope {m['A']['a']:+.2f}, rms {m['A']['rms']:.2f}; B slope 1: mounting "
+          f"{', '.join(f'{gg} {v:+.2f}' for gg, v in m['B']['m'].items())}, rms {m['B']['rms']:.2f}; B' slope "
+          f"{m[BP]['a']:+.2f}, rms {m[BP]['rms']:.2f}")
+    fam = {}
+    for k in keys:
+        fam.setdefault((ATT_TRACK[k], rows[k]["logger"]), []).append(k)
+    for (trk, lg_), kk in sorted(fam.items()):
+        print(f"  {trk} (serial {lg_}): yaw-leak angle " + ", ".join(f"{k} {rows[k]['leak_angle']:+.2f} (R^2 "
+              f"{rows[k]['leak_r2']:.2f})" for k in kk) + "; ay offset " +
+              ", ".join(f"{rows[k]['ay_offset']:+.2f}" for k in kk) + " m/s^2; referee intercept " +
+              ", ".join(f"{rows[k]['ay_intercept']:+.2f}" for k in kk) + " m/s^2")
+    with open(os.path.join(OUT_DIR, "attitude.json"), "w") as fh:
+        json.dump({"rows": rows, "fits": res}, fh, indent=1, default=str)
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    for ax, (name, xl, yl) in zip(axes, (("leak_vs_in-corner rake", "rake pitch atan(rake/wheelbase), in corner (deg)",
+                                           "yaw-leak axis angle (deg)"),
+                                          ("ay_tilt_vs_roll", "rear roll attitude atan((RL-RR)/track), 150-200 km/h (deg)",
+                                           "ay offset tilt equivalent (deg)"))):
+        if name not in res:
+            ax.set_title(f"{name}: too few sessions", fontsize=9)
+            continue
+        e = res[name]
+        for k, x, y in zip(e["keys"], e["x_deg"], e["y"]):
+            ax.scatter(x, y, color="#b91c1c" if rows[k]["logger"] == "147" else "#1f2937", s=25)
+            ax.annotate(k, (x, y), fontsize=6, xytext=(3, 3), textcoords="offset points")
+        xs = np.linspace(min(e["x_deg"]) - 0.2, max(e["x_deg"]) + 0.2, 10)
+        ax.plot(xs, xs, color="#9ca3af", lw=0.8, ls="--", label="geometric: tilt = attitude")
+        ax.set_xlabel(xl, fontsize=8); ax.set_ylabel(yl, fontsize=8)
+        ax.set_title(f"{name} (red serial 147, black 221)", fontsize=9)
+        ax.legend(fontsize=7); ax.tick_params(labelsize=7)
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT_DIR, "tilt_vs_attitude.png"), dpi=110)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]
-    if mode in ("census", "compute", "a2compute"):
-        {"census": census, "compute": compute, "a2compute": a2compute}[mode](sys.argv[2])
+    if mode in ("census", "compute", "a2compute", "attcompute"):
+        {"census": census, "compute": compute, "a2compute": a2compute,
+         "attcompute": attcompute}[mode](sys.argv[2])
     else:
         {"report": report, "consequence": consequence, "precheck": precheck,
-         "referee": referee, "collapse": collapse, "ratio": ratio}[mode]()
+         "referee": referee, "collapse": collapse, "ratio": ratio, "rollcheck": rollcheck, "rollcheck2": rollcheck2,
+         "attitude": attitude}[mode]()

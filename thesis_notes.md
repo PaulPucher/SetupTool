@@ -24029,6 +24029,13 @@ pooled slope lies within -2.2 to +1.7 % of k_gps x (1 + IMU-route
 leakage) on all eight sessions; sclu_acc_y lies 3.0-5.4 % below it, and
 still 0.7-4.2 % below k_gps alone (the value a roll-compensated sensor
 would show).
+[2026-09-30, correction note, roll closure check] The IMU-route roll
+angle is dominated by yaw rate leaking into sclu_roll_rate (implied axis
+angle 1.3-2.2 deg), not by body roll; with that coupling removed the
+roll-gravity leakage falls to 0.1-0.6 % with the opposite sign (serial
+221) and 1.3 % (Dubai). The leakage figures above are measurements of the
+raw integral, not of roll leakage. See "Roll closure check: the roll-rate
+channel carries yaw cross-coupling".
 
 ## (a2) Part 3: drift collapse [2026-09-30, branch new-laps, read-only]
 
@@ -24069,6 +24076,10 @@ Candidates, measured magnitude / sign pattern / drift collapse:
 - Roll-gravity leakage: +1.5 to +2.6 % (serial 221), +4.2 % (Dubai) from
   the IMU roll route, the sign that raises a body-fixed |ay|; alone
   collapses Dubai and JST 29, not v3.
+  [2026-09-30, correction note, roll closure check] C4's constant is
+  mostly yaw cross-coupling in the roll-rate channel, not roll leakage
+  (see "Roll closure check: the roll-rate channel carries yaw
+  cross-coupling"); the C4 and C3+C4 collapse rows rest on it.
 - Speed scale: ecu_speed 0.5-1.2 % low against GPS on all eight (Dubai k
   reproduced); alone reduces the slope by 17-38 %, never collapses.
 No single candidate dominates. The formal pairwise winner (ay scale + gyro
@@ -24458,3 +24469,65 @@ Chair reference (docs/literature/cornering_stiffness_estimator.py, data_handler.
 3. Both step-0 operationalisations accepted as recorded: "drops toward chance" = the excess over chance at least halves on both axles; "no new deep dips" = at most 1 new deep-tail minimum per session and axle more than 3 m from a kerb-mask edge, plus trace inspection.
 FINDING, chair reference (read-only, docs/literature/cornering_stiffness_estimator.py and data_handler.py): the reference has no kerb concept; its CS windows are contiguous left-sided slices over all samples with nothing masked inside, on inputs read from an "ACC CSV" format. Production's kerb handling -- kerb samples excluded as CS window endpoints, via moving & ~kerb -- is therefore already a deviation from the chair, class DOMAIN IMPROVEMENT ("based on their version, which is not wrong"): this car's data carries kerb strikes the reference's inputs do not.
 FINDING, battery gaps under K: excluding kerb samples inside the windows WIDENS two rear-minus-front battery gaps rather than eroding them -- US-v2 C13 +0.507 -> +0.973, JST 29 (NBR B) C9 +0.168 -> +0.321 (KS: +0.828 / +0.347). Both corners have kerb-affected minima (US-v2 C13 front 3/9 windows with kerb samples; JST 29 C9 front 5/6), so kerb samples in the windows had been compressing these gaps. The balance signals the battery rests on are not kerb artifacts; if anything they are understated at baseline.
+
+## Roll closure check: the roll-rate channel carries yaw cross-coupling [2026-09-30, branch new-laps, read-only]
+
+Work order after the (g) close-out: does the (a2) roll-leakage constant survive, and is (a3) proposable on data alone? diagnostics/inspect_imu_offsets.py modes rollcheck (pre-registered) and rollcheck2 (post-hoc, labelled), a2 caches; JST 29, US-v2 (serial 221) and Dubai (serial 147 control). Figure diagnostics/plots/imu_offsets/roll_closure.png (gitignored).
+Entry: with bias 0 the mode reproduces the recorded (a2) roll gradients and median window-end |phi| exactly (0.9985 / 0.9487 / 2.4188 deg/g; 2.98 / 2.13 / 4.96 deg).
+PART 1 (pre-registered).
+- 1.1 Constant bias (S0 straight-line median: +0.46 / -0.01 / -0.135 deg/s): closure is NOT proportional to window duration (R^2 0.02 / 0.30 / 0.02; fitted beta -0.55 / -0.64 / +0.30 deg/s against the bias). Removing the bias changes the median |closure| from 2.98 / 2.13 / 4.96 to 3.76 / 2.12 / 4.26 deg -- worse on JST 29.
+- 1.2 Reproducibility: the bias-removed closure is a property of the corner -- eta^2 0.984 / 0.982 / 0.997 against permutation nulls of 0.17 / 0.15 / 0.25 (p 0.0005); lap-to-lap sd 0.05-2.0 deg against corner means up to +/-15 deg (JST 29 C5 -15.5, C7 -14.5, C11 -14.7); one sign on every lap in 8/10, 13/15, 9/9 corners; the corner-mean sign follows the TURN DIRECTION in 7/10, 14/15, 9/9.
+- 1.3 Pre-registered verdict: BANK-DOMINATED on all three (shares bias / bank / noise: -0.49 / 1.46 / 0.03; 0.02 / 0.96 / 0.02; 0.09 / 0.91 / 0.00).
+POST-HOC (labelled; the turn-direction sign and 15-deg size do not fit road bank): yaw rate leaking into the roll-rate channel (sensor pitch misalignment or cross-axis sensitivity: p_meas = p + r sin(theta0); on gradients also Euler coupling) integrates to sin(theta0) x heading change, reproducible per corner, signed by turn direction.
+- Lap-closure bias (mean roll rate over each full analysis lap, which a bias-free gyro integrates to ~0): -0.147 / -0.077 / -0.193 deg/s, stable to +/-0.006 across laps. The straight-line median misses it (JST 29 +0.46, wrong sign): on these tracks the car rolls on straights too, so the median is not a bias estimate for this channel.
+- Coupling fit C_after = s x dpsi + c (lap-closure bias; S0 in brackets): s +0.036 / +0.023 / +0.038 (implied axis angle 2.09 / 1.31 / 2.18 deg; S0 2.23 / 1.35 / 2.17), c -1.71 / +0.26 / +0.04 deg, R^2 0.43 / 0.89 / 0.80; explains 56 / 89 / 81 % of the bias-removed mean-square closure (S0: 74 / 90 / 82 %). Residual after it: median |C| 3.50 / 0.59 / 2.34 deg, still corner-bound (eta^2 0.97 / 0.74 / 0.98) -- the part that can be bank or grade; the lower R^2 on the Nordschleife fits its gradients (Euler coupling varies by corner).
+- The angle differs between the two serial-221 sessions (1.3 vs 2.1 deg): not one fixed sensor constant.
+PART 2.
+- 2.1 Leakage with the bias removed (pre-registered): 1.74 -> 1.46 % (JST 29), 1.66 -> 1.65 % (US-v2), 4.22 -> 4.29 % (Dubai) -- bias removal alone barely moves it. With the coupling also removed (post-hoc, lap-closure bias): -0.32 deg/g (magnitude 0.57 %, OPPOSITE sign to leakage) / -0.08 deg/g (0.13 %, opposite sign) / +0.76 deg/g (+1.32 %). The closure-forced sensitivity row agrees in direction (0.09 / -0.10 / 0.58 deg/g).
+- 2.2 The position-bound closure is mostly not bank: 56-89 % is heading-proportional coupling. The remainder is corner-bound (bank or grade); a correction that included it would be position-dependent, which fails the simplicity principle. The per-session constant that (a2) measured is not a roll-leakage constant: it is dominated by a sensor-axis artifact whose size is not even stable within one logger serial.
+PART 3, the (a3) gate: the roll term is NOT measured well enough to propose (a3) on data alone. The (a2) leakage constant (1.5-2.6 % serial 221, 4.2 % Dubai) does not survive: most of it is yaw cross-coupling in sclu_roll_rate; with that removed the serial-221 leakage is 0.1-0.6 % and of the opposite sign, and Dubai keeps 1.3 %. What remains is neither stable nor simple. (a3) genuinely needs the engineer's sensor answers, and the roll-gyro question sharpens: not only bias, but the roll-rate sensor's axis alignment / cross-axis sensitivity to yaw, and whether sclu_roll_rate is a raw body-axis rate. The C4 row of (a2) Part 3 and the C3+C4 collapse rest on the contaminated constant (correction notes added there).
+
+## Roll-check rulings [2026-09-30, author]
+
+1. Engineer-round sensor question widened: besides the roll gyro's bias, the round asks the roll-rate sensor's axis alignment (mounting pitch), its cross-axis sensitivity to yaw rate, and whether sclu_roll_rate is a raw body-axis rate.
+2. The (a2) exit ruling STANDS: (a)/(a2) closed as characterised, correction deferred behind (a3), not reopened; the dated correction notes on the (a2) roll-leakage passages suffice. The C3+C4 drift-collapse evidence is downgraded because it rests on the contaminated roll constant; any future (a3) re-derives the roll term from scratch and reuses none of (a2)'s roll numbers.
+3. The roll check's 0.6 verdict-share threshold and both labelled follow-up checks (full-lap bias; yaw cross-coupling fit with the leakage recomputed) accepted as recorded.
+
+## Sensor tilt vs static attitude, eight sessions [2026-09-30, branch new-laps, read-only]
+
+HARDWARE (author-supplied, 2026-09-30): ONE gyro cluster (SCLU) on the transmission tunnel at the centre console, near the CG, body-fixed and immovable relative to the body; MRR_EgoYawRate is therefore a bus copy. A body-fixed sensor tilts with the car's static attitude, so rake and ride-height changes between sessions change its alignment to the road.
+Script: diagnostics/inspect_imu_offsets.py modes attcompute <key> and attitude (rules in the header before the run; two labelled corrections/post-hoc blocks). Figure diagnostics/plots/imu_offsets/tilt_vs_attitude.png (gitignored).
+DATA FINDINGS (channel census, read from the files):
+- The header unit of the same channel differs between files: log_rideheight_rake is [ft] on v3, US-v2, CDR and QP MLA (the four files that also carry l_rake) and [m] on Dubai, JST 21, JST 29 and Le Mans; log_rideheight_rl is [m] on the same four [ft] files and [mm] on the others. The first run applied mm rules to raw values and failed its entry check; after conversion by header unit the recorded NBR A/B band medians are reproduced exactly (-94.98 / -89.75 / -85.19 and -97.49 / -92.75 / -88.91 mm).
+- ~~log_rideheight_rake is not the laser rear-minus-front rake: about -92 mm on the four NBR files against a laser rake of about +10 mm; on Paul Ricard, Dubai and Le Mans the two roughly mirror each other (e.g. US-v2 -13.4 vs +14.2 mm). A different zero or definition per file -- its absolute level is not comparable across files.~~ [CORRECTED 2026-09-30: the definition is identical in all eight files, log_rideheight_rake = 0.528 (FL + FR) - 0.528 (RL + RR), zero intercept; the NBR level comes from the dead FL laser (stuck at -101 mm) entering the front average. See "Ride-height measuring points (team document) and the rake channel".]
+- Dead channels: log_rideheight_fl on all four NBR files; log_rideheight_rake_mc on all eight. Laser rake therefore uses FR alone as the front on NBR.
+PART 1, attitude (laser rear-minus-front, 150-200 km/h, whole file as in the recorded method): Dubai -0.6, v3 +12.3, US-v2 +14.2, JST 21 +7.6, JST 29 +11.0, Le Mans -1.9, CDR +9.5, QP MLA +9.3 mm; spread 16.1 mm = 0.37 deg over the 2.505 m wheelbase (config vehicle.wheelbase_m; laser positions are not the axles, so this is the geometric expectation, not a calibrated angle). Rear left-minus-right: -1.0 to -2.9 mm (0.04-0.10 deg over the placeholder 1.64 m track).
+PART 2, orientation estimates: yaw-leak axis angle (roll-check method, lap-closure bias) Dubai +2.18, v3 +1.20, US-v2 +1.31, JST 21 +1.90, JST 29 +2.09, Le Mans +1.73, CDR +2.53, QP MLA +2.01 deg (R^2 0.43-0.89); straight-line ay offset (a) S0 +0.12 / +0.48 / +0.48 / +0.40 / +0.50 / -0.30 / +0.37 / +0.29 m/s^2 (tilt equivalent -1.72 to +2.92 deg); (a2) referee intercept -0.07 / +0.37 / +0.39 / +0.51 / +0.47 / +0.05 / +0.47 / +0.40 m/s^2.
+PART 3, correlation and models (A free slope; B slope fixed at the geometric 1 + one mounting offset per logger; B' free slope + per-logger offset):
+- Yaw-leak angle vs attitude: magnitudes cannot close. The laser-rake spread is 0.37 deg against a leak-angle spread of 1.33 deg; the fitted slopes have the WRONG sign (laser rake -1.06, r -0.32; rake channel -0.24, r -0.57); model B (geometry) leaves rms 0.44 deg (laser rake) / 1.11 deg (rake channel). The known NBR A -> B rake change (+2.5-3.7 mm, ~0.07 deg) goes with a leak-angle change of +0.19 deg -- about three times the geometric maximum. The leak angle groups by TRACK: Paul Ricard 1.20 / 1.31 deg with tight fits (R^2 0.83 / 0.89); NBR 1.90-2.53 deg with loose fits (R^2 0.43-0.63); Dubai 2.18, Le Mans 1.73 (serial 147). Consistent with a fixed mounting component (closest to it on the flat Paul Ricard) plus a track-dependent part (road-gradient Euler coupling on the Nordschleife is the named, untested candidate), not with a rake-dependent part.
+- ay offset vs roll attitude: magnitudes cannot close (0.04-0.10 deg of logged roll attitude against 0.7-2.9 deg of tilt equivalent). The referee intercept splits cleanly by LOGGER: serial 221 +0.37 to +0.51 m/s^2 on both Paul Ricard and NBR, serial 147 -0.07 / +0.05; model B gives mounting +2.60 deg (221) and -0.01 deg (147), rms 0.31 deg. The (a) S0 median is track-dependent on serial 147 (Dubai +0.12, Le Mans -0.30), i.e. crossfall on the straights, which the referee intercept (in-corner, regressed on r v) does not carry.
+PART 4, consequence (characterisation only, no proposal):
+- Constant ay offset item: on serial 221 a fixed +0.37-0.51 m/s^2 (tilt equivalent 2.2-3.0 deg) that does not follow logged attitude -- consistent with a fixed mounting roll tilt of the SCLU or an accelerometer zero offset (not separable from this data); serial 147 shows no such offset. Attitude differences between sessions do not explain it.
+- (a3) roll term: the yaw leak is not attitude-driven; it has a fixed component plus a track-dependent part, so it is a per-session quantity that must be measured per session (the roll-check fit does that), not a constant derivable from rake geometry. This strengthens the roll-check gate answer: no stable, simple roll term exists on data alone.
+- A stable decomposition "fixed mounting tilt per logger + attitude-dependent part" does NOT exist for the yaw leak (the attitude part has the wrong sign and is too small); it exists only for the ay intercept as "fixed per logger", with no attitude part.
+
+## Ride-height measuring points (team document) and the rake channel [2026-09-30, branch new-laps, read-only]
+
+Source: Porsche 911 GT3 R (992) team document "Ride height measuring points" (team data, protected reference; not committed). It defines per corner, in mm: FIA chassis reference points (X, Y = reference; Z +46 front, +70 rear); ADAC ride-height measuring points (front X 0, Y -/+40, Z 0; rear X +30, Y +/-30, Z 0); Porsche laser ride-height points (front X -281, Y +89 FR / -82 FL, Z +171; rear X +540 RR / +542 RL, Y -148 RR / +149 RL, Z +100). All Z relative to the flat underbody; laser X/Y at the centre laser light, Z at the sensor's bottom window. It defines no rake channel.
+RAKE CHANNEL, read from the data (OLS of log_rideheight_rake on the four raw laser channels, header units converted, samples above 30 km/h, all eight files): log_rideheight_rake = 0.528 (FL + FR) - 0.528 (RL + RR) = 1.056 x (front mean - rear mean), zero intercept, rms residual 0.00 mm, IDENTICAL in every file. The NBR level (about -92 mm) is the dead FL laser, stuck at -101.0 mm on all four NBR files, averaged into the front: no per-file zero exists. The 1.056 factor is not explained by the document's coordinates without the front-to-rear reference distance; no consumer needs it. No production module reads any ride-height or rake channel (only the config/channels.json registry entry for log_rideheight_fl).
+CONSEQUENCE FOR THE TILT CHECK ("Sensor tilt vs static attitude, eight sessions"):
+- The laser Z offsets are constant and cancel in cross-session differences; the NBR laser rake already used FR alone, so the dead FL never entered the check's laser numbers.
+- The lever arm: the lasers sit 281 mm ahead of the front and about 541 mm behind the rear reference points, so their spacing is about 3327 mm if the FIA reference points sit at the 2505 mm wheelbase (an assumption; the document gives offsets, not the reference distance). Pitch angles scale by 0.753: the cross-session laser-rake spread 0.37 -> 0.28 deg; fit slope -1.06 -> -1.40 (still the wrong sign); geometric model B rms 0.44 -> 0.43 deg (mounting 147 +1.97, 221 +1.66 deg).
+- No conclusion moves. The margin is a factor of about 5 (0.28 deg of attitude spread against a 1.33 deg spread of the yaw-leak angle), not two orders; the null result rests chiefly on the wrong-sign slope, which a rescaling cannot flip.
+
+## Tilt-check rulings [2026-09-30, author]
+
+1. Engineer list: the per-file unit question is added (the same channel logged in mm / m / ft depending on the file). The rake-channel zero/definition question is answered by the data plus the team document (identical definition; the NBR level is the dead FL laser) and is recorded as answered, not asked.
+2. The road-gradient hypothesis for the higher, looser NBR yaw-leak angles stays NAMED, untested. Grounds: the NBR files are the GP layout, which weakens a Nordschleife-gradient explanation, and there is no consumer -- the (a3) roll term is measured per session regardless of why the leak varies.
+3. The dead-channel criterion and the post-hoc blocks (unit correction, laser-rake fits, track families) accepted as recorded.
+STANDING WARNING recorded (PLAN.md): the same channel carries different header units in different files (log_rideheight_rake [m] or [ft], log_rideheight_rl [mm] or [m]); every channel read must convert by the file's own header unit, never assume.
+
+## Laser-document close-out rulings [2026-09-30, author]
+
+1. Both engineer-list additions kept as recorded: the dead FL ride-height laser on all four NBR files (low priority, under item 6), and the note that the regression, with the team document supplying the laser positions, answered the rake-channel question.
+2. No action on the laser-span assumption (FIA reference points taken at the 2505 mm wheelbase): stated in the record, no conclusion depends on it.
