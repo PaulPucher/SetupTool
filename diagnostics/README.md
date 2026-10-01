@@ -420,6 +420,21 @@ here (53 keepers + 37 in diagnostics/_attic/).
   "Part 4", "Window-reach check: CS windows across masked kerb gaps",
   "Kerb-edge association: closed as characterised".
   Outputs in `plots/kerb_mask_variants/` (gitignored).
+- **inspect_tyre_prior.py** (2026-10-01, keep-reproduces) -- EXPERIMENT
+  PLAN (d) step 0: production per-session Pacejka fits plus the arrays they
+  fit (EC2 bit-exact reproduction), pooled priors (P221, LOSO, ALL8,
+  EW221), Option B (one closed-form force scale per session and axle)
+  through the production fit chain via an in-memory _fit_axle_pacejka
+  replacement, criteria K1-K5, K6 via the unchanged (b) scorer
+  (inspect_cs_upstream_sweep score/confirm pointed at a copy), standard
+  trace set. Modes: compute <key>, prior, bcompute <key>, analyse, score,
+  render. Keep-reason: evidence cited by the (d) closing ruling (author,
+  2026-10-01) and by the estimator-chapter finding "Per-session tyre-curve
+  fitting, experimentally vindicated against a pooled baseline". Records:
+  thesis_notes.md "(d) tyre-curve baseline prior: proposal, rulings,
+  feasibility", "(d) step 0: pooled prior with per-session scale", "(d)
+  closure".
+  Outputs in `plots/tyre_prior/` (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

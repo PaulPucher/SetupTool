@@ -5000,6 +5000,31 @@ deferred threshold work, not here -- see PLAN.md PARKED.
   diagnostic/config-selectable only, not authorised as a production
   default by this phase.
 
+### Per-session tyre-curve fitting, experimentally vindicated against a pooled baseline [2026-10-01, (d) closure]
+- FINDING (estimator chapter): the supervisor's alternative -- one
+  baseline tyre curve per axle fitted once from all sessions, each session
+  a deviation from it (direction (d), 2026-09-30) -- was tested in its
+  simplest form (fixed shape, one closed-form force scale per session and
+  axle) against criteria fixed before the run, and failed them. The
+  one-baseline premise ("same tyres, similar conditions") fails on
+  measured grounds: the per-session scales split by track, rear 0.81-0.83
+  at Paul Ricard vs 1.11-1.20 at the Nurburgring, a 35 % gap against an
+  input-scale error budget of about 5 %. The pooled prior is therefore a
+  cross-track compromise, not a shared curve the sessions scatter around,
+  and it depends on which sessions enter it (leave-one-out curve shifts up
+  to 5.4 % front, 9.2 % rear).
+- CONSEQUENCE: per-session fitting (production's ekf_auto_pacejka, one
+  free-D Magic Formula fit per session from the kinematic seed) is the
+  design that matches this data. It is now an experimentally supported
+  choice, not only the default that preceded the alternative.
+- SCOPE, stated with it: track, event, tyre set and setup are confounded
+  in these eight sessions (two tracks = two events), so the split is not
+  attributed to any one of them; tyre generation is not establishable from
+  the files. The pooled test does not touch the curve/beta circularity --
+  neither design can, by construction. Evidence: section "(d) step 0:
+  pooled prior with per-session scale" and "(d) closure" at the end of
+  this file.
+
 ## 2. Design principles (architecture chapter material)
 
 ### Sensors break; the cascade handles it [2026-09-18, Deepening work
@@ -6174,6 +6199,12 @@ package]
 8. Bicycle model: identical slip per axle.
 9. Kerb detection: static threshold (rate-of-change upgrade documented).
 10. ecu_speed is Level 1; log_gps_speed available for cross-validation.
+11. [2026-10-01] Measured axle Fz differs by track for the same car: mean
+   rear Fz on the fit population 7.6 kN on all four NBR sessions vs
+   10.2-10.3 kN at Paul Ricard and Dubai (front 5.7 vs 6.0 kN). Any reading
+   normalised by measured Fz (mu = D / Fz, BCD / Fz) carries this track
+   confound; the (d) K2 band failures are read with it named. Not chased --
+   the bands are plausibility screens and did their job.
 
 ## 5. Development-process notes (optional methodology section)
 
@@ -24604,3 +24635,49 @@ EXIT (pre-registered legs): T fails legs 1 and 2. Window reach explains part of 
 ## Kerb-edge association: closed as characterised [2026-10-01]
 
 Elimination chain, all Tier 1 with the step-0 exit legs: (1) kerb samples inside the windows ((g) K) -- near-inert; (2) mask under-detection (dilation B, unloading onset C, measured ay/yaw envelope D) -- the measurable strike disturbance past the az mask is short (p75 80-100 ms); masking all of it removes at most a fifth of the front excess; minima follow the new edge; (3) window reach across the masked gap (T) -- enrichment rises, the residual clustering sits in clean pre-strike windows. Remaining explanation, by elimination: apex physics -- kerbs are placed at apexes, where the tyre's real force-saturation minimum sits, and any masking pushes the sample minimum onto the nearest unmasked sample. Not proven by direct measurement; it is what survives three independent tests. Verdict impact stays bounded small (1-3 changed corner calls per session under every variant tested). Production kerb handling (az threshold, +/-5 dilation, endpoint-only exclusion) unchanged.
+
+## (d) tyre-curve baseline prior: proposal, rulings, feasibility [2026-10-01, branch new-laps, documentation only]
+
+SOURCE: supervisor direction (d), intermediate meeting 2026-09-30 -- one baseline tyre curve per axle fitted ONCE from all sessions (his grounds: same tyres, similar conditions; recorded as chair-practice grounds), per-session fits expressed as deviations from it. Differs from the failed refit loop ("Refit-loop conclusion: structural non-convergence confirmed on two sessions, two failure directions"): the prior is fitted once and never fed its own output, so there is no loop to drift. What it does NOT fix: curve and beta stay jointly unobservable from ay and yaw rate; the prior inherits the kinematic seed's bias direction (accuracy: Level 2, pooled session measurement, kinematic-seeded). Runs on current inputs; refit caveat: if (a3) ever ships, the prior is refitted.
+REVIEWER WARNING (standing correction, recorded): (d) is NOT judged by distance from production's current fits -- production is our own calibrated configuration, not truth. Criteria are forward-looking only.
+PREMISE CORRECTION (census rule): recorded per-session Pacejka free-D fits exist for TWO sessions only -- Dubai (front B=10.457 C=1.940 D=8184.0 E=0.091; rear B=11.759 C=1.982 D=9213.6 E=-2.281) and v3 (post pit-limiter fix: front B=8.521 C=1.888 D=8355.4 E=-0.518; rear B=8.371 C=2.007 D=9486.2 E=-1.381, health 0.0985). The other six sessions' baselines are created in step 0.
+METHOD (approved):
+- Fit population = production's own: kinematic alpha_f/r_filt, Fy_f/r_filt (estimate_lateral_forces), _base_mask (moving, not kerb, analysis-valid laps); free-D (config tyre_fit_auto.load_normalised_fit_enabled = False).
+- Prior: production's _fit_axle_pacejka, unchanged, on the CONCATENATED pool (Powell from the chair start guess). Pool: the six serial-221 sessions (v3, US-v2, JST 21, JST 29, CDR, MLA) -- they share the characterised IMU offset family ((a) Part 1); Dubai and Le Mans (serial 147) are out-of-pool transfer tests. All-eight pool and equal-per-session weighting are sensitivity rows.
+- Deviation, Option B: Fy = lambda_s * F_prior(alpha), B, C, E and D_prior frozen, lambda_s by closed-form least squares through the origin (Tier B). Rejected: A (prior as Powell start -- implicit, path-dependent). Held as escalation: B2 (separate force and slip scales), C (penalised MAP fit -- new covariance tunable, own anchor).
+ANCHOR (Tier A): PENDING. Text search of the on-file PDFs, 2026-10-01: RCVD (docs/literature/Racecar_vehicle_dynamics.pdf) has no text layer (0 of 928 pages) -- not searchable. Rajamani sec. 13.9 (verified on the rendered page): D and BCD are separate functions of Fz (eqs. 13.68, 13.69, tyre constants a1-a8), mu named in the prose only; no single-scale treatment -- does not anchor Option B. It DOES verify: asymptote y_s = D sin(pi C/2) (eq. 13.67, the C <= 2 band ground) and that E changes neither origin slope nor peak (item 7). Author is sourcing Pacejka's book (Magic Formula scaling factors). Step 0 may run (production fit + closed-form LS scale); nothing ships without the anchor.
+PRE-REGISTERED CRITERIA (bands accepted 2026-10-01):
+- K1 stability: LOSO priors (each pool session left out) within 3 % of the full prior's D over the pooled visited range (0 to pooled p95 |alpha|); each session's lambda under its LOSO prior within 2 % of its full-prior lambda; independent-fit spread on the same grid reported as context only (B's shape spread is zero by construction, so "tighter" alone is not evidence).
+- K2 plausibility: C in (1, 2] (Rajamani eq. 13.67); E <= 1; implied mu = D / mean axle Fz in config mu_plausibility_band [1.2, 2.0] (citation open); BCD/Fz in [6, 24] rad^-1 -- reviewer-accepted engineering range around the recorded 12 rad^-1, citation open (inherits the existing citation debt); lambda within +/-15 %, |lambda-1| < 5 % not interpreted as a grip difference (input-scale error budget: GPS k, ay scale, config mass vs fuel); peak slip angle reported in/out of pooled visited p99 (out = extrapolated label, not a fail).
+- K3 rear large slip: region |alpha_r| > median of per-session p99. STABILISES only if the prior rear peak is inside pooled visited p99 AND LOSO rear peaks spread <= 0.5 deg AND no common-sign residual bias beyond 2 SE in the region's bins; else IMPOSES (rear large-slip curve stays labelled extrapolated).
+- K4 NIS gate, read one-way: worsening (pass -> warn/fail, sweep leaves band) counts against; improvement counts for nothing (the gate measures filter consistency, not curve truth).
+- K5 MASKING (negative criterion), any of: (i) binned residual of the B fit with >= 2 adjacent bins beyond 2 SE (traversal bootstrap) absent from the independent fit, on >= 2 sessions; (ii) JST 21 vs JST 29 (same track, same day, setup change): independent fits differ beyond noise on the common grid but B's lambda gap is within noise (if the independent fits do not differ, the test is uninformative); (iii) out-of-pool Dubai/Le Mans lambda outside +/-15 % or pattern (i); (iv) K4 worsening on any session.
+- K6 downstream: the (b) survival battery and the per-iteration trace render; production proposal only if K1-K4 pass, K5 does not trigger and the battery improves at comparable complexity.
+ENTRY CHECKS: EC1 caches -- no existing cache holds the fit inputs or fit manifests; the imu_offsets a2 caches hold base_mask's inputs for all eight; all nine raw files present; step 0 builds its own per-session cache from one production fit_session_pacejka run each. EC2 reproduction -- _fit_axle_pacejka on cached arrays bit-exact vs each manifest; Dubai and v3 equal their records; all eight health scores equal the new_laps cache values (Dubai 0.135131, Le Mans 0.086110, JST 21 0.100477, JST 29 0.115474, CDR 0.119851, MLA 0.107331, US-v2 0.093307, v3 0.098474); STOP on mismatch. EC3 population sizes (base_mask counts, upper bounds): Dubai 48,775 (4 laps), Le Mans 23,319 (1), JST 21 22,622 (2), JST 29 67,210 (6), CDR 67,317 (6), MLA 66,644 (6), US-v2 107,613 (9), v3 35,583 (3); serial-221 pool 366,989, all eight 439,083.
+RULINGS (author, 2026-10-01): engineer-round gate LIFTED for step 0 on current inputs; pool serial-221 six, all-eight as sensitivity; step 0 censuses header dates / tyre generation itself -- if Le Mans is 2024 it is doubly out-of-pool, kept as the weakest transfer test; bands accepted; tiering not applicable (the pool needs every session).
+BOUNDARY: step 0 read-only. Adoption = ESTIMATOR-INPUT CHANGE (EKF internal model): STRONG/MODERATE_CSF/CSR and cs_margin re-derived, stab_neg_thresh revisited, ANALYSIS_SCHEMA_VERSION bump, goldens, full suite once; the threshold-population question (degenerate on pooled multi-track data) settled inside that proposal. Prior parameters would live in config with derivation; refit only on a named event ((a3) shipping, tyre-spec change, author ruling), never on a new session.
+
+## (d) step 0: pooled prior with per-session scale [2026-10-01, branch new-laps, read-only]
+
+Script: diagnostics/inspect_tyre_prior.py (definitions fixed in its header before the runs; operational details not spelled out in the proposal marked [op] there). Outputs diagnostics/plots/tyre_prior/ (analyse.txt, score.txt, traces_*). Production, config and thresholds untouched.
+ANCHOR SEARCH (ruling 2): see the proposal entry -- Rajamani 13.9 checked on the rendered page, no single-scale treatment; RCVD has no text layer. Tier A label stays "anchor pending".
+HEADER CENSUS (ruling 3): no file header carries a date (OutingInformation fields: car, driver, outing, session, track, logger serial); no tyre-identity channel name found in the headers. Dates exist only as file-name tokens (Le Mans "240613", NBR JST "26.07.01"), which are not census evidence. Tyre generation NOT established from the files; Le Mans stays out-of-pool regardless (logger 147, one lap). Dubai's ShortComment reads "Start Tyre = -Km" (tyre mileage not filled in).
+EC1-EC3: all eight production fits re-run and cached (about 5 min per session). EC2 PASS on all eight: _fit_axle_pacejka on the cached arrays reproduces every manifest bit for bit; Dubai and v3 equal their recorded digits; every health score equals the new_laps cache to 6 decimals; production beta equals the (b) variant-A beta exactly. Fit populations equal the base_mask counts (no non-finite samples dropped). Measured Fz on all eight.
+PRIORS (production Powell, concatenated pool; all converged, 3-6 s each): P221 front B=8.508 C=1.881 D=8826.9 E=-2.979 (peak 5.16 deg), rear B=9.949 C=1.962 D=10267.3 E=-2.577 (peak 4.33 deg), n=366,989. ALL8 and EW221 within 1.3 % / 2.1 % of P221 (max curve deviation / D over the visited grid). LOSO parameters move strongly where the curve barely moves (LOSO_cdr front C=1.26 B=12.0 E=-6.5): the B/C/E trade-off on the unidentified surface, now visible at pool scale.
+LAMBDA (P221): Dubai f 0.977 r 1.021; v3 0.910 / 0.829; US-v2 0.934 / 0.807; JST 21 1.021 / 1.142; JST 29 1.030 / 1.122; CDR 1.039 / 1.109; MLA 1.081 / 1.203; Le Mans 1.190 / 1.399. The scales split BY TRACK: Paul Ricard rear 0.81-0.83, Nurburgring rear 1.11-1.20 -- a 35 % gap, far beyond the 5 % input-scale budget. The pooled prior is a compromise between two track clusters, not a shared curve the sessions scatter around. Track, event, tyre set and setup are confounded (two tracks = two events); not separable from these data.
+K1 FAIL, both axles: LOSO curve deviation front up to 5.41 % (CDR) and 4.91 % (US-v2), rear up to 9.23 % (US-v2); lambda under LOSO up to 2.51 % front, 8.27 % rear (US-v2, 29 % of the pool). The prior depends on which sessions enter it. Context: across-session CV on the grid, independent 0.098 / 0.191, B 0.081 / 0.169 (front / rear) -- B is only marginally tighter.
+K2: B inherits C=1.881/1.962 and E=-2.98/-2.58 (inside C and E bands; the independent fits break C <= 2 on v3 rear, US-v2 rear, Le Mans both). mu band [1.2, 2.0] fails on the rear for Dubai (1.02, independent 0.89 as well), v3 (0.83) and US-v2 (0.81); BCD/Fz [6, 24] fails on every NBR session (25.4-31.6) for B AND for the independent fits; lambda outside +/-15 % on v3 rear, US-v2 rear, MLA rear, Le Mans both. OBSERVATION, not pursued: mean measured rear Fz on the fit population is 7.6 kN on all four NBR sessions vs 10.2-10.3 kN on Paul Ricard and Dubai (front 5.7 vs 6.0 kN) for the same car -- the mu and BCD/Fz readings depend on it; the band failures may partly be a measured-Fz track effect.
+K3 IMPOSES: region |alpha_r| > 4.61 deg (median of per-session p99), pooled P221 n 6,848; prior rear peak 4.33 deg inside pooled p99 5.01 (in range); LOSO rear peaks 4.01-4.55, spread 0.54 deg > 0.5 (narrow miss); no common-sign bias (v3 +1895 N, US-v2 +2764 N beyond 2 SE; NBR sessions negative, within noise). Le Mans region n 41 sits in one bootstrap unit, SE 0 -- artifact, out-of-pool, does not enter the rule. Dubai has no samples in the region.
+K4 worse on two sessions: US-v2 pass 0.0933 -> warn 0.0547; Le Mans pass 0.0861 -> warn 0.0771. Better on Dubai (0.135 -> 0.173), JST 21; others within +/-0.014. No fallback anywhere. MLA's health score is identical to 17 digits (0.107331) although its beta differs by up to 8.5 deg -- a tie of the window-count ratio, checked.
+K5: (i) clear -- B-only residual pattern on US-v2 rear only (1 session < 2); (ii) UNINFORMATIVE -- JST 21 vs JST 29 independent curves do not differ beyond noise (max z 1.05 front, 0.23 rear; B lambda z 0.19 / 0.26); (iii) TRIGGERS on Le Mans (lambda f 1.190, r 1.399); Dubai clear (0.977 / 1.021); (iv) TRIGGERS (K4). Pre-registered reading: MASKING.
+K6: PB DISQUALIFIED by the (b) battery -- loses US >= OS at Dubai (6/6 -> 3/8); gap elements still pass (Dubai C3 +0.268 -> +0.057, US-v2 C13 +0.507 -> +0.046); A-vs-B front resolved 4 -> 6/14, gap 1/14 unchanged, pooled switch rate 0.471 -> 0.426 (floor 2 / 2 / 0.066: nothing clears it); changed corner calls 1-6 per session; effect size 0.138 below the floor effect 0.151. Confirm rows: CDR switch 0.553 -> 0.511, MLA 0.459 -> 0.553, Le Mans no lap pairs. Traces (render rule): Dubai PB physically ordinary, rear CS visibly lower through 950-1750 m (the OS shift); CDR PB like A, the below-floor increase (16 -> 55) is the known C1 dip; US-v2 PB loses rear coverage (0.892 -> 0.758) and gains a deep rear excursion near 5150-5250 m absent from A -- the traces agree with the scores.
+VERDICT against the pre-registered exit: K1 FAIL, K3 IMPOSES, K4 worse on 2, K5 MASKING, K6 disqualified -> (d) Option B earns no production proposal. Main finding for the thesis: the single-baseline premise ("same tyres, similar conditions") does not hold for the identified axle characteristic in this data -- the per-session scales cluster by track with a 35 % rear gap, so one fixed prior imposes a cross-track compromise rather than stabilising. The curve/beta circularity is untouched by construction (stated in the proposal). Exit ruling with the author.
+
+## (d) closure [2026-10-01, author]
+
+RULINGS:
+1. (d) CLOSED: tested, nothing ships. No escalation -- B2's trigger (a B-only residual pattern on >= 2 sessions) did not fire, and per-track priors with two tracks amount to per-session fitting with extra steps. Closing statement: the one-baseline premise fails on measured grounds (35 % rear track split vs about 5 % input-error budget; track, event, tyre set and setup confounded); per-session fitting is thereby experimentally vindicated as the design matching this data -- recorded as an estimator-chapter finding (section 1, "Per-session tyre-curve fitting, experimentally vindicated against a pooled baseline").
+2. Rear Fz gap (7.6 vs 10.2 kN, same car): recorded as context and limitation on the K2 band readings, confound named, no further check (limitations register item 11).
+3. Tyre generation: not establishable from the files; the author is checking directly.
+4. diagnostics/inspect_tyre_prior.py KEPT: this closure cites its findings.
+Production unchanged: sideslip ekf_auto_pacejka with per-session free-D fits; no config, threshold or golden touched by (d). The Tier A anchor question (Magic Formula scaling factors) lapses with the closure.

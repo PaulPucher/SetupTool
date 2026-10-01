@@ -189,8 +189,23 @@ NEXT
   [2026-10-01: window-reach check RUN (read-only): no-crossing windows (T)
   fail legs 1 and 2, enrichment rises; kerb-edge limitation CLOSED AS
   CHARACTERISED (apex physics by elimination), per the author's ruling.
-  NEXT: not set by the author; the earlier open items (manual UI check of
-  the (c)-display panels, commit of new-laps) stand.] ~~Open from WP-HARDEN, for the author: Dubai shows an empty
+  ~~NEXT: not set by the author; the earlier open items (manual UI check of
+  the (c)-display panels, commit of new-laps) stand.~~]
+  [2026-10-01: (d) proposal ruled (gate lifted for step 0, pool serial-221
+  six, bands accepted); step 0 RUN, read-only (diagnostics/
+  inspect_tyre_prior.py; thesis_notes.md "(d) tyre-curve baseline prior:
+  proposal, rulings, feasibility" and "(d) step 0: pooled prior with
+  per-session scale"). EC2 PASS (bit-exact, eight sessions). Option B
+  fails the pre-registered exit: K1 FAIL, K3 IMPOSES (0.54 vs 0.5 deg),
+  K4 worse on US-v2 and Le Mans (pass -> warn), K5 MASKING via (iii) and
+  (iv), K6 disqualified (loses US >= OS Dubai). Session scales cluster by
+  track (rear: Paul Ricard 0.81-0.83, NBR 1.11-1.20). Tier A anchor still
+  pending. ~~NEXT: author's exit ruling on (d).~~ RULED 2026-10-01: (d)
+  CLOSED, tested, nothing ships; per-session fitting recorded as
+  experimentally vindicated (thesis_notes.md "(d) closure"). NEXT: not set
+  by the author. The earlier open items (manual UI check of the
+  (c)-display panels, commit of new-laps) stand.]
+  ~~Open from WP-HARDEN, for the author: Dubai shows an empty
   top 3 under the per-member floor; feedback-only single-corner
   candidates carry problem weight 0 and cannot rank (census data-only).~~
   [RULED 2026-09-30: Dubai accepted as designed; feedback exemption added
@@ -294,7 +309,11 @@ STATUS PER DIRECTION (current 2026-09-30):
 - (c) Yaw-rate pooling: SPLIT -- "(c)-display" IMPLEMENTED 2026-09-30
   (display tier, no boundary; awaits the author's UI check); "(c)-evidence
   proposal" parked on an engineer-round question.
-- (d) Tyre-curve baseline prior: GATED on the engineer round.
+- (d) Tyre-curve baseline prior: ~~GATED on the engineer round.~~
+  [2026-10-01: gate lifted for step 0; step 0 RUN, Option B fails the
+  pre-registered exit. CLOSED 2026-10-01 (author): tested, nothing ships,
+  no escalation; per-session fitting vindicated as the design matching
+  this data.]
 - (e) Combined accelerations: PARKED, own proposal needed.
 - (f) Event-coincidence diagnostic (added 2026-09-30): CLOSED, RULED
   2026-09-30 -- Exit B, yaw-flag evidence mechanism closed, display stays;
@@ -520,6 +539,28 @@ attached (the curve moves beta through the EKF, hence alpha, CS, LS and
 yaw stability).
 STATUS (2026-09-30): GATED on the engineer round (in addition to the
 entry criterion above).
+[2026-10-01, author rulings on the (d) proposal: engineer-round gate
+LIFTED for step 0 on current inputs (refit caveat: if (a3) ships, the
+prior refits). Proposal, criteria K1-K6, entry checks EC1-EC3 and
+rulings recorded in thesis_notes.md "(d) tyre-curve baseline prior:
+proposal, rulings, feasibility". Method: prior = production
+_fit_axle_pacejka on the concatenated serial-221 six (all-eight as
+sensitivity); deviation Option B, one closed-form LS scale per session
+and axle. Tier A anchor PENDING (Rajamani 13.9 checked, does not anchor
+a single-scale deviation; RCVD not text-searchable; author sourcing
+Pacejka) -- step 0 may run, nothing ships without the anchor. Premise
+correction: recorded per-session fits exist for Dubai and v3 only.]
+[2026-10-01, CLOSED (author): step 0 failed the pre-registered exit (K1
+FAIL, K3 IMPOSES, K4 worse on US-v2 and Le Mans, K5 MASKING, K6
+disqualified). The one-baseline premise fails on measured grounds: rear
+session scales split by track (Paul Ricard 0.81-0.83, NBR 1.11-1.20, a
+35 % gap vs about 5 % input-error budget; track/event/tyre/setup
+confounded). No escalation: B2's trigger did not fire; per-track priors
+with two tracks are per-session fitting with extra steps. Per-session
+fitting is recorded as experimentally vindicated (estimator chapter,
+thesis_notes.md section 1). Production unchanged. Tyre generation not
+establishable from the files; author checking. Evidence script
+diagnostics/inspect_tyre_prior.py kept (cited).]
 
 ## (e) Combined accelerations (combined slip, rear axle) -- PARKED
 Goal: account for combined longitudinal and lateral demand on the rear
