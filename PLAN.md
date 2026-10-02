@@ -7,8 +7,11 @@ NOW items this replaces are preserved verbatim under "SUPERSEDED
 NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)" in the history part of
 this file.
 
-READING ORDER. This block -> EXPERIMENT PLAN (next section, the work
-queue) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+READING ORDER. [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
 governing design of the decision frame) -> BACKLOG -> PARKED (the
 consolidated list at its head is the one place parked items are
 tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
@@ -205,6 +208,146 @@ NEXT
   experimentally vindicated (thesis_notes.md "(d) closure"). NEXT: not set
   by the author. The earlier open items (manual UI check of the
   (c)-display panels, commit of new-laps) stand.]
+  [2026-10-01: (d) REOPENED as (d2) on the author's work order; Parts 0-4
+  RUN, read-only (diagnostics/inspect_tyre_prior_d2.py; thesis_notes.md
+  "(d2) ..." entries; EXPERIMENT PLAN (d2)). Converges under the prior
+  only at the strong weight, where the session deviation is ~90-95 %
+  suppressed; no weight met the pre-registered choice rule. Part 5
+  (tyre_fit_mode implementation) PROPOSED, not built. ~~NEXT: author's
+  ruling on (d2) and on the Part 5 proposal.~~ RULED 2026-10-01: (d2)
+  CLOSED with the two-component drift finding (drift addendum run the
+  same day); Part 5 BUILT as ruled (default per_session unchanged,
+  prior_anchored experimental, prior_weight 1, Tier A pending). NEXT: not
+  set by the author; the earlier open items (manual UI check of the
+  (c)-display panels, commit of new-laps) stand.]
+  [2026-10-01: Door 2 RUN, no signal, closed. ~~NEXT: author's look at
+  Door 2, then the Door 1 proposal turn.~~]
+  [2026-10-01: Door 1 proposal ruled, Stage 0 RUN, CLOSED (N4 gradient lock +
+  N2 no discrimination). Estimator chapter closed: every internal route
+  exhausted ((d2), Door 2, Door 1); exit = a sensor (sideslip reference, or a
+  pitch/gradient reference that would reopen Door 1). Records: thesis_notes.md
+  section 1 "The curve/beta circularity: every internal route exhausted ...",
+  limitations register item 12 (EKF beta chatter, 2 Hz filter load-bearing).
+  NEXT: author commits the whole arc as ONE commit on new-laps ((d2) Part 5
+  build, Door 2, Door 1); then the project moves to writing.]
+  [2026-10-01: experiment (e) opened at the author's initiative; proposal
+  written (EXPERIMENT PLAN (e); records only, no production change). ~~NEXT:
+  author's rulings on the (e) proposal; the uncommitted arc commit stands.~~
+  RULED 2026-10-01: Option 1 Stage 0 approved (Dubai, US-v2, v3); K&N
+  numbering corrected in records and the d2 script comment. NEXT: the
+  author's P3 answer (traction corners, or "none named"), then (e) Stage 0;
+  NBR damper-offset feasibility queued; the arc commit stands.]
+  [2026-10-01: feasibility package scope extended to the limitation-11 check
+  (author). Stage 0 NOT run: the P3 ruling arrived as an unfilled template,
+  so the corner set is still open; Stage 0 waits for it (pre-registration
+  integrity -- corners must be fixed before any result is seen).]
+  [2026-10-01: second P3 message also arrived as an unfilled template;
+  Stage 0 still not run. Author's tyre-model architecture recorded
+  (thesis_notes.md "Tyre-model architecture: the author's intent ...": one
+  trained 18-session prior, tailored per session by Variant 1 = prior_anchored
+  at weight 0, or Variant 2 = prior_anchored at weight > 0 / scale-only).
+  ~~Open mapping question: the production default per_session starts from the
+  chair guess, not the prior -- outside both variants.~~ MAPPING RULING
+  (author, 2026-10-01): (a) now, (c) possibly later -- per_session is a THIRD
+  start point (chair guess) outside the architecture; Variant 1 =
+  prior_anchored at prior_weight 0 (mapping confirmed). The pending
+  Phase-1/Option-A package tests whether starting from the trained prior
+  changes the fit; nothing is tested before it, and nothing replaces the
+  default without its own boundary.]
+  [2026-10-01: P3 ruled "none named" -- P3 drops; (e) Stage 0 runs on
+  P1/P2/P4 with N1-N3.]
+  [2026-10-01: (e) Stage 0 RUN, read-only (diagnostics/inspect_e_stage0.py;
+  plots diagnostics/plots/e_stage0/; thesis_notes.md "(e) Stage 0 ...").
+  Dubai excluded by N2 (RR load reconstructed all session -> rear axle
+  Level 1), so P2 is NOT EVALUABLE (pre-registration conflict). US-v2 / v3:
+  P1 rho 0.78 / 0.80 PASS; N1 0.58 / 0.65 pp (resolvable); N3 ratio 13 / 14;
+  exit under-read p50 7.9 / 8.3 %; traces inspected (P4). Limitation 13
+  corrected (rear-axle Level 4 on 2 of 20 files). ~~NEXT: author's exit
+  ruling on (e) Stage 0, incl. the P2/N2 conflict.~~ RULED 2026-10-01: Stage 0
+  PASSES on its scorable scope; occupancy is the forward quantity, the
+  under-read ratio is diagnostic-only; finding stands at 2-session scope;
+  adoption display-tier, proposal-first, gated BEHIND the NBR damper-offset
+  feasibility package (priority raised -- now (e)'s adoption gate); P2 ->
+  labelled non-scored Dubai Level-1 mechanism read.
+  ~~NEXT (order): (1) documentation anchor package (author's next message),
+  HARD STOP for the author's check; (2) labelled Dubai P2 read; (3) NBR
+  damper-offset feasibility package (incl. the limitation-11 check).~~]
+  [2026-10-01: documentation anchor package DONE (PHASE 1 PLAN section;
+  thesis_notes.md "Phase 1 anchoring"; CLAUDE.md session-rule line). NEXT:
+  the author's check of the anchor; then THE QUEUE in PHASE 1 PLAN section 5
+  (Q1 labelled Dubai P2 read first). Top repo risk: the uncommitted arc.]
+  [2026-10-01: anchor follow-up rulings recorded -- CLAUDE.md threshold lines
+  amended (rule 2a wins); Q3 bars to be derived in the Q3 proposal header;
+  config provenance note pending (section 7); mass/fuel input anchored
+  (section 6, thesis_notes addenda); Q2b fuel-channel census queued. NEXT
+  unchanged: author's check, then Q1.]
+  [2026-10-02: Q2b content check RUNNING (diagnostics/inspect_fuel_channels.py,
+  plots diagnostics/plots/fuel_q2b/), then Q1 (inspect_e_stage0.py dubai_l1,
+  labelled L1_UNSCORED). Q2c (track slope/bank feasibility) queued, with a
+  premise check awaiting the author's ruling (accelerometer forces are
+  gravity-free; the requested Stage-0 gradient scope line not written).]
+  [2026-10-02: premise check ruled ACCEPTED (Q2c entry). Q2b RUN (thesis_notes
+  "Q2b: fuel-channel content check ..."): burn trace logged from ONE source
+  (team = ECU consumption model; flow meter zero on all 20 files);
+  vol_fuel_rem_telem = entered set value (102 / 70 l) minus ECU burn, on 4
+  files -- start load is an assumption, not a measurement; level-named
+  channels are catch-tank/sensor plumbing. Q1 RUN, labelled L1_UNSCORED
+  (thesis_notes "Q1: labelled Dubai P2 read ..."): 6 of 7 TC events at or
+  above exit p75; Dubai N1 fails (8.9 pp). ~~NEXT: author's look at Q2b/Q1;
+  then Q2 (NBR damper-offset feasibility, proposal-first).~~]
+  [2026-10-02: Q2b rulings + author corrections recorded (archive starting
+  mass permanently unknown, limitations item 14; catch-tank route checked:
+  no run-end dip on any file, no lower bound; fuel load = engineer-entered
+  session input, forward design). Q2 PROPOSAL written (thesis_notes "Q2
+  proposal: NBR damper-offset feasibility ..."): Part A limitation-11 tier
+  check, Part B offset census, Part C anchor (static reference, no healthy
+  mate on NBR), physics validation, pre-registered exit. Record correction:
+  (d)'s "Fz source measured" is the cascade path, not the tier. ~~NEXT: the
+  author's rulings on the Q2 proposal.~~]
+  [2026-10-02, Q2 RULED (author): proposal APPROVED as written, run
+  overnight A -> B -> C, bars and exit as pre-registered. Corner-weight
+  provenance unknown tonight -- caveat recorded: "event unstated;
+  between-event base-weight difference inherited on top of fuel
+  uncertainty". Result label: NEW intermediate accuracy label "L4-rel"
+  (Level-4 shape on a Level-1 offset), not plain Level 4, upgradeable if the
+  offset provenance improves. Renders where loads are touched. HARD STOP
+  after Q2 -- Q2c/Q3 not started.]
+  [2026-10-02, Q2 RUN (diagnostics/inspect_damper_offset_q2.py; plots
+  diagnostics/plots/damper_offset_q2/; thesis_notes "Q2 run: ..."). Part A:
+  limitation 11 SOURCE-EXPLAINED (NBR 100 % static fallback; PR on the static
+  path 7626 N vs NBR 7624 N) -- track reading withdrawn. Part B/C: EXIT NOT
+  FEASIBLE -- burn-corrected drift within 100 N on 2 of 16 files (unscored
+  sensitivity 6 of 16), no shared offset family (1.1-2.3 kN spread), offset
+  uncertainty <= 300 N on 0 of 16, validation 8 of 16. NBR loads stay static
+  fallback; (e) adoption gate stays CLOSED on this route (reach 2 of 20).
+  Records corrected: Dubai rear axle is the session-corrected quasi-static
+  total WITH fitted aero, not "Level 1 without aero". NEXT: the author's
+  exit ruling on Q2 and the (e) reach consequence; Q2c/Q3 not started.]
+  [2026-10-02, Q2c + Q3 + Q4 RUN COMPLETE (diagnostics/inspect_phase1_q3.py;
+  plots diagnostics/plots/phase1_q3/; thesis_notes "Q2c + Q3 combined run";
+  PHASE 1 PLAN Q2d bracket "RUN COMPLETED"). No variant earns, none
+  disqualified; V1 = production within noise; G2 degenerate (gate on
+  unfiltered a_y). LAUNCH RULE recorded (CLAUDE.md, PROCESS RULES).
+  ~~NEXT: the author's exit ruling on Q3/Q4 and the G2 gate fix; then Q5.~~
+  RULED 2026-10-02: variant question CLOSED (start-robustness); G2 repair
+  rerun and the (ii) A/B examination approved, launch awaiting the
+  author's explicit go. Then Q5.
+  [2026-10-02: author corrections anchored (B "more predictable"; rake +
+  springs, no clicks); EXECUTE given; G2 repair RUN (second defect:
+  latency sign, no anchor read); A/B examination RUN (multi-change pair,
+  predictable signature not shown). NEXT: author rulings on the G2 second
+  repair and the anchor characterisation; then Q5.]
+  [2026-10-02: author answer anchored (map changes deliberate; bias trace
+  = driver-confidence proxy, axis 1). Extended G2 package NOT launched (no
+  explicit go); g2r2 prepared; pre-launch finding: the WP5b(c) GPS-beta
+  record already diagnosed G2's time-linear drift closure. NEXT: author
+  ruling on that finding + explicit go.]
+  [2026-10-02: ruled option (c), EXECUTED. Gate A passed (10/12), Gate B
+  FAILED (c1, c2, c6) -> GPS corner-anchor route CLOSED at this logging
+  (latency sensitivity). Part 3 not run. NEXT: not set by the author;
+  Q5 (scope-narrowing pass) is the next queue item. Uncommitted arc incl.
+  this package (author commits).]
+  Uncommitted: the whole arc incl. this run (author commits).]
   ~~Open from WP-HARDEN, for the author: Dubai shows an empty
   top 3 under the per-member floor; feedback-only single-corner
   candidates carry problem weight 0 and cannot rank (census data-only).~~
@@ -258,6 +401,11 @@ CARRIED OPEN (not started; each keeps its own gate)
 
 STANDING WARNINGS -- carry these into every future session
 
+- Porsche OFFSET CONVENTION (added 2026-10-02, author): damper/load-sensor
+  offset values in the Porsche system are specified INVERSELY to the usual
+  convention and in unusual units. Any gauge calibration or team-supplied
+  offset is converted from the Porsche convention before use, and the
+  conversion is stated wherever the value enters (config, record, code).
 - Per-file channel UNITS (added 2026-09-30, author): the same channel is
   logged in different units in different files -- log_rideheight_rake in
   [m] or [ft], log_rideheight_rl in [mm] or [m] (census of the eight
@@ -288,7 +436,418 @@ STANDING WARNINGS -- carry these into every future session
   estimator boundary; a sub-package runs its targeted files plus
   tests/test_golden_pipeline.py as the numeric guard.]
 
+# PHASE 1 PLAN, anchored 2026-10-01
+
+GROUNDS: the author's review chat has been compacted twice. Standing rule
+(author): NOTHING stays chat-anchored past the current work item -- the repo
+is the memory. This section is the durable anchor for everything ruled in
+chat up to 2026-10-01; where an older entry conflicts, that entry carries a
+dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
+
+1. APPROVED CRITERIA LIST -- the ONLY courtroom for all pending estimator/
+   architecture comparisons:
+   (i) fit-internal mechanics: residuals, convergence, start-point
+       sensitivity;
+   (ii) measured NBR A->B rake-change resolution;
+   (iii) the pro driver's NBR statements, phase-differentiated;
+   (iv) CS physical-consistency bounds derived from tyre mechanics alone --
+        never from any session's distribution;
+   (v) internal cross-lap coherence (same corner, same session, similar
+       reading).
+   RETIRED AS CRITERIA (2026-10-01): the survival battery; C4 (powerless
+   tests); C3-via-LS (system output, never author-approved); gate-health-vs-
+   production; verdict-count comparisons. Verdicts recorded under them stand
+   as recorded, cited with a scope line (rule 2c).
+   BANNED from scoring: Le Mans (different tyres, author-confirmed).
+   Dubai: least-representative weight (different tyres + logger; author
+   statement).
+   [AMENDED 2026-10-02 (author, ground: Q2d -- thesis_notes "Q2d ..." and the
+   section-1 exhibit "The kinematic-seed alpha error made visible"): ALPHA
+   QUALITY is the first-order confound for curve-shape scoring. The Q3
+   variant courtroom narrows to alpha-robust criteria: (i) fit-internal
+   MECHANICS only -- convergence, start-point sensitivity, no curve-truth
+   claims; (ii) rake A->B resolution; (iii) driver statements; (v) cross-lap
+   coherence. (iv) CS physical-consistency bounds are DEMOTED to a sanity
+   screen, not evidence.]
+
+2. AUTHOR RULINGS, standing:
+   a. Verdict thresholds are NOT formally re-derived; the method of record is
+      the author's visual verification on rendered CS traces. Every
+      CS-touching package renders per-session CS traces and names its plot
+      folder in the report.
+   b. Production is "calibrated experiments", not ground truth: no criterion
+      may be built from the current system's output.
+   c. Recorded negatives carry a SCOPE LINE when cited: what data, what
+      conditions, what reopen condition -- and whether current data falls
+      inside that scope.
+
+3. THE TYRE-MODEL ARCHITECTURE (author's, supervisor-aligned): the tyre
+   model is TRAINED ONCE ON ALL AVAILABLE DATA (the 18-session pool prior in
+   config tyre_fit_auto.tyre_fit_prior = "something reasonable"); each
+   session TAILORS it. Two candidate tailoring mechanisms, BOTH to be tested
+   at full depth:
+   - VARIANT 1, prior-as-start: free 4-parameter fit starting from the
+     trained prior (= prior_anchored at prior_weight 0). Built. [PREMISE
+     CORRECTION, 2026-10-01, from the records: not literally untested --
+     (d2) Part 2 ran exactly this fit (diagnostic anchored_fit, Powell from
+     the prior, penalty skipped at w 0) on all 20 sessions and Part 3 looped
+     it, recording start-point dependence as a side fact (prior start !=
+     chair start; Le Mans rear C 0.448 without a peak, v3 front B 8.66 vs
+     8.52). It is the "Option A" that (d) rejected a priori as "implicit,
+     path-dependent" without running it. What has never happened: a test of
+     Variant 1 AS A TAILORING MECHANISM, scored on the criteria list above.]
+   - VARIANT 2, prior-as-model: adaptation anchored to the prior
+     (prior_anchored, w-grid), plus the scale-only sub-variant (fixed shape,
+     per-session lambda, EKF on the scaled prior; previously tested only
+     against the old 6-session prior, (d) step 0 Option B).
+   Production default per_session (chair start guess) is a THIRD path outside
+   the architecture -- kept as the recorded legacy baseline; replacement only
+   ever via its own estimator-boundary package (mapping ruling 2026-10-01).
+
+4. GPS CONTEXT: project logging is single-antenna 10 Hz course-over-ground
+   (no independent heading, 0.32 s latency), vs the supervisor's RTK/dual-
+   antenna autonomous background (Super Formula). The pending census (Q3)
+   tests whether multi-lap averaging compensates; a dual-antenna/RTK logging
+   day remains the named sensor request from the Doors closure.
+   [2026-10-02 STATUS: answered -- GPS corner-anchor route CLOSED at this
+   logging: the anchor forms (Gate A 10/12) but fails validation (latency
+   robustness, cross-session consistency, straight bias); limiting term =
+   course-delay sensitivity (~1-1.5 deg per 50 ms at apex yaw rates), not
+   noise or lap count. Gradient map (G1) USABLE on all three tracks. One
+   receiver only (G0). The sensor request stands, now with a measured
+   reason.]
+
+5. THE QUEUE, in order (proposal-first where marked):
+   Q1 Labelled Dubai P2 read -- (e) Stage 0 ruling 1; mechanism look on
+      Level-1 loads, never scored.
+   Q2 NBR damper-offset feasibility -- PROPOSAL-FIRST; includes the
+      limitation-11 load-source check; gates (e) adoption; would unlock
+      Level-4 rear loads on up to 16 more files.
+   Q2b Fuel-channel census (added 2026-10-01, author; small, before or with
+      Q2): the fuel-used / per-lap-consumption channels on all 20 files --
+      names, units, liveness, plausibility (lap consumption x laps vs
+      total). If clean: within-session mass trace = measured (Level-3
+      shape; per-outing start offset Level 1/2), which makes a per-sample
+      mass correction for Fz, occupancy and the fit buildable (proposal-
+      first). ~~Starting fuel load per outing = a legitimate team question
+      (the author decides if/when to ask).~~ [2026-10-02: struck -- archive
+      starting mass is PERMANENTLY UNKNOWN (section 6).] Header census already run
+      2026-10-01 (names only, 22 census files): Team_Fuel_Used[ltr] /
+      _Stint[kg] / _per_Lap[kg], ecu_fuelcons[ltr] / _kg[kg],
+      ecu_fuellap_old_kg[kg] 22/22; ffm_mass_total[kg] (flow meter) 22/22
+      under two spellings, DTM_ffm_mass_total[kg] 20/22. PREMISE NOTE:
+      level-type NAMES also exist -- lvlfuel_lvl_raw[%] and
+      log_fuellevel_catch[ltr] 22/22, vol_fuel_rem_telem[ltr] 5/22,
+      lvlfuel_lvl Voltage 22/22 -- liveness/content unchecked; Q2b checks
+      whether any is a real level. No car-mass or ballast channel.
+      [2026-10-02, RULED + author input: Q2b includes the level-named
+      channels. PREMISE (author): total fuel level is NOT logged.
+      log_fuellevel_catch is the CATCH TANK (~10 L buffer, stays full until
+      the main cell runs dry) -- no total-fuel information. The level-named
+      channels are expected to be catch-tank / sensor plumbing: VERIFY they
+      behave as such (flat near full, dropping only at low total fuel), do
+      not hunt a level signal in them. vol_fuel_rem_telem (5 files) is the
+      one to inspect properly: if it is the ECU's computed remaining fuel
+      (start assumption minus consumption), its per-outing start value
+      reveals the team's assumed starting load and pins the per-outing mass
+      offset without a team question. Checks: monotonic behaviour against
+      fuel-used within a stint, pit-plateau behaviour, start-value variation
+      between outings, slosh noise cornering vs straights; cross-check the
+      three fuel-used families (team / ecu / flow meter). Mass-chain
+      conclusion stands: burn trace measured, starting mass per outing = one
+      constant from assumption/team knowledge (or vol_fuel_rem_telem if it
+      delivers). EXECUTE Q2b, then Q1.]
+   Q2c Track slope/bank feasibility (added 2026-10-02, author order;
+      READ-ONLY, PROPOSAL-FIRST; position: after Q2b, with/before Q3 --
+      shares the GPS-altitude machinery with Q3's GPS census, sequence them
+      together). Question: a per-position GRADIENT map per track from cross-
+      lap-averaged GPS altitude differentiated against distance -- noise
+      floor vs the 2-3 % gradient signal. Context (author): slope and bank are
+      measured ABSENCES in the chain -- Door 1 N4 (p95 gradient 2.9-4.6 %
+      locked the longitudinal beta route); the roll check's yaw-leak residual
+      groups by track, with gradient/bank the named untested hypothesis. The
+      chain treats every track as flat and level. Payoffs ranked by the
+      author: (1) a_x-gradient correction for (e) occupancy; (2) partial
+      softening of Door 1 N4 (the N2 lock STANDS -- no reopening claim);
+      bank stays unmeasurable with current channels (no independent bank
+      sensor; the roll-gyro cross-coupling is that failure).
+      PREMISE CHECK (2026-10-02, physics + code, raised with the author before
+      any record claims it): the accelerometers measure SPECIFIC force
+      (a - g), and production uses them raw (stability_analysis
+      prepare_vehicle_state: ax_mps2 = log_acc_x * 9.81, ay likewise, no
+      gravity term). Hence Fx_r = m a_x and Fy_r = m a_y are tyre (+ aero)
+      forces with NO grade or bank leakage -- K&N 9.1.1 Eq. 9.2 / 9.7.1
+      Eq. 9.82: the measured a_X carries g sin(chi_road) relative to the
+      vehicle's true acceleration. Gravity leaks only where measured
+      acceleration is compared with KINEMATIC acceleration: d|v|/dt (Door 1,
+      grade) and the beta kinematics beta_dot = a_y/v - r (kinematic sideslip,
+      EKF propagation; bank -> beta -> alpha -> fit/CS). So payoff (1) has no
+      target in (e) occupancy, and the requested Stage-0 scope line ("~0.3
+      m/s^2 at 3 % grade, uncorrected") is NOT written pending the author's
+      ruling; bank's real route is the beta kinematics, not Fy.
+      RULED 2026-10-02 (author): premise check ACCEPTED in full. Payoffs
+      RE-RANKED: (1) Door 1 N4 softening (N2 lock stands, no reopening
+      claim); (2) bank/grade terms in the BETA KINEMATICS, if a bank estimate
+      ever exists -- where gravity actually enters the chain. (e) occupancy is
+      NOT a target. Stage 0 carries the note "occupancy forces gravity-free by
+      construction (raw specific force)", no gradient scope line.
+   Q2d Rear-curve bias diagnostic (added 2026-10-02, author work package;
+      READ-ONLY; queued BEFORE Q3 -- its answer feeds variant scoring).
+      Hypothesis (author + (e) Stage-0 numbers): the rear pure-lateral fit is
+      biased LOW, most at large alpha, because combined-slip exit samples
+      (rear ~37 % longitudinal share at median exit, under-read >= 8 %, 41 %
+      at p90) deliver less lateral force than the tyre's pure-lateral
+      capability and concentrate where the peak is fitted; sub-limit driving
+      adds one-sided under-cloud scatter. Sessions US-v2 + v3 (wheel-speed
+      kappa, Level-4 rear loads). Three fits per axle (rear target, front
+      control) on the production population: (1) production baseline,
+      reproduced exactly (entry check); (2) low-kappa conditioned; (3) upper-
+      quantile envelope. Report parameter/curve deltas in the visited range,
+      residual-vs-kappa structure (the (e) Option-2 signature, pre-registered
+      there), renders of all three curves over the cloud. Convergent-evidence
+      read pre-registered in the script header. NO adoption, NO scoring
+      against production -- characterises bias; the Q3 courtroom stays.
+      Plots: diagnostics/plots/rear_curve_bias/. Then Q2c + Q3 combined
+      proposal.
+      [2026-10-02, Q2d RUN (diagnostics/inspect_rear_curve_bias.py; thesis_notes
+      "Q2d: rear-curve bias diagnostic ..."). Entry check exact. Fits 2
+      (low-kappa) and 3 (q90) DEGENERATE (fail the recorded K2 band; renders
+      show why: low-kappa = straights cloud, q90 bins sit on kinematic-alpha
+      error bands) -> convergent read UNINTERPRETABLE, hypothesis neither
+      supported nor refuted. Option-2 signature PRESENT by its statistic
+      (-22.5 / -28.1 % of D) but non-monotonic in kappa and phase-confounded.
+      Dominant population error = kinematic-alpha quality. ~~NEXT: author's
+      ruling on Q2d; then the Q2c + Q3 combined proposal.~~]
+      [2026-10-02: Q2d RULED (READ-C accepted; "uninterpretable, not refuted";
+      low-bias hypothesis OPEN; Option-2 signature real but entangled;
+      courtroom narrowed, section 1 amended; exhibit recorded). Q2c + Q3
+      COMBINED PROPOSAL written (thesis_notes "Q2c + Q3 combined proposal
+      ..."): G0 GPS census (families log_gps / NMEA RX / gpsa / DTM / IMSA
+      found by name), G1 gradient map (= Q2c), G2 corner anchor (bar 0.39
+      deg), V1 (materiality bar 5.5 % of D, lower bound), V2 full depth, Q4
+      fold-in; criteria operationalised; decision rule proposed. ~~NEXT: the
+      author's rulings on the combined proposal.~~]
+      [2026-10-02, RULED (author): (1) APPROVED, order G0 -> G1 -> G2 -> V1 ->
+      V2 -> Q4, overnight. (2) (iii): if the author's statement
+      reconstruction arrives before V1 scoring, score per his wording with a
+      confidence label; ~~otherwise (iii) runs DIRECTION-ONLY (front-limited
+      signatures expected to reduce A -> B), labelled weaker.~~ [2026-10-02:
+      the statement ARRIVED and is anchored verbatim in thesis_notes.md
+      "Driver statement (iii), NBR outing A"; the direction-only fallback is
+      replaced. (iii) is matched PER PHASE -- entry: rear-instability
+      signature; mid-corner: front-limitation signature; exit: rear-traction
+      signature -- and an A -> B improvement may read as LESS EXTREME IN BOTH
+      DIRECTIONS, not single-direction. Confidence label: author's direct
+      recollection, recorded after the event. NOTE for the fresh session:
+      diagnostics/inspect_phase1_q3.py still implements the direction-only
+      (iii); its header and (iii) code are updated to this per-phase rule
+      BEFORE the run.]
+      [2026-10-02 CORRECTION (author, post-run): the change was RAKE +
+      SPRINGS, NO damper clicks; B's feedback was "more predictable, safer to
+      drive", not "less understeer". The pinned direction below rested on
+      the withdrawn label: Q4 (ii) scores STAND AS COMPUTED, interpretation
+      corrected (premise failure, not a data contradiction); (ii) keeps
+      "measured setup change" status without single-mechanism direction
+      claims; confound: one spring change. thesis_notes "AUTHOR CORRECTIONS
+      2026-10-02".]
+      [2026-10-02, RULING on (ii), pre-run (author): (ii) stays DIRECTION-
+      PINNED but PHASE-RESOLVED, not direction-agnostic -- the measured change
+      (front rake +2.5-3.7 mm = more front grip) has a definite mechanical
+      signature. (a) Corners/phases showing FRONT limitation in A: expected to
+      REDUCE in B -- the primary, direction-pinned read, as pre-registered.
+      (b) Corners/phases showing REAR instability in A: a reduction in B
+      counts as CONSISTENT (the window story: one change can calm both ends
+      via balance); an INCREASE in B scores AGAINST. (c) Resolution still
+      requires exceeding 2 x leave-one-lap-out SE. The symmetric
+      disqualification guard applies to (a). Distinction from (iii): (iii)
+      matches a subjective per-phase account; (ii) anchors on a measured
+      mechanical change and keeps its direction where the mechanism pins
+      it.]
+      [2026-10-02: script updated to the per-phase (iii) and the
+      direction-pinned, phase-resolved (ii) (header [impl]: cell category
+      from the contestant's own A gap sign; (a) = CS_f up / gap down on
+      front-limited cells; (b) gap up = consistent / down = against on
+      rear-limited cells; a (b) AGAINST blocks earning; guard on score_a).
+      A pre-run smoke of the new (ii)/(iii) code on the rake pair (prod, w0)
+      was computed with the rules already fixed; no rule changed after it.
+      Full run G0 -> Q4 started in this session on the author's order.]
+      [2026-10-02: run STOPPED by the author during G1. Complete: G0 (all 20
+      files, diagnostics/plots/phase1_q3/g0.json). Partial, unsaved: G1
+      (Dubai and Le Mans processed; g1.json is written only at the end of
+      G1, so none exists). Not started: G2, V1, V2, Q4. Resume = rerun from
+      G1 (mode g1, then g2, v1, v2, q4); G0 need not be repeated.] (3) Decision
+      rule ACCEPTED plus a SYMMETRIC GUARD: production - 2 or worse on (ii)
+      DISQUALIFIES regardless of other criteria; simplicity tiebreak stands.
+      (4) G2 anchor clearing 0.39 deg: its own validation package before any
+      scored use; this run may report its unscored read beside the
+      courtroom, labelled. (5) Full chain on material sessions PLUS always
+      the rake pair (JST 21 + 29) and the driver-statement sessions,
+      regardless of materiality; the rest material-only.]
+      [2026-10-02, RUN ABORTED by the author before completion ("STOP before
+      the run; the run moves to a fresh session"). The run script
+      diagnostics/inspect_phase1_q3.py (rules in its header) had been started
+      and was STOPPED during G0 after 3 of 20 files; NO result file was
+      written (g0.json is written only at the end of G0); the only artefact is
+      diagnostics/plots/phase1_q3/run_log.txt (3 partial G0 lines, not
+      results -- discard or overwrite at the fresh run). G1, G2, V1, V2 and
+      Q4 never started. The driver-statement CONTENT for (iii) is NOT
+      anchored anywhere (reconstruction pending); only the ruling on how
+      (iii) runs without it is (ruling 2 above). NEXT: fresh session runs
+      the approved sequence from G0.]
+      [2026-10-02, RUN COMPLETED G0 -> Q4 (fresh session, package cleared on
+      paste; thesis_notes "Q2c + Q3 combined run ..."; outputs
+      diagnostics/plots/phase1_q3/). G0 REUSED (g0.json written by the
+      current script), G1-Q4 run. G0: ONE independent receiver (log_gps =
+      NMEA path; gpsa / DTM / IMSA dead). G1: gradient map USABLE on NBR,
+      Paul Ricard, Dubai (SE <= 1 % on >= 99.8 % of the lap). G2: DEGENERATE
+      as implemented (unfiltered a_y noise 0.15-0.23 g defeats the 0.1 g
+      straight gate -> no anchors); not fixed in-run; GPS-quality yield on
+      the 12 new NBR outings 1008/1008. V1: 0 of 19 material (max 1.82 % of
+      D), all converged -- same answer as production. V2: material w 0.1 0,
+      w 1 2, w 10 8, scale-only 3 of 19 (Paul Ricard pulled hardest). Q4: NO
+      variant earns (each has opposite resolutions; w 0.1 / 1 / 10 also
+      (iii)-contradicted), NONE disqualified; (ii) resolutions on C1 / C4 /
+      C10 CS_f are estimator-invariant and contradict the pinned direction;
+      the score spread is within the statistic's fragility (A has 2 laps).
+      ~~NEXT: the author's exit ruling on Q3/Q4 and on the G2 gate fix.~~]
+      [2026-10-02, RULED (author): (1) Phase-1 variant question CLOSED --
+      start-robustness is the architecture answer; production default
+      stands; prior_anchored stays experimental (thesis_notes section 1
+      entry "The per-session tyre fit is start-robust ..."). (2) G2
+      post-result rerun APPROVED: straight-line test on the G0 0.3 s moving
+      mean of a_y and yaw rate, same 0.39 deg bar, label "post-result repair
+      of the test input". (3) (ii) contradiction: READ-ONLY examination
+      approved -- (a) census of logged A -> B changes beyond rake (author
+      checks setup sheets for damper clicks in parallel); (b) C1 / C4 / C10
+      traces A vs B, grip change vs window/line change; no criterion
+      rewrite. ~~NEXT: the author's explicit go for (2) and (3) (launch rule);
+      then Q5.~~]
+      [2026-10-02, AUTHOR CORRECTIONS anchored (thesis_notes "AUTHOR
+      CORRECTIONS 2026-10-02"): B feedback = "more predictable, safer to
+      drive"; change = rake + springs, no clicks; (3) REFRAMED to "what does
+      A -> B look like given the corrected feedback": C1 / C4 / C10 trace
+      look + phase-flipping / consistency comparison A vs B. EXECUTE given:
+      (2) G2 repair rerun, then (3).]
+      [2026-10-02, BOTH RUN. (2) G2 repair (g2_repair.json): anchors form on
+      all 20 files (yield 920/1008 on the 12 new NBR), but a SECOND
+      test-input defect was found before reading -- G0's stored latency
+      field has an inverted sign, so the course is shifted ~0.5 s the wrong
+      way (beta_gps 10-20 deg); NO anchor read; not fixed (beyond "same
+      everything else"). (3) A/B examination (diagnostics/
+      inspect_rake_ab_anchor.py; plots diagnostics/plots/rake_ab_anchor/;
+      thesis_notes "NBR A -> B anchor examination, reframed"): beyond rake +
+      springs the logs show brake-bias, engine-brake-map, TC-automode and
+      tyre-pressure changes and a different line at C1 / C4 / C10 (kerb
+      strike at C1); the "predictable" consistency signature is NOT SHOWN
+      (c1 B slightly less coherent, c2 fewer flips n.s.). Anchor
+      characterised as a multi-change outing pair. NEXT: the author's
+      rulings on the G2 second repair and on the anchor characterisation.]
+      [2026-10-02, author answer anchored: brake-bias and engine-brake-map
+      changes DELIBERATE, driver-feel driven; bias hunting in A vs parked in
+      B = axis-1 observation (bias trace as driver-confidence proxy).
+      EXTENDED PACKAGE received (G2 repair 2 -> Gate A -> Part 2 validation
+      battery -> Gate B -> Part 3 first external beta read -> Part 5
+      close-out; Part 4 excluded): NOT LAUNCHED -- no explicit go/execute
+      (launch rule). Prepared: mode g2r2 in inspect_phase1_q3.py (+0.30 s
+      course delay, ISO sign; compiles, not run). PRE-LAUNCH FINDING: the
+      WP5b(c) GPS-beta record (2026-07-26, estimate_sideslip_gps) was not
+      cited by the Q3 proposal; it already fixed latency and diagnosed
+      G2's TIME-LINEAR drift closure as defective (rotation clock instead)
+      -- under the package's own "last repair" rule this would close G2
+      before Part 1; put to the author. Old verdict's scope line recorded
+      (Dubai only, 6 anchors, scored against kinematic beta). NEXT: the
+      author's ruling on the drift-closure finding and an explicit go.]
+      [2026-10-02, RULED: A/B scope line stands (already anchored, incl.
+      (ii) retirement). Drift closure = KNOWN METHOD LIMITATION (pre-
+      registered linear-in-time closure, code matches) -> option (c):
+      package EXECUTED as written with a drift scope line; rotation clock not
+      taken. Rules frozen in diagnostics/inspect_g2_anchor_validation.py
+      before Part 1 ran.]
+      [2026-10-02, PACKAGE RUN (thesis_notes "G2 GPS corner anchor: repair 2,
+      Gate A passed, validation FAILED"). Part 1 repair 2 clean (|beta_gps|
+      median 1.4 deg, SE 0.11-0.49 deg). Gate A PROMISING (10/12). Part 2:
+      c1 FAIL (straight leg; sign leg passes 85 %), c2 FAIL (+/-0.05 s delay
+      moves corner means 0.9-1.4 deg), c6 FAIL (17 % of 1620 pairs agree),
+      c4 no kerb offset, c5 lap count not limiting. GATE B FAIL -> GPS
+      CORNER ANCHOR ROUTE CLOSED AT THIS LOGGING (precise, not accurate:
+      course-delay sensitivity). Part 3 not run. Reopen = heading / sideslip
+      reference without delay sensitivity (dual-antenna / RTK, optical).]
+   Q3 Phase-1 experiments -- PROPOSAL-FIRST:
+      - BARS (ruled 2026-10-01): DERIVED in the Q3 proposal header with
+        provenance, never inherited from chat figures. Input-error bar
+        rebuilt from the recorded scale-error components: GPS k (0.5-1.2 %),
+        a_y scale, mass/fuel (fuel up to ~80 kg, ~+/-3 % of 1356 kg, plus a
+        possible between-event base-weight difference -- section 6).
+        Corner-anchor bar from the recorded (d2) beta-candidate separation
+        (median |dbeta| p1 vs p4 0.8-1.5 deg): the anchor must resolve below
+        what it discriminates.
+      - Variant 1 test: prior-start vs chair-start, free fit; materiality bar
+        from curve RMS vs the derived input-error bar; full chain where
+        material; scored ONLY on the criteria list (section 1).
+      - Variant 2 at full depth, same courtroom.
+      - GPS re-census on all 20 files: scan for a SECOND receiver family (car
+        GPS vs VBOX GPS -- author: usually two on such cars); anchor yield on
+        the 12 new long sessions; cross-lap-averaged corner-anchor noise vs
+        the ~1-2 deg bar.
+   Q4 Fair trial: best prior variant vs per-session EKF, approved criteria
+      only (folds into Q3 results if covered).
+   Q5 thesis_notes.md scope-narrowing pass on the (d2)/Doors conclusions
+      (claims currently read broader than the penalised-variant evidence;
+      Variant 1's status as above must be explicit) -- AFTER Q3, so the
+      narrowed text cites the new results.
+   Q6 (e) adoption proposal (display tier, occupancy panel/evidence source)
+      -- only after Q2 resolves reach.
+   AUTHOR-OWNED, standing:
+   - End-of-day commit. CURRENT TOP REPO RISK: the tree carries the full
+     uncommitted arc ((d2) Part 5 build, Door 2, Door 1, (e) proposal +
+     Stage 0, the K&N corrections, this anchor).
+   - UI check of the (c)-display panels and the WP-HARDEN conflict cards.
+   - Closed-loop case collection (axis 2; cases held by the author,
+     catalogued later in one pass).
+   - Team questions when contact happens: tyre generation at Le Mans, raw-
+     vs-processed channels, brake-bias channel, dead FL laser, inert levers,
+     steering-correction definition; ~~starting fuel load per outing and~~
+     base weight/ballast per event (2026-10-01, author decides if/when).
+     [2026-10-02: the archive fuel-load question is STRUCK (author); the
+     base-weight/ballast item is not covered by that ruling and stays.]
+
+6. MASS AND FUEL (author input, 2026-10-01). Fuel load varies by up to
+   ~80 kg within/between runs (~+/-3 % of config mass 1356 kg); the base
+   weight may differ BETWEEN EVENTS (ballast/spec). Config mass is a
+   Level-1 constant: its level and this uncertainty are stated wherever
+   force-per-mass quantities (Fy = m a_y, Fx = m a_x, occupancy, fitted D
+   and scales) are compared across sessions. Mass is on the named confound
+   list of the (d)/(d2) track-split finding (dated addenda in
+   thesis_notes.md; scope line: starting mass per outing unknown). Upgrade
+   path: Q2b.
+   [2026-10-02, Q2b closed + author rulings/corrections (thesis_notes "Q2b
+   ..." RULINGS AND CORRECTIONS): burn is logged (ECU consumption model; the
+   CUMULATIVE channel is authoritative, the per-lap channel undercounts and
+   is never summed for totals); starting load is NOT recoverable -- the
+   counter start values are relics (author), the catch tank gives no bound
+   on any file (checked: no run-end dip), the flow meter is dead. ARCHIVE
+   STARTING MASS PERMANENTLY UNKNOWN: limitation (~+/-40 kg fuel, ~+/-3 % of
+   mass, into D, Fz, mu, occupancy; limitations item 14), not an open
+   question. DESIGN FACT (author): fuel load is an engineer-entered SESSION
+   INPUT to SetupTool -- the forward path, UI tier whenever UI work resumes;
+   with the cumulative burn channel it gives Level-2/3 per-sample mass on
+   future sessions. Added ground for per-session fitting (absorbs the
+   unknowable per-session mass offset; section-1 addendum).]
+
+7. PENDING CONFIG NOTE (ruled 2026-10-01): exit_phase_confidence_discount's
+   derivation STANDS (calibration provenance, not a criterion). At the next
+   config touch, add a dated provenance note to its derived_from (C3-via-LS
+   retired as a criterion, provenance kept); reopen condition unchanged.
+
 # EXPERIMENT PLAN - post-meeting directions (2026-09-30)
+
+[2026-10-01 NOTE: criteria used in this section's closed experiments -- the
+survival battery ((b), (d) K6), gate health vs production ((d) K4, (d2)
+choice rule (G), which also scored Le Mans), verdict-count comparisons ((b),
+(d2) Part 4), C4 -- are RETIRED AS CRITERIA by "PHASE 1 PLAN, anchored
+2026-10-01" section 1. The recorded verdicts stand as recorded; cite them
+with a scope line (that section, rule 2c). The (e) Stage 0 criteria were
+built on measured channels and are unaffected.]
 
 Source: the supervisor's five directions at the intermediate meeting
 of 2026-09-30, as relayed by the author (thesis_notes.md "Intermediate
@@ -313,8 +872,25 @@ STATUS PER DIRECTION (current 2026-09-30):
   [2026-10-01: gate lifted for step 0; step 0 RUN, Option B fails the
   pre-registered exit. CLOSED 2026-10-01 (author): tested, nothing ships,
   no escalation; per-session fitting vindicated as the design matching
-  this data.]
-- (e) Combined accelerations: PARKED, own proposal needed.
+  this data.] [2026-10-01: REOPENED by the author as (d2); Parts 0-4 run,
+  see "(d2)" below. (d2) CLOSED 2026-10-01 (author): convergence only by
+  suppression; drift = invisible-peak inflation + visible-curve
+  instability; tyre_fit_mode switch built, experimental, default
+  per_session.] [2026-10-01: Door 2 and Door 1 CLOSED; circularity closed as
+  a sensor-set limitation.]
+- (e) Combined accelerations: PARKED, own proposal needed. [2026-10-01:
+  opened by the author; PROPOSAL written (analysis layer only), ~~awaiting
+  rulings~~ RULED: Option 1 Stage 0 approved, runs after the author's P3
+  answer -- see "(e)" below.]
+- NBR damper-offset feasibility (added 2026-10-01, author): QUEUED, own small
+  package, read-only -- can the +60-65 kN log_dms_dam_* offset be recovered
+  per outing from in-file pit/static samples, without a physical weighing?
+  Would unlock Level-4 loads on 16 of 20 files. Limitation item 13 until then;
+  it also carries the unverified hypothesis that limitation item 11's NBR Fz
+  gap is this source difference. [2026-10-01, author: the package INCLUDES
+  the limitation-11 check -- which load source (Level-1 fallback vs Level-4
+  damper) the NBR fits behind item 11 actually used. Proposal-first, not yet
+  written.]
 - (f) Event-coincidence diagnostic (added 2026-09-30): CLOSED, RULED
   2026-09-30 -- Exit B, yaw-flag evidence mechanism closed, display stays;
   C1 dip follow-up approved (read-only).
@@ -341,6 +917,11 @@ Boundary classes used below:
   gives degenerate thresholds on multi-track pooled data (thesis_notes.md
   "Pooled-p25 thresholds by the recorded procedure"), so the first such
   boundary must also settle which population the procedure runs on.
+  [2026-10-01 NOTE: superseded in part by "PHASE 1 PLAN, anchored
+  2026-10-01" rule 2a -- verdict thresholds are NOT formally re-derived; the
+  method of record is the author's visual verification on rendered per-session
+  CS traces. The other boundary items (stab_neg_thresh revisit, schema bump,
+  goldens, full suite) are not touched by that ruling.]
 
 ## (a) IMU offset characterisation -- runs FIRST
 Goal: measure whether the IMU signals that feed beta and alpha carry an
@@ -562,6 +1143,65 @@ thesis_notes.md section 1). Production unchanged. Tyre generation not
 establishable from the files; author checking. Evidence script
 diagnostics/inspect_tyre_prior.py kept (cited).]
 
+## (d2) Mass-data prior + convergence retry (reopens (d), author, 2026-10-01)
+Grounds: the author's hypothesis -- a prior from much more data, with
+small per-session deviations, may make the fit -> EKF -> refit loop
+converge where the unanchored loop diverged. Pool = every usable
+serial-221 file (Dubai, Le Mans out: different tyres, logger 147); prior
+frozen, only the session deviation iterates; the (d) K1-K6 criteria do not
+apply (no scoring, author rules). Config-selectable tyre_fit_mode
+(per_session | prior_anchored) with the production default unchanged.
+Tier A anchor for the prior-plus-deviation fit still PENDING.
+STATUS 2026-10-01: Parts 0-4 RUN, read-only (diagnostics/
+inspect_tyre_prior_d2.py; thesis_notes.md "(d2) reopened ..." to "(d2)
+Part 4"). Pool 18 sessions, 1,075,186 samples (2.93x); 13 new files = 12
+new outings (one duplicate JST 29 export). Prior front D 8883.9 N, rear
+D 10634.4 N. Curve-space penalty, grid w 0 / 0.1 / 1 / 10. Loop: w 0
+reproduces the unanchored drift (v3 D_rear +50.1 %, record +51.3 %),
+CONVERGES on all three retry sessions only at w 10 (curve then within
+4-126 N rms of the prior, ~90-95 % of each session's deviation removed),
+on two of three at w 1. Choice rule: no weight selected ((G) fails at
+every w > 0 on Le Mans pass -> warn). Part 4 (w 1, reference only):
+5-12 changed worst-lap verdicts per session. Part 5 (implementation)
+PROPOSED, not implemented -- awaits the author's ruling.
+[2026-10-01, drift addendum (read-only, mode drift; thesis_notes.md "(d2)
+addendum: where the loop drift lives"): at w 0 / 0.1 the total drift is
+extrapolated-dominant on 11 of 12 session-axles (the invisible peak
+rises), but the first refit also moves the visible curve 3-12 % inside
+p95; a visited-range-only re-reading changes no Part 3 outcome.]
+[2026-10-01, CLOSED (author): drift = (i) invisible-peak inflation beyond
+the visited range (dominant, 11/12; the +50 % largely lives there) plus
+(ii) a genuine visible-curve instability (pass 1->2 step 3-12 % inside
+p95 = the kinematic-seed bias made measurable; 1-3 %/pass walk on v3 and
+JST 19, re-accelerating at pass 3->4). Convergence-by-suppression stands;
+the circularity remains informational. Estimator-chapter entry written
+(thesis_notes.md section 1). Part 5 BUILT: tyre_fit_auto.tyre_fit_mode
+per_session (default, unchanged) | prior_anchored (EXPERIMENTAL,
+config-selectable only, Tier A anchor pending), prior_weight 1,
+tyre_fit_prior with derivation; tests/test_tyre_fit_prior_anchored.py.]
+[2026-10-01, Doors work order: Door 2 (transient-weighted fitting under
+the loop, read-only, modes tloop/door2) RUN -- NO SIGNAL (post-switch
+visible-range walk halved on 0 of 3 sessions; ratios 0.74 / 1.00 / 0.95),
+door CLOSED (thesis_notes.md "Door 2: transient-weighted fitting ...").
+Door 1 (combined-slip information): proposal turn next, after the
+author's look at Door 2.]
+[2026-10-01, Door 1 PROPOSAL written (proposal turn, census only; thesis_notes.md
+"Door 1 proposal: longitudinal information ..."). Recommended: tangential-
+acceleration identity with front non-driven wheels (K&N ~~8.1.1 Eq. 8.2 /
+8.6.1~~ 9.1.1 Eq. 9.2 / 9.7.1 [numbers corrected 2026-10-01]), Stage 0 read-only discrimination test on flat-track sessions, then
+Stage 1 only on pass. Premise correction: v3 HAS live log_gps_speed. NEXT:
+~~author's rulings on the Door 1 proposal (anchor sufficiency, flat-session
+scope, Stage 0 approval).~~ RULED 2026-10-01: anchor sufficient (anchored
+identity, novel use = project adaptation), flat-track scope E1-gated, Stage 0
+approved, X_IMU 0.20 m author estimate.]
+[2026-10-01, Door 1 Stage 0 RUN (read-only, modes d1loop/door1; thesis_notes.md
+"Door 1 Stage 0 ..."): CLOSED on inventory (N4) -- E1 flat-track gate fails
+on all three candidates (p95 |gradient| 2.9-4.6 %, same size as the beta
+signal); no p1-p4 discrimination either (all CIs include 0). Estimator
+chapter: every internal route exhausted, the exit is a sensor. ~~NEXT: author's
+look at Stage 0;~~ Stage 1 not opened. CLOSED 2026-10-01 (author): section-1
+finding and limitation item 12 written.]
+
 ## (e) Combined accelerations (combined slip, rear axle) -- PARKED
 Goal: account for combined longitudinal and lateral demand on the rear
 axle, where a pure-lateral view cannot see traction limitation on exit.
@@ -574,6 +1214,48 @@ Entry criterion: (a)-(d) closed. Exit criterion and boundary class: set
 by its proposal; expected ESTIMATOR-INPUT CHANGE.
 STATUS (2026-09-30): PARKED; (a)/(a2) and (b) closed, (c) split, (d)
 gated -- the entry criterion is not met.
+[2026-10-01, PROPOSAL written (author's initiative; proposal turn, census +
+one-session ecu_slip probe only; thesis_notes.md "(e) proposal: combined
+slip in the analysis layer ..."). SCOPE: analysis layer, NOT the beta
+estimator (Door 1 closure stands). Anchors section-verified: K&N 8.3.2-8.3.4
+(Eqs. 8.9-8.10, 8.17-8.28, Kamm limit 8.22), Rajamani 13.8/13.10 + Ch. 8
+Eqs. 8.6-8.12, RCVD 2.7 / 9.1-9.4 / 14.3, Segers 4.2-4.3 (Eq. 4.13). Probe:
+ecu_slip_act = rear/front drivetrain slip in the ECU's offset circumference
+frame, braking-gated, traction gain ~0.5 unexplained -> ordinal indicator,
+not a kappa magnitude. Recommended: Option 1, rear-axle force-demand
+occupancy (display/evidence tier, beta- and kappa-free), Stage 0 read-only
+on the 4 Level-4 damper sessions. The "expected ESTIMATOR-INPUT CHANGE" above
+applies to Options 2/3 only. ~~Awaiting the author's rulings.~~]
+[2026-10-01, RULED (author; thesis_notes.md "(e) rulings on the proposal"):
+Option 1 APPROVED, Stage 0 READ-ONLY on Dubai, PR US-v2, v3. Le Mans
+excluded (standing ban); NBR excluded until the damper offset is resolved
+(reach limit, limitations register item 13). Stage 0 runs only after the
+author's P3 answer (traction-limited exit corners named, or "none named" ->
+P3 drops, P1/P2/P4 carry). ecu_slip_act: ordinal use only, no engineer-list
+entry. Reopen-condition credit for exit_phase_confidence_discount: deferred
+to adoption.
+STAGE 0 PRE-REGISTRATION (fixed before any run):
+- Quantity: mu_used,r = sqrt(Fx_r^2 + Fy_r^2) / Fz_r per sample; Fx_r, Fy_r
+  from production (estimate_longitudinal_forces, estimate_lateral_forces),
+  Fz_r Level-4 damper loads only; read per corner-phase against the session's
+  own envelope; under-read = |F_r| / |Fy_r| - 1. Vehicle g-g occupancy as
+  cross-check only.
+- P1 (measured wheel speeds): in combined traction, Spearman rho(Fx_r/Fz_r,
+  wheel-speed kappa_r) >= 0.5.
+- P2 (TC flag, Dubai only): on >= 75 % of TC events (contiguous runs) rear
+  occupancy >= the session's exit-phase p75.
+- P3 (author-named traction corners, if any): median exit under-read >= 10 %
+  on >= 3 of 4 laps (10 % = the K&N Eq. 8.21 ellipse ambiguity, k_S 0.90-0.95).
+- P4: render rule -- occupancy/CS traces per session, inspected before any
+  exit.
+- N1: exit-median under-read recomputed with log_acc_x vs sclu_acc_x differs
+  by >= 5 pp -> longitudinal leg unresolvable on that session (Dubai at
+  risk: Door 1 E3 offset 0.78 m/s^2, ~1.06 kN at 1356 kg).
+- N2: scored only where both rear damper gauges pass quality.
+- N3: wheel-speed kappa "no usable signal" on a session if the median
+  combined-traction excursion < 3x the straight-line robust sd (Dubai ~10x).
+- N4: ecu_slip_act as a kappa magnitude -- already met (fails); ordinal
+  corroborator only.]
 
 ## (f) Event-coincidence diagnostic -- queued after WP-HARDEN
 Source: author-designed (2026-09-30), reviewer-sequenced; not one of the
@@ -2145,7 +2827,17 @@ WP-HARDEN).]
   config, or documented decision). Knowledge-only work is a
   diagnostic, capped at one per question, and must state which
   decision it unblocks.
-- Estimator-input changes trigger threshold re-derivation.
+- ~~Estimator-input changes trigger threshold re-derivation.~~ [2026-10-01:
+  replaced by "PHASE 1 PLAN, anchored 2026-10-01" rule 2a -- thresholds are
+  verified visually by the author on rendered per-session CS traces, not
+  formally re-derived.]
+- Chat is lossy (compaction): every ruling, decision or queue change is
+  written to PLAN.md or thesis_notes.md in the same turn it is made (author,
+  2026-10-01; PHASE 1 PLAN).
+- LAUNCH RULE (author, 2026-10-02; CLAUDE.md): launches only on an explicit
+  author "go"/"execute", never inferred from closing remarks or silence;
+  ambiguity = ask and wait. Second breach on record; a third makes the
+  literal word EXECUTE mandatory for every run start.
 - Tier A methods need a verified anchor; full citations live in
   thesis_notes.md, code carries a pointer only.
 - STATUS is rewritten at every work stop; history goes below.

@@ -435,6 +435,78 @@ here (53 keepers + 37 in diagnostics/_attic/).
   feasibility", "(d) step 0: pooled prior with per-session scale", "(d)
   closure".
   Outputs in `plots/tyre_prior/` (gitignored).
+- **inspect_rear_curve_bias.py** (2026-10-02, keep-reproduces, pending the
+  author's Q2d ruling; Q3 may reuse it) -- PHASE 1 PLAN Q2d: production /
+  low-kappa / q90 Pacejka fits per axle on the (d2) production fit cache,
+  curve deltas with lap bootstrap, the (e) Option-2 residual-vs-kappa
+  signature, curve and residual renders. Imports the (d2) harness. Outputs
+  in `plots/rear_curve_bias/`. Env Q2D_BOOT overrides the bootstrap count
+  for smoke runs only.
+- **inspect_phase1_q3.py** (2026-10-02, keep-reproduces, pending the
+  author's Q3 exit ruling) -- PHASE 1 PLAN Q2c + Q3: G0 GPS census, G1
+  gradient map, G2 corner anchor (unscored), V1 / V2 tailoring variants and
+  the Q4 courtroom ((ii) rake, (iii) per-phase driver statement, (v)
+  coherence) with CS renders; rules frozen in its header. Imports the (d2)
+  harness and its caches. Outputs in `plots/phase1_q3/`; modes g0 | g1 |
+  g2 | v1 | v2 | q4 | all.
+- **inspect_rake_ab_anchor.py** (2026-10-02, keep-reproduces, pending the
+  author's ruling on the A/B anchor characterisation) -- PHASE 1 PLAN Q3
+  ruling 3 (reframed): NBR A (outing 21) vs B (outing 29) change census
+  over all channel blocks, C1 / C4 / C10 corner traces (speed, a_y, steer,
+  yaw, brake, GPS line offset, alpha_f / peak, CS), consistency and
+  phase-flipping sign tests. Imports the (d2) harness. Outputs in
+  `plots/rake_ab_anchor/`; modes census | corners | coherence | all.
+- **inspect_g2_anchor_validation.py** (2026-10-02, keep-reproduces, pending
+  the author's look at the GPS-anchor closure) -- PHASE 1 PLAN Q3 extended
+  package: Gate A on g2_repair2.json, validation battery (sign/phase,
+  latency +/-0.05 s, SE vs speed, kerb, lap-count, cross-session), Gate B,
+  gated first external beta read (Part 3). Imports inspect_phase1_q3 and
+  the (d2) harness. Outputs in `plots/g2_anchor_validation/`.
+- **inspect_damper_offset_q2.py** (2026-10-02, keep-reproduces, pending the
+  author's Q2 exit ruling) -- PHASE 1 PLAN Q2: Part A limitation-11
+  load-source check (tiers + static-path rear Fz), Part B NBR damper-offset
+  census (burn-corrected drift, offset family), Part C anchors C1/C2/C3 via
+  the linear-in-offset wheel_loads chain, physics validation, L4-rel load
+  renders. Imports the (d2) harness and inspect_imu_offsets.read_raw_blocks.
+  Modes: partA, partB <key>, partB_all, report. Outputs in
+  `plots/damper_offset_q2/`. Delete at the commit closing Q2 unless the
+  ruling keeps it as reference.
+- **inspect_fuel_channels.py** (2026-10-02, keep-reproduces, pending the
+  author's ruling on Q2b) -- PHASE 1 PLAN Q2b: fuel-used families,
+  vol_fuel_rem_telem and the level-named channels on all usable files
+  (consumption agreement, lap-sum plausibility, near-full share, co-movement
+  with burn, plateau and slosh checks). Imports the (d2) harness and
+  inspect_imu_offsets.read_raw_blocks. Outputs in `plots/fuel_q2b/`. It is
+  the reference if a per-sample mass correction is proposed; otherwise
+  delete at the commit closing Q2b.
+- **inspect_e_stage0.py** (2026-10-01, keep-reproduces, pending the author's
+  (e) exit ruling) -- EXPERIMENT PLAN (e) Stage 0: rear-axle force-demand
+  occupancy sqrt(Fx_r^2 + Fy_r^2)/Fz_r on Level-4 rear loads, criteria
+  P1/P2/N1-N3 as pre-registered in its header; imports the (d2) harness
+  (inspect_tyre_prior_d2) and inspect_imu_offsets.read_raw_blocks. Modes:
+  run <key>, dubai_l1 (Q1: labelled Level-1 read, never scored), report.
+  Outputs in `plots/e_stage0/`. Disposal decided with
+  the (e) exit ruling (adoption -> it is the reference; closure -> delete
+  in that commit).
+- **inspect_tyre_prior_d2.py** (2026-10-01, keep-reproduces) -- EXPERIMENT
+  PLAN (d2): header census of every file on D:/Data_Bachelorthesis,
+  per-file intake with the standing checks (rate guard, liveness, unit
+  aliases/factors, clustering) and a cached parse, production fits (bit-
+  exact vs the (d) cache), the pooled 18-session prior, curve-penalised
+  anchored fits (w grid) through the production chain via an in-memory
+  _fit_axle_pacejka replacement, the fit -> EKF -> refit convergence loop
+  under the frozen prior, read-out and render. Modes: census, intake <key>,
+  intake_report, fit <key>, prior, achain <key> <w>, loop <key> <w>,
+  report, render, drift (where the loop drift lives, visited vs
+  extrapolated), tloop <key> <w> and door2 (Door 2, transient-weighted
+  loop, no signal), d1loop <key> and door1 (Door 1 Stage 0, tangential-
+  acceleration identity vs the loop's per-pass beta; closed N4). Keep-reason: REFERENCED -- config/parameters.json
+  tyre_fit_auto.tyre_fit_prior.derived_from names it as the prior's
+  source; also the evidence for the (d2) closure and the estimator-chapter
+  finding "The refit loop's drift decomposed". The anchored fitter itself
+  now lives in modules/tyre_fit_auto.py (_fit_axle_pacejka_anchored).
+  Records: thesis_notes.md "(d2) reopened ..." to "(d2) closure".
+  Outputs in `plots/tyre_prior_d2/` (gitignored).
 - **inspect_yaw_damping_eq43.py** (2026-09-29, keep-reproduces) -- the
   v1 consumer of modules/yaw_damping.py (Werner Eq. 4.3/4.4 completed
   without Fz): damping vs inertial yaw moment per corner-phase and the

@@ -28,8 +28,13 @@ order. Read PLAN.md before starting any work.
 - After each change, run `python test_stability.py` and show me the output
   before continuing. UI changes: I run the app manually and report back.
 - HANDOVER.md and generate_handover.py stay local — never commit them.
+- Chat is lossy (compaction); every ruling/decision/queue change is written to PLAN.md or thesis_notes.md in the same turn it is made - nothing stays chat-only.
 - If a work order in PLAN.md is ambiguous or conflicts with the real code,
   STOP and ask me. Do not choose silently.
+- LAUNCH RULE (2026-10-02, author): runs/launches happen ONLY on an explicit
+  author "go"/"execute" - never inferred from closing remarks or silence;
+  ambiguity = ask and WAIT. Second breach on record; a third breach makes
+  the literal word EXECUTE mandatory for every run start.
 
 - After implementing any step, before I test: summarise what changed
   file-by-file, and explain any new function's logic in 3-5 sentences —
@@ -110,10 +115,14 @@ Parameter categories, for clarity:
   from the chair BY NECESSITY; provenance = accuracy levels.
 - method calibration tunables (yaw_stability_* six, cs_* values, ...):
   match the chair BY CHOICE; changing any is an estimator change and
-  re-triggers threshold re-derivation.
+  re-triggers threshold verification: verified visually by the author on
+  rendered per-session CS traces; derived defaults stay as recorded.
+  (amended 2026-10-01, PLAN.md PHASE 1 PLAN rule 2a)
 - classification thresholds: differ from any chair values BY RULE;
-  always re-derived from this car's own distribution, never carried
-  over from the chair or from a prior estimator's distribution.
+  never carried over from the chair or from a prior estimator's
+  distribution; verified visually by the author on rendered CS traces,
+  not formally re-derived; derived defaults stay as recorded. (amended
+  2026-10-01, PLAN.md PHASE 1 PLAN rule 2a)
   Manual threshold override via Settings is allowed: recorded
   config-side (manually set + date + derived default), restorable,
   and the derivation rule applies to the DERIVED defaults, which a

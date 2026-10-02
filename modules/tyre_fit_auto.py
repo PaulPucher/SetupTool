@@ -29,6 +29,11 @@ from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
 PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E)
 
+TYRE_FIT_MODES = ("per_session", "prior_anchored")
+# Grid resolution of the prior-curve penalty; part of the method definition
+# (what "mean distance over the visited range" means), not a tunable.
+PRIOR_PENALTY_GRID_N = 200
+
 CHI2_DF1_95 = float(chi2.ppf(0.95, df=1))
 CHI2_DF2_95 = float(chi2.ppf(0.95, df=2))
 NEAR_ZERO_SLIP_DEG = 0.2  # same near-zero alpha_r population as earlier validation
@@ -455,6 +460,68 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
     }
 
 
+def _fit_axle_pacejka_anchored(alpha, Fy, base_mask, prior_axle, weight):
+    """tyre_fit_mode 'prior_anchored' (EXPERIMENTAL, Tier A anchor pending):
+    all four parameters fitted, Powell started from the prior, minimising
+        mean_i (F(alpha_i) - Fy_i)^2 + weight * mean_g (F(g) - F_prior(g))^2
+    with g on [0, p99 |alpha|] of this population. The penalty sits on the
+    curve, not on (B, C, D, E): B, C and E trade off along a ridge on which
+    the curve barely moves, so a parameter penalty would not constrain the
+    force characteristic. Same dict as _fit_axle_pacejka plus the penalty
+    terms. Moved unchanged from diagnostics/inspect_tyre_prior_d2.py.
+    """
+    m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy)
+    a2, f2 = alpha[m2], Fy[m2]
+
+    if len(a2) == 0:
+        # empty population guard, as in _fit_axle_pacejka
+        return {
+            "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
+            "prior_weight": weight, "curve_dev_rms_N": float("nan"),
+            "powell_converged": False,
+            "fit_n_samples": 0, "fit_rms_resid_N": float("nan"),
+            "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
+            "visited_alpha_p99_deg": float("nan"),
+            "sign_ok": False,
+            "residuals": np.array([]), "residual_mask": m2,
+        }
+
+    p99 = float(np.percentile(np.abs(np.degrees(a2)), 99))
+    g = np.radians(np.linspace(0.0, p99, PRIOR_PENALTY_GRID_N))
+    pB, pC, pD, pE = (prior_axle[k] for k in "BCDE")
+    f_prior = pacejka_lateral_force(g, pB, pC, pD, pE)
+
+    def _j(p):
+        B, C, D, E = p
+        r = pacejka_lateral_force(a2, B, C, D, E) - f2
+        j = float(np.mean(r * r))
+        if weight:
+            d = pacejka_lateral_force(g, B, C, D, E) - f_prior
+            j += weight * float(np.mean(d * d))
+        return j
+
+    res = minimize(_j, (pB, pC, pD, pE), method="Powell")
+    B, C, D, E = (float(x) for x in res.x)
+    resid = f2 - pacejka_lateral_force(a2, B, C, D, E)
+    dev = pacejka_lateral_force(g, B, C, D, E) - f_prior
+
+    grid_deg = np.linspace(0.01, 89.9, 4000)
+    stiffness_grid = pacejka_lateral_stiffness(np.radians(grid_deg), B, C, D, E)
+    sign_changes = np.where(np.diff(np.sign(stiffness_grid)) < 0)[0]
+    peak_deg = float(grid_deg[sign_changes[0]]) if len(sign_changes) > 0 else float("nan")
+
+    return {
+        "B": B, "C": C, "D": D, "E": E,
+        "prior_weight": weight, "curve_dev_rms_N": float(np.sqrt(np.mean(dev ** 2))),
+        "powell_converged": bool(res.success),
+        "fit_n_samples": int(len(a2)), "fit_rms_resid_N": float(np.sqrt(np.mean(resid ** 2))),
+        "peak_alpha_deg": peak_deg, "peak_in_visited_range": bool(peak_deg == peak_deg and peak_deg <= p99),
+        "visited_alpha_p99_deg": p99,
+        "sign_ok": D > 0,
+        "residuals": resid, "residual_mask": m2,
+    }
+
+
 def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
     """(B, C, mu, E) with D = mu * Fz per sample (Milliken RCVD ch. 2 (sec. 2.1)).
     Same dict as _fit_axle_pacejka; D = mu * mean(Fz) as representative
@@ -516,14 +583,21 @@ def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
     }
 
 
-def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False):
+def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False, tyre_fit_mode="per_session"):
     """fit_session with the reduced Magic Formula instead of Dugoff; steps
     (c)-(e) and status thresholds identical, only the axle fit and EKF differ.
 
     load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD ch. 2
     (sec. 2.1)). No measured Fz -> degenerate manifest, no silent free-D
     fallback. Default False = free-D.
+
+    tyre_fit_mode: 'per_session' (default) or 'prior_anchored' (experimental,
+    see _fit_axle_pacejka_anchored; prior and weight from config). The
+    prior is a free-D curve, so prior_anchored with load_normalised is
+    refused rather than mixed.
     """
+    if tyre_fit_mode not in TYRE_FIT_MODES:
+        raise ValueError(f"tyre_fit_mode {tyre_fit_mode!r} not recognised (expected one of {TYRE_FIT_MODES})")
     cfg = params["tyre_fit_auto"]
     vp = params["vehicle"]
     mass_kg = vp["mass_kg"]
@@ -539,6 +613,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     beta_kin = estimate_sideslip(state, params)
     slip_kin = estimate_slip_angles(state, beta_kin, params)
     forces = estimate_lateral_forces(state, params)
+
+    if tyre_fit_mode == "prior_anchored" and load_normalised:
+        return {"status": "degenerate", "degenerate_reason": "tyre_fit_mode 'prior_anchored' requires the free-D "
+                "fit (load_normalised False) -- the prior is a free-D curve", "data_file": data_file_path}
 
     if load_normalised:
         car_data = load_car_data()
@@ -558,6 +636,12 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
                     "data_file": data_file_path}
         front_fit = _fit_axle_pacejka_mu(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"], base_mask)
         rear_fit = _fit_axle_pacejka_mu(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"], base_mask)
+    elif tyre_fit_mode == "prior_anchored":
+        prior, weight = cfg["tyre_fit_prior"], cfg["prior_weight"]
+        front_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask,
+                                               prior["front"], weight)
+        rear_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask,
+                                              prior["rear"], weight)
     else:
         front_fit = _fit_axle_pacejka(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask)
         rear_fit = _fit_axle_pacejka(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask)
@@ -565,11 +649,15 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     manifest = {
         "data_file": data_file_path,
         "load_normalised": load_normalised,
+        "tyre_fit_mode": tyre_fit_mode,
         "laps_used": sorted(l["lap_number"] for l in laps if l.get("is_valid_for_analysis")),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "axles": {"front": {k: v for k, v in front_fit.items() if k not in ("residuals", "residual_mask")},
                   "rear": {k: v for k, v in rear_fit.items() if k not in ("residuals", "residual_mask")}},
     }
+    if tyre_fit_mode == "prior_anchored":
+        manifest["prior_weight"] = cfg["prior_weight"]
+        manifest["prior_derived_from"] = cfg["tyre_fit_prior"]["derived_from"]
     try:
         git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     except Exception as e:
@@ -748,10 +836,11 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
         if sideslip_source == "ekf_auto_dugoff":
             raw_fit_manifest = fit_session(data, params, data_file_path=csv_path)
         else:
-            # config-gated, default False; Pacejka path only
+            # both config-gated, defaults unchanged (free D, per-session); Pacejka path only
             load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
+            tyre_fit_mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
             raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,
-                                                    load_normalised=load_normalised)
+                                                    load_normalised=load_normalised, tyre_fit_mode=tyre_fit_mode)
         fit_status = raw_fit_manifest.get("status")
         fallback_used = False
         fallback_reason = None

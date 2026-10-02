@@ -140,7 +140,18 @@
     "load_normalised_fit_enabled": false,
     "_comment_mu_plausibility_band": "Plausible peak mu (D = mu*Fz) for a GT3 slick (Milliken RCVD, tyre chapter). Outside [low, high] -> flagged for the analyst, never silently kept or dropped.",
     "mu_plausibility_band_low": 1.2,
-    "mu_plausibility_band_high": 2.0
+    "mu_plausibility_band_high": 2.0,
+    "_comment_tyre_fit_mode": "EXPERIMENTAL, config-selectable only (PLAN.md EXPERIMENT PLAN (d2), author ruling 2026-10-01). 'per_session' (production default): free four-parameter Pacejka fit per session from the chair start guess. 'prior_anchored': the same fit started from tyre_fit_prior and penalised by prior_weight * mean squared distance between session curve and prior curve over the session's visited slip range (Tikhonov regularisation towards a reference curve). Tier A anchor for a prior-plus-deviation tyre fit PENDING -- not a production default. Free D only: prior_anchored with load_normalised_fit_enabled true is refused as degenerate. Reading of prior_weight: the session's deviation from the prior shrinks by about 1 / (1 + w); 1 = medium (author ruling). (d2) result: under refit iteration the anchored fit converges only where the deviation is largely suppressed (thesis_notes.md (d2) entries).",
+    "tyre_fit_mode": "per_session",
+    "prior_weight": 1.0,
+    "tyre_fit_prior": {
+      "_comment": "Pooled Pacejka prior (B, C, D [N], E) per axle: production _fit_axle_pacejka, unchanged, on the concatenated population of the 18 usable serial-221 sessions (kinematic alpha_f/r_filt, Fy_f/r_filt, _base_mask). Accuracy level 2 (pooled session measurement, kinematic-seeded). Dubai and Le Mans excluded (different tyres, logger 147). NBR carries 86.7 % of the samples -- not track-neutral. Refit only on a named event ((a3) shipping, tyre-spec change, author ruling), never on a new session.",
+      "derived_from": "diagnostics/inspect_tyre_prior_d2.py prior, 2026-10-01; thesis_notes.md '(d2) Part 1: the mass-data prior'",
+      "n_samples": 1075186,
+      "sessions": ["nbr_jst_problem", "nbr_jst_solution", "nbr_o005_mla", "nbr_o010_jdr", "nbr_o018_jst", "nbr_o019_jst", "nbr_o020_jst", "nbr_o046_jst", "nbr_o053_mla", "nbr_o054_cdr", "nbr_o059_mla", "nbr_o061_jdr", "nbr_o063_cdr", "nbr_o064_jst", "nbr_qp_cdr", "nbr_qp_mla", "pr_us_v2", "v3"],
+      "front": {"B": 8.521600032851703, "C": 1.8758611997187615, "D": 8883.932689499577, "E": -3.6260090150604096},
+      "rear": {"B": 10.627509700121394, "C": 1.9047749912865475, "D": 10634.431422666165, "E": -3.547851641100219}
+    }
   },
   "tyre_model_fit": {
     "_comment": "Low-|ay| population for the first-pass Dugoff c_alpha fit (Fy vs kinematic alpha through the origin), used by diagnostics/fit_dugoff_first_pass.py only. 0.3 g = default from the saturation-coverage check, not gap-selected yet.",
