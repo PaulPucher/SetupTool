@@ -578,6 +578,46 @@ NEXT
   MOVED, not re-run. HARD STOP. NEXT: author commit; Q-CAL item 2 (NBR loads
   via the voltage path) starts after the commit. Uncommitted adds
   diagnostics/inspect_kerb_cs_movement.py.]
+  [2026-10-03: WORK PACKAGE Q-CAL-2 (NBR wheel loads via the voltage-
+  referenced zero entries) -- proposal reported, RULED, EXECUTE received.
+  PREMISE CORRECTED from the code: NBR loads sit on the static split because
+  the channels.json range gate (-5000..20000 N) FAILS the ~+60 kN NBR damper
+  channels in csv_parser, upstream of wheel_loads (census: JST 29 all four
+  channels "failed", 100 % static_fallback; PR v3 / US-v2 all "valid",
+  100 % damper). RULINGS: (1) option S -- static event zero entry (R3
+  medians) applied pre-gate in csv_parser; option V (runtime voltage map)
+  REJECTED (more code, new failure mode, gains ~35-75 N inside u); (2) label
+  "L4 with an L2 zero" (L4-rel); (3) event key = track + logger serial +
+  gate-window guard; engineer-entered event id deferred to UI work; the
+  two-events-with-near-identical-zeros limitation RECORDED in the config
+  procedure note, not solved; (4) ANALYSIS_SCHEMA_VERSION 8 -> 9 ("estimator
+  inputs changed: Q-CAL-1 mask, Q-CAL-2 NBR zero entries"); STANDING
+  PROCEDURE: any estimator-input change made outside Settings bumps the
+  schema version (CLAUDE.md); config-fingerprint alternative rejected
+  (no-bloat). PRODUCTION DEFECT RECORDED: the DB / sidecar result caches do
+  not see config edits made outside Settings, so outings analysed before
+  Q-CAL-1 render the old mask from cache -- queued fix = this bump; (5) new
+  verify script, inspect_recover_rr.py stays frozen as the reference.
+  Transfer notes f.1-f.6 go to thesis_notes with the package entry; f.3 (FR
+  coupled to the v3 FR channel correction) also into the config
+  derived_from. ORDER: identity first (Dubai goldens 13 / 13, Paul Ricard
+  bit-identical), then the 16-file acceptance (offset reproduction within
+  per-corner spread, V1-V4, damper share per corner).]
+  [2026-10-03: Q-CAL-2 IMPLEMENTED (PRODUCTION CHANGE; thesis_notes "Q-CAL-2
+  implemented: ..."). channels.json event_zero_entries NBR_221 + csv_parser
+  pre-gate application with the gate-window guard; schema 8 -> 9; CLAUDE.md
+  schema-bump rule. IDENTITY: Dubai goldens 13 / 13, Paul Ricard wheel loads
+  bit-identical, 52 / 52 tests (none skipped), test_stability.py unchanged.
+  ACCEPTANCE (diagnostics/inspect_nbr_zero_entry_verify.py, 16 NBR files):
+  ACCEPTED -- entries applied and channels valid on all files, damper share
+  1.000 everywhere (NBR 100 % static -> 100 % measured), offset reproduction
+  0.0 gauge-N on all corners (equality by construction -- proves identical
+  data to the reference and healthy maps, |r| >= 0.981; not an independent
+  re-derivation), V1-V4 pass on all 16 files. Transfer notes f.1-f.6
+  recorded; f.6 resolved (nbr_o029_jst = the JST 29 file in a second
+  folder). HARD STOP. NEXT: author review + commit; then Q-CAL item 3
+  (chair fit-conditioning). Uncommitted adds tests/test_event_zero_entries.py,
+  diagnostics/inspect_nbr_zero_entry_verify.py.]
   Uncommitted (author commits):
   CLAUDE.md, PLAN.md, thesis_notes.md, diagnostics/README.md,
   diagnostics/plots_INDEX.md, diagnostics/inspect_seed_sweep.py,
@@ -1836,6 +1876,10 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       re-derivation: the JST 29 front deep-tail growth (CS < -1 0.57 ->
       0.68 %, edge-following) as a noted observation. Pass-1 validation
       baseline recorded as moved. NEXT: item (2) after the author's commit.]
+      [2026-10-03: ITEM (2) IMPLEMENTED -- NBR wheel loads via the voltage-
+      referenced event zero entries (option S), acceptance ACCEPTED on all 16
+      NBR files (thesis_notes "Q-CAL-2 implemented: ..."). Closure is the
+      author's ruling.]
       PARKED FOR Q-CAL (author domain rule, 2026-10-03): TC acts on drive
       torque -- TC-lever recommendations are physically valid ONLY against
       ON-THROTTLE / traction-phase problems (corner exit), never entry or mid-

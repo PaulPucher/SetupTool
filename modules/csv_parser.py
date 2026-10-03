@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+import re
 from modules.corner_analysis import analyse_corners
 from modules.stability_analysis import _estimate_sample_rate
 
@@ -17,6 +18,23 @@ CHANNELS_CONFIG_PATH = "config/channels.json"
 def load_channels_config():
     with open(CHANNELS_CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _match_event_zero_entry(entries, metadata):
+    """(entry name, {channel: zero_N}) for the event_zero_entries entry whose
+    track and logger serial match this file's header, else (None, {}).
+    The header has no date, so this key alone cannot separate two events of
+    one track; the per-channel gate-window guard in parse_csv does that for
+    a re-zeroed gauge."""
+    track = metadata.get("TrackName")
+    m = re.search(r"Serial Number:\s*(\d+)", metadata.get("SystemDetails", ""))
+    serial = m.group(1) if m else None
+    for name, entry in entries.items():
+        if name.startswith("_"):
+            continue
+        if entry.get("track") == track and entry.get("logger_serial") == serial:
+            return name, {ch: v["zero_N"] for ch, v in entry["channels"].items()}
+    return None, {}
 
 
 def _split_name_unit(raw_name):
@@ -137,6 +155,10 @@ def parse_csv(file_path):
     # Applied only if this file's raw mean is inside precondition_mean_range
     # -- a healthy channel of the same name stays untouched.
     corrections = config.get("channel_corrections", {})
+    # Event logger zero entries (Q-CAL-2): subtracted before the gate, which
+    # would otherwise fail a channel zeroed against another reference.
+    zero_event, zero_entries = _match_event_zero_entry(config.get("event_zero_entries", {}), metadata)
+    zero_status = {}
     result_channels = {}
 
     for ch_name, ch_config in channels_config.items():
@@ -160,6 +182,18 @@ def parse_csv(file_path):
             lo_pre, hi_pre = correction["precondition_mean_range"]
             if lo_pre <= float(np.mean(data_arr)) <= hi_pre:
                 data_arr = data_arr + correction["offset"]
+
+        zero_N = zero_entries.get(ch_name)
+        if zero_N is not None and len(data_arr) > 0:
+            # gate-window guard: only if the corrected mean is plausible for
+            # this channel -- a re-zeroed gauge keeps its raw data and fails
+            # the gate as before (static split), never takes a wrong entry
+            lo_gate, hi_gate = ch_config["range"]
+            if lo_gate <= float(np.mean(data_arr)) - zero_N <= hi_gate:
+                data_arr = data_arr - zero_N
+                zero_status[ch_name] = "applied"
+            else:
+                zero_status[ch_name] = "guard_failed"
 
         if len(data_arr) == 0:
             quality = "failed"
@@ -200,6 +234,7 @@ def parse_csv(file_path):
         "laps": laps,
         "corners": [],
         "measured_sample_rate_hz": measured_rate,
+        "event_zero_entry": {"event": zero_event, "channels": zero_status},
     }
 
     result["corners"] = analyse_corners(result)

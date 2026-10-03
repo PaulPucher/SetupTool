@@ -529,6 +529,14 @@ the per-section lists below are the current inventory.]
   Its decay records feed the grade-zone width of the option-4 package.
   Imports inspect_last_push and the (d2) harness. Outputs in
   `plots/kerb_filter_decay/`.
+- **inspect_nbr_zero_entry_verify.py** (2026-10-03, keep-reproduces, pending
+  the author's confirmation; referenced from PLAN.md Q-CAL item 2) -- Q-CAL-2
+  acceptance: the 16 NBR files through the production parser with the
+  event zero entries -- entry status, damper share, gauge-vs-voltage map
+  re-fit on the corrected channels against the production-parsed Paul
+  Ricard reference, V1-V4 on the production loads. Imports
+  inspect_recover_rr (frozen reference, read only), inspect_v4_windows
+  (_scan) and inspect_shared_offset. Outputs in `plots/nbr_zero_entry_verify/`.
 - **inspect_kerb_cs_movement.py** (2026-10-03, keep-reproduces, CONFIRMED by
   the author 2026-10-03: documents lever 1's effect on CS) -- Q-CAL item 1
   closing check: CS before (+/-50 ms kerb mask) vs after (+/-100 ms) on

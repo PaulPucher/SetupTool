@@ -24,7 +24,11 @@ CAR_DATA_PATH = "config/car_data.json"
 #   6: auto-fit modes, fit_manifest, gate_verdict, fallback_*
 #   7: ls_ratio_f/r stat blocks (display only)
 #   8: apex_region per corner; grid_rate_hz in the payload
-ANALYSIS_SCHEMA_VERSION = 8
+#   9: no shape change -- estimator inputs changed: Q-CAL-1 mask, Q-CAL-2
+#      NBR zero entries (2026-10-03). Standing rule: any estimator-input
+#      change made outside Settings bumps this, since the caches do not
+#      see config edits.
+ANALYSIS_SCHEMA_VERSION = 9
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

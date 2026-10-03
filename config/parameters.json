@@ -280,7 +280,7 @@
     "pushrod_offset_fr_N": 0.0,
     "pushrod_offset_rl_N": 0.0,
     "pushrod_offset_rr_N": 0.0,
-    "pushrod_offset_note": "Level 1 default (zero). log_dms_dam_* is already logged in [N] (confirmed from the raw file header, not assumed), so an offset here is a zero-load calibration correction the team would enter after a static gauge check, not a unit conversion. No such session-entered value exists yet anywhere in this project (no UI field, no setup_data key) -- left at 0.0 (i.e. the raw channel is trusted as already zeroed) until a real calibration procedure and entry point exist. The straight-line total-load validation is the check on whether 0.0 is a reasonable assumption for this file.",
+    "pushrod_offset_note": "Level 1 default (zero). log_dms_dam_* is already logged in [N] (confirmed from the raw file header, not assumed), so an offset here is a zero-load calibration correction the team would enter after a static gauge check, not a unit conversion. No such session-entered value exists yet anywhere in this project (no UI field, no setup_data key) -- left at 0.0 (i.e. the raw channel is trusted as already zeroed) until a real calibration procedure and entry point exist. The straight-line total-load validation is the check on whether 0.0 is a reasonable assumption for this file. [2026-10-03: an event whose gauges were zeroed against another reference (NBR) is handled upstream by channels.json event_zero_entries, before the range gate; this offset stays the static gauge-check calibration and stays 0.0.]",
     "unsprung_mass_front_kg": 40.0,
     "unsprung_mass_rear_kg": 45.0,
     "unsprung_mass_note": "Level 1, work-order-supplied figures (not independently sourced this package) -- per-wheel unsprung mass (upright, hub, brake, wheel/tyre assembly, half-shaft share), typical order of magnitude for a GT3-class car. Feeds the unsprung-mass lateral-transfer term, which bypasses the damper/spring entirely (reacts through the upright/tyre contact directly) and must be added on top of the damper-derived sprung force, never folded into it.",
@@ -455,7 +455,7 @@
       "level": 1,
       "source": "per-axle independent lateral-transfer split (estimate_vertical_loads), the chair's own construction (docs/literature/data_handler.py, internal) -- NOT the roll-stiffness apportionment scoped as a later DOMAIN IMPROVEMENT",
       "capped_by": "chained-constant: cog_height_m, track_width_front_m, track_width_rear_m, aero.lift_coeff/cross_track_area_m2/diff_cog_x_m",
-      "note": "2026-07-26."
+      "note": "2026-07-26. [2026-10-03: this level describes the STATIC split only. With vertical_load_source = measured the level is per sample (vertical_load_source_per_sample): 'damper' = L4 (logged sensor + motion-ratio table); on NBR the damper channels carry an event zero entry (channels.json event_zero_entries), so NBR damper loads are 'L4 with an L2 zero' (L4-rel, author ruling, Q-CAL-2).]"
     },
     "wheel_load_damper": {
       "level": 4,

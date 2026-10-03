@@ -25,6 +25,10 @@ order. Read PLAN.md before starting any work.
 - Short comment blocks. Real data only — no synthetic test data.
 - Accuracy levels: 1=config default, 2=session measurement, 3=logged sensor,
   4=lookup table. Every physical quantity states its level.
+- SCHEMA BUMP RULE (2026-10-03, author): any estimator-input change made
+  outside Settings (config edit, mask, channel correction, zero entry)
+  bumps ANALYSIS_SCHEMA_VERSION with a dated reason -- the app's result
+  caches do not see such edits otherwise.
 - After each change, run `python test_stability.py` and show me the output
   before continuing. UI changes: I run the app manually and report back.
 - HANDOVER.md and generate_handover.py stay local — never commit them.

@@ -129,9 +129,12 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     the very bump Phase 3 was instructed to make. Worth a second look,
     per that same precedent.
     """
-    assert ANALYSIS_SCHEMA_VERSION == 8, (
+    # 9 (2026-10-03): no payload shape change -- bumped for changed estimator
+    # inputs (Q-CAL-1 mask, Q-CAL-2 NBR zero entries) so stale caches re-run;
+    # every shape check below is unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 9, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 8 -- update this test deliberately if the version was bumped again"
+        "written for 9 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
