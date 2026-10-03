@@ -128,6 +128,14 @@ Parameter categories, for clarity:
   and the derivation rule applies to the DERIVED defaults, which a
   manual override never rewrites. (amended 2026-09-28)
 
+## Render title rule (standing, 2026-10-02)
+Every render carries a human-readable in-image title: session name,
+quantity shown, and the variant in WORDS -- never bare internal codes
+(no "S2", no bare session keys as the only label). diagnostics/
+plots_INDEX.md (committed, updated at every close-out) lists every plot
+folder and carries a plain-language legend for the codes in its file
+names. Applies to all future renders.
+
 ## Comment style rule (project-wide)
 Comments and docstrings must read like a capable engineering student
 wrote them for himself and his examiners:

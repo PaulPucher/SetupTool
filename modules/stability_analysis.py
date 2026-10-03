@@ -224,6 +224,26 @@ def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
     return out
 
 
+def _seconds_to_samples(duration_s, sample_rate_hz):
+    return max(0, int(round(duration_s * sample_rate_hz)))
+
+
+def _kerb_smear_zone(kerb_mask, grade_samples):
+    # The 2 Hz zero-phase CS filter runs over the strike before the mask is
+    # applied, so the strike leaks into unmasked neighbours on both sides
+    # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py). Zone = unmasked
+    # samples within grade_samples of a mask sample; it only feeds the
+    # near_strike grade mark, never an exclusion. [domain improvement: the
+    # chair tooling has no kerb treatment]
+    if kerb_mask is None:
+        return None
+    n = len(kerb_mask)
+    c = np.concatenate(([0], np.cumsum(kerb_mask, dtype=np.int64)))
+    idx = np.arange(n)
+    near = (c[np.minimum(idx + grade_samples + 1, n)] - c[np.maximum(idx - grade_samples, 0)]) > 0
+    return near & ~kerb_mask
+
+
 def prepare_vehicle_state(channels, params):
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -282,8 +302,9 @@ def prepare_vehicle_state(channels, params):
         az_g,
         threshold_g=se["kerb_z_deviation_threshold_g"],
         baseline_g=se["kerb_baseline_g"],
-        dilation_samples=int(se["kerb_dilation_samples"]),
+        dilation_samples=_seconds_to_samples(se["kerb_dilation_s"], sr),
     )
+    kerb_smear_zone = _kerb_smear_zone(kerb_mask, _seconds_to_samples(se["kerb_smear_grade_s"], sr))
 
     throttle = interp_channel("ecu_aps")
     brake_f = interp_channel("log_pbrake_f")
@@ -326,6 +347,7 @@ def prepare_vehicle_state(channels, params):
         "gear": gear,
         "moving_mask": moving_mask,
         "kerb_mask": kerb_mask,
+        "kerb_smear_zone": kerb_smear_zone,
         "az_g": az_g,
         "gps_lat": gps_lat,
         "gps_lon": gps_lon,
@@ -695,6 +717,9 @@ def estimate_cornering_stiffness(slip, forces, state, params):
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
     s_m = state.get("s_m")
+    # Grade only: near_strike never feeds CS, the reference or any verdict.
+    smear_zone = state.get("kerb_smear_zone")
+    smear_cum = None if smear_zone is None else np.concatenate(([0], np.cumsum(smear_zone, dtype=np.int64)))
 
     alpha_f = slip["alpha_f_filt"]
     alpha_r = slip["alpha_r_filt"]
@@ -717,6 +742,7 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         # linear reference in effect per sample (CS_ratio denominator), for the
         # tyre-curve audit plot
         C_linear_ref_arr = np.full(n, np.nan)
+        near_strike = np.zeros(n, dtype=bool)
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -802,13 +828,16 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
             if not np.isnan(C_linear_ref) and C_linear_ref > 0:
                 CS_ratio[i] = min(C_alpha[i] / C_linear_ref, 1.0)
+                # same [start, i) window the regression used
+                if smear_cum is not None:
+                    near_strike[i] = smear_cum[i] > smear_cum[start]
 
             C_linear_ref_arr[i] = C_linear_ref
 
-        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr
+        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     return {
         "C_alpha_f": C_f,
@@ -823,6 +852,10 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         "CS_ratio_r": CS_ratio_r,
         "C_linear_ref_f": Clr_f,
         "C_linear_ref_r": Clr_r,
+        # Q-CAL-1 grade mark, in memory only (no schema change); read by the
+        # tyre fit and the trace display, never by the classifier
+        "near_strike_f": ns_f,
+        "near_strike_r": ns_r,
     }
 
 

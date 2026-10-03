@@ -46,7 +46,8 @@ only, no modules/ consumer", which was already stale). Moved to
 modules/sideslip_ekf_dugoff.py and modules/sideslip_ekf_pacejka.py;
 every import and reference across the repo updated in the same commit.
 No longer part of this directory's own inventory -- 90 scripts remain
-here (53 keepers + 37 in diagnostics/_attic/).
+here (53 keepers + 37 in diagnostics/_attic/). [Count as of 2026-09-24;
+the per-section lists below are the current inventory.]
 
 ## K1 -- config-cited provenance (26)
 
@@ -442,26 +443,124 @@ here (53 keepers + 37 in diagnostics/_attic/).
   signature, curve and residual renders. Imports the (d2) harness. Outputs
   in `plots/rear_curve_bias/`. Env Q2D_BOOT overrides the bootstrap count
   for smoke runs only.
-- **inspect_phase1_q3.py** (2026-10-02, keep-reproduces, pending the
-  author's Q3 exit ruling) -- PHASE 1 PLAN Q2c + Q3: G0 GPS census, G1
+- **inspect_phase1_q3.py** (2026-10-02, keep-reproduces, CONFIRMED by the
+  author 2026-10-02: backs the Q3/Q4 and G2 closures) -- PHASE 1 PLAN Q2c + Q3: G0 GPS census, G1
   gradient map, G2 corner anchor (unscored), V1 / V2 tailoring variants and
   the Q4 courtroom ((ii) rake, (iii) per-phase driver statement, (v)
   coherence) with CS renders; rules frozen in its header. Imports the (d2)
   harness and its caches. Outputs in `plots/phase1_q3/`; modes g0 | g1 |
   g2 | v1 | v2 | q4 | all.
-- **inspect_rake_ab_anchor.py** (2026-10-02, keep-reproduces, pending the
-  author's ruling on the A/B anchor characterisation) -- PHASE 1 PLAN Q3
+- **inspect_rake_ab_anchor.py** (2026-10-02, keep-reproduces, CONFIRMED by
+  the author 2026-10-02: backs the A/B anchor characterisation) -- PHASE 1 PLAN Q3
   ruling 3 (reframed): NBR A (outing 21) vs B (outing 29) change census
   over all channel blocks, C1 / C4 / C10 corner traces (speed, a_y, steer,
   yaw, brake, GPS line offset, alpha_f / peak, CS), consistency and
   phase-flipping sign tests. Imports the (d2) harness. Outputs in
   `plots/rake_ab_anchor/`; modes census | corners | coherence | all.
-- **inspect_g2_anchor_validation.py** (2026-10-02, keep-reproduces, pending
-  the author's look at the GPS-anchor closure) -- PHASE 1 PLAN Q3 extended
+- **inspect_g2_anchor_validation.py** (2026-10-02, keep-reproduces,
+  CONFIRMED by the author 2026-10-02: backs the GPS-anchor closure) -- PHASE 1 PLAN Q3 extended
   package: Gate A on g2_repair2.json, validation battery (sign/phase,
   latency +/-0.05 s, SE vs speed, kerb, lap-count, cross-session), Gate B,
   gated first external beta read (Part 3). Imports inspect_phase1_q3 and
   the (d2) harness. Outputs in `plots/g2_anchor_validation/`.
+- **inspect_seed_sweep.py** (2026-10-02, keep-reproduces, Q-SEED CLOSED
+  2026-10-02: backs the closure and the supervisor answer) -- PHASE 1 PLAN Q-SEED: seed-construction
+  variants S0 / S1a / S1b / S2 / S3a / S3b / S4w / S4l, per-session offsets
+  by the (a) method, metrics M1-M4 (plus the labelled post-hoc M1c / M3c),
+  beta / fit-cloud renders, downstream CS chain for escalated variants.
+  Backs the supervisor's corner-switching question (S2/S3). Imports the
+  (d2) harness and inspect_imu_offsets. Modes sweep | posthoc | down |
+  report. Outputs in `plots/seed_sweep/`.
+- **inspect_last_push.py** (2026-10-02, keep-reproduces, CONFIRMED by the
+  author 2026-10-03: backs the Q-PUSH closure and the K2 exhibit) -- PHASE 1
+  PLAN Q-PUSH "THE LAST PUSH": P1
+  steering-derived steady-state beta + understeer gradient + anchored seed,
+  P2 despike + robust losses, P3 fit-population sweep, P4 spectrum-matched
+  filters, P5 EKF Q-sweep, P6 stacked chains, gate and all-18 escalation.
+  Imports the (d2) harness, inspect_imu_offsets and inspect_seed_sweep
+  (which therefore also has a dependency reason). Modes p1-p6 | gate | esc.
+  Outputs in `plots/last_push/`.
+- **inspect_recover_rr.py** (2026-10-03, keep-reproduces, CONFIRMED by the
+  author 2026-10-03: the reference for Q-CAL item 2 -- production's voltage
+  path must reproduce its four offsets) -- PHASE 1 PLAN Q-RECOVER-2: NBR damper-gauge offsets
+  recovered through the raw amplifier voltage referenced to the same car's
+  Paul Ricard zero (R3), the characterised standing-rolling correction with
+  leave-one-out (R1), the drift-as-weight decomposition (T2) and the
+  reference checks (T3). Reads Q-SHARED-OFFSET fit.json, Q2 outputs and the
+  v4_windows inventory maps. Modes run | render. Outputs in
+  `plots/recover_rr/`.
+- **inspect_v4_windows.py** (2026-10-03, keep-reproduces, CONFIRMED by the
+  author 2026-10-03: backs the raw-gauge-voltage finding and the window
+  verdicts) -- PHASE 1 PLAN Q-V4-WINDOWS (standing windows
+  behind the two single-file V4 failures, exits CONTAMINATED WINDOWS / REAL
+  GAP / EVIDENCE SPLIT) and Q-CHANNEL-INVENTORY (every channel in all 20
+  files, liveness, consumed, load-adjacent pair test). Modes windows |
+  inventory <key> | families. Outputs in `plots/v4_windows/`.
+- **inspect_shared_offset.py** (2026-10-03, keep-reproduces, CONFIRMED by the
+  author 2026-10-03: reproduces the NBR front-right recovery Q2 now builds on) -- PHASE 1 PLAN Q-SHARED-OFFSET: one
+  shared damper-gauge offset per corner across the 16 NBR files (pooled
+  straight-line fit with one aero term per corner, constant and season-trend
+  variants), file-bootstrap uncertainty, shape-validity checks V1-V4, exit,
+  renders vs the static fallback. Reads the Q2 cache / JSON. Modes
+  prep <key> | fit | renders. Outputs in `plots/shared_offset/`.
+- **inspect_wheelload.py** (2026-10-03, keep-reproduces, CONFIRMED by the author
+  2026-10-03: backs the Q-WHEELLOAD record and the rewritten engineer question) -- PHASE 1 PLAN Q-WHEELLOAD: damper-gauge decode
+  check (units, scale, shared constant, sign), per-corner wheel-load renders
+  for all 20 files (NBR L4-rel with the Q2 offsets), fuel-drift overlay,
+  setup-reference test, cross-file offsets. Reads the Q2 outputs
+  (inspect_damper_offset_q2.py partB JSON) and the (d2) harness. Modes
+  part0 | file <key> | summary. Outputs in `plots/wheelload/`.
+- **inspect_pairing.py** (2026-10-03, keep-reproduces, CONFIRMED by the author
+  2026-10-03: backs the Q-PAIRING verdicts and the position-distinctive exhibit) -- PHASE 1 PLAN Q-PAIRING: per-site window contents at
+  the 22 position-locked CS dips (alpha-Fy lag, re-pairing, EKF-vs-kinematic
+  slip gap, kerb / az / damper disturbance), global in-corner lag
+  distribution, synthetic lag-vs-depth test, per-site A / B / C verdicts.
+  Imports inspect_last_push, inspect_stiffness_cs and inspect_chair_audit.
+  Modes sites | synth. Outputs in `plots/pairing/`.
+- **inspect_kerb_filter_decay.py** (2026-10-03, keep-reproduces, CONFIRMED by
+  the author 2026-10-03: derives kerb_smear_grade_s; referenced from PLAN.md
+  Q-CAL item 1) -- Q-CAL-1
+  measurement: kerb-strike smear through the CS chain's 2 Hz filtfilt past
+  the kerb-mask edge (line-bridged counterfactual, null-control noise band,
+  per-event decay, CS windows touched), and the spike-coincidence count
+  (mode `coincidence`, reads only its own records and the (d2) fit caches),
+  the position-locked site check (mode `sites`) and the options 4 + 0
+  verification on the Tier-1 sessions (mode `verify`).
+  Its decay records feed the grade-zone width of the option-4 package.
+  Imports inspect_last_push and the (d2) harness. Outputs in
+  `plots/kerb_filter_decay/`.
+- **inspect_kerb_cs_movement.py** (2026-10-03, keep-reproduces, CONFIRMED by
+  the author 2026-10-03: documents lever 1's effect on CS) -- Q-CAL item 1
+  closing check: CS before (+/-50 ms kerb mask) vs after (+/-100 ms) on
+  US-v2, v3, JST 29 and Dubai with the cached production beta (entry check
+  against the cached CS), distribution and tail shares, the 22
+  position-locked site dips, one trace exhibit. Imports inspect_last_push
+  and the (d2) harness. Outputs in `plots/kerb_cs_movement/`.
+- **inspect_chair_audit.py** (2026-10-03, keep-reproduces, CONFIRMED by the
+  author 2026-10-03: backs the Q-CHAIR-AUDIT closure and the curve-bound exhibit) -- PHASE 1 PLAN Q-CHAIR-AUDIT: Fy
+  composition and damper witness, insufficient-signal grade (V-GRADE),
+  adaptive windows (V-ADAPT, re-implemented production window loop with an
+  exact entry check), curve-shape bound at position-locked dip sites, the
+  post-hoc 4 s Welch Part-1b row, Part F tyre-model comparison (the chair's
+  fit procedure on our population). Imports inspect_last_push and
+  inspect_stiffness_cs (both therefore also have a dependency reason). Modes
+  run | partE | partF. Outputs in `plots/chair_audit/`.
+- **inspect_stiffness_cs.py** (2026-10-03, keep-reproduces, pending the
+  author's ruling on Q-STIFF-CS) -- PHASE 1 PLAN Q-STIFF-CS: Part 1a yaw-rate
+  gain per speed band (K cross-check), Part 1b transient yaw-mode stiffness
+  identification (frequency domain + steering-step events, three-way exit),
+  Part 2 CS readability (variance decomposition, window / ingredient
+  variants, phase-median and cross-lap-band displays), gate, escalation.
+  Imports inspect_last_push (which therefore also has a dependency reason)
+  and the (d2) harness. Modes p1a | p1b | p2 | gate | esc2 | step2 | spike |
+  spike_render (re-render from saved JSON). Outputs
+  in `plots/stiffness_cs/`.
+- **inspect_raw_channels.py** (2026-10-02, keep-reproduces: the evidence
+  behind docs/team_questions_raw_channels.md, which the author reviews) -- PHASE 1 PLAN
+  Q-RAW: native-sample rate, quantisation, hold, limits, spectra and lags
+  of the sclu / log / ADR2 / MRR inertial channels on four files; the
+  evidence behind the team case file. Imports the (d2) harness and
+  inspect_imu_offsets.read_raw_blocks. Outputs in `plots/raw_channels/`.
 - **inspect_damper_offset_q2.py** (2026-10-02, keep-reproduces, pending the
   author's Q2 exit ruling) -- PHASE 1 PLAN Q2: Part A limitation-11
   load-source check (tiers + static-path rear Fz), Part B NBR damper-offset

@@ -93,7 +93,7 @@ print("    raw = |az_g - kerb_baseline_g| > kerb_z_deviation_threshold_g")
 print("    mask = raw dilated by kerb_dilation_samples on each side (rolling-OR)")
 print(f"  config/parameters.json stability_estimation: kerb_z_deviation_threshold_g="
       f"{se['kerb_z_deviation_threshold_g']}, kerb_baseline_g={se['kerb_baseline_g']}, "
-      f"kerb_dilation_samples={se['kerb_dilation_samples']} ({se['kerb_dilation_samples']/sr*1000:.0f} ms "
+      f"kerb_dilation_s={se['kerb_dilation_s']} ({int(round(se['kerb_dilation_s'] * sr))} samples "
       f"each side at {sr:.1f} Hz)")
 print(f"  population_mask (moving & valid-lap racing time, kerb NOT excluded): n={int(population_mask.sum())}")
 print()
@@ -367,7 +367,8 @@ max_wheel_kappa = np.nanmax(np.stack([np.abs(kappa_wheel[w]) for w in ("fl", "fr
 raw_alt = max_wheel_kappa > ANOMALY_THRESHOLD
 raw_alt = np.nan_to_num(raw_alt, nan=False).astype(bool)
 
-dilation = int(se["kerb_dilation_samples"])
+# kerb_dilation_samples became kerb_dilation_s (Q-CAL-1 option 0, 2026-10-03)
+dilation = int(round(se["kerb_dilation_s"] * sr))
 alt_mask = raw_alt.copy()
 if dilation > 0:
     for shift in range(1, dilation + 1):

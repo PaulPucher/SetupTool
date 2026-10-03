@@ -95,12 +95,12 @@ SECTION2_PARAMS_FIELDS = [
     {"path": ("stability_estimation", "kerb_baseline_g"), "label": "Kerb baseline", "unit": "g",
      "decimals": 2, "min": -2.0, "max": 2.0,
      "short_note": "Vertical acceleration of the car at rest; kerb offsets are measured from it."},
+    # seconds, not samples: a sample count silently halved when the grid went 50 -> 100 Hz
+    {"path": ("stability_estimation", "kerb_dilation_s"), "label": "Kerb dilation", "unit": "s",
+     "decimals": 2, "min": 0.0, "max": 0.5,
+     "short_note": "Time masked either side of a kerb hit, to cover the ringdown."},
 ]
-SECTION2_PARAMS_INT_FIELDS = [
-    {"path": ("stability_estimation", "kerb_dilation_samples"), "label": "Kerb dilation", "unit": "samples",
-     "min": 0, "max": 50,
-     "short_note": "Samples masked either side of a kerb hit, to cover the ringdown."},
-]
+SECTION2_PARAMS_INT_FIELDS = []
 SECTION2_CHANNELS_INT_FIELDS = [
     {"path": ("corner_speed_thresholds", "low_max"), "label": "Low/medium speed boundary", "unit": "km/h",
      "min": 0, "max": 350,
