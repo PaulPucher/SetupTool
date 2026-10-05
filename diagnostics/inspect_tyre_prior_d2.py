@@ -250,9 +250,13 @@ def _load(path):
 
 
 def _params():
+    # Best available, the app's default path: with setup_data=None only the
+    # steering conversion differs from cap 1 (Level-4 manufacturer map,
+    # corrected 2026-10-04). Fit caches built at cap 1 are archived in
+    # cache_cap1/ as the constant-15.7 reference.
     from modules.stability_analysis import load_parameters
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
-    return apply_resolved_vehicle(load_parameters(), resolve_accuracy(load_parameters(), setup_data=None, cap=1))
+    return apply_resolved_vehicle(load_parameters(), resolve_accuracy(load_parameters(), setup_data=None, cap=None))
 
 
 # ---------------------------------------------------------------- census
@@ -592,7 +596,12 @@ def fit(key):
     beta, man, gate, fb, fr = _resolve(key, params, data, state)
     slip = estimate_slip_angles(state, estimate_sideslip(state, params), params)
     forces = estimate_lateral_forces(state, params)
-    out = {"key": key, "time": state["time"], "s_m": state["s_m"], "base_mask": _base_mask(state, data["laps"]),
+    from modules.tyre_fit_auto import _speed_window_mask
+    window, window_info = _speed_window_mask(state, data, params["tyre_fit_auto"])
+    base = _base_mask(state, data["laps"])
+    # fit_mask = the production fit population since the speed window (2026-10-04)
+    out = {"key": key, "time": state["time"], "s_m": state["s_m"], "base_mask": base,
+           "fit_mask": base & window, "window_info": window_info,
            "alpha_f": slip["alpha_f_filt"], "alpha_r": slip["alpha_r_filt"],
            "fy_f": forces["Fy_f_filt"], "fy_r": forces["Fy_r_filt"],
            "laps": data["laps"],

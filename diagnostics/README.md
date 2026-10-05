@@ -537,6 +537,94 @@ the per-section lists below are the current inventory.]
   Ricard reference, V1-V4 on the production loads. Imports
   inspect_recover_rr (frozen reference, read only), inspect_v4_windows
   (_scan) and inspect_shared_offset. Outputs in `plots/nbr_zero_entry_verify/`.
+- **inspect_fit_ma_calibration.py** (2026-10-03, keep-reproduces, ruled by
+  the author 2026-10-03: the record of the rejection) -- Q-CAL-3 calibration
+  pass, the chair's 0.15 s moving average on the tyre-fit inputs vs
+  production's 2 Hz inputs on US-v2, v3, JST 29 (frozen frame in its
+  header; verdict HARM, MA rejected). Mode `metrics` re-renders metrics.png
+  from results.json without recomputation. Imports inspect_last_push,
+  inspect_seed_sweep and the (d2) harness; its harness pattern is reused by
+  inspect_fit_k2_calibration.py. Outputs in `plots/fit_ma_calibration/`.
+- **inspect_fit_decisive.py** (2026-10-04, keep-reproduces, pending the
+  author's ruling; referenced from PLAN.md Q-FIT-DECISIVE) -- the decisive
+  fit-population pass: speed window, smear zone, large-Fx tails and
+  survivor combinations vs production on US-v2 / v3 / JST 29, frame frozen
+  in its header (nothing earned, production stays). Imports
+  inspect_fit_k2_calibration (entry), inspect_fit_ma_calibration and
+  inspect_last_push (both therefore also have a dependency reason).
+  Outputs in `plots/fit_decisive/`.
+- **inspect_combined_loads_feasibility.py** (2026-10-04, keep-reproduces,
+  CONFIRMED by the author 2026-10-04: backs the metric-decision closure) -- part (c):
+  production chain on the 16 NBR files, in-corner CS binned by measured
+  (damper-tier, 2 Hz) axle load, medians and counts only, no fit, no
+  verdict. Modes `compute <key>` and `report`. Imports inspect_imu_offsets
+  and inspect_nbr_zero_entry_verify (_path). Outputs in
+  `plots/combined_loads_feasibility/`.
+- **inspect_fit_k2_calibration.py** (2026-10-04, keep-reproduces, CONFIRMED by
+  the author 2026-10-04: the record of the HARM verdict; referenced from PLAN.md Q-CAL item 3) -- Q-CAL-3
+  K2-constrained calibration pass: joint front/rear tyre fit with the
+  balance m_f/C_f - m_r/C_r pinned to Q-PUSH P1's diagnostic K2, vs the
+  production fit, US-v2 / v3 / JST 29, frame frozen in its header (verdict
+  HARM, informational for Q-K2). Mode `metrics` re-renders from
+  results.json. Imports inspect_fit_ma_calibration (which therefore also
+  has a dependency reason), inspect_last_push and the (d2) harness; reads
+  plots/last_push/p1_<key>.json. Outputs in `plots/fit_k2_calibration/`.
+- **inspect_threshold_rederivation.py** (2026-10-04, keep-reproduces,
+  CONFIRMED by the author 2026-10-04: the method dry-run for the threshold
+  re-derivation that runs last in the queue, after the metric decision) -- post-levers
+  threshold re-derivation diagnostic: classifier input per corner on the
+  final estimator (eight standard sessions, production chain, cap 1), the
+  recorded STRONG / MODERATE rules (imported from
+  inspect_cs_decision_table), the percentile each threshold encodes, the
+  JST 29 front tail check. Modes `compute <key>` and `report`. If the
+  author derives new config values from it, it becomes their
+  derived_from. Outputs in `plots/threshold_rederivation/`.
+- **inspect_iteration.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 --
+  documents the Step 4 verdicts) -- Step 4 iteration experiment: refit on the
+  EKF-refined slip angles, up to 3 rounds, starting from the session's own
+  fit and from the pooled curve (Tier 1), frozen frame and literature
+  citations in the header, the decisive frame for the final round.
+  Imports inspect_pool_fits (pool curves, fitter hook) -> also a dependency
+  reason for that script. Modes run | report | plots. Outputs in
+  `plots/iteration/`.
+- **inspect_pool_fits.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 --
+  documents the Step 3 pool verdicts) -- Step 3 pooled fits: cache rebuild with the
+  speed window (entry check per member), one pooled Pacejka fit per axle for
+  Pool T (18 files, same tyre spec) and Pool D (7 JST files), each member's
+  chain with the pooled curve behind the run_chain fitter hook, frozen
+  verdict frame in the header, plus the C+ plots (pooled vs member curves,
+  Tier-1 full-lap CS, Tier-1 CS histograms). Modes rebuild | pool | eval |
+  report | plots | csplots (2026-10-05, kerb display package: the Tier-1
+  CS renders with near-strike samples greyed; the grade mark is recomputed
+  from the cached beta and must reproduce the cached CS first). Outputs in
+  `plots/pool_fits/`.
+- **inspect_mu_trace.py** (2026-10-05, keep status PROPOSED: keep-reproduces if
+  the author ships a mu view or metric from it, else disposable at the commit) --
+  Q-MU: axle utilisation trace mu = |Fy_axle| / Fz_axle on the 16 NBR files,
+  Level-1 Fy over MEASURED Fz (fresh parse with the Q-CAL-2 zero entries; the
+  cached d2 data predate them), both through the production 2 Hz low-pass;
+  entry checks E1-E4 in the header; in-corner clean / near-strike-grey
+  statistics, JST 29 position-locked sites, verdict-class sign test with the
+  R = R_load x R_yaw decomposition, JST 21 phase frame. Imports
+  inspect_tyre_prior_d2, inspect_last_push, inspect_pool_fits. Modes run |
+  report | plots. Outputs in `plots/mu_trace/`.
+- **inspect_speed_bands.py** (2026-10-04, keep-reproduces, CONFIRMED 2026-10-05) -- Step 2:
+  our speed distribution against the chair's four speed bands, data
+  quality per region, candidate windows SW / CU / BI; the derivation
+  evidence behind config tyre_fit_auto.fit_speed_window_pct (cited in its
+  provenance string -> also Referenced). Outputs in `plots/speed_bands/`.
+- **inspect_steering_fix_impact.py** (2026-10-04, keep-reproduces, CONFIRMED 2026-10-05)
+  -- Step 1-fix impact assessment: faulty lookup vs constant 15.7 vs
+  corrected wheel-angle map on Tier 1 (beta, alpha, CS, fits), and the
+  beta-spike localisation (mode spikes: EKF fallback-switch timing; BACKLOG
+  -- PERMANENT item 11 evidence). Reads the archived caches
+  plots/tyre_prior_d2/cache_cap1/ (15.7, pre-Q-CAL-1 mask) and
+  cache_steerfix_prewindow/. Outputs in `plots/steering_fix_impact/`.
+- RECORD-ONLY since 2026-10-04 (speed window in production): inspect_fit_
+  decisive.py (its fitter hook stops on the mask check), inspect_fit_ma_
+  calibration.py and inspect_fit_k2_calibration.py (their hooks do NOT
+  check the mask -- a re-run would silently fit the windowed population);
+  re-running any of them as recorded needs fit_speed_window_pct null.
 - **inspect_kerb_cs_movement.py** (2026-10-03, keep-reproduces, CONFIRMED by
   the author 2026-10-03: documents lever 1's effect on CS) -- Q-CAL item 1
   closing check: CS before (+/-50 ms kerb mask) vs after (+/-100 ms) on

@@ -28,7 +28,13 @@ CAR_DATA_PATH = "config/car_data.json"
 #      NBR zero entries (2026-10-03). Standing rule: any estimator-input
 #      change made outside Settings bumps this, since the caches do not
 #      see config edits.
-ANALYSIS_SCHEMA_VERSION = 9
+#  10: no shape change -- estimator input changed (2026-10-04): the Level-4
+#      steering conversion reads the wheel angle from the manufacturer table
+#      (mean of both front wheels) instead of dividing by its local ratio.
+#  11: estimator input changed (2026-10-04): speed window on the Pacejka fit
+#      population (tyre_fit_auto.fit_speed_window_pct); fit manifest gains
+#      speed_window.
+ANALYSIS_SCHEMA_VERSION = 11
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -283,15 +289,21 @@ def prepare_vehicle_state(channels, params):
 
     steer_sw_deg = interp_channel("log_asteer")
     steer_sw_rad = steer_sw_deg * np.pi / 180.0
-    # steering_ratio_table only present after accuracy resolution at L4;
-    # otherwise the plain constant. np.interp clamps outside the table
-    # (+/-291 deg, beyond anything driven).
-    steering_ratio_table = vp.get("steering_ratio_table")
-    if steering_ratio_table is not None:
-        i_s = np.interp(steer_sw_deg, steering_ratio_table["angle_deg"], steering_ratio_table["ratio"])
+    # L4 (table present after accuracy resolution): the wheel angle comes
+    # straight from the manufacturer map, no ratio division -- the table's
+    # ratio column is the local slope, not sw / wheel. np.interp clamps at
+    # the rack end stop (+/-291 deg). L1: the plain constant.
+    steering_wheel_table = vp.get("steering_wheel_table")
+    if steering_wheel_table is not None:
+        delta_f_deg = np.interp(steer_sw_deg, steering_wheel_table["sw_deg"], steering_wheel_table["wheel_deg"])
+        delta_f_rad = np.radians(delta_f_deg)
+        # overall ratio kept for read-outs; undefined at centre -> constant
+        near_centre = np.abs(delta_f_deg) < 1e-3
+        i_s = np.where(near_centre, vp["steering_ratio"],
+                       steer_sw_deg / np.where(near_centre, 1.0, delta_f_deg))
     else:
         i_s = vp["steering_ratio"]
-    delta_f_rad = steer_sw_rad / i_s
+        delta_f_rad = steer_sw_rad / i_s
 
     ay_mps2 = interp_channel("log_acc_y") * 9.81
     ax_mps2 = interp_channel("log_acc_x") * 9.81

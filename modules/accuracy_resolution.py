@@ -8,7 +8,10 @@
 # yaw_inertia not cascaded: method ceiling 1 (m*a*b) -> always level 1.
 #
 # steering_ratio L4 = manufacturer table in car_data.json (local,
-# gitignored); file missing or table bad -> L1 constant.
+# gitignored); file missing or table bad -> L1 constant. At L4 the wheel
+# angle is read from the table directly -- its steering_ratio column is the
+# LOCAL ratio d(sw)/d(wheel), so dividing the total angle by it overstates
+# the wheel angle at large lock.
 
 import copy
 
@@ -23,10 +26,17 @@ def _cap_ceiling(cap):
     return cap if cap is not None else 4
 
 
-def _load_steering_ratio_table():
-    """(angle_deg, ratio) as plain lists (goes into JSON-serialised "values"),
-    or None if missing, malformed, or angle axis not strictly increasing
-    (np.interp needs that).
+def _load_steering_wheel_table():
+    """Bicycle-model front steer angle vs steering-wheel angle, both in deg,
+    as plain lists (they go into the JSON-serialised "values"), or None if
+    the table is missing or unusable.
+
+    The manufacturer table gives ONE wheel's angle over the full stroke; the
+    +/- branches differ at large lock (Ackermann). The bicycle model's steer
+    angle is the mean of the inner and outer wheel (Rajamani sec. 2.2,
+    Ackermann turning geometry), i.e. the mean of |wheel| on both branches at
+    the same |sw|, signed like sw. The result is odd in sw, so it does not
+    depend on which wheel or sign convention the table was printed in.
     """
     car_data = load_car_data()
     if not car_data:
@@ -39,36 +49,53 @@ def _load_steering_ratio_table():
     if not columns or not rows:
         return None
     try:
-        angle_idx = columns.index("steering_wheel_angle_deg")
-        ratio_idx = columns.index("steering_ratio")
-        angle_deg = [float(row[angle_idx]) for row in rows]
-        ratio = [float(row[ratio_idx]) for row in rows]
+        sw_idx = columns.index("steering_wheel_angle_deg")
+        wheel_idx = columns.index("wheel_angle_deg")
+        sw = np.array([float(row[sw_idx]) for row in rows])
+        wheel = np.array([float(row[wheel_idx]) for row in rows])
     except (ValueError, TypeError, IndexError):
         return None
-    if len(angle_deg) < 2:
+    # np.interp needs a strictly increasing x axis; a physical steering map
+    # is monotonic and sign-preserving -- anything else is a digitising error
+    if sw.size < 3 or not np.all(np.isfinite(sw)) or not np.all(np.isfinite(wheel)):
         return None
-    if any(b <= a for a, b in zip(angle_deg, angle_deg[1:])):
+    if np.any(np.diff(sw) <= 0) or np.any(np.diff(wheel) <= 0):
         return None
-    return angle_deg, ratio
+    if np.any(sw * wheel < 0) or sw[0] >= 0 or sw[-1] <= 0:
+        return None
+
+    pos = sw >= 0
+    neg = sw <= 0
+    sw_pos, wheel_pos = sw[pos], wheel[pos]
+    # negative branch mirrored onto |sw|, increasing
+    sw_neg, wheel_neg = -sw[neg][::-1], -wheel[neg][::-1]
+    reach = min(sw_pos[-1], sw_neg[-1])  # mean only where both branches exist
+    grid = np.union1d(sw_pos, sw_neg)
+    grid = grid[grid <= reach]
+    mean = 0.5 * (np.interp(grid, sw_pos, wheel_pos) + np.interp(grid, sw_neg, wheel_neg))
+    sw_full = np.concatenate([-grid[:0:-1], grid])
+    wheel_full = np.concatenate([-mean[:0:-1], mean])
+    return sw_full.tolist(), wheel_full.tolist()
 
 
 def _resolve_steering_ratio(params, cap):
     ceiling = _cap_ceiling(cap)
     config_value = params["vehicle"]["steering_ratio"]
-    table = _load_steering_ratio_table()
+    table = _load_steering_wheel_table()
     best_available_level = 4 if table is not None else 1
 
     if table is not None and 4 <= ceiling:
-        angle_deg, ratio = table
+        sw_deg, wheel_deg = table
         return {
             "level": 4,
             "value": {
                 "mode": "table",
-                "table_angle_deg": angle_deg,
-                "table_ratio": ratio,
+                "table_sw_deg": sw_deg,
+                "table_wheel_deg": wheel_deg,
                 "constant": config_value,
             },
-            "source": "car_data.json steering_ratio_table (manufacturer data, digitised)",
+            "source": "car_data.json steering_ratio_table (manufacturer data, digitised): wheel angle "
+                      "interpolated directly, mean of both front wheels",
             "best_available_level": best_available_level,
         }
 
@@ -76,8 +103,8 @@ def _resolve_steering_ratio(params, cap):
         "level": 1,
         "value": {
             "mode": "constant",
-            "table_angle_deg": None,
-            "table_ratio": None,
+            "table_sw_deg": None,
+            "table_wheel_deg": None,
             "constant": config_value,
         },
         "source": "config default (vehicle.steering_ratio)",
@@ -280,8 +307,8 @@ def apply_resolved_vehicle(params, resolved):
     steering_ratio_value = resolved["values"].get("steering_ratio")
     if steering_ratio_value and steering_ratio_value.get("mode") == "table":
         # L4 only; absent -> prepare_vehicle_state uses the scalar
-        effective["vehicle"]["steering_ratio_table"] = {
-            "angle_deg": np.array(steering_ratio_value["table_angle_deg"], dtype=float),
-            "ratio": np.array(steering_ratio_value["table_ratio"], dtype=float),
+        effective["vehicle"]["steering_wheel_table"] = {
+            "sw_deg": np.array(steering_ratio_value["table_sw_deg"], dtype=float),
+            "wheel_deg": np.array(steering_ratio_value["table_wheel_deg"], dtype=float),
         }
     return effective

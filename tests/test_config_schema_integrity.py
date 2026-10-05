@@ -132,9 +132,13 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 9 (2026-10-03): no payload shape change -- bumped for changed estimator
     # inputs (Q-CAL-1 mask, Q-CAL-2 NBR zero entries) so stale caches re-run;
     # every shape check below is unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 9, (
+    # 10 (2026-10-04): no payload shape change -- Level-4 steering conversion
+    # corrected (estimator input).
+    # 11 (2026-10-04): speed window on the fit population (estimator input);
+    # the fit manifest gains speed_window, no corner/phase payload change.
+    assert ANALYSIS_SCHEMA_VERSION == 11, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 9 -- update this test deliberately if the version was bumped again"
+        "written for 11 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

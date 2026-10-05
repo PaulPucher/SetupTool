@@ -53,3 +53,7 @@ docs/study/
 !/channel_list.txt
 !/requirements.txt
 /*.pdf
+
+# thesis claims register cites literature on disk -- local only (2026-10-04)
+docs/claims_register.md
+docs/literature_digest.md

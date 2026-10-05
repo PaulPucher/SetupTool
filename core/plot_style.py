@@ -96,6 +96,10 @@ PRINT = {
 # by style: strong dashed, moderate dotted, unstable dash-dot
 THRESHOLD_GREY = "#8A8A8A"
 
+# near-strike grade overlay (kerb display package): the muted text grey, solid --
+# reads as lower-quality data, not as a threshold line
+NEAR_STRIKE_COLOR = TEXT_MUTED
+
 # Track-map-specific annotation colours (not lap-identified data).
 TRACK_BG_COLOR = NEUTRAL  # faint whole-lap context outline
 WINDOW_RING_COLOR = "#000000"  # estimation-window ring, fixed black

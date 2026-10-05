@@ -195,6 +195,50 @@ def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bra
     return slice(lo + start_local, lo + end_local)
 
 
+def _speed_window_mask(state, data, cfg):
+    """Speed window on the Pacejka fit population, after the chair
+    performance_analysis tooling (internal), tyre-fit speed bands: their band
+    union drops the fastest, mostly straight-line stretches. One window instead
+    of four band curves because the EKF consumes one signed curve per axle;
+    the edges come from this session's own corner speeds (vehicle
+    parameterisation), so the window adapts to the track.
+
+    Percentile population: speed of moving samples inside corner instances on
+    analysis laps (kerb samples included). Returns (mask, info); without corner
+    instances, or with the config value null, the mask keeps everything and
+    info says why.
+    """
+    n = state["time"].size
+    pct = cfg.get("fit_speed_window_pct")
+    if pct is None:
+        return np.ones(n, dtype=bool), {"status": "off (fit_speed_window_pct is null)"}
+
+    t, s_m = state["time"], state["s_m"]
+    laps_by_number = {l["lap_number"]: l for l in data.get("laps", [])}
+    in_corner = np.zeros(n, dtype=bool)
+    if s_m is not None:
+        for c in data.get("corners", []):
+            lap = laps_by_number.get(c.get("lap_number"))
+            if c.get("stable_corner_id") is None or lap is None or not lap.get("is_valid_for_analysis"):
+                continue
+            if c.get("bracket_start_m") is None or c.get("bracket_end_m") is None:
+                continue
+            in_corner[_canonical_window_slice(t, s_m, lap["start_time"], lap["end_time"],
+                                              c["bracket_start_m"], c["bracket_end_m"])] = True
+    pop = in_corner & state["moving_mask"]
+    if not pop.any():
+        return np.ones(n, dtype=bool), {"status": "not applied: no corner instances on analysis laps "
+                                                  "(lap distance missing or no corners detected)"}
+
+    v = state["v_mps"]
+    lo, hi = (float(x) for x in np.percentile(v[pop], pct))
+    return (v >= lo) & (v <= hi), {
+        "status": "applied", "pct": [float(pct[0]), float(pct[1])],
+        "lo_mps": lo, "hi_mps": hi, "lo_kmh": lo * 3.6, "hi_kmh": hi * 3.6,
+        "n_incorner_samples": int(pop.sum()),
+    }
+
+
 def fit_session(data, params, data_file_path=None):
     """One-shot per-session Dugoff fit + EKF validation (steps a-e) -> manifest.
     data = parse_csv output.
@@ -609,6 +653,12 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
 
     laps = data.get("laps", [])
     base_mask = _base_mask(state, laps)
+    # the window narrows the curve fit only; NIS sweep, gate and sign check
+    # keep base_mask (the observer must stay valid on every racing sample)
+    window, window_info = _speed_window_mask(state, data, cfg)
+    fit_mask = base_mask & window
+    if window_info["status"] == "applied":
+        window_info["base_retained_fraction"] = float(fit_mask.sum() / max(1, base_mask.sum()))
 
     beta_kin = estimate_sideslip(state, params)
     slip_kin = estimate_slip_angles(state, beta_kin, params)
@@ -634,22 +684,23 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
             return {"status": "degenerate", "degenerate_reason": "load_normalised=True requires measured "
                     "Fz -- no damper-valid samples this session (vertical_load_source resolved to 'static')",
                     "data_file": data_file_path}
-        front_fit = _fit_axle_pacejka_mu(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"], base_mask)
-        rear_fit = _fit_axle_pacejka_mu(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"], base_mask)
+        front_fit = _fit_axle_pacejka_mu(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"], fit_mask)
+        rear_fit = _fit_axle_pacejka_mu(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"], fit_mask)
     elif tyre_fit_mode == "prior_anchored":
         prior, weight = cfg["tyre_fit_prior"], cfg["prior_weight"]
-        front_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask,
+        front_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fit_mask,
                                                prior["front"], weight)
-        rear_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask,
+        rear_fit = _fit_axle_pacejka_anchored(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fit_mask,
                                               prior["rear"], weight)
     else:
-        front_fit = _fit_axle_pacejka(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], base_mask)
-        rear_fit = _fit_axle_pacejka(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], base_mask)
+        front_fit = _fit_axle_pacejka(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fit_mask)
+        rear_fit = _fit_axle_pacejka(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fit_mask)
 
     manifest = {
         "data_file": data_file_path,
         "load_normalised": load_normalised,
         "tyre_fit_mode": tyre_fit_mode,
+        "speed_window": window_info,
         "laps_used": sorted(l["lap_number"] for l in laps if l.get("is_valid_for_analysis")),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "axles": {"front": {k: v for k, v in front_fit.items() if k not in ("residuals", "residual_mask")},

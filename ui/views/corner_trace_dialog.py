@@ -17,8 +17,9 @@ from ui.style import BAD, BORDER, INFO, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DI
 # Lap = colour (lap_styles over the checked set); quantity/axle = panel.
 # All laps same width.
 from core import plot_style
+from core.trace_display import near_strike_caption
 from core.plot_style import (
-    FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY,
+    FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY, NEAR_STRIKE_COLOR,
     SCREEN_LAP_WIDTH, LEGEND_FONT_PT,
     SESSION_CLOUD_COLOR_SCREEN, SESSION_CLOUD_SIZE_SCREEN,
     LAP_SAMPLE_SIZE_SCREEN, LAP_SAMPLE_ALPHA, WINDOW_RING_SIZE_SCREEN,
@@ -469,6 +470,23 @@ class _TraceDialogBase(QDialog):
             # extend: one lap can carry bridges on several panels and corners
             self.lap_bridge_items.setdefault(lap_number, []).extend(items)
         return bool(items)
+
+    def _plot_cs_graded(self, key, x, y, mark, mode, pen, name, counts):
+        """CS panel trace under the near-strike display mode: the lap line
+        without the marked samples (restyled with the lap), the marked samples
+        as a grey overlay (grey mode). counts = [n_marked, n_finite], updated.
+        Drawing only -- the samples stay in every computed result."""
+        from core.trace_display import near_strike_split
+        main, overlay = near_strike_split(y, mark, mode)
+        if mark is not None and mode != "off":
+            fin = np.isfinite(np.asarray(y, dtype=float))
+            counts[0] += int((np.asarray(mark, dtype=bool) & fin).sum())
+            counts[1] += int(fin.sum())
+        item = self.plots[key].plot(x, main, connect="finite", pen=pen, name=name)
+        if overlay is not None:
+            self.plots[key].plot(x, overlay, connect="finite",
+                                 pen=self._pen(NEAR_STRIKE_COLOR, SCREEN_LAP_WIDTH, Qt.PenStyle.SolidLine))
+        return item
 
     def _yaw_panel_data(self, stability_result, parsed_data):
         """Pooled yaw data for this analysis result, or None (panel off or
@@ -1116,6 +1134,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 fig = figure_render.render_corner_figure(
                     data["corner_label"], data["laps"], data["thresholds"],
                     data["tyre_curves"], data["track_map"], theme=plot_style.PRINT,
+                    near_strike=data.get("near_strike"),
                 )
                 figure_render.save_png(fig, path)
                 saved_paths = [path]
@@ -1123,6 +1142,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 # returns a list of figures -> save all
                 figs = figure_render.render_verdict_traces_figure(
                     data["corner_label"], data["laps"], data["thresholds"], theme=plot_style.PRINT,
+                    near_strike=data.get("near_strike"),
                 )
                 saved_paths = []
                 base, ext = path.rsplit(".", 1) if "." in path else (path, "png")
@@ -1199,7 +1219,7 @@ class CornerTraceDialog(_TraceDialogBase):
         }
         self._export_data = {
             "corner_label": ctx["corner_label"], "laps": laps, "thresholds": ctx["thresholds"],
-            "tyre_curves": tyre_curves, "track_map": track_map,
+            "tyre_curves": tyre_curves, "track_map": track_map, "near_strike": ctx["near_strike"],
         }
 
     def _rerender_preserving_checked(self):
@@ -1268,6 +1288,11 @@ class CornerTraceDialog(_TraceDialogBase):
         # LS drawn only where |ax_mps2| > bound (display mask, config)
         ls_display_min_ax = margin_cfg.get("ls_display_min_ax_mps2", 1.0)
         bridge_on = margin_cfg.get("kerb_gap_bridge", True)
+        # near-strike grade (display only): same flag drives the export
+        ns_mode = margin_cfg.get("near_strike_display", "grey")
+        ns_grade_s = params["stability_estimation"]["kerb_smear_grade_s"]
+        ns_f, ns_r = cs.get("near_strike_f"), cs.get("near_strike_r")
+        ns_counts = [0, 0]
         any_bridge = False
         yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
         yaw_named = set()
@@ -1362,10 +1387,12 @@ class CornerTraceDialog(_TraceDialogBase):
                                           pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
                 self.plots["stab"].plot(x, stab_obs[sl][order], connect="finite",
                                          pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
-                self.plots["cs_f"].plot(x, cs_f[sl][order], connect="finite",
-                                        pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
-                self.plots["cs_r"].plot(x, cs_r[sl][order], connect="finite",
-                                        pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
+                self._plot_cs_graded("cs_f", x, cs_f[sl][order],
+                                     ns_f[sl][order] if ns_f is not None else None, ns_mode,
+                                     self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
+                self._plot_cs_graded("cs_r", x, cs_r[sl][order],
+                                     ns_r[sl][order] if ns_r is not None else None, ns_mode,
+                                     self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
             ]
             if ls_f_lap is not None:
                 curve_items.append(self.plots["ls_f"].plot(
@@ -1387,6 +1414,8 @@ class CornerTraceDialog(_TraceDialogBase):
                 "ls_f": ls_f_lap, "ls_r": ls_r_lap,
                 # export draws kerb bridges only when this is set (same flag)
                 "kerb": kerb_mask[sl][order] if (bridge_on and kerb_mask is not None) else None,
+                "near_strike_f": ns_f[sl][order] if ns_f is not None else None,
+                "near_strike_r": ns_r[sl][order] if ns_r is not None else None,
             })
 
         # yaw rows join lap_curve_items, so they must exist before the restyle.
@@ -1423,6 +1452,7 @@ class CornerTraceDialog(_TraceDialogBase):
             "sideslip_source": stability_result.get("sideslip_source"),
             "fit_manifest": stability_result.get("fit_manifest"),
             "representative": representative, "all_export_laps": export_laps,
+            "near_strike": {"mode": ns_mode, "grade_s": ns_grade_s},
             "session_mask": session_mask,
             "thresholds": {
                 "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
@@ -1484,6 +1514,9 @@ class CornerTraceDialog(_TraceDialogBase):
             )
         if any_bridge:
             legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
+        ns_text = near_strike_caption(ns_mode, ns_counts[0], ns_counts[1], ns_grade_s)
+        if ns_text:
+            legend_parts.append(ns_text)
         if any_not_moving:
             legend_parts.append(
                 "Grey band, dash-dot edge: car not up to speed here (out lap or pit lane)."
@@ -1543,7 +1576,7 @@ class LapTraceDialog(_TraceDialogBase):
         try:
             fig = figure_render.render_lap_figure(
                 data["lap_label"], data["laps"], data["thresholds"], data["corner_bands"],
-                theme=plot_style.PRINT,
+                theme=plot_style.PRINT, near_strike=data.get("near_strike"),
             )
             figure_render.save_png(fig, path)
         except Exception as e:
@@ -1590,6 +1623,8 @@ class LapTraceDialog(_TraceDialogBase):
             "stab": stab["stability_observed_Nm_per_deg"][sl][order],
             "csf": cs["CS_ratio_f"][sl][order],
             "csr": cs["CS_ratio_r"][sl][order],
+            "nsf": cs["near_strike_f"][sl][order] if cs.get("near_strike_f") is not None else None,
+            "nsr": cs["near_strike_r"][sl][order] if cs.get("near_strike_r") is not None else None,
             "speed": state["v_mps"][sl][order] * 3.6,
             "kerb": kerb_mask[sl][order] if kerb_mask is not None else None,
             "not_moving": ~moving_mask[sl][order] if moving_mask is not None else None,
@@ -1726,6 +1761,10 @@ class LapTraceDialog(_TraceDialogBase):
         any_kerb = False
         any_not_moving = False
         bridge_on = margin_cfg.get("kerb_gap_bridge", True)
+        # near-strike grade (display only): same flag drives the export
+        ns_mode = margin_cfg.get("near_strike_display", "grey")
+        ns_grade_s = load_parameters()["stability_estimation"]["kerb_smear_grade_s"]
+        ns_counts = [0, 0]
         any_bridge = False
         yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
         yaw_named = set()
@@ -1752,10 +1791,10 @@ class LapTraceDialog(_TraceDialogBase):
                                           pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
                 self.plots["stab"].plot(data["x"], data["stab"], connect="finite",
                                          pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
-                self.plots["cs_f"].plot(data["x"], data["csf"], connect="finite",
-                                        pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
-                self.plots["cs_r"].plot(data["x"], data["csr"], connect="finite",
-                                        pen=self._pen(**placeholder_pen_kwargs), name=lap_name),
+                self._plot_cs_graded("cs_f", data["x"], data["csf"], data["nsf"], ns_mode,
+                                     self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
+                self._plot_cs_graded("cs_r", data["x"], data["csr"], data["nsr"], ns_mode,
+                                     self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
             ]
             self.lap_curve_items[ln] = curve_items
             if bridge_on and data["kerb"] is not None:
@@ -1769,6 +1808,7 @@ class LapTraceDialog(_TraceDialogBase):
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
                 "stab": data["stab"], "cs_f": data["csf"], "cs_r": data["csr"],
                 "kerb": data["kerb"] if bridge_on else None,
+                "near_strike_f": data["nsf"], "near_strike_r": data["nsr"],
             })
 
         # every pooled corner of the lap; rows join lap_curve_items -> before the
@@ -1813,6 +1853,7 @@ class LapTraceDialog(_TraceDialogBase):
                 "strong_csr": cls_cfg["STRONG_CSR"]["value"], "moderate_csr": cls_cfg["MODERATE_CSR"]["value"],
             },
             "corner_bands": list(self._corner_bands),
+            "near_strike": {"mode": ns_mode, "grade_s": ns_grade_s},
         }
 
         self.header_label.setText(
@@ -1831,6 +1872,9 @@ class LapTraceDialog(_TraceDialogBase):
             )
         if any_bridge:
             legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
+        ns_text = near_strike_caption(ns_mode, ns_counts[0], ns_counts[1], ns_grade_s)
+        if ns_text:
+            legend_parts.append(ns_text)
         if any_not_moving:
             legend_parts.append(
                 "Grey band, dash-dot edge: car not up to speed here (out lap or pit lane)."

@@ -119,6 +119,11 @@
     "nis_window_samples": 20,
     "nis_chi2_bound": 5.99,
     "nis_flag_fraction": 0.5,
+    "fit_speed_window_pct": [
+      1,
+      99
+    ],
+    "fit_speed_window_pct_derived_from": "2026-10-04, author ruling (session Step 2). Speed window on the Pacejka FIT POPULATION only (all three fit modes; NIS sweep, gate and CS keep the base mask): keep samples with speed inside [p_lo, p_hi] of the speed of moving samples inside corner instances on analysis laps, per session (self-adapting; fixed km/h rejected because it would mis-fit a track with a different speed envelope). null = off. Same function as the chair tyre fit's speed-band union (drops the fastest, mostly straight-line, near-zero-slip stretches); FORCED ADAPTATION -- one window instead of four band curves because the EKF consumes one signed curve per axle; the edge values are vehicle parameterisation. Tested in Q-FIT-DECISIVE as variant SW: verdict NEUTRAL; ships by AUTHOR OVERRULE (chair-closeness; pooled deep CS<-1 tail -40 %). Reference values, Tier-1 sessions: 69-70 to 222-229 km/h, 89-93 % of the base mask retained, 95-97 % of samples with |alpha_f| >= 1 deg retained, 2.0-2.1 % of in-corner fit samples dropped (diagnostics/inspect_speed_bands.py). Derived km/h per session are recorded in the fit manifest (speed_window).",
     "r_sweep_ay_scales": [
       1.0,
       0.3,
@@ -314,6 +319,8 @@
     "default_laps_shown_note": "NEW, additive (trace-dialog addendum item 2, 2026-09-01). Corner trace default: when opened from an 'All laps' analysis (a single-lap analysis still defaults to just that lap, unchanged), the fastest N valid laps of this corner start CHECKED, the rest start unchecked but available -- avoids a wall of overlapping colours on a corner with many laps by default while never refusing to show more if the user checks them. N=5 chosen as a readable default under the addendum's own 10-colour palette (comfortably below the point where the dash-cycling fallback would ever trigger). Tier C UI default, not a science/analysis parameter.",
     "kerb_gap_bridge": true,
     "kerb_gap_bridge_derived_from": "display continuity only, 2026-09-30. Corner and lap trace windows draw a dashed, lighter linear bridge across NaN runs that contain kerb-flagged samples (CS_ratio f/r and stability panels); plot code path only, no analysis array reads or receives it.",
+    "near_strike_display": "grey",
+    "near_strike_display_note": "Kerb display package, author rulings 2026-10-05. Plot-only: how CS traces and histograms draw samples carrying the near_strike grade mark (estimate_cornering_stiffness, Q-CAL-1 option 4: the regression window reaches within stability_estimation.kerb_smear_grade_s of a masked kerb strike). grey (default) = drawn as a grey overlay with one caption sentence; exclude = left out of the plot, the hidden count stated in the caption; off = drawn like every other sample. One flag for the trace dialogs, the figure exports and the diagnostics renders, so app and thesis figures agree. Presentation only: the estimator deletes nothing and no computed result changes (no schema bump).",
     "yaw_pooling_panel": true,
     "yaw_pooling_panel_derived_from": "(c)-display, approved 2026-09-30, display continuity with diagnostic inspect_yaw_pooling. Corner and lap trace windows add a yaw-rate panel (per-lap yaw rate on a 1 m grid, pooled median, envelope, excess/deficit flag overlays) and a steering-rate sub-panel. Display only: no estimator, threshold, classification or evidence reads it. Read when the trace windows are built.",
     "yaw_pooling": {
@@ -398,7 +405,7 @@
     },
     "steering_ratio": {
       "level": 1,
-      "source": "config default (vehicle.steering_ratio); dynamically resolves to Level 4 (car_data.json steering_ratio_table, manufacturer digitised) when that local-only file is present and the cap allows it -- modules/accuracy_resolution.py. Parameterization, not a chair-comparison deviation: the constant was never a chair scientific position, it is this car's own mechanical steering geometry.",
+      "source": "config default (vehicle.steering_ratio); dynamically resolves to Level 4 (car_data.json steering_ratio_table, manufacturer digitised) when that local-only file is present and the cap allows it -- modules/accuracy_resolution.py. At Level 4 the wheel angle is interpolated from the table's wheel-angle column (mean of both front wheels), not divided by its ratio column, which is the local slope (corrected 2026-10-04, schema 10). Parameterization, not a chair-comparison deviation: the constant was never a chair scientific position, it is this car's own mechanical steering geometry.",
       "capped_by": null
     },
     "lateral_force_split": {
@@ -431,7 +438,7 @@
     },
     "steering_angle": {
       "level": 1,
-      "source": "log_asteer logged channel, converted via steering_ratio (pure cascade -- resolves to steering_ratio's own resolved level)",
+      "source": "log_asteer logged channel (steering-wheel angle), converted via the constant steering_ratio at Level 1 or the manufacturer wheel-angle map at Level 4 (pure cascade -- resolves to steering_ratio's own resolved level)",
       "capped_by": "chained-constant: steering_ratio"
     },
     "lateral_acc": {

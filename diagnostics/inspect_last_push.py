@@ -17,8 +17,9 @@
 # SESSIONS: Tier 1 = pr_us_v2 (Paul Ricard, MLA outing 32), v3 (Paul Ricard,
 #   MLA outing 25), nbr_jst_solution (Nurburgring, JST outing 29). All-18 = the
 #   serial-221 pool, inspect_tyre_prior_d2.pool_keys(). State from the (d2)
-#   data caches, prepare_vehicle_state with the (d2) params (accuracy cap 1:
-#   steering ratio = config constant 15.7, Level 1).
+#   data caches, prepare_vehicle_state with the (d2) params (best available
+#   since 2026-10-04: Level-4 manufacturer wheel-angle map, same as the app;
+#   runs before that date used cap 1, the constant 15.7).
 # ENTRY CHECKS (every session): S0 alpha/Fy/base mask bit-identical to the (d2)
 #   fit cache; S0 least-squares refit = cached production manifest (1e-9 rel);
 #   P5 scale-1 chain reproduces the cached production gate health and beta.
@@ -293,6 +294,11 @@ class Ctx:
         self.data = d2.load_data(key)
         self.state = prepare_vehicle_state(self.data["channels"], self.params)
         self.base = _base_mask(self.state, self.data["laps"])
+        # production fit population since the speed window (2026-10-04);
+        # self.base stays the metrics population
+        from modules.tyre_fit_auto import _speed_window_mask
+        self.window, self.window_info = _speed_window_mask(self.state, self.data, self.params["tyre_fit_auto"])
+        self.fit_mask = self.base & self.window
         self.racing, self.thr, self.s0, _s1, self.inst = imu.populations(self.state, self.data["laps"],
                                                                          self.data["corners"])
         self.in_br = np.zeros(self.base.size, dtype=bool)

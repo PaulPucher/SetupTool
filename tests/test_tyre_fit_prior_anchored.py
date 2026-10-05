@@ -18,10 +18,17 @@ from modules.tyre_fit_auto import _base_mask, _fit_axle_pacejka_anchored, fit_se
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 
 # (d2) Part 2, Dubai at w = 1 through the production chain
-# (diagnostics/inspect_tyre_prior_d2.py achain dubai 1, 2026-10-01)
+# (diagnostics/inspect_tyre_prior_d2.py achain dubai 1, 2026-10-01).
+# RE-PINNED 2026-10-03: Q-CAL-1 mask widening moved the fit population
+# (kerb_dilation_s 0.10 = +/-100 ms; base mask 48775 -> 48095 samples,
+# -1.4 %). Confirmed before re-pinning: the old +/-50 ms mask reproduces the
+# 2026-10-01 values exactly (rel diff 0.0, both axles). Shift old -> new:
+# front B +0.01 %, C -0.06 %, D +0.17 %, E -1.494 -> -1.432 (|E| -4.1 %);
+# rear B -0.17 %, C -0.01 %, D +0.02 %, E -3.366 -> -3.399 (|E| +1.0 %).
+# E (curvature) is the parameter that moves; B, C, D stay within 0.2 %.
 D2_DUBAI_W1 = {
-    "front": (8.811365897563318, 1.9926893199884035, 8702.769156783175, -1.4936193139094198),
-    "rear": (10.379925841266001, 1.9061923973508936, 10605.474291469183, -3.3662909377591324),
+    "front": (8.81213657801929, 1.9914468483841652, 8717.917657212922, -1.4321468927228596),
+    "rear": (10.362667750697602, 1.906073785684989, 10607.203841931478, -3.3991980650958786),
 }
 
 

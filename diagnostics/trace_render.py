@@ -16,15 +16,25 @@ def cs_panel_range():
     return cfg["cs_ls_panel_y_min"], cfg["cs_ls_panel_y_max"]
 
 
-def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_range=None, markers=None):
+def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_range=None, markers=None,
+                     near_strike=None, near_strike_mode=None):
     """laps: dicts with lap_number/start_time/end_time/is_valid_for_analysis;
     corners: dicts with lap_number/bracket_start_m/bracket_end_m. markers:
     optional {"f"/"r": {"s": [...], "y": [...], "label": str, "color": str,
-    "notes": [(s, y, text), ...]}} overlaid on the traces. Returns the count
-    of samples below the fixed y floor per axle (clipped from view)."""
+    "notes": [(s, y, text), ...]}} overlaid on the traces. near_strike:
+    optional {"f"/"r": bool array} grade mark, drawn per near_strike_mode
+    (default config corner_trace_display.near_strike_display) with one
+    caption sentence. Returns the count of samples below the fixed y floor
+    per axle (clipped from view)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from core.plot_style import NEAR_STRIKE_COLOR
+    from core.trace_display import near_strike_split, near_strike_caption
+    from modules.stability_analysis import load_parameters
+    if near_strike is not None and near_strike_mode is None:
+        near_strike_mode = load_parameters()["corner_trace_display"]["near_strike_display"]
+    n_mark = n_fin = 0
     y_lo, y_hi = y_range or cs_panel_range()
     an = [l for l in laps if l.get("is_valid_for_analysis")]
     an_nums = {l["lap_number"] for l in an}
@@ -33,7 +43,8 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
                        if c.get("bracket_start_m") is not None and c["lap_number"] in an_nums})
     fig, axes = plt.subplots(2, 1, figsize=(max(14, lap_len / 400), 7), sharex=True, constrained_layout=True)
     clipped = {}
-    for ax, arr, lab, key in ((axes[0], cs_f, "front CS_ratio", "f"), (axes[1], cs_r, "rear CS_ratio", "r")):
+    for ax, arr, lab, key in ((axes[0], cs_f, "cornering stiffness ratio, front", "f"),
+                              (axes[1], cs_r, "cornering stiffness ratio, rear", "r")):
         arr = np.asarray(arr, dtype=float)
         for b0, b1 in brackets:
             ax.axvspan(b0, b1, color=BAND, lw=0, zorder=0)
@@ -44,7 +55,14 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
             m = (time >= l["start_time"]) & (time <= l["end_time"])
             y = arr[m]
             clipped[key] += int(np.sum(np.isfinite(y) & (y < y_lo)))
-            ax.plot(s_m[m], y, color=INK, lw=0.5, alpha=0.6, zorder=2)
+            mark = None if near_strike is None else np.asarray(near_strike[key], bool)[m]
+            main, overlay = near_strike_split(y, mark, near_strike_mode or "off")
+            if mark is not None:
+                n_fin += int(np.isfinite(y).sum())
+                n_mark += int((mark & np.isfinite(y)).sum())
+            ax.plot(s_m[m], main, color=INK, lw=0.5, alpha=0.6, zorder=2)
+            if overlay is not None:
+                ax.plot(s_m[m], overlay, color=NEAR_STRIKE_COLOR, lw=0.5, alpha=0.9, zorder=2)
         mk = (markers or {}).get(key)
         if mk:
             ax.plot(mk["s"], np.clip(mk["y"], y_lo, y_hi), "o", ms=2.2, mew=0, color=mk["color"], alpha=0.8,
@@ -61,6 +79,10 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
     axes[1].set_xlabel("lap distance [m]", color=INK)
     fig.suptitle(f"{title} -- per analysis lap (n={len(an)}), grey bands = corner brackets, 0 = force peak, "
                  f"1 = linear; y fixed {y_lo}..{y_hi}", color=INK, fontsize=10)
+    cap = near_strike_caption(near_strike_mode or "off", n_mark, n_fin,
+                              load_parameters()["stability_estimation"]["kerb_smear_grade_s"]) if near_strike else None
+    if cap:
+        fig.text(0.5, 0.002, cap, ha="center", va="bottom", fontsize=8, color=INK)
     fig.savefig(out_path, dpi=110)
     plt.close(fig)
     return clipped

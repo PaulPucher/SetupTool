@@ -134,15 +134,25 @@ def _draw_stability_panel(ax, laps, styles, thresholds, theme, legend_ax):
 
 
 def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
-                       strong=None, moderate=None, zero_line=False):
+                       strong=None, moderate=None, zero_line=False, near_strike=None):
     # Front/rear CS and LS panels, one quantity each. LS: no thresholds
     # (strong/moderate None) but a dotted y = 0 line -- zero = no grip on the
-    # LS scale.
+    # LS scale. near_strike = {"mode", "grade_s"}: CS panels only.
+    from core.trace_display import near_strike_split
+    mode = (near_strike or {}).get("mode", "off") if value_key in ("cs_f", "cs_r") else "off"
+    grey_drawn = False
     for lap in laps:
         val = lap.get(value_key)
         if val is None:
             continue
-        ax.plot(lap["s"], val, label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
+        main, overlay = near_strike_split(val, lap.get("near_strike_" + value_key[-1]), mode)
+        ax.plot(lap["s"], main, label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
+        if overlay is not None:
+            ax.plot(lap["s"], overlay, color=ps.NEAR_STRIKE_COLOR, linewidth=ps.PRINT_LAP_WIDTH, label="_nolegend_")
+            grey_drawn = True
+    if grey_drawn:
+        ax.plot([], [], color=ps.NEAR_STRIKE_COLOR, linewidth=ps.PRINT_LAP_WIDTH,
+                label="Near a kerb strike (kept in all results)")
     # LS panels stay unbridged, as in the dialog
     if value_key in ("cs_f", "cs_r"):
         _draw_kerb_bridges(ax, laps, styles, value_key)
@@ -310,7 +320,7 @@ def _new_figure(width_cm, height_cm, theme):
     return fig
 
 
-def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map, theme=ps.PRINT):
+def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map, theme=ps.PRINT, near_strike=None):
     """Chair-style composition: speed, front CS, rear CS vs s (with thresholds),
     a narrow track-map row (compact: no title/legend), front/rear tyre curves
     (linear reference, fitted model, tangent). Stability/LS are in
@@ -338,9 +348,9 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
 
     _draw_speed_panel(ax_speed, laps, styles, theme, legend_speed)
     _draw_ratio_panel(ax_csf, laps, styles, theme, "cs_f", "Front CS ratio", legend_csf,
-                       strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"])
+                       strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"], near_strike=near_strike)
     _draw_ratio_panel(ax_csr, laps, styles, theme, "cs_r", "Rear CS ratio", legend_csr,
-                       strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"])
+                       strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"], near_strike=near_strike)
     _draw_track_map_panel(ax_map, track_map, corner_label, theme, compact=True)
     _draw_tyre_curve_panel(ax_tyre_f, "Front", tyre_curves["front"], theme, legend_f)
     _draw_tyre_curve_panel(ax_tyre_r, "Rear", tyre_curves["rear"], theme, legend_r)
@@ -355,6 +365,7 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
     # _apply_theme reset the smaller tyre-panel tick font -> restore after it
     for ax in (ax_tyre_f, ax_tyre_r):
         ax.tick_params(labelsize=ps.PRINT_FONT_SIZE_PT * 0.75)
+    _near_strike_caption(fig, laps, near_strike, theme)
     return fig
 
 
@@ -370,7 +381,7 @@ def _verdict_panel_set(fig, gs, panel_specs):
     return axes
 
 
-def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT):
+def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT, near_strike=None):
     """Extension stack, one quantity per panel, shared x: speed, stability,
     front CS, rear CS, front LS, rear LS. Side legend per panel.
     Returns a list of figures -- currently one; six panels fit in 24 cm.
@@ -388,9 +399,11 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT)
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
         ("stab", lambda ax, lax: _draw_stability_panel(ax, laps, styles, thresholds, theme, lax)),
         ("cs_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_f", "Front CS ratio", lax,
-                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"])),
+                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"],
+                                                    near_strike=near_strike)),
         ("cs_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_r", "Rear CS ratio", lax,
-                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"])),
+                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
+                                                    near_strike=near_strike)),
         ("ls_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "ls_f", "Front LS ratio", lax,
                                                     zero_line=True)),
         ("ls_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "ls_r", "Rear LS ratio", lax,
@@ -402,6 +415,7 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT)
 
     fig.suptitle(corner_label, color=theme["text"], fontsize=ps.PRINT_FONT_SIZE_PT + 2)
     _apply_theme(fig, axes, theme)
+    _near_strike_caption(fig, laps, near_strike, theme)
     return [fig]
 
 
@@ -416,7 +430,7 @@ def _draw_corner_bands(ax, corner_bands, label_above=False):
                         fontsize=ps.PRINT_FONT_SIZE_PT * 0.7, color="#666666")
 
 
-def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT):
+def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT, near_strike=None):
     """Whole-lap export: speed, stability, front CS, rear CS vs s (no LS -- no
     lap-level reading). Corner bands in light grey, ids above the top panel.
     """
@@ -431,9 +445,11 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT)
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
         ("stab", lambda ax, lax: _draw_stability_panel(ax, laps, styles, thresholds, theme, lax)),
         ("cs_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_f", "Front CS ratio", lax,
-                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"])),
+                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"],
+                                                    near_strike=near_strike)),
         ("cs_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_r", "Rear CS ratio", lax,
-                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"])),
+                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
+                                                    near_strike=near_strike)),
     ]
     axes = _verdict_panel_set(fig, gs, panel_specs)
     for i, ax in enumerate(axes):
@@ -441,7 +457,36 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT)
 
     fig.suptitle(lap_label, color=theme["text"], fontsize=ps.PRINT_FONT_SIZE_PT + 2)
     _apply_theme(fig, axes, theme)
+    _near_strike_caption(fig, laps, near_strike, theme)
     return fig
+
+
+def _near_strike_caption(fig, laps, near_strike, theme):
+    # one caption sentence under the figure; counts over the drawn CS panels
+    from core.trace_display import near_strike_caption
+    if not near_strike or near_strike.get("mode", "off") == "off":
+        return
+    n_marked = n_finite = 0
+    for lap in laps:
+        for ax in "fr":
+            val, mark = lap.get(f"cs_{ax}"), lap.get(f"near_strike_{ax}")
+            if val is None or mark is None:
+                continue
+            fin = np.isfinite(np.asarray(val, dtype=float))
+            n_finite += int(fin.sum())
+            n_marked += int((np.asarray(mark, dtype=bool) & fin).sum())
+    text = near_strike_caption(near_strike["mode"], n_marked, n_finite, near_strike["grade_s"])
+    if text is None:
+        return
+    engine = fig.get_layout_engine()
+    rect = list(engine.get()["rect"])
+    if rect[1] < 0.035:
+        # make room for the caption line under the lowest x label
+        rect[3] = rect[3] - (0.035 - rect[1])
+        rect[1] = 0.035
+        engine.set(rect=tuple(rect))
+    fig.text(0.5, 0.008, text, ha="center", va="bottom", wrap=True, color=theme["text"],
+             fontsize=ps.PRINT_FONT_SIZE_PT * 0.8)
 
 
 def save_png(fig, path):
