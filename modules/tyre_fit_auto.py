@@ -8,6 +8,13 @@
 #   (e) validation         -- diagnostics/inspect_pass1_final_validation.py
 # Not reproduced: the raw-OLS c_alpha comparison and the linear-observer
 # R^2 check (needs that observer's output).
+#
+# Lateral-only axle fit (Pacejka 2nd ed.): pure side slip is the base curve,
+# Eq. 4.49 / 4.E19 with zero shifts and free D (sec. 4.3.1; regression per
+# sec. 1.2.1); an effective axle curve absorbing load transfer is valid for
+# quasi-steady turning, peak may vanish (sec. 1.2.2). Combined slip only scales
+# it by G_yk = 1 at zero slip ratio (Eqs. 4.64-4.69): moderate Fx is harmless,
+# the large-Fx tails (front limit seen under braking) are the known bias.
 
 import subprocess
 from datetime import datetime, timezone

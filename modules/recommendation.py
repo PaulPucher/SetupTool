@@ -171,7 +171,7 @@ def _axle_verdict(short):
 
 def _verdict_present(short, target):
     if target == "unstable_yaw":
-        return "unstable yaw" in short
+        return "open-loop unstable" in short
     return target in short
 
 

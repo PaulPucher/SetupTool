@@ -1252,6 +1252,262 @@ NEXT
   metric. Premise: no "parked for loads" record; fy_norm display was deferred
   for panel width (2026-07-26). 4 plots in plots/mu_trace/. HARD STOP: author
   rules what ships / dies and the Q-SLIM deletion batches (after his commit).]
+  [2026-10-05, CONVERSIONS (author-corrected rulings after Q-MU): (1) THESIS
+  CENTERPIECES FIXED: CS, stability, recommendations; everything ships only
+  insofar as it serves these. (2) Q-MASS PROMOTED: premise check in this arc,
+  BEFORE any load-related deletion. Damper-load chain consumer = measured per-
+  outing mass -> force balance -> CS force axis; ships if mass extracts stably
+  (the "more implementation" for the dampers). (3) UNDERSTEER-GRADIENT LINE
+  (formerly Q-K2): ONE measured deg/g per session from the existing Rajamani
+  regression, shown with the session's balance verdicts; author looks at one
+  mock line on a verdict card and rules ship / kill. (4) g-g DEMOTED to an
+  optional view, author's call after the centerpiece work; if parked, the load
+  DISPLAY outputs (fy_norm, per-wheel Fz surfaces) are removed as unconsumed;
+  the load computation lives on via Q-MASS. (5) BACKLOG A / yaw_damping: DIES
+  unless the author names a stability-verdict need now. PREMISE CHECK on (2)
+  from the code (surfaced, not resolved): CS_ratio = C_alpha / C_linear_ref,
+  both slopes of the same Fy; a constant mass factor scales the m*ay term and
+  cancels except via the fixed-Iz yaw term in Fy and in the EKF yaw dynamics;
+  mass reaches STABILITY only if Iz follows mass (Iz = m*a*b, today not
+  cascaded). Q-MASS proposal + K2 mock proposal reported; AWAIT EXECUTE.]
+  [2026-10-05, RULINGS on OPEN 1-5 (author; COMMIT DONE -> deletion batches
+  unblocked): (1) EXECUTE Q-MASS step 1; pass rule CONFIRMED (spread across
+  files and split-half difference within the recorded load uncertainty,
+  ~15-40 kg); STOP after step 1, step 2 only if 1 passes. (2) Variant (ii)
+  Iz = m*a*b IN SCOPE for step 2 as MEASUREMENT only; anchor (Rajamani /
+  Milliken radius-of-gyration form) verified at section level BEFORE the run;
+  run (i) and (ii); whether a derived Iz SHIPS is a separate later ruling (an
+  estimator change: schema, thresholds). (3) EXECUTE K2 step A (recompute on
+  the corrected chain, 16 NBR + anchors, CIs) and step B (static mock).
+  ~~(4) yaw_damping / BACKLOG A DIES: no stability-verdict need; the stability
+  measure ships as-is, threshold derived in the coming threshold run; delete
+  modules/yaw_damping.py, tests/test_yaw_damping.py, diagnostics/
+  inspect_yaw_damping_eq43.py and accuracy_levels.yaw_damping in the FIRST
+  FILE BATCH.~~ [REVERSED 2026-10-05 by the author, see next entry.] (5) MLA outing 5 stays EXCLUDED (ruled, stands). Decision frame
+  STAYS as the recommendations carrier, slimmed per the audit. AUTHOR-DECIDES
+  one-worders: the author rules them with the first UI batch proposal, each
+  item named there.]
+  [2026-10-05, RULING 4 REVERSED (author): stability rests on Werner. BACKLOG A
+  SHIPS: stab_neg_thresh derived per Werner Eq. 4.3 v2 (chair-lineage anchor),
+  NOT from the generic percentile run. modules/yaw_damping.py, tests/
+  test_yaw_damping.py and diagnostics/inspect_yaw_damping_eq43.py LIVE as its
+  wiring and leave the deletion list (accuracy_levels.yaw_damping stays).
+  SHIP-OR-DIE: the Eq. 4.3 v2 wiring + stability-threshold derivation ship in
+  THIS arc as one small package, queued DIRECTLY after the threshold count run,
+  no further parking. SCOPE: the existing v2 derivation route from the
+  records, finished and wired; nothing new invented. CS thresholds still
+  derive from the percentile run (clean population); only the stability
+  threshold is Werner-based. QUEUE: Q-MASS step 1 -> K2 steps A/B (running)
+  -> threshold count run (CS) -> Werner Eq. 4.3 v2 package -> Q-SLIM batches.]
+  [2026-10-05: Q-MASS STEP 1 RUN -- FAIL (diagnostics/inspect_mass.py; thesis_notes
+  "Q-MASS step 1 ..."): across-file NBR SD 26.1 kg (a PASS), split-half max 52.1
+  kg (b FAIL; NBR alone 44.0 kg), burn-corrected deltas -51..+46 kg (not fuel).
+  Per ruling 1: Q-MASS DIES, step 2 not run. Load chain has no mass consumer;
+  load-related deletion decisions return to the author with the UI batch.
+  K2 step A started.]
+  [2026-10-05: K2 STEPS A + B DONE (diagnostics/inspect_k2_line.py; thesis_notes
+  "Understeer gradient on the corrected chain ..."): anchors +1.43 / +1.37 /
+  +1.29 deg/g (pre-fix +1.41 / +1.36 / +1.27, fix moves +0.02); NBR 16 / 16
+  understeer, median +1.25, range +0.98..+1.49. Mock card rendered (plots/
+  k2_line/). HARD STOP: author rules K2 line ship / kill, the Werner package
+  scope (premise conflict surfaced), then the CS threshold count run.]
+  [2026-10-05, RULINGS on OPEN 1-5 (author): (1) GRADIENT LINE SHIPS: one
+  measured, beta-free, literature-anchored session quantity (Rajamani Eq.
+  3.23, Level 2) with its CI, supporting the balance verdicts; implementation
+  as proposed (modules/ function lifted from measure_k, regression + population
+  rules move from diagnostic to production, one UI line with the mock's plain
+  wording); steady-state-vs-local-saturation reading into thesis_notes
+  verbatim; green-oversteer-MARGINAL colour = UI batch, not this package.
+  (2) WERNER: first the READ -- does Werner's text state a stability criterion
+  / threshold form? verified sections, 3-5 lines, report and STOP. DEFAULT if
+  nothing: option (c) -- measure stays chair-conform (inertial, no damping
+  term, no schema bump, no re-baseline); Werner + Hoffman / Ono anchor the
+  CONCEPT; stab_neg_thresh derives from the clean-population percentile run
+  beside the CS thresholds; v2 damping term recorded considered-not-adopted
+  (chair deviation, unmeasured benefit). Only a stated threshold form opens
+  (b), ruled by the author on the text. (3) DAMPER LOADS: consumers after
+  Q-MASS = c_session (live insurance in the reconstruction cascade, KEEP) and
+  the g-g; g-g RULED: ONE thesis-script figure (per-corner ay-ax, phase-
+  coloured, kerb-graded, Fz-measured occupancy) built in the results phase
+  from pipeline data, no app view. Measured L4 loads STAY in the pipeline, NBR
+  zero entries stay in config, fy_norm persists for the script; app-side per-
+  wheel load DISPLAY surfaces beyond the summaries -> UI batch removal
+  candidates. REVISIT CONDITION (the only one): if the g-g figure is cut from
+  the thesis at results time, the author re-opens this ruling. (4) ORDER: CS
+  threshold count run NEXT (clean population, counts only, no config write),
+  then the Werner read. (5) One-worders land with the UI batch proposal.]
+  [2026-10-05, RULINGS on OPEN 1-3 (author): (1) EXECUTE the CS threshold count
+  run as frozen: best available; PROCEDURE NOTE (dated): switch from the
+  recorded cap-1 procedure -- thresholds must classify the chain the app ships,
+  cap 1 no longer reflects any user-facing path; clean = near-strike samples
+  NaN before the per-phase medians, worst-lap / worst-phase rule unchanged,
+  full-population values beside; seven-session pool, Le Mans informational.
+  Then the Werner read (verified sections, 3-5 lines), then STOP. (2) Stability
+  distribution rides along as information (negative count, p5 / p10 / p15,
+  clean worst-phase). (3) GRADIENT-LINE IMPLEMENTATION APPROVED as proposed incl.
+  the schema bump (dated reason: "balance key added - measured understeer
+  gradient, Level 2"); ORDER: after the count run and the Werner read; config
+  block derived_from names Rajamani sec. 3.2 Eq. 3.23 AND the population
+  rule's provenance (quasi-steady bounds from inspect_imu_offsets).]
+  [2026-10-05: COUNT RUN DONE (clean, best available; thesis_notes "CS threshold
+  counts on the clean population ..."): clean values front p10 -0.646 / p15
+  -0.508 / p30 -0.285 / p40 -0.180, rear -0.404 / -0.324 / -0.131 / -0.065
+  (full beside, all deeper); stability n 109, 9 negative, p5 -5 / p10 +27 /
+  p15 +50 Nm/deg -- only p5 is consistent with Werner's sign boundary.
+  WERNER READ DONE (thesis_notes "Werner read ..."): sign criterion only,
+  explicitly not a criticality threshold, Eq. 4.3 measured route abandoned by
+  Werner -> default (c) applies unless the author rules (b). HARD STOP. NEXT
+  (approved, ordered): gradient-line implementation; threshold VALUES await
+  the author's ruling.]
+  [2026-10-05, RULING (author, supersedes the two-concept version): ONE concept --
+  KERB EXCLUSION. Mask, time dilation and the 0.2 s filter-smear reach are its
+  internal workings, not separate user-facing things. (a) ONE display / config
+  switch: kerb exclusion greyed / excluded / off; the separate
+  near_strike_display key and any "smear" wording in config, UI, legends and
+  captions are retired (internal variable names may stay, user-facing language
+  may not). (b) ONE caption everywhere, always stating the exclusion: "Kerb-
+  affected samples excluded/greyed (n = X, Y %); retained in all computed
+  results." The 0.2 s detail lives once in the methods text. (c) Thresholds'
+  derived_from: "kerb-affected samples excluded" -- one phrase. (d) Thesis
+  scripts: one flag, full vs kerb-excluded per figure, caption auto-stating it.
+  (e) Internal docs keep the mechanism split (mask gates estimation, grade mark
+  grades) as implementation detail of the one concept. Rename and key
+  consolidation land WITH THE UI BATCH. (f) DECISIONS.md created: every standing
+  ruling, one line, current state only; maintained alongside PLAN.md from here
+  on (every ruling that lands in PLAN lands there too).]
+  [2026-10-05: DECISIONS.md CREATED (distilled from PLAN / thesis_notes / CLAUDE.md,
+  current state only). PACEJKA ANCHOR DONE (author task, read-only + comment):
+  sec. 4.3.1 Eq. 4.49 / 4.E19 (base curve), sec. 1.2.1 (regression), sec. 1.2.2
+  (effective axle characteristic, Fig. 1.7), Eqs. 4.64-4.69 (combined slip as
+  extension, G_yk = 1 at pure slip); no Pacejka guidance for identification from
+  vehicle data. 7-line anchor block in modules/tyre_fit_auto.py header (comment
+  only, 14 / 14 targeted tests); thesis_notes "Pacejka anchor ...". HARD STOP.
+  NEXT (approved): gradient-line implementation, on the author's word.]
+  [2026-10-05, RULINGS (author; 3 = RE-SEND of rulings that had not reached the
+  session): (1) DECISIONS.md COMMITTED with the next batch; check before
+  staging: no literature page quotes, no car-data numbers. (2) GO gradient-line
+  implementation as approved. (3a) CS THRESHOLDS: percentile rule, CLEAN
+  population, STRONG = p10, MODERATE = p30 per axle: front -0.646 / -0.285,
+  rear -0.404 / -0.131. Rationale: transiently negative CS is normal at-limit
+  operation for this car (position-locked finding); classification encodes
+  unusual depth FOR THIS CAR; the CS = 0 force-peak line stays in display /
+  interpretation only. Config write with full derived_from (pool, clean =
+  kerb-affected samples NaN before phase medians, percentile targets, date,
+  full-population values beside). cs_margin re-measured against the new
+  values. (3b) stab_neg_thresh = 0: Werner's sign criterion (sec. 2.2.3) as the
+  anchored boundary, explicitly not criticality; the -50 placeholder retires
+  with a dated note; verdict wording "open-loop unstable (Werner)", severity
+  contextual; default (c) confirmed (measure chair-conform). ORDER: threshold
+  config writes FIRST, then the gradient line; ONE golden re-baseline covers
+  thresholds + balance key. VERIFICATION: classifier re-run on the pool,
+  strong / moderate / unstable counts per session must match the count tables
+  (11 strong per axle; 9 unstable).]
+  [2026-10-05: IMPLEMENTED (not committed): threshold config writes (front
+  -0.646 / -0.285, rear -0.404 / -0.131, stab_neg_thresh 0, calibrated_for ->
+  ekf_auto_pacejka), verdict wording "open-loop unstable (Werner)", clean
+  classification population in summarise_corners, gradient line (modules/
+  balance_gradient.py, config understeer_gradient + accuracy node, pipeline /
+  cache / sidecar / DB "balance" key, UI line, tests/test_balance_gradient.py),
+  schema 11 -> 12. Verification on the clean population: 11 / 20 per axle, 9
+  unstable = the count tables. RULINGS (author): (1) CLEAN CLASSIFICATION
+  POPULATION CONFIRMED (a classifier judging a different population than its
+  thresholds' derivation would be incoherent); one deliberate golden re-baseline
+  covers thresholds + balance + clean population. (2) cs_margin: ADAPT the
+  recorded sweep -- perturb the wheel-angle column +/-1 % (direct translation of
+  the ratio-column perturbation to the corrected conversion), re-measure on the
+  current chain (speed window in); method adaptation recorded as a dated note in
+  its derived_from. Rationale: cs_margin decides MARGINAL labels, which drive
+  recommendation triggers.]
+  [2026-10-05: TARGETED TESTS 51 / 51 after fixing three Settings tests that pinned
+  retired values (-0.07, 0.15, kinematic-era stab note) to read live config;
+  config intact. cs_margin SWEEP RUN (adapted, 22 runs, thesis_notes "cs_margin
+  re-measure ..."): 2 distinct flipping corner-phases, both different-mechanism
+  (v3 C8 exit_4 ratio discontinuity; Dubai C1 apex_3 apex_region not stored, the
+  2026-09-19 excluded case) -> recorded rule yields NO value; cs_margin stays 0.11,
+  nothing written. Proportional |dCS| p90 ~0.075. HARD STOP before the single golden
+  re-baseline: cs_margin ruling first, so the re-baseline happens once.]
+  [2026-10-05, RULINGS (author): (1) cs_margin option (a): 0.11 RETAINED with a dated
+  note in its derived_from (re-measured on the corrected chain, wheel-angle-column
+  sweep, no proportional flip within +/-1 %, both flips different-mechanism jumps
+  per the recorded exclusions); (b) rejected as post-hoc, (c) rejected. Verbatim
+  thesis line: under +/-1 % input errors 90 % of corner values move < 0.075 and no
+  verdict flips proportionally -- the classification is robust to input uncertainty
+  at the derived thresholds. (2) ORDER CONFIRMED: one golden re-baseline now
+  (thresholds + balance key + clean population; cs_margin unchanged), then
+  test_stability.py, then the full suite once; report counts + per-golden diff
+  summary; then STOP -- the author commits this package before the UI batch opens.]
+  [2026-10-05: RE-BASELINE + CHECKS DONE: pipeline goldens move in CS stats only
+  (clean population), recommendations golden 3 -> 0; orphan golden
+  recommendations_dubai_kinematic_cap1.json restored unchanged (SAFE-list
+  candidate); test_stability.py exit 0; FULL SUITE 571 passed / 14 failed / 9
+  skipped / 1 xfailed -- all 14 pin retired thresholds or the retired "mark never
+  touches summaries" design; fix proposal reported, NOT applied. HARD STOP:
+  author rules the test fix, then commits this package before the UI batch.]
+  [2026-10-05, WORK ORDER RECEIVED (author): Q-SPIKE-AUDIT, read-only -- per-event
+  accounting of every deep CS dip (CS < -0.5, gaps < 0.5 s bridged) on NBR JST
+  outing 29, both axles, in-corner analysis-lap samples; forensics per event in
+  order a kerb-detected (mask or within 0.2 s) / b strike-missed (raw signature
+  below detector thresholds) / c estimator artefact (fallback switch / EKF reset
+  +-0.5 s, degenerate window support) / d force-path event without kerb signature
+  (brake / throttle spike, bump, banking) / e UNEXPLAINED; summary per class and
+  axle, deep-tail sample shares, Q-PAIRING site cross-reference; renders: one
+  overview per axle + the 5 deepest events zoomed. No config / detector /
+  exclusion change; STOP after the report; feeds Q-SITES step 2. NO EXECUTE in the
+  message -> LAUNCH RULE: frozen header proposed, NOT launched. The 14-test fix of
+  the previous report is still unruled.]
+  [2026-10-05, PRE-REGISTERED RULING for Q-SPIKE-AUDIT (author, before the run):
+  (a) / (b) kerb detected / kerb missed: ACTIONABLE -- detector recalibration /
+  exclusion follows (Q-SITES step 2), thresholds re-derive if moved. (c)
+  estimator artefacts (fallback switches, degenerate windows): WE LIVE WITH IT --
+  known noise floor of a reference-free beta, already recorded (switch-timing
+  sensitivity, BACKLOG 11); judgement already guards via phase medians + worst-
+  phase aggregation + deep thresholds; no estimator surgery, the sensor day is the
+  fix (outlook). (d) force-path events without kerb signature: real car-on-track
+  events; they stay, they are what the tool measures. (e): TEXT TRUNCATED in the
+  message -- awaiting the author's (e) clause. Run still NOT launched (no EXECUTE).]
+  [2026-10-05, COMPLETIONS + ORDERS (author): (e) UNEXPLAINED events are NAMED AND
+  SIZED, no invented story -- they live in the residual, recorded in thesis_notes as
+  the honest remainder ("N events, depth range X, no identified mechanism"); no
+  action from (e) alone; if (e) holds the MAJORITY of deep events, that is a finding
+  about the tail itself -- report prominently and STOP. Unexplained is an allowed
+  answer; a guessed mechanism is not. EXECUTE Q-SPIKE-AUDIT on the frozen header as
+  proposed. GO for the 14-test fix FIRST: threshold-relative inputs from live config
+  (standing pattern), near-strike test rewritten to the clean-population rule,
+  assertions untouched (an assertion needing change = design question, stop and
+  report); then ONE full suite (this commit closes the classifier chapter on a green
+  suite); report the count. ORDER: test fix + full suite first, then the audit while
+  the author commits.]
+  [2026-10-05: 14-TEST FIX APPLIED (13 tests: synthetic inputs placed relative to the
+  live STRONG thresholds via a helper, no assertion changed; test_near_strike_is_
+  flag_only rewritten to the clean-population rule as ordered). FULL SUITE (once):
+  585 passed, 9 skipped, 1 xfailed, 0 failed (62 min); config untouched. GREEN ->
+  package ready for the author's commit. Q-SPIKE-AUDIT launched (diagnostics/
+  inspect_spike_audit.py, header frozen).]
+  [2026-10-05: Q-SPIKE-AUDIT RUN COMPLETE (thesis_notes "Q-SPIKE-AUDIT ..."): front 48
+  events a 20 / b 13 / c 13 / d 2 / e 0 (deep-sample shares 34 / 24 / 34 / 8 / 0 %),
+  rear 10 events a 5 / b 2 / c 1 / d 1 / e 1; all 7 Q-PAIRING sites carry events.
+  SPECIFICITY (context, measured after the run): az > p95 in 60 %, fallback within
+  +-0.5 s in 70 % of random clean corner windows -> (b)-by-az-only (8 events) and (c)
+  are weakly specific; near-empty (e) is not "all explained". Surfaced, frozen
+  classification stands. HARD STOP: author rules what gets detected / excluded next
+  (Q-SITES step 2).]
+  [2026-10-05, RULINGS (author): (1) Q-SITES step 2: OPTION (b) FIRST -- one re-
+  classification pass of the same 58 events with specificity-checked criteria frozen
+  in the header BEFORE classifying (every signature must exceed its measured base
+  rate in matched random corner windows; fallback counts only if the reset lies
+  INSIDE the event's regression window; az counts only with a damper / load
+  witness); same events, same evidence files, no chains needed for the labels;
+  THEN (a): the detector-recalibration proposal acts on whatever (b) survives (the
+  7 one-sided-burst events are the floor). (2) (c) RECLASSIFIED for the record:
+  "we live with it" applies to PROVEN estimator artefacts; the weakly specific (c)
+  events become "no specific mechanism shown" (honest residual, same family as (e))
+  pending the re-pass; the pre-registered ruling stands -- whatever the re-pass
+  PROVES as (c) is lived with. Thesis wording: the deep tail decomposes into kerb-
+  shown (a + specific b), car events (d) and a residual where no single mechanism is
+  demonstrated -- no overclaiming either way. (3) TWO COMMITS: the classifier
+  package first (thresholds, clean population, gradient line, schema 12, suite 585
+  green), the audit script + records second, after the re-pass settles the labels.
+  inspect_spike_audit.py keep-reproduces CONFIRMED.]
   Uncommitted (author commits):
   CLAUDE.md, PLAN.md, thesis_notes.md, diagnostics/README.md,
   diagnostics/plots_INDEX.md, diagnostics/inspect_seed_sweep.py,

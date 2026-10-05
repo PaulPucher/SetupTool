@@ -208,7 +208,7 @@ SECTION3_FIELDS = [
      "min": -2.0, "max": 2.0, "short_note": "Rear CS ratio below this = moderate oversteer."},
     {"key": "stab_neg_thresh_Nm_per_deg", "label": "Stability (destabilising) threshold",
      "unit": "Nm/deg", "decimals": 1, "min": -5000.0, "max": 5000.0,
-     "short_note": "Yaw stability below this = unstable yaw."},
+     "short_note": "Yaw stability below this = open-loop unstable (Werner sign criterion)."},
 ]
 STAB_KEY = "stab_neg_thresh_Nm_per_deg"
 STAB_KINEMATIC_ERA_NOTE = ("Derived default is kinematic-era, not re-derived for the current "

@@ -34,7 +34,10 @@ CAR_DATA_PATH = "config/car_data.json"
 #  11: estimator input changed (2026-10-04): speed window on the Pacejka fit
 #      population (tyre_fit_auto.fit_speed_window_pct); fit manifest gains
 #      speed_window.
-ANALYSIS_SCHEMA_VERSION = 11
+#  12: (2026-10-05) balance key added - measured understeer gradient,
+#      Level 2; and summarise_corners' CS statistics now skip kerb-affected
+#      (near-strike) samples, the population the thresholds derive on.
+ANALYSIS_SCHEMA_VERSION = 12
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -972,8 +975,12 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     moving = state["moving_mask"]
     kerb_mask = state.get("kerb_mask")
 
-    cs_f = cs["CS_ratio_f"]
-    cs_r = cs["CS_ratio_r"]
+    # Classification reads the CLEAN population: kerb-affected (near-strike)
+    # samples are left out of the CS statistics, the population the
+    # thresholds were derived on (2026-10-05). The CS arrays themselves keep
+    # every sample; only the summary skips them.
+    cs_f = np.where(cs.get("near_strike_f", False), np.nan, cs["CS_ratio_f"])
+    cs_r = np.where(cs.get("near_strike_r", False), np.nan, cs["CS_ratio_r"])
     stab_obs = stab["stability_observed_Nm_per_deg"]
     stab_valid = stab["stability_valid"]
     fz_f = fz["fz_f_N"] if fz is not None else None
