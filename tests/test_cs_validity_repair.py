@@ -361,6 +361,14 @@ def test_apex_region_selects_only_samples_within_distance_band_and_corner_time_b
 
 # --- classify_fn wiring (Phase 3) --------------------------------------------
 
+def _strong_value(axle, below):
+    # a CS value `below` under the live STRONG threshold of the axle, so the
+    # tests follow re-derived thresholds instead of pinning retired ones
+    from modules.stability_analysis import load_parameters
+    cl = load_parameters()["classification"]
+    return cl["STRONG_CSF" if axle == "f" else "STRONG_CSR"]["value"] - below
+
+
 def test_classify_corner_reads_apex_region_for_apex_3_cs():
     from ui.views.outing_form import OutingForm
 
@@ -375,7 +383,7 @@ def test_classify_corner_reads_apex_region_for_apex_3_cs():
             "exit_4": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
             "exit_5": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
         },
-        "apex_region": {"cs_ratio_f": {"median": -0.5}, "cs_ratio_r": healthy},
+        "apex_region": {"cs_ratio_f": {"median": _strong_value("f", 0.15)}, "cs_ratio_r": healthy},
     }
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary_with_apex_region)
     # "strong" severity additionally requires destabilising yaw (unrelated
@@ -395,7 +403,8 @@ def test_classify_corner_without_apex_region_falls_back_to_apex_3_slice():
         "phases": {
             "entry_1_brake": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
             "entry_2_turnin": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
-            "apex_3": {"cs_ratio_f": {"median": -0.5}, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
+            "apex_3": {"cs_ratio_f": {"median": _strong_value("f", 0.15)}, "cs_ratio_r": healthy,
+                       "stability_observed_Nm_per_deg": stab_ok},
             "exit_4": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
             "exit_5": {"cs_ratio_f": healthy, "cs_ratio_r": healthy, "stability_observed_Nm_per_deg": stab_ok},
         },
@@ -418,12 +427,12 @@ def _healthy_phases():
 
 
 def test_classify_corner_marginal_marker_fires_within_anchored_margin():
-    # STRONG_CSF=-0.10; -0.15 sits 0.05 away, inside the 0.11 anchored
-    # margin (config classification.verdict_stability_margin.cs_margin) --
-    # a real understeer verdict this close to the threshold must be tagged.
+    # 0.05 below STRONG_CSF, inside the 0.11 anchored margin (config
+    # classification.verdict_stability_margin.cs_margin) -- a real understeer
+    # verdict this close to the threshold must be tagged.
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": -0.15}
+    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", 0.05)}
     severity, short, long_, _colour = OutingForm._classify_corner(None, summary)
     assert severity == "moderate"
     assert "understeer" in short
@@ -435,12 +444,11 @@ def test_classify_corner_marginal_marker_fires_within_anchored_margin():
 
 
 def test_classify_corner_marginal_marker_absent_far_from_threshold():
-    # -0.5 sits 0.40 from STRONG_CSF and 0.65 from MODERATE_CSF -- both
-    # well outside the 0.11 anchored margin -- a confident verdict, not a
-    # marginal one.
+    # 0.15 below STRONG_CSF (and further from MODERATE_CSF) -- outside the
+    # 0.11 anchored margin -- a confident verdict, not a marginal one.
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": -0.5}
+    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", 0.15)}
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
     assert severity == "moderate"
     assert "understeer" in short
@@ -458,10 +466,10 @@ def test_classify_corner_marginal_marker_absent_when_no_verdict():
 
 
 def test_classify_corner_marginal_marker_fires_on_rear_axle_too():
-    # STRONG_CSR=-0.07; -0.12 sits 0.05 away, inside the margin.
+    # 0.05 below STRONG_CSR, inside the margin.
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": -0.12}
+    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": _strong_value("r", 0.05)}
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
     assert "oversteer" in short
     assert "[MARGINAL]" in short
@@ -475,15 +483,15 @@ APEX_RULE_IDS = [
 ]
 
 
-@pytest.mark.parametrize("rule_id,speed_class,axle_key,bad_median", [
-    ("matrix_us_apx_low", "low", "cs_ratio_f", -0.5),
-    ("matrix_us_apx_med", "medium", "cs_ratio_f", -0.5),
-    ("matrix_us_apx_high", "high", "cs_ratio_f", -0.5),
-    ("matrix_os_apx_low", "low", "cs_ratio_r", -0.5),
-    ("matrix_os_apx_med", "medium", "cs_ratio_r", -0.5),
-    ("matrix_os_apx_high", "high", "cs_ratio_r", -0.5),
+@pytest.mark.parametrize("rule_id,speed_class,axle_key", [
+    ("matrix_us_apx_low", "low", "cs_ratio_f"),
+    ("matrix_us_apx_med", "medium", "cs_ratio_f"),
+    ("matrix_us_apx_high", "high", "cs_ratio_f"),
+    ("matrix_os_apx_low", "low", "cs_ratio_r"),
+    ("matrix_os_apx_med", "medium", "cs_ratio_r"),
+    ("matrix_os_apx_high", "high", "cs_ratio_r"),
 ])
-def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_key, bad_median):
+def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_key):
     # Synthetic case: apex_3's OWN slice is healthy everywhere (as the
     # repair predicts it usually will be, now that it is gated/undersized)
     # -- only apex_region carries the fault. All 6 live apex_3-phased
@@ -500,6 +508,7 @@ def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_k
     healthy = {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 50}
     stab_ok = {"median": 500.0, "p25": 400.0, "p75": 600.0, "n": 50}
     other_axle_key = "cs_ratio_r" if axle_key == "cs_ratio_f" else "cs_ratio_f"
+    bad_median = _strong_value(axle_key[-1], 0.15)
 
     def make_phase():
         return {"cs_ratio_f": dict(healthy), "cs_ratio_r": dict(healthy),

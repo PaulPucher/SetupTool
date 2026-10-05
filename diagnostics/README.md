@@ -88,6 +88,10 @@ the per-section lists below are the current inventory.]
   value, supersedes the old 0.004).
 - **inspect_metrology_phase1_sensitivity.py** -- cited in
   config/parameters.json's verdict_stability_margin derived_from.
+  Adapted 2026-10-05 (author ruling): steering input = +/-1 % on the
+  table's wheel-angle column (the ratio column is no longer read since the
+  steering fix); results to diagnostics/results_metrology_20261005/.
+  inspect_metrology_phase1_analysis.py reads the same folder.
 - **inspect_native_channel_rates.py** -- cited in config/parameters.json's
   `_comment_grid_rate`.
 - **inspect_nis_tyre_mismatch_gate.py** -- cited in
@@ -608,6 +612,26 @@ the per-section lists below are the current inventory.]
   R = R_load x R_yaw decomposition, JST 21 phase frame. Imports
   inspect_tyre_prior_d2, inspect_last_push, inspect_pool_fits. Modes run |
   report | plots. Outputs in `plots/mu_trace/`.
+- **inspect_mass.py** (2026-10-05, keep status PROPOSED: keep-reproduces as the
+  record of the Q-MASS FAIL verdict, else disposable at the commit) -- Q-MASS
+  step 1: production session mass fit (total Fz = m g + c v^2 on straights) on
+  16 NBR + 2 Paul Ricard files, split-half stability, ECU fuel burn beside;
+  frozen pass rule in the header. Modes step1 | report1. Outputs in
+  `plots/mass/`.
+- **inspect_k2_line.py** (2026-10-05, keep status PROPOSED: keep-reproduces if
+  the author ships the understeer-gradient line -- it then holds the
+  derivation -- else disposable at the commit) -- understeer gradient per
+  session on the corrected chain (inspect_last_push.measure_k, Rajamani Eq.
+  3.23) and the static verdict-card mock. Modes a | report | mock. Outputs in
+  `plots/k2_line/`.
+- **inspect_spike_audit.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 -- as
+  the per-event record feeding Q-SITES step 2) -- Q-SPIKE-AUDIT: every CS < -0.5
+  event of NBR JST outing 29 classified (a) kerb detected / (b) kerb missed / (c)
+  estimator artefact / (d) car-on-track event / (e) unexplained, frozen rules in the
+  header; overview and deepest-event renders. Imports inspect_tyre_prior_d2,
+  inspect_last_push, inspect_chair_audit (V-GRADE floor), gated_kinematic_common.
+  Modes run | plots | repass (specificity re-pass, matched-window p95) |
+  repass2 (final ledger, kerb-missed at union-5 %). Outputs in `plots/spike_audit/`.
 - **inspect_speed_bands.py** (2026-10-04, keep-reproduces, CONFIRMED 2026-10-05) -- Step 2:
   our speed distribution against the chair's four speed bands, data
   quality per region, candidate windows SW / CU / BI; the derivation

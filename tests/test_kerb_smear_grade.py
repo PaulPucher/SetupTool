@@ -89,8 +89,10 @@ def test_near_strike_marks_exactly_the_zone_windows(state, effective_params):
 
 
 def test_near_strike_is_flag_only(state, effective_params, parsed_data):
-    """Removing the zone changes no CS array and no corner summary: the mark
-    never feeds CS, the linear reference or the classifier."""
+    """Removing the zone changes no CS array: the mark never feeds CS or the
+    linear reference. The corner summaries follow the clean-population rule
+    (2026-10-05): their CS statistics skip the marked samples, exactly as if
+    those samples were NaN."""
     beta, slip, cs = _cs(state, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
     bare = dict(state, kerb_smear_zone=None)
@@ -105,6 +107,12 @@ def test_near_strike_is_flag_only(state, effective_params, parsed_data):
     stab = estimate_yaw_moment_stability(state, beta, effective_params, laps)
     corners = parsed_data.get("corners", [])
     with_mark = summarise_corners(corners, cs, stab, state)
-    without = summarise_corners(corners, {k: v for k, v in cs.items() if not k.startswith("near_strike")},
-                                stab, state)
-    assert json.dumps(with_mark, sort_keys=True, default=str) == json.dumps(without, sort_keys=True, default=str)
+    unmarked = {k: v for k, v in cs.items() if not k.startswith("near_strike")}
+    blanked = dict(unmarked)
+    for ax in "fr":
+        blanked[f"CS_ratio_{ax}"] = np.where(cs[f"near_strike_{ax}"], np.nan, cs[f"CS_ratio_{ax}"])
+    as_if_nan = summarise_corners(corners, blanked, stab, state)
+    without = summarise_corners(corners, unmarked, stab, state)
+    assert json.dumps(with_mark, sort_keys=True, default=str) == json.dumps(as_if_nan, sort_keys=True, default=str)
+    # Dubai carries marked samples, so the clean rule must actually show
+    assert json.dumps(with_mark, sort_keys=True, default=str) != json.dumps(without, sort_keys=True, default=str)

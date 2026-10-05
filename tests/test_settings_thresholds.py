@@ -85,6 +85,8 @@ def test_settings_round_trip_edit_persist_reload_classify(qapp, restore_config):
     from ui.views.settings_view import SettingsView
     summaries = _real_summaries()
     before = _severities(summaries)
+    with open("config/parameters.json", encoding="utf-8") as f:
+        derived = json.load(f)["classification"]["STRONG_CSR"]["value"]
 
     view = SettingsView()
     view.section3_widgets["STRONG_CSR"].setValue(0.5)  # nearly every rear reading becomes "strong"
@@ -92,7 +94,7 @@ def test_settings_round_trip_edit_persist_reload_classify(qapp, restore_config):
 
     with open("config/parameters.json", encoding="utf-8") as f:
         entry = json.load(f)["classification"]["STRONG_CSR"]
-    assert entry["value"] == 0.5 and entry["derived_default"] == -0.07
+    assert entry["value"] == 0.5 and entry["derived_default"] == derived
     assert "manually set" in entry["derived_from"]
 
     fresh = SettingsView()
@@ -108,6 +110,8 @@ def test_settings_round_trip_edit_persist_reload_classify(qapp, restore_config):
 
 def test_restore_control_returns_derived_value_and_clears_tag(qapp, restore_config):
     from ui.views.settings_view import SettingsView
+    with open("config/parameters.json", encoding="utf-8") as f:
+        derived = json.load(f)["classification"]["MODERATE_CSF"]["value"]
     view = SettingsView()
     view.section3_widgets["MODERATE_CSF"].setValue(0.3)
     view._on_save_clicked()
@@ -116,7 +120,7 @@ def test_restore_control_returns_derived_value_and_clears_tag(qapp, restore_conf
 
     with open("config/parameters.json", encoding="utf-8") as f:
         entry = json.load(f)["classification"]["MODERATE_CSF"]
-    assert entry["value"] == 0.15 and "derived_default" not in entry
+    assert entry["value"] == derived and "derived_default" not in entry
     assert "restored to data-derived default" in entry["derived_from"]
     fresh = SettingsView()
     assert fresh.section3_manual_labels["MODERATE_CSF"].isHidden()
@@ -140,9 +144,11 @@ def test_stab_row_states_kinematic_era_default(qapp):
     differs = (params["stability_estimation"]["sideslip_source"]
                != params["classification"]["stab_thresh_calibrated_for_sideslip_source"])
     note = SettingsView().section3_note_labels[STAB_KEY].text()
-    assert note.startswith("Yaw stability below this = unstable yaw.")
+    assert note.startswith("Yaw stability below this = open-loop unstable (Werner sign criterion).")
     assert (STAB_KINEMATIC_ERA_NOTE in note) == differs
-    assert differs  # live config: ekf_auto_pacejka vs kinematic
+    # live config since 2026-10-05: stab_neg_thresh anchored for ekf_auto_pacejka
+    # (Werner sign criterion), so the kinematic-era note is gone
+    assert not differs
 
 
 def test_notes_carry_no_dates_and_dead_rows_are_gone(qapp):

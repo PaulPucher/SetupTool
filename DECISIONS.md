@@ -60,6 +60,8 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Cause attribution counts only on criteria that exceed their base rate in matched random corner windows; the first spike-audit pass's az-alone and fallback-within-0.5 s criteria are withdrawn as evidence (2026-10-05).
 - Proven estimator artefacts are lived with (no estimator surgery; the reference-sensor day is the fix); unproven ones are "no specific mechanism shown" (2026-10-05).
 - Detector recalibration acts only on specificity-checked kerb-missed events (2026-10-05).
+- Kerb detector VALIDATED on NBR JST 29: catches the strikes that drive the deep tail (25 events, all of the deepest); 4 of 58 demonstrable misses -> no recalibration, no new term; C2 1044-1057 m left-wheel pair is a watch item (2026-10-05).
+- Deep-tail ledger closed: kerb-shown 25 + 4, car events 2, proven artefacts 3, residual ~50 % front / 36 % rear "no specific mechanism shown" (2026-10-05).
 
 ## Balance readout
 - Understeer-gradient line SHIPS: one measured, beta-free session quantity (Rajamani sec. 3.2 Eq. 3.23, Level 2) with its 95 % range, one UI line beside the verdicts; config derived_from names Eq. 3.23 and the quasi-steady population provenance; schema bump "balance key added - measured understeer gradient, Level 2" (2026-10-05).

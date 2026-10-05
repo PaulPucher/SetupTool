@@ -1,0 +1,18 @@
+=== FLIP CENSUS PER INPUT (count of corner-phase flips at +/-1%) ===
+  mass: 1 flips, sessions=['v3']
+  front_fraction: 2 flips, sessions=['dubai', 'v3']
+  wheelbase: 0 flips, sessions=[]
+  yaw_inertia: 0 flips, sessions=[]
+  steering_wheel_angle: 2 flips, sessions=['dubai', 'v3']
+  TOTAL: 5 flips across 5 inputs x 2 directions x 2 sessions
+
+=== PRE-REGISTRATION CHECK: do flips concentrate near a threshold? ===
+  flipped corner-phases: n=2, mean threshold-distance=0.3175, median=0.3175, max=0.5075
+  ALL corner-phases:      n=119, mean threshold-distance=0.5179, median=0.4683
+  Pre-registration holds at the aggregate level: flipped corner-phases sit closer to a threshold than the general population (or the flip set is empty).
+
+=== MARGIN TABLE (worst 10 corner-phases, ranked by #inputs that flip it at <=1%) ===
+  v3 C8 exit_4: margin<=1% via 3 input(s): ['front_fraction(-1%)', 'mass(+1%)', 'steering_wheel_angle(+1%)'] [baseline CSf=-0.4125186372596878, CSr=0.5194529980474509]
+  dubai C1 apex_3: margin<=1% via 2 input(s): ['front_fraction(-1%)', 'steering_wheel_angle(-1%)'] [baseline CSf=0.34800860277535345, CSr=0.3765065120221581]
+figure saved: diagnostics\plots_metrology_20261005\dubai_margin_distribution.png
+figure saved: diagnostics\plots_metrology_20261005\v3_margin_distribution.png

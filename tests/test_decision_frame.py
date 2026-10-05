@@ -214,13 +214,21 @@ def test_interaction_adverse_entries_count_once():
 
 # --- No-signal evidence lowers confidence --------------------------------
 
+def _strong_value(axle, below):
+    # a CS value `below` under the live STRONG threshold of the axle, so the
+    # tests follow re-derived thresholds instead of pinning retired ones
+    from modules.stability_analysis import load_parameters
+    cl = load_parameters()["classification"]
+    return cl["STRONG_CSF" if axle == "f" else "STRONG_CSR"]["value"] - below
+
+
 def test_no_signal_phases_lower_confidence():
     # Two 4-lap corners, repeat count held FIXED at 2 (laps 1-2 show
     # moderate oversteer both times) -- the only difference is whether
     # laps 3-4 carry real "normal" signal or none at all. Isolates signal
     # validity from repeat count: confidence must be strictly lower when
     # the non-matching laps have no signal, not merely different.
-    oversteer_csr = {"exit_4": -0.15}  # beyond STRONG_CSR -- real, moderate+ oversteer
+    oversteer_csr = {"exit_4": _strong_value("r", 0.15)}  # beyond STRONG_CSR -- real, moderate+ oversteer
     normal_csr = {"exit_4": 1.0}
 
     full_signal_summaries = [
@@ -1387,8 +1395,8 @@ def test_feedback_weighting_config_present():
 # --- Metrology Phase 2: verdict-stability [MARGINAL] confidence cap --------
 
 def test_corner_verdict_evidence_marginal_caps_confidence():
-    # CSf=-0.15 sits 0.05 from STRONG_CSF(-0.10), inside the anchored 0.11
-    # margin -- classify_fn tags it [MARGINAL]; every lap agrees (repeat=
+    # CSf 0.05 below STRONG_CSF, inside the anchored 0.11 margin --
+    # classify_fn tags it [MARGINAL]; every lap agrees (repeat=
     # total), so the plain repeat-fraction confidence would be 1.0 -- it
     # must be capped at intervention_evidence.abs.confidence (reused
     # anchor, not a new constant), not merely reduced by some amount.
@@ -1401,7 +1409,7 @@ def test_corner_verdict_evidence_marginal_caps_confidence():
     config = load_decision_frame_config()
     cap = config["intervention_evidence"]["abs"]["confidence"]
     summaries = [
-        _make_summary(lap, 7, "medium", csf_by_phase={"exit_4": -0.15})
+        _make_summary(lap, 7, "medium", csf_by_phase={"exit_4": _strong_value("f", 0.05)})
         for lap in range(1, 5)
     ]
     evidence = build_evidence(summaries, {}, config, classify_fn)
@@ -1413,12 +1421,12 @@ def test_corner_verdict_evidence_marginal_caps_confidence():
 
 
 def test_corner_verdict_evidence_not_marginal_stays_uncapped():
-    # CSf=-0.5 sits 0.40 from STRONG_CSF -- well outside the margin, a
+    # CSf 0.15 below STRONG_CSF -- outside the margin, a
     # confident verdict. All 4 laps agree -> repeat-fraction confidence
     # 1.0, untouched by the cap.
     config = load_decision_frame_config()
     summaries = [
-        _make_summary(lap, 8, "medium", csf_by_phase={"exit_4": -0.5})
+        _make_summary(lap, 8, "medium", csf_by_phase={"exit_4": _strong_value("f", 0.15)})
         for lap in range(1, 5)
     ]
     evidence = build_evidence(summaries, {}, config, classify_fn)
@@ -1437,7 +1445,8 @@ def test_matrix_verdict_evidence_marginal_also_caps_confidence():
     config = load_decision_frame_config()
     cap = config["intervention_evidence"]["abs"]["confidence"]
     summaries = [
-        _make_summary(lap, 9, "medium", csf_by_phase={"exit_4": -0.15, "exit_5": -0.15})
+        _make_summary(lap, 9, "medium", csf_by_phase={"exit_4": _strong_value("f", 0.05),
+                                                      "exit_5": _strong_value("f", 0.05)})
         for lap in range(1, 5)
     ]
     evidence = build_evidence(summaries, {}, config, classify_fn)

@@ -26302,3 +26302,47 @@ Renders: diagnostics/plots/spike_audit/overview_f.png, overview_r.png, deep_1_F3
 1. RECLASSIFICATION (record): the pre-registered "we live with it" applies to PROVEN estimator artefacts. The 14 (c) events of the first pass rest on a criterion that fires in 70 % of ordinary corner windows, so they are recorded as "no specific mechanism shown" -- the honest residual, same family as (e) -- pending the specificity re-pass. Whatever the re-pass proves as (c) is lived with, unchanged.
 2. THESIS WORDING (author): the deep CS tail decomposes into kerb-shown dips (a plus specific b), car-on-track events (d), and a residual where no single mechanism is demonstrated -- no overclaiming in either direction.
 3. METHOD POINT (thesis material): a cause-attribution criterion is only evidence if it is rarer in the event windows than in matched random windows of the same signal; the first pass's az-above-p95 (60 %) and fallback-within-0.5 s (70 %) criteria failed that test and were withdrawn as evidence before any recalibration acted on them.
+
+## Q-SPIKE-AUDIT specificity re-pass: kerb-shown 25 events, specific kerb-missed 7 (not the expected 7), residual 21 [2026-10-05, branch new-laps, read-only]
+
+SCRIPT: diagnostics/inspect_spike_audit.py mode repass (rules frozen in its re-pass section before classifying; author EXECUTE). Same 58 events and evidence windows; per event 2000 matched random windows of the same length wholly inside clean in-corner analysis-lap samples (fixed seed); every statistic's cut = its matched-window p95. Chain re-run once for the reset mask (entry passed again).
+LABELS (first pass -> re-pass):
+- FRONT (48): (a) kerb detected 20 (34 % of deep samples, unchanged); (b) kerb missed 7 (18 %); (c) estimator artefact 2 (7 %; both V-GRADE degenerate support, F15 and F35 -- no event's regression window holds more reset samples than its matched p95); (d) car-on-track event 2 (4 %; F21, F44, brake-rate peaks); (r) no specific mechanism shown 17 (38 %).
+- REAR (10): (a) 5 (60 %); (d) 1 (R01); (r) 4 (36 %); no (b), no (c).
+- Deepest events: F31 -2.50, F01 -2.03, F25 -1.95 stay (a); F43 -1.87 (c) -> (b) (RR damper velocity x1.39 its matched p95); F19 -1.72 (c) -> (r).
+SURVIVING (b) -- the detector-recalibration spec (channel, level vs matched p95):
+- F03 C2 1066 m: RR damper velocity x1.05, RR wheel-load transient x1.24.
+- F06 C10 3348 m: RR damper velocity x1.25, RR load x1.30.
+- F11 C5 1791 m (site 1795): FR damper velocity x1.80, FR load x1.29, az witness 1.05 g vs 1.01.
+- F13 C10 3340 m (site 3334): RR damper velocity x1.26, RR load x1.12.
+- F29 C10 3343 m (site 3334): RR damper velocity x1.41, RR load x1.36, az witness 1.08 g vs 1.02.
+- F39 C2 1044 m: FL damper velocity x1.08, FL load x1.78, RL load x1.60.
+- F43 C8 2796 m: RR damper velocity x1.39.
+Pattern: 5 of 7 on the RR wheel, 3 of them at C10 around 3340 m (the 3334 m Q-PAIRING site, on laps 103 / 104 / 106) -- a one-wheel, position-locked strike candidate below the az detector. Several ratios are marginal (x1.05-1.12).
+TWO PREMISE CORRECTIONS (surfaced, rule 2b.4):
+1. THE "FLOOR" DID NOT HOLD: none of the first pass's 7 one-sided-burst (b) events (F04, F16, F40, F41, F42, R04, R07) survives -- their bursts exceeded the GLOBAL in-corner p95 of single samples, but not the matched p95 of window maxima of the same length (a 0.7 s window's maximum is naturally larger than a single sample's p95). The 7 survivors are a different set, all former (c) events.
+2. THE FINAL (b) CRITERION IS NOT AT 5 %: its measured base rate is 12.0 % (any of up to four channel-wheel tests on one side; the union of per-channel 5 % cuts). (c) 2.0 %, (d) 6.4 %; V-GRADE flags 5.3 % (front) / 3.4 % (rear) of clean in-corner CS samples. The (b) labels are therefore suggestive, not conclusive; the recalibration test set should be read with that rate beside it.
+RECORD WORDING (author ruling): the deep tail decomposes into kerb-shown dips (a: 25 events, 34 % front / 60 % rear of deep samples; plus the specific b: 7 front events, 18 %), car-on-track events (d: 3 events), and a residual where no single mechanism is demonstrated (r: 21 events, 38 % front / 36 % rear). Estimator artefacts PROVEN by the re-pass: 2 events (V-GRADE), lived with per the pre-registered ruling.
+
+## Q-SPIKE-AUDIT FINAL LEDGER (labels frozen): (b) tightened to union-5 % -- 4 kerb-missed events survive, the C10 RR cluster does not [2026-10-05, branch new-laps, read-only]
+
+SCRIPT: diagnostics/inspect_spike_audit.py mode repass2 (one final iteration of (b) only, frozen before re-labelling; author EXECUTE; no further tightening). (b) per-channel cut = the EMPIRICAL UNION-5 % LEVEL: per event one common percentile q of the matched-window maxima (q = 97.35-98.75 across events), the smallest at which the one-sided union fires on <= 5 % of the same 2000 matched windows; (a), (c), (d) cuts unchanged. MEASURED BASE RATES of the final criteria: (b) 4.8 %, (c) 2.5 %, (d) 6.0 %; V-GRADE 5.3 % front / 3.4 % rear of clean in-corner CS samples.
+FINAL LEDGER, NBR JST outing 29 (58 deep events, CS < -0.5):
+- FRONT (48 events, 1301 deep samples): (a) kerb detected 20 (34 %); (b) kerb missed 3 (4 %); (c) estimator artefact 3 (9 %; F15, F35 V-GRADE degenerate support, F06 reset samples in its regression window 5 vs matched p95 4); (d) car-on-track event 2 (4 %; F21, F44 brake-rate peaks); (r) no specific mechanism shown 20 (50 %).
+- REAR (10 events, 179 deep samples): (a) 5 (60 %); (b) 1 (4 %); (r) 4 (36 %).
+MOVES from the p95 re-pass: F03, F13, F43 (b) -> (r); F06 (b) -> (c); R01 (d) -> (b) (at p95 its burst was two-sided; at the tightened cut only the RL test remains -- a cascade consequence, stated).
+SURVIVING (b) = THE DETECTOR TEST SET (pre-registered), channel and level vs the tightened matched cut:
+- F11, lap 104, C5 1791 m (site 1795): FR damper velocity x1.46, FR wheel-load transient x1.07; az witness 1.05 g vs matched p95 1.01.
+- F29, lap 106, C10 3343 m (site 3334): RR damper velocity x1.06, RR load x1.09; az witness 1.08 g vs 1.02 -- marginal.
+- F39, lap 108, C2 1044 m: FL load x1.16, RL load x1.12 (left side, load channel only).
+- R01, lap 103, C2 1057 m: RL load x1.45.
+READING: the C10 / 3340 m RR cluster did NOT survive as a cluster (1 of its 3 laps: F29, marginal) -- the ruled first target does not exist at 5 %. Two of the four survivors sit at C2 around 1044-1057 m on the LEFT wheels (different laps, load channel), the other two are single events. Kerb-missed is demonstrable at 5 % for 4 of 58 events (8 % of front-plus-rear deep samples' events, 4 % of deep samples per axle); the kerb-shown share of the deep tail is carried by the detected events (a: 25 events).
+RECORD WORDING (author ruling applied to the frozen ledger): the deep CS tail of this session decomposes into kerb-shown dips (25 detected + 4 demonstrably missed), car-on-track events (2), proven estimator artefacts (3, lived with), and a residual of 24 events (50 % of front, 36 % of rear deep samples) in which no single mechanism is demonstrated.
+
+## Deep-tail ledger closed: the kerb detector is validated on JST 29; no recalibration [2026-10-05, author ruling]
+
+1. FINDING (author): the existing kerb detector is VALIDATED on this file. It catches the strikes that drive the deep CS tail (25 events, including all of the deepest dips); demonstrable misses at the 5 % chance level are 4 of 58 events (4 % of deep samples per axle), too few and too marginal to carry a detector change without tuning against noise. No recalibration, no new detector term, no config change.
+2. WATCH ITEM: the C2 1044-1057 m left-wheel pair (F39, R01; FL / RL load transients, laps 108 / 103) -- reopens only if future files reproduce it.
+3. LEDGER CLOSED as frozen: kerb-shown 25 + 4, car-on-track events 2, proven estimator artefacts 3 (lived with, pre-registered), and a residual of about 50 % (front) / 36 % (rear) of deep samples in which no specific mechanism is shown.
+4. AUTHOR READING of the residual (interpretation, labelled as such): the known noise floor of a reference-free sideslip estimate; the classification already aggregates past it (phase medians, worst-phase aggregation, deep thresholds). The audit itself demonstrates no mechanism for these events -- the reading is an interpretation consistent with the recorded switch-timing sensitivity and the absence of a reference sensor, not a shown cause.
+5. METHOD MATERIAL (thesis): a three-stage audit -- broad pre-registered classes, a specificity re-pass against matched random windows, one tightening to a union-5 % level -- with labels frozen after the single permitted tightening; every final criterion's base rate measured (2.5-6.0 %).

@@ -1508,6 +1508,58 @@ NEXT
   package first (thresholds, clean population, gradient line, schema 12, suite 585
   green), the audit script + records second, after the re-pass settles the labels.
   inspect_spike_audit.py keep-reproduces CONFIRMED.]
+  [2026-10-05, RULINGS (author): (1) the AUTHOR runs both commits, split as prepared:
+  commit 1 (classifier package) now, commit 2 (audit script + re-pass records) after
+  the re-pass; first-pass mentions inside commit 1's records are fine. (2) EXECUTE the
+  specificity re-pass on the frozen header; 2000 matched windows and the p95 cut STAND
+  (5 % chance level; every final criterion's base rate reported, so the cut's honesty
+  is verifiable). ADDITION: per surviving (b) event, report WHICH channel
+  discriminated (damper velocity / wheel-load transient / paired az) and at what level
+  vs its base rate -- that output is the detector-recalibration spec. Then STOP: the
+  recalibration proposal comes to the author with the surviving events as its test
+  set.]
+  [2026-10-05: SPECIFICITY RE-PASS DONE (thesis_notes "Q-SPIKE-AUDIT specificity
+  re-pass ..."): front a 20 / b 7 / c 2 / d 2 / r 17, rear a 5 / d 1 / r 4. Surviving
+  (b) = 7 former (c) events, 5 on RR, 3 at C10 ~3340 m (site 3334). PREMISE
+  CORRECTIONS: the first pass's 7 one-sided-burst events do NOT survive (global vs
+  matched-window p95); the final (b) criterion's base rate is 12.0 % (union of channel
+  tests), not 5 %; c 2.0 %, d 6.4 %. HARD STOP: the detector-recalibration proposal
+  goes to the author with these 7 as its test set. Commit 2 (audit script + records)
+  after the author's ruling on the re-pass.]
+  [2026-10-05, RULINGS (author): (1) TIGHTEN FIRST, then re-label -- EXECUTE ONE final
+  iteration of criterion (b) only: per-channel cut raised so the UNION of the up-to-4
+  one-sided tests fires at ~5 % of matched windows (Sidak-style per-test level or the
+  empirical union-5 % level, stated in the header); (a), (c), (d) criteria untouched.
+  PRE-REGISTERED: whatever survives at union-5 % is the detector test set; if NOTHING
+  survives, the conclusion is "no kerb-missed event is demonstrable at 5 % on this
+  file" -- the under-detection theory then rests on the (a) events' threshold margins
+  alone and the recalibration question is re-posed. No second tightening, no
+  criterion shopping; one iteration, then the labels FREEZE. (2) C10 / 3340 m RR
+  cluster = the proposal's first target IF it survives: a per-wheel damper / load
+  strike term added to the existing detector (one detector, new term, config-
+  documented), tested on: these events detect, (a) events still detect, false-fire
+  rate on clean windows reported -- proposal only, no implementation. (3) Commit 2
+  AFTER the tightened labels freeze -- one commit with the final ledger.]
+  [2026-10-05: FINAL (b) ITERATION DONE, LABELS FROZEN (thesis_notes "Q-SPIKE-AUDIT FINAL
+  LEDGER ..."): (b) at the empirical union-5 % level (q 97.35-98.75), base rates b 4.8 %
+  / c 2.5 % / d 6.0 %. Front a 20 / b 3 / c 3 / d 2 / r 20; rear a 5 / b 1 / r 4.
+  DETECTOR TEST SET = F11 (FR, C5 1791 m), F29 (RR, C10 3343 m, marginal), F39 (FL+RL
+  load, C2 1044 m), R01 (RL load, C2 1057 m). The C10 / 3340 m RR cluster did NOT
+  survive (1 of 3 laps) -> the ruled first target is void; ruling 2's proposal
+  condition not met. HARD STOP: author rules the recalibration question on the 4-event
+  test set; then commit 2 (audit script + final ledger), run by the author.]
+  [2026-10-05, RULINGS (author): (1) OPTION (c) -- NO recalibration. FINDING: the existing
+  kerb detector is VALIDATED on this file -- it catches the strikes that drive the deep
+  tail (25 events, all of the deepest); demonstrable misses are 4 of 58 events (4 % of
+  deep samples per axle), too few and too marginal to carry a detector change without
+  tuning against noise. C2 1044-1057 m left-wheel pair = WATCH item (PARKED list;
+  reopens only if future files reproduce it); no config change, no new term. The deep-
+  tail ledger CLOSES as frozen: kerb-shown 25 + 4, car events 2, proven artefacts 3
+  (lived with), residual ~50 % front / 36 % rear "no specific mechanism shown" -- the
+  author reads it as the known noise floor of a reference-free sideslip estimate,
+  judgement already aggregates past it (phase medians, worst phase, deep thresholds).
+  (2) COMMIT 2 GO as prepared (inspect_spike_audit.py + frozen-ledger records); the
+  AUTHOR runs it.]
   Uncommitted (author commits):
   CLAUDE.md, PLAN.md, thesis_notes.md, diagnostics/README.md,
   diagnostics/plots_INDEX.md, diagnostics/inspect_seed_sweep.py,
@@ -4406,6 +4458,10 @@ H - SHIPPED 2026-09-20 (branch lever-bridges, full record: thesis_notes.md
     scope, per the original proposal above).
 
 ### PARKED (decided, not forgotten)
+- WATCH (2026-10-05, author): C2 1044-1057 m, left wheels (FL + RL load transients),
+  NBR JST outing 29 laps 103 / 108 -- two kerb-missed events at union-5 % (Q-SPIKE-AUDIT
+  final ledger). Reopens ONLY if future files reproduce a left-wheel strike signature
+  there below the az detector; no config change, no new detector term until then.
 
 CONSOLIDATED LIST (2026-09-30). The one place parked items are
 tracked: each line states the reason and the reopen condition. The

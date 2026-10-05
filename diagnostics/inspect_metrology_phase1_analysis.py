@@ -23,11 +23,11 @@ import matplotlib.pyplot as plt
 
 from modules.stability_analysis import load_parameters
 
-RESULTS_DIR = Path("diagnostics/results_metrology")
-PLOTS_DIR = Path("diagnostics/plots_metrology")
+RESULTS_DIR = Path("diagnostics/results_metrology_20261005")
+PLOTS_DIR = Path("diagnostics/plots_metrology_20261005")
 
 SESSIONS = ("dubai", "v3")
-INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_ratio"]
+INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_wheel_angle"]
 
 
 def _load(label):

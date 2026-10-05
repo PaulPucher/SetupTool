@@ -136,9 +136,11 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # corrected (estimator input).
     # 11 (2026-10-04): speed window on the fit population (estimator input);
     # the fit manifest gains speed_window, no corner/phase payload change.
-    assert ANALYSIS_SCHEMA_VERSION == 11, (
+    # 12 (2026-10-05): balance key added (payload level, not per corner); the
+    # CS stats skip kerb-affected samples -- values change, corner shape does not.
+    assert ANALYSIS_SCHEMA_VERSION == 12, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 11 -- update this test deliberately if the version was bumped again"
+        "written for 12 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

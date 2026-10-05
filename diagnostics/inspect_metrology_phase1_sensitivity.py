@@ -79,6 +79,15 @@
 # interval reporting instead of a false-precision extrapolation past a
 # single measured point.
 
+# ADAPTATION 2026-10-05 (author ruling, cs_margin re-measure): the steering
+# input now perturbs the table's WHEEL-ANGLE column by +/-1 % -- the direct
+# translation of the ratio-column perturbation above to the corrected
+# conversion (since 2026-10-04 production interpolates the wheel-angle column
+# against the steering-wheel-angle column and no longer reads the ratio
+# column). Everything else unchanged; run on the current chain (speed window,
+# clean classification population, 2026-10-05 thresholds). Results go to a
+# new folder so the 2026-09-19 record stays intact.
+
 import copy
 import json
 import os
@@ -114,11 +123,11 @@ SESSIONS = {
 }
 
 PCT = 0.01
-INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_ratio"]
+INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_wheel_angle"]
 MAX_WORKERS = 6
 
-RESULTS_DIR = Path("diagnostics/results_metrology")
-PLOTS_DIR = Path("diagnostics/plots_metrology")
+RESULTS_DIR = Path("diagnostics/results_metrology_20261005")
+PLOTS_DIR = Path("diagnostics/plots_metrology_20261005")
 
 
 def _scale_mass(car_setup, pct):
@@ -154,6 +163,17 @@ def _scale_steering_ratio_table(car_data, pct):
     return cd
 
 
+def _scale_wheel_angle_column(car_data, pct):
+    cd = copy.deepcopy(car_data)
+    table = cd["steering_ratio_table"]
+    wheel_idx = table["columns"].index("wheel_angle_deg")
+    table["rows"] = [
+        [(v * (1 + pct) if i == wheel_idx else v) for i, v in enumerate(row)]
+        for row in table["rows"]
+    ]
+    return cd
+
+
 def build_variant(car_setup_base, input_name, sign):
     """Returns (car_setup, raw_params_or_None, car_data_patch_or_None, desc)."""
     from modules.stability_analysis import load_parameters, load_car_data
@@ -170,9 +190,9 @@ def build_variant(car_setup_base, input_name, sign):
         p = copy.deepcopy(load_parameters())
         p["vehicle"]["yaw_inertia_kgm2"] *= (1 + pct)
         return car_setup_base, p, None, f"yaw_inertia {sign:+d}%"
-    if input_name == "steering_ratio":
-        cd = _scale_steering_ratio_table(load_car_data(), pct)
-        return car_setup_base, None, cd, f"steering_ratio {sign:+d}%"
+    if input_name == "steering_wheel_angle":
+        cd = _scale_wheel_angle_column(load_car_data(), pct)
+        return car_setup_base, None, cd, f"steering wheel-angle column {sign:+d}%"
     raise ValueError(input_name)
 
 

@@ -59,6 +59,26 @@
 #   session's finite corners. Counts only, no config write. Le Mans listed
 #   for information, outside the pool.
 
+# MODES compute_clean / counts_clean (author EXECUTE 2026-10-05; frozen before
+#   the run). CHAIN: best available (procedure note 2026-10-05: thresholds
+#   classify the chain the app ships; cap 1 is no user-facing path). v3,
+#   pr_us_v2 and the four NBR sessions reuse the 2026-10-05 production beta of
+#   the d2 fit caches (lp.Ctx state); CS recomputed from it must reproduce the
+#   cached CS (same finite sets, max |diff| <= 1e-5) or the session stops.
+#   Dubai and Le Mans (no current cache) run the full production chain fresh
+#   (resolve_sideslip_beta at the configured source). CLEAN: CS samples
+#   carrying the near_strike mark set to NaN before summarise_corners, i.e.
+#   before the per-phase medians; stability samples inside the kerb smear zone
+#   (state kerb_smear_zone, pointwise reading of the same 0.20 s smear -- the
+#   window mark does not exist for stability) set to NaN likewise. Then the
+#   unchanged rule: aggregate_by_corner over analysis laps (worst lap), minimum
+#   over the five phases (apex_3 CS from apex_region). FULL population on the
+#   same chain beside. COUNTS: STRONG p10 / p15, MODERATE p30 / p40 of the
+#   seven-session pool's CLEAN corner values per axle (np.percentile, linear),
+#   per session strong / moderate counts; the same on FULL values beside.
+#   STABILITY (information): pool worst-phase values, clean and full -- n,
+#   negative count, p5 / p10 / p15. Counts only, no config write.
+
 import os
 import pickle
 import sys
@@ -317,10 +337,200 @@ def counts():
     print(text)
 
 
+CACHE_CLEAN = os.path.join(OUT_DIR, "cache_clean")
+D2_KEYS = ("v3", "pr_us_v2", "nbr_jst_problem", "nbr_jst_solution", "nbr_qp_cdr", "nbr_qp_mla")
+
+
+def _corner_values(agg):
+    corners = {}
+    for cid, a in agg.items():
+        if cid is None:
+            continue
+        row = {}
+        for ax in "fr":
+            vals = {}
+            for ph in PHASES:
+                v = a["phases"][ph][f"cs_ratio_{ax}"]["median"]
+                if ph == "apex_3" and a.get("apex_region") is not None:
+                    v = a["apex_region"][f"cs_ratio_{ax}"]["median"]
+                vals[ph] = v
+            fin = [v for v in vals.values() if v == v]
+            row[ax] = min(fin) if fin else float("nan")
+        st = [a["phases"][ph]["stability_observed_Nm_per_deg"]["median"] for ph in PHASES]
+        st = [v for v in st if v == v]
+        row["stab"] = min(st) if st else float("nan")
+        corners[cid] = row
+    return corners
+
+
+def compute_clean(key):
+    import time
+    from modules.recommendation import aggregate_by_corner
+    from modules.stability_analysis import (estimate_slip_angles, estimate_lateral_forces,
+                                            estimate_cornering_stiffness, estimate_yaw_moment_stability,
+                                            summarise_corners, prepare_vehicle_state)
+    t0 = time.perf_counter()
+    ctx = None
+    if key in D2_KEYS:
+        from diagnostics import inspect_last_push as lp
+        ctx = lp.Ctx(key)
+        state, params, data = ctx.state, ctx.params, ctx.data
+        beta = np.asarray(ctx.cache["prod"]["beta"], float)
+        src = "d2 cache (production beta, 2026-10-05)"
+    else:
+        from diagnostics import inspect_tyre_prior_d2 as d2
+        from diagnostics.inspect_new_laps_cs_sweep import SESSIONS
+        from modules.csv_parser import parse_csv
+        from modules.tyre_fit_auto import resolve_sideslip_beta
+        params = d2._params()
+        data = parse_csv(SESSIONS[key])
+        state = prepare_vehicle_state(data["channels"], params)
+        beta, _m, gate, fb, _fr = resolve_sideslip_beta(state, params, data,
+                                                        params["stability_estimation"]["sideslip_source"])
+        src = f"fresh full chain (gate {(gate or {}).get('verdict')}, fallback {fb})"
+    forces = estimate_lateral_forces(state, params)
+    cs = estimate_cornering_stiffness(estimate_slip_angles(state, beta, params), forces, state, params)
+    if ctx is not None:
+        for ax in "fr":
+            x = np.asarray(cs[f"CS_ratio_{ax}"], float)
+            y = np.asarray(ctx.cache["prod"]["down"][f"cs_{ax}"], float)
+            fin = np.isfinite(x) & np.isfinite(y)
+            if not (np.array_equal(np.isfinite(x), np.isfinite(y)) and np.max(np.abs(x[fin] - y[fin])) <= 1e-5):
+                raise SystemExit(f"STOP {key}: recomputed CS does not reproduce the cache")
+    stab = estimate_yaw_moment_stability(state, beta, params, data.get("laps", []))
+    cs_c = dict(cs)
+    for ax in "fr":
+        c = np.array(cs[f"CS_ratio_{ax}"], float)
+        c[np.asarray(cs[f"near_strike_{ax}"], bool)] = np.nan
+        cs_c[f"CS_ratio_{ax}"] = c
+    stab_c = dict(stab)
+    so = np.array(stab["stability_observed_Nm_per_deg"], float)
+    so[np.asarray(state["kerb_smear_zone"], bool)] = np.nan
+    stab_c["stability_observed_Nm_per_deg"] = so
+    valid = {l["lap_number"] for l in data["laps"] if l.get("is_valid_for_analysis")}
+    out = {"key": key, "source": src, "n_laps": len(valid)}
+    for tag, c_, s_ in (("full", cs, stab), ("clean", cs_c, stab_c)):
+        summ = summarise_corners(data.get("corners", []), c_, s_, state, lap_filter=None)
+        out[tag] = _corner_values(aggregate_by_corner([x for x in summ if x["lap_number"] in valid]))
+    os.makedirs(CACHE_CLEAN, exist_ok=True)
+    with open(os.path.join(CACHE_CLEAN, f"{key}.pkl"), "wb") as fh:
+        pickle.dump(out, fh)
+    print(f"[{key}] {src}; {len(out['clean'])} corners, {len(valid)} analysis laps, "
+          f"{time.perf_counter() - t0:.0f} s", flush=True)
+
+
+def counts_clean():
+    import json
+    res = {}
+    for k in KEYS:
+        with open(os.path.join(CACHE_CLEAN, f"{k}.pkl"), "rb") as fh:
+            res[k] = pickle.load(fh)
+    pool = [k for k in KEYS if k not in EXCLUDED]
+    L = ["THRESHOLD COUNTS, CLEAN population (near-strike CS samples removed before the phase medians), "
+         "best-available chain, seven-session pool; FULL population beside -- counts only, no config write"]
+    out = {}
+
+    def vals(k, pop, ax):
+        x = np.array([v[ax] for v in res[k][pop].values()], float)
+        return x[np.isfinite(x)]
+
+    for ax, tag in (("f", "front"), ("r", "rear")):
+        out[tag] = {}
+        pcs = {}
+        for pop in ("clean", "full"):
+            v = np.concatenate([vals(k, pop, ax) for k in pool])
+            pcs[pop] = {p: float(np.percentile(v, p)) for p in (10, 15, 30, 40)}
+            L.append(f"\n{tag.upper()} {pop} (pool n {v.size}): "
+                     + ", ".join(f"p{p} {x:+.3f}" for p, x in pcs[pop].items()))
+        out[tag]["percentiles"] = pcs
+        for s_ in (10, 15):
+            for m_ in (30, 40):
+                L.append(f"  STRONG p{s_} / MODERATE p{m_} -- clean ({pcs['clean'][s_]:+.3f} / "
+                         f"{pcs['clean'][m_]:+.3f}) | full ({pcs['full'][s_]:+.3f} / {pcs['full'][m_]:+.3f}):")
+                combo = {}
+                for k in KEYS:
+                    row = {}
+                    for pop in ("clean", "full"):
+                        x = vals(k, pop, ax)
+                        S, M = pcs[pop][s_], pcs[pop][m_]
+                        row[pop] = {"strong": int(np.sum(x < S)), "moderate": int(np.sum((x >= S) & (x < M))),
+                                    "n": int(x.size)}
+                    combo[k] = row
+                    note = "  [Le Mans, information]" if k in EXCLUDED else ""
+                    L.append(f"    {NAMES[k]}: clean {row['clean']['strong']}/{row['clean']['moderate']} of "
+                             f"{row['clean']['n']} | full {row['full']['strong']}/{row['full']['moderate']} of "
+                             f"{row['full']['n']}{note}")
+                tc = [combo[k]["clean"] for k in pool]
+                tf = [combo[k]["full"] for k in pool]
+                L.append(f"    pool total: clean {sum(c['strong'] for c in tc)}/{sum(c['moderate'] for c in tc)}"
+                         f" | full {sum(c['strong'] for c in tf)}/{sum(c['moderate'] for c in tf)} (strong/moderate)")
+                out[tag][f"S_p{s_}_M_p{m_}"] = combo
+    L.append("\nSTABILITY worst-phase (information for default (c)):")
+    out["stab"] = {}
+    for pop in ("clean", "full"):
+        v = np.concatenate([vals(k, pop, "stab") for k in pool])
+        rec = {"n": int(v.size), "n_negative": int(np.sum(v < 0)),
+               **{f"p{p}": float(np.percentile(v, p)) for p in (5, 10, 15)}}
+        out["stab"][pop] = rec
+        L.append(f"  {pop}: n {rec['n']}, negative {rec['n_negative']}, p5 {rec['p5']:.0f}, p10 {rec['p10']:.0f}, "
+                 f"p15 {rec['p15']:.0f} Nm/deg; negatives per session: "
+                 + ", ".join(f"{NAMES[k]} {int(np.sum(vals(k, pop, 'stab') < 0))}" for k in KEYS))
+    text = "\n".join(L)
+    with open(os.path.join(OUT_DIR, "counts_clean.txt"), "w", encoding="utf-8") as fh:
+        fh.write(text + "\n")
+    with open(os.path.join(OUT_DIR, "counts_clean.json"), "w") as fh:
+        json.dump(out, fh, indent=1)
+    print(text)
+
+
+def verify_config():
+    """Tier counts at the thresholds now in config, on the cached clean and
+    full corner values -- the classifier's own tiers (value < STRONG; STRONG
+    <= value < MODERATE; stability < stab_neg_thresh)."""
+    from modules.stability_analysis import load_parameters
+    cl = load_parameters()["classification"]
+    th = {"f": (cl["STRONG_CSF"]["value"], cl["MODERATE_CSF"]["value"]),
+          "r": (cl["STRONG_CSR"]["value"], cl["MODERATE_CSR"]["value"])}
+    st = cl["stab_neg_thresh_Nm_per_deg"]["value"]
+    pool = [k for k in KEYS if k not in EXCLUDED]
+    L = [f"CONFIG: front {th['f']}, rear {th['r']}, stab_neg_thresh {st}"]
+    for pop in ("clean", "full"):
+        tot = {"f": [0, 0], "r": [0, 0], "u": 0}
+        L.append(f"{pop.upper()} population (strong/moderate front | rear | open-loop unstable):")
+        for k in KEYS:
+            with open(os.path.join(CACHE_CLEAN, f"{k}.pkl"), "rb") as fh:
+                res = pickle.load(fh)[pop]
+            row = []
+            for ax in "fr":
+                x = np.array([v[ax] for v in res.values()], float)
+                x = x[np.isfinite(x)]
+                s_, m_ = int(np.sum(x < th[ax][0])), int(np.sum((x >= th[ax][0]) & (x < th[ax][1])))
+                row.append(f"{s_}/{m_}")
+                if k in pool:
+                    tot[ax][0] += s_
+                    tot[ax][1] += m_
+            u = int(np.sum(np.array([v["stab"] for v in res.values()], float) < st))
+            if k in pool:
+                tot["u"] += u
+            L.append(f"  {NAMES[k]}: {row[0]} | {row[1]} | {u}" + ("  [information]" if k in EXCLUDED else ""))
+        L.append(f"  pool total: front {tot['f'][0]}/{tot['f'][1]}, rear {tot['r'][0]}/{tot['r'][1]}, "
+                 f"unstable {tot['u']}")
+    text = "\n".join(L)
+    with open(os.path.join(OUT_DIR, "verify_config.txt"), "w", encoding="utf-8") as fh:
+        fh.write(text + "\n")
+    print(text)
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "compute":
         compute(sys.argv[2])
     elif sys.argv[1] == "counts":
         counts()
+    elif sys.argv[1] == "compute_clean":
+        compute_clean(sys.argv[2])
+    elif sys.argv[1] == "counts_clean":
+        counts_clean()
+    elif sys.argv[1] == "verify_config":
+        verify_config()
     else:
         report()
