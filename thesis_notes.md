@@ -26543,7 +26543,13 @@ SCRIPT: diagnostics/inspect_channel_census.py (modes exports / pds / report / co
 
 ## Supervisor personal communication on multiple IMUs: superseded as a source [2026-10-07, author ruling]
 
-The supervisor's personal communication that the TUM racing platforms carry several IMUs is superseded as the citable source by the published papers (Goblirsch et al.; IFAC 2019; Betz et al. 2023; class ii above). Record note: no earlier entry of this communication exists in thesis_notes.md or PLAN.md; the nearest record is the 2026-10-01 GPS-context entry on the supervisor's RTK / dual-antenna background.
+~~The supervisor's personal communication that the TUM racing platforms carry several IMUs is superseded as the citable source by the published papers (Goblirsch et al.; IFAC 2019; Betz et al. 2023; class ii above). Record note: no earlier entry of this communication exists in thesis_notes.md or PLAN.md; the nearest record is the 2026-10-01 GPS-context entry on the supervisor's RTK / dual-antenna background.~~ [RESTRUCTURED 2026-10-12 per the 2026-10-08 ruling: the paragraph superseded a record that never existed. The communication is now recorded first, the supersede note follows.]
+
+RECORD OF THE COMMUNICATION: personal communication, supervisor; date not recorded (predates the published-paper verification of 2026-10-08). Content: the chair's autonomous platform runs multiple IMUs, one effectively bias-free, one with offsets.
+
+~~SUPERSEDE NOTE [2026-10-12]: as a citable source, this communication is superseded by the published papers (Goblirsch et al.; IFAC 2019 state-estimation paper; class ii above). The personal communication stays as background only.~~ [CORRECTED 2026-10-12, author: IFAC 2019 removed as a source for the multiple-IMU statement -- its Roborace sensor table lists a single gyroscope and makes no multiple-IMU claim.]
+
+SUPERSEDE NOTE [2026-10-12, corrected]: as a citable source, this communication is superseded by Goblirsch et al. only (three IMUs on the Dallara AV-21; class ii above). The personal communication stays as background only.
 
 ## Beta architectures, round 3: seed sensitivity of the session Pacejka fit and of E [2026-10-07, offline diagnostic diagnostics/seed_sensitivity_fit.py; numbers only -- verdicts are the author's]
 

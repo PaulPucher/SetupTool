@@ -2,10 +2,11 @@
 
 ### NOW
 
-Rewritten 2026-09-30 (post-meeting consolidation, branch new-laps). The
-NOW items this replaces are preserved verbatim under "SUPERSEDED
-NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)" in the history part of
-this file.
+Rewritten 2026-10-11 (post estimator arc, branch new-laps). The header
+and REPO STATE this replaces are preserved verbatim under "SUPERSEDED
+NOW-BLOCK CONTENT (2026-10-11 STATUS rewrite)"; the 2026-09-30 NOW items
+remain under "SUPERSEDED NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)".
+The rest of this block is unchanged.
 
 READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
 PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
@@ -20,18 +21,25 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 "OPEN" lines describe the state when they were written.
 
 REPO STATE
-- main @ 21c032a. Tag stable-2026-09-30 (annotated, "Pre-experiment
-  fallback: state as of intermediate meeting") marks main 21c032a.
-  Branch new-laps sits one commit above it: 6a583cf, the CS diagnostic
-  arc (four diagnostics scripts, the figure-generator fix, records;
-  production untouched). The tag does not contain that commit --
-  harmless: the tag is the production fallback and the arc changed no
-  production, config or threshold file.
-- Production chain as of the tag: sideslip ekf_auto_pacejka (the
-  gated-kinematic alternative was ruled FAILED 2026-09-29); CS_ratio
-  worst-lap read-out with the STRONG/MODERATE thresholds derived on
-  Dubai (2026-09-02) and cs_margin (2026-09-19); stab_neg_thresh still
-  kinematic-era, not re-derived (BACKLOG A).
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it.
+  Branch new-laps is 17 commits above main; head b5b066f.
+- Estimator-hardening arc (phases 1+2) COMPLETE and COMMITTED: f8c1c97
+  (phase 1), b5b066f (phase 2: R selection on f_ay with sign-check
+  guard, ay-only gross trigger, CS and NIS-gate thresholds re-derived,
+  Dubai golden re-baselined). ANALYSIS_SCHEMA_VERSION = 15.
+- Full suite GREEN: 608 passed, 9 skipped, 1 xfailed (re-confirmed
+  2026-10-11 after the small-items package).
+- Small-items package 2026-10-11 (.gitignore un-ignores
+  diagnostics/results_metrology_20261011/, NIS test re-anchored, OPEN
+  ITEMS block, this rewrite): pending the author's commit.
+- ~~Still owed: thesis_notes.md entry 9 restructure (2026-10-08 ruling),
+  blocked on the author's date and setting of the communication.~~
+  [DONE 2026-10-12: date not recorded, per author; entry restructured.]
+
+NEXT (author order 2026-10-11)
+1. Author app check (manual).
+2. Cleanup round, on author instructions.
+3. Results generation.
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -2042,6 +2050,18 @@ CARRIED OPEN (not started; each keeps its own gate)
   new-laps carries diagnostics and records only. [2026-09-30: full suite run
   once at the WP-HARDEN implementation boundary, as its spec required:
   546 passed, 9 skipped, 1 xfailed; tests/golden unchanged.]
+
+OPEN ITEMS POST ESTIMATOR ARC (dispositions ruled by the author 2026-10-11;
+one line each, no new analysis)
+- Combined-NIS health score: method question; revisit only if the gate
+  misbehaves or the thesis forces it.
+- P0 hypothesis: recorded, untested; its main consequence rejected in 2c.
+- 11 R-sensitive stability corners: resolution-limit finding, goes to the
+  thesis.
+- Dugoff Rajamani ch. 14 citation: mapping round.
+- Dugoff old R logic: known divergence; delete candidate for the cleanup
+  round.
+- Anchor pages to verify: author, during writing.
 
 STANDING WARNINGS -- carry these into every future session
 
@@ -8610,6 +8630,29 @@ superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
 
 ---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-11 STATUS rewrite)
+Verbatim header and REPO STATE of ### NOW as they stood before the
+2026-10-11 post-estimator-arc rewrite. Record, not instruction.
+
+Rewritten 2026-09-30 (post-meeting consolidation, branch new-laps). The
+NOW items this replaces are preserved verbatim under "SUPERSEDED
+NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)" in the history part of
+this file.
+
+REPO STATE
+- main @ 21c032a. Tag stable-2026-09-30 (annotated, "Pre-experiment
+  fallback: state as of intermediate meeting") marks main 21c032a.
+  Branch new-laps sits one commit above it: 6a583cf, the CS diagnostic
+  arc (four diagnostics scripts, the figure-generator fix, records;
+  production untouched). The tag does not contain that commit --
+  harmless: the tag is the production fallback and the arc changed no
+  production, config or threshold file.
+- Production chain as of the tag: sideslip ekf_auto_pacejka (the
+  gated-kinematic alternative was ruled FAILED 2026-09-29); CS_ratio
+  worst-lap read-out with the STRONG/MODERATE thresholds derived on
+  Dubai (2026-09-02) and cs_margin (2026-09-19); stab_neg_thresh still
+  kinematic-era, not re-derived (BACKLOG A).
 
 ## SESSION PREAMBLE — paste this at the start of every new work session
 

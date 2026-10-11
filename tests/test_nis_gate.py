@@ -206,9 +206,12 @@ def test_classify_score_nan_is_fail():
 # failure.py, live rate-corrected 100Hz window) for both real sessions, plus
 # the fail/warn/pass gate paths on synthetic scores per the work order's own
 # verification requirement.
+# Scores re-anchored 2026-10-11 to the corrected estimator (phase-2 NIS-gate
+# verification, diagnostics/check_estimator_hardening.py --step p2s2robust;
+# v3 = Paul Ricard MLA outing 25). Supersedes 0.1351 / 0.0849.
 
-DUBAI_LIVE_HEALTH_SCORE = 0.13513070220399795
-V3_LIVE_HEALTH_SCORE = 0.08487092503723316
+DUBAI_LIVE_HEALTH_SCORE = 0.0549
+V3_LIVE_HEALTH_SCORE = 0.0473
 
 
 def test_both_real_sessions_pass_under_live_thresholds():

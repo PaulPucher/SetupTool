@@ -1,0 +1,15 @@
+=== FLIP CENSUS PER INPUT (count of corner-phase flips at +/-1%) ===
+  mass: 0 flips, sessions=[]
+  front_fraction: 0 flips, sessions=[]
+  wheelbase: 0 flips, sessions=[]
+  yaw_inertia: 0 flips, sessions=[]
+  steering_wheel_angle: 0 flips, sessions=[]
+  TOTAL: 0 flips across 5 inputs x 2 directions x 2 sessions
+
+=== PRE-REGISTRATION CHECK: do flips concentrate near a threshold? ===
+  ALL corner-phases:      n=119, mean threshold-distance=0.5734, median=0.5742
+  Pre-registration holds at the aggregate level: flipped corner-phases sit closer to a threshold than the general population (or the flip set is empty).
+
+=== MARGIN TABLE (worst 10 corner-phases, ranked by #inputs that flip it at <=1%) ===
+figure saved: diagnostics\plots_metrology_20261011\dubai_margin_distribution.png
+figure saved: diagnostics\plots_metrology_20261011\v3_margin_distribution.png
