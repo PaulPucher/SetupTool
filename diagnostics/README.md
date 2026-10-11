@@ -92,6 +92,7 @@ the per-section lists below are the current inventory.]
   table's wheel-angle column (the ratio column is no longer read since the
   steering fix); results to diagnostics/results_metrology_20261005/.
   inspect_metrology_phase1_analysis.py reads the same folder.
+  [2026-10-11: METROLOGY_RUN_TAG selects the run folder (default 20261005); the cs_margin re-measure on the corrected estimator wrote results_metrology_20261011/ and plots_metrology_20261011/ (analysis via inspect_metrology_phase1_analysis.py with the same tag).]
 - **inspect_native_channel_rates.py** -- cited in config/parameters.json's
   `_comment_grid_rate`.
 - **inspect_nis_tyre_mismatch_gate.py** -- cited in
@@ -583,6 +584,10 @@ the per-section lists below are the current inventory.]
   JST 29 front tail check. Modes `compute <key>` and `report`. If the
   author derives new config values from it, it becomes their
   derived_from. Outputs in `plots/threshold_rederivation/`.
+  [2026-10-11: modes `compute_fresh <key>` / `counts_fresh` -- the same
+  clean rule on the corrected estimator, every session through the fresh
+  chain into cache_clean_20261011; derived_from of the 2026-10-11
+  STRONG / MODERATE values.]
 - **inspect_iteration.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 --
   documents the Step 4 verdicts) -- Step 4 iteration experiment: refit on the
   EKF-refined slip angles, up to 3 rounds, starting from the session's own
@@ -740,8 +745,7 @@ the per-section lists below are the current inventory.]
   thesis_notes.md "Werner Eq. 4.3 v1" figures; `--replot` redraws from the
   saved JSON. Plots in `plots_yaw_damping/` (gitignored).
 
-- **inspect_kinematic_inputs.py** (2026-10-07, keep-reproduces PENDING the
-  author's ruling on the results) -- kinematic-integration input audit, work
+- **inspect_kinematic_inputs.py** (2026-10-07, keep: thesis evidence: beta investigation rounds 1-3, reproduces the numbers in the beta chapter) -- kinematic-integration input audit, work
   order in PLAN.md STATUS 2026-10-07: steering-defined straights (data-derived
   thresholds), straight-line yaw-rate / ay offsets per segment / lap /
   session, quasi-steady ay / vx vs yaw-rate fits M0 / M1 / M2 with segment
@@ -752,8 +756,7 @@ the per-section lists below are the current inventory.]
   (2026-10-07): --file repeatable (cross-session list), --filter-check
   (washout step response, one long corner); record "Diagnostic 2: what the
   beta washout does ...".
-- **compare_beta_architectures.py** (2026-10-07, keep-reproduces PENDING the
-  author's ruling) -- offline beta architecture comparison A / B / B2 / C on
+- **compare_beta_architectures.py** (2026-10-07, keep: thesis evidence: beta investigation rounds 1-3, reproduces the numbers in the beta chapter) -- offline beta architecture comparison A / B / B2 / C on
   NBR-73-010-026-JDR and MLA-SE07_US-v2 (calibration / validation straights,
   drift, five longest corners, entry / exit cleanliness, slip-angle span).
   Imports steering_straights, load, track_label from inspect_kinematic_inputs
@@ -761,8 +764,7 @@ the per-section lists below are the current inventory.]
   Round 2 (default; --round 1 reproduces round 1): gain + offset correction
   D / D2 / CG and the app's estimator E; record "Beta architectures, round 2
   ...". Also imports quasi_steady_segments.
-- **seed_sensitivity_fit.py** (2026-10-07, keep-reproduces PENDING the
-  author's ruling) -- round 3: seed sensitivity of the session Pacejka fit
+- **seed_sensitivity_fit.py** (2026-10-07, keep: thesis evidence: beta investigation rounds 1-3, reproduces the numbers in the beta chapter) -- round 3: seed sensitivity of the session Pacejka fit
   and of E. Seeds A / D2 / B2 substituted for the kinematic beta inside
   tyre_fit_auto (route a, fit data) or also inside sideslip_ekf_pacejka
   (route b, EKF fallback / reset), in-process only; per run fit parameters,
@@ -770,8 +772,7 @@ the per-section lists below are the current inventory.]
   corners / straights. Imports from compare_beta_architectures and
   inspect_kinematic_inputs (Dependency). Record: thesis_notes.md "Beta
   architectures, round 3 ...".
-- **check_estimator_hardening.py** (2026-10-08, keep-reproduces PENDING the
-  author's ruling) -- phase-1 validation of the estimator hardening: D4
+- **check_estimator_hardening.py** (2026-10-08, keep: thesis evidence: beta investigation; validates the D3/D4 estimator change old-vs-new (phase 1) and carries the phase 2 step 1 analysis) -- phase-1 validation of the estimator hardening: D4
   plausibility-gate dry run on the round-3 fits (seeds A / D2 / B2) and the
   old vs new divergence re-entry on seed A (corners, straights, divergence
   counts split hard-bound / NIS-window, mid-corner zero resets, R choice).
@@ -779,6 +780,13 @@ the per-section lists below are the current inventory.]
   estimator_hardening/ (gitignored, swapped in-process). Imports from
   compare_beta_architectures and inspect_kinematic_inputs (Dependency).
   Record: thesis_notes.md "Estimator hardening D3 + D4, phase 1 ...".
+  Phase 2 modes (2026-10-11): p2s1 / p2s1b (Dubai, NBR, PR acceptance facts,
+  per-corner sign check, pinned R), p2s2grid (full R grid), p2s2verify (the
+  redesigned R selection), p2s2c (stability surge mechanism), p2s2robust /
+  p2s2robust_report (R-robust / R-sensitive split, acceptance metrics --
+  derived_from of the 2026-10-11 NIS-gate thresholds). Also imports
+  inspect_tyre_prior_d2, inspect_new_laps_cs_sweep and
+  inspect_threshold_rederivation (Dependency).
 
 ## K6 -- imported by a K1-K5 keeper (3 not already listed above)
 

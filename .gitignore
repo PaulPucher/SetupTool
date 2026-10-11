@@ -36,6 +36,8 @@ diagnostics/plots_decision_layer/
 diagnostics/plots_gated_kinematic/
 diagnostics/plots_yaw_damping/
 diagnostics/output/
+diagnostics/results_metrology_20261011/
+diagnostics/plots_metrology_20261011/
 
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/

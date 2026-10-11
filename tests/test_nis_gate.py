@@ -219,9 +219,11 @@ def test_both_real_sessions_pass_under_live_thresholds():
 
 def test_order_of_magnitude_collapse_still_fails_under_live_thresholds():
     cfg = load_parameters()["nis_gate"]
-    # ~1/10 of v3's real score -- the genuine-divergence case the redesign
-    # keeps FAIL reserved for, not a session-to-session noise difference.
-    collapsed_score = V3_LIVE_HEALTH_SCORE / 10.0
+    # Threshold-relative by design (2026-10-11): half the live fail line, so a
+    # re-derivation of the lines cannot break the premise again (the former
+    # v3-score / 10 read 'warn' once the fail line moved to 0.0025). A
+    # collapsed fit is the case FAIL is reserved for.
+    collapsed_score = cfg["threshold_warn"] * 0.5
     assert classify_score(collapsed_score, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "fail"
 
 

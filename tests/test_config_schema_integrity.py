@@ -141,9 +141,12 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 13 (2026-10-06): events key added (payload level, limit events, display
     # only) -- corner summaries untouched, every shape check below unchanged.
     # 14 (2026-10-07): every CS stat block gains n_kerb_excluded (display only).
-    assert ANALYSIS_SCHEMA_VERSION == 14, (
+    # 15 (2026-10-11): estimator change (re-entry, plausibility gate, R selection,
+    # ay-only gross trigger); fit_manifest gains marginal_reason and the
+    # r_sweep selection / guard_trace fields -- corner summaries untouched.
+    assert ANALYSIS_SCHEMA_VERSION == 15, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 14 -- update this test deliberately if the version was bumped again"
+        "written for 15 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

@@ -640,7 +640,12 @@ def test_consistency_gate_blocks_one_off_lap_under_worst_lap_aggregation(monkeyp
     def classify_fn(summary):
         return OutingForm._classify_corner(None, summary)
 
-    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
+    # Threshold-relative by design (2026-10-11): 0.2 below the live STRONG_CSF,
+    # so a threshold re-derivation cannot silently move the bad lap into the
+    # margin band again (the fixed -0.7 did, once STRONG_CSF became -0.784).
+    import modules.stability_analysis as sa
+    bad_value = sa.load_parameters()["classification"]["STRONG_CSF"]["value"] - 0.2
+    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=bad_value)
 
     aggregated = aggregate_by_corner(summaries)
     severity, short, _long, _colour = classify_fn(aggregated[1])
@@ -652,8 +657,8 @@ def test_consistency_gate_blocks_one_off_lap_under_worst_lap_aggregation(monkeyp
     # lap's value rather than the aggregate washing it out to "ok").
     assert severity in ("moderate", "strong") and "understeer" in short, (
         f"expected the worst_lap aggregate to surface the single bad lap's value "
-        f"as an understeer verdict (STRONG_CSF={-0.7} clears any plausible "
-        f"threshold), got severity={severity!r} short={short!r}"
+        f"as an understeer verdict (bad lap CS {bad_value:.3f} = STRONG_CSF - 0.2), "
+        f"got severity={severity!r} short={short!r}"
     )
 
     config = load_recommendations_config()

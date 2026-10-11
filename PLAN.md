@@ -1915,6 +1915,77 @@ NEXT
   diagnostics/check_estimator_hardening.py (compiles, untested end to end). Run started and stopped while
   still on Dubai; no numbers, no PNG. Continue: python -m diagnostics.check_estimator_hardening --png
   --step p2s1 (about 45-60 min for the three exports), then report.]
+  [2026-10-11: STEP 1 RUN, DUBAI ONLY (not committed). Drive D: (NBR and PR exports) not mounted -> NBR / PR
+  part not run. Dubai: zero hard-bound resets old and new; final-run NIS-window divergences 333 -> 835; fit ok
+  -> marginal (R sweep 1 -> 0 grid points in band, f_yaw 0.110 -> 0.263); sign check 11/11 both. Golden corner 0
+  (lap 1 C1): apex_3 is 11 samples (+/-5 around one instant); E there +3.46..+3.79 -> +2.15..+2.52 deg, no
+  divergence inside the window; the old run wrote the kinematic beta at +4.59 s and +5.17 s (NIS-window),
+  0.4-0.9 s before the apex. diagnostics/check_estimator_hardening.py p2s1 apex window fixed (half window as
+  summarise_corners). PNG diagnostics/output/estimator_hardening/dubai_corner0_reentry.png.]
+  [2026-10-11, WORK ORDER (author): STEP 1 COMPLETION RUN, NBR + PR only (Part A 1-3, Part B incl. NBR new
+  sign check and grid-in-band counts, PR per-corner sign-check outcomes).]
+  [2026-10-11: NOT RUN -- drive D: is not visible to this machine (only C:), and no copy of either export
+  exists under C:/UNI or the user folder. Prepared: --skip-dubai flag and per-corner NBR / PR section
+  (resets, phase means per stable corner, per-corner sign check, PNG sign_check_corners_<export>.png) in
+  diagnostics/check_estimator_hardening.py; compiles, untested. Continue: python -m
+  diagnostics.check_estimator_hardening --png --step p2s1 --skip-dubai once D: is mounted.]
+  [2026-10-11: STEP 1 COMPLETION RUN DONE (D: mounted; not committed). NBR: sign check 16/16 old and new;
+  R sweep in band 1 -> 0 of 25; hard-bound resets 0 -> 5 (3 at |ay| >= 5, 0.018 per 1000 moving samples
+  confirmed). PR: sign check 15/15 -> 5/15 (0.333 confirmed), flipped racing corners C1, C3, C7, C8, C10,
+  C11, C12, C14, C15, C16; R sweep in band 0 -> 0 of 25; hard-bound 0 -> 3 (2 at |ay| >= 5, 0.014 per 1000
+  confirmed). PNGs sign_check_corners_<export>.png. Step-2 rulings pending.]
+  [2026-10-11, WORK ORDER (author): STEP 1b -- PR with R pinned (sweep reduced to one grid point), new@0.1/16
+  and old@1/1, to separate the R choice from the re-entry change.]
+  [2026-10-11: STEP 1b DONE (not committed). Sign check racing fraction: new@1/1 0.333, new@0.1/16 1.000
+  (15/15), old@0.1/16 1.000, old@1/1 0.800 (12/15; C3, C10, C11 fail). new@0.1/16: fit 'marginal', f_yaw
+  0.430 / f_ay 0.051, 3080 NIS-window divergences, 0 hard-bound. Pinned runs at the swept choices reproduce
+  the swept runs exactly. --step p2s1b in check_estimator_hardening.py; PNG pr_pinned_noise_sign_check.png.]
+  [2026-10-11, WORK ORDER (author): PHASE 2 STEP 2 -- re-derivation package (Part 1 R band + no-in-band
+  fallback to 0.1/16 at most 'marginal'; Part 2 classification thresholds; Part 3 acceptance fractions;
+  Part 4 goldens/tests; Part 5 schema 15, PRODUCTION.md, levels, records; Part 6 suite). Stop at any part
+  whose outcome contradicts its premise.]
+  [2026-10-11: STOPPED IN PART 1, nothing changed in production / config. Full 25-point grid, new estimator
+  (--step p2s2grid): minimum f_yaw over the grid is Dubai 0.263, NBR 0.211, PR 0.393 -- no grid point on any
+  export reaches f_yaw <= 0.15, so a band that is "achievable on all three" needs f_yaw up to about 0.40,
+  i.e. accepts about 40 % chi-square exceedance where 5 % is the design level. On PR f_yaw is nearly flat in
+  the yaw scale (0.39-0.44 over x1..x16). Sign check per grid point: 1.000 everywhere on Dubai and NBR; on
+  PR below 1 only at r_ay_scale 1 (1/1 0.333, 1/2 0.600, 1/4 0.800, 1/8 0.933) and 0.3 (1, 2, 4: 0.800,
+  0.867, 0.867). Awaiting the author's ruling on the band form.]
+  [2026-10-11, PART 1 AMENDMENT (author): R selected on f_ay only in [0.03, 0.15] nearest the centre, sign-check
+  guard >= 0.7 per grid point, fallback config-default 0.1/16 at most 'marginal' (r_sweep_no_in_band /
+  r_sweep_guard_fail); f_yaw logged, gross limit 0.5 kept. Then Parts 2-6 as ordered.]
+  [2026-10-11: PART 1 IMPLEMENTED, VERIFY STOPPED (not committed). modules/tyre_fit_auto.py (Pacejka sweep),
+  config tyre_fit_auto.r_sweep_ay_band_low/high, r_sweep_default_ay/yaw_scale. Picks: NBR 0.1/16 'ok', PR 0.1/1
+  'ok' (1/1 guard-failed), Dubai 0.03/1 -> 'degenerate' via the gross limit (f_yaw 0.521 > 0.5) -> kinematic
+  fallback. Parts 2-6 not started. thesis_notes "Phase 2 step 2, Part 1 ...". Awaiting ruling.]
+  [2026-10-11, OPEN 1 RULING (author): gross trigger on f_ay only; soft yaw ceiling 0.75 -> at most 'marginal'
+  (yaw_mismatch_high). Then verify and Parts 2-6; fresh-cache percentile approach approved.]
+  [2026-10-11: VERIFY PASSED (Dubai 0.03/1 ok 11/11, NBR 0.1/16 ok 16/16, PR 0.1/1 ok 15/15). PART 2 STOPPED
+  before any config write: fresh-chain percentiles computed (front p10 -0.784 / p30 -0.265, rear p10 -0.677 /
+  p30 -0.323), but worst-phase stability negatives jump 9 -> 34 of 109 (Dubai 0 -> 10 of 14; Dubai at 0.1/16:
+  6 of 14). Parts 3-6 not started; awaiting ruling. Not committed.]
+  [2026-10-11, WORK ORDER (author): STEP 2c -- stability surge mechanism, three worked corners + population reset
+  count. Diagnostic only.]
+  [2026-10-11: STEP 2c DONE (not committed). Dubai C5 -912 vs +338 (0.1/16) vs +161 old, same beta span, no
+  resets -> R-driven trajectory; Dubai C9 -564 / -201 / +348, old had 2.5-3.0 deg injection steps; JST 21 C14
+  -76 vs +254, beta span doubled, no reset steps. Population: 27 newly negative, >= 5 resets 16, 1-4 9, none 2.
+  PNGs stability_*.png. Parts 3-6 pending the author's ruling.]
+  [2026-10-11, RULING (author): stability surge stands as the ruled chain's output; R-robustness ride-along;
+  then Parts 2-6 to the end.]
+  [2026-10-11: PARTS 2-5 DONE (not committed): CS thresholds written (-0.784 / -0.265 front, -0.677 / -0.323
+  rear); NIS gate 0.023 / 0.0025; sign-check / ay gross limits retained; Dubai Pacejka golden re-baselined;
+  schema 15; PRODUCTION.md secs. 4, 5, 15, 16, 18; levels in config comments; records. Robustness: 34 negative
+  at picks, 23 R-robust, 11 R-sensitive. Part 6 suite result in the report.]
+  [2026-10-11: PART 6 SUITE RED -> STOP: 2 failed / 606 passed / 9 skipped / 1 xfailed.
+  test_cs_validity_repair::test_consistency_gate_blocks_one_off_lap_under_worst_lap_aggregation (its synthetic
+  -0.7 no longer clears STRONG_CSF -0.784); test_nis_gate::test_order_of_magnitude_collapse_still_fails_under_
+  live_thresholds (v3 old score / 10 = 0.0085 now 'warn' under threshold_warn 0.0025). Both are test premises
+  tied to the old thresholds; awaiting the author's ruling. Not committed.]
+  [2026-10-11, WORK ORDER (author): STEP 2 CLOSE-OUT -- threshold-relative test fixes, NIS-gate verification,
+  cs_margin sweep before commit, suite once, records.]
+  [2026-10-11: CLOSE-OUT -- tests fixed (STRONG_CSF - 0.2; threshold_warn x 0.5); NIS gate Dubai 0.0549 / NBR-73
+  0.1219 / PR 0.0245 all pass; cs_margin sweep 0 flips -> 0.11 retained. Suite result in the report. Not
+  committed.]
   Uncommitted (author commits):
   CLAUDE.md, PLAN.md, thesis_notes.md, diagnostics/README.md,
   diagnostics/plots_INDEX.md, diagnostics/inspect_seed_sweep.py,

@@ -42,7 +42,15 @@ CAR_DATA_PATH = "config/car_data.json"
 #  14: (2026-10-07) CS stat blocks gain n_kerb_excluded (finite samples left
 #      out as kerb-affected), so the per-phase table can say "no clean data"
 #      instead of a blank; display only, no value changes.
-ANALYSIS_SCHEMA_VERSION = 14
+#  15: (2026-10-11) estimator change: Pacejka EKF divergence re-entry without
+#      kinematic injection (NIS window -> keep state, P0; hard bound -> beta 0),
+#      tyre-curve plausibility gate, R selected on the ay exceedance with a
+#      sign-check guard and default-R fallback, gross trigger on ay only, soft
+#      yaw ceiling. Payload: fit_manifest gains marginal_reason and
+#      r_sweep.selection / guard_trace (grid points carry ay_in_band and
+#      sign_fraction instead of both_in_band); degenerate_reason / fallback_reason
+#      texts changed; every degenerate status now carries a reason.
+ANALYSIS_SCHEMA_VERSION = 15
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

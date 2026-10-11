@@ -28,6 +28,12 @@
 # so a future failure can be attributed to either a real behaviour change
 # or a deliberate, intentional regeneration.
 #
+# APEX FRAGILITY (2026-10-11): apex_3 is one instant +/- apex_half_window_
+# samples, i.e. 11 samples; its medians flip on small beta changes (Dubai
+# corner 0 moved +0.518 -> -0.201 CS front when the divergence re-entry
+# stopped injecting the kinematic beta 0.4-0.9 s before that window). A
+# golden diff concentrated in apex_3 is expected after any estimator change.
+#
 # Float tolerance and NaN handling: see tests/_json_utils.py's own
 # docstring/comments for the full rationale (combined relative+absolute
 # tolerance, rtol=1e-6/atol=1e-9; NaN==NaN passes, NaN-vs-number fails).

@@ -676,7 +676,11 @@ def plausibility_gate(alpha, fit_mask, axle_fit, cfg):
 
 def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False, tyre_fit_mode="per_session"):
     """fit_session with the reduced Magic Formula instead of Dugoff; steps
-    (c)-(e) and status thresholds identical, only the axle fit and EKF differ.
+    (c)-(e) and status thresholds as there, except the R selection of the
+    sweep (2026-10-11): ay exceedance only, band centre, sign-check guard,
+    config-default R as fallback (status at most 'marginal', reason in
+    marginal_reason) -- see the comment at the sweep. The Dugoff path keeps
+    the joint yaw + ay band.
 
     load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD ch. 2
     (sec. 2.1)). No measured Fz -> degenerate manifest, no silent free-D
@@ -796,34 +800,70 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         "r_ay_var_derived": r_ay_var_derived, "r_yaw_rate_var_derived": r_yaw_rate_var_derived,
     }
 
-    sweep_results = []
-    for r_ay_scale in cfg["r_sweep_ay_scales"]:
-        for r_yaw_scale in cfg["r_sweep_yaw_scales"]:
-            sweep_cfg = dict(interim_cfg)
-            sweep_cfg["R_ay_var"] = r_ay_var_derived * r_ay_scale
-            sweep_cfg["R_yaw_rate_var"] = r_yaw_rate_var_derived * r_yaw_scale
-            params_sweep = dict(params)
-            params_sweep["tyre_model_ekf_pacejka"] = {"_auto_sweep": sweep_cfg}
-            result = estimate_sideslip_ekf_pacejka(state, params_sweep, pass_id="_auto_sweep")
-            innovation = result["innovation"][base_mask]
-            S_diag = result["S_diag"][base_mask]
-            f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
-            f_ay = float((innovation[:, 1] ** 2 / S_diag[:, 1] > CHI2_DF1_95).mean())
-            both_in_band = (cfg["nis_band_low"] <= f_yaw <= cfg["nis_band_high"]) and \
-                            (cfg["nis_band_low"] <= f_ay <= cfg["nis_band_high"])
-            sweep_results.append({"r_ay_scale": r_ay_scale, "r_yaw_scale": r_yaw_scale,
-                                   "R_ay_var": sweep_cfg["R_ay_var"], "R_yaw_rate_var": sweep_cfg["R_yaw_rate_var"],
-                                   "f_yaw": f_yaw, "f_ay": f_ay, "both_in_band": both_in_band})
+    corners = data.get("corners", [])
+    laps_by_number = {l["lap_number"]: l for l in laps}
+    corners_by_stable_id = {}
+    for c in corners:
+        sid = c.get("stable_corner_id")
+        if sid is not None:
+            corners_by_stable_id.setdefault(sid, []).append(c)
+    racing_ids = [cid for cid, insts in corners_by_stable_id.items() if insts[0].get("speed_class") != "low"]
+    t = state["time"]
+    s_m = state.get("s_m")
+    ay = state["ay_mps2"]
 
-    in_band = [r for r in sweep_results if r["both_in_band"]]
-    centre = (cfg["nis_band_low"] + cfg["nis_band_high"]) / 2.0
-    if in_band:
-        chosen = min(in_band, key=lambda r: abs(r["f_yaw"] - centre) + abs(r["f_ay"] - centre))
-        sweep_found_in_band = True
+    # R selection (author ruling 2026-10-11): on the ay exceedance only, in
+    # [r_sweep_ay_band_low, r_sweep_ay_band_high], nearest the band centre,
+    # guarded by the sign check of that grid point's own run (>= the marginal
+    # limit). Under the corrected re-entry the yaw exceedance stays far above
+    # any NIS band on every grid point -- the yaw innovation is dominated by
+    # single-track model mismatch, not sensor noise -- so it is logged per
+    # point, not selected on. No guarded in-band point -> the config default R,
+    # never an arbitrary "nearest overall" pick (that pick inverted the
+    # physics on Paul Ricard). Tier B: a data-derived calibration rule on the
+    # existing chi-square exceedance statistic, not a new method.
+    band_lo, band_hi = cfg["r_sweep_ay_band_low"], cfg["r_sweep_ay_band_high"]
+    centre = (band_lo + band_hi) / 2.0
+
+    def _sweep_point(r_ay_scale, r_yaw_scale):
+        sweep_cfg = dict(interim_cfg)
+        sweep_cfg["R_ay_var"] = r_ay_var_derived * r_ay_scale
+        sweep_cfg["R_yaw_rate_var"] = r_yaw_rate_var_derived * r_yaw_scale
+        params_sweep = dict(params)
+        params_sweep["tyre_model_ekf_pacejka"] = {"_auto_sweep": sweep_cfg}
+        result = estimate_sideslip_ekf_pacejka(state, params_sweep, pass_id="_auto_sweep")
+        innovation = result["innovation"][base_mask]
+        S_diag = result["S_diag"][base_mask]
+        f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
+        f_ay = float((innovation[:, 1] ** 2 / S_diag[:, 1] > CHI2_DF1_95).mean())
+        sign = _sign_check(t, s_m, result["beta"], ay, base_mask, corners_by_stable_id, laps_by_number, racing_ids)
+        return {"r_ay_scale": r_ay_scale, "r_yaw_scale": r_yaw_scale,
+                "R_ay_var": sweep_cfg["R_ay_var"], "R_yaw_rate_var": sweep_cfg["R_yaw_rate_var"],
+                "f_yaw": f_yaw, "f_ay": f_ay, "ay_in_band": band_lo <= f_ay <= band_hi,
+                "sign_fraction": sign["median_gate_racing_fraction"]}
+
+    sweep_results = [_sweep_point(a_, y_) for a_ in cfg["r_sweep_ay_scales"] for y_ in cfg["r_sweep_yaw_scales"]]
+    candidates = sorted((r for r in sweep_results if r["ay_in_band"]), key=lambda r: abs(r["f_ay"] - centre))
+    trace = []
+    chosen = None
+    for r in candidates:
+        passed = r["sign_fraction"] >= cfg["sign_check_marginal_fraction"]
+        trace.append({"r_ay_scale": r["r_ay_scale"], "r_yaw_scale": r["r_yaw_scale"], "f_ay": r["f_ay"],
+                      "sign_fraction": r["sign_fraction"], "guard_pass": passed})
+        if passed:
+            chosen = r
+            break
+    if chosen is not None:
+        selection = "in_band"
     else:
-        chosen = min(sweep_results, key=lambda r: abs(r["f_yaw"] - centre) + abs(r["f_ay"] - centre))
-        sweep_found_in_band = False
-    manifest["r_sweep"] = {"grid_points": sweep_results, "chosen": chosen, "found_in_band": sweep_found_in_band}
+        selection = "r_sweep_guard_fail" if candidates else "r_sweep_no_in_band"
+        d_ay, d_yaw = cfg["r_sweep_default_ay_scale"], cfg["r_sweep_default_yaw_scale"]
+        chosen = next((r for r in sweep_results if r["r_ay_scale"] == d_ay and r["r_yaw_scale"] == d_yaw), None)
+        if chosen is None:
+            chosen = _sweep_point(d_ay, d_yaw)
+    sweep_found_in_band = selection == "in_band"
+    manifest["r_sweep"] = {"grid_points": sweep_results, "chosen": chosen, "found_in_band": sweep_found_in_band,
+                           "selection": selection, "guard_trace": trace}
 
     final_cfg = dict(interim_cfg)
     final_cfg["R_ay_var"] = chosen["R_ay_var"]
@@ -845,18 +885,6 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     manifest["nis"] = {"yaw_rate_exceedance": f_yaw, "ay_exceedance": f_ay,
                         "combined_exceedance": f_comb, "combined_mean_nis": float(np.mean(nis_combined))}
 
-    corners = data.get("corners", [])
-    laps_by_number = {l["lap_number"]: l for l in laps}
-    corners_by_stable_id = {}
-    for c in corners:
-        sid = c.get("stable_corner_id")
-        if sid is not None:
-            corners_by_stable_id.setdefault(sid, []).append(c)
-    racing_ids = [cid for cid, insts in corners_by_stable_id.items() if insts[0].get("speed_class") != "low"]
-
-    t = state["time"]
-    s_m = state.get("s_m")
-    ay = state["ay_mps2"]
     manifest["sign_check"] = _sign_check(t, s_m, beta_ekf, ay, base_mask, corners_by_stable_id, laps_by_number, racing_ids)
 
     slip_ekf = estimate_slip_angles(state, beta_ekf, params)
@@ -889,15 +917,33 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     r_h2 = float(np.corrcoef(h2_pred, ay[idx])[0, 1]) if len(idx) > 2 else float("nan")
     manifest["h2_vs_ay_apex"] = {"n": int(len(idx)), "correlation": r_h2}
 
+    # The gross-miscalibration trigger reads the ay exceedance only: under the
+    # corrected re-entry the yaw exceedance measures single-track model
+    # mismatch, not noise calibration (ruling 2026-10-11, Tier B), so yaw can
+    # only cap the status through the soft yaw_mismatch_ceiling.
     gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
-    worst_channel_exceedance = max(f_yaw, f_ay)
-    if gate_frac < cfg["sign_check_degenerate_fraction"] or worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
+    gross = cfg["nis_gross_miscalibration_fraction"]
+    if gate_frac < cfg["sign_check_degenerate_fraction"] or f_ay > gross:
         manifest["status"] = "degenerate"
-        manifest["degenerate_reason"] = _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg)
-    elif (not sweep_found_in_band) or gate_frac < cfg["sign_check_marginal_fraction"]:
-        manifest["status"] = "marginal"
+        parts = []
+        if gate_frac < cfg["sign_check_degenerate_fraction"]:
+            parts.append(f"sign check: median gate racing fraction {gate_frac:.3f} < "
+                         f"{cfg['sign_check_degenerate_fraction']:g}")
+        if f_ay > gross:
+            parts.append(f"NIS gross miscalibration (ay): exceedance {f_ay:.3f} > {gross:g}")
+        manifest["degenerate_reason"] = "; ".join(parts)
     else:
-        manifest["status"] = "ok"
+        reasons = [] if sweep_found_in_band else [manifest["r_sweep"]["selection"]]
+        if gate_frac < cfg["sign_check_marginal_fraction"]:
+            reasons.append(f"sign check: median gate racing fraction {gate_frac:.3f} < "
+                           f"{cfg['sign_check_marginal_fraction']:g}")
+        if f_yaw > cfg["yaw_mismatch_ceiling"]:
+            reasons.append("yaw_mismatch_high")
+        if reasons:
+            manifest["status"] = "marginal"
+            manifest["marginal_reason"] = "; ".join(reasons)
+        else:
+            manifest["status"] = "ok"
 
     # D4: an implausible curve takes the existing degenerate route (kinematic
     # fallback in resolve_sideslip_beta). The verdict lives in the in-memory

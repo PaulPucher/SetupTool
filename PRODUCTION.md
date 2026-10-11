@@ -327,6 +327,18 @@ per_session):
 - Reported, not acted on: residual RMS, the curve's peak slip angle (sign
   change of the slope on a 0.01-89.9 deg grid) and whether it lies inside
   the visited range (p99 |alpha|).
+- Plausibility gate (tyre_fit_auto.plausibility_gate, after the status
+  verdict), per axle on the final curve: g1 the p1..p99 span of the fit's
+  slip-angle data >= min_alpha_span_deg = 3.0; g2 the linear stiffness at
+  zero slip B*C*D inside [stiffness_min_npr, stiffness_max_npr] = [30000,
+  600000] N/rad; g3 the curve's maximum (numerical argmax, positive slip
+  side) inside [peak_min_deg, peak_max_deg] = [3.0, 15.0] deg, no peak in
+  the grid fails (CONFIG tyre_fit_auto, Level 1 calibration tunables). Any
+  failure makes the fit degenerate (kinematic fallback) with the failed
+  checks in degenerate_reason. A garbage catch, not ridge adjudication;
+  magnitudes after Bechtloff (single-track reference stiffnesses) and a team
+  rule of thumb (front peak about 8 deg). The per-axle verdict stays in the
+  in-memory manifest only.
 
 Noise model for the EKF, derived per session (same function):
 - R_ay (lateral-acceleration measurement variance): from the fit
@@ -339,20 +351,32 @@ Noise model for the EKF, derived per session (same function):
 - 2-D sweep around both: R_ay x r_sweep_ay_scales = [1.0, 0.3, 0.1,
   0.03, 0.01], R_r x r_sweep_yaw_scales = [1.0, 2.0, 4.0, 8.0, 16.0]
   (CONFIG). For each of the 25 points the per-channel NIS exceedance (NIS
-  above the chi-square 95 % bound, df 1) is measured on the base mask;
-  the chosen point has both channels inside [nis_band_low,
-  nis_band_high] = [0.03, 0.15] (CONFIG) and lies nearest the band
-  centre; if none is in band, the nearest point is taken and the status
-  becomes marginal.
+  above the chi-square 95 % bound, df 1) is measured on the base mask, and
+  the sign check is run on that point's own beta.
+- Selection (2026-10-11): on the ay exceedance only. Candidates are the
+  points with f_ay inside [r_sweep_ay_band_low, r_sweep_ay_band_high] =
+  [0.03, 0.15], ordered by distance to the band centre; the first whose own
+  sign-check fraction reaches sign_check_marginal_fraction = 0.7 is
+  chosen. None in band, or none passing the guard -> the config default R
+  (r_sweep_default_ay_scale = 0.1, r_sweep_default_yaw_scale = 16.0) and the
+  status at most marginal (marginal_reason r_sweep_no_in_band /
+  r_sweep_guard_fail). The yaw exceedance is logged per point but not
+  selected on: under the corrected re-entry its floor over the grid is
+  0.21-0.39 on the reference exports -- single-track model mismatch, not
+  sensor noise. The former "nearest overall" pick is gone (it chose
+  ay x1 / yaw x1 on Paul Ricard, where the sign check fell to 5/15). The
+  manifest records the selection and the guard trace. CONFIG Level 1.
 - Fit status (CONFIG tyre_fit_auto): degenerate if the sign-check
-  fraction < sign_check_degenerate_fraction = 0.5 or the worse channel's
-  NIS exceedance > nis_gross_miscalibration_fraction = 0.5; marginal if
-  no in-band sweep point or sign-check fraction <
-  sign_check_marginal_fraction = 0.7; else ok. The sign check counts, over
-  racing corners (speed class not low), how often the median EKF beta
-  has the sign opposite to the median a_y. The config comment
-  _comment_status describes these three boundaries as "a proposal ... not
-  yet reviewed".
+  fraction < sign_check_degenerate_fraction = 0.5 or the ay NIS
+  exceedance > nis_gross_miscalibration_fraction = 0.5 (ay only, 2026-10-11);
+  marginal if the sweep fell back, the sign-check fraction <
+  sign_check_marginal_fraction = 0.7, or the yaw exceedance >
+  yaw_mismatch_ceiling = 0.75 (soft ceiling, never degenerate; Level 1);
+  else ok. Every degenerate status carries degenerate_reason, every
+  marginal one marginal_reason. The sign check counts, over racing corners
+  (speed class not low), how often the median EKF beta has the sign
+  opposite to the median a_y. The same configured value 0.7 is both the
+  sweep guard and the marginal limit.
 - Q and P0 (process and initial covariance): CONFIG tyre_fit_auto.
   q_beta_var = 9.632e-07, q_yaw_rate_var = 2.408e-07, p0_beta_var =
   p0_yaw_rate_var = 3.046e-04; beta_hard_bound_deg = 15.0;
@@ -377,7 +401,8 @@ window, sweep, status).
 ### 5.1 Observer
 
 Method (modules/sideslip_ekf_pacejka.py, a mirror of the Dugoff file
-whose header states the method): single-track model, Rajamani sec.
+whose header states the method, except the divergence re-entry):
+single-track model, Rajamani sec.
 2.3 / 2.6 and Ulsoy/Peng/Cakmakci sec. 14.1 / 14.3; extended Kalman
 filter, Rajamani ch. 14.
 - State x = [beta, r]; input delta_f; measurement z = [r_meas, a_y,meas].
@@ -391,13 +416,23 @@ filter, Rajamani ch. 14.
 - Measurement model: h = [r, (Fy_f + Fy_r) / m].
 - Divergence, per sample: the share of the last nis_window_samples = 20
   samples whose combined NIS exceeds nis_chi2_bound = 5.99 (chi-square
-  95 %, df 2) is above nis_flag_fraction = 0.5, OR |beta| >
-  beta_hard_bound_deg = 15.0 deg. Then that sample takes the kinematic
-  beta, the state resets to [beta_kin, r_meas] and P to P0. The 15 deg
-  bound is physical (a diverged filter exceeds it by orders of
+  95 %, df 2) is above nis_flag_fraction = 0.5 (NIS-window divergence), OR
+  |beta| > beta_hard_bound_deg = 15.0 deg (hard-bound divergence). The 15
+  deg bound is physical (a diverged filter exceeds it by orders of
   magnitude), not taken from the kinematic beta's range.
+- Re-entry (2026-10-07/08), the kinematic beta never enters the state or
+  the output: NIS-window divergence keeps the filter's own state and
+  resets P to P0 (after Goblirsch et al. 2024, sec. III-D, and Rajamani
+  sec. 14.4.2); hard-bound divergence resets beta to 0, the yaw-rate state
+  to the measurement and P to P0 (reset to zero, never to another
+  estimate, after Villano et al. 2021, sec. 3.1). Hard bound takes
+  precedence. Keeping an out-of-range state ran away in validation, hence
+  the zero reset. Before 2026-10-07 both cases wrote the kinematic beta
+  into the state and the output.
 - Not moving: state and P reset, beta = 0.
-- Output used downstream: beta_with_fallback (never the raw EKF beta).
+- Output used downstream: beta_with_fallback -- the post-re-entry state
+  (the name is kept for the callers; there is no per-sample fallback any
+  more).
 - Vehicle quantities: m, a, b, I_z (Level 1, or Level 2 for m, a, b with
   a session weighing).
 - Known limit: nis_window_samples is a sample count (0.2 s at 100 Hz),
@@ -422,6 +457,8 @@ CONFIG stability_estimation.sideslip_source = "ekf_auto_pacejka".
 - Fit degenerate -> kinematic beta for the whole session.
 - Gate fail -> kinematic beta for the whole session.
 - Gate pass or warn (fit ok or marginal) -> EKF beta_with_fallback.
+- Degenerate includes a failed tyre-curve plausibility gate (4) and the
+  ay-only gross-miscalibration trigger; the reason text says which.
 The fallback and its reason are recorded in the analysis payload and
 shown in the estimator status line, never silent. The same beta feeds
 the slip angles (6) and the stability regression (10).
@@ -993,36 +1030,46 @@ Accuracy: longitudinal_force_split Level 1.
 
 ## 15. THRESHOLD INVENTORY
 
-### 15.1 Derived on the current estimator (2026-10-05)
+### 15.1 Derived on the current estimator (2026-10-11)
 
 CS thresholds, CONFIG classification, percentile rule, author ruling
-2026-10-05: STRONG = p10, MODERATE = p30 per axle.
-- STRONG_CSF = -0.646 (front clean p10, n 104; full population -0.826)
-- MODERATE_CSF = -0.285 (front clean p30; full population -0.362)
-- STRONG_CSR = -0.404 (rear clean p10, n 103; full population -0.472)
-- MODERATE_CSR = -0.131 (rear clean p30; full population -0.171)
+2026-10-05: STRONG = p10, MODERATE = p30 per axle. Re-derived 2026-10-11 on
+the corrected estimator (re-entry without kinematic injection, plausibility
+gate, ay-only R selection with sign-check guard, ay-only gross trigger).
+- STRONG_CSF = -0.784 (front p10, n 106; was -0.646)
+- MODERATE_CSF = -0.265 (front p30; was -0.285)
+- STRONG_CSR = -0.677 (rear p10, n 104; was -0.404)
+- MODERATE_CSR = -0.323 (rear p30; was -0.131)
 - Pool: seven sessions -- Dubai, Paul Ricard MLA outings 25 and 32,
   Nurburgring JST outings 21 and 29, Nurburgring qualifying CDR and MLA;
-  Le Mans excluded (different tyres), Dubai least representative.
+  Le Mans informational only (different tyres), Dubai least
+  representative.
 - Corner value: worst lap, worst of the five phases, apex_3 from the
   apex region; np.percentile, linear interpolation.
-- Clean population: kerb-affected CS samples NaN before
-  the per-phase medians; the classifier reads the same population.
+- Single population: since schema 14 the per-phase CS statistics skip
+  kerb-affected samples themselves, so the former clean / full split is
+  vacuous; the classifier reads the same population.
 - Chain: best available -- ekf_auto_pacejka, Level-4 steering table, fit
-  speed window. Recorded as classification.thresholds_calibrated_for_
-  sideslip_source = "ekf_auto_pacejka".
-- Meaning check: the curve-floor check re-runs with every re-derivation
-  (section 16; diagnostics/inspect_curve_floor.py).
+  speed window, every session through the fresh chain. Recorded as
+  classification.thresholds_calibrated_for_sideslip_source =
+  "ekf_auto_pacejka".
+- Meaning check (section 16): the fitted curves do not change with the
+  estimator change (the fit precedes every EKF call), so the curve floors
+  stand; both new STRONG values lie further below them.
 - Derivation tool: diagnostics/inspect_threshold_rederivation.py,
-  modes compute_clean / counts_clean.
+  modes compute_fresh / counts_fresh (cache_clean_20261011).
 
 Stability threshold, CONFIG classification:
 - stab_neg_thresh_Nm_per_deg = 0.0 -- anchored, not data-derived: Werner
   sec. 2.2.3 sign criterion (dMz/dbeta < 0 = open-loop unstable),
-  explicitly not criticality; author ruling 2026-10-05; recorded for
-  stab_thresh_calibrated_for_sideslip_source = "ekf_auto_pacejka".
-  Clean-pool worst-phase distribution beside: n 109, 9 negative; p5 -5,
-  p10 +27, p15 +50 Nm/deg.
+  explicitly not criticality; author ruling 2026-10-05, retained
+  2026-10-11; recorded for stab_thresh_calibrated_for_sideslip_source =
+  "ekf_auto_pacejka". Pool worst-phase distribution on the corrected
+  estimator: n 109, 34 negative (was 9); p5 -457, p10 -389, p15 -270
+  Nm/deg. Of the 34, 23 are negative also at the fallback R 0.1/16
+  (R-robust), 11 only at the ruled pick (R-sensitive). The beta-slope
+  uncertainty from the ridge regression understates the true uncertainty
+  because beta is itself an estimated input.
 
 ### 15.2 Retained values and severity logic
 
@@ -1052,12 +1099,18 @@ Stability threshold, CONFIG classification:
 - LS thresholds (decision_frame.json ls_threshold_evidence):
   STRONG_LSF = -0.79, STRONG_LSR = -0.6 (pooled p10, n = 31 corners, two
   sessions, 2026-09-19); exit_phase_confidence_discount = 0.5.
-- NIS gate (CONFIG nis_gate): threshold_use_ekf = 0.08, threshold_warn =
-  0.01 (2026-09-03, two sessions, labelled provisional).
+- NIS gate (CONFIG nis_gate): threshold_use_ekf = 0.023, threshold_warn =
+  0.0025 (re-derived 2026-10-11 with the recorded rule on eight real
+  sessions, lowest health score 0.0245; was 0.08 / 0.01).
 - Tyre-fit status (CONFIG tyre_fit_auto): sign_check_degenerate_fraction
-  = 0.5, sign_check_marginal_fraction = 0.7,
-  nis_gross_miscalibration_fraction = 0.5 (labelled "a proposal ... not
-  yet reviewed").
+  = 0.5, sign_check_marginal_fraction = 0.7 (also the R-sweep guard),
+  nis_gross_miscalibration_fraction = 0.5 on the ay exceedance only,
+  yaw_mismatch_ceiling = 0.75 (soft, marginal only). Checked 2026-10-11 and
+  retained: the sign-check fraction is 1.000 on all eight reference
+  sessions at their picks, ay exceedance 0.05-0.12, yaw exceedance
+  0.18-0.63.
+- Tyre-curve plausibility gate (CONFIG tyre_fit_auto, 4):
+  min_alpha_span_deg = 3.0, stiffness 30000-600000 N/rad, peak 3-15 deg.
 - Kerb: kerb_z_deviation_threshold_g = 1.2 (no derived_from in config),
   kerb_dilation_s = 0.10 (2026-10-03), kerb_smear_grade_s = 0.20
   (2026-10-03); kerb blow-off severity_threshold_g = 2.9571 (two
@@ -1105,8 +1158,8 @@ re-derivation rule needs this list:
 ## 16. STRONG VERDICT MEANING
 
 On every session of the threshold pool and on both axles, the STRONG
-threshold lies below the floor of that session's own fitted Pacejka
-curve (the deepest slope ratio the curve produces over the visited slip
+threshold (re-derived 2026-10-11: -0.784 front, -0.677 rear) lies below
+the floor of that session's own fitted Pacejka curve (the deepest slope ratio the curve produces over the visited slip
 range, and also out to 30 deg; pool floors -0.325 front, -0.233 rear),
 so a corner value at STRONG cannot be produced by the session's
 quasi-steady tyre characteristic. STRONG therefore means "anomalous
@@ -1197,6 +1250,12 @@ any estimator-input change made outside Settings bumps it.
   record only; no estimator input and no summary value changed.
 - 14: (2026-10-07) every CS statistic block gains n_kerb_excluded
   (display only, no value changes).
+- 15: (2026-10-11) estimator change: divergence re-entry without kinematic
+  injection, tyre-curve plausibility gate, R selected on the ay exceedance
+  with sign-check guard and default-R fallback, ay-only gross trigger, soft
+  yaw ceiling (4, 5). fit_manifest gains marginal_reason and
+  r_sweep.selection / guard_trace; sweep grid points carry ay_in_band and
+  sign_fraction; degenerate / fallback reason texts changed.
 
 
 ## 19. PRODUCT SURFACE (what the user sees and can change)

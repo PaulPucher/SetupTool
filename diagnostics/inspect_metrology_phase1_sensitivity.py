@@ -126,8 +126,11 @@ PCT = 0.01
 INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_wheel_angle"]
 MAX_WORKERS = 6
 
-RESULTS_DIR = Path("diagnostics/results_metrology_20261005")
-PLOTS_DIR = Path("diagnostics/plots_metrology_20261005")
+# 2026-10-11: METROLOGY_RUN_TAG selects the run folder (default the 2026-10-05
+# record); the cs_margin sweep on the corrected estimator uses 20261011.
+RUN_TAG = os.environ.get("METROLOGY_RUN_TAG", "20261005")
+RESULTS_DIR = Path(f"diagnostics/results_metrology_{RUN_TAG}")
+PLOTS_DIR = Path(f"diagnostics/plots_metrology_{RUN_TAG}")
 
 
 def _scale_mass(car_setup, pct):

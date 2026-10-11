@@ -339,6 +339,12 @@ def counts():
 
 CACHE_CLEAN = os.path.join(OUT_DIR, "cache_clean")
 D2_KEYS = ("v3", "pr_us_v2", "nbr_jst_problem", "nbr_jst_solution", "nbr_qp_cdr", "nbr_qp_mla")
+# MODES compute_fresh / counts_fresh (phase 2 step 2 part 2, author order
+#   2026-10-11): the same clean rule on the corrected estimator (D3 + D4 + R
+#   selection redesign) -- every session through the fresh production chain,
+#   no reuse of the 2026-10-05 d2 caches (they hold the old estimator's beta).
+#   Separate cache so the 2026-10-05 record stays reproducible.
+CACHE_FRESH = os.path.join(OUT_DIR, "cache_clean_20261011")
 
 
 def _corner_values(agg):
@@ -363,7 +369,7 @@ def _corner_values(agg):
     return corners
 
 
-def compute_clean(key):
+def compute_clean(key, fresh=False, cache_dir=None):
     import time
     from modules.recommendation import aggregate_by_corner
     from modules.stability_analysis import (estimate_slip_angles, estimate_lateral_forces,
@@ -371,7 +377,7 @@ def compute_clean(key):
                                             summarise_corners, prepare_vehicle_state)
     t0 = time.perf_counter()
     ctx = None
-    if key in D2_KEYS:
+    if key in D2_KEYS and not fresh:
         from diagnostics import inspect_last_push as lp
         ctx = lp.Ctx(key)
         state, params, data = ctx.state, ctx.params, ctx.data
@@ -412,21 +418,22 @@ def compute_clean(key):
     for tag, c_, s_ in (("full", cs, stab), ("clean", cs_c, stab_c)):
         summ = summarise_corners(data.get("corners", []), c_, s_, state, lap_filter=None)
         out[tag] = _corner_values(aggregate_by_corner([x for x in summ if x["lap_number"] in valid]))
-    os.makedirs(CACHE_CLEAN, exist_ok=True)
-    with open(os.path.join(CACHE_CLEAN, f"{key}.pkl"), "wb") as fh:
+    cache_dir = cache_dir or CACHE_CLEAN
+    os.makedirs(cache_dir, exist_ok=True)
+    with open(os.path.join(cache_dir, f"{key}.pkl"), "wb") as fh:
         pickle.dump(out, fh)
     print(f"[{key}] {src}; {len(out['clean'])} corners, {len(valid)} analysis laps, "
           f"{time.perf_counter() - t0:.0f} s", flush=True)
 
 
-def counts_clean():
+def counts_clean(cache_dir=None, tag=""):
     import json
     res = {}
     for k in KEYS:
-        with open(os.path.join(CACHE_CLEAN, f"{k}.pkl"), "rb") as fh:
+        with open(os.path.join(cache_dir or CACHE_CLEAN, f"{k}.pkl"), "rb") as fh:
             res[k] = pickle.load(fh)
     pool = [k for k in KEYS if k not in EXCLUDED]
-    L = ["THRESHOLD COUNTS, CLEAN population (near-strike CS samples removed before the phase medians), "
+    L = [f"{tag}THRESHOLD COUNTS, CLEAN population (near-strike CS samples removed before the phase medians), "
          "best-available chain, seven-session pool; FULL population beside -- counts only, no config write"]
     out = {}
 
@@ -476,9 +483,10 @@ def counts_clean():
                  f"p15 {rec['p15']:.0f} Nm/deg; negatives per session: "
                  + ", ".join(f"{NAMES[k]} {int(np.sum(vals(k, pop, 'stab') < 0))}" for k in KEYS))
     text = "\n".join(L)
-    with open(os.path.join(OUT_DIR, "counts_clean.txt"), "w", encoding="utf-8") as fh:
+    stem = "counts_clean_20261011" if tag else "counts_clean"
+    with open(os.path.join(OUT_DIR, stem + ".txt"), "w", encoding="utf-8") as fh:
         fh.write(text + "\n")
-    with open(os.path.join(OUT_DIR, "counts_clean.json"), "w") as fh:
+    with open(os.path.join(OUT_DIR, stem + ".json"), "w") as fh:
         json.dump(out, fh, indent=1)
     print(text)
 
@@ -530,6 +538,10 @@ if __name__ == "__main__":
         compute_clean(sys.argv[2])
     elif sys.argv[1] == "counts_clean":
         counts_clean()
+    elif sys.argv[1] == "compute_fresh":
+        compute_clean(sys.argv[2], fresh=True, cache_dir=CACHE_FRESH)
+    elif sys.argv[1] == "counts_fresh":
+        counts_clean(cache_dir=CACHE_FRESH, tag="estimator 2026-10-11: ")
     elif sys.argv[1] == "verify_config":
         verify_config()
     else:

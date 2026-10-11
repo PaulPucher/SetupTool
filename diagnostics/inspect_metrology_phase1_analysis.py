@@ -14,6 +14,7 @@
 # status, and the corner map coloured by marginal/stable.
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -23,8 +24,11 @@ import matplotlib.pyplot as plt
 
 from modules.stability_analysis import load_parameters
 
-RESULTS_DIR = Path("diagnostics/results_metrology_20261005")
-PLOTS_DIR = Path("diagnostics/plots_metrology_20261005")
+# 2026-10-11: METROLOGY_RUN_TAG selects the run folder (default the 2026-10-05
+# record); the cs_margin sweep on the corrected estimator uses 20261011.
+RUN_TAG = os.environ.get("METROLOGY_RUN_TAG", "20261005")
+RESULTS_DIR = Path(f"diagnostics/results_metrology_{RUN_TAG}")
+PLOTS_DIR = Path(f"diagnostics/plots_metrology_{RUN_TAG}")
 
 SESSIONS = ("dubai", "v3")
 INPUTS = ["mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_wheel_angle"]
