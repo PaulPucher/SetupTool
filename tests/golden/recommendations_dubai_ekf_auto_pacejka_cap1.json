@@ -1,8 +1,8 @@
 {
   "_meta": {
     "purpose": "REGRESSION baseline, not a correctness claim -- see tests/test_golden_pipeline.py's module docstring. PRIMARY mode (ekf_auto_pacejka, production default since 2026-09-01): the underlying tyre curve is fit fresh on this data every time modules.tyre_fit_auto.fit_session_pacejka runs -- this golden pins CURRENT fit-chain output, not a frozen prior-session curve.",
-    "git_commit_hash": "860b129bae6062ea179dea26cf1a9ae4142b6f03",
-    "generated_at_utc": "2026-10-05T16:00:32.925669+00:00",
+    "git_commit_hash": "9427b6a3d8ccebbe057480a74aaa2d6ba8b0c4b9",
+    "generated_at_utc": "2026-10-07T09:00:57.327282+00:00",
     "data_file": "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt",
     "sideslip_source": "ekf_auto_pacejka",
     "accuracy_cap": 1,
@@ -30,7 +30,7 @@
         3,
         4
       ],
-      "timestamp": "2026-10-05T15:52:46.274779+00:00",
+      "timestamp": "2026-10-07T08:52:25.552859+00:00",
       "axles": {
         "front": {
           "B": 10.844440221612627,
@@ -59,7 +59,7 @@
           "sign_ok": true
         }
       },
-      "git_commit_hash": "860b129bae6062ea179dea26cf1a9ae4142b6f03",
+      "git_commit_hash": "9427b6a3d8ccebbe057480a74aaa2d6ba8b0c4b9",
       "r_derivation": {
         "std_front_mps2": 2.0408267076475726,
         "std_rear_mps2": 4.385963584304861,
@@ -446,7 +446,7 @@
         },
         "stab_neg_thresh_Nm_per_deg": {
           "value": 0.0,
-          "derived_from": "2026-10-05, author ruling: Werner 2021 sec. 2.2.3 sign criterion as the anchored boundary -- dMz/dbeta < 0 is open-loop unstable; explicitly not a criticality threshold (skilled drivers operate there), so the verdict reads 'open-loop unstable (Werner)' and its severity stays contextual (two-signal logic). Measure chair-conform (inertial regressand, default (c)). Clean-pool worst-phase distribution beside (inspect_threshold_rederivation.py counts_clean): n 109, 9 negative, p5 -5 / p10 +27 / p15 +50 Nm/deg. Supersedes -50.0 (2026-07-24, kinematic-era placeholder, never re-derived for ekf_auto_pacejka), retired 2026-10-05."
+          "derived_from": "2026-10-05, author ruling: Werner 2021 sec. 2.2.3 sign criterion as the anchored boundary -- dMz/dbeta < 0 is open-loop unstable; explicitly not a criticality threshold (skilled drivers operate there), so the verdict reads 'open-loop unstable (Werner)' and its severity stays contextual (two-signal logic). Measure chair-conform (inertial regressand, default (c)). Clean-pool worst-phase distribution beside (inspect_threshold_rederivation.py counts_clean): n 109, 9 negative, p5 -5 / p10 +27 / p15 +50 Nm/deg. Supersedes -50.0 (2026-07-24, kinematic-era placeholder, never re-derived for ekf_auto_pacejka), retired 2026-10-05. [2026-10-06: the product text reads 'open-loop unstable' -- no source names in the app (author ruling); the anchor stays here and in PRODUCTION.md.]"
         },
         "verdict_stability_margin": {
           "cs_margin": 0.11,

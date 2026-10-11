@@ -208,7 +208,7 @@ SECTION3_FIELDS = [
      "min": -2.0, "max": 2.0, "short_note": "Rear CS ratio below this = moderate oversteer."},
     {"key": "stab_neg_thresh_Nm_per_deg", "label": "Stability (destabilising) threshold",
      "unit": "Nm/deg", "decimals": 1, "min": -5000.0, "max": 5000.0,
-     "short_note": "Yaw stability below this = open-loop unstable (Werner sign criterion)."},
+     "short_note": "Yaw stability below this = open-loop unstable."},
 ]
 STAB_KEY = "stab_neg_thresh_Nm_per_deg"
 STAB_KINEMATIC_ERA_NOTE = ("Derived default is kinematic-era, not re-derived for the current "
@@ -714,6 +714,14 @@ class SettingsView(QWidget):
         self.status_label.setText("")
 
     def _on_save_clicked(self):
+        # a config write while an analysis runs would race that run's cache
+        # entry -> refused until the run ends (inputs are locked during a run)
+        from ui.views.outing_form import analysis_running
+        if analysis_running():
+            self.warning_label.setText("Not saved: an analysis is running. Save again when it has finished.")
+            self.warning_label.setVisible(True)
+            self.status_label.setText("Not saved.")
+            return
         # an inverted band would mark every wheel off-band; refuse the whole
         # save so nothing half-persists
         inverted = _inverted_tyre_bands(

@@ -273,6 +273,37 @@ def _merge_trailing_pit_fragment(laps, channels, config):
     laps.pop()
 
 
+def _merge_leading_pit_fragment(laps, channels, config):
+    # Mirror of _merge_trailing_pit_fragment: the lap counter can tick while the
+    # car is still in the pit lane, leaving a short first "lap" (16-18 s, pit
+    # speed, pit limiter on at its start AND end) ahead of the real out lap --
+    # 7 of 24 exports (lap census 2026-10-06). Merged into the following lap,
+    # which is the out lap. Never touches an analysis lap.
+    if len(laps) < 2:
+        return
+
+    first = laps[0]
+    nxt = laps[1]
+
+    limiter_ch = channels.get("ecu_B_speedlimit_en")
+    on_at_end = _limiter_active_at(limiter_ch, first["end_time"])
+    if on_at_end is not None:
+        # L3: the first lap ends still inside the pit lane
+        merge = on_at_end
+    else:
+        # L1: no limiter channel -> too short to be a real lap
+        max_dur = config.get("lap_splitting", {}).get("pit_fragment_max_duration_s", 20)
+        merge = first["lap_time"] < max_dur
+
+    if not merge:
+        return
+
+    nxt["start_time"] = first["start_time"]
+    nxt["lap_time"] = nxt["end_time"] - nxt["start_time"]
+    nxt["is_outlap"] = True
+    laps.pop(0)
+
+
 def _limiter_active_at(limiter_ch, t):
     """Limiter on (>= 0.5) at t. None = channel unusable, not the same as False."""
     if (limiter_ch is None or limiter_ch.get("quality") in ("missing", "failed")
@@ -372,6 +403,7 @@ def _split_laps(channels, config=None):
             "warnings": []
         })
 
+    _merge_leading_pit_fragment(laps, channels, config)
     _merge_trailing_pit_fragment(laps, channels, config)
     _classify_out_in_laps_by_limiter(laps, channels)
     _attach_precise_lap_time(laps, channels, config)

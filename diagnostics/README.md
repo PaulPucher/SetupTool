@@ -624,6 +624,13 @@ the per-section lists below are the current inventory.]
   session on the corrected chain (inspect_last_push.measure_k, Rajamani Eq.
   3.23) and the static verdict-card mock. Modes a | report | mock. Outputs in
   `plots/k2_line/`.
+- **inspect_curve_floor.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 --
+  the basis of the STRONG-verdict meaning; re-runs with every threshold re-derivation) -- per pool session and axle, the
+  production curve's own minimum cornering-stiffness-ratio analogue on the visited
+  slip range vs the classification thresholds. Output `plots/curve_floor/`.
+  [2026-10-06: the floor computation is promoted to modules/limit_events.curve_floor
+  (the limit-event line); this script now calls it and reproduces floors.json
+  byte-identically.]
 - **inspect_spike_audit.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 -- as
   the per-event record feeding Q-SITES step 2) -- Q-SPIKE-AUDIT: every CS < -0.5
   event of NBR JST outing 29 classified (a) kerb detected / (b) kerb missed / (c)
@@ -733,6 +740,46 @@ the per-section lists below are the current inventory.]
   thesis_notes.md "Werner Eq. 4.3 v1" figures; `--replot` redraws from the
   saved JSON. Plots in `plots_yaw_damping/` (gitignored).
 
+- **inspect_kinematic_inputs.py** (2026-10-07, keep-reproduces PENDING the
+  author's ruling on the results) -- kinematic-integration input audit, work
+  order in PLAN.md STATUS 2026-10-07: steering-defined straights (data-derived
+  thresholds), straight-line yaw-rate / ay offsets per segment / lap /
+  session, quasi-steady ay / vx vs yaw-rate fits M0 / M1 / M2 with segment
+  bootstrap, beta-error propagation per term, vx vs front wheel speeds.
+  Reads diagnostics/plots/imu_offsets/report.json for the cross-check only.
+  Record: thesis_notes.md "Kinematic-integration input audit ...". Outputs
+  diagnostics/output/kinematic_inputs/ (--png, gitignored). Diagnostic 2
+  (2026-10-07): --file repeatable (cross-session list), --filter-check
+  (washout step response, one long corner); record "Diagnostic 2: what the
+  beta washout does ...".
+- **compare_beta_architectures.py** (2026-10-07, keep-reproduces PENDING the
+  author's ruling) -- offline beta architecture comparison A / B / B2 / C on
+  NBR-73-010-026-JDR and MLA-SE07_US-v2 (calibration / validation straights,
+  drift, five longest corners, entry / exit cleanliness, slip-angle span).
+  Imports steering_straights, load, track_label from inspect_kinematic_inputs
+  (Dependency). Record: thesis_notes.md "Beta architecture comparison ...".
+  Round 2 (default; --round 1 reproduces round 1): gain + offset correction
+  D / D2 / CG and the app's estimator E; record "Beta architectures, round 2
+  ...". Also imports quasi_steady_segments.
+- **seed_sensitivity_fit.py** (2026-10-07, keep-reproduces PENDING the
+  author's ruling) -- round 3: seed sensitivity of the session Pacejka fit
+  and of E. Seeds A / D2 / B2 substituted for the kinematic beta inside
+  tyre_fit_auto (route a, fit data) or also inside sideslip_ekf_pacejka
+  (route b, EKF fallback / reset), in-process only; per run fit parameters,
+  implied B*C*D stiffness, divergence counts, R choice, gate verdict, E on
+  corners / straights. Imports from compare_beta_architectures and
+  inspect_kinematic_inputs (Dependency). Record: thesis_notes.md "Beta
+  architectures, round 3 ...".
+- **check_estimator_hardening.py** (2026-10-08, keep-reproduces PENDING the
+  author's ruling) -- phase-1 validation of the estimator hardening: D4
+  plausibility-gate dry run on the round-3 fits (seeds A / D2 / B2) and the
+  old vs new divergence re-entry on seed A (corners, straights, divergence
+  counts split hard-bound / NIS-window, mid-corner zero resets, R choice).
+  OLD = HEAD copy of sideslip_ekf_pacejka.py in diagnostics/output/
+  estimator_hardening/ (gitignored, swapped in-process). Imports from
+  compare_beta_architectures and inspect_kinematic_inputs (Dependency).
+  Record: thesis_notes.md "Estimator hardening D3 + D4, phase 1 ...".
+
 ## K6 -- imported by a K1-K5 keeper (3 not already listed above)
 
 - **gated_kinematic_common.py**, **gated_kinematic_style.py**
@@ -766,3 +813,23 @@ the per-section lists below are the current inventory.]
   from config/channels.json and real read-site greps, in one run so the
   two can never disagree. Re-run whenever channels.json or a
   channel-consuming module changes.
+- **inspect_channel_census.py** -- REPRODUCES the definitive channel census
+  of Q-CHANNEL-AUDIT (2026-10-06): every channel of every Pi Toolbox text
+  export on disk (value fingerprints), the channel names of every raw .pds,
+  the candidate sweep and the content test (modes exports / pds / report /
+  content; output diagnostics/channel_census/). Cited by thesis_notes
+  "Q-CHANNEL-AUDIT ..." as the census the methods chapter refers to.
+- **inspect_lap_census.py** -- REPRODUCES the lap census behind the
+  double-outlap defect (2026-10-06): the unchanged production lap
+  classifier on every unique export beside raw lap facts (duration, pit
+  limiter at start / end, distance, speed). Output diagnostics/lap_census/.
+  Re-run after the leading-fragment fix to show the analysis-lap sets
+  unchanged.
+  Blind spot (recorded 2026-10-06): its double-out-lap flag cannot see a
+  fragment mislabelled as an in lap -- compare lap lists, not only out-lap counts.
+- **smoke_test_analysis_lock.py** -- REPRODUCES (headless Qt smoke test)
+  defect (b) of the 2026-10-06 app check: the driver-feedback corner count
+  typed 10 -> 15 during a real Dubai analysis; checks the lock refuses it,
+  the run completes, and the corner / lap trace windows open without an
+  exception (optional screenshots via SMOKE_SHOT_DIR). Throwaway weekend row,
+  nothing persisted.

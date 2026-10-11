@@ -138,9 +138,12 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # the fit manifest gains speed_window, no corner/phase payload change.
     # 12 (2026-10-05): balance key added (payload level, not per corner); the
     # CS stats skip kerb-affected samples -- values change, corner shape does not.
-    assert ANALYSIS_SCHEMA_VERSION == 12, (
+    # 13 (2026-10-06): events key added (payload level, limit events, display
+    # only) -- corner summaries untouched, every shape check below unchanged.
+    # 14 (2026-10-07): every CS stat block gains n_kerb_excluded (display only).
+    assert ANALYSIS_SCHEMA_VERSION == 14, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 12 -- update this test deliberately if the version was bumped again"
+        "written for 14 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
@@ -152,6 +155,8 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     assert "apex_region" in sample, "corner summary missing v8-bumped apex_region key"
     for key in ("n_samples", "cs_ratio_f", "cs_ratio_r"):
         assert key in sample["apex_region"], f"apex_region missing v8-bumped key {key!r}"
+    for block in [p[k] for p in sample["phases"].values() for k in ("cs_ratio_f", "cs_ratio_r")] +             [sample["apex_region"]["cs_ratio_f"], sample["apex_region"]["cs_ratio_r"]]:
+        assert "n_kerb_excluded" in block, "CS stat block missing v14-bumped key n_kerb_excluded"
 
 
 def test_analysis_data_payload_includes_sideslip_source():

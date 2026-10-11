@@ -1,0 +1,50 @@
+CONTENT TEST of the live candidates (Q-CHANNEL-AUDIT step 3)
+
+== NBR JST outing 29: present ['MRR_EgoYawRate', 'abs_ay1_int.acceleration', 'abs_vVeh_absRef', 'log_a_car', 'sta_angle']
+log_a_car: d/dt vs gyro yaw rate (moving): r -0.0286, gain -0.0269; native rate 100.0 Hz
+   d/dt minus gain x yaw rate: sd 16.935 deg/s (yaw-rate sd 18.02)
+   course - (+a_car): range over session -365.0 .. 1.3 deg, sd 100.51; straight sd 78.60
+      high-passed (20 s median removed) vs kinematic beta in corners: r 0.102, gain 7.684
+   course - (-a_car): range over session -361.5 .. 3.9 deg, sd 100.48; straight sd 78.69
+      high-passed (20 s median removed) vs kinematic beta in corners: r 0.094, gain 7.097
+MRR_EgoYawRate vs gyro yaw rate (moving): r 0.9458, gain 0.9419
+abs_ay1_int.acceleration vs log_acc_y (moving): r 0.9842, gain 0.9294
+abs_vVeh_absRef vs ecu_speed (moving): r 0.9990, gain 0.6228
+sta_angle vs log_asteer (moving): r 0.9994, gain 0.9996
+   plot: C:\UNI\Bachelorarbeit\Setuptool_local\diagnostics\channel_census\content_nbr_jst29.png
+
+== Paul Ricard MLA outing 25 (v3): present ['MRR_EgoYawRate', 'a_us_car', 'a_yaw_theo', 'a_yaw_velocity', 'abs_vVeh_absRef', 'log_a_car', 'sta_angle']
+log_a_car: d/dt vs gyro yaw rate (moving): r -0.0173, gain -0.0185; native rate 100.0 Hz
+   d/dt minus gain x yaw rate: sd 17.581 deg/s (yaw-rate sd 16.45)
+   course - (+a_car): range over session -362.4 .. 0.5 deg, sd 98.45; straight sd 94.20
+      high-passed (20 s median removed) vs kinematic beta in corners: r 0.037, gain 1.472
+   course - (-a_car): range over session -361.1 .. 2.7 deg, sd 98.78; straight sd 94.28
+      high-passed (20 s median removed) vs kinematic beta in corners: r 0.023, gain 0.939
+a_yaw_velocity vs gyro yaw rate (moving): r 0.0176, gain 0.0029
+a_yaw_theo vs a_y / v (moving): r 0.9793, gain 0.9253
+MRR_EgoYawRate vs gyro yaw rate (moving): r 0.9407, gain 0.9368
+abs_vVeh_absRef vs ecu_speed (moving): r 0.9996, gain 1.0000
+sta_angle vs log_asteer (moving): r 0.9995, gain 0.9997
+a_us_car vs |delta_f| - L |r| / v (corners): r 0.797, gain 369.617
+a_yaw_velocity - a_yaw_theo vs -(d beta_kin / dt) (corners, sign +1): r 0.367, gain 2.078
+a_yaw_velocity - a_yaw_theo vs -(d beta_kin / dt) (corners, sign -1): r -0.367, gain -2.078
+   plot: C:\UNI\Bachelorarbeit\Setuptool_local\diagnostics\channel_census\content_pr_v3.png
+
+
+IDENTIFICATION CHECKS (same session, after the content test; scripts run from the scratchpad, results transcribed here)
+- log_a_car: NOT a heading (d/dt vs gyro yaw rate r -0.03 / -0.02) and NOT the acceleration-vector angle (median |diff| to atan2 of
+  a_y, a_x in any sign/order >= 76 deg). Its definition is stored in the logger channel database of every .pds (Pi PcodeRecord XML,
+  internal unit rad): 0.0174533 x [3.640 x log_asteer - 57.30 x atan2(2.5049 x sclu_acc_y, v^2-type term in ecu_speed)
+  - 57.30 x atan2(2.504 x |sclu_yaw_rate / 2 pi| - |sclu_acc_y / v| ...)] -- an understeer / Ackermann-angle construction from
+  log_asteer, sclu_acc_y, ecu_speed and sclu_yaw_rate only. Mid-corner statistics log_a_car_mc_ls / _ms / _hs per speed class.
+- a_yaw_velocity (7 Paul Ricard exports only, 100 Hz, moving p5 / p50 / p95 -4.4 / -0.6 / +3.5): vs kinematic sideslip rate
+  a_y / v - r r -0.520; vs kinematic beta r -0.115; vs gyro yaw rate r 0.018; vs GPS course rate r 0.001; vs steering, roll rate,
+  lateral acceleration |r| <= 0.11. Reads as an attitude-velocity-type math channel (r - a_y / v, Segers sec. 7.6) of the
+  Paul Ricard workbook; no definition in any logger channel database -> computed at export time from logged channels.
+- a_yaw_theo: a_y / v (r 0.979). a_us_car: understeer-angle math channel (vs |delta_f| - L |r| / v in corners r 0.797).
+- GPS course over ground (log_gps_course; NMEA RX RMC Course Over Ground is the same receiver): 10.0 Hz on every file;
+  NBR JST 29 / Paul Ricard v3: held-sample share 0.017 / 0.027, no gaps, 12 satellites, quality 2; course lags the gyro by
+  +0.26 / +0.36 s (r 0.991 / 0.989); course-rate minus yaw-rate on straights sd 0.81 / 0.90 deg/s; course noise on straights
+  about 0.45 deg (1 s detrended).
+- Sample_Dubai.mat (Pi Toolbox MAT export of F01): 18 names not in the text export, all metadata (Tbx*), clutch / diagnostic
+  states, Wheelspeed_Diff_HA, lambda2_WOT, or truncated duplicates of text-export names -- no velocity or sideslip quantity.

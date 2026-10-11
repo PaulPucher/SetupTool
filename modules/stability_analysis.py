@@ -37,7 +37,12 @@ CAR_DATA_PATH = "config/car_data.json"
 #  12: (2026-10-05) balance key added - measured understeer gradient,
 #      Level 2; and summarise_corners' CS statistics now skip kerb-affected
 #      (near-strike) samples, the population the thresholds derive on.
-ANALYSIS_SCHEMA_VERSION = 12
+#  13: (2026-10-06) events key added - limit events (modules/limit_events.py),
+#      display / record only; no estimator input and no summary changed.
+#  14: (2026-10-07) CS stat blocks gain n_kerb_excluded (finite samples left
+#      out as kerb-affected), so the per-phase table can say "no clean data"
+#      instead of a blank; display only, no value changes.
+ANALYSIS_SCHEMA_VERSION = 14
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -979,8 +984,11 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     # samples are left out of the CS statistics, the population the
     # thresholds were derived on (2026-10-05). The CS arrays themselves keep
     # every sample; only the summary skips them.
-    cs_f = np.where(cs.get("near_strike_f", False), np.nan, cs["CS_ratio_f"])
-    cs_r = np.where(cs.get("near_strike_r", False), np.nan, cs["CS_ratio_r"])
+    raw_f, raw_r = cs["CS_ratio_f"], cs["CS_ratio_r"]
+    mark_f = np.broadcast_to(np.asarray(cs.get("near_strike_f", False), dtype=bool), raw_f.shape)
+    mark_r = np.broadcast_to(np.asarray(cs.get("near_strike_r", False), dtype=bool), raw_r.shape)
+    cs_f = np.where(mark_f, np.nan, raw_f)
+    cs_r = np.where(mark_r, np.nan, raw_r)
     stab_obs = stab["stability_observed_Nm_per_deg"]
     stab_valid = stab["stability_valid"]
     fz_f = fz["fz_f_N"] if fz is not None else None
@@ -1009,6 +1017,13 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         # too few finite samples -> NaN, not a median of one or two outliers
         if stat["n"] < cs_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
+        return stat
+
+    def _cs_stat(clean, raw, mark, idx):
+        # n_kerb_excluded: finite samples left out as kerb-affected, so the
+        # display can say why a phase has no clean value (display only)
+        stat = dict(_gate_cs_stat(_stats(clean[idx])))
+        stat["n_kerb_excluded"] = int((mark[idx] & np.isfinite(raw[idx])).sum())
         return stat
 
     def _gate_ls_stat(stat):
@@ -1125,8 +1140,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                     "n_samples": 0,
                     "valid_fraction_stab": 0.0,
                     "kerb_fraction": kerb_fraction,
-                    "cs_ratio_f": _stats(np.array([])),
-                    "cs_ratio_r": _stats(np.array([])),
+                    "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx),
+                    "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx),
                     "stability_observed_Nm_per_deg": _stats(np.array([])),
                 }
                 if fz is not None:
@@ -1146,8 +1161,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 "n_samples": int(n_samples),
                 "valid_fraction_stab": valid_fraction_stab,
                 "kerb_fraction": kerb_fraction,
-                "cs_ratio_f": _gate_cs_stat(_stats(cs_f[idx])),
-                "cs_ratio_r": _gate_cs_stat(_stats(cs_r[idx])),
+                "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx),
+                "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx),
                 "stability_observed_Nm_per_deg": _gate_stab_stat(
                     _stats(stab_obs[idx]), phase,
                     brake_f_bar[idx] if brake_f_bar is not None else np.array([])
@@ -1165,8 +1180,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         apex_idx = _apex_region_idx(c)
         corner_summary["apex_region"] = {
             "n_samples": int(apex_idx.size),
-            "cs_ratio_f": _gate_cs_stat(_stats(cs_f[apex_idx])),
-            "cs_ratio_r": _gate_cs_stat(_stats(cs_r[apex_idx])),
+            "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, apex_idx),
+            "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, apex_idx),
         }
 
         out.append(corner_summary)

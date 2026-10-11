@@ -35,6 +35,7 @@ diagnostics/plots_step2/
 diagnostics/plots_decision_layer/
 diagnostics/plots_gated_kinematic/
 diagnostics/plots_yaw_damping/
+diagnostics/output/
 
 # Manufacturer reference data — proprietary team/car data, local only
 docs/car_data/
@@ -57,3 +58,8 @@ docs/study/
 # thesis claims register cites literature on disk -- local only (2026-10-04)
 docs/claims_register.md
 docs/literature_digest.md
+
+# Q-CHANNEL-AUDIT raw census artefacts (16 + 26 MB, reproducible by
+# diagnostics/inspect_channel_census.py); the table, content test and plots are committed
+diagnostics/channel_census/*.json
+diagnostics/channel_census/*.log

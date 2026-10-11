@@ -219,15 +219,20 @@ def test_forced_fallback_status_line_text_names_kinematic_and_reason(wiring_fixt
         None, "ekf_auto_dugoff", {"status": "ok"}, {"verdict": "fail", "health_score": 0.05},
         True, fallback_reason,
     )
+    # 2026-10-06 (author app-check ruling): the reason is shown as a plain
+    # sentence (raw reasons can name optimisers / models); the raw text stays
+    # in the saved fit record
+    plain = "the fitted tyre curve failed its self-check this session"
     assert "KINEMATIC" in text
-    assert fallback_reason in text
+    assert plain in text
+    assert "Dugoff" not in text and "Pacejka" not in text
 
     pdf_text = _estimator_status_text(
         "ekf_auto_dugoff", {"status": "ok"}, {"verdict": "fail", "health_score": 0.05},
         True, fallback_reason,
     )
     assert "KINEMATIC" in pdf_text
-    assert fallback_reason in pdf_text
+    assert plain in pdf_text
 
 
 # --- Phase 4d: mode-switch cache test ---------------------------------------

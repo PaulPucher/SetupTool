@@ -2040,8 +2040,10 @@ def _interaction_penalty(candidate, evidence, decision_config, weight):
             continue  # no other problem on this axis
         if entry["sign"] < 0:
             any_adverse = True
+        # the note reaches the card's method detail -> the grade's source
+        # parenthetical stays in config (provenance), not on screen
         notes.append(f"{entry['parameter']} {entry['direction']} -> {entry['performance_axis']} "
-                     f"(sign={entry['sign']:+d}, grade={entry['grade']})")
+                     f"(sign={entry['sign']:+d}, grade={entry['grade'].split(' (')[0]})")
     return (-weight if any_adverse else 0.0), notes
 
 

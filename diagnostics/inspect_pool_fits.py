@@ -475,18 +475,17 @@ def near_strike_marks(ctx, rec):
 
 def cs_plots(mode=None):
     """Tier-1 production CS for the thesis: full median lap and in-corner
-    histograms, near-strike samples drawn per corner_trace_display.
-    near_strike_display (kerb display package, 2026-10-05)."""
+    histograms, kerb-affected samples drawn per corner_trace_display.
+    kerb_exclusion_display (one kerb-exclusion concept, 2026-10-05)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from core.plot_style import NEAR_STRIKE_COLOR
-    from core.trace_display import near_strike_split, near_strike_caption
+    from core.trace_display import near_strike_split, kerb_exclusion_caption
     from modules.stability_analysis import load_parameters
     prm = load_parameters()
-    mode = mode or prm["corner_trace_display"]["near_strike_display"]
-    grade_s = prm["stability_estimation"]["kerb_smear_grade_s"]
-    grey_label = "near a kerb strike (kept in all results)"
+    mode = mode or prm["corner_trace_display"]["kerb_exclusion_display"]
+    grey_label = "kerb-affected (greyed)"
     for k in TIER1:
         ctx = lp.Ctx(k)
         st = ctx.state
@@ -511,7 +510,7 @@ def cs_plots(mode=None):
             edges = np.flatnonzero(np.diff(np.r_[0, st["kerb_mask"][m].astype(int), 0]))
             for j, (a0, b0) in enumerate(zip(edges[::2], edges[1::2])):
                 axs[i].axvspan(s[a0], s[min(b0, len(s) - 1)], color=NEAR_STRIKE_COLOR, alpha=0.18, lw=0,
-                               label="kerb strike, masked (no estimate)" if j == 0 else None)
+                               label="kerb-affected, no estimate" if j == 0 else None)
             axs[i].axhline(0, color="#444444", lw=0.8)
             axs[i].set_ylabel(f"cornering stiffness ratio, {AX[ax]}")
             axs[i].set_ylim(-3, 1.1)
@@ -520,7 +519,7 @@ def cs_plots(mode=None):
         axs[1].set_xlabel("lap distance [m]")
         fig.suptitle(f"{lp.title_of(k)}: cornering stiffness ratio over the median-time lap (lap {lap['lap_number']}); "
                      f"1 = linear tyre range, 0 = force peak, below 0 = past the peak", fontsize=11)
-        cap = near_strike_caption(mode, n_mark, n_fin, grade_s)
+        cap = kerb_exclusion_caption(mode, n_mark, n_fin)
         fig.tight_layout(rect=(0, 0.04 if cap else 0, 1, 1))
         if cap:
             fig.text(0.5, 0.01, cap, ha="center", va="bottom", fontsize=9, wrap=True)
@@ -552,10 +551,10 @@ def cs_plots(mode=None):
             axs[i].set_xlabel(f"cornering stiffness ratio in corners, {AX[ax]} (below -3 piled at -3)")
             axs[i].set_ylabel("samples (log scale)")
             axs[i].set_title(f"{AX[ax]}: below 0 {np.mean(v < 0) * 100:.1f} %, below -1 {np.mean(v < -1) * 100:.2f} %; "
-                             f"near a kerb strike {mk.sum() / max(1, sel.sum()) * 100:.1f} % (n {v.size})", fontsize=10)
+                             f"kerb-affected {mk.sum() / max(1, sel.sum()) * 100:.1f} % (n {v.size})", fontsize=10)
             axs[i].grid(alpha=0.25)
         fig.suptitle(f"{lp.title_of(k)}: distribution of the cornering stiffness ratio in corners, current production")
-        cap = near_strike_caption(mode, n_mark, n_fin, grade_s)
+        cap = kerb_exclusion_caption(mode, n_mark, n_fin)
         fig.tight_layout(rect=(0, 0.05 if cap else 0, 1, 1))
         if cap:
             fig.text(0.5, 0.01, cap, ha="center", va="bottom", fontsize=9, wrap=True)

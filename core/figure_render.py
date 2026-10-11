@@ -137,7 +137,7 @@ def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
                        strong=None, moderate=None, zero_line=False, near_strike=None):
     # Front/rear CS and LS panels, one quantity each. LS: no thresholds
     # (strong/moderate None) but a dotted y = 0 line -- zero = no grip on the
-    # LS scale. near_strike = {"mode", "grade_s"}: CS panels only.
+    # LS scale. near_strike = {"mode"} (kerb-exclusion switch): CS panels only.
     from core.trace_display import near_strike_split
     mode = (near_strike or {}).get("mode", "off") if value_key in ("cs_f", "cs_r") else "off"
     grey_drawn = False
@@ -152,7 +152,7 @@ def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
             grey_drawn = True
     if grey_drawn:
         ax.plot([], [], color=ps.NEAR_STRIKE_COLOR, linewidth=ps.PRINT_LAP_WIDTH,
-                label="Near a kerb strike (kept in all results)")
+                label="Kerb-affected (greyed)")
     # LS panels stay unbridged, as in the dialog
     if value_key in ("cs_f", "cs_r"):
         _draw_kerb_bridges(ax, laps, styles, value_key)
@@ -244,12 +244,12 @@ def _draw_tyre_curve_panel(ax, axle_label, curve, theme, legend_ax):
     if skerb is not None:
         clean = ~skerb
         ax.scatter(sx[clean], sy[clean], s=ps.SESSION_CLOUD_SIZE_PRINT, color=ps.SESSION_CLOUD_COLOR_PRINT,
-                   alpha=0.6, label="Session", zorder=1)
+                   alpha=0.6, label="Checked laps, whole lap", zorder=1)
     else:
         ax.scatter(sx, sy, s=ps.SESSION_CLOUD_SIZE_PRINT, color=ps.SESSION_CLOUD_COLOR_PRINT,
-                   alpha=0.6, label="Session", zorder=1)
+                   alpha=0.6, label="Checked laps, whole lap", zorder=1)
 
-    # lap colour: filled = clean, hollow = kerb-flagged
+    # lap colour: filled = clean, hollow = kerb-affected
     for entry in curve.get("corner_by_lap", []):
         color = entry["color"]
         if entry.get("clean_xy") is not None:
@@ -463,8 +463,8 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT,
 
 def _near_strike_caption(fig, laps, near_strike, theme):
     # one caption sentence under the figure; counts over the drawn CS panels
-    from core.trace_display import near_strike_caption
-    if not near_strike or near_strike.get("mode", "off") == "off":
+    from core.trace_display import kerb_exclusion_caption
+    if not near_strike:
         return
     n_marked = n_finite = 0
     for lap in laps:
@@ -475,9 +475,9 @@ def _near_strike_caption(fig, laps, near_strike, theme):
             fin = np.isfinite(np.asarray(val, dtype=float))
             n_finite += int(fin.sum())
             n_marked += int((np.asarray(mark, dtype=bool) & fin).sum())
-    text = near_strike_caption(near_strike["mode"], n_marked, n_finite, near_strike["grade_s"])
-    if text is None:
+    if n_finite == 0:
         return
+    text = kerb_exclusion_caption(near_strike["mode"], n_marked, n_finite)
     engine = fig.get_layout_engine()
     rect = list(engine.get()["rect"])
     if rect[1] < 0.035:

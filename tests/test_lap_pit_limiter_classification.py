@@ -136,3 +136,47 @@ def test_lap_number_zero_still_flagged_outlap_even_when_limiter_disagrees(tmp_pa
     assert laps[0]["is_outlap"] is True, "lap_number==0 must stay an outlap regardless of the limiter's own timing"
     assert laps[1]["is_outlap"] is False
     assert laps[1]["is_inlap"] is False
+
+
+# --- leading pit-exit fragment (lap census 2026-10-06, author EXECUTE) -------
+# Real shape on 7 of 24 exports (e.g. NBR JST 29 laps 101 / 102, Paul Ricard
+# laps 4 / 5): a 16-18 s first "lap" with the pit limiter on at its start AND
+# end, then the real out lap. Synthetic fixture of that shape, as above.
+
+def _leading_fragment_text(with_limiter=True):
+    lines = ["PiToolboxVersionedASCIIDataSet", "Version\t2", "",
+              "{OutingInformation}", "CarName\tTest", "TrackName\tTestTrack", ""]
+    # fragment 16 s, out lap 30 s (limiter until 20 s), two flying laps
+    lap_bounds = [(101, 0.0, 15.8), (102, 16.0, 45.8), (103, 46.0, 70.8), (104, 71.0, 95.8)]
+    lines += _lap_number_block(lap_bounds)
+    if with_limiter:
+        lines += _limiter_block([(0.0, 20.0)], t_end=95.8)
+    return "\n".join(lines) + "\n"
+
+
+def test_leading_pit_fragment_merged_into_out_lap(tmp_path):
+    path = _write(tmp_path, "leading_fragment.txt", _leading_fragment_text(True))
+    laps = {l["lap_number"]: l for l in parse_csv(path)["laps"]}
+    assert 101 not in laps, "the pit-lane fragment must not stay a lap of its own"
+    assert laps[102]["start_time"] == 0.0, "the out lap absorbs the fragment's time"
+    assert laps[102]["is_outlap"] is True and laps[102]["is_valid_for_analysis"] is False
+    outs = [n for n, l in laps.items() if l["is_outlap"]]
+    assert outs == [102], f"exactly one out lap expected, got {outs}"
+    assert laps[103]["is_valid_for_analysis"] is True and laps[104]["is_valid_for_analysis"] is True
+
+
+def test_leading_fragment_duration_fallback_without_limiter(tmp_path):
+    # no limiter channel: a first lap under pit_fragment_max_duration_s (20 s)
+    # is a fragment
+    path = _write(tmp_path, "leading_fragment_no_limiter.txt", _leading_fragment_text(False))
+    laps = {l["lap_number"]: l for l in parse_csv(path)["laps"]}
+    assert 101 not in laps
+    assert laps[102]["start_time"] == 0.0 and laps[102]["is_outlap"] is True
+
+
+def test_first_lap_left_alone_when_limiter_off_at_its_end(tmp_path):
+    # the box-before-line fixture: limiter on at lap 1's start only -> lap 1 is
+    # the real out lap, nothing to merge
+    path = _write(tmp_path, "box_before_line_again.txt", _box_before_line_fixture_text())
+    laps = {l["lap_number"]: l for l in parse_csv(path)["laps"]}
+    assert set(laps) == {1, 2, 3}

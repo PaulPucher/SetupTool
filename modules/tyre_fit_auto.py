@@ -184,6 +184,19 @@ def _sign_check(t, s_m, beta, ay, moving, corners_by_stable_id, laps_by_number, 
     }
 
 
+def _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg):
+    """Text for the sign-check / NIS-miscalibration degenerate verdict, so every
+    degenerate status carries a reason (author ruling 2026-10-07)."""
+    parts = []
+    if gate_frac < cfg["sign_check_degenerate_fraction"]:
+        parts.append(f"sign check: median gate racing fraction {gate_frac:.3f} < "
+                     f"{cfg['sign_check_degenerate_fraction']:g}")
+    if worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
+        parts.append(f"NIS gross miscalibration: worst-channel exceedance {worst_channel_exceedance:.3f} > "
+                     f"{cfg['nis_gross_miscalibration_fraction']:g}")
+    return "; ".join(parts)
+
+
 def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bracket_end_m):
     lo = int(np.searchsorted(t, lap_start_t, side="left"))
     hi = int(np.searchsorted(t, lap_end_t, side="right"))
@@ -440,6 +453,7 @@ def fit_session(data, params, data_file_path=None):
     worst_channel_exceedance = max(f_yaw, f_ay)
     if gate_frac < cfg["sign_check_degenerate_fraction"] or worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
         manifest["status"] = "degenerate"
+        manifest["degenerate_reason"] = _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg)
     elif (not sweep_found_in_band) or gate_frac < cfg["sign_check_marginal_fraction"]:
         manifest["status"] = "marginal"
     else:
@@ -632,6 +646,32 @@ def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
         "sign_ok": mu > 0,
         "residuals": resid, "residual_mask": m2,
     }
+
+
+def plausibility_gate(alpha, fit_mask, axle_fit, cfg):
+    """D4 garbage catch on one fitted axle curve (2026-10-07). Bands are
+    deliberately wide: they reject curves no GT3 axle can have, they do not
+    adjudicate along the B/C/E ridge.
+      g1 excitation: p1..p99 span of the fit's slip-angle data
+      g2 linear stiffness at zero slip, dFy/dalpha(0) = B*C*D
+      g3 curve peak (numerical argmax, positive slip side); no peak inside
+         the grid counts as a fail
+    """
+    a = np.degrees(alpha[fit_mask & np.isfinite(alpha)])
+    span = float(np.percentile(a, 99) - np.percentile(a, 1)) if a.size else float("nan")
+    B, C, D, E = (axle_fit[k] for k in "BCDE")
+    stiffness = float(B * C * D)
+    grid_deg = np.linspace(0.01, 89.9, 4000)
+    i = int(np.argmax(pacejka_lateral_force(np.radians(grid_deg), B, C, D, E)))
+    peak = float(grid_deg[i]) if 0 < i < grid_deg.size - 1 else float("nan")
+    failed = []
+    if not span >= cfg["min_alpha_span_deg"]:
+        failed.append("g1 excitation")
+    if not cfg["stiffness_min_npr"] <= stiffness <= cfg["stiffness_max_npr"]:
+        failed.append("g2 stiffness")
+    if not cfg["peak_min_deg"] <= peak <= cfg["peak_max_deg"]:
+        failed.append("g3 peak")
+    return {"alpha_span_deg": span, "stiffness_npr": stiffness, "peak_deg": peak, "failed": failed}
 
 
 def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False, tyre_fit_mode="per_session"):
@@ -853,10 +893,26 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     worst_channel_exceedance = max(f_yaw, f_ay)
     if gate_frac < cfg["sign_check_degenerate_fraction"] or worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
         manifest["status"] = "degenerate"
+        manifest["degenerate_reason"] = _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg)
     elif (not sweep_found_in_band) or gate_frac < cfg["sign_check_marginal_fraction"]:
         manifest["status"] = "marginal"
     else:
         manifest["status"] = "ok"
+
+    # D4: an implausible curve takes the existing degenerate route (kinematic
+    # fallback in resolve_sideslip_beta). The verdict lives in the in-memory
+    # manifest only -- resolve_sideslip_beta strips it, the failed checks
+    # reach the persisted payload through degenerate_reason / fallback_reason.
+    gate = {name: plausibility_gate(slip_kin[key], fit_mask, fit, cfg)
+            for name, key, fit in (("front", "alpha_f_filt", front_fit), ("rear", "alpha_r_filt", rear_fit))}
+    manifest["plausibility_gate"] = gate
+    gate_failures = [f"{name}: {', '.join(g['failed'])}" for name, g in gate.items() if g["failed"]]
+    if gate_failures:
+        reason = "tyre curve plausibility gate failed -- " + "; ".join(gate_failures)
+        if manifest["status"] == "degenerate":
+            reason = manifest["degenerate_reason"] + "; " + reason
+        manifest["status"] = "degenerate"
+        manifest["degenerate_reason"] = reason
 
     if load_normalised:
         # mu outside plausibility band -> reported, not dropped
@@ -921,7 +977,7 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
                 beta = raw_fit_manifest["beta_ekf_with_fallback"]
         fit_manifest = {
             k: v for k, v in raw_fit_manifest.items()
-            if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask")
+            if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask", "plausibility_gate")
         }
         return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason
 

@@ -178,3 +178,93 @@ def test_export_png_holds_every_artist(pipeline_result, parsed_data, state, effe
     pad = 2 * ps.PRINT_PAD_INCHES
     assert abs(w - (tight.width + pad) * ps.PRINT_DPI) <= 2
     assert abs(h - (tight.height + pad) * ps.PRINT_DPI) <= 2
+
+
+# --- shading budget + cross-lap envelope (author rulings 2026-10-06) ---------
+
+def _exclusion_runs(x, mask):
+    from ui.views.corner_trace_dialog import _contiguous_runs
+    return _contiguous_runs(x, mask)
+
+
+def test_exclusion_union_and_tint_never_overlap(parsed_data, state):
+    # real Dubai laps: kerb and not-moving spans of every analysis lap
+    from core.trace_display import interval_subtract, interval_union
+    t, s_m = state["time"], state["s_m"]
+    spans = []
+    for lap in parsed_data["laps"]:
+        if not lap.get("is_valid_for_analysis"):
+            continue
+        m = (t >= lap["start_time"]) & (t < lap["end_time"]) & np.isfinite(s_m)
+        spans += _exclusion_runs(s_m[m], state["kerb_mask"][m])
+        spans += _exclusion_runs(s_m[m], ~state["moving_mask"][m])
+    holes = interval_union(spans)
+    assert all(a < b for a, b in holes)
+    assert all(holes[i][1] < holes[i + 1][0] for i in range(len(holes) - 1)), "union must be disjoint"
+    # a tint over the whole lap minus the holes: no piece overlaps a hole
+    pieces = interval_subtract((float(np.nanmin(s_m)), float(np.nanmax(s_m))), holes)
+    for lo, hi in pieces:
+        assert lo < hi
+        assert not any(lo < b and hi > a for a, b in holes)
+
+
+def test_cross_lap_envelope_brackets_the_median(pipeline_result, parsed_data, state, effective_params):
+    from core.trace_display import cross_lap_envelope
+    cfg = effective_params["corner_trace_display"]["cs_envelope"]
+    assert list(cfg["percentiles"]) == [10, 90]
+    t, s_m = state["time"], state["s_m"]
+    laps_xy = []
+    for lap in parsed_data["laps"]:
+        if lap.get("is_valid_for_analysis"):
+            m = (t >= lap["start_time"]) & (t < lap["end_time"]) & np.isfinite(s_m)
+            laps_xy.append((s_m[m], pipeline_result["cs"]["CS_ratio_f"][m]))
+    env = cross_lap_envelope(laps_xy, cfg)
+    assert env is not None
+    grid, p_lo, p_hi = env
+    ok = np.isfinite(p_lo) & np.isfinite(p_hi)
+    assert ok.any()
+    assert np.all(p_lo[ok] <= p_hi[ok] + 1e-12)
+    assert np.all(np.diff(grid) > 0)
+
+
+def test_unchecked_lap_leaves_no_mark_in_the_corner_window(pipeline_result, parsed_data, state):
+    # author defect 2026-10-07: an unchecked lap's kerb dots stayed visible.
+    # One lap-selection state: after unchecking, none of that lap's samples
+    # may remain in the tyre-curve tab, and it owns no curve or bridge item.
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    import pytest
+    QtWidgets = pytest.importorskip("PyQt6.QtWidgets")
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    import pyqtgraph as pg
+    from ui.views.corner_trace_dialog import CornerTraceDialog
+
+    result = {"state": state, "cs": pipeline_result["cs"], "stab": pipeline_result["stab"],
+              "corners": pipeline_result["corners"], "summaries": pipeline_result["summaries"],
+              "slip": pipeline_result["slip"], "forces": pipeline_result["forces"], "ls": None,
+              "lap_filter": None, "sideslip_source": None, "fit_manifest": None, "events": None}
+    valid = {l["lap_number"] for l in parsed_data["laps"] if l.get("is_valid_for_analysis")}
+    summary = next(s for s in result["summaries"] if s["lap_number"] in valid)
+    dlg = CornerTraceDialog()
+    dlg.show_corner(summary, result, parsed_data, preserve_visible={ln: True for ln in valid})
+    off = next(ln for ln in sorted(valid) if ln != summary["lap_number"])
+    dlg.show_corner(summary, result, parsed_data,
+                    preserve_visible={ln: ln != off for ln in valid})
+    app.processEvents()
+
+    lap = next(l for l in parsed_data["laps"] if l["lap_number"] == off)
+    t = state["time"]
+    in_lap = (t >= lap["start_time"]) & (t <= lap["end_time"])
+    assert off not in dlg.lap_curve_items and off not in dlg.lap_bridge_items
+    for axle, a_key, f_key in (("front", "alpha_f_filt", "Fy_f_filt"), ("rear", "alpha_r_filt", "Fy_r_filt")):
+        a = pipeline_result["slip"][a_key][in_lap]
+        f = pipeline_result["forces"][f_key][in_lap]
+        ok = np.isfinite(a) & np.isfinite(f)
+        lap_pts = set(zip(np.round(np.degrees(a[ok]), 9), np.round(f[ok], 6)))
+        drawn = set()
+        for item in dlg.tyre_plots[axle].items:
+            if isinstance(item, pg.PlotDataItem):
+                x, y = item.getData()
+                if x is not None and len(x):
+                    drawn |= set(zip(np.round(np.asarray(x, float), 9), np.round(np.asarray(y, float), 6)))
+        assert not (lap_pts & drawn), f"{axle}: unchecked lap {off} still drawn in the tyre-curve tab"
+    dlg.close()

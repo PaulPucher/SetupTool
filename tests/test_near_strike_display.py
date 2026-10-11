@@ -1,5 +1,6 @@
-# Kerb display package (2026-10-05): near-strike CS samples are greyed or
-# left out of the plots by corner_trace_display.near_strike_display. Drawing
+# Kerb exclusion (one concept, 2026-10-05): kerb-affected CS samples (internal
+# mark near_strike) are greyed or left out of the plots by
+# corner_trace_display.kerb_exclusion_display. Drawing
 # only -- these tests pin that no computed result changes and that the export
 # path draws exactly the marked samples. Real Dubai data.
 
@@ -11,7 +12,7 @@ import numpy as np
 import pytest
 
 from core import plot_style
-from core.trace_display import near_strike_split, near_strike_caption
+from core.trace_display import near_strike_split, kerb_exclusion_caption, kerb_scatter_split
 
 
 def _lap_arrays(state, cs, lap):
@@ -62,7 +63,7 @@ def test_analysis_output_identical_for_every_display_mode(parsed_data, effective
 
     def run(mode):
         p = copy.deepcopy(effective_params)
-        p["corner_trace_display"]["near_strike_display"] = mode
+        p["corner_trace_display"]["kerb_exclusion_display"] = mode
         st = prepare_vehicle_state(parsed_data["channels"], p)
         beta = estimate_sideslip(st, p)
         cs = estimate_cornering_stiffness(estimate_slip_angles(st, beta, p), estimate_lateral_forces(st, p), st, p)
@@ -80,7 +81,7 @@ def test_analysis_output_identical_for_every_display_mode(parsed_data, effective
 
 def test_no_analysis_module_reads_the_display_setting():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pat = re.compile(r"near_strike_display|near_strike_split|near_strike_caption")
+    pat = re.compile(r"kerb_exclusion_display|near_strike_split|kerb_exclusion_caption|kerb_scatter_split")
     for name in os.listdir(os.path.join(root, "modules")):
         if name.endswith(".py"):
             with open(os.path.join(root, "modules", name), encoding="utf-8") as fh:
@@ -113,12 +114,46 @@ def test_lap_figure_export_follows_the_mode(parsed_data, state, pipeline_result,
     laps = _export_laps(parsed_data, state, pipeline_result["cs"])
     n_mark = sum(int((lap[f"near_strike_{a}"] & np.isfinite(lap[f"cs_{a}"])).sum()) for lap in laps for a in "fr")
     n_fin = sum(int(np.isfinite(lap[f"cs_{a}"]).sum()) for lap in laps for a in "fr")
-    fig = figure_render.render_lap_figure("Lap test", laps, THRESH, [], near_strike={"mode": mode, "grade_s": 0.2})
+    fig = figure_render.render_lap_figure("Lap test", laps, THRESH, [], near_strike={"mode": mode})
     texts = [t.get_text() for t in fig.texts]
-    expected = near_strike_caption(mode, n_mark, n_fin, 0.2)
-    if mode == "off" or n_mark == 0:
-        assert not _grey_lines(fig) and expected is None
-    else:
-        assert expected in texts
-        assert bool(_grey_lines(fig)) == (mode == "grey")
+    # one caption in every mode, always with the count
+    expected = kerb_exclusion_caption(mode, n_mark, n_fin)
+    assert expected in texts and f"n = {n_mark}," in expected
+    assert n_mark > 0
+    assert bool(_grey_lines(fig)) == (mode == "grey")
     plt.close(fig)
+
+
+def test_caption_is_the_one_ruled_sentence():
+    # author wording 2026-10-07, verbatim, plus the mode prefix and the count
+    ruled = "kerb-affected samples excluded from verdict statistics, retained in CS arrays"
+    assert kerb_exclusion_caption("grey", 3, 200) == f"Grey: {ruled} (n = 3, 1.5 %)."
+    assert kerb_exclusion_caption("exclude", 3, 200) == f"Not drawn: {ruled} (n = 3, 1.5 %)."
+    assert kerb_exclusion_caption("off", 3, 200) == f"Drawn normally: {ruled} (n = 3, 1.5 %)."
+
+
+@pytest.mark.parametrize("mode", ["grey", "exclude", "off"])
+def test_tyre_scatter_uses_the_same_kerb_affected_definition(mode):
+    valid = np.array([1, 1, 1, 1, 0], bool)
+    kerb = np.array([0, 1, 0, 0, 1], bool)
+    mark = np.array([0, 0, 1, 0, 0], bool)
+    filled, hollow = kerb_scatter_split(valid, kerb, mark, mode)
+    if mode == "off":
+        assert filled.tolist() == [1, 1, 1, 1, 0] and not hollow.any()
+    else:
+        assert filled.tolist() == [1, 0, 0, 1, 0]
+        assert hollow.tolist() == ([0, 1, 1, 0, 0] if mode == "grey" else [0] * 5)
+
+
+def test_retired_kerb_wording_is_gone_from_user_facing_text():
+    # "near-strike" / "smear" are internal; product text says kerb-affected
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # "retained in all computed results": inaccurate since schema 12, superseded 2026-10-07
+    pat = re.compile(r"""["'][^"'\n]*(near[- ]strike|smear|retained in all computed)[^"'\n]*["']""", re.I)
+    for sub in ("ui", "core"):
+        for dirpath, _dirs, files in os.walk(os.path.join(root, sub)):
+            for name in files:
+                if name.endswith(".py"):
+                    with open(os.path.join(dirpath, name), encoding="utf-8") as fh:
+                        hits = [m.group(0) for m in pat.finditer(fh.read()) if "near_strike" not in m.group(0)]
+                    assert not hits, f"{sub}/{name}: retired kerb wording in a string: {hits}"

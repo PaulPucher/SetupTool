@@ -149,6 +149,12 @@
     "_comment_mu_plausibility_band": "Plausible peak mu (D = mu*Fz) for a GT3 slick (Milliken RCVD, tyre chapter). Outside [low, high] -> flagged for the analyst, never silently kept or dropped.",
     "mu_plausibility_band_low": 1.2,
     "mu_plausibility_band_high": 2.0,
+    "_comment_plausibility_gate": "Tyre-curve plausibility gate (tyre_fit_auto.plausibility_gate, author decision 2026-10-07, D4). Calibration tunables, per axle on the final fitted curve; any failed check routes the session into the existing degenerate-fit fallback (kinematic beta). Bands deliberately wide -- a garbage catch, not ridge adjudication. min_alpha_span_deg: p1..p99 span of the fit's slip-angle data (excitation). stiffness_min_npr / stiffness_max_npr: implied linear axle stiffness B*C*D in N/rad; magnitudes after Bechtloff (single-track reference values, Fig. 7.2) as coarse bounds. peak_min_deg / peak_max_deg: position of the curve's maximum; bracket around a team rule of thumb (front peak ~8 deg, personal communication, Proton race engineer) as a coarse bound.",
+    "min_alpha_span_deg": 3.0,
+    "stiffness_min_npr": 30000,
+    "stiffness_max_npr": 600000,
+    "peak_min_deg": 3.0,
+    "peak_max_deg": 15.0,
     "_comment_tyre_fit_mode": "EXPERIMENTAL, config-selectable only (PLAN.md EXPERIMENT PLAN (d2), author ruling 2026-10-01). 'per_session' (production default): free four-parameter Pacejka fit per session from the chair start guess. 'prior_anchored': the same fit started from tyre_fit_prior and penalised by prior_weight * mean squared distance between session curve and prior curve over the session's visited slip range (Tikhonov regularisation towards a reference curve). Tier A anchor for a prior-plus-deviation tyre fit PENDING -- not a production default. Free D only: prior_anchored with load_normalised_fit_enabled true is refused as degenerate. Reading of prior_weight: the session's deviation from the prior shrinks by about 1 / (1 + w); 1 = medium (author ruling). (d2) result: under refit iteration the anchored fit converges only where the deviation is largely suppressed (thesis_notes.md (d2) entries).",
     "tyre_fit_mode": "per_session",
     "prior_weight": 1.0,
@@ -319,8 +325,17 @@
     "default_laps_shown_note": "NEW, additive (trace-dialog addendum item 2, 2026-09-01). Corner trace default: when opened from an 'All laps' analysis (a single-lap analysis still defaults to just that lap, unchanged), the fastest N valid laps of this corner start CHECKED, the rest start unchecked but available -- avoids a wall of overlapping colours on a corner with many laps by default while never refusing to show more if the user checks them. N=5 chosen as a readable default under the addendum's own 10-colour palette (comfortably below the point where the dash-cycling fallback would ever trigger). Tier C UI default, not a science/analysis parameter.",
     "kerb_gap_bridge": true,
     "kerb_gap_bridge_derived_from": "display continuity only, 2026-09-30. Corner and lap trace windows draw a dashed, lighter linear bridge across NaN runs that contain kerb-flagged samples (CS_ratio f/r and stability panels); plot code path only, no analysis array reads or receives it.",
-    "near_strike_display": "grey",
-    "near_strike_display_note": "Kerb display package, author rulings 2026-10-05. Plot-only: how CS traces and histograms draw samples carrying the near_strike grade mark (estimate_cornering_stiffness, Q-CAL-1 option 4: the regression window reaches within stability_estimation.kerb_smear_grade_s of a masked kerb strike). grey (default) = drawn as a grey overlay with one caption sentence; exclude = left out of the plot, the hidden count stated in the caption; off = drawn like every other sample. One flag for the trace dialogs, the figure exports and the diagnostics renders, so app and thesis figures agree. Presentation only: the estimator deletes nothing and no computed result changes (no schema bump).",
+    "kerb_exclusion_display": "grey",
+    "kerb_exclusion_display_note": "Kerb exclusion, ONE user-facing concept (author rulings 2026-10-05, key renamed from near_strike_display 2026-10-07). Plot-only switch for every CS trace, histogram and tyre-curve scatter in the trace dialogs, the figure exports and the diagnostics renders, so app and thesis figures agree: grey (default) = kerb-affected samples drawn grey (hollow in the tyre-curve scatter); exclude = left out of the plot; off = drawn like every other sample. Every view states one caption with the count. Kerb-affected = inside the kerb mask or carrying the estimator's grade mark (internal name near_strike, width stability_estimation.kerb_smear_grade_s). Presentation only: the estimator deletes nothing and no computed result changes (no schema bump).",
+    "cs_envelope": {
+      "_comment": "Corner-trace cross-lap envelope (core/trace_display.cross_lap_envelope), drawn as two thin lines on the CS front / CS rear / stability panels over ALL analysis laps of the corner; the selected lap full-strength on top. Display only.",
+      "percentiles": [10, 90],
+      "percentiles_derived_from": "Author ruling 2026-10-06 (app check): p10 / p90 rather than min / max -- one wild lap must not set the visual band.",
+      "min_laps": 3,
+      "min_laps_derived_from": "Same floor as yaw_pooling.min_laps: fewer laps at a grid point -> no band there.",
+      "grid_m": 1.0,
+      "grid_m_derived_from": "Same track-position step as yaw_pooling.grid_m."
+    },
     "yaw_pooling_panel": true,
     "yaw_pooling_panel_derived_from": "(c)-display, approved 2026-09-30, display continuity with diagnostic inspect_yaw_pooling. Corner and lap trace windows add a yaw-rate panel (per-lap yaw rate on a 1 m grid, pooled median, envelope, excess/deficit flag overlays) and a steering-rate sub-panel. Display only: no estimator, threshold, classification or evidence reads it. Read when the trace windows are built.",
     "yaw_pooling": {
@@ -365,7 +380,7 @@
     },
     "stab_neg_thresh_Nm_per_deg": {
       "value": 0.0,
-      "derived_from": "2026-10-05, author ruling: Werner 2021 sec. 2.2.3 sign criterion as the anchored boundary -- dMz/dbeta < 0 is open-loop unstable; explicitly not a criticality threshold (skilled drivers operate there), so the verdict reads 'open-loop unstable (Werner)' and its severity stays contextual (two-signal logic). Measure chair-conform (inertial regressand, default (c)). Clean-pool worst-phase distribution beside (inspect_threshold_rederivation.py counts_clean): n 109, 9 negative, p5 -5 / p10 +27 / p15 +50 Nm/deg. Supersedes -50.0 (2026-07-24, kinematic-era placeholder, never re-derived for ekf_auto_pacejka), retired 2026-10-05."
+      "derived_from": "2026-10-05, author ruling: Werner 2021 sec. 2.2.3 sign criterion as the anchored boundary -- dMz/dbeta < 0 is open-loop unstable; explicitly not a criticality threshold (skilled drivers operate there), so the verdict reads 'open-loop unstable (Werner)' and its severity stays contextual (two-signal logic). Measure chair-conform (inertial regressand, default (c)). Clean-pool worst-phase distribution beside (inspect_threshold_rederivation.py counts_clean): n 109, 9 negative, p5 -5 / p10 +27 / p15 +50 Nm/deg. Supersedes -50.0 (2026-07-24, kinematic-era placeholder, never re-derived for ekf_auto_pacejka), retired 2026-10-05. [2026-10-06: the product text reads 'open-loop unstable' -- no source names in the app (author ruling); the anchor stays here and in PRODUCTION.md.]"
     },
     "verdict_stability_margin": {
       "cs_margin": 0.11,
@@ -383,6 +398,16 @@
     "bootstrap_draws": 200,
     "bootstrap_seed": 20261002,
     "derived_from": "Method: Rajamani, Vehicle Dynamics and Control, sec. 3.2 Eq. 3.23 (delta = L / R + K a_y, 1 / R = r / v), beta-free OLS of (delta_f - steering zero - L r / v) on a_y, 2 Hz zero-phase signals (stability_estimation.cs_filter_cutoff_hz); verified 2026-10-02 (Q-PUSH P1, diagnostics/inspect_last_push.py measure_k), recomputed on the corrected steering chain 2026-10-05 (diagnostics/inspect_k2_line.py: NBR 16 / 16 understeer, median +1.25 deg/g). Population provenance: the (a2) quasi-steady referee population of diagnostics/inspect_imu_offsets._steady (2026-09-30) -- moving, off-kerb samples of analysis laps inside corner brackets, |r v| above the session's Otsu split of |a_y| (gated_kinematic_common.otsu_threshold, 256 bins), |d r / dt| < psidd_max_radps2, |a_x| < ax_max_mps2, |a_y| < ay_clip_g; steering zero = median road-wheel angle on the same laps outside corners. Range: 95 % corner-traversal cluster bootstrap, bootstrap_draws draws, fixed seed for reproducibility. Shipped 2026-10-05 (author ruling)."
+  },
+  "limit_events": {
+    "_comment": "Limit events (modules/limit_events.py): in-corner stretches where CS lies below the session's own 0-30 deg curve floor, per axle -- display + record only, never a verdict or recommendation input. Merge and recurrence values are the Q-SPIKE-AUDIT frozen ones; the event line itself is computed from the session's fit, not configured.",
+    "enabled": true,
+    "bridge_gap_s": 0.5,
+    "bridge_gap_s_derived_from": "Q-SPIKE-AUDIT frozen header (diagnostics/inspect_spike_audit.py BRIDGE_S, 2026-10-05): sub-threshold gaps shorter than this merge two stretches into one event. Author ruling 2026-10-06: the only merge logic.",
+    "recurrence_radius_m": 10.0,
+    "recurrence_radius_m_derived_from": "Q-SPIKE-AUDIT frozen header (SITE_M, the Q-PAIRING radius, 2026-10-05): an event recurs when another analysis lap has an event of the same axle at the same corner with its minimum within this lap distance.",
+    "min_duration_s": 0.1,
+    "min_duration_s_derived_from": "One CS regression window (stability_estimation.cs_min_window_s), the estimator's own resolution: an event cannot be shorter than the shortest window that produced its values; sub-window excursions are numerical edges, not observations. Ruled 2026-10-06 (author) on the first real counts (single-sample events 9 of 49 on Dubai, 11 of 91 on NBR JST 29). Not a transferred surface-noise rule (Segers sec. 7.4 is for raw lateral g). Compared with a half-sample tolerance so an event of exactly one window is kept."
   },
   "accuracy_levels": {
     "_comment": "Accuracy per quantity: 1 = config default, 2 = session measurement, 3 = logged sensor, 4 = lookup table. Per node: level (static default tier), source, capped_by ('chained-constant: <name>' = an L1 constant in its derivation; 'provenance-assumption: <name>' = an unverifiable assumption about the channel; null = neither). accuracy_resolution.py resolves leaf nodes (mass, corner_weights, steering_ratio) per outing; derived nodes cascade from capped_by -- pure (= input level) or bounded by method_ceiling (e.g. yaw_inertia's m*a*b). Other nodes stay at their static level regardless of cap.",

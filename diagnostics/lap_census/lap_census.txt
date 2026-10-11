@@ -1,0 +1,239 @@
+LAP CENSUS -- production lap classification beside raw lap facts, every unique export (Q double-outlap defect, 2026-10-06)
+lim = pit limiter (ecu_B_speedlimit_en) at lap start / end; dist_rise in the file's lap_distance unit
+files with more than one out lap: 0 of 24
+
+== C:/UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [0]; analysis laps [1, 2, 3, 4]
+   lap    0:   176.00 s  out 1 in 0 valid 0  lim 0.0/0.0  v 0.0/185.299997 km/h  dist_rise 1.685275  
+   lap    1:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 187.999997/186.000005 km/h  dist_rise 17177.561358  
+   lap    2:   125.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.300006/186.800002 km/h  dist_rise 17154.092464  
+   lap    3:   125.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.100003/188.600002 km/h  dist_rise 17163.790808  
+   lap    4:   125.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.500005/187.099997 km/h  dist_rise 17156.024440999998  
+   lap    5:   137.40 s  out 0 in 1 valid 0  lim 0.0/1.0  v 189.0/0.0 km/h  dist_rise 16604.439644  ['lap_time channel (129.5s) disagrees with computed duration (137.4s)']
+
+== C:/UNI\Bachelorarbeit\Setuptool_local\GT3_PRC_MLA-v3.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [5]; analysis laps [6, 7, 8]
+   lap    5:   171.20 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/195.900005 km/h  dist_rise 212.56542999999965  ['lap_time channel (716.5s) disagrees with computed duration (171.2s)', 'lap_distance only rose by 213 units despite 171.2s duration']
+   lap    6:   126.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 197.499998/193.799995 km/h  dist_rise 5669.056641  
+   lap    7:   125.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.599995/193.700006 km/h  dist_rise 5677.164062  
+   lap    8:   125.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.400003/193.600003 km/h  dist_rise 5669.734375  
+   lap    9:   137.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 195.3/0.0 km/h  dist_rise 5477.019531  
+
+== C:/UNI\Bachelorarbeit\Setuptool_local\NBR-73-021-071-JST-26.07.01.1509.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [71]; analysis laps [72, 73]
+   lap   71:   142.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/188.1 km/h  dist_rise 16292.394602999999  ['lap_time channel (327.7s) disagrees with computed duration (142.0s)']
+   lap   72:   116.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.299998/191.199998 km/h  dist_rise 16446.517185  
+   lap   73:   116.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.899995/190.900003 km/h  dist_rise 16424.140835000002  
+   lap   74:   136.80 s  out 0 in 1 valid 0  lim 0.0/1.0  v 192.700003/0.0 km/h  dist_rise 16313.61754  ['lap_time channel (128.5s) disagrees with computed duration (136.8s)']
+
+== C:/UNI\Bachelorarbeit\outings\GT3_PRC_MLA-v2.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [5]; analysis laps [6, 7, 8]
+   lap    5:   171.38 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/197.429647 km/h  dist_rise 211.64711499999976  ['lap_time channel (716.5s) disagrees with computed duration (171.4s)', 'lap_distance only rose by 212 units despite 171.4s duration']
+   lap    6:   126.38 s  out 0 in 0 valid 1  lim 0.0/0.0  v 197.629648/195.529644 km/h  dist_rise 5667.433447  
+   lap    7:   125.58 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.535179/195.400003 km/h  dist_rise 5676.083622  
+   lap    8:   125.18 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.659294/195.264822 km/h  dist_rise 5668.65784  
+   lap    9:   137.18 s  out 0 in 1 valid 0  lim 0.0/1.0  v 195.3/0.0 km/h  dist_rise 5476.3195  
+
+== C:/UNI\Bachelorarbeit\outings\GT3_PRC_MLA.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [5]; analysis laps [6, 7, 8]
+   lap    5:   171.35 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/197.22965 km/h  dist_rise 212.18617799999993  ['lap_time channel (716.4s) disagrees with computed duration (171.4s)', 'lap_distance only rose by 212 units despite 171.4s duration']
+   lap    6:   126.35 s  out 0 in 0 valid 1  lim 0.0/0.0  v 197.729649/195.400003 km/h  dist_rise 5667.420354  
+   lap    7:   125.55 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.544474/195.224118 km/h  dist_rise 5675.540653  
+   lap    8:   125.15 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.785178/195.199997 km/h  dist_rise 5666.509402000001  
+   lap    9:   137.15 s  out 0 in 1 valid 0  lim 0.0/1.0  v 195.344468/0.0 km/h  dist_rise 5475.7765309999995  
+
+== D:/Data_Bachelorthesis\NBR_Qualy_CDr\CDR-QP01-NBR-v1.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps []; analysis laps [274, 275, 276, 277, 278, 279]
+   lap  273:   144.40 s  out 0 in 0 valid 0  lim 0.0/0.0  v 16.500001/193.100002 km/h  dist_rise 6.951172  ['lap_distance only rose by 7 units despite 144.4s duration']
+   lap  274:   114.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.400003/190.299998 km/h  dist_rise 5008.630859  
+   lap  275:   120.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.099998/190.599994 km/h  dist_rise 5016.367187000001  
+   lap  276:   114.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.200002/189.100003 km/h  dist_rise 5006.115234  
+   lap  277:   118.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.000006/192.6 km/h  dist_rise 5003.21875  
+   lap  278:   114.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.699995/186.999994 km/h  dist_rise 4998.988281  
+   lap  279:   114.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.100003/188.200003 km/h  dist_rise 5002.037109  
+   lap  280:   144.80 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.000003/0.0 km/h  dist_rise 4983.726562  ['lap_time channel (136.0s) disagrees with computed duration (144.8s)']
+
+== D:/Data_Bachelorthesis\NBR_Qualy_MLA\MLA-QP01-NBR-v2.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [281]; analysis laps [282, 283, 284, 285, 286, 287]
+   lap  281:   145.60 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/193.5 km/h  dist_rise 5010.472657  ['lap_time channel (427.6s) disagrees with computed duration (145.6s)']
+   lap  282:   114.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.400003/191.499994 km/h  dist_rise 5022.726563  
+   lap  283:   114.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.399997/191.400005 km/h  dist_rise 5020.332032  
+   lap  284:   114.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/191.599997 km/h  dist_rise 5022.078125  
+   lap  285:   117.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.700006/193.100002 km/h  dist_rise 5030.71875  
+   lap  286:   114.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.000005/192.499997 km/h  dist_rise 5015.40625  
+   lap  287:   114.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.500003/191.599997 km/h  dist_rise 5007.484375  
+   lap  288:   146.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 193.600003/0.0 km/h  dist_rise 5000.414063  ['lap_time channel (137.4s) disagrees with computed duration (146.0s)']
+
+== D:/Data_Bachelorthesis\NBR_Sturm_Solution\NBR-73-029-101-JST-26.07.01.1734.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [102]; analysis laps [103, 104, 105, 106, 107, 108]
+   lap  102:   162.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/189.0 km/h  dist_rise 607.4824300000018  ['lap_time channel (687.2s) disagrees with computed duration (162.0s)', 'lap_distance only rose by 607 units despite 162.0s duration']
+   lap  103:   115.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.400005/188.300006 km/h  dist_rise 16440.128515  
+   lap  104:   116.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.599994/187.800005 km/h  dist_rise 16428.86985  
+   lap  105:   116.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.399998/188.499998 km/h  dist_rise 16459.089462  
+   lap  106:   116.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.000006/188.200003 km/h  dist_rise 16443.287609  
+   lap  107:   116.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/187.999997 km/h  dist_rise 16406.589614  
+   lap  108:   117.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/188.300006 km/h  dist_rise 16429.010827000002  
+   lap  109:   138.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.400002/0.0 km/h  dist_rise 16303.313644999998  ['lap_time channel (129.3s) disagrees with computed duration (138.0s)']
+
+== D:/Data_Bachelorthesis\Paul_Ricard_MLA_US\MLA-SE07_US-v1.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [5]; analysis laps [6, 7, 8]
+   lap    5:   171.20 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/195.900005 km/h  dist_rise 212.56542999999965  ['lap_time channel (716.5s) disagrees with computed duration (171.2s)', 'lap_distance only rose by 213 units despite 171.2s duration']
+   lap    6:   126.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 197.499998/193.799995 km/h  dist_rise 5669.056641  
+   lap    7:   125.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.599995/193.700006 km/h  dist_rise 5677.164062  
+   lap    8:   125.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.400003/193.600003 km/h  dist_rise 5669.734375  
+   lap    9:   137.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 195.3/0.0 km/h  dist_rise 5477.019531  
+
+== D:/Data_Bachelorthesis\Random Lemans\LMN-#73-P9541-005-240613-10.30-MLA.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'partial', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps []; analysis laps [2]
+   lap    1:   333.00 s  out 0 in 0 valid 0  lim 0.0/0.0  v 0.0/174.099998 km/h  dist_rise 44390.475851999996  ['lap_time channel (1487.9s) disagrees with computed duration (333.0s)']
+   lap    2:   238.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 176.000002/176.299997 km/h  dist_rise 44212.265219  
+   lap    3:   343.00 s  out 0 in 1 valid 0  lim 0.0/0.0  v 178.400006/0.0 km/h  dist_rise 44206.049562  ['lap_time channel (333.7s) disagrees with computed duration (343.0s)']
+
+== D:/Data_Bachelorthesis\paul_Ricard_MLA_solved\MLA-SE07_US-v2.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [47]; analysis laps [48, 49, 50, 51, 52, 53, 54, 55, 56]
+   lap   47:   177.60 s  out 1 in 0 valid 0  lim 0.0/0.0  v 0.0/194.799998 km/h  dist_rise 5712.71875  ['lap_time channel (161.9s) disagrees with computed duration (177.6s)']
+   lap   48:   126.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 196.700002/193.700006 km/h  dist_rise 5672.2412110000005  
+   lap   49:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.699998/192.6 km/h  dist_rise 5669.5087889999995  
+   lap   50:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.500003/194.299997 km/h  dist_rise 5673.673829  
+   lap   51:   125.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.900005/193.799995 km/h  dist_rise 5658.083984  
+   lap   52:   125.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.400003/193.399997 km/h  dist_rise 5669.25  
+   lap   53:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.000005/192.399994 km/h  dist_rise 5672.09375  
+   lap   54:   126.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.299997/193.899998 km/h  dist_rise 5668.101563  
+   lap   55:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.500006/194.699995 km/h  dist_rise 5681.605469  
+   lap   56:   125.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 196.599998/194.4 km/h  dist_rise 5671.429688  
+   lap   57:   135.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 196.300003/0.0 km/h  dist_rise 5491.765625  
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_01\NBR-73-005-001-MLA-26.07.01.0919.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [1]; analysis laps [2, 3, 4, 5, 6, 7]
+   lap    1:   147.60 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/188.700005 km/h  dist_rise 16287.995586  ['lap_time channel (213.8s) disagrees with computed duration (147.6s)']
+   lap    2:   119.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.900003/187.499995 km/h  dist_rise 16399.037919  
+   lap    3:   119.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.399998/188.300006 km/h  dist_rise 16420.478722  
+   lap    4:   119.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.500005/187.700002 km/h  dist_rise 16403.718884  
+   lap    5:   119.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/187.400006 km/h  dist_rise 16402.136135999997  
+   lap    6:   119.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.399998/188.300006 km/h  dist_rise 16390.082897  
+   lap    7:   118.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.100006/188.799994 km/h  dist_rise 16396.048638  
+   lap    8:   143.80 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.699997/0.0 km/h  dist_rise 16311.336326  ['lap_time channel (134.9s) disagrees with computed duration (143.8s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_01\NBR-73-010-026-JDR-26.07.01.1029.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [26]; analysis laps [27, 28, 30, 31, 32, 33, 34, 35, 36, 37]
+   lap   26:   149.40 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/186.000005 km/h  dist_rise 16319.282114  ['lap_time channel (243.0s) disagrees with computed duration (149.4s)']
+   lap   27:   123.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 187.899994/185.699995 km/h  dist_rise 16457.513124  
+   lap   28:   125.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 187.899994/185.600006 km/h  dist_rise 16431.368935  
+   lap   29:   136.80 s  out 0 in 0 valid 0  lim 0.0/0.0  v 187.800005/184.700006 km/h  dist_rise 16451.874175  
+   lap   30:   123.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 185.799998/186.699998 km/h  dist_rise 16487.450791  
+   lap   31:   123.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.600002/186.800002 km/h  dist_rise 16452.591863999998  
+   lap   32:   125.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.600002/185.299997 km/h  dist_rise 16450.131235  
+   lap   33:   125.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 186.900005/185.600006 km/h  dist_rise 16487.502052  
+   lap   34:   121.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.200003/185.699995 km/h  dist_rise 16464.126069  
+   lap   35:   122.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 187.999997/186.599995 km/h  dist_rise 16460.076281  
+   lap   36:   122.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.100003/186.500006 km/h  dist_rise 16457.820707  
+   lap   37:   121.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.100003/188.200003 km/h  dist_rise 16457.769439  
+   lap   38:   148.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.199995/0.0 km/h  dist_rise 16352.782559  ['lap_time channel (138.0s) disagrees with computed duration (148.0s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_02\NBR-73-018-057-JST-26.07.01.1421.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [58]; analysis laps [59, 60]
+   lap   58:   162.80 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/191.099995 km/h  dist_rise 16540.90221  ['lap_time channel (146.7s) disagrees with computed duration (162.8s)']
+   lap   59:   117.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/188.300006 km/h  dist_rise 16467.858662  
+   lap   60:   116.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.8/188.300006 km/h  dist_rise 16468.624405  
+   lap   61:   148.80 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.199995/0.0 km/h  dist_rise 16348.156069999999  ['lap_time channel (140.9s) disagrees with computed duration (148.8s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_02\NBR-73-019-062-JST-26.07.01.1437.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [62]; analysis laps [63]
+   lap   62:   143.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/189.299995 km/h  dist_rise 16333.917737999998  ['lap_time channel (574.1s) disagrees with computed duration (143.0s)']
+   lap   63:   117.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.099995/190.299998 km/h  dist_rise 16443.40936  
+   lap   64:   149.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 191.900006/0.0 km/h  dist_rise 16370.058232  ['lap_time channel (140.9s) disagrees with computed duration (149.2s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_02\NBR-73-020-065-JST-26.07.01.1454.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'partial', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [65]; analysis laps [66, 67, 68, 69]
+   lap   65:   144.20 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/192.300005 km/h  dist_rise 16329.034924999998  ['lap_time channel (723.0s) disagrees with computed duration (144.2s)']
+   lap   66:   115.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.199994/190.400002 km/h  dist_rise 16467.817015  
+   lap   67:   116.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.6/191.599997 km/h  dist_rise 16435.944162  
+   lap   68:   115.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.5/190.000003 km/h  dist_rise 16421.000960999998  
+   lap   69:   116.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.999995/187.300003 km/h  dist_rise 16409.338608  
+   lap   70:   138.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 189.299995/0.0 km/h  dist_rise 16327.202267  ['lap_time channel (129.7s) disagrees with computed duration (138.0s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_SE_02\NBR-73-029-101-JST-26.07.01.1734.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [102]; analysis laps [103, 104, 105, 106, 107, 108]
+   lap  102:   162.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/189.0 km/h  dist_rise 607.4824300000018  ['lap_time channel (687.2s) disagrees with computed duration (162.0s)', 'lap_distance only rose by 607 units despite 162.0s duration']
+   lap  103:   115.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.400005/188.300006 km/h  dist_rise 16440.128515  
+   lap  104:   116.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.599994/187.800005 km/h  dist_rise 16428.86985  
+   lap  105:   116.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.399998/188.499998 km/h  dist_rise 16459.089462  
+   lap  106:   116.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.000006/188.200003 km/h  dist_rise 16443.287609  
+   lap  107:   116.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/187.999997 km/h  dist_rise 16406.589614  
+   lap  108:   117.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/188.300006 km/h  dist_rise 16429.010827000002  
+   lap  109:   138.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 190.400002/0.0 km/h  dist_rise 16303.313644999998  ['lap_time channel (129.3s) disagrees with computed duration (138.0s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_TE_04\NBR-73-046-162-JST-26.07.02.1411.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [162]; analysis laps [163, 164, 165, 166]
+   lap  162:   148.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/187.999997 km/h  dist_rise 16309.956361999999  ['lap_time channel (535.3s) disagrees with computed duration (148.0s)']
+   lap  163:   117.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/187.099997 km/h  dist_rise 16478.197795  
+   lap  164:   117.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.299995/188.1 km/h  dist_rise 16472.779921  
+   lap  165:   117.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.100006/186.699998 km/h  dist_rise 16458.842758  
+   lap  166:   120.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.700005/187.599998 km/h  dist_rise 16453.488964  
+   lap  167:   137.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 189.399998/0.0 km/h  dist_rise 16362.727605999999  ['lap_time channel (128.9s) disagrees with computed duration (137.2s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_TE_04\NBR-73-053-207-MLA-26.07.02.1707.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [207]; analysis laps [208, 209, 210, 211, 212]
+   lap  207:   148.20 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/188.300006 km/h  dist_rise 16327.868684  ['lap_time channel (202.3s) disagrees with computed duration (148.2s)']
+   lap  208:   119.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.000003/187.800005 km/h  dist_rise 16472.584479999998  
+   lap  209:   119.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.199995/189.200006 km/h  dist_rise 16432.240403  
+   lap  210:   118.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.000006/189.799997 km/h  dist_rise 16445.517551  
+   lap  211:   122.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.599997/188.399995 km/h  dist_rise 16464.792491  
+   lap  212:   123.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.500005/188.300006 km/h  dist_rise 16478.633528  
+   lap  213:   215.60 s  out 0 in 1 valid 0  lim 0.0/0.0  v 190.699997/0.0 km/h  dist_rise 16413.42684  ['lap_time channel (204.2s) disagrees with computed duration (215.6s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\01_TE_04\NBR-73-054-214-CDR -26.07.02.1727.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps []; analysis laps [215, 216, 217, 218, 219, 220]
+   lap  214:   146.00 s  out 0 in 0 valid 0  lim 0.0/0.0  v 0.0/189.799997 km/h  dist_rise 16340.735729  ['lap_time channel (394.8s) disagrees with computed duration (146.0s)']
+   lap  215:   119.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.7/189.600005 km/h  dist_rise 16466.022802  
+   lap  216:   120.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.7/190.400002 km/h  dist_rise 16455.565126  
+   lap  217:   117.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.099998/189.399998 km/h  dist_rise 16426.652727  
+   lap  218:   117.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 191.300002/191.499994 km/h  dist_rise 16435.162398999997  
+   lap  219:   120.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/187.800005 km/h  dist_rise 16427.677983  
+   lap  220:   118.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.000003/189.399998 km/h  dist_rise 16441.621551  
+   lap  221:   155.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 191.199998/0.0 km/h  dist_rise 16242.208003  
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\New folder\NBR-73-059-232-MLA-26.07.03.1210.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [232]; analysis laps [233, 234, 235, 236]
+   lap  232:   158.80 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/192.099998 km/h  dist_rise 16437.648659000002  ['lap_time channel (296.8s) disagrees with computed duration (158.8s)']
+   lap  233:   116.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.000002/191.300002 km/h  dist_rise 16478.812948  
+   lap  234:   119.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/193.600003 km/h  dist_rise 16493.65363  
+   lap  235:   116.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.599995/190.500005 km/h  dist_rise 16411.81205  
+   lap  236:   117.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.399994/194.199994 km/h  dist_rise 16443.146636  
+   lap  237:   243.20 s  out 0 in 1 valid 0  lim 0.0/1.0  v 196.300003/0.0 km/h  dist_rise 16147.999197000001  
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\New folder\NBR-73-061-238-JDR-26.07.03.1229.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [238]; analysis laps [239, 240, 241, 242, 243, 244, 245, 246]
+   lap  238:   151.20 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/186.099994 km/h  dist_rise 16343.760255  ['lap_time channel (243.2s) disagrees with computed duration (151.2s)']
+   lap  239:   122.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.399995/186.599995 km/h  dist_rise 16467.842641  
+   lap  240:   121.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.0/187.899994 km/h  dist_rise 16450.054337999998  
+   lap  241:   119.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.9/186.800002 km/h  dist_rise 16410.197263000002  
+   lap  242:   119.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.0/188.200003 km/h  dist_rise 16438.827717  
+   lap  243:   118.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 189.799997/185.000002 km/h  dist_rise 16408.787524  
+   lap  244:   120.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 186.800002/186.099994 km/h  dist_rise 16432.368558  
+   lap  245:   120.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 188.200003/188.600002 km/h  dist_rise 16444.876762  
+   lap  246:   120.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 190.599994/187.599998 km/h  dist_rise 16448.798397  
+   lap  247:   142.00 s  out 0 in 1 valid 0  lim 0.0/1.0  v 189.9/0.0 km/h  dist_rise 16354.474247  ['lap_time channel (133.8s) disagrees with computed duration (142.0s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\New folder\NBR-73-063-256-CDR-26.07.03.1309.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [256]; analysis laps [257, 258, 260, 261, 262, 263]
+   lap  256:   142.60 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/191.300002 km/h  dist_rise 16292.445867999999  ['lap_time channel (208.0s) disagrees with computed duration (142.6s)']
+   lap  257:   116.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.999998/190.400002 km/h  dist_rise 16394.510747  
+   lap  258:   117.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.499997/189.600005 km/h  dist_rise 16410.248519  
+   lap  259:   215.40 s  out 0 in 0 valid 0  lim 0.0/0.0  v 191.900006/190.699997 km/h  dist_rise 16461.25533  
+   lap  260:   117.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.100002/192.200002 km/h  dist_rise 16438.802083  
+   lap  261:   115.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.000002/191.300002 km/h  dist_rise 16389.486958  
+   lap  262:   117.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/190.199995 km/h  dist_rise 16388.102853  
+   lap  263:   116.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 192.300005/191.599997 km/h  dist_rise 16416.810201999997  
+   lap  264:   137.40 s  out 0 in 1 valid 0  lim 0.0/1.0  v 193.399997/0.0 km/h  dist_rise 16304.749020000001  ['lap_time channel (129.6s) disagrees with computed duration (137.4s)']
+
+== D:/Data_Bachelorthesis\unlabeled\02_NBR_CRV_data\New folder\NBR-73-064-265-JST-26.07.03.1330.txt
+   channel quality {'lap_number': 'valid', 'lap_time': 'valid', 'lap_distance': 'valid', 'ecu_B_speedlimit_en': 'valid', 'ecu_speed': 'valid'}; out laps [265]; analysis laps [266, 267, 268, 269, 270]
+   lap  265:   144.00 s  out 1 in 0 valid 0  lim 1.0/0.0  v 0.0/195.099994 km/h  dist_rise 16379.080546000001  ['lap_time channel (197.2s) disagrees with computed duration (144.0s)']
+   lap  266:   114.20 s  out 0 in 0 valid 1  lim 0.0/0.0  v 196.999997/193.5 km/h  dist_rise 16488.014679  
+   lap  267:   114.00 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.3/191.900006 km/h  dist_rise 16425.473667  
+   lap  268:   115.60 s  out 0 in 0 valid 1  lim 0.0/0.0  v 194.100005/192.899995 km/h  dist_rise 16447.209232999998  
+   lap  269:   114.80 s  out 0 in 0 valid 1  lim 0.0/0.0  v 195.3/190.699997 km/h  dist_rise 16440.903872000003  
+   lap  270:   116.40 s  out 0 in 0 valid 1  lim 0.0/0.0  v 193.299994/194.600006 km/h  dist_rise 16418.091777  
+   lap  271:   198.60 s  out 0 in 1 valid 0  lim 0.0/1.0  v 196.400006/0.0 km/h  dist_rise 16019.828578  
+

@@ -1560,6 +1560,361 @@ NEXT
   judgement already aggregates past it (phase medians, worst phase, deep thresholds).
   (2) COMMIT 2 GO as prepared (inspect_spike_audit.py + frozen-ledger records); the
   AUTHOR runs it.]
+  [2026-10-05: COMMIT 2 IN (9427b6a, author); tree clean, protected set untracked; full
+  suite at HEAD RUNNING (expected 585). WORK ORDER RECEIVED (author): curve floor vs
+  thresholds, read-only -- per pool session and axle the production curve's own minimum
+  CS ratio (max downslope over the data's alpha range, normalised like CS) beside the
+  thresholds; pre-stated outcomes: thresholds ABOVE the floor -> wording "unusually
+  deep for this car"; STRONG BELOW the floor -> "anomalous force loss beyond the quasi-
+  steady characteristic (kerb-shown majority per audit; mechanism open otherwise)" --
+  flag stays, claim changes; mixed -> per axle. Residual wording upgrade in thesis_notes:
+  "incompatible with the session's quasi-steady tyre characteristic; specific mechanism
+  not shown". No config change. NOT launched: suite running (Settings tests write
+  config) + no explicit EXECUTE -> frozen definition proposed.]
+  [2026-10-05, author: EXECUTE on the frozen definition, p99 stands. HEAD SUITE: 585 passed,
+  9 skipped, 1 xfailed -- GREEN. CURVE FLOOR RUN (thesis_notes "Curve floor vs
+  thresholds ..."): STRONG lies BELOW the fitted curve's own floor on all 7 pool
+  sessions, both axles, also to 30 deg (pool floors front -0.325, rear -0.233) ->
+  pre-stated case 2: STRONG = "anomalous force loss beyond the quasi-steady
+  characteristic (kerb-shown majority per audit; mechanism open otherwise)"; flag stays,
+  claim changes. MODERATE mixed (information). Residual wording upgraded: "incompatible
+  with the session's quasi-steady tyre characteristic; specific mechanism not shown".
+  No config change. DAY CLOSED. NEXT (author): UI batch proposal (kerb-exclusion
+  consolidation, the author's one-worders, thesis data reader, green-MARGINAL fix).
+  Uncommitted: PLAN.md, thesis_notes.md, DECISIONS.md, diagnostics/README.md,
+  diagnostics/plots_INDEX.md, diagnostics/inspect_curve_floor.py (author commits).]
+  [2026-10-05, RULINGS (author): (1) inspect_curve_floor.py KEEP-REPRODUCES CONFIRMED --
+  derivation basis of the STRONG verdict's meaning; STANDING RULE: it re-runs whenever the
+  thresholds re-derive (the meaning check rides with every future re-derivation). (2) The
+  new STRONG wording goes into the UI as part of the UI BATCH (not before): card short
+  form "anomalous force loss beyond the tyre's quasi-steady characteristic"; the full
+  sentence with the kerb-shown-majority qualifier in the tooltip / caption.]
+  [2026-10-05: PRODUCTION.md WRITTEN (author task, EXECUTE granted; repo root, new,
+  1133 lines; the author reviews and commits it). Signal chain end to end, one section
+  per stage, plus threshold inventory, STRONG meaning, accuracy registry, schema
+  history. Verified: 144 cited config values and all cited code constants match, the
+  Pacejka anchor is verbatim. No code or config touched. Surfaced in the report (not
+  resolved): stale code / config comments vs schema 12 (near-strike "never feeds any
+  verdict"; kerb_smear_grade_s and near_strike_display notes "no verdict change";
+  _comment_sideslip_source_auto_modes "[UNCAL] always"; cs_margin note "single-
+  session" thresholds; wheel_load_damper "not yet wired"); CLAUDE.md "cs_* values
+  match the chair by choice" vs cs_linear_slip_threshold_rad 0.03 (chair 0.021);
+  wrong-home numbers (wheel_loads straight-line gates, decision_frame "|fb| >= 4",
+  FEEDBACK_MIN_MAGNITUDE, MASS_CORNER_SUM_TOLERANCE, csv_parser 5 s guard); legacy
+  CS colour bands in outing_form._stability_colour and the zero-width stability WARN
+  band. NEXT: author review of PRODUCTION.md; then the UI batch proposal.]
+  [2026-10-06, WORK ORDER (author): EVENT LAYER -- proposal only, no EXECUTE: single deep
+  cuts become named events (CS below the session's curve floor, labels kerb-affected /
+  recurring / single, display + record only, no verdict or recommendation input). ADDITION:
+  anchor check first. ANCHOR CHECK DONE (thesis_notes "Event layer: anchor check ..."):
+  Segers secs. 7.4-7.6 / 5.4 = anchor found; Milliken sec. 8.5 / 11.1 concept only; chair
+  tooling none. Implementation proposal reported; premise conflicts surfaced (audit froze
+  no minimum duration; visited-range floors positive on 5 session-axles; floor scale BCD vs
+  running C_lin; driver feedback has no lap dimension). AWAIT author rulings + EXECUTE.]
+  [2026-10-06, WORK ORDER (author): Q-CHANNEL-AUDIT, read-only, EXECUTE granted -- full
+  channel census of every data file on disk, candidate sweep for car-computed velocity /
+  sideslip, content test, GPS course check, pre-registered verdict (a) / (b). STOP after.]
+  [2026-10-06: Q-CHANNEL-AUDIT RUN DONE (thesis_notes "Q-CHANNEL-AUDIT ..."; diagnostics/
+  inspect_channel_census.py, outputs diagnostics/channel_census/): 24 unique exports + 182 .pds +
+  1 MAT; 4411 channels; optical-sensor slots dead; no live lateral-velocity / sideslip / heading
+  channel; GPS course 10 Hz, lag 0.26-0.36 s. VERDICT FORM PENDING (author): (a) in substance;
+  literal wording contradicted by vx channels and derived math channels; residual = logged
+  status of metadata-only VBOX_* and sclu_FA / RA families. HARD STOP.]
+  [2026-10-06, RULINGS (author): EVENT LAYER OPEN 1-4 -- no min duration (config null), 0-30 deg
+  floor is the event line, promoted B C D method as is (mismatch in header), consumer = corner +
+  phase (feedback form frozen); EXECUTE: module, detection, labels, schema 12 -> 13, card line,
+  session list, trace shading, guard test, inspect_curve_floor via the module; STOP after checks.
+  Q-CHANNEL-AUDIT: verdict (a) DATA-FINAL with scope line + optical-slot sentence; author requests
+  the team channel list (residual named until then); commit table / content test / plots, JSONs
+  gitignored (done). thesis_notes + DECISIONS updated.]
+  [2026-10-06: EVENT LAYER IMPLEMENTED (not committed): modules/limit_events.py, config limit_events,
+  schema 13, outing_form card line + session list, trace-dialog shading (corner + lap), tests/
+  test_limit_events.py (guard: verdicts byte-identical on/off), inspect_curve_floor via the module
+  (floors.json byte-identical). Targeted tests 42 / 42 (one structural test of mine fixed: it matched
+  the schema comment, now checks imports); goldens unchanged; test_stability.py exit 0. First
+  counts: Dubai 49 events (9 <= 0.05 s), JST 29 91 (11 <= 0.05 s). HARD STOP: author app check;
+  micro-event question per ruling 1 is the author's.]
+  [2026-10-06, RULINGS (author) on implementation OPEN 1-4: (1) app check pending author (list
+  length judged there; further session-list aggregation = display-only option). (2) min_duration_s
+  = 0.15 s ruled -- HELD before the config write: derivation "two CS regression windows" = 0.2 s
+  and "shorter than the window" = 0.1 s (cs_min_window_s), neither is 0.15; expected counts not
+  established (duration medians 0.21 / 0.24 s). Surfaced as OPEN. (3) census date 2026-10-06
+  confirmed. (4) PRODUCTION.md updated once after the app check closes the package.]
+  [2026-10-06, RULINGS (author, round 3): min_duration_s = 0.1 s (one CS window; 0.15 struck);
+  EXECUTE read-only counts Dubai + JST 29 at 0.1 / 0.15 / 0.2 s, labels re-counted; schema stays 13
+  (app never opened on 13). Config written, test updated deliberately.]
+  [2026-10-06: COUNTS DONE at 0.1 s shipped: Dubai 36 events (24 rows), JST 29 71 (32 rows); 0.15 /
+  0.2 s information 31 / 26 and 60 / 54. Tests 18 / 18, test_stability exit 0. HARD STOP: author app
+  check (list length -> display aggregation question if too long); then PRODUCTION.md update closes
+  the package.]
+  [2026-10-06, AUTHOR APP-CHECK RULINGS: (1) no literature names in UI text; (2) verdict card short
+  (condition, phase, number, severity), qualifiers to tooltip; (3) shading budget -- event marker
+  restyled as a thin strip, no stacked filled bands; (4) DEFECTS FILED: double outlap (pit-exit
+  fragment as a lap), analysis-thread instability on mid-run UI edits, corner-trace default view
+  unreadable. Recorded (thesis_notes, DECISIONS). No EXECUTE in the message -> proposal reported,
+  nothing edited. HARD STOP.]
+  [2026-10-06, RULINGS OPEN 1-6 (author): EXECUTE parts 1-3 + read-only lap census (part 4 fix after
+  its report); no model names in product text; estimator selector removed now; yaw envelope -> two
+  lines (shading budget per panel); default panels CS f / CS r / stability, p10/p90 envelope lines;
+  defect (b) trigger = feedback-table corner count edited mid-run -> lock every mutable input +
+  identity guard, reproduce the trigger.]
+  [2026-10-06: LAP CENSUS DONE (thesis_notes "Lap census ..."): double outlap on 7 / 24 exports = a
+  leading 16-18 s pit-lane fragment (limiter on at start AND end); analysis-lap sets unaffected in
+  all 7 -> fix (merge leading fragment into the next lap, limiter-at-end rule, 20 s fallback) needs
+  no schema bump expected. Part 4 fix AWAITS author ruling.]
+  [2026-10-06: PARTS 1-3 IMPLEMENTED (not committed; thesis_notes "App-check package parts 1-3 ..."):
+  product text, analysis lock (+ Settings save refusal, file-identity guard), shading budget + corner
+  default view. Reproduction: pre-lock the mid-run edit was accepted (no crash headless), post-lock
+  refused. Tests 326 + settings 12 green, test_stability exit 0, goldens unchanged. HARD STOP: author
+  app check; part 4 ruling; PRODUCTION.md after the package closes.]
+  [2026-10-06, RULINGS (author): app check pending (closes parts 1-3); defect (b) = precondition
+  fixed, crash unreproduced headless, new report if it recurs locked; EXECUTE leading-fragment merge,
+  verify by lap-census re-run (analysis sets byte-identical on 24) + goldens; any changed analysis
+  set = STOP.]
+  [2026-10-06: LEADING-FRAGMENT MERGE DONE (not committed): analysis-lap sets identical on all 24;
+  8 files lose the fragment (7 double-out-lap files + PR US-v2 lap 46, same fragment labelled in-lap
+  only before); goldens 13 / 13; parser tests 21 / 21; no schema bump. HARD STOP: author app check
+  closes the package; then PRODUCTION.md.]
+  [2026-10-06, RULING (author): the 8th file counts as within the ruling (same fragment class; the
+  census's out-lap count could not see a fragment mislabelled as an in lap -- recorded beside the
+  fix in thesis_notes). PART 4 CLOSED pending the author's app check.]
+  [2026-10-07, WORK ORDER (author): UI cleanup round, EXECUTE granted -- step 0 premise check
+  (NBR JST 29 STRONG with empty rear CS), then (1) one lap-display logic, (2) kerb-exclusion
+  consolidation, (3) worst-corner checkbox removed, (4) minimal thesis data reader, (5) throttle
+  census report; flag inventories 6 (no-consumer) and 7 (redundant guards), report only; close
+  with one PRODUCTION.md update + full suite; no commits. LS-type keep-or-delete DEFERRED.]
+  [2026-10-07: BATCH DONE (not committed; thesis_notes "UI cleanup round ..."). Step 0 = case (a):
+  C8 laps 105 / 108 exit_4 rear 73 / 59 finite, all kerb-affected, 0 clean; STRONG rests on the
+  front exit_4 clean minority (55 of 123 / 24 of 64). Display fix: CS stat blocks gain
+  n_kerb_excluded, table says "no clean data (kerb-affected excluded, n = K)"; schema 13 -> 14.
+  (1) defect = tyre-curve background cloud pooled all analysis laps; now checked laps only; guard
+  test added. Envelopes / corner tints still all-laps (OPEN: conflicts with 2026-10-06 default
+  view). (2) kerb_exclusion_display (renamed), one caption with count in every mode, tyre scatter
+  on the same definition and switch, retired wording guard-tested. (3) removed; premise
+  corrected (flag read only by the legacy engine behind the weekend PDF). (4) core/thesis_data.py
+  + tests/test_thesis_data.py. (5) census reported. Goldens re-baselined for the added key.
+  HARD STOP: author app check and commit.]
+  [2026-10-07, FLAG INVENTORIES for the author's later decision round (report only, nothing deleted):
+  NO-CONSUMER (touched this batch): (a) recommendations.json worst_corner_multiplier + its comment
+  and recommendation.py worst_flag / "worst_corner": no producer since the column left; (b) core/
+  weekend_pdf_export.py "worst" column: reads a flag nothing writes; (c) summarise_corners per-phase
+  kerb_fraction: no reader in modules / core / ui; (d) per-phase apex_3 fixed-slice CS stats: the
+  classifier reads apex_region, so the table's Apex row shows a number the verdict does not use;
+  (e) core/thesis_data.read_sidecar: no thesis script reads it yet (consumer pending by design);
+  (f) tyre-curve background cloud: context layer, no ruled consumer; (g) tests/golden/
+  recommendations_dubai_kinematic_cap1.json: no generator, no test reads it.
+  REDUNDANT GUARDS: (1) kerb disturbance: CS NaN at mask (estimator), grade mark NaN in
+  summarise_corners, display split, scatter split, cloud ~kerb_mask, yaw_pooling ~kerb, limit_events
+  label, LS az guard, decision-frame blow-off -- design needs one kerb_affected (mask | grade) built
+  once and read everywhere; LS / blow-off are separate signals. (2) analysis laps: parser flag,
+  lap-filter fallback, summarise_corners lap_filter, stability's own out / in exclusion, trace windows,
+  yaw_pooling, limit_events re-filter -- design needs the parser flag read once. (3) cache identity:
+  fast path, _recompute_reason, DB-cache check, sidecar _first_mismatch -- design needs one identity
+  builder + comparator. (4) mid-run mutation: input lock + Settings refusal + file-identity discard
+  (guard ruled as defence on top). (5) dead / invalid channels: parser quality gate, wheel_loads.
+  _channel_is_dead (reused by damper_motion and decision_frame), prepare_vehicle_state required
+  channels -- design needs the parser gate + one flatline test. (6) "one CS window" resolution:
+  regression window floor and limit_events.min_duration_s encode the same quantity twice. (7) checked
+  laps: _checked_instances plus three separate recomputations in corner_trace_dialog -- design needs
+  the one accessor.]
+  [2026-10-07: CLOSE -- PRODUCTION.md updated once (re-dated 2026-10-07, schema 14; event layer 13.4,
+  leading-fragment merge, kerb one-switch, per-phase cell, verdict text, new section 19 product
+  surface). Goldens re-baselined: pipeline x3 + recommendations (pacejka) differ from the old files
+  ONLY by the added n_kerb_excluded keys (672 per pipeline file), every value identical;
+  recommendations_dubai_kinematic_cap1.json restored unchanged (no generator). One test updated
+  deliberately (test_kerb_smear_grade flag-only check compares statistics without the new count).
+  FULL SUITE: 607 passed, 9 skipped, 1 xfailed; test_stability.py exit 0. HARD STOP.]
+  [2026-10-07, WORK ORDER RECEIVED mid-batch (author): read-only tools/imu_bias_check.py (straight
+  segments, raw yaw rate / ay / ax offsets, implied beta drift at 40 m/s), run on >= 2 sessions.
+  NOT STARTED: arrived inside a HARD-STOP batch; conflicts surfaced to the author (no tools/ dir --
+  diagnostics/ convention; overlaps CLOSED experiment (a), diagnostics/inspect_imu_offsets.py; "no
+  doc edits" vs the chat-is-lossy rule). AWAITS author answers.]
+  ~~[2026-10-07, RULINGS + EXECUTE (author) on OPEN 1-6: (1) envelopes, CS p10 / p90 and corner tints
+  keep pooling ALL analysis laps (population context by design); their legend / label text says
+  "all analysis laps" so the two logics read distinct; OPEN 1 CLOSED. (2) caption tail becomes "kept
+  in the CS arrays, excluded from the verdict statistics", count kept, guard test updated. (3) no new
+  gate: (a) thesis_notes C8 JST 29 limitation candidate (thesis 5.2); (b) verdict card gets a
+  display-only data-quality annotation (clean sample count + kerb-affected share), no verdict logic
+  touched; (c) DECISIONS open question "minimum clean share per phase gate?" tagged CONFIG-FREEZE,
+  bundled with the threshold re-derivation. (4) the table's Apex row shows the apex-region statistic
+  the verdict reads, labelled "apex region (+/-25 m)"; the fixed-slice apex CS loses its display ->
+  no-consumer register. (5) DELETE tests/golden/recommendations_dubai_kinematic_cap1.json (no
+  generator, no reader). (6) IMU bias: EXTEND diagnostics/inspect_imu_offsets.py (no tools/, no second
+  script, existing invocation unchanged): straight segments (v > 5 m/s, |road-wheel angle| < 3 deg,
+  off the kerb mask, >= 3 s) on the common grid; RAW sclu_yaw_rate (deg/s), log_acc_y, log_acc_x
+  (m/s^2 and g): per-straight, per-lap, per-session mean / median / std, segment count, seconds;
+  implied beta drift deg/min at 40 m/s (d beta/dt = ay_bias / v - r_bias), time to 1 deg; plain
+  lists, optional --png; run on >= 2 sessions of different events; no pipeline module, config value
+  or PRODUCTION.md touched. ALSO: one-line root cause for C4 lap 106 early exit (105 samples, 0 rear
+  CS, not kerb); item 7 consolidation recorded as a DEFERRED post-thesis package. Stop before commit.]~~ [VOID 2026-10-07 (author): replaced by the CLOSE-OUT PACKAGE below; only PLAN.md / DECISIONS.md had been edited under it, both corrected.]
+  ~~[2026-10-07, WORK ORDER (author): CLOSE-OUT PACKAGE after the UI-cleanup batch (schema 14 state);~~
+  ~~no estimator / threshold / schema change -- if one is forced, STOP. CANCELLED: the imu_bias_check~~
+  ~~order is VOID (from a different session); no tools/, nothing started; a scoped kinematic-input~~
+  ~~diagnostic arrives later as its own package. TASK 1: CS p10 / p90, yaw envelope + median and the~~
+  ~~lap-window corner tints KEEP pooling all analysis laps (population references; checkboxes control~~
+  ~~instance elements only); each carries "all analysis laps (n = X)" with the live count, screen and~~
+  ~~export; guard test (labels + n, pooling unchanged, JST 29). TASK 2: kerb caption exactly "kerb-affected~~
+  ~~samples excluded from verdict statistics, retained in CS arrays"; guard test; old "retained in all~~
+  ~~computed results" ruling struck (not deleted) in DECISIONS + thesis_notes with a dated note (wrong~~
+  ~~since schema 12). TASK 3: Apex row shows the apex-region value the verdict reads; a still-visible~~
+  ~~fixed-slice value needs a distinct label, else removed; acceptance test displayed == consumed.~~
+  ~~TASK 4: C4 lap 106 early exit (105 samples, 0 rear CS): cause in 1-2 lines, investigation only,~~
+  ~~STOP on a defect. Full suite, changed-file list, STOP BEFORE COMMIT.]~~
+  ~~[2026-10-07: CLOSE-OUT PACKAGE DONE (not committed; thesis_notes "Close-out package after the UI~~
+  ~~cleanup round"). Cancellation confirmed (no tools/, inspect_imu_offsets.py untouched). T1 labels~~
+  ~~"all analysis laps (n = X)" on CS p10 / p90, yaw envelope + median, lap-window band legend; exports~~
+  ~~draw no pooled element. T2 caption verbatim + mode prefix + count; old wording struck in DECISIONS~~
+  ~~and thesis_notes. T3 table and classifier share OutingForm._verdict_cs_stat; Apex rows "Apex region~~
+  ~~(+/-25 m)" and "Apex (+/-5 samples)". T4 cause: rear slip-angle span 0.33-0.64 deg within the 53 m~~
+  ~~cap < 1.146 deg floor -> no rear window, by design. NO-CONSUMER REGISTER (addition): the fixed-slice~~
+  ~~apex_3 CS statistics (phases.apex_3.cs_ratio_f / r) -- no longer displayed, not read by the verdict.~~
+  ~~No estimator, threshold or schema change. HARD STOP before commit.]~~
+  [2026-10-07: the close-out order above was REVISED by the author before any commit: TASK 1 (pooled
+  labels) dropped -- OPEN 1 stays open; label code reverted, tests/test_pooled_labels.py removed.]
+  [2026-10-07, WORK ORDER (author, revised): CLOSE-OUT PACKAGE, three tasks + one cancellation, no
+  estimator / threshold / schema change (STOP if forced). CANCELLED: imu_bias_check (other session).
+  TASK 1 caption "kerb-affected samples excluded from verdict statistics, retained in CS arrays" +
+  guard test + old ruling struck with a schema-12 note. TASK 2 Apex row shows the apex-region value the
+  verdict reads; acceptance test. TASK 3 C4 lap 106 cause, investigation only. Full suite, file list,
+  STOP BEFORE COMMIT.]
+  [2026-10-07: REVISED CLOSE-OUT DONE (not committed). Cancellation confirmed (no tools/,
+  inspect_imu_offsets.py untouched). T1 caption verbatim with mode prefix + count; old wording struck in
+  DECISIONS and thesis_notes. T2 classifier and table share OutingForm._verdict_cs_stat; rows "Apex
+  region (+/-25 m)" (CS) and "Apex (+/-5 samples)" (stability / loads / LS); tests/test_apex_row.py.
+  T3 cause: rear slip-angle span 0.33-0.64 deg within the 53 m cap < 1.146 deg floor -> no rear window,
+  by design. NO-CONSUMER REGISTER (addition): fixed-slice apex_3 CS statistics (no display, no verdict
+  read). OPEN ITEM (kept): OPEN 1 -- envelope / corner-tint pooling vs the one lap-selection state,
+  author decision pending. HARD STOP before commit.]
+  [2026-10-07, STANDING PROCESS RULE (author): REPORTING DISCIPLINE (hard) -- exactly one report per
+  cycle, at the hard stop; no interim messages / status pings / waiting notes; full suite exactly once,
+  immediately before that report, targeted test files only during work; STOP BEFORE COMMIT.]
+  [2026-10-07, WORK ORDER (author): KINEMATIC-INTEGRATION INPUT AUDIT -- measurement only, no estimator /
+  threshold / schema / UI change (STOP if forced); verdicts are the author's. Step 0 facts (steering channel
+  + liveness, wheel speeds for a vx check, the Nurburgring export with most laps -- not Dubai; STOP if no
+  steering). New diagnostics/inspect_kinematic_inputs.py (no Qt, reuses parsing, may READ the 2026-09-30
+  inspect_imu_offsets results). Straights defined by STEERING (|angle| < a_thr, |rate| < r_thr, >= d_min,
+  vx >= v_min; data-chosen, stated) -- independent of the audited IMU signals. Measurements: (1) straight
+  yaw-rate / ay offsets per segment / lap / session + drift; (2) quasi-steady cornering ay/vx vs yaw rate,
+  nested M0 / M1 / M2 with uncertainty, residual spread and structure, kerb-affected excluded; (3) beta
+  error per term over 5 s / 10 s; (4) vx vs wheel speeds if present. PNGs to diagnostics/output/. No
+  full-suite run; run only the script. One report at the hard stop; STOP BEFORE COMMIT.]
+  [2026-10-07: AUDIT RUN DONE (not committed; thesis_notes "Kinematic-integration input audit ...";
+  diagnostics/inspect_kinematic_inputs.py, plots diagnostics/output/kinematic_inputs/, README K5 entry
+  keep PENDING, plots_INDEX line). Export NBR-73-010-026-JDR (10 analysis laps). Straights: centre +3.7 deg,
+  a_thr 1.8 deg, r_thr 11.9 deg/s, d_min 1 s, v_min 30 m/s -> 40 segments, 79.9 s. Yaw offset -0.214 deg/s,
+  ay +0.515 m/s^2; M1 c1 1.040 +/- 0.009, c0 +0.65 +/- 0.08 deg/s. No production, config or schema change.
+  HARD STOP: author verdicts.]
+  [2026-10-07, WORK ORDER (author): TARGETED DIAGNOSTIC 2 -- beta filter facts + offset stability across
+  sessions; measurement only, no estimator / threshold / schema / pipeline change (STOP if forced). Dubai and
+  Le Mans excluded from this matter. A: implementation facts (integration, post-integration drift handling,
+  downstream consumers, file + function). B (if a filter exists): production filter on synthetic held-beta
+  steps 3 / 6 / 10 s; one real long NBR corner, production beta vs raw integration of offset-corrected inputs
+  (diagnostic-only correction). C: diagnostic-1 measurement on 4-6 exports (tracks / dates, no Dubai / Le
+  Mans) via inspect_kinematic_inputs.py with an export argument; per export offsets +/- spread, M1 c1 / c0
+  +/- uncertainty, straight seconds, cornering segments, left / right counts; M1 left vs right on
+  NBR-73-010-026-JDR. D: diagnostics/output/ into .gitignore; steering centre always measured per session;
+  thesis_notes: zero-centred straight definition struck (centre = measured straight-line steering angle,
+  +3.7 deg on NBR a recorded finding); OPEN 2 RULED -- data-derived steadiness limits accepted,
+  approximate-steadiness limitation noted. One report; no full suite; STOP BEFORE COMMIT.]
+  [2026-10-07: DIAGNOSTIC 2 DONE (not committed; thesis_notes "Diagnostic 2: what the beta washout does
+  ..."). Washout exists (estimate_sideslip, 4th-order Butterworth high-pass, filtfilt, 0.05 Hz); it acts on
+  the kinematic beta = fit seed, EKF divergence fallback, session fallback; the production EKF beta has no
+  washout. Held beta at end of hold 0.71 / 0.51 / 0.43 (3 / 6 / 10 s). Real corner (JDR lap 27, C10):
+  offset-removed raw -5.31 deg vs kinematic +0.18 / production +2.02 deg (opposite sign). Six exports
+  (four NBR, two Paul Ricard): yaw -0.15..-0.45 deg/s, ay +0.26..+0.52 m/s^2, c1 1.032..1.064; left c1 >
+  right c1 on 5 of 6 exports (not JDR 010-026: left 0.985 vs right 1.022). .gitignore gained diagnostics/output/. HARD STOP: author verdicts.]
+  [2026-10-07, WORK ORDER (author): EXPERIMENT beta architecture comparison A / B / C (+ B2), offline
+  diagnostic only, nothing enters production (STOP if forced). Fairness rules: B / C never washed out
+  before a metric; no metric uses production beta or a production-tuned threshold as reference or gate
+  (production competes as A); offsets for B / C calibrated on a CALIBRATION subset of straights, residuals
+  on the held-out VALIDATION subset (alternating segments). A = estimate_sideslip as-is; B = per-session
+  offsets removed, whole-file integration, no washout; C = B's correction with beta reset to 0 at each
+  detected straight, piecewise integration, no washout; B2 = B + 0.005 Hz washout. Exports NBR-73-010-026-JDR
+  and MLA-SE07_US-v2. Metrics: validation-straight |beta| (median / p95 / worst), drift slope vs time,
+  peak / mean |beta| on the five longest sustained-lateral corners, 1 s before entry / after exit,
+  slip-angle span handed to the tyre fit (offline, no fit run), straight-purity check (|segment yaw mean|
+  > 3 x robust spread flagged; offsets all vs flagged removed). New diagnostics/compare_beta_architectures.py.
+  ~~thesis_notes: lineage ruling recorded.~~ [SUPERSEDED 2026-10-07, read-only passes 1+2: the lineage ruling is struck -- no
+  integration or washout exists in the chair material.] One report; no full suite; STOP BEFORE COMMIT.]
+  [2026-10-07: ARCHITECTURE COMPARISON RUN (not committed; thesis_notes "Beta architecture comparison A / B /
+  B2 / C ..." and ~~the lineage ruling~~ [SUPERSEDED 2026-10-07, read-only passes 1+2]). Validation-straight median |beta| NBR / PR: A 0.42 / 0.34, B 394 /
+  267, B2 2.08 / 2.48, C 7.25 / 0.08 deg (C's PR value sits close behind anchors: 21 of 30 validation
+  straights < 5 s after one). Refactor: inspect_kinematic_inputs.steering_straights extracted (JDR report
+  byte-identical before / after). No production, config or schema change. HARD STOP: author verdicts.]
+  [2026-10-07, WORK ORDER (author): EXPERIMENT ROUND 2 -- beta architectures with gain correction, offline
+  only (STOP if production is forced). Carried rules: no washout before a metric, no production beta /
+  threshold as reference, even / odd straight split, purity check. Correction form FIXED: beta_dot =
+  ay / v - c1 r - c0, c1 / c0 from M1 on CALIBRATION cornering segments of the same export; declared
+  assumption: the M1 mismatch is measurement error, transients scaled by c1 as a side effect. Candidates A,
+  B2 (carried), D (gain + offset, whole file, no washout), D2 (D + 0.005 Hz), CG (gain + offset, reset on
+  calibration straights), E (the app's production estimator beta, read from the existing function, never a
+  reference); B / C settled, not rerun. Exports NBR-73-010-026-JDR, MLA-SE07_US-v2. Metrics 1-6 as round 1,
+  metric 1 binned by time since last reset (CG), metric 3 with sign and the l_r r / v context line (value,
+  source, beta sign convention). Read-only fact: origin of curvature_smoothed. thesis_notes: round-1
+  results + round-2 correction form. One report, no full suite, STOP BEFORE COMMIT.]
+  [2026-10-07: ROUND 2 RUN (not committed; thesis_notes "Beta architectures, round 1 reading ..." and
+  "... round 2 ..."). c1 / c0: NBR 1.017 / +0.53 deg/s, PR 1.064 / +0.88. Validation-straight median |beta|
+  NBR / PR: A 0.42 / 0.34, B2 2.08 / 2.48, D 173 / 117, D2 3.01 / 0.80, CG 1.13 / 0.45, E 0.21 / 0.07 deg.
+  Refactor: inspect_kinematic_inputs.quasi_steady_segments extracted (report identical before / after).
+  No production, config or schema change. HARD STOP: author verdicts.]
+  [2026-10-07, WORK ORDER (author): DOC-CORRECTION PACKAGE after read-only passes 1+2 -- copy the IFAC 2019
+  and Betz 2023 papers into docs/literature (untracked); strike + dated note the lineage ruling, the PLAN
+  architecture entries, "tuned against a Correvit", the history lines on measured lateral force / never
+  estimate; reword "the chair's measured beta"; PRODUCTION.md secs. 3 and 5 to the three-source / no-sideslip-
+  measurement wording; new thesis_notes entries: provenance classes, pass-2 findings, supervisor
+  communication superseded; read-only docstring fact. No code / config / schema change.]
+  [2026-10-07: DOC CORRECTIONS DONE (not committed). Both papers copied, git check-ignore confirms
+  docs/literature/ ignored. DECISIONS gained the lineage and provenance-class lines. Record gap: no
+  earlier entry of the supervisor's multiple-IMU communication existed. HARD STOP before commit.]
+  [2026-10-07, WORK ORDER (author): EXPERIMENT ROUND 3 -- seed sensitivity of the Pacejka fit and of E;
+  seeds A / D2 / B2 substituted where the kinematic beta enters fit_session_pacejka; NBR-73-010-026-JDR and
+  MLA-SE07_US-v2; offline only. Order's own stop clause: if the fit path reads the kinematic beta from more
+  than one place, STOP and report.]
+  [2026-10-07: ROUND 3 STOPPED BEFORE ANY RUN (stop clause hit). The fit path reads the kinematic beta in
+  two places: tyre_fit_auto.fit_session_pacejka (estimate_sideslip -> slip_kin -> axle fit data) and,
+  inside every EKF call of that function (interim, ~~9-point~~ R sweep, final) [corrected 2026-10-07, round-3 run:
+  the configured sweep has 25 points, so 27 EKF calls per fit, not 11],
+  sideslip_ekf_pacejka.estimate_sideslip_ekf_pacejka (estimate_sideslip -> beta_kinematic, used on each
+  diverged sample both as the fallback output AND as the re-initialised filter state x = [beta_kin, r_meas]).
+  Outside the fit, resolve_sideslip_beta falls back to estimate_sideslip on a degenerate fit or a gate
+  "fail". No diagnostic written, nothing run. Awaiting the author's substitution ruling.]
+  [2026-10-07, AMENDMENT (author): OPEN 1 -> option (c), routes (a) and (b), A as shared baseline, 5 runs
+  per export; per run divergence counts by call group and the R choice. OPEN 2 -> report resolve outcome as
+  a result, run E regardless, mark "would not have shipped", never substitute the seed as E. Metric 6 per
+  route plus an (a)-vs-(b) gap line.]
+  [2026-10-07: ROUND 3 RUN (not committed; diagnostics/seed_sensitivity_fit.py; thesis_notes "Beta
+  architectures, round 3 ..."). Implied stiffness B*C*D moves 60.6 / 78.3 % (NBR, D2) and 88.1 / 90.9 %
+  (Paul Ricard, B2) front / rear against A; (a)-vs-(b) gap 0 by construction (curve fitted before any EKF
+  call). Every run would have shipped. Baseline reproduces round 2. No production, config or schema change.
+  HARD STOP: author verdicts.]
+  [2026-10-07, WORK ORDER (author): PRODUCTION PACKAGE D3 + D4, phase 1 (implementation + offline
+  validation; no threshold / golden / schema change). Author decision: seed and washout retained as a
+  documented limitation (Bechtloff identifiability); D3 = divergence re-entry keeps the EKF state, P -> P0,
+  no kinematic write; D4 = per-axle plausibility gate (g1 span >= 3 deg, g2 B*C*D in [30000, 600000] N/rad,
+  g3 peak in [3, 15] deg) into the existing degenerate fallback.]
+  [2026-10-07: PHASE 1 STOPPED AFTER VALIDATION, before suite and records (not committed). D4 dry run as
+  expected plus NBR D2 and NBR B2 rejected (g3 peak); seed A passes both exports. D3 as specified RUNS
+  AWAY: with the state kept on hard-bound divergences, |E| reaches 4244 deg (NBR) / 2531 deg (PR),
+  validation-straight median 0.21 -> 2224 deg (NBR), 0.07 -> 627 deg (PR); final-run diverged samples
+  996 -> 145384 (NBR), 1909 -> 111455 (PR). Code changes left in place, uncommitted; awaiting author
+  ruling on the bound case. diagnostics/check_estimator_hardening.py.]
+  [2026-10-07, D3 AMENDMENT (author): hard-bound divergence -> beta 0, yaw rate measured, P0 (Villano et
+  al. 2021 sec. 3.1); NIS-window divergence -> keep state, P0; every degenerate status writes
+  degenerate_reason. Rerun validation; suite once only if straights stay sub-degree.]
+  [2026-10-08: PHASE 1 DONE (not committed). Straights sub-degree: NBR 0.21 / 0.26 / 0.28 unchanged, PR
+  0.07 / 0.19 / 0.24 -> 0.27 / 0.36 / 0.38 deg. NBR fit ok -> marginal; PR marginal -> degenerate (sign
+  check 0.333 < 0.5) -> kinematic fallback in production. D4 dry run identical to the stop report. Suite:
+  3 failed / 605 passed / 9 skipped / 1 xfailed (2x test_auto_fit_wiring Dubai status ok -> marginal,
+  golden pipeline Dubai ekf_auto_pacejka 2265 fields). Records: thesis_notes "Estimator hardening D3 + D4,
+  phase 1 ...", DECISIONS, diagnostics/README, plots_INDEX. Phase 2 pending: goldens, thresholds, schema
+  bump. HARD STOP before commit.]
+  [2026-10-08, WORK ORDER (author): PHASE 2 STEP 1 -- diagnostic only. Part A: Dubai per corner old vs new
+  (hard-bound / NIS-window counts, |ay| at resets, E per phase), golden corner 0 walkthrough + PNG, mid-corner
+  reset rate Dubai vs NBR vs PR. Part B: sign check and R-sweep band facts on all three exports, old vs new.]
+  [2026-10-08: STEP 1 INTERRUPTED by the author before any result. Done: --step p2s1 mode added to
+  diagnostics/check_estimator_hardening.py (compiles, untested end to end). Run started and stopped while
+  still on Dubai; no numbers, no PNG. Continue: python -m diagnostics.check_estimator_hardening --png
+  --step p2s1 (about 45-60 min for the three exports), then report.]
   Uncommitted (author commits):
   CLAUDE.md, PLAN.md, thesis_notes.md, diagnostics/README.md,
   diagnostics/plots_INDEX.md, diagnostics/inspect_seed_sweep.py,
@@ -7408,7 +7763,8 @@ must not be lost
   upgraded when damper-derived load arrives.
 - The chair's PRIMARY cornering-stiffness method is MODEL-FREE:
   sliding-window least squares over measured slip angle and
-  measured lateral force, no tyre model at all. Its Pacejka fit
+  ~~measured lateral force~~ [SUPERSEDED 2026-10-07, read-only passes 1+2: Fy is built by the 2-DOF
+  force balance on every parsed format -- 2026-10-03 parser-config correction], no tyre model at all. Its Pacejka fit
   appears only inside an evaluation plot as a reference overlay.
 - This project's Dugoff curve occupies a THIRD role, distinct from
   both: it is the internal model of the EKF, the thing that lets
@@ -7416,7 +7772,9 @@ must not be lost
   choices for the same slot.
 - The chair receives lateral velocity (or beta) as an INPUT
   CHANNEL and computes beta as arctan2(vy, vx). They never
-  estimate it. The GT3R has no such sensor. This is precisely the
+  estimate it. [2026-10-07 note, read-only passes 1+2: true of the tooling's code; on several source
+  formats the input channel is itself a state-estimator output -- see the 2026-10-03 correction
+  (~line 2868) and thesis_notes "Provenance classes ...".] The GT3R has no such sensor. This is precisely the
   documented adaptation in the method lineage: adopt the chair's
   model-free CS estimation as-is, adapt only where the sensor
   situation forces it.

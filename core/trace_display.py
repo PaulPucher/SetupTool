@@ -35,10 +35,10 @@ def kerb_gap_bridge(x, y, kerb):
     return out
 
 
-# Near-strike grading (kerb display package, 2026-10-05). The mark comes from
-# estimate_cornering_stiffness (near_strike_f / near_strike_r: CS samples whose
-# regression window reaches the kerb smear zone). Drawing only -- the samples
-# stay in every computed result.
+# Kerb exclusion display (one concept, 2026-10-05). The kerb-affected mark is
+# estimate_cornering_stiffness' near_strike_f / near_strike_r (internal name:
+# CS samples whose regression window reaches the filtered strike). Drawing
+# only -- the CS arrays keep every sample.
 NEAR_STRIKE_MODES = ("grey", "exclude", "off")
 
 
@@ -54,7 +54,7 @@ def near_strike_split(y, mark, mode):
     if mode == "off" or mark is None:
         return y, None
     if mode not in NEAR_STRIKE_MODES:
-        raise ValueError(f"near_strike_display {mode!r} not one of {NEAR_STRIKE_MODES}")
+        raise ValueError(f"kerb_exclusion_display {mode!r} not one of {NEAR_STRIKE_MODES}")
     mark = np.asarray(mark, dtype=bool) & np.isfinite(y)
     main = np.where(mark, np.nan, y)
     if mode == "exclude" or not mark.any():
@@ -66,16 +66,101 @@ def near_strike_split(y, mark, mode):
     return main, overlay
 
 
-def near_strike_caption(mode, n_marked, n_finite, grade_s):
-    """One caption sentence for a CS plot, or None when nothing is graded."""
-    if mode == "off" or n_marked == 0:
+# Shading budget (author ruling 2026-10-06): per panel, filled area is only
+# the one background tint family and the one exclusion grey -- never stacked.
+# The exclusion grey is drawn once as the union over the checked laps, and
+# the tint is clipped where it lies.
+
+def interval_union(intervals):
+    """Sorted, merged (lo, hi) intervals."""
+    out = []
+    for lo, hi in sorted((min(a, b), max(a, b)) for a, b in intervals):
+        if out and lo <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], hi))
+        else:
+            out.append((lo, hi))
+    return out
+
+
+def interval_subtract(interval, holes):
+    """Parts of interval (lo, hi) not covered by the merged holes."""
+    lo, hi = interval
+    parts, cur = [], lo
+    for a, b in holes:
+        if b <= cur or a >= hi:
+            continue
+        if a > cur:
+            parts.append((cur, a))
+        cur = max(cur, b)
+    if cur < hi:
+        parts.append((cur, hi))
+    return parts
+
+
+def cross_lap_envelope(laps_xy, cfg):
+    """(grid, p_lo, p_hi) of several laps' (s, y) traces on a common s-grid,
+    NaN where fewer than cfg["min_laps"] laps have a value, or None when no
+    lap has data. cfg = corner_trace_display.cs_envelope. Drawing only."""
+    grid_m = cfg["grid_m"]
+    pct_lo, pct_hi = cfg["percentiles"]
+    rows = []
+    for x, y in laps_xy:
+        x = np.asarray(x, float)
+        y = np.asarray(y, float)
+        ok = np.isfinite(x) & np.isfinite(y)
+        if ok.sum() >= 2:
+            order = np.argsort(x[ok])
+            rows.append((x[ok][order], y[ok][order]))
+    if not rows:
         return None
-    width = f"{grade_s:g} s"
-    if mode == "grey":
-        return (f"Grey: samples whose estimation window lies within {width} of a masked kerb strike "
-                "(strike energy smeared by the 2 Hz filter); marked lower-quality, retained in all "
-                "computed results.")
-    share = 100.0 * n_marked / max(1, n_finite)
-    return (f"Samples whose estimation window lies within {width} of a masked kerb strike (strike energy "
-            f"smeared by the 2 Hz filter) are omitted from this plot (n = {n_marked}, {share:.1f} %); "
-            "retained in all computed results.")
+    lo = min(xs[0] for xs, _ys in rows)
+    hi = max(xs[-1] for xs, _ys in rows)
+    if hi <= lo:
+        return None
+    grid = np.arange(lo, hi + grid_m, grid_m)
+    m = np.full((len(rows), grid.size), np.nan)
+    for k, (xs, ys) in enumerate(rows):
+        row = np.interp(grid, xs, ys, left=np.nan, right=np.nan)
+        # no bridging across holes (kerb, not moving): the two samples around a
+        # grid point must lie within two grid steps of each other
+        j = np.clip(np.searchsorted(xs, grid), 1, xs.size - 1)
+        row[(xs[j] - xs[j - 1]) > 2 * grid_m] = np.nan
+        m[k] = row
+    n = np.sum(np.isfinite(m), axis=0)
+    p_lo = np.full(grid.size, np.nan)
+    p_hi = np.full(grid.size, np.nan)
+    enough = n >= cfg["min_laps"]
+    if enough.any():
+        p_lo[enough] = np.nanpercentile(m[:, enough], pct_lo, axis=0)
+        p_hi[enough] = np.nanpercentile(m[:, enough], pct_hi, axis=0)
+    return grid, p_lo, p_hi
+
+
+def kerb_scatter_split(valid, kerb, mark, mode):
+    """(filled, hollow) sample selections for a tyre-curve scatter under the
+    kerb-exclusion switch. Kerb-affected = inside the kerb mask or carrying the
+    axle's grade mark -- the same definition the CS traces grey; grey draws them
+    hollow, exclude leaves them out, off draws them like every other sample."""
+    valid = np.asarray(valid, dtype=bool)
+    affected = np.zeros_like(valid)
+    for m in (kerb, mark):
+        if m is not None:
+            affected |= np.asarray(m, dtype=bool)
+    if mode == "off":
+        return valid, np.zeros_like(valid)
+    if mode not in NEAR_STRIKE_MODES:
+        raise ValueError(f"kerb_exclusion_display {mode!r} not one of {NEAR_STRIKE_MODES}")
+    hollow = valid & affected if mode == "grey" else np.zeros_like(valid)
+    return valid & ~affected, hollow
+
+
+KERB_CAPTION = "kerb-affected samples excluded from verdict statistics, retained in CS arrays"
+
+
+def kerb_exclusion_caption(mode, n_affected, n_finite):
+    """The one kerb-exclusion caption (author wording 2026-10-07), prefixed by
+    what this plot does with the samples and always carrying the count; the
+    0.2 s reach of the mark is methods-text detail, not caption."""
+    share = 100.0 * n_affected / max(1, n_finite)
+    prefix = {"grey": "Grey", "exclude": "Not drawn", "off": "Drawn normally"}[mode]
+    return f"{prefix}: {KERB_CAPTION} (n = {n_affected}, {share:.1f} %)."

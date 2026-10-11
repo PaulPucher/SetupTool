@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QComboBox, QTextEdit,
     QDateTimeEdit, QDoubleSpinBox,
     QGroupBox, QFrame, QSpinBox,
-    QTableWidget, QTableWidgetItem, QCheckBox,
+    QTableWidget, QTableWidgetItem,
     QHeaderView, QAbstractSpinBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
@@ -37,6 +37,15 @@ def _norm_path(path):
     if not path:
         return path
     return os.path.normcase(os.path.normpath(path))
+
+
+# analyses currently running in this process; Settings refuses a save while
+# one runs (a config write mid-run would race the run's cache entry)
+_ANALYSES_RUNNING = 0
+
+
+def analysis_running():
+    return _ANALYSES_RUNNING > 0
 
 
 def invalidate_all_pipeline_caches():
@@ -163,6 +172,7 @@ class StabilityAnalysisThread(QThread):
                 fallback_reason = self.pipeline_cache.get("fallback_reason")
                 # .get(): entries from before the balance line have none
                 balance = self.pipeline_cache.get("balance")
+                events = self.pipeline_cache.get("events")
             else:
                 params = load_parameters()
                 # resolved (cap-clipped) vehicle values in a deep-copied params dict
@@ -204,6 +214,10 @@ class StabilityAnalysisThread(QThread):
                 from modules.balance_gradient import estimate_understeer_gradient
                 balance = estimate_understeer_gradient(state, effective_params,
                                                        self.parsed_data.get("laps", []), corners)
+                # limit events: display + record only, read after the verdict chain
+                from modules.limit_events import detect_events
+                events = detect_events(cs, state, corners, self.parsed_data.get("laps", []),
+                                       fit_manifest, effective_params, slip=slip)
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
             summaries = summarise_corners(corners, cs, stab, state, fz=fz, ls=ls,
@@ -230,6 +244,7 @@ class StabilityAnalysisThread(QThread):
                 "fallback_used": fallback_used,
                 "fallback_reason": fallback_reason,
                 "balance": balance,
+                "events": events,
             })
             t_total = time.perf_counter()
             print(f"[PERF] thread total: {t_total - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
@@ -290,15 +305,23 @@ class OutingForm(QWidget):
         self.content_layout.setContentsMargins(24, 24, 24, 24)
         self.content_layout.setSpacing(32)
 
-        self.content_layout.addWidget(self._build_session_section())
+        # input sections kept as attributes: they are locked while an analysis
+        # runs (_set_analysis_lock)
+        # (construction order unchanged)
+        self._section_session = self._build_session_section()
+        self.content_layout.addWidget(self._section_session)
         self.content_layout.addWidget(self._build_data_section())
-        self.content_layout.addWidget(self._build_setup_section("setup"))
-        self.content_layout.addWidget(self._build_setdown_toggle())
+        self._section_setup = self._build_setup_section("setup")
+        self.content_layout.addWidget(self._section_setup)
+        self._section_setdown = self._build_setdown_toggle()
+        self.content_layout.addWidget(self._section_setdown)
         self.content_layout.addWidget(self._build_corner_map())
         self.content_layout.addWidget(self._build_stability_toggle())
         self.content_layout.addWidget(self._build_decision_frame_toggle())
-        self.content_layout.addWidget(self._build_feedback_section())
-        self.content_layout.addWidget(self._build_comments_section())
+        self._section_feedback = self._build_feedback_section()
+        self.content_layout.addWidget(self._section_feedback)
+        self._section_comments = self._build_comments_section()
+        self.content_layout.addWidget(self._section_comments)
         self.content_layout.addStretch()
 
         if self.outing:
@@ -352,6 +375,7 @@ class OutingForm(QWidget):
     def _classify_corner(self, summary):
         # Returns (severity, short_verdict, long_verdict, colour). Thresholds from
         # parameters.json classification.
+        self_cls = OutingForm
         from modules.stability_analysis import load_parameters
         params = load_parameters()
         cls_cfg = params["classification"]
@@ -386,16 +410,9 @@ class OutingForm(QWidget):
         from modules.decision_frame import PHASE_WORD_SHORT as phase_labels_short
         from modules.decision_frame import PHASE_WORD_LONG as phase_labels_long
 
-        # apex_3 CS read from apex_region (distance window) instead of the fixed
-        # 11-sample slice; apex_3 stability unchanged
-        apex_region = summary.get("apex_region")
         for phase, p in summary["phases"].items():
-            if phase == "apex_3" and apex_region is not None:
-                csf = apex_region["cs_ratio_f"]["median"]
-                csr = apex_region["cs_ratio_r"]["median"]
-            else:
-                csf = p["cs_ratio_f"]["median"]
-                csr = p["cs_ratio_r"]["median"]
+            csf = self_cls._verdict_cs_stat(summary, phase, "f")["median"]
+            csr = self_cls._verdict_cs_stat(summary, phase, "r")["median"]
             sob = p["stability_observed_Nm_per_deg"]["median"]
             if csf == csf and csf < worst_f_val:
                 worst_f_val = csf
@@ -452,48 +469,144 @@ class OutingForm(QWidget):
             severity = "moderate"
         # else stays "normal"
 
+        # Two texts: the SHORT string is also the machine interface (decision
+        # frame and rule engine parse its verdict words and the bracket
+        # markers), the LONG string is the card text -- condition, phase,
+        # number, severity; qualifiers live in the tooltip (_verdict_tooltip).
         marginal_marker = ""
         if primary is not None:
             if primary_axle == "f":
                 dist = min(abs(primary_val - STRONG_CSF), abs(primary_val - MODERATE_CSF))
+                tier = "strong" if front_strong_cs else "moderate"
             else:
                 dist = min(abs(primary_val - STRONG_CSR), abs(primary_val - MODERATE_CSR))
+                tier = "strong" if rear_strong_cs else "moderate"
             if dist <= CS_MARGIN:
                 marginal_marker = " [MARGINAL]"
 
             short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}{marginal_marker}")
-            cs_label = "CSf" if primary_axle == "f" else "CSr"
+            axle_word = "front" if primary_axle == "f" else "rear"
             long_parts.append(
-                f"{primary} at {phase_labels_long[primary_phase]} "
-                f"({cs_label} {primary_val:.2f}){marginal_marker}"
+                f"{primary.capitalize()}, {phase_labels_long[primary_phase]}, "
+                f"{axle_word} CS {primary_val:.2f}, {tier}"
             )
-            if marginal_marker:
-                long_parts.append(
-                    "this verdict can flip under a realistic ~1% measurement/parameterisation "
-                    "change"
-                )
 
         if destabilising:
-            # Werner sec. 2.2.3: dMz/dbeta < 0 is open-loop instability, not a loss of
+            # sign criterion: dMz/dbeta < 0 is open-loop instability, not a loss of
             # control -- skilled drivers operate there; severity stays contextual
-            short_parts.append(f"open-loop unstable (Werner) @ {phase_labels_short[worst_stab_phase]}{stab_legacy_marker}")
+            # (anchor in PRODUCTION.md; no source names in product text)
+            short_parts.append(f"open-loop unstable @ {phase_labels_short[worst_stab_phase]}{stab_legacy_marker}")
             long_parts.append(
-                f"open-loop unstable (Werner) at {phase_labels_long[worst_stab_phase]} "
-                f"({worst_stab_val:.0f} Nm/deg){stab_legacy_marker}"
+                f"Open-loop unstable, {phase_labels_long[worst_stab_phase]}, {worst_stab_val:.0f} Nm/deg"
             )
 
         if not short_parts:
             short_parts.append("ok")
         if not long_parts:
-            long_parts.append("within normal range")
+            long_parts.append("Within normal range")
 
         colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
         return (
             severity,
             " | ".join(short_parts) + uncalibrated_marker,
-            " | ".join(long_parts) + uncalibrated_marker,
+            " | ".join(long_parts),
             colour_map[severity],
         )
+
+    @staticmethod
+    def _verdict_cs_stat(summary, phase, axle):
+        # the CS statistic the verdict reads for this phase -- one accessor for
+        # the classifier and the per-phase table, so the two cannot disagree:
+        # apex_3 from the apex region (distance window), not the fixed slice
+        apex_region = summary.get("apex_region")
+        if phase == "apex_3" and apex_region is not None:
+            return apex_region[f"cs_ratio_{axle}"]
+        return summary["phases"][phase][f"cs_ratio_{axle}"]
+
+    # qualifier markers of the short verdict string -> tooltip sentences
+    _VERDICT_QUALIFIERS = (
+        ("[MARGINAL]", "Close to a classification threshold: a realistic ~1 % measurement or "
+                       "parameter change can flip this verdict."),
+        ("[UNCAL]", "The thresholds were derived for a different sideslip estimate -- read the "
+                    "traces rather than the colours."),
+        ("[stab thresh: kinematic-era, not re-derived]",
+         "The stability threshold was derived for a different sideslip estimate."),
+    )
+
+    @staticmethod
+    def _verdict_tooltip(short):
+        return "\n".join(text for marker, text in OutingForm._VERDICT_QUALIFIERS if marker in short)
+
+    @staticmethod
+    def _verdict_cell_text(short):
+        # cell text = the short verdict without its machine markers
+        for marker, _text in OutingForm._VERDICT_QUALIFIERS:
+            short = short.replace(" " + marker, "").replace(marker, "")
+        return short
+
+    @staticmethod
+    def _phase_table_rows(summary, apex_region_half_m, apex_half_samples):
+        """Cell texts of the per-phase table. CS cells come from
+        _verdict_cs_stat, the statistic the verdict reads. The apex gets two
+        rows under distinct labels: the apex region (+/- metres, the CS the
+        verdict reads) and the apex instant (+/- samples, the stability the
+        verdict reads, plus loads and LS); the instant's own CS slice is not
+        shown."""
+        nan = float("nan")
+
+        def stat_text(st, fmt):
+            if not st or st["n"] == 0:
+                return "-"
+            return f"{st['median']:{fmt}} [{st['p25']:{fmt}}..{st['p75']:{fmt}}]"
+
+        def kn(st):
+            return f"{st['median']/1000:.1f}" if st and st["n"] > 0 else "-"
+
+        labels = {"entry_1_brake": "Brake", "entry_2_turnin": "Turn-in", "exit_4": "Exit 4", "exit_5": "Exit 5"}
+        rows = []
+        for phase in ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"):
+            p = summary["phases"][phase]
+            sob = p["stability_observed_Nm_per_deg"]
+            row = {
+                "n": p["n_samples"], "valid": f"{p['valid_fraction_stab']*100:.0f}%",
+                "stab": stat_text(sob, ".0f"), "stab_median": sob["median"],
+                "fzf": kn(p.get("fz_f_N")), "fzr": kn(p.get("fz_r_N")),
+                "lsf": stat_text(p.get("ls_ratio_f"), ".2f"), "lsr": stat_text(p.get("ls_ratio_r"), ".2f"),
+            }
+            if phase == "apex_3" and summary.get("apex_region") is not None:
+                region = summary["apex_region"]
+                csf = OutingForm._verdict_cs_stat(summary, phase, "f")
+                csr = OutingForm._verdict_cs_stat(summary, phase, "r")
+                rows.append({
+                    "label": f"Apex region (+/-{apex_region_half_m:g} m)", "n": region["n_samples"], "valid": "-",
+                    "csf": OutingForm._cs_cell_text(csf), "csr": OutingForm._cs_cell_text(csr),
+                    "csf_median": csf["median"], "csr_median": csr["median"],
+                    "stab": "-", "stab_median": nan, "fzf": "-", "fzr": "-", "lsf": "-", "lsr": "-",
+                })
+                rows.append(dict(row, label=f"Apex (+/-{apex_half_samples} samples)",
+                                 csf="-", csr="-", csf_median=nan, csr_median=nan))
+                continue
+            csf = OutingForm._verdict_cs_stat(summary, phase, "f")
+            csr = OutingForm._verdict_cs_stat(summary, phase, "r")
+            label = labels.get(phase) or f"Apex (+/-{apex_half_samples} samples)"
+            rows.append(dict(row, label=label, csf=OutingForm._cs_cell_text(csf), csr=OutingForm._cs_cell_text(csr),
+                             csf_median=csf["median"], csr_median=csr["median"]))
+        return rows
+
+    @staticmethod
+    def _cs_cell_text(stat):
+        # an empty CS cell says why: kerb exclusion (one concept, 2026-10-05)
+        # or too few samples for a median (cs_phase_min_valid_samples)
+        n, n_kerb = stat["n"], stat.get("n_kerb_excluded", 0)
+        if stat["median"] == stat["median"]:
+            return f"{stat['median']:.2f} [{stat['p25']:.2f}..{stat['p75']:.2f}]"
+        if n == 0 and n_kerb > 0:
+            return f"no clean data (kerb-affected excluded, n = {n_kerb})"
+        if n > 0 and n_kerb > 0:
+            return f"too few clean samples (n = {n}; kerb-affected excluded, n = {n_kerb})"
+        if n > 0:
+            return f"too few samples (n = {n})"
+        return "-"
 
     def _build_header(self):
         header = QWidget()
@@ -506,6 +619,8 @@ class OutingForm(QWidget):
         btn_back.setFixedWidth(80)
         btn_back.setStyleSheet("background-color: #252525; color: #888;")
         btn_back.clicked.connect(self._save_outing)
+        self.btn_back = btn_back
+        self.btn_delete = None
 
         # explicit Save: same _persist_outing as Back, stays on the page
         self.btn_save = QPushButton("Save")
@@ -529,6 +644,7 @@ class OutingForm(QWidget):
             btn_delete.setStyleSheet("background-color: #252525; color: #c0392b;")
             btn_delete.clicked.connect(self._delete_outing)
             layout.addWidget(btn_delete)
+            self.btn_delete = btn_delete
 
         return header
 
@@ -636,6 +752,7 @@ class OutingForm(QWidget):
         btn_layout.setSpacing(10)
 
         btn_load = QPushButton("Load Outing")
+        self.btn_load = btn_load
         btn_load.setFixedWidth(120)
         btn_load.clicked.connect(self._load_csv)
 
@@ -661,36 +778,9 @@ class OutingForm(QWidget):
         )
         self.accuracy_cap_combo.setFixedWidth(130)
 
-        # Sideslip estimator selector. Writes stability_estimation.sideslip_source
-        # to parameters.json (read-modify-write + cache clear, as the settings
-        # page) -- persists across restarts, and the config key is already part
-        # of cache identity.
-        # ekf_pass_1 (frozen validated baseline) and ekf_auto_dugoff are not
-        # selectable here, both still reachable via config. Dugoff removed from
-        # the UI 2026-09-30 (simplicity principle): its rear fit degenerates on
-        # this car and it falls back to kinematic every run; the code stays as
-        # an experimental estimator for diagnostics.
-        self._SIDESLIP_MODE_DISPLAY_TO_VALUE = {
-            "Kinematic": "kinematic",
-            "EKF auto Pacejka": "ekf_auto_pacejka",
-        }
-        self._SIDESLIP_MODE_VALUE_TO_DISPLAY = {
-            v: k for k, v in self._SIDESLIP_MODE_DISPLAY_TO_VALUE.items()
-        }
-        self.sideslip_mode_combo = QComboBox()
-        self.sideslip_mode_combo.addItems(list(self._SIDESLIP_MODE_DISPLAY_TO_VALUE.keys()))
-        self.sideslip_mode_combo.setFixedWidth(230)
-        from modules.stability_analysis import load_parameters as _load_params_for_init
-        _current_mode = _load_params_for_init()["stability_estimation"].get(
-            "sideslip_source", "kinematic"
-        )
-        # config "ekf_pass_1"/"ekf_auto_dugoff" isn't in the list -> combo shows Kinematic. Display
-        # only: Analyse reads config, and the status line names the real estimator.
-        self.sideslip_mode_combo.setCurrentText(
-            self._SIDESLIP_MODE_VALUE_TO_DISPLAY.get(_current_mode, "Kinematic")
-        )
-        # connected after setCurrentText -> building the combo never writes config
-        self.sideslip_mode_combo.currentTextChanged.connect(self._on_sideslip_mode_changed)
+        # The sideslip estimator is not user-selectable (removed 2026-10-06 with
+        # the chooser class): analysis always runs the config's best-available
+        # path, and the status line names what actually ran.
 
         self.csv_status_label = QLabel("No file loaded")
         self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
@@ -719,7 +809,6 @@ class OutingForm(QWidget):
         btn_layout.addWidget(self.btn_analyse)
         btn_layout.addWidget(self.btn_lap_traces)
         btn_layout.addWidget(self.accuracy_cap_combo)
-        btn_layout.addWidget(self.sideslip_mode_combo)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
         layout.addWidget(btn_row)
@@ -1100,6 +1189,9 @@ class OutingForm(QWidget):
         self.accuracy_footer_label.setText("")
         self.balance_label.setText("")
         self.balance_label.setVisible(False)
+        self.events_label.setText("")
+        self.events_label.setVisible(False)
+        self._displayed_events = None
         self.decision_frame_calibration_banner_label.setText("")
         self.decision_frame_calibration_banner_label.setVisible(False)
 
@@ -1138,30 +1230,6 @@ class OutingForm(QWidget):
         if text == "Best available":
             return None
         return int(text.replace("Level ", ""))
-
-    def _on_sideslip_mode_changed(self, display_text):
-        # writes parameters.json, same pattern as the settings page
-        new_value = self._SIDESLIP_MODE_DISPLAY_TO_VALUE.get(display_text)
-        if new_value is None:
-            return
-        import json
-        from modules.stability_analysis import PARAMETERS_PATH, load_parameters
-        with open(PARAMETERS_PATH, encoding="utf-8") as f:
-            params = json.load(f)
-        if params["stability_estimation"].get("sideslip_source", "kinematic") == new_value:
-            return
-        params["stability_estimation"]["sideslip_source"] = new_value
-        # ensure_ascii=False -- the default escapes any non-ASCII in the file to
-        # uXXXX on every save
-        with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(params, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-        load_parameters.cache_clear()
-        invalidate_all_pipeline_caches()
-        self.stability_status_label.setText(
-            f"Estimator mode changed to {display_text} -- re-run Analyse to apply."
-        )
-        self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
 
     def _get_setup_data_dict(self):
         # resolver uses the PERSISTED setup_data, not unsaved edits; none -> L1
@@ -1214,6 +1282,39 @@ class OutingForm(QWidget):
             ]
         changed = [label for label, is_changed in checks if is_changed]
         return " and ".join(changed) + " changed" if changed else None
+
+    def _analysis_lock_widgets(self):
+        # every mutable input of the form: the run reads the file, the setup
+        # sheet and the selections at start, and a mid-run edit (feedback
+        # corner count, 2026-10-06 app check) must not race its completion
+        widgets = [self._section_session, self._section_setup, self._section_setdown,
+                   self._section_feedback, self._section_comments,
+                   self.btn_load, self.btn_clear_data, self.accuracy_cap_combo,
+                   self.lap_table, self.btn_clear_lap_selection, self.btn_lap_traces,
+                   self.btn_generate_decision_frame, self.btn_back, self.btn_save]
+        if self.btn_delete is not None:
+            widgets.append(self.btn_delete)
+        return widgets
+
+    def _set_analysis_lock(self, locked):
+        # restores each widget's own prior state on unlock (some are disabled
+        # for other reasons, e.g. Lap traces before the first analysis)
+        global _ANALYSES_RUNNING
+        if locked:
+            if getattr(self, "_lock_prior_enabled", None) is not None:
+                return
+            self._lock_prior_enabled = [(w, w.isEnabled()) for w in self._analysis_lock_widgets()]
+            for w, _was in self._lock_prior_enabled:
+                w.setEnabled(False)
+            _ANALYSES_RUNNING += 1
+        else:
+            prior = getattr(self, "_lock_prior_enabled", None)
+            if prior is None:
+                return
+            for w, was in prior:
+                w.setEnabled(was)
+            self._lock_prior_enabled = None
+            _ANALYSES_RUNNING = max(0, _ANALYSES_RUNNING - 1)
 
     def _run_stability_analysis(self):
         if not self.parsed_data:
@@ -1290,9 +1391,19 @@ class OutingForm(QWidget):
         )
         self.stab_thread.finished.connect(self._on_stability_done)
         self.stab_thread.error.connect(self._on_stability_error)
+        self._set_analysis_lock(True)
         self.stab_thread.start()
 
     def _on_stability_done(self, result):
+        # render-side widgets enable themselves below; unlock restores the rest
+        self._set_analysis_lock(False)
+        # defence on top of the lock: a result for another file is discarded
+        if _norm_path(self.stab_thread.csv_path) != _norm_path(self.loaded_csv_path):
+            self.stability_status_label.setText(
+                "Analysis discarded: the loaded file changed during the run -- run Analyse again.")
+            self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
+            self.btn_analyse.setEnabled(True)
+            return
         self.stability_result = result
         # cache Modules 1-5 output incl. corners (fast path never re-detects);
         # same dict feeds the sidecar
@@ -1318,6 +1429,7 @@ class OutingForm(QWidget):
             "fallback_used": result["fallback_used"],
             "fallback_reason": result["fallback_reason"],
             "balance": result["balance"],
+            "events": result["events"],
         }
         _pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)
         # payload for the next save (also after a cache-hit render)
@@ -1328,6 +1440,7 @@ class OutingForm(QWidget):
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
             grid_rate_hz=result["state"]["sample_rate_hz"], balance=result["balance"],
+            events=result["events"],
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1356,6 +1469,7 @@ class OutingForm(QWidget):
             fallback_reason=result["fallback_reason"],
             grid_rate_hz=result["state"]["sample_rate_hz"],
             balance=result["balance"],
+            events=result["events"],
         )
         self._last_render_kwargs = dict(render_kwargs, summaries=result["summaries"])
         self._render_stability_summaries(result["summaries"], cached=False, **render_kwargs)
@@ -1377,7 +1491,7 @@ class OutingForm(QWidget):
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
                                    sideslip_source="kinematic", fit_manifest=None,
                                    gate_verdict=None, fallback_used=False, fallback_reason=None,
-                                   grid_rate_hz=None, balance=None):
+                                   grid_rate_hz=None, balance=None, events=None):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1406,6 +1520,8 @@ class OutingForm(QWidget):
             "grid_rate_hz": grid_rate_hz,
             # session understeer gradient (Level 2), None if no quasi-steady data
             "balance": balance,
+            # limit events (display + record only), schema 13
+            "events": events,
         }
         return json.dumps(payload)
 
@@ -1514,6 +1630,7 @@ class OutingForm(QWidget):
             grid_rate_hz=cached.get("grid_rate_hz"),
             fallback_reason=cached.get("fallback_reason"),
             balance=cached.get("balance"),
+            events=cached.get("events"),
         )
         self._last_render_kwargs = dict(render_kwargs, summaries=summaries)
         self._render_stability_summaries(summaries, cached=True, **render_kwargs)
@@ -1552,6 +1669,24 @@ class OutingForm(QWidget):
                 "Positive = more steering needed per g of lateral acceleration; measured from steering, "
                 "independent of the per-corner verdicts below.")
 
+    def _format_events_list(self, events):
+        # session list at the feedback form's resolution (corner, phase, axle);
+        # per-lap detail lives in the corner cards
+        if events is None:
+            return ""
+        if events.get("status") != "computed":
+            return f"Limit events: {events.get('status')}."
+        from modules.limit_events import aggregate_by_corner_phase, describe_group
+        evs = events["events"]
+        if not evs:
+            return "Limit events (force loss beyond the tyre characteristic): none this session."
+        n_kerb = sum(e["kerb_affected"] for e in evs)
+        n_rec = sum(e["recurrence"] == "recurring" for e in evs)
+        lines = [f"Limit events (force loss beyond the tyre characteristic, display only -- feeds no verdict): "
+                 f"{len(evs)} events, {n_kerb} kerb-affected, {n_rec} recurring at their position."]
+        lines += [describe_group(r) for r in aggregate_by_corner_phase(evs)]
+        return "\n".join(lines)
+
     def _format_accuracy_footer(self, levels):
         if not levels:
             return ""
@@ -1564,44 +1699,53 @@ class OutingForm(QWidget):
 
     # estimator/fit/gate status, separate from the [UNCAL] banner. Pure
     # formatting, no Qt.
+    # product text describes what, not after whom: no model or source names
     _ESTIMATOR_LABELS = {
-        "kinematic": "kinematic (production default)",
-        "ekf_pass_1": "EKF (frozen pass-1 Dugoff fit)",
-        "ekf_auto_dugoff": "EKF auto-fit (Dugoff, this session)",
-        "ekf_auto_pacejka": "EKF auto-fit (Pacejka, this session)",
+        "kinematic": "simple kinematic estimate",
+        "ekf_pass_1": "estimator with a frozen tyre curve",
+        "ekf_auto_dugoff": "estimator with the tyre curve fitted this session",
+        "ekf_auto_pacejka": "estimator with the tyre curve fitted this session",
     }
+
+    @staticmethod
+    def _plain_fallback_reason(reason):
+        # the raw reason stays in the saved fit record; the screen gets a
+        # plain sentence (raw texts can name optimisers or models)
+        reason = reason or ""
+        if reason.startswith("NIS gate"):
+            return "the fitted tyre curve failed its self-check this session"
+        if reason.startswith("fit status 'degenerate'"):
+            return "the tyre-curve fit did not converge on this session's data"
+        return "the fitted tyre curve could not be used this session"
 
     def _format_estimator_status(self, sideslip_source, fit_manifest, gate_verdict,
                                   fallback_used, fallback_reason):
         # via the class, not self -- called with self=None (PDF reuse)
         label = OutingForm._ESTIMATOR_LABELS.get(sideslip_source, sideslip_source)
         if fallback_used:
-            # loud: requested mode named, KINEMATIC (WARN colour) is what ran
+            # loud: KINEMATIC (WARN colour) is what ran, and why
             text = (
-                f"Estimator: KINEMATIC (fallback -- requested {label} could not be trusted: "
-                f"{fallback_reason})"
+                f"Sideslip: KINEMATIC fallback -- "
+                f"{OutingForm._plain_fallback_reason(fallback_reason)}"
             )
             return text, WARN
         if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
             fit_status = fit_manifest.get("status") if fit_manifest else "?"
             if gate_verdict and gate_verdict["verdict"] == "warn":
                 # WARN: gate didn't clear PASS, EKF beta still used
-                gate_text = "fit usable, provisional confidence (self-check warning)"
+                gate_text = "self-check warning, provisional confidence"
             elif gate_verdict:
-                gate_text = (
-                    f"gate={gate_verdict['verdict']} "
-                    f"(score={gate_verdict['health_score']:.4f}, provisional threshold)"
-                )
+                gate_text = f"self-check {gate_verdict['verdict']}"
             else:
-                gate_text = "gate=?"
-            return f"Estimator: {label} -- fit={fit_status}, {gate_text}", TEXT_MUTED
-        return f"Estimator: {label}", TEXT_MUTED
+                gate_text = "self-check not run"
+            return f"Sideslip: {label} -- fit {fit_status}, {gate_text}", TEXT_MUTED
+        return f"Sideslip: {label}", TEXT_MUTED
 
     def _render_stability_summaries(self, summaries, cached=False, lap_filter=None,
                                      cap=None, resolved_accuracy=None, sideslip_source=None,
                                      fit_manifest=None, gate_verdict=None,
                                      fallback_used=False, fallback_reason=None,
-                                     grid_rate_hz=None, balance=None):
+                                     grid_rate_hz=None, balance=None, events=None):
         # The only place cards are built and classified from summaries (fresh run
         # and cache hit alike) -> threshold changes always show. Clears the
         # outdated-schema flag.
@@ -1635,6 +1779,11 @@ class OutingForm(QWidget):
         )
         self.balance_label.setText(self._format_balance_line(balance))
         self.balance_label.setVisible(balance is not None)
+        # read by the card details and the trace dialogs; None for payloads
+        # from before schema 13
+        self._displayed_events = events
+        self.events_label.setText(self._format_events_list(events))
+        self.events_label.setVisible(events is not None)
         # placeholder wording
         if self._sideslip_source_calibrated():
             self.calibration_banner_label.setVisible(False)
@@ -1800,7 +1949,8 @@ class OutingForm(QWidget):
         cell = QPushButton()
         cell.setCheckable(False)
         cell.setCursor(Qt.CursorShape.PointingHandCursor)
-        cell.setText(f"C{stable_id}\n{short}")
+        cell.setText(f"C{stable_id}\n{self._verdict_cell_text(short)}")
+        cell.setToolTip(self._verdict_tooltip(short))
         cell.setStyleSheet(
             f"QPushButton {{"
             f" background-color: {colour}; color: #111; "
@@ -1840,7 +1990,7 @@ class OutingForm(QWidget):
 
     def _build_corner_details(self, summary):
         # details panel: long verdict, phase table, plot jump
-        severity, _short, long_v, colour = self._classify_corner(summary)
+        severity, short_v, long_v, colour = self._classify_corner(summary)
 
         panel = QWidget()
         panel.setStyleSheet(
@@ -1865,6 +2015,7 @@ class OutingForm(QWidget):
         title.setTextFormat(Qt.TextFormat.RichText)
 
         verdict_badge = QLabel(long_v)
+        verdict_badge.setToolTip(self._verdict_tooltip(short_v))
         verdict_badge.setStyleSheet(
             f"background-color: {colour}; color: #111; "
             "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
@@ -1885,15 +2036,6 @@ class OutingForm(QWidget):
         layout.addWidget(header)
 
         # per-phase table
-        phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
-        phase_labels = {
-            "entry_1_brake": "Brake",
-            "entry_2_turnin": "Turn-in",
-            "apex_3": "Apex",
-            "exit_4": "Exit 4",
-            "exit_5": "Exit 5",
-        }
-
         # Fzf/Fzr (kN) and LSf/LSr: diagnostic, muted colour, no severity
         # colouring -- no LS thresholds exist and none should be implied.
         # fy_norm computed but not shown (no room).
@@ -1912,42 +2054,22 @@ class OutingForm(QWidget):
             f"<th style='color:{TEXT_DIM};'>LSr med [p25..p75]</th>"
             f"</tr>"
         )
-        for phase in phase_keys:
-            p = summary["phases"][phase]
-            csf = p["cs_ratio_f"]
-            csr = p["cs_ratio_r"]
-            sob = p["stability_observed_Nm_per_deg"]
-            csf_colour = self._stability_colour("cs", csf["median"], axle="f")
-            csr_colour = self._stability_colour("cs", csr["median"], axle="r")
-            sob_colour = self._stability_colour("stab", sob["median"])
-            csf_str = (f"{csf['median']:.2f} [{csf['p25']:.2f}..{csf['p75']:.2f}]"
-                       if csf["n"] > 0 else "-")
-            csr_str = (f"{csr['median']:.2f} [{csr['p25']:.2f}..{csr['p75']:.2f}]"
-                       if csr["n"] > 0 else "-")
-            sob_str = (f"{sob['median']:.0f} [{sob['p25']:.0f}..{sob['p75']:.0f}]"
-                       if sob["n"] > 0 else "-")
-            fzf = p.get("fz_f_N")
-            fzr = p.get("fz_r_N")
-            fzf_str = f"{fzf['median']/1000:.1f}" if fzf and fzf["n"] > 0 else "-"
-            fzr_str = f"{fzr['median']/1000:.1f}" if fzr and fzr["n"] > 0 else "-"
-            lsf = p.get("ls_ratio_f")
-            lsr = p.get("ls_ratio_r")
-            lsf_str = (f"{lsf['median']:.2f} [{lsf['p25']:.2f}..{lsf['p75']:.2f}]"
-                       if lsf and lsf["n"] > 0 else "-")
-            lsr_str = (f"{lsr['median']:.2f} [{lsr['p25']:.2f}..{lsr['p75']:.2f}]"
-                       if lsr and lsr["n"] > 0 else "-")
+        from modules.stability_analysis import load_parameters
+        se = load_parameters()["stability_estimation"]
+        for row in self._phase_table_rows(summary, se["cs_apex_region_half_length_m"],
+                                          se["apex_half_window_samples"]):
             rows_html += (
                 f"<tr>"
-                f"<td style='color:{ACCENT}; width:80px;'>{phase_labels[phase]}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:40px;'>{p['n_samples']}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:50px;'>{p['valid_fraction_stab']*100:.0f}%</td>"
-                f"<td style='color:{csf_colour}; width:160px;'>{csf_str}</td>"
-                f"<td style='color:{csr_colour}; width:160px;'>{csr_str}</td>"
-                f"<td style='color:{sob_colour}; width:180px;'>{sob_str}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzf_str}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:70px;'>{fzr_str}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:160px;'>{lsf_str}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:160px;'>{lsr_str}</td>"
+                f"<td style='color:{ACCENT}; width:130px;'>{row['label']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:40px;'>{row['n']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:50px;'>{row['valid']}</td>"
+                f"<td style='color:{self._stability_colour('cs', row['csf_median'], axle='f')}; width:160px;'>{row['csf']}</td>"
+                f"<td style='color:{self._stability_colour('cs', row['csr_median'], axle='r')}; width:160px;'>{row['csr']}</td>"
+                f"<td style='color:{self._stability_colour('stab', row['stab_median'])}; width:180px;'>{row['stab']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:70px;'>{row['fzf']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:70px;'>{row['fzr']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:160px;'>{row['lsf']}</td>"
+                f"<td style='color:{TEXT_MUTED}; width:160px;'>{row['lsr']}</td>"
                 f"</tr>"
             )
         rows_html += "</table>"
@@ -1956,6 +2078,19 @@ class OutingForm(QWidget):
         body.setTextFormat(Qt.TextFormat.RichText)
         body.setStyleSheet("background: transparent; border: none;")
         layout.addWidget(body)
+
+        # limit events of this corner on this lap (display only)
+        events = getattr(self, "_displayed_events", None)
+        if events and events.get("status") == "computed":
+            from modules.limit_events import describe_event
+            n_laps = events.get("n_instances_by_corner", {}).get(str(summary["stable_corner_id"]))
+            mine = [e for e in events["events"]
+                    if e["lap"] == summary["lap_number"] and e["corner"] == summary["stable_corner_id"]]
+            if mine:
+                ev_label = QLabel("\n".join(describe_event(e, n_laps) for e in mine))
+                ev_label.setWordWrap(True)
+                ev_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; background: transparent; border: none;")
+                layout.addWidget(ev_label)
 
         return panel
 
@@ -1999,6 +2134,14 @@ class OutingForm(QWidget):
         self.balance_label.setWordWrap(True)
         self.balance_label.setVisible(False)
         panel_layout.addWidget(self.balance_label)
+
+        # session list of limit events (corner, phase, axle); muted -- events
+        # are moments, not verdicts
+        self.events_label = QLabel("")
+        self.events_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
+        self.events_label.setWordWrap(True)
+        self.events_label.setVisible(False)
+        panel_layout.addWidget(self.events_label)
 
         # resolved-accuracy footer, always shown
         self.accuracy_footer_label = QLabel("")
@@ -2598,6 +2741,7 @@ class OutingForm(QWidget):
         )
 
     def _on_stability_error(self, msg):
+        self._set_analysis_lock(False)
         self.stability_status_label.setText(f"Analysis failed: {msg}")
         self.stability_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
         self.btn_analyse.setEnabled(True)
@@ -3198,7 +3342,6 @@ class OutingForm(QWidget):
         corners = []
         for row_data in self.corner_rows:
             corners.append({
-                "worst": row_data["worst"].isChecked(),
                 "e1": row_data["e1"].value(),
                 "e2": row_data["e2"].value(),
                 "a3": row_data["a3"].value(),
@@ -3227,7 +3370,6 @@ class OutingForm(QWidget):
             if i >= len(data.get("corners", [])):
                 break
             c = data["corners"][i]
-            row_data["worst"].setChecked(c.get("worst", False))
             row_data["e1"].setValue(c.get("e1", 0))
             row_data["e2"].setValue(c.get("e2", 0))
             row_data["a3"].setValue(c.get("a3", 0))
@@ -3606,9 +3748,11 @@ class OutingForm(QWidget):
         split_layout.setSpacing(16)
 
         self.feedback_table = QTableWidget()
-        self.feedback_table.setColumnCount(7)
+        # no "worst corner" column: its flag fed only the legacy rule engine
+        # behind the removed weekend PDF export (removed 2026-10-07, unwired)
+        self.feedback_table.setColumnCount(6)
         self.feedback_table.setHorizontalHeaderLabels(
-            ["No.", "Worst", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]
+            ["No.", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]
         )
         self.feedback_table.verticalHeader().setVisible(False)
         self.feedback_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -3619,9 +3763,7 @@ class OutingForm(QWidget):
         self.feedback_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.feedback_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.feedback_table.setColumnWidth(0, 36)
-        self.feedback_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        self.feedback_table.setColumnWidth(1, 52)
-        for col in range(2, 7):
+        for col in range(1, 6):
             self.feedback_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
         self.feedback_table.setStyleSheet("""
             QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
@@ -3694,7 +3836,6 @@ class OutingForm(QWidget):
         existing = []
         for row_data in self.corner_rows:
             existing.append({
-                "worst": row_data["worst"].isChecked(),
                 "values": [row_data[k].value() for k in ["e1", "e2", "a3", "x4", "x5"]]
             })
 
@@ -3710,19 +3851,6 @@ class OutingForm(QWidget):
             num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             num_label.setStyleSheet("color: #C0A060; font-weight: 600; font-size: 11px; background: transparent;")
             self.feedback_table.setCellWidget(row, 0, num_label)
-
-            check_container = QWidget()
-            check_container.setStyleSheet("background: transparent;")
-            check_layout = QHBoxLayout(check_container)
-            check_layout.setContentsMargins(0, 0, 0, 0)
-            check_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            checkbox = QCheckBox()
-            checkbox.setStyleSheet("""
-                QCheckBox::indicator { width: 14px; height: 14px; border: 1px solid #2a2a2a; border-radius: 2px; background: #1a1a1a; }
-                QCheckBox::indicator:checked { background-color: #C0A060; border-color: #C0A060; }
-            """)
-            check_layout.addWidget(checkbox)
-            self.feedback_table.setCellWidget(row, 1, check_container)
 
             prev = existing[i] if i < len(existing) else None
             spins = {}
@@ -3741,13 +3869,10 @@ class OutingForm(QWidget):
                         font-size: 12px;
                     }
                 """)
-                self.feedback_table.setCellWidget(row, col_idx + 2, spin)
+                self.feedback_table.setCellWidget(row, col_idx + 1, spin)
                 spins[key] = spin
 
-            if prev:
-                checkbox.setChecked(prev["worst"])
-
-            self.corner_rows.append({"worst": checkbox, **spins})
+            self.corner_rows.append(spins)
 
         header_h = self.feedback_table.horizontalHeader().height()
         total_row_h = sum(self.feedback_table.rowHeight(i) for i in range(count))

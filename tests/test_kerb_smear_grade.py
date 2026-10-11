@@ -113,6 +113,13 @@ def test_near_strike_is_flag_only(state, effective_params, parsed_data):
         blanked[f"CS_ratio_{ax}"] = np.where(cs[f"near_strike_{ax}"], np.nan, cs[f"CS_ratio_{ax}"])
     as_if_nan = summarise_corners(corners, blanked, stab, state)
     without = summarise_corners(corners, unmarked, stab, state)
-    assert json.dumps(with_mark, sort_keys=True, default=str) == json.dumps(as_if_nan, sort_keys=True, default=str)
+    # n_kerb_excluded (schema 14, display only) counts the marked samples, so
+    # it differs from a plain NaN by construction; every statistic must not
+    def _drop_count(summ):
+        import re
+        return re.sub(r', "n_kerb_excluded": \d+', "", json.dumps(summ, sort_keys=True, default=str))
+    assert _drop_count(with_mark) == _drop_count(as_if_nan)
+    assert any(p[k]["n_kerb_excluded"] > 0 for s in with_mark for p in s["phases"].values()
+               for k in ("cs_ratio_f", "cs_ratio_r"))
     # Dubai carries marked samples, so the clean rule must actually show
-    assert json.dumps(with_mark, sort_keys=True, default=str) != json.dumps(without, sort_keys=True, default=str)
+    assert _drop_count(with_mark) != _drop_count(without)

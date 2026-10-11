@@ -23,17 +23,17 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
     optional {"f"/"r": {"s": [...], "y": [...], "label": str, "color": str,
     "notes": [(s, y, text), ...]}} overlaid on the traces. near_strike:
     optional {"f"/"r": bool array} grade mark, drawn per near_strike_mode
-    (default config corner_trace_display.near_strike_display) with one
+    (default config corner_trace_display.kerb_exclusion_display) with one
     caption sentence. Returns the count of samples below the fixed y floor
     per axle (clipped from view)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from core.plot_style import NEAR_STRIKE_COLOR
-    from core.trace_display import near_strike_split, near_strike_caption
+    from core.trace_display import near_strike_split, kerb_exclusion_caption
     from modules.stability_analysis import load_parameters
     if near_strike is not None and near_strike_mode is None:
-        near_strike_mode = load_parameters()["corner_trace_display"]["near_strike_display"]
+        near_strike_mode = load_parameters()["corner_trace_display"]["kerb_exclusion_display"]
     n_mark = n_fin = 0
     y_lo, y_hi = y_range or cs_panel_range()
     an = [l for l in laps if l.get("is_valid_for_analysis")]
@@ -79,8 +79,7 @@ def render_cs_traces(out_path, time, s_m, cs_f, cs_r, laps, corners, title, y_ra
     axes[1].set_xlabel("lap distance [m]", color=INK)
     fig.suptitle(f"{title} -- per analysis lap (n={len(an)}), grey bands = corner brackets, 0 = force peak, "
                  f"1 = linear; y fixed {y_lo}..{y_hi}", color=INK, fontsize=10)
-    cap = near_strike_caption(near_strike_mode or "off", n_mark, n_fin,
-                              load_parameters()["stability_estimation"]["kerb_smear_grade_s"]) if near_strike else None
+    cap = kerb_exclusion_caption(near_strike_mode or "off", n_mark, n_fin) if near_strike else None
     if cap:
         fig.text(0.5, 0.002, cap, ha="center", va="bottom", fontsize=8, color=INK)
     fig.savefig(out_path, dpi=110)

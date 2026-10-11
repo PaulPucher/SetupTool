@@ -437,10 +437,13 @@ def test_classify_corner_marginal_marker_fires_within_anchored_margin():
     assert severity == "moderate"
     assert "understeer" in short
     assert "[MARGINAL]" in short
-    assert "[MARGINAL]" in long_
-    # WP-STRINGS: repointed on purpose from the removed process label to the
-    # meaning-bearing part of the annotation
-    assert "~1% measurement/parameterisation change" in long_
+    # 2026-10-06 (author app-check ruling): the card text carries no
+    # qualifiers or meta-sentences; MARGINAL lives in the machine string (the
+    # decision frame caps confidence on it) and in the tooltip
+    assert "[MARGINAL]" not in long_ and "flip" not in long_
+    assert long_.startswith("Understeer, ") and "front CS" in long_
+    assert "~1 % measurement" in OutingForm._verdict_tooltip(short)
+    assert OutingForm._verdict_cell_text(short) == short.replace(" [MARGINAL]", "")
 
 
 def test_classify_corner_marginal_marker_absent_far_from_threshold():

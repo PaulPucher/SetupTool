@@ -144,7 +144,9 @@ def test_stab_row_states_kinematic_era_default(qapp):
     differs = (params["stability_estimation"]["sideslip_source"]
                != params["classification"]["stab_thresh_calibrated_for_sideslip_source"])
     note = SettingsView().section3_note_labels[STAB_KEY].text()
-    assert note.startswith("Yaw stability below this = open-loop unstable (Werner sign criterion).")
+    # 2026-10-06 (author app-check ruling): no source names in product text
+    assert note.startswith("Yaw stability below this = open-loop unstable.")
+    assert "Werner" not in note
     assert (STAB_KINEMATIC_ERA_NOTE in note) == differs
     # live config since 2026-10-05: stab_neg_thresh anchored for ekf_auto_pacejka
     # (Werner sign criterion), so the kinematic-era note is gone

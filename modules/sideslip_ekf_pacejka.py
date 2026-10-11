@@ -1,11 +1,12 @@
 # Single-track EKF sideslip observer, Magic Formula tyres. Used by
 # tyre_fit_auto.
-# Mirror of sideslip_ekf_dugoff.py -- only the tyre force/stiffness calls
-# differ; see that file for the method. Per-axle params (B, C, D, E).
+# Mirror of sideslip_ekf_dugoff.py -- the tyre force/stiffness calls differ,
+# and so does the divergence re-entry (2026-10-07, see
+# estimate_sideslip_ekf_pacejka); see that file for the method. Per-axle
+# params (B, C, D, E).
 
 import numpy as np
 
-from modules.stability_analysis import estimate_sideslip
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
 
 
@@ -30,6 +31,24 @@ def measurement_jacobian(Cf_eff, Cr_eff, Vx, m, a, b):
 
 
 def estimate_sideslip_ekf_pacejka(state, params, pass_id):
+    """Divergence re-entry, two cases (author rulings 2026-10-07). The
+    kinematic beta is never written into the state or the output any more --
+    it carried the washout's corner bias into E (round 3).
+    - NIS-window divergence (state in range, measurements disagree): keep
+      the state, reset P to P0 so the next samples lean on the measurements
+      again. After Goblirsch et al. 2024 (IROS, sec. III-D, adaptive
+      covariance after a signal dropout) and Rajamani 2nd ed. sec. 14.4.2
+      (covariance scaling on change detection).
+    - Hard-bound divergence (|beta| beyond the bound): beta state to 0, yaw
+      rate state to the measured value, P to P0. Keeping an out-of-range
+      state runs away -- the curve is flat out there, so the measurements
+      cannot pull it back (phase-1 stop). Zero carries no seed bias; reset
+      to zero, never to another estimate, after Villano et al. 2021
+      (Meccanica, sec. 3.1, kinematic filter reset).
+    Hard bound takes precedence when both fire. beta_with_fallback keeps its
+    name for the callers and carries the post-re-entry state; beta is the raw
+    update (a hard-bound re-entry shows as diverged with |beta| > bound).
+    """
     vp = params["vehicle"]
     se = params["stability_estimation"]
     cfg = params["tyre_model_ekf_pacejka"][pass_id]
@@ -58,8 +77,6 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     moving = state["moving_mask"]
     sr = state["sample_rate_hz"]
     v_min = se["moving_speed_min_mps"]
-
-    beta_kinematic = estimate_sideslip(state, params)
 
     n = len(v)
     dt = 1.0 / sr
@@ -146,15 +163,16 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
         diverged = window_flag or bound_flag
         diverged_mask[i] = diverged
 
+        if bound_flag:
+            x = np.array([0.0, float(yaw_rate_meas[i])])
+        else:
+            x = x_upd
         if diverged:
-            beta_with_fallback[i] = beta_kinematic[i]
-            x = np.array([beta_kinematic[i], yaw_rate_meas[i]])
             P = P0.copy()
             nis_recent.clear()
         else:
-            beta_with_fallback[i] = raw_beta
-            x = x_upd
             P = P_upd
+        beta_with_fallback[i] = x[0]
 
     return {
         "beta": beta_out,
