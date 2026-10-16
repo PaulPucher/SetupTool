@@ -49,6 +49,9 @@ REPO STATE
   existence-checked, never compared (step 3 closed, no change needed).
   Diagnostics scripts with pinned paths (compare_beta_architectures,
   fit_dugoff_*) left frozen as historical. Pending the author's commit.
+- REBUILD BOARD: R1 DONE 2026-10-16 (entry 9 citation scope: multi-IMU ->
+  Goblirsch 2024 only, IFAC 2019 lineage-only; one further spot struck in
+  the read-only-pass-2 supersede note). Text only. Pending the author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
