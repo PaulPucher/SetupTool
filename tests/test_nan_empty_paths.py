@@ -251,7 +251,8 @@ def test_fit_session_pacejka_all_laps_invalid_degrades_cleanly(pipeline_result):
     # real parse with every lap's flag forced False exercises the exact
     # empty-base_mask path without needing a second real file.
     from modules.csv_parser import parse_csv
-    real_data = parse_csv("C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt")
+    from tests.conftest import DUBAI_SAMPLE, resolve_data_path
+    real_data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     for lap in real_data["laps"]:
         lap["is_valid_for_analysis"] = False
 

@@ -15,6 +15,7 @@ build/
 
 # IDE
 .idea/
+.claude/
 .vscode/settings.json
 
 # OS

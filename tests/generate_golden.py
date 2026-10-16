@@ -48,8 +48,11 @@ from modules.stability_analysis import (
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.recommendation import generate_recommendations, load_recommendations_config
 from modules.tyre_fit_auto import resolve_sideslip_beta
+from tests.conftest import DUBAI_SAMPLE, resolve_data_path
 
-RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
+# Resolved per machine; written into _meta.data_file as provenance only
+# (existence-checked by the golden tests, never compared).
+RAW_FILE = resolve_data_path(DUBAI_SAMPLE)
 FIXED_CAP = 1
 PIPELINE_GOLDEN_PATH = "tests/golden/pipeline_dubai_ekf_auto_pacejka_cap1.json"
 RECOMMENDATIONS_GOLDEN_PATH = "tests/golden/recommendations_dubai_ekf_auto_pacejka_cap1.json"

@@ -10,8 +10,9 @@ from modules.stability_analysis import (
     summarise_corners,
 )
 import numpy as np
+from tests.conftest import DUBAI_SAMPLE, resolve_data_path
 
-data = parse_csv('C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt')
+data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
 params = load_parameters()
 state = prepare_vehicle_state(data['channels'], params)
 

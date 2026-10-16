@@ -4,16 +4,16 @@
 # (skipped with a stated reason where that drive is absent).
 
 import copy
-import os
 
 import numpy as np
 import pytest
 
 import modules.csv_parser as csv_parser
+from tests.conftest import find_data_file
 
-NBR_FILE = "D:/Data_Bachelorthesis/NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt"
+NBR_FILE = find_data_file("NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt")
 DAMPERS = ("log_dms_dam_fl", "log_dms_dam_fr", "log_dms_dam_rl", "log_dms_dam_rr")
-needs_nbr = pytest.mark.skipif(not os.path.exists(NBR_FILE), reason="NBR thesis data drive not present")
+needs_nbr = pytest.mark.skipif(NBR_FILE is None, reason="NBR thesis data drive not present")
 
 
 def test_dubai_matches_no_entry(parsed_data):

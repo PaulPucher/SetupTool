@@ -35,6 +35,20 @@ REPO STATE
 - ~~Still owed: thesis_notes.md entry 9 restructure (2026-10-08 ruling),
   blocked on the author's date and setting of the communication.~~
   [DONE 2026-10-12: date not recorded, per author; entry restructured.]
+- R0 NEW-MACHINE REBUILD (2026-10-16, temporary machine, from c5228aa):
+  venv rebuilt on Python 3.13.16 (py launcher, NOT the uv 3.15.0),
+  requirements.txt all pins + tests/requirements-test.txt; .gitignore
+  adds .claude/. Data drive is H: here (H:/UNI/Bachelorarbeit/Data,
+  H:/Data_Bachelorthesis). RULING (author, 2026-10-16, option B): test
+  data paths resolve through tests/conftest.py DATA_ROOTS +
+  find_data_file/resolve_data_path; 10 consumers routed (conftest,
+  test_stability.py, test_event_zero_entries, test_auto_fit_wiring,
+  test_golden_auto_modes, test_nan_empty_paths, test_nis_gate,
+  test_tyre_fit_prior_anchored, generate_golden, generate_golden_auto_
+  modes). Golden JSON files byte-untouched: _meta.data_file is
+  existence-checked, never compared (step 3 closed, no change needed).
+  Diagnostics scripts with pinned paths (compare_beta_architectures,
+  fit_dugoff_*) left frozen as historical. Pending the author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).

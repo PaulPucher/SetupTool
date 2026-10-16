@@ -22,8 +22,9 @@ from modules.stability_analysis import (
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.tyre_fit_auto import resolve_sideslip_beta, fit_session, fit_session_pacejka
+from tests.conftest import DUBAI_SAMPLE, find_data_file, resolve_data_path
 
-RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
+RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixture raises clearly
 FIXED_CAP = 1  # matches tests/conftest.py's own convention
 
 
@@ -32,7 +33,7 @@ def wiring_fixture():
     raw_params = load_parameters()
     resolved = resolve_accuracy(raw_params, setup_data=None, cap=FIXED_CAP)
     effective_params = apply_resolved_vehicle(raw_params, resolved)
-    data = parse_csv(RAW_FILE)
+    data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], effective_params)
     assert state is not None
     return {"params": effective_params, "data": data, "state": state}

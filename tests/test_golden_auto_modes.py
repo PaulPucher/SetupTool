@@ -28,8 +28,9 @@ from modules.stability_analysis import (
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.tyre_fit_auto import resolve_sideslip_beta
 from tests._json_utils import diff_json
+from tests.conftest import DUBAI_SAMPLE, find_data_file, resolve_data_path
 
-RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
+RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixture raises clearly
 FIXED_CAP = 1
 GOLDEN_PATHS = {
     "kinematic": "tests/golden/pipeline_dubai_kinematic_cap1.json",
@@ -49,7 +50,7 @@ def secondary_mode_results():
     params = load_parameters()
     resolved = resolve_accuracy(params, setup_data=None, cap=FIXED_CAP)
     effective_params = apply_resolved_vehicle(params, resolved)
-    data = parse_csv(RAW_FILE)
+    data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], effective_params)
 
     results = {}

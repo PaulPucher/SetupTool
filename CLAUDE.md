@@ -7,8 +7,12 @@ Bachelor thesis (TUM / Proton Competition). Windows, PowerShell, venv.
 - Activate venv: `.\.venv\Scripts\Activate.ps1`
 - Run app: `python main.py`
 - Test pipeline (no UI): `python test_stability.py`
-- Sample data: `C:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt`
+- Sample data: `C:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt` (laptop)
+  or `H:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt` (temporary machine)
   (6 laps: 0-5, 0=outlap, 5=inlap; analysis laps 1-4)
+- Outing exports: `D:\Data_Bachelorthesis\` (laptop) or
+  `H:\Data_Bachelorthesis\` (temporary machine). Tests resolve both via
+  tests/conftest.py DATA_ROOTS.
 
 ## Work plan
 PLAN.md in this repo contains the work packages (WP1-WP7). Execute them in

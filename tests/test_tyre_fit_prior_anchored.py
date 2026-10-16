@@ -14,8 +14,7 @@ from modules.stability_analysis import (
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.tyre_fit_auto import _base_mask, _fit_axle_pacejka_anchored, fit_session_pacejka
-
-RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
+from tests.conftest import DUBAI_SAMPLE, resolve_data_path
 
 # (d2) Part 2, Dubai at w = 1 through the production chain
 # (diagnostics/inspect_tyre_prior_d2.py achain dubai 1, 2026-10-01).
@@ -36,7 +35,7 @@ D2_DUBAI_W1 = {
 def dubai():
     raw = load_parameters()
     params = apply_resolved_vehicle(raw, resolve_accuracy(raw, setup_data=None, cap=1))
-    data = parse_csv(RAW_FILE)
+    data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], params)
     return {"params": params, "data": data, "state": state}
 

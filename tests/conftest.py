@@ -12,6 +12,8 @@
 # md "WP-N2 Step 1a" for the measured breakdown) -- computed once per test
 # run, not once per test function.
 
+import os
+
 import pytest
 
 from modules.csv_parser import parse_csv
@@ -23,7 +25,43 @@ from modules.stability_analysis import (
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.tyre_fit_auto import resolve_sideslip_beta
 
-RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
+# Real telemetry lives outside the repo, and its drive letter differs per
+# machine (laptop: C:/UNI + D:, temporary machine: everything on H:). Data
+# paths are therefore stored relative and resolved against these roots in
+# order, first hit wins. Single source for tests/, test_stability.py and
+# the golden generators -- the resolved path only ever enters outputs as
+# the data_file label, never as a number.
+DATA_ROOTS = (
+    "C:/UNI/Bachelorarbeit/Data",   # laptop layout, Dubai
+    "H:/UNI/Bachelorarbeit/Data",   # temporary machine, Dubai
+    "D:/Data_Bachelorthesis",       # laptop layout, outings
+    "H:/Data_Bachelorthesis",       # temporary machine, outings
+)
+DUBAI_SAMPLE = "Sample/Sample_Dubai.txt"
+
+
+def find_data_file(rel_path):
+    """First existing DATA_ROOTS/rel_path, or None (for skip conditions)."""
+    for root in DATA_ROOTS:
+        candidate = f"{root}/{rel_path}"
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def resolve_data_path(rel_path):
+    found = find_data_file(rel_path)
+    if found is None:
+        raise FileNotFoundError(
+            f"data file {rel_path!r} not found under any root: " + ", ".join(DATA_ROOTS)
+        )
+    return found
+
+
+# None on a machine without the data drive. Kept non-raising so collecting
+# conftest never aborts the whole run; the fixtures below resolve again and
+# fail with the clear error only for tests that actually need the file.
+RAW_FILE = find_data_file(DUBAI_SAMPLE)
 
 # FIXED accuracy cap for every test in this suite: Level 1, not "Best
 # available". Chosen for reproducibility, not realism -- "Best available"
@@ -46,7 +84,7 @@ def raw_params():
 
 @pytest.fixture(scope="session")
 def parsed_data():
-    return parse_csv(RAW_FILE)
+    return parse_csv(resolve_data_path(DUBAI_SAMPLE))
 
 
 @pytest.fixture(scope="session")
@@ -103,7 +141,7 @@ def pipeline_result(parsed_data, effective_params, state):
     )
 
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, effective_params, parsed_data, live_default, csv_path=RAW_FILE
+        state, effective_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
     )
     # fallback_used is NOT asserted here -- returned instead so callers get one
     # clear, dedicated failure (test_golden_pipeline.py's test_pipeline_did_not_
