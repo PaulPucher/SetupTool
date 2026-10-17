@@ -114,6 +114,27 @@ REPO STATE
   no-reference samples). Physical CS floor of the fitted curve -0.05 to -0.33;
   thousands of verdict-read samples lie below it, mostly "other" (not kerb, not
   small reference). Facts in thesis_notes "Spike follow-up"; author to rule.
+- REBUILD BOARD: R5 DONE 2026-10-17 (band rule R26/R27, validated alone, all
+  recorded numbers reproduced; Group 1 fixes R1, R2+R23, R6, R11, R12, R13, R14,
+  R24; R25 decided display only; R4, R5, R8, R9, R10 documented limitations;
+  kerb caption ruled; thesis_notes "R5: reference band rule ..."; registry
+  statuses + new R27). R11 counts 99 / 2 / 1 accepted by author ruling (first
+  pass used another counting definition); no R28. Verdict churn from the R6
+  refit only (NBR 21, PR 49 corner-lap verdicts).
+  FINAL-CHAIN SCHEMA BUMP, payload changes it carries (author ruling (c)
+  2026-10-17): (1) key "balance" removed (R4b); (2)
+  resolved_levels.understeer_gradient removed (R4b); (3) key
+  "estimator_settings" added (R5, R2 cache identity). Also owed there: R3, the
+  NIS gate field n_windows_skipped_low_coverage (R2 Class A), R12 per-phase
+  no-reference counts (deferred, would change the payload shape).
+  Suite once: 7 failed / 614 passed / 1 xfailed, 26.7 min; recommendations
+  golden now PASSES. STOP rulings 2026-10-17 applied: (a)
+  test_cs_validity_repair's isolated params dict gains the D4 band literals
+  (30000 / 600000, commented), no code default; (b) test_sidecar_round_trip
+  carries estimator_settings. Verified: test_cs_validity_repair.py +
+  test_thesis_data.py 33 / 33 passed. Resulting full-suite arithmetic (not
+  re-run): 619 passed / 2 failed (kinematic golden, Dubai pipeline golden) /
+  1 xfailed. Pending the author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).

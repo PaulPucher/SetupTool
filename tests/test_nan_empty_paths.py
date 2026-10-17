@@ -100,24 +100,33 @@ def test_aggregate_by_corner_empty_summaries_does_not_raise():
 
 # --- the classifier with NaN inputs -------------------------------------------
 
-def test_classifier_all_nan_phases_does_not_raise_and_reads_normal():
-    """A corner where every phase's stats are NaN must classify as
-    "normal" (no verdict can be formed from no data) rather than raising
-    or defaulting to a false positive -- _classify_corner's own
-    worst_f_val/worst_r_val/worst_stab_val search starts at a sentinel
-    (1.0 / 1.0 / 1e9) and only updates on a value that compares as
-    strictly better via `csf == csf` (NaN-safe), so an all-NaN input
-    should leave every "worst" tracker at its untouched sentinel and
-    fall through to severity="normal"."""
+def test_classifier_all_nan_phases_does_not_raise_and_reads_no_cs_data():
+    """A corner where every phase's stats are NaN must not raise and must not
+    form a verdict: severity stays "normal" (the decision frame reads
+    severity, so it is unaffected), but the text says there was no CS data
+    and the colour is neutral -- "ok" claimed a check that never ran (R13,
+    2026-10-17). The headline counts it separately from "normal" by its
+    short text. An all-linear corner (CS exactly 1.0 everywhere) has data and
+    still reads "ok" -- the 1.0 sentinel alone cannot tell the two apart."""
     try:
-        from ui.views.outing_form import OutingForm
+        from ui.views.outing_form import NO_CS_LONG, NO_CS_SHORT, OutingForm
+        from ui.style import NEUTRAL, OK
     except ImportError as e:
         pytest.skip(f"ui.views.outing_form not importable in this environment ({e})")
 
     summary = {"phases": {phase: _full_phase_stub(n_samples=0) for phase in PHASE_KEYS}}
     severity, short, long_v, colour = OutingForm._classify_corner(None, summary)
     assert severity == "normal"
-    assert "ok" in short
+    assert short.startswith(NO_CS_SHORT) and "ok" not in short
+    assert long_v == NO_CS_LONG
+    assert colour == NEUTRAL
+
+    linear = {"phases": {phase: _full_phase_stub(n_samples=20) for phase in PHASE_KEYS}}
+    for phase in PHASE_KEYS:
+        one = {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 20}
+        linear["phases"][phase] = dict(linear["phases"][phase], cs_ratio_f=one, cs_ratio_r=one)
+    severity, short, long_v, colour = OutingForm._classify_corner(None, linear)
+    assert severity == "normal" and short.startswith("ok") and colour == OK
 
 
 def test_classifier_partial_nan_phases_does_not_raise():

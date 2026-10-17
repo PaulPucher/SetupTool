@@ -786,14 +786,16 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
 
     Linear reference (CS_ratio denominator): set only by a clean window --
     no sample of the regression window [start, i) in the kerb mask or the
-    smear zone, none off an analysis lap. A disqualified window leaves the
+    smear zone, none off an analysis lap -- whose stiffness lies inside the
+    tyre-fit stiffness band (R26/R27). A disqualified window leaves the
     previous reference in force. Before, the moving/kerb test looked at the
     newest sample only, so a window reaching back over a strike could set
     the reference and every CS after it divided by a kerb-inflated value
     (PR C16 lap 51). Until the first clean window no CS is computed; those
     samples are counted (n_no_reference_*), never zero-filled. laps = the
-    parsed lap list (analysis-lap test); empty -> no lap test, as in
-    Module 5. [domain improvement: the chair tooling has no kerb treatment]
+    parsed lap list (analysis-lap test and the R11 lap-boundary guard);
+    empty -> neither, as in Module 5. [domain improvement: the chair tooling
+    has no kerb treatment]
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -805,8 +807,24 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
     # window, unchanged); the zone only marks near_strike and disqualifies
     # a window from setting the reference.
     smear_zone = state.get("kerb_smear_zone")
-    smear_cum = None if smear_zone is None else np.concatenate(([0], np.cumsum(smear_zone, dtype=np.int64)))
+    # R1: the grade mark covers the mask as well as the zone -- a window lying
+    # entirely inside a kerb run (i the first sample after it) holds no zone
+    # sample and would otherwise pass as clean
+    affected = None
+    if kerb_mask is not None or smear_zone is not None:
+        affected = np.zeros(len(state["moving_mask"]), dtype=bool)
+        if kerb_mask is not None:
+            affected |= kerb_mask
+        if smear_zone is not None:
+            affected |= smear_zone
+    affected_cum = None if affected is None else np.concatenate(([0], np.cumsum(affected, dtype=np.int64)))
     n = len(state["moving_mask"])
+    # R11: lap id per sample from the lap table (-1 outside every lap); the s_m
+    # cap stops widening at a distance reset, but the minimum window does not,
+    # and s_m need not reset exactly at the lap table's boundary
+    lap_id = np.full(n, -1, dtype=np.int64)
+    for lap in laps or []:
+        lap_id[(state["time"] >= lap["start_time"]) & (state["time"] <= lap["end_time"])] = lap["lap_number"]
     off_analysis = _build_non_analysis_lap_mask(state["time"], laps) if laps else np.zeros(n, dtype=bool)
     ref_blocked = off_analysis.copy()
     if kerb_mask is not None:
@@ -824,6 +842,16 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
     linear_thresh = se["cs_linear_slip_threshold_rad"]
     min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     max_window_m = se["cs_max_window_m"]
+    # Band rule (R26/R27, author ruling 2026-10-17): the reference is the
+    # linear axle stiffness, the same quantity the D4 plausibility gate bounds
+    # on the fitted curve (B*C*D, Bechtloff Fig. 7.2 magnitudes), so the same
+    # config band is read here rather than duplicated. Needed because beta is
+    # estimated: a low-excitation window's slope is ill-determined (Bechtloff,
+    # identifiability) and can set a reference far below the session level,
+    # or zero / negative. The chair does not bound its reference because it
+    # works with measured beta. [domain improvement]
+    ref_min = params["tyre_fit_auto"]["stiffness_min_npr"]
+    ref_max = params["tyre_fit_auto"]["stiffness_max_npr"]
 
     def compute_cs_for_axle(alpha, Fy):
         n = len(alpha)
@@ -839,6 +867,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         near_strike = np.zeros(n, dtype=bool)
         # stiffness computed, but no clean reference set yet -> no CS
         no_reference = np.zeros(n, dtype=bool)
+        n_straddle = 0
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -879,6 +908,11 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
             Fy_mean = np.mean(window_Fy)
             denom = np.sum((window_alpha - alpha_mean) ** 2)
             if denom < 1e-10:
+                continue
+            # R11: a window over a lap boundary mixes two traversals -> no
+            # value, counted (a guard, not an assert)
+            if lap_id[start] != lap_id[i - 1]:
+                n_straddle += 1
                 continue
 
             C_w = np.sum((window_alpha - alpha_mean) * (window_Fy - Fy_mean)) / denom
@@ -927,7 +961,10 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
                 C_alpha[i] = C_w
 
             window_max_abs_alpha = np.max(np.abs(window_alpha))
-            if window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]:
+            # outside the band the previous reference is held, as for a
+            # disqualified window (Fix 0)
+            if (window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]
+                    and ref_min <= C_alpha[i] <= ref_max):
                 C_linear_ref = C_alpha[i]
 
             if np.isnan(C_linear_ref):
@@ -935,15 +972,16 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
             elif C_linear_ref > 0:
                 CS_ratio[i] = min(C_alpha[i] / C_linear_ref, 1.0)
                 # same [start, i) window the regression used
-                if smear_cum is not None:
-                    near_strike[i] = smear_cum[i] > smear_cum[start]
+                if affected_cum is not None:
+                    near_strike[i] = affected_cum[i] > affected_cum[start]
 
             C_linear_ref_arr[i] = C_linear_ref
 
-        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference
+        return (C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference,
+                n_straddle)
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     return {
         "C_alpha_f": C_f,
@@ -970,6 +1008,9 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         "n_no_reference_r": int(nr_r.sum()),
         "n_no_reference_analysis_f": int((nr_f & ~off_analysis).sum()),
         "n_no_reference_analysis_r": int((nr_r & ~off_analysis).sum()),
+        # R11 guard count, in memory only: windows refused for straddling a lap boundary
+        "n_lap_straddle_f": nx_f,
+        "n_lap_straddle_r": nx_r,
     }
 
 

@@ -16,11 +16,14 @@ SIDECAR_DIR = os.path.join("data", "analysis_cache")
 
 SIDECAR_GZIP_COMPRESSLEVEL = 6  # gzip default, untuned
 
-# same 7 fields as the DB-cache check (outing_form._try_render_cached_analysis)
-# + format version; compared in order before the payload is unpickled
+# same 8 fields as the DB-cache check (outing_form._try_render_cached_analysis)
+# + format version; compared in order before the payload is unpickled.
+# estimator_settings (R2): the Settings estimator inputs, from
+# accuracy_resolution.resolve_estimator_settings; a sidecar written before
+# it existed misses on it.
 IDENTITY_FIELDS = (
     "schema_version", "csv_path", "accuracy_cap", "resolved_vehicle_snapshot",
-    "sideslip_source", "grid_rate_hz", "lap_filter", "sidecar_format_version",
+    "sideslip_source", "grid_rate_hz", "lap_filter", "estimator_settings", "sidecar_format_version",
 )
 
 
@@ -29,7 +32,7 @@ def _sidecar_path(outing_id):
 
 
 def build_identity(schema_version, csv_path, accuracy_cap, resolved_vehicle_snapshot,
-                    sideslip_source, grid_rate_hz, lap_filter):
+                    sideslip_source, grid_rate_hz, lap_filter, estimator_settings=None):
     """csv_path must already be normalised (_norm_path). lap_filter sorted
     here -> caller ordering can't cause a false mismatch."""
     return {
@@ -40,13 +43,20 @@ def build_identity(schema_version, csv_path, accuracy_cap, resolved_vehicle_snap
         "sideslip_source": sideslip_source,
         "grid_rate_hz": grid_rate_hz,
         "lap_filter": sorted(lap_filter or []),
+        "estimator_settings": estimator_settings,
         "sidecar_format_version": SIDECAR_FORMAT_VERSION,
     }
 
 
 def _first_mismatch(stored_identity, expected_identity):
     for field in IDENTITY_FIELDS:
-        if stored_identity.get(field) != expected_identity.get(field):
+        stored, expected = stored_identity.get(field), expected_identity.get(field)
+        if stored != expected:
+            # name the input itself, so the miss reason says which setting moved
+            if field == "estimator_settings" and isinstance(stored, dict) and isinstance(expected, dict):
+                for key in sorted(set(stored) | set(expected)):
+                    if stored.get(key) != expected.get(key):
+                        return f"{field}.{key}"
             return field
     return None
 

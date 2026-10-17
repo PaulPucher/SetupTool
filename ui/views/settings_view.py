@@ -751,6 +751,8 @@ class SettingsView(QWidget):
                 section1_changed = True
             _set_path(params, spec["path"], new_value)
 
+        from modules.accuracy_resolution import resolve_estimator_settings
+        estimator_before = resolve_estimator_settings(params, channels)
         sources = {"parameters": params, "channels": channels, "recommendations": recs}
         for key, widget in self.section2_widgets.items():
             file_key, path = key[0], key[1:]
@@ -758,6 +760,9 @@ class SettingsView(QWidget):
             if isinstance(widget, NoScrollIntSpinBox):
                 value = int(value)
             _set_path(sources[file_key], path, value)
+        # R2: these inputs are part of every cache identity; a change makes the
+        # stored results stale until the next Analyse
+        estimator_changed = resolve_estimator_settings(params, channels) != estimator_before
 
         for level, widget in self.driver_weight_widgets.items():
             recs["settings"]["driver_level_weighting"]["weights"][level] = widget.value()
@@ -809,6 +814,9 @@ class SettingsView(QWidget):
         messages = []
         if section1_changed:
             messages.append("Physics constants changed - results will differ. Re-run Analyse.")
+        if estimator_changed:
+            messages.append("Estimator inputs changed (moving speed, kerb detection or corner speed "
+                            "boundaries) - results will differ. Re-run Analyse.")
         if thresholds_changed:
             # verdicts are classified live from config, never stored
             messages.append("Thresholds changed - verdicts use them on the next render or Generate.")

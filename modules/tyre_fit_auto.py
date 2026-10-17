@@ -47,6 +47,12 @@ def _base_mask(state, laps):
     kerb_mask = state.get("kerb_mask")
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
+    # R6: the smear zone goes with the mask -- samples a strike disturbs must
+    # not shape the tyre estimate. This one mask feeds the fit, the R
+    # derivation, the NIS sweep, the gate population and the sign check.
+    smear_zone = state.get("kerb_smear_zone")
+    if smear_zone is not None:
+        moving = moving & ~smear_zone
     valid_windows = [(l["start_time"], l["end_time"]) for l in laps if l.get("is_valid_for_analysis")]
     racing_mask = np.zeros_like(t, dtype=bool)
     for s, e in valid_windows:

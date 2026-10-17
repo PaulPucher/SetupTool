@@ -125,3 +125,16 @@ def test_events_respect_minimum_duration(pipeline_result, state, parsed_data, ef
     sr = state["sample_rate_hz"]
     assert all(e["duration_s"] >= effective_params["limit_events"]["min_duration_s"] - 0.5 / sr
                for e in ev["events"])
+
+
+def test_no_event_line_from_a_failed_nis_gate(pipeline_result, state, parsed_data, effective_params):
+    """R14: a session whose NIS gate failed ships kinematic beta, so its
+    fitted curve draws no event line; a passing or absent gate changes nothing."""
+    base = _events(pipeline_result, state, parsed_data, effective_params)
+    args = (pipeline_result["cs"], state, pipeline_result["corners"], parsed_data["laps"],
+            pipeline_result["fit_manifest"], effective_params)
+    failed = detect_events(*args, slip=pipeline_result["slip"], gate_verdict={"verdict": "fail"})
+    assert failed["events"] == [] and failed["floors"] is None
+    assert "NIS gate failed" in failed["status"]
+    passed = detect_events(*args, slip=pipeline_result["slip"], gate_verdict={"verdict": "pass"})
+    assert json.dumps(passed, sort_keys=True, default=str) == json.dumps(base, sort_keys=True, default=str)

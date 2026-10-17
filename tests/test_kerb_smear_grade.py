@@ -70,10 +70,11 @@ def test_smear_zone_matches_definition(state, effective_params):
 
 def test_near_strike_marks_exactly_the_zone_windows(state, effective_params, parsed_data):
     """near_strike[i] is True exactly when the production CS window [start, i)
-    of a finite CS sample holds a zone sample; False wherever CS is NaN."""
+    of a finite CS sample holds a zone or kerb-mask sample (R1, 2026-10-17: a
+    window entirely inside a kerb run is graded too); False wherever CS is NaN."""
     se = effective_params["stability_estimation"]
     _beta, slip, cs = _cs(state, effective_params, parsed_data.get("laps", []))
-    zone = state["kerb_smear_zone"]
+    zone = state["kerb_smear_zone"] | state["kerb_mask"]
     min_window = resolve_cs_min_window_samples(effective_params, state["sample_rate_hz"])
     marked = 0
     for ax in ("f", "r"):
@@ -91,7 +92,7 @@ def test_near_strike_marks_exactly_the_zone_windows(state, effective_params, par
 def test_near_strike_is_flag_only(state, effective_params, parsed_data):
     """The smear zone stays out of the regression but not out of the
     reference (Class B Fix 0): (a) removing the zone changes no stiffness
-    array; (b) every linear reference in force was set by a clean window --
+    array, and the mark then covers the kerb-mask windows only (R1); (b) every linear reference in force was set by a clean window --
     no kerb, zone or off-analysis-lap sample in its [start, i). The corner
     summaries follow the clean-population rule (2026-10-05): their CS
     statistics skip the marked samples, exactly as if those samples were NaN."""
@@ -104,10 +105,16 @@ def test_near_strike_is_flag_only(state, effective_params, parsed_data):
     for k in ("C_alpha", "C_window", "C_section", "R2"):
         for ax in "fr":
             assert np.array_equal(cs[f"{k}_{ax}"], cs_bare[f"{k}_{ax}"], equal_nan=True), f"{k}_{ax}"
-    assert not cs_bare["near_strike_f"].any() and not cs_bare["near_strike_r"].any()
+    min_window = resolve_cs_min_window_samples(effective_params, state["sample_rate_hz"])
+    for ax in "fr":
+        alpha = slip[f"alpha_{ax}_filt"]
+        mark = cs_bare[f"near_strike_{ax}"]
+        for i in np.flatnonzero(np.isfinite(cs_bare[f"CS_ratio_{ax}"])):
+            start = reconstruct_cs_window_start(alpha, int(i), min_window, se["cs_min_slip_angle_span_rad"],
+                                                state["s_m"], se["cs_max_window_m"])
+            assert mark[i] == bool(state["kerb_mask"][start:i].any()), f"axle {ax} sample {i}"
 
     blocked = state["kerb_mask"] | state["kerb_smear_zone"] | _build_non_analysis_lap_mask(state["time"], laps)
-    min_window = resolve_cs_min_window_samples(effective_params, state["sample_rate_hz"])
     n_set = 0
     for ax in "fr":
         alpha, ref, c_alpha = slip[f"alpha_{ax}_filt"], cs[f"C_linear_ref_{ax}"], cs[f"C_alpha_{ax}"]

@@ -33,7 +33,13 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Internally: the mask gates estimation (kerb_dilation_s = 0.10 s, time-based); the grade mark grades samples whose window the filtered strike reaches (0.20 s); nothing is deleted (2026-10-03).
 - One switch corner_trace_display.kerb_exclusion_display: greyed (default) / excluded / off; app, thesis exports and the tyre-curve scatter agree; kerb-affected = mask or grade mark; near_strike_display key and "near-strike" / "smear" product wording retired, internal names stay (2026-10-07).
 - ~~One caption everywhere: "Kerb-affected samples excluded/greyed (n = X, Y %); retained in all computed results."; the 0.2 s detail lives once in the methods text (2026-10-05).~~ [SUPERSEDED 2026-10-07: inaccurate since schema 12 (2026-10-05), when the verdict statistics began to skip kerb-affected samples.]
-- One caption everywhere: "kerb-affected samples excluded from verdict statistics, retained in CS arrays", prefixed by the plot mode (Grey / Not drawn / Drawn normally) and followed by the count; the 0.2 s detail lives once in the methods text (2026-10-07).
+- ~~One caption everywhere: "kerb-affected samples excluded from verdict statistics, retained in CS arrays", prefixed by the plot mode (Grey / Not drawn / Drawn normally) and followed by the count; the 0.2 s detail lives once in the methods text (2026-10-07).~~ [SUPERSEDED 2026-10-17: wording ruled in R5, next line.]
+- One caption everywhere: "kerb-affected samples excluded from CS verdict statistics, retained in CS arrays", prefixed by the plot mode and followed by the count (author ruling, R5, 2026-10-17).
+- Kerb-affected = kerb mask OR smear zone in the CS regression window, for the grade mark, the tyre-fit base mask and the verdict statistics alike (R1, R6; R5 2026-10-17).
+- CS linear reference band rule: a window may set the reference only inside tyre_fit_auto.stiffness_min_npr / stiffness_max_npr (the same keys as the D4 gate); outside, the previous reference is held; this also removes zero / negative references (R26 / R27, author ruling 2026-10-17).
+- A CS window over a lap-table boundary yields no value and is counted; counts 99 / 2 / 1 accepted, the first-pass 598 / 1438 / 1162 was another counting definition (R11, author ruling 2026-10-17).
+- A corner-lap with no finite CS shows "no CS data" (neutral, own count), severity stays normal (R13, 2026-10-17).
+- The Settings estimator inputs are part of every cache identity, built once in accuracy_resolution.resolve_estimator_settings (R2 / R23, 2026-10-17).
 - Thesis scripts: one flag per figure, full vs kerb-excluded, caption auto-stating it (2026-10-05).
 - Kerb-gap display bridge stays on in traces and exports (display only) (2026-09-30).
 

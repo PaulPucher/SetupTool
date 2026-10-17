@@ -50,13 +50,16 @@ def curve_floor(axle_params, hi_deg):
     return float(k[i]), float(np.degrees(g[i]))
 
 
-def _event_line(fit_manifest):
-    """{"f": floor, "r": floor} or a reason string. A degenerate fit is the
-    one production itself refuses to use -> no line from it."""
+def _event_line(fit_manifest, gate_verdict=None):
+    """{"f": floor, "r": floor} or a reason string. A degenerate fit, or one
+    whose NIS gate failed, is a curve production itself refuses to use (the
+    session ships kinematic beta) -> no line from it (R14)."""
     if not fit_manifest or not fit_manifest.get("axles"):
         return "no event line: no tyre fit in this run (sideslip source without a per-session fit)"
     if fit_manifest.get("status") == "degenerate":
         return "no event line: the session's tyre fit is degenerate"
+    if gate_verdict is not None and gate_verdict.get("verdict") == "fail":
+        return "no event line: the session's NIS gate failed (kinematic sideslip shipped)"
     floors = {}
     for ax, name in AXLES.items():
         fl, _deg = curve_floor(fit_manifest["axles"].get(name, {}), EVENT_FLOOR_MAX_DEG)
@@ -86,7 +89,7 @@ def _runs(mask):
     return list(zip(np.where(d == 1)[0], np.where(d == -1)[0] - 1))
 
 
-def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None):
+def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gate_verdict=None):
     """Limit events of one session. Returns a JSON-safe dict:
     {"status", "floors", "events": [...], "n_instances_by_corner"}.
 
@@ -101,7 +104,7 @@ def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None):
     if not cfg.get("enabled", True):
         out["status"] = "disabled in config"
         return out
-    line = _event_line(fit_manifest)
+    line = _event_line(fit_manifest, gate_verdict)
     if isinstance(line, str):
         out["status"] = line
         return out

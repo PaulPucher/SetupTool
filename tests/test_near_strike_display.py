@@ -126,8 +126,9 @@ def test_lap_figure_export_follows_the_mode(parsed_data, state, pipeline_result,
 
 
 def test_caption_is_the_one_ruled_sentence():
-    # author wording 2026-10-07, verbatim, plus the mode prefix and the count
-    ruled = "kerb-affected samples excluded from verdict statistics, retained in CS arrays"
+    # author wording 2026-10-07, "CS" added by author ruling 2026-10-17 (R5);
+    # verbatim, plus the mode prefix and the count
+    ruled = "kerb-affected samples excluded from CS verdict statistics, retained in CS arrays"
     assert kerb_exclusion_caption("grey", 3, 200) == f"Grey: {ruled} (n = 3, 1.5 %)."
     assert kerb_exclusion_caption("exclude", 3, 200) == f"Not drawn: {ruled} (n = 3, 1.5 %)."
     assert kerb_exclusion_caption("off", 3, 200) == f"Drawn normally: {ruled} (n = 3, 1.5 %)."

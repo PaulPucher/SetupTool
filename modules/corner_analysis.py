@@ -781,3 +781,31 @@ def compute_stable_corner_positions(corners, channels):
         }
         for cid, vals in by_id.items()
     }
+
+def _speed_class_of(apex_speed, low_max, medium_max):
+    if apex_speed < low_max:
+        return "low"
+    if apex_speed < medium_max:
+        return "medium"
+    return "high"
+
+
+def reclassify_speed_classes(corners, speed_thresholds):
+    """Re-derive every corner's speed_class from speed_thresholds, in place
+    (R2/R23). The class is set at parse time, but the boundaries are Settings
+    fields, so a full run re-applies the current ones. Same rules as at
+    detection: canonical instances (realized over a bracket) share one class
+    per stable corner from the median apex speed; per-lap corners use their
+    own apex speed. Unchanged thresholds reproduce the parse result."""
+    low_max, medium_max = speed_thresholds["low_max"], speed_thresholds["medium_max"]
+    by_cid = {}
+    for c in corners:
+        if "bracket_start_m" in c:
+            by_cid.setdefault(c["stable_corner_id"], []).append(c)
+        else:
+            c["speed_class"] = _speed_class_of(c["apex_speed"], low_max, medium_max)
+    for instances in by_cid.values():
+        canon = _speed_class_of(float(np.median([i["apex_speed"] for i in instances])), low_max, medium_max)
+        for i in instances:
+            i["speed_class"] = canon
+    return corners

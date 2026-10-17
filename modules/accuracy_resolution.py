@@ -237,12 +237,33 @@ def _resolve_cog_position(params, corner_weights_resolved):
     }
 
 
+def resolve_estimator_settings(params, channels_config=None):
+    """The Settings Section-2 estimator inputs (R2/R23): not vehicle values,
+    but each changes the moving / kerb masks or the corner speed classes and
+    so the results. Built only here; every cache identity carries it.
+    channels_config None -> read config/channels.json."""
+    if channels_config is None:
+        from modules.csv_parser import load_channels_config
+        channels_config = load_channels_config()
+    se = params["stability_estimation"]
+    speed = channels_config["corner_speed_thresholds"]
+    return {
+        "moving_speed_min_mps": se["moving_speed_min_mps"],
+        "kerb_z_deviation_threshold_g": se["kerb_z_deviation_threshold_g"],
+        "kerb_baseline_g": se["kerb_baseline_g"],
+        "kerb_dilation_s": se["kerb_dilation_s"],
+        "corner_speed_low_max": speed["low_max"],
+        "corner_speed_medium_max": speed["medium_max"],
+    }
+
+
 def resolve_accuracy(params, setup_data=None, cap=None):
     """Resolve mass, corner_weights, cog_position, steering_ratio and
     steering_angle for this session; other nodes keep their registry level.
 
-    Returns {"levels", "values", "clipped", "warnings"}. "values" is
-    JSON-serialisable (goes into the cache identity check).
+    Returns {"levels", "values", "clipped", "warnings", "estimator_settings"}.
+    "values" and "estimator_settings" are JSON-serialisable (both go into
+    the cache identity check).
     clipped = cap actually lowered a node below its best available level.
     """
     registry = params["accuracy_levels"]
@@ -293,6 +314,7 @@ def resolve_accuracy(params, setup_data=None, cap=None):
         "values": values,
         "clipped": clipped,
         "warnings": mass_warnings,
+        "estimator_settings": resolve_estimator_settings(params),
     }
 
 

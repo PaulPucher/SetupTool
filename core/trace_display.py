@@ -154,7 +154,7 @@ def kerb_scatter_split(valid, kerb, mark, mode):
     return valid & ~affected, hollow
 
 
-KERB_CAPTION = "kerb-affected samples excluded from verdict statistics, retained in CS arrays"
+KERB_CAPTION = "kerb-affected samples excluded from CS verdict statistics, retained in CS arrays"
 
 
 def kerb_exclusion_caption(mode, n_affected, n_finite):

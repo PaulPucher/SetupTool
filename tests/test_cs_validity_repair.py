@@ -49,7 +49,11 @@ def _base_se(**overrides):
         "cs_max_window_m": 20.0,
     }
     se.update(overrides)
-    return {"stability_estimation": se}
+    # R26/R27 band on the CS reference (R5, 2026-10-17): the estimator reads
+    # the D4 tyre-fit stiffness band (implied linear axle stiffness, magnitudes
+    # after Bechtloff Fig. 7.2); literal config values, this dict is isolated
+    return {"stability_estimation": se,
+            "tyre_fit_auto": {"stiffness_min_npr": 30000, "stiffness_max_npr": 600000}}
 
 
 def _cs_inputs(alpha, Fy, moving=None, s_m=None, sample_rate_hz=10.0):
