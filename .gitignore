@@ -65,3 +65,6 @@ docs/literature_digest.md
 # diagnostics/inspect_channel_census.py); the table, content test and plots are committed
 diagnostics/channel_census/*.json
 diagnostics/channel_census/*.log
+
+# Per-cycle handover files (rebuild phase) -- local only, like HANDOVER.md
+handover_*

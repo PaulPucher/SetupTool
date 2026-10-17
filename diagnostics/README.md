@@ -787,6 +787,15 @@ the per-section lists below are the current inventory.]
   derived_from of the 2026-10-11 NIS-gate thresholds). Also imports
   inspect_tyre_prior_d2, inspect_new_laps_cs_sweep and
   inspect_threshold_rederivation (Dependency).
+- **check_class_a.py** (2026-10-16, keep: thesis evidence + acceptance tool of the R2 Class A rebuild; reproduces the recorded old-vs-new acceptance numbers) -- OLD = the modules at
+  279f4ee loaded from git in-process, NEW = working tree; Dubai, NBR-73-010-
+  026-JDR, MLA-SE07_US-v2 (paths via tests/conftest resolve_data_path). Full
+  chain (status, sign check, R pick, NIS gate score + skipped windows,
+  divergences, straights |beta|), #26 and #32 isolated on the new beta, #12
+  apex-on-grid count. Imports inspect_kinematic_inputs and
+  inspect_tyre_prior_d2 (Dependency). Output diagnostics/output/class_a/
+  (gitignored). Record: thesis_notes.md "Class A estimator corrections,
+  rebuild".
 
 ## K6 -- imported by a K1-K5 keeper (3 not already listed above)
 

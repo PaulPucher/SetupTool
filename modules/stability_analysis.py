@@ -178,22 +178,32 @@ def _find_monotonic_sections(alpha_filt):
     return sections, section_id
 
 
+# A line with intercept is only over-determined from 3 points on; the chair
+# estimator uses the same floor (end - start > 1, both ends inclusive).
+SECTION_MIN_SAMPLES = 3
+
+
+def _section_slope_and_span(a, f):
+    # OLS slope and slip-angle span of one (possibly clipped) section;
+    # (nan, 0) when it carries no slope information.
+    if len(a) < SECTION_MIN_SAMPLES:
+        return np.nan, 0.0
+    a_mean = np.mean(a)
+    f_mean = np.mean(f)
+    denom = np.sum((a - a_mean) ** 2)
+    if denom < 1e-10:
+        return np.nan, 0.0
+    return np.sum((a - a_mean) * (f - f_mean)) / denom, np.max(a) - np.min(a)
+
+
 def _section_slopes(alpha, Fy, sections):
+    # Whole-section values; compute_cs_for_axle reuses them only for sections
+    # lying completely inside its window and re-fits the clipped edge ones.
     n_sec = len(sections)
     slopes = np.full(n_sec, np.nan)
     spans = np.zeros(n_sec)
     for k, (s, e) in enumerate(sections):
-        if e - s < 2:
-            continue
-        a = alpha[s:e]
-        f = Fy[s:e]
-        a_mean = np.mean(a)
-        f_mean = np.mean(f)
-        denom = np.sum((a - a_mean) ** 2)
-        if denom < 1e-10:
-            continue
-        slopes[k] = np.sum((a - a_mean) * (f - f_mean)) / denom
-        spans[k] = np.max(a) - np.min(a)
+        slopes[k], spans[k] = _section_slope_and_span(alpha[s:e], Fy[s:e])
     return slopes, spans
 
 
@@ -227,10 +237,28 @@ def _build_inout_lap_mask(t_ref, laps):
     # Module 5 excludes in/out laps regardless of the UI lap_filter: cold
     # tyres break the cross-lap stationarity the regression assumes (same
     # idea as the kerb mask). [domain improvement]
+    # Superseded in production by _build_non_analysis_lap_mask (#32); kept
+    # for the diagnostics that reproduce pre-#32 regression windows.
     mask = np.zeros(len(t_ref), dtype=bool)
     for lap in laps or []:
         if lap.get("is_outlap") or lap.get("is_inlap"):
             mask |= (t_ref >= lap["start_time"]) & (t_ref <= lap["end_time"])
+    return mask
+
+
+def _build_non_analysis_lap_mask(t_ref, laps):
+    # Module 5 pools analysis laps only (finding #32): beyond the in/out laps
+    # the slow laps (past valid_lap_max_ratio, e.g. traffic or a cool-down
+    # lap) also break the cross-lap stationarity the regression assumes.
+    # Same lap set as the CS summaries and the tyre fit. No lap list -> no
+    # lap exclusion, as before. [domain improvement]
+    mask = np.zeros(len(t_ref), dtype=bool)
+    if not laps:
+        return mask
+    mask[:] = True
+    for lap in laps:
+        if lap.get("is_valid_for_analysis"):
+            mask &= ~((t_ref >= lap["start_time"]) & (t_ref <= lap["end_time"]))
     return mask
 
 
@@ -826,12 +854,20 @@ def estimate_cornering_stiffness(slip, forces, state, params):
             C_window[i] = C_w
             R2[i] = R2_i
 
-            sec_ids_in_window = np.unique(section_id[start:i])
+            # Sections clipped to the window, as in the chair estimator: a
+            # section reaching past either window edge is re-fitted on its
+            # in-window part only, and its weight comes from that part's span.
+            # Before, whole-session sections leaked data from outside the
+            # window into the section estimate (finding #26).
             weights = []
             slopes = []
-            for k in sec_ids_in_window:
-                slope_k = sec_slopes[k]
-                span_k = sec_spans[k]
+            for k in range(section_id[start], section_id[i - 1] + 1):
+                s, e = sections[k]
+                lo, hi = max(s, start), min(e, i)
+                if lo == s and hi == e:
+                    slope_k, span_k = sec_slopes[k], sec_spans[k]
+                else:
+                    slope_k, span_k = _section_slope_and_span(alpha[lo:hi], Fy[lo:hi])
                 if np.isnan(slope_k):
                     continue
                 w_k = _smooth_weight(span_k, 0.0, min_span, order=SPAN_WEIGHT_EXPONENT)
@@ -899,10 +935,11 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     al. 2008, sec. 2); saddle-node framing as motivation only (Ono et al.
     1998), no bifurcation analysis.
 
-    Exclusions (moving, kerb, in/out lap) applied here by NaN-ing samples;
-    the estimator itself runs unmasked. [neutral engineering]
-    In/out laps always excluded, independent of the UI lap_filter -- cold
-    tyres corrupt the cross-lap pooling. [domain improvement]
+    Exclusions (moving, kerb, non-analysis lap) applied here by NaN-ing
+    samples; the estimator itself runs unmasked. [neutral engineering]
+    Only analysis laps are pooled, independent of the UI lap_filter -- in/out
+    laps (cold tyres) and slow laps corrupt the cross-lap pooling. [domain
+    improvement]
     The chair's time-anchored fallback (no s_m) not ported: different
     estimator, the s-grid thresholds don't apply -> no verdict instead.
     """
@@ -921,7 +958,7 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     kerb_mask = state.get("kerb_mask")
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
-    moving = moving & ~_build_inout_lap_mask(t, laps)
+    moving = moving & ~_build_non_analysis_lap_mask(t, laps)
 
     Iz = vp["yaw_inertia_kgm2"]
 

@@ -783,10 +783,11 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         "b_front": front_fit["B"], "c_front": front_fit["C"], "d_front": front_fit["D"], "e_front": front_fit["E"],
         "b_rear": rear_fit["B"], "c_rear": rear_fit["C"], "d_rear": rear_fit["D"], "e_rear": rear_fit["E"],
         "Q_beta_var": cfg["q_beta_var"], "Q_yaw_rate_var": cfg["q_yaw_rate_var"],
+        "q_reference_rate_hz": cfg["q_reference_rate_hz"],
         "P0_beta_var": cfg["p0_beta_var"], "P0_yaw_rate_var": cfg["p0_yaw_rate_var"],
         "R_ay_var": r_ay_var_derived, "R_yaw_rate_var": cfg["r_yaw_rate_interim_seed_var"],
         "beta_hard_bound_deg": cfg["beta_hard_bound_deg"],
-        "nis_window_samples": cfg["nis_window_samples"], "nis_chi2_bound": cfg["nis_chi2_bound"],
+        "nis_window_s": cfg["nis_window_s"], "nis_chi2_bound": cfg["nis_chi2_bound"],
         "nis_flag_fraction": cfg["nis_flag_fraction"],
     }
     params_interim = dict(params)
@@ -836,7 +837,9 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         S_diag = result["S_diag"][base_mask]
         f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
         f_ay = float((innovation[:, 1] ** 2 / S_diag[:, 1] > CHI2_DF1_95).mean())
-        sign = _sign_check(t, s_m, result["beta"], ay, base_mask, corners_by_stable_id, laps_by_number, racing_ids)
+        # guard judges the beta this grid point would ship (#20)
+        sign = _sign_check(t, s_m, result["beta_with_fallback"], ay, base_mask, corners_by_stable_id,
+                           laps_by_number, racing_ids)
         return {"r_ay_scale": r_ay_scale, "r_yaw_scale": r_yaw_scale,
                 "R_ay_var": sweep_cfg["R_ay_var"], "R_yaw_rate_var": sweep_cfg["R_yaw_rate_var"],
                 "f_yaw": f_yaw, "f_ay": f_ay, "ay_in_band": band_lo <= f_ay <= band_hi,
@@ -872,6 +875,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     params_final["tyre_model_ekf_pacejka"] = {"_auto_final": final_cfg}
     final_result = estimate_sideslip_ekf_pacejka(state, params_final, pass_id="_auto_final")
     beta_ekf = final_result["beta"]
+    # Sign check, coverage and h2 validate the beta that ships, not the raw
+    # update (#20): the two differ at hard-bound re-entries, where the raw
+    # value sits beyond the bound and the shipped one is the reset state.
+    beta_shipped = final_result["beta_with_fallback"]
     manifest["final_config"] = final_cfg
 
     innovation = final_result["innovation"][base_mask]
@@ -885,9 +892,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     manifest["nis"] = {"yaw_rate_exceedance": f_yaw, "ay_exceedance": f_ay,
                         "combined_exceedance": f_comb, "combined_mean_nis": float(np.mean(nis_combined))}
 
-    manifest["sign_check"] = _sign_check(t, s_m, beta_ekf, ay, base_mask, corners_by_stable_id, laps_by_number, racing_ids)
+    manifest["sign_check"] = _sign_check(t, s_m, beta_shipped, ay, base_mask, corners_by_stable_id, laps_by_number,
+                                         racing_ids)
 
-    slip_ekf = estimate_slip_angles(state, beta_ekf, params)
+    slip_ekf = estimate_slip_angles(state, beta_shipped, params)
     coverage = {}
     for axle_name, alpha_c, fit in (("front", slip_ekf["alpha_f_filt"], front_fit), ("rear", slip_ekf["alpha_r_filt"], rear_fit)):
         alpha_deg = np.degrees(alpha_c)[base_mask]
@@ -923,10 +931,15 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     # only cap the status through the soft yaw_mismatch_ceiling.
     gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
     gross = cfg["nis_gross_miscalibration_fraction"]
-    if gate_frac < cfg["sign_check_degenerate_fraction"] or f_ay > gross:
+    # No racing corner to check (NaN fraction) used to pass every comparison
+    # silently; an unvalidated fit is degenerate, not ok (#22).
+    sign_nan = gate_frac != gate_frac
+    if sign_nan or gate_frac < cfg["sign_check_degenerate_fraction"] or f_ay > gross:
         manifest["status"] = "degenerate"
         parts = []
-        if gate_frac < cfg["sign_check_degenerate_fraction"]:
+        if sign_nan:
+            parts.append("sign check not computable")
+        elif gate_frac < cfg["sign_check_degenerate_fraction"]:
             parts.append(f"sign check: median gate racing fraction {gate_frac:.3f} < "
                          f"{cfg['sign_check_degenerate_fraction']:g}")
         if f_ay > gross:

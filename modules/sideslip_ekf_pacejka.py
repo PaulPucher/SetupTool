@@ -61,15 +61,6 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     Bf, Cf, Df, Ef = cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"]
     Br, Cr, Dr, Er = cfg["b_rear"], cfg["c_rear"], cfg["d_rear"], cfg["e_rear"]
 
-    Q = np.diag([cfg["Q_beta_var"], cfg["Q_yaw_rate_var"]])
-    R = np.diag([cfg["R_yaw_rate_var"], cfg["R_ay_var"]])
-    P0 = np.diag([cfg["P0_beta_var"], cfg["P0_yaw_rate_var"]])
-
-    beta_hard_bound_rad = np.radians(cfg["beta_hard_bound_deg"])
-    nis_window = int(cfg["nis_window_samples"])
-    nis_chi2_bound = cfg["nis_chi2_bound"]
-    nis_flag_fraction = cfg["nis_flag_fraction"]
-
     v = state["v_mps"]
     yaw_rate_meas = state["yaw_rate_radps"]
     ay_meas = state["ay_mps2"]
@@ -80,6 +71,23 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
 
     n = len(v)
     dt = 1.0 / sr
+
+    # Q entries are per-step variances tuned on the 50 Hz grid. White process
+    # noise integrated over one step adds variance in proportion to the step
+    # length (first-order discretisation, Q_d = Q_c * dt), so scale by
+    # dt / dt_ref: exactly 1 at the reference rate (bit-identical), half per
+    # step at 100 Hz, i.e. the same variance per second. [Tier B: standard
+    # discretisation, preprocessing of a tuned value]
+    q_scale = cfg["q_reference_rate_hz"] / sr
+    Q = np.diag([cfg["Q_beta_var"], cfg["Q_yaw_rate_var"]]) * q_scale
+    R = np.diag([cfg["R_yaw_rate_var"], cfg["R_ay_var"]])
+    P0 = np.diag([cfg["P0_beta_var"], cfg["P0_yaw_rate_var"]])
+
+    beta_hard_bound_rad = np.radians(cfg["beta_hard_bound_deg"])
+    # divergence window is a duration; the old 20 samples meant 0.4 s at 50 Hz
+    nis_window = int(round(cfg["nis_window_s"] * sr))
+    nis_chi2_bound = cfg["nis_chi2_bound"]
+    nis_flag_fraction = cfg["nis_flag_fraction"]
     eye2 = np.eye(2)
 
     beta_out = np.zeros(n)

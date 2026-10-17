@@ -52,6 +52,16 @@ REPO STATE
 - REBUILD BOARD: R1 DONE 2026-10-16 (entry 9 citation scope: multi-IMU ->
   Goblirsch 2024 only, IFAC 2019 lineage-only; one further spot struck in
   the read-only-pass-2 supersede note). Text only. Pending the author's commit.
+- REBUILD BOARD: R2 Class A DONE 2026-10-16 (seven estimator corrections
+  #26 CS section clipping, Q dt-scaling, NIS window 0.4 s, #20 shipped beta
+  in sign check/coverage/h2, #22 NaN sign check degenerate, #24 NaN-aware
+  NIS gate + n_windows_skipped_low_coverage, #32 analysis laps only;
+  Pacejka path only). Acceptance numbers reproduced (diagnostics/
+  check_class_a.py; thesis_notes "Class A estimator corrections,
+  rebuild"). Goldens STALE by design, no threshold/golden/schema work
+  (deferred to the final re-derivation chain; gate payload gains one
+  field -> schema bump owed there). Latent #1/2/3/5/6/23 not checkable
+  (definitions lost). #12 fires -> next cycle. Pending the author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
