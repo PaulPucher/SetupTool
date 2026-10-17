@@ -135,6 +135,11 @@ REPO STATE
   test_thesis_data.py 33 / 33 passed. Resulting full-suite arithmetic (not
   re-run): 619 passed / 2 failed (kinematic golden, Dubai pipeline golden) /
   1 xfailed. Pending the author's commit.
+- CS REFERENCE ROBUSTNESS 2026-10-17 (read-only simulation at 2b02160; log
+  diagnostics/output/cs_ref_robustness/robustness.log; handover_cs_ref_
+  robustness_2026-10-17.md): V0 HEAD, V1 median of last N = 5 / 11 / 21 valid set
+  events, V2 fitted B*C*D constant, on JST 29 / NBR JDR / PR. Facts only, no
+  recommendation; no production change, no suite. Author to rule.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
