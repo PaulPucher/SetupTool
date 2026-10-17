@@ -25,7 +25,7 @@ How to read an entry (five fixed parts):
 5. DOWNSTREAM CONSUMERS: who reads the result.
 Every entry ends with a STATUS line: "fully protected" or "edges open: ...".
 
-Findings are numbered R1 to R25 and listed at the end with their class:
+Findings are numbered R1 to R26 (R26 added 2026-10-17 after the spike trace) and listed at the end with their class:
 F1 defect, F2 claim-code mismatch, F3 unjustified choice or limitation.
 
 Counts: the shipped pipeline (best available, cap None, sideslip source
@@ -293,13 +293,14 @@ smear by construction (S5, handled downstream by S3 where it is handled).
      analysis-lap corners are read (Q5). Window can straddle a lap boundary
      (R11, latent).
    - Reference age: UNPROTECTED (R4).
+   - Reference value: UNPROTECTED, no bound (R26, added 2026-10-17).
 5. DOWNSTREAM CONSUMERS: per-phase statistics (Q5), limit events (Q12),
    trace windows and cross-lap envelopes (R25), thesis_data.read_sidecar,
    tyre-curve audit plot (C_linear_ref_f/r), sidecar and in-memory cache.
    n_no_reference_* are in memory only (R12).
 FIX 0 VERIFICATION (every reference SET event, detected as C_linear_ref == C_alpha and independently by re-evaluating the set condition on the reconstructed window; both detections agree sample for sample): front / rear Dubai 2640 / 3104, NBR 15456 / 14980, PR 4585 / 4836 -- all equal to the first pass. Windows holding a kerb-mask or smear sample: 0. Windows reaching off an analysis lap: 0. Windows above the linear slip-angle limit: 0. Pitfall confirmed: reference values reappearing after a NaN gap without a set event, front / rear Dubai 139 / 150, NBR 232 / 237, PR 380 / 346 -- none counted as set events.
 STATUS: edges open: kerb mask inside the window (R1), reference age across
-laps (R4), beta's kerb carry (R5), lap boundary inside the window (R11,
+laps (R4), reference value unbounded (R26), beta's kerb carry (R5), lap boundary inside the window (R11,
 latent), no-reference visibility (R12).
 
 ### Q5 CS per-phase statistics (and the near-strike grade mark they read)
@@ -534,7 +535,7 @@ STATUS: edges open: R2 (stale mask after a Settings edit).
 - Q1 kinematic beta: edges open: kerb mask, analysis laps (R5).
 - Q2 EKF / shipping beta: edges open: kerb mask, analysis laps (R5).
 - Q3 slip angles and axle forces: edges open: R5 through beta; filter smear by construction (S5).
-- Q4 CS values: edges open: R1, R4, R5, R11 (latent), R12. Reference edge (Fix 0) protected and verified.
+- Q4 CS values: edges open: R1, R4, R5, R11 (latent), R12, R26. Reference edge (Fix 0) protected and verified.
 - Q5 CS per-phase statistics: edges open: R1, R12; carried R4, R5.
 - Q6 worst-lap values and aggregation: edges open: inherited R1, R4, R12; R13 path.
 - Q7 tyre fit and acceptance: edges open: R6, R2 / R23, R14 (latent).
@@ -580,6 +581,8 @@ limitation. Numbers front / rear; sessions Dubai / NBR / PR.
 - R23 F2, new -- tyre_fit_auto.py:527: the fit's sign check picks racing corners by speed_class, set at parse time from the Settings corner speed boundaries, so the fit status depends on a Settings field no identity or warning covers (R2 at the fit-status level); PRODUCTION.md 4 states the rule without the dependency.
 - R24 F3, new -- core/thesis_data.py:14-45: the thesis data reader has no identity or schema check (reports schema_version, never refuses); a thesis figure can be drawn from a stale sidecar (R3 family; the local sidecars are schema 8 and 14).
 - R25 F3, new -- corner_trace_dialog.py:836-859, core/trace_display.py:100-130: the cross-lap p10 / p90 envelopes (a displayed statistic in the default corner view) pool the full CS arrays (graded samples included) and the stability field at kerb positions; kerb exclusion governs the drawn samples, not the envelope lines.
+
+- R26 F3, added 2026-10-17 (spike trace), STATUS open, decision pending -- stability_analysis.py:930-931 (Q4): the linear reference has no bound on its value; a clean low-excitation window can set a reference far below the session level (JST 29 rear 8595 N/rad = 0.05 x median); verdict-read; inherited from the chair's calculate_cornering_stiffness_ratio (docs/literature/cornering_stiffness_estimator.py, no bound there either).
 
 First-pass mapping: R1-R20 as in the work order (R15-R20 = the six claim mismatches, R18 partly resolved by R3). Deviations from the recorded numbers, with causes:
 - None in value. Every recorded number reproduced once the first pass's population definitions were identified: R1 and R4 count block membership without the count gate (with the gate: R1 15 / 9, 23 / 21, 70 / 46; R4 PR rear 409); R5 stability is the regression population, not the verdict-read set; R6 is the base mask, not the speed-windowed fit population.

@@ -101,6 +101,19 @@ REPO STATE
   goldens) / 597 passed / 1 xfailed, 19.4 min. Schema bump owed in the final
   chain for "balance" and resolved_levels.understeer_gradient. Pending the
   author's commit.
+- SPIKE TRACE 2026-10-17 (read-only): the JST 29 spikes are current-code
+  output (sidecar == fresh run), dominated by small CLEAN references (a
+  low-excitation window under 0.03 rad sets a reference 0.05-0.5 x the session
+  median); verdict-read, moves a few classifier medians; chair-identical
+  mechanism (no bound on the reference in the chair code). Candidate R26 (F3).
+  No fix; author to rule.
+- SPIKE FOLLOW-UP 2026-10-17 (read-only): R26 entered in the registry (open).
+  Small references existed before Fix 0 on all three exports; Fix 0 made the
+  ones reaching verdicts longer-lived on JST 29 and PR front. A simulated
+  30000-600000 N/rad band on the reference removes the extremes only (no new
+  no-reference samples). Physical CS floor of the fitted curve -0.05 to -0.33;
+  thousands of verdict-read samples lie below it, mostly "other" (not kerb, not
+  small reference). Facts in thesis_notes "Spike follow-up"; author to rule.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
