@@ -62,6 +62,12 @@ REPO STATE
   (deferred to the final re-derivation chain; gate payload gains one
   field -> schema bump owed there). Latent #1/2/3/5/6/23 not checkable
   (definitions lost). #12 fires -> next cycle. Pending the author's commit.
+- R2b RUNTIME CHECK 2026-10-17: STOPPED at step 1, no code change. The
+  5 h 20 min R2 suite is NOT a code regression: per-pipeline wall time
+  old (279f4ee) vs new within +-3 % on Dubai / NBR-73 / PR (fix 1 edge
+  re-fit 4 s per Dubai run). The suite spanned a system sleep/hibernate
+  19:36 -> 00:29 (Windows System log); active time ~27 min vs R0 31 min.
+  Awaiting author ruling (O(1) rewrite not needed on this evidence).
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
