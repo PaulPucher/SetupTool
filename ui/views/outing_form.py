@@ -170,8 +170,6 @@ class StabilityAnalysisThread(QThread):
                 gate_verdict = self.pipeline_cache.get("gate_verdict")
                 fallback_used = self.pipeline_cache.get("fallback_used", False)
                 fallback_reason = self.pipeline_cache.get("fallback_reason")
-                # .get(): entries from before the balance line have none
-                balance = self.pipeline_cache.get("balance")
                 events = self.pipeline_cache.get("events")
             else:
                 params = load_parameters()
@@ -211,9 +209,6 @@ class StabilityAnalysisThread(QThread):
                 slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)
                 ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
                 corners = self.parsed_data.get("corners", [])
-                from modules.balance_gradient import estimate_understeer_gradient
-                balance = estimate_understeer_gradient(state, effective_params,
-                                                       self.parsed_data.get("laps", []), corners)
                 # limit events: display + record only, read after the verdict chain
                 from modules.limit_events import detect_events
                 events = detect_events(cs, state, corners, self.parsed_data.get("laps", []),
@@ -243,7 +238,6 @@ class StabilityAnalysisThread(QThread):
                 "gate_verdict": gate_verdict,
                 "fallback_used": fallback_used,
                 "fallback_reason": fallback_reason,
-                "balance": balance,
                 "events": events,
             })
             t_total = time.perf_counter()
@@ -1187,8 +1181,6 @@ class OutingForm(QWidget):
         self.calibration_banner_label.setText("")
         self.calibration_banner_label.setVisible(False)
         self.accuracy_footer_label.setText("")
-        self.balance_label.setText("")
-        self.balance_label.setVisible(False)
         self.events_label.setText("")
         self.events_label.setVisible(False)
         self._displayed_events = None
@@ -1428,7 +1420,6 @@ class OutingForm(QWidget):
             "gate_verdict": result["gate_verdict"],
             "fallback_used": result["fallback_used"],
             "fallback_reason": result["fallback_reason"],
-            "balance": result["balance"],
             "events": result["events"],
         }
         _pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)
@@ -1439,8 +1430,7 @@ class OutingForm(QWidget):
             result["sideslip_source"], fit_manifest=result["fit_manifest"],
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
-            grid_rate_hz=result["state"]["sample_rate_hz"], balance=result["balance"],
-            events=result["events"],
+            grid_rate_hz=result["state"]["sample_rate_hz"], events=result["events"],
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1468,7 +1458,6 @@ class OutingForm(QWidget):
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
             grid_rate_hz=result["state"]["sample_rate_hz"],
-            balance=result["balance"],
             events=result["events"],
         )
         self._last_render_kwargs = dict(render_kwargs, summaries=result["summaries"])
@@ -1491,7 +1480,7 @@ class OutingForm(QWidget):
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
                                    sideslip_source="kinematic", fit_manifest=None,
                                    gate_verdict=None, fallback_used=False, fallback_reason=None,
-                                   grid_rate_hz=None, balance=None, events=None):
+                                   grid_rate_hz=None, events=None):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1518,8 +1507,6 @@ class OutingForm(QWidget):
             "fallback_reason": fallback_reason,
             # grid rate this run used; identity field
             "grid_rate_hz": grid_rate_hz,
-            # session understeer gradient (Level 2), None if no quasi-steady data
-            "balance": balance,
             # limit events (display + record only), schema 13
             "events": events,
         }
@@ -1629,7 +1616,6 @@ class OutingForm(QWidget):
             fallback_used=cached.get("fallback_used", False),
             grid_rate_hz=cached.get("grid_rate_hz"),
             fallback_reason=cached.get("fallback_reason"),
-            balance=cached.get("balance"),
             events=cached.get("events"),
         )
         self._last_render_kwargs = dict(render_kwargs, summaries=summaries)
@@ -1655,19 +1641,6 @@ class OutingForm(QWidget):
         ("lateral_acc", "ay"),
         ("wheelbase_m", "wheelbase"),
     ]
-
-    def _format_balance_line(self, balance):
-        # wording as ruled from the mock (2026-10-05)
-        if balance is None:
-            return ""
-        from modules.balance_gradient import balance_reading
-        k = balance["K_deg_per_g"]
-        lo, hi = balance["ci95_deg_per_g"]
-        reading = balance_reading(balance)
-        return (f"Measured balance in steady cornering: understeer gradient {k:+.2f} deg/g "
-                f"(95 % range {lo:+.2f} to {hi:+.2f}) -- {reading}.\n"
-                "Positive = more steering needed per g of lateral acceleration; measured from steering, "
-                "independent of the per-corner verdicts below.")
 
     def _format_events_list(self, events):
         # session list at the feedback form's resolution (corner, phase, axle);
@@ -1743,7 +1716,7 @@ class OutingForm(QWidget):
                                      cap=None, resolved_accuracy=None, sideslip_source=None,
                                      fit_manifest=None, gate_verdict=None,
                                      fallback_used=False, fallback_reason=None,
-                                     grid_rate_hz=None, balance=None, events=None):
+                                     grid_rate_hz=None, events=None):
         # The only place cards are built and classified from summaries (fresh run
         # and cache hit alike) -> threshold changes always show. Clears the
         # outdated-schema flag.
@@ -1775,8 +1748,6 @@ class OutingForm(QWidget):
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
         )
-        self.balance_label.setText(self._format_balance_line(balance))
-        self.balance_label.setVisible(balance is not None)
         # read by the card details and the trace dialogs; None for payloads
         # from before schema 13
         self._displayed_events = events
@@ -2125,13 +2096,6 @@ class OutingForm(QWidget):
         self.calibration_banner_label.setWordWrap(True)
         self.calibration_banner_label.setVisible(False)
         panel_layout.addWidget(self.calibration_banner_label)
-
-        # session balance line: measured understeer gradient beside the verdicts
-        self.balance_label = QLabel("")
-        self.balance_label.setStyleSheet(f"color: {ACCENT}; font-size: 11px;")
-        self.balance_label.setWordWrap(True)
-        self.balance_label.setVisible(False)
-        panel_layout.addWidget(self.balance_label)
 
         # session list of limit events (corner, phase, axle); muted -- events
         # are moments, not verdicts

@@ -80,9 +80,10 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Deep-tail ledger closed: kerb-shown 25 + 4, car events 2, proven artefacts 3, residual ~50 % front / 36 % rear "incompatible with the session's quasi-steady tyre characteristic; specific mechanism not shown" (2026-10-05).
 
 ## Balance readout
-- Understeer-gradient readout (balance line, K) REMOVED from the application entirely -- UI, payload, exports, tests; basis Guiggiani 2023 (K not meaningful for cars with significant downforce), outside the thesis scope; mapped in R4, removal is the next cycle (2026-10-17).
-- K2 is a readout, never a constraint on the fit (2026-10-04).
-- Steady-state gradient and per-corner verdicts measure different things (steady-state balance vs local axle saturation per corner and phase); both stand (2026-10-05).
+- ~~Understeer-gradient line SHIPS: one measured, beta-free session quantity (Rajamani sec. 3.2 Eq. 3.23, Level 2) with its 95 % range, one UI line beside the verdicts; config derived_from names Eq. 3.23 and the quasi-steady population provenance; schema bump "balance key added - measured understeer gradient, Level 2" (2026-10-05).~~ [SUPERSEDED 2026-10-17: readout removed by author decision, next line; this line was overwritten in the R4 follow-up and restored struck in R4b.]
+- Understeer-gradient readout (balance line, K) REMOVED from the application entirely -- UI, payload, exports, tests; basis Guiggiani 2023 (K not meaningful for cars with significant downforce), outside the thesis scope; removed in R4b (2026-10-17).
+- ~~K2 is a readout, never a constraint on the fit (2026-10-04).~~ [SUPERSEDED 2026-10-17: the understeer-gradient readout was removed (R4b, author decision), see the REMOVED line above.]
+- ~~Steady-state gradient and per-corner verdicts measure different things (steady-state balance vs local axle saturation per corner and phase); both stand (2026-10-05).~~ [SUPERSEDED 2026-10-17: the understeer-gradient readout was removed (R4b, author decision), see the REMOVED line above.]
 
 - Event layer SHIPS as display + record only (2026-10-06): CS below the session's 0-30 deg curve floor (promoted curve-floor method, B C D normalisation as is), bridge gap 0.5 s, minimum duration 0.1 s = one CS regression window, labels kerb-affected / recurring (+/-10 m) / single; feeds no verdict and no recommendation; schema 13 (2026-10-06).
 - Event thesis consumer scoped to corner and phase (the feedback form's resolution); the feedback form gains no lap tags (team instrument, frozen) (2026-10-06).

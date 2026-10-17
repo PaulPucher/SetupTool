@@ -191,7 +191,7 @@ stability regression sample is taken. The wheel-load straight-line fits
 
 ### 2.4 Zero-phase low-pass (the 2 Hz conditioning)
 
-Slip angles, axle lateral forces and the understeer-gradient signals are
+Slip angles and axle lateral forces are
 low-passed with a Butterworth filter run forward and backward (filtfilt,
 zero phase). Cutoff CONFIG stability_estimation.cs_filter_cutoff_hz =
 2.0 Hz; order CODE stability_analysis.BUTTERWORTH_ORDER = 4
@@ -228,8 +228,7 @@ Where it acts:
 - ESTIMATION (masked samples): no CS value at masked samples (8.1);
   masked samples are outside the Pacejka fit population, the R
   derivation, the NIS gate population and the sign check (4, 5); outside
-  the stability regression population (10); outside the
-  understeer-gradient population (11). The kinematic integration (3)
+  the stability regression population (10). The kinematic integration (3)
   and the EKF (5) run through masked samples.
 - JUDGEMENT (graded samples): the per-phase CS statistics that feed
   classification skip the graded samples (12.2). The thresholds were
@@ -708,43 +707,9 @@ instead). The measure is chair-conform (inertial regressand, no damping
 term). Tier A.
 
 
-## 11. Understeer gradient (session balance line, beta-free)
+## 11. Understeer gradient
 
-Method (modules/balance_gradient.py; Rajamani sec. 3.2, Eq. 3.23:
-delta = L / R + K a_y with 1 / R = r / v). K is the OLS slope of
-    y = LP(delta_f) - delta_0 - L LP(r) / LP(v)     on     x = LP(a_y)
-LP = 2 Hz zero-phase low-pass (2.4); delta_0 = median delta_f on racing
-samples outside corner brackets (steering zero); L = a + b. Reported in
-deg/g.
-
-Quasi-steady population (CONFIG understeer_gradient):
-- racing: moving, outside the kerb mask, on analysis laps;
-- inside a canonical corner bracket (12.1);
-- |LP(r) LP(v)| above the session's Otsu split of |a_y| over racing
-  samples, otsu_bins = 256 (standard between-class-variance threshold,
-  no fixed g value);
-- |d LP(r) / dt| < psidd_max_radps2 = 0.15 rad/s^2;
-- |LP(a_x)| < ax_max_mps2 = 2.0 m/s^2;
-- |a_y| < ay_clip_g = 5.0 g.
-
-Range: 95 % corner-traversal cluster bootstrap (traversals, not samples,
-are resampled, because samples within one pass are not independent),
-bootstrap_draws = 200, bootstrap_seed = 20261002. The reading word ("the
-car understeers" / "oversteers") appears only when the range excludes
-zero, else "balance not resolved from neutral".
-
-What it is and is not: the car's steady-state balance over the
-quasi-steady population; a corner verdict (13) is the local saturation of
-one axle in one phase -- the two measure different things and both
-stand. It is a readout, never a constraint on the fit. Shown as one UI
-line beside the verdicts.
-
-Accuracy: understeer_gradient Level 2 (session measurement); wheelbase
-the only vehicle constant in it; steering via the steering_angle node
-(Level 4 with the table).
-
-Chair: SetupTool's own (no chair counterpart). Tier A (Rajamani), Tier B
-(population gates).
+Understeer-gradient readout removed 2026-10-17 (author decision; Guiggiani 2023, not meaningful with significant downforce).
 
 
 ## 12. Phases and aggregation
@@ -1222,7 +1187,6 @@ registry level.
   mate; capped by the Level-1 axle-total placeholders).
 - yaw_damping: Level 1, diagnostic consumer only (not in Module 5, the
   payload or the UI).
-- understeer_gradient: Level 2, session measurement, beta-free.
 - Not a registry node: c_session (session-fitted aero coefficient),
   Level 2 per its module docstring; aero_front_fraction Level 1.
 
@@ -1248,6 +1212,8 @@ any estimator-input change made outside Settings bumps it.
   fit population; fit manifest gains speed_window.
 - 12: (2026-10-05) balance key added -- measured understeer gradient,
   Level 2; the classification CS statistics skip kerb-affected samples.
+  [2026-10-17: the balance key is no longer written (readout removed,
+  section 11); the bump for the removed field is owed in the final chain.]
 - 13: (2026-10-06) events key added -- limit events (13.4), display and
   record only; no estimator input and no summary value changed.
 - 14: (2026-10-07) every CS statistic block gains n_kerb_excluded

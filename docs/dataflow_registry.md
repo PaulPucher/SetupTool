@@ -446,7 +446,7 @@ beta's kerb carry (R5).
 4. POPULATION RULES: analysis laps at the input edge; no kerb or moving rule
    (geometry only).
 5. DOWNSTREAM CONSUMERS: summaries (Q5, Q9), tyre fit speed window, sign
-   check and h2 (Q7), balance brackets (Q13), events (Q12), decision frame
+   check and h2 (Q7), balance brackets (Q13, removed 2026-10-17), events (Q12), decision frame
    (kerb flags Q14, TPMS, ABS), track map.
 STATUS: edges open: speed class staleness after a Settings edit (R2).
 
@@ -493,7 +493,7 @@ STATUS: edges open: R13; inherited R1, R4, R8, R12.
    13.4).
 STATUS: edges open: R1 (label), R14 (latent on these exports).
 
-### Q13 Balance line (understeer gradient)
+### Q13 Balance line (understeer gradient) -- REMOVED 2026-10-17, K readout deleted (R4b); entry kept as the record
 
 1. COMPUTED IN: balance_gradient.estimate_understeer_gradient (:195-269);
    reading balance_reading (:272-279).
@@ -543,7 +543,7 @@ STATUS: edges open: R2 (stale mask after a Settings edit).
 - Q10 corner phases: edges open: R2.
 - Q11 classification and headline numbers: edges open: R13; inherited R1, R4, R8, R12.
 - Q12 limit events: edges open: R1 (label, 0 cases here), R14 (latent).
-- Q13 balance line: edges open: R7.
+- Q13 balance line: removed 2026-10-17, K readout deleted.
 - Q14 decision-frame kerb flags: edges open: R2.
 - S6 caches (cross-cutting): edges open: R2, R3, R24.
 No quantity is fully protected; the CS reference edge is the one seam
@@ -561,7 +561,7 @@ limitation. Numbers front / rear; sessions Dubai / NBR / PR.
 - R4 F3 -- stability_analysis.py:930-936: the linear reference carries across lap boundaries with no age limit. Verdict-read samples dividing by the previous lap's reference: Dubai 0 / 0, NBR 0 / 0, PR 562 / 410 (block membership, as the first pass counted; 562 / 409 with the count gate), reference age 9.2-16.1 s front, 9.2-12.5 s rear. Including graded samples: 863 / 969.
 - R5 F3 -- stability_analysis.py:427-446, sideslip_ekf_pacejka.py:123-200: the kinematic integrator and washout and the EKF state run through kerb samples (and through out-laps) and carry that state on. Verdict-read CS samples with a mask sample in the previous 1 s: Dubai 4.11 / 3.39 %, NBR 1.98 / 1.94 %, PR 9.99 / 10.29 %. Stability: of the regression population (the samples that shape the field) 10.48 / 4.99 / 16.19 % (= the first pass's 5-16 %); of the verdict-read stability samples 15.86 / 8.41 / 27.46 % (20.68 % on PR when the kerb positions of R8 are left out).
 - R6 F2 -- tyre_fit_auto.py:44-54, :422-426: the tyre-fit population (and the R derivation, NIS sweep, gate and sign check on the base mask) excludes the kerb mask but not the smear zone, contradicting PRODUCTION.md 2.5 ("samples it disturbs must not shape the tyre estimate"). Smear share of the base mask: 4.52 / 2.32 / 7.44 % (= the first-pass figures); of the fit population after the speed window: 4.89 / 2.34 / 7.70 %.
-- R7 F3 -- balance_gradient.py:212-221, :247-248: the same smear gap in the balance regression population: 125 of 3206 (3.90 %), 177 of 11459 (1.54 %), 356 of 4424 (8.05 %).
+- R7 F3 [removed 2026-10-17, K readout deleted] -- balance_gradient.py:212-221, :247-248: the same smear gap in the balance regression population: 125 of 3206 (3.90 %), 177 of 11459 (1.54 %), 356 of 4424 (8.05 %).
 - R8 F2 -- stability_analysis.py:1071, :1209-1210, :1245-1258: stability phase statistics read the field at kerb positions (the phase set is the moving mask only), against PRODUCTION.md 2.5 ("must not shape ... the verdict") and 13.3. Samples, per block occurrence: Dubai 2005, NBR 2333, PR 6769 (unique 1855 / 2222 / 6401). Excluding them changes 80 / 68 / 223 phase medians (66 moved + 14 to NaN, 58 + 10, 190 + 33).
 - R9 F3 -- yaw_stability.py:146-153: the stability field is interpolated linearly across grid points where the regression refused (chair code does the same). Refused interior grid points: Dubai 0, NBR 8, PR 0; verdict-read stability samples bridged over a refused gap: 0 on all three. Latent here.
 - R10 F3 -- yaw_stability.py:25-33, stability_analysis.py:1004-1007: the 15-sample yaw-acceleration window runs over kerb samples (regression samples whose window reaches a mask sample: 1.71 / 0.91 / 2.82 %); stability has no smear-zone treatment (regression samples in the smear zone: 4.52 / 2.32 / 7.44 %).

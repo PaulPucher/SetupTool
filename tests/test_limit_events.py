@@ -80,7 +80,7 @@ def test_no_verdict_module_reads_events():
     # structural guard: only the UI display paths import the event module
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for rel in ("modules/stability_analysis.py", "modules/recommendation.py", "modules/decision_frame.py",
-                "modules/tyre_fit_auto.py", "modules/balance_gradient.py"):
+                "modules/tyre_fit_auto.py"):
         src = open(os.path.join(root, rel), encoding="utf-8").read()
         # imports, not mentions (the schema history comment names the module)
         assert "import limit_events" not in src and "modules.limit_events" not in src, \

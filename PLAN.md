@@ -92,6 +92,15 @@ REPO STATE
   scope. R4 follow-up mapped it (handover): K feeds no verdict, severity or
   recommendation; no shared code; payload key "balance" disappears (schema
   bump, joins the owed one; no golden moves). Removal = next cycle.
+- REBUILD BOARD: R4b K READOUT REMOVAL implemented 2026-10-17 (files, config
+  blocks, UI plumbing, test, diagnostic deleted; docs and records updated;
+  thesis_notes "K readout removal"). Validation: all summaries, verdicts,
+  events and recommendations identical on the three exports; the one extra
+  payload difference (resolved_levels loses the understeer_gradient node)
+  ACCEPTED by the author 2026-10-17. Suite once: 3 failed (the 3 stale
+  goldens) / 597 passed / 1 xfailed, 19.4 min. Schema bump owed in the final
+  chain for "balance" and resolved_levels.understeer_gradient. Pending the
+  author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).

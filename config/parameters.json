@@ -316,16 +316,6 @@
     "stab_thresh_calibrated_for_sideslip_source": "ekf_auto_pacejka",
     "thresholds_calibrated_for_sideslip_source": "ekf_auto_pacejka"
   },
-  "understeer_gradient": {
-    "_comment": "Measured understeer gradient per session (modules/balance_gradient.py): one beta-free Level-2 balance quantity with a 95 % corner-traversal bootstrap range, shown beside the corner verdicts. Calibration of the quasi-steady population, not of the method.",
-    "psidd_max_radps2": 0.15,
-    "ax_max_mps2": 2.0,
-    "ay_clip_g": 5.0,
-    "otsu_bins": 256,
-    "bootstrap_draws": 200,
-    "bootstrap_seed": 20261002,
-    "derived_from": "Method: Rajamani, Vehicle Dynamics and Control, sec. 3.2 Eq. 3.23 (delta = L / R + K a_y, 1 / R = r / v), beta-free OLS of (delta_f - steering zero - L r / v) on a_y, 2 Hz zero-phase signals (stability_estimation.cs_filter_cutoff_hz); verified 2026-10-02 (Q-PUSH P1, diagnostics/inspect_last_push.py measure_k), recomputed on the corrected steering chain 2026-10-05 (diagnostics/inspect_k2_line.py: NBR 16 / 16 understeer, median +1.25 deg/g). Population provenance: the (a2) quasi-steady referee population of diagnostics/inspect_imu_offsets._steady (2026-09-30) -- moving, off-kerb samples of analysis laps inside corner brackets, |r v| above the session's Otsu split of |a_y| (gated_kinematic_common.otsu_threshold, 256 bins), |d r / dt| < psidd_max_radps2, |a_x| < ax_max_mps2, |a_y| < ay_clip_g; steering zero = median road-wheel angle on the same laps outside corners. Range: 95 % corner-traversal cluster bootstrap, bootstrap_draws draws, fixed seed for reproducibility. Shipped 2026-10-05 (author ruling)."
-  },
   "limit_events": {
     "_comment": "Limit events (modules/limit_events.py): in-corner stretches where CS lies below the session's own 0-30 deg curve floor, per axle -- display + record only, never a verdict or recommendation input. Merge and recurrence values are the Q-SPIKE-AUDIT frozen ones; the event line itself is computed from the session's fit, not configured.",
     "enabled": true,
@@ -444,12 +434,6 @@
       "capped_by": "chained-constant: lateral_force_split, sideslip_angle, cog_position, speed",
       "note": "2026-09-29. Weakest link of its inputs: C_alpha is Level 1 (Fy from the Level-1 force split, alpha from the Level-1 sideslip chain), l_f/l_r follow cog_position (Level 2 with a session weighing), v is speed (Level 1), psi_dot is yaw_rate (Level 3). NaN wherever either axle's stiffness is invalid or v is at/below moving_speed_min_mps; negative stiffness passes through as negative damping. Diagnostic consumer only -- not in Module 5, the payload or the UI.",
       "derived_from": "Werner 2021 sec. 4.5.2 (Eqs. 4.3/4.4) and Milliken RCVD ch. 5 (sec. 5.7, Eq. 5.6); effective stiffness from logged Fy/alpha (Module 4b) instead of a tyre model, approved 2026-09-29."
-    },
-    "understeer_gradient": {
-      "level": 2,
-      "source": "understeer gradient K from steering, yaw rate, speed and lateral acceleration in quasi-steady cornering (modules/balance_gradient.py, Rajamani sec. 3.2 Eq. 3.23)",
-      "capped_by": "chained-constant: wheelbase_m",
-      "note": "2026-10-05. Session measurement, beta-free; the wheelbase (L in L r / v) is the only vehicle constant in it. Steering via the steering_angle node (Level 4 with the manufacturer table)."
     }
   }
 }

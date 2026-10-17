@@ -633,12 +633,6 @@ cited them now say so (git history keeps the code).
   16 NBR + 2 Paul Ricard files, split-half stability, ECU fuel burn beside;
   frozen pass rule in the header. Modes step1 | report1. Outputs in
   `plots/mass/`.
-- **inspect_k2_line.py** (2026-10-05, keep status PROPOSED: keep-reproduces if
-  the author ships the understeer-gradient line -- it then holds the
-  derivation -- else disposable at the commit) -- understeer gradient per
-  session on the corrected chain (inspect_last_push.measure_k, Rajamani Eq.
-  3.23) and the static verdict-card mock. Modes a | report | mock. Outputs in
-  `plots/k2_line/`.
 - **inspect_curve_floor.py** (2026-10-05, keep-reproduces, CONFIRMED by the author 2026-10-05 --
   the basis of the STRONG-verdict meaning; re-runs with every threshold re-derivation) -- per pool session and axle, the
   production curve's own minimum cornering-stiffness-ratio analogue on the visited
