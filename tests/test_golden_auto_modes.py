@@ -4,9 +4,9 @@
 # ekf_auto_pacejka became the production default and moved to PRIMARY
 # golden coverage in tests/test_golden_pipeline.py (via tests/conftest.py's
 # live-config-driven pipeline_result fixture); this file now covers the
-# two SECONDARY, explicit-mode regression sets -- "kinematic" (the prior
-# default) and "ekf_auto_dugoff" (the auto-fit alternative never made
-# default). Both are tested via resolve_sideslip_beta called with an
+# SECONDARY, explicit-mode regression set "kinematic" (the prior default;
+# the second set, "ekf_auto_dugoff", was deleted with the Dugoff path on
+# 2026-10-17). It is tested via resolve_sideslip_beta called with an
 # explicit mode string, independent of whatever the live config's
 # sideslip_source actually is -- this is what lets the full suite run
 # against any live config value without flipping it first.
@@ -34,15 +34,13 @@ RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixt
 FIXED_CAP = 1
 GOLDEN_PATHS = {
     "kinematic": "tests/golden/pipeline_dubai_kinematic_cap1.json",
-    "ekf_auto_dugoff": "tests/golden/pipeline_dubai_ekf_auto_dugoff_cap1.json",
 }
 
 
 @pytest.fixture(scope="module")
 def secondary_mode_results():
-    """Both secondary modes' full pipeline output, computed once for this
-    module (the ekf_auto_dugoff fit chain alone runs ~15-25s) via the
-    exact production wiring function (resolve_sideslip_beta), same
+    """The secondary mode's full pipeline output, computed once for this
+    module via the exact production wiring function (resolve_sideslip_beta), same
     call-order/arguments as StabilityAnalysisThread.run() -- each mode
     passed explicitly, so this is independent of whatever the live
     config's own sideslip_source is set to.
@@ -60,7 +58,7 @@ def secondary_mode_results():
         )
         slip = estimate_slip_angles(state, beta, effective_params)
         forces = estimate_lateral_forces(state, effective_params)
-        cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+        cs = estimate_cornering_stiffness(slip, forces, state, effective_params, data.get("laps", []))
         stab = estimate_yaw_moment_stability(state, beta, effective_params, data.get("laps", []))
         fz = estimate_vertical_loads(state, forces, effective_params)
         corners = data.get("corners", [])
@@ -100,26 +98,8 @@ def test_secondary_mode_did_not_fall_back(secondary_mode_results, mode):
     checked explicitly so that failure mode reads as its own clear
     assertion, not a buried diff in the summaries comparison below.
     Trivially true for the 'kinematic' entry itself (resolve_sideslip_
-    beta's fallback concept only applies to the two auto-fit modes).
-
-    DELIBERATE EXCEPTION (CS validity repair, Phase 4, 2026-09-02,
-    thesis_notes.md "Threshold anchoring + arc closure, Phase 4"):
-    ekf_auto_dugoff's rear-axle mu_fz fit degenerates on Dubai under the
-    final CS window floor (100 Hz grid) and now falls back to kinematic
-    on every run -- a designed, loud, non-silent fallback, not a bug.
-    The golden for this mode was regenerated to PIN that fallback path
-    deliberately (tests/generate_golden_auto_modes.py), so fallback_used
-    must be True here, not False -- asserting not-fallback for this mode
-    would itself be the stale expectation now."""
+    beta's fallback concept only applies to the auto-fit mode)."""
     r = secondary_mode_results[mode]
-    if mode == "ekf_auto_dugoff":
-        assert r["fallback_used"], (
-            f"{mode} did NOT fall back on this run ({r['fallback_reason']}) -- "
-            "the golden was regenerated expecting a deliberate fallback (rear mu_fz "
-            "degeneracy); if this mode now converges, the golden and this test's own "
-            "exception both need revisiting, not silently left as-is"
-        )
-        return
     assert not r["fallback_used"], (
         f"{mode} fell back to kinematic on this run ({r['fallback_reason']}) -- "
         "the golden comparison below would be meaningless under fallback"

@@ -1,167 +1,25 @@
-# New tests for modules/nis_gate.py (fresh-session work package,
-# Phase 2). Covers: healthy Dubai fit passes, the WP-N3 synthetic
-# mismatch scenarios (actual verdicts, not an assumed "all fail" --
-# see the reality-check note below), boundary classification, and
-# NaN/short-session degradation to "fail". Session-scoped fixtures:
-# the healthy fit chain and its four mismatch EKF re-runs are each a
-# real Modules-1-5 + EKF pass on Dubai, computed once per test run.
+# Tests for modules/nis_gate.py: window rate-derivation, boundary
+# classification, the live thresholds against the real-session scores, and
+# NaN/short-session degradation to "fail".
 #
-# REALITY-CHECK FINDING (original fresh-session package): the WP-N3
-# work order that preceded this one described the unit-test target as
-# "the four synthetic mismatch cases from WP-N3 fail". Verified
-# numerically this was only PARTLY true at the ORIGINAL thresholds
-# (threshold_use_ekf=0.1385, threshold_warn=0.1006): c_alpha_x0.5
-# (health_score 0.1501) verdicted "pass" -- the same tier as the
-# healthy baseline (0.1622). c_alpha_x2.0 (0.1318) and mu_fz_x0.5
-# (0.1122) verdicted "warn". Only mu_fz_x2.0 (0.0674) verdicted "fail".
-#
-# UPDATED (2026-09-03, NIS gate band decision -- thesis_notes.md "NIS
-# gate band decision: divergence-not-quality redesign"): threshold_
-# use_ekf/threshold_warn moved to 0.08/0.01 (both current real sessions
-# now PASS by design; FAIL reserved for order-of-magnitude collapse,
-# see config nis_gate.threshold_derived_from). Recomputed against the
-# SAME four recorded synthetic scores: c_alpha_x0.5 (0.1501) and
-# c_alpha_x2.0 (0.1318) and mu_fz_x0.5 (0.1122) all verdict "pass" now
-# (all clear the new, lower threshold_use_ekf); mu_fz_x2.0 (0.0674)
-# verdicts "warn", not "fail" -- an accepted, explicitly documented
-# consequence of the redesign (real n=2 session evidence now outweighs
-# synthetic-scenario calibration), not a bug. This fixture is currently
-# SKIPPED unconditionally regardless (see nis_gate_scenarios' own
-# comment: ekf_auto_dugoff degenerates on Dubai under the current CS
-# window floor) -- these expectations are updated for correctness/no-
-# drift, not because this file currently exercises them.
-
-import copy
+# 2026-10-17 (Class B rebuild, Dugoff removal): the synthetic tyre-mismatch
+# scenarios (healthy Dugoff fit on Dubai, c_alpha/mu_fz scaled 0.5x/2x) were
+# deleted with the Dugoff path. They had been skipped since 2026-09-02 (the
+# Dugoff rear fit degenerated on Dubai); the degradation tests that only
+# borrowed that fixture for params and the grid rate now run on the real
+# Dubai state instead.
 
 import numpy as np
 import pytest
 
-from modules.csv_parser import parse_csv
-from modules.stability_analysis import load_parameters, prepare_vehicle_state
-from modules.tyre_fit_auto import fit_session, _base_mask
+from modules.stability_analysis import load_parameters
 from modules.nis_gate import compute_health_score, classify_score, evaluate_gate, resolve_nis_window_samples
-from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
-from tests.conftest import DUBAI_SAMPLE, find_data_file, resolve_data_path
-
-RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixture raises clearly
 
 
 @pytest.fixture(scope="module")
-def nis_gate_scenarios():
-    """Healthy Dugoff auto-fit on Dubai, plus the four WP-N3 synthetic
-    mismatch scenarios (c_alpha/mu_fz scaled 0.5x/2x on the healthy
-    fit's own final_config, R/Q/P0 held fixed) -- same construction as
-    diagnostics/inspect_nis_tyre_mismatch_gate.py. Returns {label: nis
-    array} plus the shared base_mask and raw params.
-    """
-    data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
-    params = load_parameters()
-    state = prepare_vehicle_state(data["channels"], params)
-    laps = data.get("laps", [])
-    mask = _base_mask(state, laps)
-
-    healthy_fit = fit_session(data, params, data_file_path=RAW_FILE)
-    if healthy_fit["status"] == "degenerate":
-        # DELIBERATE, CS validity repair Phase 4 (2026-09-02, thesis_notes.md
-        # "Threshold anchoring + arc closure, Phase 4"): this whole file's
-        # premise is building synthetic NIS mismatch scenarios by scaling a
-        # HEALTHY Dugoff fit's own c_alpha/mu_fz -- under the final CS window
-        # floor (100 Hz grid), the rear axle's mu_fz fit now degenerates on
-        # Dubai (hits its widened search bracket ceiling) on every run, so no
-        # healthy baseline exists to scale from any more. This is a real
-        # upstream behaviour change (modules/tyre_fit_auto.py), not a gate
-        # bug -- modules/nis_gate.py's own evaluate_gate/compute_health_score/
-        # classify_score are unit-tested independently of this fixture where
-        # possible (test_classify_score_boundaries, the NaN/degenerate-input
-        # tests below all take literal arrays, not this fixture). Skipping
-        # the whole module rather than half-mocking a "healthy" fit: any
-        # synthetic replacement would defeat the point of scaling a REAL
-        # session's own fit. Un-skip when either the Dugoff/CS-window
-        # coupling is decoupled (PLAN.md) or a session with a converging
-        # Dugoff fit becomes available.
-        pytest.skip(
-            f"ekf_auto_dugoff fit_session degenerates on Dubai under the current config "
-            f"({healthy_fit['degenerate_reason']}) -- no healthy baseline to build the "
-            f"synthetic mismatch scenarios from; see this fixture's own comment"
-        )
-    healthy_fit.pop("beta_ekf", None)
-    healthy_cfg = healthy_fit["final_config"]
-
-    def run_nis(cfg):
-        params_run = dict(params)
-        params_run["tyre_model_ekf"] = dict(params.get("tyre_model_ekf", {}))
-        params_run["tyre_model_ekf"]["_gate_test_probe"] = cfg
-        result = estimate_sideslip_ekf_dugoff(state, params_run, pass_id="_gate_test_probe")
-        return result["nis"]
-
-    nis_by_label = {"healthy": run_nis(healthy_cfg)}
-    for param_name, keys in (
-        ("c_alpha", ("c_alpha_front_n_per_rad", "c_alpha_rear_n_per_rad")),
-        ("mu_fz", ("mu_fz_front_N", "mu_fz_rear_N")),
-    ):
-        for scale in (0.5, 2.0):
-            cfg = copy.deepcopy(healthy_cfg)
-            for k in keys:
-                cfg[k] = cfg[k] * scale
-            nis_by_label[f"{param_name}_x{scale}"] = run_nis(cfg)
-
-    return {"nis_by_label": nis_by_label, "mask": mask, "params": params, "sample_rate_hz": state["sample_rate_hz"]}
-
-
-def test_healthy_dubai_fit_passes(nis_gate_scenarios):
-    result = evaluate_gate(
-        nis_gate_scenarios["nis_by_label"]["healthy"],
-        nis_gate_scenarios["mask"],
-        nis_gate_scenarios["params"],
-        nis_gate_scenarios["sample_rate_hz"],
-    )
-    assert result["verdict"] == "pass", (
-        f"healthy Dubai fit verdicted {result['verdict']!r} (score={result['health_score']:.4f}), "
-        "expected 'pass'"
-    )
-    assert result["degenerate_reason"] is None
-
-
-@pytest.mark.parametrize("label,expected_verdict", [
-    ("c_alpha_x0.5", "pass"),   # reality-check: NOT "fail" -- see module docstring
-    ("c_alpha_x2.0", "pass"),   # updated 2026-09-03 band decision: was "warn" under old thresholds
-    ("mu_fz_x0.5", "pass"),     # updated 2026-09-03 band decision: was "warn" under old thresholds
-    ("mu_fz_x2.0", "warn"),     # updated 2026-09-03 band decision: was "fail" under old thresholds
-])
-def test_synthetic_mismatch_verdicts(nis_gate_scenarios, label, expected_verdict):
-    result = evaluate_gate(
-        nis_gate_scenarios["nis_by_label"][label],
-        nis_gate_scenarios["mask"],
-        nis_gate_scenarios["params"],
-        nis_gate_scenarios["sample_rate_hz"],
-    )
-    assert result["verdict"] == expected_verdict, (
-        f"{label}: verdicted {result['verdict']!r} (score={result['health_score']:.4f}), "
-        f"expected {expected_verdict!r} -- see this file's reality-check note if this fails "
-        "after a threshold re-derivation, since these expectations are pinned to the current "
-        "provisional thresholds, not to a re-derived pair"
-    )
-
-
-def test_worst_mismatch_is_strictly_the_lowest_score(nis_gate_scenarios):
-    """The one claim from the original work order that IS true: the
-    healthy score is strictly the highest of the five, confirming the
-    gate's core separation property even though not every mismatch
-    reaches 'fail' individually."""
-    scores = {
-        label: compute_health_score(
-            nis, nis_gate_scenarios["mask"],
-            nis_gate_scenarios["params"]["nis_gate"]["window_samples"],
-            nis_gate_scenarios["params"]["nis_gate"]["nis_band_low"],
-            nis_gate_scenarios["params"]["nis_gate"]["nis_band_high"],
-        )
-        for label, nis in nis_gate_scenarios["nis_by_label"].items()
-    }
-    healthy_score = scores["healthy"]
-    mismatch_scores = [v for k, v in scores.items() if k != "healthy"]
-    assert all(healthy_score > s for s in mismatch_scores), (
-        f"healthy score {healthy_score:.4f} is not strictly above every mismatch score {mismatch_scores}"
-    )
+def gate_inputs(state):
+    """Live params and the Dubai grid rate -- all the degradation tests need."""
+    return {"params": load_parameters(), "sample_rate_hz": state["sample_rate_hz"]}
 
 
 # --- window rate-derivation (morning follow-up, NIS gate rate-correction) --
@@ -254,26 +112,26 @@ def test_compute_health_score_empty_mask_is_nan():
     assert score != score  # NaN
 
 
-def test_evaluate_gate_short_session_degrades_to_fail(nis_gate_scenarios):
+def test_evaluate_gate_short_session_degrades_to_fail(gate_inputs):
     short_nis = np.array([1.0, 2.0, 3.0])
     short_mask = np.array([True, True, True])
-    result = evaluate_gate(short_nis, short_mask, nis_gate_scenarios["params"], nis_gate_scenarios["sample_rate_hz"])
+    result = evaluate_gate(short_nis, short_mask, gate_inputs["params"], gate_inputs["sample_rate_hz"])
     assert result["verdict"] == "fail"
     assert result["degenerate_reason"] is not None
 
 
-def test_evaluate_gate_all_nan_nis_degrades_to_fail(nis_gate_scenarios):
+def test_evaluate_gate_all_nan_nis_degrades_to_fail(gate_inputs):
     n = 200
     nis = np.full(n, np.nan)
     mask = np.ones(n, dtype=bool)
-    result = evaluate_gate(nis, mask, nis_gate_scenarios["params"], nis_gate_scenarios["sample_rate_hz"])
+    result = evaluate_gate(nis, mask, gate_inputs["params"], gate_inputs["sample_rate_hz"])
     assert result["verdict"] == "fail"
 
 
-def test_evaluate_gate_never_raises_on_degenerate_input(nis_gate_scenarios):
+def test_evaluate_gate_never_raises_on_degenerate_input(gate_inputs):
     # Explicit "never crash" check across a few adversarial shapes.
-    params = nis_gate_scenarios["params"]
-    sample_rate_hz = nis_gate_scenarios["sample_rate_hz"]
+    params = gate_inputs["params"]
+    sample_rate_hz = gate_inputs["sample_rate_hz"]
     for nis, mask in (
         (np.array([]), np.array([], dtype=bool)),
         (np.full(5, np.nan), np.ones(5, dtype=bool)),

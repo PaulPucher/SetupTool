@@ -53,7 +53,7 @@ print(f"fallback_used={fallback_used}  gate_verdict={gate_verdict['verdict'] if 
 
 slip = estimate_slip_angles(state, beta, params)
 forces = estimate_lateral_forces(state, params)
-cs = estimate_cornering_stiffness(slip, forces, state, params)
+cs = estimate_cornering_stiffness(slip, forces, state, params, data.get("laps", []))
 stab = estimate_yaw_moment_stability(state, beta, params, data.get("laps", []))
 fz = estimate_vertical_loads(state, forces, params)
 long_forces = estimate_longitudinal_forces(state, data["channels"], params)

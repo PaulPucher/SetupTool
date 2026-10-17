@@ -116,15 +116,15 @@ def pipeline_result(parsed_data, effective_params, state):
     config/parameters.json to kinematic and restoring it afterward --
     that assertion now matches the live default directly instead of
     fighting it, which is what removed the need to flip. "kinematic"
-    and "ekf_auto_dugoff" still get golden-file regression coverage,
-    just as explicit, live-config-independent secondary modes in
+    still gets golden-file regression coverage, as an explicit,
+    live-config-independent secondary mode in
     tests/test_golden_auto_modes.py rather than through this fixture.
 
     Uses modules.tyre_fit_auto.resolve_sideslip_beta -- the same
     dispatch function StabilityAnalysisThread.run() calls -- so this
     fixture can never silently diverge from what the app itself would
-    compute for beta, the same reason ekf_auto_dugoff/ekf_auto_pacejka
-    testing in test_golden_auto_modes.py uses it too.
+    compute for beta, the same reason the secondary-mode testing in
+    test_golden_auto_modes.py uses it too.
 
     Deliberately does not import ui/views/outing_form.py itself: that
     module is PyQt6-based (QThread), and the config-switch branch it
@@ -149,7 +149,7 @@ def pipeline_result(parsed_data, effective_params, state):
     # on fixture setup, same pattern as test_golden_auto_modes.py's fixture.
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
-    cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+    cs = estimate_cornering_stiffness(slip, forces, state, effective_params, parsed_data.get("laps", []))
     stab = estimate_yaw_moment_stability(state, beta, effective_params, parsed_data.get("laps", []))
     fz = estimate_vertical_loads(state, forces, effective_params)
     corners = parsed_data.get("corners", [])

@@ -193,14 +193,14 @@ class StabilityAnalysisThread(QThread):
                 )
                 t_fit1 = time.perf_counter()
                 fit_time_s = t_fit1 - t_fit0
-                if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
+                if sideslip_source == "ekf_auto_pacejka":
                     print(f"[PERF] {sideslip_source} fit chain: {fit_time_s:.3f}s")
                     if fit_time_s > 30.0:
                         print(f"[PERF] *** WARNING: {sideslip_source} fit chain took {fit_time_s:.3f}s, "
                               f"exceeds the 30s budget (this path is not performance-optimised) ***")
                 slip = estimate_slip_angles(state, beta, effective_params)
                 forces = estimate_lateral_forces(state, effective_params)
-                cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+                cs = estimate_cornering_stiffness(slip, forces, state, effective_params, self.parsed_data.get("laps", []))
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
                 # Fz / fy_norm: diagnostic only. channels/car_data only used when
                 # vertical_load_source is "measured".
@@ -1702,8 +1702,6 @@ class OutingForm(QWidget):
     # product text describes what, not after whom: no model or source names
     _ESTIMATOR_LABELS = {
         "kinematic": "simple kinematic estimate",
-        "ekf_pass_1": "estimator with a frozen tyre curve",
-        "ekf_auto_dugoff": "estimator with the tyre curve fitted this session",
         "ekf_auto_pacejka": "estimator with the tyre curve fitted this session",
     }
 
@@ -1729,7 +1727,7 @@ class OutingForm(QWidget):
                 f"{OutingForm._plain_fallback_reason(fallback_reason)}"
             )
             return text, WARN
-        if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
+        if sideslip_source == "ekf_auto_pacejka":
             fit_status = fit_manifest.get("status") if fit_manifest else "?"
             if gate_verdict and gate_verdict["verdict"] == "warn":
                 # WARN: gate didn't clear PASS, EKF beta still used

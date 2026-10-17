@@ -62,7 +62,7 @@ def test_analysis_output_identical_with_bridge_flag_on_and_off(parsed_data, effe
         beta = estimate_sideslip(st, p)
         slip = estimate_slip_angles(st, beta, p)
         forces = estimate_lateral_forces(st, p)
-        cs = estimate_cornering_stiffness(slip, forces, st, p)
+        cs = estimate_cornering_stiffness(slip, forces, st, p, parsed_data.get("laps", []))
         stab = estimate_yaw_moment_stability(st, beta, p, parsed_data.get("laps", []))
         summ = summarise_corners(parsed_data.get("corners", []), cs, stab, st)
         return st, beta, cs, stab, summ

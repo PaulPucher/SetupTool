@@ -3,8 +3,9 @@
 # General form: Rajamani ch. 13.
 #
 # Fy = D*sin(C*arctan(B*alpha - E*(B*alpha - arctan(B*alpha))))
-# B = stiffness, C = shape, D = peak Fy [N], E = curvature. Odd in alpha,
-# no sign flip needed (unlike Dugoff).
+# B = stiffness, C = shape, D = peak Fy [N], E = curvature. Odd in alpha;
+# positive slope at the origin matches our slip-angle sign convention
+# (Werner S2.2.3), so no sign flip is needed.
 
 import numpy as np
 

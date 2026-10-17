@@ -201,8 +201,8 @@ def test_recommendation_engine_handles_real_zero_braking_corner(pipeline_result)
 # which raised "IndexError: index -1 is out of bounds for axis 0 with
 # size 0" deep inside numpy's quantile internals -- the exact error text
 # the user's own app run surfaced. Fixed with an explicit len(a2)==0 early
-# return, matching _fit_axle's (the Dugoff variant, same file) own
-# established convention for a below-minimum-samples population -- see
+# return, matching the convention of the former Dugoff _fit_axle (removed
+# 2026-10-17) for a below-minimum-samples population -- see
 # modules/tyre_fit_auto.py's own comment at the fix site.
 
 from modules.tyre_fit_auto import _fit_axle_pacejka, fit_session_pacejka

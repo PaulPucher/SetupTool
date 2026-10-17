@@ -48,7 +48,7 @@ def test_unstable_verdict_names_no_source():
 
 def test_estimator_status_names_no_model():
     from ui.views.outing_form import OutingForm
-    for src in ("kinematic", "ekf_pass_1", "ekf_auto_dugoff", "ekf_auto_pacejka"):
+    for src in ("kinematic", "ekf_auto_pacejka"):
         text, _c = OutingForm._format_estimator_status(None, src, {"status": "ok"},
                                                         {"verdict": "pass", "health_score": 0.1}, False, None)
         assert not NAMES.search(text), text

@@ -68,6 +68,16 @@ REPO STATE
   re-fit 4 s per Dubai run). The suite spanned a system sleep/hibernate
   19:36 -> 00:29 (Windows System log); active time ~27 min vs R0 31 min.
   Awaiting author ruling (O(1) rewrite not needed on this evidence).
+- REBUILD BOARD: R3 Class B DONE 2026-10-17 (Fix 0 CS reference only from
+  clean windows -- no kerb/smear/off-analysis-lap sample -- with laps arg
+  on estimate_cornering_stiffness; #12 apex window always +/-5 via
+  apex_instant_slice; #1 #2 #3 #5/#6 #23 fix 7 bit-identical hardening;
+  Dugoff path deleted incl. evidence). Acceptance numbers reproduced
+  (diagnostics/check_class_b.py, log diagnostics/output/class_b/; thesis_notes
+  "Class B, rebuild"). Open for the author: h2 apex check and TPMS apex
+  windows also moved (shared #12 helper, beyond spec); tyre_fit_auto
+  nis_band_low/high kept (diagnostics reader); schema bump owed in the final
+  chain. Goldens STALE by design. Pending the author's commit.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).

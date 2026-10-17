@@ -286,9 +286,10 @@ def _kerb_smear_zone(kerb_mask, grade_samples):
     # The 2 Hz zero-phase CS filter runs over the strike before the mask is
     # applied, so the strike leaks into unmasked neighbours on both sides
     # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py). Zone = unmasked
-    # samples within grade_samples of a mask sample; it only feeds the
-    # near_strike grade mark, never an exclusion. [domain improvement: the
-    # chair tooling has no kerb treatment]
+    # samples within grade_samples of a mask sample. It feeds the
+    # near_strike grade mark and bars a window from setting the CS linear
+    # reference; it never removes a sample from the regression. [domain
+    # improvement: the chair tooling has no kerb treatment]
     if kerb_mask is None:
         return None
     n = len(kerb_mask)
@@ -724,6 +725,18 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     }
 
 
+def apex_instant_slice(t, apex_t, half_window_samples):
+    """The apex_3 window: the apex is one instant, read as the first grid
+    sample at or after it +/- half_window_samples (11 samples at N = 5).
+    Always this width -- the old phase slice took [lo, hi) first and only
+    widened when it was empty, so an apex landing exactly on a grid sample
+    got a 1-sample window (finding #12). Shared by summarise_corners, the
+    tyre-fit h2 check and the TPMS apex read-out.
+    """
+    centre = int(np.searchsorted(t, apex_t, side="left"))
+    return slice(max(0, centre - half_window_samples), min(len(t), centre + half_window_samples + 1))
+
+
 def resolve_cs_min_window_samples(params, sample_rate_hz):
     """cs_min_window_s [s] -> samples at this file's rate, floored. The chair's
     10-sample default was implicitly 100 Hz. Shared by the estimator and all
@@ -766,10 +779,21 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
     return max(start, 0)
 
 
-def estimate_cornering_stiffness(slip, forces, state, params):
+def estimate_cornering_stiffness(slip, forces, state, params, laps):
     """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
     Stiffness by windowed regression on logged Fy/alpha instead of Werner's
     Pacejka evaluation.
+
+    Linear reference (CS_ratio denominator): set only by a clean window --
+    no sample of the regression window [start, i) in the kerb mask or the
+    smear zone, none off an analysis lap. A disqualified window leaves the
+    previous reference in force. Before, the moving/kerb test looked at the
+    newest sample only, so a window reaching back over a strike could set
+    the reference and every CS after it divided by a kerb-inflated value
+    (PR C16 lap 51). Until the first clean window no CS is computed; those
+    samples are counted (n_no_reference_*), never zero-filled. laps = the
+    parsed lap list (analysis-lap test); empty -> no lap test, as in
+    Module 5. [domain improvement: the chair tooling has no kerb treatment]
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -777,9 +801,19 @@ def estimate_cornering_stiffness(slip, forces, state, params):
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
     s_m = state.get("s_m")
-    # Grade only: near_strike never feeds CS, the reference or any verdict.
+    # The regression itself still runs over the smear zone (the chair
+    # window, unchanged); the zone only marks near_strike and disqualifies
+    # a window from setting the reference.
     smear_zone = state.get("kerb_smear_zone")
     smear_cum = None if smear_zone is None else np.concatenate(([0], np.cumsum(smear_zone, dtype=np.int64)))
+    n = len(state["moving_mask"])
+    off_analysis = _build_non_analysis_lap_mask(state["time"], laps) if laps else np.zeros(n, dtype=bool)
+    ref_blocked = off_analysis.copy()
+    if kerb_mask is not None:
+        ref_blocked |= kerb_mask
+    if smear_zone is not None:
+        ref_blocked |= smear_zone
+    ref_blocked_cum = np.concatenate(([0], np.cumsum(ref_blocked, dtype=np.int64)))
 
     alpha_f = slip["alpha_f_filt"]
     alpha_r = slip["alpha_r_filt"]
@@ -803,6 +837,8 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         # tyre-curve audit plot
         C_linear_ref_arr = np.full(n, np.nan)
         near_strike = np.zeros(n, dtype=bool)
+        # stiffness computed, but no clean reference set yet -> no CS
+        no_reference = np.zeros(n, dtype=bool)
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -891,10 +927,12 @@ def estimate_cornering_stiffness(slip, forces, state, params):
                 C_alpha[i] = C_w
 
             window_max_abs_alpha = np.max(np.abs(window_alpha))
-            if window_max_abs_alpha < linear_thresh:
+            if window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]:
                 C_linear_ref = C_alpha[i]
 
-            if not np.isnan(C_linear_ref) and C_linear_ref > 0:
+            if np.isnan(C_linear_ref):
+                no_reference[i] = True
+            elif C_linear_ref > 0:
                 CS_ratio[i] = min(C_alpha[i] / C_linear_ref, 1.0)
                 # same [start, i) window the regression used
                 if smear_cum is not None:
@@ -902,10 +940,10 @@ def estimate_cornering_stiffness(slip, forces, state, params):
 
             C_linear_ref_arr[i] = C_linear_ref
 
-        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike
+        return C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     return {
         "C_alpha_f": C_f,
@@ -924,6 +962,14 @@ def estimate_cornering_stiffness(slip, forces, state, params):
         # tyre fit and the trace display, never by the classifier
         "near_strike_f": ns_f,
         "near_strike_r": ns_r,
+        # Fix 0 report, in memory only: samples with a stiffness but no clean
+        # reference yet, in total and on analysis laps
+        "no_reference_f": nr_f,
+        "no_reference_r": nr_r,
+        "n_no_reference_f": int(nr_f.sum()),
+        "n_no_reference_r": int(nr_r.sum()),
+        "n_no_reference_analysis_f": int((nr_f & ~off_analysis).sum()),
+        "n_no_reference_analysis_r": int((nr_r & ~off_analysis).sum()),
     }
 
 
@@ -1111,13 +1157,10 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     def _phase_slice(start_t, end_t, is_apex=False):
         if end_t < start_t:
             return slice(0, 0)
+        if is_apex:
+            return apex_instant_slice(t, start_t, apex_half_window_samples)
         lo = int(np.searchsorted(t, start_t, side="left"))
         hi = int(np.searchsorted(t, end_t, side="right"))
-        if is_apex and hi <= lo:
-            # apex is one instant -> +/- N samples
-            centre = lo
-            lo = max(0, centre - apex_half_window_samples)
-            hi = min(len(t), centre + apex_half_window_samples + 1)
         return slice(lo, hi)
 
     gps_lat = state.get("gps_lat")

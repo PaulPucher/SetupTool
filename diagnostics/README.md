@@ -49,14 +49,21 @@ No longer part of this directory's own inventory -- 90 scripts remain
 here (53 keepers + 37 in diagnostics/_attic/). [Count as of 2026-09-24;
 the per-section lists below are the current inventory.]
 
+REMOVED (2026-10-17, Class B rebuild, author ruling "delete including
+evidence"): the Dugoff path. modules/sideslip_ekf_dugoff.py and
+modules/tyre_model.py are gone; with them fit_dugoff_first_pass.py,
+fit_dugoff_pass4_refit.py, inspect_ekf_pass1_rQ_sweep.py,
+inspect_nis_tyre_mismatch_gate.py (K1 entries below struck), the _attic
+scripts inspect_ekf_dugoff_sanity_checks.py,
+inspect_tyre_fit_auto_acceptance.py, inspect_tyre_variant_comparison.py,
+and the local manifests fit_dugoff_first_pass_manifest.json /
+fit_dugoff_pass3_refit_manifest.json. The config provenance strings that
+cited them now say so (git history keeps the code).
+
 ## K1 -- config-cited provenance (26)
 
-- **fit_dugoff_first_pass.py** -- config/parameters.json's tyre_model_fit
-  and tyre_model_ekf._comment blocks cite it as the WP-N1 c_alpha/mu_fz
-  first-pass fit source (pass_0 numbers copied from its output).
-- **fit_dugoff_pass4_refit.py** -- config/parameters.json's
-  `_comment_pass_4_removed` explicitly states it is "intentionally KEPT
-  for now" and still reads the live pass_3 block as its own EKF source.
+- ~~**fit_dugoff_first_pass.py**~~ -- REMOVED 2026-10-17 (Dugoff path).
+- ~~**fit_dugoff_pass4_refit.py**~~ -- REMOVED 2026-10-17 (Dugoff path).
 - **inspect_beta_gps_validation.py** -- cited in config/parameters.json's
   gps_course_latency_s_derived_from.
 - **inspect_c3_leaked_windows.py** -- cited in config/parameters.json's
@@ -74,8 +81,8 @@ the per-section lists below are the current inventory.]
   and min_valid_fraction_derived_from.
 - **inspect_deepening_phase2_fr_correction.py** -- cited in
   config/channels.json's log_dms_dam_fr channel_corrections derived_from.
-- **inspect_ekf_pass1_rQ_sweep.py** -- cited in config/parameters.json's
-  r_q_sweep_note.
+- ~~**inspect_ekf_pass1_rQ_sweep.py**~~ -- REMOVED 2026-10-17 (Dugoff
+  path); tyre_fit_auto._comment names it as the origin of the sweep grid.
 - **inspect_kerb_wheel_speed_spikes.py** -- cited in
   config/parameters.json's kerb_investigation_reference.
 - **inspect_kerb_severity_census.py** -- cited in
@@ -95,15 +102,16 @@ the per-section lists below are the current inventory.]
   [2026-10-11: METROLOGY_RUN_TAG selects the run folder (default 20261005); the cs_margin re-measure on the corrected estimator wrote results_metrology_20261011/ and plots_metrology_20261011/ (analysis via inspect_metrology_phase1_analysis.py with the same tag).]
 - **inspect_native_channel_rates.py** -- cited in config/parameters.json's
   `_comment_grid_rate`.
-- **inspect_nis_tyre_mismatch_gate.py** -- cited in
-  config/parameters.json's nis_gate._comment.
+- ~~**inspect_nis_tyre_mismatch_gate.py**~~ -- REMOVED 2026-10-17 (Dugoff
+  path); nis_gate._comment records it as the gate's prototype.
 - **inspect_tpms_pressure_cornering_phase.py** -- cited in
   config/channels.json's tpms_press_fl note and config/decision_frame.
   json's tyre_pressure_target derived_from (WP-ELICIT Phase B2,
   2026-09-24). Previously undocumented gap, closed here.
-- **inspect_saturation_coverage.py** -- cited by description (not exact
-  filename), config/parameters.json's tyre_model_fit._comment: "the
-  WP-N0 saturation-coverage diagnostic's own candidate-threshold list."
+- **inspect_saturation_coverage.py** -- keep-reason void (tyre_model_fit
+  removed 2026-10-17), cleanup candidate. Was cited by description in
+  config/parameters.json's tyre_model_fit._comment: "the WP-N0
+  saturation-coverage diagnostic's own candidate-threshold list."
 - **inspect_v3_brake_phase_stability.py** -- cited in
   config/parameters.json's `_comment_stab_phase_no_braking_floor_bar`
   (stab_phase_no_braking_floor_bar=3.0). Previously undocumented gap,
@@ -123,7 +131,9 @@ the per-section lists below are the current inventory.]
 
 - **inspect_pass1_final_validation.py** -- THE frozen pass-1 EKF
   validation baseline; do not delete without a deliberate decision to
-  retire it. Also K3.
+  retire it. Also K3. [2026-10-17: its Dugoff imports are wrapped -- it
+  exits with an explanatory line, since the observer it validates was
+  removed; the record is pass1_final_validation_manifest.json.]
 
 ## K3 -- live figure sources (18 not already listed above)
 
@@ -166,9 +176,9 @@ the per-section lists below are the current inventory.]
   docs/thesis_material_index.md Ch.3 (damper-channel-capability finding).
 - **inspect_step2_chair_plots.py** -- generates the 28 chair-comparable
   PNGs in diagnostics/plots_step2/, cited
-  docs/thesis_material_index.md Ch.2/3. Imports
-  modules/sideslip_ekf_dugoff.py (relocated 2026-09-24, an ordinary
-  modules/ import now, not a diagnostics-internal K6 relationship).
+  docs/thesis_material_index.md Ch.2/3. [2026-10-17: its ekf_pass_1
+  (Dugoff) source was removed, it renders the kinematic set only; kept
+  because other scripts import its helpers.]
 - **inspect_v3_fr_gauge_forensics.py** -- cited
   docs/thesis_material_index.md Ch.3.
 - **inspect_v3_reconstruction_ground_truth.py** -- named in
@@ -656,6 +666,8 @@ the per-section lists below are the current inventory.]
   -- PERMANENT item 11 evidence). Reads the archived caches
   plots/tyre_prior_d2/cache_cap1/ (15.7, pre-Q-CAL-1 mask) and
   cache_steerfix_prewindow/. Outputs in `plots/steering_fix_impact/`.
+  [2026-10-17: its own Pacejka EKF config now carries nis_window_s and
+  q_reference_rate_hz (it broke after R2 Class A).]
 - RECORD-ONLY since 2026-10-04 (speed window in production): inspect_fit_
   decisive.py (its fitter hook stops on the mask check), inspect_fit_ma_
   calibration.py and inspect_fit_k2_calibration.py (their hooks do NOT
@@ -795,7 +807,21 @@ the per-section lists below are the current inventory.]
   apex-on-grid count. Imports inspect_kinematic_inputs and
   inspect_tyre_prior_d2 (Dependency). Output diagnostics/output/class_a/
   (gitignored). Record: thesis_notes.md "Class A estimator corrections,
-  rebuild".
+  rebuild". [2026-10-17, R3: runnable again -- injects the removed Dugoff
+  modules from 279f4ee for the old tyre_fit_auto, restores
+  nis_window_samples = 20 for the old run, passes laps to the new CS;
+  optional label-prefix arguments. Its new side now carries Fix 0, so the
+  #26-isolated lines reproduce the R2 record only where Fix 0 moves
+  nothing (Dubai); for the full record run it at e04bdd5.]
+- **check_class_b.py** (2026-10-17, keep: thesis evidence + acceptance tool
+  of the R3 Class B rebuild; reproduces the recorded old-vs-new acceptance
+  numbers) -- OLD = the modules at 85b9293 loaded from git in-process (the
+  removed Dugoff modules injected for the old tyre_fit_auto), NEW = working
+  tree; same three exports. Parse / state / fit manifest / gate / beta /
+  stability bit-identity, Fix 0 CS deltas and no-reference counts, PR C16
+  worst CS per lap, #12 apex cells, h2 and TPMS windows. Output
+  diagnostics/output/class_b/ (gitignored). Record: thesis_notes.md
+  "Class B, rebuild".
 
 ## K6 -- imported by a K1-K5 keeper (3 not already listed above)
 

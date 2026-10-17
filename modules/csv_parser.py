@@ -10,7 +10,7 @@ import json
 import os
 import re
 from modules.corner_analysis import analyse_corners
-from modules.stability_analysis import _estimate_sample_rate
+from modules.stability_analysis import _estimate_sample_rate, _normalize_lap_distance_to_metres, load_parameters
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
@@ -45,6 +45,82 @@ def _split_name_unit(raw_name):
     if "[" in raw_name and raw_name.endswith("]"):
         return raw_name[:raw_name.index("[")].strip(), raw_name[raw_name.index("[") + 1:-1].strip()
     return raw_name, None
+
+
+# Declared-unit spellings seen in the exports (channel census, 24 files) ->
+# the spelling config/channels.json uses. "\xb0" = the degree sign, read
+# through latin-1.
+UNIT_SYNONYMS = {"kph": "km/h", "G": "g", "\xb0": "deg"}
+# Exact definitional factors (declared unit, config unit) -> multiplier.
+# Only the pairs the exports need; anything else stops the parse.
+UNIT_CONVERSIONS = {
+    ("mph", "km/h"): 1.609344,
+    ("m", "mm"): 1000.0,
+    ("m", "ft"): 1.0 / 0.3048,
+}
+
+
+def _canonical_unit(unit):
+    return UNIT_SYNONYMS.get(unit, unit)
+
+
+def _to_config_unit(ch_name, data, unit_raw, unit_cfg):
+    # For the quality gate's range test only (#2): the ranges are in the
+    # config unit, the data in the file's. No declared unit -> taken as the
+    # config unit, as before. The returned channel keeps the file's values;
+    # consumers convert from unit_raw themselves.
+    if unit_raw is None:
+        return data
+    src, dst = _canonical_unit(unit_raw), _canonical_unit(unit_cfg)
+    if src == dst:
+        return data
+    factor = UNIT_CONVERSIONS.get((src, dst))
+    if factor is None:
+        raise ValueError(
+            f"{ch_name}: declared unit {unit_raw!r} has no known conversion to the config unit "
+            f"{unit_cfg!r} (config/channels.json) -- add it to csv_parser.UNIT_CONVERSIONS before "
+            "trusting this export"
+        )
+    return data * factor
+
+
+def _fixed_factor_units():
+    # Channels whose downstream conversion is a hard-coded factor, and the
+    # unit that factor assumes: /3.6 for speeds, pi/180 for steering, 9.81
+    # for accelerations (prepare_vehicle_state, longitudinal_forces) and
+    # yaw_rate_to_radps, which converts from yaw_rate_unit (parameters.json).
+    units = {"ecu_speed": "km/h", "log_asteer": "deg",
+             "log_acc_x": "g", "log_acc_y": "g", "log_acc_z": "g",
+             "sclu_yaw_rate": load_parameters()["stability_estimation"]["yaw_rate_unit"]}
+    units.update({f"log_speed_{c}": "km/h" for c in ("fl", "fr", "rl", "rr")})
+    return units
+
+
+def _assert_fixed_factor_units(channels):
+    """One place for the unit assumption behind every fixed-factor
+    conversion (#5, #6). Declared unit -> must be the assumed one; a
+    convertible but different unit still fails, because the factor
+    downstream is fixed. No declared unit -> the assumed unit stands, and
+    the range gate in that unit is the mismatch evidence: a channel the gate
+    rejects outright ('failed') is reported as a probable unit mismatch
+    instead of being dropped silently.
+    """
+    for ch_name, assumed in _fixed_factor_units().items():
+        ch = channels.get(ch_name)
+        if ch is None or ch["quality"] == "missing":
+            continue
+        declared = ch.get("unit_raw")
+        if declared is not None:
+            if _canonical_unit(declared) != _canonical_unit(assumed):
+                raise ValueError(
+                    f"{ch_name}: declared unit {declared!r}, but its downstream conversion assumes "
+                    f"{assumed!r} -- convert explicitly before trusting this export"
+                )
+        elif ch["quality"] == "failed":
+            raise ValueError(
+                f"{ch_name}: no declared unit and the data fail the range gate in the assumed unit "
+                f"{assumed!r} -- probable unit mismatch, check the export"
+            )
 
 
 def parse_csv(file_path):
@@ -90,10 +166,19 @@ def parse_csv(file_path):
                                 try:
                                     t = float(parts[0].replace(",", "."))
                                     v = float(parts[1].replace(",", "."))
+                                except ValueError:
+                                    i += 1
+                                    continue
+                                # NaN samples dropped, as in the wide layout
+                                # (#3): a kept NaN survives the grid
+                                # interpolation and the IIR state of the
+                                # zero-phase filter carries it through the
+                                # whole filtered channel; a dropped one is
+                                # bridged by the interpolation in
+                                # prepare_vehicle_state.
+                                if t == t and v == v:
                                     times.append(t)
                                     values.append(v)
-                                except ValueError:
-                                    pass
                             i += 1
                         raw_channels[channel_name] = {
                             "time": np.array(times),
@@ -199,7 +284,8 @@ def parse_csv(file_path):
             quality = "failed"
         else:
             lo, hi = ch_config["range"]
-            valid_mask = (data_arr >= lo) & (data_arr <= hi)
+            gate_data = _to_config_unit(ch_name, data_arr, raw.get("unit_raw"), ch_config["unit"])
+            valid_mask = (gate_data >= lo) & (gate_data <= hi)
             valid_ratio = valid_mask.sum() / len(valid_mask)
             if valid_ratio < quality_gates["failed_below"]:
                 quality = "failed"
@@ -217,6 +303,7 @@ def parse_csv(file_path):
             "quality": quality
         }
 
+    _assert_fixed_factor_units(result_channels)
     laps = _split_laps(result_channels, config)
 
     # measured from ecu_speed; None = unknown, not "matches expected"
@@ -465,10 +552,12 @@ def _verify_laps(laps, channels, config=None):
                         f"computed duration ({duration:.1f}s)"
                     )
 
-        # lap_distance must actually ramp up (outlap skipped)
+        # lap_distance must actually ramp up (outlap skipped). The threshold
+        # is in metres, the channel in the file's declared unit (ft on most
+        # exports): compared in feet, a lap had to travel only 305 m (#1).
         if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
             t = lap_distance["time"]
-            d = lap_distance["data"]
+            d = _normalize_lap_distance_to_metres(lap_distance["data"], lap_distance.get("unit_raw"))
             mask = (t >= start_t) & (t <= end_t)
             if mask.any():
                 lap_d = d[mask]
@@ -477,7 +566,7 @@ def _verify_laps(laps, channels, config=None):
                 d_traveled = d_peak - d_start
                 if d_traveled < distance_min_travelled_m and duration > distance_check_min_duration_s:
                     lap["warnings"].append(
-                        f"lap_distance only rose by {d_traveled:.0f} units "
+                        f"lap_distance only rose by {d_traveled:.0f} m "
                         f"despite {duration:.1f}s duration"
                     )
 

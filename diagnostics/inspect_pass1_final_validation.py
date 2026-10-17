@@ -19,8 +19,17 @@ from modules.stability_analysis import (
     load_parameters, prepare_vehicle_state, estimate_sideslip,
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
 )
-from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
-from modules.tyre_model import dugoff_lateral_force
+# The Dugoff observer and tyre model were removed 2026-10-17 (Class B
+# rebuild, author ruling); this baseline is frozen evidence and can no
+# longer run. Its recorded output is pass1_final_validation_manifest.json
+# and thesis_notes.md; the code is in git history before that date.
+try:
+    from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+    from modules.tyre_model import dugoff_lateral_force
+except ImportError:
+    raise SystemExit("inspect_pass1_final_validation: frozen pass-1 baseline -- its Dugoff "
+                     "observer was removed 2026-10-17; see pass1_final_validation_manifest.json "
+                     "and git history before that date. Nothing was run.")
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 PASS_ID = "pass_1"

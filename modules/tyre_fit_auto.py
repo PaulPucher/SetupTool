@@ -1,13 +1,10 @@
-# Per-session tyre-curve fit (Dugoff or Pacejka) + EKF validation, and
+# Per-session Pacejka tyre-curve fit + EKF validation, and
 # resolve_sideslip_beta -- the live beta dispatcher for every sideslip_source.
 #
-# Steps, as in the frozen diagnostics chain:
-#   (a) c_alpha, (b) mu_fz -- diagnostics/fit_dugoff_first_pass.py
-#   (c) R derivation       -- diagnostics/inspect_ekf_pass1_rQ_sweep.py
-#   (d) EKF run            -- modules/sideslip_ekf_dugoff.py
-#   (e) validation         -- diagnostics/inspect_pass1_final_validation.py
-# Not reproduced: the raw-OLS c_alpha comparison and the linear-observer
-# R^2 check (needs that observer's output).
+# Steps: (a)+(b) axle curve fit, (c) R derivation from the fit residuals,
+# (d) EKF run (modules/sideslip_ekf_pacejka.py), (e) validation (NIS,
+# sign check, onset coverage, h2). The chain automates the frozen pass-0/1
+# Dugoff workflow, removed 2026-10-17 (Class B rebuild; git history).
 #
 # Lateral-only axle fit (Pacejka 2nd ed.): pure side slip is the base curve,
 # Eq. 4.49 / 4.E19 with zero shifts and free D (sec. 4.3.1; regression per
@@ -20,23 +17,21 @@ import subprocess
 from datetime import datetime, timezone
 
 import numpy as np
-from scipy.optimize import minimize_scalar, minimize
+from scipy.optimize import minimize
 from scipy.stats import chi2
 
 from modules.stability_analysis import (
     prepare_vehicle_state, estimate_sideslip, estimate_slip_angles,
-    estimate_lateral_forces, estimate_vertical_loads, estimate_cornering_stiffness,
-    load_car_data,
+    estimate_lateral_forces, estimate_vertical_loads, load_car_data, apex_instant_slice,
 )
-from modules.tyre_model import dugoff_lateral_force
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
 from modules.nis_gate import evaluate_gate
-from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
 PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E)
 
 TYRE_FIT_MODES = ("per_session", "prior_anchored")
+SIDESLIP_SOURCES = ("kinematic", "ekf_auto_pacejka")
 # Grid resolution of the prior-curve penalty; part of the method definition
 # (what "mean distance over the visited range" means), not a tunable.
 PRIOR_PENALTY_GRID_N = 200
@@ -57,69 +52,6 @@ def _base_mask(state, laps):
     for s, e in valid_windows:
         racing_mask |= (t >= s) & (t <= e)
     return moving & racing_mask
-
-
-def _fit_axle(alpha, Fy, Fz, C_alpha, CS_ratio, base_mask, cfg):
-    """Steps (a)+(b): c_alpha from the CS_ratio == 1 linear region, then bounded
-    mu_fz least squares with c_alpha fixed. Bracket widening + >= 0.95
-    non-interior check catch the rear collapse to pure linear.
-    """
-    m_c4b = base_mask & np.isfinite(C_alpha) & (CS_ratio == 1.0)
-    c_alpha_pop = C_alpha[m_c4b]
-    c_alpha_used = float(np.median(c_alpha_pop)) if len(c_alpha_pop) else float("nan")
-    sign_ok = c_alpha_used > 0 if c_alpha_pop.size else False
-
-    m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz)
-    a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
-
-    if not sign_ok or len(a2) < 10:
-        return {
-            "c_alpha_n_per_rad": c_alpha_used, "c_alpha_source_mask_n": int(len(c_alpha_pop)),
-            "c_alpha_sign_check_ok": sign_ok, "mu_fz_N": float("nan"), "mu_fz_bound_fraction": float("nan"),
-            "mu_fz_fit_n_samples": int(len(a2)), "mu_fz_fit_rms_resid_N": float("nan"),
-            "degenerate": True, "degenerate_reason": "c_alpha sign check failed or insufficient fit samples",
-            "residuals": None, "mean_axle_fz_N": float("nan"),
-        }
-
-    def _sse(mu_fz, alpha_arr=a2, fy_arr=f2, c_alpha_fixed=c_alpha_used):
-        pred = dugoff_lateral_force(alpha_arr, c_alpha_fixed, mu_fz)
-        return float(np.sum((pred - fy_arr) ** 2))
-
-    hi_bound = cfg["mu_fz_hi_bound_initial_multiplier"] * float(np.max(np.abs(f2)))
-    widen_mult = cfg["mu_fz_hi_bound_widen_multiplier"]
-    max_attempts = int(cfg["mu_fz_max_widen_attempts"])
-    bound_thresh = cfg["mu_fz_bound_fraction_degenerate_threshold"]
-
-    mu_fz_bound_fraction = 1.0
-    attempts = 0
-    mu_fz = float("nan")
-    while mu_fz_bound_fraction > bound_thresh and attempts < max_attempts:
-        opt = minimize_scalar(_sse, bounds=(1.0, hi_bound), method="bounded")
-        mu_fz = float(opt.x)
-        mu_fz_bound_fraction = mu_fz / hi_bound
-        attempts += 1
-        if mu_fz_bound_fraction > bound_thresh and attempts < max_attempts:
-            hi_bound *= widen_mult
-
-    degenerate = mu_fz_bound_fraction > bound_thresh
-    pred2 = dugoff_lateral_force(a2, c_alpha_used, mu_fz)
-    resid = f2 - pred2
-    rms2 = float(np.sqrt(np.mean(resid ** 2)))
-    mean_fz = float(np.mean(z2))
-
-    return {
-        "c_alpha_n_per_rad": c_alpha_used, "c_alpha_source_mask_n": int(len(c_alpha_pop)),
-        "c_alpha_sign_check_ok": sign_ok,
-        "mu_fz_N": mu_fz, "mu_fz_search_bracket_N": [1.0, hi_bound],
-        "mu_fz_bracket_widen_attempts": attempts, "mu_fz_bound_fraction": mu_fz_bound_fraction,
-        "mu_fz_fit_n_samples": int(len(a2)), "mu_fz_fit_rms_resid_N": rms2,
-        "mean_axle_fz_N": mean_fz, "effective_mu": (mu_fz / mean_fz) if mean_fz else float("nan"),
-        "degenerate": degenerate,
-        "degenerate_reason": ("mu_fz fit did not converge to an interior optimum -- hit the "
-                               f"widened search bracket ceiling after {attempts} attempt(s) "
-                               f"(bound_fraction={mu_fz_bound_fraction:.6f})") if degenerate else None,
-        "residuals": resid, "residual_mask": m2,
-    }
 
 
 def _r_from_residuals(resid_front_full, resid_rear_full, common_mask, mass_kg):
@@ -184,19 +116,6 @@ def _sign_check(t, s_m, beta, ay, moving, corners_by_stable_id, laps_by_number, 
     }
 
 
-def _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg):
-    """Text for the sign-check / NIS-miscalibration degenerate verdict, so every
-    degenerate status carries a reason (author ruling 2026-10-07)."""
-    parts = []
-    if gate_frac < cfg["sign_check_degenerate_fraction"]:
-        parts.append(f"sign check: median gate racing fraction {gate_frac:.3f} < "
-                     f"{cfg['sign_check_degenerate_fraction']:g}")
-    if worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
-        parts.append(f"NIS gross miscalibration: worst-channel exceedance {worst_channel_exceedance:.3f} > "
-                     f"{cfg['nis_gross_miscalibration_fraction']:g}")
-    return "; ".join(parts)
-
-
 def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bracket_end_m):
     lo = int(np.searchsorted(t, lap_start_t, side="left"))
     hi = int(np.searchsorted(t, lap_end_t, side="right"))
@@ -206,8 +125,14 @@ def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bra
     finite = np.isfinite(lap_s)
     if not finite.any():
         return slice(0, 0)
+    # searchsorted needs ascending distances: search only up to the lap's
+    # maximum, so samples after it (a reset or a backwards step at the lap
+    # end) cannot misplace the slice (#23)
+    k_max = int(np.flatnonzero(finite)[np.argmax(lap_s[finite])])
+    lap_s = lap_s[:k_max + 1]
+    finite = finite[:k_max + 1]
     lap_s_lo = float(np.min(lap_s[finite]))
-    lap_s_hi = float(np.max(lap_s[finite]))
+    lap_s_hi = float(lap_s[k_max])
     target_start_s = max(lap_s_lo, bracket_start_m)
     target_end_s = min(lap_s_hi, bracket_end_m)
     start_local = int(np.searchsorted(lap_s, target_start_s, side="left"))
@@ -259,213 +184,6 @@ def _speed_window_mask(state, data, cfg):
     }
 
 
-def fit_session(data, params, data_file_path=None):
-    """One-shot per-session Dugoff fit + EKF validation (steps a-e) -> manifest.
-    data = parse_csv output.
-
-    status (thresholds in config tyre_fit_auto, proposed, not reviewed):
-      degenerate: c_alpha sign check fails or < 10 samples; mu_fz at bracket
-        ceiling (curve collapsed to linear); sign-check fraction < 0.5 (coin
-        flip); or best R still leaves NIS exceedance > 0.5 on a channel.
-      marginal: no R grid point with both NIS channels in band; or sign-check
-        fraction < 0.7 (frozen pass-1 baseline: 8/11 on Dubai).
-      ok: otherwise.
-    """
-    cfg = params["tyre_fit_auto"]
-    vp = params["vehicle"]
-    mass_kg = vp["mass_kg"]
-
-    state = prepare_vehicle_state(data["channels"], params)
-    if state is None:
-        return {"status": "degenerate", "degenerate_reason": "prepare_vehicle_state returned None "
-                "-- required channels missing from this session", "data_file": data_file_path}
-
-    laps = data.get("laps", [])
-    base_mask = _base_mask(state, laps)
-
-    beta_kin = estimate_sideslip(state, params)
-    slip_kin = estimate_slip_angles(state, beta_kin, params)
-    forces = estimate_lateral_forces(state, params)
-    fz = estimate_vertical_loads(state, forces, params)
-    cs_kin = estimate_cornering_stiffness(slip_kin, forces, state, params)
-
-    # (a)+(b) per-axle fit
-    front_fit = _fit_axle(slip_kin["alpha_f_filt"], forces["Fy_f_filt"], fz["fz_f_N"],
-                           cs_kin["C_alpha_f"], cs_kin["CS_ratio_f"], base_mask, cfg)
-    rear_fit = _fit_axle(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], fz["fz_r_N"],
-                          cs_kin["C_alpha_r"], cs_kin["CS_ratio_r"], base_mask, cfg)
-
-    manifest = {
-        "data_file": data_file_path,
-        "laps_used": sorted(l["lap_number"] for l in laps if l.get("is_valid_for_analysis")),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "axles": {"front": {k: v for k, v in front_fit.items() if k not in ("residuals", "residual_mask")},
-                  "rear": {k: v for k, v in rear_fit.items() if k not in ("residuals", "residual_mask")}},
-    }
-    try:
-        git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-    except Exception as e:
-        git_hash = f"UNAVAILABLE ({e})"
-    manifest["git_commit_hash"] = git_hash
-
-    if front_fit["degenerate"] or rear_fit["degenerate"]:
-        manifest["status"] = "degenerate"
-        manifest["degenerate_reason"] = "; ".join(
-            f"{axle}: {fit['degenerate_reason']}" for axle, fit in (("front", front_fit), ("rear", rear_fit))
-            if fit["degenerate_reason"]
-        )
-        return manifest
-
-    # (c) R derivation
-    common_mask = front_fit["residual_mask"] & rear_fit["residual_mask"]
-    resid_front_full = np.zeros_like(base_mask, dtype=float)
-    resid_rear_full = np.zeros_like(base_mask, dtype=float)
-    resid_front_full[front_fit["residual_mask"]] = front_fit["residuals"]
-    resid_rear_full[rear_fit["residual_mask"]] = rear_fit["residuals"]
-    r_ay_var_derived, std_f, std_r, rho = _r_from_residuals(resid_front_full, resid_rear_full, common_mask, mass_kg)
-
-    interim_cfg = {
-        "c_alpha_front_n_per_rad": front_fit["c_alpha_n_per_rad"], "c_alpha_rear_n_per_rad": rear_fit["c_alpha_n_per_rad"],
-        "mu_fz_front_N": front_fit["mu_fz_N"], "mu_fz_rear_N": rear_fit["mu_fz_N"],
-        "Q_beta_var": cfg["q_beta_var"], "Q_yaw_rate_var": cfg["q_yaw_rate_var"],
-        "P0_beta_var": cfg["p0_beta_var"], "P0_yaw_rate_var": cfg["p0_yaw_rate_var"],
-        "R_ay_var": r_ay_var_derived, "R_yaw_rate_var": cfg["r_yaw_rate_interim_seed_var"],
-        "beta_hard_bound_deg": cfg["beta_hard_bound_deg"],
-        "nis_window_samples": cfg["nis_window_samples"], "nis_chi2_bound": cfg["nis_chi2_bound"],
-        "nis_flag_fraction": cfg["nis_flag_fraction"],
-    }
-    params_interim = dict(params)
-    params_interim["tyre_model_ekf"] = dict(params.get("tyre_model_ekf", {}))
-    params_interim["tyre_model_ekf"]["_auto_interim"] = interim_cfg
-    interim_result = estimate_sideslip_ekf_dugoff(state, params_interim, pass_id="_auto_interim")
-    yaw_innov_interim = interim_result["innovation"][base_mask][:, 0]
-    r_yaw_rate_var_derived = float(np.mean(yaw_innov_interim ** 2))
-
-    manifest["r_derivation"] = {
-        "std_front_mps2": std_f, "std_rear_mps2": std_r, "inter_axle_correlation": rho,
-        "r_ay_var_derived": r_ay_var_derived, "r_yaw_rate_var_derived": r_yaw_rate_var_derived,
-    }
-
-    # 2-D NIS-gated sweep around the derived baseline
-    sweep_results = []
-    for r_ay_scale in cfg["r_sweep_ay_scales"]:
-        for r_yaw_scale in cfg["r_sweep_yaw_scales"]:
-            sweep_cfg = dict(interim_cfg)
-            sweep_cfg["R_ay_var"] = r_ay_var_derived * r_ay_scale
-            sweep_cfg["R_yaw_rate_var"] = r_yaw_rate_var_derived * r_yaw_scale
-            params_sweep = dict(params)
-            params_sweep["tyre_model_ekf"] = dict(params.get("tyre_model_ekf", {}))
-            params_sweep["tyre_model_ekf"]["_auto_sweep"] = sweep_cfg
-            result = estimate_sideslip_ekf_dugoff(state, params_sweep, pass_id="_auto_sweep")
-            innovation = result["innovation"][base_mask]
-            S_diag = result["S_diag"][base_mask]
-            f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
-            f_ay = float((innovation[:, 1] ** 2 / S_diag[:, 1] > CHI2_DF1_95).mean())
-            both_in_band = (cfg["nis_band_low"] <= f_yaw <= cfg["nis_band_high"]) and \
-                            (cfg["nis_band_low"] <= f_ay <= cfg["nis_band_high"])
-            sweep_results.append({"r_ay_scale": r_ay_scale, "r_yaw_scale": r_yaw_scale,
-                                   "R_ay_var": sweep_cfg["R_ay_var"], "R_yaw_rate_var": sweep_cfg["R_yaw_rate_var"],
-                                   "f_yaw": f_yaw, "f_ay": f_ay, "both_in_band": both_in_band})
-
-    in_band = [r for r in sweep_results if r["both_in_band"]]
-    centre = (cfg["nis_band_low"] + cfg["nis_band_high"]) / 2.0
-    if in_band:
-        chosen = min(in_band, key=lambda r: abs(r["f_yaw"] - centre) + abs(r["f_ay"] - centre))
-        sweep_found_in_band = True
-    else:
-        chosen = min(sweep_results, key=lambda r: abs(r["f_yaw"] - centre) + abs(r["f_ay"] - centre))
-        sweep_found_in_band = False
-    manifest["r_sweep"] = {"grid_points": sweep_results, "chosen": chosen, "found_in_band": sweep_found_in_band}
-
-    # (d) final EKF run with chosen R
-    final_cfg = dict(interim_cfg)
-    final_cfg["R_ay_var"] = chosen["R_ay_var"]
-    final_cfg["R_yaw_rate_var"] = chosen["R_yaw_rate_var"]
-    params_final = dict(params)
-    params_final["tyre_model_ekf"] = dict(params.get("tyre_model_ekf", {}))
-    params_final["tyre_model_ekf"]["_auto_final"] = final_cfg
-    final_result = estimate_sideslip_ekf_dugoff(state, params_final, pass_id="_auto_final")
-    beta_ekf = final_result["beta"]
-    manifest["final_config"] = final_cfg
-
-    # (e) validation
-    innovation = final_result["innovation"][base_mask]
-    nis_combined = final_result["nis"][base_mask]
-    S_diag = final_result["S_diag"][base_mask]
-    # raw beta/nis are for validation figures only -- production uses
-    # beta_ekf_with_fallback. base_mask + full nis exposed for nis_gate.
-    nis_yaw = innovation[:, 0] ** 2 / S_diag[:, 0]
-    nis_ay = innovation[:, 1] ** 2 / S_diag[:, 1]
-    f_yaw = float((nis_yaw > CHI2_DF1_95).mean())
-    f_ay = float((nis_ay > CHI2_DF1_95).mean())
-    f_comb = float((nis_combined > CHI2_DF2_95).mean())
-    manifest["nis"] = {"yaw_rate_exceedance": f_yaw, "ay_exceedance": f_ay,
-                        "combined_exceedance": f_comb, "combined_mean_nis": float(np.mean(nis_combined))}
-
-    corners = data.get("corners", [])
-    laps_by_number = {l["lap_number"]: l for l in laps}
-    corners_by_stable_id = {}
-    for c in corners:
-        sid = c.get("stable_corner_id")
-        if sid is not None:
-            corners_by_stable_id.setdefault(sid, []).append(c)
-    racing_ids = [cid for cid, insts in corners_by_stable_id.items() if insts[0].get("speed_class") != "low"]
-
-    t = state["time"]
-    s_m = state.get("s_m")
-    ay = state["ay_mps2"]
-    manifest["sign_check"] = _sign_check(t, s_m, beta_ekf, ay, base_mask, corners_by_stable_id, laps_by_number, racing_ids)
-
-    slip_ekf = estimate_slip_angles(state, beta_ekf, params)
-    onset_coverage = {}
-    for axle_name, alpha_c, c_a, mu_z in (
-        ("front", slip_ekf["alpha_f_filt"], front_fit["c_alpha_n_per_rad"], front_fit["mu_fz_N"]),
-        ("rear", slip_ekf["alpha_r_filt"], rear_fit["c_alpha_n_per_rad"], rear_fit["mu_fz_N"]),
-    ):
-        tan_onset = mu_z / (2.0 * c_a)
-        onset_deg = float(np.degrees(np.arctan(tan_onset)))
-        alpha_deg = np.degrees(alpha_c)[base_mask]
-        frac_beyond = float((np.abs(alpha_deg) > onset_deg).mean())
-        onset_coverage[axle_name] = {"onset_deg": onset_deg, "coverage_fraction": frac_beyond}
-    manifest["onset_coverage"] = onset_coverage
-
-    apex_half = params["stability_estimation"]["apex_half_window_samples"]
-    apex_mask = np.zeros_like(t, dtype=bool)
-    for c in corners:
-        start_t, end_t = c["segments"]["apex_3"]
-        if end_t < start_t:
-            continue
-        lo = int(np.searchsorted(t, start_t, side="left"))
-        hi = int(np.searchsorted(t, end_t, side="right"))
-        if hi <= lo:
-            lo = max(0, lo - apex_half)
-            hi = min(len(t), lo + 2 * apex_half + 1)
-        apex_mask[lo:hi] = True
-    apex_pop = base_mask & apex_mask
-    idx = np.where(apex_pop)[0]
-    h2_pred = (dugoff_lateral_force(slip_ekf["alpha_f_filt"][idx], front_fit["c_alpha_n_per_rad"], front_fit["mu_fz_N"]) +
-               dugoff_lateral_force(slip_ekf["alpha_r_filt"][idx], rear_fit["c_alpha_n_per_rad"], rear_fit["mu_fz_N"])) / mass_kg
-    r_h2 = float(np.corrcoef(h2_pred, ay[idx])[0, 1]) if len(idx) > 2 else float("nan")
-    manifest["h2_vs_ay_apex"] = {"n": int(len(idx)), "correlation": r_h2}
-
-    # status
-    gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
-    worst_channel_exceedance = max(f_yaw, f_ay)
-    if gate_frac < cfg["sign_check_degenerate_fraction"] or worst_channel_exceedance > cfg["nis_gross_miscalibration_fraction"]:
-        manifest["status"] = "degenerate"
-        manifest["degenerate_reason"] = _status_degenerate_reason(gate_frac, worst_channel_exceedance, cfg)
-    elif (not sweep_found_in_band) or gate_frac < cfg["sign_check_marginal_fraction"]:
-        manifest["status"] = "marginal"
-    else:
-        manifest["status"] = "ok"
-
-    manifest["beta_ekf"] = beta_ekf  # numpy, caller strips
-    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production uses this
-    manifest["nis_full"] = final_result["nis"]  # full length, for nis_gate
-    manifest["base_mask"] = base_mask
-    return manifest
-
-
 def _fit_axle_pacejka(alpha, Fy, base_mask):
     """Steps (a)+(b), Pacejka: joint (B, C, D, E) Powell fit from the chair
     start guess, same base_mask. No bracket to hit -- Powell convergence is
@@ -476,8 +194,8 @@ def _fit_axle_pacejka(alpha, Fy, base_mask):
 
     if len(a2) == 0:
         # empty population (e.g. no valid laps on v3) -> np.percentile
-        # would raise deep in numpy. Return no-signal like _fit_axle; the
-        # caller turns it into status="degenerate".
+        # would raise deep in numpy. Return no-signal; the caller turns it
+        # into status="degenerate".
         return {
             "B": float("nan"), "C": float("nan"), "D": float("nan"), "E": float("nan"),
             "powell_converged": False,
@@ -675,12 +393,10 @@ def plausibility_gate(alpha, fit_mask, axle_fit, cfg):
 
 
 def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False, tyre_fit_mode="per_session"):
-    """fit_session with the reduced Magic Formula instead of Dugoff; steps
-    (c)-(e) and status thresholds as there, except the R selection of the
-    sweep (2026-10-11): ay exceedance only, band centre, sign-check guard,
-    config-default R as fallback (status at most 'marginal', reason in
-    marginal_reason) -- see the comment at the sweep. The Dugoff path keeps
-    the joint yaw + ay band.
+    """Per-session fit with the reduced Magic Formula, steps (a)-(e). R
+    selection of the sweep (2026-10-11): ay exceedance only, band centre,
+    sign-check guard, config-default R as fallback (status at most
+    'marginal', reason in marginal_reason) -- see the comment at the sweep.
 
     load_normalised=True: D = mu * Fz with measured Fz (Milliken RCVD ch. 2
     (sec. 2.1)). No measured Fz -> degenerate manifest, no silent free-D
@@ -904,7 +620,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         else:
             frac_beyond = float("nan")
         coverage[axle_name] = {"peak_alpha_deg": fit["peak_alpha_deg"], "coverage_fraction": frac_beyond}
-    manifest["onset_coverage"] = coverage  # same key as fit_session
+    manifest["onset_coverage"] = coverage
 
     apex_half = params["stability_estimation"]["apex_half_window_samples"]
     apex_mask = np.zeros_like(t, dtype=bool)
@@ -912,12 +628,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         start_t, end_t = c["segments"]["apex_3"]
         if end_t < start_t:
             continue
-        lo = int(np.searchsorted(t, start_t, side="left"))
-        hi = int(np.searchsorted(t, end_t, side="right"))
-        if hi <= lo:
-            lo = max(0, lo - apex_half)
-            hi = min(len(t), lo + 2 * apex_half + 1)
-        apex_mask[lo:hi] = True
+        apex_mask[apex_instant_slice(t, start_t, apex_half)] = True
     apex_pop = base_mask & apex_mask
     idx = np.where(apex_pop)[0]
     h2_pred = (pacejka_lateral_force(slip_ekf["alpha_f_filt"][idx], front_fit["B"], front_fit["C"], front_fit["D"], front_fit["E"]) +
@@ -998,22 +709,22 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
     fit_manifest: JSON-safe manifest, auto modes only. gate_verdict: from
     nis_gate.evaluate_gate, None outside auto modes or after a degenerate fit.
     Degenerate fit or gate "fail" -> kinematic beta, reason as text.
-    Never mutates params.
+    An unknown sideslip_source is refused: it used to run kinematic
+    silently, so a typo in the config shipped the fallback beta as if
+    chosen. Never mutates params.
     """
-    if sideslip_source == "ekf_pass_1":
-        # beta_with_fallback, never raw -- raw keeps diverged-window artifacts
-        ekf_result = estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_1")
-        return ekf_result["beta_with_fallback"], None, None, False, None
+    if sideslip_source not in SIDESLIP_SOURCES:
+        raise ValueError(
+            f"sideslip_source {sideslip_source!r} not recognised (expected one of {SIDESLIP_SOURCES}; "
+            "the Dugoff sources ekf_pass_1 / ekf_auto_dugoff were removed 2026-10-17)"
+        )
 
-    if sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka"):
-        if sideslip_source == "ekf_auto_dugoff":
-            raw_fit_manifest = fit_session(data, params, data_file_path=csv_path)
-        else:
-            # both config-gated, defaults unchanged (free D, per-session); Pacejka path only
-            load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
-            tyre_fit_mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
-            raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,
-                                                    load_normalised=load_normalised, tyre_fit_mode=tyre_fit_mode)
+    if sideslip_source == "ekf_auto_pacejka":
+        # both config-gated, defaults unchanged (free D, per-session)
+        load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
+        tyre_fit_mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
+        raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,
+                                                load_normalised=load_normalised, tyre_fit_mode=tyre_fit_mode)
         fit_status = raw_fit_manifest.get("status")
         fallback_used = False
         fallback_reason = None

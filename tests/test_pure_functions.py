@@ -3,7 +3,7 @@
 #
 # REGRESSION, NOT CORRECTNESS: a hand-derived expected value here is
 # checked against the FORMULA the docstring/thesis_notes.md claims the
-# code implements (e.g. Dugoff's known small-slip linear limit, the
+# code implements (e.g. the EKF Jacobians against finite differences, the
 # kinematic slip-angle geometry at beta=0). Passing confirms the code
 # matches its OWN stated method; it is not an independent re-derivation
 # of whether that method is the right one for this car (see PLAN.md's
@@ -15,12 +15,11 @@ import numpy as np
 import pytest
 
 from modules.stability_analysis import estimate_slip_angles, load_parameters
-from modules.tyre_model import dugoff_lateral_force, dugoff_lateral_stiffness
 from modules.recommendation import _nanmedian_or_nan
-from modules.sideslip_ekf_dugoff import (
+from modules.sideslip_ekf_pacejka import (
     slip_angles as ekf_slip_angles, process_jacobian, measurement_jacobian,
 )
-from modules.tyre_model import dugoff_lateral_force as dlf, dugoff_lateral_stiffness as dls
+from modules.tyre_model_pacejka import pacejka_lateral_force as plf, pacejka_lateral_stiffness as pls
 
 
 _SYNTH_N = 30  # long enough for scipy.signal.filtfilt's default pad requirement at a 4th-order Butterworth
@@ -171,115 +170,49 @@ def test_lateral_force_split_moment_identity(pipeline_result, state, effective_p
     assert b_config == pytest.approx(b_exact, abs=1e-3), "cog_to_rear_axle_m drifted beyond 3-decimal rounding"
 
 
-# --- Dugoff tyre model + analytic stiffness derivative -----------------------
-
-def test_dugoff_force_zero_at_zero_slip():
-    assert dugoff_lateral_force(0.0, c_alpha=100000.0, mu_fz=8000.0) == pytest.approx(0.0, abs=1e-6)
-
-
-def test_dugoff_stiffness_equals_c_alpha_at_zero_slip():
-    """At alpha=0 the adhesion fraction lambda is capped to 1 (division
-    by the epsilon-guarded near-zero tan(alpha) makes lambda enormous),
-    cos(0)=1 -- stiffness collapses exactly to c_alpha, the model's
-    linear-region cornering stiffness parameter by definition."""
-    c_alpha = 132798.0
-    assert dugoff_lateral_stiffness(0.0, c_alpha, mu_fz=10653.0) == pytest.approx(c_alpha, rel=1e-9)
-
-
-def test_dugoff_force_collapses_to_linear_at_small_slip():
-    """Small-slip limit: Fy(alpha)/alpha -> c_alpha as alpha -> 0 (the
-    Dugoff model's own documented linear-region reduction, Rajamani
-    Ch. 13.10). Checked at a genuinely small angle (0.01 deg) against a
-    tight relative tolerance."""
-    c_alpha, mu_fz = 132798.0, 10653.0
-    alpha = math.radians(0.01)
-    fy = dugoff_lateral_force(alpha, c_alpha, mu_fz)
-    assert fy / alpha == pytest.approx(c_alpha, rel=1e-4)
-
-
-def test_dugoff_stiffness_matches_finite_difference():
-    """Analytic dugoff_lateral_stiffness against central-difference
-    numerical differentiation of dugoff_lateral_force, at several slip
-    angles spanning both the adhesion and sliding branches (the
-    lambda >= 1 / lambda < 1 split inside the model) -- reproduces the
-    check already recorded in the module's own docstring ("Verified
-    against central-difference numerical differentiation... max relative
-    error ~2.5e-9"), as a standing test rather than a one-off dev note.
-    """
-    c_alpha, mu_fz = 132798.0, 10653.0
-    h = 1e-6
-    for alpha_deg in [0.5, 2.0, 5.0, 10.0, 20.0]:
-        alpha = math.radians(alpha_deg)
-        analytic = dugoff_lateral_stiffness(alpha, c_alpha, mu_fz)
-        numeric = (dugoff_lateral_force(alpha + h, c_alpha, mu_fz)
-                   - dugoff_lateral_force(alpha - h, c_alpha, mu_fz)) / (2 * h)
-        assert analytic == pytest.approx(numeric, rel=1e-5), f"mismatch at alpha={alpha_deg} deg"
-
-
-def test_dugoff_force_and_stiffness_odd_even_symmetry():
-    """Fy(-alpha) == -Fy(alpha) (odd, force opposes slip in either
-    direction); stiffness(-alpha) == stiffness(alpha) (even, the
-    derivative of an odd function) -- documented in dugoff_lateral_
-    stiffness's own docstring, checked directly."""
-    c_alpha, mu_fz = 132798.0, 10653.0
-    for alpha_deg in [3.0, 15.0]:
-        alpha = math.radians(alpha_deg)
-        assert dugoff_lateral_force(-alpha, c_alpha, mu_fz) == pytest.approx(
-            -dugoff_lateral_force(alpha, c_alpha, mu_fz), rel=1e-9)
-        assert dugoff_lateral_stiffness(-alpha, c_alpha, mu_fz) == pytest.approx(
-            dugoff_lateral_stiffness(alpha, c_alpha, mu_fz), rel=1e-9)
-
-
-def test_dugoff_empty_array_input():
-    """Edge case: empty array input must not raise, must return an empty
-    array."""
-    out_f = dugoff_lateral_force(np.array([]), c_alpha=100000.0, mu_fz=8000.0)
-    out_s = dugoff_lateral_stiffness(np.array([]), c_alpha=100000.0, mu_fz=8000.0)
-    assert len(out_f) == 0
-    assert len(out_s) == 0
-
-
 # --- EKF Jacobians vs finite-difference approximation ------------------------
 
-def _ekf_f(x, u, Vx, m, a, b, Iz, c_alpha_f, c_alpha_r, mu_fz_f, mu_fz_r):
-    """Reproduces the per-sample loop's own state-derivative construction
-    (modules/sideslip_ekf_dugoff.py estimate_sideslip_ekf_dugoff,
-    predict step) as a standalone function so it can be finite-
-    differenced -- not a copy that could drift silently, the formula is
-    the same three lines, checked against dugoff_lateral_force directly.
-    """
+# Retargeted 2026-10-17 from the removed Dugoff observer to the Pacejka one
+# (same F and H formulas, tyre slopes from pacejka_lateral_stiffness). Curve
+# coefficients: the config tyre_fit_prior (a real pooled fit), as literals.
+
+def _ekf_f(x, u, Vx, m, a, b, Iz, tyre_f, tyre_r):
+    """The predict step's state derivative (modules/sideslip_ekf_pacejka.py
+    estimate_sideslip_ekf_pacejka) as a standalone function so it can be
+    finite-differenced -- the same three lines, on pacejka_lateral_force."""
     beta, r = x
     alpha_f, alpha_r = ekf_slip_angles(beta, r, u, Vx, a, b)
-    Fy_f = dlf(alpha_f, c_alpha_f, mu_fz_f)
-    Fy_r = dlf(alpha_r, c_alpha_r, mu_fz_r)
+    Fy_f = plf(alpha_f, *tyre_f)
+    Fy_r = plf(alpha_r, *tyre_r)
     beta_dot = (Fy_f + Fy_r) / (m * Vx) - r
     r_dot = (a * Fy_f - b * Fy_r) / Iz
     return np.array([beta_dot, r_dot])
 
 
-def _ekf_h(x, u, Vx, m, a, b, c_alpha_f, c_alpha_r, mu_fz_f, mu_fz_r):
+def _ekf_h(x, u, Vx, m, a, b, tyre_f, tyre_r):
     beta, r = x
     alpha_f, alpha_r = ekf_slip_angles(beta, r, u, Vx, a, b)
-    Fy_f = dlf(alpha_f, c_alpha_f, mu_fz_f)
-    Fy_r = dlf(alpha_r, c_alpha_r, mu_fz_r)
+    Fy_f = plf(alpha_f, *tyre_f)
+    Fy_r = plf(alpha_r, *tyre_r)
     return np.array([r, (Fy_f + Fy_r) / m])
 
 
 _EKF_TEST_PARAMS = dict(u=math.radians(2.0), Vx=35.0, m=1450.0, a=1.5, b=1.4, Iz=2082.0,
-                         c_alpha_f=132798.0, c_alpha_r=174217.0, mu_fz_f=10653.0, mu_fz_r=15819.0)
+                         tyre_f=(8.5216, 1.8759, 8883.93, -3.6260),
+                         tyre_r=(10.6275, 1.9048, 10634.43, -3.5479))
+
+
+def _slopes(x0, p):
+    alpha_f, alpha_r = ekf_slip_angles(x0[0], x0[1], p["u"], p["Vx"], p["a"], p["b"])
+    return pls(alpha_f, *p["tyre_f"]), pls(alpha_r, *p["tyre_r"])
 
 
 def test_ekf_process_jacobian_matches_finite_difference():
-    """process_jacobian (modules/sideslip_ekf_dugoff.py) against a
-    central-difference Jacobian of the actual nonlinear f(x,u) the
-    filter's predict step integrates -- the check the module's own
-    comment says exists ("Verified against central-difference... during
-    implementation") but was never captured as a standing test."""
+    """process_jacobian against a central-difference Jacobian of the actual
+    nonlinear f(x,u) the filter's predict step integrates."""
     p = _EKF_TEST_PARAMS
     x0 = np.array([math.radians(1.0), 0.15])
-    alpha_f, alpha_r = ekf_slip_angles(x0[0], x0[1], p["u"], p["Vx"], p["a"], p["b"])
-    Cf_eff = dls(alpha_f, p["c_alpha_f"], p["mu_fz_f"])
-    Cr_eff = dls(alpha_r, p["c_alpha_r"], p["mu_fz_r"])
+    Cf_eff, Cr_eff = _slopes(x0, p)
     analytic_F = process_jacobian(Cf_eff, Cr_eff, p["Vx"], p["m"], p["a"], p["b"], p["Iz"])
 
     h = 1e-7
@@ -287,10 +220,8 @@ def test_ekf_process_jacobian_matches_finite_difference():
     for j in range(2):
         dx = np.zeros(2)
         dx[j] = h
-        f_plus = _ekf_f(x0 + dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["Iz"],
-                         p["c_alpha_f"], p["c_alpha_r"], p["mu_fz_f"], p["mu_fz_r"])
-        f_minus = _ekf_f(x0 - dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["Iz"],
-                          p["c_alpha_f"], p["c_alpha_r"], p["mu_fz_f"], p["mu_fz_r"])
+        f_plus = _ekf_f(x0 + dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["Iz"], p["tyre_f"], p["tyre_r"])
+        f_minus = _ekf_f(x0 - dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["Iz"], p["tyre_f"], p["tyre_r"])
         numeric_F[:, j] = (f_plus - f_minus) / (2 * h)
 
     assert analytic_F == pytest.approx(numeric_F, rel=1e-3, abs=1e-3), (
@@ -303,9 +234,7 @@ def test_ekf_measurement_jacobian_matches_finite_difference():
     actual nonlinear h(x) the filter's update step evaluates."""
     p = _EKF_TEST_PARAMS
     x0 = np.array([math.radians(1.0), 0.15])
-    alpha_f, alpha_r = ekf_slip_angles(x0[0], x0[1], p["u"], p["Vx"], p["a"], p["b"])
-    Cf_eff = dls(alpha_f, p["c_alpha_f"], p["mu_fz_f"])
-    Cr_eff = dls(alpha_r, p["c_alpha_r"], p["mu_fz_r"])
+    Cf_eff, Cr_eff = _slopes(x0, p)
     analytic_H = measurement_jacobian(Cf_eff, Cr_eff, p["Vx"], p["m"], p["a"], p["b"])
 
     h = 1e-7
@@ -313,10 +242,8 @@ def test_ekf_measurement_jacobian_matches_finite_difference():
     for j in range(2):
         dx = np.zeros(2)
         dx[j] = h
-        h_plus = _ekf_h(x0 + dx, p["u"], p["Vx"], p["m"], p["a"], p["b"],
-                         p["c_alpha_f"], p["c_alpha_r"], p["mu_fz_f"], p["mu_fz_r"])
-        h_minus = _ekf_h(x0 - dx, p["u"], p["Vx"], p["m"], p["a"], p["b"],
-                          p["c_alpha_f"], p["c_alpha_r"], p["mu_fz_f"], p["mu_fz_r"])
+        h_plus = _ekf_h(x0 + dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["tyre_f"], p["tyre_r"])
+        h_minus = _ekf_h(x0 - dx, p["u"], p["Vx"], p["m"], p["a"], p["b"], p["tyre_f"], p["tyre_r"])
         numeric_H[:, j] = (h_plus - h_minus) / (2 * h)
 
     assert analytic_H == pytest.approx(numeric_H, rel=1e-3, abs=1e-3), (

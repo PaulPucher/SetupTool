@@ -77,7 +77,7 @@ def test_flat_alpha_never_meets_span_floor_and_reports_nan():
     Fy = np.zeros(n)
     slip, forces, state = _cs_inputs(alpha, Fy)
     params = _base_se()
-    out = estimate_cornering_stiffness(slip, forces, state, params)
+    out = estimate_cornering_stiffness(slip, forces, state, params, [])
     assert np.all(np.isnan(out["CS_ratio_f"]))
     assert np.all(np.isnan(out["C_alpha_f"]))
 
@@ -92,7 +92,7 @@ def test_widening_succeeds_within_cap_for_a_genuine_ramp():
     Fy = -200000.0 * alpha  # clean linear relation, known slope
     slip, forces, state = _cs_inputs(alpha, Fy)
     params = _base_se()
-    out = estimate_cornering_stiffness(slip, forces, state, params)
+    out = estimate_cornering_stiffness(slip, forces, state, params, [])
     i = 40
     assert np.isfinite(out["C_alpha_f"][i])
     assert out["C_alpha_f"][i] == pytest.approx(-200000.0, rel=1e-6)
@@ -113,7 +113,7 @@ def test_cap_truncates_widening_and_reports_nan_when_span_still_short():
     Fy = -200000.0 * alpha
     slip, forces, state = _cs_inputs(alpha, Fy)
     params = _base_se()
-    out = estimate_cornering_stiffness(slip, forces, state, params)
+    out = estimate_cornering_stiffness(slip, forces, state, params, [])
     assert np.all(np.isnan(out["CS_ratio_f"]))
     i = 59
     s_m = state["s_m"]
@@ -181,7 +181,7 @@ def test_distance_cap_disabled_when_s_m_is_none():
     slip, forces, state = _cs_inputs(alpha, Fy, s_m=None)
     state["s_m"] = None  # explicit override -- _cs_inputs itself always fills a synthetic one
     params = _base_se()
-    out = estimate_cornering_stiffness(slip, forces, state, params)
+    out = estimate_cornering_stiffness(slip, forces, state, params, [])
     # Same alpha profile as test_cap_truncates_widening... but WITHOUT a
     # cap this time -- the window can walk all the way back and finds the
     # full 0.05 rad span still short of the 0.1 rad floor -> still NaN,

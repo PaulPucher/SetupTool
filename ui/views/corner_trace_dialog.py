@@ -878,7 +878,7 @@ class CornerTraceDialog(_TraceDialogBase):
         samples (already NaN on kerb / not moving).
         Faint cloud of the checked laps (whole lap, moving, no kerb) first;
         estimation window (hollow black ring) + tangent on top.
-        Auto-fit modes: the fitted Dugoff/Pacejka curve over the visited alpha
+        Auto-fit mode: the fitted Pacejka curve over the visited alpha
         range -- shows the saturation the linear reference can't.
         """
         import pyqtgraph as pg
@@ -990,21 +990,15 @@ class CornerTraceDialog(_TraceDialogBase):
 
             # fitted curve evaluated in rad, x shown in deg (same as the reference
             # line) -- avoids the N/rad vs deg tangent trap; Fy needs no conversion
-            if (sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka")
+            if (sideslip_source == "ekf_auto_pacejka"
                     and fit_manifest is not None and max_abs_alpha > 0):
                 axle_fit = fit_manifest.get("axles", {}).get(axle)
                 if axle_fit is not None:
                     alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
-                    if sideslip_source == "ekf_auto_dugoff":
-                        from modules.tyre_model import dugoff_lateral_force
-                        fy_grid = dugoff_lateral_force(
-                            alpha_grid_rad, axle_fit["c_alpha_n_per_rad"], axle_fit["mu_fz_N"]
-                        )
-                    else:
-                        from modules.tyre_model_pacejka import pacejka_lateral_force
-                        fy_grid = pacejka_lateral_force(
-                            alpha_grid_rad, axle_fit["B"], axle_fit["C"], axle_fit["D"], axle_fit["E"]
-                        )
+                    from modules.tyre_model_pacejka import pacejka_lateral_force
+                    fy_grid = pacejka_lateral_force(
+                        alpha_grid_rad, axle_fit["B"], axle_fit["C"], axle_fit["D"], axle_fit["E"]
+                    )
                     item = plot.plot(
                         np.degrees(alpha_grid_rad), fy_grid,
                         pen=pg.mkPen(color=FITTED_CURVE_COLOR, width=2, style=Qt.PenStyle.SolidLine),
@@ -1183,18 +1177,14 @@ class CornerTraceDialog(_TraceDialogBase):
                 ref_line = (np.degrees(x_line_rad), ref_slope * x_line_rad)
 
         fitted_line = None
-        if (sideslip_source in ("ekf_auto_dugoff", "ekf_auto_pacejka")
+        if (sideslip_source == "ekf_auto_pacejka"
                 and fit_manifest is not None and max_abs_alpha > 0):
             axle_fit = fit_manifest.get("axles", {}).get(axle)
             if axle_fit is not None:
                 alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
-                if sideslip_source == "ekf_auto_dugoff":
-                    from modules.tyre_model import dugoff_lateral_force
-                    fy_grid = dugoff_lateral_force(alpha_grid_rad, axle_fit["c_alpha_n_per_rad"], axle_fit["mu_fz_N"])
-                else:
-                    from modules.tyre_model_pacejka import pacejka_lateral_force
-                    fy_grid = pacejka_lateral_force(alpha_grid_rad, axle_fit["B"], axle_fit["C"],
-                                                     axle_fit["D"], axle_fit["E"])
+                from modules.tyre_model_pacejka import pacejka_lateral_force
+                fy_grid = pacejka_lateral_force(alpha_grid_rad, axle_fit["B"], axle_fit["C"],
+                                                 axle_fit["D"], axle_fit["E"])
                 fitted_line = (np.degrees(alpha_grid_rad), fy_grid, "Fitted tyre curve")
 
         window_xy = None

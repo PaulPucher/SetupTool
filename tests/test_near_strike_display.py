@@ -66,7 +66,8 @@ def test_analysis_output_identical_for_every_display_mode(parsed_data, effective
         p["corner_trace_display"]["kerb_exclusion_display"] = mode
         st = prepare_vehicle_state(parsed_data["channels"], p)
         beta = estimate_sideslip(st, p)
-        cs = estimate_cornering_stiffness(estimate_slip_angles(st, beta, p), estimate_lateral_forces(st, p), st, p)
+        cs = estimate_cornering_stiffness(estimate_slip_angles(st, beta, p), estimate_lateral_forces(st, p), st, p,
+                                          parsed_data.get("laps", []))
         stab = estimate_yaw_moment_stability(st, beta, p, parsed_data.get("laps", []))
         return cs, stab, summarise_corners(parsed_data.get("corners", []), cs, stab, st)
 

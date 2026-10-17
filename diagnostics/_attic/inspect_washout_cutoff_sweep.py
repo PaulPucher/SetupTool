@@ -33,7 +33,14 @@ from modules.stability_analysis import (
     estimate_lateral_forces, estimate_cornering_stiffness, _highpass_filter,
     _butterworth_lowpass,
 )
-from diagnostics.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+# Its Dugoff observer was removed 2026-10-17 (R3, Class B rebuild); the
+# sweep is a record now (thesis_notes.md "Phase 1: washout cutoff sweep"),
+# the code is in git history before that date.
+try:
+    from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
+except ImportError:
+    raise SystemExit("inspect_washout_cutoff_sweep: its Dugoff observer was removed 2026-10-17 (R3, "
+                     "Class B rebuild); see thesis_notes.md and git history before that date. Nothing was run.")
 from diagnostics.inspect_wheel_speed_sources import AY_STRAIGHT_MAX_G, YAW_STRAIGHT_MAX_DEGPS
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"

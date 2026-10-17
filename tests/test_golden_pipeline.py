@@ -1,9 +1,9 @@
 # Phase 1 -- golden-value regression on the full production chain and on
 # the recommendation engine, at the PRIMARY sideslip_source
 # (ekf_auto_pacejka, production default since 2026-09-01 -- thesis_notes.md
-# "Production sideslip source set to ekf_auto_pacejka"). "kinematic" and
-# "ekf_auto_dugoff" get the same kind of golden coverage as SECONDARY,
-# explicit-mode regression sets in tests/test_golden_auto_modes.py instead
+# "Production sideslip source set to ekf_auto_pacejka"). "kinematic" gets
+# the same kind of golden coverage as a SECONDARY, explicit-mode
+# regression set in tests/test_golden_auto_modes.py instead
 # of here -- this file no longer needs to flip the live config to
 # "kinematic" to run, since tests/conftest.py's pipeline_result fixture
 # now asserts and uses whatever the live config's sideslip_source is

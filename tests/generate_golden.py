@@ -9,8 +9,8 @@
 # sideslip_source = "ekf_auto_pacejka", the production default. The prior
 # "kinematic" pair this script used to generate is now a SECONDARY
 # regression set, generated instead by tests/generate_golden_auto_modes.py
-# alongside ekf_auto_dugoff (both explicit-mode, independent of the live
-# config) -- those existing files are untouched by this script.
+# (explicit-mode, independent of the live config) -- that file is
+# untouched by this script.
 #
 # Will not overwrite a golden file that already exists -- delete it first
 # if you intend to regenerate deliberately. Added 2026-09-01 so a routine
@@ -107,7 +107,7 @@ def main():
         )
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
-    cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+    cs = estimate_cornering_stiffness(slip, forces, state, effective_params, data.get("laps", []))
     stab = estimate_yaw_moment_stability(state, beta, effective_params, data.get("laps", []))
     fz = estimate_vertical_loads(state, forces, effective_params)
     corners = data.get("corners", [])

@@ -1,4 +1,7 @@
 # PLAN.md STEP 2: chair-comparable result plots, kinematic vs ekf_pass_1.
+# [2026-10-17: the ekf_pass_1 (Dugoff) source was removed with the Dugoff
+# path; the script now renders the kinematic set only. Its helpers stay --
+# other diagnostics import them.]
 # Purpose (PLAN.md STEP 2): find out whether the strange CS values that
 # opened the estimator arc (thesis_notes.md "C9 negative-CS decomposition
 # + zero-slip offset finding", 2026-08-17) trace to the kinematic beta
@@ -8,8 +11,8 @@
 # that reference is interactive Plotly, this is static matplotlib PNGs).
 #
 # Read-only diagnostic. Calls production pipeline functions directly
-# (modules/stability_analysis.py, modules/geo.py, modules/
-# sideslip_ekf_dugoff.py) -- no estimation logic is reimplemented here.
+# (modules/stability_analysis.py, modules/geo.py) -- no estimation logic
+# is reimplemented here.
 # The only local logic is worst-phase/window-slice bookkeeping below,
 # needed because estimate_cornering_stiffness returns only per-sample
 # C_alpha values, not the regression window bounds behind each one.
@@ -27,9 +30,8 @@
 #
 # No production file changed. No config value changed. sideslip_source
 # is never read from or written to config/parameters.json -- kinematic
-# and ekf_pass_1 beta are obtained by calling estimate_sideslip and
-# estimate_sideslip_ekf_dugoff directly, bypassing the config-driven
-# dispatch entirely.
+# beta is obtained by calling estimate_sideslip directly, bypassing the
+# config-driven dispatch entirely.
 
 import os
 
@@ -41,20 +43,17 @@ from modules.stability_analysis import (
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
     reconstruct_cs_window_start, resolve_cs_min_window_samples,
 )
-from modules.sideslip_ekf_dugoff import estimate_sideslip_ekf_dugoff
 from modules.geo import project_latlon_to_xy
 from core import figure_render, plot_style
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 OUT_DIR = "diagnostics/plots_step2"
-SOURCES = ("kinematic", "ekf_pass_1")
+SOURCES = ("kinematic",)
 
 
 def _compute_beta(state, params, source):
     if source == "kinematic":
         return estimate_sideslip(state, params)
-    if source == "ekf_pass_1":
-        return estimate_sideslip_ekf_dugoff(state, params, pass_id="pass_1")["beta"]
     raise ValueError(source)
 
 
@@ -330,7 +329,7 @@ def main():
     for source in SOURCES:
         beta = _compute_beta(state, params, source)
         slip = estimate_slip_angles(state, beta, params)
-        cs = estimate_cornering_stiffness(slip, forces, state, params)
+        cs = estimate_cornering_stiffness(slip, forces, state, params, laps)
         for cid in stable_ids:
             path = make_corner_figure(cid, source, state, t, s_m, v_kmh, slip, forces, cs, params,
                                        laps_by_number, corners_by_stable_id, bg_mask, bg_xy, OUT_DIR)

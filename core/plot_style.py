@@ -41,7 +41,7 @@ def lap_styles(lap_numbers):
 
 
 # fixed hues, not lap-identified
-FITTED_CURVE_COLOR = "#E040FB"   # EKF auto-fit model curve (Dugoff/Pacejka)
+FITTED_CURVE_COLOR = "#E040FB"   # EKF auto-fit model curve (Pacejka)
 
 # line widths: screen in px, print in pt. One width for all laps.
 SCREEN_LAP_WIDTH = 1.5

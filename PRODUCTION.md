@@ -400,11 +400,12 @@ window, sweep, status).
 
 ### 5.1 Observer
 
-Method (modules/sideslip_ekf_pacejka.py, a mirror of the Dugoff file
-whose header states the method, except the divergence re-entry):
+Method (modules/sideslip_ekf_pacejka.py, whose header states it; moved
+there from the Dugoff observer when that was removed, 2026-10-17):
 single-track model, Rajamani sec.
 2.3 / 2.6 and Ulsoy/Peng/Cakmakci sec. 14.1 / 14.3; extended Kalman
-filter, Rajamani ch. 14.
+filter, Rajamani ch. 14 (chapter confirmed for the 2nd ed.; edition and
+page still to verify).
 - State x = [beta, r]; input delta_f; measurement z = [r_meas, a_y,meas].
   Longitudinal speed scheduled per sample, V_x = max(v, 5.0 m/s).
 - Process: d beta/dt = (Fy_f + Fy_r) / (m V_x) - r;
@@ -414,8 +415,8 @@ filter, Rajamani ch. 14.
   Jacobian F evaluated at x(k|k), measurement Jacobian H at x(k+1|k),
   tyre slopes from the analytic Magic Formula derivative.
 - Measurement model: h = [r, (Fy_f + Fy_r) / m].
-- Divergence, per sample: the share of the last nis_window_samples = 20
-  samples whose combined NIS exceeds nis_chi2_bound = 5.99 (chi-square
+- Divergence, per sample: the share of the last tyre_fit_auto.nis_window_s
+  = 0.4 s of samples (converted at the grid rate) whose combined NIS exceeds nis_chi2_bound = 5.99 (chi-square
   95 %, df 2) is above nis_flag_fraction = 0.5 (NIS-window divergence), OR
   |beta| > beta_hard_bound_deg = 15.0 deg (hard-bound divergence). The 15
   deg bound is physical (a diverged filter exceeds it by orders of
@@ -435,8 +436,9 @@ filter, Rajamani ch. 14.
   more).
 - Vehicle quantities: m, a, b, I_z (Level 1, or Level 2 for m, a, b with
   a session weighing).
-- Known limit: nis_window_samples is a sample count (0.2 s at 100 Hz),
-  see 2.1.
+- [2026-10-16/17: the former sample-count window nis_window_samples
+  (0.2 s at 100 Hz) is now the duration nis_window_s (Class A fix 3); the
+  key was removed with the Dugoff mirror.]
 
 ### 5.2 Session gate (modules/nis_gate.py)
 

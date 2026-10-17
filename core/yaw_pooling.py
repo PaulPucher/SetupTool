@@ -13,6 +13,10 @@ import warnings
 
 import numpy as np
 
+# the tyre fit's lap-time / lap-distance intersection itself, not a copy,
+# so its unsorted-distance guard (#23) holds here too
+from modules.tyre_fit_auto import _canonical_window_slice
+
 # 1.4826 * MAD estimates a Gaussian sigma; robust against the corner
 # transients that leak into the straight population
 MAD_TO_SIGMA = 1.4826
@@ -36,23 +40,6 @@ def steering_rate(time, steer_deg, sample_rate_hz, fc_hz):
 def robust_std(x):
     x = x[np.isfinite(x)]
     return float(MAD_TO_SIGMA * np.median(np.abs(x - np.median(x))))
-
-
-def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bracket_end_m):
-    # same lap-time / lap-distance intersection as modules/tyre_fit_auto
-    lo = int(np.searchsorted(t, lap_start_t, side="left"))
-    hi = int(np.searchsorted(t, lap_end_t, side="right"))
-    if hi <= lo:
-        return slice(0, 0)
-    lap_s = s_m[lo:hi]
-    finite = np.isfinite(lap_s)
-    if not finite.any():
-        return slice(0, 0)
-    start_s = max(float(np.min(lap_s[finite])), bracket_start_m)
-    end_s = min(float(np.max(lap_s[finite])), bracket_end_m)
-    a = int(np.searchsorted(lap_s, start_s, side="left"))
-    b = int(np.searchsorted(lap_s, end_s, side="right"))
-    return slice(lo + a, lo + b)
 
 
 def session_masks(time, s_m, moving, kerb, laps, corners):

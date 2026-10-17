@@ -47,7 +47,7 @@ if state:
     print(f"  Mean abs: {np.mean(np.abs(ar))*180/np.pi:.2f} deg")
 
     forces = estimate_lateral_forces(state, params)
-    cs = estimate_cornering_stiffness(slip, forces, state, params)
+    cs = estimate_cornering_stiffness(slip, forces, state, params, data.get('laps', []))
 
     valid_f = ~np.isnan(cs["CS_ratio_f"]) & moving
     valid_r = ~np.isnan(cs["CS_ratio_r"]) & moving

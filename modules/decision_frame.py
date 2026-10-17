@@ -8,7 +8,7 @@ import json
 
 import numpy as np
 
-from modules.stability_analysis import load_parameters
+from modules.stability_analysis import apex_instant_slice, load_parameters
 from modules.csv_parser import load_channels_config, lap_labels_by_number
 from modules.wheel_loads import (
     CORNERS as _WHEEL_CORNERS, AXLE_CORNERS, TRAVEL_CHANNEL,
@@ -2558,13 +2558,10 @@ def _tpms_apex_samples(channels, corners, state, wheel):
         segment = c.get("segments", {}).get("apex_3")
         if segment is None or segment[1] < segment[0]:
             continue
-        # summarise_corners' _phase_slice(is_apex=True), not
-        # _phase_window_indices, which drops an instant between samples
-        lo = int(np.searchsorted(t, segment[0], side="left"))
-        hi = int(np.searchsorted(t, segment[1], side="right"))
-        if hi <= lo:
-            lo, hi = max(0, lo - half), min(len(t), lo + half + 1)
-        by_corner.setdefault(c.get("stable_corner_id"), []).append((c.get("lap_number"), interp[lo:hi]))
+        # summarise_corners' apex window, not _phase_window_indices, which
+        # drops an instant between samples
+        sl = apex_instant_slice(t, segment[0], half)
+        by_corner.setdefault(c.get("stable_corner_id"), []).append((c.get("lap_number"), interp[sl]))
     return by_corner
 
 

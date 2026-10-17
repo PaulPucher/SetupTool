@@ -1,9 +1,26 @@
 # Single-track EKF sideslip observer, Magic Formula tyres. Used by
 # tyre_fit_auto.
-# Mirror of sideslip_ekf_dugoff.py -- the tyre force/stiffness calls differ,
-# and so does the divergence re-entry (2026-10-07, see
-# estimate_sideslip_ekf_pacejka); see that file for the method. Per-axle
-# params (B, C, D, E).
+# Model: Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3.
+# EKF: Rajamani ch. 14 (chapter confirmed for the 2nd ed.; edition and page
+# still to verify).
+#
+# x = [beta, yaw_rate], u = delta_f, z = [yaw_rate, ay]. Vx scheduled per
+# sample (floored at moving_speed_min_mps), not a state.
+# Tyre params (B, C, D, E per axle) and Q/R/P0 all from the pass config
+# (tyre_model_ekf_pacejka.<pass_id>, built per session by tyre_fit_auto) --
+# a run is reproducible from that config alone.
+#
+# Explicit Euler. State propagated through the nonlinear f(x,u); Jacobian F
+# only for P. F at x_k|k, H at x_k+1|k. Tyre slopes from the analytic
+# pacejka_lateral_stiffness.
+#
+# Divergence: windowed NIS vs chi^2 bound, or |beta| > beta_hard_bound_deg.
+# Bound is physical (15 deg), not from the kinematic beta range -- that
+# under-reads mid-corner and would clip the real signal. Re-entry: see
+# estimate_sideslip_ekf_pacejka. Raw EKF beta returned alongside, plus
+# diverged_mask.
+# (Method statement moved here from the removed Dugoff observer,
+# 2026-10-17; the two shared it apart from tyre model and re-entry.)
 
 import numpy as np
 

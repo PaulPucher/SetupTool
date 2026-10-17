@@ -78,7 +78,7 @@ def run_real_pipeline_result(raw_file):
     )
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
-    cs = estimate_cornering_stiffness(slip, forces, state, effective_params)
+    cs = estimate_cornering_stiffness(slip, forces, state, effective_params, data.get("laps", []))
     stab = estimate_yaw_moment_stability(state, beta, effective_params, data.get("laps", []))
     fz = estimate_vertical_loads(state, forces, effective_params,
                                   channels=data["channels"], car_data=load_car_data())

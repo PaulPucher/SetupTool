@@ -8,7 +8,7 @@ import json
 import numpy as np
 
 from modules.stability_analysis import (
-    _compute_kerb_mask_from_az, _kerb_smear_zone, _seconds_to_samples,
+    _build_non_analysis_lap_mask, _compute_kerb_mask_from_az, _kerb_smear_zone, _seconds_to_samples,
     estimate_cornering_stiffness, estimate_lateral_forces, estimate_sideslip,
     estimate_slip_angles, estimate_yaw_moment_stability, reconstruct_cs_window_start,
     resolve_cs_min_window_samples, summarise_corners,
@@ -21,11 +21,11 @@ def _runs(mask):
     return list(zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1) - 1))
 
 
-def _cs(state, params):
+def _cs(state, params, laps):
     beta = estimate_sideslip(state, params)
     slip = estimate_slip_angles(state, beta, params)
     forces = estimate_lateral_forces(state, params)
-    return beta, slip, estimate_cornering_stiffness(slip, forces, state, params)
+    return beta, slip, estimate_cornering_stiffness(slip, forces, state, params, laps)
 
 
 def test_kerb_dilation_is_time_based(parsed_data, effective_params):
@@ -68,11 +68,11 @@ def test_smear_zone_matches_definition(state, effective_params):
     assert np.array_equal(_kerb_smear_zone(mask, g), expected)
 
 
-def test_near_strike_marks_exactly_the_zone_windows(state, effective_params):
+def test_near_strike_marks_exactly_the_zone_windows(state, effective_params, parsed_data):
     """near_strike[i] is True exactly when the production CS window [start, i)
     of a finite CS sample holds a zone sample; False wherever CS is NaN."""
     se = effective_params["stability_estimation"]
-    _beta, slip, cs = _cs(state, effective_params)
+    _beta, slip, cs = _cs(state, effective_params, parsed_data.get("laps", []))
     zone = state["kerb_smear_zone"]
     min_window = resolve_cs_min_window_samples(effective_params, state["sample_rate_hz"])
     marked = 0
@@ -89,21 +89,43 @@ def test_near_strike_marks_exactly_the_zone_windows(state, effective_params):
 
 
 def test_near_strike_is_flag_only(state, effective_params, parsed_data):
-    """Removing the zone changes no CS array: the mark never feeds CS or the
-    linear reference. The corner summaries follow the clean-population rule
-    (2026-10-05): their CS statistics skip the marked samples, exactly as if
-    those samples were NaN."""
-    beta, slip, cs = _cs(state, effective_params)
+    """The smear zone stays out of the regression but not out of the
+    reference (Class B Fix 0): (a) removing the zone changes no stiffness
+    array; (b) every linear reference in force was set by a clean window --
+    no kerb, zone or off-analysis-lap sample in its [start, i). The corner
+    summaries follow the clean-population rule (2026-10-05): their CS
+    statistics skip the marked samples, exactly as if those samples were NaN."""
+    se = effective_params["stability_estimation"]
+    laps = parsed_data.get("laps", [])
+    beta, slip, cs = _cs(state, effective_params, laps)
     forces = estimate_lateral_forces(state, effective_params)
     bare = dict(state, kerb_smear_zone=None)
-    cs_bare = estimate_cornering_stiffness(slip, forces, bare, effective_params)
-    for k in cs:
-        if k.startswith("near_strike"):
-            assert not cs_bare[k].any()
-            continue
-        assert np.array_equal(cs[k], cs_bare[k], equal_nan=True), k
+    cs_bare = estimate_cornering_stiffness(slip, forces, bare, effective_params, laps)
+    for k in ("C_alpha", "C_window", "C_section", "R2"):
+        for ax in "fr":
+            assert np.array_equal(cs[f"{k}_{ax}"], cs_bare[f"{k}_{ax}"], equal_nan=True), f"{k}_{ax}"
+    assert not cs_bare["near_strike_f"].any() and not cs_bare["near_strike_r"].any()
 
-    laps = parsed_data.get("laps", [])
+    blocked = state["kerb_mask"] | state["kerb_smear_zone"] | _build_non_analysis_lap_mask(state["time"], laps)
+    min_window = resolve_cs_min_window_samples(effective_params, state["sample_rate_hz"])
+    n_set = 0
+    for ax in "fr":
+        alpha, ref, c_alpha = slip[f"alpha_{ax}_filt"], cs[f"C_linear_ref_{ax}"], cs[f"C_alpha_{ax}"]
+        last = np.nan
+        for i in np.flatnonzero(np.isfinite(ref)):
+            if ref[i] == last:
+                continue
+            # a new value in force: set at i by the window the loop used
+            start = reconstruct_cs_window_start(alpha, int(i), min_window, se["cs_min_slip_angle_span_rad"],
+                                                state["s_m"], se["cs_max_window_m"])
+            assert ref[i] == c_alpha[i], f"axle {ax} sample {i}"
+            assert not blocked[start:i].any(), f"axle {ax}: reference at {i} set by a dirty window"
+            last = ref[i]
+            n_set += 1
+    assert n_set > 0
+    # the zone does reach the reference on Dubai: without it some reference moves
+    assert not np.array_equal(cs["C_linear_ref_f"], cs_bare["C_linear_ref_f"], equal_nan=True) or         not np.array_equal(cs["C_linear_ref_r"], cs_bare["C_linear_ref_r"], equal_nan=True)
+
     stab = estimate_yaw_moment_stability(state, beta, effective_params, laps)
     corners = parsed_data.get("corners", [])
     with_mark = summarise_corners(corners, cs, stab, state)

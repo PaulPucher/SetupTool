@@ -324,9 +324,10 @@ def final_ekf(params, state, man):
     fc = {"b_front": f["B"], "c_front": f["C"], "d_front": f["D"], "e_front": f["E"],
           "b_rear": r["B"], "c_rear": r["C"], "d_rear": r["D"], "e_rear": r["E"],
           "Q_beta_var": cfg["q_beta_var"], "Q_yaw_rate_var": cfg["q_yaw_rate_var"],
+          "q_reference_rate_hz": cfg["q_reference_rate_hz"],
           "P0_beta_var": cfg["p0_beta_var"], "P0_yaw_rate_var": cfg["p0_yaw_rate_var"],
           "R_ay_var": ch["R_ay_var"], "R_yaw_rate_var": ch["R_yaw_rate_var"],
-          "beta_hard_bound_deg": cfg["beta_hard_bound_deg"], "nis_window_samples": cfg["nis_window_samples"],
+          "beta_hard_bound_deg": cfg["beta_hard_bound_deg"], "nis_window_s": cfg["nis_window_s"],
           "nis_chi2_bound": cfg["nis_chi2_bound"], "nis_flag_fraction": cfg["nis_flag_fraction"]}
     p = dict(params)
     p["tyre_model_ekf_pacejka"] = {"_auto_final": fc}

@@ -11,8 +11,8 @@
 # full and can enumerate with confidence (modules/stability_analysis.py's
 # estimate_sideslip/estimate_slip_angles/estimate_lateral_forces/
 # estimate_yaw_moment_stability, ui/views/outing_form.py's
-# _classify_corner/_stability_colour, modules/sideslip_ekf_dugoff.py's
-# tyre_model_ekf.pass_1 consumer). This is NOT an exhaustive static-
+# _classify_corner/_stability_colour; the tyre_model_ekf.pass_1 check went
+# with the Dugoff observer, 2026-10-17). This is NOT an exhaustive static-
 # analysis sweep of every params[...]/cfg[...] access in the codebase --
 # see the final report's "chose not to do" section for why that was
 # judged too fragile to trust (alias tracking across params/se/cd/cfg
@@ -44,14 +44,6 @@ CLASSIFICATION_REQUIRED_KEYS = [
     "STRONG_CSF", "STRONG_CSR", "MODERATE_CSF", "MODERATE_CSR", "stab_neg_thresh_Nm_per_deg",
     "thresholds_calibrated_for_sideslip_source",
 ]
-TYRE_MODEL_EKF_PASS1_REQUIRED_KEYS = [
-    "c_alpha_front_n_per_rad", "c_alpha_rear_n_per_rad", "mu_fz_front_N", "mu_fz_rear_N",
-    "Q_beta_var", "Q_yaw_rate_var", "R_yaw_rate_var", "R_ay_var",
-    "P0_beta_var", "P0_yaw_rate_var", "beta_hard_bound_deg",
-    "nis_window_samples", "nis_chi2_bound", "nis_flag_fraction",
-]
-
-
 def test_stability_estimation_required_keys_present(raw_params):
     se = raw_params["stability_estimation"]
     missing = [k for k in STABILITY_ESTIMATION_REQUIRED_KEYS if k not in se]
@@ -62,12 +54,6 @@ def test_classification_required_keys_present(raw_params):
     cls = raw_params["classification"]
     missing = [k for k in CLASSIFICATION_REQUIRED_KEYS if k not in cls]
     assert not missing, f"classification missing keys read by _classify_corner/_stability_colour: {missing}"
-
-
-def test_tyre_model_ekf_pass1_required_keys_present(raw_params):
-    cfg = raw_params["tyre_model_ekf"]["pass_1"]
-    missing = [k for k in TYRE_MODEL_EKF_PASS1_REQUIRED_KEYS if k not in cfg]
-    assert not missing, f"tyre_model_ekf.pass_1 missing keys read by estimate_sideslip_ekf_dugoff: {missing}"
 
 
 # --- optional keys degrade gracefully when absent -----------------------------

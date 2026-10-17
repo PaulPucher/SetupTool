@@ -12,8 +12,9 @@
 # Worst-lap CS per corner = the classifier's read-out: per phase min across
 # analysis laps (aggregate_by_corner, worst_lap), apex_3 from apex_region,
 # then min over phases, capped at 1.0 like _classify_corner.
-# Run: python -m diagnostics.check_class_a
+# Run: python -m diagnostics.check_class_a [label prefix ...]
 
+import copy
 import os
 import subprocess
 import sys
@@ -47,7 +48,18 @@ def load_old():
     sa = old_module("modules/stability_analysis.py", "old_stability_analysis")
     ekf = old_module("modules/sideslip_ekf_pacejka.py", "old_sideslip_ekf_pacejka")
     gate = old_module("modules/nis_gate.py", "old_nis_gate")
-    tfa = old_module("modules/tyre_fit_auto.py", "old_tyre_fit_auto")
+    # the old tyre_fit_auto imports the Dugoff modules removed in R3 (Class B,
+    # 2026-10-17); registered from BASE_REV only for its exec
+    injected = []
+    try:
+        for path, name in (("modules/tyre_model.py", "modules.tyre_model"),
+                           ("modules/sideslip_ekf_dugoff.py", "modules.sideslip_ekf_dugoff")):
+            sys.modules[name] = old_module(path, name)
+            injected.append(name)
+        tfa = old_module("modules/tyre_fit_auto.py", "old_tyre_fit_auto")
+    finally:
+        for name in injected:
+            sys.modules.pop(name, None)
     tfa.estimate_sideslip_ekf_pacejka = ekf.estimate_sideslip_ekf_pacejka
     tfa.evaluate_gate = gate.evaluate_gate
     return sa, tfa
@@ -172,15 +184,22 @@ def main():
                                             estimate_cornering_stiffness, estimate_yaw_moment_stability)
     sa_old, tfa_old = load_old()
     params = _params()
+    # the old side reads tyre_fit_auto.nis_window_samples, deleted with the
+    # Dugoff path in R3; restored at its BASE_REV value for the old run only
+    params_old = copy.deepcopy(params)
+    params_old["tyre_fit_auto"]["nis_window_samples"] = 20
     assert params["stability_estimation"]["sideslip_source"] == "ekf_auto_pacejka"
     print(f"Class A check: OLD = {BASE_REV}, NEW = working tree; params best available (cap None)")
+    only = sys.argv[1:]  # optional label prefixes, e.g. "Dubai"
     for label, rel in SESSIONS:
+        if only and not any(label.startswith(o) for o in only):
+            continue
         path = resolve_data_path(rel)
         parsed = parse_csv(path)
         st = prepare_vehicle_state(parsed["channels"], params)
         print("\n" + "=" * 100)
         print(f"{label}: {path} (grid {st['sample_rate_hz']:.0f} Hz)")
-        runs = {"old": run_chain(tfa_old, st, params, parsed, path),
+        runs = {"old": run_chain(tfa_old, st, params_old, parsed, path),
                 "new": run_chain(tfa_new, st, params, parsed, path)}
         for k in ("old", "new"):
             r = runs[k]
@@ -218,7 +237,10 @@ def main():
               f"{zero_steps(slip['alpha_f_filt'], st['moving_mask'])}, rear "
               f"{zero_steps(slip['alpha_r_filt'], st['moving_mask'])} (zero-step rule only matters here)")
         cs_old = sa_old.estimate_cornering_stiffness(slip, forces, st, params)
-        cs_new = estimate_cornering_stiffness(slip, forces, st, params)
+        # R3 (2026-10-17): the new side now also carries Class B Fix 0 (reference
+        # from clean windows only), so the #26-isolated CS lines no longer
+        # reproduce the R2 record; for that, run this script at e04bdd5
+        cs_new = estimate_cornering_stiffness(slip, forces, st, params, parsed.get("laps", []))
         stab_old = sa_old.estimate_yaw_moment_stability(st, beta, params, parsed.get("laps", []))
         stab_new = estimate_yaw_moment_stability(st, beta, params, parsed.get("laps", []))
         _, agg_cs_old = summaries(parsed, cs_old, stab_new, st)

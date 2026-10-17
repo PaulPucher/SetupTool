@@ -1,7 +1,7 @@
 # PLAN.md unsupervised package, Phase 3 -- finite-difference
 # verification of modules/tyre_model_pacejka.py's analytic stiffness
-# derivative. Same discipline as test_pure_functions.py's Dugoff
-# checks: an independent numerical check of the CODE's own claimed
+# derivative. Same discipline as the former Dugoff checks in
+# test_pure_functions.py (removed 2026-10-17): an independent numerical check of the CODE's own claimed
 # formula, not a re-derivation of whether Pacejka is the right model
 # for this car.
 
