@@ -80,7 +80,7 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Deep-tail ledger closed: kerb-shown 25 + 4, car events 2, proven artefacts 3, residual ~50 % front / 36 % rear "incompatible with the session's quasi-steady tyre characteristic; specific mechanism not shown" (2026-10-05).
 
 ## Balance readout
-- Understeer-gradient line SHIPS: one measured, beta-free session quantity (Rajamani sec. 3.2 Eq. 3.23, Level 2) with its 95 % range, one UI line beside the verdicts; config derived_from names Eq. 3.23 and the quasi-steady population provenance; schema bump "balance key added - measured understeer gradient, Level 2" (2026-10-05).
+- Understeer-gradient readout (balance line, K) REMOVED from the application entirely -- UI, payload, exports, tests; basis Guiggiani 2023 (K not meaningful for cars with significant downforce), outside the thesis scope; mapped in R4, removal is the next cycle (2026-10-17).
 - K2 is a readout, never a constraint on the fit (2026-10-04).
 - Steady-state gradient and per-corner verdicts measure different things (steady-state balance vs local axle saturation per corner and phase); both stand (2026-10-05).
 

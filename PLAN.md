@@ -78,6 +78,20 @@ REPO STATE
   windows also moved (shared #12 helper, beyond spec); tyre_fit_auto
   nis_band_low/high kept (diagnostics reader); schema bump owed in the final
   chain. Goldens STALE by design. Pending the author's commit.
+- REBUILD BOARD: R4 DATAFLOW REGISTRY DONE 2026-10-17 (read-only; new tracked
+  docs/dataflow_registry.md: 14 quantities, shared sections S1-S6, findings
+  R1-R25 with file:line; thesis_notes "Dataflow registry rebuild"). Fix 0
+  verified on every set event; all first-pass acceptance numbers reproduced
+  (population definitions identified; R11 adds 3 unread straddling windows).
+  No fix made. Open for the author: which findings enter which next cycle
+  (defects R1, R2; R3 with the schema bump). Pending the author's commit.
+- AUTHOR DECISION 2026-10-17: the understeer-gradient readout (balance line,
+  K, modules/balance_gradient.py) is REMOVED entirely from the application
+  (UI, payload, exports, tests); basis as stated by the author: Guiggiani 2023
+  (K not meaningful for cars with significant downforce), outside the thesis
+  scope. R4 follow-up mapped it (handover): K feeds no verdict, severity or
+  recommendation; no shared code; payload key "balance" disappears (schema
+  bump, joins the owed one; no golden moves). Removal = next cycle.
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
