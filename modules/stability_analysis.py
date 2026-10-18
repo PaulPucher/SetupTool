@@ -50,6 +50,11 @@ CAR_DATA_PATH = "config/car_data.json"
 #      r_sweep.selection / guard_trace (grid points carry ay_in_band and
 #      sign_fraction instead of both_in_band); degenerate_reason / fallback_reason
 #      texts changed; every degenerate status now carries a reason.
+#  owed (final re-derivation chain, registry R3): the 2026-10-16/17 rebuild
+#      changed results under 15; payload drops "balance" (K readout removed,
+#      so the 12 key is no longer written) and resolved_levels.
+#      understeer_gradient, gains "estimator_settings" and the NIS gate's
+#      n_windows_skipped_low_coverage.
 ANALYSIS_SCHEMA_VERSION = 15
 
 # method-defining, not tunables
@@ -287,9 +292,10 @@ def _kerb_smear_zone(kerb_mask, grade_samples):
     # applied, so the strike leaks into unmasked neighbours on both sides
     # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py). Zone = unmasked
     # samples within grade_samples of a mask sample. It feeds the
-    # near_strike grade mark and bars a window from setting the CS linear
-    # reference; it never removes a sample from the regression. [domain
-    # improvement: the chair tooling has no kerb treatment]
+    # near_strike grade mark (together with the mask, R1), bars a window from
+    # setting the CS linear reference and leaves the tyre-fit base mask with
+    # the kerb mask (R6). The CS regression itself still runs over it.
+    # [domain improvement: the chair tooling has no kerb treatment]
     if kerb_mask is None:
         return None
     n = len(kerb_mask)
@@ -996,8 +1002,10 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         "CS_ratio_r": CS_ratio_r,
         "C_linear_ref_f": Clr_f,
         "C_linear_ref_r": Clr_r,
-        # Q-CAL-1 grade mark, in memory only (no schema change); read by the
-        # tyre fit and the trace display, never by the classifier
+        # Q-CAL-1 grade mark (window holds a kerb-mask or smear-zone sample,
+        # R1), in memory only (no schema change). Read by summarise_corners,
+        # which drops marked samples from the verdict statistics, by the
+        # limit-event kerb label, the trace display and the thesis reader
         "near_strike_f": ns_f,
         "near_strike_r": ns_r,
         # Fix 0 report, in memory only: samples with a stiffness but no clean

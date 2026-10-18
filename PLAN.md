@@ -140,6 +140,26 @@ REPO STATE
   robustness_2026-10-17.md): V0 HEAD, V1 median of last N = 5 / 11 / 21 valid set
   events, V2 fitted B*C*D constant, on JST 29 / NBR JDR / PR. Facts only, no
   recommendation; no production change, no suite. Author to rule.
+- REBUILD BOARD: R6 DOCS TRUTH RESTORATION DONE 2026-10-17 (text only, base
+  68c391a): registry claim mismatches R15-R22 corrected and marked FIXED in
+  docs/dataflow_registry.md (plus a header note that entry bodies describe
+  acf7dbf); PRODUCTION.md re-dated and rewritten where stale (2.1, 2.5, 2.6,
+  3, 4, 5.1-5.3, 8, 10, 11, 12.1, 12.2, 13.1, 13.3, 13.4, 15 lead + 15.1-15.4,
+  16, 18, 19; thresholds marked pre-final-chain); config comments
+  (kerb_smear_grade_s_derived_from, nis_gate _comment, _comment_grid_rate,
+  _comment_cs_apex_region, _comment_cs_fallback); code comments
+  (stability_analysis, nis_gate, corner_analysis, trace_display, outing_form,
+  settings_view); module_map, thesis_material_index, literature_digest,
+  claims_register mark the Dugoff path and the K readout removed (claims_register
+  claim h re-based, two K2 statements struck). No logic, value, test,
+  threshold, golden or schema change. thesis_notes "R6: docs truth
+  restoration". Changed .py files AST-identical to HEAD. Suite once: 619
+  passed / 2 failed (kinematic and Dubai pipeline stale goldens) / 1
+  xfailed, as expected (wall clock 11 h 18 min, machine in standby).
+  Pending the author's commit.
+- REBUILD BOARD COMPLETE 2026-10-17 (R0-R6). Next: the final re-derivation
+  chain (thresholds, goldens, schema bump), after the R26 remainder is
+  settled (OPEN ITEMS below).
 
 NEXT (author order 2026-10-11)
 1. Author app check (manual).
@@ -2163,10 +2183,15 @@ one line each, no new analysis)
 - P0 hypothesis: recorded, untested; its main consequence rejected in 2c.
 - 11 R-sensitive stability corners: resolution-limit finding, goes to the
   thesis.
-- Dugoff Rajamani ch. 14 citation: mapping round.
+- Dugoff Rajamani ch. 14 citation: mapping round. [2026-10-17: the Dugoff
+  observer is removed; the Rajamani ch. 14 EKF citation now sits in
+  modules/sideslip_ekf_pacejka.py, page still to verify.]
 - Dugoff old R logic: known divergence; delete candidate for the cleanup
-  round.
+  round. [2026-10-17: DONE by the Dugoff path removal, R3.]
 - Anchor pages to verify: author, during writing.
+- R26 remainder (CS around -4 from low in-band references): decision
+  pending; candidate approaches to come from the new literature (writing
+  session); must be settled before the final chain. [added 2026-10-17, R6]
 
 STANDING WARNINGS -- carry these into every future session
 

@@ -1,8 +1,10 @@
 # NIS tyre-mismatch gate: does the fitted tyre curve fit this session well
 # enough to trust EKF beta? pass / warn / fail (-> kinematic beta).
 # Session score = share of samples whose windowed NIS exceedance sits in band.
-# Thresholds provisional (one session). Prototype:
-# diagnostics/inspect_nis_tyre_mismatch_gate.py.
+# Thresholds re-derived 2026-10-11 (eight real sessions, config
+# threshold_derived_from), re-derived again in the final chain. Prototyped
+# on a Dugoff fit; the prototype script was removed 2026-10-17 with the
+# Dugoff path (git history).
 #
 # Score ceiling ~60-65% even for a perfect filter (small-window binomial noise).
 

@@ -807,7 +807,8 @@ class SettingsView(QWidget):
         # load_decision_frame_config isn't cached -> nothing to clear
 
         # safety net for an open OutingForm whose in-memory pipeline cache predates
-        # this save (the snapshot comparison covers everything else)
+        # this save; the identities (vehicle snapshot, Settings estimator inputs,
+        # R2) cover the persisted stores, and the generation counter the fast path
         from ui.views.outing_form import invalidate_all_pipeline_caches
         invalidate_all_pipeline_caches()
 

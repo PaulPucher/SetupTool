@@ -16,6 +16,16 @@ presents them as one continuous narrative — noted inline). One single-sentence
 pointer header (`## Frame depth programme recorded in PLAN.md`, no independent
 content beyond the pointer itself) is folded into Chapter 5 without its own line.
 
+Update note 2026-10-17 (R6 docs cycle): two removals postdate this index
+and are marked where entries depend on them. (1) The Dugoff tyre model,
+the Dugoff EKF, the ekf_pass_1 / ekf_auto_dugoff sources and their fit and
+sweep scripts were removed from the code 2026-10-17 (R3 Class B rebuild);
+the Dugoff entries in Ch. 2/3 stay as method history. (2) The
+understeer-gradient (K) readout (balance line, added 2026-10-05, after
+this index was built, so not indexed here) was removed 2026-10-17 (R4b,
+author decision; basis as stated by the author: Guiggiani 2023); thesis_notes.md "K readout
+removal".
+
 ---
 
 ## 1. Method foundations
@@ -94,7 +104,7 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 ---
 
 ## 2. Sideslip estimation arc
-*(kinematic beta → linear observer rejected → nonlinear Dugoff/Pacejka EKF, refit-loop closure, NIS gate)*
+*(kinematic beta → linear observer rejected → nonlinear Dugoff/Pacejka EKF, refit-loop closure, NIS gate; the Dugoff path was removed from the code 2026-10-17, production is Pacejka-only)*
 
 - **GPS-course sideslip (beta_gps, WP5b(c)) attempted and shelved** [result][decision][limitation] — two iterations improve plausibility checks but decision-criteria metrics stay flat (r=-0.24); VERDICT: shelved.
 - **Wheel-speed source characterization (WP-S1)** [result] — two independent channel families (not four); rear reads a constant rolling-radius offset, not traction slip; corroborated independently by GPS-speed.
@@ -106,17 +116,17 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - **GPS-course sideslip as a potential arbiter -- not usable yet** [limitation] — recorded as a potential arbiter but its own shelving record rules it out on current data.
 - **Observer saturation-detection failure: the decisive finding** [result][decision], status superseded by the entry below (kept, not struck).
 - **Linear observer saturation-detection failure: why the tyre model must be nonlinear** [decision][result] — establishes the requirement for a nonlinear single-track Kalman filter with the tyre curve identified from this car's own data; circularity resolution planned before implementation starts.
-- **WP-N1: Dugoff tyre model chosen + first-pass fit, identifiability finding** [decision][result] — Dugoff chosen over an unanchored ad-hoc form; first-pass fit superseded by WP-N1b (errors-in-variables attenuation).
+- **WP-N1: Dugoff tyre model chosen + first-pass fit, identifiability finding** [decision][result] — Dugoff chosen over an unanchored ad-hoc form; first-pass fit superseded by WP-N1b (errors-in-variables attenuation). *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **WP-N1b: c_alpha refit from Module 4b** [decision][result][limitation] — sources c_alpha from Module 4b's own linear-regime population; circularity status stated explicitly in advance.
-- **WP-N2: nonlinear Dugoff EKF, pass 0 (frozen parameters, no refit)** [decision] — analytic Jacobians; Fy-axle dependency identity proven (only two independent measured quantities behind "four" axle forces).
-- **WP-N2 pass-0 run: NIS baseline, saturation coverage, and three convergent lines of evidence for slip-angle under-read** [result][limitation] — NIS dominated by MODEL error not tuning; Dugoff's no-peak shape limitation stated.
+- **WP-N2: nonlinear Dugoff EKF, pass 0 (frozen parameters, no refit)** [decision] — analytic Jacobians; Fy-axle dependency identity proven (only two independent measured quantities behind "four" axle forces). *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
+- **WP-N2 pass-0 run: NIS baseline, saturation coverage, and three convergent lines of evidence for slip-angle under-read** [result][limitation] — NIS dominated by MODEL error not tuning; Dugoff's no-peak shape limitation stated. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **Circularity check: pass-0 EKF vs the rejected linear observer** [result] — partial, front-dominant independence; standing summary: not the linear observer's failure mode, not yet a demonstrated saturation detector.
 - **Combined-slip limitation: rear exit-traction and front entry-braking false negatives** [limitation] — friction-circle physics predicts false negatives exactly where an engineer cares most; deliberately not pursued yet.
 - **Max-|beta| excursion and the divergence monitor's short-run blind spot** [result][limitation] — diagnosed as most likely numerical, superseded in outcome by pass-1 recalibration; a threshold-provenance process lesson recorded.
 - **WP-N2 pass 1: noise-model recalibration, derivation and 2-D sweep** [decision][result] — R redefined as total innovation uncertainty; C2 excursion gate passed with the correct interpretation stated explicitly.
 - **Circularity and flag attribution at the calibrated setting** [result] — frozen-curve check is the decisive number (calibration moves slip angles further from, not closer to, the assumed curve).
 - **WP-N2 pass 1: CS_ratio interpretability, linear-reference staleness hypothesis DISPROVED, and the WP-S4b reference-spread improvement** [result][decision] — flags NOT YET INTERPRETABLE; staleness hypothesis tested and disproved; threshold re-derivation deliberately deferred.
-- **WP-N2 pass 2: EKF-sourced Dugoff refit -- proposal and pre-registered predictions** [decision] — first pass refitting from the EKF's own slip angles; convergence criterion, 4-pass cap, three named failure modes fixed in advance.
+- **WP-N2 pass 2: EKF-sourced Dugoff refit -- proposal and pre-registered predictions** [decision] — first pass refitting from the EKF's own slip angles; convergence criterion, 4-pass cap, three named failure modes fixed in advance. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **WP-N2 pass 2: refit results, prediction verdicts, convergence status** [result] — mu_fz prediction FAILED; c_alpha/mu_fz found COUPLED, not independently identified by fit order.
 - **WP-N2 pass 3: pre-registered predictions, carrying forward the c_alpha/mu_fz coupling finding** [decision] — adds a ridge check to detect parameter-pair sliding.
 - **WP-N2 pass 3: refit results, prediction verdicts, ridge check, convergence status** [result] — front c_alpha/mu_fz both flip sign (oscillation); ridge-sliding explicitly not observed.
@@ -129,7 +139,7 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - **WP-N2 Step 1b: wiring proposal, approval, and implementation** [decision][result] — EKF wired as a selectable, config-gated, default-off source; three verifications run including an empirically-checked (not assumed) resolved-parameter claim.
 - **Combined-slip premise test: does the rear reach meaningful longitudinal utilisation on exit?** [result][limitation] — provisional kappa built; ~4% of exit/braking samples exceed the utilisation threshold; incidental bug found (entry_1_brake phase-boundary, fixed later).
 - **Rolling circumference: three disagreeing numbers, none resolved**, PARTIALLY SUPERSEDED same date — original framing withdrawn; team-supplied and ABS-programmed figures are neither a measurement of the tyres actually fitted.
-- **Combined-slip Dugoff: longitudinal stiffness (C_sigma) estimation method availability** [result][limitation] — chair HAS an estimator but needs per-axle Fx this project doesn't compute; availability-only.
+- **Combined-slip Dugoff: longitudinal stiffness (C_sigma) estimation method availability** [result][limitation] — chair HAS an estimator but needs per-axle Fx this project doesn't compute; availability-only. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **Rolling-radius offset: speed-dependence check** [result] — rear flat at higher speed; front braking-only reads INCONCLUSIVE, honestly reported.
 - **abs_Slip_FL/FR/RL/RR[%]: examined, does NOT sidestep the reconciliation question** [result][limitation] — examined and found NOT USABLE; a -100x sign-inversion hypothesis tested and rejected in a later correction.
 - **Combined-slip arc: logged ECU slip and TC channels found; premise supported but weak** [result][decision] — ecu_slip_act is a genuine Level 3 logged slip source; TC intervention rate too low (68 samples) to be conclusive, cuts both ways.
@@ -140,7 +150,7 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - **### 3. WP-N3 (per-session-fittable, self-checking sideslip): unsupervised package** — package header, five phases.
 - **Phase 1: washout cutoff sweep -- pre-registration / results** [decision][result] — reproduction check passed; four intermediate cutoffs all survive the disqualifying bound; "no cutoff dominates 0.05" did NOT occur.
 - **Drift re-examined over time: single-checkpoint verdict superseded** [result][limitation] — a full drift-vs-time curve shows Phase 1's checkpoint was the MOST FAVOURABLE possible instant; strengthens the case for the auto-fit EKF over a better-tuned kinematic path.
-- **Phase 2: one-shot per-session Dugoff fit + EKF chain** [decision][result] — automates pass-0/pass-1; a small archived-value discrepancy investigated and traced to the historical, never-scripted derivation, not to the new module.
+- **Phase 2: one-shot per-session Dugoff fit + EKF chain** [decision][result] — automates pass-0/pass-1; a small archived-value discrepancy investigated and traced to the historical, never-scripted derivation, not to the new module. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **Phase 3: Pacejka variant -- pre-registration / results** [decision][result] — Pacejka validates marginally better on aggregate metrics but WORSE on rear self-consistency; rear-identifiability prediction confirmed but honestly found NOT rear-specific after all.
 - **Phase 4: NIS tyre-mismatch gate -- pre-registration / results** [decision][result][limitation] — health score cleanly separates healthy from all four mismatches; BOTH numeric pre-registered predictions failed, both causes traced.
 - **Phase 5: consolidated report** [result] — full package close-out; explicit failed-predictions record.
@@ -169,16 +179,16 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - `diagnostics/plot_sideslip_comparison.py`, `plot_slip_angle_comparison.py` — kinematic-vs-observer visual evidence (deleted in the 2026-08-30/08-20 diagnostics sweeps; findings preserved in-text only, scripts no longer present).
 
 **Literature anchors, Ch. 2:**
-- Rajamani, *Vehicle Dynamics and Control*, 2nd ed., Springer 2012 — Ch. 2 §2.3 bicycle model p.27, §2.6 yaw-rate/slip-angle model p.37 — **verified** (both confirmed visually by the user); Ch. 13.10 Dugoff eqs. 13.72-13.76 — **page TO VERIFY**; Ch. 14 Kalman application — **page TO VERIFY** (chapter itself confirmed).
+- Rajamani, *Vehicle Dynamics and Control*, 2nd ed., Springer 2012 — Ch. 2 §2.3 bicycle model p.27, §2.6 yaw-rate/slip-angle model p.37 — **verified** (both confirmed visually by the user); Ch. 13.10 Dugoff eqs. 13.72-13.76 — **page TO VERIFY** (no longer cited by code since the Dugoff path's removal, 2026-10-17); Ch. 14 Kalman application — **page TO VERIFY** (chapter itself confirmed).
 - Kiencke & Nielsen, *Automotive Control Systems*, 2nd ed., Springer 2005 — "Vehicle Body Side Slip Angle Observer" section — **topic verified visually**, **exact section number likely PERMANENTLY TO VERIFY** (source PDF's body text does not survive extraction; printed-copy-only). Own innovation-testing/NIS-consistency section — **TO VERIFY**, named only as Option C in the (superseded) NIS-gate redesign proposal.
 - Ulsoy, Peng, Cakmakci, *Automotive Control Systems* — sec. 14.3 p.263 (nonlinear vehicle model), sec. 14.1 p.258ff (operational significance of sideslip) — **verified by two independent readings**; Eq. 14.8 confirmed as a term-by-term match for this project's EKF balances.
-- Dugoff tyre model — Rajamani Ch. 13.10 (see above); sign convention adapted, drops the literature minus sign to match this codebase's established positive Fy-vs-alpha slope.
+- Dugoff tyre model — Rajamani Ch. 13.10 (see above); sign convention adapted, drops the literature minus sign to match this codebase's established positive Fy-vs-alpha slope. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - Pacejka Magic Formula (reduced 4-parameter) — general form, Rajamani Ch. 13 — **page TO VERIFY**; also cited as "chair performance_analysis tooling (internal)" for the reduced-form construction.
 
 **Open gaps, Ch. 2:**
 - The kinematic beta estimate's own zero-slip offset / circularity is never fully resolved — it motivates the entire EKF/refit arc, which itself closes as structurally non-identifiable without an external reference. **This is arguably the project's single most important honest limitation** (see Ch. 7).
 - GPS-course beta (shelved) has a documented reopen condition (denser anchors, longer session) that neither real session meets; v3 is shown to have NO usable GPS-course channel at all.
-- Combined-slip Dugoff extension (C_sigma / per-axle Fx) has no estimator in this project — availability-only finding, never built.
+- Combined-slip Dugoff extension (C_sigma / per-axle Fx) has no estimator in this project — availability-only finding, never built. (Moot since 2026-10-17: the Dugoff path is removed.)
 - The load-normalised (mu) tyre-fit plausibility question is resolved as a real load-sensitivity effect but is explicitly NOT a validated quantitative load-sensitivity measurement (no controlled load sweep).
 - Whether a session with genuine external sideslip reference data would resolve the refit-loop's identifiability problem remains the named reopen condition, unmet as of the last session.
 
@@ -224,7 +234,7 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - **100 Hz time-base work package, Phase 0: adaptive common grid (50-100 Hz), refusal only below the hard floor** [decision][result] — a long-standing structural bug fixed (the pipeline's common grid was silently downsampling five 100 Hz channels for the pipeline's entire history); measured 5.24x (not 2x) CS-estimator cost increase.
 - **100 Hz time-base work package, Phase 1: floor derivation, third pass** / **Phase 1 FINAL: direct real-data validation** [decision][result] — decisive methodological pivot away from bootstrap criteria to direct validation; converges on the chair's own original 0.1s window, simply mis-resolved at the wrong rate for the pipeline's history.
 - **100 Hz time-base work package, Phases 2-3 / Phase 4: final distributions -- pre-registration LARGELY CONFIRMED** [result] — every partial match reported honestly, not rounded up; real-cornering windows quantifiably no longer floor-pinned.
-- **100 Hz time-base work package: full non-golden suite result** [result] — one real off-by-one grid bug found and fixed; Dugoff-chain coupling escalates from drift to full degeneracy under the final floor.
+- **100 Hz time-base work package: full non-golden suite result** [result] — one real off-by-one grid bug found and fixed; Dugoff-chain coupling escalates from drift to full degeneracy under the final floor. *[Dugoff path removed from the code 2026-10-17 (R3 Class B rebuild); method history, entry kept.]*
 - **CS validity repair, sign-off clarification round: 0.1s hypothesis tested and confirmed, 0.2s hypothesis tested and REJECTED -- final config value is the chair's own literal, unmodified default** [decision][result] — 0.2s explicitly recorded as tested-and-rejected (not merely superseded); parsimony wins.
 - **CS validity repair, limitation: cs_max_window_m does not guarantee locality against corner-to-corner GAPS, only against corner LENGTH** (see Ch. 1).
 - **CS validity repair, limitation: C4's own short genuine events are only partially detected by the worst-lap/apex_region statistic** [limitation] — a per-lap breakdown shows this statistic catches only 1 of 5 independently-confirmed genuine C4 events.
@@ -240,7 +250,7 @@ content beyond the pointer itself) is folded into Chapter 5 without its own line
 - **Metrology extension Phase 2: LS_ratio validity repair** (see Ch. 2) — cross-referenced; applies the CS_ratio playbook to LS_ratio with fresh, independently-derived numbers.
 - **LS-evidence work package: negative-population co-occurrence census** (see Ch. 2) — cross-referenced; resolves the LS_ratio genuine-vs-noise question with a clean phase-type split.
 - **LS threshold decision: SHIPPED, phase-scoped** (see Ch. 2/5) — cross-referenced.
-- **PLAN.md STEP 2: chair-comparable result plots, kinematic vs ekf_pass_1** [result][figure-source: `diagnostics/inspect_step2_chair_plots.py` → `diagnostics/plots_step2/`, 28 PNGs] — direct visual answer to the C9 question: rear-anomaly corners improve sharply under ekf_pass_1, C4's front saturation and C2's "knot" persist under both beta sources.
+- **PLAN.md STEP 2: chair-comparable result plots, kinematic vs ekf_pass_1** [result][figure-source: `diagnostics/inspect_step2_chair_plots.py` → `diagnostics/plots_step2/`, 28 PNGs] — direct visual answer to the C9 question: rear-anomaly corners improve sharply under ekf_pass_1, C4's front saturation and C2's "knot" persist under both beta sources. *[the ekf_pass_1 source was removed 2026-10-17 with the Dugoff path; figure history, entry kept.]*
 - **Cleanup/reliability/presentation pass, Phase 0: LS_ratio plausibility** (see Ch. 2) — cross-referenced (LS_ratio's shared-with-CS numerical-instability gap, confirmed NOT a SetupTool regression).
 - **Fz-integration Phase 1 (finish): CS_ratio independence, axle-total proxy bug fix, before/after comparison** [result][decision] — the impossible requested comparison correctly abandoned; proves fz never reaches the classifier chain, both by code read and empirically.
 - **Fz-integration final edit before commit: vertical_load_source default flipped to "measured"** [decision] — authorised specifically because verdict independence from Fz was PROVEN, not assumed, before the flip.

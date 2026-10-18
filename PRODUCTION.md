@@ -1,10 +1,15 @@
 # PRODUCTION -- the SetupTool signal chain as it runs today
 
-Dated: 2026-10-07. Describes the code on branch new-laps: commit 9427b6a
-plus the packages of 2026-10-06 / 07 (event layer, product text, analysis
-lock, shading budget and corner-trace default, leading pit-fragment merge,
-UI cleanup round), ANALYSIS_SCHEMA_VERSION 14. Updated on request only;
-every update replaces the content and re-dates this header.
+Dated: 2026-10-17. Describes the code on branch new-laps at 68c391a, after
+the rebuild steps R0-R5 (Class A and B estimator corrections, Dugoff path
+removed, understeer-gradient readout removed, CS reference rules Fix 0 and
+the stiffness band, Group 1 fixes) and the R6 docs cycle.
+ANALYSIS_SCHEMA_VERSION 15; the code has changed estimator results since
+schema 15 was set, and the bump that covers those changes is owed in the
+final re-derivation chain (section 18). Thresholds quoted below are the
+config values of today, pre-final-chain; they are re-derived in the final
+chain. Updated on request only; every update replaces the content and
+re-dates this header.
 
 This file states what is in production, from the raw logger file to the
 setup recommendation, one section per stage of the signal chain. It is the
@@ -148,12 +153,15 @@ window was validated at 50-100 Hz.
 - Accuracy: speed Level 1 (ecu_speed, opaque ECU calibration), yaw rate
   Level 3, lateral acceleration Level 1 (IMU not at the CoG), steering
   angle Level 1 or 4 (2.2).
-- Known limit, not a home violation: several windows are still sample
-  counts and therefore halve their physical duration at 100 Hz:
-  tyre_fit_auto.nis_window_samples = 20 (0.2 s at 100 Hz, the EKF
-  divergence monitor, section 5) and stability_estimation.
-  apex_half_window_samples = 5 (12.2). The config comment
-  _comment_grid_rate records this.
+- Windows are durations, converted to samples once per session at the
+  grid rate: kerb_dilation_s, kerb_smear_grade_s (2.5), cs_min_window_s
+  (8.1), the EKF divergence window tyre_fit_auto.nis_window_s = 0.4 s (5.1),
+  the gate window nis_gate.nis_window_s = 0.4 s (5.2) and
+  yaw_stability_accel_window_s (10). The EKF process noise Q is scaled to
+  the grid step as well (4, 5.1). Known limit, not a home violation: one
+  window is still a sample count, stability_estimation.
+  apex_half_window_samples = 5 (+/-0.05 s at 100 Hz, 12.2). The config
+  comment _comment_grid_rate records this.
 
 Neutral engineering. The chair's 10-sample window default was implicitly
 a 100 Hz figure; the time-based floors in this file restore that
@@ -218,22 +226,33 @@ internal workings.
   sample within kerb_smear_grade_s = 0.20 s (CONFIG) of a masked sample.
   A cornering-stiffness sample is graded kerb-affected (internal name
   near_strike) when its regression window (8.1) contains a grade-zone
-  sample. User-facing, mask and grade mark are one thing: KERB-AFFECTED =
+  sample or a mask sample (the mask test closes the case of a window lying
+  entirely inside a kerb run). User-facing, mask and grade mark are one thing: KERB-AFFECTED =
   inside the mask or carrying the grade mark. The 0.20 s is the measured
   force smear past a strike (p75 0.25 s past a +/-0.05 s mask edge, 15
   Nurburgring and 2 Paul Ricard sessions), expressed from the +/-0.10 s
   edge of the dilated mask.
 
 Where it acts:
-- ESTIMATION (masked samples): no CS value at masked samples (8.1);
-  masked samples are outside the Pacejka fit population, the R
-  derivation, the NIS gate population and the sign check (4, 5); outside
-  the stability regression population (10). The kinematic integration (3)
-  and the EKF (5) run through masked samples.
+- ESTIMATION: no CS value at masked samples (8.1); masked AND grade-zone
+  samples are outside the Pacejka fit population, the R derivation, the
+  NIS sweep, the NIS gate population and the sign check (one base mask, 4,
+  5); a CS window holding a masked or grade-zone sample cannot set the CS
+  linear reference (8.1); masked samples are outside the stability
+  regression population (10). The kinematic integration (3) and the EKF
+  (5) run through masked samples, and the CS regression window runs over
+  grade-zone samples.
 - JUDGEMENT (graded samples): the per-phase CS statistics that feed
   classification skip the graded samples (12.2). The thresholds were
   derived on exactly this population (15). The CS arrays themselves keep
   every sample.
+- Known limits (documented, chair-faithful, docs/dataflow_registry.md R8,
+  R10): stability has no grade-zone treatment, its 15-sample
+  yaw-acceleration window runs over masked samples, and the stability
+  phase statistics read the stability field at kerb positions (the phase
+  sample set is the moving mask only, 12.2). The estimator state carries
+  through strikes (R5). So for stability, "must not shape the verdict"
+  holds at the regression input only.
 - DISPLAY: ONE switch, CONFIG corner_trace_display.kerb_exclusion_display
   = "grey" (alternatives "exclude" and "off"), for the trace windows, the
   figure exports and the diagnostics renders: CS traces draw kerb-affected
@@ -254,12 +273,16 @@ Chair: DOMAIN IMPROVEMENT -- the chair tooling has no kerb treatment.
 Tier B. The kerb detector was validated on Nurburgring JST outing 29 (it
 catches the strikes that drive the deep CS tail).
 
-### 2.6 In-lap and out-lap exclusion
+### 2.6 Non-analysis-lap exclusion
 
-The stability regression always excludes out- and in-laps, independent
-of any lap selection: cold tyres break the cross-lap stationarity the
-regression assumes. The Pacejka fit, the NIS gate and the understeer
-gradient use analysis laps only (1). DOMAIN IMPROVEMENT (stability).
+The stability regression always excludes every non-analysis lap (1):
+out- and in-laps, and also laps outside the lap-time window (slower than
+valid_lap_max_ratio x the fastest, or shorter than lap_time_min_s) and
+laps with a lap warning, independent of any lap selection: cold tyres,
+traffic or a cool-down lap break the cross-lap stationarity the regression
+assumes. The same lap set governs the Pacejka fit population, the NIS
+gate, the CS linear reference (8.1) and the corner statistics (12).
+DOMAIN IMPROVEMENT (stability).
 
 
 ## 3. Kinematic sideslip (the seed and the fallback)
@@ -275,8 +298,9 @@ zero-phase Butterworth (2.4). The washout is signal conditioning (Tier
 B); the identity is Tier A.
 
 Role in production: (1) the seed of the per-session tyre fit (4); (2)
-the per-sample replacement whenever the EKF diverges (5); (3) the
-session-wide fallback when the fit is degenerate or the NIS gate fails.
+the session-wide fallback when the fit is degenerate or the NIS gate fails
+(5.3). It never enters the EKF state or output: since 2026-10-07 a
+diverged EKF re-enters from its own state or from zero (5.1).
 
 Accuracy: sideslip_angle Level 1.
 
@@ -308,7 +332,8 @@ per_session):
   the KINEMATIC beta (3); Fy_f, Fy_r from the force split (7); both after
   the 2 Hz conditioning.
 - Fit population = base mask AND speed window:
-  - base mask: moving, outside the kerb mask, on analysis laps;
+  - base mask: moving, outside the kerb mask and its grade zone (2.5), on
+    analysis laps;
   - speed window: keep samples whose speed lies inside [p1, p99] of the
     speeds of moving samples inside corner instances on analysis laps,
     per session. CONFIG tyre_fit_auto.fit_speed_window_pct = [1, 99]. It
@@ -374,13 +399,22 @@ Noise model for the EKF, derived per session (same function):
   else ok. Every degenerate status carries degenerate_reason, every
   marginal one marginal_reason. The sign check counts, over racing corners
   (speed class not low), how often the median EKF beta has the sign
-  opposite to the median a_y. The same configured value 0.7 is both the
-  sweep guard and the marginal limit.
+  opposite to the median a_y, per stable corner pooled over its
+  analysis-lap instances inside the canonical bracket, on the base mask; a
+  NaN fraction (no racing corner) is degenerate. The same configured value
+  0.7 is both the sweep guard and the marginal limit. DOCUMENTED
+  DEPENDENCY (registry R23): "racing" is the corner speed class, set from
+  the Settings corner speed boundaries (channels.json
+  corner_speed_thresholds), so the fit status depends on those Settings
+  fields. They are part of every cache identity (18) and the speed classes
+  are recomputed from the current boundaries before every full run.
 - Q and P0 (process and initial covariance): CONFIG tyre_fit_auto.
-  q_beta_var = 9.632e-07, q_yaw_rate_var = 2.408e-07, p0_beta_var =
-  p0_yaw_rate_var = 3.046e-04; beta_hard_bound_deg = 15.0;
-  nis_window_samples = 20, nis_chi2_bound = 5.99, nis_flag_fraction =
-  0.5 (section 5).
+  q_beta_var = 9.632e-07, q_yaw_rate_var = 2.408e-07 (per-step variances
+  tuned on the 50 Hz grid; the EKF scales them by q_reference_rate_hz /
+  grid rate, q_reference_rate_hz = 50, so 0.5 per step at 100 Hz, the same
+  variance per second; 5.1), p0_beta_var = p0_yaw_rate_var = 3.046e-04;
+  beta_hard_bound_deg = 15.0; nis_window_s = 0.4 s, nis_chi2_bound = 5.99,
+  nis_flag_fraction = 0.5 (section 5).
 
 Accuracy: the fitted curve is a per-session model fit; sideslip stays
 Level 1.
@@ -414,6 +448,12 @@ page still to verify).
   Jacobian F evaluated at x(k|k), measurement Jacobian H at x(k+1|k),
   tyre slopes from the analytic Magic Formula derivative.
 - Measurement model: h = [r, (Fy_f + Fy_r) / m].
+- Process noise per step: Q = diag(q_beta_var, q_yaw_rate_var) x
+  q_reference_rate_hz / grid rate (4). White process noise integrated over
+  one step adds variance in proportion to the step (first-order
+  discretisation), and the Q values were tuned on the 50 Hz grid; the
+  factor is exactly 1 at 50 Hz and 0.5 at 100 Hz. Tier B (standard
+  discretisation of a tuned value).
 - Divergence, per sample: the share of the last tyre_fit_auto.nis_window_s
   = 0.4 s of samples (converted at the grid rate) whose combined NIS exceeds nis_chi2_bound = 5.99 (chi-square
   95 %, df 2) is above nis_flag_fraction = 0.5 (NIS-window divergence), OR
@@ -435,26 +475,36 @@ page still to verify).
   more).
 - Vehicle quantities: m, a, b, I_z (Level 1, or Level 2 for m, a, b with
   a session weighing).
-- [2026-10-16/17: the former sample-count window nis_window_samples
-  (0.2 s at 100 Hz) is now the duration nis_window_s (Class A fix 3); the
-  key was removed with the Dugoff mirror.]
+- The divergence window is a duration (0.4 s, 40 samples at 100 Hz); the
+  sample-count key it replaced had meant 0.4 s at 50 Hz and had halved to
+  0.2 s on the 100 Hz grid (corrected 2026-10-16).
 
 ### 5.2 Session gate (modules/nis_gate.py)
 
 Why: the fitted curve may not represent the session's tyre; then the
 EKF beta must not be trusted.
-- Health score = share of base-mask samples whose trailing window of
+- Health score = share of base-mask samples (4) whose trailing window of
   nis_gate.nis_window_s = 0.4 s (CONFIG, converted to samples at the grid
   rate) has a combined-NIS exceedance share inside [nis_gate.nis_band_low,
-  nis_band_high] = [0.03, 0.15].
-- Verdict: pass if score >= threshold_use_ekf = 0.08; warn if >=
-  threshold_warn = 0.01; fail otherwise or if the score is NaN (CONFIG
-  nis_gate). The gate catches divergence, not fit quality; thresholds are
-  labelled provisional in config (two real sessions).
+  nis_band_high] = [0.03, 0.15]. The window runs over the full-length NIS
+  and looks back across mask gaps. NaN NIS (no EKF update) leaves numerator
+  and denominator; a window less than half covered by finite NIS is
+  skipped (CODE nis_gate.MIN_WINDOW_VALID_FRACTION = 0.5) and counted as
+  n_windows_skipped_low_coverage.
+- Verdict: pass if score >= threshold_use_ekf = 0.023; warn if >=
+  threshold_warn = 0.0025; fail otherwise or if the score is NaN (CONFIG
+  nis_gate; both boundaries inclusive). The gate catches divergence, not
+  fit quality. Both values pre-final-chain: re-derived 2026-10-11 with the
+  recorded rule on eight real sessions (15.3), re-derived again in the
+  final chain.
 
 ### 5.3 Dispatch (tyre_fit_auto.resolve_sideslip_beta)
 
-CONFIG stability_estimation.sideslip_source = "ekf_auto_pacejka".
+CONFIG stability_estimation.sideslip_source = "ekf_auto_pacejka". The
+two recognised sources are "ekf_auto_pacejka" and "kinematic"
+(tyre_fit_auto.SIDESLIP_SOURCES); any other value stops the run with an
+error instead of silently running kinematic (2026-10-17).
+- Source "kinematic" -> kinematic beta, no fit, no gate.
 - Fit degenerate -> kinematic beta for the whole session.
 - Gate fail -> kinematic beta for the whole session.
 - Gate pass or warn (fit ok or marginal) -> EKF beta_with_fallback.
@@ -526,31 +576,73 @@ i (moving and outside the kerb mask):
    x rate)) = 10 at 100 Hz. The window widens backward until the
    alpha span in it reaches cs_min_slip_angle_span_rad = 0.02 rad, or
    until its track length reaches cs_max_window_m = 53.0 m (or lap
-   distance is NaN / resets). Span not reached -> no value.
+   distance is NaN / resets). Span not reached -> no value. A window whose
+   first and last samples belong to different lap-table laps (or one to
+   no lap) mixes two traversals and yields no value; such windows are
+   counted (n_lap_straddle_f / _r, in memory only).
 2. C_window = OLS slope of Fy on alpha over the window, with its R^2.
 3. C_section = weighted mean of the OLS slopes of the monotonic alpha
    sections inside the window; a section's weight is a smooth step of its
    span on [0, 0.02 rad] with exponent CODE SPAN_WEIGHT_EXPONENT = 4.
 4. C_alpha = w C_window + (1 - w) C_section, w = smooth step of R^2 on
    [0, 1] with exponent CODE R2_WEIGHT_EXPONENT = 1 (that is, w = R^2).
-5. Linear reference C_lin: whenever every |alpha| in the window is below
-   cs_linear_slip_threshold_rad = 0.03 rad, C_lin is set to the current
-   C_alpha; otherwise the last value is held (a running hold through the
-   session).
-6. CS = min(C_alpha / C_lin, 1.0), only where C_lin > 0.
+5. Linear reference C_lin. A window SETS the reference to its C_alpha
+   only if all three hold:
+   - linear: every |alpha| in the window is below
+     cs_linear_slip_threshold_rad = 0.03 rad;
+   - clean (Fix 0, 2026-10-17): no sample of [start, i) lies in the kerb
+     mask, in the grade zone (2.5) or off an analysis lap;
+   - inside the stiffness band (R26/R27, author ruling 2026-10-17):
+     tyre_fit_auto.stiffness_min_npr <= C_alpha <= stiffness_max_npr
+     (30000 / 600000 N/rad, the same CONFIG keys as the plausibility gate
+     in 4, read, not duplicated). The reference is the linear axle
+     stiffness, the quantity that gate bounds on the fitted curve
+     (magnitudes after Bechtloff); with an estimated beta a low-excitation
+     window's slope is ill-determined and could set a reference far below
+     the session level, or zero or negative.
+   Any other window leaves the previous reference in force (held). The
+   held value has no age limit and carries across lap boundaries
+   (documented limitation, registry R4).
+6. CS = min(C_alpha / C_lin, 1.0). Before the first window that sets a
+   reference there is no CS: those samples (a stiffness, no reference) are
+   NaN, never zero-filled, and counted (n_no_reference_f / _r, of them on
+   analysis laps n_no_reference_analysis_f / _r; the analysis-lap count is
+   shown on the summary line, 13.1).
 Reading: 1 = linear regime; 0 = the axle's force peak; negative = past
 the peak (force falling with slip).
-All CONFIG values here sit in stability_estimation.
+All CONFIG values here sit in stability_estimation unless named.
+
+Phase offset of the trailing window: the CS at sample i is the regression
+over [start, i), the samples BEFORE i, at least 0.1 s and in practice as
+long as the 0.02 rad span needs (up to 53 m of track). It therefore
+describes the tyre state of a stretch ending at i, centred roughly half a
+window earlier. The phase statistics (12.2) select CS samples by their own
+time stamp, so the first samples of a phase carry windows reaching back
+into the preceding phase.
+
+Known limit (open, registry R26 remainder): references inside the band
+but well below the session level (between the 30000 N/rad floor and about
+half the session median) still pass and scale CS up in magnitude; CS
+values around -4 remain on low in-band references. A decision is pending
+and must be settled before the final chain.
 
 Near-strike grade mark: per 2.5, set on sample i when the window [start,
-i) contains a grade-zone sample. In memory only (not persisted).
+i) contains a kerb-mask or grade-zone sample. In memory only (not
+persisted). Read by the per-phase statistics (12.2), the limit-event kerb
+label (13.4), the trace display and the thesis data reader.
 
 ### 8.2 Exclusions at this stage
 
-Moving gate (2.3) and kerb mask (2.5) decide which samples get a CS
-value. A window ending outside the mask may span masked samples; the
-grade mark is what catches that. Out- and in-laps get CS values too;
-only analysis-lap corners are ever read (12).
+- Moving gate (2.3) and kerb mask (2.5) at sample i decide which samples
+  get a CS value.
+- The window [start, i) may hold masked or grade-zone samples; the grade
+  mark catches both, and judgement skips marked samples (12.2). The CS
+  regression itself runs over them.
+- Reference edge: only a clean window (no mask, grade-zone or
+  off-analysis-lap sample) inside the stiffness band sets the reference
+  (8.1 step 5).
+- Out- and in-laps get CS values too; only analysis-lap corners are ever
+  read (12).
 
 ### 8.3 Accuracy, chair, tier
 
@@ -564,10 +656,13 @@ and the ratio construction. Adapted: cs_linear_slip_threshold_rad = 0.03
 rad is re-derived on this car's own Fy-alpha cloud (the chair's value is
 0.021 rad); cs_max_window_m = 53.0 m is SetupTool's own locality cap in
 track metres; the sample-rate-resolved minimum window and the floor of 5
-samples are NEUTRAL ENGINEERING; kerb mask and grade mark are DOMAIN
-IMPROVEMENT. Relative to Werner: windowed regression on logged data
-instead of a tyre-model evaluation (no validated tyre model for this
-car). Tier A (framework), Tier B (windowing, blend, hold).
+samples are NEUTRAL ENGINEERING; kerb mask, grade mark, the clean-window
+reference rule (Fix 0) and the stiffness band on the reference are DOMAIN
+IMPROVEMENT (the chair tooling has no kerb treatment and works with a
+measured beta, so it bounds neither). Relative to Werner: windowed
+regression on logged data instead of a tyre-model evaluation (no
+validated tyre model for this car). Tier A (framework), Tier B (windowing,
+blend, hold, reference rules, lap-straddle guard).
 
 
 ## 9. Vertical loads (side branch, not a verdict input)
@@ -691,25 +786,33 @@ All six values: CONFIG stability_estimation.yaw_stability_*, the chair's
 defaults; changing any of them means re-deriving thresholds.
 
 Exclusions (regression population only, by NaN-ing samples): not moving,
-kerb mask, out- and in-laps. The result is a field over track position:
-every sample with a finite lap distance receives the value at its
-position, masked samples included. No lap distance -> no stability
-value.
+kerb mask, every non-analysis lap (2.6: out- and in-laps, slow and warned
+laps). The result is a field over track position: every sample with a
+finite lap distance receives the value at its position, masked samples
+and non-analysis laps included; the field is interpolated linearly
+across grid points where the regression refused (chair code does the
+same; registry R9). No lap distance -> no stability value.
 
 Accuracy: I_z Level 1 (m a b estimate, method ceiling 1); beta Level 1;
 the stability value inherits the weakest input.
 
 Chair: estimator and its six values as-is. FORCED ADAPTATION:
 raw-yaw-rate path (the chair's pre-smoothed input is not available).
-DOMAIN IMPROVEMENT: kerb and in/out-lap exclusion. Not ported: the
+DOMAIN IMPROVEMENT: kerb and non-analysis-lap exclusion. Not ported: the
 chair's time-anchored fallback without lap distance (no verdict
 instead). The measure is chair-conform (inertial regressand, no damping
 term). Tier A.
 
 
-## 11. Understeer gradient
+## 11. Understeer gradient -- REMOVED 2026-10-17
 
-Understeer-gradient readout removed 2026-10-17 (author decision; Guiggiani 2023, not meaningful with significant downforce).
+The understeer-gradient (K) readout is removed from the application
+(UI balance line, payload key "balance", exports, module and tests),
+2026-10-17, author decision; basis as stated by the author: Guiggiani
+2023 (K not meaningful for a car with significant downforce; not on disk,
+citation to verify). It fed no verdict, severity or
+recommendation. The section number is kept so cross-references stay
+valid.
 
 
 ## 12. Phases and aggregation
@@ -725,10 +828,14 @@ modules/corner_analysis.py, thresholds in channels.json corner_detection
   duration_s = 0.8; moving-average smoothing over smoothing_window_
   samples = 10 native samples; same-direction brackets closer than
   bracket_merge_gap_s = 0.6 merged (chicanes stay separate).
-- Apex = peak |a_y| in the bracket, rejected below lateral_g_apex_
-  threshold = 0.3 g. Speed class from the apex speed: low < low_max = 80,
+- Apex = the instant of peak smoothed |a_y| in the bracket, rejected below
+  lateral_g_apex_threshold = 0.3 g. Apex speed = the minimum smoothed
+  ecu_speed over the bracket (on the canonical realisation: turn-in to
+  bracket end), not the speed at the apex instant; the two are not
+  cross-checked. Speed class from the apex speed: low < low_max = 80,
   medium < medium_max = 150 km/h, else high (channels.json
-  corner_speed_thresholds).
+  corner_speed_thresholds, Settings-editable; recomputed from the current
+  boundaries before every full run).
 - Phases: entry_1_brake from the last sample at throttle >=
   brake_throttle_max_pct = 95 % before turn-in to turn-in; entry_2_turnin
   to the apex; apex_3 = the apex instant; exit_4 from the apex until the
@@ -751,11 +858,18 @@ modules/corner_analysis.py, thresholds in channels.json corner_detection
 
 Per corner, per analysis lap, per phase:
 - Samples: moving samples inside the phase's time window; apex_3 (an
-  instant) uses +/- apex_half_window_samples = 5 grid samples (CONFIG
-  stability_estimation; a sample count, see 2.1).
-- CS statistics (median, p25, p75, n) on the CLEAN population:
-  graded kerb-affected samples set to NaN; masked samples are already NaN
-  (8). Gate: fewer than cs_phase_min_valid_samples = 5 finite samples ->
+  instant) uses the first grid sample at or after the apex time +/-
+  apex_half_window_samples = 5 grid samples, 11 samples unless clipped at
+  the array ends (CONFIG
+  stability_estimation; a sample count, see 2.1). One helper
+  (stability_analysis.apex_instant_slice) defines this window for every
+  consumer: these statistics, the tyre-fit h2 apex check and the
+  decision-frame TPMS apex read-out.
+- CS statistics (median, p25, p75, n) on the CLEAN population: samples
+  carrying the grade mark (their window holds a kerb-mask or grade-zone
+  sample, 8.1) set to NaN; masked samples are already NaN (8). Samples
+  without a reference are NaN as well (8.1 step 6) and are not counted
+  per block. Gate: fewer than cs_phase_min_valid_samples = 5 finite samples ->
   NaN. Each CS block also carries n_kerb_excluded (finite samples left
   out as kerb-affected; display only), so the per-phase table states
   "no clean data (kerb-affected excluded, n = K)", "too few clean
@@ -769,7 +883,8 @@ Per corner, per analysis lap, per phase:
   length_m = 25.0 m of the canonical apex lap distance, limited to the
   instance's own time span, same clean population and gate. Classification
   reads apex_3 CS from here.
-- Stability statistics: same count gate (cs_phase_min_valid_samples
+- Stability statistics: moving samples of the phase, kerb positions
+  included (2.5 known limits); same count gate (cs_phase_min_valid_samples
   reused); entry_1_brake additionally NaN when the phase's peak front
   brake pressure stays below stab_phase_no_braking_floor_bar = 3.0 bar
   (no real braking).
@@ -805,11 +920,12 @@ Inputs per corner: the five phases' CS medians (apex_3 from the apex
 region) and stability medians.
 - Worst values: worst_f, worst_r = the lowest front / rear CS median over
   the phases; worst_stab = the lowest stability median.
-- Axle tiers (CONFIG classification):
-  front STRONG if worst_f < STRONG_CSF = -0.646;
-  front MODERATE if -0.646 <= worst_f < MODERATE_CSF = -0.285;
-  rear STRONG if worst_r < STRONG_CSR = -0.404;
-  rear MODERATE if -0.404 <= worst_r < MODERATE_CSR = -0.131.
+- Axle tiers (CONFIG classification; values as in config today,
+  pre-final-chain, re-derived in the final chain, 15.1):
+  front STRONG if worst_f < STRONG_CSF = -0.784;
+  front MODERATE if -0.784 <= worst_f < MODERATE_CSF = -0.265;
+  rear STRONG if worst_r < STRONG_CSR = -0.677;
+  rear MODERATE if -0.677 <= worst_r < MODERATE_CSR = -0.323.
 - Open-loop unstable if worst_stab < stab_neg_thresh_Nm_per_deg = 0.0
   (Werner sec. 2.2.3 sign criterion; explicitly not a criticality
   threshold -- skilled drivers operate there).
@@ -844,6 +960,17 @@ region) and stability medians.
   fallback shows in the estimator status line.
 - Colours: severity strong / moderate / normal -> BAD / WARN / OK
   (ui/style.py).
+- No CS data: a corner-lap with no finite CS median on either axle in any
+  phase (explicit any-finite test) that raises no other verdict reads "no
+  CS data" (card: "No CS data in any phase") in the NEUTRAL colour instead
+  of "ok / Within normal range"; severity stays normal, so the decision
+  frame and the rule engine are unaffected. If stability fires, the
+  open-loop-unstable verdict is shown instead.
+- Summary line above the cards: corner count, strong / moderate / normal
+  counts, the "no CS data" count when non-zero, and, when non-zero, the
+  analysis-lap count of CS samples without a reference per axle (8.1 step
+  6; in-memory result only, so a summaries-only cache hit does not show
+  it).
 
 The PDF export calls this same classifier, so the two cannot disagree.
 
@@ -863,7 +990,8 @@ values:
 ### 13.3 Exclusions active at judgement
 
 Analysis laps only; clean CS population (kerb-affected out); phase count
-gates (12.2); the no-braking gate on entry_1_brake stability.
+gates (12.2); the no-braking gate on entry_1_brake stability. The
+stability phase statistics are not kerb-filtered (2.5 known limits).
 
 Accuracy: verdicts inherit CS and stability (Level 1 chain); MARGINAL
 expresses the measured sensitivity (+/-1 % input errors move 90 % of
@@ -887,7 +1015,8 @@ byte-identical with the layer on and off).
   The 30 deg range extrapolates the curve beyond the visited range on
   purpose; the B C D normalisation sits shallower than a CS-scale floor
   would, so the line errs toward fewer events. No line when the fit is
-  degenerate or absent.
+  degenerate or absent, or when the NIS gate failed (that session ships
+  kinematic beta, 5.3).
 - Events: in-corner stretches (canonical brackets, analysis laps, full CS
   arrays) below the line, merged across gaps < CONFIG limit_events.
   bridge_gap_s = 0.5 s within one corner instance; events shorter than
@@ -898,7 +1027,9 @@ byte-identical with the layer on and off).
   minimum within recurrence_radius_m = 10 m), else single.
 - Display: one line on the verdict card, a session list per corner and
   phase, a thin strip along the bottom of the CS panel in the traces.
-- Counts at 0.1 s (best available): Dubai 36 events, NBR JST 29 71.
+- Counts at 0.1 s (best available), counted 2026-10-06 on the chain of
+  that date and not re-counted since the rebuild: Dubai 36 events, NBR
+  JST 29 71.
 Anchor: Segers secs. 7.4-7.6 (moment-level reading of logged traces),
 Pacejka secs. 1.2.2 / 4.3.1 (the curve); the event channel itself is
 SetupTool's construction, Tier B segmentation on a Tier A-derived line.
@@ -997,7 +1128,15 @@ Accuracy: longitudinal_force_split Level 1.
 
 ## 15. THRESHOLD INVENTORY
 
-### 15.1 Derived on the current estimator (2026-10-11)
+Every value in this section is PRE-FINAL-CHAIN. The rebuild steps of
+2026-10-16 / 17 (Class A and B corrections, CS reference rules, smear zone
+out of the tyre fit) changed estimator results after the 2026-10-11
+derivation; thresholds, goldens and the schema version are re-derived
+together in the final re-derivation chain. Until then the values below
+are the config values in force, derived on the 2026-10-11 chain or
+earlier as stated.
+
+### 15.1 Derived on the 2026-10-11 estimator (pre-final-chain)
 
 CS thresholds, CONFIG classification, percentile rule, author ruling
 2026-10-05: STRONG = p10, MODERATE = p30 per axle. Re-derived 2026-10-11 on
@@ -1047,7 +1186,9 @@ Stability threshold, CONFIG classification:
   table's wheel-angle column): no proportional flip within +/-1 %, both
   observed flips are different-mechanism jumps (a ratio discontinuity; a
   front/rear relative comparison); value retained by author ruling.
-  Its numeric value still originates from the 2026-09-19 chain.
+  Re-measured again 2026-10-11 on the corrected chain and the 2026-10-11
+  thresholds: 0 flips, value retained. Its numeric value still
+  originates from the 2026-09-19 chain.
 - classification.cs_cross_lap_aggregation = "worst_lap": a method
   choice the thresholds are bound to.
 - Severity logic (CODE, outing_form._classify_corner): the two-signal
@@ -1068,7 +1209,10 @@ Stability threshold, CONFIG classification:
   sessions, 2026-09-19); exit_phase_confidence_discount = 0.5.
 - NIS gate (CONFIG nis_gate): threshold_use_ekf = 0.023, threshold_warn =
   0.0025 (re-derived 2026-10-11 with the recorded rule on eight real
-  sessions, lowest health score 0.0245; was 0.08 / 0.01).
+  sessions, lowest health score 0.0245; was 0.08 / 0.01); pre-final-chain,
+  re-derived again in the final chain (the smear zone leaving the tyre-fit
+  base mask, registry R6, moved the gate scores, e.g. PR MLA-SE07_US-v2
+  0.0607 -> 0.0447).
 - Tyre-fit status (CONFIG tyre_fit_auto): sign_check_degenerate_fraction
   = 0.5, sign_check_marginal_fraction = 0.7 (also the R-sweep guard),
   nis_gross_miscalibration_fraction = 0.5 on the ay exceedance only,
@@ -1091,14 +1235,15 @@ Stability threshold, CONFIG classification:
   the literal "|feedback| >= 4" (decision_frame.py, HOME FLAG, 14.1);
   STAB_COLOUR_WARN_FRACTION = 0.4 and the CS colour literals (13.2).
 
-### 15.4 Values still carrying a pre-current-estimator derivation
+### 15.4 Values carrying a derivation older than the 2026-10-11 chain
 
-"Current estimator" = the schema-12 chain (Level-4 steering by
-wheel-angle column since 2026-10-04, fit speed window since 2026-10-04,
-clean classification population since 2026-10-05). The standing
-re-derivation rule needs this list:
+The 2026-10-11 chain (schema 15) is the last one any value here was
+derived on, and it is itself superseded by the rebuild (section 15 lead).
+The final chain re-derives against the rebuilt estimator; this list names
+the values whose derivation is older still, for the standing
+re-derivation rule:
 - cs_margin = 0.11 -- numeric origin 2026-09-19; re-measured and
-  retained 2026-10-05 (15.2).
+  retained 2026-10-05 and 2026-10-11 (15.2).
 - CS colour bands in _stability_colour (0.25 / 0.10 front, 0.35 / 0.20
   rear) -- from an earlier, positive threshold set; inconsistent with the
   current thresholds (13.2).
@@ -1107,7 +1252,10 @@ re-derivation rule needs this list:
 - LS thresholds STRONG_LSF / STRONG_LSR (2026-09-19). The LS chain does
   not consume sideslip or steering, so the estimator changes since do
   not reach it in principle; not re-verified.
-- NIS gate thresholds (2026-09-03) and tyre-fit status boundaries.
+- Tyre-fit status boundaries (first stated as a proposal on the removed
+  Dugoff fit, config "_comment_status": not yet reviewed); checked and
+  retained 2026-10-11 (15.3). The NIS gate thresholds were re-derived
+  2026-10-11 (15.3) and are not on this list.
 - CS estimator calibration derived 2026-09-02, before the steering
   conversion change: cs_linear_slip_threshold_rad = 0.03, cs_max_window_m
   = 53.0; cs_min_window_s = 0.1 and cs_min_slip_angle_span_rad = 0.02 are
@@ -1125,7 +1273,8 @@ re-derivation rule needs this list:
 ## 16. STRONG VERDICT MEANING
 
 On every session of the threshold pool and on both axles, the STRONG
-threshold (re-derived 2026-10-11: -0.784 front, -0.677 rear) lies below
+threshold (re-derived 2026-10-11: -0.784 front, -0.677 rear;
+pre-final-chain, so this check is repeated in the final chain) lies below
 the floor of that session's own fitted Pacejka curve (the deepest slope ratio the curve produces over the visited slip
 range, and also out to 30 deg; pool floors -0.325 front, -0.233 rear),
 so a corner value at STRONG cannot be produced by the session's
@@ -1194,8 +1343,37 @@ registry level.
 ## 18. SCHEMA HISTORY
 
 ANALYSIS_SCHEMA_VERSION (modules/stability_analysis.py) versions the
-persisted analysis payload; a mismatch means no cache. Standing rule:
-any estimator-input change made outside Settings bumps it.
+persisted analysis payload. It is one field of the cache identity, which
+every store checks before it renders a result without recomputing (the
+in-process pipeline cache, the in-form fast path, the DB payload, the
+sidecar, and the thesis data reader core/thesis_data.read_sidecar, which
+refuses a stale sidecar with StaleSidecarError):
+- schema_version (stored payload and sidecar), csv_path, accuracy cap,
+  resolved vehicle snapshot (the Settings vehicle values and the outing's
+  setup sheet), the Settings estimator inputs (moving speed, kerb
+  threshold, kerb baseline, kerb dilation, both corner speed boundaries;
+  accuracy_resolution.resolve_estimator_settings, since 2026-10-17),
+  sideslip_source, grid rate, and the lap filter where the store holds
+  lap-filtered results (fast path, DB payload, sidecar; the in-process
+  cache holds the unfiltered Modules 1-5 run and re-runs only the corner
+  statistics); the sidecar adds its format version. Any mismatch -> no
+  cache, recompute.
+- A Settings save also clears the in-process pipeline cache and
+  invalidates the in-form fast path (a settings generation counter); the
+  corner speed classes are recomputed from the current boundaries before
+  every full run, and Settings asks for a re-run. Verdicts are never stored; they are
+  classified live from config at every render.
+- What the identity cannot see: hand edits of config outside Settings and
+  code changes to results. Standing rule: any estimator-input change made
+  outside Settings bumps the schema version with a dated reason.
+- OWED (registry R3): the rebuild of 2026-10-16 / 17 changed estimator
+  results under schema 15, so a payload or sidecar saved at schema 15
+  before those changes still renders as current until the bump. The bump
+  is done once, in the final re-derivation chain, and carries the payload
+  changes: key "balance" removed, resolved_levels.understeer_gradient
+  removed, key "estimator_settings" added, the NIS gate field
+  n_windows_skipped_low_coverage, and (deferred) per-phase no-reference
+  counts.
 - 1: the original payload (the code's list starts at 2).
 - 2: accuracy_cap and resolved_* fields.
 - 3: Fz and fy_norm statistic blocks per phase.
@@ -1255,4 +1433,7 @@ any estimator-input change made outside Settings bumps it.
 - Thesis data reader: core/thesis_data.read_sidecar reads an analysis
   sidecar (data/analysis_cache) into CS front / rear, kerb-affected per
   axle, kerb mask, lap distance, per-sample lap id and the analysis laps,
-  for thesis scripts; no Qt.
+  for thesis scripts; no Qt. It refuses a stale sidecar (schema and format
+  version, sideslip source, Settings estimator inputs always; vehicle
+  snapshot, cap, grid rate and lap filter against an optional expected
+  identity) with StaleSidecarError.

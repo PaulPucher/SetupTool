@@ -37,8 +37,9 @@ def kerb_gap_bridge(x, y, kerb):
 
 # Kerb exclusion display (one concept, 2026-10-05). The kerb-affected mark is
 # estimate_cornering_stiffness' near_strike_f / near_strike_r (internal name:
-# CS samples whose regression window reaches the filtered strike). Drawing
-# only -- the CS arrays keep every sample.
+# CS samples whose regression window holds a kerb-mask or smear-zone sample,
+# R1). This module only draws; the verdict statistics drop marked samples in
+# summarise_corners, and the CS arrays keep every sample.
 NEAR_STRIKE_MODES = ("grey", "exclude", "off")
 
 

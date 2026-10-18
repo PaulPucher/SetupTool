@@ -2,7 +2,9 @@
 
 One section per file in `modules/` and `core/`, written from the actual
 code and docstrings (WP-CLEAN Phase 3, 2026-09-24), not from memory or
-from the README/PLAN.md summaries. Each section states: (1) what the
+from the README/PLAN.md summaries. Updated 2026-10-17 (R6 docs cycle):
+the Dugoff path and the understeer-gradient (K) readout are marked
+removed, with stub sections for the deleted modules. Each section states: (1) what the
 module does, (2) the decisions that shaped it, with their thesis_notes.md
 entry names, (3) its method anchor under the project's Tier A/B/C system,
 (4) the config it reads. Cross-references to
@@ -133,13 +135,20 @@ per-lap-per-corner-per-phase summary dicts every later consumer
 
 **Decisions that shaped it.** This file carries the project's single
 largest concentration of documented method decisions; the module's own
-`ANALYSIS_SCHEMA_VERSION` history (bumped 1 through 8 in the file
-header) is itself a decision log of every payload-shape change. Notable
-ones:
+`ANALYSIS_SCHEMA_VERSION` history (bumped 1 through 15 in the file
+header; a further bump is owed in the final re-derivation chain) is
+itself a decision log of every payload-shape change. Notable ones:
 - CS_ratio's adaptive window widening + distance-capped locality bound
   (`reconstruct_cs_window_start`/`resolve_cs_min_window_samples`): CS
   validity repair, thesis_notes.md "CS validity repair, part A" and its
   Phase 1/2 REVISION entries.
+- The CS linear reference (2026-10-17): set only by a clean window (no
+  kerb-mask, smear-zone or off-analysis-lap sample, Fix 0) whose
+  stiffness lies inside the tyre-fit stiffness band (R26/R27); otherwise
+  held; no CS before the first reference (counted). The grade mark
+  covers mask and smear zone (R1); a window over a lap boundary yields
+  no value (R11). thesis_notes.md "Class B, rebuild" and "R5: reference
+  band rule". [domain improvement]
 - The 100 Hz common-grid resampling in `prepare_vehicle_state` (ecu_speed
   is natively 50 Hz, five other CS-chain channels are natively 100 Hz —
   downsampling them onto the coarser grid was discarding real
@@ -373,42 +382,28 @@ itself being a Segers-anchored estimator.
 
 ---
 
-## modules/tyre_model.py
+## modules/tyre_model.py -- REMOVED 2026-10-17
 
-**What it does.** The Dugoff lateral tyre model: `dugoff_lateral_force`
-and its analytic derivative `dugoff_lateral_stiffness`, pure-cornering
-reduction only (no combined slip, no longitudinal slip term).
-
-**Decisions that shaped it.** Drops the literature's leading minus sign:
-the SAE-style textbook form is Fy = -c_alpha·tan(alpha)·f(lambda), but
-this codebase's own slip-angle sign convention already produces a
-positive Fy-vs-alpha slope (confirmed empirically, both axles,
-corr(alpha, Fy_filt) > 0) — so the module uses Fy =
-+c_alpha·tan(alpha)·f(lambda) to match, without changing the shape or
-either parameter's sign.
-
-**Method anchor.** Tier A, thesis_notes.md "WP-N1: Dugoff tyre model
-chosen + first-pass fit, identifiability finding".
-
-**Config read.** None — pure function of its own arguments; callers
-supply c_alpha/mu_fz from `config/parameters.json`'s `tyre_model_fit`/
-`tyre_model_ekf` blocks.
+Deleted with the Dugoff path (R3 Class B rebuild, 2026-10-17). It held the
+Dugoff lateral tyre model (`dugoff_lateral_force`,
+`dugoff_lateral_stiffness`, pure cornering, literature minus sign dropped to
+match the codebase's positive Fy-vs-alpha slope). Anchor history:
+thesis_notes.md "WP-N1: Dugoff tyre model chosen + first-pass fit,
+identifiability finding"; code in git history. The config blocks it was fed
+from (`tyre_model_fit`, `tyre_model_ekf`) were deleted with it.
 
 ---
 
 ## modules/tyre_model_pacejka.py
 
 **What it does.** The reduced 4-parameter Magic Formula lateral tyre
-model (`pacejka_lateral_force`/`pacejka_lateral_stiffness`), a parallel
-"new code path" alongside `tyre_model.py`'s Dugoff pair, never editing
-that existing production file.
+model (`pacejka_lateral_force`/`pacejka_lateral_stiffness`), the only tyre
+model in production since the Dugoff path was removed (2026-10-17).
 
-**Decisions that shaped it.** Kept as a fully separate module rather
-than a Dugoff-module edit, per PLAN.md's own "new code path" instruction
-for this phase (the parent work order's hard constraint did not
-authorise editing `tyre_model.py`). Parameter order (B, C, D, E) and
-starting guess `(12, 1.9, 8000, 0.97)` match the chair's own tooling
-verbatim.
+**Decisions that shaped it.** Built as a separate module beside the
+former Dugoff `tyre_model.py`, per PLAN.md's "new code path" instruction
+for that phase. Parameter order (B, C, D, E) and starting guess
+`(12, 1.9, 8000, 0.97)` match the chair's own tooling verbatim.
 
 **Method anchor.** Tier A, cited as "chair performance_analysis tooling
 (internal)" for the reduced-form construction; thesis_notes.md "Phase 3:
@@ -422,105 +417,86 @@ tyre-fit chain's own fit results.
 ## modules/tyre_fit_auto.py
 
 **What it does.** The one-shot per-session tyre-curve fit + EKF
-validation chain: fits c_alpha/mu_fz (Dugoff) or B/C/D/E (Pacejka) per
-axle from this session's own CS_ratio-gated linear-regime samples, runs
-the corresponding EKF sideslip observer
-(`modules/sideslip_ekf_dugoff.py`/`sideslip_ekf_pacejka.py`, imported
-directly rather than duplicated), and validates the result
-(NIS/sign-check/onset-coverage). `resolve_sideslip_beta` is the actual
-production dispatcher — despite the module's own header comment calling
-the fit machinery "not called from the UI directly", `resolve_sideslip_
-beta` at the bottom of the file IS called directly by
-`ui/views/outing_form.py`'s `StabilityAnalysisThread` for every
-`sideslip_source` including `ekf_auto_dugoff`/`ekf_auto_pacejka`.
+validation chain: fits B/C/D/E (Pacejka) per axle from this session's
+kinematic-seed slip angles and axle forces on the base mask (moving,
+outside the kerb mask and its smear zone, analysis laps) and the speed
+window, derives R, runs the EKF sideslip observer
+(`modules/sideslip_ekf_pacejka.py`, imported directly rather than
+duplicated), and validates the result (NIS sweep, sign check,
+onset coverage, h2, plausibility gate). `resolve_sideslip_beta` is the
+production dispatcher, called by `ui/views/outing_form.py`'s
+`StabilityAnalysisThread`; it recognises `sideslip_source`
+`ekf_auto_pacejka` and `kinematic` only and raises on any other value
+(2026-10-17). The Dugoff fit (c_alpha/mu_fz), its source
+`ekf_auto_dugoff` and the frozen `ekf_pass_1` source were removed
+2026-10-17.
 
 **Decisions that shaped it.**
-- Imports `modules/sideslip_ekf_dugoff.py`/`sideslip_ekf_pacejka.py`
-  rather than duplicating their ~150 lines of Jacobian/update code each.
-  Until 2026-09-24 (WP-CLEAN relocation mini-package) those two files
-  lived in `diagnostics/`, making this the one place in `modules/` that
-  reached into `diagnostics/` — a neutral-engineering dependency
-  inversion, not a science decision, and now resolved: both files are
-  ordinary `modules/` siblings.
-- `_fit_axle`'s bracket-widening + ≥0.95-bound-fraction degenerate check
-  reproduces `fit_dugoff_first_pass.py`'s loop exactly — the safeguard
-  that must catch a rear-axle degeneracy (mu_fz drifting to the bracket
-  ceiling, curve collapsing to pure-linear) rather than silently
-  accepting it.
+- Imports `modules/sideslip_ekf_pacejka.py` rather than duplicating its
+  Jacobian/update code. Until 2026-09-24 (WP-CLEAN relocation
+  mini-package) the observer lived in `diagnostics/`; a
+  neutral-engineering dependency inversion, resolved by the move.
+- One base mask feeds the fit, the R derivation, the NIS sweep, the gate
+  population and the sign check; the smear zone left it with the kerb
+  mask on 2026-10-17 (registry R6).
+- The sign check reads the corner speed class, a Settings field; the
+  speed classes are recomputed before every full run and the boundaries
+  are in the cache identity (registry R23, documented dependency).
 - `resolve_sideslip_beta`'s fallback-to-kinematic behaviour (fit
   degenerate, or NIS gate verdicts "fail") is never silent — the reason
   is always recorded as text in `fallback_reason`.
 
-**Method anchor.** Tier A for the fit procedure lineage (c_alpha/mu_fz
-from `fit_dugoff_first_pass.py`'s WP-N1b method, R-noise-model from
-`inspect_ekf_pass1_rQ_sweep.py`'s grid, EKF recursion from
-`sideslip_ekf_dugoff.py`/`sideslip_ekf_pacejka.py`, validation from
-`inspect_pass1_final_validation.py`'s five sections) — see the module's
-own header for the full pointer chain into thesis_notes.md. The NIS gate
-consumption (`resolve_sideslip_beta`'s fallback logic) is Tier B.
+**Method anchor.** Tier A for the fit (Pacejka, see the module header);
+the chain automates the frozen pass-0/1 Dugoff workflow whose fit, sweep
+and validation scripts were removed 2026-10-17 (lineage in thesis_notes.md
+and git history). R derivation, sweep, status rules and the NIS gate
+consumption are Tier B.
 
 **Config read.** `config/parameters.json`'s `tyre_fit_auto` block (Q/R/P0
-seeds, R-sweep grid, NIS band) and `tyre_model_fit`/`tyre_model_ekf`
-(mu_fz bound-widening parameters); `config/parameters.json`'s `nis_gate`
-via `modules/nis_gate.py`.
+seeds, q_reference_rate_hz, nis_window_s, R-sweep grid and selection band,
+status boundaries, plausibility gate, speed window);
+`config/parameters.json`'s `nis_gate` via `modules/nis_gate.py`.
 
 ---
 
-## modules/sideslip_ekf_dugoff.py
+## modules/sideslip_ekf_dugoff.py -- REMOVED 2026-10-17
 
-**What it does.** The nonlinear single-track EKF sideslip observer,
-Dugoff tyre model, pass 0 — states `[beta, yaw_rate]`, input the front
-steering angle, measurements `[yaw_rate, ay]`. Relocated here from
-`diagnostics/` on 2026-09-24 (WP-CLEAN relocation mini-package): its own
-module docstring had claimed "diagnostics-only, no modules/ consumer",
-but `modules/tyre_fit_auto.py` imports `estimate_sideslip_ekf_dugoff`
-from it directly at runtime, and so do `tests/test_pure_functions.py`
-and `tests/test_nis_gate.py` — a real production dependency living in
-the wrong directory, not a diagnostics script that happened to get
-reused. No PyQt6 import (verified before the move); no other change
-made during relocation beyond the import path and a header correction.
-
-**Decisions that shaped it.** Model equations and EKF treatment: Rajamani
-sec. 2.3/2.6 (bicycle model) + Ulsoy/Peng/Cakmakci sec. 14.1/14.3
-(sideslip significance), Rajamani Ch. 14 (Kalman application) —
-thesis_notes.md "WP-N2: nonlinear Dugoff EKF proposal". Production
-callers must use `beta_with_fallback`, never the raw `beta` — the raw
-series keeps diverged-window artifacts for diagnostics figures by
-design; production must never feed a silently-diverged state downstream.
-
-**Method anchor.** Tier A. thesis_notes.md "WP-N2: nonlinear Dugoff EKF
-proposal"; Dugoff force/stiffness terms delegate to `modules/
-tyre_model.py` (same anchor as that module).
-
-**Config read.** `config/parameters.json`'s `tyre_model_ekf` blocks
-(Q/R/P0 per pass, `beta_hard_bound`, NIS divergence thresholds).
+Deleted with the Dugoff path (R3 Class B rebuild, 2026-10-17). It held the
+Dugoff-tyre version of the single-track EKF (anchor history thesis_notes.md
+"WP-N2: nonlinear Dugoff EKF proposal"); its method statement moved to
+`modules/sideslip_ekf_pacejka.py`, which shared everything but the tyre
+model and the re-entry. Code in git history.
 
 ---
 
 ## modules/sideslip_ekf_pacejka.py
 
-**What it does.** The same EKF sideslip observer as
-`sideslip_ekf_dugoff.py`, with the reduced 4-parameter Magic Formula
-(`modules/tyre_model_pacejka.py`) substituted for Dugoff in the state
-propagation and both Jacobians — a structural mirror, not an independent
-implementation. Same relocation history and same production-dependency
-status as `sideslip_ekf_dugoff.py` (moved from `diagnostics/`
+**What it does.** The nonlinear single-track EKF sideslip observer with
+the reduced 4-parameter Magic Formula (`modules/tyre_model_pacejka.py`) —
+states `[beta, yaw_rate]`, input the front steering angle, measurements
+`[yaw_rate, ay]`. The only EKF in production. Moved from `diagnostics/`
 2026-09-24; `modules/tyre_fit_auto.py` imports
-`estimate_sideslip_ekf_pacejka` from it directly).
+`estimate_sideslip_ekf_pacejka` from it directly.
 
-**Decisions that shaped it.** Built as a new, fully separate code path
-rather than a `sideslip_ekf_dugoff.py` edit, per PLAN.md's own Phase 3
-work order ("do not modify the existing Dugoff path") — everything
-except the tyre-force/stiffness calls (states, measurements,
-discretization, divergence monitor, fallback behaviour) is identical to
-the Dugoff filter by construction.
+**Decisions that shaped it.** Built as a separate code path beside the
+former Dugoff filter (PLAN.md Phase 3 work order, "do not modify the
+existing Dugoff path"); since that filter's removal (2026-10-17) the
+method statement lives in this module's header. Divergence re-entry
+never injects the kinematic beta (2026-10-07). The divergence window is a
+duration (`nis_window_s`, 2026-10-16) and Q is scaled by
+`q_reference_rate_hz` / grid rate (2026-10-16). Production callers use
+`beta_with_fallback` (the post-re-entry state; the name is kept), never
+the raw `beta`.
 
-**Method anchor.** Tier A, same EKF/model anchors as
-`sideslip_ekf_dugoff.py`; the Pacejka force/stiffness terms delegate to
-`modules/tyre_model_pacejka.py` (chair performance_analysis tooling,
-internal, thesis_notes.md "Phase 3: Pacejka variant").
+**Method anchor.** Tier A: Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci
+sec. 14.1/14.3, Rajamani ch. 14; the Pacejka force/stiffness terms
+delegate to `modules/tyre_model_pacejka.py` (chair performance_analysis
+tooling, internal, thesis_notes.md "Phase 3: Pacejka variant"). Q
+discretisation Tier B.
 
-**Config read.** Same `tyre_model_ekf` blocks as `sideslip_ekf_dugoff.py`.
+**Config read.** The per-run pass config `tyre_model_ekf_pacejka.<pass_id>`
+that `tyre_fit_auto` builds per session from its own `tyre_fit_auto`
+block (the former `tyre_model_ekf` blocks were removed 2026-10-17).
 
 ---
 
@@ -529,9 +505,9 @@ internal, thesis_notes.md "Phase 3: Pacejka variant").
 **What it does.** The NIS (normalised innovation squared) tyre-mismatch
 health gate: a rolling windowed-NIS-exceedance-fraction score, classified
 pass/warn/fail, answering "does the fitted tyre curve match this
-session's data well enough to trust EKF beta?" Ports
-`diagnostics/inspect_nis_tyre_mismatch_gate.py`'s WP-N3 prototype into a
-reusable module.
+session's data well enough to trust EKF beta?" Ported from the WP-N3
+prototype `diagnostics/inspect_nis_tyre_mismatch_gate.py` (built on a
+Dugoff fit; script removed 2026-10-17 with the Dugoff path, git history).
 
 **Decisions that shaped it.**
 - `resolve_nis_window_samples`: the window is a PHYSICAL duration
@@ -539,24 +515,40 @@ reusable module.
   `window_samples=20` was silently a 50Hz-calibrated value, wrong on any
   other grid rate. Same rate-derivation pattern as
   `stability_analysis.resolve_cs_min_window_samples`.
+- NaN NIS leaves numerator and denominator; a window less than half
+  covered by finite NIS is skipped and counted
+  (`n_windows_skipped_low_coverage`, 2026-10-16).
 - Two pre-registered predictions about the score's own behaviour were
   tested and found to have FAILED (recorded, not hidden): the absolute
   ceiling sits far below the naive ~85% expectation (small-window
   binomial noise caps it near 60-65% even for a perfectly calibrated
   filter), and mu_fz mismatches hurt scoring MORE than c_alpha
-  mismatches, the opposite of the original prediction.
+  mismatches, the opposite of the original prediction (both on the
+  Dugoff prototype).
 - NaN health score always classifies "fail", never "pass" — the "never
   silently pass on a degenerate input" rule.
 
 **Method anchor.** Tier B (a reusable statistical health check built on
 the EKF's own windowed-NIS machinery, not a new vehicle-dynamics claim).
-PROVISIONAL: every threshold in `config/parameters.json`'s `nis_gate`
-namespace is commented as such — five data points from one session.
+Thresholds re-derived 2026-10-11 on eight real sessions (config
+`threshold_derived_from`), re-derived again in the final chain.
 thesis_notes.md "Phase 4: NIS tyre-mismatch gate -- results".
 
 **Config read.** `config/parameters.json`'s `nis_gate` block
 (`nis_window_s`, `nis_band_low/high`, `threshold_use_ekf`,
 `threshold_warn`).
+
+---
+
+## modules/balance_gradient.py -- REMOVED 2026-10-17
+
+The understeer-gradient (K) readout (balance line in the UI, payload key
+"balance", Level 2) was removed from the application on 2026-10-17 (R4b,
+author decision; basis as stated by the author: Guiggiani 2023, K not
+meaningful for a car with significant downforce). It fed no verdict, severity or recommendation.
+Added 2026-10-05, after this map was written, so it never had a full
+section here; code in git history, record thesis_notes.md "K readout
+removal".
 
 ---
 

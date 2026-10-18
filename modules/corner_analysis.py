@@ -3,9 +3,10 @@
 #
 # 1. brackets: steering OR lateral g above threshold (hysteresis, exit
 #    needs both below)
-# 2. apex = lateral g peak, cross-checked against speed minimum
+# 2. apex = lateral g peak (the instant); apex speed = the bracket's speed
+#    minimum, not the speed at that instant -- the two are not cross-checked
 # 3. lateral g check drops lane changes / gentle bends
-# 4. speed class from apex speed
+# 4. speed class from apex speed (canonical: median over the instances)
 # 5. phases: entry_1 brake (last full throttle -> turn-in), entry_2 turn-in
 #    (-> apex), apex, exit_4 (-> steering_unwind_fraction), exit_5 (-> exit)
 # 6. same-direction brackets with a short gap merged; chicanes not

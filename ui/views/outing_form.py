@@ -358,8 +358,9 @@ class OutingForm(QWidget):
         return active == calibrated_for
 
     def _stability_colour(self, kind, value, axle="f"):
-        # same thresholds as _classify_corner; CS thresholds differ front vs rear
-        # (rear normally stays stiffer)
+        # CS bands are literals from an earlier, positive threshold set, NOT the
+        # classifier's config thresholds (PRODUCTION.md 13.2, home flag); front
+        # and rear differ (rear normally stays stiffer)
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
         if kind == "cs":
@@ -1585,9 +1586,10 @@ class OutingForm(QWidget):
 
     def _try_render_cached_analysis(self):
         # DB cache-hit path. Guards: existing outing, valid JSON, schema_version
-        # (mismatch = no cache), csv_path, accuracy_cap, and a freshly recomputed
-        # vehicle snapshot (catches setup edits, cheap). Verdicts never stored --
-        # always classified live.
+        # (mismatch = no cache), csv_path, accuracy_cap, a freshly recomputed
+        # vehicle snapshot (catches setup edits, cheap), the Settings estimator
+        # inputs (R2), sideslip_source, grid rate and lap_filter. Verdicts never
+        # stored -- always classified live.
         # temporary timing instrumentation
         import time
         t0 = time.perf_counter()
