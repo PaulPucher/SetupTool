@@ -3879,6 +3879,49 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       (rear K 28.4 / 24.1 / 17.7). Observer-reset mark covers 28-47 % of
       verdict CS samples, driven by NIS-window resets (2213 / 654 / 2116 vs
       1 / 7 / 94 hard-bound). Author rules next. NOT committed.]
+   Q-NIS-RESET (author order and EXECUTE 2026-10-19; read-only diagnostic plus
+      a default-off EKF flag): does a NIS-window covariance reset change the
+      windowed CS slope? (1) sideslip_ekf_pacejka keyword nis_window_reset
+      (default True = current behaviour; False disables only the NIS-window
+      reset, the hard-bound reset stays); (2) diagnostics/inspect_nis_reset_effect.py
+      on JDR, JST 29, US-v2 in L mode: run A shipped EKF L, run B same final
+      observer configuration without the NIS-window reset; per verdict CS
+      window marked only by NIS-window resets, |CS_A - CS_B| / |CS_A| (OLS
+      slope, same Fy, same window). DECLARED CRITERION (before the run,
+      DECISIONS.md): p95 <= 0.10 on every axle of every session -> mask scope
+      hard-bound only; otherwise mask stays as ruled and the excluded share is
+      a stated limitation. Outcome NOT applied in this step.
+      [2026-10-19 RESULT: tests 8 passed, production bit-identical. p95 of
+      the relative slope difference 2.6-4.0 on every axle (p50 0.37-0.69)
+      -> criterion branch 2: mask stays as ruled, excluded share 28-47 % is a
+      stated limitation. Run B raises hard-bound re-entries (JST 29 7 -> 62,
+      US-v2 94 -> 134). Author rules next. NOT committed.]
+      [2026-10-19 author: reading accepted -- the A/B metric measures
+      dependence on the reset policy, not one reset's local effect (design
+      limitation of the test).]
+   Q-NIS-CONTROL (author order and EXECUTE 2026-10-19; extends
+      diagnostics/inspect_nis_reset_effect.py, no module change): same run A /
+      run B on JDR, JST 29, US-v2; population U = verdict CS windows with no
+      reset of either kind in run A, M = the NIS-only windows. Per axle for U
+      and M: relative slope difference p50/p95/p99, in-window mean |beta_A -
+      beta_B| (deg) p50/p95, alpha_A window span (deg) p50/p5; U also share of
+      windows with span < 0.021 rad (chair linear threshold). DECLARED READING
+      RULE (before the run, DECISIONS.md): (a) U p95 <= 0.10 on every axle ->
+      sensitivity specific to reset windows, mask justified as protection,
+      limitation stands; (b) otherwise -> CS slope sensitive to observer policy
+      in general, the mask is not the cause; report and wait. No estimator
+      change.
+      [2026-10-19 author addendum: per session, axle, corner and phase the
+      remaining verdict CS samples after kerb exclusion and after kerb + reset
+      exclusion (counts and share of the unfiltered verdict population);
+      inspect_nis_reset_effect.py --populations. Report only, no change.]
+      [2026-10-19 RESULT: tests 8 passed, production bit-identical. U p95
+      2.8-4.3 on every axle (p50 0.11-0.36; M p50 0.37-0.69) -> rule (b): CS
+      slope sensitive to observer policy in general, mask not the cause.
+      Remaining after kerb + reset 46-61 % of the unfiltered verdict
+      population. Q and the NIS-window thresholds trace to the linear
+      observer (Dubai, WP-S5b) and to placeholder defaults, never re-tuned.
+      Author rules next. NOT committed.]
 
 6. MASS AND FUEL (author input, 2026-10-01). Fuel load varies by up to
    ~80 kg within/between runs (~+/-3 % of config mass 1356 kg); the base

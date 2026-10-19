@@ -930,3 +930,11 @@ cited them now say so (git history keeps the code).
   final implementation): the run of the implemented fit L (demonstrated mu,
   braking filter, observer-reset mark) on three sessions. Imports
   inspect_fit_lit and inspect_capacity. Output diagnostics/plots/fit_lit/final/.
+- **inspect_nis_reset_effect.py** (2026-10-19) -- REFERENCED (PLAN.md
+  Q-NIS-RESET): windowed CS slope with and without the NIS-window
+  covariance reset (EKF flag nis_window_reset=False) on verdict windows
+  marked only by NIS-window resets, against the declared 0.10 p95 tolerance.
+  Also Q-NIS-CONTROL (the same metric on windows with no reset) and
+  --populations (verdict CS samples per corner and phase after kerb and
+  after kerb + reset exclusion). Imports inspect_fit_lit. Output
+  diagnostics/plots/fit_lit/nis_reset/.

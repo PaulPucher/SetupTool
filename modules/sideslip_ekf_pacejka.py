@@ -74,7 +74,7 @@ def axle_forces(alpha_f, alpha_r, tyre, u, i, load=None):
             pacejka_lateral_stiffness(alpha_r, Br, Cr, Dr_i, Er))
 
 
-def estimate_sideslip_ekf_pacejka(state, params, pass_id):
+def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True):
     """Divergence re-entry, two cases (author rulings 2026-10-07). The
     kinematic beta is never written into the state or the output any more --
     it carried the washout's corner bias into E (round 3).
@@ -92,6 +92,9 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     Hard bound takes precedence when both fire. beta_with_fallback keeps its
     name for the callers and carries the post-re-entry state; beta is the raw
     update (a hard-bound re-entry shows as diverged with |beta| > bound).
+    nis_window_reset=False (diagnostics only, Q-NIS-RESET 2026-10-19) skips
+    the NIS-window reset so its effect on the CS can be isolated; the
+    hard-bound reset stays, and diverged_mask then holds hard-bound resets only.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -211,7 +214,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
         beta_out[i] = raw_beta
         yaw_rate_state_out[i] = raw_r
 
-        diverged = window_flag or bound_flag
+        diverged = (window_flag and nis_window_reset) or bound_flag
         diverged_mask[i] = diverged
 
         if bound_flag:
