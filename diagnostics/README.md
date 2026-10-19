@@ -938,3 +938,32 @@ cited them now say so (git history keeps the code).
   --populations (verdict CS samples per corner and phase after kerb and
   after kerb + reset exclusion). Imports inspect_fit_lit. Output
   diagnostics/plots/fit_lit/nis_reset/.
+- **inspect_q_phys.py** (2026-10-19) -- REFERENCED (PLAN.md Q-OBS-DERIVE,
+  step Q-PHYS): physical process noise for the fit-L observer from the
+  fit-L force residual (SD, autocorrelation time, per-step Q under two
+  discretisation assumptions) on the 14-session analysis set. Imports
+  inspect_fit_lit, inspect_data_quality, tests.conftest. Output
+  diagnostics/plots/q_phys/.
+- **derive_cd_threshold.py** (2026-10-19) -- REFERENCED (PLAN.md h
+  derivation; DECISIONS.md 'h derivation frame'): grid over the
+  change-detector threshold h on the derive split, per-session cache
+  (diagnostics/output/cd_threshold_cache/, gitignored), 3 worker
+  processes. Also the cache provider for inspect_cs_dips.py. Output
+  diagnostics/plots/cd_threshold/.
+- **inspect_cs_dips.py** (2026-10-19) -- REFERENCED (PLAN.md Q-DIPS):
+  Magic Formula post-peak slope floor, CS dip census with cause flags,
+  our CS estimator vs the chair's with a counterfactual dip count.
+  Imports derive_cd_threshold (cache). Output diagnostics/plots/cs_dips/.
+- **inspect_q_upper.py** (2026-10-19) -- REFERENCED (PLAN.md Q-UPPER;
+  DECISIONS.md 'Q-UPPER frame'): the fit-L observer with Q at the Q-PHYS
+  upper bound against the divergence trigger, full chain per point on
+  the derive split, 3 workers. Reads diagnostics/plots/q_phys/. Output
+  diagnostics/plots/q_upper/.
+- **inspect_fallback_59_70.py** (2026-10-19) -- REFERENCED (PLAN.md
+  Q-UPPER, fallback check): D4-L inputs and values per analysis session
+  and the weather / track-state channels of each export. Reads the
+  derive_cd_threshold caches. Output diagnostics/plots/fallback_59_70/.
+- **run_fit_l_observer_final.py** (2026-10-19) -- REFERENCED (PLAN.md
+  observer finalisation fit L): the shipped fit-L chain (Q-UPPER in the
+  chain, hard bound only, R_ay noise floor) on the 14-session analysis
+  set, 3 workers. Output diagnostics/plots/fit_l_observer_final/.

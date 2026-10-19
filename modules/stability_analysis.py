@@ -804,10 +804,12 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     has no kerb treatment]
 
     reset_mask (fit L, Q-FIT-LIT 2026-10-19): samples where the shipped
-    observer reset its state (hard-bound re-entry or NIS-window divergence).
-    A window [start, i) holding one is marked observer_reset_affected_*: the
-    reset breaks the state continuity the windowed regression assumes, the
-    same reasoning as the R11 lap-boundary guard. Marked only, never deleted;
+    observer reset its state at the hard bound (beta set to zero). A window
+    [start, i) holding one is marked observer_reset_affected_*: the reset
+    breaks the state continuity the windowed regression assumes, the same
+    reasoning as the R11 lap-boundary guard. Covariance-only resets do not
+    mark (author ruling 2026-10-19: the CS sensitivity to the reset policy
+    is general, not specific to reset windows). Marked only, never deleted;
     None (production) adds no key.
     """
     se = params["stability_estimation"]

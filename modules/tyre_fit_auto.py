@@ -554,6 +554,62 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
     }
 
 
+# Fit L: how far the R_ay grid may be continued below its configured end
+# before reaching the session's ay noise floor -- a guard against a missing
+# or nonsensical floor, not a tunable (8 half-decade steps = 4 decades).
+L_R_AY_MAX_EXTRA_STEPS = 8
+
+
+def _q_upper_from_residual(front_fit, rear_fit, load_in, state, params):
+    """Fit-L process noise per session (Q-UPPER, author ruling 2026-10-19,
+    Level 2): the force residual of both axle fits, on the samples both fit
+    populations share, is the error of the observer's force model; through
+    the single-track equations it becomes an error of beta_dot,
+    (dFy_f + dFy_r) / (m Vx), and of r_dot, (a dFy_f - b dFy_r) / Iz, taken
+    sample-wise so the front/rear correlation stays in. Held over one step,
+    the per-step variance is SD^2 dt_ref^2 at the q_reference_rate_hz grid
+    (the convention the observer rescales to the session rate). An upper
+    bound: the residual is taken at the kinematic slip angle and carries its
+    error too. Diagonal, after Villano et al. 2021 (dynamic filter);
+    physically meaningful variances after Bechtloff (ch. 5)."""
+    vp, se, cfg = params["vehicle"], params["stability_estimation"], params["tyre_fit_auto"]
+    n = state["v_mps"].size
+    res = {}
+    for name, fit in (("front", front_fit), ("rear", rear_fit)):
+        full = np.full(n, np.nan)
+        full[fit["residual_mask"]] = fit["residuals"]
+        res[name] = full
+    # front residual is in the tyre frame; the Fx sin(delta) term is on both
+    # sides of it, so only cos(delta) carries over to the body frame
+    dfy_f = res["front"] * np.cos(load_in["delta_f"])
+    dfy_r = res["rear"]
+    joint = front_fit["residual_mask"] & rear_fit["residual_mask"]
+    vx = np.maximum(state["v_mps"], se["moving_speed_min_mps"])
+    e_beta = (dfy_f + dfy_r) / (vp["mass_kg"] * vx)
+    e_r = (vp["cog_to_front_axle_m"] * dfy_f - vp["cog_to_rear_axle_m"] * dfy_r) / vp["yaw_inertia_kgm2"]
+    dt_ref = 1.0 / cfg["q_reference_rate_hz"]
+    sd_beta, sd_r = float(e_beta[joint].std()), float(e_r[joint].std())
+    return {"q_beta_var": sd_beta ** 2 * dt_ref ** 2, "q_yaw_rate_var": sd_r ** 2 * dt_ref ** 2,
+            "sd_beta_dot": sd_beta, "sd_r_dot": sd_r, "n_joint": int(joint.sum()),
+            "method": "held-over-step upper bound from the fit-L force residual (Level 2)"}
+
+
+def _ay_noise_floor(state, laps, params):
+    """ay sensor-noise variance of the session (author ruling 2026-10-19,
+    Level 2): ay minus its zero-phase low-pass at the CS filter cutoff, on the
+    steering-defined straights, where the true lateral acceleration is
+    near-constant and what is left above the cutoff is sensor noise and
+    vibration. Floor for R_ay: the measurement cannot be trusted more than
+    the sensor allows."""
+    from modules.straights import steering_straights
+    sd = steering_straights(state, laps, params["tyre_fit_auto"])
+    ay = state["ay_mps2"]
+    hp = ay - _butterworth_lowpass(ay, params["stability_estimation"]["cs_filter_cutoff_hz"], state["sample_rate_hz"])
+    m = sd["mask"] & np.isfinite(hp)
+    return {"var_mps2_sq": float(np.var(hp[m])) if m.any() else float("nan"), "n_samples": int(m.sum()),
+            "straight_s": float(m.sum() / state["sample_rate_hz"]), "n_segments": len(sd["segs"])}
+
+
 def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
     """D4 for fit L (Q-FIT-LIT reopen, 2026-10-18, declared post-result).
     Under L the curve peak lies beyond the visited slip range wherever the
@@ -783,6 +839,16 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     }
     if lit:
         interim_cfg["d_is_mu"] = True
+        # fit L: Q from this session's force residual (Q-UPPER, 2026-10-19),
+        # trigger from its own key (default hard bound only), so nothing here
+        # can move the production observer
+        q_l = _q_upper_from_residual(front_fit, rear_fit, load_in, state, params)
+        manifest["observer_q"] = q_l
+        interim_cfg["Q_beta_var"] = q_l["q_beta_var"]
+        interim_cfg["Q_yaw_rate_var"] = q_l["q_yaw_rate_var"]
+        interim_cfg["divergence_trigger"] = cfg["l_divergence_trigger"]
+        interim_cfg["cd_drift"] = cfg["l_cd_drift"]
+        interim_cfg["cd_threshold"] = cfg["l_cd_threshold_h"]
     params_interim = dict(params)
     params_interim["tyre_model_ekf_pacejka"] = {"_auto_interim": interim_cfg}
     interim_result = estimate_sideslip_ekf_pacejka(ekf_state, params_interim, pass_id="_auto_interim")
@@ -838,17 +904,58 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
                 "f_yaw": f_yaw, "f_ay": f_ay, "ay_in_band": band_lo <= f_ay <= band_hi,
                 "sign_fraction": sign["median_gate_racing_fraction"]}
 
-    sweep_results = [_sweep_point(a_, y_) for a_ in cfg["r_sweep_ay_scales"] for y_ in cfg["r_sweep_yaw_scales"]]
-    candidates = sorted((r for r in sweep_results if r["ay_in_band"]), key=lambda r: abs(r["f_ay"] - centre))
-    trace = []
-    chosen = None
-    for r in candidates:
-        passed = r["sign_fraction"] >= cfg["sign_check_marginal_fraction"]
-        trace.append({"r_ay_scale": r["r_ay_scale"], "r_yaw_scale": r["r_yaw_scale"], "f_ay": r["f_ay"],
-                      "sign_fraction": r["sign_fraction"], "guard_pass": passed})
-        if passed:
-            chosen = r
-            break
+    ay_scales = list(cfg["r_sweep_ay_scales"])
+    floor_scale = None
+    if lit:
+        # R_ay floor (author ruling 2026-10-19): the session's ay sensor-noise
+        # variance in r_ay_scale units; the half-decade grid (1, 0.3, 0.1, ...)
+        # is continued downward until one value lies below it, so a pick at
+        # the floor shows as floor-bound rather than as the grid edge
+        floor = _ay_noise_floor(state, laps, params)
+        floor_scale = floor["var_mps2_sq"] / r_ay_var_derived
+        floor["r_ay_scale"] = floor_scale
+        manifest["ay_noise_floor"] = floor
+        if floor_scale == floor_scale:
+            lo = min(ay_scales)
+            for _ in range(L_R_AY_MAX_EXTRA_STEPS):
+                if lo < floor_scale:
+                    break
+                mant = lo / 10.0 ** np.floor(np.log10(lo))
+                lo = float(f"{lo * (0.3 if abs(mant - 1.0) < 1e-6 else 1.0 / 3.0):.3g}")
+                ay_scales.append(lo)
+        else:
+            floor_scale = None
+    sweep_results = [_sweep_point(a_, y_) for a_ in ay_scales for y_ in cfg["r_sweep_yaw_scales"]]
+
+    def _pick(admissible):
+        cands = sorted((r for r in sweep_results if r["ay_in_band"] and admissible(r)),
+                       key=lambda r: abs(r["f_ay"] - centre))
+        tr = []
+        for r in cands:
+            passed = r["sign_fraction"] >= cfg["sign_check_marginal_fraction"]
+            tr.append({"r_ay_scale": r["r_ay_scale"], "r_yaw_scale": r["r_yaw_scale"], "f_ay": r["f_ay"],
+                       "sign_fraction": r["sign_fraction"], "guard_pass": passed})
+            if passed:
+                return r, cands, tr
+        return None, cands, tr
+
+    if floor_scale is None:
+        chosen, candidates, trace = _pick(lambda r: True)
+    else:
+        chosen, candidates, trace = _pick(lambda r: r["r_ay_scale"] >= floor_scale)
+        free, _, _ = _pick(lambda r: True)
+        if chosen is None:
+            loc = None
+        elif free is not None and free["r_ay_scale"] < floor_scale:
+            loc = "floor (binding)"
+        elif chosen["r_ay_scale"] == max(ay_scales):
+            loc = "top edge"
+        elif chosen["r_ay_scale"] == min(s for s in ay_scales if s >= floor_scale):
+            loc = "lowest admissible (not binding)"
+        else:
+            loc = "interior"
+        manifest["ay_noise_floor"]["pick_location"] = loc
+        manifest["ay_noise_floor"]["pick_without_floor"] = free and {k: free[k] for k in ("r_ay_scale", "r_yaw_scale")}
     if chosen is not None:
         selection = "in_band"
     else:
@@ -985,9 +1092,11 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         }
 
     if lit:
-        # samples where the observer reset its state (hard bound or NIS
-        # window), for the CS reset mark; in memory only, like nis_full
-        manifest["observer_reset_mask"] = final_result["diverged_mask"]
+        # hard-bound re-entries only, for the CS reset mark (author ruling
+        # 2026-10-19: the CS sensitivity to the reset policy is general, so a
+        # covariance-only reset no longer marks windows); in memory only, like
+        # nis_full
+        manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate

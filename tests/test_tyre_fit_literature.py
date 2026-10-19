@@ -177,8 +177,17 @@ def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
     # gains no key and is unchanged
     from modules.stability_analysis import (estimate_cornering_stiffness, reconstruct_cs_window_start,
                                             resolve_cs_min_window_samples)
+    # The shipped run has no hard-bound re-entry on this session since Q-UPPER
+    # (2026-10-19), so the marking is checked with the real reset sequence of
+    # the same observer under the NIS-window trigger; the windowing does not
+    # depend on where the mask comes from.
+    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
     st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
-    reset = l_manifest["observer_reset_mask"]
+    li = jst29["load_in"]
+    st_l = dict(st, fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
+    p_nw = dict(p)
+    p_nw["tyre_model_ekf_pacejka"] = {"_t": dict(l_manifest["final_config"], divergence_trigger="nis_window")}
+    reset = estimate_sideslip_ekf_pacejka(st_l, p_nw, pass_id="_t")["diverged_mask"]
     assert reset.any()
     slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
     plain = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
@@ -197,3 +206,170 @@ def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
             s0 = reconstruct_cs_window_start(slip[key], i, mw, se["cs_min_slip_angle_span_rad"], st.get("s_m"),
                                              se["cs_max_window_m"])
             assert bool(mark[i]) == bool(cum[i] > cum[s0])
+
+
+def _base_runs(mask):
+    # (start, stop) of contiguous True runs
+    d = np.diff(np.concatenate(([0], mask.astype(np.int8), [0])))
+    return list(zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1)))
+
+
+def test_change_detector_step_on_real_nis_segments(jst29, l_manifest):
+    # Rajamani sec. 14.4.2 change detector on the shipped L run's NIS (JST 29,
+    # real data only). Reference: the closed form of the recursion started at
+    # zero, a_t = S_t - min(0, S_1 .. S_t) with S the cumulative sum of
+    # (NIS - d) -- independent of the step code. A quiet 2 s stretch (closed
+    # form below h / 2 throughout) gives no alarm; the burst with the largest
+    # closed-form value alarms at exactly its first crossing of h.
+    from modules.sideslip_ekf_pacejka import change_detector_step
+    cfg = jst29["params"]["tyre_fit_auto"]
+    d, h = cfg["l_cd_drift"], cfg["l_cd_threshold_h"]
+    nis, base = l_manifest["nis_full"], l_manifest["base_mask"] & np.isfinite(l_manifest["nis_full"])
+    sr = jst29["state"]["sample_rate_hz"]
+
+    def closed_form(seg):
+        s = np.cumsum(seg - d)
+        return s - np.minimum(0.0, np.minimum.accumulate(s))
+
+    def stepped(seg):
+        a, out, alarms = 0.0, [], []
+        for x in seg:
+            a, al = change_detector_step(a, float(x), d, h)
+            out.append(a)
+            alarms.append(al)
+        return np.array(out), np.array(alarms)
+
+    quiet = burst = None
+    for a0, a1 in _base_runs(base):
+        seg = nis[a0:a1]
+        ref = closed_form(seg)
+        n2 = int(2 * sr)
+        if quiet is None and seg.size >= n2 and np.all(ref[:n2] < h / 2):
+            quiet = seg[:n2]
+        if burst is None or ref.max() > closed_form(burst).max():
+            burst = seg
+    assert quiet is not None and burst is not None
+    a_q, al_q = stepped(quiet)
+    np.testing.assert_allclose(a_q, closed_form(quiet), rtol=0, atol=1e-6)
+    assert not al_q.any()
+    ref_b = closed_form(burst)
+    assert ref_b.max() > h
+    a_b, al_b = stepped(burst)
+    k = int(np.argmax(ref_b > h))
+    np.testing.assert_allclose(a_b[:k + 1], ref_b[:k + 1], rtol=0, atol=1e-6)
+    assert int(np.argmax(al_b)) == k
+    print(f"quiet stretch max a {a_q.max():.2f}; burst first alarm at sample {k} (a {a_b[k]:.1f} > h {h:g})")
+
+
+def test_observer_reset_mask_is_hard_bound_only(jst29, l_manifest):
+    # mask scope ruling 2026-10-19: only hard-bound re-entries mark CS
+    # windows; a hard-bound reset is exactly a raw update beyond the bound
+    reset = l_manifest["observer_reset_mask"]
+    bound = np.radians(jst29["params"]["tyre_fit_auto"]["beta_hard_bound_deg"])
+    # since Q-UPPER this session has no hard-bound re-entry; the equality
+    # below holds either way
+    np.testing.assert_array_equal(reset, np.abs(l_manifest["beta_ekf"]) > bound)
+    base = l_manifest["base_mask"]
+    print(f"NIS on the base mask, shipped L run: mean {np.nanmean(l_manifest['nis_full'][base]):.3f}, "
+          f"median {np.nanmedian(l_manifest['nis_full'][base]):.3f}")
+
+
+def test_change_detector_trigger_resets_once_per_alarm(jst29, l_manifest):
+    # Real data, final L config with the change detector switched on: every
+    # reset that is not a hard-bound one is a detector alarm, the statistic
+    # restarts after it, so two alarms are at least ceil(h / max NIS step)
+    # apart; a placeholder h is enough to check the rule. With the default
+    # trigger the final config reproduces the shipped run exactly.
+    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka, change_detector_step
+    st, man = jst29["state"], l_manifest
+    cfg = dict(man["final_config"])
+    assert cfg["divergence_trigger"] == "hard_bound_only"
+    li = jst29["load_in"]
+    st_l = dict(st, fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
+    p = dict(jst29["params"])
+    p["tyre_model_ekf_pacejka"] = {"_t": cfg}
+    r0 = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
+    np.testing.assert_array_equal(r0["beta_with_fallback"], man["beta_ekf_with_fallback"])
+    cfg_cd = dict(cfg, divergence_trigger="change_detector", cd_drift=2.0, cd_threshold=50.0)
+    p["tyre_model_ekf_pacejka"] = {"_t": cfg_cd}
+    r = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
+    assert not (r["hard_bound_mask"] & ~r["diverged_mask"]).any()
+    alarms = r["diverged_mask"] & ~r["hard_bound_mask"]
+    assert alarms.any()
+    # replay the statistic from the logged NIS with the loop's reset rule
+    a, expect = 0.0, np.zeros_like(alarms)
+    moving = st["moving_mask"]
+    for i in range(alarms.size):
+        if not moving[i]:
+            a = 0.0
+            continue
+        a, al = change_detector_step(a, r["nis"][i], 2.0, 50.0)
+        expect[i] = al and not r["hard_bound_mask"][i]
+        if al or r["hard_bound_mask"][i]:
+            a = 0.0
+    np.testing.assert_array_equal(alarms, expect)
+    print(f"change detector at placeholder h 50: {int(alarms.sum())} alarms, "
+          f"{int(r['hard_bound_mask'].sum())} hard-bound resets")
+
+
+def test_observer_q_reproduces_q_phys(l_manifest):
+    # Q-UPPER in the chain (2026-10-19) is the held-over-step value of
+    # diagnostics/inspect_q_phys.py on the same session
+    import json
+    import os
+    f = os.path.join("diagnostics", "plots", "q_phys", "q_phys_nbr_o29_jst.json")
+    if not os.path.exists(f):
+        pytest.skip("inspect_q_phys.py output for NBR outing 29 not on this machine")
+    with open(f, encoding="utf-8") as fh:
+        ref = json.load(fh)
+    q = l_manifest["observer_q"]
+    assert q["q_beta_var"] == pytest.approx(ref["e_beta_dot"]["q_held_step"], rel=1e-9)
+    assert q["q_yaw_rate_var"] == pytest.approx(ref["e_r_dot"]["q_held_step"], rel=1e-9)
+    assert q["n_joint"] == ref["n_joint"]
+    assert l_manifest["final_config"]["Q_beta_var"] == q["q_beta_var"]
+    assert l_manifest["final_config"]["Q_yaw_rate_var"] == q["q_yaw_rate_var"]
+
+
+def test_hard_bound_only_makes_no_soft_reset(jst29, l_manifest):
+    # fit-L default trigger: every reset of the shipped final run is a
+    # hard-bound one
+    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
+    cfg = dict(l_manifest["final_config"])
+    assert cfg["divergence_trigger"] == "hard_bound_only"
+    li = jst29["load_in"]
+    st_l = dict(jst29["state"], fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
+    p = dict(jst29["params"])
+    p["tyre_model_ekf_pacejka"] = {"_t": cfg}
+    r = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
+    np.testing.assert_array_equal(r["beta_with_fallback"], l_manifest["beta_ekf_with_fallback"])
+    np.testing.assert_array_equal(r["diverged_mask"], r["hard_bound_mask"])
+    print(f"hard-bound resets {int(r['hard_bound_mask'].sum())}, soft resets 0")
+
+
+def test_r_ay_pick_respects_the_noise_floor(l_manifest):
+    # R_ay floor (2026-10-19): the grid reaches below the session's ay noise
+    # variance, and no pick lies below it
+    fl, sw = l_manifest["ay_noise_floor"], l_manifest["r_sweep"]
+    assert fl["var_mps2_sq"] > 0 and fl["n_samples"] > 0
+    assert fl["r_ay_scale"] == pytest.approx(fl["var_mps2_sq"] / l_manifest["r_derivation"]["r_ay_var_derived"])
+    scales = sorted({g["r_ay_scale"] for g in sw["grid_points"]})
+    assert scales[0] < fl["r_ay_scale"]
+    assert sw["chosen"]["r_ay_scale"] >= fl["r_ay_scale"]
+    print(f"ay noise floor {fl['var_mps2_sq']:.4f} (m/s^2)^2 = r_ay_scale {fl['r_ay_scale']:.4g}; grid {scales}; "
+          f"pick {sw['chosen']['r_ay_scale']} ({fl['pick_location']})")
+
+
+def test_module_straights_match_the_diagnostic_definition(jst29):
+    # modules/straights.py is the definition of
+    # diagnostics/inspect_kinematic_inputs.steering_straights, moved
+    from modules.straights import steering_straights
+    from diagnostics.inspect_kinematic_inputs import steering_straights as diag
+    st, laps = jst29["state"], jst29["data"]["laps"]
+    valid = [l for l in laps if l.get("is_valid_for_analysis")]
+    lap_id = np.full(st["time"].size, -1)
+    for l in valid:
+        lap_id[(st["time"] >= l["start_time"]) & (st["time"] <= l["end_time"])] = l["lap_number"]
+    ref = diag(st, valid, lap_id, st["kerb_mask"] | st["kerb_smear_zone"])
+    got = steering_straights(st, laps, jst29["params"]["tyre_fit_auto"])
+    assert [tuple(map(int, s)) for s in got["segs"]] == [tuple(map(int, s)) for s in ref["segs"]]
+    assert got["d_min"] == ref["d_min"]

@@ -3904,8 +3904,10 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       run B on JDR, JST 29, US-v2; population U = verdict CS windows with no
       reset of either kind in run A, M = the NIS-only windows. Per axle for U
       and M: relative slope difference p50/p95/p99, in-window mean |beta_A -
-      beta_B| (deg) p50/p95, alpha_A window span (deg) p50/p5; U also share of
-      windows with span < 0.021 rad (chair linear threshold). DECLARED READING
+      beta_B| (deg) p50/p95, alpha_A window span (deg) p50/p5; ~~U also share of
+      windows with span < 0.021 rad (chair linear threshold)~~ [2026-10-19
+      correction: 0.021 rad is the chair's linear-reference threshold, not a
+      span; span floor 0.020 rad in both codes]. DECLARED READING
       RULE (before the run, DECISIONS.md): (a) U p95 <= 0.10 on every axle ->
       sensitivity specific to reset windows, mask justified as protection,
       limitation stands; (b) otherwise -> CS slope sensitive to observer policy
@@ -3922,6 +3924,99 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       population. Q and the NIS-window thresholds trace to the linear
       observer (Dubai, WP-S5b) and to placeholder defaults, never re-tuned.
       Author rules next. NOT committed.]
+      [2026-10-19 RULING (author): observer-reset mask scope = hard-bound
+      re-entries only (rule (b)); implementation in a later step.]
+   Q-OBS-DERIVE (author rulings 2026-10-19, frozen frame before numbers,
+      DECISIONS.md "Observer derivation frozen frame"): Q physical per session
+      from the fit-L model error (Villano 2021 Eqs. 28-29, Bechtloff Eq. 5.16);
+      trigger = Rajamani p. 411 change detector on NIS, d = 2, h from a 1-D grid
+      on the derive split (fewest hard-bound re-entries, ~~alarm share on
+      validation straights <= 0.05~~ [2026-10-19 correction: mean time
+      between alarms on validation straights >= 10 s]); alarm action P -> P0; acceptance = all
+      gates on every check session + straight-line beta median < 1 deg;
+      fit-L-only keys. Docstring anchor mismatch recorded. Literature to obtain:
+      Bar-Shalom 2001, Mehra 1970, Gustafsson 2000.
+      Step Q-PHYS (author order 2026-10-19; records + read-only
+      diagnostics/inspect_q_phys.py, no module or config change): residual SD
+      and autocorrelation time per session and axle, propagation to
+      sigma_beta_dot / sigma_r_dot, proposed discretisation, Q per session vs
+      current. NBR-73-010-026-JDR = NBR outing 10 (file header OutingNumber
+      10), in the analysis set (check split).
+      [2026-10-19 Q-PHYS RESULT: residual at the kinematic slip angle front
+      SD 2.1-3.8 kN, rear 5.6-7.6 kN, front/rear corr 0.79-0.92, correlation
+      time 1.5-2.1 s (filter floor 0.17 s). Q_beta x13-21 (held over a step)
+      or x2300-4000 (equivalent white), Q_r x5100-6900 or x7e5-1e6 against
+      current. Reading: residual dominated by a common slow (slip-angle)
+      error; discretisation choice and the alpha basis need author rulings.
+      Nothing implemented. NOT committed.]
+   Q-PHYS RULINGS + MASK / TRIGGER IMPLEMENTATION (author EXECUTE 2026-10-19,
+      fit L only, no derivation run): Q not derivable without a reference
+      sideslip measurement; held-over-step = per-session upper bound,
+      equivalent-white dropped; Q stays at the current values (l_q_* keys,
+      copied, Tier B, provenance stated), diagonal; ~~Q tested not tuned~~ [2026-10-19: superseded, Q-UPPER] in the
+      final chain (/10 to the upper bound, verdict flip rate per corner
+      phase); limitations (correlated process / measurement noise, slow
+      corner-correlated model error); outlook (extra filter states,
+      Bechtloff Eqs. 5.15-5.16). Code: observer-reset mask hard-bound only;
+      change detector on NIS (d = 2, h placeholder, l_divergence_trigger
+      default "nis_window"); docstring anchors corrected; tests.
+      [2026-10-19 RESULT: 11 tests passed, production bit-identical,
+      test_stability exit 0. JST 29 NIS mean 4.69 / median 1.71; h = 50 ->
+      3911 alarms. h grid and the h-script cache proposal reported. NOT
+      committed.]
+   H DERIVATION (author EXECUTE 2026-10-19, fit L only; frame in DECISIONS.md
+      "h derivation frame", written before any number): straight-line
+      constraint corrected to mean time between alarms on validation
+      straights >= 10 s (the share rule was ill-defined for one-shot alarms);
+      objective fewest summed hard-bound re-entries, tie -> fewer alarms; R
+      held at cached picks (acceptance re-derives R); one-shot a_t reset part
+      of the declared adaptation. Grid h = 100 ... 3200 on the derive split
+      (diagnostics/derive_cd_threshold.py, per-session cache, 3 workers).
+      Synthetic unit test replaced by real JST 29 NIS segments. Default
+      trigger NOT switched, check split NOT run.
+      [2026-10-19 RESULT: 11 tests passed, production bit-identical.
+      Summed re-entries 27 (h 100) ... 246 (h 3200) vs 75 NIS window;
+      objective minimum at the lower grid edge; validation straights 90 s in
+      total, alarms on them only on Le Castellet 25; pooled vs every-session
+      constraint disagree -> NO PICK. Author rules next. NOT committed.]
+   Q-UPPER + FALLBACK CHECK (author STEP 2026-10-19; frame in DECISIONS.md
+      "Q-UPPER frame", written before any number): h-derivation no pick read
+      as an overconfident filter; Q policy reopened (post-result, declared):
+      Q = per-session held-over-step upper bound from Q-PHYS, full chain per
+      point on the derive split, change detector h = 400 ... 3200 and
+      hard-bound only, NIS window at Q-UPPER as reference; constraint on all
+      steering-defined straights pooled (>= 10 s); tie within 10 % of the
+      minimum re-entries -> fewest alarms. Rulings for later steps: CS on
+      Fy / Fz; physics floor -0.53 as a label. Fallback check of outings 59
+      and 70 (D4-L g2 front), read-only.
+      [2026-10-19 RESULT: Q-UPPER re-entries 1-4 summed at every trigger point
+      (vs 27-246 at the current Q); all gates pass; rule picks HARD-BOUND
+      ONLY (h 1600 if that is not admissible). R_ay picks all at the grid
+      edge 0.01; yaw state follows the measurement. Fallback 59 / 70: front
+      K 30.34 / 30.34 just above 30; dry, nothing distinctive besides the
+      highest front mu_demo. Author rules next. NOT committed.]
+   OBSERVER FINALISATION FIT L (author EXECUTE 2026-10-19; rulings in
+      DECISIONS.md "Observer finalisation for fit L", written before
+      implementation): Q per session = held-over-step upper bound from the
+      fit-L residual, computed in the chain; trigger "hard_bound_only" as the
+      fit-L default (change detector / NIS window unused in fit L, removal in
+      the cleanup round); yaw state follows the gyro (accepted, robustness
+      point later); R_ay grid extended downward with the session's ay
+      noise floor (no pick below it); K band unchanged, outings 59 / 70 =
+      "plausibility gate triggered", excluded from the EKF-based verdict
+      analysis pending author confirmation on driver feedback. Then a
+      14-session full-chain run.
+      [2026-10-19 RESULT: 15 tests passed, production bit-identical,
+      test_stability exit 0. 14 sessions: 11 ok, NBR 61 marginal (no in-band
+      R above the ay floor -> default R, NIS gate warn), NBR 59 / 70 fallback
+      (g2 front). Re-entries 1 in total, soft resets 0. R_ay picks floor-
+      binding on 9 NBR sessions (grid step 0.01 -> 0.03). Driver-feedback
+      confirmation for 59 / 70 still pending. NOT committed.]
+   Q-DIPS (author order 2026-10-19, after the h derivation; report only,
+      diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
+      C and E; CS dip census per session and axle with cause flags; our CS
+      estimator vs the chair's (segmented estimation, Fy vs Fy/Fz) with a
+      counterfactual count of deep dips.
 
 6. MASS AND FUEL (author input, 2026-10-01). Fuel load varies by up to
    ~80 kg within/between runs (~+/-3 % of config mass 1356 kg); the base

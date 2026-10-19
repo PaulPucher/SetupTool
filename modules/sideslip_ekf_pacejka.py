@@ -17,11 +17,14 @@
 # only for P. F at x_k|k, H at x_k+1|k. Tyre slopes from the analytic
 # pacejka_lateral_stiffness.
 #
-# Divergence: windowed NIS vs chi^2 bound, or |beta| > beta_hard_bound_deg.
-# Bound is physical (15 deg), not from the kinematic beta range -- that
-# under-reads mid-corner and would clip the real signal. Re-entry: see
+# Divergence: |beta| > beta_hard_bound_deg, plus a NIS trigger -- the
+# windowed NIS vs chi^2 bound (default), the change detector on NIS
+# (divergence_trigger "change_detector"), or none ("hard_bound_only", the
+# fit-L default since 2026-10-19). Bound is physical
+# (15 deg), not from the kinematic beta range -- that under-reads mid-corner
+# and would clip the real signal. Re-entry: see
 # estimate_sideslip_ekf_pacejka. Raw EKF beta returned alongside, plus
-# diverged_mask.
+# diverged_mask (every reset) and hard_bound_mask (hard-bound resets only).
 # (Method statement moved here from the removed Dugoff observer,
 # 2026-10-17; the two shared it apart from tyre model and re-entry.)
 
@@ -74,27 +77,55 @@ def axle_forces(alpha_f, alpha_r, tyre, u, i, load=None):
             pacejka_lateral_stiffness(alpha_r, Br, Cr, Dr_i, Er))
 
 
+def change_detector_step(a_prev, nis, drift, threshold):
+    """One step of the change detector (Rajamani 2nd ed. sec. 14.4.2) on
+    NIS: returns the new statistic and whether it is in alarm."""
+    a = max(a_prev + nis - drift, 0.0)
+    return a, a > threshold
+
+
 def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True):
     """Divergence re-entry, two cases (author rulings 2026-10-07). The
     kinematic beta is never written into the state or the output any more --
     it carried the washout's corner bias into E (round 3).
-    - NIS-window divergence (state in range, measurements disagree): keep
-      the state, reset P to P0 so the next samples lean on the measurements
-      again. After Goblirsch et al. 2024 (IROS, sec. III-D, adaptive
-      covariance after a signal dropout) and Rajamani 2nd ed. sec. 14.4.2
-      (covariance scaling on change detection).
+    - NIS trigger (state in range, measurements disagree): keep the state,
+      reset P to P0 so the next samples lean on the measurements again. A
+      project rule (Tier B). Related, not the same: Rajamani 2nd ed. sec.
+      14.4.2 raises the covariance of an RLS estimator by a constant factor
+      while a change detector is in alarm; Goblirsch et al. 2024 (IROS,
+      sec. III-D) adapts the measurement covariance after a signal dropout.
+      Neither uses a NIS window or a reset to P0.
     - Hard-bound divergence (|beta| beyond the bound): beta state to 0, yaw
       rate state to the measured value, P to P0. Keeping an out-of-range
       state runs away -- the curve is flat out there, so the measurements
-      cannot pull it back (phase-1 stop). Zero carries no seed bias; reset
-      to zero, never to another estimate, after Villano et al. 2021
-      (Meccanica, sec. 3.1, kinematic filter reset).
+      cannot pull it back (phase-1 stop). Zero carries no seed bias. Villano
+      et al. 2021 (Meccanica, sec. 3.1) force the lateral velocity of their
+      kinematic filter to zero at small yaw rate, where it is unobservable;
+      using a zero reset on divergence is our adaptation of that.
     Hard bound takes precedence when both fire. beta_with_fallback keeps its
     name for the callers and carries the post-re-entry state; beta is the raw
     update (a hard-bound re-entry shows as diverged with |beta| > bound).
+
+    NIS trigger, cfg divergence_trigger (absent -> "nis_window"):
+    - "nis_window": share of NIS > nis_chi2_bound over nis_window_s above
+      nis_flag_fraction (placeholder values, never validated).
+    - "change_detector" (fit L): the change detector of Rajamani 2nd ed.
+      sec. 14.4.2 (Eqs. 14.24-14.25, after Gustafsson 2000) on the combined
+      NIS, a_t = max(a_{t-1} + NIS_t - cd_drift, 0), alarm when a_t >
+      cd_threshold. cd_drift = 2 is E[NIS] for two measurements, so a
+      consistent filter does not accumulate. a_t returns to 0 after any
+      reset: the reset restarts P, so the accumulated evidence no longer
+      describes the current covariance, and without the return every sample
+      while a_t stays above h would reset P again (a one-shot reset replaces
+      Rajamani's boost that lasts while the alarm holds).
+    - "hard_bound_only" (fit L default, author ruling 2026-10-19): no NIS
+      trigger; with the process noise sized from the session's force-model
+      error (Q-UPPER) the filter needs no covariance reset, only the
+      hard-bound re-entry stays.
     nis_window_reset=False (diagnostics only, Q-NIS-RESET 2026-10-19) skips
-    the NIS-window reset so its effect on the CS can be isolated; the
-    hard-bound reset stays, and diverged_mask then holds hard-bound resets only.
+    the NIS-trigger reset so its effect on the CS can be isolated; the
+    hard-bound reset stays, and diverged_mask then holds hard-bound resets
+    only. hard_bound_mask always holds the hard-bound resets.
     """
     vp = params["vehicle"]
     se = params["stability_estimation"]
@@ -140,12 +171,19 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
     nis_window = int(round(cfg["nis_window_s"] * sr))
     nis_chi2_bound = cfg["nis_chi2_bound"]
     nis_flag_fraction = cfg["nis_flag_fraction"]
+    trigger = cfg.get("divergence_trigger", "nis_window")
+    use_cd = trigger == "change_detector"
+    hb_only = trigger == "hard_bound_only"
+    if use_cd:
+        cd_drift, cd_h = cfg["cd_drift"], cfg["cd_threshold"]
+    cd_a = 0.0
     eye2 = np.eye(2)
 
     beta_out = np.zeros(n)
     yaw_rate_state_out = np.zeros(n)
     nis_out = np.full(n, np.nan)
     diverged_mask = np.zeros(n, dtype=bool)
+    hard_bound_mask = np.zeros(n, dtype=bool)
     beta_with_fallback = np.zeros(n)
     innovation_out = np.full((n, 2), np.nan)
     S_diag_out = np.full((n, 2), np.nan)
@@ -160,6 +198,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
             x = np.zeros(2)
             P = P0.copy()
             nis_recent.clear()
+            cd_a = 0.0
             beta_out[i] = 0.0
             yaw_rate_state_out[i] = 0.0
             beta_with_fallback[i] = 0.0
@@ -203,11 +242,16 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
         S_diag_out[i] = np.diag(S)
         K_ay_out[i] = K[:, 1]
 
-        nis_recent.append(nis > nis_chi2_bound)
-        if len(nis_recent) > nis_window:
-            nis_recent.pop(0)
-        window_flag = (len(nis_recent) == nis_window
-                        and (sum(nis_recent) / nis_window) > nis_flag_fraction)
+        if hb_only:
+            window_flag = False
+        elif use_cd:
+            cd_a, window_flag = change_detector_step(cd_a, nis, cd_drift, cd_h)
+        else:
+            nis_recent.append(nis > nis_chi2_bound)
+            if len(nis_recent) > nis_window:
+                nis_recent.pop(0)
+            window_flag = (len(nis_recent) == nis_window
+                            and (sum(nis_recent) / nis_window) > nis_flag_fraction)
         bound_flag = abs(x_upd[0]) > beta_hard_bound_rad
 
         raw_beta, raw_r = float(x_upd[0]), float(x_upd[1])
@@ -216,6 +260,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
 
         diverged = (window_flag and nis_window_reset) or bound_flag
         diverged_mask[i] = diverged
+        hard_bound_mask[i] = bound_flag
 
         if bound_flag:
             x = np.array([0.0, float(yaw_rate_meas[i])])
@@ -224,6 +269,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
         if diverged:
             P = P0.copy()
             nis_recent.clear()
+            cd_a = 0.0
         else:
             P = P_upd
         beta_with_fallback[i] = x[0]
@@ -233,6 +279,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
         "yaw_rate_state": yaw_rate_state_out,
         "nis": nis_out,
         "diverged_mask": diverged_mask,
+        "hard_bound_mask": hard_bound_mask,
         "beta_with_fallback": beta_with_fallback,
         "innovation": innovation_out,
         "S_diag": S_diag_out,
