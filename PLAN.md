@@ -3857,6 +3857,28 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       Prediction REFUTED; mechanism NOT SHOWN -> US-v2 events recorded as a
       limitation with their CS impact, demonstrated-mu rule stands. Outing 25
       export chosen: MLA-SE07_US-v1. thesis_notes "Q-PR-TAIL". NOT committed.]
+   Q-FIT-LIT FINAL IMPLEMENTATION (author order and EXECUTE 2026-10-19; L
+      mode only, production default unchanged): (1) mu = p99.5 demonstrated
+      utilisation, B only, D4-L mu ceiling 2.0; (2) ~~heavy braking |Fx| / Fz >
+      0.3 out of the fit population~~ [2026-10-19: braking side only, Fx < 0;
+      declared post-result clarification] (config fit_long_util_max); (3) CS
+      observer-reset mark (estimate_cornering_stiffness reset_mask,
+      summarise_corners n_reset_excluded); (4) real-data tests, production
+      bit-identity; (5) run on JDR, JST 29, US-v2
+      (diagnostics/inspect_fit_lit_final.py). Records: thesis_notes "Q-FIT-LIT
+      final implementation".
+      [2026-10-19 RESULT: tests 51 passed / 1 xfailed, production
+      bit-identical, test_stability exit 0. All three sessions DEGENERATE
+      (D4-L g2 rear, K 43.2 / 42.9 / 30.6): the |Fx| / Fz > 0.3 filter removes
+      55-64 % of the rear fit population, 40-44 points of it DRIVE (rear median
+      utilisation 0.33-0.39). Conflict "heavy braking" vs the criterion as
+      specified -> author rules. NOT committed.]
+      [2026-10-19 CLARIFICATION (author, declared post-result): braking side
+      only (Fx < 0), threshold unchanged. Tests 8 passed, production
+      bit-identical. Re-run: EKF L shipped on all three, all gate checks pass
+      (rear K 28.4 / 24.1 / 17.7). Observer-reset mark covers 28-47 % of
+      verdict CS samples, driven by NIS-window resets (2213 / 654 / 2116 vs
+      1 / 7 / 94 hard-bound). Author rules next. NOT committed.]
 
 6. MASS AND FUEL (author input, 2026-10-01). Fuel load varies by up to
    ~80 kg within/between runs (~+/-3 % of config mass 1356 kg); the base

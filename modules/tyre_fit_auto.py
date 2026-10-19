@@ -35,9 +35,10 @@ PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E
 # Fit L (tyre_fit_mode "literature_bounded", Q-FIT-LIT 2026-10-18). These
 # values define the method, they are not tuned: with an estimated sideslip
 # and no sliding data the curve shape is not identified (Q-FIT-SIMPLE), so
-# shape and curvature are fixed at literature values and B and mu are bound
-# to physical ranges. Deviation class FORCED ADAPTATION -- the chair fits all
-# four on measured beta.
+# shape and curvature are fixed at literature values, mu is the demonstrated
+# utilisation (config mu_demo_percentile) and B is the one fitted parameter.
+# Deviation class FORCED ADAPTATION -- the chair fits all four on measured
+# beta.
 # C = 1.0: with E = -1 the curve rises monotonically to the asymptote D, so
 # no post-peak drop is modelled where the data never show one (Voser et al.
 # 2010; Rao et al. 2006; axle peak may vanish, Pacejka 2006 sec. 1.2.2; C
@@ -47,11 +48,11 @@ PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E
 L_SHAPE_C = 1.0
 L_CURVATURE_E = -1.0     # fixed E "according to the literature", Goblirsch et al. 2025; Pacejka Tables 4.1 / 4.2
 L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
-L_MU_BOUNDS = (0.1, 2.0)   # D normalised by Fz, Goblirsch et al. 2025 Table I
-# start inside the bounds: the chair's B and its 8000 N peak force scaled by
-# the axle's reference load
-L_START_B = 12.0
-L_START_PEAK_N = 8000.0
+# physical ceiling of a racing tyre's friction coefficient; a demonstrated
+# utilisation above it points at the input data, not at the tyre (Pacejka
+# 2006 sec. 1.2.1; Goblirsch et al. 2025 Table I upper bound of D / Fz)
+L_MU_CEILING = 2.0
+L_START_B = 12.0           # the chair's B start, inside the bounds
 # D4 under L: cornering stiffness "from about 6 to about 30 times the
 # vertical wheel load ... per radian", racing tyres toward the upper value
 # (Pacejka 2006 sec. 1.2.1)
@@ -443,7 +444,9 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
     fx_cog = fx["fx_N"]
     with np.errstate(invalid="ignore", divide="ignore"):
         fx_front = np.where(fx_cog < 0.0, fx_cog * fz["fz_f_N"] / (fz["fz_f_N"] + fz["fz_r_N"]), 0.0)
-    raw = {"fz_f_N": fz["fz_f_N"], "fz_r_N": fz["fz_r_N"], "fx_f_N": fx_front, "delta_f": state["delta_f_rad"]}
+    # rear: its load share of braking plus all of the drive
+    raw = {"fz_f_N": fz["fz_f_N"], "fz_r_N": fz["fz_r_N"], "fx_f_N": fx_front, "fx_r_N": fx_cog - fx_front,
+           "delta_f": state["delta_f_rad"]}
     bad = [k for k, v in raw.items() if not np.all(np.isfinite(v))]
     if bad:
         return {"degenerate_reason": f"fit L: non-finite input ({', '.join(bad)}) -- the zero-phase filter would spread it"}
@@ -483,21 +486,25 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
     return out
 
 
-def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, weighted=True):
+def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
     """Fit L on one axle (Q-FIT-LIT): the load-normalised force f = Fy / Fz
-    against slip angle, with C and E fixed and B, mu bounded (constants
-    above), bounded Powell, optional inverse-density weights on the signed
-    slip angle. Fitting the ratio gives every sample the same weight
-    whatever its load, where a force-domain fit would favour high-load
-    samples by Fz^2. Same dict as _fit_axle_pacejka, D = mu * Fz_ref as the
-    representative peak force for the constant-D readers (D4 stiffness band,
-    curve display); residuals in N (Fy - Fz f), in the frame of Fy."""
+    against slip angle with C and E fixed. mu is not fitted: it is the
+    demonstrated utilisation, the mu_pct percentile of |Fy / Fz| on this
+    population -- a lower bound of the true grip, because a fitted asymptote
+    below forces the car demonstrably produced contradicts the measurement
+    (Q-CAPACITY). B is then the one fitted parameter (bounded Powell,
+    optional inverse-density weights on the signed slip angle), so it sets
+    the origin slope K = B C mu. Fitting the ratio gives every sample the
+    same weight whatever its load. Same dict as _fit_axle_pacejka, D = mu *
+    Fz_ref as the representative peak force for the constant-D readers;
+    residuals in N (Fy - Fz f), in the frame of Fy."""
     m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz) & (Fz > 0)
     a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
     if len(a2) == 0:
         return {
             "B": float("nan"), "C": L_SHAPE_C, "D": float("nan"), "E": L_CURVATURE_E,
             "mu": float("nan"), "fz_ref_N": float("nan"), "weighted": weighted,
+            "mu_source": f"demonstrated utilisation p{mu_pct:g} (lower bound)",
             "bound_active": {}, "powell_converged": False,
             "fit_n_samples": 0, "fit_rms_resid_N": float("nan"), "fit_rms_resid_norm": float("nan"),
             "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
@@ -507,6 +514,7 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, weighted=True):
         }
     y = f2 / z2
     fz_ref = float(np.median(z2))
+    mu = float(np.percentile(np.abs(y), mu_pct))
     if weighted:
         _, inv, cnt = np.unique(np.floor(a2 / bin_rad).astype(np.int64), return_inverse=True, return_counts=True)
         w = 1.0 / cnt[inv]
@@ -514,19 +522,17 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, weighted=True):
         w = None
 
     def _j(p):
-        r2 = (pacejka_lateral_force(a2, p[0], L_SHAPE_C, p[1], L_CURVATURE_E) - y) ** 2
+        r2 = (pacejka_lateral_force(a2, p[0], L_SHAPE_C, mu, L_CURVATURE_E) - y) ** 2
         return float(np.sum(r2 if w is None else w * r2))
 
-    start = (L_START_B, float(np.clip(L_START_PEAK_N / fz_ref, *L_MU_BOUNDS)))
-    res = minimize(_j, start, method="Powell", bounds=[L_B_BOUNDS, L_MU_BOUNDS])
-    B, mu = (float(x) for x in res.x)
+    res = minimize(_j, (L_START_B,), method="Powell", bounds=[L_B_BOUNDS])
+    B = float(res.x[0])
     shape = pacejka_lateral_force(a2, B, L_SHAPE_C, 1.0, L_CURVATURE_E)
     resid = f2 - mu * z2 * shape
 
-    bound_active = {}
-    for name, val, (lo, hi) in (("B", B, L_B_BOUNDS), ("mu", mu, L_MU_BOUNDS)):
-        tol = 1e-4 * (hi - lo)
-        bound_active[name] = "lower" if val - lo <= tol else ("upper" if hi - val <= tol else None)
+    lo, hi = L_B_BOUNDS
+    tol = 1e-4 * (hi - lo)
+    bound_active = {"B": "lower" if B - lo <= tol else ("upper" if hi - B <= tol else None), "mu": None}
 
     p99 = float(np.percentile(np.abs(np.degrees(a2)), 99))
     grid_deg = np.linspace(0.01, 89.9, 4000)
@@ -537,6 +543,7 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, weighted=True):
     return {
         "B": B, "C": L_SHAPE_C, "D": mu * fz_ref, "E": L_CURVATURE_E,
         "mu": mu, "fz_ref_N": fz_ref, "weighted": weighted, "bound_active": bound_active,
+        "mu_source": f"demonstrated utilisation p{mu_pct:g} (lower bound)",
         "powell_converged": bool(res.success),
         "fit_n_samples": int(len(a2)), "fit_rms_resid_N": float(np.sqrt(np.mean(resid ** 2))),
         "fit_rms_resid_norm": float(np.sqrt(np.mean((y - mu * shape) ** 2))),
@@ -556,22 +563,23 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
       g2 normalised origin slope K = B C mu inside L_K_BAND; the axle ratio
          is the sum of tyre stiffnesses over the sum of tyre loads, so the
          tyre band carries over to the axle
-      mu at a literature bound: the value was set by the bound, not the data
+      demonstrated mu above L_MU_CEILING: more grip than a racing tyre has
+         points at the force or load inputs, not at the tyre (2026-10-19;
+         replaces the mu-at-bound check of the fitted-mu version)
     The peak position and its coverage are reported only; an uncovered peak
     flags mu as extrapolated."""
     a = np.degrees(alpha[fit_mask & np.isfinite(alpha)])
     span = float(np.percentile(a, 99) - np.percentile(a, 1)) if a.size else float("nan")
     K = float(axle_fit["B"] * axle_fit["C"] * axle_fit["mu"])
-    mu_bound = axle_fit["bound_active"].get("mu")
     failed = []
     if not span >= cfg["min_alpha_span_deg"]:
         failed.append("g1 excitation")
     if not L_K_BAND[0] <= K <= L_K_BAND[1]:
         failed.append("g2 normalised stiffness")
-    if mu_bound is not None:
-        failed.append("mu set by literature bound, not data")
+    if not axle_fit["mu"] <= L_MU_CEILING:
+        failed.append("mu_demo above the physical ceiling 2.0")
     peak = axle_fit["peak_alpha_deg"]
-    return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "mu": axle_fit["mu"], "mu_bound": mu_bound,
+    return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING,
             "peak_deg": peak, "peak_note": "no peak (monotonic)" if peak != peak else "",
             "peak_covered": bool(axle_fit["peak_in_visited_range"]),
             "mu_extrapolated": not axle_fit["peak_in_visited_range"], "failed": failed}
@@ -662,9 +670,27 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
             return {"status": "degenerate", "degenerate_reason": load_in["degenerate_reason"],
                     "data_file": data_file_path}
         fy_f_tyre = _front_tyre_frame_force(forces["Fy_f_filt"], load_in["fx_f_N"], load_in["delta_f"])
-        bin_rad = cfg["fit_density_bin_rad"]
-        front_fit = _fit_axle_l(slip_kin["alpha_f_filt"], fy_f_tyre, load_in["fz_f_N"], fit_mask, bin_rad)
-        rear_fit = _fit_axle_l(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], load_in["fz_r_N"], fit_mask, bin_rad)
+        bin_rad, mu_pct = cfg["fit_density_bin_rad"], cfg["mu_demo_percentile"]
+        # heavy braking leaves the pure-slip fit: beyond fit_long_util_max the
+        # friction circle takes more than a few percent of lateral capacity
+        # (config derived_from); the observer still sees every sample.
+        # Braking side only (2026-10-19): Eq. 9 puts all drive on the rear,
+        # so traction is the rear's normal operating state through every
+        # corner exit, not an outlier; removing it took over half the rear
+        # population. Its combined-slip cost stays, sized by the friction
+        # circle.
+        axle_masks = {}
+        for axle, fx_k, fz_k in (("front", "fx_f_N", "fz_f_N"), ("rear", "fx_r_N", "fz_r_N")):
+            with np.errstate(invalid="ignore", divide="ignore"):
+                util = np.abs(load_in[fx_k]) / load_in[fz_k]
+            keep = ~((load_in[fx_k] < 0) & (util > cfg["fit_long_util_max"]))
+            axle_masks[axle] = fit_mask & keep
+            load_in["info"].setdefault("braking_excluded", {})[axle] = {
+                "n": int((fit_mask & ~keep).sum()), "share": float((fit_mask & ~keep).sum() / max(1, fit_mask.sum()))}
+        front_fit = _fit_axle_l(slip_kin["alpha_f_filt"], fy_f_tyre, load_in["fz_f_N"], axle_masks["front"], bin_rad,
+                                mu_pct)
+        rear_fit = _fit_axle_l(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], load_in["fz_r_N"], axle_masks["rear"],
+                               bin_rad, mu_pct)
     elif load_normalised:
         car_data = load_car_data()
         if car_data is None:
@@ -958,6 +984,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
             "rear_plausible": bool(mu_lo <= rear_fit["mu"] <= mu_hi),
         }
 
+    if lit:
+        # samples where the observer reset its state (hard bound or NIS
+        # window), for the CS reset mark; in memory only, like nis_full
+        manifest["observer_reset_mask"] = final_result["diverged_mask"]
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
@@ -1011,7 +1041,8 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
                 beta = raw_fit_manifest["beta_ekf_with_fallback"]
         fit_manifest = {
             k: v for k, v in raw_fit_manifest.items()
-            if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask", "plausibility_gate")
+            if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask", "plausibility_gate",
+                         "observer_reset_mask")
         }
         return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason
 

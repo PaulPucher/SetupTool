@@ -926,3 +926,7 @@ cited them now say so (git history keeps the code).
   observer re-entries of US-v2 vs the NBR controls under the
   demonstrated-mu rule. Imports inspect_fit_lit, inspect_obs_reentry,
   inspect_capacity. Output diagnostics/plots/pr_tail/.
+- **inspect_fit_lit_final.py** (2026-10-19) -- REFERENCED (PLAN.md Q-FIT-LIT
+  final implementation): the run of the implemented fit L (demonstrated mu,
+  braking filter, observer-reset mark) on three sessions. Imports
+  inspect_fit_lit and inspect_capacity. Output diagnostics/plots/fit_lit/final/.

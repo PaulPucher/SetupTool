@@ -48,15 +48,19 @@ def test_tyre_frame_transform_inverts(jst29):
     np.testing.assert_allclose(back, fy, rtol=0, atol=1e-6)
 
 
-def test_fit_l_constants_bounds_and_residuals(jst29):
+def test_fit_l_constants_mu_demo_and_residuals(jst29):
+    # mu is the demonstrated utilisation (2026-10-19): the configured
+    # percentile of |Fy / Fz| on the population the fit used; B alone fitted
     li, m = jst29["load_in"], jst29["fit_mask"]
+    cfg = jst29["params"]["tyre_fit_auto"]
     alpha, fz = jst29["slip"]["alpha_f_filt"], li["fz_f_N"]
     fy = tfa._front_tyre_frame_force(jst29["forces"]["Fy_f_filt"], li["fx_f_N"], li["delta_f"])
-    fit = tfa._fit_axle_l(alpha, fy, fz, m, jst29["params"]["tyre_fit_auto"]["fit_density_bin_rad"])
+    fit = tfa._fit_axle_l(alpha, fy, fz, m, cfg["fit_density_bin_rad"], cfg["mu_demo_percentile"])
     assert fit["C"] == tfa.L_SHAPE_C and fit["E"] == tfa.L_CURVATURE_E
     assert tfa.L_B_BOUNDS[0] <= fit["B"] <= tfa.L_B_BOUNDS[1]
-    assert tfa.L_MU_BOUNDS[0] <= fit["mu"] <= tfa.L_MU_BOUNDS[1]
     pop = fit["residual_mask"]
+    assert fit["mu"] == float(np.percentile(np.abs(fy[pop] / fz[pop]), cfg["mu_demo_percentile"]))
+    assert fit["bound_active"]["mu"] is None and "demonstrated utilisation" in fit["mu_source"]
     assert fit["fz_ref_N"] == pytest.approx(float(np.median(fz[pop])))
     assert fit["D"] == pytest.approx(fit["mu"] * fit["fz_ref_N"])
     # residual = measured force minus load-scaled curve, in N
@@ -124,6 +128,7 @@ def test_literature_gate_reports_slope_and_coverage(l_manifest):
         assert fit["mu_extrapolated"] is g["mu_extrapolated"]
         in_band = tfa.L_K_BAND[0] <= g["stiffness_norm_per_rad"] <= tfa.L_K_BAND[1]
         assert ("g2 normalised stiffness" in g["failed"]) is (not in_band)
+        assert ("mu_demo above the physical ceiling 2.0" in g["failed"]) is (fit["mu"] > tfa.L_MU_CEILING)
 
 
 def test_literature_curve_is_monotonic(l_manifest):
@@ -138,3 +143,57 @@ def test_literature_curve_is_monotonic(l_manifest):
         assert np.all(pacejka_lateral_stiffness(g, fit["B"], fit["C"], 1.0, fit["E"]) > 0)
         assert fit["peak_alpha_deg"] != fit["peak_alpha_deg"]
         assert gate["peak_note"] == "no peak (monotonic)" and gate["mu_extrapolated"] is True
+
+
+def test_braking_filter_removes_only_heavy_braking(jst29, l_manifest):
+    # braking side only (2026-10-19): a sample leaves the axle fit population
+    # iff Fx < 0 and |Fx| / Fz > fit_long_util_max; drive above the threshold
+    # (the driven rear) stays in
+    li, m = jst29["load_in"], jst29["fit_mask"]
+    cfg = jst29["params"]["tyre_fit_auto"]
+    thr = cfg["fit_long_util_max"]
+    for axle, fx_k, fz_k, a_k, fy in (("front", "fx_f_N", "fz_f_N", "alpha_f_filt",
+                                       tfa._front_tyre_frame_force(jst29["forces"]["Fy_f_filt"], li["fx_f_N"], li["delta_f"])),
+                                      ("rear", "fx_r_N", "fz_r_N", "alpha_r_filt", jst29["forces"]["Fy_r_filt"])):
+        util = np.abs(li[fx_k]) / li[fz_k]
+        heavy_braking = (li[fx_k] < 0) & (util > thr)
+        heavy_drive = (li[fx_k] > 0) & (util > thr)
+        assert l_manifest["axle_load"]["braking_excluded"][axle]["n"] == int((m & heavy_braking).sum())
+        fit = tfa._fit_axle_l(jst29["slip"][a_k], fy, li[fz_k], m & ~heavy_braking, cfg["fit_density_bin_rad"],
+                              cfg["mu_demo_percentile"])
+        pop = fit["residual_mask"]
+        finite = np.isfinite(jst29["slip"][a_k]) & np.isfinite(fy) & np.isfinite(li[fz_k]) & (li[fz_k] > 0)
+        assert not (pop & heavy_braking).any()
+        assert np.array_equal(pop & heavy_drive, m & heavy_drive & finite)
+        assert np.array_equal(pop, m & ~heavy_braking & finite)
+        assert fit["mu"] == pytest.approx(l_manifest["axles"][axle]["mu"])
+    # the driven rear has drive samples above the threshold, and they are kept
+    assert ((li["fx_r_N"] > 0) & (np.abs(li["fx_r_N"]) / li["fz_r_N"] > thr) & m).any()
+
+
+def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
+    # observer_reset_affected marks a CS sample iff its regression window
+    # [start, i) holds an observer reset; without a reset mask the CS output
+    # gains no key and is unchanged
+    from modules.stability_analysis import (estimate_cornering_stiffness, reconstruct_cs_window_start,
+                                            resolve_cs_min_window_samples)
+    st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
+    reset = l_manifest["observer_reset_mask"]
+    assert reset.any()
+    slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
+    plain = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
+    marked = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps, reset_mask=reset)
+    assert "observer_reset_affected_f" not in plain
+    for k, v in plain.items():
+        assert np.array_equal(v, marked[k], equal_nan=True) if isinstance(v, np.ndarray) else v == marked[k]
+    se = p["stability_estimation"]
+    mw = resolve_cs_min_window_samples(p, st["sample_rate_hz"])
+    cum = np.concatenate(([0], np.cumsum(reset)))
+    for ax, key in (("f", "alpha_f_filt"), ("r", "alpha_r_filt")):
+        idx = np.flatnonzero(np.isfinite(marked[f"CS_ratio_{ax}"]))
+        mark = marked[f"observer_reset_affected_{ax}"]
+        assert mark[idx].any() and not mark[idx].all()
+        for i in idx[::max(1, idx.size // 3000)]:
+            s0 = reconstruct_cs_window_start(slip[key], i, mw, se["cs_min_slip_angle_span_rad"], st.get("s_m"),
+                                             se["cs_max_window_m"])
+            assert bool(mark[i]) == bool(cum[i] > cum[s0])

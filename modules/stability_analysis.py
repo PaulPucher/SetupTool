@@ -785,7 +785,7 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
     return max(start, 0)
 
 
-def estimate_cornering_stiffness(slip, forces, state, params, laps):
+def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None):
     """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
     Stiffness by windowed regression on logged Fy/alpha instead of Werner's
     Pacejka evaluation.
@@ -802,6 +802,13 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
     parsed lap list (analysis-lap test and the R11 lap-boundary guard);
     empty -> neither, as in Module 5. [domain improvement: the chair tooling
     has no kerb treatment]
+
+    reset_mask (fit L, Q-FIT-LIT 2026-10-19): samples where the shipped
+    observer reset its state (hard-bound re-entry or NIS-window divergence).
+    A window [start, i) holding one is marked observer_reset_affected_*: the
+    reset breaks the state continuity the windowed regression assumes, the
+    same reasoning as the R11 lap-boundary guard. Marked only, never deleted;
+    None (production) adds no key.
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -824,6 +831,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         if smear_zone is not None:
             affected |= smear_zone
     affected_cum = None if affected is None else np.concatenate(([0], np.cumsum(affected, dtype=np.int64)))
+    reset_cum = None if reset_mask is None else np.concatenate(([0], np.cumsum(reset_mask, dtype=np.int64)))
     n = len(state["moving_mask"])
     # R11: lap id per sample from the lap table (-1 outside every lap); the s_m
     # cap stops widening at a distance reset, but the minimum window does not,
@@ -871,6 +879,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         # tyre-curve audit plot
         C_linear_ref_arr = np.full(n, np.nan)
         near_strike = np.zeros(n, dtype=bool)
+        reset_mark = np.zeros(n, dtype=bool)
         # stiffness computed, but no clean reference set yet -> no CS
         no_reference = np.zeros(n, dtype=bool)
         n_straddle = 0
@@ -980,16 +989,18 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
                 # same [start, i) window the regression used
                 if affected_cum is not None:
                     near_strike[i] = affected_cum[i] > affected_cum[start]
+                if reset_cum is not None:
+                    reset_mark[i] = reset_cum[i] > reset_cum[start]
 
             C_linear_ref_arr[i] = C_linear_ref
 
         return (C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference,
-                n_straddle)
+                n_straddle, reset_mark)
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f, rm_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r, rm_r = compute_cs_for_axle(alpha_r, Fy_r)
 
-    return {
+    out = {
         "C_alpha_f": C_f,
         "C_alpha_r": C_r,
         "C_window_f": Cw_f,
@@ -1020,6 +1031,10 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps):
         "n_lap_straddle_f": nx_f,
         "n_lap_straddle_r": nx_r,
     }
+    if reset_mask is not None:
+        out["observer_reset_affected_f"] = rm_f
+        out["observer_reset_affected_r"] = rm_r
+    return out
 
 
 def estimate_yaw_moment_stability(state, beta, params, laps=None):
@@ -1129,6 +1144,14 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     mark_r = np.broadcast_to(np.asarray(cs.get("near_strike_r", False), dtype=bool), raw_r.shape)
     cs_f = np.where(mark_f, np.nan, raw_f)
     cs_r = np.where(mark_r, np.nan, raw_r)
+    # fit L only: windows holding an observer reset leave the verdict
+    # statistics like kerb-affected ones; absent key -> nothing changes
+    reset_f = reset_r = None
+    if "observer_reset_affected_f" in cs:
+        reset_f = np.asarray(cs["observer_reset_affected_f"], dtype=bool)
+        reset_r = np.asarray(cs["observer_reset_affected_r"], dtype=bool)
+        cs_f = np.where(reset_f, np.nan, cs_f)
+        cs_r = np.where(reset_r, np.nan, cs_r)
     stab_obs = stab["stability_observed_Nm_per_deg"]
     stab_valid = stab["stability_valid"]
     fz_f = fz["fz_f_N"] if fz is not None else None
@@ -1159,11 +1182,13 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
-    def _cs_stat(clean, raw, mark, idx):
+    def _cs_stat(clean, raw, mark, idx, reset=None):
         # n_kerb_excluded: finite samples left out as kerb-affected, so the
         # display can say why a phase has no clean value (display only)
         stat = dict(_gate_cs_stat(_stats(clean[idx])))
         stat["n_kerb_excluded"] = int((mark[idx] & np.isfinite(raw[idx])).sum())
+        if reset is not None:
+            stat["n_reset_excluded"] = int((reset[idx] & ~mark[idx] & np.isfinite(raw[idx])).sum())
         return stat
 
     def _gate_ls_stat(stat):
@@ -1277,8 +1302,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                     "n_samples": 0,
                     "valid_fraction_stab": 0.0,
                     "kerb_fraction": kerb_fraction,
-                    "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx),
-                    "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx),
+                    "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx, reset_f),
+                    "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx, reset_r),
                     "stability_observed_Nm_per_deg": _stats(np.array([])),
                 }
                 if fz is not None:
@@ -1298,8 +1323,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 "n_samples": int(n_samples),
                 "valid_fraction_stab": valid_fraction_stab,
                 "kerb_fraction": kerb_fraction,
-                "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx),
-                "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx),
+                "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, idx, reset_f),
+                "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, idx, reset_r),
                 "stability_observed_Nm_per_deg": _gate_stab_stat(
                     _stats(stab_obs[idx]), phase,
                     brake_f_bar[idx] if brake_f_bar is not None else np.array([])
@@ -1317,8 +1342,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         apex_idx = _apex_region_idx(c)
         corner_summary["apex_region"] = {
             "n_samples": int(apex_idx.size),
-            "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, apex_idx),
-            "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, apex_idx),
+            "cs_ratio_f": _cs_stat(cs_f, raw_f, mark_f, apex_idx, reset_f),
+            "cs_ratio_r": _cs_stat(cs_r, raw_r, mark_r, apex_idx, reset_r),
         }
 
         out.append(corner_summary)
