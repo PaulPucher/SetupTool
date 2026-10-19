@@ -8,7 +8,10 @@
 # sample (floored at moving_speed_min_mps), not a state.
 # Tyre params (B, C, D, E per axle) and Q/R/P0 all from the pass config
 # (tyre_model_ekf_pacejka.<pass_id>, built per session by tyre_fit_auto) --
-# a run is reproducible from that config alone.
+# a run is reproducible from that config alone. Exception: with d_is_mu
+# (fit L, Q-FIT-LIT) D is a friction coefficient and the axle loads and the
+# front Fx come from the state as well (fz_axle_f_N, fz_axle_r_N,
+# fx_axle_f_N), so config plus the session's load cascade reproduce a run.
 #
 # Explicit Euler. State propagated through the nonlinear f(x,u); Jacobian F
 # only for P. F at x_k|k, H at x_k+1|k. Tyre slopes from the analytic
@@ -47,6 +50,30 @@ def measurement_jacobian(Cf_eff, Cr_eff, Vx, m, a, b):
     ])
 
 
+def axle_forces(alpha_f, alpha_r, tyre, u, i, load=None):
+    """Body-lateral axle forces and their slip slopes for one sample, the one
+    force model of the prediction and the measurement update (a split
+    evaluation once left the update on the wrong D, Q-FIT-LIT 2026-10-18).
+    tyre = (Bf, Cf, Df, Ef, Br, Cr, Dr, Er). load None: constant D. load =
+    (fz_f, fz_r, fx_f) arrays: D is mu and the peak force follows the axle
+    load, D = mu Fz(t) (Pacejka Exercise 1.1); the front curve is in the tyre
+    frame, so the body force adds the Fx share of the steered wheel and only
+    the tyre-frame part, scaled by cos(delta), depends on the state
+    (Goblirsch et al. 2025 Eq. 13)."""
+    Bf, Cf, Df, Ef, Br, Cr, Dr, Er = tyre
+    if load is None:
+        return (pacejka_lateral_force(alpha_f, Bf, Cf, Df, Ef), pacejka_lateral_force(alpha_r, Br, Cr, Dr, Er),
+                pacejka_lateral_stiffness(alpha_f, Bf, Cf, Df, Ef), pacejka_lateral_stiffness(alpha_r, Br, Cr, Dr, Er))
+    fz_f, fz_r, fx_f = load
+    Df_i = Df * float(fz_f[i])
+    Dr_i = Dr * float(fz_r[i])
+    cos_d, sin_d = np.cos(u), np.sin(u)
+    return (pacejka_lateral_force(alpha_f, Bf, Cf, Df_i, Ef) * cos_d + float(fx_f[i]) * sin_d,
+            pacejka_lateral_force(alpha_r, Br, Cr, Dr_i, Er),
+            pacejka_lateral_stiffness(alpha_f, Bf, Cf, Df_i, Ef) * cos_d,
+            pacejka_lateral_stiffness(alpha_r, Br, Cr, Dr_i, Er))
+
+
 def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     """Divergence re-entry, two cases (author rulings 2026-10-07). The
     kinematic beta is never written into the state or the output any more --
@@ -75,8 +102,13 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     b = vp["cog_to_rear_axle_m"]
     Iz = vp["yaw_inertia_kgm2"]
 
-    Bf, Cf, Df, Ef = cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"]
-    Br, Cr, Dr, Er = cfg["b_rear"], cfg["c_rear"], cfg["d_rear"], cfg["e_rear"]
+    tyre = (cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"],
+            cfg["b_rear"], cfg["c_rear"], cfg["d_rear"], cfg["e_rear"])
+    # fit L (d_is_mu): D is mu, loads and front Fx from the state, see
+    # axle_forces; flag absent -> constant D
+    load = None
+    if cfg.get("d_is_mu", False):
+        load = (state["fz_axle_f_N"], state["fz_axle_r_N"], state["fx_axle_f_N"])
 
     v = state["v_mps"]
     yaw_rate_meas = state["yaw_rate_radps"]
@@ -136,10 +168,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
         beta_x, r_x = x[0], x[1]
         alpha_f, alpha_r = slip_angles(beta_x, r_x, u, Vx, a, b)
 
-        Fy_f = pacejka_lateral_force(alpha_f, Bf, Cf, Df, Ef)
-        Fy_r = pacejka_lateral_force(alpha_r, Br, Cr, Dr, Er)
-        Cf_eff = pacejka_lateral_stiffness(alpha_f, Bf, Cf, Df, Ef)
-        Cr_eff = pacejka_lateral_stiffness(alpha_r, Br, Cr, Dr, Er)
+        Fy_f, Fy_r, Cf_eff, Cr_eff = axle_forces(alpha_f, alpha_r, tyre, u, i, load)
 
         beta_dot = (Fy_f + Fy_r) / (m * Vx) - r_x
         r_dot = (a * Fy_f - b * Fy_r) / Iz
@@ -152,10 +181,7 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
         beta_p, r_p = x_pred[0], x_pred[1]
         alpha_f_p, alpha_r_p = slip_angles(beta_p, r_p, u, Vx, a, b)
 
-        Fy_f_p = pacejka_lateral_force(alpha_f_p, Bf, Cf, Df, Ef)
-        Fy_r_p = pacejka_lateral_force(alpha_r_p, Br, Cr, Dr, Er)
-        Cf_eff_p = pacejka_lateral_stiffness(alpha_f_p, Bf, Cf, Df, Ef)
-        Cr_eff_p = pacejka_lateral_stiffness(alpha_r_p, Br, Cr, Dr, Er)
+        Fy_f_p, Fy_r_p, Cf_eff_p, Cr_eff_p = axle_forces(alpha_f_p, alpha_r_p, tyre, u, i, load)
 
         h = np.array([r_p, (Fy_f_p + Fy_r_p) / m])
         H = measurement_jacobian(Cf_eff_p, Cr_eff_p, Vx, m, a, b)

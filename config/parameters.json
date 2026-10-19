@@ -124,6 +124,9 @@
       99
     ],
     "fit_speed_window_pct_derived_from": "2026-10-04, author ruling (session Step 2). Speed window on the Pacejka FIT POPULATION only (all three fit modes; NIS sweep, gate and CS keep the base mask): keep samples with speed inside [p_lo, p_hi] of the speed of moving samples inside corner instances on analysis laps, per session (self-adapting; fixed km/h rejected because it would mis-fit a track with a different speed envelope). null = off. Same function as the chair tyre fit's speed-band union (drops the fastest, mostly straight-line, near-zero-slip stretches); FORCED ADAPTATION -- one window instead of four band curves because the EKF consumes one signed curve per axle; the edge values are vehicle parameterisation. Tested in Q-FIT-DECISIVE as variant SW: verdict NEUTRAL; ships by AUTHOR OVERRULE (chair-closeness; pooled deep CS<-1 tail -40 %). Reference values, Tier-1 sessions: 69-70 to 222-229 km/h, 89-93 % of the base mask retained, 95-97 % of samples with |alpha_f| >= 1 deg retained, 2.0-2.1 % of in-corner fit samples dropped (diagnostics/inspect_speed_bands.py). Derived km/h per session are recorded in the fit manifest (speed_window).",
+    "_comment_fit_density_bin_rad": "Q-FIT-LIT fit L only (tyre_fit_mode literature_bounded; inactive, production default per_session): inverse-density weights on the signed slip angle of the fit population, weight = 1 / (samples in the sample's bin). Tier B preprocessing implementing the even data distribution of Goblirsch et al. 2025 (their own method unspecified); the bin width is a resolution choice, not a literature value.",
+    "fit_density_bin_rad": 0.01,
+    "fit_density_bin_rad_derived_from": "2026-10-18, author ruling Q-FIT-LIT (bin width carried over from the Q-FIT-SIMPLE Pw / E0w variants, diagnostics/inspect_fit_simplification.py). Not tuned to data.",
     "r_sweep_ay_scales": [
       1.0,
       0.3,

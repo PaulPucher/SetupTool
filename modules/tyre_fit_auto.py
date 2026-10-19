@@ -23,14 +23,41 @@ from scipy.stats import chi2
 from modules.stability_analysis import (
     prepare_vehicle_state, estimate_sideslip, estimate_slip_angles,
     estimate_lateral_forces, estimate_vertical_loads, load_car_data, apex_instant_slice,
+    _butterworth_lowpass,
 )
+from modules.longitudinal_forces import estimate_longitudinal_forces
 from modules.tyre_model_pacejka import pacejka_lateral_force, pacejka_lateral_stiffness
 from modules.nis_gate import evaluate_gate
 from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
 PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E)
 
-TYRE_FIT_MODES = ("per_session", "prior_anchored")
+# Fit L (tyre_fit_mode "literature_bounded", Q-FIT-LIT 2026-10-18). These
+# values define the method, they are not tuned: with an estimated sideslip
+# and no sliding data the curve shape is not identified (Q-FIT-SIMPLE), so
+# shape and curvature are fixed at literature values and B and mu are bound
+# to physical ranges. Deviation class FORCED ADAPTATION -- the chair fits all
+# four on measured beta.
+# C = 1.0: with E = -1 the curve rises monotonically to the asymptote D, so
+# no post-peak drop is modelled where the data never show one (Voser et al.
+# 2010; Rao et al. 2006; axle peak may vanish, Pacejka 2006 sec. 1.2.2; C
+# lower bound, Goblirsch et al. 2025 Table I). C = 1.3 put an extrapolated
+# falling branch in the observer's reach, which drove it to the hard bound
+# (Q-OBS-REENTRY, 2026-10-18).
+L_SHAPE_C = 1.0
+L_CURVATURE_E = -1.0     # fixed E "according to the literature", Goblirsch et al. 2025; Pacejka Tables 4.1 / 4.2
+L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
+L_MU_BOUNDS = (0.1, 2.0)   # D normalised by Fz, Goblirsch et al. 2025 Table I
+# start inside the bounds: the chair's B and its 8000 N peak force scaled by
+# the axle's reference load
+L_START_B = 12.0
+L_START_PEAK_N = 8000.0
+# D4 under L: cornering stiffness "from about 6 to about 30 times the
+# vertical wheel load ... per radian", racing tyres toward the upper value
+# (Pacejka 2006 sec. 1.2.1)
+L_K_BAND = (6.0, 30.0)
+
+TYRE_FIT_MODES = ("per_session", "prior_anchored", "literature_bounded")
 SIDESLIP_SOURCES = ("kinematic", "ekf_auto_pacejka")
 # Grid resolution of the prior-curve penalty; part of the method definition
 # (what "mean distance over the visited range" means), not a tunable.
@@ -372,6 +399,184 @@ def _fit_axle_pacejka_mu(alpha, Fy, Fz, base_mask):
     }
 
 
+def _front_tyre_frame_force(fy_body, fx, delta):
+    """Front axle lateral force in the wheel frame from the body-frame value
+    and the axle Fx (Goblirsch et al. 2025 Eq. 13)."""
+    return (fy_body - fx * np.sin(delta)) / np.cos(delta)
+
+
+def _front_body_force(fy_tyre, fx, delta):
+    """Inverse of _front_tyre_frame_force: body-lateral share of the steered
+    wheel's tyre-frame lateral force and its Fx."""
+    return fy_tyre * np.cos(delta) + fx * np.sin(delta)
+
+
+def _analysis_lap_mask(t, laps):
+    out = np.zeros_like(t, dtype=bool)
+    for lap in laps:
+        if lap.get("is_valid_for_analysis"):
+            out |= (t >= lap["start_time"]) & (t <= lap["end_time"])
+    return out
+
+
+def _axle_load_inputs(state, data, params, forces, fit_mask):
+    """Inputs of fit L besides alpha and Fy: axle Fz from the vertical-load
+    cascade as configured (measured -> reconstructed -> static, no refusal),
+    front Fx split by axle load (below), and the steer angle, each
+    through the same 2 Hz order-4 zero-phase filter as Fy and alpha so the
+    pairing stays consistent (Tier B; the fitted curve is a quasi-steady
+    effective axle curve, Pacejka sec. 1.2.2). Also records which load source
+    each corner used and the lowest accuracy level among them."""
+    se = params["stability_estimation"]
+    sr = state["sample_rate_hz"]
+    cutoff = se["cs_filter_cutoff_hz"]
+    fz = estimate_vertical_loads(state, forces, params, channels=data["channels"], car_data=load_car_data())
+    # Front Fx after Goblirsch et al. 2025 Eq. 9: the CoG longitudinal force
+    # (m ax + drag + rolling, the terms of estimate_longitudinal_forces) goes
+    # to the front in proportion to the measured axle load under braking,
+    # none under drive (rear drive). Not the brake-pressure split of
+    # estimate_longitudinal_forces: a pressure ratio is a force ratio only
+    # with known per-axle brake gains, and pad friction varies with
+    # temperature (author ruling 2026-10-18). That split stays as is for its
+    # own reader, the longitudinal-stiffness display.
+    fx = estimate_longitudinal_forces(state, data["channels"], params)
+    fx_cog = fx["fx_N"]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        fx_front = np.where(fx_cog < 0.0, fx_cog * fz["fz_f_N"] / (fz["fz_f_N"] + fz["fz_r_N"]), 0.0)
+    raw = {"fz_f_N": fz["fz_f_N"], "fz_r_N": fz["fz_r_N"], "fx_f_N": fx_front, "delta_f": state["delta_f_rad"]}
+    bad = [k for k, v in raw.items() if not np.all(np.isfinite(v))]
+    if bad:
+        return {"degenerate_reason": f"fit L: non-finite input ({', '.join(bad)}) -- the zero-phase filter would spread it"}
+    out = {k: _butterworth_lowpass(np.asarray(v, dtype=float), cutoff, sr) for k, v in raw.items()}
+
+    levels = params["accuracy_levels"]
+    level_of = {"damper": levels["wheel_load_damper"]["level"],
+                "reconstructed": levels["wheel_load_damper_reconstructed"]["level"],
+                "static_fallback": levels["per_wheel_load_split"]["level"]}
+    moving_an = state["moving_mask"] & _analysis_lap_mask(state["time"], data.get("laps", []))
+    src = fz["vertical_load_source_per_sample"]
+    shares, used = {}, set()
+    if src is None:
+        used.add("static_fallback")
+        shares = {"note": "static path (no damper data or no car_data) -- every sample static"}
+    else:
+        for c, lab in src.items():
+            lab = np.asarray(lab)
+            shares[c] = {pop_name: {s: float(np.mean(lab[pop] == s)) if pop.any() else float("nan")
+                                    for s in level_of}
+                         for pop_name, pop in (("fit_population", fit_mask), ("moving_analysis_laps", moving_an))}
+            used |= set(np.unique(lab[moving_an])) & set(level_of)
+    zero = data.get("event_zero_entry") or {}
+    zero_applied = any(v == "applied" for v in (zero.get("channels") or {}).values())
+    lowest = min(level_of[s] for s in used) if used else levels["vertical_load_split"]["level"]
+    out["info"] = {
+        "vertical_load_source_used": fz["vertical_load_source_used"],
+        "source_shares": shares,
+        "lowest_level": lowest,
+        "level_note": ("damper loads carry an event zero entry (L4 with an L2 zero, Q-CAL-2)"
+                       if zero_applied and "damper" in used else ""),
+        "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the "
+                           "measured axle loads, drive rear only",
+        "fx_front_level": min(fx["accuracy_level"], lowest),
+        "filter_cutoff_hz": cutoff,
+    }
+    return out
+
+
+def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, weighted=True):
+    """Fit L on one axle (Q-FIT-LIT): the load-normalised force f = Fy / Fz
+    against slip angle, with C and E fixed and B, mu bounded (constants
+    above), bounded Powell, optional inverse-density weights on the signed
+    slip angle. Fitting the ratio gives every sample the same weight
+    whatever its load, where a force-domain fit would favour high-load
+    samples by Fz^2. Same dict as _fit_axle_pacejka, D = mu * Fz_ref as the
+    representative peak force for the constant-D readers (D4 stiffness band,
+    curve display); residuals in N (Fy - Fz f), in the frame of Fy."""
+    m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz) & (Fz > 0)
+    a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
+    if len(a2) == 0:
+        return {
+            "B": float("nan"), "C": L_SHAPE_C, "D": float("nan"), "E": L_CURVATURE_E,
+            "mu": float("nan"), "fz_ref_N": float("nan"), "weighted": weighted,
+            "bound_active": {}, "powell_converged": False,
+            "fit_n_samples": 0, "fit_rms_resid_N": float("nan"), "fit_rms_resid_norm": float("nan"),
+            "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
+            "visited_alpha_p99_deg": float("nan"),
+            "sign_ok": False,
+            "residuals": np.array([]), "residual_mask": m2,
+        }
+    y = f2 / z2
+    fz_ref = float(np.median(z2))
+    if weighted:
+        _, inv, cnt = np.unique(np.floor(a2 / bin_rad).astype(np.int64), return_inverse=True, return_counts=True)
+        w = 1.0 / cnt[inv]
+    else:
+        w = None
+
+    def _j(p):
+        r2 = (pacejka_lateral_force(a2, p[0], L_SHAPE_C, p[1], L_CURVATURE_E) - y) ** 2
+        return float(np.sum(r2 if w is None else w * r2))
+
+    start = (L_START_B, float(np.clip(L_START_PEAK_N / fz_ref, *L_MU_BOUNDS)))
+    res = minimize(_j, start, method="Powell", bounds=[L_B_BOUNDS, L_MU_BOUNDS])
+    B, mu = (float(x) for x in res.x)
+    shape = pacejka_lateral_force(a2, B, L_SHAPE_C, 1.0, L_CURVATURE_E)
+    resid = f2 - mu * z2 * shape
+
+    bound_active = {}
+    for name, val, (lo, hi) in (("B", B, L_B_BOUNDS), ("mu", mu, L_MU_BOUNDS)):
+        tol = 1e-4 * (hi - lo)
+        bound_active[name] = "lower" if val - lo <= tol else ("upper" if hi - val <= tol else None)
+
+    p99 = float(np.percentile(np.abs(np.degrees(a2)), 99))
+    grid_deg = np.linspace(0.01, 89.9, 4000)
+    stiffness_grid = pacejka_lateral_stiffness(np.radians(grid_deg), B, L_SHAPE_C, 1.0, L_CURVATURE_E)
+    sign_changes = np.where(np.diff(np.sign(stiffness_grid)) < 0)[0]
+    peak_deg = float(grid_deg[sign_changes[0]]) if len(sign_changes) > 0 else float("nan")
+
+    return {
+        "B": B, "C": L_SHAPE_C, "D": mu * fz_ref, "E": L_CURVATURE_E,
+        "mu": mu, "fz_ref_N": fz_ref, "weighted": weighted, "bound_active": bound_active,
+        "powell_converged": bool(res.success),
+        "fit_n_samples": int(len(a2)), "fit_rms_resid_N": float(np.sqrt(np.mean(resid ** 2))),
+        "fit_rms_resid_norm": float(np.sqrt(np.mean((y - mu * shape) ** 2))),
+        "peak_alpha_deg": peak_deg, "peak_in_visited_range": bool(peak_deg == peak_deg and peak_deg <= p99),
+        "visited_alpha_p99_deg": p99,
+        "sign_ok": mu > 0,
+        "residuals": resid, "residual_mask": m2,
+    }
+
+
+def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
+    """D4 for fit L (Q-FIT-LIT reopen, 2026-10-18, declared post-result).
+    Under L the curve peak lies beyond the visited slip range wherever the
+    data do not reach it, so it is an extrapolation (Goblirsch et al. 2025)
+    and cannot be gated on; what the data do identify is the origin slope.
+      g1 excitation: unchanged (p1..p99 span of the fit's slip angles)
+      g2 normalised origin slope K = B C mu inside L_K_BAND; the axle ratio
+         is the sum of tyre stiffnesses over the sum of tyre loads, so the
+         tyre band carries over to the axle
+      mu at a literature bound: the value was set by the bound, not the data
+    The peak position and its coverage are reported only; an uncovered peak
+    flags mu as extrapolated."""
+    a = np.degrees(alpha[fit_mask & np.isfinite(alpha)])
+    span = float(np.percentile(a, 99) - np.percentile(a, 1)) if a.size else float("nan")
+    K = float(axle_fit["B"] * axle_fit["C"] * axle_fit["mu"])
+    mu_bound = axle_fit["bound_active"].get("mu")
+    failed = []
+    if not span >= cfg["min_alpha_span_deg"]:
+        failed.append("g1 excitation")
+    if not L_K_BAND[0] <= K <= L_K_BAND[1]:
+        failed.append("g2 normalised stiffness")
+    if mu_bound is not None:
+        failed.append("mu set by literature bound, not data")
+    peak = axle_fit["peak_alpha_deg"]
+    return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "mu": axle_fit["mu"], "mu_bound": mu_bound,
+            "peak_deg": peak, "peak_note": "no peak (monotonic)" if peak != peak else "",
+            "peak_covered": bool(axle_fit["peak_in_visited_range"]),
+            "mu_extrapolated": not axle_fit["peak_in_visited_range"], "failed": failed}
+
+
 def plausibility_gate(alpha, fit_mask, axle_fit, cfg):
     """D4 garbage catch on one fitted axle curve (2026-10-07). Bands are
     deliberately wide: they reject curves no GT3 axle can have, they do not
@@ -412,6 +617,12 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     see _fit_axle_pacejka_anchored; prior and weight from config). The
     prior is a free-D curve, so prior_anchored with load_normalised is
     refused rather than mixed.
+
+    tyre_fit_mode 'literature_bounded': fit L (Q-FIT-LIT, inactive by
+    default) -- _fit_axle_l on the load-normalised force, front in the tyre
+    frame; the observer gets mu and the per-sample axle loads (d_is_mu). The
+    manifest adds axle_load (source shares, lowest level), front_force_frame
+    and fit_density_bin_rad; axles carry mu, fz_ref_N, bound_active.
     """
     if tyre_fit_mode not in TYRE_FIT_MODES:
         raise ValueError(f"tyre_fit_mode {tyre_fit_mode!r} not recognised (expected one of {TYRE_FIT_MODES})")
@@ -440,8 +651,21 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     if tyre_fit_mode == "prior_anchored" and load_normalised:
         return {"status": "degenerate", "degenerate_reason": "tyre_fit_mode 'prior_anchored' requires the free-D "
                 "fit (load_normalised False) -- the prior is a free-D curve", "data_file": data_file_path}
+    if tyre_fit_mode == "literature_bounded" and load_normalised:
+        return {"status": "degenerate", "degenerate_reason": "tyre_fit_mode 'literature_bounded' is load-normalised "
+                "by construction -- load_normalised True would mix two mu fits", "data_file": data_file_path}
 
-    if load_normalised:
+    lit = tyre_fit_mode == "literature_bounded"
+    if lit:
+        load_in = _axle_load_inputs(state, data, params, forces, fit_mask)
+        if "degenerate_reason" in load_in:
+            return {"status": "degenerate", "degenerate_reason": load_in["degenerate_reason"],
+                    "data_file": data_file_path}
+        fy_f_tyre = _front_tyre_frame_force(forces["Fy_f_filt"], load_in["fx_f_N"], load_in["delta_f"])
+        bin_rad = cfg["fit_density_bin_rad"]
+        front_fit = _fit_axle_l(slip_kin["alpha_f_filt"], fy_f_tyre, load_in["fz_f_N"], fit_mask, bin_rad)
+        rear_fit = _fit_axle_l(slip_kin["alpha_r_filt"], forces["Fy_r_filt"], load_in["fz_r_N"], fit_mask, bin_rad)
+    elif load_normalised:
         car_data = load_car_data()
         if car_data is None:
             return {"status": "degenerate", "degenerate_reason": "load_normalised=True requires "
@@ -482,6 +706,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     if tyre_fit_mode == "prior_anchored":
         manifest["prior_weight"] = cfg["prior_weight"]
         manifest["prior_derived_from"] = cfg["tyre_fit_prior"]["derived_from"]
+    if lit:
+        manifest["axle_load"] = load_in["info"]
+        manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
+        manifest["fit_density_bin_rad"] = bin_rad
     try:
         git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     except Exception as e:
@@ -497,13 +725,28 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     common_mask = front_fit["residual_mask"] & rear_fit["residual_mask"]
     resid_front_full = np.zeros_like(base_mask, dtype=float)
     resid_rear_full = np.zeros_like(base_mask, dtype=float)
-    resid_front_full[front_fit["residual_mask"]] = front_fit["residuals"]
+    if lit:
+        # R is a lateral-acceleration noise: the front residual goes back to
+        # the body frame (the Fx term cancels in the difference)
+        resid_front_full[front_fit["residual_mask"]] = (
+            front_fit["residuals"] * np.cos(load_in["delta_f"][front_fit["residual_mask"]]))
+    else:
+        resid_front_full[front_fit["residual_mask"]] = front_fit["residuals"]
     resid_rear_full[rear_fit["residual_mask"]] = rear_fit["residuals"]
     r_ay_var_derived, std_f, std_r, rho = _r_from_residuals(resid_front_full, resid_rear_full, common_mask, mass_kg)
 
+    # fit L hands the observer mu and the per-sample loads; the shared state
+    # is copied, not extended, so no other reader sees the extra keys
+    d_front, d_rear = (front_fit["mu"], rear_fit["mu"]) if lit else (front_fit["D"], rear_fit["D"])
+    ekf_state = state
+    if lit:
+        ekf_state = dict(state)
+        ekf_state["fz_axle_f_N"] = load_in["fz_f_N"]
+        ekf_state["fz_axle_r_N"] = load_in["fz_r_N"]
+        ekf_state["fx_axle_f_N"] = load_in["fx_f_N"]
     interim_cfg = {
-        "b_front": front_fit["B"], "c_front": front_fit["C"], "d_front": front_fit["D"], "e_front": front_fit["E"],
-        "b_rear": rear_fit["B"], "c_rear": rear_fit["C"], "d_rear": rear_fit["D"], "e_rear": rear_fit["E"],
+        "b_front": front_fit["B"], "c_front": front_fit["C"], "d_front": d_front, "e_front": front_fit["E"],
+        "b_rear": rear_fit["B"], "c_rear": rear_fit["C"], "d_rear": d_rear, "e_rear": rear_fit["E"],
         "Q_beta_var": cfg["q_beta_var"], "Q_yaw_rate_var": cfg["q_yaw_rate_var"],
         "q_reference_rate_hz": cfg["q_reference_rate_hz"],
         "P0_beta_var": cfg["p0_beta_var"], "P0_yaw_rate_var": cfg["p0_yaw_rate_var"],
@@ -512,9 +755,11 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         "nis_window_s": cfg["nis_window_s"], "nis_chi2_bound": cfg["nis_chi2_bound"],
         "nis_flag_fraction": cfg["nis_flag_fraction"],
     }
+    if lit:
+        interim_cfg["d_is_mu"] = True
     params_interim = dict(params)
     params_interim["tyre_model_ekf_pacejka"] = {"_auto_interim": interim_cfg}
-    interim_result = estimate_sideslip_ekf_pacejka(state, params_interim, pass_id="_auto_interim")
+    interim_result = estimate_sideslip_ekf_pacejka(ekf_state, params_interim, pass_id="_auto_interim")
     yaw_innov_interim = interim_result["innovation"][base_mask][:, 0]
     r_yaw_rate_var_derived = float(np.mean(yaw_innov_interim ** 2))
 
@@ -554,7 +799,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         sweep_cfg["R_yaw_rate_var"] = r_yaw_rate_var_derived * r_yaw_scale
         params_sweep = dict(params)
         params_sweep["tyre_model_ekf_pacejka"] = {"_auto_sweep": sweep_cfg}
-        result = estimate_sideslip_ekf_pacejka(state, params_sweep, pass_id="_auto_sweep")
+        result = estimate_sideslip_ekf_pacejka(ekf_state, params_sweep, pass_id="_auto_sweep")
         innovation = result["innovation"][base_mask]
         S_diag = result["S_diag"][base_mask]
         f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
@@ -595,7 +840,7 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     final_cfg["R_yaw_rate_var"] = chosen["R_yaw_rate_var"]
     params_final = dict(params)
     params_final["tyre_model_ekf_pacejka"] = {"_auto_final": final_cfg}
-    final_result = estimate_sideslip_ekf_pacejka(state, params_final, pass_id="_auto_final")
+    final_result = estimate_sideslip_ekf_pacejka(ekf_state, params_final, pass_id="_auto_final")
     beta_ekf = final_result["beta"]
     # Sign check, coverage and h2 validate the beta that ships, not the raw
     # update (#20): the two differ at hard-bound re-entries, where the raw
@@ -637,8 +882,16 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         apex_mask[apex_instant_slice(t, start_t, apex_half)] = True
     apex_pop = base_mask & apex_mask
     idx = np.where(apex_pop)[0]
-    h2_pred = (pacejka_lateral_force(slip_ekf["alpha_f_filt"][idx], front_fit["B"], front_fit["C"], front_fit["D"], front_fit["E"]) +
-               pacejka_lateral_force(slip_ekf["alpha_r_filt"][idx], rear_fit["B"], rear_fit["C"], rear_fit["D"], rear_fit["E"])) / mass_kg
+    if lit:
+        # same force model as the observer: D = mu Fz(t), front back to the body frame
+        f_tyre = pacejka_lateral_force(slip_ekf["alpha_f_filt"][idx], front_fit["B"], front_fit["C"],
+                                       front_fit["mu"] * load_in["fz_f_N"][idx], front_fit["E"])
+        h2_pred = (_front_body_force(f_tyre, load_in["fx_f_N"][idx], load_in["delta_f"][idx]) +
+                   pacejka_lateral_force(slip_ekf["alpha_r_filt"][idx], rear_fit["B"], rear_fit["C"],
+                                         rear_fit["mu"] * load_in["fz_r_N"][idx], rear_fit["E"])) / mass_kg
+    else:
+        h2_pred = (pacejka_lateral_force(slip_ekf["alpha_f_filt"][idx], front_fit["B"], front_fit["C"], front_fit["D"], front_fit["E"]) +
+                   pacejka_lateral_force(slip_ekf["alpha_r_filt"][idx], rear_fit["B"], rear_fit["C"], rear_fit["D"], rear_fit["E"])) / mass_kg
     r_h2 = float(np.corrcoef(h2_pred, ay[idx])[0, 1]) if len(idx) > 2 else float("nan")
     manifest["h2_vs_ay_apex"] = {"n": int(len(idx)), "correlation": r_h2}
 
@@ -679,9 +932,14 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     # fallback in resolve_sideslip_beta). The verdict lives in the in-memory
     # manifest only -- resolve_sideslip_beta strips it, the failed checks
     # reach the persisted payload through degenerate_reason / fallback_reason.
-    gate = {name: plausibility_gate(slip_kin[key], fit_mask, fit, cfg)
+    gate_fn = plausibility_gate_l if lit else plausibility_gate
+    gate = {name: gate_fn(slip_kin[key], fit_mask, fit, cfg)
             for name, key, fit in (("front", "alpha_f_filt", front_fit), ("rear", "alpha_r_filt", rear_fit))}
     manifest["plausibility_gate"] = gate
+    if lit:
+        # the gate dict is stripped before persisting; the flag rides with the axle
+        for name, g in gate.items():
+            manifest["axles"][name]["mu_extrapolated"] = g["mu_extrapolated"]
     gate_failures = [f"{name}: {', '.join(g['failed'])}" for name, g in gate.items() if g["failed"]]
     if gate_failures:
         reason = "tyre curve plausibility gate failed -- " + "; ".join(gate_failures)

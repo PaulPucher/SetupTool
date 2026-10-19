@@ -26,6 +26,19 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Werner Eq. 4.3 v2 damping term: considered, not adopted (chair deviation, unmeasured benefit, route abandoned by Werner himself); yaw_damping.py, its test and diagnostic stay as the v1 record (2026-10-05).
 - Iz stays the config Level-1 value; a mass-derived Iz is not shipped (2026-10-05).
 - Tyre-fit legitimacy anchor: lateral-only axle-level Magic Formula fit per Pacejka secs. 1.2.1, 1.2.2, 4.3.1 (Eqs. 4.49 / 4.E19, combined slip as G_yk extension); large-Fx tails are the known bias (2026-10-05).
+- Fit choices are decided by physical bounds and literature practice on measured data, never by comparing CS verdicts or proxies with production; CS is information only, thresholds re-derive afterwards (author, Q-FIT-LIT, 2026-10-18).
+- Q-FIT-SIMPLE beats-P rule withdrawn as a decision basis (it compared CS proxies with production); its braking-samples exit is superseded by Q-FIT-LIT (2026-10-18).
+- Fit L (Q-FIT-LIT, built inactive, production default stays P): f = Fy/Fz per axle, ~~C 1.3~~ C 1.0 [2026-10-18 post-result ruling, mechanism-motivated] and E -1 fixed, B in [5, 40], mu in [0.1, 2.0] (Goblirsch et al. 2025 Table I), inverse-density weights, Fz from the existing cascade without refusal (source shares and lowest level in the manifest), Fz 2 Hz filtered, front force in the tyre frame in fit and EKF; method constants in code, bin width in config (2026-10-18).
+- Fit L front Fx: Goblirsch et al. 2025 Eq. 9 -- CoG Fx (m ax + drag + rolling) split by the measured axle loads under braking, zero under drive; not the brake-pressure split (no per-axle brake gains); estimate_longitudinal_forces unchanged for the LS display; steer angle as built (EKF input delta, Fz / Fx at 2 Hz) (author, 2026-10-18).
+- Fit L as frozen = scoped negative (exit fired on US-v2, D4 g3 rear); no switch to L-nw (selection by gate verdict), no post-hoc D4 change; D4 g3 judges an extrapolated peak under L and is to be re-anchored in the final plausibility design (author, 2026-10-18).
+- D4 for mode literature_bounded (declared post-result reopen via the recorded "D4 band" condition): g1 unchanged; g2 = normalised origin slope K = B C mu in [6, 30] / rad (Pacejka 2006 p. 6); mu at a literature bound -> fail; g3 removed as a gate, peak and coverage reported, uncovered -> "mu extrapolated"; production D4 and the CS reference band unchanged (author, 2026-10-18).
+- Fit L shape factor C = 1.0 (post-result, mechanism-motivated: observer drift past the extrapolated peak, Q-OBS-REENTRY): monotonic curve, asymptote D, no unobserved post-peak drop modelled (Voser et al. 2010; Pacejka 2006 pp. 14, 174; Rao et al. 2006; Goblirsch et al. 2025 Table I); mu = asymptotic grip, flagged extrapolated; curve-floor / STRONG wording owed to the final chain; production re-entries out of scope (author, 2026-10-18).
+- Shape changes of fit L stop at C = 1.0: no further C / E variation as a fix; the C / E sensitivity band (C {1.0, 1.3, 1.6}, E {-1, 0, 1}) is reported only, never selected (author, 2026-10-19).
+- Fit L grip (ruled, to implement after Q-PR-DEMAND): mu per axle = demonstrated utilisation, p99.5 of |Fy| / Fz on the fit population, a stated lower bound of true friction; B the only fitted parameter, C 1.0 and E -1 fixed (Farroni et al. 2018 p. 5; chair mue_effective; Acosta Reche et al. 2018 p. 1904) (author, 2026-10-19).
+- Thesis file set: NBR and Le Castellet only; a file leaves only by failing the uniform quality screen (Q-DATA-QUALITY: Q1 |Fy|/Fz ceiling, Q2 load calibration, Q3 load completeness, Q4 >= 3 analysis laps), never by its results; comparison files re-picked from the passing set (author, 2026-10-19).
+- Screen revised post-result (declared): Q2 load calibration withdrawn as exclusion criterion (criterion design defect), information only; screen = Q1, Q3, Q4. Analysis set: NBR outings 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69, 70; Le Castellet outing 25 (one export by the stated rule) and 32 (US-v2); excluded NBR 64 (Q1), 18 / 19 / 21 (Q4), GT3_PRC_MLA (20 Hz yaw rate), GT3_Creventic_PRC_MLA (channels missing), duplicate copy of 29. Le Castellet load ratio ~0.95: stated limitation (author, 2026-10-19).
+- Seed construction CLOSED, open trigger resolved: Farroni 2016 T.R.I.C.K. offers no sensor-free drift remedy; its offset / gain steps are the Q-SEED family (author, 2026-10-19).
+- Seed construction stays CLOSED except where a NEW source enables an untested improvement; review 2026-10-18: no new usable construction (Puscul 2024, Repka 2025, Bertipaglia 2024, Wegrzynowski 2024, Oeltjen 2025, Goblirsch et al. 2025; Farrelly 1996 reset = Q-SEED S2/S3); open trigger Farroni 2016 T.R.I.C.K. offset method (not on disk); a_y roll / gravity compensation stays outlook (author, 2026-10-18).
 - MLA outing 5 stays excluded from Q-MU (frozen E3 rule, one-sample float32 artefact) (2026-10-05).
 
 ## Kerb exclusion (one concept)
@@ -106,7 +119,8 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - Design spec: exclude what is physically disturbed, grade what is statistically thin, delete nothing else; coverage loss is not an acceptable price (2026-10-03).
 - Sanity screen (B >= 1, 1 < C <= 3, E <= 1) is a fit-shape rule, not physics (2026-10-04).
 - Recorded negatives are cited with a scope line (data, conditions, reopen condition) (2026-10-01).
-- Comparable evidence -> the simpler candidate ships (2026-09-30).
+- ~~Comparable evidence -> the simpler candidate ships (2026-09-30).~~ [2026-10-18, author: a guide, not a hard rule; next line.]
+- Comparable evidence -> the simpler candidate ships, as a GUIDE: a more complex variant may win if its evidence is better and it stays defensible (author, 2026-10-18).
 - Frozen frames: rules written before any number; conflict = record, never re-tune; gates escalate, never cancel (2026-10-02).
 - The NBR A->B pair is a measured multi-change outing pair (line and map changes), not a single-change anchor (2026-10-02).
 - Every estimator item in BACKLOG-PERMANENT leaves only by author ruling, never by metric (2026-10-03).
@@ -116,6 +130,7 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 ## Process
 - One step at a time; proposal and implementation never in one turn; the author runs git (standing).
 - Runs launch only on an explicit author EXECUTE / go; ambiguity = ask and wait (2026-10-02).
+- Working principle (author, 2026-10-18): finishing never blocks a better science-backed solution; the simpler-candidate rule is a guide; no blind poking -- every experiment states anchor, hypothesis with predicted direction, the decision it feeds and an exit (one cycle; a negative is recorded with a scope line and work moves to the next guided item, not to new variants).
 - Chat is lossy: every ruling lands in PLAN.md (and here) in the same turn (2026-10-01).
 - Report-framing conflicts with author positions are surfaced, never resolved in the report's favour (2026-10-03).
 - A finding that identifies a production defect carries a PRODUCTION CONSEQUENCE line (2026-10-03).

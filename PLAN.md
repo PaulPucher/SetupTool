@@ -22,7 +22,15 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it.
-  Branch new-laps is 17 commits above main; head b5b066f.
+  Branch new-laps is 29 commits above main; head fd40c78 (R6), not yet
+  pushed (origin one behind). [2026-10-18 correction: this line read "17
+  commits above main; head b5b066f" and the items below "pending the
+  author's commit"; everything through R6 is committed -- R0-R4b in the
+  commits before 2b02160, then 2b02160 (R5), 68c391a (CS reference
+  robustness record), fd40c78 (R6). The stale "pending" phrases are removed.]
+- Last recorded suite (R6, 2026-10-17): 619 passed / 2 failed (kinematic
+  and Dubai pipeline goldens, stale by design) / 1 xfailed. The "GREEN 608"
+  line below is the 2026-10-11 state.
 - Estimator-hardening arc (phases 1+2) COMPLETE and COMMITTED: f8c1c97
   (phase 1), b5b066f (phase 2: R selection on f_ay with sign-check
   guard, ay-only gross trigger, CS and NIS-gate thresholds re-derived,
@@ -31,7 +39,7 @@ REPO STATE
   2026-10-11 after the small-items package).
 - Small-items package 2026-10-11 (.gitignore un-ignores
   diagnostics/results_metrology_20261011/, NIS test re-anchored, OPEN
-  ITEMS block, this rewrite): pending the author's commit.
+  ITEMS block, this rewrite).
 - ~~Still owed: thesis_notes.md entry 9 restructure (2026-10-08 ruling),
   blocked on the author's date and setting of the communication.~~
   [DONE 2026-10-12: date not recorded, per author; entry restructured.]
@@ -48,10 +56,10 @@ REPO STATE
   modes). Golden JSON files byte-untouched: _meta.data_file is
   existence-checked, never compared (step 3 closed, no change needed).
   Diagnostics scripts with pinned paths (compare_beta_architectures,
-  fit_dugoff_*) left frozen as historical. Pending the author's commit.
+  fit_dugoff_*) left frozen as historical.
 - REBUILD BOARD: R1 DONE 2026-10-16 (entry 9 citation scope: multi-IMU ->
   Goblirsch 2024 only, IFAC 2019 lineage-only; one further spot struck in
-  the read-only-pass-2 supersede note). Text only. Pending the author's commit.
+  the read-only-pass-2 supersede note). Text only.
 - REBUILD BOARD: R2 Class A DONE 2026-10-16 (seven estimator corrections
   #26 CS section clipping, Q dt-scaling, NIS window 0.4 s, #20 shipped beta
   in sign check/coverage/h2, #22 NaN sign check degenerate, #24 NaN-aware
@@ -61,7 +69,7 @@ REPO STATE
   rebuild"). Goldens STALE by design, no threshold/golden/schema work
   (deferred to the final re-derivation chain; gate payload gains one
   field -> schema bump owed there). Latent #1/2/3/5/6/23 not checkable
-  (definitions lost). #12 fires -> next cycle. Pending the author's commit.
+  (definitions lost). #12 fires -> next cycle.
 - R2b RUNTIME CHECK 2026-10-17: STOPPED at step 1, no code change. The
   5 h 20 min R2 suite is NOT a code regression: per-pipeline wall time
   old (279f4ee) vs new within +-3 % on Dubai / NBR-73 / PR (fix 1 edge
@@ -77,14 +85,14 @@ REPO STATE
   "Class B, rebuild"). Open for the author: h2 apex check and TPMS apex
   windows also moved (shared #12 helper, beyond spec); tyre_fit_auto
   nis_band_low/high kept (diagnostics reader); schema bump owed in the final
-  chain. Goldens STALE by design. Pending the author's commit.
+  chain. Goldens STALE by design.
 - REBUILD BOARD: R4 DATAFLOW REGISTRY DONE 2026-10-17 (read-only; new tracked
   docs/dataflow_registry.md: 14 quantities, shared sections S1-S6, findings
   R1-R25 with file:line; thesis_notes "Dataflow registry rebuild"). Fix 0
   verified on every set event; all first-pass acceptance numbers reproduced
   (population definitions identified; R11 adds 3 unread straddling windows).
   No fix made. Open for the author: which findings enter which next cycle
-  (defects R1, R2; R3 with the schema bump). Pending the author's commit.
+  (defects R1, R2; R3 with the schema bump).
 - AUTHOR DECISION 2026-10-17: the understeer-gradient readout (balance line,
   K, modules/balance_gradient.py) is REMOVED entirely from the application
   (UI, payload, exports, tests); basis as stated by the author: Guiggiani 2023
@@ -99,8 +107,7 @@ REPO STATE
   payload difference (resolved_levels loses the understeer_gradient node)
   ACCEPTED by the author 2026-10-17. Suite once: 3 failed (the 3 stale
   goldens) / 597 passed / 1 xfailed, 19.4 min. Schema bump owed in the final
-  chain for "balance" and resolved_levels.understeer_gradient. Pending the
-  author's commit.
+  chain for "balance" and resolved_levels.understeer_gradient.
 - SPIKE TRACE 2026-10-17 (read-only): the JST 29 spikes are current-code
   output (sidecar == fresh run), dominated by small CLEAN references (a
   low-excitation window under 0.03 rad sets a reference 0.05-0.5 x the session
@@ -127,6 +134,11 @@ REPO STATE
   "estimator_settings" added (R5, R2 cache identity). Also owed there: R3, the
   NIS gate field n_windows_skipped_low_coverage (R2 Class A), R12 per-phase
   no-reference counts (deferred, would change the payload shape).
+  [2026-10-18, Q-FIT-LIT Step 1: also owed there -- the literature-bounded
+  fit L (tyre_fit_mode "literature_bounded", new config key
+  tyre_fit_auto.fit_density_bin_rad, new fit-manifest fields) is an
+  estimator-input change once it becomes the default; inactive now, so no
+  bump this cycle.]
   Suite once: 7 failed / 614 passed / 1 xfailed, 26.7 min; recommendations
   golden now PASSES. STOP rulings 2026-10-17 applied: (a)
   test_cs_validity_repair's isolated params dict gains the D4 band literals
@@ -134,7 +146,7 @@ REPO STATE
   carries estimator_settings. Verified: test_cs_validity_repair.py +
   test_thesis_data.py 33 / 33 passed. Resulting full-suite arithmetic (not
   re-run): 619 passed / 2 failed (kinematic golden, Dubai pipeline golden) /
-  1 xfailed. Pending the author's commit.
+  1 xfailed.
 - CS REFERENCE ROBUSTNESS 2026-10-17 (read-only simulation at 2b02160; log
   diagnostics/output/cs_ref_robustness/robustness.log; handover_cs_ref_
   robustness_2026-10-17.md): V0 HEAD, V1 median of last N = 5 / 11 / 21 valid set
@@ -156,7 +168,36 @@ REPO STATE
   restoration". Changed .py files AST-identical to HEAD. Suite once: 619
   passed / 2 failed (kinematic and Dubai pipeline stale goldens) / 1
   xfailed, as expected (wall clock 11 h 18 min, machine in standby).
-  Pending the author's commit.
+- Q-FIT-SIMPLE 2026-10-18 (read-only diagnostic, queue entry in PHASE 1
+  PLAN section 5): records written (queue entry, REPO STATE correction,
+  working principle in PROCESS RULES and DECISIONS, thesis_notes frozen
+  frame + run result); script diagnostics/inspect_fit_simplification.py
+  run once. ~~No variant beats production; exit rule -> braking samples,
+  author to rule.~~ [2026-10-18: beats-P withdrawn as decision basis,
+  exit superseded by Q-FIT-LIT (author).] NOT committed (stop before commit).
+- Q-FIT-LIT 2026-10-18 (records, census, Step 1 inactive implementation;
+  queue entry in PHASE 1 PLAN section 5): records written (record
+  corrections, mu-closure reframing, citations, rulings, DECISIONS). Census
+  (diagnostics/inspect_fz_census.py): 100 % damper on every corner of all
+  three sessions, US-v2 FR correction applied, stop rule not fired. Step 1:
+  fit L as tyre_fit_mode "literature_bounded" + EKF d_is_mu path + config
+  fit_density_bin_rad; production path BIT-IDENTICAL on three sessions
+  (diagnostics/check_fit_lit_inactive.py); targeted tests 20 passed;
+  test_stability.py exit 0. ~~OPEN for the author: front Fx split (code:
+  brake pressure; order said axle load).~~ [ruled 2026-10-18: Goblirsch
+  Eq. 9 load split, implemented, bit-identity re-proven.] VERIFICATION RUN
+  2026-10-18 (diagnostics/inspect_fit_lit.py): chain results VOID -- the
+  EKF measurement update kept the scalar D (= mu under d_is_mu), Step 1
+  defect found by the post-hoc mechanism check
+  (diagnostics/inspect_fit_lit_mechanism.py); fit-level results stand
+  (thesis_notes "Q-FIT-LIT: verification run -- chain results VOID").
+  Production path unaffected. [2026-10-18: void run not counted (author);
+  fix = shared axle_forces helper in the EKF + physical test (RMS 1.802 vs
+  1.810 m/s^2), bit-identity re-proven; RE-RUN = the one cycle: fit level
+  reproduces exactly; L ok on NBR JDR and JST 29, DEGENERATE on US-v2
+  (D4 g3 rear, peak 15.8 deg); L-nw ok on all three. Exit fired: SCOPED
+  NEGATIVE for L as frozen (thesis_notes "Q-FIT-LIT: verification cycle --
+  result"). Author rules next.] NOT committed (stop before commit).
 - REBUILD BOARD COMPLETE 2026-10-17 (R0-R6). Next: the final re-derivation
   chain (thresholds, goldens, schema bump), after the R26 remainder is
   settled (OPEN ITEMS below).
@@ -3550,6 +3591,272 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
      [2026-10-03: the dead-FL-laser question is STRUCK (author, real-world
      confirmation): the NBR FL ride-height laser was blocked by a broken
      carbon piece -- physical cause known.]
+   Q-FIT-SIMPLE (author order 2026-10-18, read-only diagnostic; proposal
+      confirmed with rulings 1-4 and EXECUTE 2026-10-18). Tyre-fit
+      simplification variants P, P13, E0, E0C19, E0C13, E97C13, Pw, E0w,
+      run through the unchanged chain (fit -> R sweep -> D4 -> NIS gate ->
+      fallback -> CS) on NBR-73-010-026-JDR, MLA-SE07_US-v2 and NBR JST 29.
+      Script diagnostics/inspect_fit_simplification.py; metrics,
+      predictions, admissibility rule and the BEATS-P rule frozen in its
+      header before any number exists. Anchors: Goblirsch et al. 2025,
+      Rajamani 2012 sec. 13.9, Pacejka 2006, chair tooling (Tier A);
+      inverse-density weighting = Tier B preprocessing. Regime: no change to
+      modules, config, tests, goldens, thresholds or schema. Exit: one
+      EXECUTE cycle; if no admissible variant beats P, the result is
+      recorded as a scoped negative and the next guided item is braking
+      samples, not more fit variants. Working principle of 2026-10-18
+      (PROCESS RULES) applies. Frozen frame: thesis_notes "Q-FIT-SIMPLE:
+      frozen frame".
+      RULINGS 2026-10-18 (author): fixed-parameter variants start B, D at
+      12 / 8000; P13 alone starts at 10 / 1.3 / max|Fy| / 0.97. M-curve,
+      M-rel (5.5 % bar, extension of the (d2) V1 bar) and M-peak adopted;
+      bootstrap skipped this cycle, so every "within the bar" is a point
+      estimate. ADMISSIBLE = fit not degenerate, D4 pass, gate not fail, no
+      fallback, per session and axle. ~~BEATS P (proxy for "CS in an
+      analysable range", not a truth claim; DECISIONS "vs production"
+      line respected) = on >= 2 of 3 sessions all of (a) share CS < -2
+      (both axles pooled, verdict population) lower than P, (b) cross-lap
+      residual not worse than P by > 5 %, (c) finite-CS share not lower
+      than P by > 2 percentage points. A session where P is not admissible
+      stays in; a variant that makes it admissible is reported separately
+      as a point in its favour.~~ [2026-10-18: withdrawn as decision basis
+      (author, Q-FIT-LIT) -- it compared CS proxies against production; see
+      thesis_notes "Q-FIT-SIMPLE: run result", WHAT STANDS.] Weighting risk
+      recorded: inverse-density
+      weights also upweight sparse corrupt samples (Tier B, motivated by
+      Goblirsch et al. 2025 even data distribution, not their method).
+      [2026-10-18: RUN COMPLETE (100.7 min), entry check passed. ~~No variant
+      beats P (best: 1 of 3 sessions, JST 29 only); admissible: P, E0,
+      E0C19, Pw. Exit rule C fires: scoped negative, next guided item
+      braking samples -- AUTHOR RULES.~~ [2026-10-18: withdrawn as decision
+      basis (author, Q-FIT-LIT); admissible were P, E0, E0C19, Pw; the
+      braking-samples exit is superseded by Q-FIT-LIT.] Record: thesis_notes
+      "Q-FIT-SIMPLE: run result". Uncommitted, stop before commit.]
+   Q-FIT-LIT (author rulings 2026-10-18; EXECUTE for records, census and
+      Step 1 only -- no verification diagnostic this cycle). PRINCIPLE: fit
+      choices are decided by physical bounds and literature practice on
+      measured data, never by comparing CS verdicts or proxies with
+      production; CS is reported for information only; thresholds
+      re-derive afterwards per the standing rule.
+      FIT L (one method, Tier A, deviation class FORCED ADAPTATION -- the
+      chair fits all four free on measured beta; with estimated beta and no
+      sliding data the shape is not identified): f(alpha) = Fy_axle /
+      Fz_axle per axle; ~~C 1.3~~ [2026-10-18: C 1.0, post-result ruling, see Q-OBS-REENTRY fix] and E -1 fixed (Goblirsch et al. 2025 p. 1116
+      and p. 1119; Pacejka Table 4.1 p. 161, Table 4.2 p. 196, fitted Table
+      A3.1); B in [5, 40], D = mu in [0.1, 2.0] (Goblirsch Table I p. 1116);
+      bounded Powell, start B 12 / mu = 8000 N / Fz_ref; inverse-density
+      weights on signed alpha, bin width from config (Tier B, Goblirsch p.
+      1117 even data distribution); residuals in N. Fz(t) = the existing
+      cascade as is (measured -> reconstructed -> static), NO refusal on
+      partial measurement; per-sample source shares and the session's Fz
+      level (lowest used) in the fit manifest; Fz filtered with the 2 Hz
+      order-4 zero-phase filter of Fy and alpha (Tier B, consistent pairing;
+      quasi-steady effective axle curve, Pacejka sec. 1.2.2). Front force in
+      the tyre frame (Goblirsch Eq. 13): Fy_f_tf = (Fy_f - Fx_f sin delta) /
+      cos delta, in the fit population AND in the EKF (body lateral front
+      force = Fy_f_tf cos delta + Fx_f sin delta). EKF: optional pass-config
+      flag, per-sample Fz and Fx_f from a shallow-copied state dict, D = mu
+      Fz(t) in force and stiffness; flag off -> bit-identical. Representative
+      D = mu Fz_ref for D4 g2 and the UI plot. Production default stays P.
+      Constants: C, E, B and mu bounds and the starts are named constants
+      (method-defining); the bin width is config.
+      STEPS: (A) records; (B) census (read-only run; STOP if non-damper load
+      > 1 % of moving analysis-lap samples on any corner); (C) Step 1
+      implementation, inactive, bit-identity of the production path proven
+      on the three sessions, real-data tests only, no schema bump now (owed
+      item on the final-chain list).
+      NEXT CYCLE (verification, not now) reports: start-independence refit
+      (B 8 and 25), L vs L-nw, shifts Sv / Sh from the linear region
+      (reported, not adopted), leave-one-lap-out spread of B, mu, K (Kuensch
+      1989 blockwise), validity range [p1, p99] + peak covered, yaw-term sign
+      vs Goblirsch Eq. 11 explained, peak vs 3-7 deg (Milliken p. 24 primary,
+      Trzesniowski Bd. 4 2019 p. 34 second), physical checks only, CS for
+      information.
+      LIMITATIONS RECORDED: limited-slip differential torque not modelled;
+      sideslip estimated, not measured; Goblirsch smooth with Savitzky-Golay,
+      SetupTool uses the chair's 2 Hz order-4 zero-phase Butterworth.
+      Mu-fit closure of 2026-09 reframed (thesis_notes, struck + dated notes
+      at the Phase 2 stop, the gate resolution and the 2026-09-20 OVERALL).
+      VERIFICATION CYCLE RULINGS (author 2026-10-18, with EXECUTE): (a) front
+      Fx in mode literature_bounded = Goblirsch et al. 2025 Eq. 9 -- Fx_cog
+      = m ax + drag + rolling; braking: Fx_f = Fx_cog Fz_f / (Fz_f + Fz_r)
+      with the measured axle loads; drive: Fx_f = 0. Reason: a brake
+      pressure ratio is not a brake force ratio without per-axle brake gains
+      (unknown, pad mu temperature-dependent); the load split is the
+      examiner's published method and here uses L4-rel loads.
+      estimate_longitudinal_forces unchanged for its reader (outing_form ->
+      estimate_longitudinal_stiffness, LS display). (b) Steer angle as
+      built: the EKF uses its input delta everywhere; Fz and Fx enter at the
+      2 Hz quasi-steady bandwidth. (c) Diagnostic
+      diagnostics/inspect_fit_lit.py (L, L-nw, start independence, LOLO
+      blockwise jackknife, physical checks, chain function, CS information
+      only, yaw-sign line, five frozen predictions, one-cycle exit).
+      [2026-10-18 RESULT: first run VOID (EKF measurement-update defect,
+      not counted); re-run after the shared-helper fix = the one cycle:
+      exit FIRED on US-v2 (D4 g3 rear) -> scoped negative for L as frozen;
+      L-nw passed the chain on all three. Author rules next.]
+      [2026-10-18 CLOSE-OUT (author): L as frozen stays a scoped negative;
+      no switch to L-nw, no post-hoc D4 change. Final-design item: D4 g3
+      judges an extrapolated peak under L, its anchor is a personal
+      communication -> re-anchor in the final plausibility design. Next:
+      Q-PR-ANOMALY; then the observer item (hard-bound re-entries under L).]
+   Q-PR-ANOMALY (author order and EXECUTE 2026-10-18; read-only
+      diagnostic diagnostics/inspect_pr_anomaly.py). Why US-v2 rear has K =
+      15.9 / rad (others 23.5-26.9) and a low-speed residual bias. Subject
+      MLA-SE07_US-v2, controls NBR-73-010-026-JDR and NBR JST 29; inputs as
+      L builds them, L's fitted curves from the run (no refit); unit =
+      corner instance. Checks: K on |alpha| < 2 deg; H-Fz (measured vs
+      quasi-static Fz, wheel-sum sanity on straights, residual vs Fz ratio);
+      H-Fy (residual vs yaw-term share); H-alpha (residual vs corner
+      duration, time since the last straight, mean |ax|, kerb share).
+      Prediction (frozen): H-alpha dominant on US-v2 slow corners, H-Fz and
+      H-Fy secondary. Outcome: named mechanism -> fix proposal next turn (no
+      fix now); none shown -> "not shown", L's negative stands as scoped.
+      [Addendum 2026-10-18: laps_used and per-lap K on |alpha| < 2 deg.]
+      [2026-10-18 RESULT: US-v2 rear K 14.5 / rad on |alpha| < 2 deg, low
+      on all 9 laps (10.1-17.1; controls 20.4-26.0 every lap); no
+      hypothesis supported, prediction REFUTED, mechanism NOT SHOWN -> L's
+      negative stands as scoped. The earlier "low-speed bias" was a raw
+      signed mean (turn directions mixed). thesis_notes "Q-PR-ANOMALY".
+      Next per close-out: observer item (hard-bound re-entries under L).]
+   Q-FIT-LIT REOPEN: D4 for mode literature_bounded (author 2026-10-18,
+      EXECUTE; declared POST-RESULT via the recorded reopen condition "D4
+      band"; motivation recorded before, at the close-out; known number US-v2
+      rear K 15.9 / rad). g1 unchanged; g2 -> K = B C mu in [6, 30] / rad
+      (Pacejka 2006 p. 6, checked); mu at a literature bound -> fail; g3
+      removed as a gate, peak / coverage reported, "mu extrapolated" flag;
+      production D4 and the CS reference band unchanged. Tests real data;
+      production bit-identity on three sessions; re-run of
+      inspect_fit_lit.py chain items for L only (weighted, as frozen),
+      fit-level items must reproduce. Records: Q-PR-ANOMALY findings kept as
+      thesis material (washout cost rho +0.44 / +0.78 / +0.63; aero model
+      underestimates downforce; low-speed-bias correction).
+      SEED CONSTRUCTION (author addendum 2026-10-18): stays CLOSED except a
+      NEW source enables an untested improvement; review of Puscul 2024,
+      Repka 2025, Bertipaglia 2024, Wegrzynowski 2024, Oeltjen 2025,
+      Goblirsch et al. 2025: nothing new usable without a reference;
+      Farrelly 1996 reset = Q-SEED S2/S3. OPEN TRIGGER: Farroni 2016
+      T.R.I.C.K. (MSSP 72-73, 808-831), offset method cited by Goblirsch et
+      al. 2025, not on disk -- reopen only if it removes an error the
+      washout does not. a_y roll / gravity compensation stays outlook.
+      [2026-10-18 RESULT: plausibility_gate_l + L_K_BAND implemented (L mode
+      only); tests 5 passed; production bit-identical on three sessions;
+      reopen run (inspect_fit_lit.py --reopen-d4): fit level reproduces
+      exactly; L passes D4, gate and chain on all three sessions (US-v2 now
+      ok, gate 0.105); mu extrapolated on all six axles. Post-result status
+      recorded. Next: observer item (hard-bound re-entries 97 / 0 / 38).
+      NOT committed.]
+   Q-OBS-REENTRY (author order and EXECUTE 2026-10-18; read-only
+      diagnostic diagnostics/inspect_obs_reentry.py, frame frozen in its
+      header). L (weighted, redesigned D4) in memory, production beside it
+      for change tracking. Per hard-bound re-entry: observer slip vs visited
+      range and curve peak, local stiffness, speed, a_y, a_x, kerb, corner
+      position, NIS before. Hypotheses H-OBS (main; Farrelly & Wellstead
+      1996, Repka et al. 2025, Bertipaglia et al. 2024), H-KERB, H-LOWV,
+      H-LOC scored by enrichment over the base rate. CS impact: share of
+      verdict CS samples whose window holds a re-entry or the 1 s after.
+      Outcome: impact < 1 % everywhere -> documented limitation; else
+      mechanism + literature-anchored fix proposal next turn.
+      [2026-10-18 RESULT: re-entries L 97 / 0 / 38 (production 28 / 0 /
+      10); H-OBS CONFIRMED (enrichment 2.74 / 2.46; observer slip 12-22 deg,
+      beyond the L peak, curve slope -0.01 of origin), H-KERB / H-LOWV /
+      H-LOC mixed. CS impact L 22.3 / 24.4 % (JDR), 0 (US-v2), 15.7 / 16.8 %
+      (JST 29); production 4.2 / 4.7, 0, 1.6 / 3.0 %. Outcome: mechanism
+      (loss of observability past the extrapolated peak) -> fix proposal
+      next turn, no fix this cycle. thesis_notes "Q-OBS-REENTRY". NOT
+      committed.]
+   Q-OBS-REENTRY FIX (author ruling and EXECUTE 2026-10-18; POST-RESULT,
+      mechanism-motivated): mode literature_bounded uses C = 1.0 (was 1.3;
+      Voser et al. 2010, Pacejka 2006 pp. 14 / 174, Rao et al. 2006,
+      Goblirsch et al. 2025 Table I) -- monotonic curve, asymptote D, mu =
+      asymptotic grip (flagged extrapolated); D4-L unchanged, "no peak
+      (monotonic)" reported. Owed to the final chain: curve-floor / STRONG
+      wording (floor 0 for a monotonic curve). Production re-entries out of
+      scope. Re-run: fit level, chain, inspect_obs_reentry.py unchanged.
+      Frozen expectations: no post-peak cluster; CS impact < 1 % on every
+      session; in-range curve within 5.5 % of D of the C 1.3 fit. C / E
+      sensitivity band named by the author: no definition on record yet.
+      [2026-10-18 RESULT: tests 6 passed, production bit-identical. Re-
+      entries L 14 / 0 / 0 (was 97 / 0 / 38). Expectations: (1) MET by
+      construction (JDR events now on the flat asymptote, slope ~0); (2) NOT
+      MET -- CS impact JDR 3.4 / 3.6 %; (3) MET (in-range RMS <= 1.1 % of
+      D). NEW: US-v2 rear mu at the 2.0 bound -> D4-L fail -> kinematic
+      fallback. thesis_notes "Q-OBS-REENTRY fix: C = 1.0 -- result". Author
+      rules next. NOT committed.]
+      [2026-10-19 (author): SHAPE CHANGES STOP at C = 1.0. Sources read
+      2026-10-18 recorded (thesis_notes "Sources read 2026-10-18"); seed
+      construction stays CLOSED (Farroni 2016 trigger resolved).]
+   C / E SENSITIVITY BAND (queue item, defined by the author 2026-10-19):
+      refits with C in {1.0, 1.3, 1.6} (Rao et al. 2006 p. 42) and E in
+      {-1, 0, 1} (Goblirsch et al. 2025 Table I); per axle K, in-range curve
+      change, mu; reported, not selected. Not scheduled.
+   Q-CAPACITY (author order and EXECUTE 2026-10-19; read-only diagnostic
+      diagnostics/inspect_capacity.py, frame frozen in its header). Demand
+      |Fy_axle| / Fz_axle (L's inputs) vs fitted mu per axle; H-CAP: the 14
+      JDR events occur where demand >= mu_fit (CONFIRMED if event share >= 80
+      % and enrichment >= 2). Conditional on H-CAP: mu fixed per axle at the
+      demonstrated utilisation (p99.5 of demand on the fit population, a
+      lower bound of true mu), B the only free parameter, through the swap
+      harness; physical check, not a selection.
+      [2026-10-19 RESULT: H-CAP CONFIRMED on JDR (13 / 14 events with
+      demand >= mu_fit, enrichment 7.7; rear demand 1.4-1.5 above the
+      asymptote 1.31). Conditional (mu = p99.5 demand): JDR 0 re-entries /
+      0 % CS impact, JST 29 0 / 0 %, US-v2 now ok (gate 0.088) but 97
+      re-entries / 20-23 % CS impact. Not a selection. thesis_notes
+      "Q-CAPACITY". Author rules next. NOT committed.]
+      [2026-10-19 METHOD RULING (author): under L, mu per axle = p99.5 of
+      |Fy| / Fz on the fit population (demonstrated utilisation, lower bound
+      of true friction), B the only fitted parameter, C 1.0 / E -1 fixed --
+      implement AFTER Q-PR-DEMAND.]
+   ~~Q-PR-DEMAND~~ [2026-10-19: REPLACED by Q-DATA-QUALITY before any run (author); text kept as record.] (author order and EXECUTE 2026-10-19; read-only diagnostic
+      diagnostics/inspect_pr_demand.py, frame frozen in its header). US-v2
+      front demand max 2.14 / p99 1.80 above mu <= 2: input-data question.
+      Subject US-v2, controls JDR and JST 29; tail samples = above the
+      session's p99.5 demand per axle. H-LOAD (straight-line load with c
+      fixed from NBR; standstill per-wheel load vs static corner weights;
+      FR / FL and RR / RL symmetry), H-FORCE (yaw term / Fx sin(delta)
+      share at the tail), H-KERB-MISS (az spikes below the kerb threshold),
+      H-LOC. Prediction: H-LOAD dominant on US-v2. Outcome: named input
+      defect -> data-fix proposal next turn; none -> US-v2 flagged as a
+      data-limited session.
+   Q-DATA-QUALITY (author order and EXECUTE 2026-10-19; replaces Q-PR-DEMAND;
+      read-only screen diagnostics/inspect_data_quality.py, criteria frozen
+      in its header). THESIS FILE SET: NBR and Le Castellet only; a file
+      leaves only by failing the uniform screen, never by its results.
+      Candidates: every NBR and Le Castellet export (Dubai, Le Mans
+      excluded). Q1 |Fy|/Fz > 2.0 share < 0.1 % per axle; Q2 straight-line
+      wheel-load sum / (m g + c v^2), c fixed from pooled NBR straights,
+      median in [0.97, 1.03] and p5 >= 0.90; Q3 damper share > 99 % per
+      corner; Q4 >= 3 analysis laps. Passing files form the analysis set;
+      comparison files re-picked from it.
+      [2026-10-19 RESULT: 23 exports screened, NONE passes -> analysis set
+      empty, Le Castellet a data limitation by the rule. Q2 p5 >= 0.90 fails
+      on every file (p5 0.834-0.897, NBR included); Q2 median passes on 15 / 16
+      NBR outings, fails on all Le Castellet (0.950-0.955); Q1 fails NBR o64
+      only; Q4 fails o18 / o19 / o21; Q3 passes everywhere. Pooled NBR c 1.756.
+      Not re-tuned; author rules. thesis_notes "Q-DATA-QUALITY: screen
+      result". NOT committed.]
+      [2026-10-19 REVISION (author, declared POST-RESULT): Q2 withdrawn as
+      exclusion criterion (criterion design defect), information only;
+      screen = Q1, Q3, Q4. ANALYSIS SET: NBR 5, 10, 20, 29, 46, 53, 54, 59,
+      61, 63, 69, 70; Le Castellet 25 (one export: most valid required
+      channels, ties -> latest file timestamp; --pick-o25) and 32 (US-v2).
+      Excluded: NBR 64 (Q1), 18 / 19 / 21 (Q4), GT3_PRC_MLA (20 Hz),
+      GT3_Creventic_PRC_MLA (channels), duplicate 29. Le Castellet load
+      ratio ~0.95 = stated limitation. Comparison files re-picked later.]
+   Q-PR-TAIL (author order and EXECUTE 2026-10-19; read-only diagnostic
+      diagnostics/inspect_pr_tail.py, frame frozen in its header). L with
+      the conditional mu = p99.5 demand rule (swap harness) on US-v2
+      (subject), JDR and JST 29 (controls). H-FORCE, H-KERB-MISS, H-LOC,
+      H-TAIL-SHAPE. Prediction: H-KERB-MISS or H-FORCE dominant on US-v2.
+      Outcome: named mechanism -> fix proposal (data / mask level); none ->
+      US-v2 events a limitation with their CS impact, mu rule stands.
+      [2026-10-19 RESULT: JDR / JST 29 0 re-entries, US-v2 97 (CS impact
+      20.2 / 22.6 %). H-FORCE and H-KERB-MISS not supported anywhere; H-LOC
+      supported on all three (not US-v2 specific); US-v2 rear tail heavier.
+      Prediction REFUTED; mechanism NOT SHOWN -> US-v2 events recorded as a
+      limitation with their CS impact, demonstrated-mu rule stands. Outing 25
+      export chosen: MLA-SE07_US-v1. thesis_notes "Q-PR-TAIL". NOT committed.]
 
 6. MASS AND FUEL (author input, 2026-10-01). Fuel load varies by up to
    ~80 kg within/between runs (~+/-3 % of config mass 1356 kg); the base
@@ -5739,8 +6046,17 @@ WP-HARDEN).]
 - Tier A methods need a verified anchor; full citations live in
   thesis_notes.md, code carries a pointer only.
 - STATUS is rewritten at every work stop; history goes below.
-- Selection principle (author, 2026-09-30): comparable evidence -> the
-  simpler candidate ships.
+- ~~Selection principle (author, 2026-09-30): comparable evidence -> the
+  simpler candidate ships.~~ [2026-10-18, author: a GUIDE, not a hard rule
+  -- see the working principle below.]
+- WORKING PRINCIPLE (author, 2026-10-18): (1) finishing never blocks a
+  better science-backed solution; (2) "comparable evidence -> the simpler
+  candidate ships" is a guide, not a hard rule: a more complex variant may
+  win if its evidence is better and it stays defensible; (3) no blind
+  poking: every experiment states anchor, hypothesis with predicted
+  direction, the decision it feeds, and an exit (one cycle; a negative
+  result is recorded with a scope line and work moves on to the next guided
+  item instead of new variants).
 - Per-iteration render rule (standing; first written into this file
   2026-09-30): every scored iteration also renders its standard trace
   set (diagnostics/trace_render.py) and the traces are inspected before

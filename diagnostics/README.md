@@ -870,3 +870,59 @@ cited them now say so (git history keeps the code).
   the run completes, and the corner / lap trace windows open without an
   exception (optional screenshots via SMOKE_SHOT_DIR). Throwaway weekend row,
   nothing persisted.
+- **inspect_fit_simplification.py** (2026-10-18) -- REFERENCED (PLAN.md queue
+  entry Q-FIT-SIMPLE) and REPRODUCES the Q-FIT-SIMPLE frozen frame: tyre-fit
+  simplification variants swapped into tyre_fit_auto for one chain run each
+  and restored, entry check bit-identical to unswapped production. Imports
+  inspect_stiffness_cs (grids / decompose, the cross-lap residual). Output
+  diagnostics/plots/fit_simplification/.
+- **inspect_fz_census.py** (2026-10-18) -- REFERENCED (PLAN.md Q-FIT-LIT
+  step B, thesis_notes "Q-FIT-LIT: census and Step 1"): per-corner load
+  source shares (damper / reconstructed / static) of the measured cascade on
+  the fit population and the moving analysis-lap samples, damper channel
+  quality, and whether the US-v2 FR channel correction applied; frozen 1 %
+  stop rule. Output diagnostics/output/fz_census/.
+- **check_fit_lit_inactive.py** (2026-10-18) -- REFERENCED (PLAN.md Q-FIT-LIT
+  step C): the bit-identity proof that the inactive fit L leaves the
+  production path unchanged -- tyre_fit_auto and sideslip_ekf_pacejka at
+  fd40c78 vs the working tree on three sessions. Imports check_class_b.diff.
+  Output diagnostics/output/fit_lit/.
+- **inspect_fit_lit.py** (2026-10-18) -- REFERENCED (PLAN.md Q-FIT-LIT
+  verification cycle) and REPRODUCES its frozen frame: fit L and L-nw
+  through the whole chain (mode set in memory), start independence,
+  leave-one-lap-out blockwise jackknife, physical checks, five frozen
+  predictions; mode --reopen-d4 = the declared post-result D4 reopen (L
+  only). Output diagnostics/plots/fit_lit/.
+- **inspect_fit_lit_mechanism.py** (2026-10-18) -- REFERENCED (thesis_notes
+  "Q-FIT-LIT: verification run -- chain results VOID"): post-hoc attribution
+  of the L exit -- observer re-run with L's curves removing Fx, Fz variation
+  and the d_is_mu path one at a time; located the measurement-update defect.
+  Imports inspect_fit_lit. Output diagnostics/output/fit_lit/mechanism.log.
+- **inspect_pr_anomaly.py** (2026-10-18) -- REFERENCED (PLAN.md
+  Q-PR-ANOMALY, thesis_notes "Q-PR-ANOMALY") and REPRODUCES its frozen
+  frame: per-corner residual of fit L against load, force and slip-side
+  factors, linear-region K per session and lap. Imports inspect_fit_lit;
+  reads diagnostics/plots/fit_lit/fit_lit_<key>.json. Output
+  diagnostics/plots/pr_anomaly/.
+- **inspect_obs_reentry.py** (2026-10-18) -- REFERENCED (PLAN.md
+  Q-OBS-REENTRY, thesis_notes "Q-OBS-REENTRY") and REPRODUCES its frozen
+  frame: per hard-bound re-entry of the observer under fit L (and
+  production for context) the slip, curve slope, conditions and cause
+  categories, and the share of verdict CS samples whose window it touches.
+  Imports inspect_fit_lit. Output diagnostics/plots/obs_reentry/.
+- **inspect_capacity.py** (2026-10-19) -- REFERENCED (PLAN.md Q-CAPACITY,
+  thesis_notes "Q-CAPACITY") and REPRODUCES its frozen frame: measured
+  force demand against the fitted grip, H-CAP at the observer re-entries,
+  and the conditional demonstrated-utilisation run through the swap
+  harness. Imports inspect_fit_lit and inspect_obs_reentry. Output
+  diagnostics/plots/capacity/.
+- **inspect_data_quality.py** (2026-10-19) -- REFERENCED (PLAN.md
+  Q-DATA-QUALITY, thesis_notes "Q-DATA-QUALITY") and REPRODUCES the uniform
+  file screen (Q1 force ceiling, Q2 load calibration with pooled NBR c, Q3
+  load completeness, Q4 analysis laps) over every NBR and Le Castellet
+  export. Output diagnostics/output/data_quality/.
+- **inspect_pr_tail.py** (2026-10-19) -- REFERENCED (PLAN.md Q-PR-TAIL,
+  thesis_notes "Q-PR-TAIL") and REPRODUCES its frozen frame: demand tail and
+  observer re-entries of US-v2 vs the NBR controls under the
+  demonstrated-mu rule. Imports inspect_fit_lit, inspect_obs_reentry,
+  inspect_capacity. Output diagnostics/plots/pr_tail/.
