@@ -822,8 +822,9 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     The Fy definition is unchanged (only divided); filter, window,
     segmentation and R^2 blend are unchanged, and the reference is
     normalised the same way, so the ratio stays C / C_ref. ref_band replaces
-    the reference plausibility band (fit L: 6-30 per rad, Pacejka sec.
-    1.2.1). Either given -> the output gains the reference-candidate slopes
+    the reference plausibility band (fit L: tyre_fit_auto.L_K_EDGE, 5.5-35
+    per rad -- the "about 6 to about 30" of Pacejka sec. 1.2.1 read at its
+    stated precision, the same reading as the D4-L g2 check, 2026-10-20). Either given -> the output gains the reference-candidate slopes
     and counts (ref_candidates_*, n_ref_candidates_*, n_ref_band_excluded_*).
     [declared adaptation beyond the chair estimator, which uses Fy in N;
     enabled by the measured axle loads]

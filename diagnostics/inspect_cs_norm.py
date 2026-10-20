@@ -5,7 +5,8 @@
 #
 # Per session: status, g2 zone and K per axle. Per session and axle: the
 # linear-reference candidates of the normalised estimate (p5 / p50 / p95 per
-# rad) and the share the 6-30 band excludes; the CS ratio distribution
+# rad) and the share the reference band excludes (5.5-35 per rad, L_K_EDGE,
+# since 2026-10-20; the first run used 6-30, log kept as run_band_6_30.log); the CS ratio distribution
 # (shares < 0, < -0.2, < -0.53, < -1, < -3) for Fy / Fz next to raw Fy on the
 # same samples (verdict population: canonical brackets on analysis laps, base
 # mask, moving, not kerb, not kerb-affected, not observer-reset-affected,
@@ -83,7 +84,7 @@ def run_session(key):
     laps = data["laps"]
     cs_raw = estimate_cornering_stiffness(slip, forces, st, p, laps, reset_mask=reset)
     cs_n = estimate_cornering_stiffness(slip, forces, st, p, laps, reset_mask=reset,
-                                        axle_loads=raw["cs_axle_loads"], ref_band=tfa.L_K_BAND)
+                                        axle_loads=raw["cs_axle_loads"], ref_band=tfa.L_K_EDGE)
     t = st["time"]
     lap_of = {l["lap_number"]: l for l in laps}
     an_laps = [l["lap_number"] for l in laps if l.get("is_valid_for_analysis")]
@@ -219,7 +220,7 @@ def main():
                 x = r["axles"][ax]
                 rf = x["ref"]
                 log(f"  {'front' if ax == 'f' else 'rear'}: reference candidates {rf['n_candidates']}, p5 / p50 / p95 "
-                    f"{rf['p5']:.2f} / {rf['p50']:.2f} / {rf['p95']:.2f} per rad, band 6-30 excludes "
+                    f"{rf['p5']:.2f} / {rf['p50']:.2f} / {rf['p95']:.2f} per rad, band 5.5-35 excludes "
                     f"{rf['n_excluded']} ({rf['excluded_share'] * 100:.1f} %)")
                 log(f"     ratio shares on {x['n_pop']} samples, Fy / Fz vs raw Fy: " + "; ".join(
                     f"< {k}: {x['shares_norm'][k] * 100:.2f} % vs {x['shares_raw'][k] * 100:.2f} %" for k in x["shares_norm"]))

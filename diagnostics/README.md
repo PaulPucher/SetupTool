@@ -972,3 +972,7 @@ cited them now say so (git history keeps the code).
   14-session analysis set, reference band exclusion, lap-to-lap
   plausibility of samples below the -0.53 floor, one NBR 29 figure.
   Output diagnostics/plots/cs_norm/.
+- **inspect_nbr54_c3.py** (2026-10-20) -- REFERENCED (PLAN.md reference
+  band at source precision + NBR 54 C3 check): read-only check of the one
+  repeatable cell of normalised CS below -0.53 (NBR 54 corner 3 turn-in,
+  front), with the six-lap overlay figure. Output diagnostics/plots/cs_norm/.

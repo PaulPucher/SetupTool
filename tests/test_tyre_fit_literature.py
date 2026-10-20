@@ -451,7 +451,7 @@ def test_cs_on_fy_over_fz_window_slope_and_band(jst29, l_manifest):
     st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
     slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
     loads = l_manifest["cs_axle_loads"]
-    band = tfa.L_K_BAND
+    band = tfa.L_K_EDGE
     on = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps, axle_loads=loads, ref_band=band)
     off = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
     se = p["stability_estimation"]
@@ -471,5 +471,10 @@ def test_cs_on_fy_over_fz_window_slope_and_band(jst29, l_manifest):
         assert ref_on.size and np.all((ref_on >= band[0]) & (ref_on <= band[1]))
         cfg = p["tyre_fit_auto"]
         assert np.all((ref_off >= cfg["stiffness_min_npr"]) & (ref_off <= cfg["stiffness_max_npr"]))
-        assert on[f"n_ref_candidates_{ax}"] >= on[f"n_ref_band_excluded_{ax}"] >= 0
+        # candidates outside [5.5, 35] per rad are excluded, inside kept: every
+        # reference in effect is an in-band candidate, the count matches
+        rc = on[f"ref_candidates_{ax}"]
+        outside = (rc < band[0]) | (rc > band[1])
+        assert on[f"n_ref_band_excluded_{ax}"] == int(outside.sum())
+        assert set(np.unique(ref_on)) <= set(rc[~outside])
         assert f"ref_candidates_{ax}" not in off

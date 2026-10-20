@@ -4031,7 +4031,7 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       for the final chain); floor binding = property; g2 three-level rule
       (ok [6, 30], marginal [5.5, 6) or (30, 35], degenerate outside) after
       Pacejka 2006 p. 6 read at its stated precision; CS flag (Fy / Fz,
-      normalised reference, band 6-30 per rad), default off in production.
+      normalised reference, ~~band 6-30 per rad~~ [2026-10-20: band [5.5, 35] = L_K_EDGE]), default off in production.
       14-session run with raw vs normalised CS, lap-to-lap plausibility of
       samples below -0.53, one NBR 29 figure (diagnostics/plots/cs_norm/).
       No threshold or verdict change.
@@ -4041,6 +4041,18 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       %), 70 (17 %), 59 (10.6 %) -> STOP, author rules. Samples below -0.53
       with Fy / Fz: 0-1.1 % front, <= 0.06 % rear; repeated cells only NBR 46
       C2 and NBR 54 C3 turn-in. NOT committed.]
+   REFERENCE BAND AT SOURCE PRECISION + NBR 54 C3 CHECK (author EXECUTE
+      2026-10-20, fit L only; rulings in DECISIONS.md, before implementation):
+      reference band of the normalised CS = L_K_EDGE [5.5, 35] per rad (same
+      reading as g2); Fy / Fz sign behaviour recorded as expected; the
+      plausibility check passed. Code: fit L passes L_K_EDGE; test. Re-run of
+      the reference part on 14 sessions (stop if any > 10 % excluded);
+      read-only check of NBR 54 corner 3 turn-in front with one figure.
+      [2026-10-20 RESULT: 20 tests passed, production bit-identical.
+      Exclusion under [5.5, 35] <= 5.9 % everywhere (stop rule not fired).
+      NBR 54 C3: low samples on laps 215-218 at early turn-in under trail
+      braking (|Fx| / Fz 0.16-0.27) with 24-36 % front Fz change in the
+      window -> combined-slip reading; lap 218 near a kerb. NOT committed.]
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS
