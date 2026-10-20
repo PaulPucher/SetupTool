@@ -4002,7 +4002,7 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       fit-L default (change detector / NIS window unused in fit L, removal in
       the cleanup round); yaw state follows the gyro (accepted, robustness
       point later); R_ay grid extended downward with the session's ay
-      noise floor (no pick below it); K band unchanged, outings 59 / 70 =
+      noise floor (no pick below it); ~~K band unchanged~~ [2026-10-20: superseded, K band at source precision], outings 59 / 70 =
       "plausibility gate triggered", excluded from the EKF-based verdict
       analysis pending author confirmation on driver feedback. Then a
       14-session full-chain run.
@@ -4025,6 +4025,22 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       g2). Re-entries 1, soft resets 0. R_ay = the floor on 13 sessions; R_yaw
       = yaw floor (SD 0.15-0.30 deg/s). All observer gates pass on every
       session. NOT committed.]
+   D4-L K BAND AT SOURCE PRECISION + CS ON Fy / Fz (author EXECUTE 2026-10-20,
+      fit L only; rulings in DECISIONS.md, before implementation): observer
+      final (R_yaw = gyro floor; robustness variants old Q_r and R_yaw x 10
+      for the final chain); floor binding = property; g2 three-level rule
+      (ok [6, 30], marginal [5.5, 6) or (30, 35], degenerate outside) after
+      Pacejka 2006 p. 6 read at its stated precision; CS flag (Fy / Fz,
+      normalised reference, band 6-30 per rad), default off in production.
+      14-session run with raw vs normalised CS, lap-to-lap plausibility of
+      samples below -0.53, one NBR 29 figure (diagnostics/plots/cs_norm/).
+      No threshold or verdict change.
+      [2026-10-20 RESULT: 20 tests passed, production bit-identical,
+      test_stability exit 0. 59 / 70 now marginal, EKF on all 14. Reference
+      band 6-30 excludes > 10 % of rear candidates on NBR 10 (55 %), 61 (59
+      %), 70 (17 %), 59 (10.6 %) -> STOP, author rules. Samples below -0.53
+      with Fy / Fz: 0-1.1 % front, <= 0.06 % rear; repeated cells only NBR 46
+      C2 and NBR 54 C3 turn-in. NOT committed.]
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS

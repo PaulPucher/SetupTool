@@ -967,3 +967,8 @@ cited them now say so (git history keeps the code).
   observer finalisation fit L): the shipped fit-L chain (Q-UPPER in the
   chain, hard bound only, R_ay noise floor) on the 14-session analysis
   set, 3 workers. Output diagnostics/plots/fit_l_observer_final/.
+- **inspect_cs_norm.py** (2026-10-20) -- REFERENCED (PLAN.md D4-L K band
+  at source precision + CS on Fy / Fz): raw vs load-normalised CS on the
+  14-session analysis set, reference band exclusion, lap-to-lap
+  plausibility of samples below the -0.53 floor, one NBR 29 figure.
+  Output diagnostics/plots/cs_norm/.

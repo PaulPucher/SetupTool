@@ -126,8 +126,11 @@ def test_literature_gate_reports_slope_and_coverage(l_manifest):
         assert g["stiffness_norm_per_rad"] == pytest.approx(fit["B"] * fit["C"] * fit["mu"])
         assert g["mu_extrapolated"] is (not fit["peak_in_visited_range"])
         assert fit["mu_extrapolated"] is g["mu_extrapolated"]
-        in_band = tfa.L_K_BAND[0] <= g["stiffness_norm_per_rad"] <= tfa.L_K_BAND[1]
-        assert ("g2 normalised stiffness" in g["failed"]) is (not in_band)
+        k = g["stiffness_norm_per_rad"]
+        in_edge = tfa.L_K_EDGE[0] <= k <= tfa.L_K_EDGE[1]
+        assert ("g2 normalised stiffness" in g["failed"]) is (not in_edge)
+        zone = "in band" if tfa.L_K_BAND[0] <= k <= tfa.L_K_BAND[1] else ("edge" if in_edge else "outside")
+        assert g["k_zone"] == zone
         assert ("mu_demo above the physical ceiling 2.0" in g["failed"]) is (fit["mu"] > tfa.L_MU_CEILING)
 
 
@@ -404,3 +407,69 @@ def test_module_straights_match_the_diagnostic_definition(jst29):
     got = steering_straights(st, laps, jst29["params"]["tyre_fit_auto"])
     assert [tuple(map(int, s)) for s in got["segs"]] == [tuple(map(int, s)) for s in ref["segs"]]
     assert got["d_min"] == ref["d_min"]
+
+
+QP70 = "NBR_Qualy_MLA/MLA-QP01-NBR-v2.txt"
+
+
+def test_g2_zones_on_real_k_values(l_manifest):
+    # g2 at source precision (2026-10-20): JST 29 (front K 24.4) in band;
+    # NBR outing 70 (front K 30.34) at the edge -> marginal, the observer
+    # ships, the reason names the edge
+    assert l_manifest["k_band_zone"] == {"front": "in band", "rear": "in band"}
+    path = find_data_file(QP70)
+    if path is None:
+        pytest.skip("NBR outing 70 export not on this machine")
+    raw = load_parameters()
+    params = apply_resolved_vehicle(raw, resolve_accuracy(raw, setup_data=None, cap=None))
+    data = parse_csv(path)
+    reclassify_speed_classes(data.get("corners", []), load_channels_config()["corner_speed_thresholds"])
+    man = tfa.fit_session_pacejka(data, params, data_file_path=path, tyre_fit_mode="literature_bounded")
+    g = man["plausibility_gate"]["front"]
+    assert 30.0 < g["stiffness_norm_per_rad"] <= 35.0 and g["k_zone"] == "edge" and not g["failed"]
+    assert man["k_band_zone"]["front"] == "edge"
+    assert man["status"] == "marginal" and "edge of the literature range" in man["marginal_reason"]
+
+
+def test_cs_flag_off_is_unchanged(jst29, l_manifest):
+    from modules.stability_analysis import estimate_cornering_stiffness
+    st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
+    slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
+    a = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
+    b = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps, axle_loads=None, ref_band=None)
+    assert set(a) == set(b)
+    for k, v in a.items():
+        assert np.array_equal(v, b[k], equal_nan=True) if isinstance(v, np.ndarray) else v == b[k]
+
+
+def test_cs_on_fy_over_fz_window_slope_and_band(jst29, l_manifest):
+    # flag on: the window slope is the OLS slope of Fy / Fz on the same
+    # window; the reference lies in the 6-30 per rad band; flag off keeps the
+    # N / rad band
+    from modules.stability_analysis import (estimate_cornering_stiffness, reconstruct_cs_window_start,
+                                            resolve_cs_min_window_samples)
+    st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
+    slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
+    loads = l_manifest["cs_axle_loads"]
+    band = tfa.L_K_BAND
+    on = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps, axle_loads=loads, ref_band=band)
+    off = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
+    se = p["stability_estimation"]
+    mw = resolve_cs_min_window_samples(p, st["sample_rate_hz"])
+    for ax, a_key, fz_key in (("f", "alpha_f_filt", "fz_f_N"), ("r", "alpha_r_filt", "fz_r_N")):
+        y = jst29["forces"][f"Fy_{ax}_filt"] / loads[fz_key]
+        alpha = slip[a_key]
+        idx = np.flatnonzero(np.isfinite(on[f"C_window_{ax}"]))
+        for i in idx[::max(1, idx.size // 500)]:
+            s0 = reconstruct_cs_window_start(alpha, i, mw, se["cs_min_slip_angle_span_rad"], st.get("s_m"),
+                                             se["cs_max_window_m"])
+            wa, wy = alpha[s0:i], y[s0:i]
+            slope = np.sum((wa - wa.mean()) * (wy - wy.mean())) / np.sum((wa - wa.mean()) ** 2)
+            assert slope == pytest.approx(on[f"C_window_{ax}"][i], rel=1e-9)
+        ref_on = on[f"C_linear_ref_{ax}"][np.isfinite(on[f"C_linear_ref_{ax}"])]
+        ref_off = off[f"C_linear_ref_{ax}"][np.isfinite(off[f"C_linear_ref_{ax}"])]
+        assert ref_on.size and np.all((ref_on >= band[0]) & (ref_on <= band[1]))
+        cfg = p["tyre_fit_auto"]
+        assert np.all((ref_off >= cfg["stiffness_min_npr"]) & (ref_off <= cfg["stiffness_max_npr"]))
+        assert on[f"n_ref_candidates_{ax}"] >= on[f"n_ref_band_excluded_{ax}"] >= 0
+        assert f"ref_candidates_{ax}" not in off

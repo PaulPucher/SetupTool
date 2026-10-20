@@ -785,7 +785,8 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
     return max(start, 0)
 
 
-def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None):
+def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None, axle_loads=None,
+                                 ref_band=None):
     """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
     Stiffness by windowed regression on logged Fy/alpha instead of Werner's
     Pacejka evaluation.
@@ -811,6 +812,21 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     mark (author ruling 2026-10-19: the CS sensitivity to the reset policy
     is general, not specific to reset windows). Marked only, never deleted;
     None (production) adds no key.
+
+    axle_loads / ref_band (fit L, author ruling 2026-10-19, implemented
+    2026-10-20): with axle_loads ({"fz_f_N", "fz_r_N"}, the measured axle
+    loads after the fit-L 2 Hz zero-phase filter) the force input is Fy / Fz
+    per axle, sample by sample -- cornering stiffness is defined at constant
+    vertical load (Milliken, load-normalised lateral force), and the window
+    regression otherwise reads a load change inside the window as a slope.
+    The Fy definition is unchanged (only divided); filter, window,
+    segmentation and R^2 blend are unchanged, and the reference is
+    normalised the same way, so the ratio stays C / C_ref. ref_band replaces
+    the reference plausibility band (fit L: 6-30 per rad, Pacejka sec.
+    1.2.1). Either given -> the output gains the reference-candidate slopes
+    and counts (ref_candidates_*, n_ref_candidates_*, n_ref_band_excluded_*).
+    [declared adaptation beyond the chair estimator, which uses Fy in N;
+    enabled by the measured axle loads]
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -853,6 +869,9 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     alpha_r = slip["alpha_r_filt"]
     Fy_f = forces["Fy_f_filt"]
     Fy_r = forces["Fy_r_filt"]
+    if axle_loads is not None:
+        Fy_f = Fy_f / axle_loads["fz_f_N"]
+        Fy_r = Fy_r / axle_loads["fz_r_N"]
 
     min_span = se["cs_min_slip_angle_span_rad"]
     linear_thresh = se["cs_linear_slip_threshold_rad"]
@@ -868,6 +887,9 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     # works with measured beta. [domain improvement]
     ref_min = params["tyre_fit_auto"]["stiffness_min_npr"]
     ref_max = params["tyre_fit_auto"]["stiffness_max_npr"]
+    if ref_band is not None:
+        ref_min, ref_max = ref_band
+    report_ref = axle_loads is not None or ref_band is not None
 
     def compute_cs_for_axle(alpha, Fy):
         n = len(alpha)
@@ -885,6 +907,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
         # stiffness computed, but no clean reference set yet -> no CS
         no_reference = np.zeros(n, dtype=bool)
         n_straddle = 0
+        ref_candidates = []
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -980,9 +1003,11 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
             window_max_abs_alpha = np.max(np.abs(window_alpha))
             # outside the band the previous reference is held, as for a
             # disqualified window (Fix 0)
-            if (window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]
-                    and ref_min <= C_alpha[i] <= ref_max):
-                C_linear_ref = C_alpha[i]
+            if window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]:
+                if report_ref:
+                    ref_candidates.append(C_alpha[i])
+                if ref_min <= C_alpha[i] <= ref_max:
+                    C_linear_ref = C_alpha[i]
 
             if np.isnan(C_linear_ref):
                 no_reference[i] = True
@@ -997,10 +1022,10 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
             C_linear_ref_arr[i] = C_linear_ref
 
         return (C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference,
-                n_straddle, reset_mark)
+                n_straddle, reset_mark, np.asarray(ref_candidates))
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f, rm_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r, rm_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f, rm_f, rc_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r, rm_r, rc_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     out = {
         "C_alpha_f": C_f,
@@ -1036,6 +1061,11 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     if reset_mask is not None:
         out["observer_reset_affected_f"] = rm_f
         out["observer_reset_affected_r"] = rm_r
+    if report_ref:
+        for ax, rc in (("f", rc_f), ("r", rc_r)):
+            out[f"ref_candidates_{ax}"] = rc
+            out[f"n_ref_candidates_{ax}"] = int(rc.size)
+            out[f"n_ref_band_excluded_{ax}"] = int(((rc < ref_min) | (rc > ref_max)).sum())
     return out
 
 

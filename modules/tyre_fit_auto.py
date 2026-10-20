@@ -53,10 +53,15 @@ L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
 # 2006 sec. 1.2.1; Goblirsch et al. 2025 Table I upper bound of D / Fz)
 L_MU_CEILING = 2.0
 L_START_B = 12.0           # the chair's B start, inside the bounds
-# D4 under L: cornering stiffness "from about 6 to about 30 times the
-# vertical wheel load ... per radian", racing tyres toward the upper value
-# (Pacejka 2006 sec. 1.2.1)
+# D4 under L: cornering stiffness "ranges from about 6 to about 30 times the
+# vertical wheel load ... The lower value holds for the older bias-ply tyre
+# construction and the larger value for modern racing tyres" (Pacejka 2006
+# sec. 1.2.1). An order of magnitude given to one significant figure, so it
+# is read at that precision (author ruling 2026-10-20): inside the band ok,
+# within the rounding margin of either "about" marginal (the EKF ships,
+# flagged at the edge of the literature range), beyond it degenerate.
 L_K_BAND = (6.0, 30.0)
+L_K_EDGE = (5.5, 35.0)
 
 TYRE_FIT_MODES = ("per_session", "prior_anchored", "literature_bounded")
 SIDESLIP_SOURCES = ("kinematic", "ekf_auto_pacejka")
@@ -627,7 +632,9 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
       g1 excitation: unchanged (p1..p99 span of the fit's slip angles)
       g2 normalised origin slope K = B C mu inside L_K_BAND; the axle ratio
          is the sum of tyre stiffnesses over the sum of tyre loads, so the
-         tyre band carries over to the axle
+         tyre band carries over to the axle; inside L_K_EDGE but outside
+         the band it only flags (k_zone "edge", status marginal), beyond
+         L_K_EDGE it fails (2026-10-20)
       demonstrated mu above L_MU_CEILING: more grip than a racing tyre has
          points at the force or load inputs, not at the tyre (2026-10-19;
          replaces the mu-at-bound check of the fitted-mu version)
@@ -639,12 +646,18 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
     failed = []
     if not span >= cfg["min_alpha_span_deg"]:
         failed.append("g1 excitation")
-    if not L_K_BAND[0] <= K <= L_K_BAND[1]:
+    if L_K_BAND[0] <= K <= L_K_BAND[1]:
+        k_zone = "in band"
+    elif L_K_EDGE[0] <= K <= L_K_EDGE[1]:
+        k_zone = "edge"
+    else:
+        k_zone = "outside"
         failed.append("g2 normalised stiffness")
     if not axle_fit["mu"] <= L_MU_CEILING:
         failed.append("mu_demo above the physical ceiling 2.0")
     peak = axle_fit["peak_alpha_deg"]
-    return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING,
+    return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "k_zone": k_zone,
+            "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING,
             "peak_deg": peak, "peak_note": "no peak (monotonic)" if peak != peak else "",
             "peak_covered": bool(axle_fit["peak_in_visited_range"]),
             "mu_extrapolated": not axle_fit["peak_in_visited_range"], "failed": failed}
@@ -1101,6 +1114,16 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
             reason = manifest["degenerate_reason"] + "; " + reason
         manifest["status"] = "degenerate"
         manifest["degenerate_reason"] = reason
+    if lit:
+        # g2 at the edge of the literature range: the observer still ships,
+        # the session is flagged (author ruling 2026-10-20)
+        edge = [f"{name}: g2 at the edge of the literature range (K {g['stiffness_norm_per_rad']:.2f} / rad)"
+                for name, g in gate.items() if g["k_zone"] == "edge"]
+        manifest["k_band_zone"] = {name: g["k_zone"] for name, g in gate.items()}
+        if edge and manifest["status"] != "degenerate":
+            prev = manifest.get("marginal_reason")
+            manifest["status"] = "marginal"
+            manifest["marginal_reason"] = "; ".join(([prev] if prev else []) + edge)
 
     if load_normalised:
         # mu outside plausibility band -> reported, not dropped
@@ -1118,6 +1141,9 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         # covariance-only reset no longer marks windows); in memory only, like
         # nis_full
         manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
+        # the measured axle loads (2 Hz zero-phase) for the load-normalised CS
+        # (author ruling 2026-10-19); in memory only, like nis_full
+        manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
@@ -1172,7 +1198,7 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
         fit_manifest = {
             k: v for k, v in raw_fit_manifest.items()
             if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask", "plausibility_gate",
-                         "observer_reset_mask")
+                         "observer_reset_mask", "cs_axle_loads")
         }
         return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason
 
