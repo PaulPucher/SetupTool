@@ -1395,7 +1395,7 @@ def test_feedback_weighting_config_present():
 # --- Metrology Phase 2: verdict-stability [MARGINAL] confidence cap --------
 
 def test_corner_verdict_evidence_marginal_caps_confidence():
-    # CSf 0.05 below STRONG_CSF, inside the anchored 0.11 margin --
+    # CSf half the anchored margin below STRONG_CSF (config cs_margin) --
     # classify_fn tags it [MARGINAL]; every lap agrees (repeat=
     # total), so the plain repeat-fraction confidence would be 1.0 -- it
     # must be capped at intervention_evidence.abs.confidence (reused
@@ -1406,10 +1406,12 @@ def test_corner_verdict_evidence_marginal_caps_confidence():
     # None, masking the phase's own cs_ratio_f -- an unrelated pre-existing
     # fixture quirk, sidestepped by testing on a phase apex_region never
     # touches.
+    from modules.stability_analysis import load_parameters
+    margin = load_parameters()["classification"]["verdict_stability_margin"]["cs_margin"]
     config = load_decision_frame_config()
     cap = config["intervention_evidence"]["abs"]["confidence"]
     summaries = [
-        _make_summary(lap, 7, "medium", csf_by_phase={"exit_4": _strong_value("f", 0.05)})
+        _make_summary(lap, 7, "medium", csf_by_phase={"exit_4": _strong_value("f", margin / 2)})
         for lap in range(1, 5)
     ]
     evidence = build_evidence(summaries, {}, config, classify_fn)
@@ -1442,11 +1444,13 @@ def test_matrix_verdict_evidence_marginal_also_caps_confidence():
     # actually feeds most of the 39-rule matrix candidates), not just
     # corner_verdict -- otherwise a MARGINAL verdict would still drive a
     # full-confidence recommendation via the matrix path.
+    from modules.stability_analysis import load_parameters
+    margin = load_parameters()["classification"]["verdict_stability_margin"]["cs_margin"]
     config = load_decision_frame_config()
     cap = config["intervention_evidence"]["abs"]["confidence"]
     summaries = [
-        _make_summary(lap, 9, "medium", csf_by_phase={"exit_4": _strong_value("f", 0.05),
-                                                      "exit_5": _strong_value("f", 0.05)})
+        _make_summary(lap, 9, "medium", csf_by_phase={"exit_4": _strong_value("f", margin / 2),
+                                                      "exit_5": _strong_value("f", margin / 2)})
         for lap in range(1, 5)
     ]
     evidence = build_evidence(summaries, {}, config, classify_fn)

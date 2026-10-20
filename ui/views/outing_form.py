@@ -232,16 +232,15 @@ class StabilityAnalysisThread(QThread):
                 slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)
                 ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
                 corners = self.parsed_data.get("corners", [])
-                # limit events: display + record only, read after the verdict chain
-                from modules.limit_events import detect_events, detect_floor_events
+                # event layer: display + record only, read after the verdict
+                # chain; under fit L the floor events (-0.53, measured
+                # attributes), on the old path the curve-floor limit events
+                from modules.limit_events import detect_events
                 events = detect_events(cs, state, corners, self.parsed_data.get("laps", []),
                                        fit_manifest, effective_params, slip=slip,
-                                       gate_verdict=gate_verdict)
-                # CS below the pure-lateral floor, with measured attributes
-                # (schema 16); rides in the events record, record only
-                events["floor_events"] = detect_floor_events(
-                    cs, state, corners, self.parsed_data.get("laps", []), effective_params, slip,
-                    axle_loads=cs_inputs["cs_kwargs"].get("axle_loads"), axle_fx=cs_inputs["axle_fx"])
+                                       gate_verdict=gate_verdict,
+                                       axle_loads=cs_inputs["cs_kwargs"].get("axle_loads"),
+                                       axle_fx=cs_inputs["axle_fx"])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
             summaries = summarise_corners(corners, cs, stab, state, fz=fz, ls=ls,
@@ -1721,15 +1720,16 @@ class OutingForm(QWidget):
         # per-lap detail lives in the corner cards
         if events is None:
             return ""
+        from modules.limit_events import aggregate_by_corner_phase, describe_group, layer_title
+        title = layer_title(events)
         if events.get("status") != "computed":
-            return f"Limit events: {events.get('status')}."
-        from modules.limit_events import aggregate_by_corner_phase, describe_group
+            return f"{title.split(' (')[0]}: {events.get('status')}."
         evs = events["events"]
         if not evs:
-            return "Limit events (force loss beyond the tyre characteristic): none this session."
+            return f"{title}: none this session."
         n_kerb = sum(e["kerb_affected"] for e in evs)
         n_rec = sum(e["recurrence"] == "recurring" for e in evs)
-        lines = [f"Limit events (force loss beyond the tyre characteristic, display only -- feeds no verdict): "
+        lines = [f"{title[:-1]}, display only -- feeds no verdict): "
                  f"{len(evs)} events, {n_kerb} kerb-affected, {n_rec} recurring at their position."]
         lines += [describe_group(r) for r in aggregate_by_corner_phase(evs)]
         return "\n".join(lines)

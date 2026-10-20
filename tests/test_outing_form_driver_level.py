@@ -2,7 +2,8 @@
 # objects (lazy Outing.driver after session close). Headless Qt form against
 # a throwaway SQLite DB -- the shared sessionmaker is rebound per test and
 # restored, data/setuptool.db is never connected. Stability input = real
-# Dubai summaries from the pipeline golden.
+# NBR JST 29 summaries from the default-path golden (the Dubai goldens were
+# retired 2026-10-20).
 import datetime
 import json
 import os
@@ -17,7 +18,7 @@ from sqlalchemy import create_engine
 
 import models.base as base
 
-GOLDEN = Path(__file__).parent / "golden" / "pipeline_dubai_ekf_auto_pacejka_cap1.json"
+GOLDEN = Path(__file__).parent / "golden" / "default_nbr_jst29.json"
 
 
 @pytest.fixture(scope="module")

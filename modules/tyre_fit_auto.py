@@ -47,6 +47,9 @@ PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97)  # chair start guess (B, C, D, E
 # (Q-OBS-REENTRY, 2026-10-18).
 L_SHAPE_C = 1.0
 L_CURVATURE_E = -1.0     # fixed E "according to the literature", Goblirsch et al. 2025; Pacejka Tables 4.1 / 4.2
+# C = 1 with E in [-1, 1] has a positive slope everywhere, so there is no
+# peak to locate; stated in the manifest instead of a NaN peak position
+L_PEAK_NOTE = "none (C = 1, monotonic)"
 L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
 # physical ceiling of a racing tyre's friction coefficient; a demonstrated
 # utilisation above it points at the input data, not at the tyre (Pacejka
@@ -512,8 +515,7 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
             "mu_source": f"demonstrated utilisation p{mu_pct:g} (lower bound)",
             "bound_active": {}, "powell_converged": False,
             "fit_n_samples": 0, "fit_rms_resid_N": float("nan"), "fit_rms_resid_norm": float("nan"),
-            "peak_alpha_deg": float("nan"), "peak_in_visited_range": False,
-            "visited_alpha_p99_deg": float("nan"),
+            "peak": L_PEAK_NOTE, "visited_alpha_p99_deg": float("nan"),
             "sign_ok": False,
             "residuals": np.array([]), "residual_mask": m2,
         }
@@ -540,10 +542,6 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
     bound_active = {"B": "lower" if B - lo <= tol else ("upper" if hi - B <= tol else None), "mu": None}
 
     p99 = float(np.percentile(np.abs(np.degrees(a2)), 99))
-    grid_deg = np.linspace(0.01, 89.9, 4000)
-    stiffness_grid = pacejka_lateral_stiffness(np.radians(grid_deg), B, L_SHAPE_C, 1.0, L_CURVATURE_E)
-    sign_changes = np.where(np.diff(np.sign(stiffness_grid)) < 0)[0]
-    peak_deg = float(grid_deg[sign_changes[0]]) if len(sign_changes) > 0 else float("nan")
 
     return {
         "B": B, "C": L_SHAPE_C, "D": mu * fz_ref, "E": L_CURVATURE_E,
@@ -552,8 +550,7 @@ def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
         "powell_converged": bool(res.success),
         "fit_n_samples": int(len(a2)), "fit_rms_resid_N": float(np.sqrt(np.mean(resid ** 2))),
         "fit_rms_resid_norm": float(np.sqrt(np.mean((y - mu * shape) ** 2))),
-        "peak_alpha_deg": peak_deg, "peak_in_visited_range": bool(peak_deg == peak_deg and peak_deg <= p99),
-        "visited_alpha_p99_deg": p99,
+        "peak": L_PEAK_NOTE, "visited_alpha_p99_deg": p99,
         "sign_ok": mu > 0,
         "residuals": resid, "residual_mask": m2,
     }
@@ -638,8 +635,9 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
       demonstrated mu above L_MU_CEILING: more grip than a racing tyre has
          points at the force or load inputs, not at the tyre (2026-10-19;
          replaces the mu-at-bound check of the fitted-mu version)
-    The peak position and its coverage are reported only; an uncovered peak
-    flags mu as extrapolated."""
+    No peak to report: with C = 1 the curve is monotonic, and mu is the
+    demonstrated utilisation, not an asymptote read off the curve (wording
+    ruling 2026-10-20)."""
     a = np.degrees(alpha[fit_mask & np.isfinite(alpha)])
     span = float(np.percentile(a, 99) - np.percentile(a, 1)) if a.size else float("nan")
     K = float(axle_fit["B"] * axle_fit["C"] * axle_fit["mu"])
@@ -655,12 +653,9 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
         failed.append("g2 normalised stiffness")
     if not axle_fit["mu"] <= L_MU_CEILING:
         failed.append("mu_demo above the physical ceiling 2.0")
-    peak = axle_fit["peak_alpha_deg"]
     return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "k_zone": k_zone,
-            "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING,
-            "peak_deg": peak, "peak_note": "no peak (monotonic)" if peak != peak else "",
-            "peak_covered": bool(axle_fit["peak_in_visited_range"]),
-            "mu_extrapolated": not axle_fit["peak_in_visited_range"], "failed": failed}
+            "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING, "mu_source": axle_fit["mu_source"],
+            "peak": axle_fit["peak"], "failed": failed}
 
 
 def plausibility_gate(alpha, fit_mask, axle_fit, cfg):
@@ -1036,15 +1031,18 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
                                          racing_ids)
 
     slip_ekf = estimate_slip_angles(state, beta_shipped, params)
-    coverage = {}
-    for axle_name, alpha_c, fit in (("front", slip_ekf["alpha_f_filt"], front_fit), ("rear", slip_ekf["alpha_r_filt"], rear_fit)):
-        alpha_deg = np.degrees(alpha_c)[base_mask]
-        if np.isfinite(fit["peak_alpha_deg"]):
-            frac_beyond = float((np.abs(alpha_deg) > fit["peak_alpha_deg"]).mean())
-        else:
-            frac_beyond = float("nan")
-        coverage[axle_name] = {"peak_alpha_deg": fit["peak_alpha_deg"], "coverage_fraction": frac_beyond}
-    manifest["onset_coverage"] = coverage
+    if not lit:
+        # share of samples past the curve peak; fit L has no peak (C = 1)
+        coverage = {}
+        for axle_name, alpha_c, fit in (("front", slip_ekf["alpha_f_filt"], front_fit),
+                                        ("rear", slip_ekf["alpha_r_filt"], rear_fit)):
+            alpha_deg = np.degrees(alpha_c)[base_mask]
+            if np.isfinite(fit["peak_alpha_deg"]):
+                frac_beyond = float((np.abs(alpha_deg) > fit["peak_alpha_deg"]).mean())
+            else:
+                frac_beyond = float("nan")
+            coverage[axle_name] = {"peak_alpha_deg": fit["peak_alpha_deg"], "coverage_fraction": frac_beyond}
+        manifest["onset_coverage"] = coverage
 
     apex_half = params["stability_estimation"]["apex_half_window_samples"]
     apex_mask = np.zeros_like(t, dtype=bool)
@@ -1109,10 +1107,6 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     gate = {name: gate_fn(slip_kin[key], fit_mask, fit, cfg)
             for name, key, fit in (("front", "alpha_f_filt", front_fit), ("rear", "alpha_r_filt", rear_fit))}
     manifest["plausibility_gate"] = gate
-    if lit:
-        # the gate dict is stripped before persisting; the flag rides with the axle
-        for name, g in gate.items():
-            manifest["axles"][name]["mu_extrapolated"] = g["mu_extrapolated"]
     gate_failures = [f"{name}: {', '.join(g['failed'])}" for name, g in gate.items() if g["failed"]]
     if gate_failures:
         reason = "tyre curve plausibility gate failed -- " + "; ".join(gate_failures)

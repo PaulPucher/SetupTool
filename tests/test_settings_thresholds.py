@@ -14,7 +14,8 @@ from core.threshold_overrides import apply_threshold_edit, is_manual
 
 CONFIG_FILES = ("config/parameters.json", "config/channels.json",
                 "config/recommendations.json", "config/decision_frame.json")
-GOLDEN_SUMMARIES = "tests/golden/pipeline_dubai_ekf_auto_pacejka_cap1.json"
+# real summaries of the default path (Dubai goldens retired 2026-10-20)
+GOLDEN_SUMMARIES = "tests/golden/default_nbr_jst29.json"
 
 
 @pytest.fixture
@@ -81,7 +82,7 @@ def _severities(summaries):
 
 def test_settings_round_trip_edit_persist_reload_classify(qapp, restore_config):
     # edit -> Save -> file on disk -> fresh view shows "manual" + restore ->
-    # classifier reads the new value (real Dubai summaries)
+    # classifier reads the new value (real NBR JST 29 summaries)
     from ui.views.settings_view import SettingsView
     summaries = _real_summaries()
     before = _severities(summaries)

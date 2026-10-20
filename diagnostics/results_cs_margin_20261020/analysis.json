@@ -1,0 +1,68 @@
+{
+ "flips": [
+  {
+   "session": "pr_o25_us_v1",
+   "label": "Le Castellet outing 25, MLA-SE07_US-v1",
+   "corner_phase": "2|exit_4",
+   "input": "front_fraction",
+   "sign": -1,
+   "old": [
+    "normal",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.04830861314526826,
+   "base_f": 0.03742708467924446,
+   "base_r": 0.05169138685473174,
+   "var_f": -0.19045114319314682,
+   "var_r": 0.051542278770696046
+  },
+  {
+   "session": "pr_o25_us_v1",
+   "label": "Le Castellet outing 25, MLA-SE07_US-v1",
+   "corner_phase": "14|exit_4",
+   "input": "wheelbase",
+   "sign": -1,
+   "old": [
+    "normal",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.0005529337584056215,
+   "base_f": -0.1384470662415944,
+   "base_r": 0.08910243739577761,
+   "var_f": -0.13934692964313822,
+   "var_r": 0.08981582339806637
+  },
+  {
+   "session": "pr_o25_us_v1",
+   "label": "Le Castellet outing 25, MLA-SE07_US-v1",
+   "corner_phase": "2|exit_4",
+   "input": "steering_wheel_angle",
+   "sign": 1,
+   "old": [
+    "normal",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.04830861314526826,
+   "base_f": 0.03742708467924446,
+   "base_r": 0.05169138685473174,
+   "var_f": -0.1915436236705978,
+   "var_r": 0.05161072254254766
+  }
+ ],
+ "distances": [
+  0.04830861314526826,
+  0.0005529337584056215
+ ]
+}

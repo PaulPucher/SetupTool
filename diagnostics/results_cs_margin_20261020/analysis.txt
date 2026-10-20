@@ -1,0 +1,25 @@
+cs_margin RE-DERIVATION on the new default (+/-1 % sweep, 14 sessions); thresholds front (-0.139, -0.023), rear (-0.002, 0.1); config cs_margin now 0.11
+
+runs: 140 variants + 14 baselines; fallback in 0 variant runs; 1145 baseline corner-phases
+FLIPS (axle direction changes, recorded _is_flip): 3 flips, 2 distinct corner-phases
+  distance 0.048  Le Castellet outing 25, MLA-SE07_US-v1 C2|exit_4: 2 input(s): front_fraction -1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf +0.037->-0.190, CSr +0.052->+0.052); steering_wheel_angle +1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf +0.037->-0.192, CSr +0.052->+0.052)
+  distance 0.001  Le Castellet outing 25, MLA-SE07_US-v1 C14|exit_4: 1 input(s): wheelbase -1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf -0.138->-0.139, CSr +0.089->+0.090)
+
+distinct flipped corner-phase distances, descending: 0.048, 0.001
+observer uncertainty (robustness, Q x 0.3), |corner-value change| median / p90: front 0.017 / 0.085, rear 0.02 / 0.106
+
+[MARGINAL] SHARE of card tier verdicts (analysis-lap corner summaries), old 0.11 -> new 0.01:
+  NBR outing 5 MLA: 12 tier verdicts of 90 cards; MARGINAL 12 (100 %) -> 5 (42 %)
+  NBR outing 10 JDR: 10 tier verdicts of 180 cards; MARGINAL 10 (100 %) -> 1 (10 %)
+  NBR outing 20 JST: 10 tier verdicts of 64 cards; MARGINAL 9 (90 %) -> 1 (10 %)
+  NBR outing 29 JST (NBR_Sturm_Solution copy): 13 tier verdicts of 90 cards; MARGINAL 12 (92 %) -> 4 (31 %)
+  NBR outing 46 JST: 11 tier verdicts of 60 cards; MARGINAL 10 (91 %) -> 1 (9 %)
+  NBR outing 53 MLA: 9 tier verdicts of 85 cards; MARGINAL 9 (100 %) -> 1 (11 %)
+  NBR outing 54 CDR: 23 tier verdicts of 120 cards; MARGINAL 21 (91 %) -> 3 (13 %)
+  NBR outing 59 MLA: 10 tier verdicts of 60 cards; MARGINAL 10 (100 %) -> 2 (20 %)
+  NBR outing 61 JDR: 8 tier verdicts of 136 cards; MARGINAL 8 (100 %) -> 1 (12 %)
+  NBR outing 63 CDR: 18 tier verdicts of 96 cards; MARGINAL 18 (100 %) -> 3 (17 %)
+  NBR qualifying CDR (outing 69): 15 tier verdicts of 96 cards; MARGINAL 14 (93 %) -> 2 (13 %)
+  NBR qualifying MLA (outing 70): 17 tier verdicts of 90 cards; MARGINAL 17 (100 %) -> 2 (12 %)
+  Le Castellet outing 25, MLA-SE07_US-v1: 12 tier verdicts of 51 cards; MARGINAL 12 (100 %) -> 2 (17 %)
+  Le Castellet outing 32, MLA-SE07_US-v2: 32 tier verdicts of 153 cards; MARGINAL 27 (84 %) -> 6 (19 %)

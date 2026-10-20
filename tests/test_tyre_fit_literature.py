@@ -118,15 +118,18 @@ def test_literature_bounded_runs_with_load_provenance(l_manifest):
         assert man["final_config"]["d_front"] == man["axles"]["front"]["mu"]
 
 
-def test_literature_gate_reports_slope_and_coverage(l_manifest):
+def test_literature_gate_reports_slope_and_mu_source(l_manifest):
     # D4 under L (reopen 2026-10-18): no peak-band gate; the normalised
-    # origin slope is checked, the peak only reported and flagged
+    # origin slope is checked. Wording 2026-10-20: no peak, mu stated as the
+    # demonstrated utilisation, no extrapolation flag or peak coverage
     for axle in ("front", "rear"):
         g, fit = l_manifest["plausibility_gate"][axle], l_manifest["axles"][axle]
         assert not any("g3" in f for f in g["failed"])
         assert g["stiffness_norm_per_rad"] == pytest.approx(fit["B"] * fit["C"] * fit["mu"])
-        assert g["mu_extrapolated"] is (not fit["peak_in_visited_range"])
-        assert fit["mu_extrapolated"] is g["mu_extrapolated"]
+        assert g["peak"] == fit["peak"] == "none (C = 1, monotonic)"
+        assert g["mu_source"] == fit["mu_source"] == "demonstrated utilisation p99.5 (lower bound)"
+        for k in ("mu_extrapolated", "peak_alpha_deg", "peak_in_visited_range"):
+            assert k not in fit and k not in g
         k = g["stiffness_norm_per_rad"]
         in_edge = tfa.L_K_EDGE[0] <= k <= tfa.L_K_EDGE[1]
         assert ("g2 normalised stiffness" in g["failed"]) is (not in_edge)
@@ -137,16 +140,16 @@ def test_literature_gate_reports_slope_and_coverage(l_manifest):
 
 def test_literature_curve_is_monotonic(l_manifest):
     # C = 1.0 with E = -1 (2026-10-18): no peak and no falling branch -- the
-    # slope stays positive out to 90 deg, the gate reports no peak and mu as
-    # the extrapolated asymptotic grip
+    # slope stays positive out to 90 deg; the manifest says so in words and
+    # carries no peak coverage
     from modules.tyre_model_pacejka import pacejka_lateral_stiffness
     assert tfa.L_SHAPE_C == 1.0
     g = np.radians(np.linspace(0.01, 89.9, 4000))
     for axle in ("front", "rear"):
         fit, gate = l_manifest["axles"][axle], l_manifest["plausibility_gate"][axle]
         assert np.all(pacejka_lateral_stiffness(g, fit["B"], fit["C"], 1.0, fit["E"]) > 0)
-        assert fit["peak_alpha_deg"] != fit["peak_alpha_deg"]
-        assert gate["peak_note"] == "no peak (monotonic)" and gate["mu_extrapolated"] is True
+        assert fit["peak"] == gate["peak"] == tfa.L_PEAK_NOTE
+    assert "onset_coverage" not in l_manifest
 
 
 def test_braking_filter_removes_only_heavy_braking(jst29, l_manifest):
@@ -484,17 +487,18 @@ def test_cs_on_fy_over_fz_window_slope_and_band(jst29, l_manifest):
 @pytest.fixture(scope="module")
 def l_default(jst29):
     # the new default end to end (schema 16): live config, the app's own
-    # resolver, CS with the inputs it hands over, then the floor events
+    # resolver, CS with the inputs it hands over, then the event layer as the
+    # app calls it -- under fit L that is the floor events (2026-10-20)
     from modules.stability_analysis import estimate_cornering_stiffness
-    from modules.limit_events import detect_floor_events
+    from modules.limit_events import detect_events
     st, p, data = jst29["state"], jst29["params"], jst29["data"]
     out = tfa.resolve_sideslip_beta_and_cs_inputs(st, p, data, p["stability_estimation"]["sideslip_source"],
                                                   csv_path=jst29["path"])
-    beta, man, _gate, fb, _fr, cs_in = out
+    beta, man, gate, fb, _fr, cs_in = out
     slip = estimate_slip_angles(st, beta, p)
     cs = estimate_cornering_stiffness(slip, jst29["forces"], st, p, data["laps"], **cs_in["cs_kwargs"])
-    fe = detect_floor_events(cs, st, data["corners"], data["laps"], p, slip,
-                             axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])
+    fe = detect_events(cs, st, data["corners"], data["laps"], man, p, slip=slip, gate_verdict=gate,
+                       axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])
     return {"manifest": man, "fallback": fb, "cs_inputs": cs_in, "cs": cs, "floor_events": fe}
 
 
@@ -515,9 +519,12 @@ def test_new_default_runs_fit_l_end_to_end_with_floor_events(jst29, l_default):
     fe = l_default["floor_events"]
     json.dumps(fe)   # it rides in the persisted events record
     assert fe["status"] == "computed" and fe["floor"] == -0.53 and fe["events"]
+    assert fe["line"] == "pure-lateral floor" and fe["floors"] == {"front": -0.53, "rear": -0.53}
+    assert "beta_note" not in fe and fe["n_instances_by_corner"]
     keys = ("lap", "corner", "axle", "phase", "phases_spanned", "s_start_m", "s_end_m", "s_min_m", "duration_s",
             "n_samples", "cs_min", "kerb_distance_m", "kerb_affected", "observer_reset_affected", "fx_util_max",
-            "braking_share", "braking", "fz_window_range_median", "fz_window_range_max")
+            "braking_share", "braking", "fz_window_range_median", "fz_window_range_max", "floor",
+            "window_start_t", "recurrence", "recurring_laps")
     for e in fe["events"]:
         assert set(keys) <= set(e)
         assert e["cs_min"] < -0.53 and e["s_end_m"] >= e["s_start_m"]

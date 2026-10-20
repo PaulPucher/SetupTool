@@ -5,7 +5,7 @@
 # selector") and is already wired into production (ui/views/outing_form.
 # py calls resolve_accuracy with the outing's real setup_data) -- but had
 # NO dedicated test file: every existing call site in tests/ (conftest.py,
-# test_auto_fit_wiring.py, test_golden_auto_modes.py) passes setup_data=
+# test_auto_fit_wiring.py) passes setup_data=
 # None deliberately, for golden-file reproducibility, so the Level-2
 # session-measurement branch itself was never exercised by the suite.
 # Pure-function tests -- no real pipeline run needed, resolve_accuracy/

@@ -4076,6 +4076,54 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       -0.139 / -0.023, rear -0.002 / +0.100 (current thresholds classify ~0
       on the new default). Floor events: front 58 (41 clean), rear 2;
       repeatable cells NBR 54 C3, NBR 46 C2 turn-in. NOT committed.]
+   FINAL CHAIN PART 2 (author EXECUTE 2026-10-20; rulings in DECISIONS.md,
+      before implementation): thresholds ADOPTED (front -0.139 / -0.023, rear
+      -0.002 / +0.100; old -0.784 / -0.265, -0.677 / -0.323 struck); tiers =
+      relative ranks, physical statements by separate labels (ratio < 0 "axle
+      force falling while slip grows", < -0.53 floor event); wording items
+      1 / 2 / 4 adopted, item 3 = limit-event layer merged into floor events
+      under fit L (old layer stays for the old path); relaxation cited
+      (Pacejka 2006 p. 22, pp. 366-368); Dubai goldens retired, new goldens
+      NBR JST 29 + Le Castellet 32 on the default; full suite green, old path
+      bit-identical vs HEAD. C: verdict counts per session / axle, floor
+      events. D: robustness check (baseline, Q x 0.1, Q x 0.3, Q_beta upper +
+      old hand-set Q_r, R_yaw x 10) on 14 sessions, report only.
+      [2026-10-20 B/C RESULT: thresholds, wording, floor events as the
+      fit-L event layer, goldens NBR JST 29 + Le Castellet 32 (Dubai
+      retired). Suite 650 passed, 0 failed; old path bit-identical vs HEAD
+      2adc0cc. Pool verdicts front 22 strong / 44 moderate / 154 none, rear
+      20 / 43 / 145. cs_margin 0.11 now wider than the tier spacing -> most
+      tier verdicts MARGINAL (open). D running. NOT committed.]
+      [2026-10-20 D RESULT: pooled verdict flip rate vs baseline -- Q x 0.1
+      25.5 %, Q x 0.3 15.6 %, Q_r old hand-set 77.5 % (237-783 hard-bound
+      re-entries per session, 2758 new floor events, 5 sessions ok ->
+      marginal), R_yaw x 10 0.0 %. No gate fail or fallback in any variant.
+      Report only, nothing selected. NOT committed.]
+   CS_MARGIN RE-DERIVATION + RECOMMENDATION CHECK (author EXECUTE 2026-10-20;
+      rulings in DECISIONS.md before implementation): robustness reading
+      recorded (R_yaw no effect; old Q_r inadmissible by the observer-health
+      criterion, confirms Q-UPPER for r; admissible Q range: values robust to
+      a few hundredths, the STRONG / MODERATE split finer than the observer
+      uncertainty). B: cs_margin by the recorded +/-1 % sweep on the new
+      default, 14 sessions, value to config. C: read-only, why 0
+      recommendations with empty feedback. D: [MARGINAL] share per session,
+      old vs new margin. Two-tier question deferred to the recommendation
+      overhaul.
+      [2026-10-20 RESULT: cs_margin 0.11 -> 0.01 (one proportional flip at
+      0.001, Le Castellet 25 C14 exit_4; C2 discontinuity excluded, 0.05
+      without). [MARGINAL] share 84-100 % -> 9-42 %. Goldens regenerated,
+      verdict strings only. 0 recommendations = consistency gate (repeat 1-2
+      of 6-9 laps vs >= 2 and >= 40 %). NOT committed.]
+   CLOSE-OUT OF THE FINAL CHAIN (author rulings 2026-10-20, records only):
+      C2 exclusion confirmed, cs_margin 0.01 stands. Known property:
+      [MARGINAL] = sensitive to vehicle parameters; the observer uncertainty
+      (p90 about 0.1 at Q x 0.3) dominates and is not expressed by it.
+      RECOMMENDATION OVERHAUL (queued): one combined uncertainty and the
+      two-tier question; (a) consistency gate across laps vs worst-lap
+      aggregation (cause of 0 recommendations on both golden sessions); (b)
+      merge recommendation.py (PDF export) and decision_frame.py (screen)
+      into one engine. ANALYSIS CHAIN FINAL on the development set. NEXT:
+      author review in the app, then the PRODUCTION.md method rewrite.
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS

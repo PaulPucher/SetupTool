@@ -130,8 +130,9 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 15 (2026-10-11): estimator change (re-entry, plausibility gate, R selection,
     # ay-only gross trigger); fit_manifest gains marginal_reason and the
     # r_sweep selection / guard_trace fields -- corner summaries untouched.
-    # 16 (2026-10-20): fit L is the default path; events gains floor_events --
-    # corner summaries untouched, every shape check below unchanged.
+    # 16 (2026-10-20): fit L is the default path; under it the events record
+    # holds the floor events -- corner summaries untouched, every shape check
+    # below unchanged.
     assert ANALYSIS_SCHEMA_VERSION == 16, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
         "written for 16 -- update this test deliberately if the version was bumped again"

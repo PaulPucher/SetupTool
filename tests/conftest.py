@@ -116,16 +116,14 @@ def pipeline_result(parsed_data, effective_params, state):
     pointed at an auto mode required manually flipping
     config/parameters.json to kinematic and restoring it afterward --
     that assertion now matches the live default directly instead of
-    fighting it, which is what removed the need to flip. "kinematic"
-    still gets golden-file regression coverage, as an explicit,
-    live-config-independent secondary mode in
-    tests/test_golden_auto_modes.py rather than through this fixture.
+    fighting it, which is what removed the need to flip. [2026-10-20:
+    the Dubai goldens, including the kinematic secondary set, are retired;
+    the default path's goldens live in tests/test_golden_pipeline.py.]
 
     Uses modules.tyre_fit_auto.resolve_sideslip_beta -- the same
     dispatch function StabilityAnalysisThread.run() calls -- so this
     fixture can never silently diverge from what the app itself would
-    compute for beta, the same reason the secondary-mode testing in
-    test_golden_auto_modes.py uses it too.
+    compute for beta.
 
     Deliberately does not import ui/views/outing_form.py itself: that
     module is PyQt6-based (QThread), and the config-switch branch it
@@ -142,10 +140,11 @@ def pipeline_result(parsed_data, effective_params, state):
     )
 
     # OLD PATH PINNED (2026-10-20): fit L is the config default since schema
-    # 16, but the goldens are regenerated only after the threshold adoption;
-    # until then this fixture selects per_session explicitly, so the goldens
-    # check that the old path stays bit-identical. tyre_fit_mode is read only
-    # inside resolve_sideslip_beta, so the copy is passed there alone.
+    # 16; the Dubai tests on this fixture cover the old per_session path
+    # (curve-floor limit events, the WP-N3 figures), selectable until the
+    # cleanup round. The default path has its own goldens on NBR JST 29 and
+    # Le Castellet 32 (tests/test_golden_pipeline.py). tyre_fit_mode is read
+    # only inside resolve_sideslip_beta, so the copy is passed there alone.
     old_path_params = copy.deepcopy(effective_params)
     old_path_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
@@ -154,7 +153,7 @@ def pipeline_result(parsed_data, effective_params, state):
     # fallback_used is NOT asserted here -- returned instead so callers get one
     # clear, dedicated failure (test_golden_pipeline.py's test_pipeline_did_not_
     # fall_back) rather than every pipeline_result-dependent test erroring out
-    # on fixture setup, same pattern as test_golden_auto_modes.py's fixture.
+    # on fixture setup.
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
     cs = estimate_cornering_stiffness(slip, forces, state, effective_params, parsed_data.get("laps", []))

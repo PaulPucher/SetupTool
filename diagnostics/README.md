@@ -986,3 +986,20 @@ cited them now say so (git history keeps the code).
   floor-event census (events below -0.53, per lap and per cell). Output
   diagnostics/plots/threshold_rederivation/ (cache_l_20261020/,
   rederivation_l_20261020.txt / .json).
+- **inspect_observer_robustness.py** (2026-10-20) -- REFERENCED (PLAN.md
+  final chain part 2, D): robustness of the default path to the observer
+  noise -- baseline (Q-UPPER, measured R floors), Q x 0.1, Q x 0.3, Q_beta
+  upper bound with the old hand-set Q_r, R_yaw x 10 -- on the 14
+  development sessions with the adopted thresholds fixed; verdict-class
+  flips, floor events appearing / disappearing, gate and status changes.
+  Variants are wrapped in memory per worker job, nothing in modules/ or
+  config/ changes. Imports inspect_threshold_rederivation._corner_values.
+  Output diagnostics/plots/observer_robustness/.
+- **inspect_cs_margin_l.py** (2026-10-20) -- REFERENCED (config
+  classification.verdict_stability_margin derived_from; PLAN.md cs_margin
+  re-derivation): the recorded +/-1 % verdict-sensitivity sweep on the
+  fit-L default, 14 sessions, adopted thresholds; [MARGINAL] shares at the
+  old and new margin. Imports inspect_metrology_phase1_sensitivity
+  (_scale_wheel_angle_column, classify_all) and
+  inspect_metrology_phase1_analysis (_is_flip), which thereby qualify as
+  Dependency. Output diagnostics/results_cs_margin_20261020/.

@@ -608,8 +608,9 @@ i (moving and outside the kerb mask):
    NaN, never zero-filled, and counted (n_no_reference_f / _r, of them on
    analysis laps n_no_reference_analysis_f / _r; the analysis-lap count is
    shown on the summary line, 13.1).
-Reading: 1 = linear regime; 0 = the axle's force peak; negative = past
-the peak (force falling with slip).
+Reading: 1 = linear; towards 0 = the axle approaching its force limit;
+negative = axle force falling while slip grows (measured local slope; the
+fitted curve, monotonic since C = 1, has no peak).
 All CONFIG values here sit in stability_estimation unless named.
 
 Phase offset of the trailing window: the CS at sample i is the regression
@@ -1272,15 +1273,15 @@ re-derivation rule:
 
 ## 16. STRONG VERDICT MEANING
 
-On every session of the threshold pool and on both axles, the STRONG
-threshold (re-derived 2026-10-11: -0.784 front, -0.677 rear;
-pre-final-chain, so this check is repeated in the final chain) lies below
-the floor of that session's own fitted Pacejka curve (the deepest slope ratio the curve produces over the visited slip
-range, and also out to 30 deg; pool floors -0.325 front, -0.233 rear),
-so a corner value at STRONG cannot be produced by the session's
-quasi-steady tyre characteristic. STRONG therefore means "anomalous
-force loss beyond the quasi-steady characteristic (kerb-shown majority
-per audit; mechanism open otherwise)".
+STRONG = the deepest 10 % of the pool's corner values, MODERATE = the
+deepest 30 % (re-derived 2026-10-20 on the fit-L default, 14 development
+sessions: front -0.139 / -0.023, rear -0.002 / +0.100). Percentile tiers,
+relative ranks in the pool, with no physical claim. A positive rear
+MODERATE is by the rule: a ratio of 0.1 is a rear stiffness at 10 % of
+linear, near saturation. Physical statements are carried by separate
+labels: ratio < 0 = "axle force falling while slip grows"; ratio below
+-0.53 additionally "not explainable by pure lateral saturation" (floor
+events, 13.4).
 
 
 ## 17. ACCURACY-LEVEL REGISTRY

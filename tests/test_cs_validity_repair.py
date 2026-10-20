@@ -430,13 +430,18 @@ def _healthy_phases():
     }
 
 
+def _cs_margin():
+    from modules.stability_analysis import load_parameters
+    return load_parameters()["classification"]["verdict_stability_margin"]["cs_margin"]
+
+
 def test_classify_corner_marginal_marker_fires_within_anchored_margin():
-    # 0.05 below STRONG_CSF, inside the 0.11 anchored margin (config
-    # classification.verdict_stability_margin.cs_margin) -- a real understeer
-    # verdict this close to the threshold must be tagged.
+    # half the anchored margin below STRONG_CSF (config classification.
+    # verdict_stability_margin.cs_margin, re-derived 2026-10-20) -- a real
+    # understeer verdict this close to the threshold must be tagged.
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", 0.05)}
+    summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", _cs_margin() / 2)}
     severity, short, long_, _colour = OutingForm._classify_corner(None, summary)
     assert severity == "moderate"
     assert "understeer" in short
@@ -452,7 +457,8 @@ def test_classify_corner_marginal_marker_fires_within_anchored_margin():
 
 def test_classify_corner_marginal_marker_absent_far_from_threshold():
     # 0.15 below STRONG_CSF (and further from MODERATE_CSF) -- outside the
-    # 0.11 anchored margin -- a confident verdict, not a marginal one.
+    # anchored margin -- a confident verdict, not a marginal one.
+    assert _cs_margin() < 0.15
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
     summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", 0.15)}
@@ -473,10 +479,10 @@ def test_classify_corner_marginal_marker_absent_when_no_verdict():
 
 
 def test_classify_corner_marginal_marker_fires_on_rear_axle_too():
-    # 0.05 below STRONG_CSR, inside the margin.
+    # half the anchored margin below STRONG_CSR, inside the margin.
     from ui.views.outing_form import OutingForm
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": _strong_value("r", 0.05)}
+    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": _strong_value("r", _cs_margin() / 2)}
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
     assert "oversteer" in short
     assert "[MARGINAL]" in short

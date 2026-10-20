@@ -18,6 +18,7 @@ from ui.style import BAD, BORDER, INFO, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DI
 # All laps same width.
 from core import plot_style
 from core.trace_display import kerb_exclusion_caption
+from modules.limit_events import legend_text as event_legend_text
 from core.plot_style import (
     FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY, NEAR_STRIKE_COLOR,
     SCREEN_LAP_WIDTH, LEGEND_FONT_PT,
@@ -67,11 +68,8 @@ KERB_BRIDGE_LEGEND_TEXT = (
     "Dashed, lighter stretch across a kerb band: straight-line bridge for "
     "continuity only -- not measured, not used by any verdict."
 )
-EVENT_LEGEND_TEXT = (
-    "Thick strip along the bottom of a cornering-stiffness-ratio panel: limit event -- the ratio "
-    "fell below what this session's fitted tyre curve can produce anywhere (force loss beyond the "
-    "tyre characteristic); display only, not used by any verdict."
-)
+# event-strip legend: worded by the event layer's line (fit L: floor events at
+# -0.53; old path: fitted-curve floor), modules.limit_events.legend_text
 EVENT_STRIP_WIDTH = 5  # px; a line, not a filled band (shading budget)
 EXCLUSION_LEGEND_TEXT = (
     "Grey band: left out of the analysis here -- kerb-affected (the analysis fills the span from "
@@ -1629,7 +1627,7 @@ class CornerTraceDialog(_TraceDialogBase):
             legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
         legend_parts.append(kerb_exclusion_caption(ns_mode, ns_counts[0], ns_counts[1]))
         if any_event:
-            legend_parts.append(EVENT_LEGEND_TEXT)
+            legend_parts.append(event_legend_text(stability_result.get("events")))
         self.legend_label.setText(" ".join(legend_parts))
         self.legend_label.setVisible(True)
 
@@ -1979,7 +1977,7 @@ class LapTraceDialog(_TraceDialogBase):
             legend_parts.append(KERB_BRIDGE_LEGEND_TEXT)
         legend_parts.append(kerb_exclusion_caption(ns_mode, ns_counts[0], ns_counts[1]))
         if any_event:
-            legend_parts.append(EVENT_LEGEND_TEXT)
+            legend_parts.append(event_legend_text(stability_result.get("events")))
         self.legend_label.setText(" ".join(legend_parts))
         self.legend_label.setVisible(True)
 

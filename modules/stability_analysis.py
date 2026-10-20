@@ -58,9 +58,11 @@ CAR_DATA_PATH = "config/car_data.json"
 #  16: (2026-10-20) default switch: fit L (tyre_fit_mode literature_bounded)
 #      is the default path -- tyre fit, observer, CS on Fy / Fz with the
 #      [5.5, 35] per rad reference band and the hard-bound reset mark all
-#      change values. Payload: events gains floor_events (CS below the -0.53
-#      pure-lateral floor, measured attributes, record only); fit_manifest
-#      carries the fit-L fields. Migration: older payloads are recomputed on
+#      change values; thresholds re-derived on it. Payload: under fit L the
+#      events record holds the floor events (CS below the -0.53 pure-lateral
+#      floor, measured attributes, "line" key) instead of the curve-floor
+#      limit events; fit_manifest carries the fit-L fields (peak "none",
+#      mu_source; no mu_extrapolated / onset_coverage). Migration: older payloads are recomputed on
 #      open (schema mismatch), nothing is converted in place. The 15 owed
 #      note above is settled by this bump too.
 ANALYSIS_SCHEMA_VERSION = 16
