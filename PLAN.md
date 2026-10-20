@@ -4012,6 +4012,19 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       (g2 front). Re-entries 1 in total, soft resets 0. R_ay picks floor-
       binding on 9 NBR sessions (grid step 0.01 -> 0.03). Driver-feedback
       confirmation for 59 / 70 still pending. NOT committed.]
+   R FLOOR REFINEMENT + R_yaw FROM MEASURED NOISE (author EXECUTE 2026-10-19,
+      fit L only; rulings in DECISIONS.md, before implementation): A5 closed
+      (14 sessions = development set; 59 / 70 stay "plausibility gate
+      triggered"); noise floor = content above 2 Hz on steering-defined
+      straights, on the exact signal the EKF consumes; the floor value is an
+      R_ay candidate; R_yaw = measured yaw-rate noise floor, no R_yaw sweep
+      in fit L (adopted only if all gates pass on every session); load-chain
+      facts and open items recorded. Then a 14-session run.
+      [2026-10-19 RESULT: 17 tests passed, production bit-identical,
+      test_stability exit 0. 12 ok (NBR 61 back to ok), 59 / 70 fallback (D4
+      g2). Re-entries 1, soft resets 0. R_ay = the floor on 13 sessions; R_yaw
+      = yaw floor (SD 0.15-0.30 deg/s). All observer gates pass on every
+      session. NOT committed.]
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS

@@ -346,17 +346,48 @@ def test_hard_bound_only_makes_no_soft_reset(jst29, l_manifest):
     print(f"hard-bound resets {int(r['hard_bound_mask'].sum())}, soft resets 0")
 
 
-def test_r_ay_pick_respects_the_noise_floor(l_manifest):
-    # R_ay floor (2026-10-19): the grid reaches below the session's ay noise
-    # variance, and no pick lies below it
-    fl, sw = l_manifest["ay_noise_floor"], l_manifest["r_sweep"]
-    assert fl["var_mps2_sq"] > 0 and fl["n_samples"] > 0
-    assert fl["r_ay_scale"] == pytest.approx(fl["var_mps2_sq"] / l_manifest["r_derivation"]["r_ay_var_derived"])
-    scales = sorted({g["r_ay_scale"] for g in sw["grid_points"]})
-    assert scales[0] < fl["r_ay_scale"]
-    assert sw["chosen"]["r_ay_scale"] >= fl["r_ay_scale"]
-    print(f"ay noise floor {fl['var_mps2_sq']:.4f} (m/s^2)^2 = r_ay_scale {fl['r_ay_scale']:.4g}; grid {scales}; "
-          f"pick {sw['chosen']['r_ay_scale']} ({fl['pick_location']})")
+def test_noise_floors_are_taken_on_the_consumed_signals(jst29, l_manifest):
+    # floors (2026-10-19): variance above the 2 Hz zero-phase low-pass on the
+    # steering-defined straights, of the very arrays the measurement update
+    # reads (state ay_mps2 and yaw_rate_radps)
+    from modules.stability_analysis import _butterworth_lowpass
+    from modules.straights import steering_straights
+    st, p = jst29["state"], jst29["params"]
+    m = steering_straights(st, jst29["data"]["laps"], p["tyre_fit_auto"])["mask"]
+    fl = l_manifest["noise_floors"]
+    for name, key in (("ay", "ay_mps2"), ("yaw_rate", "yaw_rate_radps")):
+        x = st[key]
+        hp = x - _butterworth_lowpass(x, p["stability_estimation"]["cs_filter_cutoff_hz"], st["sample_rate_hz"])
+        assert fl[name]["var"] == pytest.approx(float(np.var(hp[m & np.isfinite(hp)])), rel=1e-12)
+        assert fl[name]["n_samples"] == int((m & np.isfinite(hp)).sum()) > 0
+
+
+def test_ay_floor_is_a_candidate_and_wins_when_the_sweep_prefers_lower(jst29, l_manifest):
+    # the floor value is on the R_ay grid; no pick below it; if the sweep
+    # without the floor goes lower and the floor point itself is in band and
+    # passes the guard, the pick is the floor, not a grid point above it
+    fl, sw = l_manifest["noise_floors"]["ay"], l_manifest["r_sweep"]
+    f = fl["r_ay_scale"]
+    pts = [g for g in sw["grid_points"] if g["r_ay_scale"] == f]
+    assert pts, "floor value missing from the R_ay grid"
+    assert min(g["r_ay_scale"] for g in sw["grid_points"]) < f
+    assert sw["chosen"]["r_ay_scale"] >= f
+    guard = jst29["params"]["tyre_fit_auto"]["sign_check_marginal_fraction"]
+    floor_ok = [g for g in pts if g["ay_in_band"] and g["sign_fraction"] >= guard]
+    if fl["floor_binding"] and floor_ok:
+        assert sw["chosen"]["r_ay_scale"] == f and fl["pick_location"] == "floor"
+    print(f"ay floor r_ay_scale {f:.4g}; binding {fl['floor_binding']}; pick {sw['chosen']['r_ay_scale']:.4g} "
+          f"({fl['pick_location']})")
+
+
+def test_r_yaw_is_the_measured_yaw_rate_floor(l_manifest):
+    # fit L: R_yaw is not swept; every grid point and the final run use the
+    # session's yaw-rate noise variance
+    v = l_manifest["noise_floors"]["yaw_rate"]["var"]
+    assert v > 0
+    for g in l_manifest["r_sweep"]["grid_points"]:
+        assert g["R_yaw_rate_var"] == pytest.approx(v, rel=1e-12)
+    assert l_manifest["final_config"]["R_yaw_rate_var"] == pytest.approx(v, rel=1e-12)
 
 
 def test_module_straights_match_the_diagnostic_definition(jst29):

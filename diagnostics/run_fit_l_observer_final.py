@@ -2,8 +2,8 @@
 # session from the fit-L force residual (Q-UPPER), trigger hard bound only,
 # R_ay grid continued down to the session's ay noise floor. Full chain on the
 # 14-session analysis set with the shipped config; read-only.
-# Per session: status / fallback and why, Q used, R picks and where they land
-# (ay: against the noise floor and the grid; yaw: against the grid ends),
+# Per session: status / fallback and why, Q used, the ay and yaw-rate noise
+# floors, the R_ay pick and where it lands, the R_yaw used (the yaw floor),
 # hard-bound re-entries (base mask), NIS mean / median (base mask),
 # straight-line |beta| median of the observer on the validation straights
 # (odd-indexed steering-defined straights, modules/straights.py), all gate
@@ -69,16 +69,13 @@ def run_session(key):
     cfg = p["tyre_fit_auto"]
     sw = man.get("r_sweep") or {}
     ch = sw.get("chosen") or {}
-    yaw_grid = cfg["r_sweep_yaw_scales"]
     rec = {"key": key, "label": label, "status": man.get("status"),
            "reason": man.get("degenerate_reason") or man.get("marginal_reason"), "fallback": fb, "fallback_reason": fr,
            "gate": gate and {k: gate[k] for k in ("verdict", "health_score")},
            "q": man.get("observer_q") or raw.get("observer_q"),
            "r_pick": {k: ch.get(k) for k in ("r_ay_scale", "r_yaw_scale", "R_ay_var", "R_yaw_rate_var")},
-           "r_selection": sw.get("selection"), "ay_floor": raw.get("ay_noise_floor"),
+           "r_selection": sw.get("selection"), "floors": raw.get("noise_floors"),
            "ay_grid": sorted({g["r_ay_scale"] for g in sw.get("grid_points", [])}),
-           "yaw_location": ("edge (lowest)" if ch.get("r_yaw_scale") == min(yaw_grid) else
-                            "edge (highest)" if ch.get("r_yaw_scale") == max(yaw_grid) else "interior"),
            "sign_check": (man.get("sign_check") or {}).get("median_gate_racing_fraction"),
            "nis_exceed": man.get("nis"), "h2": (man.get("h2_vs_ay_apex") or {}).get("correlation"),
            "d4": {a: {k: (raw.get("plausibility_gate") or {}).get(a, {}).get(k)
@@ -122,16 +119,19 @@ def main():
             log("=" * 100)
             log(f"{r['label']}: status {r['status']} ({r['reason'] or '-'}); fallback {r['fallback']}"
                 + (f" ({r['fallback_reason']})" if r["fallback"] else "") + f"; session {r['total_s']:.0f} s")
-            q, fl = r["q"] or {}, r["ay_floor"] or {}
+            q, fls = r["q"] or {}, r["floors"] or {}
+            fl, fy = fls.get("ay") or {}, fls.get("yaw_rate") or {}
             if q:
                 log(f"  Q: q_beta {q['q_beta_var']:.3e} rad^2, q_r {q['q_yaw_rate_var']:.3e} (rad/s)^2 per step at 50 Hz "
                     f"(SD beta_dot {q['sd_beta_dot']:.4f} rad/s, r_dot {q['sd_r_dot']:.3f} rad/s^2, n {q['n_joint']})")
             if fl:
-                log(f"  ay noise floor: {fl['var_mps2_sq']:.4f} (m/s^2)^2 on {fl['straight_s']:.0f} s of straights = "
-                    f"r_ay_scale {fl['r_ay_scale']:.4g}; ay grid {r['ay_grid']}")
-            log(f"  R pick: r_ay_scale {r['r_pick']['r_ay_scale']} ({fl.get('pick_location')}; without the floor "
-                f"{fl.get('pick_without_floor')}), r_yaw_scale {r['r_pick']['r_yaw_scale']} ({r['yaw_location']}); "
-                f"selection {r['r_selection']}")
+                log(f"  noise floors on {fl['straight_s']:.0f} s of straights: ay {fl['var']:.4f} (m/s^2)^2 = "
+                    f"r_ay_scale {fl['r_ay_scale']:.4g}; yaw rate {fy['var']:.3e} (rad/s)^2 = r_yaw_scale "
+                    f"{fy['r_yaw_scale']:.4g}; ay grid {[round(x, 5) for x in r['ay_grid']]}")
+            log(f"  R_ay pick: r_ay_scale {r['r_pick']['r_ay_scale']:.4g} = {r['r_pick']['R_ay_var']:.4f} (m/s^2)^2 "
+                f"({fl.get('pick_location')}; floor binding {fl.get('floor_binding')}; without the floor "
+                f"{fl.get('pick_without_floor')}); R_yaw used {r['r_pick']['R_yaw_rate_var']:.3e} (rad/s)^2 "
+                f"(r_yaw_scale {r['r_pick']['r_yaw_scale']:.4g}); selection {r['r_selection']}")
             ex_ = r["nis_exceed"] or {}
             log(f"  gates: NIS gate {r['gate']}; sign check {r['sign_check']}; exceedance yaw "
                 f"{ex_.get('yaw_rate_exceedance', float('nan')):.3f} ay {ex_.get('ay_exceedance', float('nan')):.3f}; "

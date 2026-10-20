@@ -594,20 +594,29 @@ def _q_upper_from_residual(front_fit, rear_fit, load_in, state, params):
             "method": "held-over-step upper bound from the fit-L force residual (Level 2)"}
 
 
-def _ay_noise_floor(state, laps, params):
-    """ay sensor-noise variance of the session (author ruling 2026-10-19,
-    Level 2): ay minus its zero-phase low-pass at the CS filter cutoff, on the
-    steering-defined straights, where the true lateral acceleration is
-    near-constant and what is left above the cutoff is sensor noise and
-    vibration. Floor for R_ay: the measurement cannot be trusted more than
-    the sensor allows."""
+def _measurement_noise_floors(state, laps, params):
+    """Measurement-noise variances of the session (author rulings
+    2026-10-19, Level 2, Tier B): each observer measurement minus its
+    zero-phase low-pass at the CS filter cutoff (2 Hz, the same cutoff as the
+    CS and Fz filters), on the steering-defined straights. The single-track
+    model has no vertical or vibration dynamics, so what the signal carries
+    above the cutoff there is noise for it -- R covers what the model cannot
+    predict. Taken on exactly the arrays the measurement update reads:
+    state["ay_mps2"] (log_acc_y x 9.81) and state["yaw_rate_radps"]
+    (sclu_yaw_rate x yaw_rate_to_radps), both linearly interpolated onto the
+    grid and otherwise unfiltered. ay is the floor for R_ay; yaw rate gives
+    R_yaw directly."""
     from modules.straights import steering_straights
     sd = steering_straights(state, laps, params["tyre_fit_auto"])
-    ay = state["ay_mps2"]
-    hp = ay - _butterworth_lowpass(ay, params["stability_estimation"]["cs_filter_cutoff_hz"], state["sample_rate_hz"])
-    m = sd["mask"] & np.isfinite(hp)
-    return {"var_mps2_sq": float(np.var(hp[m])) if m.any() else float("nan"), "n_samples": int(m.sum()),
-            "straight_s": float(m.sum() / state["sample_rate_hz"]), "n_segments": len(sd["segs"])}
+    cutoff, sr = params["stability_estimation"]["cs_filter_cutoff_hz"], state["sample_rate_hz"]
+    out = {"n_segments": len(sd["segs"])}
+    for name, key in (("ay", "ay_mps2"), ("yaw_rate", "yaw_rate_radps")):
+        x = state[key]
+        hp = x - _butterworth_lowpass(x, cutoff, sr)
+        m = sd["mask"] & np.isfinite(hp)
+        out[name] = {"var": float(np.var(hp[m])) if m.any() else float("nan"), "n_samples": int(m.sum()),
+                     "straight_s": float(m.sum() / sr)}
+    return out
 
 
 def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
@@ -905,16 +914,23 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
                 "sign_fraction": sign["median_gate_racing_fraction"]}
 
     ay_scales = list(cfg["r_sweep_ay_scales"])
+    yaw_scales = list(cfg["r_sweep_yaw_scales"])
     floor_scale = None
     if lit:
-        # R_ay floor (author ruling 2026-10-19): the session's ay sensor-noise
-        # variance in r_ay_scale units; the half-decade grid (1, 0.3, 0.1, ...)
-        # is continued downward until one value lies below it, so a pick at
-        # the floor shows as floor-bound rather than as the grid edge
-        floor = _ay_noise_floor(state, laps, params)
-        floor_scale = floor["var_mps2_sq"] / r_ay_var_derived
-        floor["r_ay_scale"] = floor_scale
-        manifest["ay_noise_floor"] = floor
+        # measured noise floors (author rulings 2026-10-19), in scale units:
+        # R_yaw is the yaw-rate floor itself, not swept -- with Q_r at the
+        # upper bound the yaw state follows the gyro and the sweep only ran
+        # into its grid ends. R_ay keeps the sweep with the ay floor as its
+        # lowest candidate; the half-decade grid (1, 0.3, 0.1, ...) is
+        # continued downward until one value lies below it, so a sweep that
+        # prefers lower shows as floor-binding instead of as the grid edge.
+        floors = _measurement_noise_floors(state, laps, params)
+        floor_scale = floors["ay"]["var"] / r_ay_var_derived
+        yaw_floor_scale = floors["yaw_rate"]["var"] / r_yaw_rate_var_derived
+        floors["ay"]["r_ay_scale"], floors["yaw_rate"]["r_yaw_scale"] = floor_scale, yaw_floor_scale
+        manifest["noise_floors"] = floors
+        if yaw_floor_scale == yaw_floor_scale:
+            yaw_scales = [yaw_floor_scale]
         if floor_scale == floor_scale:
             lo = min(ay_scales)
             for _ in range(L_R_AY_MAX_EXTRA_STEPS):
@@ -923,9 +939,10 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
                 mant = lo / 10.0 ** np.floor(np.log10(lo))
                 lo = float(f"{lo * (0.3 if abs(mant - 1.0) < 1e-6 else 1.0 / 3.0):.3g}")
                 ay_scales.append(lo)
+            ay_scales.append(floor_scale)
         else:
             floor_scale = None
-    sweep_results = [_sweep_point(a_, y_) for a_ in ay_scales for y_ in cfg["r_sweep_yaw_scales"]]
+    sweep_results = [_sweep_point(a_, y_) for a_ in ay_scales for y_ in yaw_scales]
 
     def _pick(admissible):
         cands = sorted((r for r in sweep_results if r["ay_in_band"] and admissible(r)),
@@ -946,21 +963,25 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         free, _, _ = _pick(lambda r: True)
         if chosen is None:
             loc = None
-        elif free is not None and free["r_ay_scale"] < floor_scale:
-            loc = "floor (binding)"
+        elif chosen["r_ay_scale"] == floor_scale:
+            loc = "floor"
         elif chosen["r_ay_scale"] == max(ay_scales):
             loc = "top edge"
-        elif chosen["r_ay_scale"] == min(s for s in ay_scales if s >= floor_scale):
-            loc = "lowest admissible (not binding)"
         else:
             loc = "interior"
-        manifest["ay_noise_floor"]["pick_location"] = loc
-        manifest["ay_noise_floor"]["pick_without_floor"] = free and {k: free[k] for k in ("r_ay_scale", "r_yaw_scale")}
+        manifest["noise_floors"]["ay"]["pick_location"] = loc
+        manifest["noise_floors"]["ay"]["floor_binding"] = bool(free is not None and free["r_ay_scale"] < floor_scale)
+        manifest["noise_floors"]["ay"]["pick_without_floor"] = free and {k: free[k] for k in ("r_ay_scale",
+                                                                                              "r_yaw_scale")}
     if chosen is not None:
         selection = "in_band"
     else:
         selection = "r_sweep_guard_fail" if candidates else "r_sweep_no_in_band"
         d_ay, d_yaw = cfg["r_sweep_default_ay_scale"], cfg["r_sweep_default_yaw_scale"]
+        if lit:
+            # fit L: the default never undercuts the measured floors
+            d_yaw = yaw_scales[0] if len(yaw_scales) == 1 else d_yaw
+            d_ay = max(d_ay, floor_scale) if floor_scale is not None else d_ay
         chosen = next((r for r in sweep_results if r["r_ay_scale"] == d_ay and r["r_yaw_scale"] == d_yaw), None)
         if chosen is None:
             chosen = _sweep_point(d_ay, d_yaw)
