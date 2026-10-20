@@ -197,7 +197,7 @@ class StabilityAnalysisThread(QThread):
                 )
                 # sideslip dispatch lives in tyre_fit_auto (testable without Qt); timed
                 # separately so the fit chain's cost is visible
-                from modules.tyre_fit_auto import resolve_sideslip_beta
+                from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
                 # speed classes from the current Settings boundaries, before the
                 # fit's sign check reads them (R2/R23)
                 from modules.corner_analysis import reclassify_speed_classes
@@ -205,7 +205,10 @@ class StabilityAnalysisThread(QThread):
                 reclassify_speed_classes(self.parsed_data.get("corners", []),
                                          load_channels_config()["corner_speed_thresholds"])
                 t_fit0 = time.perf_counter()
-                beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
+                # cs_inputs: fit L's axle loads, reference band and reset mask
+                # for the CS estimate; empty on the old path
+                (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason,
+                 cs_inputs) = resolve_sideslip_beta_and_cs_inputs(
                     state, effective_params, self.parsed_data, sideslip_source, csv_path=self.csv_path
                 )
                 t_fit1 = time.perf_counter()
@@ -217,7 +220,8 @@ class StabilityAnalysisThread(QThread):
                               f"exceeds the 30s budget (this path is not performance-optimised) ***")
                 slip = estimate_slip_angles(state, beta, effective_params)
                 forces = estimate_lateral_forces(state, effective_params)
-                cs = estimate_cornering_stiffness(slip, forces, state, effective_params, self.parsed_data.get("laps", []))
+                cs = estimate_cornering_stiffness(slip, forces, state, effective_params, self.parsed_data.get("laps", []),
+                                                  **cs_inputs["cs_kwargs"])
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
                 # Fz / fy_norm: diagnostic only. channels/car_data only used when
                 # vertical_load_source is "measured".
@@ -229,10 +233,15 @@ class StabilityAnalysisThread(QThread):
                 ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
                 corners = self.parsed_data.get("corners", [])
                 # limit events: display + record only, read after the verdict chain
-                from modules.limit_events import detect_events
+                from modules.limit_events import detect_events, detect_floor_events
                 events = detect_events(cs, state, corners, self.parsed_data.get("laps", []),
                                        fit_manifest, effective_params, slip=slip,
                                        gate_verdict=gate_verdict)
+                # CS below the pure-lateral floor, with measured attributes
+                # (schema 16); rides in the events record, record only
+                events["floor_events"] = detect_floor_events(
+                    cs, state, corners, self.parsed_data.get("laps", []), effective_params, slip,
+                    axle_loads=cs_inputs["cs_kwargs"].get("axle_loads"), axle_fx=cs_inputs["axle_fx"])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
             summaries = summarise_corners(corners, cs, stab, state, fz=fz, ls=ls,

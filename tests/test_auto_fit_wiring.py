@@ -33,6 +33,10 @@ def wiring_fixture():
     raw_params = load_parameters()
     resolved = resolve_accuracy(raw_params, setup_data=None, cap=FIXED_CAP)
     effective_params = apply_resolved_vehicle(raw_params, resolved)
+    # old path pinned (2026-10-20): these tests hold the WP-N3 Phase 3 Dubai
+    # figures of the per_session fit; fit L, the config default since schema
+    # 16, is wired and tested end to end in tests/test_tyre_fit_literature.py
+    effective_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
     data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], effective_params)
     assert state is not None

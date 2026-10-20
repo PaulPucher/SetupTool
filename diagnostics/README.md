@@ -886,7 +886,9 @@ cited them now say so (git history keeps the code).
   step C): the bit-identity proof that the inactive fit L leaves the
   production path unchanged -- tyre_fit_auto and sideslip_ekf_pacejka at
   fd40c78 vs the working tree on three sessions. Imports check_class_b.diff.
-  Output diagnostics/output/fit_lit/.
+  Output diagnostics/output/fit_lit/. Since fit L became the default
+  (2026-10-20) it selects per_session explicitly: the old-path bit-identity
+  check.
 - **inspect_fit_lit.py** (2026-10-18) -- REFERENCED (PLAN.md Q-FIT-LIT
   verification cycle) and REPRODUCES its frozen frame: fit L and L-nw
   through the whole chain (mode set in memory), start independence,
@@ -976,3 +978,11 @@ cited them now say so (git history keeps the code).
   band at source precision + NBR 54 C3 check): read-only check of the one
   repeatable cell of normalised CS below -0.53 (NBR 54 corner 3 turn-in,
   front), with the six-lap overlay figure. Output diagnostics/plots/cs_norm/.
+- **inspect_threshold_rederivation_l.py** (2026-10-20) -- REFERENCED
+  (PLAN.md final chain part 1): threshold re-derivation on the new default
+  (fit L, schema 16) as a proposal, the recorded p10 / p30 rule unchanged
+  (imports inspect_threshold_rederivation._corner_values) on the 14
+  development sessions, sensitivity without outings 59 / 70, plus the
+  floor-event census (events below -0.53, per lap and per cell). Output
+  diagnostics/plots/threshold_rederivation/ (cache_l_20261020/,
+  rederivation_l_20261020.txt / .json).

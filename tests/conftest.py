@@ -12,6 +12,7 @@
 # md "WP-N2 Step 1a" for the measured breakdown) -- computed once per test
 # run, not once per test function.
 
+import copy
 import os
 
 import pytest
@@ -140,8 +141,15 @@ def pipeline_result(parsed_data, effective_params, state):
         "assume 'ekf_auto_pacejka'; regenerate golden files deliberately if this is an intended change"
     )
 
+    # OLD PATH PINNED (2026-10-20): fit L is the config default since schema
+    # 16, but the goldens are regenerated only after the threshold adoption;
+    # until then this fixture selects per_session explicitly, so the goldens
+    # check that the old path stays bit-identical. tyre_fit_mode is read only
+    # inside resolve_sideslip_beta, so the copy is passed there alone.
+    old_path_params = copy.deepcopy(effective_params)
+    old_path_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, effective_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
+        state, old_path_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
     )
     # fallback_used is NOT asserted here -- returned instead so callers get one
     # clear, dedicated failure (test_golden_pipeline.py's test_pipeline_did_not_

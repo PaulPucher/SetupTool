@@ -51,9 +51,12 @@ def dubai():
     return {"params": params, "data": data, "state": state}
 
 
-def test_default_mode_is_per_session():
+def test_default_mode_is_literature_bounded():
+    # config default switched to fit L on 2026-10-20 (schema 16); the
+    # function's own keyword default stays per_session, so a direct call
+    # without a mode still runs the old path (selectable until cleanup)
     cfg = load_parameters()["tyre_fit_auto"]
-    assert cfg["tyre_fit_mode"] == "per_session"
+    assert cfg["tyre_fit_mode"] == "literature_bounded"
     assert fit_session_pacejka.__defaults__[-1] == "per_session"
 
 

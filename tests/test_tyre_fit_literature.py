@@ -1,9 +1,10 @@
 # Fit L (tyre_fit_mode "literature_bounded", Q-FIT-LIT 2026-10-18) on real
 # data, NBR JST outing 29: the method constants hold, the residuals are the
 # load-scaled curve error in N, the tyre-frame transform inverts exactly, and
-# the mode runs end to end with the load provenance in the manifest. The
-# bit-identity of the production path is shown by
-# diagnostics/check_fit_lit_inactive.py (three sessions, old vs new code).
+# the mode runs end to end with the load provenance in the manifest. Fit L
+# is the config default since 2026-10-20; the bit-identity of the old
+# per_session path is shown by diagnostics/check_fit_lit_inactive.py (three
+# sessions, old vs new code) and by the goldens (tests/conftest.py pins it).
 
 import numpy as np
 import pytest
@@ -478,3 +479,78 @@ def test_cs_on_fy_over_fz_window_slope_and_band(jst29, l_manifest):
         assert on[f"n_ref_band_excluded_{ax}"] == int(outside.sum())
         assert set(np.unique(ref_on)) <= set(rc[~outside])
         assert f"ref_candidates_{ax}" not in off
+
+
+@pytest.fixture(scope="module")
+def l_default(jst29):
+    # the new default end to end (schema 16): live config, the app's own
+    # resolver, CS with the inputs it hands over, then the floor events
+    from modules.stability_analysis import estimate_cornering_stiffness
+    from modules.limit_events import detect_floor_events
+    st, p, data = jst29["state"], jst29["params"], jst29["data"]
+    out = tfa.resolve_sideslip_beta_and_cs_inputs(st, p, data, p["stability_estimation"]["sideslip_source"],
+                                                  csv_path=jst29["path"])
+    beta, man, _gate, fb, _fr, cs_in = out
+    slip = estimate_slip_angles(st, beta, p)
+    cs = estimate_cornering_stiffness(slip, jst29["forces"], st, p, data["laps"], **cs_in["cs_kwargs"])
+    fe = detect_floor_events(cs, st, data["corners"], data["laps"], p, slip,
+                             axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])
+    return {"manifest": man, "fallback": fb, "cs_inputs": cs_in, "cs": cs, "floor_events": fe}
+
+
+def test_new_default_runs_fit_l_end_to_end_with_floor_events(jst29, l_default):
+    import json
+    p = jst29["params"]
+    assert p["tyre_fit_auto"]["tyre_fit_mode"] == "literature_bounded"
+    assert p["stability_estimation"]["sideslip_source"] == "ekf_auto_pacejka"
+    man, cs_in, cs = l_default["manifest"], l_default["cs_inputs"], l_default["cs"]
+    assert man["tyre_fit_mode"] == "literature_bounded" and not l_default["fallback"]
+    # the arrays reach the CS estimate, not the JSON manifest
+    for k in ("cs_axle_loads", "axle_fx", "observer_reset_mask"):
+        assert k not in man
+    kw = cs_in["cs_kwargs"]
+    assert kw["ref_band"] == tfa.L_K_EDGE and set(kw["axle_loads"]) == {"fz_f_N", "fz_r_N"}
+    assert kw["reset_mask"].dtype == bool and set(cs_in["axle_fx"]) == {"fx_f_N", "fx_r_N"}
+    assert "ref_candidates_f" in cs and "observer_reset_affected_f" in cs
+    fe = l_default["floor_events"]
+    json.dumps(fe)   # it rides in the persisted events record
+    assert fe["status"] == "computed" and fe["floor"] == -0.53 and fe["events"]
+    keys = ("lap", "corner", "axle", "phase", "phases_spanned", "s_start_m", "s_end_m", "s_min_m", "duration_s",
+            "n_samples", "cs_min", "kerb_distance_m", "kerb_affected", "observer_reset_affected", "fx_util_max",
+            "braking_share", "braking", "fz_window_range_median", "fz_window_range_max")
+    for e in fe["events"]:
+        assert set(keys) <= set(e)
+        assert e["cs_min"] < -0.53 and e["s_end_m"] >= e["s_start_m"]
+        for k in ("fx_util_max", "braking_share", "fz_window_range_median", "fz_window_range_max"):
+            assert e[k] is not None and np.isfinite(e[k]) and e[k] >= 0
+        assert e["braking"] == (e["braking_share"] == 1.0)
+
+
+def test_floor_events_are_maximal_runs_of_the_samples_below(jst29, l_default):
+    # events, not samples (ruling 2026-10-20): per corner instance and axle the
+    # events are exactly the maximal contiguous runs of ratio < -0.53, counted
+    # here independently of the module's run finder
+    st, data = jst29["state"], jst29["data"]
+    t, s_m = st["time"], st["s_m"]
+    cs, evs = l_default["cs"], l_default["floor_events"]["events"]
+    laps = {l["lap_number"]: l for l in data["laps"] if l.get("is_valid_for_analysis")}
+    n_runs = n_below = 0
+    for c in data["corners"]:
+        lap = laps.get(c.get("lap_number"))
+        if c.get("stable_corner_id") is None or lap is None or c.get("bracket_start_m") is None:
+            continue
+        sl = tfa._canonical_window_slice(t, s_m, lap["start_time"], lap["end_time"],
+                                         c["bracket_start_m"], c["bracket_end_m"])
+        for ax in "fr":
+            seg = cs[f"CS_ratio_{ax}"][sl]
+            below = np.isfinite(seg) & (seg < -0.53)
+            n_below += int(below.sum())
+            n_runs += int(np.sum(below[1:] & ~below[:-1]) + (below.size > 0 and below[0]))
+    assert len(evs) == n_runs
+    assert sum(e["n_samples"] for e in evs) == n_below
+    assert n_runs < n_below   # a run usually holds several samples
+    for e in evs:
+        ratio = cs[f"CS_ratio_{e['axle'][0]}"]
+        i0, i1 = int(np.searchsorted(t, e["t_start"])), int(np.searchsorted(t, e["t_end"]))
+        assert np.all(ratio[i0:i1 + 1] < -0.53)
+        assert e["n_samples"] == i1 - i0 + 1

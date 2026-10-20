@@ -814,6 +814,12 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         manifest["axle_load"] = load_in["info"]
         manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
         manifest["fit_density_bin_rad"] = bin_rad
+        # measured axle loads (2 Hz zero-phase) for the load-normalised CS
+        # (author ruling 2026-10-19) and the Eq. 9 axle Fx for the floor-event
+        # attributes (2026-10-20); set before any degenerate return, since
+        # neither depends on the fit. In memory only, like nis_full
+        manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
+        manifest["axle_fx"] = {"fx_f_N": load_in["fx_f_N"], "fx_r_N": load_in["fx_r_N"]}
     try:
         git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
     except Exception as e:
@@ -1141,9 +1147,6 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
         # covariance-only reset no longer marks windows); in memory only, like
         # nis_full
         manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
-        # the measured axle loads (2 Hz zero-phase) for the load-normalised CS
-        # (author ruling 2026-10-19); in memory only, like nis_full
-        manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
@@ -1163,6 +1166,38 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
     silently, so a typo in the config shipped the fallback beta as if
     chosen. Never mutates params.
     """
+    return resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, csv_path)[:5]
+
+
+def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, csv_path=None):
+    """resolve_sideslip_beta plus what the CS estimate needs from fit L
+    (default since 2026-10-20). Sixth element cs_inputs:
+    {"cs_kwargs": keyword arguments for estimate_cornering_stiffness,
+     "axle_fx": {"fx_f_N", "fx_r_N"} or None, "note": text or None}.
+    Outside fit L both are empty / None, so the old path calls the CS
+    estimate exactly as before. In fit L: CS on Fy / Fz with the reference
+    band L_K_EDGE, and the observer-reset mark from hard-bound re-entries --
+    dropped when the session ships kinematic beta, since then no observer
+    state reached the slip angles."""
+    beta, fit_manifest, gate_verdict, fallback_used, fallback_reason, raw = _resolve(
+        state, params, data, sideslip_source, csv_path)
+    cs_inputs = {"cs_kwargs": {}, "axle_fx": None, "note": None}
+    # from the config, not the manifest: the early degenerate returns carry no mode
+    if raw is not None and params.get("tyre_fit_auto", {}).get("tyre_fit_mode") == "literature_bounded":
+        loads = raw.get("cs_axle_loads")
+        if loads is None:
+            # only a non-finite load input stops fit L before the loads exist;
+            # the CS then stays on Fy, its ratio is unit-free either way
+            cs_inputs["note"] = "CS on Fy (axle loads unavailable: " + str(raw.get("degenerate_reason")) + ")"
+        else:
+            cs_inputs["cs_kwargs"] = {"axle_loads": loads, "ref_band": L_K_EDGE}
+            cs_inputs["axle_fx"] = raw.get("axle_fx")
+        if not fallback_used and raw.get("observer_reset_mask") is not None:
+            cs_inputs["cs_kwargs"]["reset_mask"] = raw["observer_reset_mask"]
+    return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason, cs_inputs
+
+
+def _resolve(state, params, data, sideslip_source, csv_path):
     if sideslip_source not in SIDESLIP_SOURCES:
         raise ValueError(
             f"sideslip_source {sideslip_source!r} not recognised (expected one of {SIDESLIP_SOURCES}; "
@@ -1198,8 +1233,8 @@ def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
         fit_manifest = {
             k: v for k, v in raw_fit_manifest.items()
             if k not in ("beta_ekf", "beta_ekf_with_fallback", "nis_full", "base_mask", "plausibility_gate",
-                         "observer_reset_mask", "cs_axle_loads")
+                         "observer_reset_mask", "cs_axle_loads", "axle_fx")
         }
-        return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason
+        return beta, fit_manifest, gate_verdict, fallback_used, fallback_reason, raw_fit_manifest
 
-    return estimate_sideslip(state, params), None, None, False, None
+    return estimate_sideslip(state, params), None, None, False, None, None

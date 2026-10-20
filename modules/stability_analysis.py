@@ -55,7 +55,15 @@ CAR_DATA_PATH = "config/car_data.json"
 #      so the 12 key is no longer written) and resolved_levels.
 #      understeer_gradient, gains "estimator_settings" and the NIS gate's
 #      n_windows_skipped_low_coverage.
-ANALYSIS_SCHEMA_VERSION = 15
+#  16: (2026-10-20) default switch: fit L (tyre_fit_mode literature_bounded)
+#      is the default path -- tyre fit, observer, CS on Fy / Fz with the
+#      [5.5, 35] per rad reference band and the hard-bound reset mark all
+#      change values. Payload: events gains floor_events (CS below the -0.53
+#      pure-lateral floor, measured attributes, record only); fit_manifest
+#      carries the fit-L fields. Migration: older payloads are recomputed on
+#      open (schema mismatch), nothing is converted in place. The 15 owed
+#      note above is settled by this bump too.
+ANALYSIS_SCHEMA_VERSION = 16
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

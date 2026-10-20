@@ -2,7 +2,8 @@
 # bit-identical (author order 2026-10-18). OLD = tyre_fit_auto and
 # sideslip_ekf_pacejka at BASE_REV, loaded from git into this process; NEW =
 # the working tree. Same params (best available, the app's default path),
-# same three exports, production tyre_fit_mode (per_session) on both sides.
+# same three exports, tyre_fit_mode per_session on both sides (the old path,
+# selected explicitly since fit L became the default on 2026-10-20).
 # Compared with tolerance 0 (NaN == NaN): fit manifest (timestamp and git
 # hash skipped), R pick, sign check, gate verdict and score, fallback,
 # shipped beta, every CS array.
@@ -51,7 +52,9 @@ def main():
                                                        "old_sideslip_ekf_pacejka").estimate_sideslip_ekf_pacejka
     params = apply_resolved_vehicle(load_parameters(), resolve_accuracy(load_parameters(), setup_data=None, cap=None))
     assert params["stability_estimation"]["sideslip_source"] == "ekf_auto_pacejka"
-    assert params["tyre_fit_auto"].get("tyre_fit_mode", "per_session") == "per_session"
+    # fit L is the config default since 2026-10-20 (schema 16): the old path
+    # is selected explicitly, and this check now shows it stays bit-identical
+    params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
     print(f"Q-FIT-LIT inactive check: OLD = {BASE_REV}, NEW = working tree", flush=True)
     all_ok = True
     for label, rel in SESSIONS:

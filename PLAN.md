@@ -4053,6 +4053,29 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       NBR 54 C3: low samples on laps 215-218 at early turn-in under trail
       braking (|Fx| / Fz 0.16-0.27) with 24-36 % front Fz change in the
       window -> combined-slip reading; lap 218 near a kerb. NOT committed.]
+   FINAL CHAIN PART 1 (author EXECUTE 2026-10-20; rulings in DECISIONS.md,
+      written before implementation): NBR 54 C3 reading recorded (front
+      limit, combined slip + load-change relaxation, real behaviour); no
+      combined-slip label -- floor events below -0.53 with measured attributes
+      (output fields only); plausibility / floor statistics count events, not
+      samples (verdict aggregation stays sample-based, reduced effective n a
+      known property); FIT L BECOMES THE DEFAULT (tyre_fit_mode
+      literature_bounded, CS on Fy / Fz with band [5.5, 35], hard-bound reset
+      mask wired into the app); per_session stays selectable until cleanup.
+      Schema 15 -> 16. Tests: old path explicit -> bit-identical to the
+      current goldens; new default end-to-end on JST 29 with floor events;
+      event counting on real data. Goldens NOT regenerated (after threshold
+      adoption). C: threshold re-derivation on the new default, PROPOSAL ONLY
+      (14 development sessions, Dubai excluded; sensitivity without outings
+      59 / 70; labels referring to the curve peak / floor listed with
+      proposed wording). Adopt nothing.
+      [2026-10-20 RESULT: fit L default wired (resolver returns CS inputs;
+      floor events in the events record), schema 16. Suite 641 passed, 2
+      failed = the two Dubai goldens stale since acf7dbf; old path
+      bit-identical HEAD vs working tree and vs fd40c78. Proposal: front
+      -0.139 / -0.023, rear -0.002 / +0.100 (current thresholds classify ~0
+      on the new default). Floor events: front 58 (41 clean), rear 2;
+      repeatable cells NBR 54 C3, NBR 46 C2 turn-in. NOT committed.]
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS

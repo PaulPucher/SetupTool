@@ -34,6 +34,14 @@ from modules.tyre_model_pacejka import pacejka_lateral_stiffness
 FLOOR_GRID_N = 4000
 EVENT_FLOOR_MAX_DEG = 30.0
 
+# Pure-lateral floor of the CS ratio (author ruling 2026-10-19): the steepest
+# post-peak slope of the Magic Formula over its initial slope, at C = 3.0
+# (Goblirsch et al. 2025 Table I upper bound) with E in [-1, 1] (Pacejka
+# 2006 ch. 4). Independent of B and D. Lower than any pure-slip curve can go,
+# so a ratio below it is "not explainable by pure lateral saturation". A
+# label, never a deletion or a verdict input. Method-defining, not a tunable.
+PURE_LATERAL_FLOOR = -0.53
+
 AXLES = {"f": "front", "r": "rear"}
 PHASE_ORDER = ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")
 
@@ -174,6 +182,106 @@ def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gat
                 events.append(ev)
     label_recurrence(events, cfg["recurrence_radius_m"])
     events.sort(key=lambda e: (e["lap"], e["t_start"]))
+    out["events"] = events
+    return out
+
+
+def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None, axle_fx=None):
+    """CS ratio below PURE_LATERAL_FLOOR, as events with measured attributes
+    (author ruling 2026-10-20). JSON-safe {"status", "floor", "label",
+    "events": [...]}.
+
+    An event is one contiguous run of finite ratio < floor inside a corner
+    instance (canonical bracket, analysis laps), per axle -- no bridging: a
+    neighbouring CS sample shares most of its regression window, so a slope
+    held over a flat-alpha stretch is one observation, not many. Full CS
+    arrays: kerb-affected and observer-reset-affected runs are kept and
+    flagged. Attributes only; nothing is classified or removed.
+
+    axle_loads / axle_fx: the fit-L axle Fz and Eq. 9 axle Fx (2 Hz
+    zero-phase), for the longitudinal utilisation and the load change inside
+    the regression windows; without them those attributes are None.
+    """
+    out = {"status": "computed", "floor": PURE_LATERAL_FLOOR,
+           "label": "not explainable by pure lateral saturation", "events": []}
+    t, s_m = state["time"], state.get("s_m")
+    if s_m is None:
+        out["status"] = "no events: lap distance unusable"
+        return out
+    sr = state["sample_rate_hz"]
+    se = params["stability_estimation"]
+    min_window = resolve_cs_min_window_samples(params, sr)
+    kerb = state.get("kerb_mask")
+    kerb_any = kerb if kerb is not None else np.zeros(t.size, dtype=bool)
+    if state.get("kerb_smear_zone") is not None:
+        kerb_any = kerb_any | state["kerb_smear_zone"]
+
+    laps_by = {l["lap_number"]: l for l in laps if l.get("is_valid_for_analysis")}
+    events = []
+    for c in corners:
+        cid = c.get("stable_corner_id")
+        lap = laps_by.get(c.get("lap_number"))
+        if cid is None or lap is None or c.get("bracket_start_m") is None:
+            continue
+        sl = _canonical_window_slice(t, s_m, lap["start_time"], lap["end_time"],
+                                     c["bracket_start_m"], c["bracket_end_m"])
+        if sl.stop <= sl.start:
+            continue
+        on_lap = (t >= lap["start_time"]) & (t <= lap["end_time"])
+        s_kerb = s_m[on_lap & kerb_any]
+        s_kerb = s_kerb[np.isfinite(s_kerb)]
+        for ax in AXLES:
+            ratio = cs[f"CS_ratio_{ax}"]
+            seg = ratio[sl]
+            for a, b in _runs(np.isfinite(seg) & (seg < PURE_LATERAL_FLOOR)):
+                i0, i1 = sl.start + a, sl.start + b
+                rng = np.arange(i0, i1 + 1)
+                i_min = int(rng[np.argmin(ratio[rng])])
+                ns, ra = cs.get(f"near_strike_{ax}"), cs.get(f"observer_reset_affected_{ax}")
+                s_ev = s_m[rng]
+                if s_kerb.size:
+                    inside = (s_kerb >= np.nanmin(s_ev)) & (s_kerb <= np.nanmax(s_ev))
+                    d_kerb = 0.0 if inside.any() else float(np.min(np.abs(s_kerb[:, None] - s_ev[None, :])))
+                else:
+                    d_kerb = None   # no kerb sample on this lap
+                ev = {
+                    "lap": int(c["lap_number"]), "corner": int(cid), "axle": AXLES[ax],
+                    "phase": _phase_at(c["segments"], float(t[i_min])),
+                    "phases_spanned": _phases_spanned(c["segments"], float(t[i0]), float(t[i1])),
+                    "t_start": float(t[i0]), "t_end": float(t[i1]),
+                    "duration_s": float(t[i1] - t[i0] + 1.0 / sr), "n_samples": int(rng.size),
+                    "s_start_m": float(s_m[i0]), "s_end_m": float(s_m[i1]), "s_min_m": float(s_m[i_min]),
+                    "cs_min": float(ratio[i_min]),
+                    "kerb_distance_m": d_kerb,
+                    "kerb_affected": bool((ns is not None and ns[rng].any())
+                                          or (kerb is not None and kerb[rng].any())),
+                    "observer_reset_affected": bool(ra is not None and ra[rng].any()),
+                    "fx_util_max": None, "braking_share": None, "braking": None,
+                    "fz_window_range_median": None, "fz_window_range_max": None,
+                }
+                if axle_loads is not None:
+                    fz = axle_loads[f"fz_{ax}_N"]
+                    if axle_fx is not None:
+                        fx = axle_fx[f"fx_{ax}_N"][rng]
+                        ev["fx_util_max"] = float(np.max(np.abs(fx) / fz[rng]))
+                        ev["braking_share"] = float(np.mean(fx < 0.0))
+                        # flag: braking (Fx < 0) on every event sample
+                        ev["braking"] = bool(np.all(fx < 0.0))
+                    # Fz range over mean inside each event sample's regression
+                    # window [start, i) -- how much the load moved while the
+                    # slope was being taken
+                    rngs = []
+                    for i in rng:
+                        w0 = reconstruct_cs_window_start(slip[f"alpha_{ax}_filt"], int(i), min_window,
+                                                         se["cs_min_slip_angle_span_rad"], s_m, se["cs_max_window_m"])
+                        w = fz[w0:i]
+                        if w.size:
+                            rngs.append(float((w.max() - w.min()) / w.mean()))
+                    if rngs:
+                        ev["fz_window_range_median"] = float(np.median(rngs))
+                        ev["fz_window_range_max"] = float(np.max(rngs))
+                events.append(ev)
+    events.sort(key=lambda e: (e["lap"], e["t_start"], e["axle"]))
     out["events"] = events
     return out
 
