@@ -1025,3 +1025,23 @@ cited them now say so (git history keeps the code).
   only. Output diagnostics/plots/ce_sensitivity_l/. (inspect_observer_
   robustness.py gains ROBUST_RUN_TAG = 20261021 for the re-run on the final
   chain.)
+- **inspect_utilisation.py** (2026-10-21) -- REFERENCED (PLAN.md STATUS
+  NEXT 1, Q-UTIL decision pending): lateral and combined utilisation
+  (|Fy| / Fz and sqrt(Fy^2 + Fx^2) / Fz over the fit-L mu_demo), secant
+  ratio (|Fy| / Fz) / (|alpha| K) at |alpha| >= 0.01 rad and the vehicle
+  mu_eff, after the chair's mue_effective / lateral_slip_efficiency_norm,
+  on the CS path's 2 Hz signals of the default chain; coverage per phase,
+  apex axle leader, distributions, rank correlation with the CS ratio, NBR
+  54 corner 3 events, u leader against the CS verdict. Read-only, report
+  only. Output diagnostics/plots/utilisation/.
+- **inspect_phase_segmentation.py** (2026-10-21) -- REFERENCED (PLAN.md
+  STATUS NEXT 1, segmentation and throttle-gate rulings pending): ecu_aps
+  census and lift-off reach per session; the chair's rCosPhi phases
+  (corner_characterisation thresholds verbatim, declared corner-extent
+  simplifications) against our five phases on NBR 29 and NBR 10. Read-only.
+  Output diagnostics/plots/phase_segmentation/.
+- **inspect_washout_final.py** (2026-10-21) -- REFERENCED (thesis_notes
+  "Yaw-stability median, washout scope, Fx drag"; PRODUCTION.md 12 washout
+  limitation): the Q-PR-ANOMALY H-alpha test re-run on the shipped fit L
+  (fit inputs captured from tyre_fit_auto._fit_axle_l), 14 development
+  sessions, both axles. Read-only. Output diagnostics/plots/washout_final/.

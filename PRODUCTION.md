@@ -1,8 +1,8 @@
 # PRODUCTION -- the SetupTool analysis method as it runs today
 
-Dated 2026-10-20. Describes the default analysis path of branch new-laps:
+Dated 2026-10-21. Describes the default analysis path of branch new-laps:
 tyre fit L (config tyre_fit_auto.tyre_fit_mode = "literature_bounded"),
-ANALYSIS_SCHEMA_VERSION 17. It states what the method IS, in the order the
+ANALYSIS_SCHEMA_VERSION 18. It states what the method IS, in the order the
 signal flows, so that the thesis method chapter can be written from it. How
 each rule came about is recorded in DECISIONS.md (standing rulings) and
 thesis_notes.md (dated findings); this file points there only where a rule
@@ -10,8 +10,7 @@ was reopened. Updated on request only; an update replaces the content.
 
 Citations use the keys of the thesis bibliography (literature.bib), e.g.
 [Pacejka.2006, p. 6]. "page to verify" marks a reference whose page is not
-recorded as checked; [missing from bib: Author Year] marks a source that has
-no bib entry yet. The chair basis is the chair performance_analysis tooling
+recorded as checked. The chair basis is the chair performance_analysis tooling
 (internal).
 
 Notation: t time; v speed; r yaw rate; a_x, a_y accelerations; delta_f
@@ -55,7 +54,60 @@ Channel presence, units and rates are read from each file, never assumed.
   "kerb-affected" (kerb_z_deviation_threshold_g, kerb_dilation_s,
   kerb_smear_grade_s; L1, B; DOMAIN IMPROVEMENT, the chair has no kerb
   treatment). Kerb-affected samples stay in the arrays and leave the
-  verdict statistics.
+  verdict statistics. The 1.2 g threshold is a physical criterion on the
+  vertical acceleration; the 3 % flagged share seen when it was set on the
+  Dubai sample (2026-06-29) was a plausibility band, not a target. A fixed
+  physical threshold gives a track-dependent flagged share: on the
+  development set 1.9-8.1 % of moving analysis-lap samples after dilation,
+  4.2-15.8 % with the smear zone (Le Castellet highest). Validated on NBR
+  outing 29 (2026-10-05: it catches the strikes that drive the deep CS
+  tail, 25 events including all of the deepest; 4 of 58 demonstrable
+  misses); not separately validated on Le Castellet (12).
+
+Corner brackets and phases (modules/corner_analysis.py; channels.json
+corner_detection; B unless stated).
+- Bracket: entered when |steering-wheel angle| > 25 deg OR |a_y| > 0.6 g,
+  left when |steering| < 15 deg AND |a_y| < 0.35 g; same-direction
+  brackets less than 0.6 s apart merge; a bracket lasts at least 0.8 s
+  and its apex reaches |a_y| >= 0.3 g; brackets longer than 300 m are
+  flagged compound. The dual criterion is argued (2026-07-22: the steering
+  needed scales with 1 / R, so a fixed steering threshold is marginal in
+  fast corners, and a_y is the vehicle response); the values themselves
+  are not derived (12); a Paul Ricard check (2026-09-03) found no
+  re-derivation needed. Cross-lap identity by lap distance: canonical
+  corners take the median boundaries of the representative laps and are
+  realised on every analysis lap.
+- Phases, defined by driver actions: entry_1_brake from throttle lift-off
+  (the last sample with throttle >= 95 % before turn-in, searched back no
+  further than the previous corner's end) to the bracket start;
+  entry_2_turnin from the bracket start to the apex (peak smoothed
+  |a_y|); apex_3 the apex (the verdict reads the apex region +/- 25 m);
+  exit_4 from the apex until the steering has unwound to half its
+  post-apex peak; exit_5 to the bracket end. A corner taken without a
+  full-throttle sample before turn-in keeps a zero-length entry_1_brake
+  by construction (6-24 per development session). The lift-off
+  construction was verified against brake pressure (2026-08-20, Dubai:
+  pressure rises a median 0.13 s after the lift-off point, never before);
+  the values 95 % and 0.5 are not derived (12). The throttle channel reads
+  up to 106 % at full throttle; its range gate is [0, 110] % (until
+  2026-10-21 a [0, 100] gate discarded it on 7 of 14 sessions and emptied
+  every braking phase there).
+- Declared adaptation of the chair basis: the chair splits a corner by
+  the direction of the acceleration vector (rCosPhi = a_x / |a|: Braking,
+  Entry, Mid, Exit). SetupTool keeps driver-input phases because the five
+  phases must match the resolution and definition of the team's driver
+  feedback form (e1..x5, a frozen team instrument that defines phases by
+  driver actions), so measurement and feedback stay comparable.
+  Principle: under- and oversteer have different causes per phase and
+  need an individual solution per phase, and the driver reports symptoms
+  per corner phase, all five phases for every corner [Putz.2022, secs.
+  2.2.1-2.2.2 and 9.1, page to verify]; Puetz & Serne define the phases by
+  roll state, the exact boundaries here follow the feedback form.
+  Comparison on NBR 29 and NBR 10 (diagnostics/inspect_phase_segmentation.
+  py): the schemes differ mainly around the apex (the chair's Mid starts
+  17-129 m before our apex); the chair's Braking phase (a_x / |a| < -0.97)
+  is empty on 64 of 90 and 101 of 180 corners, since trail braking turns
+  the acceleration vector early.
 
 Development set vs thesis package. All method choices, thresholds and the
 robustness evidence in this file come from the DEVELOPMENT SET of 14
@@ -142,7 +194,8 @@ chair-identical construction, FORCED ADAPTATION (no measured axle forces).
 
 Longitudinal axle force (input of the fit and the observer, not of the
 verdict): the CoG force Fx_cog = m a_x + aerodynamic drag + rolling
-resistance is split to the front in proportion to the measured axle loads
+resistance; drag coefficient, frontal area and rolling resistance are
+unsourced and 0 in config, so Fx_cog is effectively m a_x (12). It is split to the front in proportion to the measured axle loads
 under braking and is zero on the front under drive (rear-wheel drive)
 [Goblirsch.2025, Eq. 9]:
 
@@ -191,8 +244,7 @@ Model, per axle, on the load-normalised force f = Fy / Fz against alpha
   1 is the lower bound of [Goblirsch.2025, Table I]; D is the peak only for
   C >= 1 [Pacejka.2006, p. 174]; the axle peak may vanish [Pacejka.2006,
   p. 14]; practice of fixing C at 1 where no post-peak drop is seen
-  [missing from bib: Rao et al. 2006, pp. 41-42], [missing from bib: Voser
-  et al. 2010, p. 322]. Tier A, method-defining.
+  [Rao.2006, pp. 41-42], [Voser.2010, p. 322]. Tier A, method-defining.
 - E = -1 (CODE L_CURVATURE_E), fixed "according to the literature"
   [Goblirsch.2025, Table I]. Tier A.
 - mu = demonstrated utilisation: the 99.5th percentile of |Fy / Fz| on the
@@ -200,8 +252,8 @@ Model, per axle, on the load-normalised force f = Fy / Fz against alpha
   L2 session measurement; B). Not fitted: a fitted asymptote below forces
   the car demonstrably produced contradicts the measurement. It is a LOWER
   bound of the true friction (12); peak bounded by the maximum acquired
-  forces after [missing from bib: Farroni et al. 2018, p. 5]; conservative
-  grip estimate [missing from bib: Acosta Reche et al. 2018, p. 1904];
+  forces after [Farroni.2018, p. 5]; conservative
+  grip estimate [Acosta.2018, p. 1904];
   chair basis: mue_effective.
 - B is the one fitted parameter: weighted least squares of f, bounded
   Powell on [5, 40] from the chair's start 12.0 (CODE L_B_BOUNDS
@@ -224,7 +276,7 @@ Model, per axle, on the load-normalised force f = Fy / Fz against alpha
   loss 1 - sqrt(1 - (0.3 / mu)^2) is 2-2.5 % for mu 1.4-1.6. Traction is
   kept (the driven rear operates under drive through every exit; removing
   it took over half the rear population); its cost is a limitation (12).
-  Pure-slip fitting practice: [missing from bib: Farroni et al. 2016,
+  Pure-slip fitting practice: [Farroni.2016,
   footnote 9, p. 824].
 - Residual (for Q, section 6): Fy - mu Fz f(alpha) in N, per sample.
 
@@ -390,10 +442,7 @@ statistics): kerb-affected (the window holds a kerb or smear-zone sample)
 and observer-reset-affected (the window holds a hard-bound reset sample,
 section 6 -- the slip angles there jump with the state).
 
-Segmentation (modules/corner_analysis.py; channels.json corner_detection;
-B): corner brackets from smoothed steering and a_y, five phases
-(entry_1_brake, entry_2_turnin, apex_3, exit_4, exit_5), cross-lap identity
-by lap distance (canonical corners). Per corner, analysis lap and phase the
+Segmentation: corner brackets and the five phases as in section 1. Per corner, analysis lap and phase the
 CS median over the clean population (at least 5 samples); apex_3 reads the
 apex region +/- 25 m.
 
@@ -462,7 +511,13 @@ function feeds the map, the decision frame and the PDF recommendations):
 per stable corner and phase, CS = the worst lap, i.e. the minimum over
 laps of the phase medians (CONFIG classification.cs_cross_lap_aggregation
 = "worst_lap"; the apex region likewise); stability = the median over laps
-of the phase medians. The classifier then takes the minimum over phases,
+of the phase medians (rationale recorded 2026-10-21, after the fact:
+the dMz/dbeta regression is pooled over laps by track distance, so the
+per-lap values are samples of one pooled curve that differ only through
+sample positions and masks; the median is their robust central value,
+while a minimum -- right for CS, which is estimated per lap and locally
+-- would select mask or position artefacts, not a different lap's
+behaviour). The classifier then takes the minimum over phases,
 so the CS corner value is the minimum over (lap, phase) -- the population
 the thresholds were derived on. The verdict cards classify each corner-lap
 (worst phase within that lap); the map and the decision frame classify the
@@ -478,7 +533,8 @@ differs between laps.
 
 Thresholds (CONFIG classification; L1, B; derived 2026-10-20 on fit L, 14
 development sessions, all on observer beta; re-derived after the R26
-reference gate with identical p10 / p30):
+reference gate and again on schema 18 (populated braking phases,
+2026-10-21) with identical p10 / p30):
 - STRONG = p10, MODERATE = p30 of the pool's corner values per axle:
   front STRONG_CSF = -0.139, MODERATE_CSF = -0.023 (n 220);
   rear STRONG_CSR = -0.002, MODERATE_CSR = +0.100 (n 208).
@@ -613,16 +669,21 @@ aggregation, and one engine. Tier C in structure, B in its gates.
   longitudinal utilisation: about 2-3 % lateral capacity is lost at the
   median, 12-13 % at p95. An estimate, not a measurement; the front under
   braking is filtered at |Fx| / Fz 0.3 (2-2.5 % loss).
-- Washout cost of the seed. The 0.05 Hz washout bleeds a held sideslip: the
-  per-corner fit residual grows with corner duration (Spearman rho +0.44 /
-  +0.78 / +0.63 on three sessions, time constant about 3.2 s). The fit's
+- Washout cost of the seed. The 0.05 Hz washout bleeds a held sideslip
+  (time constant about 3.2 s): the per-corner residual of the shipped fit
+  at the seed slip angle grows with corner duration -- Spearman rho +0.51
+  to +0.80 on every Nurburgring session and axle, +0.29 to +0.41 on Le
+  Castellet (14 development sessions, 51-174 corner instances per axle;
+  p < 0.01 except three Le Castellet 25 values; diagnostics/
+  inspect_washout_final.py, 2026-10-21). The weaker effect on Le Castellet
+  is recorded as observed; its causes were not examined. The fit's
   abscissa carries this error; the observer does not (its state never takes
   the seed).
 - Q is not identifiable without a reference sideslip. The force residuals
   of the two axles are correlated (0.79-0.92) with correlation times of 1.2-
   2.1 s, so a white, diagonal Q cannot be derived from them; the held-over-
   step upper bound is used instead (6). A reference measurement (optical
-  sideslip sensor) would be needed [missing from bib: Farroni et al. 2016,
+  sideslip sensor) would be needed [Farroni.2016,
   p. 811 -- page to verify].
 - Correlated process and measurement noise. The force-model error enters
   both the beta equation and the a_y measurement, and R_ay starts from the
@@ -667,6 +728,29 @@ aggregation, and one engine. Tier C in structure, B in its gates.
   median itself. On the development set the median sits at 17.8-24.4
   (front) and 17.9-30.6 (rear) per rad, inside the literature range of 6-30
   and close to the fitted K (5).
+- Kerb threshold not validated on Le Castellet. The 1.2 g mask was
+  validated on NBR outing 29 only; on Le Castellet, where it flags the
+  largest share (8.1 / 7.1 % after dilation), no separate check of what it
+  catches and misses exists.
+- Corner phase values not derived. steering_unwind_fraction = 0.5 (the
+  end of exit_4 at half the post-apex steering unwind) is Tier B, the
+  midpoint of the unwinding, not derived; brake_throttle_max_pct = 95 is
+  Tier B, its lift-off construction verified against brake pressure
+  (2026-08-20), the value not derived. The bracket thresholds (25 / 15
+  deg, 0.6 / 0.35 g, 0.6 s merge, 0.8 s, 0.3 g apex) are Tier B, not
+  derived (1).
+- Longitudinal force without drag and rolling resistance. With c_d A and
+  the rolling coefficient at 0, Fx_cog = m a_x: under braking the tyre
+  braking force is over-read by the drag force, under traction the drive
+  force under-read. The fit-L braking filter |Fx| / Fz > 0.3 is affected
+  slightly; the magnitude needs c_d A from the team (to verify).
+- IMU position unknown. The mounting position of the accelerometer
+  relative to the CoG is not recorded; a_y is taken as the CoG value. A
+  longitudinal offset dx adds dx times the yaw acceleration: with the 2 Hz
+  filtered yaw acceleration that reaches the force split, |psi_dd| p95 /
+  p99 = 0.79 / 1.60 rad/s^2 (NBR 29) and 0.77 / 1.50 rad/s^2 (Le Castellet
+  25), i.e. about 0.08 g (p95) and 0.16 g (p99) of a_y error per metre of
+  offset (against |a_y| p50 about 0.96 g).
 - Fy / Fz is first-order only. Normalising removes the proportional load
   dependence; the degressive part remains -- the friction coefficient falls
   and cornering stiffness grows less than proportionally with load

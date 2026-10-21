@@ -70,7 +70,13 @@ CAR_DATA_PATH = "config/car_data.json"
 #      config), CS linear reference gated to [0.5, 2] x the session median
 #      (R26 source fix, code), cs_margin 0.01 and thresholds re-confirmed. No
 #      payload shape change; stored payloads under 16 are recomputed on open.
-ANALYSIS_SCHEMA_VERSION = 17
+#  18: (2026-10-21) estimator input changed (schema bump rule): the throttle
+#      range gate widens to [0, 110] % (the pedal reads 104-106 % at full
+#      throttle); on 7 of 14 development sessions the channel had been graded
+#      failed, so every entry_1_brake phase was zero-length -- those phases
+#      now hold samples. Corner warnings carry channel-missing warnings into
+#      the canonical instances. No payload shape change.
+ANALYSIS_SCHEMA_VERSION = 18
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

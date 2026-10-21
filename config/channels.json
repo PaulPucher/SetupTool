@@ -50,9 +50,10 @@
       "unit": "%",
       "range": [
         0,
-        100
+        110
       ],
-      "required": false
+      "required": false,
+      "note": "2026-10-21: range widened from [0, 100]. The pedal channel reads 104-106 % at full throttle on every development session (pedal / ECU calibration over-range, not a fault); with [0, 100] the in-range share fell below channel_quality_gates.failed_below on 7 of 14 sessions (NBR 20, 29, 46, 54, 63, 69, Le Castellet 32: 0.36-0.47), corner_analysis treated the throttle as missing and every entry_1_brake phase was zero-length (thesis_notes 'Phase segmentation against the chair basis', 2026-10-21). 110 covers the observed maximum (106.0) with margin; a value above it is still out of range."
     },
     "log_pbrake_f": {
       "label": "Brake Pressure Front",
@@ -447,7 +448,9 @@
     "compound_corner_min_length_m": 300,
     "bracket_overlap_min_fraction": 0.3,
     "brake_throttle_max_pct": 95,
+    "brake_throttle_max_pct_derived_from": "Tier B, value predates the records. The lift-off construction at 95 (last sample at or above it before turn-in = end of full throttle) was verified on 2026-08-20 against brake pressure on Dubai, 56 corner instances: brake-pressure rise after the lift-off point median 0.135 s front / 0.130 s rear, 0 % negative, n 36 (thesis_notes 'entry_1_brake phase-boundary bug'). The construction is verified; the value 95 itself is not derived (author ruling 2026-10-21).",
     "steering_unwind_fraction": 0.5,
+    "steering_unwind_fraction_derived_from": "Tier B, no derivation: exit_4 ends where the post-apex steering has unwound to half its post-apex peak -- the midpoint of the unwinding. Declared 2026-10-21 (author ruling), listed as a limitation in PRODUCTION.md 12.",
     "canonical_overlap_max": 0.1,
     "canonical_boundary_grid_step_m": 2.0,
     "lap_time_representative_factor": 1.05,

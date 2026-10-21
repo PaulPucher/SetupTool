@@ -338,14 +338,14 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 208,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 25,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -358,34 +358,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.9740291147814,
+      "p25": 1446.2499429475843,
+      "p75": 1662.6842536384409,
+      "n": 208
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6937.187201133039,
+      "p25": 6376.706736257732,
+      "p75": 7710.418813020929,
+      "n": 208
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10472.933101215669,
+      "p25": 9592.146581780982,
+      "p75": 11435.317424316103,
+      "n": 208
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.25089909302709756,
+      "p25": -0.3607210065822949,
+      "p75": -0.19387575312178554,
+      "n": 208
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.23853892808195598,
+      "p25": -0.3696685675521131,
+      "p75": -0.1548547054520128,
+      "n": 208
      }
     },
     "entry_2_turnin": {
@@ -631,8 +631,8 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 214,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -651,34 +651,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.6577105643787,
+      "p25": 1441.560871948729,
+      "p75": 1658.874567929909,
+      "n": 214
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6834.820573477391,
+      "p25": 6294.399935770842,
+      "p75": 7981.484755715653,
+      "n": 214
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10411.550812459973,
+      "p25": 9736.963862542267,
+      "p75": 11549.280866924228,
+      "n": 214
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.23221213016166928,
+      "p25": -0.2753819289670647,
+      "p75": -0.18491851784787364,
+      "n": 214
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.21304317134975043,
+      "p25": -0.24653078213672386,
+      "p75": -0.17912152227892017,
+      "n": 214
      }
     },
     "entry_2_turnin": {
@@ -922,8 +922,8 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 223,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -942,34 +942,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.402688759554,
+      "p25": 1439.77559927156,
+      "p75": 1652.9984891950944,
+      "n": 223
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6382.384400798181,
+      "p25": 5927.2903966708145,
+      "p75": 7575.296875309875,
+      "n": 223
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9848.686580942041,
+      "p25": 9116.020110258589,
+      "p75": 11208.20827334549,
+      "n": 223
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.19563669747777085,
+      "p25": -0.227917418005202,
+      "p75": -0.1674869560414879,
+      "n": 223
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.18582433350976313,
+      "p25": -0.21189231284663324,
+      "p75": -0.1452867730394893,
+      "n": 223
      }
     },
     "entry_2_turnin": {
@@ -1215,8 +1215,8 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 214,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -1235,34 +1235,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.5669798729937,
+      "p25": 1444.3230292453932,
+      "p75": 1658.5400107268856,
+      "n": 214
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7146.6093842560895,
+      "p25": 6482.984340423753,
+      "p75": 7993.781428225524,
+      "n": 214
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10713.099916839452,
+      "p25": 9977.044109829198,
+      "p75": 11696.931620286301,
+      "n": 214
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.2409310132141642,
+      "p25": -0.29349629210835926,
+      "p75": -0.18323705457853295,
+      "n": 214
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.22274161712047988,
+      "p25": -0.2681171035990035,
+      "p75": -0.15620205960294706,
+      "n": 214
      }
     },
     "entry_2_turnin": {
@@ -1506,14 +1506,14 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 207,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 12,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -1526,34 +1526,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.9932510588762,
+      "p25": 1449.4699897908126,
+      "p75": 1665.8739936575853,
+      "n": 207
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7006.282649266486,
+      "p25": 6380.904279743483,
+      "p75": 8176.7250747966145,
+      "n": 207
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10839.591229962994,
+      "p25": 10059.943148984195,
+      "p75": 11811.259818773122,
+      "n": 207
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.29181477149268004,
+      "p25": -0.3869967481246364,
+      "p75": -0.2214234513086179,
+      "n": 207
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.2679266969393409,
+      "p25": -0.3349605540314558,
+      "p75": -0.21195742717164237,
+      "n": 207
      }
     },
     "entry_2_turnin": {
@@ -1797,8 +1797,8 @@
    "bracket_end_m": 701.7910156175999,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 213,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -1817,34 +1817,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1481.5633254389647,
+      "p25": 1440.8404163885173,
+      "p75": 1655.189948621345,
+      "n": 213
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6797.935221045543,
+      "p25": 6293.020692061854,
+      "p75": 7452.848475038616,
+      "n": 213
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10461.388099355805,
+      "p25": 9850.138532732612,
+      "p75": 11344.178517921046,
+      "n": 213
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.2663113011148347,
+      "p25": -0.4004824628058938,
+      "p75": -0.22783010518592173,
+      "n": 213
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.22228109645116514,
+      "p25": -0.3383768101799825,
+      "p75": -0.1971064208705383,
+      "n": 213
      }
     },
     "entry_2_turnin": {
@@ -2090,14 +2090,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2105,7 +2105,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2113,31 +2113,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6259.851602347871,
+      "p25": 6252.174321560705,
+      "p75": 6267.528883135037,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10535.528817432114,
+      "p25": 10446.597432416205,
+      "p75": 10624.460202448025,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.545273468975853,
+      "p25": -0.5594177009109782,
+      "p75": -0.5311292370407279,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.7081053967400486,
+      "p25": -0.7096573324759925,
+      "p75": -0.7065534610041047,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -2383,14 +2383,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2398,7 +2398,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2406,31 +2406,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6739.633443869754,
+      "p25": 6723.948599612478,
+      "p75": 6755.31828812703,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10182.746072026814,
+      "p25": 10145.106104601382,
+      "p75": 10220.386039452245,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.02672647401647515,
+      "p25": -0.045888794009892715,
+      "p75": -0.007564154023057587,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5254127083181388,
+      "p25": -0.5376176496343645,
+      "p75": -0.5132077670019131,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -2676,14 +2676,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2691,7 +2691,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2699,31 +2699,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6662.2403255835525,
+      "p25": 6662.2403255835525,
+      "p75": 6662.2403255835525,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11377.584757947296,
+      "p25": 11377.584757947296,
+      "p75": 11377.584757947296,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.03965138447604385,
+      "p25": 0.03965138447604385,
+      "p75": 0.03965138447604385,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.10664504577302564,
+      "p25": -0.10664504577302564,
+      "p75": -0.10664504577302564,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -2969,14 +2969,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2984,7 +2984,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -2992,31 +2992,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6450.786097951807,
+      "p25": 6450.786097951807,
+      "p75": 6450.786097951807,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10281.270959378478,
+      "p25": 10281.270959378478,
+      "p75": 10281.270959378478,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.11051466897587328,
+      "p25": -0.11051466897587328,
+      "p75": -0.11051466897587328,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5327742295409547,
+      "p25": -0.5327742295409547,
+      "p75": -0.5327742295409547,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -3262,14 +3262,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3277,7 +3277,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3285,31 +3285,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6296.959340108813,
+      "p25": 6261.232268725259,
+      "p75": 6332.686411492367,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10773.587597855292,
+      "p25": 10772.426261191898,
+      "p75": 10774.748934518686,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.45622635599408695,
+      "p25": 0.4431865601039384,
+      "p75": 0.4692661518842355,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.04113266585636377,
+      "p25": -0.053863429838717995,
+      "p75": -0.02840190187400954,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -3555,14 +3555,14 @@
    "bracket_end_m": 1109.6137694904,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3570,7 +3570,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3578,31 +3578,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6884.757769711321,
+      "p25": 6884.757769711321,
+      "p75": 6884.757769711321,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10873.349988621134,
+      "p25": 10873.349988621134,
+      "p75": 10873.349988621134,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4051977601944445,
+      "p25": 0.4051977601944445,
+      "p75": 0.4051977601944445,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.03619296777943769,
+      "p25": -0.03619296777943769,
+      "p75": -0.03619296777943769,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -3846,14 +3846,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3861,7 +3861,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -3869,31 +3869,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 3577.505413564426,
+      "p25": 3577.505413564426,
+      "p75": 3577.505413564426,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9322.197571690682,
+      "p25": 9322.197571690682,
+      "p75": 9322.197571690682,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5511187970566369,
+      "p25": -0.5511187970566369,
+      "p75": -0.5511187970566369,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.02070303592973882,
+      "p25": 0.02070303592973882,
+      "p75": 0.02070303592973882,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -4137,14 +4137,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4152,7 +4152,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4160,31 +4160,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 4985.605991738925,
+      "p25": 4985.605991738925,
+      "p75": 4985.605991738925,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7827.919210875039,
+      "p25": 7827.919210875039,
+      "p75": 7827.919210875039,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.0730657969225257,
+      "p25": -1.0730657969225257,
+      "p75": -1.0730657969225257,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6273324469464132,
+      "p25": -0.6273324469464132,
+      "p75": -0.6273324469464132,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -4428,14 +4428,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 1,
+     "n_samples": 2,
      "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 1,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4443,7 +4443,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 1,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4451,31 +4451,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 1
+      "n": 2
      },
      "fz_f_N": {
-      "median": 3679.91887120071,
-      "p25": 3679.91887120071,
-      "p75": 3679.91887120071,
-      "n": 1
+      "median": 3553.890667116154,
+      "p25": 3490.876565073876,
+      "p75": 3616.904769158432,
+      "n": 2
      },
      "fz_r_N": {
-      "median": 8927.946775534074,
-      "p25": 8927.946775534074,
-      "p75": 8927.946775534074,
-      "n": 1
+      "median": 8982.25542646828,
+      "p25": 8955.101101001177,
+      "p75": 9009.409751935384,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": -0.8034527165038039,
-      "p25": -0.8034527165038039,
-      "p75": -0.8034527165038039,
-      "n": 1
+      "median": -0.7952908063379598,
+      "p25": -0.7993717614208818,
+      "p75": -0.7912098512550376,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": -0.06284331182351982,
-      "p25": -0.06284331182351982,
-      "p75": -0.06284331182351982,
-      "n": 1
+      "median": -0.04401599834958427,
+      "p25": -0.05342965508655205,
+      "p75": -0.034602341612616494,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -4719,14 +4719,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4734,7 +4734,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -4742,31 +4742,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 4585.419673553055,
+      "p25": 4585.419673553055,
+      "p75": 4585.419673553055,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9317.988058783289,
+      "p25": 9317.988058783289,
+      "p75": 9317.988058783289,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.22439986631983766,
+      "p25": -0.22439986631983766,
+      "p75": -0.22439986631983766,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.20791330453833934,
+      "p25": 0.20791330453833934,
+      "p75": 0.20791330453833934,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -5012,14 +5012,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5027,7 +5027,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5035,31 +5035,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5104.630931799562,
+      "p25": 5104.630931799562,
+      "p75": 5104.630931799562,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8258.577760937644,
+      "p25": 8258.577760937644,
+      "p75": 8258.577760937644,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.1701505079026617,
+      "p25": -1.1701505079026617,
+      "p75": -1.1701505079026617,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.7708935987290948,
+      "p25": -0.7708935987290948,
+      "p75": -0.7708935987290948,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -5303,14 +5303,14 @@
    "bracket_end_m": 1262.4277345248001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5318,7 +5318,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5326,31 +5326,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5168.838715380558,
+      "p25": 5168.838715380558,
+      "p75": 5168.838715380558,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9545.73999607138,
+      "p25": 9545.73999607138,
+      "p75": 9545.73999607138,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.2548931563265895,
+      "p25": -1.2548931563265895,
+      "p75": -1.2548931563265895,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6437183331246316,
+      "p25": -0.6437183331246316,
+      "p75": -0.6437183331246316,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -5594,14 +5594,14 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 77,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 12,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5614,34 +5614,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 874.7869156756612,
+      "p25": 688.267611857548,
+      "p75": 968.8058593495986,
+      "n": 77
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8045.001147278548,
+      "p25": 6751.089382910672,
+      "p75": 9284.49252198379,
+      "n": 77
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10239.644224533386,
+      "p25": 9021.860145059702,
+      "p75": 12881.165441335916,
+      "n": 77
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.031780402827093525,
+      "p25": -0.014053791682229628,
+      "p75": 0.17870980602926242,
+      "n": 77
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.02599596531737761,
+      "p25": -0.01867295259301225,
+      "p75": 0.15353473844329912,
+      "n": 77
      }
     },
     "entry_2_turnin": {
@@ -5885,14 +5885,14 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 78,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 7,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -5905,34 +5905,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 872.9822201536579,
+      "p25": 689.421393482941,
+      "p75": 968.8120666550776,
+      "n": 78
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7609.220142931659,
+      "p25": 7114.073785527369,
+      "p75": 8899.892370893696,
+      "n": 78
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10238.807362709913,
+      "p25": 9192.681680521935,
+      "p75": 12639.822823834522,
+      "n": 78
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.03730746010071894,
+      "p25": -0.004458333406015965,
+      "p75": 0.2466472270383908,
+      "n": 78
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.011988677947461113,
+      "p25": -0.0025067848024874846,
+      "p75": 0.18612190848293847,
+      "n": 78
      }
     },
     "entry_2_turnin": {
@@ -6176,14 +6176,14 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 78,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 8,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -6196,34 +6196,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 873.0330535744273,
+      "p25": 688.4993082918143,
+      "p75": 967.7658016170013,
+      "n": 78
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7498.850572288893,
+      "p25": 6429.7299220637115,
+      "p75": 8993.960921616625,
+      "n": 78
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10396.71115074178,
+      "p25": 9279.151697526042,
+      "p75": 12205.212175862614,
+      "n": 78
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.03975758294194605,
+      "p25": 0.00027819957445808307,
+      "p75": 0.09212971957705386,
+      "n": 78
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.03899196080908266,
+      "p25": -0.007002025679578236,
+      "p75": 0.05012549587965863,
+      "n": 78
      }
     },
     "entry_2_turnin": {
@@ -6467,8 +6467,8 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 78,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -6487,34 +6487,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 868.7119510055949,
+      "p25": 685.6772683212164,
+      "p75": 968.6868493869615,
+      "n": 78
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7265.179510381798,
+      "p25": 6469.198097793304,
+      "p75": 8903.270510001217,
+      "n": 78
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10593.529466271968,
+      "p25": 9153.02404170439,
+      "p75": 12384.337058520043,
+      "n": 78
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.01449179802452881,
+      "p25": 0.005830042545612966,
+      "p75": 0.06185595875377202,
+      "n": 78
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.016181790923584228,
+      "p25": 0.0052891297674067745,
+      "p75": 0.03887645748092665,
+      "n": 78
      }
     },
     "entry_2_turnin": {
@@ -6758,54 +6758,54 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 77,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 0.9801286255479293,
+      "p75": 1.0,
+      "n": 26,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 9,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 870.6437399964855,
+      "p25": 686.8646326525026,
+      "p75": 968.9400179461531,
+      "n": 77
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7316.590063511386,
+      "p25": 6476.759455735097,
+      "p75": 8504.491423063528,
+      "n": 77
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9853.598167018303,
+      "p25": 9339.390284824975,
+      "p75": 12290.308107854926,
+      "n": 77
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.18853747482264674,
+      "p25": 0.10133901274630266,
+      "p75": 0.4683551582566997,
+      "n": 77
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.1514408335941254,
+      "p25": 0.08800476772691022,
+      "p75": 0.29523640362621106,
+      "n": 77
      }
     },
     "entry_2_turnin": {
@@ -7049,14 +7049,14 @@
    "bracket_end_m": 1727.0571289116,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 78,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 0.9991149734568385,
+      "p25": 0.9863698955476823,
+      "p75": 1.0,
+      "n": 18,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -7064,39 +7064,39 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 3,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 869.4744999180606,
+      "p25": 686.7409268650974,
+      "p75": 968.5539790075843,
+      "n": 78
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7893.960593973443,
+      "p25": 6983.054319895046,
+      "p75": 9209.442671300258,
+      "n": 78
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10105.821207341709,
+      "p25": 9218.219625148966,
+      "p75": 12504.016157060443,
+      "n": 78
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.035814593872244505,
+      "p25": -0.0068698280860350425,
+      "p75": 0.3365029953393822,
+      "n": 78
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.0026725866361699503,
+      "p25": -0.007395306932547025,
+      "p75": 0.20739497347496316,
+      "n": 78
      }
     },
     "entry_2_turnin": {
@@ -9088,8 +9088,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -9111,31 +9111,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9167.00574130198,
+      "p25": 9167.00574130198,
+      "p75": 9167.00574130198,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 13027.472182537978,
+      "p25": 13027.472182537978,
+      "p75": 13027.472182537978,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3586309752890453,
+      "p25": 0.3586309752890453,
+      "p75": 0.3586309752890453,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3271420964365054,
+      "p25": 0.3271420964365054,
+      "p75": 0.3271420964365054,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -9379,8 +9379,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -9402,31 +9402,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8028.105625270177,
+      "p25": 8028.105625270177,
+      "p75": 8028.105625270177,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 14159.501800675553,
+      "p25": 14159.501800675553,
+      "p75": 14159.501800675553,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3795149471953149,
+      "p25": 0.3795149471953149,
+      "p75": 0.3795149471953149,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.2894622415724448,
+      "p25": 0.2894622415724448,
+      "p75": 0.2894622415724448,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -9670,8 +9670,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -9693,31 +9693,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8577.45336892978,
+      "p25": 8577.45336892978,
+      "p75": 8577.45336892978,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11995.86183194947,
+      "p25": 11995.86183194947,
+      "p75": 11995.86183194947,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3764689003784621,
+      "p25": 0.3764689003784621,
+      "p75": 0.3764689003784621,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.35982350835686744,
+      "p25": 0.35982350835686744,
+      "p75": 0.35982350835686744,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -9961,8 +9961,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -9984,31 +9984,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8939.813854617969,
+      "p25": 8939.813854617969,
+      "p75": 8939.813854617969,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12518.383999427124,
+      "p25": 12518.383999427124,
+      "p75": 12518.383999427124,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4041377810288626,
+      "p25": 0.4041377810288626,
+      "p75": 0.4041377810288626,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4018827626088414,
+      "p25": 0.4018827626088414,
+      "p75": 0.4018827626088414,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -10252,8 +10252,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -10275,31 +10275,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5989.108698939734,
+      "p25": 5989.108698939734,
+      "p75": 5989.108698939734,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11118.947449580672,
+      "p25": 11118.947449580672,
+      "p75": 11118.947449580672,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.463093513937769,
+      "p25": 0.463093513937769,
+      "p75": 0.463093513937769,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3357558755398712,
+      "p25": 0.3357558755398712,
+      "p75": 0.3357558755398712,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -10543,8 +10543,8 @@
    "bracket_end_m": 2254.457031336,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
@@ -10566,31 +10566,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6918.880983581763,
+      "p25": 6918.880983581763,
+      "p75": 6918.880983581763,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 13054.590437558796,
+      "p25": 13054.590437558796,
+      "p75": 13054.590437558796,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4596968184558647,
+      "p25": 0.4596968184558647,
+      "p75": 0.4596968184558647,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.32290036361585167,
+      "p25": 0.32290036361585167,
+      "p75": 0.32290036361585167,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -10834,14 +10834,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -10849,7 +10849,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -10857,31 +10857,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7053.906221609261,
+      "p25": 6857.290664333894,
+      "p75": 7250.521778884627,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10752.880245908662,
+      "p25": 10429.397661436713,
+      "p75": 11076.362830380613,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5371899050218727,
+      "p25": -0.5481464275969758,
+      "p75": -0.5262333824467696,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3649857390079624,
+      "p25": -0.3700923676890013,
+      "p75": -0.35987911032692343,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -11125,14 +11125,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -11140,7 +11140,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -11148,31 +11148,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8383.10902773938,
+      "p25": 8205.04690666896,
+      "p75": 8561.171148809799,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9608.245613207124,
+      "p25": 9271.524275507145,
+      "p75": 9944.9669509071,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.45481488087401034,
+      "p25": -0.4639140090683314,
+      "p75": -0.4457157526796893,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5576960956048053,
+      "p25": -0.5757471970817379,
+      "p75": -0.5396449941278726,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -11416,14 +11416,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -11439,31 +11439,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8054.139699663727,
+      "p25": 8040.432029450305,
+      "p75": 8067.8473698771495,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10742.167644652462,
+      "p25": 10665.377839208357,
+      "p75": 10818.957450096566,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.18234507015975862,
+      "p25": -0.18401214559667822,
+      "p75": -0.18067799472283902,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.14567929131502844,
+      "p25": -0.14697884796201796,
+      "p75": -0.1443797346680389,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -11707,14 +11707,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -11722,7 +11722,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -11730,31 +11730,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7804.255892707077,
+      "p25": 7558.857157741514,
+      "p75": 8049.654627672639,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10715.639595277016,
+      "p25": 10650.215614891098,
+      "p75": 10781.063575662934,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5317858270679944,
+      "p25": -0.5521722103212582,
+      "p75": -0.5113994438147305,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.44149745165302934,
+      "p25": -0.4504204752666549,
+      "p75": -0.4325744280394038,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -11998,14 +11998,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -12013,7 +12013,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -12021,31 +12021,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7438.581241261721,
+      "p25": 7394.482964873327,
+      "p75": 7482.679517650115,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11799.362088588156,
+      "p25": 11712.67497487128,
+      "p75": 11886.049202305032,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.496229167997148,
+      "p25": -0.5016953910233779,
+      "p75": -0.49076294497091805,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.35949405887108354,
+      "p25": -0.3641319607264421,
+      "p75": -0.35485615701572504,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -12289,14 +12289,14 @@
    "bracket_end_m": 2512.0620116292002,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -12304,7 +12304,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -12312,31 +12312,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8025.885230440823,
+      "p25": 7956.047313663513,
+      "p75": 8095.723147218132,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 13003.855648531815,
+      "p25": 12647.176521937003,
+      "p75": 13360.534775126625,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5170469455293264,
+      "p25": -0.5223672048193804,
+      "p75": -0.5117266862392724,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.4457226755052953,
+      "p25": -0.45659902094540594,
+      "p75": -0.4348463300651847,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -12580,9 +12580,9 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 1.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -12603,31 +12603,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6232.101038725463,
+      "p25": 6196.251043360951,
+      "p75": 6267.951034089975,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9492.595750791985,
+      "p25": 9404.92685510091,
+      "p75": 9580.264646483061,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.5200704297736471,
+      "p25": 0.5198864025692451,
+      "p75": 0.5202544569780493,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4235044595103922,
+      "p25": 0.4219664866908697,
+      "p75": 0.4250424323299146,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -12871,15 +12871,15 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 2,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -12894,31 +12894,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7498.482015761947,
+      "p25": 7445.778066355168,
+      "p75": 7551.1859651687255,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12098.009182327964,
+      "p25": 12064.32635770923,
+      "p75": 12131.692006946698,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3614952296351629,
+      "p25": 0.36062659771428335,
+      "p75": 0.3623638615560424,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.24490299353099712,
+      "p25": 0.24315105534755133,
+      "p75": 0.24665493171444292,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -13162,15 +13162,15 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 2,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -13185,31 +13185,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5482.245369637867,
+      "p25": 5359.259312553349,
+      "p75": 5605.231426722384,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8774.978850035743,
+      "p25": 8733.074551439691,
+      "p75": 8816.883148631792,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.42919729325081274,
+      "p25": 0.41672139125969476,
+      "p75": 0.4416731952419307,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3119112850821516,
+      "p25": 0.31148139287324617,
+      "p75": 0.312341177291057,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -13453,15 +13453,15 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 2,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -13476,31 +13476,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5794.042573760563,
+      "p25": 5572.147445940182,
+      "p75": 6015.937701580944,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8951.864245066445,
+      "p25": 8847.454642142904,
+      "p75": 9056.273847989985,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.5921882495643687,
+      "p25": 0.573042854016697,
+      "p75": 0.6113336451120404,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.4294004796873513,
+      "p25": 0.42725547934154773,
+      "p75": 0.43154548003315485,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -13744,9 +13744,9 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 1.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -13767,31 +13767,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8146.160053537797,
+      "p25": 7956.782547091585,
+      "p75": 8335.537559984008,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11746.148291643378,
+      "p25": 11708.444780323242,
+      "p75": 11783.851802963514,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.6670756639668333,
+      "p25": 0.6473145357447103,
+      "p75": 0.6868367921889562,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.5026982878278176,
+      "p25": 0.4973149264865925,
+      "p75": 0.5080816491690426,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -14035,15 +14035,15 @@
    "bracket_end_m": 2869.286132892,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 2,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -14058,31 +14058,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7465.093577001067,
+      "p25": 7272.863232863336,
+      "p75": 7657.323921138798,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12630.908475027765,
+      "p25": 12495.58814160417,
+      "p75": 12766.228808451362,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.5092626655330877,
+      "p25": 0.49801687322886407,
+      "p75": 0.5205084578373114,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.3812130832532497,
+      "p25": 0.3782055180074674,
+      "p75": 0.38422064849903204,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -14617,15 +14617,15 @@
    "bracket_end_m": 3016.2499998984003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 1,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -14633,38 +14633,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 1,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6343.476326208993,
+      "p25": 6343.476326208993,
+      "p75": 6343.476326208993,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 15237.999478645783,
+      "p25": 15237.999478645783,
+      "p75": 15237.999478645783,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.1663749943830597,
+      "p25": -1.1663749943830597,
+      "p75": -1.1663749943830597,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6142055084451913,
+      "p25": -0.6142055084451913,
+      "p75": -0.6142055084451913,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -14908,9 +14908,9 @@
    "bracket_end_m": 3016.2499998984003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 1.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -14931,31 +14931,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 4309.293892752161,
+      "p25": 4309.293892752161,
+      "p75": 4309.293892752161,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7115.033230706936,
+      "p25": 7115.033230706936,
+      "p75": 7115.033230706936,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5274010613060873,
+      "p25": -0.5274010613060873,
+      "p75": -0.5274010613060873,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.1845314487327497,
+      "p25": -0.1845314487327497,
+      "p75": -0.1845314487327497,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -15199,9 +15199,9 @@
    "bracket_end_m": 3016.2499998984003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 1.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -15222,31 +15222,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 4316.148462474432,
+      "p25": 4316.148462474432,
+      "p75": 4316.148462474432,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8181.78545114933,
+      "p25": 8181.78545114933,
+      "p75": 8181.78545114933,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5907796525056219,
+      "p25": -0.5907796525056219,
+      "p75": -0.5907796525056219,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.21269812111318165,
+      "p25": -0.21269812111318165,
+      "p75": -0.21269812111318165,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -15490,9 +15490,9 @@
    "bracket_end_m": 3016.2499998984003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 1.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -15513,31 +15513,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7343.171715017406,
+      "p25": 7343.171715017406,
+      "p75": 7343.171715017406,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11450.350890766133,
+      "p25": 11450.350890766133,
+      "p75": 11450.350890766133,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.1955333616507449,
+      "p25": -1.1955333616507449,
+      "p75": -1.1955333616507449,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.0267516402413919,
+      "p25": -1.0267516402413919,
+      "p75": -1.0267516402413919,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -15783,15 +15783,15 @@
    "bracket_end_m": 3016.2499998984003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 1,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -15799,38 +15799,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 1,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6175.215679387802,
+      "p25": 6175.215679387802,
+      "p75": 6175.215679387802,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 14184.841328203875,
+      "p25": 14184.841328203875,
+      "p75": 14184.841328203875,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.3719446606961279,
+      "p25": -1.3719446606961279,
+      "p75": -1.3719446606961279,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.7843491976011961,
+      "p25": -0.7843491976011961,
+      "p75": -0.7843491976011961,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -16074,14 +16074,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16089,7 +16089,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16097,31 +16097,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5723.274699440997,
+      "p25": 5723.274699440997,
+      "p75": 5723.274699440997,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 13101.811714431464,
+      "p25": 13101.811714431464,
+      "p75": 13101.811714431464,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.21066680472517824,
+      "p25": -0.21066680472517824,
+      "p75": -0.21066680472517824,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.1658373022324625,
+      "p25": 0.1658373022324625,
+      "p75": 0.1658373022324625,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -16365,14 +16365,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16380,7 +16380,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16388,31 +16388,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5821.9725546820555,
+      "p25": 5811.376625924492,
+      "p75": 5832.568483439619,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8724.219654483833,
+      "p25": 8716.459143885908,
+      "p75": 8731.980165081757,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6635227303578325,
+      "p25": -0.6687177190555789,
+      "p75": -0.6583277416600861,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.4567699349089285,
+      "p25": -0.46424149470502746,
+      "p75": -0.44929837511282955,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -16656,14 +16656,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16671,7 +16671,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16679,31 +16679,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6428.430373012103,
+      "p25": 6367.4708292304485,
+      "p75": 6489.389916793758,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12321.996978849664,
+      "p25": 12290.993391902093,
+      "p75": 12353.000565797232,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.20511120309438713,
+      "p25": -0.21648462335176868,
+      "p75": -0.19373778283700555,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.024759312102246217,
+      "p25": 0.01725810653301251,
+      "p75": 0.032260517671479916,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -16947,14 +16947,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16962,7 +16962,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -16970,31 +16970,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5870.666319829968,
+      "p25": 5870.666319829968,
+      "p75": 5870.666319829968,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12678.632769192216,
+      "p25": 12678.632769192216,
+      "p75": 12678.632769192216,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.16014011093721703,
+      "p25": -0.16014011093721703,
+      "p75": -0.16014011093721703,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.07006007505564754,
+      "p25": 0.07006007505564754,
+      "p75": 0.07006007505564754,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -17238,14 +17238,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -17253,7 +17253,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -17261,31 +17261,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6370.663556597208,
+      "p25": 6370.663556597208,
+      "p75": 6370.663556597208,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11547.165309646625,
+      "p25": 11547.165309646625,
+      "p75": 11547.165309646625,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -1.0914433901799674,
+      "p25": -1.0914433901799674,
+      "p75": -1.0914433901799674,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.7216477016333207,
+      "p25": -0.7216477016333207,
+      "p75": -0.7216477016333207,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -17529,14 +17529,14 @@
    "bracket_end_m": 3642.0703135080003,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 1,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -17544,7 +17544,7 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 1,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -17552,31 +17552,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 1
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6292.324159385653,
+      "p25": 6292.324159385653,
+      "p75": 6292.324159385653,
+      "n": 1
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9016.09123866296,
+      "p25": 9016.09123866296,
+      "p75": 9016.09123866296,
+      "n": 1
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6647615434450572,
+      "p25": -0.6647615434450572,
+      "p75": -0.6647615434450572,
+      "n": 1
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.5044961743235185,
+      "p25": -0.5044961743235185,
+      "p75": -0.5044961743235185,
+      "n": 1
      }
     },
     "entry_2_turnin": {
@@ -17820,14 +17820,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -17843,31 +17843,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7682.974377600322,
+      "p25": 7584.473597189404,
+      "p75": 7781.475158011241,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12948.488434063105,
+      "p25": 12928.008949892956,
+      "p75": 12968.967918233255,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.4662364260717047,
+      "p25": -0.4701936812448593,
+      "p75": -0.46227917089855014,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.34423177707519903,
+      "p25": -0.34583735916537117,
+      "p75": -0.34262619498502683,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -18111,14 +18111,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -18134,31 +18134,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 8095.792536004161,
+      "p25": 7999.528716988054,
+      "p75": 8192.05635502027,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12677.862454573842,
+      "p25": 12624.188365685897,
+      "p75": 12731.536543461787,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.4167785848374196,
+      "p25": -0.4228878029951978,
+      "p75": -0.41066936667964143,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3435711163022809,
+      "p25": -0.3462453320501787,
+      "p75": -0.34089690055438304,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -18402,14 +18402,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -18425,31 +18425,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7631.783524509636,
+      "p25": 7610.067215001242,
+      "p75": 7653.49983401803,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12806.459762457369,
+      "p25": 12724.942561491824,
+      "p75": 12887.976963422916,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.4787379557469238,
+      "p25": -0.4828000171311675,
+      "p75": -0.47467589436268004,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3385197941177045,
+      "p25": -0.3432203246718492,
+      "p75": -0.33381926356355973,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -18693,14 +18693,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -18716,31 +18716,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7415.786453895287,
+      "p25": 7386.596859980631,
+      "p75": 7444.976047809943,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12773.646595179493,
+      "p25": 12725.738565722972,
+      "p75": 12821.554624636015,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.526117737310263,
+      "p25": -0.5264816997482904,
+      "p75": -0.5257537748722356,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3900939264701683,
+      "p25": -0.3904409047940925,
+      "p75": -0.3897469481462441,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -18984,14 +18984,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -19007,31 +19007,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6586.246976122697,
+      "p25": 6312.1046199496795,
+      "p75": 6860.389332295715,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 14881.498992716934,
+      "p25": 14723.346824597538,
+      "p75": 15039.651160836329,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.6406186463209825,
+      "p25": -0.6685678874920377,
+      "p75": -0.6126694051499274,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3664466908042242,
+      "p25": -0.37108505082484644,
+      "p75": -0.361808330783602,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -19275,14 +19275,14 @@
    "bracket_end_m": 4109.361816312001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 2,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0,
+      "n": 2,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
@@ -19298,31 +19298,31 @@
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
-      "n": 0
+      "n": 2
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7881.513366931848,
+      "p25": 7760.053013259523,
+      "p75": 8002.973720604174,
+      "n": 2
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12750.276956622412,
+      "p25": 12675.72129357721,
+      "p75": 12824.832619667613,
+      "n": 2
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.43740803253920946,
+      "p25": -0.44333881241514284,
+      "p75": -0.431477252663276,
+      "n": 2
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.35374371365375173,
+      "p25": -0.3550111767891503,
+      "p75": -0.3524762505183532,
+      "n": 2
      }
     },
     "entry_2_turnin": {
@@ -21324,54 +21324,54 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 37,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 37,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 37,
       "n_kerb_excluded": 0,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1085.099757006386,
+      "p25": 1064.2019467460916,
+      "p75": 1103.6882199266145,
+      "n": 37
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6752.105093328601,
+      "p25": 6262.154319819257,
+      "p75": 7245.955567999954,
+      "n": 37
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10055.906378078544,
+      "p25": 9500.256107282596,
+      "p75": 12276.330833540247,
+      "n": 37
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.42910057535689344,
+      "p25": -0.4561479138166972,
+      "p75": -0.4000624333964551,
+      "n": 37
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3730274017143278,
+      "p25": -0.4475184886527893,
+      "p75": -0.22782218603983734,
+      "n": 37
      }
     },
     "entry_2_turnin": {
@@ -21615,15 +21615,15 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 38,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 34,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -21631,38 +21631,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 32,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1084.2460344480378,
+      "p25": 1063.5409981428547,
+      "p75": 1101.9252129087665,
+      "n": 38
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6488.753497862065,
+      "p25": 5650.647256378617,
+      "p75": 7286.728755381349,
+      "n": 38
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10072.531489252033,
+      "p25": 9546.174858740105,
+      "p75": 10620.734888746694,
+      "n": 38
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.15537915558770546,
+      "p25": -0.23194672754399714,
+      "p75": -0.10071978678562109,
+      "n": 38
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.18771077481635862,
+      "p25": -0.26288000509369047,
+      "p75": -0.13074203198040696,
+      "n": 38
      }
     },
     "entry_2_turnin": {
@@ -21906,15 +21906,15 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 36,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 36,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -21922,38 +21922,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 30,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1084.966993677383,
+      "p25": 1064.1894767521276,
+      "p75": 1102.921168643387,
+      "n": 36
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5948.097831380695,
+      "p25": 5619.236787954702,
+      "p75": 7105.666985352678,
+      "n": 36
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11010.278236589851,
+      "p25": 10089.080942804321,
+      "p75": 12366.878729662612,
+      "n": 36
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.34630039412587654,
+      "p25": -0.4314158330779644,
+      "p75": -0.2652957769305984,
+      "n": 36
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.23420521165137426,
+      "p25": -0.24533527572002986,
+      "p75": -0.21214103723484456,
+      "n": 36
      }
     },
     "entry_2_turnin": {
@@ -22197,15 +22197,15 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 37,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 37,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -22213,38 +22213,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 32,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1083.8039291852515,
+      "p25": 1062.1193263884898,
+      "p75": 1101.8189322008195,
+      "n": 37
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6337.695542187084,
+      "p25": 5473.358971552783,
+      "p75": 6991.640733164255,
+      "n": 37
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10753.492347574065,
+      "p25": 9700.211807700707,
+      "p75": 12104.264780808833,
+      "n": 37
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.38002059282572875,
+      "p25": -0.502233912483003,
+      "p75": -0.33326740170036734,
+      "n": 37
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.22857294833569652,
+      "p25": -0.2875618992651201,
+      "p75": -0.19140462609202938,
+      "n": 37
      }
     },
     "entry_2_turnin": {
@@ -22488,54 +22488,54 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
+     "n_samples": 38,
+     "valid_fraction_stab": 1.0,
      "kerb_fraction": 0.0,
      "cs_ratio_f": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
-      "n_kerb_excluded": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 8,
+      "n_kerb_excluded": 21,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0,
-      "n_kerb_excluded": 0,
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 7,
+      "n_kerb_excluded": 9,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1083.9487618986886,
+      "p25": 1062.6431099234737,
+      "p75": 1101.7919603846144,
+      "n": 38
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 6825.279880492051,
+      "p25": 6379.074432304171,
+      "p75": 7645.4408322791405,
+      "n": 38
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9646.137448869606,
+      "p25": 9022.905190258316,
+      "p75": 11450.794459886678,
+      "n": 38
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.526825805677761,
+      "p25": -0.8257947236564858,
+      "p75": -0.4594742393309725,
+      "n": 38
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.39618679892452247,
+      "p25": -0.507114856802625,
+      "p75": -0.3311672094458476,
+      "n": 38
      }
     },
     "entry_2_turnin": {
@@ -22781,9 +22781,9 @@
    "bracket_end_m": 4856.081055408001,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 38,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.2631578947368421,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -22801,34 +22801,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1084.5509319630428,
+      "p25": 1063.435000761462,
+      "p75": 1102.7135489662105,
+      "n": 38
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 5338.505834714246,
+      "p25": 4824.106970321927,
+      "p75": 7139.540825912715,
+      "n": 38
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 9991.930000554607,
+      "p25": 9377.449547279957,
+      "p75": 10853.660793470532,
+      "n": 38
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.3600853947446505,
+      "p25": -0.42252010241232457,
+      "p75": -0.3131019218198509,
+      "n": 38
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.28564817690302224,
+      "p25": -0.3033493899636858,
+      "p75": -0.2607763567092676,
+      "n": 38
      }
     },
     "entry_2_turnin": {
@@ -23074,9 +23074,9 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 116,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.22413793103448276,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -23094,34 +23094,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1073.2879884785034,
+      "p25": 1059.0906667498084,
+      "p75": 1079.3190696778565,
+      "n": 116
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7514.25190981696,
+      "p25": 6122.31739452622,
+      "p75": 9423.021130417845,
+      "n": 116
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 11537.216117953112,
+      "p25": 9317.417599204979,
+      "p75": 13310.33077978004,
+      "n": 116
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.09643397850499533,
+      "p25": 0.05223184840043306,
+      "p75": 0.154930908155003,
+      "n": 116
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.07582787349545667,
+      "p25": 0.050466748888158115,
+      "p75": 0.10387211687750192,
+      "n": 116
      }
     },
     "entry_2_turnin": {
@@ -23365,15 +23365,15 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 1,
+     "n_samples": 119,
      "valid_fraction_stab": 1.0,
-     "kerb_fraction": 0.0,
+     "kerb_fraction": 0.17647058823529413,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 1,
+      "n_kerb_excluded": 13,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -23385,34 +23385,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 1
+      "median": 1072.9845040341202,
+      "p25": 1058.144710976338,
+      "p75": 1079.2797591664626,
+      "n": 119
      },
      "fz_f_N": {
-      "median": 6765.869430948067,
-      "p25": 6765.869430948067,
-      "p75": 6765.869430948067,
-      "n": 1
+      "median": 7606.730689400014,
+      "p25": 6303.712374575791,
+      "p75": 9599.061807867147,
+      "n": 119
      },
      "fz_r_N": {
-      "median": 10722.063259645383,
-      "p25": 10722.063259645383,
-      "p75": 10722.063259645383,
-      "n": 1
+      "median": 10810.427572980436,
+      "p25": 9199.330845046004,
+      "p75": 13269.456250776428,
+      "n": 119
      },
      "fy_f_norm_N": {
-      "median": 0.5533818923167287,
-      "p25": 0.5533818923167287,
-      "p75": 0.5533818923167287,
-      "n": 1
+      "median": 0.03883272944314288,
+      "p25": 0.0031133815130207883,
+      "p75": 0.1374707645694217,
+      "n": 119
      },
      "fy_r_norm_N": {
-      "median": 0.4077829571050665,
-      "p25": 0.4077829571050665,
-      "p75": 0.4077829571050665,
-      "n": 1
+      "median": 0.032438072696229524,
+      "p25": 0.00050955710823777,
+      "p75": 0.09176349823178814,
+      "n": 119
      }
     },
     "entry_2_turnin": {
@@ -23656,9 +23656,9 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 117,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.1794871794871795,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -23676,34 +23676,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1073.2091782473183,
+      "p25": 1058.6630960958112,
+      "p75": 1079.340413085062,
+      "n": 117
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7548.7049056118985,
+      "p25": 6354.827443371939,
+      "p75": 9955.75977256701,
+      "n": 117
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12106.905013275005,
+      "p25": 9635.606381633745,
+      "p75": 13856.467745634804,
+      "n": 117
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.013270755489732363,
+      "p25": -0.017549792656664287,
+      "p75": 0.039015547502572606,
+      "n": 117
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": -0.013804464753047497,
+      "p25": -0.02169096125476633,
+      "p75": 0.025425562913199716,
+      "n": 117
      }
     },
     "entry_2_turnin": {
@@ -23947,9 +23947,9 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 116,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.21551724137931033,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
@@ -23967,34 +23967,34 @@
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1073.2409696903565,
+      "p25": 1059.3084832396758,
+      "p75": 1079.2638672300639,
+      "n": 116
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7600.06145710578,
+      "p25": 6178.701135519542,
+      "p75": 10035.009462138594,
+      "n": 116
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 12197.607275850725,
+      "p25": 9540.969382538759,
+      "p75": 14133.672173883042,
+      "n": 116
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.05663272522332867,
+      "p25": 0.035127102086652345,
+      "p75": 0.09333505285473216,
+      "n": 116
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.05117650635573015,
+      "p25": 0.031138504536888083,
+      "p75": 0.06238374963900269,
+      "n": 116
      }
     },
     "entry_2_turnin": {
@@ -24238,15 +24238,15 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 121,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.18181818181818182,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 22,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -24254,38 +24254,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 14,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1073.2757379261743,
+      "p25": 1059.5613725361272,
+      "p75": 1079.2538642710977,
+      "n": 121
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7335.297239438483,
+      "p25": 6034.512488931059,
+      "p75": 9683.58568059924,
+      "n": 121
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10864.242860717459,
+      "p25": 8749.978778301756,
+      "p75": 13274.514563669856,
+      "n": 121
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.10843040633578344,
+      "p25": 0.06865519604993031,
+      "p75": 0.31926253602705246,
+      "n": 121
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.09925761083725468,
+      "p25": 0.03619072141867106,
+      "p75": 0.18495933952313798,
+      "n": 121
      }
     },
     "entry_2_turnin": {
@@ -24529,15 +24529,15 @@
    "bracket_end_m": 3425.34863316,
    "phases": {
     "entry_1_brake": {
-     "n_samples": 0,
-     "valid_fraction_stab": 0.0,
-     "kerb_fraction": 0.0,
+     "n_samples": 121,
+     "valid_fraction_stab": 1.0,
+     "kerb_fraction": 0.19834710743801653,
      "cs_ratio_f": {
       "median": NaN,
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 14,
       "n_reset_excluded": 0
      },
      "cs_ratio_r": {
@@ -24545,38 +24545,38 @@
       "p25": NaN,
       "p75": NaN,
       "n": 0,
-      "n_kerb_excluded": 0,
+      "n_kerb_excluded": 2,
       "n_reset_excluded": 0
      },
      "stability_observed_Nm_per_deg": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 1073.0702159768687,
+      "p25": 1058.6630960958112,
+      "p75": 1079.1874932075725,
+      "n": 121
      },
      "fz_f_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 7251.487247744275,
+      "p25": 6084.046686915018,
+      "p75": 9233.681946862416,
+      "n": 121
      },
      "fz_r_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 10793.954736026382,
+      "p25": 8803.256050448232,
+      "p75": 13212.25001813291,
+      "n": 121
      },
      "fy_f_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.049293418013160596,
+      "p25": 0.033550731040628695,
+      "p75": 0.0748597356833351,
+      "n": 121
      },
      "fy_r_norm_N": {
-      "median": NaN,
-      "p25": NaN,
-      "p75": NaN,
-      "n": 0
+      "median": 0.03720319000901892,
+      "p25": 0.023198054727563998,
+      "p75": 0.0605167611598128,
+      "n": 121
      }
     },
     "entry_2_turnin": {
@@ -27363,8 +27363,8 @@
   "purpose": "REGRESSION baseline of the default path (fit L, schema 16), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "NBR JST outing 29",
   "data_file": "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt",
-  "git_commit_hash": "1ead11dfb5f78239ddabd3deff9b2650b8f1b747",
-  "generated_at_utc": "2026-10-20T19:12:57.015759+00:00",
+  "git_commit_hash": "19158578b29e22603d5e0f55131bd8807cec7e5f",
+  "generated_at_utc": "2026-10-21T09:42:42.473740+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

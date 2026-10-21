@@ -28,6 +28,14 @@ from modules.stability_analysis import _interp_lap_distance_guarded, _normalize_
 
 CHANNELS_CONFIG_PATH = "config/channels.json"
 
+# Channel-missing warnings are set per lap in _build_corner but describe the
+# session; _realize_canonical_corners rebuilds the instances and must carry
+# them, or a dropped channel goes silent (zero-length brake phases on 7 of
+# 14 sessions went unnoticed that way, 2026-10-21).
+WARN_LAT_G_MISSING = "lateral G missing -- apex from speed minimum"
+WARN_THROTTLE_MISSING = "throttle missing -- brake phase = turn-in start"
+INPUT_MISSING_WARNINGS = (WARN_LAT_G_MISSING, WARN_THROTTLE_MISSING)
+
 
 def _load_config():
     with open(CHANNELS_CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -243,7 +251,7 @@ def _build_corner(lap_number, corner_number, method,
         else:
             return None
     else:
-        warnings.append("lateral G missing -- apex from speed minimum")
+        warnings.append(WARN_LAT_G_MISSING)
         mask = (speed_t >= s_t_start) & (speed_t <= s_t_end)
         sub_speed = sm_speed[mask]
         sub_t = speed_t[mask]
@@ -284,7 +292,7 @@ def _build_corner(lap_number, corner_number, method,
             if len(on_throttle) > 0:
                 brake_start_t = float(thr_t[on_throttle[-1]])
     else:
-        warnings.append("throttle missing -- brake phase = turn-in start")
+        warnings.append(WARN_THROTTLE_MISSING)
 
     if steering is not None:
         bracket_steer = np.abs(_smooth(steering["data"][b_start_idx:b_end_idx + 1], sw))
@@ -671,6 +679,7 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, re
 
         quiet_laps = set(valid_laps) - {m["lap_number"] for m in members}
         cluster_method = members[0]["method"]
+        input_warnings = [w for w in INPUT_MISSING_WARNINGS if any(w in m["warnings"] for m in members)]
 
         instances = []
         for lap_number, lap in valid_laps.items():
@@ -703,6 +712,7 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, re
                 warnings.append("canonical_quiet")
             if cid in boundary_resolved_ids:
                 warnings.append("canonical_boundary_resolved")
+            warnings.extend(input_warnings)
 
             instances.append({
                 "lap_number": lap_number,

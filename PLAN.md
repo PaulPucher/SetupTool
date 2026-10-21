@@ -2,11 +2,11 @@
 
 ### NOW
 
-Rewritten 2026-10-20 (final chain and close-out, branch new-laps). The
-header, REPO STATE and NEXT this replaces are preserved verbatim under
-"SUPERSEDED NOW-BLOCK CONTENT (2026-10-20 STATUS rewrite)"; older NOW items
-remain under the 2026-10-11 / 2026-09-30 / 2026-09-20 sections. The rest of
-this block is unchanged.
+Rewritten 2026-10-21 (records hygiene after the 2026-10-21 rulings, branch
+new-laps). The header, REPO STATE and NEXT this replaces are preserved
+verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-21 STATUS rewrite)";
+older NOW items remain under the 2026-10-20 / 2026-10-11 / 2026-09-30 /
+2026-09-20 sections. The rest of this block is unchanged.
 
 READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
 PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
@@ -22,14 +22,18 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps head 1ead11d (final chain parts 1-3 and the close-out records,
-  pushed). Working tree NOT committed: PRODUCTION.md method rewrite, the
-  close-out corrections (NIS gate, colour bands, records pass) and the R26
-  source fix with its re-derivations.
+  new-laps head 1915857 (R26 fix, schema 17, PRODUCTION.md rewrite, C / E
+  sensitivity, robustness re-run on the final chain), working tree clean at
+  that head. Since then NOT committed: the 2026-10-21 records-hygiene pass
+  (DECISIONS / PLAN / thesis_notes naming notes and strikes, PRODUCTION.md
+  bib keys) and Q-UTIL (diagnostics only).
 - DEFAULT ANALYSIS PATH: fit L (tyre_fit_auto.tyre_fit_mode
-  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 17 (16 -> 17 on 2026-10-20 for
-  the NIS gate values and the R26 reference gate, schema bump rule). The per_session path
-  stays selectable until the cleanup round.
+  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 18 (17 -> 18 on 2026-10-21:
+  throttle range gate [0, 110] %, braking phases populated on the 7 sessions
+  that had lost them; 16 -> 17 on 2026-10-20 for the NIS gate values and the
+  R26 reference gate). Thresholds and cs_margin re-derived on 18 (identical,
+  re-adopted), goldens regenerated, full suite 657 passed / 1 xfailed. The per_session path stays selectable until the
+  cleanup round.
 - CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
   unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
   Fy / Fz (C = 1.0, E = -1, mu = demonstrated utilisation p99.5, B free,
@@ -46,28 +50,55 @@ REPO STATE
   stab_neg_thresh 0 (sign criterion).
 - DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
   70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
-  package (pending).
+  package (pending). (Older records call the 14 sessions "analysis set";
+  naming notes added 2026-10-21.)
 - TESTS: full suite 655 passed, 1 xfailed, 0 failed (45 min, 2026-10-20);
   test_stability.py exit 0. Goldens: NBR JST 29 and Le Castellet 32 on the
   default path (Dubai goldens retired). Old path (per_session with its own
   2026-10-11 gate values) bit-identical to HEAD 1ead11d.
-- CHAIN STATUS: FINAL on the development set (2026-10-20). NIS gate
-  re-derived on fit L; R26 test count 0 on every session and axle after the
-  source fix (from 1461 front samples on NBR 46 / 54 / 63 / 69).
+- CHAIN STATUS: FINAL on the development set, re-declared 2026-10-21
+  (DECISIONS 'Analysis chain FINAL (re-declared)'): NIS gate re-derived on
+  fit L; R26 test count 0 on every session and axle after the source fix
+  (from 1461 front samples on NBR 46 / 54 / 63 / 69).
+- 2026-10-21 RULINGS (DECISIONS 95 / 96): schema 17 confirmed; cs_margin
+  sweep folder diagnostics/results_cs_margin_20261020b/ kept; PRODUCTION.md
+  9 regained the classification / aggregation rules (no-braking gate,
+  cross-lap aggregation, speed class, yaw-moment regression; sign anchor
+  Guiggiani 2023 pp. 306 / 308) and 12 the reworded yaw-moment limitation;
+  C / E sensitivity recorded (report only, nothing selected); observer
+  robustness re-run on the final chain (flip rates identical).
 - LEGACY PATH: per_session shares the nis_gate keys and falls back under the
   fit-L gate values (author ruling 2026-10-20); tests pin its own 2026-10-11
   values; removed in the cleanup round.
-- OPEN: missing bib entries (Rao 2006, Voser 2010, Farroni 2016 / 2018,
-  Acosta Reche 2018) -- author.
+- OPEN: bib -- the five formerly missing entries now exist (Rao.2006,
+  Voser.2010, Farroni.2016, Farroni.2018, Acosta.2018; keys set in
+  PRODUCTION.md 2026-10-21); two entries with an empty key
+  (@proceedings{.2014, @proceedings{.2024) -- author. "page to verify"
+  items in PRODUCTION.md stay open.
 
-NEXT
-1. Author review in the app.
-2. PRODUCTION.md method rewrite with thesis bib keys: drafted 2026-10-20;
-   open: "page to verify" items and the missing bib entries.
-3. Recommendation overhaul (combined uncertainty, tiers, consistency gate vs
-   worst-lap aggregation, one engine).
-4. Cleanup round (per_session / prior_anchored paths, change detector and
+NEXT (author order 2026-10-21)
+0. THROTTLE GATE / SEGMENTATION (2026-10-21): DONE, uncommitted -- records,
+   census, fix (ecu_aps [0, 110], warning carry-over, schema 18, tests), D
+   re-run (thresholds and cs_margin identical, re-adopted; floor events
+   unchanged; goldens regenerated; full suite 657 passed, 1 xfailed), E
+   (PRODUCTION.md corner phases, limitations, Fx, median rationale, IMU,
+   kerb provenance), washout re-run on the final chain, kerb census.
+   Commit checkpoint pending author.
+1. Q-UTIL decision (read-only diagnostic diagnostics/inspect_utilisation.py,
+   report 2026-10-21; result thesis_notes "Q-UTIL": u / s correlate with CS
+   but disagree on the axle leader, s carries a structural front / rear
+   offset). Side finding EXPLAINED (thesis_notes "Phase segmentation against
+   the chair basis"): ecu_aps reads 104-106 % at full throttle, range gate
+   [0, 100] grades it 'failed' on NBR 29 / 54 (in-range share 0.39 / 0.47 <
+   0.5) -> throttle treated as missing -> zero-length braking phases. To
+   rule: gate fix (schema bump, re-derivations) and the unrecorded
+   segmentation deviation from the chair's rCosPhi phases.
+2. Recommendation overhaul, starting with a read-only rule inventory for
+   literature anchoring (then: combined uncertainty, tiers, consistency gate
+   vs worst-lap aggregation, one engine).
+3. Cleanup round (per_session / prior_anchored paths, change detector and
    NIS-window trigger, fallback-reference keys, stale diagnostics).
+4. Clean data package (thesis analysis set).
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -3700,7 +3731,7 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       result". NOT committed.]
       [2026-10-19 REVISION (author, declared POST-RESULT): Q2 withdrawn as
       exclusion criterion (criterion design defect), information only;
-      screen = Q1, Q3, Q4. ANALYSIS SET: NBR 5, 10, 20, 29, 46, 53, 54, 59,
+      screen = Q1, Q3, Q4. ANALYSIS SET [2026-10-21 naming note: these sessions are the DEVELOPMENT set; 'analysis set' = the separate clean data package (A5 closed, 2026-10-19).]: NBR 5, 10, 20, 29, 46, 53, 54, 59,
       61, 63, 69, 70; Le Castellet 25 (one export: most valid required
       channels, ties -> latest file timestamp; --pick-o25) and 32 (US-v2).
       Excluded: NBR 64 (Q1), 18 / 19 / 21 (Q4), GT3_PRC_MLA (20 Hz),
@@ -3803,7 +3834,7 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       and autocorrelation time per session and axle, propagation to
       sigma_beta_dot / sigma_r_dot, proposed discretisation, Q per session vs
       current. NBR-73-010-026-JDR = NBR outing 10 (file header OutingNumber
-      10), in the analysis set (check split).
+      10), in the analysis set (check split). [2026-10-21 naming note: these sessions are the DEVELOPMENT set; 'analysis set' = the separate clean data package (A5 closed, 2026-10-19).]
       [2026-10-19 Q-PHYS RESULT: residual at the kinematic slip angle front
       SD 2.1-3.8 kN, rear 5.6-7.6 kN, front/rear corr 0.79-0.92, correlation
       time 1.5-2.1 s (filter floor 0.17 s). Q_beta x13-21 (held over a step)
@@ -9268,6 +9299,80 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-21 STATUS rewrite)
+Verbatim header, REPO STATE and NEXT of ### NOW as they stood before the
+2026-10-21 records-hygiene rewrite. Record, not instruction.
+
+Rewritten 2026-10-20 (final chain and close-out, branch new-laps). The
+header, REPO STATE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-20 STATUS rewrite)"; older NOW items
+remain under the 2026-10-11 / 2026-09-30 / 2026-09-20 sections. The rest of
+this block is unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps head 1ead11d (final chain parts 1-3 and the close-out records,
+  pushed). Working tree NOT committed: PRODUCTION.md method rewrite, the
+  close-out corrections (NIS gate, colour bands, records pass) and the R26
+  source fix with its re-derivations.
+- DEFAULT ANALYSIS PATH: fit L (tyre_fit_auto.tyre_fit_mode
+  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 17 (16 -> 17 on 2026-10-20 for
+  the NIS gate values and the R26 reference gate, schema bump rule). The per_session path
+  stays selectable until the cleanup round.
+- CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
+  unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
+  Fy / Fz (C = 1.0, E = -1, mu = demonstrated utilisation p99.5, B free,
+  braking-only filter |Fx| / Fz > 0.3); D4-L gate with K zones [6, 30] ok,
+  [5.5, 6) and (30, 35] marginal; EKF with per-session Q-UPPER,
+  hard-bound-only reset, R_ay with the measured ay noise floor, R_yaw = the
+  measured gyro floor; NIS gate 0.104 / 0.011 (re-derived on fit L
+  2026-10-20); CS on Fy / Fz with reference band [5.5, 35] per rad; floor
+  events at -0.53 with measured attributes (the event layer under fit L);
+  CS linear reference accepted only within [0.5, 2] x the session median of
+  the axle's band candidates (R26 source fix 2026-10-20); thresholds front
+  -0.139 / -0.023, rear -0.002 / +0.100 (re-derived after the fix,
+  identical); cs_margin 0.01 (re-run after the fix, unchanged);
+  stab_neg_thresh 0 (sign criterion).
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
+  70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
+  package (pending).
+- TESTS: full suite 655 passed, 1 xfailed, 0 failed (45 min, 2026-10-20);
+  test_stability.py exit 0. Goldens: NBR JST 29 and Le Castellet 32 on the
+  default path (Dubai goldens retired). Old path (per_session with its own
+  2026-10-11 gate values) bit-identical to HEAD 1ead11d.
+- CHAIN STATUS: FINAL on the development set (2026-10-20). NIS gate
+  re-derived on fit L; R26 test count 0 on every session and axle after the
+  source fix (from 1461 front samples on NBR 46 / 54 / 63 / 69).
+- LEGACY PATH: per_session shares the nis_gate keys and falls back under the
+  fit-L gate values (author ruling 2026-10-20); tests pin its own 2026-10-11
+  values; removed in the cleanup round.
+- OPEN: missing bib entries (Rao 2006, Voser 2010, Farroni 2016 / 2018,
+  Acosta Reche 2018) -- author.
+
+NEXT
+1. Author review in the app.
+2. PRODUCTION.md method rewrite with thesis bib keys: drafted 2026-10-20;
+   open: "page to verify" items and the missing bib entries.
+3. Recommendation overhaul (combined uncertainty, tiers, consistency gate vs
+   worst-lap aggregation, one engine).
+4. Cleanup round (per_session / prior_anchored paths, change detector and
+   NIS-window trigger, fallback-reference keys, stale diagnostics).
+
 
 ---
 
