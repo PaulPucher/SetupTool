@@ -56,7 +56,9 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-OUT = os.path.join(ROOT, "diagnostics", "results_cs_margin_20261020")
+# run tag (env MARGIN_RUN_TAG): 20261020 = first fit-L sweep, 20261020b = after
+# the R26 source fix; each run keeps its own folder
+OUT = os.path.join(ROOT, "diagnostics", f"results_cs_margin_{os.environ.get('MARGIN_RUN_TAG', '20261020')}")
 POOL = ("nbr_o05_mla", "nbr_o10_jdr", "nbr_o20_jst", "nbr_o29_jst", "nbr_o46_jst", "nbr_o53_mla", "nbr_o54_cdr",
         "nbr_o59_mla", "nbr_o61_jdr", "nbr_o63_cdr", "nbr_qp_cdr", "nbr_qp_mla", "pr_o25_us_v1", "pr_o32_us_v2")
 INPUTS = ("mass", "front_fraction", "wheelbase", "yaw_inertia", "steering_wheel_angle")

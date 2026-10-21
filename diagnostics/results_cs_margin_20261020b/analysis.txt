@@ -1,0 +1,9 @@
+cs_margin RE-DERIVATION on the new default (+/-1 % sweep, 14 sessions); thresholds front (-0.139, -0.023), rear (-0.002, 0.1); config cs_margin now 0.01
+
+runs: 140 variants + 14 baselines; fallback in 0 variant runs; 1145 baseline corner-phases
+FLIPS (axle direction changes, recorded _is_flip): 3 flips, 2 distinct corner-phases
+  distance 0.048  Le Castellet outing 25, MLA-SE07_US-v1 C2|exit_4: 2 input(s): front_fraction -1%: oversteer @ exit -> understeer @ exit (CSf +0.037->-0.190, CSr +0.052->+0.052); steering_wheel_angle +1%: oversteer @ exit -> understeer @ exit (CSf +0.037->-0.192, CSr +0.052->+0.052)
+  distance 0.001  Le Castellet outing 25, MLA-SE07_US-v1 C14|exit_4: 1 input(s): wheelbase -1%: oversteer @ exit -> understeer @ exit [MARGINAL] (CSf -0.138->-0.139, CSr +0.089->+0.090)
+
+distinct flipped corner-phase distances, descending: 0.048, 0.001
+observer uncertainty (robustness, Q x 0.3), |corner-value change| median / p90: front 0.017 / 0.085, rear 0.02 / 0.106

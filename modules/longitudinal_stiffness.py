@@ -1,5 +1,6 @@
 # LS_ratio per axle: windowed dFx/dkappa / low-slip reference, clipped at 1.
-# Same scale as CS_ratio: 1 = linear, 0 = force peak, <0 = past peak. SI units.
+# Same scale as CS_ratio: 1 = linear, towards 0 = approaching the force limit,
+# <0 = force falling while slip grows (a measured local slope). SI units.
 # After the chair performance_analysis tooling (internal).
 
 import numpy as np

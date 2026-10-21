@@ -42,7 +42,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 OUT_DIR = os.path.join(ROOT, "diagnostics", "plots", "observer_robustness")
-CACHE = os.path.join(OUT_DIR, "cache")
+# run tag (env ROBUST_RUN_TAG): "" = the 2026-10-20 run before the R26 gate;
+# "20261021" = the re-run on the final chain (with the gate). The baseline is
+# checked against the threshold-derivation cache of the same chain state.
+RUN_TAG = os.environ.get("ROBUST_RUN_TAG", "")
+CACHE = os.path.join(OUT_DIR, f"cache_{RUN_TAG}" if RUN_TAG else "cache")
+REF_CACHE = "cache_l_20261020b" if RUN_TAG else "cache_l_20261020"
+SUFFIX = f"_{RUN_TAG}" if RUN_TAG else ""
 POOL = ("nbr_o05_mla", "nbr_o10_jdr", "nbr_o20_jst", "nbr_o29_jst", "nbr_o46_jst", "nbr_o53_mla", "nbr_o54_cdr",
         "nbr_o59_mla", "nbr_o61_jdr", "nbr_o63_cdr", "nbr_qp_cdr", "nbr_qp_mla", "pr_o25_us_v1", "pr_o32_us_v2")
 VARIANTS = ("baseline", "q_x0.1", "q_x0.3", "qr_hand", "ryaw_x10")
@@ -171,7 +177,7 @@ def report():
     # baseline reproduces the threshold-derivation cache
     drift = []
     for k in POOL:
-        fn = os.path.join(ROOT, "diagnostics", "plots", "threshold_rederivation", "cache_l_20261020", f"{k}.pkl")
+        fn = os.path.join(ROOT, "diagnostics", "plots", "threshold_rederivation", REF_CACHE, f"{k}.pkl")
         if os.path.exists(fn):
             ref = pickle.load(open(fn, "rb"))["corners"]
             b = res[(k, "baseline")]["corners"]
@@ -253,9 +259,9 @@ def report():
                  + f"; floor events baseline {ev_tot['base']}, appear {ev_tot['appear']}, disappear "
                    f"{ev_tot['disappear']}")
     text = "\n".join(L)
-    with open(os.path.join(OUT_DIR, "robustness.txt"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(OUT_DIR, f"robustness{SUFFIX}.txt"), "w", encoding="utf-8") as fh:
         fh.write(text + "\n")
-    with open(os.path.join(OUT_DIR, "robustness.json"), "w") as fh:
+    with open(os.path.join(OUT_DIR, f"robustness{SUFFIX}.json"), "w") as fh:
         json.dump(J, fh, indent=1, default=str)
     print(text)
 

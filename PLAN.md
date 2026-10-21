@@ -2,11 +2,11 @@
 
 ### NOW
 
-Rewritten 2026-10-11 (post estimator arc, branch new-laps). The header
-and REPO STATE this replaces are preserved verbatim under "SUPERSEDED
-NOW-BLOCK CONTENT (2026-10-11 STATUS rewrite)"; the 2026-09-30 NOW items
-remain under "SUPERSEDED NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)".
-The rest of this block is unchanged.
+Rewritten 2026-10-20 (final chain and close-out, branch new-laps). The
+header, REPO STATE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-20 STATUS rewrite)"; older NOW items
+remain under the 2026-10-11 / 2026-09-30 / 2026-09-20 sections. The rest of
+this block is unchanged.
 
 READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
 PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
@@ -21,191 +21,53 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 "OPEN" lines describe the state when they were written.
 
 REPO STATE
-- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it.
-  Branch new-laps is 29 commits above main; head fd40c78 (R6), not yet
-  pushed (origin one behind). [2026-10-18 correction: this line read "17
-  commits above main; head b5b066f" and the items below "pending the
-  author's commit"; everything through R6 is committed -- R0-R4b in the
-  commits before 2b02160, then 2b02160 (R5), 68c391a (CS reference
-  robustness record), fd40c78 (R6). The stale "pending" phrases are removed.]
-- Last recorded suite (R6, 2026-10-17): 619 passed / 2 failed (kinematic
-  and Dubai pipeline goldens, stale by design) / 1 xfailed. The "GREEN 608"
-  line below is the 2026-10-11 state.
-- Estimator-hardening arc (phases 1+2) COMPLETE and COMMITTED: f8c1c97
-  (phase 1), b5b066f (phase 2: R selection on f_ay with sign-check
-  guard, ay-only gross trigger, CS and NIS-gate thresholds re-derived,
-  Dubai golden re-baselined). ANALYSIS_SCHEMA_VERSION = 15.
-- Full suite GREEN: 608 passed, 9 skipped, 1 xfailed (re-confirmed
-  2026-10-11 after the small-items package).
-- Small-items package 2026-10-11 (.gitignore un-ignores
-  diagnostics/results_metrology_20261011/, NIS test re-anchored, OPEN
-  ITEMS block, this rewrite).
-- ~~Still owed: thesis_notes.md entry 9 restructure (2026-10-08 ruling),
-  blocked on the author's date and setting of the communication.~~
-  [DONE 2026-10-12: date not recorded, per author; entry restructured.]
-- R0 NEW-MACHINE REBUILD (2026-10-16, temporary machine, from c5228aa):
-  venv rebuilt on Python 3.13.16 (py launcher, NOT the uv 3.15.0),
-  requirements.txt all pins + tests/requirements-test.txt; .gitignore
-  adds .claude/. Data drive is H: here (H:/UNI/Bachelorarbeit/Data,
-  H:/Data_Bachelorthesis). RULING (author, 2026-10-16, option B): test
-  data paths resolve through tests/conftest.py DATA_ROOTS +
-  find_data_file/resolve_data_path; 10 consumers routed (conftest,
-  test_stability.py, test_event_zero_entries, test_auto_fit_wiring,
-  test_golden_auto_modes, test_nan_empty_paths, test_nis_gate,
-  test_tyre_fit_prior_anchored, generate_golden, generate_golden_auto_
-  modes). Golden JSON files byte-untouched: _meta.data_file is
-  existence-checked, never compared (step 3 closed, no change needed).
-  Diagnostics scripts with pinned paths (compare_beta_architectures,
-  fit_dugoff_*) left frozen as historical.
-- REBUILD BOARD: R1 DONE 2026-10-16 (entry 9 citation scope: multi-IMU ->
-  Goblirsch 2024 only, IFAC 2019 lineage-only; one further spot struck in
-  the read-only-pass-2 supersede note). Text only.
-- REBUILD BOARD: R2 Class A DONE 2026-10-16 (seven estimator corrections
-  #26 CS section clipping, Q dt-scaling, NIS window 0.4 s, #20 shipped beta
-  in sign check/coverage/h2, #22 NaN sign check degenerate, #24 NaN-aware
-  NIS gate + n_windows_skipped_low_coverage, #32 analysis laps only;
-  Pacejka path only). Acceptance numbers reproduced (diagnostics/
-  check_class_a.py; thesis_notes "Class A estimator corrections,
-  rebuild"). Goldens STALE by design, no threshold/golden/schema work
-  (deferred to the final re-derivation chain; gate payload gains one
-  field -> schema bump owed there). Latent #1/2/3/5/6/23 not checkable
-  (definitions lost). #12 fires -> next cycle.
-- R2b RUNTIME CHECK 2026-10-17: STOPPED at step 1, no code change. The
-  5 h 20 min R2 suite is NOT a code regression: per-pipeline wall time
-  old (279f4ee) vs new within +-3 % on Dubai / NBR-73 / PR (fix 1 edge
-  re-fit 4 s per Dubai run). The suite spanned a system sleep/hibernate
-  19:36 -> 00:29 (Windows System log); active time ~27 min vs R0 31 min.
-  Awaiting author ruling (O(1) rewrite not needed on this evidence).
-- REBUILD BOARD: R3 Class B DONE 2026-10-17 (Fix 0 CS reference only from
-  clean windows -- no kerb/smear/off-analysis-lap sample -- with laps arg
-  on estimate_cornering_stiffness; #12 apex window always +/-5 via
-  apex_instant_slice; #1 #2 #3 #5/#6 #23 fix 7 bit-identical hardening;
-  Dugoff path deleted incl. evidence). Acceptance numbers reproduced
-  (diagnostics/check_class_b.py, log diagnostics/output/class_b/; thesis_notes
-  "Class B, rebuild"). Open for the author: h2 apex check and TPMS apex
-  windows also moved (shared #12 helper, beyond spec); tyre_fit_auto
-  nis_band_low/high kept (diagnostics reader); schema bump owed in the final
-  chain. Goldens STALE by design.
-- REBUILD BOARD: R4 DATAFLOW REGISTRY DONE 2026-10-17 (read-only; new tracked
-  docs/dataflow_registry.md: 14 quantities, shared sections S1-S6, findings
-  R1-R25 with file:line; thesis_notes "Dataflow registry rebuild"). Fix 0
-  verified on every set event; all first-pass acceptance numbers reproduced
-  (population definitions identified; R11 adds 3 unread straddling windows).
-  No fix made. Open for the author: which findings enter which next cycle
-  (defects R1, R2; R3 with the schema bump).
-- AUTHOR DECISION 2026-10-17: the understeer-gradient readout (balance line,
-  K, modules/balance_gradient.py) is REMOVED entirely from the application
-  (UI, payload, exports, tests); basis as stated by the author: Guiggiani 2023
-  (K not meaningful for cars with significant downforce), outside the thesis
-  scope. R4 follow-up mapped it (handover): K feeds no verdict, severity or
-  recommendation; no shared code; payload key "balance" disappears (schema
-  bump, joins the owed one; no golden moves). Removal = next cycle.
-- REBUILD BOARD: R4b K READOUT REMOVAL implemented 2026-10-17 (files, config
-  blocks, UI plumbing, test, diagnostic deleted; docs and records updated;
-  thesis_notes "K readout removal"). Validation: all summaries, verdicts,
-  events and recommendations identical on the three exports; the one extra
-  payload difference (resolved_levels loses the understeer_gradient node)
-  ACCEPTED by the author 2026-10-17. Suite once: 3 failed (the 3 stale
-  goldens) / 597 passed / 1 xfailed, 19.4 min. Schema bump owed in the final
-  chain for "balance" and resolved_levels.understeer_gradient.
-- SPIKE TRACE 2026-10-17 (read-only): the JST 29 spikes are current-code
-  output (sidecar == fresh run), dominated by small CLEAN references (a
-  low-excitation window under 0.03 rad sets a reference 0.05-0.5 x the session
-  median); verdict-read, moves a few classifier medians; chair-identical
-  mechanism (no bound on the reference in the chair code). Candidate R26 (F3).
-  No fix; author to rule.
-- SPIKE FOLLOW-UP 2026-10-17 (read-only): R26 entered in the registry (open).
-  Small references existed before Fix 0 on all three exports; Fix 0 made the
-  ones reaching verdicts longer-lived on JST 29 and PR front. A simulated
-  30000-600000 N/rad band on the reference removes the extremes only (no new
-  no-reference samples). Physical CS floor of the fitted curve -0.05 to -0.33;
-  thousands of verdict-read samples lie below it, mostly "other" (not kerb, not
-  small reference). Facts in thesis_notes "Spike follow-up"; author to rule.
-- REBUILD BOARD: R5 DONE 2026-10-17 (band rule R26/R27, validated alone, all
-  recorded numbers reproduced; Group 1 fixes R1, R2+R23, R6, R11, R12, R13, R14,
-  R24; R25 decided display only; R4, R5, R8, R9, R10 documented limitations;
-  kerb caption ruled; thesis_notes "R5: reference band rule ..."; registry
-  statuses + new R27). R11 counts 99 / 2 / 1 accepted by author ruling (first
-  pass used another counting definition); no R28. Verdict churn from the R6
-  refit only (NBR 21, PR 49 corner-lap verdicts).
-  FINAL-CHAIN SCHEMA BUMP, payload changes it carries (author ruling (c)
-  2026-10-17): (1) key "balance" removed (R4b); (2)
-  resolved_levels.understeer_gradient removed (R4b); (3) key
-  "estimator_settings" added (R5, R2 cache identity). Also owed there: R3, the
-  NIS gate field n_windows_skipped_low_coverage (R2 Class A), R12 per-phase
-  no-reference counts (deferred, would change the payload shape).
-  [2026-10-18, Q-FIT-LIT Step 1: also owed there -- the literature-bounded
-  fit L (tyre_fit_mode "literature_bounded", new config key
-  tyre_fit_auto.fit_density_bin_rad, new fit-manifest fields) is an
-  estimator-input change once it becomes the default; inactive now, so no
-  bump this cycle.]
-  Suite once: 7 failed / 614 passed / 1 xfailed, 26.7 min; recommendations
-  golden now PASSES. STOP rulings 2026-10-17 applied: (a)
-  test_cs_validity_repair's isolated params dict gains the D4 band literals
-  (30000 / 600000, commented), no code default; (b) test_sidecar_round_trip
-  carries estimator_settings. Verified: test_cs_validity_repair.py +
-  test_thesis_data.py 33 / 33 passed. Resulting full-suite arithmetic (not
-  re-run): 619 passed / 2 failed (kinematic golden, Dubai pipeline golden) /
-  1 xfailed.
-- CS REFERENCE ROBUSTNESS 2026-10-17 (read-only simulation at 2b02160; log
-  diagnostics/output/cs_ref_robustness/robustness.log; handover_cs_ref_
-  robustness_2026-10-17.md): V0 HEAD, V1 median of last N = 5 / 11 / 21 valid set
-  events, V2 fitted B*C*D constant, on JST 29 / NBR JDR / PR. Facts only, no
-  recommendation; no production change, no suite. Author to rule.
-- REBUILD BOARD: R6 DOCS TRUTH RESTORATION DONE 2026-10-17 (text only, base
-  68c391a): registry claim mismatches R15-R22 corrected and marked FIXED in
-  docs/dataflow_registry.md (plus a header note that entry bodies describe
-  acf7dbf); PRODUCTION.md re-dated and rewritten where stale (2.1, 2.5, 2.6,
-  3, 4, 5.1-5.3, 8, 10, 11, 12.1, 12.2, 13.1, 13.3, 13.4, 15 lead + 15.1-15.4,
-  16, 18, 19; thresholds marked pre-final-chain); config comments
-  (kerb_smear_grade_s_derived_from, nis_gate _comment, _comment_grid_rate,
-  _comment_cs_apex_region, _comment_cs_fallback); code comments
-  (stability_analysis, nis_gate, corner_analysis, trace_display, outing_form,
-  settings_view); module_map, thesis_material_index, literature_digest,
-  claims_register mark the Dugoff path and the K readout removed (claims_register
-  claim h re-based, two K2 statements struck). No logic, value, test,
-  threshold, golden or schema change. thesis_notes "R6: docs truth
-  restoration". Changed .py files AST-identical to HEAD. Suite once: 619
-  passed / 2 failed (kinematic and Dubai pipeline stale goldens) / 1
-  xfailed, as expected (wall clock 11 h 18 min, machine in standby).
-- Q-FIT-SIMPLE 2026-10-18 (read-only diagnostic, queue entry in PHASE 1
-  PLAN section 5): records written (queue entry, REPO STATE correction,
-  working principle in PROCESS RULES and DECISIONS, thesis_notes frozen
-  frame + run result); script diagnostics/inspect_fit_simplification.py
-  run once. ~~No variant beats production; exit rule -> braking samples,
-  author to rule.~~ [2026-10-18: beats-P withdrawn as decision basis,
-  exit superseded by Q-FIT-LIT (author).] NOT committed (stop before commit).
-- Q-FIT-LIT 2026-10-18 (records, census, Step 1 inactive implementation;
-  queue entry in PHASE 1 PLAN section 5): records written (record
-  corrections, mu-closure reframing, citations, rulings, DECISIONS). Census
-  (diagnostics/inspect_fz_census.py): 100 % damper on every corner of all
-  three sessions, US-v2 FR correction applied, stop rule not fired. Step 1:
-  fit L as tyre_fit_mode "literature_bounded" + EKF d_is_mu path + config
-  fit_density_bin_rad; production path BIT-IDENTICAL on three sessions
-  (diagnostics/check_fit_lit_inactive.py); targeted tests 20 passed;
-  test_stability.py exit 0. ~~OPEN for the author: front Fx split (code:
-  brake pressure; order said axle load).~~ [ruled 2026-10-18: Goblirsch
-  Eq. 9 load split, implemented, bit-identity re-proven.] VERIFICATION RUN
-  2026-10-18 (diagnostics/inspect_fit_lit.py): chain results VOID -- the
-  EKF measurement update kept the scalar D (= mu under d_is_mu), Step 1
-  defect found by the post-hoc mechanism check
-  (diagnostics/inspect_fit_lit_mechanism.py); fit-level results stand
-  (thesis_notes "Q-FIT-LIT: verification run -- chain results VOID").
-  Production path unaffected. [2026-10-18: void run not counted (author);
-  fix = shared axle_forces helper in the EKF + physical test (RMS 1.802 vs
-  1.810 m/s^2), bit-identity re-proven; RE-RUN = the one cycle: fit level
-  reproduces exactly; L ok on NBR JDR and JST 29, DEGENERATE on US-v2
-  (D4 g3 rear, peak 15.8 deg); L-nw ok on all three. Exit fired: SCOPED
-  NEGATIVE for L as frozen (thesis_notes "Q-FIT-LIT: verification cycle --
-  result"). Author rules next.] NOT committed (stop before commit).
-- REBUILD BOARD COMPLETE 2026-10-17 (R0-R6). Next: the final re-derivation
-  chain (thresholds, goldens, schema bump), after the R26 remainder is
-  settled (OPEN ITEMS below).
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps head 1ead11d (final chain parts 1-3 and the close-out records,
+  pushed). Working tree NOT committed: PRODUCTION.md method rewrite, the
+  close-out corrections (NIS gate, colour bands, records pass) and the R26
+  source fix with its re-derivations.
+- DEFAULT ANALYSIS PATH: fit L (tyre_fit_auto.tyre_fit_mode
+  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 17 (16 -> 17 on 2026-10-20 for
+  the NIS gate values and the R26 reference gate, schema bump rule). The per_session path
+  stays selectable until the cleanup round.
+- CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
+  unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
+  Fy / Fz (C = 1.0, E = -1, mu = demonstrated utilisation p99.5, B free,
+  braking-only filter |Fx| / Fz > 0.3); D4-L gate with K zones [6, 30] ok,
+  [5.5, 6) and (30, 35] marginal; EKF with per-session Q-UPPER,
+  hard-bound-only reset, R_ay with the measured ay noise floor, R_yaw = the
+  measured gyro floor; NIS gate 0.104 / 0.011 (re-derived on fit L
+  2026-10-20); CS on Fy / Fz with reference band [5.5, 35] per rad; floor
+  events at -0.53 with measured attributes (the event layer under fit L);
+  CS linear reference accepted only within [0.5, 2] x the session median of
+  the axle's band candidates (R26 source fix 2026-10-20); thresholds front
+  -0.139 / -0.023, rear -0.002 / +0.100 (re-derived after the fix,
+  identical); cs_margin 0.01 (re-run after the fix, unchanged);
+  stab_neg_thresh 0 (sign criterion).
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
+  70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
+  package (pending).
+- TESTS: full suite 655 passed, 1 xfailed, 0 failed (45 min, 2026-10-20);
+  test_stability.py exit 0. Goldens: NBR JST 29 and Le Castellet 32 on the
+  default path (Dubai goldens retired). Old path (per_session with its own
+  2026-10-11 gate values) bit-identical to HEAD 1ead11d.
+- CHAIN STATUS: FINAL on the development set (2026-10-20). NIS gate
+  re-derived on fit L; R26 test count 0 on every session and axle after the
+  source fix (from 1461 front samples on NBR 46 / 54 / 63 / 69).
+- LEGACY PATH: per_session shares the nis_gate keys and falls back under the
+  fit-L gate values (author ruling 2026-10-20); tests pin its own 2026-10-11
+  values; removed in the cleanup round.
+- OPEN: missing bib entries (Rao 2006, Voser 2010, Farroni 2016 / 2018,
+  Acosta Reche 2018) -- author.
 
-NEXT (author order 2026-10-11)
-1. Author app check (manual).
-2. Cleanup round, on author instructions.
-3. Results generation.
+NEXT
+1. Author review in the app.
+2. PRODUCTION.md method rewrite with thesis bib keys: drafted 2026-10-20;
+   open: "page to verify" items and the missing bib entries.
+3. Recommendation overhaul (combined uncertainty, tiers, consistency gate vs
+   worst-lap aggregation, one engine).
+4. Cleanup round (per_session / prior_anchored paths, change detector and
+   NIS-window trigger, fallback-reference keys, stale diagnostics).
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -4122,8 +3984,65 @@ dated note pointing here. Mirror: thesis_notes.md "Phase 1 anchoring".
       two-tier question; (a) consistency gate across laps vs worst-lap
       aggregation (cause of 0 recommendations on both golden sessions); (b)
       merge recommendation.py (PDF export) and decision_frame.py (screen)
-      into one engine. ANALYSIS CHAIN FINAL on the development set. NEXT:
+      into one engine. ~~ANALYSIS CHAIN FINAL on the development set.~~ [2026-10-20:
+      corrected -- final pending the NIS gate re-derivation and the R26 check on
+      fit L, see CLOSE-OUT CORRECTIONS.] NEXT:
       author review in the app, then the PRODUCTION.md method rewrite.
+   CLOSE-OUT CORRECTIONS (author EXECUTE 2026-10-20; rulings in DECISIONS.md
+      before implementation): chain status corrected to "final pending the
+      NIS gate re-derivation and the R26 check on fit L". B: NIS gate
+      thresholds re-derived on the 14-session fit-L pool, recorded rule
+      unchanged, to config. C: R26 remainder re-checked on fit L with its
+      recorded test (closed if none, else report and wait). D: CS colour
+      bands from the config thresholds. E: records-and-comments pass (stale
+      wording, unstruck DECISIONS lines, [UNCAL] also keyed on tyre_fit_mode,
+      stab_neg_thresh record, fallback-reference keys fact, PRODUCTION.md
+      mid-corner anchor Rajamani 2012 p. 412 sec. 14.4.3). F: full suite,
+      then the STATUS block rewrite.
+      FALLBACK-REFERENCE KEYS (68268 / 91343 N/rad): read by
+      diagnostics/sideslip_kalman_observer.py only; removal deferred to the
+      cleanup round. [Aligns the 2026-07-26 "deleted" record with their
+      later reintroduction.]
+      [2026-10-20 RESULT: NIS gate 0.023 / 0.0025 -> 0.104 / 0.011 (fit L,
+      14 sessions, all pass); per_session now fails the gate on most
+      sessions unless its own values are pinned (tests do) -- author to
+      rule. R26 STILL OCCURS on fit L: front only, NBR 46 / 54 / 63 / 69,
+      1461 verdict-read samples from 39 references (0.26-0.50 x median), 18
+      phase medians -- NOT closed, waiting for the author. Colour bands from
+      config; [UNCAL] keys on tyre_fit_mode; records-and-comments pass done.
+      Chain status: final pending R26. NOT committed.]
+   R26 SOURCE FIX + STANDING-RULE RE-DERIVATIONS (author EXECUTE 2026-10-20;
+      rulings in DECISIONS.md before implementation): linear-reference
+      candidates accepted only within [0.5, 2] x the session median reference
+      of the axle (Pacejka 2006 p. 6; Tier B; reference setting gated, no CS
+      deleted); fit-L path. Then thresholds re-derived and ADOPTED, cs_margin
+      re-run (adopt if changed), goldens regenerated, suite, PRODUCTION.md 7 /
+      9 / 11 / 12, STATUS (FINAL if the R26 count is 0 everywhere).
+      per_session gate: keys shared, legacy path falls back under the fit-L
+      values; documented, removed in the cleanup round; tests pin the old
+      values.
+      [2026-10-20 RESULT: 69 front candidates rejected (all low), rear 0; R26
+      count 0 everywhere (from 1461); 15 front phase medians moved; deepest
+      corner value only NBR 69 front -0.471 -> -0.361. Thresholds re-derived
+      identical at full precision, re-adopted; cs_margin 0.01 unchanged;
+      goldens content identical; old path bit-identical; suite 655 passed.
+      Chain FINAL on the development set. Schema 16 -> 17 (estimator inputs
+      changed after 16 was committed; schema bump rule). NOT committed.]
+   DOCUMENTATION FIXES + C / E SENSITIVITY + ROBUSTNESS RE-RUN (author EXECUTE
+      2026-10-21; no estimator or config change): schema 17 confirmed;
+      results_cs_margin_20261020b/ kept like results_metrology_20261011/.
+      A: PRODUCTION.md 9 (no-braking gate, cross-lap aggregation, speed
+      class, yaw-moment regression with Guiggiani 2023 pp. 306 / 308 as the
+      thesis sign anchor) and 12 (yaw-moment limitation reworded). B: C / E
+      sensitivity, C {1.0, 1.3, 1.6} x E {-1, 0, 1}, 14 sessions, report
+      only. C: observer robustness (5 variants) re-run on the final chain;
+      PRODUCTION.md 11 and the records updated with a dated note.
+      [2026-10-21 RESULT: PRODUCTION.md 9 / 12 rewritten as ordered. C / E:
+      residuals separate the shapes by < 2.1 % (median); E +1 at C 1.0 / 1.3
+      degenerates 13 / 7 sessions (g2); C > 1 with E <= 0 puts a peak in
+      5.7-15 deg; class changes 6.5-19.7 % on the variants that keep the
+      observer. Robustness on the final chain: flip rates identical (25.5 /
+      15.6 / 77.5 / 0.0 %). No estimator or config change. NOT committed.]
    Q-DIPS (author order 2026-10-19, after the h derivation; report only,
       diagnostics/inspect_cs_dips.py): Magic Formula post-peak slope floor vs
       C and E; CS dip census per session and axle with cause flags; our CS
@@ -6631,7 +6550,10 @@ config/parameters.json) -- confirmed consumed nowhere in modules/.
 Rationale: the no-linear-reference case has never occurred on real
 data; if it ever does, the corner reports invalid, more honest than
 filling from an unvalidated constant. thesis_notes.md: "cs fallback
-reference constants deleted (small-decisions sweep)".]
+reference constants deleted (small-decisions sweep)".] [2026-10-20: re-introduced
+2026-08-18 for the WP-S1 observer prior (thesis_notes, clarifying note under
+the deletion); today read by diagnostics/sideslip_kalman_observer.py only,
+by no module, UI or core code; removal deferred to the cleanup round.]
 ~~Chair estimator has a time_s-anchored fallback mode (window/grid
 scaled /50) when s_m is unusable; SetupTool short-circuits to
 all-invalid instead (study doc §8c). Decide: port the fallback tier or
@@ -9346,6 +9268,206 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-20 STATUS rewrite)
+Verbatim header, REPO STATE and NEXT of ### NOW as they stood before the
+2026-10-20 final-chain rewrite. Record, not instruction.
+
+Rewritten 2026-10-11 (post estimator arc, branch new-laps). The header
+and REPO STATE this replaces are preserved verbatim under "SUPERSEDED
+NOW-BLOCK CONTENT (2026-10-11 STATUS rewrite)"; the 2026-09-30 NOW items
+remain under "SUPERSEDED NOW-BLOCK CONTENT (2026-09-30 STATUS rewrite)".
+The rest of this block is unchanged.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it.
+  Branch new-laps is 29 commits above main; head fd40c78 (R6), not yet
+  pushed (origin one behind). [2026-10-18 correction: this line read "17
+  commits above main; head b5b066f" and the items below "pending the
+  author's commit"; everything through R6 is committed -- R0-R4b in the
+  commits before 2b02160, then 2b02160 (R5), 68c391a (CS reference
+  robustness record), fd40c78 (R6). The stale "pending" phrases are removed.]
+- Last recorded suite (R6, 2026-10-17): 619 passed / 2 failed (kinematic
+  and Dubai pipeline goldens, stale by design) / 1 xfailed. The "GREEN 608"
+  line below is the 2026-10-11 state.
+- Estimator-hardening arc (phases 1+2) COMPLETE and COMMITTED: f8c1c97
+  (phase 1), b5b066f (phase 2: R selection on f_ay with sign-check
+  guard, ay-only gross trigger, CS and NIS-gate thresholds re-derived,
+  Dubai golden re-baselined). ANALYSIS_SCHEMA_VERSION = 15.
+- Full suite GREEN: 608 passed, 9 skipped, 1 xfailed (re-confirmed
+  2026-10-11 after the small-items package).
+- Small-items package 2026-10-11 (.gitignore un-ignores
+  diagnostics/results_metrology_20261011/, NIS test re-anchored, OPEN
+  ITEMS block, this rewrite).
+- ~~Still owed: thesis_notes.md entry 9 restructure (2026-10-08 ruling),
+  blocked on the author's date and setting of the communication.~~
+  [DONE 2026-10-12: date not recorded, per author; entry restructured.]
+- R0 NEW-MACHINE REBUILD (2026-10-16, temporary machine, from c5228aa):
+  venv rebuilt on Python 3.13.16 (py launcher, NOT the uv 3.15.0),
+  requirements.txt all pins + tests/requirements-test.txt; .gitignore
+  adds .claude/. Data drive is H: here (H:/UNI/Bachelorarbeit/Data,
+  H:/Data_Bachelorthesis). RULING (author, 2026-10-16, option B): test
+  data paths resolve through tests/conftest.py DATA_ROOTS +
+  find_data_file/resolve_data_path; 10 consumers routed (conftest,
+  test_stability.py, test_event_zero_entries, test_auto_fit_wiring,
+  test_golden_auto_modes, test_nan_empty_paths, test_nis_gate,
+  test_tyre_fit_prior_anchored, generate_golden, generate_golden_auto_
+  modes). Golden JSON files byte-untouched: _meta.data_file is
+  existence-checked, never compared (step 3 closed, no change needed).
+  Diagnostics scripts with pinned paths (compare_beta_architectures,
+  fit_dugoff_*) left frozen as historical.
+- REBUILD BOARD: R1 DONE 2026-10-16 (entry 9 citation scope: multi-IMU ->
+  Goblirsch 2024 only, IFAC 2019 lineage-only; one further spot struck in
+  the read-only-pass-2 supersede note). Text only.
+- REBUILD BOARD: R2 Class A DONE 2026-10-16 (seven estimator corrections
+  #26 CS section clipping, Q dt-scaling, NIS window 0.4 s, #20 shipped beta
+  in sign check/coverage/h2, #22 NaN sign check degenerate, #24 NaN-aware
+  NIS gate + n_windows_skipped_low_coverage, #32 analysis laps only;
+  Pacejka path only). Acceptance numbers reproduced (diagnostics/
+  check_class_a.py; thesis_notes "Class A estimator corrections,
+  rebuild"). Goldens STALE by design, no threshold/golden/schema work
+  (deferred to the final re-derivation chain; gate payload gains one
+  field -> schema bump owed there). Latent #1/2/3/5/6/23 not checkable
+  (definitions lost). #12 fires -> next cycle.
+- R2b RUNTIME CHECK 2026-10-17: STOPPED at step 1, no code change. The
+  5 h 20 min R2 suite is NOT a code regression: per-pipeline wall time
+  old (279f4ee) vs new within +-3 % on Dubai / NBR-73 / PR (fix 1 edge
+  re-fit 4 s per Dubai run). The suite spanned a system sleep/hibernate
+  19:36 -> 00:29 (Windows System log); active time ~27 min vs R0 31 min.
+  Awaiting author ruling (O(1) rewrite not needed on this evidence).
+- REBUILD BOARD: R3 Class B DONE 2026-10-17 (Fix 0 CS reference only from
+  clean windows -- no kerb/smear/off-analysis-lap sample -- with laps arg
+  on estimate_cornering_stiffness; #12 apex window always +/-5 via
+  apex_instant_slice; #1 #2 #3 #5/#6 #23 fix 7 bit-identical hardening;
+  Dugoff path deleted incl. evidence). Acceptance numbers reproduced
+  (diagnostics/check_class_b.py, log diagnostics/output/class_b/; thesis_notes
+  "Class B, rebuild"). Open for the author: h2 apex check and TPMS apex
+  windows also moved (shared #12 helper, beyond spec); tyre_fit_auto
+  nis_band_low/high kept (diagnostics reader); schema bump owed in the final
+  chain. Goldens STALE by design.
+- REBUILD BOARD: R4 DATAFLOW REGISTRY DONE 2026-10-17 (read-only; new tracked
+  docs/dataflow_registry.md: 14 quantities, shared sections S1-S6, findings
+  R1-R25 with file:line; thesis_notes "Dataflow registry rebuild"). Fix 0
+  verified on every set event; all first-pass acceptance numbers reproduced
+  (population definitions identified; R11 adds 3 unread straddling windows).
+  No fix made. Open for the author: which findings enter which next cycle
+  (defects R1, R2; R3 with the schema bump).
+- AUTHOR DECISION 2026-10-17: the understeer-gradient readout (balance line,
+  K, modules/balance_gradient.py) is REMOVED entirely from the application
+  (UI, payload, exports, tests); basis as stated by the author: Guiggiani 2023
+  (K not meaningful for cars with significant downforce), outside the thesis
+  scope. R4 follow-up mapped it (handover): K feeds no verdict, severity or
+  recommendation; no shared code; payload key "balance" disappears (schema
+  bump, joins the owed one; no golden moves). Removal = next cycle.
+- REBUILD BOARD: R4b K READOUT REMOVAL implemented 2026-10-17 (files, config
+  blocks, UI plumbing, test, diagnostic deleted; docs and records updated;
+  thesis_notes "K readout removal"). Validation: all summaries, verdicts,
+  events and recommendations identical on the three exports; the one extra
+  payload difference (resolved_levels loses the understeer_gradient node)
+  ACCEPTED by the author 2026-10-17. Suite once: 3 failed (the 3 stale
+  goldens) / 597 passed / 1 xfailed, 19.4 min. Schema bump owed in the final
+  chain for "balance" and resolved_levels.understeer_gradient.
+- SPIKE TRACE 2026-10-17 (read-only): the JST 29 spikes are current-code
+  output (sidecar == fresh run), dominated by small CLEAN references (a
+  low-excitation window under 0.03 rad sets a reference 0.05-0.5 x the session
+  median); verdict-read, moves a few classifier medians; chair-identical
+  mechanism (no bound on the reference in the chair code). Candidate R26 (F3).
+  No fix; author to rule.
+- SPIKE FOLLOW-UP 2026-10-17 (read-only): R26 entered in the registry (open).
+  Small references existed before Fix 0 on all three exports; Fix 0 made the
+  ones reaching verdicts longer-lived on JST 29 and PR front. A simulated
+  30000-600000 N/rad band on the reference removes the extremes only (no new
+  no-reference samples). Physical CS floor of the fitted curve -0.05 to -0.33;
+  thousands of verdict-read samples lie below it, mostly "other" (not kerb, not
+  small reference). Facts in thesis_notes "Spike follow-up"; author to rule.
+- REBUILD BOARD: R5 DONE 2026-10-17 (band rule R26/R27, validated alone, all
+  recorded numbers reproduced; Group 1 fixes R1, R2+R23, R6, R11, R12, R13, R14,
+  R24; R25 decided display only; R4, R5, R8, R9, R10 documented limitations;
+  kerb caption ruled; thesis_notes "R5: reference band rule ..."; registry
+  statuses + new R27). R11 counts 99 / 2 / 1 accepted by author ruling (first
+  pass used another counting definition); no R28. Verdict churn from the R6
+  refit only (NBR 21, PR 49 corner-lap verdicts).
+  FINAL-CHAIN SCHEMA BUMP, payload changes it carries (author ruling (c)
+  2026-10-17): (1) key "balance" removed (R4b); (2)
+  resolved_levels.understeer_gradient removed (R4b); (3) key
+  "estimator_settings" added (R5, R2 cache identity). Also owed there: R3, the
+  NIS gate field n_windows_skipped_low_coverage (R2 Class A), R12 per-phase
+  no-reference counts (deferred, would change the payload shape).
+  [2026-10-18, Q-FIT-LIT Step 1: also owed there -- the literature-bounded
+  fit L (tyre_fit_mode "literature_bounded", new config key
+  tyre_fit_auto.fit_density_bin_rad, new fit-manifest fields) is an
+  estimator-input change once it becomes the default; inactive now, so no
+  bump this cycle.]
+  Suite once: 7 failed / 614 passed / 1 xfailed, 26.7 min; recommendations
+  golden now PASSES. STOP rulings 2026-10-17 applied: (a)
+  test_cs_validity_repair's isolated params dict gains the D4 band literals
+  (30000 / 600000, commented), no code default; (b) test_sidecar_round_trip
+  carries estimator_settings. Verified: test_cs_validity_repair.py +
+  test_thesis_data.py 33 / 33 passed. Resulting full-suite arithmetic (not
+  re-run): 619 passed / 2 failed (kinematic golden, Dubai pipeline golden) /
+  1 xfailed.
+- CS REFERENCE ROBUSTNESS 2026-10-17 (read-only simulation at 2b02160; log
+  diagnostics/output/cs_ref_robustness/robustness.log; handover_cs_ref_
+  robustness_2026-10-17.md): V0 HEAD, V1 median of last N = 5 / 11 / 21 valid set
+  events, V2 fitted B*C*D constant, on JST 29 / NBR JDR / PR. Facts only, no
+  recommendation; no production change, no suite. Author to rule.
+- REBUILD BOARD: R6 DOCS TRUTH RESTORATION DONE 2026-10-17 (text only, base
+  68c391a): registry claim mismatches R15-R22 corrected and marked FIXED in
+  docs/dataflow_registry.md (plus a header note that entry bodies describe
+  acf7dbf); PRODUCTION.md re-dated and rewritten where stale (2.1, 2.5, 2.6,
+  3, 4, 5.1-5.3, 8, 10, 11, 12.1, 12.2, 13.1, 13.3, 13.4, 15 lead + 15.1-15.4,
+  16, 18, 19; thresholds marked pre-final-chain); config comments
+  (kerb_smear_grade_s_derived_from, nis_gate _comment, _comment_grid_rate,
+  _comment_cs_apex_region, _comment_cs_fallback); code comments
+  (stability_analysis, nis_gate, corner_analysis, trace_display, outing_form,
+  settings_view); module_map, thesis_material_index, literature_digest,
+  claims_register mark the Dugoff path and the K readout removed (claims_register
+  claim h re-based, two K2 statements struck). No logic, value, test,
+  threshold, golden or schema change. thesis_notes "R6: docs truth
+  restoration". Changed .py files AST-identical to HEAD. Suite once: 619
+  passed / 2 failed (kinematic and Dubai pipeline stale goldens) / 1
+  xfailed, as expected (wall clock 11 h 18 min, machine in standby).
+- Q-FIT-SIMPLE 2026-10-18 (read-only diagnostic, queue entry in PHASE 1
+  PLAN section 5): records written (queue entry, REPO STATE correction,
+  working principle in PROCESS RULES and DECISIONS, thesis_notes frozen
+  frame + run result); script diagnostics/inspect_fit_simplification.py
+  run once. ~~No variant beats production; exit rule -> braking samples,
+  author to rule.~~ [2026-10-18: beats-P withdrawn as decision basis,
+  exit superseded by Q-FIT-LIT (author).] NOT committed (stop before commit).
+- Q-FIT-LIT 2026-10-18 (records, census, Step 1 inactive implementation;
+  queue entry in PHASE 1 PLAN section 5): records written (record
+  corrections, mu-closure reframing, citations, rulings, DECISIONS). Census
+  (diagnostics/inspect_fz_census.py): 100 % damper on every corner of all
+  three sessions, US-v2 FR correction applied, stop rule not fired. Step 1:
+  fit L as tyre_fit_mode "literature_bounded" + EKF d_is_mu path + config
+  fit_density_bin_rad; production path BIT-IDENTICAL on three sessions
+  (diagnostics/check_fit_lit_inactive.py); targeted tests 20 passed;
+  test_stability.py exit 0. ~~OPEN for the author: front Fx split (code:
+  brake pressure; order said axle load).~~ [ruled 2026-10-18: Goblirsch
+  Eq. 9 load split, implemented, bit-identity re-proven.] VERIFICATION RUN
+  2026-10-18 (diagnostics/inspect_fit_lit.py): chain results VOID -- the
+  EKF measurement update kept the scalar D (= mu under d_is_mu), Step 1
+  defect found by the post-hoc mechanism check
+  (diagnostics/inspect_fit_lit_mechanism.py); fit-level results stand
+  (thesis_notes "Q-FIT-LIT: verification run -- chain results VOID").
+  Production path unaffected. [2026-10-18: void run not counted (author);
+  fix = shared axle_forces helper in the EKF + physical test (RMS 1.802 vs
+  1.810 m/s^2), bit-identity re-proven; RE-RUN = the one cycle: fit level
+  reproduces exactly; L ok on NBR JDR and JST 29, DEGENERATE on US-v2
+  (D4 g3 rear, peak 15.8 deg); L-nw ok on all three. Exit fired: SCOPED
+  NEGATIVE for L as frozen (thesis_notes "Q-FIT-LIT: verification cycle --
+  result"). Author rules next.] NOT committed (stop before commit).
+- REBUILD BOARD COMPLETE 2026-10-17 (R0-R6). Next: the final re-derivation
+  chain (thresholds, goldens, schema bump), after the R26 remainder is
+  settled (OPEN ITEMS below).
+
+NEXT (author order 2026-10-11)
+1. Author app check (manual).
+2. Cleanup round, on author instructions.
+3. Results generation.
+
 
 ---
 

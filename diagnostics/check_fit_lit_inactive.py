@@ -55,6 +55,8 @@ def main():
     # fit L is the config default since 2026-10-20 (schema 16): the old path
     # is selected explicitly, and this check now shows it stays bit-identical
     params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
+    # and its own NIS gate (config carries the fit-L values since 2026-10-20)
+    params["nis_gate"].update({"threshold_use_ekf": 0.023, "threshold_warn": 0.0025})
     print(f"Q-FIT-LIT inactive check: OLD = {BASE_REV}, NEW = working tree", flush=True)
     all_ok = True
     for label, rel in SESSIONS:

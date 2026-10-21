@@ -1,8 +1,9 @@
 # NIS tyre-mismatch gate: does the fitted tyre curve fit this session well
 # enough to trust EKF beta? pass / warn / fail (-> kinematic beta).
 # Session score = share of samples whose windowed NIS exceedance sits in band.
-# Thresholds re-derived 2026-10-11 (eight real sessions, config
-# threshold_derived_from), re-derived again in the final chain. Prototyped
+# Thresholds re-derived on the fit-L default 2026-10-20 (14 development
+# sessions, config threshold_derived_from); the 2026-10-11 values belong to
+# the per_session estimator. Prototyped
 # on a Dugoff fit; the prototype script was removed 2026-10-17 with the
 # Dugoff path (git history).
 #

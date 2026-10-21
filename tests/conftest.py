@@ -77,6 +77,12 @@ RAW_FILE = find_data_file(DUBAI_SAMPLE)
 # independent of any local/gitignored file or session setup_data.
 FIXED_CAP = 1
 
+# The old per_session path's own NIS gate thresholds (2026-10-11, derived on
+# that estimator). Config carries the fit-L values since 2026-10-20
+# (thresholds encode the estimator); tests that select the old path pin
+# these with it, as they pin tyre_fit_mode.
+OLD_PATH_NIS_GATE = {"threshold_use_ekf": 0.023, "threshold_warn": 0.0025}
+
 
 @pytest.fixture(scope="session")
 def raw_params():
@@ -147,6 +153,7 @@ def pipeline_result(parsed_data, effective_params, state):
     # only inside resolve_sideslip_beta, so the copy is passed there alone.
     old_path_params = copy.deepcopy(effective_params)
     old_path_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
+    old_path_params["nis_gate"].update(OLD_PATH_NIS_GATE)
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
         state, old_path_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
     )

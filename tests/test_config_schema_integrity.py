@@ -42,7 +42,7 @@ STABILITY_ESTIMATION_REQUIRED_KEYS = [
 ]
 CLASSIFICATION_REQUIRED_KEYS = [
     "STRONG_CSF", "STRONG_CSR", "MODERATE_CSF", "MODERATE_CSR", "stab_neg_thresh_Nm_per_deg",
-    "thresholds_calibrated_for_sideslip_source",
+    "thresholds_calibrated_for_sideslip_source", "thresholds_calibrated_for_tyre_fit_mode",
 ]
 def test_stability_estimation_required_keys_present(raw_params):
     se = raw_params["stability_estimation"]
@@ -70,6 +70,18 @@ def test_missing_sideslip_source_defaults_to_kinematic():
 def test_missing_calibration_flag_defaults_to_kinematic():
     cls_cfg = {"some_other_key": 1}
     assert cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic") == "kinematic"
+
+
+def test_uncal_keys_on_tyre_fit_mode_too(raw_params):
+    # thresholds encode the estimator (author ruling 2026-10-20): the live
+    # config is calibrated; the same config with the old per_session fit
+    # selected is not, although the sideslip source is unchanged
+    import copy
+    from modules.stability_analysis import thresholds_calibrated
+    assert thresholds_calibrated(raw_params)
+    old_path = copy.deepcopy(raw_params)
+    old_path["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
+    assert not thresholds_calibrated(old_path)
 
 
 # --- 2. ANALYSIS_SCHEMA_VERSION matches the payload shape actually built -----
@@ -133,9 +145,11 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 16 (2026-10-20): fit L is the default path; under it the events record
     # holds the floor events -- corner summaries untouched, every shape check
     # below unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 16, (
+    # 17 (2026-10-20): estimator inputs only (NIS gate values, R26 reference
+    # gate, re-confirmed thresholds / cs_margin) -- no payload shape change.
+    assert ANALYSIS_SCHEMA_VERSION == 17, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 16 -- update this test deliberately if the version was bumped again"
+        "written for 17 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

@@ -65,18 +65,20 @@ def test_classify_score_nan_is_fail():
 # failure.py, live rate-corrected 100Hz window) for both real sessions, plus
 # the fail/warn/pass gate paths on synthetic scores per the work order's own
 # verification requirement.
-# Scores re-anchored 2026-10-11 to the corrected estimator (phase-2 NIS-gate
-# verification, diagnostics/check_estimator_hardening.py --step p2s2robust;
-# v3 = Paul Ricard MLA outing 25). Supersedes 0.1351 / 0.0849.
+# Scores re-anchored 2026-10-20 to the fit-L default (the thresholds were
+# re-derived on it; diagnostics/inspect_closeout_l.py): the lowest
+# development score (Le Castellet outing 25) and NBR JST outing 29.
+# Supersedes Dubai 0.0549 / Paul Ricard outing 25 0.0473 (2026-10-11,
+# per_session estimator).
 
-DUBAI_LIVE_HEALTH_SCORE = 0.0549
-V3_LIVE_HEALTH_SCORE = 0.0473
+LOWEST_DEV_HEALTH_SCORE = 0.1107   # Le Castellet outing 25
+JST29_HEALTH_SCORE = 0.2089
 
 
 def test_both_real_sessions_pass_under_live_thresholds():
     cfg = load_parameters()["nis_gate"]
-    assert classify_score(DUBAI_LIVE_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
-    assert classify_score(V3_LIVE_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
+    assert classify_score(LOWEST_DEV_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
+    assert classify_score(JST29_HEALTH_SCORE, cfg["threshold_use_ekf"], cfg["threshold_warn"]) == "pass"
 
 
 def test_order_of_magnitude_collapse_still_fails_under_live_thresholds():

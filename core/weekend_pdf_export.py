@@ -103,15 +103,10 @@ def _classify_corner(summary):
 
 
 def _sideslip_source_calibrated():
-    # same two-key comparison as OutingForm._sideslip_source_calibrated,
-    # duplicated to keep a QWidget method out of PDF code
-    from modules.stability_analysis import load_parameters
-    params = load_parameters()
-    active = params["stability_estimation"].get("sideslip_source", "kinematic")
-    calibrated_for = params["classification"].get(
-        "thresholds_calibrated_for_sideslip_source", "kinematic"
-    )
-    return active == calibrated_for
+    # the same comparison as OutingForm._sideslip_source_calibrated, via the
+    # shared helper (no QWidget method in PDF code)
+    from modules.stability_analysis import load_parameters, thresholds_calibrated
+    return thresholds_calibrated(load_parameters())
 
 
 def _accuracy_footer_text(levels):

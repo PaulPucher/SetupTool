@@ -42,7 +42,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 OUT_DIR = os.path.join(ROOT, "diagnostics", "plots", "threshold_rederivation")
-CACHE = os.path.join(OUT_DIR, "cache_l_20261020")
+# run tag (env THRESH_RUN_TAG): 20261020 = the first fit-L derivation,
+# 20261020b = after the R26 source fix; each run keeps its own cache and report
+RUN_TAG = os.environ.get("THRESH_RUN_TAG", "20261020")
+CACHE = os.path.join(OUT_DIR, f"cache_l_{RUN_TAG}")
 POOL = ("nbr_o05_mla", "nbr_o10_jdr", "nbr_o20_jst", "nbr_o29_jst", "nbr_o46_jst", "nbr_o53_mla", "nbr_o54_cdr",
         "nbr_o59_mla", "nbr_o61_jdr", "nbr_o63_cdr", "nbr_qp_cdr", "nbr_qp_mla", "pr_o25_us_v1", "pr_o32_us_v2")
 EDGE_SESSIONS = ("nbr_o59_mla", "nbr_qp_mla")   # outings 59 and 70
@@ -230,9 +233,9 @@ def report():
             J["floor_events"][k][axn] = rec
     L.append(f"  POOL TOTAL front {tot['f'][0]} events ({tot['f'][1]} clean), rear {tot['r'][0]} ({tot['r'][1]} clean)")
     text = "\n".join(L)
-    with open(os.path.join(OUT_DIR, "rederivation_l_20261020.txt"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(OUT_DIR, f"rederivation_l_{RUN_TAG}.txt"), "w", encoding="utf-8") as fh:
         fh.write(text + "\n")
-    with open(os.path.join(OUT_DIR, "rederivation_l_20261020.json"), "w") as fh:
+    with open(os.path.join(OUT_DIR, f"rederivation_l_{RUN_TAG}.json"), "w") as fh:
         json.dump(J, fh, indent=1, default=lambda o: list(o) if isinstance(o, (set, tuple)) else str(o))
     print(text)
 

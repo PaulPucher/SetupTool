@@ -65,7 +65,12 @@ CAR_DATA_PATH = "config/car_data.json"
 #      mu_source; no mu_extrapolated / onset_coverage). Migration: older payloads are recomputed on
 #      open (schema mismatch), nothing is converted in place. The 15 owed
 #      note above is settled by this bump too.
-ANALYSIS_SCHEMA_VERSION = 16
+#  17: (2026-10-20) estimator inputs changed after 16 was committed (schema
+#      bump rule): NIS gate thresholds re-derived on fit L (0.104 / 0.011,
+#      config), CS linear reference gated to [0.5, 2] x the session median
+#      (R26 source fix, code), cs_margin 0.01 and thresholds re-confirmed. No
+#      payload shape change; stored payloads under 16 are recomputed on open.
+ANALYSIS_SCHEMA_VERSION = 17
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -77,6 +82,22 @@ R2_WEIGHT_EXPONENT = 1  # plain linear R^2 blend
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def thresholds_calibrated(params):
+    """True when the classification thresholds were derived for the active
+    estimator path: the configured sideslip source and, for the auto fit,
+    the configured tyre_fit_mode (thresholds encode the estimator; author
+    ruling 2026-10-20). Config comparison only -- a run-time kinematic
+    fallback does not change it; the status line shows that."""
+    cl = params["classification"]
+    source = params["stability_estimation"].get("sideslip_source", "kinematic")
+    if source != cl.get("thresholds_calibrated_for_sideslip_source", "kinematic"):
+        return False
+    if source == "ekf_auto_pacejka":
+        mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
+        return mode == cl.get("thresholds_calibrated_for_tyre_fit_mode", "per_session")
+    return True
 
 
 @functools.lru_cache(maxsize=1)  # same as load_parameters
@@ -796,7 +817,7 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
 
 
 def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None, axle_loads=None,
-                                 ref_band=None):
+                                 ref_band=None, ref_relative=None):
     """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
     Stiffness by windowed regression on logged Fy/alpha instead of Werner's
     Pacejka evaluation.
@@ -821,7 +842,8 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     reasoning as the R11 lap-boundary guard. Covariance-only resets do not
     mark (author ruling 2026-10-19: the CS sensitivity to the reset policy
     is general, not specific to reset windows). Marked only, never deleted;
-    None (production) adds no key.
+    None (the per_session path, or a session that fell back to kinematic
+    beta) adds no key.
 
     axle_loads / ref_band (fit L, author ruling 2026-10-19, implemented
     2026-10-20): with axle_loads ({"fz_f_N", "fz_r_N"}, the measured axle
@@ -838,6 +860,15 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     and counts (ref_candidates_*, n_ref_candidates_*, n_ref_band_excluded_*).
     [declared adaptation beyond the chair estimator, which uses Fy in N;
     enabled by the measured axle loads]
+
+    ref_relative (fit L, R26 ruling 2026-10-20; tyre_fit_auto.L_REF_RELATIVE):
+    (lo, hi) -- a band candidate sets the reference only within lo..hi x the
+    median of ALL band candidates of that axle in the session. The median is
+    taken in a first pass over the whole session, so it does not depend on
+    the order of the samples; the reference is then set in a second pass. A
+    rejected candidate leaves the previous reference in force (no CS value
+    is deleted). The output gains n_ref_relative_low_* / _high_* and
+    ref_relative_median_*. None: the gate is off (the per_session path).
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -919,6 +950,12 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
         no_reference = np.zeros(n, dtype=bool)
         n_straddle = 0
         ref_candidates = []
+        # first pass: per computed sample its window start and whether it is
+        # a reference candidate; the reference itself is set in the second
+        # pass, after the session median of the band candidates is known
+        computed = np.zeros(n, dtype=bool)
+        win_start = np.zeros(n, dtype=np.int64)
+        candidate = np.zeros(n, dtype=bool)
 
         sections, section_id = _find_monotonic_sections(alpha)
         sec_slopes, sec_spans = _section_slopes(alpha, Fy, sections)
@@ -1011,15 +1048,31 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
             else:
                 C_alpha[i] = C_w
 
+            computed[i] = True
+            win_start[i] = start
             window_max_abs_alpha = np.max(np.abs(window_alpha))
-            # outside the band the previous reference is held, as for a
-            # disqualified window (Fix 0)
             if window_max_abs_alpha < linear_thresh and ref_blocked_cum[i] == ref_blocked_cum[start]:
+                candidate[i] = True
                 if report_ref:
                     ref_candidates.append(C_alpha[i])
-                if ref_min <= C_alpha[i] <= ref_max:
-                    C_linear_ref = C_alpha[i]
 
+        # outside the band the previous reference is held, as for a
+        # disqualified window (Fix 0); NaN compares False and never sets
+        with np.errstate(invalid="ignore"):
+            accept = candidate & (C_alpha >= ref_min) & (C_alpha <= ref_max)
+        rel = {"low": 0, "high": 0, "median": float("nan")}
+        if ref_relative is not None and accept.any():
+            med = float(np.median(C_alpha[accept]))
+            low = accept & (C_alpha < ref_relative[0] * med)
+            high = accept & (C_alpha > ref_relative[1] * med)
+            rel = {"low": int(low.sum()), "high": int(high.sum()), "median": med}
+            accept &= ~(low | high)
+
+        # second pass, in sample order: set the reference, then the ratio
+        for i in np.flatnonzero(computed):
+            start = win_start[i]
+            if accept[i]:
+                C_linear_ref = C_alpha[i]
             if np.isnan(C_linear_ref):
                 no_reference[i] = True
             elif C_linear_ref > 0:
@@ -1029,14 +1082,13 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
                     near_strike[i] = affected_cum[i] > affected_cum[start]
                 if reset_cum is not None:
                     reset_mark[i] = reset_cum[i] > reset_cum[start]
-
             C_linear_ref_arr[i] = C_linear_ref
 
         return (C_alpha, C_window, C_section, R2, CS_ratio, C_linear_ref_arr, near_strike, no_reference,
-                n_straddle, reset_mark, np.asarray(ref_candidates))
+                n_straddle, reset_mark, np.asarray(ref_candidates), rel)
 
-    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f, rm_f, rc_f = compute_cs_for_axle(alpha_f, Fy_f)
-    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r, rm_r, rc_r = compute_cs_for_axle(alpha_r, Fy_r)
+    C_f, Cw_f, Cs_f, R2_f, CS_ratio_f, Clr_f, ns_f, nr_f, nx_f, rm_f, rc_f, rel_f = compute_cs_for_axle(alpha_f, Fy_f)
+    C_r, Cw_r, Cs_r, R2_r, CS_ratio_r, Clr_r, ns_r, nr_r, nx_r, rm_r, rc_r, rel_r = compute_cs_for_axle(alpha_r, Fy_r)
 
     out = {
         "C_alpha_f": C_f,
@@ -1077,6 +1129,11 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
             out[f"ref_candidates_{ax}"] = rc
             out[f"n_ref_candidates_{ax}"] = int(rc.size)
             out[f"n_ref_band_excluded_{ax}"] = int(((rc < ref_min) | (rc > ref_max)).sum())
+    if ref_relative is not None:
+        for ax, rel in (("f", rel_f), ("r", rel_r)):
+            out[f"n_ref_relative_low_{ax}"] = rel["low"]
+            out[f"n_ref_relative_high_{ax}"] = rel["high"]
+            out[f"ref_relative_median_{ax}"] = rel["median"]
     return out
 
 

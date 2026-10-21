@@ -1003,3 +1003,25 @@ cited them now say so (git history keeps the code).
   (_scale_wheel_angle_column, classify_all) and
   inspect_metrology_phase1_analysis (_is_flip), which thereby qualify as
   Dependency. Output diagnostics/results_cs_margin_20261020/.
+- **inspect_closeout_l.py** (2026-10-20) -- REFERENCED (config
+  nis_gate.threshold_derived_from; PLAN.md close-out corrections): on the
+  fit-L default over the 14 development sessions, the NIS gate health
+  scores for the recorded threshold rule and the R26 recorded test
+  (verdict-read CS samples under a reference below 0.5 x the session median
+  of set events). Output diagnostics/plots/closeout_l/.
+- **inspect_r26_fix_l.py** (2026-10-20) -- REFERENCED (PLAN.md R26 source
+  fix): CS before / after the relative reference gate (L_REF_RELATIVE) on
+  the 14 development sessions -- rejected candidates, R26 test count, moved
+  phase medians, deepest corner value. Imports inspect_closeout_l (_ffill,
+  _phase_medians) and inspect_threshold_rederivation (_corner_values).
+  Output diagnostics/plots/r26_fix_l/. Run tags (2026-10-20): the threshold
+  and cs_margin re-runs after the fix use THRESH_RUN_TAG / MARGIN_RUN_TAG =
+  20261020b in inspect_threshold_rederivation_l.py / inspect_cs_margin_l.py.
+- **inspect_ce_sensitivity_l.py** (2026-10-21) -- REFERENCED (PLAN.md
+  documentation fixes + C / E sensitivity): fit-L shape C {1.0, 1.3, 1.6} x
+  E {-1, 0, 1} set in memory per worker job, B fitted, mu = mu_demo; K,
+  residual RMS, D4-L zone, status, re-entries, peak in 0-15 deg, corner-value
+  shift and verdict-class changes against the shipped C 1.0 / E -1. Report
+  only. Output diagnostics/plots/ce_sensitivity_l/. (inspect_observer_
+  robustness.py gains ROBUST_RUN_TAG = 20261021 for the re-run on the final
+  chain.)

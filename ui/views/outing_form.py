@@ -356,34 +356,26 @@ class OutingForm(QWidget):
 
     def _sideslip_source_calibrated(self):
         # one traces-vs-verdicts gate for the banners, [UNCAL] markers and PDF;
-        # pure config comparison
-        from modules.stability_analysis import load_parameters
-        params = load_parameters()
-        active = params["stability_estimation"].get("sideslip_source", "kinematic")
-        calibrated_for = params["classification"].get(
-            "thresholds_calibrated_for_sideslip_source", "kinematic"
-        )
-        return active == calibrated_for
+        # pure config comparison (sideslip source and tyre_fit_mode)
+        from modules.stability_analysis import load_parameters, thresholds_calibrated
+        return thresholds_calibrated(load_parameters())
 
     def _stability_colour(self, kind, value, axle="f"):
-        # CS bands are literals from an earlier, positive threshold set, NOT the
-        # classifier's config thresholds (PRODUCTION.md 13.2, home flag); front
-        # and rear differ (rear normally stays stiffer)
+        # CS bands are the classifier's own axle tiers from config (author
+        # ruling 2026-10-20): below STRONG -> BAD, below MODERATE -> WARN, else
+        # OK -- a phase value is coloured by the tier it would set, so the
+        # colour and the verdict cannot disagree
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
         if kind == "cs":
-            if axle == "r":
-                if value >= 0.35:
-                    return OK
-                if value >= 0.20:
-                    return WARN
+            from modules.stability_analysis import load_parameters
+            cl = load_parameters()["classification"]
+            suffix = "R" if axle == "r" else "F"
+            if value < cl[f"STRONG_CS{suffix}"]["value"]:
                 return BAD
-            else:
-                if value >= 0.25:
-                    return OK
-                if value >= 0.10:
-                    return WARN
-                return BAD
+            if value < cl[f"MODERATE_CS{suffix}"]["value"]:
+                return WARN
+            return OK
         if kind == "stab":
             from modules.stability_analysis import load_parameters
             bad_thresh = load_parameters()["classification"]["stab_neg_thresh_Nm_per_deg"]["value"]
@@ -402,14 +394,14 @@ class OutingForm(QWidget):
         from modules.stability_analysis import load_parameters
         params = load_parameters()
         cls_cfg = params["classification"]
-        # thresholds valid only for thresholds_calibrated_for_sideslip_source;
-        # other source -> [UNCAL] marker (verdict fine, boundaries unvalidated).
-        # Placeholder wording.
+        # thresholds valid only for the estimator path they were derived on
+        # (sideslip source and tyre_fit_mode); another path -> [UNCAL] marker
+        # (verdict fine, boundaries unvalidated). Placeholder wording.
+        from modules.stability_analysis import thresholds_calibrated
         active_sideslip_source = params["stability_estimation"].get(
             "sideslip_source", "kinematic"
         )
-        calibrated_for = cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic")
-        uncalibrated_marker = "" if active_sideslip_source == calibrated_for else " [UNCAL]"
+        uncalibrated_marker = "" if thresholds_calibrated(params) else " [UNCAL]"
         # stab_neg_thresh not re-derived for ekf_auto_pacejka (no negative
         # population) -> separate marker on a firing unstable-yaw verdict only
         stab_calibrated_for = cls_cfg.get("stab_thresh_calibrated_for_sideslip_source", "kinematic")

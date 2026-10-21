@@ -22,7 +22,7 @@ from modules.stability_analysis import (
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
 from modules.tyre_fit_auto import SIDESLIP_SOURCES, resolve_sideslip_beta, fit_session_pacejka
-from tests.conftest import DUBAI_SAMPLE, find_data_file, resolve_data_path
+from tests.conftest import DUBAI_SAMPLE, OLD_PATH_NIS_GATE, find_data_file, resolve_data_path
 
 RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixture raises clearly
 FIXED_CAP = 1  # matches tests/conftest.py's own convention
@@ -37,6 +37,7 @@ def wiring_fixture():
     # figures of the per_session fit; fit L, the config default since schema
     # 16, is wired and tested end to end in tests/test_tyre_fit_literature.py
     effective_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
+    effective_params["nis_gate"].update(OLD_PATH_NIS_GATE)   # the old path's own gate
     data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], effective_params)
     assert state is not None

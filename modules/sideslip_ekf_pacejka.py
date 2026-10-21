@@ -109,7 +109,8 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id, nis_window_reset=True)
     NIS trigger, cfg divergence_trigger (absent -> "nis_window"):
     - "nis_window": share of NIS > nis_chi2_bound over nis_window_s above
       nis_flag_fraction (placeholder values, never validated).
-    - "change_detector" (fit L): the change detector of Rajamani 2nd ed.
+    - "change_detector" (selectable, unused since fit L ships hard_bound_only;
+      removal in the cleanup round): the change detector of Rajamani 2nd ed.
       sec. 14.4.2 (Eqs. 14.24-14.25, after Gustafsson 2000) on the combined
       NIS, a_t = max(a_{t-1} + NIS_t - cd_drift, 0), alarm when a_t >
       cd_threshold. cd_drift = 2 is E[NIS] for two measurements, so a

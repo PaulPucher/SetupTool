@@ -65,6 +65,15 @@ L_START_B = 12.0           # the chair's B start, inside the bounds
 # flagged at the edge of the literature range), beyond it degenerate.
 L_K_BAND = (6.0, 30.0)
 L_K_EDGE = (5.5, 35.0)
+# CS linear reference, relative plausibility (R26 ruling 2026-10-20): a band
+# candidate sets the reference only within [0.5, 2] x the session median of
+# that axle's candidates. The slope at zero slip "is not or hardly affected
+# by the level of speed and by the condition wet or dry", and its load
+# sensitivity is far below a factor 2 (Pacejka 2006 sec. 1.2.1), so a
+# candidate outside the factor-2 window is an ill-determined low-excitation
+# slope, not the tyre. 0.5 is the recorded R26 test criterion, made symmetric
+# in ratio terms. Tier B (a plausibility gate on an estimate).
+L_REF_RELATIVE = (0.5, 2.0)
 
 TYRE_FIT_MODES = ("per_session", "prior_anchored", "literature_bounded")
 SIDESLIP_SOURCES = ("kinematic", "ekf_auto_pacejka")
@@ -694,13 +703,14 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     (sec. 2.1)). No measured Fz -> degenerate manifest, no silent free-D
     fallback. Default False = free-D.
 
-    tyre_fit_mode: 'per_session' (default) or 'prior_anchored' (experimental,
-    see _fit_axle_pacejka_anchored; prior and weight from config). The
-    prior is a free-D curve, so prior_anchored with load_normalised is
-    refused rather than mixed.
+    tyre_fit_mode: 'per_session' (this function's keyword default; the old
+    path, selectable until the cleanup round) or 'prior_anchored'
+    (experimental, see _fit_axle_pacejka_anchored; prior and weight from
+    config). The prior is a free-D curve, so prior_anchored with
+    load_normalised is refused rather than mixed.
 
-    tyre_fit_mode 'literature_bounded': fit L (Q-FIT-LIT, inactive by
-    default) -- _fit_axle_l on the load-normalised force, front in the tyre
+    tyre_fit_mode 'literature_bounded': fit L (Q-FIT-LIT; the config default
+    since 2026-10-20) -- _fit_axle_l on the load-normalised force, front in the tyre
     frame; the observer gets mu and the per-sample axle loads (d_is_mu). The
     manifest adds axle_load (source shares, lowest level), front_force_frame
     and fit_density_bin_rad; axles carry mu, fz_ref_N, bound_active.
@@ -863,8 +873,8 @@ def fit_session_pacejka(data, params, data_file_path=None, load_normalised=False
     if lit:
         interim_cfg["d_is_mu"] = True
         # fit L: Q from this session's force residual (Q-UPPER, 2026-10-19),
-        # trigger from its own key (default hard bound only), so nothing here
-        # can move the production observer
+        # trigger from its own key (hard bound only); the per_session path
+        # keeps the config Q and the NIS window
         q_l = _q_upper_from_residual(front_fit, rear_fit, load_in, state, params)
         manifest["observer_q"] = q_l
         interim_cfg["Q_beta_var"] = q_l["q_beta_var"]
@@ -1170,7 +1180,8 @@ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, cs
      "axle_fx": {"fx_f_N", "fx_r_N"} or None, "note": text or None}.
     Outside fit L both are empty / None, so the old path calls the CS
     estimate exactly as before. In fit L: CS on Fy / Fz with the reference
-    band L_K_EDGE, and the observer-reset mark from hard-bound re-entries --
+    band L_K_EDGE and the relative reference gate L_REF_RELATIVE (R26), and
+    the observer-reset mark from hard-bound re-entries --
     dropped when the session ships kinematic beta, since then no observer
     state reached the slip angles."""
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason, raw = _resolve(
@@ -1184,7 +1195,7 @@ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, cs
             # the CS then stays on Fy, its ratio is unit-free either way
             cs_inputs["note"] = "CS on Fy (axle loads unavailable: " + str(raw.get("degenerate_reason")) + ")"
         else:
-            cs_inputs["cs_kwargs"] = {"axle_loads": loads, "ref_band": L_K_EDGE}
+            cs_inputs["cs_kwargs"] = {"axle_loads": loads, "ref_band": L_K_EDGE, "ref_relative": L_REF_RELATIVE}
             cs_inputs["axle_fx"] = raw.get("axle_fx")
         if not fallback_used and raw.get("observer_reset_mask") is not None:
             cs_inputs["cs_kwargs"]["reset_mask"] = raw["observer_reset_mask"]
@@ -1199,7 +1210,8 @@ def _resolve(state, params, data, sideslip_source, csv_path):
         )
 
     if sideslip_source == "ekf_auto_pacejka":
-        # both config-gated, defaults unchanged (free D, per-session)
+        # both config-gated: free D (load_normalised off); tyre_fit_mode
+        # literature_bounded by config since 2026-10-20 (code fallback per_session)
         load_normalised = params.get("tyre_fit_auto", {}).get("load_normalised_fit_enabled", False)
         tyre_fit_mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
         raw_fit_manifest = fit_session_pacejka(data, params, data_file_path=csv_path,

@@ -9,8 +9,8 @@
   "window_samples": 40,
   "nis_band_low": 0.03,
   "nis_band_high": 0.15,
-  "threshold_use_ekf": 0.023,
-  "threshold_warn": 0.0025,
+  "threshold_use_ekf": 0.104,
+  "threshold_warn": 0.011,
   "masked_population_n": 61952,
   "n_windows_skipped_low_coverage": 0,
   "degenerate_reason": null
@@ -27363,8 +27363,8 @@
   "purpose": "REGRESSION baseline of the default path (fit L, schema 16), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "NBR JST outing 29",
   "data_file": "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt",
-  "git_commit_hash": "2adc0cc859c1c4768fc2bd9727ca57eda2df5ec1",
-  "generated_at_utc": "2026-10-20T13:43:31.825702+00:00",
+  "git_commit_hash": "1ead11dfb5f78239ddabd3deff9b2650b8f1b747",
+  "generated_at_utc": "2026-10-20T19:12:57.015759+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

@@ -9,8 +9,8 @@
   "window_samples": 40,
   "nis_band_low": 0.03,
   "nis_band_high": 0.15,
-  "threshold_use_ekf": 0.023,
-  "threshold_warn": 0.0025,
+  "threshold_use_ekf": 0.104,
+  "threshold_warn": 0.011,
   "masked_population_n": 97288,
   "n_windows_skipped_low_coverage": 0,
   "degenerate_reason": null
@@ -46061,8 +46061,8 @@
   "purpose": "REGRESSION baseline of the default path (fit L, schema 16), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "Le Castellet outing 32",
   "data_file": "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt",
-  "git_commit_hash": "2adc0cc859c1c4768fc2bd9727ca57eda2df5ec1",
-  "generated_at_utc": "2026-10-20T13:45:42.113071+00:00",
+  "git_commit_hash": "1ead11dfb5f78239ddabd3deff9b2650b8f1b747",
+  "generated_at_utc": "2026-10-20T19:15:15.333379+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }
