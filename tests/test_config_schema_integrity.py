@@ -149,9 +149,11 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # gate, re-confirmed thresholds / cs_margin) -- no payload shape change.
     # 18 (2026-10-21): estimator input only (throttle range gate [0, 110] %,
     # braking phases populated) -- no payload shape change.
-    assert ANALYSIS_SCHEMA_VERSION == 18, (
+    # 19 (2026-10-21): estimator input only (drag in the CoG longitudinal
+    # force, c_D A 1.0 m^2) -- no payload shape change.
+    assert ANALYSIS_SCHEMA_VERSION == 19, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 18 -- update this test deliberately if the version was bumped again"
+        "written for 19 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

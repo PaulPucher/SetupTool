@@ -2,7 +2,7 @@
 
 Dated 2026-10-21. Describes the default analysis path of branch new-laps:
 tyre fit L (config tyre_fit_auto.tyre_fit_mode = "literature_bounded"),
-ANALYSIS_SCHEMA_VERSION 18. It states what the method IS, in the order the
+ANALYSIS_SCHEMA_VERSION 19. It states what the method IS, in the order the
 signal flows, so that the thesis method chapter can be written from it. How
 each rule came about is recorded in DECISIONS.md (standing rulings) and
 thesis_notes.md (dated findings); this file points there only where a rule
@@ -193,9 +193,16 @@ dr/dt), so any two-axle fit inherits that coupling. Level: L1
 chair-identical construction, FORCED ADAPTATION (no measured axle forces).
 
 Longitudinal axle force (input of the fit and the observer, not of the
-verdict): the CoG force Fx_cog = m a_x + aerodynamic drag + rolling
-resistance; drag coefficient, frontal area and rolling resistance are
-unsourced and 0 in config, so Fx_cog is effectively m a_x (12). It is split to the front in proportion to the measured axle loads
+verdict): the CoG force Fx_cog = m a_x + 0.5 rho c_D A v^2 (tyre force =
+inertial force plus aerodynamic drag). c_D A = 1.0 m^2, Level 1 from the
+literature (no team value): c_D = 0.50, production-based GT race cars
+[Katz.1995, Table 2.3, p. 50], A = 2.0 m^2, a generic race car with
+touring-car dimensions [Trzesniowski.2019b, Abb. 5.89, p. 257], cross-
+checked against a 911 Carrera road car, 1.78 m^2 [Katz.1995, Appendix 1,
+p. 264] (CONFIG longitudinal_stiffness.drag_coeff, vehicle.aero.
+cross_track_area_m2; L1, A). Rolling resistance 0 (documented
+approximation). The frontal area is shared with the lift model, which
+stays at zero because lift_coeff = 0. It is split to the front in proportion to the measured axle loads
 under braking and is zero on the front under drive (rear-wheel drive)
 [Goblirsch.2025, Eq. 9]:
 
@@ -534,12 +541,13 @@ differs between laps.
 Thresholds (CONFIG classification; L1, B; derived 2026-10-20 on fit L, 14
 development sessions, all on observer beta; re-derived after the R26
 reference gate and again on schema 18 (populated braking phases,
-2026-10-21) with identical p10 / p30):
+2026-10-21) with identical p10 / p30; re-derived on schema 19 (drag,
+2026-10-21) and adopted):
 - STRONG = p10, MODERATE = p30 of the pool's corner values per axle:
-  front STRONG_CSF = -0.139, MODERATE_CSF = -0.023 (n 220);
-  rear STRONG_CSR = -0.002, MODERATE_CSR = +0.100 (n 208).
+  front STRONG_CSF = -0.137, MODERATE_CSF = -0.023 (n 220);
+  rear STRONG_CSR = -0.002, MODERATE_CSR = +0.098 (n 208).
 - Tier semantics: relative ranks in the pool, no physical claim. A positive
-  rear MODERATE is accepted: 0.1 is a rear stiffness at 10 % of linear,
+  rear MODERATE is accepted: about 0.1 is a rear stiffness at 10 % of linear,
   near saturation, and rear saturation erodes the stability margin
   [Hoffman.2008, sec. 2, p. 136].
 - Physical statements are separate labels: ratio < 0 = "axle force falling
@@ -576,12 +584,14 @@ unstable, or unstable alone; normal otherwise.
 [MARGINAL]: the verdict-driving value lies within cs_margin = 0.01 of its
 nearest threshold (CONFIG classification.verdict_stability_margin; L1, B).
 Derived by the recorded +/-1 % sweep of mass, front weight fraction,
-wheelbase, yaw inertia and steering map on the 14 sessions: one
-proportional verdict flip at threshold distance 0.001, rounded up (a
-ratio-discontinuity flip at 0.048 excluded by the recorded rule). It
+wheelbase, yaw inertia and steering map on the 14 sessions (schema 19):
+one proportional verdict flip at threshold distance 0.000, rounded up;
+two discontinuity flips excluded by the recorded rule (a ratio
+discontinuity at 0.046, and a worst-lap apex-region median of a spread
+small sample that jumps +0.063 -> +0.410 under a 1 % input). It
 expresses sensitivity to the vehicle parameters ONLY; the observer
 uncertainty (12) is larger and is not expressed by it. Share of tier
-verdicts tagged [MARGINAL]: 9-42 % per session.
+verdicts tagged [MARGINAL]: 0-50 % per session.
 
 Display: the CS phase values are coloured by the same axle tiers (below
 STRONG BAD, below MODERATE WARN, else OK; read from config). [UNCAL]
@@ -638,13 +648,13 @@ aggregation, and one engine. Tier C in structure, B in its gates.
   for r. Reading: CS values are robust to a few hundredths; the STRONG /
   MODERATE split (0.10-0.12 apart) is finer than the observer uncertainty.
 - Plausibility of the normalised CS (criterion: deep negatives rare and
-  repeatable): 57 front floor events (40 clean) and 2 rear (both under
-  traction) in the whole pool; no reset-affected event; durations median
+  repeatable): 54 front floor events (39 clean) and 3 rear (all under
+  traction) in the whole pool (schema 19); no reset-affected event; durations median
   0.05-0.18 s. Repeatable cells only NBR 54 corner 3 turn-in (4 of 6 laps,
   the worked example of 8) and NBR 46 corner 2 turn-in (2 of 4); all other
   events single-lap. Against raw Fy the share of samples below -0.53 falls
   from 0.13-1.63 % to 0-1.14 % (front). No corner value below -0.53 (pool
-  minimum front -0.375, rear -0.202).
+  minimum front -0.354, rear -0.207).
 - Reference plausibility (registry R26 test: verdict-read CS samples under a
   reference below 0.5 x the session median): 0 on every session and axle
   after the relative gate (7), from 1461 front samples on NBR 46, 54, 63
@@ -739,11 +749,18 @@ aggregation, and one engine. Tier C in structure, B in its gates.
   (2026-08-20), the value not derived. The bracket thresholds (25 / 15
   deg, 0.6 / 0.35 g, 0.6 s merge, 0.8 s, 0.3 g apex) are Tier B, not
   derived (1).
-- Longitudinal force without drag and rolling resistance. With c_d A and
-  the rolling coefficient at 0, Fx_cog = m a_x: under braking the tyre
-  braking force is over-read by the drag force, under traction the drive
-  force under-read. The fit-L braking filter |Fx| / Fz > 0.3 is affected
-  slightly; the magnitude needs c_d A from the team (to verify).
+- Drag from literature. c_D A = 1.0 m^2 is a Level-1 value from sources of
+  about 1990; a modern GT3 carries more downforce and likely more drag, and
+  the Katz edition (PDF labelled 2003, bib 1995) is to be verified.
+  Sensitivity (diagnostics/inspect_drag_sensitivity.py, 14 sessions,
+  thresholds fixed): at 1.0 m^2 against no drag, 2.2 % of corner verdicts
+  (0.7 % of corner-phases) change, 3 of 57 front floor events disappear,
+  the braking-filter share falls 0.4-1.6 points, rear K shifts < 0.5 /
+  rad, mu_demo within 0.002, no status or fallback change; at 1.3 m^2 3.1
+  % of corner verdicts -- below the admissible observer-noise effect (15.6
+  % at Q x 0.3). Rolling resistance stays 0. Outlook: a Level-2 session
+  estimate from the power balance over full-throttle straights on a flat
+  track [Trzesniowski.2019b, sec. 5.4, Eq. 5.13 and Tab. 5.5 (drivetrain efficiency), p. 238].
 - IMU position unknown. The mounting position of the accelerometer
   relative to the CoG is not recorded; a_y is taken as the CoG value. A
   longitudinal offset dx adds dx times the yaw acceleration: with the 2 Hz

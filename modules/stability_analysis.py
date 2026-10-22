@@ -76,7 +76,11 @@ CAR_DATA_PATH = "config/car_data.json"
 #      failed, so every entry_1_brake phase was zero-length -- those phases
 #      now hold samples. Corner warnings carry channel-missing warnings into
 #      the canonical instances. No payload shape change.
-ANALYSIS_SCHEMA_VERSION = 18
+#  19: (2026-10-21) estimator input changed (schema bump rule): aerodynamic
+#      drag enters the CoG longitudinal force (drag_coeff 0.50 x frontal area
+#      2.0 m^2, Level 1, literature) -- fit-L braking filter, Eq. 9 axle split
+#      and the observer's front force frame move. No payload shape change.
+ANALYSIS_SCHEMA_VERSION = 19
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

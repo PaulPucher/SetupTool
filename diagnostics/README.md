@@ -1045,3 +1045,11 @@ cited them now say so (git history keeps the code).
   limitation): the Q-PR-ANOMALY H-alpha test re-run on the shipped fit L
   (fit inputs captured from tyre_fit_auto._fit_axle_l), 14 development
   sessions, both axles. Read-only. Output diagnostics/plots/washout_final/.
+- **inspect_drag_sensitivity.py** (2026-10-21) -- REFERENCED (PLAN.md
+  STATUS NEXT 0b; PRODUCTION.md 12 drag sensitivity once C lands): c_D A in
+  {0, 0.7, 1.0, 1.3} m^2 added to the CoG longitudinal force in memory
+  (estimate_longitudinal_forces as tyre_fit_auto imports it), 14
+  development sessions; braking-filter share, fit-L B / K / mu_demo, floor
+  events, verdict class changes. Imports inspect_metrology_phase1_
+  sensitivity.classify_all. Read-only. Output
+  diagnostics/plots/drag_sensitivity/.

@@ -1,0 +1,26 @@
+cs_margin RE-DERIVATION on the new default (+/-1 % sweep, 14 sessions); thresholds front (-0.137, -0.023), rear (-0.002, 0.098); config cs_margin now 0.01
+
+runs: 140 variants + 14 baselines; fallback in 0 variant runs; 1145 baseline corner-phases
+FLIPS (axle direction changes, recorded _is_flip): 15 flips, 3 distinct corner-phases
+  distance 0.046  Le Castellet outing 25, MLA-SE07_US-v1 C2|exit_4: 2 input(s): front_fraction -1%: oversteer @ exit -> understeer @ exit (CSf +0.037->-0.189, CSr +0.052->+0.052); steering_wheel_angle +1%: oversteer @ exit -> understeer @ exit (CSf +0.037->-0.190, CSr +0.052->+0.052)
+  distance 0.023  NBR outing 54 CDR C16|apex_3: 6 input(s): mass +1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.046, CSr +0.023->+0.022); front_fraction -1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.047, CSr +0.023->+0.014); wheelbase +1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.045, CSr +0.023->+0.021); wheelbase -1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.047, CSr +0.023->+0.016); yaw_inertia -1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.046, CSr +0.023->+0.022); steering_wheel_angle -1%: oversteer @ apex | open-loop unstable @ apex -> understeer @ apex | open-loop unstable @ apex (CSf -0.046->-0.046, CSr +0.023->+0.015)
+  distance 0.000  Le Castellet outing 25, MLA-SE07_US-v1 C14|exit_4: 7 input(s): mass +1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.137, CSr +0.093->+0.092); mass -1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.137, CSr +0.093->+0.094); front_fraction +1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.136, CSr +0.093->+0.093); wheelbase +1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.136, CSr +0.093->+0.093); yaw_inertia -1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.137, CSr +0.093->+0.093); steering_wheel_angle +1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.136, CSr +0.093->+0.093); steering_wheel_angle -1%: understeer @ exit [MARGINAL] -> oversteer @ exit [MARGINAL] (CSf -0.137->-0.137, CSr +0.093->+0.093)
+
+distinct flipped corner-phase distances, descending: 0.046, 0.023, 0.000
+observer uncertainty (robustness, Q x 0.3), |corner-value change| median / p90: front 0.017 / 0.085, rear 0.02 / 0.106
+
+[MARGINAL] SHARE of card tier verdicts (analysis-lap corner summaries), old 0.11 -> new 0.01:
+  NBR outing 5 MLA: 12 tier verdicts of 90 cards; MARGINAL 12 (100 %) -> 6 (50 %)
+  NBR outing 10 JDR: 11 tier verdicts of 180 cards; MARGINAL 11 (100 %) -> 2 (18 %)
+  NBR outing 20 JST: 10 tier verdicts of 64 cards; MARGINAL 9 (90 %) -> 1 (10 %)
+  NBR outing 29 JST (NBR_Sturm_Solution copy): 12 tier verdicts of 90 cards; MARGINAL 11 (92 %) -> 3 (25 %)
+  NBR outing 46 JST: 11 tier verdicts of 60 cards; MARGINAL 10 (91 %) -> 1 (9 %)
+  NBR outing 53 MLA: 8 tier verdicts of 85 cards; MARGINAL 8 (100 %) -> 1 (12 %)
+  NBR outing 54 CDR: 25 tier verdicts of 120 cards; MARGINAL 23 (92 %) -> 4 (16 %)
+  NBR outing 59 MLA: 10 tier verdicts of 60 cards; MARGINAL 10 (100 %) -> 1 (10 %)
+  NBR outing 61 JDR: 8 tier verdicts of 136 cards; MARGINAL 8 (100 %) -> 0 (0 %)
+  NBR outing 63 CDR: 19 tier verdicts of 96 cards; MARGINAL 19 (100 %) -> 4 (21 %)
+  NBR qualifying CDR (outing 69): 15 tier verdicts of 96 cards; MARGINAL 14 (93 %) -> 2 (13 %)
+  NBR qualifying MLA (outing 70): 16 tier verdicts of 90 cards; MARGINAL 16 (100 %) -> 2 (12 %)
+  Le Castellet outing 25, MLA-SE07_US-v1: 12 tier verdicts of 51 cards; MARGINAL 12 (100 %) -> 4 (33 %)
+  Le Castellet outing 32, MLA-SE07_US-v2: 30 tier verdicts of 153 cards; MARGINAL 25 (83 %) -> 5 (17 %)

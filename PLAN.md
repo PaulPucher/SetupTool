@@ -31,8 +31,9 @@ REPO STATE
   "literature_bounded"), ANALYSIS_SCHEMA_VERSION 18 (17 -> 18 on 2026-10-21:
   throttle range gate [0, 110] %, braking phases populated on the 7 sessions
   that had lost them; 16 -> 17 on 2026-10-20 for the NIS gate values and the
-  R26 reference gate). Thresholds and cs_margin re-derived on 18 (identical,
-  re-adopted), goldens regenerated, full suite 657 passed / 1 xfailed. The per_session path stays selectable until the
+  R26 reference gate; 18 -> 19 on 2026-10-21: drag c_D A 1.0 m^2, Level 1).
+  Thresholds on 19: front -0.137 / -0.023, rear -0.002 / +0.098 (adopted);
+  cs_margin 0.01; goldens regenerated on 19. The per_session path stays selectable until the
   cleanup round.
 - CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
   unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
@@ -45,8 +46,9 @@ REPO STATE
   events at -0.53 with measured attributes (the event layer under fit L);
   CS linear reference accepted only within [0.5, 2] x the session median of
   the axle's band candidates (R26 source fix 2026-10-20); thresholds front
-  -0.139 / -0.023, rear -0.002 / +0.100 (re-derived after the fix,
-  identical); cs_margin 0.01 (re-run after the fix, unchanged);
+  -0.137 / -0.023, rear -0.002 / +0.098 (re-derived and adopted on schema 19,
+  2026-10-21; before ~~-0.139 / -0.023, -0.002 / +0.100~~); cs_margin 0.01
+  (unchanged on 19); drag c_D A 1.0 m^2 (Level 1, literature);
   stab_neg_thresh 0 (sign criterion).
 - DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
   70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
@@ -84,6 +86,12 @@ NEXT (author order 2026-10-21)
    (PRODUCTION.md corner phases, limitations, Fx, median rationale, IMU,
    kerb provenance), washout re-run on the final chain, kerb census.
    Commit checkpoint pending author.
+0b. DRAG ESTIMATE (2026-10-21, author EXECUTE A + B): Level-1 c_D * A =
+   1.0 m^2 from literature (DECISIONS 'Drag, Level-1 literature estimate');
+   B = read-only sensitivity c_D * A in {0, 0.7, 1.0, 1.3} m^2
+   (diagnostics/inspect_drag_sensitivity.py). C (config, schema bump,
+   re-derivations, goldens, PRODUCTION.md 3 / 12) ONLY on the author's go.
+   [2026-10-21: go given -- C DONE, uncommitted: drag_coeff 0.50, A 2.0 m^2, schema 19; thresholds adopted front -0.137 / -0.023, rear -0.002 / +0.098; cs_margin 0.01 unchanged; floor events 54 / 3; goldens regenerated; PRODUCTION.md 3 / 9 / 11 / 12. Full suite 656 passed / 1 xfailed / 1 FAILED: test_observer_q_reproduces_q_phys (frozen q_phys reference predates drag, Q_beta -0.8 %). 2026-10-22: author ruled refresh the reference (standing rule, like the goldens) -- DONE (NBR 29 reference Q_beta -0.82 %, Q_r -0.57 %; the test passes); cs_margin C16 confirmed as discontinuity; outlook source keyed [Trzesniowski.2019b] sec. 5.4. Full suite 2026-10-22: 657 passed, 1 xfailed, 0 failed, 0 skipped; test_stability.py exit 0. Commit checkpoint pending author.]
 1. Q-UTIL decision (read-only diagnostic diagnostics/inspect_utilisation.py,
    report 2026-10-21; result thesis_notes "Q-UTIL": u / s correlate with CS
    but disagree on the axle leader, s carries a structural front / rear
