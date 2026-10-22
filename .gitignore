@@ -68,3 +68,7 @@ diagnostics/channel_census/*.log
 
 # Per-cycle handover files (rebuild phase) -- local only, like HANDOVER.md
 handover_*
+
+diagnostics/results_*/cache/
+
+diagnostics/results_*/cache/

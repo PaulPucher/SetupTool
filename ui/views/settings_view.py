@@ -17,7 +17,6 @@ from ui.style import ACCENT, WARN, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT,
 from ui.views.outing_form import NoScrollSpinBox, NoScrollIntSpinBox, latest_pipeline_entry
 from core.threshold_overrides import apply_threshold_edit, is_manual
 from modules.wheel_loads import effective_cl_area
-from modules.decision_frame import TPMS_COMPOUND_CAVEAT
 
 PARAMETERS_PATH = "config/parameters.json"
 CHANNELS_PATH = "config/channels.json"
@@ -100,7 +99,6 @@ SECTION2_PARAMS_FIELDS = [
      "decimals": 2, "min": 0.0, "max": 0.5,
      "short_note": "Time masked either side of a kerb hit, to cover the ringdown."},
 ]
-SECTION2_PARAMS_INT_FIELDS = []
 SECTION2_CHANNELS_INT_FIELDS = [
     {"path": ("corner_speed_thresholds", "low_max"), "label": "Low/medium speed boundary", "unit": "km/h",
      "min": 0, "max": 350,
@@ -175,24 +173,6 @@ SECTION4_FIELDS = [
      "note_path": ("cost_function", "effect_class_derived_from"),
      "short_note": "Multiplier for a secondary (side-effect) candidate."},
 ]
-
-
-# Section 5: tyre-pressure target bands (check only, never recommended).
-# The config keeps one band per wheel; the elicited band is per axle, so
-# each row writes both wheels of its axle.
-SECTION5_FIELDS = [
-    {"label": "Front band min", "unit": "bar", "key": "min_bar", "wheels": ("fl", "fr")},
-    {"label": "Front band max", "unit": "bar", "key": "max_bar", "wheels": ("fl", "fr")},
-    {"label": "Rear band min", "unit": "bar", "key": "min_bar", "wheels": ("rl", "rr")},
-    {"label": "Rear band max", "unit": "bar", "key": "max_bar", "wheels": ("rl", "rr")},
-]
-
-
-def _inverted_tyre_bands(values):
-    # values: {(wheels, "min_bar"|"max_bar"): bar} -> axle names whose min > max
-    axles = {("fl", "fr"): "front", ("rl", "rr"): "rear"}
-    return [name for wheels, name in axles.items()
-            if values.get((wheels, "min_bar"), 0.0) > values.get((wheels, "max_bar"), float("inf"))]
 
 
 # Section 3: classification thresholds, editable; an edit is recorded as a
@@ -275,7 +255,6 @@ class SettingsView(QWidget):
         self.content_layout.addWidget(self._build_section2())
         self.content_layout.addWidget(self._build_section3())
         self.content_layout.addWidget(self._build_section4(initial_decision_frame))
-        self.content_layout.addWidget(self._build_section5(initial_decision_frame))
         self.content_layout.addStretch()
 
         scroll.setWidget(content)
@@ -467,13 +446,6 @@ class SettingsView(QWidget):
             self.section2_widgets[("parameters",) + spec["path"]] = widget
             layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
 
-        for spec in SECTION2_PARAMS_INT_FIELDS:
-            widget = NoScrollIntSpinBox()
-            widget.setRange(spec["min"], spec["max"])
-            widget.setFixedWidth(120)
-            self.section2_widgets[("parameters",) + spec["path"]] = widget
-            layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
-
         for spec in SECTION2_CHANNELS_INT_FIELDS:
             widget = NoScrollIntSpinBox()
             widget.setRange(spec["min"], spec["max"])
@@ -613,32 +585,6 @@ class SettingsView(QWidget):
 
         return container
 
-    def _build_section5(self, decision_frame):
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        layout.addWidget(self._section_label("Tyre Pressure Target (check only)"))
-
-        caveat = QLabel(TPMS_COMPOUND_CAVEAT[0].upper() + TPMS_COMPOUND_CAVEAT[1:] + ".")
-        caveat.setWordWrap(True)
-        caveat.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-        layout.addWidget(caveat)
-
-        full_note = decision_frame.get("tyre_pressure_target", {}).get("compound_note")
-        # the sensor's plausible range, the same bounds the flag uses for glitches
-        with open(CHANNELS_PATH, encoding="utf-8") as f:
-            lo_bar, hi_bar = json.load(f)["channels"]["tpms_press_fl"]["range"]
-        self.section5_widgets = []
-        for spec in SECTION5_FIELDS:
-            widget = NoScrollSpinBox()
-            widget.setDecimals(2)
-            widget.setRange(lo_bar, hi_bar)
-            widget.setFixedWidth(120)
-            self.section5_widgets.append((spec, widget))
-            layout.addWidget(self._field_row(spec, widget, note_text=full_note))
-        return container
-
     def _load_from_disk(self):
         # fresh file read, not the cached loaders -- show what's on disk
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
@@ -671,12 +617,6 @@ class SettingsView(QWidget):
                 widget.setValue(int(value))
             else:
                 widget.setValue(float(value))
-            widget.blockSignals(False)
-
-        targets = decision_frame["tyre_pressure_target"]
-        for spec, widget in self.section5_widgets:
-            widget.blockSignals(True)
-            widget.setValue(float(targets[spec["wheels"][0]][spec["key"]]))
             widget.blockSignals(False)
 
         weights = recs["settings"]["driver_level_weighting"]["weights"]
@@ -722,17 +662,6 @@ class SettingsView(QWidget):
             self.warning_label.setVisible(True)
             self.status_label.setText("Not saved.")
             return
-        # an inverted band would mark every wheel off-band; refuse the whole
-        # save so nothing half-persists
-        inverted = _inverted_tyre_bands(
-            {(spec["wheels"], spec["key"]): widget.value() for spec, widget in self.section5_widgets})
-        if inverted:
-            self.warning_label.setText(
-                f"Not saved: tyre band min above max ({', '.join(inverted)}). Fix and save again.")
-            self.warning_label.setVisible(True)
-            self.status_label.setText("Not saved.")
-            return
-
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
@@ -770,10 +699,6 @@ class SettingsView(QWidget):
         for spec in SECTION4_FIELDS:
             widget = self.section4_widgets[spec["path"]]
             _set_path(decision_frame, spec["path"], widget.value())
-
-        for spec, widget in self.section5_widgets:
-            for wheel in spec["wheels"]:
-                decision_frame["tyre_pressure_target"][wheel][spec["key"]] = round(widget.value(), 2)
 
         today = datetime.date.today().isoformat()
         thresholds_changed = False

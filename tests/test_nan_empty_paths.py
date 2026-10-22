@@ -201,52 +201,15 @@ def test_recommendation_engine_handles_real_zero_braking_corner(pipeline_result)
             )
 
 
-# --- _fit_axle_pacejka with an entirely empty fit population -----------------
+# --- fit_session_pacejka with an entirely empty fit population -------------
 #
 # v3 work package, real bug (2026-09-02): a session where every lap fails
-# is_valid_for_analysis (traced separately to a fastest-lap-candidate-
-# selection bug, tests/test_csv_parser_formats.py) leaves base_mask
-# entirely False. _fit_axle_pacejka then fed np.percentile an empty array,
-# which raised "IndexError: index -1 is out of bounds for axis 0 with
-# size 0" deep inside numpy's quantile internals -- the exact error text
-# the user's own app run surfaced. Fixed with an explicit len(a2)==0 early
-# return, matching the convention of the former Dugoff _fit_axle (removed
-# 2026-10-17) for a below-minimum-samples population -- see
-# modules/tyre_fit_auto.py's own comment at the fix site.
+# is_valid_for_analysis left base_mask entirely False and an axle fit fed
+# np.percentile an empty array. The per_session fitter that crashed was
+# removed in the 2026-10-22 pruning; the end-to-end guard on the fit-L path
+# stays.
 
-from modules.tyre_fit_auto import _fit_axle_pacejka, fit_session_pacejka
-
-
-def test_fit_axle_pacejka_empty_population_does_not_raise():
-    n = 500
-    alpha = np.linspace(-0.1, 0.1, n)
-    Fy = np.linspace(-1000, 1000, n)
-    base_mask = np.zeros(n, dtype=bool)  # every sample excluded -- the v3 case
-
-    result = _fit_axle_pacejka(alpha, Fy, base_mask)  # must not raise
-
-    assert result["fit_n_samples"] == 0
-    assert result["sign_ok"] is False
-    assert result["powell_converged"] is False
-    assert math.isnan(result["peak_alpha_deg"])
-    assert math.isnan(result["visited_alpha_p99_deg"])
-    assert result["peak_in_visited_range"] is False
-
-
-def test_fit_axle_pacejka_nonempty_population_still_fits(pipeline_result):
-    """Confirms the empty-population guard's condition (len(a2) == 0) is
-    narrow enough to leave the real fit path exercised -- a regression
-    here would mean the guard is over-matching, not just under-matching."""
-    # pipeline_result's own slip/forces ARE real ekf_auto_pacejka-chain
-    # arrays with a real, non-empty base_mask by construction (Dubai, 4
-    # valid laps) -- reuse those directly rather than re-deriving state.
-    alpha_f = pipeline_result["slip"]["alpha_f_filt"]
-    Fy_f = pipeline_result["forces"]["Fy_f_filt"]
-    base_mask = np.ones(len(alpha_f), dtype=bool) & np.isfinite(alpha_f) & np.isfinite(Fy_f)
-
-    result = _fit_axle_pacejka(alpha_f, Fy_f, base_mask)
-    assert result["fit_n_samples"] > 0
-    assert not math.isnan(result["B"])
+from modules.tyre_fit_auto import fit_session_pacejka
 
 
 def test_fit_session_pacejka_all_laps_invalid_degrades_cleanly(pipeline_result):

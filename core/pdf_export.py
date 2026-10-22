@@ -1,6 +1,6 @@
-# Setup/setdown sheet PDF, landscape A4, monochrome. One strip renderer
-# (build_session_strip) at two scales: "large" = one sheet per page,
-# "small" = four strips per weekend page (weekend_pdf_export).
+# Setup/setdown sheet PDF, landscape A4, monochrome, one sheet per page.
+# (The four-per-page "small" scale went with its only consumer, the weekend
+# PDF export, in the 2026-10-22 pruning.)
 # Rebrand by swapping config/images/team_logo.png.
 
 import json
@@ -78,35 +78,19 @@ def _fmt(value):
     return str(value)
 
 
-def _strip_styles(size):
-    """Font presets for "large" and "small"; same layout, only sizes differ."""
-    # One "value" size per scale, sized so a 6-digit value ("888888" /
-    # "-88888") fits every value cell at its real width. No autofit: a cell
-    # that doesn't fit gets wider (the *_FRAC constants), the number never
-    # shrinks.
-    if size == "large":
-        f = dict(header=16, corner_title=16, core_label=12.5, value=9,
-                  table_label=11.5,
-                  section_title=14, notes=10)
-        pad = 6.5
-    else:
-        f = dict(header=7.5, corner_title=7, core_label=5.6, value=6.5,
-                  table_label=5,
-                  section_title=6, notes=5.2)
-        pad = 1.1
+def _strip_styles():
+    # "value" is sized so a 6-digit value ("888888" / "-88888") fits every
+    # value cell at its real width. No autofit: a cell that doesn't fit gets
+    # wider (the *_FRAC constants), the number never shrinks.
+    f = dict(header=16, corner_title=16, core_label=12.5, value=9,
+              table_label=11.5,
+              section_title=14, notes=10)
+    pad = 6.5
     # car_label uses the value size -- one number, can't drift
     f["car_label"] = f["value"]
-    # spacer gaps scale with size -- fixed mm gaps at small scale made
-    # KeepInFrame shrink the whole strip to ~1/4 width
-    gap_lg = 2.5 * mm if size == "large" else 0.6 * mm
-    gap_sm = 1.5 * mm if size == "large" else 0.4 * mm
-    # Diagram height factor: only the height shrinks at small scale; the
-    # diagram always spans the car-column width. Value box width comes from
-    # the font, not the diagram, so boxes don't scale with the outline.
-    # Checked: no two close-in-x boxes collide at the flatter height.
-    diagram_height_scale = 1.0 if size == "large" else 0.36
-    # leading = 1.2 x fontSize -- reportlab's flat 12 pt default collided
-    # lines at large scale and bloated the strip at small scale
+    gap_lg = 2.5 * mm
+    gap_sm = 1.5 * mm
+    # leading = 1.2 x fontSize -- reportlab's flat 12 pt default collided lines
     def _lead(size):
         return size * 1.2
 
@@ -142,7 +126,6 @@ def _strip_styles(size):
         "_fontsizes": f,
         "_gap_lg": gap_lg,
         "_gap_sm": gap_sm,
-        "_diagram_height_scale": diagram_height_scale,
     }
     return styles
 
@@ -227,8 +210,8 @@ class MeasurementDiagram(Flowable):
         c.restoreState()
 
 
-# Width fractions sized so a 6-digit "value" fits every cell at both
-# scales (tightest: damper LS/HS). Changing one -> re-check all cells.
+# Width fractions sized so a 6-digit "value" fits every cell (tightest:
+# damper LS/HS). Changing one -> re-check all cells.
 DAMPER_W_FRAC = 0.54  # of corner_w
 DAMPER_LABEL_FRAC = 0.33  # of damper_w
 ADVANCED_VAL_FRAC = 0.42  # of advanced_w
@@ -270,8 +253,7 @@ def _advanced_list(data, styles, width):
 
 
 def _corner_box(label, data, styles, width):
-    title_gap = 2.5 * mm if styles["_fontsizes"]["corner_title"] >= 10 else 0.5 * mm
-    elements = [Paragraph(label, styles["corner_title"]), Spacer(1, title_gap)]
+    elements = [Paragraph(label, styles["corner_title"]), Spacer(1, 2.5 * mm)]
 
     lw = width * 0.30
     vw = width * 0.20
@@ -335,11 +317,9 @@ POINT_VALUE_WORST_CASE = "-999.9"
 
 
 def _measurement_diagram_boxes(title, outline, positions, points, styles, width):
-    """Outline with a value box at each position, both scales. (A values-only
-    row overflowed its column at small scale -- rejected.)
-    diagram_w = full car-column width; box_w from POINT_VALUE_WORST_CASE at
-    the actual font size (same size as the table values). Only diagram_h
-    shrinks for the small strip; checked box pairs don't touch.
+    """Outline with a value box at each position. diagram_w = full car-column
+    width; box_w from POINT_VALUE_WORST_CASE at the actual font size (same
+    size as the table values); checked box pairs don't touch.
     """
     font_size = styles["_fontsizes"]["value"]
     # 1.2x text width -- a box flush with the glyphs looks cramped in print
@@ -348,7 +328,7 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
     # diagram_w + box_w = width: the margin is where edge points' boxes live
     diagram_w = width - box_w
     aspect = 0.55 if outline == "splitter" else 0.6
-    diagram_h = diagram_w * aspect * styles["_diagram_height_scale"]
+    diagram_h = diagram_w * aspect
     return [
         Paragraph(title, styles["car_label"]),
         MeasurementDiagram(outline, positions, points, diagram_w, diagram_h, box_w, box_h, font_size),
@@ -357,10 +337,10 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
 
 def _car_column(car, styles, width):
     """Narrow right column, cells sized to content. Splitter/diffuser as outline
-    + value boxes at both scales. Wing position and ARB front mount are plain
-    rows -- position codes ("P8"), a schematic added nothing.
+    + value boxes. Wing position and ARB front mount are plain rows --
+    position codes ("P8"), a schematic added nothing.
     """
-    title_gap = 2.5 * mm if styles["_fontsizes"]["section_title"] >= 10 else 0.8 * mm
+    title_gap = 2.5 * mm
     elements = [Paragraph("Car", styles["section_title"]), Spacer(1, title_gap)]
 
     val_w = width * CAR_PARAM_VAL_FRAC
@@ -402,14 +382,13 @@ def _scaled_image(path, target_height):
     return Image(path, width=width, height=target_height)
 
 
-def build_session_strip(meta, data, size, strip_w, strip_h):
-    """One Setup or Setdown sheet at "large" (full page) or "small" (weekend
-    strip) scale. data = setup/setdown dict (front_left .. rear_right, car);
-    meta = header text fields.
+def build_session_strip(meta, data, strip_w, strip_h):
+    """One Setup or Setdown sheet. data = setup/setdown dict (front_left ..
+    rear_right, car); meta = header text fields.
     2x2 wheel grid (front up) as its own table, no spanning; car block as a
     narrow column beside it. KeepInFrame(shrink) keeps a long strip in its box.
     """
-    styles = _strip_styles(size)
+    styles = _strip_styles()
     fl = data.get("front_left", {}) or {}
     fr = data.get("front_right", {}) or {}
     rl = data.get("rear_left", {}) or {}
@@ -424,11 +403,10 @@ def build_session_strip(meta, data, size, strip_w, strip_h):
     right_header = [Paragraph(meta.get("sheet_label", ""), styles["sheet_label"])]
     if os.path.exists(LOGO_PATH):
         try:
-            logo_h = 6 * mm if size == "large" else 3 * mm
-            right_header.insert(0, _scaled_image(LOGO_PATH, logo_h))
+            right_header.insert(0, _scaled_image(LOGO_PATH, 6 * mm))
         except Exception:
             pass
-    header_pad = 3 * mm if size == "large" else 1.5
+    header_pad = 3 * mm
     header_table = Table([[left_header, right_header]], colWidths=[strip_w * 0.75, strip_w * 0.25])
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -449,7 +427,7 @@ def build_session_strip(meta, data, size, strip_w, strip_h):
          [_corner_box("RL", rl, styles, corner_w), _corner_box("RR", rr, styles, corner_w)]],
         colWidths=[corner_w, corner_w],
     )
-    row_gap = 6 * mm if size == "large" else 1.5 * mm
+    row_gap = 6 * mm
     wheel_grid.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 2),
@@ -468,8 +446,7 @@ def build_session_strip(meta, data, size, strip_w, strip_h):
         ("RIGHTPADDING", (0, 0), (-1, -1), 0),
     ]))
 
-    header_gap = 4 * mm if size == "large" else 1 * mm
-    content = [header_table, Spacer(1, header_gap), body]
+    content = [header_table, Spacer(1, 4 * mm), body]
 
     notes = car.get("notes", "")
     if notes:
@@ -480,7 +457,7 @@ def build_session_strip(meta, data, size, strip_w, strip_h):
 
 
 def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
-    """Single-session sheet, one landscape page, "large" scale. Reads
+    """Single-session sheet, one landscape page. Reads
     outing.setup_data for either sheet_type -- the caller puts the right
     data there.
     """
@@ -521,5 +498,5 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
             f"Setup data could not be read ({parse_error}) -- sheet below is blank.", warn_style))
         story.append(Spacer(1, 3 * mm))
         strip_h -= warn_h
-    story.append(build_session_strip(meta, setup, "large", strip_w, strip_h))
+    story.append(build_session_strip(meta, setup, strip_w, strip_h))
     doc.build(story)

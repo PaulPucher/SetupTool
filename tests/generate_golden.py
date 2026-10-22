@@ -110,8 +110,8 @@ def run_default_chain(rel_path):
         "summaries": summaries, "events": events,
     }
     # verdicts and recommendations through the app's own classifier
-    # (OutingForm._classify_corner with self=None, the precedent
-    # core/weekend_pdf_export.py uses); needs PyQt6 importable
+    # (OutingForm._classify_corner with self=None, the precedent the
+    # removed weekend PDF export set); needs PyQt6 importable
     from ui.views.outing_form import OutingForm
     from modules.recommendation import generate_recommendations, load_recommendations_config
 
@@ -137,9 +137,12 @@ def main():
         if res["fallback_used"]:
             raise SystemExit(f"refusing to write {target}: the default fell back to kinematic "
                              f"({res['fallback_reason']})")
+        from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
         res["_meta"] = {
-            "purpose": "REGRESSION baseline of the default path (fit L, schema 16), not a correctness claim -- "
-                       "see tests/test_golden_pipeline.py",
+            # the schema from the code, never a literal (the label once stayed at
+            # 16 through three bumps)
+            "purpose": f"REGRESSION baseline of the default path (fit L, schema {ANALYSIS_SCHEMA_VERSION}), "
+                       "not a correctness claim -- see tests/test_golden_pipeline.py",
             "session": label, "data_file": rel,
             "git_commit_hash": _git_hash(),
             "generated_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),

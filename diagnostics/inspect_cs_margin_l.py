@@ -56,6 +56,69 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+# Development-set file list, the 14 entries of the retired hub
+# inspect_data_quality.py (inlined in the 2026-10-22 pruning, unchanged):
+# (key, track, outing, label, ("rel", path under the data root)).
+_NBR = "unlabeled/02_NBR_CRV_data"
+CANDIDATES = (
+    ("nbr_o05_mla", "NBR", 5, "NBR outing 5 MLA", ("rel", f"{_NBR}/01_SE_01/NBR-73-005-001-MLA-26.07.01.0919.txt")),
+    ("nbr_o10_jdr", "NBR", 10, "NBR outing 10 JDR", ("rel", f"{_NBR}/01_SE_01/NBR-73-010-026-JDR-26.07.01.1029.txt")),
+    ("nbr_o20_jst", "NBR", 20, "NBR outing 20 JST", ("rel", f"{_NBR}/01_SE_02/NBR-73-020-065-JST-26.07.01.1454.txt")),
+    ("nbr_o29_jst", "NBR", 29, "NBR outing 29 JST (NBR_Sturm_Solution copy)",
+     ("rel", "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt")),
+    ("nbr_o46_jst", "NBR", 46, "NBR outing 46 JST", ("rel", f"{_NBR}/01_TE_04/NBR-73-046-162-JST-26.07.02.1411.txt")),
+    ("nbr_o53_mla", "NBR", 53, "NBR outing 53 MLA", ("rel", f"{_NBR}/01_TE_04/NBR-73-053-207-MLA-26.07.02.1707.txt")),
+    ("nbr_o54_cdr", "NBR", 54, "NBR outing 54 CDR", ("rel", f"{_NBR}/01_TE_04/NBR-73-054-214-CDR -26.07.02.1727.txt")),
+    ("nbr_o59_mla", "NBR", 59, "NBR outing 59 MLA", ("rel", f"{_NBR}/New folder/NBR-73-059-232-MLA-26.07.03.1210.txt")),
+    ("nbr_o61_jdr", "NBR", 61, "NBR outing 61 JDR", ("rel", f"{_NBR}/New folder/NBR-73-061-238-JDR-26.07.03.1229.txt")),
+    ("nbr_o63_cdr", "NBR", 63, "NBR outing 63 CDR", ("rel", f"{_NBR}/New folder/NBR-73-063-256-CDR-26.07.03.1309.txt")),
+    ("nbr_qp_cdr", "NBR", 69, "NBR qualifying CDR (outing 69)", ("rel", "NBR_Qualy_CDr/CDR-QP01-NBR-v1.txt")),
+    ("nbr_qp_mla", "NBR", 70, "NBR qualifying MLA (outing 70)", ("rel", "NBR_Qualy_MLA/MLA-QP01-NBR-v2.txt")),
+    ("pr_o25_us_v1", "PR", 25, "Le Castellet outing 25, MLA-SE07_US-v1", ("rel", "Paul_Ricard_MLA_US/MLA-SE07_US-v1.txt")),
+    ("pr_o32_us_v2", "PR", 32, "Le Castellet outing 32, MLA-SE07_US-v2", ("rel", "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt")),
+)
+
+
+def keep_awake(on):
+    # multi-hour runs: stop Windows from sleeping (from the retired hub
+    # inspect_fit_lit.py, inlined 2026-10-22)
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | (0x00000001 if on else 0))
+
+
+# Per corner-phase verdicts through the app's own classifier; copied
+# unchanged from the retired inspect_metrology_phase1_sensitivity.py
+# (the recorded cs_margin method, 2026-10-22).
+def classify_all(summaries):
+    from ui.views.outing_form import OutingForm
+    from modules.recommendation import aggregate_by_corner, PHASE_KEYS
+    aggregated = aggregate_by_corner(summaries)
+    out = {}
+    for cid, corner in aggregated.items():
+        for phase in PHASE_KEYS:
+            if phase not in corner["phases"]:
+                continue
+            sliced = {"phases": {phase: corner["phases"][phase]}}
+            if phase == "apex_3" and corner.get("apex_region") is not None:
+                sliced["apex_region"] = corner["apex_region"]
+            severity, short, _long, _colour = OutingForm._classify_corner(None, sliced)
+            out[(cid, phase)] = (severity, short)
+    return out, aggregated
+
+
+def _scale_wheel_angle_column(car_data, pct):
+    # +/- pct on the steering table's wheel-angle column (from
+    # inspect_metrology_phase1_sensitivity.py, unchanged)
+    cd = copy.deepcopy(car_data)
+    table = cd["steering_ratio_table"]
+    wheel_idx = table["columns"].index("wheel_angle_deg")
+    table["rows"] = [
+        [(v * (1 + pct) if i == wheel_idx else v) for i, v in enumerate(row)]
+        for row in table["rows"]
+    ]
+    return cd
+
 # run tag (env MARGIN_RUN_TAG): 20261020 = first fit-L sweep, 20261020b = after
 # the R26 source fix; each run keeps its own folder
 OUT = os.path.join(ROOT, "diagnostics", f"results_cs_margin_{os.environ.get('MARGIN_RUN_TAG', '20261020')}")
@@ -102,8 +165,6 @@ def _variant_params(p, input_name, sign):
 def run_task(task):
     key, input_name, sign = task
     import modules.accuracy_resolution as accres
-    from diagnostics.inspect_data_quality import CANDIDATES
-    from diagnostics.inspect_metrology_phase1_sensitivity import _scale_wheel_angle_column, classify_all
     from tests.conftest import resolve_data_path
     from modules.csv_parser import parse_csv, load_channels_config
     from modules.stability_analysis import (load_parameters, load_car_data, prepare_vehicle_state,
@@ -268,7 +329,6 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "report":
         report(float(sys.argv[2]) if len(sys.argv) > 2 else None)
         return
-    from diagnostics.inspect_fit_lit import keep_awake
     tasks = []
     for key in POOL:
         tasks.append((key, "baseline", 0))

@@ -16,7 +16,6 @@ from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
 from models.base import Session
 from models.driver import Driver, driver_name_and_level
 from models.outing import Outing
-from core.config_loader import get_setup_parameters
 from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
@@ -160,9 +159,6 @@ class StabilityAnalysisThread(QThread):
                 estimate_vertical_loads, summarise_corners,
             )
             from modules.accuracy_resolution import apply_resolved_vehicle
-            # LS: display/diagnostic only, not a classifier input
-            from modules.longitudinal_forces import estimate_longitudinal_forces, estimate_slip_ratio
-            from modules.longitudinal_stiffness import estimate_longitudinal_stiffness
             # beta per sideslip_source is chosen in tyre_fit_auto.resolve_sideslip_beta
             pipeline_cache_hit = self.pipeline_cache is not None
             if self.pipeline_cache is not None:
@@ -171,11 +167,12 @@ class StabilityAnalysisThread(QThread):
                 cs = self.pipeline_cache["cs"]
                 stab = self.pipeline_cache["stab"]
                 fz = self.pipeline_cache["fz"]
-                # .get(): older cache entries have no "ls"
-                ls = self.pipeline_cache.get("ls")
                 # slip/forces for the tyre-curve tab; .get() for older entries
                 slip = self.pipeline_cache.get("slip")
                 forces = self.pipeline_cache.get("forces")
+                # the CS normalisation loads, for the tyre-curve unit; .get() for
+                # older entries
+                cs_axle_loads = self.pipeline_cache.get("cs_axle_loads")
                 sideslip_source = self.pipeline_cache.get("sideslip_source", "kinematic")
                 # fit/gate/fallback cached too, so a lap-filter-only rerun keeps the
                 # estimator status line; defaults for older entries
@@ -222,15 +219,12 @@ class StabilityAnalysisThread(QThread):
                 forces = estimate_lateral_forces(state, effective_params)
                 cs = estimate_cornering_stiffness(slip, forces, state, effective_params, self.parsed_data.get("laps", []),
                                                   **cs_inputs["cs_kwargs"])
+                cs_axle_loads = cs_inputs["cs_kwargs"].get("axle_loads")
                 stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
                 # Fz / fy_norm: diagnostic only. channels/car_data only used when
                 # vertical_load_source is "measured".
                 fz = estimate_vertical_loads(state, forces, effective_params,
                                              channels=self.parsed_data["channels"], car_data=load_car_data())
-                # diagnostic only
-                long_forces = estimate_longitudinal_forces(state, self.parsed_data["channels"], effective_params)
-                slip_ratio = estimate_slip_ratio(state, self.parsed_data["channels"], effective_params)
-                ls = estimate_longitudinal_stiffness(long_forces, slip_ratio, state, effective_params)
                 corners = self.parsed_data.get("corners", [])
                 # event layer: display + record only, read after the verdict
                 # chain; under fit L the floor events (-0.53, measured
@@ -243,7 +237,7 @@ class StabilityAnalysisThread(QThread):
                                        axle_fx=cs_inputs["axle_fx"])
             t_modules = time.perf_counter()
             print(f"[PERF] Modules 1-5: {t_modules - t0:.3f}s  pipeline_cache_hit={pipeline_cache_hit}")
-            summaries = summarise_corners(corners, cs, stab, state, fz=fz, ls=ls,
+            summaries = summarise_corners(corners, cs, stab, state, fz=fz,
                                           lap_filter=self.lap_filter)
             t_summarise = time.perf_counter()
             print(f"[PERF] summarise_corners: {t_summarise - t_modules:.3f}s")
@@ -253,9 +247,9 @@ class StabilityAnalysisThread(QThread):
                 "cs": cs,
                 "stab": stab,
                 "fz": fz,
-                "ls": ls,
                 "slip": slip,
                 "forces": forces,
+                "cs_axle_loads": cs_axle_loads,
                 "corners": corners,
                 "cap": self.cap,
                 # lets the trace dialog default to the analysed lap selection
@@ -588,17 +582,13 @@ class OutingForm(QWidget):
         _verdict_cs_stat, the statistic the verdict reads. The apex gets two
         rows under distinct labels: the apex region (+/- metres, the CS the
         verdict reads) and the apex instant (+/- samples, the stability the
-        verdict reads, plus loads and LS); the instant's own CS slice is not
-        shown."""
+        verdict reads); the instant's own CS slice is not shown."""
         nan = float("nan")
 
         def stat_text(st, fmt):
             if not st or st["n"] == 0:
                 return "-"
             return f"{st['median']:{fmt}} [{st['p25']:{fmt}}..{st['p75']:{fmt}}]"
-
-        def kn(st):
-            return f"{st['median']/1000:.1f}" if st and st["n"] > 0 else "-"
 
         labels = {"entry_1_brake": "Brake", "entry_2_turnin": "Turn-in", "exit_4": "Exit 4", "exit_5": "Exit 5"}
         rows = []
@@ -608,8 +598,6 @@ class OutingForm(QWidget):
             row = {
                 "n": p["n_samples"], "valid": f"{p['valid_fraction_stab']*100:.0f}%",
                 "stab": stat_text(sob, ".0f"), "stab_median": sob["median"],
-                "fzf": kn(p.get("fz_f_N")), "fzr": kn(p.get("fz_r_N")),
-                "lsf": stat_text(p.get("ls_ratio_f"), ".2f"), "lsr": stat_text(p.get("ls_ratio_r"), ".2f"),
             }
             if phase == "apex_3" and summary.get("apex_region") is not None:
                 region = summary["apex_region"]
@@ -619,7 +607,7 @@ class OutingForm(QWidget):
                     "label": f"Apex region (+/-{apex_region_half_m:g} m)", "n": region["n_samples"], "valid": "-",
                     "csf": OutingForm._cs_cell_text(csf), "csr": OutingForm._cs_cell_text(csr),
                     "csf_median": csf["median"], "csr_median": csr["median"],
-                    "stab": "-", "stab_median": nan, "fzf": "-", "fzr": "-", "lsf": "-", "lsr": "-",
+                    "stab": "-", "stab_median": nan,
                 })
                 rows.append(dict(row, label=f"Apex (+/-{apex_half_samples} samples)",
                                  csf="-", csr="-", csf_median=nan, csr_median=nan))
@@ -803,18 +791,11 @@ class OutingForm(QWidget):
         self.btn_analyse.clicked.connect(self._run_stability_analysis)
         self.btn_analyse.setEnabled(False)
 
-        # enabled with Generate, once an analysis exists
+        # enabled once an analysis exists
         self.btn_lap_traces = QPushButton("Lap traces")
         self.btn_lap_traces.setFixedWidth(100)
         self.btn_lap_traces.clicked.connect(self._open_lap_trace)
         self.btn_lap_traces.setEnabled(False)
-
-        # global accuracy cap; modules/ only sees the int (or None)
-        self.accuracy_cap_combo = QComboBox()
-        self.accuracy_cap_combo.addItems(
-            ["Best available", "Level 1", "Level 2", "Level 3", "Level 4"]
-        )
-        self.accuracy_cap_combo.setFixedWidth(130)
 
         # The sideslip estimator is not user-selectable (removed 2026-10-06 with
         # the chooser class): analysis always runs the config's best-available
@@ -846,7 +827,6 @@ class OutingForm(QWidget):
         btn_layout.addWidget(self.btn_clear_data)
         btn_layout.addWidget(self.btn_analyse)
         btn_layout.addWidget(self.btn_lap_traces)
-        btn_layout.addWidget(self.accuracy_cap_combo)
         btn_layout.addWidget(self.csv_status_label)
         btn_layout.addStretch()
         layout.addWidget(btn_row)
@@ -1261,11 +1241,9 @@ class OutingForm(QWidget):
         return valid_laps if valid_laps else all_laps
 
     def _get_accuracy_cap_from_selector(self):
-        # None = best available, else int 1-4
-        text = self.accuracy_cap_combo.currentText()
-        if text == "Best available":
-            return None
-        return int(text.replace("Level ", ""))
+        # the accuracy-level chooser was removed (pruning 2026-10-22): every
+        # analysis runs at best available; the cap stays in the cache identity
+        return None
 
     def _get_setup_data_dict(self):
         # resolver uses the PERSISTED setup_data, not unsaved edits; none -> L1
@@ -1329,7 +1307,7 @@ class OutingForm(QWidget):
         # corner count, 2026-10-06 app check) must not race its completion
         widgets = [self._section_session, self._section_setup, self._section_setdown,
                    self._section_feedback, self._section_comments,
-                   self.btn_load, self.btn_clear_data, self.accuracy_cap_combo,
+                   self.btn_load, self.btn_clear_data,
                    self.lap_table, self.btn_clear_lap_selection, self.btn_lap_traces,
                    self.btn_generate_decision_frame, self.btn_back, self.btn_save]
         if self.btn_delete is not None:
@@ -1457,11 +1435,11 @@ class OutingForm(QWidget):
             "state": result["state"],
             "cs": result["cs"],
             "stab": result["stab"],
-            # fz, ls, slip/forces cached too -- reused on lap-filter-only reruns
+            # fz, slip/forces cached too -- reused on lap-filter-only reruns
             "fz": result["fz"],
-            "ls": result["ls"],
             "slip": result["slip"],
             "forces": result["forces"],
+            "cs_axle_loads": result["cs_axle_loads"],
             "accuracy_cap": result["cap"],
             "resolved_vehicle_snapshot": result["resolved_accuracy"]["values"],
             "estimator_settings": result["resolved_accuracy"]["estimator_settings"],
@@ -1787,30 +1765,17 @@ class OutingForm(QWidget):
         # and cache hit alike) -> threshold changes always show. Clears the
         # outdated-schema flag.
         self._cached_schema_mismatch = None
-        #
-        # comparison-run tag only when the cap actually clipped something.
-        # Thresholds are never re-derived for a capped run -- caveat shown here.
-        comparison_tag = ""
-        if resolved_accuracy and resolved_accuracy.get("clipped"):
-            cap_label = f"Level<={cap}" if cap is not None else "Level<=?"
-            comparison_tag = (
-                f" -- COMPARISON RUN ({cap_label}): verdicts use thresholds "
-                f"derived at the reference configuration; not directly "
-                f"comparable to a production run."
-            )
         if cached:
             self.stability_status_label.setText(
                 f"cached ({self._format_lap_filter_label(lap_filter)}) - "
-                f"re-run Analyse to refresh{comparison_tag}"
+                f"re-run Analyse to refresh"
             )
         else:
             self.stability_status_label.setText(
                 f"Analysed {len(summaries)} corners. See Stability Analysis "
-                f"section.{comparison_tag}"
+                f"section."
             )
-        self.stability_status_label.setStyleSheet(
-            f"color: {WARN if comparison_tag else TEXT_MUTED}; font-size: 12px;"
-        )
+        self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
         )
@@ -2075,9 +2040,6 @@ class OutingForm(QWidget):
         layout.addWidget(header)
 
         # per-phase table
-        # Fzf/Fzr (kN) and LSf/LSr: diagnostic, muted colour, no severity
-        # colouring -- no LS thresholds exist and none should be implied.
-        # fy_norm computed but not shown (no room).
         rows_html = (
             f"<table cellpadding='2' style='font-size:10px;'>"
             f"<tr>"
@@ -2087,10 +2049,6 @@ class OutingForm(QWidget):
             f"<th style='color:{TEXT_DIM};'>CSf med [p25..p75]</th>"
             f"<th style='color:{TEXT_DIM};'>CSr med [p25..p75]</th>"
             f"<th style='color:{TEXT_DIM};'>Stab med [p25..p75]</th>"
-            f"<th style='color:{TEXT_DIM};'>Fzf med kN</th>"
-            f"<th style='color:{TEXT_DIM};'>Fzr med kN</th>"
-            f"<th style='color:{TEXT_DIM};'>LSf med [p25..p75]</th>"
-            f"<th style='color:{TEXT_DIM};'>LSr med [p25..p75]</th>"
             f"</tr>"
         )
         from modules.stability_analysis import load_parameters
@@ -2105,10 +2063,6 @@ class OutingForm(QWidget):
                 f"<td style='color:{self._stability_colour('cs', row['csf_median'], axle='f')}; width:160px;'>{row['csf']}</td>"
                 f"<td style='color:{self._stability_colour('cs', row['csr_median'], axle='r')}; width:160px;'>{row['csr']}</td>"
                 f"<td style='color:{self._stability_colour('stab', row['stab_median'])}; width:180px;'>{row['stab']}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:70px;'>{row['fzf']}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:70px;'>{row['fzr']}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:160px;'>{row['lsf']}</td>"
-                f"<td style='color:{TEXT_MUTED}; width:160px;'>{row['lsr']}</td>"
                 f"</tr>"
             )
         rows_html += "</table>"
@@ -2214,7 +2168,7 @@ class OutingForm(QWidget):
 
     def _build_decision_frame_toggle(self):
         # Decision frame -- the recommendation UI; all 39 rules run here as
-        # bridges (parity: diagnostics/inspect_frame_stage2_parity.py).
+        # bridges (parity: diagnostics/inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22)).
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -2260,14 +2214,7 @@ class OutingForm(QWidget):
         self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.decision_frame_summary_label)
 
-        # tyre-pressure flags beside the shortlist; hidden while no target is set
-        self.decision_frame_tyre_flags_label = QLabel("")
-        self.decision_frame_tyre_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
-        self.decision_frame_tyre_flags_label.setWordWrap(True)
-        self.decision_frame_tyre_flags_label.setVisible(False)
-        panel_layout.addWidget(self.decision_frame_tyre_flags_label)
-
-        # kerb events: informational, same class as the tyre-pressure check
+        # kerb events: informational
         self.decision_frame_kerb_flags_label = QLabel("")
         self.decision_frame_kerb_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
         self.decision_frame_kerb_flags_label.setWordWrap(True)
@@ -2345,7 +2292,7 @@ class OutingForm(QWidget):
         from modules.decision_frame import (
             build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
             generate_candidates, generate_display_split, resolve_conflicts,
-            tyre_pressure_flags, tyre_pressure_tooltip, group_display_rows, apply_display_top_n,
+            group_display_rows, apply_display_top_n,
             kerb_event_flags, kerb_event_population_note, unfilled_sheet_banner,
             harden_display_rows,
         )
@@ -2389,21 +2336,6 @@ class OutingForm(QWidget):
         shortlist, tail, tail_note = apply_display_top_n(shortlist, below_floor + tail, config)
 
         self._clear_decision_frame_rows()
-
-        flags = tyre_pressure_flags(
-            config,
-            channels=(self.parsed_data or {}).get("channels"),
-            corners=self.stability_result.get("corners"),
-            state=self.stability_result.get("state"),
-        )
-        self.decision_frame_tyre_flags_label.setText("\n".join(flags))
-        self.decision_frame_tyre_flags_label.setToolTip(tyre_pressure_tooltip(
-            config,
-            channels=(self.parsed_data or {}).get("channels"),
-            corners=self.stability_result.get("corners"),
-            state=self.stability_result.get("state"),
-        ) if flags else "")
-        self.decision_frame_tyre_flags_label.setVisible(bool(flags))
 
         laps = (self.parsed_data or {}).get("laps", [])
         kerb_flags = kerb_event_flags(evidence, laps)
@@ -2858,15 +2790,6 @@ class OutingForm(QWidget):
                 self._update_plots(fastest_num)
                 break
 
-        if self.lap_table.rowCount() > 0:
-            header_h = self.lap_table.horizontalHeader().height()
-            total_row_h = sum(
-                self.lap_table.rowHeight(i)
-                for i in range(self.lap_table.rowCount())
-            )
-            self.lap_table.setFixedHeight(header_h + total_row_h + 4)
-            self.lap_table.setVisible(True)
-
     def _build_setup_section(self, prefix="setup"):
         section = QWidget()
         layout = QVBoxLayout(section)
@@ -2884,8 +2807,6 @@ class OutingForm(QWidget):
             self.setdown_inputs["car"] = {}
             self._active_inputs = self.setdown_inputs
 
-        params = get_setup_parameters()
-
         columns = QWidget()
         columns_layout = QHBoxLayout(columns)
         columns_layout.setContentsMargins(0, 0, 0, 0)
@@ -2895,17 +2816,17 @@ class OutingForm(QWidget):
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(16)
-        left_layout.addWidget(self._build_corner_block("FL", params.get("front_left", {})))
-        left_layout.addWidget(self._build_corner_block("RL", params.get("rear_left", {})))
+        left_layout.addWidget(self._build_corner_block("FL"))
+        left_layout.addWidget(self._build_corner_block("RL"))
 
-        center = self._build_car_center(params.get("car", {}))
+        center = self._build_car_center()
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(16)
-        right_layout.addWidget(self._build_corner_block("FR", params.get("front_right", {})))
-        right_layout.addWidget(self._build_corner_block("RR", params.get("rear_right", {})))
+        right_layout.addWidget(self._build_corner_block("FR"))
+        right_layout.addWidget(self._build_corner_block("RR"))
 
         columns_layout.addWidget(left)
         columns_layout.addWidget(center)
@@ -2969,7 +2890,7 @@ class OutingForm(QWidget):
 
         return container
 
-    def _build_corner_block(self, corner_label, params):
+    def _build_corner_block(self, corner_label):
         corner_key = {"FL": "front_left", "FR": "front_right",
                       "RL": "rear_left", "RR": "rear_right"}[corner_label]
 
@@ -3105,7 +3026,7 @@ class OutingForm(QWidget):
 
         return group
 
-    def _build_car_center(self, params):
+    def _build_car_center(self):
         center = QWidget()
         layout = QVBoxLayout(center)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -3780,8 +3701,7 @@ class OutingForm(QWidget):
         split_layout.setSpacing(16)
 
         self.feedback_table = QTableWidget()
-        # no "worst corner" column: its flag fed only the legacy rule engine
-        # behind the removed weekend PDF export (removed 2026-10-07, unwired)
+        # no "worst corner" column: its flag fed only the old rule engine
         self.feedback_table.setColumnCount(6)
         self.feedback_table.setHorizontalHeaderLabels(
             ["No.", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]

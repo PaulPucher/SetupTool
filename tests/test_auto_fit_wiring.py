@@ -1,6 +1,6 @@
 # Fresh-session work package, Phase 4: validation of the production
 # wiring built in Phases 1-3. Calls modules.tyre_fit_auto.
-# resolve_sideslip_beta directly -- the exact function ui/views/
+# resolve_sideslip_beta_and_cs_inputs directly -- the exact function ui/views/
 # outing_form.py's StabilityAnalysisThread.run() calls, extracted
 # during Phase 1 specifically so this validation does not need a Qt
 # event loop (same "not worth the fragility" reasoning tests/conftest.
@@ -21,11 +21,17 @@ from modules.stability_analysis import (
     load_parameters, prepare_vehicle_state, estimate_sideslip, estimate_slip_angles,
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
-from modules.tyre_fit_auto import SIDESLIP_SOURCES, resolve_sideslip_beta, fit_session_pacejka
-from tests.conftest import DUBAI_SAMPLE, OLD_PATH_NIS_GATE, find_data_file, resolve_data_path
+from modules.tyre_fit_auto import SIDESLIP_SOURCES, resolve_sideslip_beta_and_cs_inputs, fit_session_pacejka
+from tests.conftest import DUBAI_SAMPLE, find_data_file, resolve_data_path
 
 RAW_FILE = find_data_file(DUBAI_SAMPLE)  # None without the data drive; the fixture raises clearly
 FIXED_CAP = 1  # matches tests/conftest.py's own convention
+
+
+def resolve_sideslip_beta(state, params, data, sideslip_source, csv_path=None):
+    # the first five returns (beta, manifest, gate, fallback, reason); the
+    # public wrapper of that name was removed in the 2026-10-22 pruning
+    return resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, csv_path)[:5]
 
 
 @pytest.fixture(scope="module")
@@ -33,11 +39,7 @@ def wiring_fixture():
     raw_params = load_parameters()
     resolved = resolve_accuracy(raw_params, setup_data=None, cap=FIXED_CAP)
     effective_params = apply_resolved_vehicle(raw_params, resolved)
-    # old path pinned (2026-10-20): these tests hold the WP-N3 Phase 3 Dubai
-    # figures of the per_session fit; fit L, the config default since schema
-    # 16, is wired and tested end to end in tests/test_tyre_fit_literature.py
-    effective_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
-    effective_params["nis_gate"].update(OLD_PATH_NIS_GATE)   # the old path's own gate
+    # default path (fit L) since the 2026-10-22 pruning removed per_session
     data = parse_csv(resolve_data_path(DUBAI_SAMPLE))
     state = prepare_vehicle_state(data["channels"], effective_params)
     assert state is not None
@@ -69,26 +71,6 @@ def test_kinematic_source_is_plain_estimate_sideslip(wiring_fixture):
 
 # --- Phase 4b: ekf_auto_pacejka wiring ------------------------------------
 
-def test_ekf_auto_pacejka_reproduces_wp_n3_phase3_figures(wiring_fixture):
-    """Against WP-N3 Phase 3's own figures
-    (thesis_notes.md "Phase 3: Pacejka variant -- results"): both axles
-    converge (status 'ok', powell_converged True, sign_ok True), no
-    degenerate flag.
-    """
-    params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
-    beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, params, data, "ekf_auto_pacejka", csv_path=RAW_FILE
-    )
-    assert not fallback_used, f"unexpected fallback: {fallback_reason}"
-    assert fit_manifest["status"] == "ok"
-    assert gate_verdict is not None and gate_verdict["verdict"] in ("pass", "warn")
-    for axle in ("front", "rear"):
-        ax = fit_manifest["axles"][axle]
-        assert ax["powell_converged"] is True
-        assert ax["sign_ok"] is True
-        assert ax["D"] > 0
-
-
 def test_ekf_auto_pacejka_beta_matches_standalone_chain_exactly(wiring_fixture):
     params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
     beta_wired, _, gate_verdict, fallback_used, _ = resolve_sideslip_beta(
@@ -114,19 +96,15 @@ def test_forced_fallback_via_impossible_gate_thresholds(wiring_fixture):
     gate to verdict 'fail' regardless of the actual fit quality. Verifies
     the fallback path end to end: kinematic beta used (bit-identical to
     a direct estimate_sideslip call), reason recorded and mentions the
-    gate, fit_manifest still present (the fit itself succeeded; only the
-    gate failed it) with status 'ok' -- the two failure causes
-    (degenerate fit vs failed gate) must stay distinguishable in the
-    reason text for the status line/PDF (Phase 3b/3d) to describe
-    correctly.
+    gate, fit_manifest still present (the fit reached the gate; only the
+    gate failed it) -- the two failure causes (degenerate fit vs failed
+    gate) must stay distinguishable in the reason text for the status
+    line to describe correctly.
 
-    MODE CHANGED to ekf_auto_pacejka (CS validity repair, Phase 4,
-    2026-09-02, thesis_notes.md "Threshold anchoring + arc closure,
-    Phase 4"): this test's own premise -- forcing the GATE to fail while
-    the FIT itself succeeds -- requires a fit that actually reaches 'ok'
-    on Dubai; the Dugoff mode (removed 2026-10-17) degenerated before the
-    gate. ekf_auto_pacejka converges normally (status 'ok', gate 'pass'
-    under real thresholds), so it exercises the code path under test.
+    No assertion on the fit status (author ruling 2026-10-22, P1c): under
+    fit L the Dubai fit grades 'marginal', not 'ok'; 'ok' was a property
+    of the removed per_session fit. Any non-degenerate fit reaches the
+    gate, which is all this test needs.
     """
     params, data, state = wiring_fixture["params"], wiring_fixture["data"], wiring_fixture["state"]
     forced_params = copy.deepcopy(params)
@@ -140,9 +118,7 @@ def test_forced_fallback_via_impossible_gate_thresholds(wiring_fixture):
     assert fallback_used is True
     assert fallback_reason is not None and "NIS gate verdict 'fail'" in fallback_reason
     assert gate_verdict is not None and gate_verdict["verdict"] == "fail"
-    assert fit_manifest is not None and fit_manifest["status"] == "ok", (
-        "the fit itself should have succeeded -- only the gate was forced to fail"
-    )
+    assert fit_manifest is not None, "the fit should have reached the gate -- only the gate was forced to fail"
 
     beta_kinematic = estimate_sideslip(state, forced_params)
     assert np.array_equal(beta, beta_kinematic), (
@@ -154,16 +130,15 @@ def test_forced_fallback_status_line_text_names_kinematic_and_reason(wiring_fixt
     """Phase 3b/3d requirement, checked directly against the real
     formatter: the status line must be impossible to mistake for a
     real EKF render on fallback -- checks OutingForm._format_estimator_
-    status (None-self call, same precedent as _classify_corner) and
-    core/weekend_pdf_export._estimator_status_text produce text that
-    names KINEMATIC (not the requested EKF mode) and includes the
-    fallback reason.
+    status (None-self call, same precedent as _classify_corner) produces
+    text that names KINEMATIC (not the requested EKF mode) and includes the
+    fallback reason. (The weekend PDF's copy of this text was removed with
+    the export, 2026-10-22.)
     """
     try:
         from ui.views.outing_form import OutingForm
     except ImportError as e:
         pytest.skip(f"ui.views.outing_form not importable in this environment ({e})")
-    from core.weekend_pdf_export import _estimator_status_text
 
     fallback_reason = "NIS gate verdict 'fail' (health_score=0.05, threshold_warn=2.0)"
     text, colour = OutingForm._format_estimator_status(
@@ -177,13 +152,6 @@ def test_forced_fallback_status_line_text_names_kinematic_and_reason(wiring_fixt
     assert "KINEMATIC" in text
     assert plain in text
     assert "Dugoff" not in text and "Pacejka" not in text
-
-    pdf_text = _estimator_status_text(
-        "ekf_auto_pacejka", {"status": "ok"}, {"verdict": "fail", "health_score": 0.05},
-        True, fallback_reason,
-    )
-    assert "KINEMATIC" in pdf_text
-    assert plain in pdf_text
 
 
 # --- Phase 4d: mode-switch cache test ---------------------------------------

@@ -3,7 +3,7 @@
 # diagnostics/inspect_step2_chair_plots.py, so both produce identical
 # figures. render_* is the public API; _draw_* are building blocks.
 # Lap = colour (plot_style.lap_styles); one quantity per panel, front and
-# rear always separate (laps carry cs_f/cs_r/ls_f/ls_r).
+# rear always separate (laps carry cs_f/cs_r).
 
 import numpy as np
 import matplotlib
@@ -294,10 +294,14 @@ def _draw_tyre_curve_panel(ax, axle_label, curve, theme, legend_ax):
     ax.set_box_aspect(1.0)
 
     ax.set_xlabel("Slip angle (deg)", fontsize=ps.PRINT_FONT_SIZE_PT * 0.75)
-    # kN: 6-digit N tick labels ate the width the panel needs (>= 7 cm)
-    import matplotlib.ticker as mticker
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, pos: f"{v / 1000:.0f}"))
-    ax.set_ylabel("Fy (kN)", fontsize=ps.PRINT_FONT_SIZE_PT * 0.75)
+    # the force the CS was estimated on: Fy / Fz under fit L, else Fy, shown
+    # in kN (6-digit N tick labels ate the width the panel needs, >= 7 cm)
+    if curve.get("normalised"):
+        ax.set_ylabel(curve.get("y_label", "Fy / Fz (-)"), fontsize=ps.PRINT_FONT_SIZE_PT * 0.75)
+    else:
+        import matplotlib.ticker as mticker
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, pos: f"{v / 1000:.0f}"))
+        ax.set_ylabel("Fy (kN)", fontsize=ps.PRINT_FONT_SIZE_PT * 0.75)
     ax.tick_params(labelsize=ps.PRINT_FONT_SIZE_PT * 0.75)
     ax.set_title(f"{axle_label} tyre curve", fontsize=ps.PRINT_FONT_SIZE_PT)
 
@@ -323,7 +327,7 @@ def _new_figure(width_cm, height_cm, theme):
 def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map, theme=ps.PRINT, near_strike=None):
     """Chair-style composition: speed, front CS, rear CS vs s (with thresholds),
     a narrow track-map row (compact: no title/legend), front/rear tyre curves
-    (linear reference, fitted model, tangent). Stability/LS are in
+    (linear reference, fitted model, tangent). Stability is in
     render_verdict_traces_figure.
     Side legend strips per trace panel; tyre curves keep theirs below.
     laps = exactly the checked set; colours assigned here via lap_styles,
@@ -383,10 +387,8 @@ def _verdict_panel_set(fig, gs, panel_specs):
 
 def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT, near_strike=None):
     """Extension stack, one quantity per panel, shared x: speed, stability,
-    front CS, rear CS, front LS, rear LS. Side legend per panel.
-    Returns a list of figures -- currently one; six panels fit in 24 cm.
-    Should they ever not: two _verdict_panel_set calls (speed/stab/CSf/CSr,
-    speed/LSf/LSr), each its own _new_figure.
+    front CS, rear CS. Side legend per panel. Returns a list of figures --
+    currently one (the LS panels were removed in the 2026-10-22 pruning).
     """
     from core import plot_style
     styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
@@ -394,7 +396,7 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT,
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_VERDICT, theme)
     # left margin 0.035 (~5.6 mm) so the y label isn't clipped
     fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02, rect=(0.035, 0.0, 1.0, 1.0))
-    gs = fig.add_gridspec(6, 1)
+    gs = fig.add_gridspec(4, 1)
     panel_specs = [
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
         ("stab", lambda ax, lax: _draw_stability_panel(ax, laps, styles, thresholds, theme, lax)),
@@ -404,13 +406,8 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT,
         ("cs_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_r", "Rear CS ratio", lax,
                                                     strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
                                                     near_strike=near_strike)),
-        ("ls_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "ls_f", "Front LS ratio", lax,
-                                                    zero_line=True)),
-        ("ls_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "ls_r", "Rear LS ratio", lax,
-                                                    zero_line=True)),
     ]
-    # autoscale ignores NaN -> masked LS panels came out narrower; x anchored
-    # on the speed panel
+    # x anchored on the speed panel
     axes = _verdict_panel_set(fig, gs, panel_specs)
 
     fig.suptitle(corner_label, color=theme["text"], fontsize=ps.PRINT_FONT_SIZE_PT + 2)

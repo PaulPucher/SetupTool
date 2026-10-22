@@ -1,7 +1,7 @@
 # Decision frame: evidence -> candidates -> scoring, plus a conflict
 # resolver. Production recommendation path; all 39 rules of
 # recommendations.json run here as candidate bridges (parity:
-# diagnostics/inspect_frame_stage2_parity.py), using the rule table and
+# diagnostics/inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22)), using the rule table and
 # helpers from modules/recommendation.py.
 
 import json
@@ -164,7 +164,7 @@ def _build_corner_verdict_evidence(aggregated, by_corner_laps, classify_fn, conf
 
 def _build_ls_disambiguation_evidence(aggregated, aggregated_ls, corner_verdict_evidence):
     # (b) traction- vs cornering-limited, exit oversteer only, valid LS only
-    # (method from diagnostics/inspect_ls_cs_disambiguation.py). Split is
+    # (method from diagnostics/inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22)). Split is
     # population-relative (median LS_ratio_r over this session's oversteer
     # corners at that phase) -- no absolute LS threshold at this point.
     exit_phases = ("exit_4", "exit_5")
@@ -546,7 +546,7 @@ def _build_intervention_tc_evidence(corners, state, channels, aggregated):
 # candidate. Trigger = strike SEVERITY repeating across laps (peak
 # |log_acc_z| inside the existing kerb_mask), never kerb_fraction alone --
 # kerb contact itself is normal.
-# Threshold = pooled p75 (diagnostics/inspect_kerb_severity_census.py):
+# Threshold = pooled p75 (diagnostics/inspect_kerb_severity_census.py (script at tag pre-prune-2026-10-22)):
 # lowest candidate where firing is a minority on both sessions (Dubai
 # 1/14, v3 4/17); p50 fires on ~half. Repeat: >= 2 laps, as in _repeat_facts.
 

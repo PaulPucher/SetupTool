@@ -74,14 +74,15 @@ def test_missing_calibration_flag_defaults_to_kinematic():
 
 def test_uncal_keys_on_tyre_fit_mode_too(raw_params):
     # thresholds encode the estimator (author ruling 2026-10-20): the live
-    # config is calibrated; the same config with the old per_session fit
-    # selected is not, although the sideslip source is unchanged
+    # config is calibrated; the same config naming another tyre-fit mode is
+    # not, although the sideslip source is unchanged (per_session, the
+    # example used before, was removed in the 2026-10-22 pruning)
     import copy
     from modules.stability_analysis import thresholds_calibrated
     assert thresholds_calibrated(raw_params)
-    old_path = copy.deepcopy(raw_params)
-    old_path["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
-    assert not thresholds_calibrated(old_path)
+    other = copy.deepcopy(raw_params)
+    other["tyre_fit_auto"]["tyre_fit_mode"] = "some_other_mode"
+    assert not thresholds_calibrated(other)
 
 
 # --- 2. ANALYSIS_SCHEMA_VERSION matches the payload shape actually built -----
@@ -151,9 +152,12 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # braking phases populated) -- no payload shape change.
     # 19 (2026-10-21): estimator input only (drag in the CoG longitudinal
     # force, c_D A 1.0 m^2) -- no payload shape change.
-    assert ANALYSIS_SCHEMA_VERSION == 19, (
+    # 20 (2026-10-22): pruning -- LS blocks and seven fit_manifest config
+    # echoes removed; corner summaries untouched, every shape check below
+    # unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 20, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 19 -- update this test deliberately if the version was bumped again"
+        "written for 20 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

@@ -9,15 +9,16 @@
 # configured source (fit L by default), CS with the inputs it hands over,
 # stability, summarise_corners, aggregate_by_corner over the analysis laps
 # (worst lap); corner value = worst of the five phases, apex_3 from
-# apex_region (_corner_values, imported unchanged). STRONG = p10, MODERATE =
+# apex_region (_corner_values, copied unchanged). STRONG = p10, MODERATE =
 # p30 of the pool's corner values per axle (np.percentile, linear). Best
 # available accuracy (cap None), speed classes reclassified as in the app.
 # POOL: the 14 development sessions (Nurburgring + Le Castellet); Dubai
 # excluded. Every session must run on EKF beta (no fallback) -- reported.
 # SENSITIVITY: the same rule without outings 59 and 70 (g2 front at the edge).
 # Beside it: the share of pool corner values below the current and proposed
-# thresholds, the limit-event curve floors of the fit-L curves (C = 1), and
-# where the proposed STRONG sits relative to -0.53.
+# thresholds and where the proposed STRONG sits relative to -0.53. (The
+# curve-floor line section went with the curve-floor layer in the
+# 2026-10-22 pruning; the floor events below are the event layer.)
 # FLOOR EVENTS (modules.limit_events.detect_floor_events, the app's output):
 # per session and axle the event count with kerb- / observer-reset-affected
 # counts and attribute summaries; per analysis lap the count of clean events
@@ -41,6 +42,63 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+# Development-set file list, the 14 entries of the retired hub
+# inspect_data_quality.py (inlined in the 2026-10-22 pruning, unchanged):
+# (key, track, outing, label, ("rel", path under the data root)).
+_NBR = "unlabeled/02_NBR_CRV_data"
+CANDIDATES = (
+    ("nbr_o05_mla", "NBR", 5, "NBR outing 5 MLA", ("rel", f"{_NBR}/01_SE_01/NBR-73-005-001-MLA-26.07.01.0919.txt")),
+    ("nbr_o10_jdr", "NBR", 10, "NBR outing 10 JDR", ("rel", f"{_NBR}/01_SE_01/NBR-73-010-026-JDR-26.07.01.1029.txt")),
+    ("nbr_o20_jst", "NBR", 20, "NBR outing 20 JST", ("rel", f"{_NBR}/01_SE_02/NBR-73-020-065-JST-26.07.01.1454.txt")),
+    ("nbr_o29_jst", "NBR", 29, "NBR outing 29 JST (NBR_Sturm_Solution copy)",
+     ("rel", "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt")),
+    ("nbr_o46_jst", "NBR", 46, "NBR outing 46 JST", ("rel", f"{_NBR}/01_TE_04/NBR-73-046-162-JST-26.07.02.1411.txt")),
+    ("nbr_o53_mla", "NBR", 53, "NBR outing 53 MLA", ("rel", f"{_NBR}/01_TE_04/NBR-73-053-207-MLA-26.07.02.1707.txt")),
+    ("nbr_o54_cdr", "NBR", 54, "NBR outing 54 CDR", ("rel", f"{_NBR}/01_TE_04/NBR-73-054-214-CDR -26.07.02.1727.txt")),
+    ("nbr_o59_mla", "NBR", 59, "NBR outing 59 MLA", ("rel", f"{_NBR}/New folder/NBR-73-059-232-MLA-26.07.03.1210.txt")),
+    ("nbr_o61_jdr", "NBR", 61, "NBR outing 61 JDR", ("rel", f"{_NBR}/New folder/NBR-73-061-238-JDR-26.07.03.1229.txt")),
+    ("nbr_o63_cdr", "NBR", 63, "NBR outing 63 CDR", ("rel", f"{_NBR}/New folder/NBR-73-063-256-CDR-26.07.03.1309.txt")),
+    ("nbr_qp_cdr", "NBR", 69, "NBR qualifying CDR (outing 69)", ("rel", "NBR_Qualy_CDr/CDR-QP01-NBR-v1.txt")),
+    ("nbr_qp_mla", "NBR", 70, "NBR qualifying MLA (outing 70)", ("rel", "NBR_Qualy_MLA/MLA-QP01-NBR-v2.txt")),
+    ("pr_o25_us_v1", "PR", 25, "Le Castellet outing 25, MLA-SE07_US-v1", ("rel", "Paul_Ricard_MLA_US/MLA-SE07_US-v1.txt")),
+    ("pr_o32_us_v2", "PR", 32, "Le Castellet outing 32, MLA-SE07_US-v2", ("rel", "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt")),
+)
+
+
+def keep_awake(on):
+    # multi-hour runs: stop Windows from sleeping (from the retired hub
+    # inspect_fit_lit.py, inlined 2026-10-22)
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | (0x00000001 if on else 0))
+
+
+# Corner value = worst of the five phases, apex_3 from apex_region; copied
+# unchanged from the retired inspect_threshold_rederivation.py (2026-10-22).
+PHASES = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
+
+
+def _corner_values(agg):
+    corners = {}
+    for cid, a in agg.items():
+        if cid is None:
+            continue
+        row = {}
+        for ax in "fr":
+            vals = {}
+            for ph in PHASES:
+                v = a["phases"][ph][f"cs_ratio_{ax}"]["median"]
+                if ph == "apex_3" and a.get("apex_region") is not None:
+                    v = a["apex_region"][f"cs_ratio_{ax}"]["median"]
+                vals[ph] = v
+            fin = [v for v in vals.values() if v == v]
+            row[ax] = min(fin) if fin else float("nan")
+        st = [a["phases"][ph]["stability_observed_Nm_per_deg"]["median"] for ph in PHASES]
+        st = [v for v in st if v == v]
+        row["stab"] = min(st) if st else float("nan")
+        corners[cid] = row
+    return corners
+
 OUT_DIR = os.path.join(ROOT, "diagnostics", "plots", "threshold_rederivation")
 # run tag (env THRESH_RUN_TAG): 20261020 = the first fit-L derivation,
 # 20261020b = after the R26 source fix; each run keeps its own cache and report
@@ -54,8 +112,6 @@ PHASES = ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")
 
 
 def compute(key):
-    from diagnostics.inspect_data_quality import CANDIDATES
-    from diagnostics.inspect_threshold_rederivation import _corner_values
     from tests.conftest import resolve_data_path
     from modules.csv_parser import parse_csv, load_channels_config
     from modules.stability_analysis import (load_parameters, prepare_vehicle_state, estimate_slip_angles,
@@ -65,7 +121,7 @@ def compute(key):
     from modules.corner_analysis import reclassify_speed_classes
     from modules.recommendation import aggregate_by_corner
     from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
-    from modules.limit_events import detect_floor_events, _event_line
+    from modules.limit_events import detect_floor_events
     t0 = time.perf_counter()
     _, track, outing, label, src = {c[0]: c for c in CANDIDATES}[key]
     path = resolve_data_path(src[1])
@@ -86,13 +142,12 @@ def compute(key):
     corners = _corner_values(aggregate_by_corner([x for x in summ if x["lap_number"] in valid]))
     fe = detect_floor_events(cs, st, data.get("corners", []), laps, p, slip,
                              axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])
-    line = _event_line(man, gate)
     out = {"key": key, "label": label, "mode": p["tyre_fit_auto"]["tyre_fit_mode"], "source": source,
            "status": man and man.get("status"), "reason": man and (man.get("degenerate_reason")
                                                                      or man.get("marginal_reason")),
            "fallback": fb, "fallback_reason": fr, "gate": gate and gate.get("verdict"),
            "cs_note": cs_in["note"], "analysis_laps": sorted(valid), "corners": corners,
-           "floor_events": fe, "limit_event_line": line,
+           "floor_events": fe,
            "n_instances": {str(c["stable_corner_id"]): sum(1 for d in data["corners"]
                                                           if d.get("stable_corner_id") == c["stable_corner_id"]
                                                           and d["lap_number"] in valid)
@@ -116,7 +171,6 @@ def _pct_below(x, thr):
 
 def report():
     from modules.stability_analysis import load_parameters
-    from diagnostics.inspect_data_quality import CANDIDATES
     res = {}
     for k in POOL:
         with open(os.path.join(CACHE, f"{k}.pkl"), "rb") as fh:
@@ -167,12 +221,6 @@ def report():
             c_ = (int(np.sum(x < cur[ax][0])), int(np.sum((x >= cur[ax][0]) & (x < cur[ax][1]))))
             p_ = (int(np.sum(x < S)), int(np.sum((x >= S) & (x < M))))
             L.append(f"    {res[k]['label']}: {c_[0]}/{c_[1]} | {p_[0]}/{p_[1]} of {x.size}")
-
-    L += ["", "LIMIT-EVENT LINE of the fit-L curves (min over 0..30 deg of (dFy/dalpha) / (B C D), C = 1):"]
-    for k in POOL:
-        line = res[k]["limit_event_line"]
-        L.append(f"  {res[k]['label']}: " + (line if isinstance(line, str) else
-                                               f"front {line['f']:+.4f}, rear {line['r']:+.4f}"))
 
     L += ["", "FLOOR EVENTS (CS ratio < -0.53, contiguous runs inside corner instances on analysis laps; "
               "clean = neither kerb- nor observer-reset-affected):"]
@@ -244,7 +292,6 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "report":
         report()
         return
-    from diagnostics.inspect_fit_lit import keep_awake
     keep_awake(True)
     try:
         todo = [k for k in POOL if not os.path.exists(os.path.join(CACHE, f"{k}.pkl"))]

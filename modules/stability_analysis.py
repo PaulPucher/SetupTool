@@ -80,7 +80,14 @@ CAR_DATA_PATH = "config/car_data.json"
 #      drag enters the CoG longitudinal force (drag_coeff 0.50 x frontal area
 #      2.0 m^2, Level 1, literature) -- fit-L braking filter, Eq. 9 axle split
 #      and the observer's front force frame move. No payload shape change.
-ANALYSIS_SCHEMA_VERSION = 19
+#  20: (2026-10-22) payload shape change from the pruning package (P1b), no
+#      value change: the longitudinal-stiffness blocks are gone, fit_manifest
+#      loses seven legacy config echoes (load_normalised, nis_window_s,
+#      nis_chi2_bound, nis_flag_fraction, divergence_trigger, cd_drift,
+#      cd_threshold), and fit L is the only fit mode, so the in-memory fit
+#      result always carries cs_axle_loads. Goldens differ only in _meta;
+#      no threshold re-derivation (values bit-identical).
+ANALYSIS_SCHEMA_VERSION = 20
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -279,19 +286,6 @@ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
     return np.where(reset_after[bracket_lo], np.nan, s_m)
 
 
-def _build_inout_lap_mask(t_ref, laps):
-    # Module 5 excludes in/out laps regardless of the UI lap_filter: cold
-    # tyres break the cross-lap stationarity the regression assumes (same
-    # idea as the kerb mask). [domain improvement]
-    # Superseded in production by _build_non_analysis_lap_mask (#32); kept
-    # for the diagnostics that reproduce pre-#32 regression windows.
-    mask = np.zeros(len(t_ref), dtype=bool)
-    for lap in laps or []:
-        if lap.get("is_outlap") or lap.get("is_inlap"):
-            mask |= (t_ref >= lap["start_time"]) & (t_ref <= lap["end_time"])
-    return mask
-
-
 def _build_non_analysis_lap_mask(t_ref, laps):
     # Module 5 pools analysis laps only (finding #32): beyond the in/out laps
     # the slow laps (past valid_lap_max_ratio, e.g. traffic or a cool-down
@@ -331,7 +325,7 @@ def _seconds_to_samples(duration_s, sample_rate_hz):
 def _kerb_smear_zone(kerb_mask, grade_samples):
     # The 2 Hz zero-phase CS filter runs over the strike before the mask is
     # applied, so the strike leaks into unmasked neighbours on both sides
-    # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py). Zone = unmasked
+    # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22)). Zone = unmasked
     # samples within grade_samples of a mask sample. It feeds the
     # near_strike grade mark (together with the mask, R1), bars a window from
     # setting the CS linear reference and leaves the tyre-fit base mask with
@@ -491,95 +485,6 @@ def estimate_sideslip(state, params):
     beta = _highpass_filter(beta_raw, se["beta_washout_cutoff_hz"], sr)
     beta = np.where(moving, beta, 0.0)
     return beta
-
-
-def _interp_circular_deg(t_query, t_src, deg_src):
-    """Angle interpolation via sin/cos + atan2 -- linear breaks at the 0/360
-    wrap. Returns rad in (-pi, pi].
-    """
-    rad_src = np.radians(deg_src)
-    sin_i = np.interp(t_query, t_src, np.sin(rad_src))
-    cos_i = np.interp(t_query, t_src, np.cos(rad_src))
-    return np.arctan2(sin_i, cos_i)
-
-
-def estimate_sideslip_gps(state, channels, params):
-    """beta_gps = GPS course over ground - heading. Validation only, not used
-    in the pipeline (diagnostics/inspect_beta_gps_validation.py).
-    Heading isn't logged -> integrated yaw rate, re-anchored to course at
-    low-slip samples.
-
-    Rotation: course is compass (clockwise from North); corr(d course/dt,
-    -yaw_rate) = +0.95 -> yaw_rate is counter-clockwise positive. Checked,
-    not assumed.
-    GPS latency: course lags yaw rate ~0.32 s -> course read
-    gps_course_latency_s ahead.
-    Anchors: smoothed |ay| < gps_course_anchor_max_ay_g for at least
-    gps_course_anchor_min_duration_s; one anchor per run (midpoint, median
-    offset). Raw per-sample gate gave only sub-0.1 s runs.
-    Drift allocated by accumulated |yaw rate| between anchors, not time --
-    the gyro shortfall scales with rotation, i.e. with corners.
-    """
-    se = params["stability_estimation"]
-    t_ref = state["time"]
-    sr = state["sample_rate_hz"]
-    moving = state["moving_mask"]
-
-    course_ch = channels.get("log_gps_course")
-    if course_ch is None or course_ch.get("quality") in ("missing", "failed") or course_ch.get("time") is None:
-        return np.full_like(t_ref, np.nan)
-
-    latency_s = se.get("gps_course_latency_s", 0.0)
-    course_rad = _interp_circular_deg(t_ref + latency_s, course_ch["time"], course_ch["data"])
-
-    # open-loop heading, sign per the rotation finding above
-    psi_gyro_dot = -state["yaw_rate_radps"]
-    dt = 1.0 / sr
-    psi_gyro = np.cumsum(psi_gyro_dot) * dt
-
-    ay_g = np.abs(state["ay_mps2"]) / 9.81
-    smooth_win = max(1, int(round(se["gps_course_anchor_smooth_window_s"] * sr)))
-    if smooth_win > 1:
-        kernel = np.ones(smooth_win) / smooth_win
-        ay_g_smooth = np.convolve(ay_g, kernel, mode="same")
-    else:
-        ay_g_smooth = ay_g
-    candidate = moving & (ay_g_smooth < se["gps_course_anchor_max_ay_g"])
-
-    d = np.diff(candidate.astype(int))
-    starts = list(np.where(d == 1)[0] + 1)
-    ends = list(np.where(d == -1)[0] + 1)
-    if candidate[0]:
-        starts = [0] + starts
-    if candidate[-1]:
-        ends = ends + [len(candidate)]
-
-    min_run_samples = se["gps_course_anchor_min_duration_s"] * sr
-    raw_offset = np.arctan2(np.sin(course_rad - psi_gyro), np.cos(course_rad - psi_gyro))
-
-    anchor_times = []
-    anchor_offsets = []
-    for s_idx, e_idx in zip(starts, ends):
-        if (e_idx - s_idx) < min_run_samples:
-            continue
-        anchor_times.append(float(t_ref[(s_idx + e_idx) // 2]))
-        anchor_offsets.append(float(np.median(np.unwrap(raw_offset[s_idx:e_idx]))))
-
-    if len(anchor_times) == 0:
-        # no anchor window at all -> drift unresolved, beta_gps unusable
-        return np.full_like(t_ref, np.nan)
-
-    anchor_offsets_unwrapped = np.unwrap(np.array(anchor_offsets))
-    # rotation clock (cumulative |yaw rate|) instead of time; np.interp holds
-    # end values outside the anchored range
-    yaw_abs_cum = np.cumsum(np.abs(state["yaw_rate_radps"])) * dt
-    anchor_rotation = np.interp(anchor_times, t_ref, yaw_abs_cum)
-    drift_offset = np.interp(yaw_abs_cum, anchor_rotation, anchor_offsets_unwrapped)
-
-    psi_hat = psi_gyro + drift_offset
-    beta_gps = np.arctan2(np.sin(course_rad - psi_hat), np.cos(course_rad - psi_hat))
-    beta_gps = np.where(moving, beta_gps, np.nan)
-    return beta_gps
 
 
 def estimate_slip_angles(state, beta, params):
@@ -1218,16 +1123,14 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
     }
 
 
-def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=None,
+def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
                        apex_half_window_samples=None, cs_phase_min_valid_samples=None,
-                       cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None,
-                       ls_phase_min_valid_samples=None):
-    # fz and ls optional: each adds its stat blocks per phase, omitted ->
-    # older summary shape. stability_observed goes through _gate_stab_stat
-    # (sample-count gate + no-braking check for entry_1_brake).
+                       cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None):
+    # fz optional: adds its stat blocks per phase, omitted -> older summary
+    # shape. stability_observed goes through _gate_stab_stat (sample-count
+    # gate + no-braking check for entry_1_brake).
     if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
-            or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None
-            or ls_phase_min_valid_samples is None):
+            or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None):
         se_defaults = load_parameters()["stability_estimation"]
         if apex_half_window_samples is None:
             apex_half_window_samples = se_defaults["apex_half_window_samples"]
@@ -1237,8 +1140,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
             cs_apex_region_half_length_m = se_defaults["cs_apex_region_half_length_m"]
         if stab_phase_no_braking_floor_bar is None:
             stab_phase_no_braking_floor_bar = se_defaults["stab_phase_no_braking_floor_bar"]
-        if ls_phase_min_valid_samples is None:
-            ls_phase_min_valid_samples = se_defaults["ls_phase_min_valid_samples"]
     t = state["time"]
     s_m = state.get("s_m")
     brake_f_bar = state.get("brake_f_bar")
@@ -1268,8 +1169,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
     fz_r = fz["fz_r_N"] if fz is not None else None
     fy_f_norm = fz["fy_f_norm_N"] if fz is not None else None
     fy_r_norm = fz["fy_r_norm_N"] if fz is not None else None
-    ls_f = ls["LS_ratio_f"] if ls is not None else None
-    ls_r = ls["LS_ratio_r"] if ls is not None else None
 
     phase_keys = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 
@@ -1299,13 +1198,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
         stat["n_kerb_excluded"] = int((mark[idx] & np.isfinite(raw[idx])).sum())
         if reset is not None:
             stat["n_reset_excluded"] = int((reset[idx] & ~mark[idx] & np.isfinite(raw[idx])).sum())
-        return stat
-
-    def _gate_ls_stat(stat):
-        # same gate for LS, own floor (ls_phase_min_valid_samples) -- different
-        # noise than CS
-        if stat["n"] < ls_phase_min_valid_samples:
-            return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         return stat
 
     def _gate_stab_stat(stat, phase, brake_vals):
@@ -1421,9 +1313,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                     corner_summary["phases"][phase]["fz_r_N"] = _stats(np.array([]))
                     corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(np.array([]))
                     corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(np.array([]))
-                if ls is not None:
-                    corner_summary["phases"][phase]["ls_ratio_f"] = _stats(np.array([]))
-                    corner_summary["phases"][phase]["ls_ratio_r"] = _stats(np.array([]))
                 continue
 
             stab_valid_phase = stab_valid[idx]
@@ -1445,9 +1334,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, ls=None, lap_filter=Non
                 corner_summary["phases"][phase]["fz_r_N"] = _stats(fz_r[idx])
                 corner_summary["phases"][phase]["fy_f_norm_N"] = _stats(fy_f_norm[idx])
                 corner_summary["phases"][phase]["fy_r_norm_N"] = _stats(fy_r_norm[idx])
-            if ls is not None:
-                corner_summary["phases"][phase]["ls_ratio_f"] = _gate_ls_stat(_stats(ls_f[idx]))
-                corner_summary["phases"][phase]["ls_ratio_r"] = _gate_ls_stat(_stats(ls_r[idx]))
 
         apex_idx = _apex_region_idx(c)
         corner_summary["apex_region"] = {

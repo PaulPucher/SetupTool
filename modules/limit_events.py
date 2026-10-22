@@ -1,44 +1,21 @@
-# Limit events: single in-corner moments where an axle's cornering stiffness
-# ratio (CS) falls below the floor of the session's own fitted tyre curve --
-# force loss the quasi-steady characteristic cannot produce anywhere. A third
-# output class beside the corner verdicts (tendencies) and the recommendations;
-# display and record only, never a verdict or recommendation input.
+# Floor events: in-corner runs where an axle's cornering stiffness ratio (CS)
+# falls below PURE_LATERAL_FLOOR -- lower than any pure-slip tyre curve can
+# go. A third output class beside the corner verdicts (tendencies) and the
+# recommendations; display and record only, never a verdict or
+# recommendation input (author ruling 2026-10-20, one concept, one name).
 #
 # Lineage: flagging handling moments in logged traces after Segers (secs.
-# 7.4-7.6; sec. 5.4 for a discrete-event precedent); the event LINE is the
-# session's fitted Magic Formula curve (Pacejka secs. 1.2.2 / 4.3.1);
-# interpretation per Hoffman / Ono / Werner, limit-regime vocabulary per
-# Milliken sec. 8.5. The event channel itself -- CS against the curve floor --
-# is SetupTool's construction (Tier B segmentation on a Tier A-derived line).
-#
-# The floor is the curve's own analogue of CS: min over slip angle of
-# (dFy/dalpha) / (B C D) -- 1 at the origin, 0 at the peak, negative past it --
-# promoted unchanged from the curve-floor check (inspect_curve_floor).
-# Two caveats, both deliberate (author rulings 2026-10-06):
-# - The floor is taken over 0 .. 30 deg, beyond the visited slip range: the
-#   claim is "beyond what this characteristic produces ANYWHERE". The value
-#   is the extrapolated curve's own, not evidence the car went there.
-# - Scale mismatch: CS divides by the running linear reference from data,
-#   the floor by the curve's origin slope B C D. On the recorded sessions the
-#   floor expressed on the CS scale sits deeper, so this line is the
-#   conservative one -- it errs toward fewer events. No second normalisation.
-#
-# Fit L (the default since 2026-10-20): the fitted curve is monotonic (C = 1),
-# so its floor is a small positive slope and every falling stretch would be an
-# event. Under fit L the layer IS the floor events (author ruling 2026-10-20,
-# one concept, one name): line = PURE_LATERAL_FLOOR, contiguous runs, measured
-# attributes. The curve-floor layer above stays for the old per_session path.
+# 7.4-7.6; sec. 5.4 for a discrete-event precedent); interpretation per
+# Hoffman / Ono / Werner, limit-regime vocabulary per Milliken sec. 8.5. The
+# event channel itself -- CS against a fixed floor -- is SetupTool's
+# construction (Tier B segmentation on a Tier A-derived line). The earlier
+# fitted-curve-floor layer of the per_session path was removed in the
+# 2026-10-22 pruning (tag pre-prune-2026-10-22).
 
 import numpy as np
 
 from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 from modules.tyre_fit_auto import _canonical_window_slice
-from modules.tyre_model_pacejka import pacejka_lateral_stiffness
-
-# method-defining, not tunables: grid resolution of the floor search (as in
-# the curve-floor check) and the slip range that "anywhere" means
-FLOOR_GRID_N = 4000
-EVENT_FLOOR_MAX_DEG = 30.0
 
 # Pure-lateral floor of the CS ratio (author ruling 2026-10-19): the steepest
 # post-peak slope of the Magic Formula over its initial slope, at C = 3.0
@@ -49,40 +26,8 @@ EVENT_FLOOR_MAX_DEG = 30.0
 PURE_LATERAL_FLOOR = -0.53
 
 AXLES = {"f": "front", "r": "rear"}
-LINE_CURVE = "fitted-curve floor"
 LINE_PURE = "pure-lateral floor"
 PHASE_ORDER = ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")
-
-
-def curve_floor(axle_params, hi_deg):
-    """(floor, slip angle of the floor in deg) of one axle's Magic Formula
-    curve over 0 .. hi_deg, or (nan, nan) for an unusable parameter set."""
-    B, C, D, E = (float(axle_params.get(k, np.nan)) for k in "BCDE")
-    if not all(np.isfinite([B, C, D, E])) or B * C * D == 0:
-        return float("nan"), float("nan")
-    g = np.radians(np.linspace(0.0, hi_deg, FLOOR_GRID_N))
-    k = pacejka_lateral_stiffness(g, B, C, D, E) / (B * C * D)
-    i = int(np.argmin(k))
-    return float(k[i]), float(np.degrees(g[i]))
-
-
-def _event_line(fit_manifest, gate_verdict=None):
-    """{"f": floor, "r": floor} or a reason string. A degenerate fit, or one
-    whose NIS gate failed, is a curve production itself refuses to use (the
-    session ships kinematic beta) -> no line from it (R14)."""
-    if not fit_manifest or not fit_manifest.get("axles"):
-        return "no event line: no tyre fit in this run (sideslip source without a per-session fit)"
-    if fit_manifest.get("status") == "degenerate":
-        return "no event line: the session's tyre fit is degenerate"
-    if gate_verdict is not None and gate_verdict.get("verdict") == "fail":
-        return "no event line: the session's NIS gate failed (kinematic sideslip shipped)"
-    floors = {}
-    for ax, name in AXLES.items():
-        fl, _deg = curve_floor(fit_manifest["axles"].get(name, {}), EVENT_FLOOR_MAX_DEG)
-        if not np.isfinite(fl):
-            return f"no event line: {name} curve parameters unusable"
-        floors[ax] = fl
-    return floors
 
 
 def _phase_at(segments, t_query):
@@ -107,107 +52,34 @@ def _runs(mask):
 
 def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gate_verdict=None,
                   axle_loads=None, axle_fx=None):
-    """Event layer of one session. Returns a JSON-safe dict:
-    {"status", "line", "floors", "events": [...], "n_instances_by_corner"}.
-
-    Fit L (fit_manifest tyre_fit_mode literature_bounded): the floor events of
-    detect_floor_events, line PURE_LATERAL_FLOOR; axle_loads / axle_fx feed
-    their attributes. Old path: limit events against the fitted-curve floor.
+    """Event layer of one session: the floor events of detect_floor_events,
+    line PURE_LATERAL_FLOOR; axle_loads / axle_fx feed their attributes.
+    Returns a JSON-safe dict {"status", "line", "floors", "events": [...],
+    "n_instances_by_corner"}. Without a tyre fit (kinematic sideslip source)
+    there is no event layer.
 
     Population: in-corner samples (canonical brackets) on analysis laps, the
     FULL CS arrays -- kerb-affected samples are kept and labelled, so nothing
     is hidden (the classifier's clean population is a separate concern).
-    Old path: stretches below the line merge across gaps shorter than
-    bridge_gap_s, never across corner instances.
     """
     cfg = params["limit_events"]
     out = {"status": "computed", "floors": None, "events": [], "n_instances_by_corner": {}}
     if not cfg.get("enabled", True):
         out["status"] = "disabled in config"
         return out
-    if fit_manifest and fit_manifest.get("tyre_fit_mode") == "literature_bounded":
-        fe = detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=axle_loads, axle_fx=axle_fx)
-        # the -0.53 line is model-independent, so a degenerate fit or a failed
-        # gate does not withdraw it; which beta the CS came from is stated
-        fell_back = (fit_manifest.get("status") == "degenerate"
-                     or (gate_verdict is not None and gate_verdict.get("verdict") == "fail"))
-        if fell_back:
-            fe["beta_note"] = "kinematic sideslip (fit L fell back)"
-        label_recurrence(fe["events"], cfg["recurrence_radius_m"])
-        return fe
-    # old path: record unchanged (no "line" key); its absence means the curve floor
-    line = _event_line(fit_manifest, gate_verdict)
-    if isinstance(line, str):
-        out["status"] = line
+    if not fit_manifest:
+        out["status"] = "no events: no tyre fit in this run (kinematic sideslip source)"
         return out
-    out["floors"] = {AXLES[a]: v for a, v in line.items()}
-    t, s_m = state["time"], state.get("s_m")
-    if s_m is None:
-        out["status"] = "no events: lap distance unusable"
-        return out
-
-    sr = state["sample_rate_hz"]
-    bridge = cfg["bridge_gap_s"]
-    min_dur = cfg.get("min_duration_s")
-    kerb = state.get("kerb_mask")
-    se = params["stability_estimation"]
-    min_window = resolve_cs_min_window_samples(params, sr)
-
-    laps_by = {l["lap_number"]: l for l in laps if l.get("is_valid_for_analysis")}
-    events = []
-    for c in corners:
-        cid = c.get("stable_corner_id")
-        lap = laps_by.get(c.get("lap_number"))
-        if cid is None or lap is None or c.get("bracket_start_m") is None:
-            continue
-        sl = _canonical_window_slice(t, s_m, lap["start_time"], lap["end_time"],
-                                     c["bracket_start_m"], c["bracket_end_m"])
-        if sl.stop <= sl.start:
-            continue
-        out["n_instances_by_corner"][str(cid)] = out["n_instances_by_corner"].get(str(cid), 0) + 1
-        for ax in AXLES:
-            seg = cs[f"CS_ratio_{ax}"][sl]
-            below = np.isfinite(seg) & (seg < line[ax])
-            runs = _runs(below)
-            merged = []
-            for a, b in runs:
-                if merged and t[sl.start + a] - t[sl.start + merged[-1][1]] < bridge:
-                    merged[-1] = (merged[-1][0], b)
-                else:
-                    merged.append((a, b))
-            ns = cs.get(f"near_strike_{ax}")
-            for a, b in merged:
-                i0, i1 = sl.start + a, sl.start + b
-                rng = np.arange(i0, i1 + 1)
-                hit = rng[below[a:b + 1]]
-                i_min = int(hit[np.argmin(cs[f"CS_ratio_{ax}"][hit])])
-                duration = float(t[i1] - t[i0] + 1.0 / sr)
-                # half-sample tolerance: an event of exactly min_dur (one CS
-                # window) must not drop on float rounding of the grid times
-                if min_dur is not None and duration < min_dur - 0.5 / sr:
-                    continue
-                kerb_hit = bool((ns is not None and ns[hit].any())
-                                or (kerb is not None and kerb[i0:i1 + 1].any()))
-                ev = {
-                    "lap": int(c["lap_number"]), "corner": int(cid), "axle": AXLES[ax],
-                    "phase": _phase_at(c["segments"], float(t[i_min])),
-                    "phases_spanned": _phases_spanned(c["segments"], float(t[i0]), float(t[i1])),
-                    "t_start": float(t[i0]), "t_end": float(t[i1]), "duration_s": duration,
-                    "s_start_m": float(s_m[i0]), "s_end_m": float(s_m[i1]), "s_min_m": float(s_m[i_min]),
-                    "cs_min": float(cs[f"CS_ratio_{ax}"][i_min]), "floor": float(line[ax]),
-                    "kerb_affected": kerb_hit,
-                }
-                if slip is not None:
-                    # what the estimator saw: start of the regression window
-                    # [start, i0) behind the first event sample
-                    w0 = reconstruct_cs_window_start(slip[f"alpha_{ax}_filt"], i0, min_window,
-                                                     se["cs_min_slip_angle_span_rad"], s_m, se["cs_max_window_m"])
-                    ev["window_start_t"] = float(t[w0])
-                events.append(ev)
-    label_recurrence(events, cfg["recurrence_radius_m"])
-    events.sort(key=lambda e: (e["lap"], e["t_start"]))
-    out["events"] = events
-    return out
+    fe = detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=axle_loads, axle_fx=axle_fx)
+    # the -0.53 line is model-independent, so a degenerate fit or a failed
+    # gate does not withdraw it; the note says which beta the CS came from
+    # and why
+    if fit_manifest.get("status") == "degenerate":
+        fe["beta_note"] = "kinematic sideslip (tyre fit degenerate)"
+    elif gate_verdict is not None and gate_verdict.get("verdict") == "fail":
+        fe["beta_note"] = "kinematic sideslip (NIS gate failed)"
+    label_recurrence(fe["events"], cfg["recurrence_radius_m"])
+    return fe
 
 
 def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None, axle_fx=None):
@@ -354,26 +226,19 @@ def _phase_word(phase):
     return PHASE_WORD_LONG.get(phase, phase)
 
 
-def _what(line):
-    return ("force loss not explainable by pure lateral saturation" if line == LINE_PURE
-            else "force loss beyond the tyre characteristic")
+WHAT = "force loss not explainable by pure lateral saturation"
 
 
 def layer_title(events):
-    """Session-list heading of the event layer, by its line."""
-    line = (events or {}).get("line")
-    return f"{'Floor events' if line == LINE_PURE else 'Limit events'} ({_what(line)})"
+    """Session-list heading of the event layer."""
+    return f"Floor events ({WHAT})"
 
 
 def legend_text(events):
-    """Trace-dialog legend for the event strip, by the layer's line."""
-    if (events or {}).get("line") == LINE_PURE:
-        return ("Thick strip along the bottom of a cornering-stiffness-ratio panel: floor event -- the ratio "
-                f"fell below {PURE_LATERAL_FLOOR}, lower than any pure-slip tyre curve can go (force loss not "
-                "explainable by pure lateral saturation); display only, not used by any verdict.")
-    return ("Thick strip along the bottom of a cornering-stiffness-ratio panel: limit event -- the ratio "
-            "fell below what this session's fitted tyre curve can produce anywhere (force loss beyond the "
-            "tyre characteristic); display only, not used by any verdict.")
+    """Trace-dialog legend for the event strip."""
+    return ("Thick strip along the bottom of a cornering-stiffness-ratio panel: floor event -- the ratio "
+            f"fell below {PURE_LATERAL_FLOOR}, lower than any pure-slip tyre curve can go ({WHAT}); "
+            "display only, not used by any verdict.")
 
 
 def describe_event(e, n_laps_at_corner=None):
@@ -381,8 +246,7 @@ def describe_event(e, n_laps_at_corner=None):
     rec = ("single occurrence" if e["recurrence"] == "single" else
            f"recurring here on {len(e['recurring_laps'])}"
            + (f" of {n_laps_at_corner}" if n_laps_at_corner else "") + " laps")
-    line = LINE_PURE if e.get("floor") == PURE_LATERAL_FLOOR else LINE_CURVE
-    return (f"Lap {e['lap']}, C{e['corner']} {_phase_word(e['phase'])} ({e['axle']} axle): {_what(line)}, "
+    return (f"Lap {e['lap']}, C{e['corner']} {_phase_word(e['phase'])} ({e['axle']} axle): {WHAT}, "
             f"{e['duration_s']:.1f} s, "
             f"{'kerb-affected' if e['kerb_affected'] else 'not kerb-affected'}, {rec}")
 

@@ -204,19 +204,6 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     return result
 
 
-def combine_with_static_fallback(damper_result, static_fallback_fz):
-    """Damper Fz where valid, static split elsewhere -- per corner and
-    sample, never a whole-session switch.
-    """
-    combined = {}
-    for c in CORNERS:
-        dr = damper_result[c]
-        fz = np.where(dr["valid"], dr["fz_N"], static_fallback_fz[c])
-        source = np.where(dr["valid"], "damper", "static_fallback")
-        combined[c] = {"fz_N": fz, "source": source}
-    return combined
-
-
 AXLE_MATE = {"fl": "fr", "fr": "fl", "rl": "rr", "rr": "rl"}
 AXLE_TOTAL_KEY = {"fl": "fz_f_N", "fr": "fz_f_N", "rl": "fz_r_N", "rr": "fz_r_N"}
 

@@ -16,7 +16,6 @@
   "degenerate_reason": null
  },
  "fit_manifest": {
-  "load_normalised": false,
   "tyre_fit_mode": "literature_bounded",
   "speed_window": {
    "status": "applied",
@@ -304,13 +303,7 @@
    "R_ay_var": 0.5088132494678607,
    "R_yaw_rate_var": 1.1799893036508885e-05,
    "beta_hard_bound_deg": 15.0,
-   "nis_window_s": 0.4,
-   "nis_chi2_bound": 5.99,
-   "nis_flag_fraction": 0.5,
-   "d_is_mu": true,
-   "divergence_trigger": "hard_bound_only",
-   "cd_drift": 2.0,
-   "cd_threshold": 50.0
+   "d_is_mu": true
   },
   "nis": {
    "yaw_rate_exceedance": 0.0008736945974837596,
@@ -46027,11 +46020,11 @@
  ],
  "recommendations": [],
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 16), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 20), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "Le Castellet outing 32",
   "data_file": "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt",
-  "git_commit_hash": "3654d455fe79f9dcadec6aca4ac33d9a9eeea8f8",
-  "generated_at_utc": "2026-10-21T16:59:03.875998+00:00",
+  "git_commit_hash": "7dfb15ccd0ec510c91090d71543e12121df3ddf9",
+  "generated_at_utc": "2026-10-22T13:28:32.761178+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

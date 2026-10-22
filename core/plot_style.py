@@ -115,6 +115,6 @@ PRINT_WIDTH_CM = 16.0          # A4 text width
 PRINT_PAD_INCHES = 0.05
 # both figures 24 cm (six stacked panels with side legends still readable)
 PRINT_HEIGHT_CM_CORNER = 24.0  # 4 rows: speed / CSf / CSr / tyre curves
-PRINT_HEIGHT_CM_VERDICT = 24.0  # 6-row stack
+PRINT_HEIGHT_CM_VERDICT = 24.0  # verdict / lap stacks (sized when the verdict stack had six rows)
 PRINT_FONT_FAMILY = "DejaVu Sans"  # matplotlib default, always installed
 PRINT_FONT_SIZE_PT = 8

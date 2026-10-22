@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from modules.wheel_loads import (
-    estimate_wheel_loads_from_dampers, combine_with_static_fallback, CORNERS,
+    estimate_wheel_loads_from_dampers, CORNERS,
     reconstruct_missing_corner, combine_with_reconstruction_and_fallback,
     estimate_session_corrected_axle_totals, _normalize_travel_to_mm, _channel_is_dead,
     _axle_total_with_proxy,
@@ -171,14 +171,6 @@ def test_missing_damper_channel_falls_back_per_corner():
     assert result["fl"]["valid"].all()
     assert not result["fr"]["valid"].any()
     assert np.isnan(result["fr"]["fz_N"]).all()
-
-    static_fallback_fz = {"fl": np.full(n, 1.0), "fr": np.full(n, 2.0),
-                           "rl": np.full(n, 3.0), "rr": np.full(n, 4.0)}
-    combined = combine_with_static_fallback(result, static_fallback_fz)
-    assert np.allclose(combined["fr"]["fz_N"], 2.0)
-    assert (combined["fr"]["source"] == "static_fallback").all()
-    assert (combined["fl"]["source"] == "damper").all()
-    assert not np.allclose(combined["fl"]["fz_N"], 1.0)
 
 
 def test_missing_travel_channel_also_triggers_fallback():

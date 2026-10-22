@@ -1,5 +1,5 @@
-# Corner and full-lap trace windows: stability, CS_ratio f/r, LS_ratio f/r
-# and speed over track position s. Corner window = one stable corner's
+# Corner and full-lap trace windows: stability, CS_ratio f/r and speed over
+# track position s. Corner window = one stable corner's
 # bracket + config margin; lap window = whole lap with a tinted band per
 # corner. Display only -- plots arrays from the cached pipeline result.
 
@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFileDialog, QMessageBox,
 )
 
-from ui.style import BAD, BORDER, INFO, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
+from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
 
 # Colours/widths from core/plot_style.py, shared with the exports
 # (core/figure_render.py, diagnostics/inspect_step2_chair_plots.py).
@@ -50,9 +50,6 @@ BASE_LEGEND_TEXT = (
     "Unchecked laps are not drawn anywhere in this window."
 )
 
-# corner window only, when the LS panel has data (lap window has no LS)
-LS_PANEL_LEGEND_TEXT = "LS ratio is shown for context only -- no verdict depends on it."
-
 # corner-band sentence; colour words match ui.style BAD/WARN/OK
 LAP_BAND_LEGEND_TEXT = (
     "Corner bands: colour = worst verdict across all laps (red/gold/green). "
@@ -68,39 +65,12 @@ KERB_BRIDGE_LEGEND_TEXT = (
     "Dashed, lighter stretch across a kerb band: straight-line bridge for "
     "continuity only -- not measured, not used by any verdict."
 )
-# event-strip legend: worded by the event layer's line (fit L: floor events at
-# -0.53; old path: fitted-curve floor), modules.limit_events.legend_text
+# event-strip legend: modules.limit_events.legend_text (floor events at -0.53)
 EVENT_STRIP_WIDTH = 5  # px; a line, not a filled band (shading budget)
 EXCLUSION_LEGEND_TEXT = (
     "Grey band: left out of the analysis here -- kerb-affected (the analysis fills the span from "
     "clean data nearby) or the car not up to speed (out lap or pit lane)."
 )
-
-# yaw-pooling panels (config corner_trace_display.yaw_pooling_panel). The
-# pooling itself is core/yaw_pooling; the dialog only draws. Plain words, no
-# verdict language: this is a display, the evidence mechanism is parked.
-YAW_PANEL_TITLES = [("Yaw rate, 4 Hz (deg/s)", "yaw"), ("Steering rate (deg/s)", "steer")]
-YAW_MEDIAN_WIDTH = 2.5
-YAW_FLAG_WIDTH = 3.5
-YAW_FLAG_ALPHA = 210
-YAW_FLAG_MARKER_SIZE = 10
-
-
-def _yaw_legend_text(pooled, cfg):
-    p_lo, p_hi = cfg["envelope_percentiles"]
-    return (
-        f"Yaw panel: thin = lap (kerb samples removed), heavy = median over {pooled['n_analysis_laps']} "
-        f"analysis laps, shaded = their p{p_lo:g}-p{p_hi:g} spread. A red (up-triangle) or blue "
-        f"(down-triangle) stretch means the lap deviates from the cross-lap envelope by more than this "
-        f"session's yaw-noise margin (m = {pooled['margin']:.2f} deg/s): red = more rotation than the other "
-        f"laps, blue = less. Display only -- no verdict uses it. Steering-rate panel: grey, per lap."
-    )
-
-
-def _index_runs(mask):
-    edges = np.diff(np.concatenate(([0], np.asarray(mask).astype(np.int8), [0])))
-    return list(zip(np.where(edges == 1)[0], np.where(edges == -1)[0]))
-
 
 # tyre-curve tab legend. Plot design after the chair performance_analysis
 # tooling (internal); no code copied.
@@ -110,12 +80,37 @@ TYRE_CURVE_LEGEND_TEXT = (
 )
 
 
-def _phase_slice(t, start_t, end_t):
-    if end_t < start_t:
-        return slice(0, 0)
-    lo = int(np.searchsorted(t, start_t, side="left"))
-    hi = int(np.searchsorted(t, end_t, side="right"))
-    return slice(lo, hi)
+def _tyre_curve_basis(cs, cs_axle_loads):
+    """Which force the tyre-curve tab plots, so points, reference, tangent
+    and fitted curve share the unit the CS was estimated in. Fit L estimates
+    the CS on Fy / Fz with its 2 Hz axle loads (the CS output then carries
+    the relative reference gate keys): plot Fy / Fz, slopes in 1/rad. CS on
+    Fy (kinematic source, or fit L degenerate before the loads existed): plot
+    Fy in N, slopes in N/rad. Returns {"normalised", "loads", "y_label",
+    "slope_unit"}, or None when the CS is normalised but this result holds
+    no loads (an older cached result) -- the tab then says so instead of
+    mixing units."""
+    normalised = cs is not None and "ref_relative_median_f" in cs
+    if normalised and cs_axle_loads is None:
+        return None
+    if normalised:
+        return {"normalised": True, "loads": cs_axle_loads, "y_label": "Fy / Fz (-)", "slope_unit": "1/rad"}
+    return {"normalised": False, "loads": None, "y_label": "Lateral force Fy (N)", "slope_unit": "N/rad"}
+
+
+def _tyre_curve_force(basis, axle, Fy_arr):
+    # the plotted force, same normalisation as the CS estimate
+    if Fy_arr is None or not basis["normalised"]:
+        return Fy_arr
+    return Fy_arr / basis["loads"]["fz_f_N" if axle == "front" else "fz_r_N"]
+
+
+def _fitted_curve_d(basis, axle_fit):
+    # fit L stores D = mu * fz_ref; on the Fy / Fz axis the curve's peak
+    # parameter is mu = D / fz_ref
+    if basis["normalised"]:
+        return axle_fit["D"] / axle_fit["fz_ref_N"]
+    return axle_fit["D"]
 
 
 def _lap_slice(t, s_m, lap_start_t, lap_end_t):
@@ -296,15 +291,13 @@ class _TraceDialogBase(QDialog):
     WINDOW_TITLE = "Trace"
     WINDOW_SIZE = (880, 680)
 
-    # panel order: speed, stability, then one axle per panel (CS, LS).
-    # LapTraceDialog drops ls_f/ls_r.
+    # panel order: speed, stability, then one axle per panel
     PANEL_TITLES = [
         ("Speed (km/h)", "speed"), ("Stability (Nm/deg)", "stab"),
         ("Front CS ratio", "cs_f"), ("Rear CS ratio", "cs_r"),
-        ("Front LS ratio", "ls_f"), ("Rear LS ratio", "ls_r"),
     ]
-    # panels on the CS/LS ratio scale -> fixed y-range
-    RATIO_PANEL_KEYS = ("cs_f", "cs_r", "ls_f", "ls_r")
+    # panels on the CS ratio scale -> fixed y-range
+    RATIO_PANEL_KEYS = ("cs_f", "cs_r")
     # lighter vertical stretch, by key (speed is the first row)
     CONTEXT_PANEL_KEYS = ("speed",)
 
@@ -313,18 +306,11 @@ class _TraceDialogBase(QDialog):
         import pyqtgraph as pg
         from modules.stability_analysis import load_parameters
 
-        # yaw-pooling panels decided once per window: rows can't be added to a
-        # live GraphicsLayout cleanly, so toggling the flag needs a new window
-        display_cfg = load_parameters().get("corner_trace_display", {})
-        self._yaw_cfg = display_cfg["yaw_pooling"] if display_cfg.get("yaw_pooling_panel", False) else None
-        # (state, pooled) of the last pooling -- a checkbox toggle re-renders
-        # but the envelope pools all analysis laps, so it never changes
-        self._yaw_cache = None
-        self.panel_titles = list(self.PANEL_TITLES) + (YAW_PANEL_TITLES if self._yaw_cfg else [])
+        self.panel_titles = list(self.PANEL_TITLES)
 
         self.setWindowTitle(self.WINDOW_TITLE)
         width, height = self.WINDOW_SIZE
-        self.resize(width, height + (260 if self._yaw_cfg else 0))
+        self.resize(width, height)
         self.setModal(False)
         # native min/max buttons -- data-dense windows
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMinMaxButtonsHint)
@@ -367,7 +353,6 @@ class _TraceDialogBase(QDialog):
         _disp = load_parameters().get("corner_trace_display", {})
         self._ratio_y_range = (_disp.get("cs_ls_panel_y_min", -3.5), _disp.get("cs_ls_panel_y_max", 1.2))
         self._exclusion_spans = []
-        # ls panel: display only, no threshold lines
         self.plots = {}
         self.legends = {}
         first_plot = None
@@ -390,10 +375,10 @@ class _TraceDialogBase(QDialog):
             self.plots[key] = plot
             self.pg_layout.nextRow()
 
-        # speed and steering rate = context -> less stretch (ratio, survives
-        # resizing); the rest full stretch
+        # speed = context -> less stretch (ratio, survives resizing); the rest
+        # full stretch
         for i, (_label, key) in enumerate(self.panel_titles):
-            context = key in self.CONTEXT_PANEL_KEYS or key == "steer"
+            context = key in self.CONTEXT_PANEL_KEYS
             self.pg_layout.ci.layout.setRowStretchFactor(i, 1 if context else 3)
 
     # None = every panel visible (lap window); the corner window narrows it
@@ -413,7 +398,7 @@ class _TraceDialogBase(QDialog):
             axis.setStyle(showValues=last)
             axis.setLabel('Track position s (m)', color='#888', size='8pt')
             axis.showLabel(last)
-            context = key in self.CONTEXT_PANEL_KEYS or key == "steer"
+            context = key in self.CONTEXT_PANEL_KEYS
             ci.layout.setRowStretchFactor(i, 1 if context else 3)
         for j in range(len(keys), len(self.panel_titles)):
             ci.layout.setRowStretchFactor(j, 0)
@@ -530,76 +515,6 @@ class _TraceDialogBase(QDialog):
                                  pen=self._pen(NEAR_STRIKE_COLOR, SCREEN_LAP_WIDTH, Qt.PenStyle.SolidLine))
         return item
 
-    def _yaw_panel_data(self, stability_result, parsed_data):
-        """Pooled yaw data for this analysis result, or None (panel off or
-        channel missing). Pooled once per result; held with its state so a
-        recycled id() can never return a stale envelope."""
-        if self._yaw_cfg is None:
-            return None
-        state = stability_result.get("state")
-        if self._yaw_cache is None or self._yaw_cache[0] is not state:
-            from core.yaw_pooling import build_panel_data
-            pooled = build_panel_data(state, parsed_data.get("laps", []),
-                                      stability_result.get("corners") or [], self._yaw_cfg)
-            self._yaw_cache = (state, pooled)
-        return self._yaw_cache[1]
-
-    def _plot_yaw_corner(self, pc, checked_laps, bridge_on, named):
-        """One corner's envelope, median, checked laps' rows and their flags on
-        the yaw panel. named: set of legend names already registered (a lap
-        window draws many corners, each name once). Returns True if a kerb
-        bridge was drawn."""
-        import pyqtgraph as pg
-
-        plot = self.plots["yaw"]
-        g = pc["grid"]
-
-        def once(name):
-            if name in named:
-                return None
-            named.add(name)
-            return name
-
-        # shading budget: the envelope is two thin lines (band edges), no fill
-        edge_pen = self._pen(TEXT_DIM, 1, Qt.PenStyle.DashLine)
-        name = once("envelope")
-        plot.plot(g, pc["p_lo"], connect="finite", pen=edge_pen,
-                  name="Cross-lap envelope edges" if name else None).setZValue(-1)
-        plot.plot(g, pc["p_hi"], connect="finite", pen=edge_pen).setZValue(-1)
-        plot.plot(g, pc["med"], connect="finite", pen=self._pen(TEXT, YAW_MEDIAN_WIDTH, Qt.PenStyle.SolidLine),
-                  name="Pooled median" if once("median") else None).setZValue(3)
-
-        bridged = False
-        for j, ln in enumerate(pc["laps"]):
-            if ln not in checked_laps:
-                continue
-            item = plot.plot(g, pc["Y"][j], connect="finite",
-                             pen=self._pen(THRESHOLD_GREY, SCREEN_LAP_WIDTH, Qt.PenStyle.SolidLine),
-                             name=once(f"Lap {ln}"))
-            self.lap_curve_items.setdefault(ln, []).append(item)
-            if bridge_on:
-                bridged |= self._plot_kerb_bridges(ln, g, pc["K"][j], [("yaw", pc["Y"][j])])
-        for f in pc["flags"]:
-            if f["lap"] not in checked_laps:
-                continue
-            y = pc["Y"][pc["laps"].index(f["lap"])]
-            excess = f["kind"] == "EXCESS"
-            color = BAD if excess else INFO
-            seg = slice(f["i0"], f["i1"])
-            plot.plot(g[seg], y[seg], pen=self._pen(color, YAW_FLAG_WIDTH, Qt.PenStyle.SolidLine,
-                                                    alpha=YAW_FLAG_ALPHA)).setZValue(5)
-            label = "More rotation than envelope" if excess else "Less rotation than envelope"
-            plot.plot([g[f["i0"]]], [y[f["i0"]]], pen=None, symbol="t1" if excess else "t",
-                      symbolSize=YAW_FLAG_MARKER_SIZE, symbolBrush=pg.mkBrush(color), symbolPen=None,
-                      name=once(label)).setZValue(6)
-        return bridged
-
-    def _plot_steer_rate(self, x, y, named):
-        # neutral on purpose: context for the yaw panel, not lap-identified
-        self.plots["steer"].plot(x, y, connect="finite", pen=self._pen(TEXT_MUTED, 1, Qt.PenStyle.SolidLine),
-                                 name="Steering rate, per lap" if "steer" not in named else None)
-        named.add("steer")
-
     def _restyle_all_laps(self):
         # colour assignment from the current checked set; once per render
         checked = sorted(ln for ln, v in self.lap_visible.items() if v)
@@ -685,15 +600,13 @@ class _TraceDialogBase(QDialog):
             self.plots[panel_key].plot([], [], pen=pen, name=name)
 
     def _apply_ratio_y_range(self):
-        # CS/LS panels share a fixed y-range (config corner_trace_display): same
-        # 1/0/negative scale, but unstable LS windows (down to -31.8 on Dubai)
-        # would squash the 0..1 region. Bound from CS's own Dubai range plus
-        # headroom. View clip only, arrays untouched.
+        # CS panels share a fixed y-range (config corner_trace_display): one
+        # 1/0/negative scale, deep outliers would squash the 0..1 region. View
+        # clip only, arrays untouched.
         from modules.stability_analysis import load_parameters
         margin_cfg = load_parameters().get("corner_trace_display", {})
         y_min = margin_cfg.get("cs_ls_panel_y_min", -3.5)
         y_max = margin_cfg.get("cs_ls_panel_y_max", 1.2)
-        # ls_f/ls_r may be absent (lap window)
         for key in self.RATIO_PANEL_KEYS:
             if key in self.plots:
                 self.plots[key].setYRange(y_min, y_max, padding=0)
@@ -749,11 +662,11 @@ class CornerTraceDialog(_TraceDialogBase):
         for col, (axle, title) in enumerate((("front", "Front axle"), ("rear", "Rear axle"))):
             plot = self.tyre_pg_layout.addPlot(row=1, col=col)
             plot.setTitle(title, color=TEXT_MUTED, size='9pt')
-            plot.setLabel('left', 'Lateral force Fy (N)', color='#888', size='8pt')
+            # left label set per render: Fy / Fz or Fy in N (_tyre_curve_basis)
             plot.setLabel('bottom', 'Slip angle (deg)', color='#888', size='8pt')
             plot.showGrid(x=True, y=True, alpha=0.15)
-            # no equal-axis scaling -- a few degrees vs thousands of N. Legend outside
-            # the plot: standalone LegendItem in its own row, filled by addItem()
+            # no equal-axis scaling. Legend outside the plot: standalone
+            # LegendItem in its own row, filled by addItem()
             self.tyre_plots[axle] = plot
         self.tyre_pg_layout.nextRow()
 
@@ -865,10 +778,11 @@ class CornerTraceDialog(_TraceDialogBase):
     def _render_tyre_curves(self, instances, laps_by_number, bracket_start_m, bracket_end_m,
                              t, s_m, slip, forces, cs, kerb_mask, params, session_mask,
                              sideslip_source=None, fit_manifest=None, sample_rate_hz=None,
-                             kerb_mode="grey"):
-        """Tyre Curves tab: alpha vs Fy per axle over the canonical window (no
-        margin). Plot design after the chair performance_analysis tooling
-        (internal); no code copied.
+                             kerb_mode="grey", cs_axle_loads=None):
+        """Tyre Curves tab: alpha vs the force the CS was estimated on (Fy / Fz
+        under fit L, else Fy; _tyre_curve_basis) per axle over the canonical
+        window (no margin). Plot design after the chair performance_analysis
+        tooling (internal); no code copied.
 
         Checked laps only. Lap colour, filled = clean, hollow = kerb-flagged.
         Beyond the peak a lap's cloud folds back over the reference line.
@@ -890,6 +804,14 @@ class CornerTraceDialog(_TraceDialogBase):
         # unchecked laps contribute nothing, incl. to the pooled reference/window
         instances = self._checked_instances(instances)
         styles = plot_style.lap_styles(c["lap_number"] for c in instances)
+        basis = _tyre_curve_basis(cs, cs_axle_loads)
+        if basis is None:
+            self.tyre_legend_label.setText(
+                "Tyre curves need the axle loads of a fresh analysis -- re-run Analyse.")
+            return
+        self.tyre_legend_label.setText(TYRE_CURVE_LEGEND_TEXT)
+        for plot in self.tyre_plots.values():
+            plot.setLabel('left', basis["y_label"], color='#888', size='8pt')
 
         def _alpha_brush(color, alpha_frac):
             qcolor = pg.mkColor(color)
@@ -902,11 +824,11 @@ class CornerTraceDialog(_TraceDialogBase):
             return pg.mkPen(qcolor, width=width)
 
         axle_specs = (
-            ("front", slip.get("alpha_f_filt"), forces.get("Fy_f_filt"),
+            ("front", slip.get("alpha_f_filt"), _tyre_curve_force(basis, "front", forces.get("Fy_f_filt")),
              cs.get("C_linear_ref_f") if cs is not None else None,
              cs.get("CS_ratio_f") if cs is not None else None,
              cs.get("C_alpha_f") if cs is not None else None),
-            ("rear", slip.get("alpha_r_filt"), forces.get("Fy_r_filt"),
+            ("rear", slip.get("alpha_r_filt"), _tyre_curve_force(basis, "rear", forces.get("Fy_r_filt")),
              cs.get("C_linear_ref_r") if cs is not None else None,
              cs.get("CS_ratio_r") if cs is not None else None,
              cs.get("C_alpha_r") if cs is not None else None),
@@ -987,7 +909,7 @@ class CornerTraceDialog(_TraceDialogBase):
                     legend.addItem(item, "Linear reference")
 
             # fitted curve evaluated in rad, x shown in deg (same as the reference
-            # line) -- avoids the N/rad vs deg tangent trap; Fy needs no conversion
+            # line) -- avoids the per-rad vs deg tangent trap
             if (sideslip_source == "ekf_auto_pacejka"
                     and fit_manifest is not None and max_abs_alpha > 0):
                 axle_fit = fit_manifest.get("axles", {}).get(axle)
@@ -995,7 +917,7 @@ class CornerTraceDialog(_TraceDialogBase):
                     alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
                     from modules.tyre_model_pacejka import pacejka_lateral_force
                     fy_grid = pacejka_lateral_force(
-                        alpha_grid_rad, axle_fit["B"], axle_fit["C"], axle_fit["D"], axle_fit["E"]
+                        alpha_grid_rad, axle_fit["B"], axle_fit["C"], _fitted_curve_d(basis, axle_fit), axle_fit["E"]
                     )
                     item = plot.plot(
                         np.degrees(alpha_grid_rad), fy_grid,
@@ -1021,16 +943,17 @@ class CornerTraceDialog(_TraceDialogBase):
                                                  symbolPen=pg.mkPen(WINDOW_RING_COLOR, width=1.4))
                         window_item.setZValue(10)
                         legend.addItem(window_item, "Estimation window")
-                    cs_n_per_rad = float(c_alpha_arr[idx]) if c_alpha_arr is not None else None
-                    if cs_n_per_rad is not None and np.isfinite(cs_n_per_rad) and max_abs_alpha > 0:
+                    cs_slope = float(c_alpha_arr[idx]) if c_alpha_arr is not None else None
+                    if cs_slope is not None and np.isfinite(cs_slope) and max_abs_alpha > 0:
                         x0 = np.degrees(alpha_arr[idx])
                         y0 = Fy_arr[idx]
-                        slope_per_deg = cs_n_per_rad * (np.pi / 180.0)
+                        slope_per_deg = cs_slope * (np.pi / 180.0)
                         span = max(0.5, 0.15 * max_abs_alpha * (180.0 / np.pi))
                         xs = np.array([x0 - span, x0 + span])
                         ys = y0 + slope_per_deg * (xs - x0)
                         tangent_item = plot.plot(xs, ys, pen=pg.mkPen(color=TEXT, width=1, style=Qt.PenStyle.DashLine))
-                        legend.addItem(tangent_item, f"Tangent CS={cs_n_per_rad:.0f} N/rad")
+                        fmt = ".1f" if basis["normalised"] else ".0f"
+                        legend.addItem(tangent_item, f"Tangent CS={cs_slope:{fmt}} {basis['slope_unit']}")
 
     def _render_track_map(self, representative, bracket_start_m, bracket_end_m, t, s_m, state,
                            cs, slip, params, instances, laps_by_number):
@@ -1122,11 +1045,12 @@ class CornerTraceDialog(_TraceDialogBase):
                                   kerb_mask, session_mask, instances, laps_by_number,
                                   bracket_start_m, bracket_end_m, t, s_m, params,
                                   sideslip_source, fit_manifest, sample_rate_hz,
-                                  mark_arr=None, kerb_mode="grey"):
+                                  mark_arr=None, kerb_mode="grey", basis=None):
         """One axle's tyre_curves entry for figure_render: session scatter, corner
         scatter per checked lap (filled/hollow), worst-phase window, linear
         reference, auto-fit curve, and a tangent through the worst-phase sample
-        at slope CS[N/rad] * pi/180.
+        at slope CS * pi/180 per deg. Fy_arr is already on the basis' force
+        (Fy / Fz or Fy); the entry carries its axis label.
         """
         from core.trace_display import kerb_scatter_split
         session_valid = session_mask & np.isfinite(alpha_arr) & np.isfinite(Fy_arr)
@@ -1182,7 +1106,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 alpha_grid_rad = np.linspace(-max_abs_alpha, max_abs_alpha, 200)
                 from modules.tyre_model_pacejka import pacejka_lateral_force
                 fy_grid = pacejka_lateral_force(alpha_grid_rad, axle_fit["B"], axle_fit["C"],
-                                                 axle_fit["D"], axle_fit["E"])
+                                                 _fitted_curve_d(basis, axle_fit), axle_fit["E"])
                 fitted_line = (np.degrees(alpha_grid_rad), fy_grid, "Fitted tyre curve")
 
         window_xy = None
@@ -1201,19 +1125,21 @@ class CornerTraceDialog(_TraceDialogBase):
                 window_sl = slice(start, idx)
                 if window_sl.stop > window_sl.start:
                     window_xy = (np.degrees(alpha_arr[window_sl]), Fy_arr[window_sl])
-                cs_n_per_rad = float(c_alpha_arr[idx]) if c_alpha_arr is not None else None
-                if cs_n_per_rad is not None and np.isfinite(cs_n_per_rad):
+                cs_slope = float(c_alpha_arr[idx]) if c_alpha_arr is not None else None
+                if cs_slope is not None and np.isfinite(cs_slope):
                     x0 = np.degrees(alpha_arr[idx])
                     y0 = Fy_arr[idx]
-                    slope_per_deg = cs_n_per_rad * (np.pi / 180.0)
+                    slope_per_deg = cs_slope * (np.pi / 180.0)
                     span = max(0.5, 0.15 * max_abs_alpha * (180.0 / np.pi)) if max_abs_alpha > 0 else 1.0
                     xs = np.array([x0 - span, x0 + span])
                     ys = y0 + slope_per_deg * (xs - x0)
-                    tangent_line = (xs, ys, f"Tangent CS={cs_n_per_rad:.0f} N/rad")
+                    fmt = ".1f" if basis["normalised"] else ".0f"
+                    tangent_line = (xs, ys, f"Tangent CS={cs_slope:{fmt}} {basis['slope_unit']}")
 
         return {
             "session_xy": session_xy, "corner_by_lap": corner_by_lap, "window_xy": window_xy,
             "linear_ref_line": ref_line, "fitted_line": fitted_line, "tangent_line": tangent_line,
+            "y_label": basis["y_label"], "normalised": basis["normalised"],
         }
 
     def _on_export_figure_clicked(self):
@@ -1280,6 +1206,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 ctx["session_mask"],
                 sideslip_source=ctx["sideslip_source"], fit_manifest=ctx["fit_manifest"],
                 sample_rate_hz=ctx["state"]["sample_rate_hz"], kerb_mode=ctx["near_strike"]["mode"],
+                cs_axle_loads=ctx["cs_axle_loads"],
             )
             # track map geometry also needed by the export
             track_map = self._render_track_map(
@@ -1291,8 +1218,9 @@ class CornerTraceDialog(_TraceDialogBase):
     def _build_export_data(self, track_map):
         # export = exactly the checked set, tyre geometry rebuilt from it
         ctx = self._render_ctx
+        basis = _tyre_curve_basis(ctx["cs"], ctx["cs_axle_loads"]) if ctx is not None else None
         if (ctx is None or ctx["bracket_start_m"] is None or ctx["bracket_end_m"] is None
-                or ctx["slip"] is None or ctx["forces"] is None):
+                or ctx["slip"] is None or ctx["forces"] is None or basis is None):
             self._export_data = None
             return
 
@@ -1303,7 +1231,7 @@ class CornerTraceDialog(_TraceDialogBase):
         slip, forces, cs = ctx["slip"], ctx["forces"], ctx["cs"]
         tyre_curves = {
             "front": self._build_tyre_curve_export(
-                "front", slip.get("alpha_f_filt"), forces.get("Fy_f_filt"),
+                "front", slip.get("alpha_f_filt"), _tyre_curve_force(basis, "front", forces.get("Fy_f_filt")),
                 cs.get("C_linear_ref_f") if cs is not None else None,
                 cs.get("CS_ratio_f") if cs is not None else None,
                 cs.get("C_alpha_f") if cs is not None else None,
@@ -1311,10 +1239,10 @@ class CornerTraceDialog(_TraceDialogBase):
                 ctx["bracket_start_m"], ctx["bracket_end_m"], ctx["t"], ctx["s_m"], ctx["params"],
                 ctx["sideslip_source"], ctx["fit_manifest"], ctx["state"]["sample_rate_hz"],
                 mark_arr=cs.get("near_strike_f") if cs is not None else None,
-                kerb_mode=ctx["near_strike"]["mode"],
+                kerb_mode=ctx["near_strike"]["mode"], basis=basis,
             ),
             "rear": self._build_tyre_curve_export(
-                "rear", slip.get("alpha_r_filt"), forces.get("Fy_r_filt"),
+                "rear", slip.get("alpha_r_filt"), _tyre_curve_force(basis, "rear", forces.get("Fy_r_filt")),
                 cs.get("C_linear_ref_r") if cs is not None else None,
                 cs.get("CS_ratio_r") if cs is not None else None,
                 cs.get("C_alpha_r") if cs is not None else None,
@@ -1322,7 +1250,7 @@ class CornerTraceDialog(_TraceDialogBase):
                 ctx["bracket_start_m"], ctx["bracket_end_m"], ctx["t"], ctx["s_m"], ctx["params"],
                 ctx["sideslip_source"], ctx["fit_manifest"], ctx["state"]["sample_rate_hz"],
                 mark_arr=cs.get("near_strike_r") if cs is not None else None,
-                kerb_mode=ctx["near_strike"]["mode"],
+                kerb_mode=ctx["near_strike"]["mode"], basis=basis,
             ),
         }
         self._export_data = {
@@ -1360,8 +1288,6 @@ class CornerTraceDialog(_TraceDialogBase):
         # slip/forces: tyre tab only; missing on older cached results -> empty tab
         slip = stability_result.get("slip")
         forces = stability_result.get("forces")
-        # ls optional -> no LS curves if missing
-        ls = stability_result.get("ls")
         if state is None or cs is None or stab is None or corners is None:
             self.header_label.setText(
                 f"C{stable_corner_id}: raw sample arrays aren't available for this render "
@@ -1394,23 +1320,16 @@ class CornerTraceDialog(_TraceDialogBase):
         margin_cfg = params.get("corner_trace_display", {})
         margin_before_m = margin_cfg.get("margin_before_m", 100.0)
         margin_after_m = margin_cfg.get("margin_after_m", 50.0)
-        # LS drawn only where |ax_mps2| > bound (display mask, config)
-        ls_display_min_ax = margin_cfg.get("ls_display_min_ax_mps2", 1.0)
         bridge_on = margin_cfg.get("kerb_gap_bridge", True)
         # kerb exclusion (display only): the same switch drives the export
         ns_mode = margin_cfg.get("kerb_exclusion_display", "grey")
         ns_f, ns_r = cs.get("near_strike_f"), cs.get("near_strike_r")
         ns_counts = [0, 0]
         any_bridge = False
-        yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
-        yaw_named = set()
 
         v_kmh = state["v_mps"] * 3.6
         cs_f = cs["CS_ratio_f"]
         cs_r = cs["CS_ratio_r"]
-        ls_f = ls["LS_ratio_f"] if ls is not None else None
-        ls_r = ls["LS_ratio_r"] if ls is not None else None
-        ax_mps2 = state.get("ax_mps2")
         stab_obs = stab["stability_observed_Nm_per_deg"]
         kerb_mask = state.get("kerb_mask")
         moving_mask = state.get("moving_mask")
@@ -1474,14 +1393,6 @@ class CornerTraceDialog(_TraceDialogBase):
                     any_not_moving = True
                     self._collect_exclusion(x, lap_not_moving)
 
-            # LS display mask on screen and export alike
-            ls_f_lap = ls_f[sl][order] if ls_f is not None else None
-            ls_r_lap = ls_r[sl][order] if ls_r is not None else None
-            if ls_f_lap is not None and ax_mps2 is not None:
-                ax_gate = np.abs(ax_mps2[sl][order]) > ls_display_min_ax
-                ls_f_lap = np.where(ax_gate, ls_f_lap, np.nan)
-                ls_r_lap = np.where(ax_gate, ls_r_lap, np.nan)
-
             # placeholder pen; _restyle_all_laps sets colour. name on the real item --
             # only checked laps are plotted
             style = self._lap_line_style[c["lap_number"]]
@@ -1499,24 +1410,16 @@ class CornerTraceDialog(_TraceDialogBase):
                                      ns_r[sl][order] if ns_r is not None else None, ns_mode,
                                      self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
             ]
-            if ls_f_lap is not None:
-                curve_items.append(self.plots["ls_f"].plot(
-                    x, ls_f_lap, connect="finite", pen=self._pen(**placeholder_pen_kwargs), name=lap_name))
-                curve_items.append(self.plots["ls_r"].plot(
-                    x, ls_r_lap, connect="finite", pen=self._pen(**placeholder_pen_kwargs), name=lap_name))
             self.lap_curve_items[c["lap_number"]] = curve_items
             if bridge_on and kerb_mask is not None:
                 any_bridge |= self._plot_kerb_bridges(
                     c["lap_number"], x, kerb_mask[sl][order],
                     [("stab", stab_obs[sl][order]), ("cs_f", cs_f[sl][order]), ("cs_r", cs_r[sl][order])])
-            if yaw_pooled is not None and yaw_pooled["steer_rate"] is not None:
-                self._plot_steer_rate(x, yaw_pooled["steer_rate"][sl][order], yaw_named)
             export_laps.append({
                 "lap_number": c["lap_number"], "selected": is_selected,
                 "s": x, "v_kmh": v_kmh[sl][order],
                 "cs_f": cs_f[sl][order], "cs_r": cs_r[sl][order],
                 "stab": stab_obs[sl][order],
-                "ls_f": ls_f_lap, "ls_r": ls_r_lap,
                 # export draws kerb bridges only when this is set (same flag)
                 "kerb": kerb_mask[sl][order] if (bridge_on and kerb_mask is not None) else None,
                 "near_strike_f": ns_f[sl][order] if ns_f is not None else None,
@@ -1528,14 +1431,6 @@ class CornerTraceDialog(_TraceDialogBase):
             instances, laps_by_number, t, s_m, bracket_start_m, bracket_end_m,
             margin_before_m, margin_after_m,
             {"cs_f": cs_f, "cs_r": cs_r, "stab": stab_obs}, margin_cfg.get("cs_envelope"))
-
-        # yaw rows join lap_curve_items, so they must exist before the restyle.
-        # Envelope = all analysis laps; rows and flags = checked laps only.
-        yaw_corner = yaw_pooled["corners"].get(stable_corner_id) if yaw_pooled is not None else None
-        if yaw_corner is not None:
-            any_bridge |= self._plot_yaw_corner(
-                yaw_corner, {c["lap_number"] for c in checked_instances},
-                bridge_on and kerb_mask is not None, yaw_named)
 
         # legend = checked laps + threshold lines
         self._laps_by_number = laps_by_number
@@ -1561,6 +1456,8 @@ class CornerTraceDialog(_TraceDialogBase):
             "instances": instances, "laps_by_number": laps_by_number,
             "bracket_start_m": bracket_start_m, "bracket_end_m": bracket_end_m,
             "t": t, "s_m": s_m, "slip": slip, "forces": forces, "cs": cs,
+            # the CS normalisation loads (fit L), for the tyre-curve unit
+            "cs_axle_loads": stability_result.get("cs_axle_loads"),
             "kerb_mask": kerb_mask, "state": state, "params": params,
             "sideslip_source": stability_result.get("sideslip_source"),
             "fit_manifest": stability_result.get("fit_manifest"),
@@ -1585,9 +1482,6 @@ class CornerTraceDialog(_TraceDialogBase):
                                   name="Strong")
         self._add_threshold_line("cs_r", cls_cfg["MODERATE_CSR"]["value"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
                                   name="Moderate")
-        # LS: no thresholds, dotted zero line (as in the export)
-        self._add_threshold_line("ls_f", 0.0, THRESHOLD_GREY, Qt.PenStyle.DotLine, name="Zero")
-        self._add_threshold_line("ls_r", 0.0, THRESHOLD_GREY, Qt.PenStyle.DotLine, name="Zero")
 
         if rep_start_s is not None:
             x_lo, x_hi = rep_start_s, rep_end_s
@@ -1597,10 +1491,9 @@ class CornerTraceDialog(_TraceDialogBase):
         # a wrong range back
         for plot in self.plots.values():
             plot.setXRange(x_lo, x_hi, padding=0.02)
-        # fixed y for ratio panels; stab/speed/yaw/steer auto-range
-        for key in ("stab", "speed", "yaw", "steer"):
-            if key in self.plots:
-                self.plots[key].enableAutoRange(axis='y')
+        # fixed y for ratio panels; stab/speed auto-range
+        for key in ("stab", "speed"):
+            self.plots[key].enableAutoRange(axis='y')
         self._apply_ratio_y_range()
 
         n_laps = len(instances)
@@ -1611,16 +1504,9 @@ class CornerTraceDialog(_TraceDialogBase):
         self.header_label.setText(
             f"C{stable_corner_id} -- {n_laps} valid lap(s) available{quiet_note}, unchecked laps hidden -- "
             f"context margin -{margin_before_m:g}m/+{margin_after_m:g}m outside the bracket"
-            + (f" -- yaw envelope over {yaw_pooled['n_analysis_laps']} analysis laps" if yaw_pooled else "")
         )
 
         legend_parts = [BASE_LEGEND_TEXT]
-        if ls_f is not None and ls_r is not None:
-            legend_parts.append(LS_PANEL_LEGEND_TEXT)
-        if yaw_pooled is not None:
-            legend_parts.append(_yaw_legend_text(yaw_pooled, self._yaw_cfg) if yaw_corner is not None else
-                                f"Yaw panel: no envelope for this corner (fewer than "
-                                f"{self._yaw_cfg['min_laps']} analysis laps pooled).")
         if any_kerb or any_not_moving:
             legend_parts.append(EXCLUSION_LEGEND_TEXT)
         if any_bridge:
@@ -1644,13 +1530,6 @@ class LapTraceDialog(_TraceDialogBase):
 
     WINDOW_TITLE = "Lap Trace"
     WINDOW_SIZE = (1100, 680)
-
-    # no LS panels -- LS has no lap-level reading
-    PANEL_TITLES = [
-        ("Speed (km/h)", "speed"), ("Stability (Nm/deg)", "stab"),
-        ("Front CS ratio", "cs_f"), ("Rear CS ratio", "cs_r"),
-    ]
-    RATIO_PANEL_KEYS = ("cs_f", "cs_r")
 
     def __init__(self, parent=None, on_corner_click=None):
         super().__init__(parent)
@@ -1701,11 +1580,10 @@ class LapTraceDialog(_TraceDialogBase):
             self.show_lap(lap_number, stability_result, parsed_data, classify_fn,
                            preserve_visible=dict(self.lap_visible))
 
-    def _load_lap_data(self, lap_number, stability_result, parsed_data, steer_rate=None):
-        """state/cs/stab (and steer_rate, when given) sliced to the whole lap via
-        _lap_slice (no margin). Arrays ready to plot, or None.
+    def _load_lap_data(self, lap_number, stability_result, parsed_data):
+        """state/cs/stab sliced to the whole lap via _lap_slice (no margin).
+        Arrays ready to plot, or None.
         """
-        # no LS here
         state = stability_result.get("state")
         cs = stability_result.get("cs")
         stab = stability_result.get("stab")
@@ -1735,7 +1613,6 @@ class LapTraceDialog(_TraceDialogBase):
             "speed": state["v_mps"][sl][order] * 3.6,
             "kerb": kerb_mask[sl][order] if kerb_mask is not None else None,
             "not_moving": ~moving_mask[sl][order] if moving_mask is not None else None,
-            "steer": steer_rate[sl][order] if steer_rate is not None else None,
         }
 
     def _add_corner_bands(self, corners_by_id, worst_colour_by_id):
@@ -1870,12 +1747,9 @@ class LapTraceDialog(_TraceDialogBase):
         ns_mode = margin_cfg.get("kerb_exclusion_display", "grey")
         ns_counts = [0, 0]
         any_bridge = False
-        yaw_pooled = self._yaw_panel_data(stability_result, parsed_data)
-        yaw_named = set()
         export_laps = []
         for ln in checked_lap_numbers:
-            data = self._load_lap_data(ln, stability_result, parsed_data,
-                                       steer_rate=yaw_pooled["steer_rate"] if yaw_pooled is not None else None)
+            data = self._load_lap_data(ln, stability_result, parsed_data)
             if data is None:
                 continue
 
@@ -1906,8 +1780,6 @@ class LapTraceDialog(_TraceDialogBase):
                 any_bridge |= self._plot_kerb_bridges(
                     ln, data["x"], data["kerb"],
                     [("stab", data["stab"]), ("cs_f", data["csf"]), ("cs_r", data["csr"])])
-            if data["steer"] is not None:
-                self._plot_steer_rate(data["x"], data["steer"], yaw_named)
             # figure_render key shape (s/v_kmh/stab/cs_f/cs_r), from the plotted slices
             export_laps.append({
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
@@ -1915,13 +1787,6 @@ class LapTraceDialog(_TraceDialogBase):
                 "kerb": data["kerb"] if bridge_on else None,
                 "near_strike_f": data["nsf"], "near_strike_r": data["nsr"],
             })
-
-        # every pooled corner of the lap; rows join lap_curve_items -> before the
-        # restyle. Envelope = all analysis laps, rows/flags = checked laps.
-        if yaw_pooled is not None:
-            checked_set = set(checked_lap_numbers)
-            for _cid, pc in sorted(yaw_pooled["corners"].items()):
-                any_bridge |= self._plot_yaw_corner(pc, checked_set, bridge_on, yaw_named)
 
         # colour assignment, same rule as the toggle re-render
         self._restyle_all_laps()
@@ -1941,10 +1806,9 @@ class LapTraceDialog(_TraceDialogBase):
 
         for plot in self.plots.values():
             plot.enableAutoRange(axis='x')
-        # fixed y for ratio panels; stab/speed/yaw/steer auto-range
-        for key in ("stab", "speed", "yaw", "steer"):
-            if key in self.plots:
-                self.plots[key].enableAutoRange(axis='y')
+        # fixed y for ratio panels; stab/speed auto-range
+        for key in ("stab", "speed"):
+            self.plots[key].enableAutoRange(axis='y')
         self._apply_ratio_y_range()
 
         self._add_corner_bands(corners_by_id, worst_colour_by_id)
@@ -1965,12 +1829,9 @@ class LapTraceDialog(_TraceDialogBase):
             f"Lap {lap_number} -- full-lap trace, {len(valid_lap_numbers)} valid lap(s) "
             f"available, fastest {n_default} (incl. lap {lap_number}) shown by default -- "
             f"check other laps to overlay."
-            + (f" Yaw envelope over {yaw_pooled['n_analysis_laps']} analysis laps." if yaw_pooled else "")
         )
 
         legend_parts = [BASE_LEGEND_TEXT, LAP_BAND_LEGEND_TEXT]
-        if yaw_pooled is not None:
-            legend_parts.append(_yaw_legend_text(yaw_pooled, self._yaw_cfg))
         if any_kerb or any_not_moving:
             legend_parts.append(EXCLUSION_LEGEND_TEXT)
         if any_bridge:

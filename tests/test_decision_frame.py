@@ -3501,7 +3501,7 @@ def test_tyre_pressure_flags_real_dubai_produces_under_target_flags(parsed_data,
     # ACCEPTANCE DEMONSTRATION (real data, both project rules: channel
     # census + "real data only"). Dubai's cornering-phase pressures sit
     # consistently below the elicited band on this session (diagnostics/
-    # inspect_tpms_pressure_cornering_phase.py census: fl median ~1.72,
+    # inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22) census: fl median ~1.72,
     # fr ~1.72, rl ~1.70, rr ~1.70 bar vs target 1.85-1.95/1.80-1.90).
     # Per author clarification (thesis_notes.md 'WP-ELICIT Phase B'):
     # this is EXPECTED compound-mismatch output, not a system defect --

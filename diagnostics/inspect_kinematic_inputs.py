@@ -498,7 +498,7 @@ def filter_check(path, png, summary):
     one real long corner: production betas against a raw integration of the
     offset-corrected inputs (correction inside this diagnostic only)."""
     from modules.stability_analysis import load_parameters, _highpass_filter, estimate_sideslip
-    from modules.tyre_fit_auto import resolve_sideslip_beta
+    from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
     raw_params = load_parameters()
     ep = apply_resolved_vehicle(raw_params, resolve_accuracy(raw_params, None, None))
@@ -546,7 +546,7 @@ def filter_check(path, png, summary):
           f"= {(b - a) / sr:.2f} s, mean |ay| {np.mean(np.abs(ay[a:b])):.1f} m/s^2, mean vx {np.mean(v[a:b]):.1f} m/s")
     beta_kin = estimate_sideslip(st, ep)
     src = ep["stability_estimation"]["sideslip_source"]
-    beta_prod, _m, _g, fb, fb_reason = resolve_sideslip_beta(st, ep, parsed, src, csv_path=path)
+    beta_prod, _m, _g, fb, fb_reason = resolve_sideslip_beta_and_cs_inputs(st, ep, parsed, src, csv_path=path)[:5]
     r_b = np.radians(summary["yaw"])
     ay_b = summary["ay"]
     seg = slice(i_start, b)

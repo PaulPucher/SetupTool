@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from modules.stability_analysis import load_parameters
-from modules.nis_gate import compute_health_score, classify_score, evaluate_gate, resolve_nis_window_samples
+from modules.nis_gate import _score_and_skips, classify_score, evaluate_gate, resolve_nis_window_samples
 
 
 @pytest.fixture(scope="module")
@@ -100,17 +100,19 @@ def test_intermediate_score_warns_under_live_thresholds():
 
 # --- NaN / short-session degradation ----------------------------------------
 
-def test_compute_health_score_window_longer_than_session_is_nan():
+def test_health_score_window_longer_than_session_is_nan():
+    # the score function itself (compute_health_score, its old public
+    # wrapper, was removed in the 2026-10-22 pruning)
     nis = np.array([1.0, 2.0, 3.0])
     mask = np.array([True, True, True])
-    score = compute_health_score(nis, mask, window_samples=20, band_low=0.03, band_high=0.15)
+    score = _score_and_skips(nis, mask, window_samples=20, band_low=0.03, band_high=0.15)[0]
     assert score != score  # NaN
 
 
-def test_compute_health_score_empty_mask_is_nan():
+def test_health_score_empty_mask_is_nan():
     nis = np.random.default_rng(0).uniform(0, 3, size=100)
     mask = np.zeros(100, dtype=bool)
-    score = compute_health_score(nis, mask, window_samples=20, band_low=0.03, band_high=0.15)
+    score = _score_and_skips(nis, mask, window_samples=20, band_low=0.03, band_high=0.15)[0]
     assert score != score  # NaN
 
 

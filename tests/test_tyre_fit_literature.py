@@ -2,9 +2,7 @@
 # data, NBR JST outing 29: the method constants hold, the residuals are the
 # load-scaled curve error in N, the tyre-frame transform inverts exactly, and
 # the mode runs end to end with the load provenance in the manifest. Fit L
-# is the config default since 2026-10-20; the bit-identity of the old
-# per_session path is shown by diagnostics/check_fit_lit_inactive.py (three
-# sessions, old vs new code) and by the goldens (tests/conftest.py pins it).
+# is the only tyre-fit mode since the 2026-10-22 pruning.
 
 import numpy as np
 import pytest
@@ -73,34 +71,6 @@ def test_fit_l_constants_mu_demo_and_residuals(jst29):
 def l_manifest(jst29):
     return tfa.fit_session_pacejka(jst29["data"], jst29["params"], data_file_path=jst29["path"],
                                    tyre_fit_mode="literature_bounded")
-
-
-def test_load_path_matches_constant_d_at_constant_load(jst29, l_manifest):
-    # With Fx = 0 and Fz held at Fz_ref the load path differs from the
-    # constant-D path only by cos(delta) on the front, so the observer must
-    # predict lateral acceleration equally well. Catches a step evaluated
-    # with D = mu as a force (the 2026-10-18 defect: 9.6 vs 2.0 m/s^2).
-    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
-    st, man = jst29["state"], l_manifest
-    cfg_mu = dict(man["final_config"])
-    assert cfg_mu["d_is_mu"] is True
-    fz_f, fz_r = man["axles"]["front"]["fz_ref_N"], man["axles"]["rear"]["fz_ref_N"]
-    st_mu = dict(st, fz_axle_f_N=np.full(st["time"].size, fz_f), fz_axle_r_N=np.full(st["time"].size, fz_r),
-                 fx_axle_f_N=np.zeros(st["time"].size))
-    cfg_d = {k: v for k, v in cfg_mu.items() if k != "d_is_mu"}
-    cfg_d["d_front"], cfg_d["d_rear"] = cfg_mu["d_front"] * fz_f, cfg_mu["d_rear"] * fz_r
-    base = tfa._base_mask(st, jst29["data"]["laps"])
-    out = {}
-    for name, cfg, state in (("mu", cfg_mu, st_mu), ("d", cfg_d, st)):
-        p = dict(jst29["params"])
-        p["tyre_model_ekf_pacejka"] = {"_t": cfg}
-        r = estimate_sideslip_ekf_pacejka(state, p, pass_id="_t")
-        inn, sd = r["innovation"][base][:, 1], r["S_diag"][base][:, 1]
-        out[name] = (float(np.sqrt(np.mean(inn ** 2))), float(np.mean(inn ** 2 / sd > tfa.CHI2_DF1_95)))
-    print(f"ay innovation RMS load path {out['mu'][0]:.4f} / constant D {out['d'][0]:.4f} m/s^2; "
-          f"ay exceedance {out['mu'][1]:.4f} / {out['d'][1]:.4f}")
-    assert out["mu"][0] == pytest.approx(out["d"][0], rel=0.05)
-    assert abs(out["mu"][1] - out["d"][1]) <= 0.01
 
 
 def test_literature_bounded_runs_with_load_provenance(l_manifest):
@@ -186,15 +156,16 @@ def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
                                             resolve_cs_min_window_samples)
     # The shipped run has no hard-bound re-entry on this session since Q-UPPER
     # (2026-10-19), so the marking is checked with the real reset sequence of
-    # the same observer under the NIS-window trigger; the windowing does not
-    # depend on where the mask comes from.
+    # the same observer on real data with the hard bound lowered to 2 deg
+    # (the NIS-window trigger used before was removed in the 2026-10-22
+    # pruning); the windowing does not depend on where the mask comes from.
     from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
     st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
     li = jst29["load_in"]
     st_l = dict(st, fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
-    p_nw = dict(p)
-    p_nw["tyre_model_ekf_pacejka"] = {"_t": dict(l_manifest["final_config"], divergence_trigger="nis_window")}
-    reset = estimate_sideslip_ekf_pacejka(st_l, p_nw, pass_id="_t")["diverged_mask"]
+    p_hb = dict(p)
+    p_hb["tyre_model_ekf_pacejka"] = {"_t": dict(l_manifest["final_config"], beta_hard_bound_deg=2.0)}
+    reset = estimate_sideslip_ekf_pacejka(st_l, p_hb, pass_id="_t")["hard_bound_mask"]
     assert reset.any()
     slip = estimate_slip_angles(st, l_manifest["beta_ekf_with_fallback"], p)
     plain = estimate_cornering_stiffness(slip, jst29["forces"], st, p, laps)
@@ -215,59 +186,6 @@ def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
             assert bool(mark[i]) == bool(cum[i] > cum[s0])
 
 
-def _base_runs(mask):
-    # (start, stop) of contiguous True runs
-    d = np.diff(np.concatenate(([0], mask.astype(np.int8), [0])))
-    return list(zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1)))
-
-
-def test_change_detector_step_on_real_nis_segments(jst29, l_manifest):
-    # Rajamani sec. 14.4.2 change detector on the shipped L run's NIS (JST 29,
-    # real data only). Reference: the closed form of the recursion started at
-    # zero, a_t = S_t - min(0, S_1 .. S_t) with S the cumulative sum of
-    # (NIS - d) -- independent of the step code. A quiet 2 s stretch (closed
-    # form below h / 2 throughout) gives no alarm; the burst with the largest
-    # closed-form value alarms at exactly its first crossing of h.
-    from modules.sideslip_ekf_pacejka import change_detector_step
-    cfg = jst29["params"]["tyre_fit_auto"]
-    d, h = cfg["l_cd_drift"], cfg["l_cd_threshold_h"]
-    nis, base = l_manifest["nis_full"], l_manifest["base_mask"] & np.isfinite(l_manifest["nis_full"])
-    sr = jst29["state"]["sample_rate_hz"]
-
-    def closed_form(seg):
-        s = np.cumsum(seg - d)
-        return s - np.minimum(0.0, np.minimum.accumulate(s))
-
-    def stepped(seg):
-        a, out, alarms = 0.0, [], []
-        for x in seg:
-            a, al = change_detector_step(a, float(x), d, h)
-            out.append(a)
-            alarms.append(al)
-        return np.array(out), np.array(alarms)
-
-    quiet = burst = None
-    for a0, a1 in _base_runs(base):
-        seg = nis[a0:a1]
-        ref = closed_form(seg)
-        n2 = int(2 * sr)
-        if quiet is None and seg.size >= n2 and np.all(ref[:n2] < h / 2):
-            quiet = seg[:n2]
-        if burst is None or ref.max() > closed_form(burst).max():
-            burst = seg
-    assert quiet is not None and burst is not None
-    a_q, al_q = stepped(quiet)
-    np.testing.assert_allclose(a_q, closed_form(quiet), rtol=0, atol=1e-6)
-    assert not al_q.any()
-    ref_b = closed_form(burst)
-    assert ref_b.max() > h
-    a_b, al_b = stepped(burst)
-    k = int(np.argmax(ref_b > h))
-    np.testing.assert_allclose(a_b[:k + 1], ref_b[:k + 1], rtol=0, atol=1e-6)
-    assert int(np.argmax(al_b)) == k
-    print(f"quiet stretch max a {a_q.max():.2f}; burst first alarm at sample {k} (a {a_b[k]:.1f} > h {h:g})")
-
-
 def test_observer_reset_mask_is_hard_bound_only(jst29, l_manifest):
     # mask scope ruling 2026-10-19: only hard-bound re-entries mark CS
     # windows; a hard-bound reset is exactly a raw update beyond the bound
@@ -279,44 +197,6 @@ def test_observer_reset_mask_is_hard_bound_only(jst29, l_manifest):
     base = l_manifest["base_mask"]
     print(f"NIS on the base mask, shipped L run: mean {np.nanmean(l_manifest['nis_full'][base]):.3f}, "
           f"median {np.nanmedian(l_manifest['nis_full'][base]):.3f}")
-
-
-def test_change_detector_trigger_resets_once_per_alarm(jst29, l_manifest):
-    # Real data, final L config with the change detector switched on: every
-    # reset that is not a hard-bound one is a detector alarm, the statistic
-    # restarts after it, so two alarms are at least ceil(h / max NIS step)
-    # apart; a placeholder h is enough to check the rule. With the default
-    # trigger the final config reproduces the shipped run exactly.
-    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka, change_detector_step
-    st, man = jst29["state"], l_manifest
-    cfg = dict(man["final_config"])
-    assert cfg["divergence_trigger"] == "hard_bound_only"
-    li = jst29["load_in"]
-    st_l = dict(st, fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
-    p = dict(jst29["params"])
-    p["tyre_model_ekf_pacejka"] = {"_t": cfg}
-    r0 = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
-    np.testing.assert_array_equal(r0["beta_with_fallback"], man["beta_ekf_with_fallback"])
-    cfg_cd = dict(cfg, divergence_trigger="change_detector", cd_drift=2.0, cd_threshold=50.0)
-    p["tyre_model_ekf_pacejka"] = {"_t": cfg_cd}
-    r = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
-    assert not (r["hard_bound_mask"] & ~r["diverged_mask"]).any()
-    alarms = r["diverged_mask"] & ~r["hard_bound_mask"]
-    assert alarms.any()
-    # replay the statistic from the logged NIS with the loop's reset rule
-    a, expect = 0.0, np.zeros_like(alarms)
-    moving = st["moving_mask"]
-    for i in range(alarms.size):
-        if not moving[i]:
-            a = 0.0
-            continue
-        a, al = change_detector_step(a, r["nis"][i], 2.0, 50.0)
-        expect[i] = al and not r["hard_bound_mask"][i]
-        if al or r["hard_bound_mask"][i]:
-            a = 0.0
-    np.testing.assert_array_equal(alarms, expect)
-    print(f"change detector at placeholder h 50: {int(alarms.sum())} alarms, "
-          f"{int(r['hard_bound_mask'].sum())} hard-bound resets")
 
 
 def test_observer_q_reproduces_q_phys(l_manifest):
@@ -337,20 +217,48 @@ def test_observer_q_reproduces_q_phys(l_manifest):
     assert l_manifest["final_config"]["Q_yaw_rate_var"] == q["q_yaw_rate_var"]
 
 
-def test_hard_bound_only_makes_no_soft_reset(jst29, l_manifest):
-    # fit-L default trigger: every reset of the shipped final run is a
-    # hard-bound one
+def test_final_config_reproduces_the_shipped_observer(jst29, l_manifest):
+    # the manifest's final config alone (plus the session loads) reproduces
+    # the shipped beta; resets are hard-bound ones only (the soft triggers were
+    # removed in the 2026-10-22 pruning)
     from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
     cfg = dict(l_manifest["final_config"])
-    assert cfg["divergence_trigger"] == "hard_bound_only"
+    assert "divergence_trigger" not in cfg
     li = jst29["load_in"]
     st_l = dict(jst29["state"], fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
     p = dict(jst29["params"])
     p["tyre_model_ekf_pacejka"] = {"_t": cfg}
     r = estimate_sideslip_ekf_pacejka(st_l, p, pass_id="_t")
     np.testing.assert_array_equal(r["beta_with_fallback"], l_manifest["beta_ekf_with_fallback"])
-    np.testing.assert_array_equal(r["diverged_mask"], r["hard_bound_mask"])
-    print(f"hard-bound resets {int(r['hard_bound_mask'].sum())}, soft resets 0")
+    assert "diverged_mask" not in r
+    print(f"hard-bound resets {int(r['hard_bound_mask'].sum())}")
+
+
+def test_observer_peak_axle_force_is_mu_times_fz(jst29, l_manifest):
+    # guards the 2026-10-18 defect (Q-FIT-LIT): with d_is_mu the observer's
+    # D is a friction coefficient, so its peak axle force at a sample must be
+    # mu * Fz(t), not mu read as newtons. C = 1 has no finite peak (the curve
+    # approaches D asymptotically), so the peak over a 0..1.5 rad sweep sits
+    # just below mu * Fz: worst case B = 5 (lower bound) gives 0.997, hence
+    # the stated tolerance of 1 % below and none above. Steer 0 isolates the
+    # tyre-frame force (the Fx * sin(delta) term vanishes).
+    from modules.sideslip_ekf_pacejka import axle_forces
+    cfg = l_manifest["final_config"]
+    assert cfg["d_is_mu"] is True
+    tyre = (cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"],
+            cfg["b_rear"], cfg["c_rear"], cfg["d_rear"], cfg["e_rear"])
+    li = jst29["load_in"]
+    load = (li["fz_f_N"], li["fz_r_N"], li["fx_f_N"])
+    alpha = np.linspace(0.0, 1.5, 3001)
+    moving = np.flatnonzero(jst29["fit_mask"] & np.isfinite(li["fz_f_N"]) & np.isfinite(li["fz_r_N"]))
+    # two real load states: the lightest and heaviest front axle in the fit population
+    for i in (moving[np.argmin(li["fz_f_N"][moving])], moving[np.argmax(li["fz_f_N"][moving])]):
+        fy_f, fy_r, _, _ = axle_forces(alpha, alpha, tyre, 0.0, i, load)
+        for peak, mu, fz in ((np.max(np.abs(fy_f)), cfg["d_front"], li["fz_f_N"][i]),
+                             (np.max(np.abs(fy_r)), cfg["d_rear"], li["fz_r_N"][i])):
+            target = mu * float(fz)
+            assert target * 0.99 <= peak <= target * (1 + 1e-12), (
+                f"peak axle force {peak:.1f} N vs mu * Fz = {target:.1f} N at sample {i}")
 
 
 def test_noise_floors_are_taken_on_the_consumed_signals(jst29, l_manifest):

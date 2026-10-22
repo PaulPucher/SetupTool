@@ -6,7 +6,7 @@
 # rule governs the latter, not a minimal fixture proving classification
 # logic). Real-session verification (sign convention, threshold
 # derivation, Dubai RR dead-channel confirmation) is diagnostics/
-# inspect_damper_motion_sign_and_threshold.py and thesis_notes.md, not
+# inspect_damper_motion_sign_and_threshold.py (script at tag pre-prune-2026-10-22) and thesis_notes.md, not
 # duplicated here as a synthetic assertion.
 
 import numpy as np

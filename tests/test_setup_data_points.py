@@ -6,7 +6,7 @@
 # out of this suite (see its docstring). Persistence-shape coverage only;
 # the widget<->_active_inputs binding itself is covered by diagnostics/
 # smoke_test_measurement_points_widget.py (Qt required, run manually, same
-# precedent as smoke_test_corner_trace_dialog.py). No golden regeneration.
+# precedent as smoke_test_corner_trace_dialog.py (script at tag pre-prune-2026-10-22)). No golden regeneration.
 
 import json
 

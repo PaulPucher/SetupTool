@@ -1,4 +1,4 @@
-# Golden-value regression on the DEFAULT path (fit L, schema 16) on two
+# Golden-value regression on the DEFAULT path (fit L) on two
 # thesis sessions, NBR JST outing 29 and Le Castellet outing 32 (author
 # ruling 2026-10-20: the Dubai goldens are retired -- Dubai is outside the
 # thesis data and its goldens were stale since acf7dbf).

@@ -1,7 +1,8 @@
-# Limit events (modules/limit_events.py) on the real Dubai sample, through the
-# shared pipeline fixture. The guard test is the contract the author ruled:
-# events are display + record only, so verdict inputs, corner summaries,
-# verdicts and recommendations must be byte-identical with events on or off.
+# Floor events (modules/limit_events.py) on the real Dubai sample, through the
+# shared pipeline fixture (default path, fit L). The guard test is the
+# contract the author ruled: events are display + record only, so verdict
+# inputs, corner summaries, verdicts and recommendations must be
+# byte-identical with events on or off.
 
 import copy
 import json
@@ -10,9 +11,7 @@ import os
 import numpy as np
 import pytest
 
-from modules.limit_events import (
-    EVENT_FLOOR_MAX_DEG, aggregate_by_corner_phase, curve_floor, detect_events,
-)
+from modules.limit_events import PURE_LATERAL_FLOOR, aggregate_by_corner_phase, detect_events
 from modules.stability_analysis import summarise_corners
 
 
@@ -31,19 +30,6 @@ def _verdict_snapshot(pipeline_result, state):
     recs = generate_recommendations(summaries, lambda s: OutingForm._classify_corner(None, s),
                                     feedback_data={}, setup_data=None, config=load_recommendations_config())
     return json.dumps({"summaries": summaries, "verdicts": verdicts, "recs": recs}, default=str, sort_keys=True)
-
-
-def test_floor_definition_on_the_session_fit(pipeline_result):
-    # the floor is the curve's own CS analogue: 1 at the origin, and a wider
-    # slip range can only lower it
-    for axle in ("front", "rear"):
-        ax = pipeline_result["fit_manifest"]["axles"][axle]
-        f0, _ = curve_floor(ax, 0.0)
-        assert f0 == pytest.approx(1.0, abs=1e-9)
-        f_vis, _ = curve_floor(ax, ax["visited_alpha_p99_deg"])
-        f30, at30 = curve_floor(ax, EVENT_FLOOR_MAX_DEG)
-        assert f30 <= f_vis
-        assert 0.0 <= at30 <= EVENT_FLOOR_MAX_DEG
 
 
 def test_events_are_display_only(pipeline_result, state, parsed_data, effective_params):
@@ -111,30 +97,21 @@ def test_event_record_properties(pipeline_result, state, parsed_data, effective_
     assert sum(r["n_events"] for r in rows) == len(ev["events"])
 
 
-def test_minimum_duration_is_one_cs_window(effective_params):
-    # author ruling 2026-10-06 (round 3): min duration = one CS regression
-    # window, the estimator's own resolution
-    cfg = effective_params["limit_events"]
-    assert cfg["min_duration_s"] == effective_params["stability_estimation"]["cs_min_window_s"] == 0.1
-    assert cfg["bridge_gap_s"] == 0.5
-    assert cfg["recurrence_radius_m"] == 10.0
-
-
-def test_events_respect_minimum_duration(pipeline_result, state, parsed_data, effective_params):
-    ev = _events(pipeline_result, state, parsed_data, effective_params)
-    sr = state["sample_rate_hz"]
-    assert all(e["duration_s"] >= effective_params["limit_events"]["min_duration_s"] - 0.5 / sr
-               for e in ev["events"])
-
-
-def test_no_event_line_from_a_failed_nis_gate(pipeline_result, state, parsed_data, effective_params):
-    """R14: a session whose NIS gate failed ships kinematic beta, so its
-    fitted curve draws no event line; a passing or absent gate changes nothing."""
+def test_failed_nis_gate_keeps_the_floor_and_says_why(pipeline_result, state, parsed_data, effective_params):
+    """Fit-L rule (author ruling 2026-10-22, retargeted from R14): the -0.53
+    floor is model-independent, so a failed NIS gate does not withdraw it --
+    floors stay, the events are the same, and the record names the gate as
+    the reason the CS came from kinematic beta. Status stays "computed": the
+    UI shows events only for that status. A passing or absent gate changes
+    nothing."""
     base = _events(pipeline_result, state, parsed_data, effective_params)
     args = (pipeline_result["cs"], state, pipeline_result["corners"], parsed_data["laps"],
             pipeline_result["fit_manifest"], effective_params)
     failed = detect_events(*args, slip=pipeline_result["slip"], gate_verdict={"verdict": "fail"})
-    assert failed["events"] == [] and failed["floors"] is None
-    assert "NIS gate failed" in failed["status"]
+    assert failed["floors"] == {"front": PURE_LATERAL_FLOOR, "rear": PURE_LATERAL_FLOOR}
+    assert failed["status"] == "computed"
+    assert "NIS gate failed" in failed["beta_note"]
+    assert (json.dumps(failed["events"], sort_keys=True, default=str)
+            == json.dumps(base["events"], sort_keys=True, default=str))
     passed = detect_events(*args, slip=pipeline_result["slip"], gate_verdict={"verdict": "pass"})
     assert json.dumps(passed, sort_keys=True, default=str) == json.dumps(base, sort_keys=True, default=str)

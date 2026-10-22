@@ -6,7 +6,10 @@ Bachelor thesis (TUM / Proton Competition). Windows, PowerShell, venv.
 ## Commands
 - Activate venv: `.\.venv\Scripts\Activate.ps1`
 - Run app: `python main.py`
-- Test pipeline (no UI): `python test_stability.py`
+- Test pipeline (no UI): `python test_stability.py` -- default path (fit L)
+  end to end on NBR JST outing 29, compared with tests/golden/default_nbr_jst29.json
+  (fit manifest, gate, summaries, floor events, verdicts); exit 1 on a diff.
+  `python test_stability.py pr_lc32` checks the Le Castellet 32 golden.
 - Sample data: `C:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt` (laptop)
   or `H:\UNI\Bachelorarbeit\Data\Sample\Sample_Dubai.txt` (temporary machine)
   (6 laps: 0-5, 0=outlap, 5=inlap; analysis laps 1-4)
@@ -182,7 +185,8 @@ recorded in thesis_notes.md and its work package commits, DELETE the
 script in that same commit unless it qualifies as one of:
 - **Referenced** — cited by exact filename from outside diagnostics/:
   a docstring/comment pointer in modules/ui/core, a config
-  `derived_from`/provenance string, or a PLAN.md entry.
+  `derived_from`/provenance string, a PLAN.md entry, or a
+  thesis_notes.md entry (author ruling 2026-10-22).
 - **Reproduces** — live tooling still needed: a golden-value
   generator, the frozen pass-1 validation baseline, a reusable
   headless Qt smoke test, or (rare, flag it) a script something in

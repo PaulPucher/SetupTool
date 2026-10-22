@@ -20,6 +20,13 @@ MIN_WINDOW_VALID_FRACTION = 0.5
 
 
 def _score_and_skips(nis_combined_full, mask, window_samples, band_low, band_high):
+    """(health score, skipped count). Score = fraction of masked samples whose
+    trailing-window NIS exceedance lies in [band_low, band_high].
+    nis_combined_full is unmasked -- the window looks back across mask gaps,
+    like the EKF divergence monitor. Windows less than half covered by
+    finite NIS are skipped. NaN on degenerate input; NaN never counts as a
+    pass.
+    """
     window_samples = int(window_samples)
     n = len(nis_combined_full)
     if window_samples < 1 or window_samples > n or not np.any(mask):
@@ -47,16 +54,6 @@ def _score_and_skips(nis_combined_full, mask, window_samples, band_low, band_hig
     if not valid.any():
         return float("nan"), n_skipped
     return float(in_band[valid].mean()), n_skipped
-
-
-def compute_health_score(nis_combined_full, mask, window_samples, band_low, band_high):
-    """Fraction of masked samples whose trailing-window NIS exceedance lies
-    in [band_low, band_high]. nis_combined_full is unmasked -- the window
-    looks back across mask gaps, like the EKF divergence monitor. Windows
-    less than half covered by finite NIS are skipped.
-    NaN on degenerate input; NaN never counts as a pass.
-    """
-    return _score_and_skips(nis_combined_full, mask, window_samples, band_low, band_high)[0]
 
 
 def classify_score(health_score, threshold_use_ekf, threshold_warn):

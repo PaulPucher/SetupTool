@@ -86,13 +86,12 @@ def _to_config_unit(ch_name, data, unit_raw, unit_cfg):
 
 def _fixed_factor_units():
     # Channels whose downstream conversion is a hard-coded factor, and the
-    # unit that factor assumes: /3.6 for speeds, pi/180 for steering, 9.81
-    # for accelerations (prepare_vehicle_state, longitudinal_forces) and
+    # unit that factor assumes: /3.6 for speed, pi/180 for steering, 9.81
+    # for accelerations (prepare_vehicle_state) and
     # yaw_rate_to_radps, which converts from yaw_rate_unit (parameters.json).
     units = {"ecu_speed": "km/h", "log_asteer": "deg",
              "log_acc_x": "g", "log_acc_y": "g", "log_acc_z": "g",
              "sclu_yaw_rate": load_parameters()["stability_estimation"]["yaw_rate_unit"]}
-    units.update({f"log_speed_{c}": "km/h" for c in ("fl", "fr", "rl", "rr")})
     return units
 
 
@@ -405,7 +404,7 @@ def _classify_out_in_laps_by_limiter(laps, channels):
     # flags, never clears the positional ones.
     # Catches pit boxes before start/finish, where the limiter is still on
     # after the lap counter ticks (v3 lap 5,
-    # diagnostics/inspect_v3_pit_limiter_lap_census.py), and inlaps with no
+    # diagnostics/inspect_v3_pit_limiter_lap_census.py (script at tag pre-prune-2026-10-22)), and inlaps with no
     # trailing fragment. No channel -> positional result unchanged.
     limiter_ch = channels.get("ecu_B_speedlimit_en")
     for lap in laps:

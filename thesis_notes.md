@@ -284,7 +284,7 @@ HOW TO USE:
   1 of 51 corner instances (stable_corner_id 8, lap 3 only).
 - NEW (-50, chair-basis s-anchored ridge estimator): gap-selected, not
   percentile-anchored to a fixed rank -- the worst-phase-per-corner-
-  instance distribution (diagnostics/inspect_yaw_stability_b2.py) has a
+  instance distribution (diagnostics/inspect_yaw_stability_b2.py (script at tag pre-prune-2026-10-22)) has a
   clean, wide gap between -99.2 Nm/deg (stable_corner_id 8, all 4 laps)
   and -18.5 Nm/deg (next-worst corner, a different physical corner).
   -50.0 sits in that gap: it flags exactly the same single physical
@@ -379,7 +379,7 @@ HOW TO USE:
 ### In/out-lap exclusion: two-leg rationale [2026-07-24, B2 evidence]
 - The single "cold tyres" rationale above was correct but incomplete --
   B2's out/inlap s_m degeneracy check (diagnostics/inspect_yaw_
-  stability_b2.py) found a second, separate, and larger effect specific
+  stability_b2.py (script at tag pre-prune-2026-10-22)) found a second, separate, and larger effect specific
   to the outlap. The exclusion is really two legs, not one:
   - OUTLAP leg (data-validity necessity, FORCED in character): the
     outlap's native lap_distance channel is frozen at s~0 for its
@@ -1040,7 +1040,7 @@ HOW TO USE:
   one 4-lap session is a data-availability limit of this specific
   file, not obviously fixable by construction alone). Full validation
   reports for both iterations: diagnostics/inspect_beta_gps_
-  validation.py (script always reflects the current/iteration-2
+  validation.py (script at tag pre-prune-2026-10-22) (script always reflects the current/iteration-2
   construction; iteration-1 numbers are quoted here and in the
   script's own before/after comparison, not separately reproducible
   without reverting the two fixes).
@@ -1049,7 +1049,7 @@ HOW TO USE:
   BEFORE commit 0bdff87 ("lap segmentation big improve", 2026-07-26)
   landed WP1's canonical corner realization, which moved corner-phase
   boundaries. Re-running the unchanged original
-  inspect_beta_gps_validation.py script against the current
+  inspect_beta_gps_validation.py (script at tag pre-prune-2026-10-22) script against the current
   realization now prints 127/257=49.4% -- confirmed by direct
   re-execution, not recomputed differently. The old number was
   correct FOR ITS OWN realization at the time it was recorded; it is
@@ -1163,7 +1163,7 @@ HOW TO USE:
 
 ### Wheel-speed source characterization (WP-S1) [2026-08-18]
 - Report-only channel-quality diagnostic (diagnostics/inspect_wheel_
-  speed_sources.py), Tier B, standard signal-QA technique (NaN/frozen/
+  speed_sources.py (script at tag pre-prune-2026-10-22)), Tier B, standard signal-QA technique (NaN/frozen/
   dropout fractions, straight-line agreement vs production ecu_speed,
   L/R consistency). Nothing whitelisted, nothing consumed by any
   Module 2-5 path; ecu_speed stays the production speed source.
@@ -1325,7 +1325,7 @@ HOW TO USE:
   measurement-update recursion; first-order (Euler) discretization of the
   continuous-time A/B matrices at each sample's own Vx (Tier B numerical
   simplification, not a modelling claim). Diagnostics-only: diagnostics/
-  sideslip_kalman_observer.py, pure function, no Qt, no production wiring,
+  sideslip_kalman_observer.py (script at tag pre-prune-2026-10-22), pure function, no Qt, no production wiring,
   registered as the third CANDIDATES entry (C_kalman_observer) in
   diagnostics/inspect_sideslip_methods_comparison.py.
 - Q/R: named constants in the observer script itself (Q_BETA_VAR,
@@ -1386,7 +1386,7 @@ HOW TO USE:
   thesis_notes.md only; production/diagnostic code docstrings carry a
   single pointer line ("method anchors recorded in thesis_notes.md,
   WP-<id> entry") rather than repeating author/title/page inline.
-  Applied here first (diagnostics/sideslip_kalman_observer.py's
+  Applied here first (diagnostics/sideslip_kalman_observer.py's (script at tag pre-prune-2026-10-22)
   docstring carries the model/state-space definition and the pointer
   line only, no author/title/page).
   [2026-09-27] PARTLY SUPERSEDED: ~~code-side pointer line into
@@ -1552,7 +1552,7 @@ HOW TO USE:
   corner-entry/exit responsiveness for a marginal steady-state gain --
   consistent with the agreed target 2 framing ("over-smoothing is a
   failure, not a success"). Applied: diagnostics/sideslip_kalman_
-  observer.py's Q_BETA_VAR/Q_YAW_RATE_VAR scaled by QR_RATIO=0.3162; R
+  observer.py (script at tag pre-prune-2026-10-22)'s Q_BETA_VAR/Q_YAW_RATE_VAR scaled by QR_RATIO=0.3162; R
   left unchanged (the sweep held R fixed throughout, consistent with
   the ratio-invariance finding above). Re-ran the comparison harness
   (diagnostics/inspect_sideslip_methods_comparison.py) once after
@@ -1652,7 +1652,7 @@ HOW TO USE:
   deviation from local linearity.
 - DECISION RECORDED: the observer is NOT adopted into production. It
   remains a documented diagnostic instrument (diagnostics/sideslip_
-  kalman_observer.py), validated on sign, useful for the specific
+  kalman_observer.py (script at tag pre-prune-2026-10-22)), validated on sign, useful for the specific
   diagnostic purpose that motivated building it (locating WHERE and
   roughly how large the kinematic estimate's steady-state suppression
   is), but not usable as a CS_ratio/saturation-detection input as
@@ -1952,7 +1952,7 @@ HOW TO USE:
   and covariance propagation used the same Ad@x operation throughout.
 - JACOBIAN-COLLAPSE SANITY CHECK (diagnostics/inspect_ekf_dugoff_sanity_
   checks.py, section 1): at alpha=0 exactly, F/H reduce to the rejected
-  filter's own A/C matrices (diagnostics/sideslip_kalman_observer.py)
+  filter's own A/C matrices (diagnostics/sideslip_kalman_observer.py (script at tag pre-prune-2026-10-22))
   bit-for-bit when the same fixed Caf/Car are substituted in (max|F-A|=
   max|H-C|=0.0 exactly) -- confirms the hand-derived Jacobian formulas
   are algebraically correct. At a small nonzero alpha (0.02 rad, ~1.15
@@ -2095,7 +2095,7 @@ REASONING (analysis of the above, not separate measurement):
   prior time history for the last sample below brake_throttle_max_pct
   -- this window can extend up the preceding straight and overlap
   neighbouring corners' own brackets (first found doing WP-N0's
-  own per-corner masking, diagnostics/inspect_saturation_coverage.py).
+  own per-corner masking, diagnostics/inspect_saturation_coverage.py (script at tag pre-prune-2026-10-22)).
   The 86% entry_1_brake figure above is therefore INDICATIVE of where
   divergence concentrates, not an exact phase attribution.
   [2026-08-20, superseding this caveat's wording: the mechanism and
@@ -3719,7 +3719,7 @@ this session into ONE run, ONE timestamp, ONE manifest, for the
 carried-forward estimator (pass 1's configuration -- pass_0's Dugoff
 curve, pass_1's calibrated noise model). Introduces NO new findings;
 every section below states where its result was first established.
-Diagnostics/inspect_pass1_final_validation.py (new, read-only),
+Diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22) (new, read-only),
 diagnostics/pass1_final_validation_manifest.json (new, machine-
 readable copy of every number below). Run against commit
 76fc57673f4c2c618363809ba7c09aca226be4ba, 2026-08-20T09:12:21Z.
@@ -4203,7 +4203,7 @@ reaches meaningful longitudinal utilisation on this session, (2)
 whether a wheel-speed-derived slip ratio is clean enough to use.
 This entry is measurement-only, read-only -- no config change, no
 whitelisting, no model work. diagnostics/inspect_combined_slip_
-premise.py (new).
+premise.py (script at tag pre-prune-2026-10-22) (new).
 
 METHOD: provisional per-axle slip ratio kappa = (v_axle_corrected -
 v_ecu) / v_ecu, using log_speed_fl/fr/rl/rr (WP-S1's designated
@@ -4504,7 +4504,7 @@ log, unwhitelisted, range [0.0, 34.7], base-population (n=24183)
 p50=1.4%, p90=3.1%, p99=4.7%, max=7.4%. ecu_slip_nom[%] range
 [2.1, 25.5] reads as the TC's own target setpoint. ecu_B_tc_act is a
 TC-active flag at 50 Hz. Found via diagnostics/inspect_slip_channel_
-sweep.py's full-inventory keyword sweep (301 matches total, most
+sweep.py (script at tag pre-prune-2026-10-22)'s full-inventory keyword sweep (301 matches total, most
 irrelevant -- error/diagnostic/refuel/clutch channels, not slip-
 related despite matching "err"/"ref"/"diff"); examined in diagnostics/
 inspect_slip_hypothesis_and_driven_axle.py.
@@ -6428,7 +6428,7 @@ package]
    normalised by measured Fz (mu = D / Fz, BCD / Fz) carries this track
    confound; the (d) K2 band failures are read with it named. Not chased --
    the bands are plausibility screens and did their job.
-   [2026-10-02 CORRECTION, Q2 Part A (diagnostics/inspect_damper_offset_q2.py
+   [2026-10-02 CORRECTION, Q2 Part A (diagnostics/inspect_damper_offset_q2.py (script at tag pre-prune-2026-10-22)
    partA; plots/damper_offset_q2/partA.json): the gap is the LOAD SOURCE, not
    the track. On all four (d) NBR sessions every corner sits on the static
    fallback for 100 % of the fit population (damper gauges fail quality), so
@@ -6705,7 +6705,7 @@ swept cutoff. Either condition alone disqualifies. This bound is fixed
 now, before any cutoff besides the known no-filter anchor (0) has been
 run.
 
-New script: diagnostics/inspect_washout_cutoff_sweep.py (read-only,
+New script: diagnostics/inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22) (read-only,
 no config/production change).
 
 ### Phase 1: washout cutoff sweep -- results [2026-08-20]
@@ -6885,7 +6885,7 @@ New file: modules/tyre_fit_auto.py (fit_session(data, params,
 data_file_path=None) -> manifest dict), automating the recorded pass-0
 (WP-N1b, diagnostics/fit_dugoff_first_pass.py) and pass-1 (config
 tyre_model_ekf.pass_1 comments, diagnostics/inspect_ekf_pass1_rQ_
-sweep.py, diagnostics/inspect_pass1_final_validation.py) procedure as
+sweep.py, diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22)) procedure as
 a reusable function. NOT wired into the UI or the production analysis
 thread. New additive config namespace tyre_fit_auto (mu_fz search-
 bracket tunables, Q/P0 seeds copied from tyre_model_ekf.pass_1, the
@@ -7277,7 +7277,7 @@ above before being trusted for a production fallback decision.
 PER-PHASE SUMMARY:
 
 Phase 1 (washout cutoff sweep). Built: diagnostics/inspect_washout_
-cutoff_sweep.py. Found: reproduction check PASSED (cutoff=0 reproduces
+cutoff_sweep.py (script at tag pre-prune-2026-10-22). Found: reproduction check PASSED (cutoff=0 reproduces
 WP-S3c's 5.70/10.80 deg drift figures exactly, validating the sweep's
 two-construction design). Four intermediate cutoffs (0.03, 0.02, 0.01,
 0.005 Hz) all survive the pre-registered disqualifying drift bound and
@@ -7401,7 +7401,7 @@ CONFIRMATIONS (Phase 5 checklist, per the work order):
   content, the one "-1" line in `git diff --stat` is a trailing-
   newline artifact at the point of insertion, verified by inspection,
   not a content deletion). Untracked (new files only): diagnostics/
-  inspect_washout_cutoff_sweep.py, diagnostics/inspect_tyre_fit_auto_
+  inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22), diagnostics/inspect_tyre_fit_auto_
   acceptance.py, diagnostics/sideslip_ekf_pacejka.py, diagnostics/
   inspect_tyre_variant_comparison.py, diagnostics/inspect_nis_tyre_
   mismatch_gate.py, modules/tyre_fit_auto.py, modules/tyre_model_
@@ -7512,7 +7512,7 @@ candidates only, awaiting explicit authorisation.
 TWO FILES INITIALLY LOOKED LIKE ORDINARY ONE-OFFS BUT ARE LOAD-
 BEARING, caught during classification rather than after a wrong
 deletion: inspect_corner_distribution.py and inspect_yaw_stability_
-b2.py are the actual derived_from source, re-confirmed by name
+b2.py (script at tag pre-prune-2026-10-22) are the actual derived_from source, re-confirmed by name
 multiple times through 2026-07-27, for the LIVE production
 classification thresholds (STRONG_CSF/CSR, MODERATE_CSF/CSR,
 stab_neg_thresh_Nm_per_deg in config/parameters.json) -- both
@@ -8040,7 +8040,7 @@ _on_save_clicked has the identical latent ensure_ascii=True behaviour
 here rather than touched.
 
 New diagnostics: diagnostics/inspect_lap2_corner5_cs_discrepancy.py
-(Part A), diagnostics/smoke_test_corner_trace_dialog.py (headless
+(Part A), diagnostics/smoke_test_corner_trace_dialog.py (script at tag pre-prune-2026-10-22) (headless
 QT_QPA_PLATFORM=offscreen construction + render smoke test for Part
 B's pyqtgraph changes -- not part of the pytest suite, run manually;
 12 show_corner + 2 show_lap calls against a real live-config analysis
@@ -8070,13 +8070,13 @@ identical drive_front_fraction=0.0). kappa_f/kappa_r: kappa_axle =
 (v_axle_corrected - v_ecu)/v_ecu, using log_speed_fl/fr (front, mean)
 and log_speed_rl/rr (rear, mean, WP-S1's +1.41% rolling-radius
 correction applied) -- the exact formula and correction diagnostics/
-inspect_combined_slip_premise.py already used and recorded percentiles
+inspect_combined_slip_premise.py (script at tag pre-prune-2026-10-22) already used and recorded percentiles
 for.
 
 VALIDATION (external, per the standing rule -- not plausibility-only):
 ran the new module against Sample_Dubai.txt under the same base_mask
 (moving & ~kerb & valid-lap racing time) diagnostics/inspect_combined_
-slip_premise.py used, and reproduced its recorded figures EXACTLY:
+slip_premise.py (script at tag pre-prune-2026-10-22) used, and reproduced its recorded figures EXACTLY:
 - base_mask n=24183 (matches the recorded n=24183 exactly).
 - kappa, base population: front p50=0.225%, rear p50=1.263% (recorded:
   front p50=0.225, rear p50=1.263 -- exact digit match, thesis_notes.md
@@ -8244,7 +8244,7 @@ verdict currently depends on it)".
 VERIFICATION, two passes -- the first overstated what it covered,
 corrected here rather than left standing (same discipline as Phase
 2's own self-caught error above):
-1. existing diagnostics/smoke_test_corner_trace_dialog.py (headless,
+1. existing diagnostics/smoke_test_corner_trace_dialog.py (script at tag pre-prune-2026-10-22) (headless,
    QT_QPA_PLATFORM=offscreen, pre-existing script, run read-only/
    unmodified) re-run against this session's changes: constructed
    both CornerTraceDialog and LapTraceDialog under the live config
@@ -8286,7 +8286,7 @@ low, does rear LS_ratio say "traction-limited" (also low) or
 "cornering-limited" (still high)?
 
 PRE-REGISTRATION, before running diagnostics/inspect_ls_cs_
-disambiguation.py (new): three evidence sources on record, quoted
+disambiguation.py (script at tag pre-prune-2026-10-22) (new): three evidence sources on record, quoted
 directly, each with what it implies for this check's expected
 cluster split.
 1. TC-intervention concentration in exit phases (thesis_notes.md
@@ -8336,7 +8336,7 @@ paragraph -- the 50 Hz/min_samples=25 structural mismatch). This
 prediction may therefore be UNTESTABLE rather than held or failed --
 recorded as a live possibility here, not decided in advance.
 
-MEASURED (diagnostics/inspect_ls_cs_disambiguation.py, run against
+MEASURED (diagnostics/inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22), run against
 Sample_Dubai.txt under sideslip_source="kinematic" -- the production
 default, independent of the live config's own current experimental
 value, per PLAN.md's own hard constraint): rear CS_ratio (worst-
@@ -8371,7 +8371,7 @@ about LS_ratio (which never became available to test either
 candidate), but a data point on record for whoever next revisits the
 C4/C14 story under kinematic CS_ratio specifically.
 
-diagnostics/inspect_ls_cs_disambiguation.py is left in place, fully
+diagnostics/inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22) is left in place, fully
 correct and re-runnable as-is -- it will start producing real
 clusters the moment the Phase 2 min_samples decision lands, with no
 script changes needed.
@@ -8499,7 +8499,7 @@ if any instances land in the traction-limited cluster, C4/C14 are
 named here in advance as the most likely candidates..., while
 explicitly flagging that prediction as weak."
 
-MEASURED (diagnostics/inspect_ls_cs_disambiguation.py, re-run against
+MEASURED (diagnostics/inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22), re-run against
 the adapted estimator, sideslip_source="kinematic" as before): rear
 CS_ratio population n=56, p25=0.3931 (unchanged from the prior,
 ill-posed run -- CS_ratio is untouched by this adaptation). 14
@@ -8583,7 +8583,7 @@ traction-limited and some are not is, on this one session, upheld.
 PURPOSE: log_speed_fl/fr/rl/rr are now the LS_ratio estimator's kappa
 input (PLAN.md STEP 3). Kerb strikes visibly spike wheel speed on
 real data; this needed characterising before trusting LS results.
-Read-only, Tier B, new diagnostics/inspect_kerb_wheel_speed_spikes.py
+Read-only, Tier B, new diagnostics/inspect_kerb_wheel_speed_spikes.py (script at tag pre-prune-2026-10-22)
 (matplotlib PNGs to diagnostics/plots/2026-08-30_kerb_wheel_speed_
 spikes/, gitignored). No config change, no production path touched.
 
@@ -8755,7 +8755,7 @@ guard implemented, mask widening quantified [2026-08-30]
 
 ### PART 1 -- C3, checked FIRST, before any change
 
-New diagnostics/inspect_c3_leaked_windows.py (read-only). For each of
+New diagnostics/inspect_c3_leaked_windows.py (script at tag pre-prune-2026-10-22) (read-only). For each of
 C3's 4 valid-lap instances, found the worst phase (the one that
 produced the reported worst-phase-median rear LS_ratio) and checked
 every valid rear-LS sample in that phase's time window against the
@@ -8833,7 +8833,7 @@ windows, the guard is predicted to leave C3's classification AND
 values unchanged. Stated before running.
 
 MEASURED: HELD, exactly. Re-ran diagnostics/inspect_ls_cs_
-disambiguation.py (guard now live inside modules/longitudinal_
+disambiguation.py (script at tag pre-prune-2026-10-22) (guard now live inside modules/longitudinal_
 stiffness.py, no script change needed) -- the 14-instance split is
 UNCHANGED, still 7 traction-limited / 7 cornering-limited, same
 instances in each cluster. C3's four LS_r values are BYTE-IDENTICAL
@@ -8937,7 +8937,7 @@ applied (not recomputed here -- quantify-only per the work order;
 listed so the decision is made with full knowledge of its blast
 radius, not discovered after the fact):
 - The WP-N2 pass-1 final validation baseline (diagnostics/inspect_
-  pass1_final_validation.py, PLAN.md NOW: "the reference any future
+  pass1_final_validation.py (script at tag pre-prune-2026-10-22), PLAN.md NOW: "the reference any future
   estimator work is compared against") is anchored to the CURRENT
   base_mask population (n=24183) -- a widened kerb mask changes that
   population, invalidating direct comparison without re-freezing.
@@ -9534,7 +9534,7 @@ cleanup: pass_2-4 block deletion + dead-diagnostics sweep" entry
 (2026-08-20), plus 2 of the 3 orphaned manifest JSONs named there.
 Before deleting, re-grepped the whole repo for every candidate name
 (scripts and manifests together, one pass); both threshold-provenance
-files (inspect_corner_distribution.py, inspect_yaw_stability_b2.py)
+files (inspect_corner_distribution.py, inspect_yaw_stability_b2.py (script at tag pre-prune-2026-10-22))
 confirmed present and NOT on the list, as required.
 
 Deleted (last commit each was tracked at; working tree was clean
@@ -9598,7 +9598,7 @@ since a README of runnable scripts should not list one that no longer
 runs); sideslip_comparison_report.md (2 edits: the force-balance
 steady-state section header and the physical-sign-check section
 header, both citing now-deleted scripts); diagnostics/inspect_wheel_
-speed_sources.py (1 comment citing inspect_gps_speed_validation.py's
+speed_sources.py (script at tag pre-prune-2026-10-22) (1 comment citing inspect_gps_speed_validation.py's
 regression technique); tests/test_phase_boundary_invariants.py (3
 citations of inspect_entry1_brake_fix_verification.py -- the
 BRAKE_RISE_BAR constant comment and two docstrings -- annotated, not
@@ -9649,7 +9649,7 @@ still-provisional NIS-gate threshold decision (PLAN.md NOW section,
 sideslip_comparison.py and diagnostics/plot_slip_angle_comparison.py's
 matching NIS PLACEHOLDER-defaults print strings -- same live config
 state, read at runtime, not hardcoded duplication. diagnostics/
-inspect_pass1_final_validation.py's "ORIGINAL PLACEHOLDER defaults"
+inspect_pass1_final_validation.py's (script at tag pre-prune-2026-10-22) "ORIGINAL PLACEHOLDER defaults"
 caveat print -- this is the frozen pass-1 validation baseline script
 (PLAN.md NOW section), the caveat is an accurate, still-true statement
 about its own noise-model tuning, not stale text.
@@ -10000,7 +10000,7 @@ Protected set (docs/literature/, docs/car_data/, config/car_data.json,
 HANDOVER.md, docs/study/) confirmed empty via git ls-files. git status
 final footprint: 11 files modified (PLAN.md, config/parameters.json,
 core/pdf_export.py, diagnostics/README.md, diagnostics/inspect_wheel_
-speed_sources.py, sideslip_comparison_report.md, tests/test_phase_
+speed_sources.py (script at tag pre-prune-2026-10-22), sideslip_comparison_report.md, tests/test_phase_
 boundary_invariants.py, thesis_notes.md, ui/main_window.py, ui/views/
 outing_form.py -- core/config_loader.py shows NO diff, confirming its
 mid-session corruption and this package's own fix both left it exactly
@@ -10050,7 +10050,7 @@ observer_slip_angle_circularity.py, inspect_kalman_qr_sweep.py,
 inspect_kalman_qr_ratio_sweep.py, inspect_sideslip_methods_
 comparison.py, inspect_washout_mechanism.py, plot_washout_sweep.py,
 plot_washout_sweep_slipangle.py, plot_estimator_comparison.py, _plot_
-common.py, inspect_wheel_speed_sources.py (see near-miss below --
+common.py, inspect_wheel_speed_sources.py (script at tag pre-prune-2026-10-22) (see near-miss below --
 deleted then restored). Every deletion's finding traced to a real
 thesis_notes.md record, sometimes by WP name/content rather than exact
 filename (spot-checked: inspect_pass1_ekf_timing.py -> "WP-N2 Step 1a:
@@ -10076,11 +10076,11 @@ sweep.py, plot_washout_sweep_slipangle.py, plot_estimator_
 comparison.py -- were deleted).
 
 NEAR-MISS, caught and fixed before it became a real breakage:
-inspect_wheel_speed_sources.py was initially deleted as an (a)
+inspect_wheel_speed_sources.py (script at tag pre-prune-2026-10-22) was initially deleted as an (a)
 candidate (no PLAN.md/config/test/production reference found by the
 first-pass search) -- but a follow-up internal-dependency check
 (grep for `^from diagnostics\.` across the surviving files) found
-diagnostics/inspect_washout_cutoff_sweep.py (a KEPT, PLAN.md-
+diagnostics/inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22) (a KEPT, PLAN.md-
 referenced script) has a hard import: `from diagnostics.inspect_
 wheel_speed_sources import AY_STRAIGHT_MAX_G, YAW_STRAIGHT_MAX_DEGPS`.
 Restored via `git checkout` (the file was tracked, unmodified at
@@ -10089,7 +10089,7 @@ that point in the sweep) and its one prior-session comment fix
 2026-08-20 sweep) reapplied by hand since checkout reverts to the
 last commit. Reclassified [dependency] in the README rather than
 [keep-referenced] -- it has no independent external reference of its
-own, it survives purely because inspect_washout_cutoff_sweep.py needs
+own, it survives purely because inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22) needs
 it. Lesson, folded into the new CLAUDE.md standing rule's "Dependency"
 category and this sweep's own method: checking a script's OWN
 external references is not sufficient before deleting it inside a
@@ -10112,7 +10112,7 @@ gate.py. A real production dependency living in diagnostics/ by
 historical accident, not by design.
 
 BORDERLINE, kept per "when unsure, keep, list": inspect_slip_channel_
-sweep.py (Rolling-radial/combined-slip follow-up, QUEUED ITEM 2+4,
+sweep.py (script at tag pre-prune-2026-10-22) (Rolling-radial/combined-slip follow-up, QUEUED ITEM 2+4,
 keyword scan for slip/traction-control channels). No exact-filename
 citation found anywhere, and its own specific finding could not be
 conclusively distinguished from the earlier, more general WP2b-1 "Full
@@ -10123,9 +10123,9 @@ Slip_FL/FR/RL/RR). Given the ambiguity, not deleted.
 Dangling-reference healing (same "removed [date], see git history"
 convention as the 2026-08-20 sweep): sideslip_comparison_report.md (3
 citations: inspect_kalman_qr_ratio_sweep.py x2, inspect_c9_negative_
-cs.py x1); diagnostics/inspect_washout_cutoff_sweep.py (1 comment
+cs.py x1); diagnostics/inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22) (1 comment
 citing inspect_washout_mechanism.py's WP-S3c construction);
-diagnostics/inspect_pass1_final_validation.py (4 print()-string
+diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22) (4 print()-string
 section-header citations of inspect_ekf_pass1_evaluation.py/inspect_
 ekf_dugoff_circularity.py -- these are runtime output strings, not
 comments, but carry no numeric/frozen content, so annotating them
@@ -10760,7 +10760,7 @@ final report.
 
 ### PLAN.md unsupervised package, Phase 3: LS_ratio span-dependence
 [2026-09-01]
-Read-only diagnostic (diagnostics/inspect_ls_ratio_span_dependence.py,
+Read-only diagnostic (diagnostics/inspect_ls_ratio_span_dependence.py (script at tag pre-prune-2026-10-22),
 kept, see diagnostics/README.md): does LS_ratio's per-sample value
 depend on how wide the sliding regression window's own kappa excursion
 ("slip span") happened to be, for samples that would otherwise pass
@@ -11102,7 +11102,7 @@ themselves first") -- but that decision is not made here.
 
 ### Pass-1 baseline independence, corrected [2026-09-02]
 Correction to the prior turn's proposal text: diagnostics/inspect_
-pass1_final_validation.py's frozen curve (params["tyre_model_ekf"]
+pass1_final_validation.py (script at tag pre-prune-2026-10-22)'s frozen curve (params["tyre_model_ekf"]
 ["pass_1"]'s c_alpha_front/rear_n_per_rad, mu_fz_front/rear_N, read
 live from config) is confirmed independent of the CS_ratio window
 constants (cs_min_window_samples/cs_min_slip_angle_span_rad/cs_linear_
@@ -11357,7 +11357,7 @@ changed.
 ### Ground-truth workup: per-run verdicts for the long-run corners --
 C4 REAL (fold/peak, all 5 runs), C2 and C3 rear ARTIFACT (loop) [2026-09-02]
 Diagnostics only, no config/estimator/statistic change. New diagnostics/
-inspect_run_ground_truth.py (disposable), read-only, run once against
+inspect_run_ground_truth.py (script at tag pre-prune-2026-10-22) (disposable), read-only, run once against
 ekf_auto_pacejka for the specific runs named in the work order: C3 rear
 all three 100m+ runs (laps 1/2/3); C2 front both 45.2m runs (laps 2/3,
 tied length -- both included since the work order named "45m"
@@ -11577,7 +11577,7 @@ attempt and why it was the wrong criterion, not a wrong calculation.
 Method: Tier B (signal/data-engineering preprocessing -- window-size
 selection for a windowed-regression estimator; standard bootstrap
 resampling, no vehicle-dynamics content). New diagnostics/inspect_cs_
-window_floor_derivation.py and diagnostics/inspect_cs_window_cap_sizing.py
+window_floor_derivation.py (script at tag pre-prune-2026-10-22) and diagnostics/inspect_cs_window_cap_sizing.py
 (both disposable pending this package's own commit). Re-derives
 cs_min_window_samples, cs_min_slip_angle_span_rad, and cs_linear_slip_
 threshold_rad against THIS car's own ekf_auto_pacejka alpha/Fy (Dubai),
@@ -11619,7 +11619,7 @@ std <= 15% converges INDEPENDENTLY from the N-sweep and the span-sweep to
 ~100 samples / ~0.04 rad on BOTH axles (front: N=100 -> 13.6%, span=
 0.045 rad at median N=109 -> 11.7%; rear: N=100 -> 13.9%, span=0.045 rad
 at median N=150 -> 12.0%) -- full curves in diagnostics/inspect_cs_
-window_floor_derivation.py's own run output, reproducible deterministically
+window_floor_derivation.py (script at tag pre-prune-2026-10-22)'s own run output, reproducible deterministically
 (fixed seed). Chosen: cs_min_window_samples=100, cs_min_slip_angle_span_
 rad=0.04 (both up from 10/0.02 -- a large jump, but the mechanism
 investigation had already shown the OLD floor sat deep in the small-n
@@ -12045,7 +12045,7 @@ cs_max_window_m (Phase 2's own cap) RE-SIZED as a LOCALITY bound, per the
 same revision's item 3 -- NOT from the whole-session observed window-
 length distribution (the original Phase 1 approach, dominated by
 irrelevant straight-line samples needing no cap at all). diagnostics/
-inspect_cs_max_window_locality_sizing.py measured the natural (uncapped)
+inspect_cs_max_window_locality_sizing.py (script at tag pre-prune-2026-10-22) measured the natural (uncapped)
 window's own metre extent under the final small floor, restricted to
 real corner-bracket samples only (moving, non-kerb, inside an actual
 corner's own entry_1_brake-to-exit_5 span): median footprint front=9.1m,
@@ -12129,7 +12129,7 @@ its own reported mean_achieved_n at (10,0.01)/L=40 was 60.2 (front) /
 101.3 (rear), i.e. windows in THAT sample usually grew well past the
 tiny nominal floor before satisfying the span requirement, because much
 of the sampled population doesn't vary alpha quickly. But diagnostics/
-inspect_cs_max_window_locality_sizing.py's own EARLIER measurement --
+inspect_cs_max_window_locality_sizing.py's (script at tag pre-prune-2026-10-22) own EARLIER measurement --
 restricted to REAL CORNER-BRACKET samples specifically, the population
 Phase 4 actually evaluates against -- found the SAME (10,0.01) floor's
 natural window length sits at p50=13 samples (front) / p50=16 (rear),
@@ -12282,7 +12282,7 @@ pass -- cornering-only bootstrap population still could not distinguish
 a reproducible-but-biased median from an accurate one; FINAL choice made
 by direct real-data validation instead [2026-09-02, same day]
 Method: Tier B, corrected population, then a decisive methodological
-pivot. New diagnostics/inspect_cs_phase_median_floor_derivation_v2.py:
+pivot. New diagnostics/inspect_cs_phase_median_floor_derivation_v2.py (script at tag pre-prune-2026-10-22):
 same phase-median bootstrap as the (falsified) second pass, but the 150
 sampled stretches per (candidate, L) are now restricted to CORNERING
 population only -- moving AND (inside a real corner bracket OR |ay|
@@ -12321,7 +12321,7 @@ validation lands on the chair's own original physical window, correctly
 rate-resolved -- both extremes independently reproduce previously-
 diagnosed failure modes [2026-09-02, same day]
 Method: Tier B, direct accuracy check (not a bootstrap-derived
-criterion). New diagnostics/inspect_cs_floor_candidate_validation.py:
+criterion). New diagnostics/inspect_cs_floor_candidate_validation.py (script at tag pre-prune-2026-10-22):
 parses and fits beta ONCE (the expensive, floor-independent steps), then
 re-runs only estimate_cornering_stiffness/summarise_corners per
 candidate against the REAL Phase 4 statistic (worst-lap-per-corner,
@@ -12433,7 +12433,7 @@ PRE-REGISTRATION CHECK, ekf_auto_pacejka, apex_region-substituted
   prior figure.
 - "real-cornering windows no longer floor-pinned (quantify)" --
   CONFIRMED, with numbers: diagnostics/inspect_cs_max_window_locality_
-  sizing.py's own re-run at this exact floor found the natural window-
+  sizing.py (script at tag pre-prune-2026-10-22)'s own re-run at this exact floor found the natural window-
   length distribution at real corner-bracket samples is p10=24, p25=39,
   MEDIAN=74 samples -- comfortably above the 20-sample floor for the
   large majority of the population (median is 3.7x the floor). Contrast
@@ -12572,7 +12572,7 @@ real Phase 4 data but never re-tested the chair's own literal 0.1s the
 same way). Two checks, both run this session:
 
 (1) Isolated duration-only bootstrap (diagnostics/inspect_cs_duration_
-only_comparison.py, span held fixed at 0.02 rad, cornering-only
+only_comparison.py (script at tag pre-prune-2026-10-22), span held fixed at 0.02 rad, cornering-only
 population, same method as the Phase 1 third-pass script): n=10 (0.1s)
 and n=20 (0.2s) are STATISTICALLY INDISTINGUISHABLE at every tested
 phase length (L=80/152/324 samples), both axles -- differences of
@@ -12582,7 +12582,7 @@ choice; the config text that had implied otherwise was itself in error
 and has been corrected.
 
 (2) Direct real-data validation (diagnostics/inspect_cs_floor_
-candidate_validation.py, (0.1, 0.02) candidate added): reproduces the
+candidate_validation.py (script at tag pre-prune-2026-10-22), (0.1, 0.02) candidate added): reproduces the
 (0.2, 0.02) result almost exactly across all 14 corners -- identical
 negative-corner counts (7/14 CSf, 2/14 CSr), the same corners flagged,
 all 14 corners present under the SAME 53.0 m cap (no re-derivation
@@ -12613,7 +12613,7 @@ rad=0.03, cs_phase_min_valid_samples=5, cs_apex_region_half_length_m=
 locality against corner-to-corner GAPS, only against corner LENGTH
 [2026-09-02, same day]
 Checked, not assumed, during the sign-off clarification round
-(diagnostics/inspect_corner_bracket_geometry.py, a pure geometric
+(diagnostics/inspect_corner_bracket_geometry.py (script at tag pre-prune-2026-10-22), a pure geometric
 measurement independent of any CS floor). cs_max_window_m=53.0m was
 derived and verified against each corner's own BRACKET LENGTH (smallest
 is C7 at 116.0m, comfortably more than double the cap) -- but checking
@@ -12832,18 +12832,18 @@ inspect_negative_cs_mechanism.py, inspect_phase4_per_lap_breakdown.py.
 
 KEPT, corrected from the work order's own 4-item list to 9 (the
 original 4 plus 5 discovered live citations): inspect_cs_floor_
-candidate_validation.py, inspect_run_ground_truth.py, inspect_cs_
-phase_median_floor_derivation_v2.py, inspect_ls_ratio_span_dependence.py
+candidate_validation.py (script at tag pre-prune-2026-10-22), inspect_run_ground_truth.py (script at tag pre-prune-2026-10-22), inspect_cs_
+phase_median_floor_derivation_v2.py (script at tag pre-prune-2026-10-22), inspect_ls_ratio_span_dependence.py (script at tag pre-prune-2026-10-22)
 (the work order's own literal 4 keeps -- "the anchoring input, the
 ground-truth workup, the floor-derivation final version, the span-
-dependence figure"), PLUS inspect_cs_duration_only_comparison.py
+dependence figure"), PLUS inspect_cs_duration_only_comparison.py (script at tag pre-prune-2026-10-22)
 (config cs_min_window_s_derived_from), inspect_cs_max_window_locality_
-sizing.py (config _comment_cs_max_window_m), inspect_cs_window_floor_
-derivation.py (config cs_linear_slip_threshold_rad_derived_from -- its
+sizing.py (script at tag pre-prune-2026-10-22) (config _comment_cs_max_window_m), inspect_cs_window_floor_
+derivation.py (script at tag pre-prune-2026-10-22) (config cs_linear_slip_threshold_rad_derived_from -- its
 OWN window-floor N/span choice was superseded, but its separate linear_
 region_end finding, 0.03 rad, was never superseded and is still the
 live cited source), inspect_native_channel_rates.py (config _comment_
-grid_rate), and inspect_corner_bracket_geometry.py (PLAN.md PARKED
+grid_rate), and inspect_corner_bracket_geometry.py (script at tag pre-prune-2026-10-22) (PLAN.md PARKED
 new-data-file checklist -- a live, forward-looking reference, not a
 past-tense mention). Each of these 5 would have been deleted under the
 work order's literal instruction ("everything else DELETED") while
@@ -12855,7 +12855,7 @@ from the prior session (which had listed 8 scripts as tentatively kept,
 close to but not identical to this sweep's own 9 -- the two lists were
 compared, not blindly trusted, and diverge only in already-explained
 ways: this sweep additionally confirms inspect_cs_window_floor_
-derivation.py, which the prior session's own "superseded, disposable"
+derivation.py (script at tag pre-prune-2026-10-22), which the prior session's own "superseded, disposable"
 framing had NOT flagged as still config-cited).
 
 ONE PRE-EXISTING GAP CLOSED, outside this arc: inspect_tyre_variant_
@@ -13242,7 +13242,7 @@ UI for the same corner/phase, same mechanism modules.recommendation
 relies on for the same reason); (b) ls_disambiguation, traction-limited
 vs cornering-limited for exit-phase oversteer evidence, only where
 LS_ratio is valid -- the method is UNCHANGED from diagnostics/inspect_
-ls_cs_disambiguation.py (population-relative median split, that script's
+ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22) (population-relative median split, that script's
 own header already states "no LS_ratio classification threshold exists
 in config... DISPLAY-ONLY... not a production rule"), promoted here to a
 real evidence source but still not an absolute threshold, since none has
@@ -13373,7 +13373,7 @@ evidence (a real, checked negative -- the front-beyond/rear-healthy
 pattern does not occur in this session's aggregate data), 4 candidates
 for C4 (both LS branches, undifferentiated, all 'proposed' grade per the
 high-speed/no-matching-matrix-cell finding above). Headless Qt smoke test
-(diagnostics/smoke_test_decision_frame_widget.py, [keep-reproduces],
+(diagnostics/smoke_test_decision_frame_widget.py (script at tag pre-prune-2026-10-22), [keep-reproduces],
 same technique as smoke_test_measurement_points_widget.py since conftest.
 py deliberately keeps PyQt6 out of pytest): construction, initial
 collapsed/disabled state, toggle show/hide (caught and fixed a real test-
@@ -13519,7 +13519,7 @@ stability_analysis.estimate_vertical_loads's own left-negative/right-
 positive convention exactly), all pass.
 
 PHASE 2 VALIDATION (bands, not equalities -- reported honestly whether
-in or out of band), diagnostics/inspect_v3_wheel_load_validation.py
+in or out of band), diagnostics/inspect_v3_wheel_load_validation.py (script at tag pre-prune-2026-10-22)
 `[keep-reproduces]`, real GT3_PRC_MLA-v3.txt data, ekf_auto_pacejka
 default config, 68599 samples @ 100Hz:
 (a) Straight-line total load (moving, |ax|<0.5, |ay|<0.5, n=1804) mean
@@ -13579,7 +13579,7 @@ be) through the same event -- a real, if incidental, illustration of
 why a measured wheel load is worth having.
 
 PHASE 4 CHANNEL SURVEY (read-only, identification evidence only, NO
-mapping conclusion drawn): diagnostics/inspect_v3_tc_eb_abs_channels.py
+mapping conclusion drawn): diagnostics/inspect_v3_tc_eb_abs_channels.py (script at tag pre-prune-2026-10-22)
 `[keep-reproduces]`, extends the v3 census's own tc_lat/tc_lon (zero
 matches) and abs/brake_bias (171 matches, name-only) search with tract/
 asr/eb/ebrake/engine_brake/map token-matched terms, plus rate/range/
@@ -13612,7 +13612,7 @@ setting. Every candidate above is IDENTIFICATION EVIDENCE ONLY, per the
 work order -- no channel here is wired into config/setup_parameters.json
 or any consumer.
 
-PHASE 5 AERO DIAGNOSTIC: diagnostics/inspect_v3_aero_load_diagnostic.py
+PHASE 5 AERO DIAGNOSTIC: diagnostics/inspect_v3_aero_load_diagnostic.py (script at tag pre-prune-2026-10-22)
 `[keep-reproduces]`, trusts nothing downstream (a pure top-level Fz
 regression, feeds no estimator). Fz_total = a + b*ax + c*v^2, fit by
 ordinary least squares over a widened "straights" population (moving,
@@ -13665,8 +13665,8 @@ resolution.py's dynamic cascade and any real UI/pipeline consumer
 (deliberately out of this package's own scope, same precedent as
 per_wheel_load_split's own still-unwired phase 1). Pre-existing, noticed
 but NOT this package's to fix: diagnostics/inspect_v3_cs_validity_and_
-kinematic.py, inspect_v3_full_pipeline.py, inspect_v3_figures.py, and
-inspect_v3_nis_gate_failure.py have no diagnostics/README.md entry at
+kinematic.py (script at tag pre-prune-2026-10-22), inspect_v3_full_pipeline.py (script at tag pre-prune-2026-10-22), inspect_v3_figures.py (script at tag pre-prune-2026-10-22), and
+inspect_v3_nis_gate_failure.py (script at tag pre-prune-2026-10-22) have no diagnostics/README.md entry at
 all -- a gap that predates this package.
 
 ### Morning follow-up to the damper package: NIS window rate-correction,
@@ -13689,7 +13689,7 @@ thresholds (threshold_use_ekf=0.1385, threshold_warn=0.1006) are
 UNCHANGED, per the work order -- band/threshold redesign remains a
 separate, still-open decision (PLAN.md NIS gate redesign proposal).
 CORRECTED VERDICTS, re-run for real via diagnostics/inspect_v3_nis_gate_
-failure.py (both sessions, live config, fit_session_pacejka): Dubai
+failure.py (script at tag pre-prune-2026-10-22) (both sessions, live config, fit_session_pacejka): Dubai
 health_score 0.1417->0.1351, verdict PASS->WARN; GT3_PRC_MLA-v3
 health_score 0.1163->0.0849, verdict WARN->FAIL -- both exactly matching
 the Phase 8 proposal's own pre-registered prediction (PLAN.md), now
@@ -13707,7 +13707,7 @@ regression to treat as a problem). 2 new targeted unit tests (tests/
 test_nis_gate.py: test_resolve_nis_window_samples_at_100hz_is_not_the_
 old_literal_20, test_resolve_nis_window_samples_rounds_to_nearest_
 sample), plus every existing evaluate_gate call site (7 across tests/
-test_nis_gate.py, 1 in diagnostics/inspect_v3_nis_gate_failure.py)
+test_nis_gate.py, 1 in diagnostics/inspect_v3_nis_gate_failure.py (script at tag pre-prune-2026-10-22))
 updated to pass sample_rate_hz. Targeted run: 13 passed, 9 skipped (same
 9 skips as before this fix, for the pre-existing, UNRELATED reason that
 ekf_auto_dugoff's Dugoff fit degenerates unconditionally on Dubai under
@@ -13762,7 +13762,7 @@ split-for-contrast FR, same corner C12/lap 8 as Phase 3's rear-axle
 figure for direct comparability).
 
 ITEM 3 -- ABS CONSISTENCY CHECK (read-only, no mapping conclusion, no
-config change). diagnostics/inspect_v3_abs_consistency_check.py, a
+config change). diagnostics/inspect_v3_abs_consistency_check.py (script at tag pre-prune-2026-10-22), a
 single streaming pass over GT3_PRC_MLA-v3.txt reading 8 channels by name
 (abs_switch_pos/log_abs_pos/log_rt_abs_pos/abs_active plus brake
 pressure), NOT through channels.json (deliberately -- no whitelist
@@ -14040,7 +14040,7 @@ cannot be self-consistently resolved from the same data this whole
 session-correction set is built from.
 
 FUEL DRIFT (Item 2) -- SUBSTANTIALLY RESOLVED, from INCONCLUSIVE. New
-diagnostics/inspect_v3_fuel_drift_recheck.py `[keep-reproduces]`:
+diagnostics/inspect_v3_fuel_drift_recheck.py (script at tag pre-prune-2026-10-22) `[keep-reproduces]`:
 normalising each lap's straight-line total by c_session*(v^2-v_ref^2)
 (v_ref = the session's own straight-line mean v^2, 125 km/h-equivalent)
 removes the previously-dominant speed confound directly (raw totals:
@@ -14133,7 +14133,7 @@ so its job is redefined as catching DIVERGENCE only.
 
 LIVE HEALTH SCORES, re-measured this session (not assumed from the
 proposal's own recorded numbers), via diagnostics/inspect_v3_nis_gate_
-failure.py against the current rate-corrected 100Hz window (config
+failure.py (script at tag pre-prune-2026-10-22) against the current rate-corrected 100Hz window (config
 nis_gate.nis_window_s=0.4, 40 samples at 100Hz for both sessions):
 Dubai health_score=0.13513070220399795 (previously WARN), v3 health_
 score=0.08487092503723316 (previously FAIL).
@@ -14208,7 +14208,7 @@ real-session-anchored" per the proposal's own recommendation, not D.
 C4-C5 / C8-C11 [2026-09-03, same day]
 
 Read-only, no config/production changes (diagnostics/inspect_v3_corner_
-census.py, diagnostics/inspect_v3_corner_separation.py, both disposable
+census.py (script at tag pre-prune-2026-10-22), diagnostics/inspect_v3_corner_separation.py (script at tag pre-prune-2026-10-22), both disposable
 per CLAUDE.md's diagnostics/ rule pending this finding's disposition).
 GT3_PRC_MLA-v3 currently detects 20 stable corners overall (analyse_
 corners + assign_stable_corner_ids, 4 valid laps: 6, 7, 8, 9).
@@ -14325,7 +14325,7 @@ unchanged and close C1 as a documented limitation.
 [2026-09-03, same day]
 
 Read-only, no config/production changes (diagnostics/inspect_v3_brake_
-phase_stability.py, disposable per CLAUDE.md's diagnostics/ rule pending
+phase_stability.py (script at tag pre-prune-2026-10-22), disposable per CLAUDE.md's diagnostics/ rule pending
 this finding's disposition). Ran the exact production pipeline (same
 call sequence as ui/views/outing_form.py's StabilityAnalysisThread.
 run(), live config sideslip_source=ekf_auto_pacejka, fallback_used=
@@ -14482,7 +14482,7 @@ as the other three optional phase-gating parameters); every existing
 call site (production, tests, diagnostics) is unaffected since it is
 keyword-only with a config-resolved default.
 
-FLOOR DERIVATION (diagnostics/inspect_v3_brake_phase_stability.py's own
+FLOOR DERIVATION (diagnostics/inspect_v3_brake_phase_stability.py's (script at tag pre-prune-2026-10-22) own
 supporting check, GT3_PRC_MLA-v3): throttle>90% reference population
 (32829 samples, unambiguously not braking) reads brake_f_bar mean=0.0049
 bar, p99=0.0 bar, one single 6.03 bar transient (0.003% of the
@@ -14526,8 +14526,8 @@ this same already-diagnosed failure).
 
 DIAGNOSTICS DISPOSAL, deferred to commit time per CLAUDE.md's own rule
 (session stops before commit, per standing process): inspect_v3_
-corner_census.py, inspect_v3_corner_separation.py, and inspect_v3_
-brake_phase_stability.py are all disposable by default (findings
+corner_census.py (script at tag pre-prune-2026-10-22), inspect_v3_corner_separation.py (script at tag pre-prune-2026-10-22), and inspect_v3_
+brake_phase_stability.py (script at tag pre-prune-2026-10-22) are all disposable by default (findings
 already recorded above); none currently cited from outside diagnostics/.
 diagnostics/README.md not yet updated -- do this at the same commit
 
@@ -14665,7 +14665,7 @@ re-runs the same idea once, for the CURRENT production tyre model
 session_pacejka / _fit_axle_pacejka / diagnostics.sideslip_ekf_pacejka.
 estimate_sideslip_ekf_pacejka directly -- no reimplementation, same
 dependency reasoning as modules/tyre_fit_auto.py's own header note.
-New script: diagnostics/inspect_v3_pacejka_refit_evaluation.py,
+New script: diagnostics/inspect_v3_pacejka_refit_evaluation.py (script at tag pre-prune-2026-10-22),
 [keep-reproduces] (diagnostics/README.md updated) -- a reusable refit-
 viability re-check, not a one-off.
 
@@ -14731,7 +14731,7 @@ No commit made (stop before commit, per the work order).
 ### Phase 2 extension: Dubai confirmation + refit iterations 2-4, both
 files [2026-09-03, same day, user instruction]
 
-Extended diagnostics/inspect_v3_pacejka_refit_evaluation.py (same file,
+Extended diagnostics/inspect_v3_pacejka_refit_evaluation.py (script at tag pre-prune-2026-10-22) (same file,
 now parametrised over both sessions and up to 4 iterations) to (a) run
 the identical chain on DUBAI as a confirmation -- Dubai is the session
 the historical Dugoff loop originally degenerated on -- and (b) continue
@@ -15014,9 +15014,9 @@ function, whole-corner demotion, and the arb_valid-without-corner-
 invalidation distinction specifically).
 
 DUBAI VALIDATION CHAIN (new diagnostics/inspect_dubai_wheel_load_
-validation.py, [keep-reproduces] pending README entry -- mirrors
-diagnostics/inspect_v3_wheel_load_validation.py's checks (a)/(c)/(d)
-plus inspect_v3_aero_load_diagnostic.py's v^2 regression, run against
+validation.py (script at tag pre-prune-2026-10-22), [keep-reproduces] pending README entry -- mirrors
+diagnostics/inspect_v3_wheel_load_validation.py's (script at tag pre-prune-2026-10-22) checks (a)/(c)/(d)
+plus inspect_v3_aero_load_diagnostic.py's (script at tag pre-prune-2026-10-22) v^2 regression, run against
 Sample_Dubai.txt for the first time). REAL-OR-PLACEHOLDER VERDICT, all
 four gauges:
 - FL, FR, RL: REAL. 100% damper-valid. Cornering correlations correctly
@@ -15106,7 +15106,7 @@ construction -- default stays "static" (trivially correct, not because
 a shift was evaluated and found small).
 
 BRAKING-CHECK WORDING FIXED, per the work order's own instruction:
-diagnostics/inspect_dubai_wheel_load_validation.py's transfer check (c)
+diagnostics/inspect_dubai_wheel_load_validation.py's (script at tag pre-prune-2026-10-22) transfer check (c)
 rewritten from an absolute front>rear comparison ("expect front > rear
 under load transfer" -- wrong for Dubai's own rear-biased static split,
 see the premise-correction entry above, finding (b)) to an AXLE-RELATIVE
@@ -15114,7 +15114,7 @@ one: each axle's own load CHANGE from its own straight-line baseline
 under braking (front must increase, rear must decrease, independent of
 which axle carries more load at rest). Re-run: front 6175.4N ->
 6878.7N (+703.3N), rear 8689.7N -> 7839.2N (-850.5N) -- CONFIRMED both
-directions. diagnostics/inspect_v3_wheel_load_validation.py has the
+directions. diagnostics/inspect_v3_wheel_load_validation.py (script at tag pre-prune-2026-10-22) has the
 IDENTICAL bug (this script's own wording was copied verbatim from it,
 per its own header comment) -- left UNFIXED, out of this turn's named
 scope (the work order said "the validation script", singular); flagged
@@ -15251,7 +15251,7 @@ band is a STOP condition for THIS SESSION's own judgement, not
 something the function should silently clamp or refuse to return).
 
 REAL BUG caught and fixed before any real-session numbers were
-produced: the first run of diagnostics/inspect_fz_mu_tyre_fit.py (new,
+produced: the first run of diagnostics/inspect_fz_mu_tyre_fit.py (script at tag pre-prune-2026-10-22) (new,
 kept -- see diagnostics/README.md) returned DEGENERATE on load_
 normalised=True for BOTH sessions ("no damper-valid samples this
 session (vertical_load_source resolved to 'static')") despite Phase 1
@@ -15291,7 +15291,7 @@ an independently-varying Fz, a signal the other three shape parameters
 do not have -- stated as the likely reason, not proven further this
 session.
 
-REAL-SESSION RESULTS (diagnostics/inspect_fz_mu_tyre_fit.py, both
+REAL-SESSION RESULTS (diagnostics/inspect_fz_mu_tyre_fit.py (script at tag pre-prune-2026-10-22), both
 sessions, both modes -- full numbers in diagnostics/fz_mu_tyre_fit_
 results.json):
 - Dubai free-D: front B=10.457 C=1.940 D=8184.0 E=0.091 (rms=2679.9N),
@@ -15393,7 +15393,7 @@ the qualitative shape of a real effect, offered as the explanation that
 fits the data, not proof of it.~~
 [2026-10-18, author ruling Q-FIT-LIT: the closure rested on an unbounded four-parameter fit (rear E -5.65 Dubai, -6.80 v3, recorded 2026-09-20), on Dubai and v3 only, and on a 1.2 mu floor without a GT3 source. Under the literature-bounded fit (Q-FIT-LIT) those grounds do not apply. A low rear mu without peak coverage is an extrapolation (Goblirsch et al. 2025). Precisions: (i) the v3 FR corner was reconstructed only in the 2026-09-03 run; the 2026-09-20 re-evaluation had FR measured through the channel correction. (ii) The 1.2 floor is cited in the config comment as "GT3 slick (Milliken RCVD, tyre chapter)"; that page was not checked.]
 
-(2) DECISIVE CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py, new,
+(2) DECISIVE CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py (script at tag pre-prune-2026-10-22), new,
 [keep-reproduces] -- reuses diagnostics/fz_mu_tyre_fit_results.json's
 already-computed free-D D and joint-fit mu, only recomputes each axle's
 own fit-population median measured Fz, cheap: no EKF/sweep re-run).
@@ -15439,7 +15439,7 @@ this decision.
 ### v3 rear divergence dig, read-only [2026-09-03, same day, user
 instruction] -- CONCLUSION: LEGITIMATE LOAD EFFECT
 
-diagnostics/inspect_fz_mu_v3_rear_divergence.py, new, [keep-reproduces]
+diagnostics/inspect_fz_mu_v3_rear_divergence.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces]
 (diagnostics/README.md updated). Front (control, where free-D/mu agreed
 within 1%) and rear (the +20.76% divergence) analysed the same way:
 tyre cloud coloured by measured Fz, three model curves overlaid (free-D;
@@ -15502,9 +15502,9 @@ production change.
 ### Fz-integration Phase 3: bounded refit loop under mu -- BOTH SESSIONS
 NON-CONVERGENT [2026-09-03, same day, user GO with amended criteria]
 
-diagnostics/inspect_fz_mu_refit_evaluation.py, new, [keep-reproduces]
+diagnostics/inspect_fz_mu_refit_evaluation.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces]
 (diagnostics/README.md updated). Mirrors diagnostics/inspect_v3_
-pacejka_refit_evaluation.py's exact iteration mechanics (pass 1 =
+pacejka_refit_evaluation.py (script at tag pre-prune-2026-10-22)'s exact iteration mechanics (pass 1 =
 production's own first-shot fit; iteration N refits from iteration
 N-1's own beta-derived alpha; R held fixed at pass 1's own chosen
 values throughout) with ONE substitution: _fit_axle_pacejka_mu (D=
@@ -15590,7 +15590,7 @@ PREMISE CHECKED, NOT ASSUMED, per CLAUDE.md's own standing rule
 (channel presence and content are censused from the file, never
 recalled): the work order's own stated hard constraint ("v3: first and
 last laps correctly out/in, state expected before running") was
-CENSUSED FIRST (diagnostics/inspect_v3_pit_limiter_lap_census.py, new,
+CENSUSED FIRST (diagnostics/inspect_v3_pit_limiter_lap_census.py (script at tag pre-prune-2026-10-22), new,
 [keep-reproduces]) rather than trusted -- and found FALSE for the last
 lap. Real, load-bearing bug found: v3's lap 9 (the session's actual
 last lap) was is_valid_for_analysis=TRUE despite its final ~22s running
@@ -15708,7 +15708,7 @@ fallback [2026-09-03, same day]
 TIER B (signal/data engineering -- a plausibility gate and fallback
 cascade, no vehicle-dynamics method content; anchor: none needed).
 
-DIAGNOSIS (diagnostics/inspect_v3_wheel_speed_census.py, new, [keep-
+DIAGNOSIS (diagnostics/inspect_v3_wheel_speed_census.py (script at tag pre-prune-2026-10-22), new, [keep-
 reproduces]): v3's log_speed_rr reads a spurious 300.5 kph peak (its
 three mates' own max sits at 248.2-251.9 kph) and deviates from its
 axle-mate log_speed_rl by more than 15% on 5.90% of moving samples --
@@ -15746,7 +15746,7 @@ repeatedly: run the real diagnostic, look at the real numbers, don't
 trust an untested placeholder.
 (1) std_min_kmh=1.0 (first value tried, an unverified placeholder) was
     roughly 10x too aggressive: diagnostics/inspect_wheel_speed_guard_
-    before_after.py's own first run flagged 22-45% of samples on EVERY
+    before_after.py (script at tag pre-prune-2026-10-22)'s own first run flagged 22-45% of samples on EVERY
     corner of BOTH sessions -- including Dubai's own long-trusted,
     healthy log_speed_* channels (already the reference input for this
     project's whole LS_ratio baseline). Traced directly: a real, healthy
@@ -15773,7 +15773,7 @@ trust an untested placeholder.
     at 12.61% (correctly, unaffected by the attribution fix).
 
 REAL-SESSION RESULTS, after both fixes (diagnostics/inspect_wheel_
-speed_guard_before_after.py):
+speed_guard_before_after.py (script at tag pre-prune-2026-10-22)):
 - Dubai: all four corners fall back 1.41-1.78% of samples -- small,
   roughly symmetric front/rear, consistent with genuine rare transient
   events (kerbs, hard cornering) rather than a systematic fault; no
@@ -16130,7 +16130,7 @@ frame-stage2, read-only except Phase 1(c)'s own local copy substitution]
 
 PREMISE CORRECTED: the work order's own stated premise, "census said
 gps_speed absent", is FALSE on direct re-check of the real file (CLAUDE.
-md's channel-census rule). diagnostics/inspect_v3_speed_channel_survey.py
+md's channel-census rule). diagnostics/inspect_v3_speed_channel_survey.py (script at tag pre-prune-2026-10-22)
 (new, [keep-reproduces]) streamed a broader header/data census than the
 prior GT3_PRC_MLA-v3 census's own narrower speed-channel list and found:
 log_gps_speed[kph] (10Hz, n=6860, populated, plausible range) and TWO
@@ -16152,7 +16152,7 @@ channels, damper package Phase 4), not four additional independent wheel
 sensors. Likewise "Corrected Speed[kph]" matches ecu_speed[kph]'s own
 stats exactly -- an alias, not an independent channel.
 
-(a) ECU_SPEED CROSS-PLOT (diagnostics/inspect_v3_ecu_speed_forensics.py,
+(a) ECU_SPEED CROSS-PLOT (diagnostics/inspect_v3_ecu_speed_forensics.py (script at tag pre-prune-2026-10-22),
 new, [keep-reproduces], real v3 data, ekf_auto_pacejka's own production
 grid via prepare_vehicle_state):
   - vs log_speed_fl/fr/rl (the three healthy wheels): small, stable biases
@@ -16277,7 +16277,7 @@ start, though the negative result is still valid evidence consistent with
 (not proof of) the corner-character explanation.
 
 No config/production file changed. diagnostics/inspect_v3_speed_channel_
-survey.py and diagnostics/inspect_v3_ecu_speed_forensics.py both kept
+survey.py (script at tag pre-prune-2026-10-22) and diagnostics/inspect_v3_ecu_speed_forensics.py (script at tag pre-prune-2026-10-22) both kept
 [keep-reproduces] -- diagnostics/README.md entries at this package's own
 close-out phase.
 
@@ -16289,7 +16289,7 @@ Extends the damper package's own Phase 4 channel-identification survey
 explicit USABLE-NOW / READ-AND-RECORD / UNCLEAR classification and real
 co-occurrence numbers against braking/traction events, per this phase's
 own work order. diagnostics/inspect_v3_intervention_channel_
-classification.py, new, [keep-reproduces]. Wires NOTHING -- no config/
+classification.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces]. Wires NOTHING -- no config/
 production change, per the work order's own instruction. "hard_braking"
 reuses the ALREADY-RECORDED convention (combined front+rear brake
 pressure > 120 bar, "Morning follow-up... ABS consistency check") rather
@@ -16369,7 +16369,7 @@ none confirmed, real risk of picking the wrong one):
     real setting. Genuinely unresolved, not merely unconfirmed.
 
 No config/production file changed. diagnostics/inspect_v3_intervention_
-channel_classification.py kept [keep-reproduces] -- diagnostics/README.md
+channel_classification.py (script at tag pre-prune-2026-10-22) kept [keep-reproduces] -- diagnostics/README.md
 entry at this package's own close-out phase.
 
 ### Frame-Stage-2 Phase 3: decision-frame Stage 2, full migration
@@ -16384,7 +16384,7 @@ package calls them, it does not fork or duplicate them.
 (a) MIGRATION BRIDGE (rule_bridge_status, _build_matrix_verdict_evidence,
 _bridge_candidates_for_matrix_rules): every one of the 39 rules in config/
 recommendations.json is now classified into exactly one bridge behaviour
--- verified directly (diagnostics/inspect_frame_stage2_parity.py's own
+-- verified directly (diagnostics/inspect_frame_stage2_parity.py's (script at tag pre-prune-2026-10-22) own
 rule-accounting pass, also a new targeted test, test_migration_
 completeness_all_39_accounted): 26 "elicited" matrix rules -> a real
 "primary" candidate whenever matching matrix_verdict evidence exists (a
@@ -16463,7 +16463,7 @@ fires when enabled (synthetic ABS-inactive channel, confidence=1.0 from
 skip-without-raw-inputs guard.
 
 (d) PARITY VERIFICATION, real data, both sessions (diagnostics/inspect_
-frame_stage2_parity.py, new, [keep-reproduces]): under the LIVE production
+frame_stage2_parity.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces]): under the LIVE production
 config (ekf_auto_pacejka, accuracy cap=1, no feedback/setup data -- same
 fixed configuration tests/generate_golden.py itself uses), the OLD ENGINE
 PRODUCES ZERO RECOMMENDATIONS ON BOTH REAL SESSIONS -- independently
@@ -16518,7 +16518,7 @@ SUPERSEDED / CONFLICT WINNER, colour-coded ACCENT/WARN) and a detail-panel
 conflict_resolution_note line. modules/recommendation.py itself is
 UNCHANGED (only a documentation-comment addition) -- confirmed via git
 diff before writing this entry. Verified headless (diagnostics/smoke_
-test_decision_frame_widget.py, updated for the new toggle label, [keep-
+test_decision_frame_widget.py (script at tag pre-prune-2026-10-22), updated for the new toggle label, [keep-
 reproduces]): construction, initial collapsed/disabled state, toggle show/
 hide, and a real kinematic-pipeline Generate-and-render pass against a
 REAL pre-existing outing -- "18 evidence item(s), 10 candidate(s)", 10
@@ -16622,9 +16622,9 @@ modules/csv_parser.py) was touched by this package at all, so it carries
 no risk this suite run does not already cover more thoroughly.
 
 DIAGNOSTICS DISPOSAL: all 5 new scripts this package (inspect_v3_fr_
-gauge_forensics.py, inspect_v3_speed_channel_survey.py, inspect_v3_ecu_
-speed_forensics.py, inspect_v3_intervention_channel_classification.py,
-inspect_frame_stage2_parity.py) classified [keep-reproduces] and given
+gauge_forensics.py, inspect_v3_speed_channel_survey.py (script at tag pre-prune-2026-10-22), inspect_v3_ecu_
+speed_forensics.py (script at tag pre-prune-2026-10-22), inspect_v3_intervention_channel_classification.py (script at tag pre-prune-2026-10-22),
+inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22)) classified [keep-reproduces] and given
 diagnostics/README.md entries this same turn -- each is either a load-
 bearing provenance script for an open engineer question/thread (Phases
 0-1) or reusable census/parity tooling this package's own findings depend
@@ -16633,7 +16633,7 @@ with nothing further to reproduce.
 
 git status NOT clean: PLAN.md, config/channels.json, config/decision_
 frame.json, diagnostics/README.md, diagnostics/smoke_test_decision_frame_
-widget.py, modules/decision_frame.py, modules/recommendation.py (comment-
+widget.py (script at tag pre-prune-2026-10-22), modules/decision_frame.py, modules/recommendation.py (comment-
 only), tests/test_decision_frame.py, thesis_notes.md, ui/views/outing_
 form.py modified; 5 new diagnostics/*.py + 2 new diagnostics/plots_v3/*.png
 untracked. NO COMMIT MADE -- stop before commit, per the work order; the
@@ -16711,7 +16711,7 @@ derivation, Level-1's byte-identical-to-config read), and the full
 apply_resolved_vehicle path on a synthetic outing with real weights. All
 pass.
 
-MANDATORY RIPPLE CHECK (diagnostics/inspect_deepening_phase1_ripple.py,
+MANDATORY RIPPLE CHECK (diagnostics/inspect_deepening_phase1_ripple.py (script at tag pre-prune-2026-10-22),
 new, [keep-reproduces] -- reconstructs the OLD setup_data dict from the
 pre-edit census, since the DB write already happened by this point;
 never touches the DB itself): real production chain (resolve_accuracy ->
@@ -16786,7 +16786,7 @@ static-weight ratio, 298.9/300.3 kg -- FR is FL's own axle mate, same
 motion-ratio table) was matched to FL's own straight-line raw mean --
 K=15954360.401142702.
 
-ACCEPTANCE CHAIN (diagnostics/inspect_deepening_phase2_fr_correction.py,
+ACCEPTANCE CHAIN (diagnostics/inspect_deepening_phase2_fr_correction.py (script at tag pre-prune-2026-10-22),
 new, [keep-reproduces], full modules.wheel_loads decomposition with the
 corrected channel injected, real v3 data, Phase 1's real outing weighing):
 (a) straight-line total load +10.77% vs session weight -- outside a
@@ -17091,7 +17091,7 @@ proposal, NOT shipped [2026-09-18, same day]
 
 DIAGNOSTIC + PROPOSAL ONLY, per the work order's own explicit instruction
 -- no config/production change. diagnostics/inspect_deepening_phase4e_
-ls_thresholds.py, new, [keep-reproduces]. Computed worst-phase (min
+ls_thresholds.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces]. Computed worst-phase (min
 across all 5 phases), worst-lap (reusing modules.decision_frame.
 aggregate_ls_by_corner's own min-then-min convention, matching CS_ratio's
 own current aggregation policy) LS_ratio_f/r on both real sessions --
@@ -17139,7 +17139,7 @@ No config/production file changed.
 ### Deepening Phase 4f: end-to-end frame output, before/after both real
 sessions [2026-09-18, same day]
 
-diagnostics/inspect_deepening_phase4f_before_after.py, new, [keep-
+diagnostics/inspect_deepening_phase4f_before_after.py (script at tag pre-prune-2026-10-22), new, [keep-
 reproduces]. BEFORE = modules/decision_frame.py's own git-HEAD content
 (the state main was in when this whole work package's branch started),
 dynamically exec'd against a git-HEAD copy of config/decision_frame.json
@@ -17286,7 +17286,7 @@ hours sequential. Only ONE magnitude (+/-1%) tested per input, per the
 work order's own instruction, not a bisection grid -- the "stability
 margin" below is therefore CENSORED (<=1% vs >1%, untested beyond), not a
 continuous number extrapolated past a single measured point. diagnostics/
-inspect_metrology_phase1_sensitivity.py (the sweep, [keep-reproduces]),
+inspect_metrology_phase1_sensitivity.py (script at tag pre-prune-2026-10-22) (the sweep, [keep-reproduces]),
 inspect_metrology_phase1_analysis.py (post-processing from the saved
 JSON, seconds to run, [keep-reproduces]), inspect_metrology_phase1_
 corner_map.py (the lap-distance corner-sequence figure, see below,
@@ -17374,7 +17374,7 @@ at any ay. This rules out "geometric transfer estimates" as an
 explanation for an AXLE-TOTAL residual before running a single number --
 a roll-centre/unsprung-height modelling error could only ever bias the
 L/R SPLIT within an axle, never the total. diagnostics/inspect_metrology_
-phase3_rear_residual.py, new, [keep-reproduces], verifies this directly
+phase3_rear_residual.py (script at tag pre-prune-2026-10-22), new, [keep-reproduces], verifies this directly
 rather than only arguing it (mean(geometric_L+geometric_R) and
 mean(unsprung_L+unsprung_R) both computed at +0.00 N on both real axles,
 both sessions, against per-term magnitudes of 33-153 N -- exact
@@ -17703,7 +17703,7 @@ independently-computed mean.
 
 DUBAI VALIDATION INTERCEPT CHECK, re-run as instructed -- PREMISE
 CORRECTION found and reported, not glossed over: diagnostics/inspect_
-dubai_wheel_load_validation.py's own "(aero)" regression (a=13654.4N,
+dubai_wheel_load_validation.py (script at tag pre-prune-2026-10-22)'s own "(aero)" regression (a=13654.4N,
 the +2.65% finding) is computed via ITS OWN independent 3-term (a +
 b*ax + c*v^2) regression against combine_with_static_fallback's STATIC-
 model output -- confirmed by reading the script directly, it never
@@ -17766,7 +17766,7 @@ method CS's own Phase 1 REVISION established (B=150 resamples, P75<=15%
 relative-std criterion, governing on the shortest MEANINGFUL
 representative corner-phase length), run fresh on BOTH real sessions
 this time (CS's own original derivation was Dubai-only) --
-diagnostics/inspect_ls_window_floor_derivation.py, [keep-reproduces].
+diagnostics/inspect_ls_window_floor_derivation.py (script at tag pre-prune-2026-10-22), [keep-reproduces].
 Representative L values measured directly from each session's own real
 corner-phase-duration spectrum (not copied from CS's own L set): Dubai
 [20,83,145,214,390], v3 [20,29,80,172,309] samples @ 100 Hz (both
@@ -17797,7 +17797,7 @@ repair, part A, Phase 1 REVISION... ATTEMPT 4"), no such tension exists
 here; the derived value and the chair's own choice already agree to
 within 0.05s, a genuine cross-check rather than an arbitrary departure.
 
-(b) LOCALITY CAP: diagnostics/inspect_ls_max_window_locality_sizing.py,
+(b) LOCALITY CAP: diagnostics/inspect_ls_max_window_locality_sizing.py (script at tag pre-prune-2026-10-22),
 [keep-reproduces] -- natural (uncapped) window footprint under the
 floors above, real track distance via s_m, demand-population samples
 only. Dubai front median=61.6m/p90=424.6m/p95=556.7m/p99=830.7m, Dubai
@@ -17830,7 +17830,7 @@ of validity, not validity conditions themselves, exactly the work
 order's own framing.
 
 (e) RE-RUN Phase 4e distribution diagnostic (diagnostics/inspect_
-deepening_phase4e_ls_thresholds.py, unchanged script, re-run against
+deepening_phase4e_ls_thresholds.py (script at tag pre-prune-2026-10-22), unchanged script, re-run against
 the repaired estimator, both sessions): BEFORE (pre-repair) -- Dubai
 front 14/14 negative, Dubai rear 10/14, v3 front 12/16, v3 rear 14/17,
 pooled p10 front=-5.56/rear=-1.34. AFTER (repaired) -- Dubai front
@@ -17870,7 +17870,7 @@ investigation first).
 forced to fit: the work order's own framing ("verify the exit-oversteer
 routing still fires on the known traction-limited corner") conflates
 two things that are NOT the same mechanism. Checked directly
-(diagnostics/inspect_ls_repair_frame_verification.py, [keep-reproduces],
+(diagnostics/inspect_ls_repair_frame_verification.py (script at tag pre-prune-2026-10-22), [keep-reproduces],
 plus a follow-up targeted check): Dubai's own C3 corner_verdict (CS-
 based classification) is "understeer @ turn-in", NOT an exit-phase
 oversteer -- modules.decision_frame._build_ls_disambiguation_evidence
@@ -17980,8 +17980,8 @@ rewritten + 4 new), tests/test_cs_validity_repair.py (2 new), diagnostics/
 README.md (5 new entries across both phases), PLAN.md (2 PARKED entries
 resolved/advanced, 1 STATUS bullet), this file (3 new dated entries).
 New diagnostic scripts, all [keep-reproduces]: inspect_ls_window_floor_
-derivation.py, inspect_ls_max_window_locality_sizing.py, inspect_ls_
-repair_frame_verification.py.
+derivation.py (script at tag pre-prune-2026-10-22), inspect_ls_max_window_locality_sizing.py (script at tag pre-prune-2026-10-22), inspect_ls_
+repair_frame_verification.py (script at tag pre-prune-2026-10-22).
 
 git status NOT clean; NO COMMIT MADE -- stop before commit, per the
 work order's own explicit instruction and CLAUDE.md's standing rule
@@ -18007,7 +18007,7 @@ CS's own windowed-regression loop (~370s/session) entirely -- neither
 is used by anything in this package. Total wall time for both sessions'
 own real analysis: well under the "tens of minutes" cap.
 
-PHASE 1 -- CENSUS (diagnostics/inspect_ls_negative_cooccurrence.py, new,
+PHASE 1 -- CENSUS (diagnostics/inspect_ls_negative_cooccurrence.py (script at tag pre-prune-2026-10-22), new,
 [keep-reproduces]): every corner-phase-axle instance whose repaired
 worst-lap LS_ratio (aggregate_ls_by_corner's own min-then-min value) is
 negative -- 71 total, 34 Dubai + 37 v3 -- inspected in its own worst
@@ -18450,8 +18450,8 @@ diagnostic output only -- no config/production change, mu mode stays
 config-gated off (config/parameters.json tyre_fit_auto.load_normalised_
 fit_enabled=false, confirmed by direct read, unedited this session).
 Reused the THREE existing [keep-reproduces] diagnostic scripts exactly
-as built (diagnostics/inspect_fz_mu_tyre_fit.py, inspect_fz_mu_cross_
-check.py, inspect_fz_mu_v3_rear_divergence.py) -- no new diagnostics
+as built (diagnostics/inspect_fz_mu_tyre_fit.py (script at tag pre-prune-2026-10-22), inspect_fz_mu_cross_
+check.py (script at tag pre-prune-2026-10-22), inspect_fz_mu_v3_rear_divergence.py (script at tag pre-prune-2026-10-22)) -- no new diagnostics
 script written, per the work order's own cost cap (one fit per session/
 axle/mode, at most one EKF/NIS pass per fitted model, no sweeps/loops).
 
@@ -18540,7 +18540,7 @@ fix is an internal-consistency check passing, not a null result. The
 "LEGITIMATE LOAD EFFECT" conclusion itself (thesis_notes.md "v3 rear
 divergence dig...") reproduces on the corrected inputs -- see task 4.
 
-TASK 3 -- CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py,
+TASK 3 -- CROSS-CHECK (diagnostics/inspect_fz_mu_cross_check.py (script at tag pre-prune-2026-10-22),
 D_freeD/median_Fz vs joint mu, re-run on clean inputs, reuses the
 freshly-saved fz_mu_tyre_fit_results.json, no EKF re-run):
 
@@ -18565,7 +18565,7 @@ either bug (neither touches v3's rear axle specifically) -- it
 survives their fix essentially unchanged in magnitude.
 
 TASK 4 -- FIGURE, regenerated on clean inputs (diagnostics/inspect_fz_
-mu_v3_rear_divergence.py, PRINT theme, same script/output location as
+mu_v3_rear_divergence.py (script at tag pre-prune-2026-10-22), PRINT theme, same script/output location as
 the original -- diagnostics/plots_fz_integration/v3/fz_mu_v3_{front,
 rear}_tyre_cloud.png -- reused rather than a new plots_mu_refit/
 directory, per the diagnostics [keep-reproduces] reuse convention
@@ -18656,7 +18656,7 @@ only annotates conflict_status/conflict_with in place. The real UI caller
 shortlist with no slicing anywhere -- every scored candidate becomes a
 card. "cap=1" in this work order's own instruction refers to something
 different: the accuracy-level cap (modules.accuracy_resolution.
-resolve_accuracy(cap=1)) that diagnostics/inspect_frame_stage2_parity.py's
+resolve_accuracy(cap=1)) that diagnostics/inspect_frame_stage2_parity.py's (script at tag pre-prune-2026-10-22)
 own run_full_pipeline already applies -- unrelated to candidate-list
 length, confirmed by reading that script before reusing it.
 
@@ -18688,9 +18688,9 @@ This is exactly the capability the FRAME DEPTH PROGRAMME's own "current
 setup state" chaining would need built on top of, not something already
 half-built and overlooked.
 
-METHOD: new diagnostics/inspect_frame_candidate_census.py `[keep-
+METHOD: new diagnostics/inspect_frame_candidate_census.py (script at tag pre-prune-2026-10-22) `[keep-
 reproduces]`, live config, no config/production change. Reuses
-inspect_frame_stage2_parity.py's own run_full_pipeline/DUBAI_FILE/V3_FILE
+inspect_frame_stage2_parity.py's (script at tag pre-prune-2026-10-22) own run_full_pipeline/DUBAI_FILE/V3_FILE
 (same accuracy cap=1, same two file paths, literally imported not
 re-typed) for both sessions -- one pipeline run per session, no fits
 beyond what that function already performs. Calls modules.decision_
@@ -18845,7 +18845,7 @@ confidence down to the cap even when its firing evidence itself was
 (56 pre-existing + 12 new), 615.9s, including test_end_to_end_real_dubai.
 
 BYTE-STABILITY, Phase 1 (the regression bar): diagnostics/inspect_frame_
-candidate_census.py re-run on both real sessions with the shipped config
+candidate_census.py (script at tag pre-prune-2026-10-22) re-run on both real sessions with the shipped config
 (zero `lever_bridges` entries carry a `conditions` list) -- EXACT MATCH
 to the 2026-09-22 baseline in every reported number: Dubai 12 candidates
 (5 lever_bridges/4 exit_oversteer/3 matrix_bridge), v3 41 candidates
@@ -18855,7 +18855,7 @@ identical min_repeat_laps=2 hypothetical (0/12, 0/41). Zero difference.
 
 ### (b) Sign-convention verification result
 
-diagnostics/inspect_damper_motion_sign_and_threshold.py, same method as
+diagnostics/inspect_damper_motion_sign_and_threshold.py (script at tag pre-prune-2026-10-22), same method as
 the existing ARB sign-convention check (thesis_notes.md "Damper
 package"): correlate front-axle travel (mean of FL+FR, unit-normalised)
 against braking ax (ax_mps2 < -1.0, moving, kerb-excluded). RESULT, both
@@ -18951,9 +18951,9 @@ Files: modules/damper_motion.py (new), config/decision_frame.json
 (evaluate_conditions + 4 helpers, TRANSIENT_PHASES, build_evidence/
 generate_candidates/_bridge_candidates_for_levers wiring), tests/
 test_decision_frame.py (+12), tests/test_damper_motion.py (new, +8),
-diagnostics/inspect_frame_candidate_census.py (pre-existing, reused
+diagnostics/inspect_frame_candidate_census.py (script at tag pre-prune-2026-10-22) (pre-existing, reused
 unchanged for the byte-stability re-run), diagnostics/inspect_damper_
-motion_sign_and_threshold.py (new, [keep-reproduces]), diagnostics/
+motion_sign_and_threshold.py (script at tag pre-prune-2026-10-22) (new, [keep-reproduces]), diagnostics/
 inspect_damper_motion_verification.py (new, [keep-reproduces]),
 diagnostics/README.md (+2 entries).
 
@@ -19059,7 +19059,7 @@ tests/test_decision_frame.py: 76/76 passed (68 pre-existing + 8 new),
 742.2s, including test_end_to_end_real_dubai.
 
 BYTE-STABILITY (the regression bar, since Phase A is data-only):
-diagnostics/inspect_frame_candidate_census.py re-run on both real
+diagnostics/inspect_frame_candidate_census.py (script at tag pre-prune-2026-10-22) re-run on both real
 sessions -- EXACT MATCH to the 2026-09-22 WP-FD1+2 baseline in every
 reported number: Dubai 12 candidates (5 lever_bridges/4 exit_oversteer/
 3 matrix_bridge, confidence flat 0.25), v3 41 candidates (16/14/11,
@@ -19184,7 +19184,7 @@ byte-identical) -> breadth fields present but null, no invented number.
 Populated -> corners_helped/corners_touched computed for real, using
 the caller's own corner census (ui/views/outing_form.py's
 _generate_decision_frame and diagnostics/inspect_frame_candidate_
-census.py both already hold `summaries` before calling generate_
+census.py (script at tag pre-prune-2026-10-22) both already hold `summaries` before calling generate_
 candidates -- modules.recommendation._group_by_corner(summaries).keys()
 supplies the set directly, no new data source needed). Dampers (bump/
 rebound LS/HS split gives them shaft-speed-range selectivity a single
@@ -19287,7 +19287,7 @@ without error.
 
 ## WP-DL Phase B close-out: census re-run, new baseline [2026-09-22]
 
-diagnostics/inspect_frame_candidate_census.py reconciled to call
+diagnostics/inspect_frame_candidate_census.py (script at tag pre-prune-2026-10-22) reconciled to call
 generate_candidates() directly (see its own updated header comment and
 diagnostics/README.md entry) and re-run on both real sessions. NEW
 BASELINE, deltas explained per class, not silently accepted:
@@ -19521,7 +19521,7 @@ WP-DL Phase D (UI). D1's own two example top lines ("Bias +1 click
 rearward", "Splitter -1 mm") imply every candidate carries a direction
 plus a real numeric magnitude. Direct read of every candidate generator
 against config/setup_parameters.json's registry, cross-checked with
-diagnostics/inspect_frame_candidate_census.py's own Dubai baseline (6
+diagnostics/inspect_frame_candidate_census.py's (script at tag pre-prune-2026-10-22) own Dubai baseline (6
 candidates), found this untrue for half of it: _bridge_candidates_for_
 matrix_rules (the 39-rule migration bridge -- 2/6 candidates on Dubai,
 11/21 on v3, the SINGLE LARGEST source there) passes config/
@@ -19569,9 +19569,9 @@ REVIEWER DECISION, three parts:
    business logic for modules/, not ui/. PLAN.md's DECISION LAYER SPEC
    section gained a one-line "Refinements deferred" note at this touch.
 
-VERIFICATION: diagnostics/smoke_test_decision_frame_phase_d.py
+VERIFICATION: diagnostics/smoke_test_decision_frame_phase_d.py (script at tag pre-prune-2026-10-22)
 [keep-reproduces] -- rebuilds the real Dubai shortlist/tail directly
-(kinematic sideslip, same fast choice smoke_test_decision_frame_widget.py
+(kinematic sideslip, same fast choice smoke_test_decision_frame_widget.py (script at tag pre-prune-2026-10-22)
 already made) and confirms no shortlist top line carries a corner id
 (D1), no direction-only candidate renders a digit it does not have (D6),
 tail ordering (real candidates by descending score, then unranked
@@ -19594,10 +19594,10 @@ the run -- then decide. Observed unprofiled: Modules 1-5 832s, fit chain
 188-383s." This entry supplies the actual profiled numbers; no decision
 made, no fix applied, per the work order's own "measurement only" scope.
 
-METHOD: new diagnostics/inspect_pipeline_wall_times.py `[keep-
+METHOD: new diagnostics/inspect_pipeline_wall_times.py (script at tag pre-prune-2026-10-22) `[keep-
 reproduces]`, live config (read directly, not assumed: stability_
 estimation.sideslip_source="ekf_auto_pacejka", vertical_load_source=
-"measured"). Re-issues diagnostics/inspect_frame_stage2_parity.py's own
+"measured"). Re-issues diagnostics/inspect_frame_stage2_parity.py's (script at tag pre-prune-2026-10-22) own
 run_full_pipeline call sequence one call at a time (same DUBAI_FILE/
 V3_FILE/FIXED_CAP constants, literally imported, not re-typed), each
 wrapped in time.perf_counter() -- nothing in modules/ touched. The fit
@@ -19682,7 +19682,7 @@ User visually checked Phase D on v3 and found identical shortlist rows
 (e.g. two "Traction Control - Longitudinal +1 position" cards from
 different corners) rendered as separate cards -- confirmed as a real,
 reproducible case on the kinematic-mode Dubai run too (diagnostics/
-smoke_test_decision_frame_phase_d.py's own shortlist printout). Reviewer+
+smoke_test_decision_frame_phase_d.py's (script at tag pre-prune-2026-10-22) own shortlist printout). Reviewer+
 user decision: identical (parameter-set, direction, rendered magnitude)
 rows collapse into ONE display row.
 
@@ -19729,7 +19729,7 @@ collapse on identical top-line, score is MAX never sum, different
 parameters stay separate, no_trigger rows never cross-collapse between
 levers, unrouted candidates never collapse, single-member groups pass
 through byte-identical (no "group_members" key added). diagnostics/
-smoke_test_decision_frame_phase_d.py updated: asserts no two visible
+smoke_test_decision_frame_phase_d.py (script at tag pre-prune-2026-10-22) updated: asserts no two visible
 shortlist rows render identical top-line strings (real data AND a
 hand-built synthetic pair, since which real candidates collapse depends
 on which verdicts this file's own kinematic-mode run happens to produce,
@@ -20190,7 +20190,7 @@ above), including a real bug the completeness check itself surfaced
 while writing that entry (the feedback_eligible axis-filter omission --
 see that entry for the full account). No other gaps found.
 
-F3 (census stability): diagnostics/inspect_frame_candidate_census.py
+F3 (census stability): diagnostics/inspect_frame_candidate_census.py (script at tag pre-prune-2026-10-22)
 re-run on both real sessions. Dubai 6 candidates, v3 21 candidates --
 EXACT MATCH to the accepted 6/21 baseline (Phase C close-out). No count
 change, no STOP. Per-group shapes also match the Phase C close-out
@@ -20319,9 +20319,9 @@ EOFError path specifically), atomic-write verification (no .tmp left
 after success; a simulated mid-write failure via a monkeypatched pickle.
 dump leaves no partial final file at all), and directory auto-creation.
 
-PHASE 1e, REAL MEASUREMENT (diagnostics/inspect_pipeline_sidecar_size.py
+PHASE 1e, REAL MEASUREMENT (diagnostics/inspect_pipeline_sidecar_size.py (script at tag pre-prune-2026-10-22)
 [keep-reproduces], production defaults -- ekf_auto_pacejka, cap=1, same
-FIXED_CAP convention diagnostics/inspect_frame_stage2_parity.py already
+FIXED_CAP convention diagnostics/inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22) already
 uses -- both real sessions, writing into a throwaway temp dir, never
 data/analysis_cache/):
 
@@ -20391,7 +20391,7 @@ span. Fixed by anchoring the search past "def _force_recompute" first.
 Both fixes verified: tests/test_config_schema_integrity.py 12/12 green.
 
 ACCEPTANCE-CONDITION SMOKE TEST (diagnostics/smoke_test_cache_sidecar_
-analyse_contract.py [keep-reproduces], real v3 data, throwaway Outing
+analyse_contract.py (script at tag pre-prune-2026-10-22) [keep-reproduces], real v3 data, throwaway Outing
 row + sidecar, both cleaned up in a finally block): five iterations
 before it passed clean, every failure in the TEST HARNESS itself, never
 in the code under test -- recorded here because each one is a real,
@@ -20401,7 +20401,7 @@ _on_stability_done reads self.stab_thread.lap_filter; calling it directly
 needs that one attribute supplied via a stand-in object. (2) A fresh
 OutingForm's accuracy_cap_combo always defaults to "Best available"
 (cap=None) -- running the initial pipeline under a different cap (the
-FIXED_CAP=1 convention borrowed from inspect_frame_stage2_parity.py, a
+FIXED_CAP=1 convention borrowed from inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22), a
 DIFFERENT script with a DIFFERENT purpose) made a clean reopen correctly
 MISS on the accuracy_cap field; switched to cap=None to match what a
 genuine restart actually presents, rather than routing around the
@@ -20460,7 +20460,7 @@ proven byte-identical output, implementation only, method untouched. This
 entry is Phase 0's own measurement record; no code changed yet.
 
 BEFORE-BASELINE (this package's own re-run of diagnostics/inspect_
-pipeline_wall_times.py, machine idle, single run): Dubai LS 436.03s / CS
+pipeline_wall_times.py (script at tag pre-prune-2026-10-22), machine idle, single run): Dubai LS 436.03s / CS
 273.06s / fit-chain EKF 243.60s (grand total 969.82s); v3 LS 396.63s / CS
 81.06s / EKF 201.17s (grand total 697.61s). Close to the 2026-09-23
 reference numbers (405/277/242 Dubai, 389/82/205 v3) -- the ~5-8%
@@ -20550,9 +20550,9 @@ both in sync" contract between these two now explicitly covers the
 incremental-extrema pattern too).
 
 BYTE-IDENTITY, PROVEN NOT ASSUMED: diagnostics/capture_wp_perf_
-reference.py (new, [keep-reproduces]) dumps every key of both
+reference.py (script at tag pre-prune-2026-10-22) (new, [keep-reproduces]) dumps every key of both
 estimators' output dicts to a gitignored .npz per session; diagnostics/
-compare_wp_perf_reference.py (new, [keep-reproduces]) checks exact
+compare_wp_perf_reference.py (script at tag pre-prune-2026-10-22) (new, [keep-reproduces]) checks exact
 equality per key two ways (np.array_equal with equal_nan=True, AND raw
 tobytes() equality) -- self-tested on itself first (accepts an
 identical file, catches a single corrupted value at its exact key/
@@ -20567,7 +20567,7 @@ proof run BEFORE each phase's own re-timing, per the reviewer's fixed
 order, never the reverse.
 
 TIMING, before (Phase 0a baseline, this package's own re-run of
-diagnostics/inspect_pipeline_wall_times.py, machine idle, single run,
+diagnostics/inspect_pipeline_wall_times.py (script at tag pre-prune-2026-10-22), machine idle, single run,
 no repetitions) vs after (Phase 3a, same script, same conditions):
 
   Dubai (grand total parse_csv..summarise_corners):
@@ -20643,7 +20643,7 @@ recorded in thesis_notes.md would move regardless -- "the record IS the
 deliverable, the script is scaffolding"). Seven categories: K1
 config-cited provenance (verified against actual current config/*.json
 content, not assumed -- one stale citation caught this way:
-inspect_ls_ratio_span_dependence.py's own claimed config gate,
+inspect_ls_ratio_span_dependence.py's (script at tag pre-prune-2026-10-22) own claimed config gate,
 longitudinal_stiffness.min_slip_span, had been silently superseded from
 0.004 to 0.016 by a later, different script's derivation
 2026-09-19 -- the old citation no longer backs any live value, so the
@@ -20654,11 +20654,11 @@ by filename, by reading the script's own output path against the exact
 PNG the index cites as a thesis figure -- inspect_v3_wheel_load_
 comparison_figure.py, inspect_v3_wheel_load_reconstruction_figure.py,
 inspect_metrology_phase1_analysis.py, inspect_metrology_phase1_
-corner_map.py, inspect_metrology_phase3_rear_residual.py); K4 working
+corner_map.py, inspect_metrology_phase3_rear_residual.py (script at tag pre-prune-2026-10-22)); K4 working
 smoke tests; K5 named census/measurement tooling; K6 imported by another
 K1-K5 keeper (verified against the real `from diagnostics.X import`
 graph, 21 edges, traced to a fixpoint -- only inspect_frame_stage2_
-parity.py survived on this basis alone); K7, a user amendment mid-review
+parity.py (script at tag pre-prune-2026-10-22) survived on this basis alone); K7, a user amendment mid-review
 for two scripts that fit none of K1-K6 but are clearly still load-
 bearing: scan_channels.py (found this project's real GPS channel names,
 the sole tool for the recurring PLAN.md new-data-file channel-discovery
@@ -20690,13 +20690,13 @@ to a telemetry file's channel list.
 
 RESULT: 37 scripts (of 92) moved to diagnostics/_attic/ via git mv
 (nothing deleted, fully reversible) -- including all three scripts from
-the first-pass confirmation (inspect_v3_corner_census.py, inspect_v3_
-corner_separation.py, inspect_ls_ratio_span_dependence.py) plus, per
+the first-pass confirmation (inspect_v3_corner_census.py (script at tag pre-prune-2026-10-22), inspect_v3_
+corner_separation.py (script at tag pre-prune-2026-10-22), inspect_ls_ratio_span_dependence.py (script at tag pre-prune-2026-10-22)) plus, per
 the tightened rule, scripts whose only prior justification was a
 PLAN.md or modules-docstring citation (e.g. inspect_washout_cutoff_
-sweep.py, inspect_wheel_speed_sources.py, inspect_corner_bracket_
-geometry.py, inspect_tyre_fit_auto_acceptance.py, inspect_tyre_variant_
-comparison.py, inspect_ls_cs_disambiguation.py) -- each a real,
+sweep.py (script at tag pre-prune-2026-10-22), inspect_wheel_speed_sources.py (script at tag pre-prune-2026-10-22), inspect_corner_bracket_
+geometry.py (script at tag pre-prune-2026-10-22), inspect_tyre_fit_auto_acceptance.py, inspect_tyre_variant_
+comparison.py, inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22)) -- each a real,
 substantive investigation with its finding intact in this file, moved
 because the record now carries the finding, not the script. 55 scripts
 kept. diagnostics/README.md rewritten from scratch, keepers only, each
@@ -20708,7 +20708,7 @@ VERIFIED SAFE before moving anything: grepped the full `from
 diagnostics.X import` graph (21 edges) and confirmed zero keepers
 import any of the 37 attic-bound scripts, and zero tests/*.py files
 import one (one tests/test_tyre_fit_auto_mu.py comment references
-inspect_fz_mu_tyre_fit.py by path -- a stale comment after the move,
+inspect_fz_mu_tyre_fit.py (script at tag pre-prune-2026-10-22) by path -- a stale comment after the move,
 not a functional import, left for the later comment-polish pass, not
 fixed here as it is out of this package's stated scope).
 
@@ -20758,7 +20758,7 @@ repo (not from memory), file by file:
 - Real `from diagnostics.X import` statements corrected to `from
   modules.X import` in: diagnostics/fit_dugoff_pass4_refit.py,
   diagnostics/inspect_ekf_pass1_rQ_sweep.py, diagnostics/inspect_nis_
-  tyre_mismatch_gate.py, diagnostics/inspect_pass1_final_validation.py,
+  tyre_mismatch_gate.py, diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22),
   diagnostics/inspect_step2_chair_plots.py, modules/tyre_fit_auto.py
   (both EKF imports), tests/test_nis_gate.py, tests/test_pure_
   functions.py.
@@ -20783,8 +20783,8 @@ repo (not from memory), file by file:
   entries and PLAN.md's dated historical narrative (never rewritten,
   per CLAUDE.md); diagnostics/_attic/*.py files that still import the
   old diagnostics.sideslip_ekf_* path (inspect_ekf_dugoff_sanity_
-  checks.py, inspect_washout_cutoff_sweep.py, inspect_fz_mu_refit_
-  evaluation.py, inspect_v3_pacejka_refit_evaluation.py) -- archived,
+  checks.py, inspect_washout_cutoff_sweep.py (script at tag pre-prune-2026-10-22), inspect_fz_mu_refit_
+  evaluation.py (script at tag pre-prune-2026-10-22), inspect_v3_pacejka_refit_evaluation.py (script at tag pre-prune-2026-10-22)) -- archived,
   not expected to run, out of the "diagnostics keeper" scope the work
   order named.
 
@@ -20942,7 +20942,7 @@ B2 -- tyre-pressure target activation (elicitation item 2 RESOLVED),
 EXPANDED from a data fill to full activation after a real blocker was
 found and reported (reviewer decision: option (b), propose-then-
 implement). Channel census FIRST, per the standing channel-census rule:
-diagnostics/inspect_tpms_pressure_cornering_phase.py (kept -- config-cited
+diagnostics/inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22) (kept -- config-cited
 provenance, K1) read tpms_press_fl/fr/rl/rr directly from both real raw
 files, bypassing modules.csv_parser.parse_csv's own whitelist (config/
 channels.json did not list these channels at all -- confirmed by reading
@@ -21057,7 +21057,7 @@ ui/views/outing_form.py (tyre_pressure_flags call site passes channels/
 corners/state, practice_note and edge_normal_state_note rendered),
 tests/test_decision_frame.py (target/flags tests rewritten+expanded,
 two new edge-exemption composition tests). diagnostics/inspect_tpms_
-pressure_cornering_phase.py KEPT -- cited by config/channels.json's own
+pressure_cornering_phase.py (script at tag pre-prune-2026-10-22) KEPT -- cited by config/channels.json's own
 tpms_press_fl note (K1, config-cited provenance) and by config/
 decision_frame.json's tyre_pressure_target derived_from.
 
@@ -21164,7 +21164,7 @@ copy. When either axle's own pair (both wheels) is not fully evaluable,
 axle attribution is None and BOTH axles are proposed, honestly labelled
 "car-wide kerb evidence, axle not attributable" -- never guessed.
 
-THRESHOLD CENSUS (diagnostics/inspect_kerb_severity_census.py, both real
+THRESHOLD CENSUS (diagnostics/inspect_kerb_severity_census.py (script at tag pre-prune-2026-10-22), both real
 sessions, per-corner-instance peak |az_g| inside kerb_mask, nonzero-
 instance population n=79): p10=2.2951, p25=2.4280, p50=2.6300,
 p75=2.9571, p90=3.3273, p95=3.5631 g. NOT cleanly bimodal -- 71-76% of ALL
@@ -21229,7 +21229,7 @@ block), modules/decision_frame.py (_build_kerb_blowoff_evidence,
 _kerb_axle_attribution, _kerb_blowoff_candidates, _corner_overall_window,
 wiring into build_evidence/generate_candidates, new modules.wheel_loads
 imports), tests/test_decision_frame.py (10 new tests). diagnostics/
-inspect_kerb_severity_census.py KEPT -- cited by config/decision_frame.
+inspect_kerb_severity_census.py (script at tag pre-prune-2026-10-22) KEPT -- cited by config/decision_frame.
 json's kerb_blowoff_evidence.derived_from (K1, config-cited provenance).
 
 ### WP-ELICIT Phase C4: feedback-router click-class entries [2026-09-24]
@@ -21683,7 +21683,7 @@ against every candidate channel the Frame-Stage-2 Phase 2 record names
 (thesis_notes.md "Frame-Stage-2 Phase 2: intervention-channel survey",
 2026-09-04/05) -- names read directly from that record and from its
 own source script (diagnostics/_attic/inspect_v3_intervention_channel_
-classification.py), not from memory: Math_Brake_Bias_Hold
+classification.py (script at tag pre-prune-2026-10-22)), not from memory: Math_Brake_Bias_Hold
 (READ-AND-RECORD category) plus abs_brk_bal_prop / abs_brk_bal_prop_ad /
 abs_brk_bal_at50 / abs_brk_bal_at50_adv (UNCLEAR category, four
 competing candidates) -- FIVE named channels total, not four; the work
@@ -21691,7 +21691,7 @@ order's own parenthetical ("Math_Brake_Bias_Hold, abs_brk_bal_prop
 family") undercounted the record by one, corrected here rather than
 silently matched to "4".
 
-METHOD: new diagnostics/inspect_brake_bias_channel_identity.py [keep-
+METHOD: new diagnostics/inspect_brake_bias_channel_identity.py (script at tag pre-prune-2026-10-22) [keep-
 reproduces, diagnostics/README.md K5 entry]. Same "hard braking" mask as
 the already-recorded ABS consistency check and Frame-Stage-2 Phase 2:
 moving & (log_pbrake_f + log_pbrake_r > 120 bar) -- reused exactly, not
@@ -21699,7 +21699,7 @@ a new threshold. Recomputed percent_front = 100 * pbrake_f / (pbrake_f +
 pbrake_r) over that mask; each candidate channel read directly from the
 raw file (bypassing config/channels.json's whitelist -- none of the five
 are listed there -- via the same NARROW/WIDE block parser already used
-by diagnostics/inspect_tpms_pressure_cornering_phase.py, reused
+by diagnostics/inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22), reused
 verbatim rather than a second copy), restricted to samples inside that
 channel's own real time coverage before correlating (avoids biasing the
 correlation with held-flat extrapolation outside a channel's actual
@@ -21738,11 +21738,11 @@ away, this is a propose-first change regardless of outcome): the
 brake_bias current-state window check does NOT go live. Listed under
 this item's own OPEN, not implemented.
 
-Files touched: diagnostics/inspect_brake_bias_channel_identity.py (new,
+Files touched: diagnostics/inspect_brake_bias_channel_identity.py (script at tag pre-prune-2026-10-22) (new,
 keep-reproduces), diagnostics/README.md (K1 entries added for the two
 undocumented WP-ELICIT Phase B2/C3 scripts found missing while editing
-this file -- inspect_tpms_pressure_cornering_phase.py and
-inspect_kerb_severity_census.py, both genuinely config-cited, verified
+this file -- inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22) and
+inspect_kerb_severity_census.py (script at tag pre-prune-2026-10-22), both genuinely config-cited, verified
 directly, a real pre-existing README gap closed incidentally; K5 entry
 for this item's own new script). No production config/code/test
 touched -- brake_bias's own config stays exactly as WP-ELICIT Phase A
@@ -21752,7 +21752,7 @@ left it (nominal/span null, not-evaluable note unchanged).
 before/after vs the pre-WP-ELICIT baseline [2026-09-25]
 
 Tier B (read-only census, own run, diagnostics/inspect_frame_candidate_
-census.py -- no production change). Pre-WP-ELICIT baseline (main@
+census.py (script at tag pre-prune-2026-10-22) -- no production change). Pre-WP-ELICIT baseline (main@
 647582f, before any WP-ELICIT package landed): Dubai 6, v3 21 (session-
 start record).
 
@@ -22015,7 +22015,7 @@ classification derived_from -- every date kept, verified unchanged for
 all five thresholds (latest date 2026-09-02 before and after).
 
 FINDINGS. (a) A UI-shown LS-split evidence string pointed users at
-diagnostics/inspect_ls_cs_disambiguation.py, which WP-CLEAN had already
+diagnostics/inspect_ls_cs_disambiguation.py (script at tag pre-prune-2026-10-22), which WP-CLEAN had already
 moved to diagnostics/_attic/ -- a dangling path in the product, now
 replaced by what the evidence is ("population-relative split, n corners;
 no absolute LS_ratio threshold is configured"). (b) The brake_bias
@@ -22916,9 +22916,9 @@ STILL TO VERIFY, deliberately left untouched:
 ## Gated-kinematic sideslip diagnostic [2026-09-28, branch backlog-g, read-only]
 PURPOSE: evidence for the BLOCKED washout-cutoff / sideslip-source
 decision. Measures; decides nothing. No production file, config value or
-threshold changed. Scripts: diagnostics/inspect_gated_kinematic_run.py
+threshold changed. Scripts: diagnostics/inspect_gated_kinematic_run.py (script at tag pre-prune-2026-10-22)
 (compute + cache), _cs.py, _drift.py, _scale_sign.py, helpers
-gated_kinematic_common.py / gated_kinematic_style.py. Figures in
+gated_kinematic_common.py (script at tag pre-prune-2026-10-22) / gated_kinematic_style.py. Figures in
 diagnostics/plots_gated_kinematic/ (gitignored): cs_worst_by_source_
 {dubai,v3}.png, drift_vs_time_{dubai,v3}.png, gate_exit_residual_
 {dubai,v3}.png, mid_corner_beta_{dubai,v3}.png; numbers in cs_results.
@@ -22940,7 +22940,7 @@ EKF gate this run: Dubai PASS 0.1351 (matches record), v3 PASS 0.0985
 ~~(record 0.0849 was measured with the outing's real weighing; this run
 uses cap=1 defaults -- stated, not chased).~~ [CORRECTED 2026-09-29:
 that explanation was wrong. The 0.0849 record came from diagnostics/
-inspect_v3_nis_gate_failure.py, which uses raw load_parameters() --
+inspect_v3_nis_gate_failure.py (script at tag pre-prune-2026-10-22), which uses raw load_parameters() --
 config defaults, not the weighing. Re-run today through the production
 dispatch: raw load_parameters() 0.098474, cap=1 defaults 0.098474, cap=2
 with the outing's stored weighing (FL/FR/RL/RR 300.3/298.9/396.2/386.5
@@ -23069,13 +23069,13 @@ tyre_pressure_target), intervention_evidence.abs.
 abs_inactive_corroborates_braking_instability, intervention_evidence.tc.
 tc_active_corroborates_traction_limited, eligibility_classes.
 camber_multi_corner_gate. The one comment naming tyre_pressure_window
-(diagnostics/inspect_tpms_pressure_cornering_phase.py, and the
+(diagnostics/inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22), and the
 _comment_tyre_pressure_target sentence) repointed to "removed
 2026-09-28".
 KEPT although the map lists them as having no reader in code, because a
 surviving diagnostic or test reads them: vehicle.yaw_inertia_kalman_kgm2,
 stability_estimation.cs_front/rear_fallback_reference_n_per_rad
-(diagnostics/sideslip_kalman_observer.py), tyre_model_fit incl.
+(diagnostics/sideslip_kalman_observer.py (script at tag pre-prune-2026-10-22)), tyre_model_fit incl.
 ay_linear_threshold_g (diagnostics/fit_dugoff_first_pass.py);
 display_score_threshold (test-pinned + two diagnostics) and
 recommendations.json settings.driver_level_weighting.neutral_level
@@ -23317,7 +23317,7 @@ threshold); mu-band and C_alpha/Fz = 12 citations.
 
 ## New-session checklist: seven new files [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_new_laps_cs_sweep.py (channels / compute /
+Script: diagnostics/inspect_new_laps_cs_sweep.py (script at tag pre-prune-2026-10-22) (channels / compute /
 report). Production pipeline unchanged (ekf_auto_pacejka, accuracy cap 1,
 no sheet, no feedback, no driver). Sessions: Dubai and v3 (baselines) plus
 every .txt on D:/Data_Bachelorthesis (.pds files are not parseable, not
@@ -23498,7 +23498,7 @@ declared.
 
 ## NBR outing mapping and full-lap CS traces [2026-09-29, branch new-laps, read-only; mapping confirmed by the author 2026-09-29]
 
-Script: diagnostics/inspect_cs_value_lens.py (mapping, traces).
+Script: diagnostics/inspect_cs_value_lens.py (script at tag pre-prune-2026-10-22) (mapping, traces).
 MAPPING (file headers + logged rake). Four NBR files, all car 73, GP
 layout. JST session 2 outing 21 (first lap 71, 4 laps in file, analysis
 72-73, 116.6/116.8 s): its file exists twice (repo root and D:, byte-
@@ -23527,7 +23527,7 @@ or is NaN; all structure is inside brackets.
 
 ## CS_ratio value lens: smoothness, reproduction, demand bands, A vs B, fold/loop [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_value_lens.py (smooth / util / ab /
+Script: diagnostics/inspect_cs_value_lens.py (script at tag pre-prune-2026-10-22) (smooth / util / ab /
 foldloop; definitions fixed in its header before the runs). Production
 chain, value level only (no verdicts or thresholds). Qualifying files
 and Le Mans are context rows.
@@ -23609,7 +23609,7 @@ fold_loop.png.
 
 ## Slip-vs-force lag check [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_readout_evidence.py (lag; definitions in
+Script: diagnostics/inspect_cs_readout_evidence.py (script at tag pre-prune-2026-10-22) (lag; definitions in
 its header). Signals: filtered axle slip angle vs filtered axle Fy (both
 through the production 2 Hz zero-phase filter, so any lag is upstream);
 lag = peak of corr(alpha(t), Fy(t+k)), |k| <= 50 samples (500 ms);
@@ -23656,7 +23656,7 @@ are not marked conditional, with the stated 8-22 % caveat.
 
 ## Fold/loop at run scale, with lag correction and a specificity control [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_readout_evidence.py (foldrun). Run =
+Script: diagnostics/inspect_cs_readout_evidence.py (script at tag pre-prune-2026-10-22) (foldrun). Run =
 [s_w - 60 m, s_w + 40 m] around the traversal's minimum-CS sample, all
 samples (kerbs included; masking them had cut runs to 42-81 m), front
 axle, self-crossing count (the recorded test) plus a post-peak-arm rule.
@@ -23691,7 +23691,7 @@ Lag-artifact: no focus instance (the lag shift changes no label).
 
 ## Sawtooth window-start repair, measured in isolation [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_readout_evidence.py (sawtooth, sawreport;
+Script: diagnostics/inspect_cs_readout_evidence.py (script at tag pre-prune-2026-10-22) (sawtooth, sawreport;
 rule and criteria in its header). Rule: start_rep(i) = max(cap limit,
 min(start_prod(i), start_rep(i-1) + 2)) -- the start may advance at most
 2 samples per step, the window shrinks by at most 1 sample per step. (The
@@ -23726,7 +23726,7 @@ component; it does not change the decorrelation scale materially.
 
 ## Pooled read-out prototype vs production, all sessions [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_readout_evidence.py (readout, census;
+Script: diagnostics/inspect_cs_readout_evidence.py (script at tag pre-prune-2026-10-22) (readout, census;
 statistics and criteria fixed in its header). Four read-outs per corner
 and phase over the analysis laps: PROD (worst lap, production), REPEAT
 (second-smallest per-lap value), POOLED (median of all laps' samples
@@ -23851,7 +23851,7 @@ Written for the author's decision; no recommendation, no implementation.
 
 ## Pooled-p25 thresholds by the recorded procedure [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_decision_table.py (thresholds, margin;
+Script: diagnostics/inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) (thresholds, margin;
 procedure in its header). The recorded STRONG/MODERATE derivation made
 explicit: STRONG = physical anchor 0, noise population = negatives minus
 ground-truth events (none remain, C4 unconfirmed) minus the standout
@@ -23908,7 +23908,7 @@ both read "ok", which is why the 2026-09-19 sweep did not show it.
 
 ## Hardened production, display layer [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_decision_table.py (part2). In memory,
+Script: diagnostics/inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) (part2). In memory,
 estimator untouched. Evidence floor: a row enters the visible top 3 only
 if problem weight >= floor or its evidence spans >= 2 corners. Lever
 conflict: opposite directions of one lever anywhere in the session merge
@@ -23936,7 +23936,7 @@ one corner to the session).
 
 ## Three-way decision table: A0 / A / B [2026-09-29, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_decision_table.py (table). A0 = production
+Script: diagnostics/inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) (table). A0 = production
 untouched; A = production + display hardening; B = pooled p25 under the
 Part-1 pooled thresholds (STRONG_CSF -1.41, STRONG_CSR -0.48,
 MODERATE_CSF 0.65, MODERATE_CSR undefined = empty band, cs_margin 0.06)
@@ -24040,7 +24040,7 @@ CROSS-CUTTING FINDING, independent of the choice: the CS_ratio of v3 C11
 jumps 1.00 <-> 0.19 under +/-1 % input changes (linear-reference
 denominator switch) -- a production discontinuity worth its own item.
 
-[2026-09-29, render addendum, read-only] Rendered for the author's own inspection, no finding added: plan-B traces (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed -3.5..1.2 axes), worst-lap vs pooled-p25 per corner, 8 sessions each, and a references-only C4 provenance sheet (18 dated entries, figure paths) -- diagnostics/inspect_cs_decision_table.py render, outputs in diagnostics/plots/cs_decision_table/render/ (gitignored).
+[2026-09-29, render addendum, read-only] Rendered for the author's own inspection, no finding added: plan-B traces (per-lap CS_ratio thin, pooled p25 per phase heavy, fixed -3.5..1.2 axes), worst-lap vs pooled-p25 per corner, 8 sessions each, and a references-only C4 provenance sheet (18 dated entries, figure paths) -- diagnostics/inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) render, outputs in diagnostics/plots/cs_decision_table/render/ (gitignored).
 
 [2026-09-29, figures regenerated] Decision-layer figures (six_stage_flow, lever_coverage_table; diagnostics/plots_decision_layer/, PDF + PNG; 2026-09-23 set kept as *_20260923) regenerated from live config by diagnostics/generate_decision_layer_figure.py, generator fixed to compute: rank-based display_top_n instead of the retired score threshold, per-class change_time, held-secondary matrix routes, feedback-only entry count, tyre bands, speed_qualified_effect cells; process text removed.
 
@@ -24079,7 +24079,7 @@ and PLAN.md "WP-HARDEN" (the full variant A spec).
 
 ## IMU offsets, Part 1: straight-line constants, eight sessions [2026-09-30, branch new-laps, read-only]
 
-Script: diagnostics/inspect_imu_offsets.py (census / compute / report /
+Script: diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) (census / compute / report /
 consequence; definitions and selection rules in its header before the
 runs). Inputs as production builds them (prepare_vehicle_state, cap 1).
 Sessions: the sweep mapping without US-v1 (the v3 outing re-exported).
@@ -24251,7 +24251,7 @@ offset correction touches.
 
 ## Second IMU sources, liveness pre-check for (a2) [2026-09-30, branch new-laps, read-only]
 
-Script: diagnostics/inspect_imu_offsets.py precheck (rule in its header:
+Script: diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) precheck (rule in its header:
 DEAD <= 2 distinct values or zero std over the analysis laps; LIVE =
 non-constant, plausible range, non-zero std inside corner brackets).
 MRR_EgoYawRate: deg/s as logged, 10 Hz everywhere. DEAD (all zeros) on
@@ -24278,7 +24278,7 @@ four channels present. Liveness was not checked there.
 
 ## (a2) Part 1: steady-state referee, two accelerometers vs r v [2026-09-30, branch new-laps, read-only]
 
-Script: diagnostics/inspect_imu_offsets.py a2compute / referee / ratio
+Script: diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) a2compute / referee / ratio
 (rules in its header before the runs; post-hoc items labelled there).
 Population: quasi-steady cornering inside corner brackets of analysis
 laps, |r v| above the session Otsu gate (selection on the regressor),
@@ -24419,7 +24419,7 @@ identifiability) is untouched by any IMU scale or offset correction.
 
 ## (b) Part 1: upstream insertion-point sweep [2026-09-30, branch new-laps, read-only]
 
-Script: diagnostics/inspect_cs_upstream_sweep.py (rules in its header
+Script: diagnostics/inspect_cs_upstream_sweep.py (script at tag pre-prune-2026-10-22) (rules in its header
 before the runs). Variants feed modified RAW channels through the
 production fit (fit_session_pacejka builds its own state from the raw
 channels; filtering the prepared state would not reach the estimator):
@@ -24522,7 +24522,7 @@ and closing (b) as tested-upstream-nothing-earned-production.
 
 ## (c) Part 1: yaw-rate cross-lap pooling, flags and steering counteraction [2026-09-30, branch new-laps, read-only]
 
-Script: diagnostics/inspect_yaw_pooling.py (rules in its header before the
+Script: diagnostics/inspect_yaw_pooling.py (script at tag pre-prune-2026-10-22) (rules in its header before the
 runs). Screening JST 29, US-v2, MLA; Dubai only for the C3-LS
 cross-reference. Yaw rate low-passed at 4 Hz, pooled per corner on a 1 m
 track grid over the analysis laps (kerb samples excluded); envelope
@@ -24554,8 +24554,8 @@ Figures: diagnostics/plots/yaw_pooling/yaw_pooling_<key>.png (gitignored).
 
 ## (c) Part 2: retro-renders of (b) baseline vs D1 vs E [2026-09-30, branch new-laps, read-only]
 
-Nine standard trace sets (inspect_cs_upstream_sweep render, via the new
-diagnostics/trace_render.py helper), fixed -3.5..1.2, no sample below the
+Nine standard trace sets (inspect_cs_upstream_sweep (script at tag pre-prune-2026-10-22) render, via the new
+diagnostics/trace_render.py (script at tag pre-prune-2026-10-22) helper), fixed -3.5..1.2, no sample below the
 floor. What the eye shows that the scores did not:
 - JST 29: D1/E are not smoother; the rear loses visible stretches
   (coverage), and the front gains new deep dips absent at baseline (C5
@@ -24584,7 +24584,7 @@ continuity only, 2026-09-30). Guards: tests/test_trace_display.py (real
 Dubai data: the bridge never modifies its input and only spans kerb gaps;
 the kinematic analysis chain is byte-identical with the flag on and off;
 no module in modules/ or core/ other than trace_display references it) --
-15 passed with the config-schema file; diagnostics/smoke_test_kerb_bridge.py
+15 passed with the config-schema file; diagnostics/smoke_test_kerb_bridge.py (script at tag pre-prune-2026-10-22)
 on a cached outing (outing 4, US-v1): 264 corner-window and 6 lap-window
 bridge items with the flag on, 0 with it off, analysis arrays byte-
 identical before and after rendering; test_stability.py exit 0. Full suite
@@ -24641,7 +24641,7 @@ Follow-up approved: kerb-gap bridge for the figure exports
 
 ## Sawtooth repair side-by-side render [2026-09-30, branch new-laps, read-only]
 
-Side-by-side rendered, decision pending: JST 29 and US-v2, production (window-start jumps marked) vs repair-active, diagnostics/plots/cs_readout_evidence/sawrender_<key>_{prod,rep}.png (inspect_cs_readout_evidence.py sawrender).
+Side-by-side rendered, decision pending: JST 29 and US-v2, production (window-start jumps marked) vs repair-active, diagnostics/plots/cs_readout_evidence/sawrender_<key>_{prod,rep}.png (inspect_cs_readout_evidence.py (script at tag pre-prune-2026-10-22) sawrender).
 RULING 2026-09-30 (author): sawtooth repair stays PARKED -- the flagged deep spikes survive it (JST 29 -2.68 at 620 m, US-v2 -2.05 at 1297 m), it removes only small jagged drops, and jump-coincidence (0.35-0.60 shares) does not predict removal; the spike mechanism is an open question routed to the event-coincidence diagnostic (queued after WP-HARDEN).
 
 ## WP-HARDEN: CS display hardening implemented [2026-09-30, branch new-laps]
@@ -24651,7 +24651,7 @@ Variant A of the CS read-out decision, implemented per PLAN.md "WP-HARDEN". Disp
 - Method. Floor: a display row ranks only if problem weight (its strongest member's score term) >= 0.5 or its candidates span >= 2 corners; otherwise it joins the tail after the top-N overflow. Conflict: rows moving one parameter with different action keys anywhere in the session form one card -- resolve_conflicts' own per-corner rule (same parameter, different direction/target) extended to the session, cards built as connected components, placed at the best member's rank. Per-member judgement: a card ranks if at least one member clears the floor on its own; if none does, the whole card is one tail line. Driver-disagree markers read every member at every tier.
 - Invariance: harden_display_rows asserts that the candidate ids leaving it equal those entering it; tests/test_display_hardening.py checks on real Dubai that they equal the proposed candidate set and that the input rows are unchanged (13 tests).
 - Goldens: recommendations_* compare modules.recommendation.generate_recommendations output, which never passes through the display split; golden files byte-identical.
-Census (diagnostics/inspect_cs_decision_table.py hardened; eight cached sessions, data-only, floor 0.5; before = production grouped rows without hardening):
+Census (diagnostics/inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) hardened; eight cached sessions, data-only, floor 0.5; before = production grouped rows without hardening):
 - Both-direction pairs in the top 3, before: Dubai, US-v2, NBR B, CDR, NBR-QP MLA (5 sessions); after: 0 everywhere. The prototype counted 4: its matcher knew only increase/decrease, the CDR pair is rear ARB stiffen + soften (rows 2 and 3). Conflict cards per session (Dubai, v3, US-v2, NBR A, NBR B, LMN MLA, CDR, NBR-QP MLA): 1/0/3/2/5/2/2/4 against the prototype's all-row pairs 1/0/2/1/4/1/1/2 -- the difference is the ARB soften/stiffen pairs.
 - Thin #1 (below the floor), before: Dubai, US-v2, NBR-QP MLA; after: 0.
 - TC recommendation #1, before 6/8; after 2/8 as a plain row (NBR A tc_lon +1, CDR tc_lat +1), as predicted (1-2/8). Counting TC conflict cards: 5/8 (US-v2, NBR B, NBR-QP MLA #1 is a tc_lon card).
@@ -24673,11 +24673,11 @@ Closing record of the CS_ratio read-out arc, 2026-09-29/30.
 
 ## (c)-display implemented [2026-09-30, branch new-laps]
 
-What shipped (display tier; no estimator, threshold, classification, evidence or schema change; goldens untouched). The pooled yaw-rate envelope from the (c) prototype ("(c) Part 1"; diagnostics/inspect_yaw_pooling.py), approved as a display element in "Rulings on (b) and (c)".
+What shipped (display tier; no estimator, threshold, classification, evidence or schema change; goldens untouched). The pooled yaw-rate envelope from the (c) prototype ("(c) Part 1"; diagnostics/inspect_yaw_pooling.py (script at tag pre-prune-2026-10-22)), approved as a display element in "Rulings on (b) and (c)".
 - Method, Tier B preprocessing, unchanged from the prototype's pre-registration: yaw rate low-passed zero-phase at 4 Hz; per stable corner, each analysis lap's canonical bracket resampled on a 1 m track grid with kerb and not-moving samples removed (gaps > 2 m stay NaN); pooled median and p10-p90 envelope per grid point (>= 3 laps); margin m = 3 x robust std (1.4826 MAD) of the 4 Hz yaw rate's deviation from its 0.5 Hz trend on straights, per session; flag = >= 5 consecutive grid points beyond the envelope by more than m, EXCESS = more rotation than the envelope in the turn direction, DEFICIT = less. The counteraction test stays in the diagnostic (it belongs to the parked evidence proposal).
 - Code: core/yaw_pooling.py (session_masks, pool_yaw_rate, steering_rate, build_panel_data; no config reads, no Qt). The diagnostic now calls it with its own constants. Refactor check: analyse() output before vs after, every array compared bytewise and every scalar/flag field exactly, on all four cached sessions (JST 29, US-v2, MLA, Dubai): identical (782 / 1228 / 579 / 301 leaves; 85 / 138 / 56 / 22 flags; margins 1.6715 / 1.7397 / 1.9081 / 1.5221 deg/s).
 - UI: both trace windows gain a yaw-rate panel (checked laps' grid rows thin in lap colour, pooled median heavy, envelope shaded, flag stretches overlaid in BAD (up-triangle at onset) / INFO (down-triangle)) and a steering-rate sub-panel (grey, per lap, no threshold lines). Kerb holes in the yaw rows are bridged with core/trace_display.kerb_gap_bridge under the existing kerb_gap_bridge flag. Legend in plain words, no verdict language. Author rulings 2026-09-30: envelope and m pool ALL analysis laps (a fixed session reference, also (f)'s yaw-channel reference), rows and flags drawn for checked laps only, header states the lap count; lap colours kept; new colour constant ui/style.INFO = "#4A90D9"; envelope bracket-only; the flag is read when the window is built; exports unchanged.
-- Config: parameters.json corner_trace_display.yaw_pooling_panel = true (derived_from "(c)-display, approved 2026-09-30, display continuity with diagnostic inspect_yaw_pooling") and the yaw_pooling block with the eight values (lowpass 4 Hz, trend 0.5 Hz, grid 1 m, gap 2 m, percentiles 10/90, min laps 3, margin 3 sigma, min run 5 points), each tied to the diagnostic's pre-registration.
+- Config: parameters.json corner_trace_display.yaw_pooling_panel = true (derived_from "(c)-display, approved 2026-09-30, display continuity with diagnostic inspect_yaw_pooling (script at tag pre-prune-2026-10-22)") and the yaw_pooling block with the eight values (lowpass 4 Hz, trend 0.5 Hz, grid 1 m, gap 2 m, percentiles 10/90, min laps 3, margin 3 sigma, min run 5 points), each tied to the diagnostic's pre-registration.
 - App path equals the diagnostic on Dubai: 14 corners, 22 flags (4 excess / 18 deficit), m = 1.5221 deg/s; pooling 0.57 s, once per analysis result (cached across checkbox toggles).
 - Tests: tests/test_yaw_pooling.py (9): synthetic nine-lap corner with known median and p10/p90 (+/-1.6 deg/s) and no flags; planted +10 / -10 deg/s bumps flagged EXCESS / DEFICIT on their own laps only; a 4 m excursion below the 5-point run not flagged; margin equals the documented rule recomputed independently and scales exactly 2x with doubled noise; a corner with < 3 laps carries no envelope; real Dubai panel path leaves every state array and the corner list untouched and reproduces m; offscreen corner and lap windows render both panels with state/cs/stab/slip/forces arrays byte-identical; flag off -> no panels; no module in modules/ references the pooling. Targeted run: test_yaw_pooling + test_trace_display + test_golden_pipeline 18 passed (the bridge guard first failed on a comment in core/yaw_pooling.py naming the config key; comment reworded, guard unchanged). test_stability.py exit 0. Full suite not run: display tier (PROCESS RULES / author rule 2026-09-28).
 - Test-design note: a first synthetic version with 0.3 deg/s straight noise flagged the +/-2 deg/s extreme laps, 0.4 deg/s beyond p10/p90 against m ~ 0.3 -- the method working as specified: with nine laps, the p10-p90 band leaves the outermost laps outside by construction, and only the margin keeps them unflagged. On real data this is what m's size relative to the lap spread decides.
@@ -24689,7 +24689,7 @@ Display tier, core/figure_render.save_png only. Diagnosed on real Dubai exports 
 
 ## (f) Part 1: event lists, three channels [2026-09-30, branch new-laps, read-only]
 
-Script diagnostics/inspect_event_coincidence.py (rules in its header before the run; approved proposal, author rulings 2026-09-30). Unit corner-lap. YAW: core/yaw_pooling flags with the (c) pre-registered constants, EXCESS and DEFICIT separate. CS: per corner-lap worst-phase CS_ratio (min over phase medians, apex from the apex region = the classifier's read-out), event below the session's own p10, front/rear separate; sample minimum and position kept as attributes. STABILITY: worst-phase median of stability_observed, event below the session p10. Entry passed: yaw margins reproduce (c) Part 1 exactly (1.6715 / 1.7397 / 1.9081 / 1.5221 deg/s); caches time/s-identical; the CS read-out reproduces the classifier's own verdict text (value to 2 dp, phase, axle) on 63/63 JST 29 corner-laps.
+Script diagnostics/inspect_event_coincidence.py (script at tag pre-prune-2026-10-22) (rules in its header before the run; approved proposal, author rulings 2026-09-30). Unit corner-lap. YAW: core/yaw_pooling flags with the (c) pre-registered constants, EXCESS and DEFICIT separate. CS: per corner-lap worst-phase CS_ratio (min over phase medians, apex from the apex region = the classifier's read-out), event below the session's own p10, front/rear separate; sample minimum and position kept as attributes. STABILITY: worst-phase median of stability_observed, event below the session p10. Entry passed: yaw margins reproduce (c) Part 1 exactly (1.6715 / 1.7397 / 1.9081 / 1.5221 deg/s); caches time/s-identical; the CS read-out reproduces the classifier's own verdict text (value to 2 dp, phase, axle) on 63/63 JST 29 corner-laps.
 Events (event / assessable corner-laps; p10 bars CS-F, CS-R, STAB):
 - JST 29: YAW-EXC 23/90, YAW-DEF 39/90, CS-F 9/84, CS-R 9/84, STAB 9/90 (-0.297, -0.149, 140 Nm/deg).
 - US-v2: 38/153, 52/153, 15/145, 15/144, 16/153 (-0.280, -0.287, 76).
@@ -24741,7 +24741,7 @@ EXIT against the pre-registered criterion: Exit B for every cross-channel pair. 
 
 ## NBR C1 fixed-position CS dip: kerb strike at the apex [2026-09-30, branch new-laps, read-only]
 
-Follow-up approved in "(f) exit rulings" item 4. Script diagnostics/inspect_nbr_c1_dip.py (rules in its header); JST 21 (laps 72, 73) and JST 29 (laps 103-108), 600-640 m; figures diagnostics/plots/nbr_c1_dip/nbr_c1_dip_<key>.png (gitignored). Census from the files: log_susp_travel_fl/fr/rl/rr alive at 100 Hz on both; ride height FL failed on both.
+Follow-up approved in "(f) exit rulings" item 4. Script diagnostics/inspect_nbr_c1_dip.py (script at tag pre-prune-2026-10-22) (rules in its header); JST 21 (laps 72, 73) and JST 29 (laps 103-108), 600-640 m; figures diagnostics/plots/nbr_c1_dip/nbr_c1_dip_<key>.png (gitignored). Census from the files: log_susp_travel_fl/fr/rl/rr alive at 100 Hz on both; ride height FL failed on both.
 What is physically there: the C1 apex (minimum speed 64-74 km/h, steering 136-198 deg), and on every lap of both outings a vertical event at 612-627 m -- az first drops toward 0 g (unloading), then spikes to 3-4 g; all four damper travels swing 15-30 mm; ay swings by about 10 m/s^2 and yaw rate by about +/-20 deg/s; the raw yaw acceleration reaches +/-400-600 deg/s^2. The production kerb mask (|az - 1 g| > 1.2 g, +/-5 samples) flags it on every lap (11-51 samples in 600-640 m; mask edges 613-627 m).
 Which input moves first (largest |rate| per metre in 590-640 m, relative to each lap's CS dip): az, ay, yaw rate and all four dampers peak within 0-3 m of each other on every lap -- one common instant, the strike. No lateral input leads it; speed peaks 3-23 m earlier (braking), steering mostly 10-20 m later (on laps 103 and 107, 12-17 m earlier). The dip sits at a kerb-mask edge on every lap (dip 612-626 m vs mask edges 613-627 m).
 CS window at the dip (reconstruct_cs_window_start): 2-12 m long, at or near the minimum window. Two families by sign:
@@ -24753,7 +24753,7 @@ Not done (read-only): no re-estimation without kerb samples in the windows. That
 
 ## CS minima at kerb-mask edges, eight sessions [2026-09-30, branch new-laps, read-only]
 
-Author ruling (C1 follow-up, OPEN 2). Script diagnostics/inspect_cs_kerb_edge.py (rules in its header); caches new_laps (production CS_ratio, EKF Pacejka) and imu_offsets (production kerb mask), time bases identical. Per corner-lap the CS_ratio sample minimum per axle; near = within 3 m of a kerb-mask edge on the same lap; chance = per corner-lap share of CS-eligible samples within 3 m of an edge; p by Monte Carlo (20000, seed 20260930). Figure diagnostics/plots/cs_kerb_edge/cs_kerb_edge.png (gitignored).
+Author ruling (C1 follow-up, OPEN 2). Script diagnostics/inspect_cs_kerb_edge.py (script at tag pre-prune-2026-10-22) (rules in its header); caches new_laps (production CS_ratio, EKF Pacejka) and imu_offsets (production kerb mask), time bases identical. Per corner-lap the CS_ratio sample minimum per axle; near = within 3 m of a kerb-mask edge on the same lap; chance = per corner-lap share of CS-eligible samples within 3 m of an edge; p by Monte Carlo (20000, seed 20260930). Figure diagnostics/plots/cs_kerb_edge/cs_kerb_edge.png (gitignored).
 Pooled (eight sessions):
 - Front, all minima: 91/562 near an edge (0.16) vs chance 0.05, enrichment 3.05, p < 0.0001. Deep tail (< session p10): 19/59 (0.32) vs 0.06, enrichment 5.09, p < 0.0001.
 - Rear, all minima: 71/559 (0.13) vs 0.05, enrichment 2.34, p < 0.0001. Deep tail: 12/59 (0.20) vs 0.07, enrichment 2.94, p 0.0003.
@@ -24772,7 +24772,7 @@ Confound, stated: the chance rate is a uniform-position baseline inside each cor
 
 ## (g) step 0: kerb samples excluded inside CS windows [2026-09-30, branch new-laps, read-only]
 
-Approved with the author's amendments (sawtooth co-rider as a third variant; kerb-adjacent battery leg; chair-reference read). Script diagnostics/inspect_cs_kerb_window.py (rules and exit legs in its header before the run). Variants in one pass per axle: BASE (line-for-line copy of compute_cs_for_axle), K (kerb samples excluded from window growth, regression, R2, section slopes and the linear-reference condition), KS (K + sawtooth start repair). Checks: K with an all-false kerb mask equals BASE exactly on 20 000 JST 29 samples; BASE vs cached production: identical finite sets, |diff| <= 1.7e-6 (float32 alpha); phase-index map reproduces the cached summaries (0 medians differ, three sessions).
+Approved with the author's amendments (sawtooth co-rider as a third variant; kerb-adjacent battery leg; chair-reference read). Script diagnostics/inspect_cs_kerb_window.py (script at tag pre-prune-2026-10-22) (rules and exit legs in its header before the run). Variants in one pass per axle: BASE (line-for-line copy of compute_cs_for_axle), K (kerb samples excluded from window growth, regression, R2, section slopes and the linear-reference condition), KS (K + sawtooth start repair). Checks: K with an all-false kerb mask equals BASE exactly on 20 000 JST 29 samples; BASE vs cached production: identical finite sets, |diff| <= 1.7e-6 (float32 alpha); phase-index map reproduces the cached summaries (0 medians differ, three sessions).
 TIER 1 (JST 29, US-v2, QP MLA):
 - Leg 1, artifact collapse (excess over chance must halve, both axles): FAIL for both. Pooled near-edge enrichment front 2.89 (BASE) -> 2.83 (K) -> 2.89 (KS); rear 2.18 -> 2.25 -> 2.36.
 - Leg 2, no new deep dips away from kerb edges (<= 1 per session and axle): K pass (at most 1: US-v2 C13 lap 50 front, QP MLA C1 lap 287 rear); KS FAIL (US-v2 front 2 new: C2 lap 56 -1.23, C5 lap 54 -1.43).
@@ -24794,7 +24794,7 @@ FINDING, battery gaps under K: excluding kerb samples inside the windows WIDENS 
 
 ## Roll closure check: the roll-rate channel carries yaw cross-coupling [2026-09-30, branch new-laps, read-only]
 
-Work order after the (g) close-out: does the (a2) roll-leakage constant survive, and is (a3) proposable on data alone? diagnostics/inspect_imu_offsets.py modes rollcheck (pre-registered) and rollcheck2 (post-hoc, labelled), a2 caches; JST 29, US-v2 (serial 221) and Dubai (serial 147 control). Figure diagnostics/plots/imu_offsets/roll_closure.png (gitignored).
+Work order after the (g) close-out: does the (a2) roll-leakage constant survive, and is (a3) proposable on data alone? diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) modes rollcheck (pre-registered) and rollcheck2 (post-hoc, labelled), a2 caches; JST 29, US-v2 (serial 221) and Dubai (serial 147 control). Figure diagnostics/plots/imu_offsets/roll_closure.png (gitignored).
 Entry: with bias 0 the mode reproduces the recorded (a2) roll gradients and median window-end |phi| exactly (0.9985 / 0.9487 / 2.4188 deg/g; 2.98 / 2.13 / 4.96 deg).
 PART 1 (pre-registered).
 - 1.1 Constant bias (S0 straight-line median: +0.46 / -0.01 / -0.135 deg/s): closure is NOT proportional to window duration (R^2 0.02 / 0.30 / 0.02; fitted beta -0.55 / -0.64 / +0.30 deg/s against the bias). Removing the bias changes the median |closure| from 2.98 / 2.13 / 4.96 to 3.76 / 2.12 / 4.26 deg -- worse on JST 29.
@@ -24818,7 +24818,7 @@ PART 3, the (a3) gate: the roll term is NOT measured well enough to propose (a3)
 ## Sensor tilt vs static attitude, eight sessions [2026-09-30, branch new-laps, read-only]
 
 HARDWARE (author-supplied, 2026-09-30): ONE gyro cluster (SCLU) on the transmission tunnel at the centre console, near the CG, body-fixed and immovable relative to the body; MRR_EgoYawRate is therefore a bus copy. A body-fixed sensor tilts with the car's static attitude, so rake and ride-height changes between sessions change its alignment to the road.
-Script: diagnostics/inspect_imu_offsets.py modes attcompute <key> and attitude (rules in the header before the run; two labelled corrections/post-hoc blocks). Figure diagnostics/plots/imu_offsets/tilt_vs_attitude.png (gitignored).
+Script: diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) modes attcompute <key> and attitude (rules in the header before the run; two labelled corrections/post-hoc blocks). Figure diagnostics/plots/imu_offsets/tilt_vs_attitude.png (gitignored).
 DATA FINDINGS (channel census, read from the files):
 - The header unit of the same channel differs between files: log_rideheight_rake is [ft] on v3, US-v2, CDR and QP MLA (the four files that also carry l_rake) and [m] on Dubai, JST 21, JST 29 and Le Mans; log_rideheight_rl is [m] on the same four [ft] files and [mm] on the others. The first run applied mm rules to raw values and failed its entry check; after conversion by header unit the recorded NBR A/B band medians are reproduced exactly (-94.98 / -89.75 / -85.19 and -97.49 / -92.75 / -88.91 mm).
 - ~~log_rideheight_rake is not the laser rear-minus-front rake: about -92 mm on the four NBR files against a laser rake of about +10 mm; on Paul Ricard, Dubai and Le Mans the two roughly mirror each other (e.g. US-v2 -13.4 vs +14.2 mm). A different zero or definition per file -- its absolute level is not comparable across files.~~ [CORRECTED 2026-09-30: the definition is identical in all eight files, log_rideheight_rake = 0.528 (FL + FR) - 0.528 (RL + RR), zero intercept; the NBR level comes from the dead FL laser (stuck at -101 mm) entering the front average. See "Ride-height measuring points (team document) and the rake channel".]
@@ -24856,7 +24856,7 @@ STANDING WARNING recorded (PLAN.md): the same channel carries different header u
 
 ## Kerb-detection variants, Part 1: strike disturbance envelope [2026-10-01, branch new-laps, read-only]
 
-Work order 2026-10-01 (follow-up to the PARKED open limitation "CS minima cluster at kerb-mask edges"). Script diagnostics/inspect_kerb_mask_variants.py (rules for Parts 1-3 in its header before the first run). Tier B, preprocessing; no anchor claimed. Tier 1: JST 29, US-v2, QP MLA.
+Work order 2026-10-01 (follow-up to the PARKED open limitation "CS minima cluster at kerb-mask edges"). Script diagnostics/inspect_kerb_mask_variants.py (script at tag pre-prune-2026-10-22) (rules for Parts 1-3 in its header before the first run). Tier B, preprocessing; no anchor claimed. Tier 1: JST 29, US-v2, QP MLA.
 Census from the files: log_acc_z and log_acc_y in [G], sclu_yaw_rate in [rpm], all native 100 Hz, on all three; grid 100 Hz (1 sample = 10 ms); grid identical to the new_laps cache and new_laps moving = raw moving & ~production mask (asserted).
 Method: event = a contiguous run of the production mask (|az - 1 g| > 1.2 g, dilated +/-5 samples) touching a moving analysis-lap sample. Local trend = cubic in time over 1.0 s context each side, mask samples excluded, three passes of 3-sigma clipping; noise = 1.4826 x MAD of the retained residuals; disturbance = |residual| > 3 sigma; the envelope extends while the next exceedance lies within 0.10 s (bridges the zero crossings of an oscillating transient). Null control: one pseudo-event per event of the same length at a random in-corner position >= 2 s from any mask sample (seed 20261001).
 Correction after the first run (recorded): the first pass let the envelope walk into a NEIGHBOURING mask run, crediting one strike with the next one's disturbance (it produced az minima "before the trip" below -0.2 g, which is impossible without a trip). The walk now stops at the neighbour run; the counts reaching one are reported (JST 29 ay 18/154 each side, US-v2 ay 55/54 of 285, QP MLA ay 20/17 of 139). All numbers below are after the correction. Kerb sites are typically several mask runs in a row, so the uncorrected pooled p75 (pre 18 / post 16 samples) roughly halved.
@@ -24905,7 +24905,7 @@ Limitation entry gains the result: kerb-detection widening (dilation, unloading 
 
 ## Window-reach check: CS windows across masked kerb gaps [2026-10-01, branch new-laps, read-only]
 
-Approved in "Kerb-detection variant rulings" item 3 as the last step on the kerb-edge question. diagnostics/inspect_kerb_mask_variants.py modes reach, trunc, score_t (Part 5 rules in its header before the run). Tier 1 (JST 29, US-v2, QP MLA), production mask.
+Approved in "Kerb-detection variant rulings" item 3 as the last step on the kerb-edge question. diagnostics/inspect_kerb_mask_variants.py (script at tag pre-prune-2026-10-22) modes reach, trunc, score_t (Part 5 rules in its header before the run). Tier 1 (JST 29, US-v2, QP MLA), production mask.
 MEASUREMENT (window at each per-corner-lap CS minimum; straddle = unmasked samples both before the window's first masked sample and after its last):
 - BASE (production window): near-edge minima hold masked samples in 61 % (front) / 47 % (rear) of windows vs 9-10 % for the other minima; masked share p90 1.00 / 0.81 (the window is mostly strike); straddle only 16 % / 13 % (other minima 3 %). Near-edge windows are shorter (p50 29 / 28 samples vs 36 / 40).
 - A (kerb samples excluded inside windows, (g) K): near-edge straddle 44 % / 38 % vs 9 % / 7 % for the other minima; on the post-end side 59 % / 54 % straddle; post-gap unmasked samples in a straddling window p50 6 / 3. On the pre-onset side windows rarely hold masked samples (21 % / 0 %).
@@ -24950,7 +24950,7 @@ BOUNDARY: step 0 read-only. Adoption = ESTIMATOR-INPUT CHANGE (EKF internal mode
 
 ## (d) step 0: pooled prior with per-session scale [2026-10-01, branch new-laps, read-only]
 
-Script: diagnostics/inspect_tyre_prior.py (definitions fixed in its header before the runs; operational details not spelled out in the proposal marked [op] there). Outputs diagnostics/plots/tyre_prior/ (analyse.txt, score.txt, traces_*). Production, config and thresholds untouched.
+Script: diagnostics/inspect_tyre_prior.py (script at tag pre-prune-2026-10-22) (definitions fixed in its header before the runs; operational details not spelled out in the proposal marked [op] there). Outputs diagnostics/plots/tyre_prior/ (analyse.txt, score.txt, traces_*). Production, config and thresholds untouched.
 ANCHOR SEARCH (ruling 2): see the proposal entry -- Rajamani 13.9 checked on the rendered page, no single-scale treatment; RCVD has no text layer. Tier A label stays "anchor pending".
 HEADER CENSUS (ruling 3): no file header carries a date (OutingInformation fields: car, driver, outing, session, track, logger serial); no tyre-identity channel name found in the headers. Dates exist only as file-name tokens (Le Mans "240613", NBR JST "26.07.01"), which are not census evidence. Tyre generation NOT established from the files; Le Mans stays out-of-pool regardless (logger 147, one lap). Dubai's ShortComment reads "Start Tyre = -Km" (tyre mileage not filled in).
 EC1-EC3: all eight production fits re-run and cached (about 5 min per session). EC2 PASS on all eight: _fit_axle_pacejka on the cached arrays reproduces every manifest bit for bit; Dubai and v3 equal their recorded digits; every health score equals the new_laps cache to 6 decimals; production beta equals the (b) variant-A beta exactly. Fit populations equal the base_mask counts (no non-finite samples dropped). Measured Fz on all eight. [2026-10-02 NOTE: "measured" here is the cascade PATH label (vertical_load_source_used), not the per-corner tier; on the NBR files the damper gauges fail quality, so the tiers are expected to be static fallback -- checked by Q2 Part A ("Q2 proposal ...").]
@@ -24970,13 +24970,13 @@ RULINGS:
 1. (d) CLOSED: tested, nothing ships. No escalation -- B2's trigger (a B-only residual pattern on >= 2 sessions) did not fire, and per-track priors with two tracks amount to per-session fitting with extra steps. Closing statement: the one-baseline premise fails on measured grounds (35 % rear track split vs about 5 % input-error budget; track, event, tyre set and setup confounded); per-session fitting is thereby experimentally vindicated as the design matching this data -- recorded as an estimator-chapter finding (section 1, "Per-session tyre-curve fitting, experimentally vindicated against a pooled baseline").
 2. Rear Fz gap (7.6 vs 10.2 kN, same car): recorded as context and limitation on the K2 band readings, confound named, no further check (limitations register item 11). [2026-10-02: explained by the LOAD SOURCE, not the track -- Q2 Part A, see item 11's correction.]
 3. Tyre generation: not establishable from the files; the author is checking directly.
-4. diagnostics/inspect_tyre_prior.py KEPT: this closure cites its findings.
+4. diagnostics/inspect_tyre_prior.py (script at tag pre-prune-2026-10-22) KEPT: this closure cites its findings.
 Production unchanged: sideslip ekf_auto_pacejka with per-session free-D fits; no config, threshold or golden touched by (d). The Tier A anchor question (Magic Formula scaling factors) lapses with the closure.
 
 ## (d2) reopened: mass-data prior, anchored per-session fits, convergence retry -- work order and pre-registration [2026-10-01, branch new-laps, read-only]
 
 GROUNDS: the author reopens (d) as (d2) with the goal intended from the start -- a baseline prior from much more data (every usable serial-221 file on D:/Data_Bachelorthesis), per-session fits as small deviations from it, and the decisive test whether the fit -> EKF -> refit loop converges under a frozen prior anchor where the unanchored loop diverged ("Refit-loop conclusion: structural non-convergence confirmed on two sessions, two failure directions"). Dubai and Le Mans stay out of the pool (different tyres, author-confirmed; logger serial 147) and serve as out-of-pool comparison sessions. The (d) step-0 criteria K1-K6 do NOT apply: no pass/fail scoring, the author inspects and rules. Production default unchanged until the author rules.
-SCRIPT: diagnostics/inspect_tyre_prior_d2.py; all definitions below were fixed in its header before the runs they govern. Outputs diagnostics/plots/tyre_prior_d2/ (gitignored): census.json, intake_*.json, prior.json, part3.txt, report.txt, selection.json, fit_<key>.png, traces_<key>_{prod,w1}.png.
+SCRIPT: diagnostics/inspect_tyre_prior_d2.py (script at tag pre-prune-2026-10-22); all definitions below were fixed in its header before the runs they govern. Outputs diagnostics/plots/tyre_prior_d2/ (gitignored): census.json, intake_*.json, prior.json, part3.txt, report.txt, selection.json, fit_<key>.png, traces_<key>_{prod,w1}.png.
 TIER: A (prior-plus-deviation tyre fit) -- anchor still PENDING as in (d); nothing ships without it. B: pooling, penalised least squares (Tikhonov regularisation towards a reference curve), unit conversion, census checks.
 PRE-REGISTERED, Part 2 (anchored fit): per axle minimise mean_i (F(alpha_i; p) - Fy_i)^2 + w * mean_g (F(g; p) - F_prior(g))^2 over (B, C, D, E), Powell from the prior's parameters, g = 200 points on [0, p99 |alpha|] of the fitted population. The penalty sits on the curve, not on the parameters, because B, C and E trade off along a ridge on which the curve barely moves ((d) step 0, LOSO_cdr); a parameter penalty would pull along the ridge without constraining the force characteristic. Reading of w: deviation from the prior shrinks by about 1/(1+w). Grid w = 0 (prior as start only = unanchored control), 0.1, 1, 10. CHOICE RULE: smallest of {0.1, 1, 10} with (G) no new fallback on any usable session and gate-pass count not below production's, and (C) Part 3 CONVERGES on every retry session; none -> no weight selected, w = 1 shown in Part 4 as reference only.
 PRE-REGISTERED, Part 3 (loop): retry sessions = pool session with most analysis laps, v3 (recorded divergence), pool session with fewest analysis laps. Pass 1 = Part 2 anchored fit on kinematic alpha; pass p >= 2 = anchored fit on alpha from pass p-1's resolved beta (beta_ekf_with_fallback, kinematic after a fallback), prior frozen, penalty anchored at the prior, Powell from the prior every pass, R derived afresh each pass (production steps (c)-(e)); max 4 passes. m_p = max over axles of max(|dD|/D_prev, max_g |dF| / D_prior) on a fixed grid [0, pass-1 p99]. CONVERGES iff m_3 < m_2, m_4 < m_3, m_4 <= 1 %; DIVERGES iff m_4 > m_3 or D-delta sign alternation without shrinking; else SHRINKING, NOT CONVERGED within 4 passes. Watch items: D inflation (record +34.6 % Dubai, +51.3 % v3) and linear collapse.
@@ -25024,7 +25024,7 @@ Not scored (author rules).
 ## (d2) addendum: where the loop drift lives -- visited vs extrapolated slip range [2026-10-01, branch new-laps, read-only]
 
 QUESTION (author): does the Part 3 drift live inside each session's visited slip range, or beyond it (the fit inventing the invisible peak while the visible curve holds)?
-METHOD (fixed in the script header before it ran; diagnostics/inspect_tyre_prior_d2.py mode drift; curves rebuilt from the cached per-pass B, C, D, E, no new EKF run): split points = pass-1 visited p95 / p99 of |alpha| (kinematic, base_mask), fixed across passes; "beyond p99" ends at the largest per-pass visited p99 of that session and axle (how far the filter's own alpha reaches). Curve change RMS and max per region, in N and / D_prior. Verdict on the total drift (pass 4 vs 1): visited-dominant iff RMS inside p95 >= RMS beyond p99. Output drift.txt, figures drift_<key>.png.
+METHOD (fixed in the script header before it ran; diagnostics/inspect_tyre_prior_d2.py (script at tag pre-prune-2026-10-22) mode drift; curves rebuilt from the cached per-pass B, C, D, E, no new EKF run): split points = pass-1 visited p95 / p99 of |alpha| (kinematic, base_mask), fixed across passes; "beyond p99" ends at the largest per-pass visited p99 of that session and axle (how far the filter's own alpha reaches). Curve change RMS and max per region, in N and / D_prior. Verdict on the total drift (pass 4 vs 1): visited-dominant iff RMS inside p95 >= RMS beyond p99. Output drift.txt, figures drift_<key>.png.
 SPLITS: JDR 10 front 4.93 / 6.51 deg (beyond to 7.60), rear 2.79 / 3.96 (4.90); v3 front 6.29 / 7.78 (10.14), rear 4.40 / 5.52 (6.84); JST 19 front 5.66 / 7.04 (10.88), rear 3.53 / 4.66 (11.34).
 TOTAL DRIFT pass 4 vs 1, RMS inside p95 / p95-p99 / beyond p99 as % of D_prior, verdict:
 - JDR 10 front: w0 11.0 / 7.5 / 14.7 EXTRAPOLATED; w0.1 9.9 / 5.6 / 12.7 EXTRAPOLATED; w1 5.7 / 1.2 / 2.4 VISITED; w10 1.1 / 0.2 / 0.3 VISITED.
@@ -25056,7 +25056,7 @@ BOUNDARY: switching the default to prior_anchored would be an ESTIMATOR-INPUT CH
 
 ## Door 2: transient-weighted fitting under the (d2) loop -- no signal, door closed [2026-10-01, branch new-laps, read-only]
 
-Hypothesis (author work order "Doors"): the curve/beta degeneracy is exact only in quasi-steady cornering, so a fit weighted towards transient samples should drift less under the fit -> EKF -> refit loop. Fixed in the header of diagnostics/inspect_tyre_prior_d2.py before the runs (modes tloop, door2; output door2.txt): sample weight w_i = max(1, |alpha_dot_i| / median |alpha_dot|) on the alpha being fitted in that pass (median 0.7-1.1 deg/s, half the population above 1, max weight 17-49), weighted mean data term so the prior penalty keeps its scale, residuals to the R derivation unweighted; loop, retry sessions and split points as (d2) Part 3 and the drift addendum; w 0 scored, w 1 reported. SIGNAL iff the post-switch walk inside p95 (m'(2->3) + m'(3->4), max over axles) at w 0 is at most half the uniform value on 2 of 3 sessions. RESULT: 0 of 3 -- walk ratio transient/uniform JDR 10 0.74 (2.36 vs 3.20 %), v3 1.00 (5.59 vs 5.56 %), JST 19 0.95 (5.44 vs 5.70 %); the uniform values recomputed here reproduce the addendum (3.20 / 5.56 vs 5.53 / 5.70 %). The invisible-peak inflation is not reduced either: D_rear pass 4 / pass 1 at w 0 +27.9 / +54.2 / +17.1 % transient vs +21.5 / +50.1 / +13.5 % uniform. v3's transient pass-1 gate reads warn (0.0566) where uniform passes. At w 1 (not scored) the walk ratio is 0.72-0.93. Reading: on this logging, |alpha_dot|-weighting carries no usable separating information for the curve/beta pair; the degeneracy is not broken by emphasising transients. Door 2 CLOSED.
+Hypothesis (author work order "Doors"): the curve/beta degeneracy is exact only in quasi-steady cornering, so a fit weighted towards transient samples should drift less under the fit -> EKF -> refit loop. Fixed in the header of diagnostics/inspect_tyre_prior_d2.py (script at tag pre-prune-2026-10-22) before the runs (modes tloop, door2; output door2.txt): sample weight w_i = max(1, |alpha_dot_i| / median |alpha_dot|) on the alpha being fitted in that pass (median 0.7-1.1 deg/s, half the population above 1, max weight 17-49), weighted mean data term so the prior penalty keeps its scale, residuals to the R derivation unweighted; loop, retry sessions and split points as (d2) Part 3 and the drift addendum; w 0 scored, w 1 reported. SIGNAL iff the post-switch walk inside p95 (m'(2->3) + m'(3->4), max over axles) at w 0 is at most half the uniform value on 2 of 3 sessions. RESULT: 0 of 3 -- walk ratio transient/uniform JDR 10 0.74 (2.36 vs 3.20 %), v3 1.00 (5.59 vs 5.56 %), JST 19 0.95 (5.44 vs 5.70 %); the uniform values recomputed here reproduce the addendum (3.20 / 5.56 vs 5.53 / 5.70 %). The invisible-peak inflation is not reduced either: D_rear pass 4 / pass 1 at w 0 +27.9 / +54.2 / +17.1 % transient vs +21.5 / +50.1 / +13.5 % uniform. v3's transient pass-1 gate reads warn (0.0566) where uniform passes. At w 1 (not scored) the walk ratio is 0.72-0.93. Reading: on this logging, |alpha_dot|-weighting carries no usable separating information for the curve/beta pair; the degeneracy is not broken by emphasising transients. Door 2 CLOSED.
 
 ## Door 1 proposal: longitudinal information into the sideslip estimation -- anchor search, channel census, proposal [2026-10-01, branch new-laps, proposal turn, nothing run beyond census]
 
@@ -25078,7 +25078,7 @@ PROPOSAL (awaiting rulings): Option 1 (recommended) -- derivative form, front no
 ## Door 1 Stage 0: tangential-acceleration identity vs the loop's beta -- CLOSED on inventory (N4) [2026-10-01, branch new-laps, read-only]
 
 RULINGS BEFORE THE RUN (author, 2026-10-01): anchor SUFFICIENT -- Kiencke & Nielsen ~~8.1.1 Eq. (8.2)~~ 9.1.1 Eq. (9.2) identity plus the ~~8.6.1~~ 9.7.1 non-driven-wheel residual [numbers corrected 2026-10-01], section-verified; solving it for beta is recorded as "anchored identity, novel use stated as this project's adaptation" (the Werner Eq. 4.3 precedent class). Flat-track scope, E1-gated; REACH stated before the run: even full success covers 2 of the 18 pool sessions (v3, US-v2) unless gradient is solved. Nuisance set accepted. IMU longitudinal offset: SCLU about 0.20 m FORWARD of the CG (steering-wheel line), author estimate 2026-10-01, used as a fixed lever-arm correction a_x,CG = a_x,IMU + 0.20 r^2 (not config; the engineer-round question is dropped). The r^2 term was therefore removed from the fitted nuisance set, leaving [1, a_y, v^2]; fitted-r^2 kept as an unscored sensitivity.
-METHOD: fixed in the header of diagnostics/inspect_tyre_prior_d2.py before the runs (modes d1loop, door1; outputs door1.txt, door1_<key>.png, loop_d1_<key>_w0.json). Candidates: kinematic seed, loop passes 1-4 at w 0 (PART 3 loop replayed unchanged, beta kept per pass), beta = 0 as context. Per candidate y = a_x cos b + a_y sin b - vdot_front, OLS on the nuisance set over the quasi-steady cornering population Q ((a2) Part 1 population plus off-brake, off-kerb, both front speeds unguarded); score = residual RMS; p1-p4 difference with a 1000-draw traversal bootstrap. Entry E1 (lap-averaged log_gps_alt gradient within +/-1 % on >= 90 % of Q), E2 (Q >= 2000, >= 20 traversals).
+METHOD: fixed in the header of diagnostics/inspect_tyre_prior_d2.py (script at tag pre-prune-2026-10-22) before the runs (modes d1loop, door1; outputs door1.txt, door1_<key>.png, loop_d1_<key>_w0.json). Candidates: kinematic seed, loop passes 1-4 at w 0 (PART 3 loop replayed unchanged, beta kept per pass), beta = 0 as context. Per candidate y = a_x cos b + a_y sin b - vdot_front, OLS on the nuisance set over the quasi-steady cornering population Q ((a2) Part 1 population plus off-brake, off-kerb, both front speeds unguarded); score = residual RMS; p1-p4 difference with a 1000-draw traversal bootstrap. Entry E1 (lap-averaged log_gps_alt gradient within +/-1 % on >= 90 % of Q), E2 (Q >= 2000, >= 20 traversals).
 REPRODUCTION: D_rear pass 4 / pass 1 at w 0: v3 +50.1 % (record +50.1 %), US-v2 +43.6 %, Dubai +20.7 % (Dubai pass 4 gate warn).
 ENTRY (decisive): E1 FAILS on all three candidate "flat" sessions -- lap-averaged altitude profile span 30.0 m (v3) / 27.2 m (US-v2) / 19.3 m (Dubai); share of Q within 1 % gradient 0.556 / 0.399 / 0.189; p95 |gradient| 2.85 / 3.26 / 4.55 %. E2: v3 FAIL (Q 1521, 39 traversals), US-v2 PASS (4502, 115), Dubai PASS (3259, 45). PREMISE CORRECTION: neither Paul Ricard nor Dubai is flat at the precision this identity needs -- a 3 % gradient is 0.29 m/s^2, the same size as the signal to be resolved.
 MEASURED (reported, not decisive): straight-line floor RMS 0.223 / 0.222 / 0.572 m/s^2 = 0.82 / 0.80 / 2.35 deg beta-equivalent per sample at median |a_y| 15.6 / 15.9 / 13.9 m/s^2. Loop walk p1 vs p4 inside Q: median |dbeta| 1.24 / 1.47 / 0.78 deg, nuisance-projected signal RMS 0.442 / 0.423 / 0.262 m/s^2. E3 mutual yaw log_acc_x vs sclu_acc_x +1.15 / +1.12 / +2.46 deg (offset +0.17 / +0.17 / +0.78 m/s^2). Residual RMS (m/s^2) zero / kin / p1-p4: v3 0.560 / 0.618 / 0.603, 0.612, 0.576, 0.604; US-v2 0.688 / 0.773 / 0.803, 0.841, 0.832, 0.833; Dubai 0.510 / 0.578 / 0.600, 0.574, 0.590, 0.593. dRMS p1-p4 95 % CI includes 0 on all three sessions (v3 [-0.042, +0.056], US-v2 [-0.060, +0.0002], Dubai [-0.023, +0.039]) -- N2 would also have closed.
@@ -25121,7 +25121,7 @@ Pre-registered criteria and costs: in the session report of this date, to be res
 1. Option 1 APPROVED; Stage 0 read-only on Dubai, PR US-v2, v3. Le Mans EXCLUDED (standing ban: different tyres, never scores). NBR excluded until the damper offset is resolved -- the reach limit (limitations register item 13).
 2. P3 (traction-limited exit corners) comes from the author; answer pending. If none are named, P3 drops and P1/P2/P4 carry Stage 0. Stage 0 runs only after that answer.
 3. NBR damper offset: offset-recovery FEASIBILITY CHECK queued as its own small package (can the offset be recovered per outing from in-file pit/static samples, without a physical weighing?). It would unlock Level-4 loads on 16 of 20 files. Registered as a limitation until then.
-4. K&N numbering: dated strike-through corrections applied 2026-10-01 to the Door 1 entries, the section-1 circularity entry and PLAN.md (d2); the comment in diagnostics/inspect_tyre_prior_d2.py fixed. Every corrected number was read on its body page first (9.1/9.1.1-9.1.4 pp. 352-353; 9.4.1 Eqs. 9.22-9.24 p. 376; 9.6.2 Eq. 9.78 p. 399; 9.6.3 p. 402; 9.7.1 Eqs. 9.82-9.84 p. 403). The earlier sentence above, "Not corrected here; raised with the author", is superseded by this item.
+4. K&N numbering: dated strike-through corrections applied 2026-10-01 to the Door 1 entries, the section-1 circularity entry and PLAN.md (d2); the comment in diagnostics/inspect_tyre_prior_d2.py (script at tag pre-prune-2026-10-22) fixed. Every corrected number was read on its body page first (9.1/9.1.1-9.1.4 pp. 352-353; 9.4.1 Eqs. 9.22-9.24 p. 376; 9.6.2 Eq. 9.78 p. 399; 9.6.3 p. 402; 9.7.1 Eqs. 9.82-9.84 p. 403). The earlier sentence above, "Not corrected here; raised with the author", is superseded by this item.
 5. ecu_slip_act definition: NO engineer-list entry. Ordinal use needs no definition; the characterisation above suffices. Only a magnitude use would ever need the team.
 6. Credit toward exit_phase_confidence_discount's reopen condition: DEFERRED to adoption.
 
@@ -25132,14 +25132,14 @@ MAPPING onto the code as it stands (modules/tyre_fit_auto.py, config/parameters.
 - Trained model: tyre_fit_prior (18 serial-221 sessions, n 1,075,186, "(d2) Part 1"). Built, config-held.
 - Variant 2: tyre_fit_mode "prior_anchored" -- Powell started from the prior, curve-space penalty prior_weight (config 1.0). Built, EXPERIMENTAL, Tier A anchor pending.
 - Variant 1: no mode of its own. _fit_axle_pacejka_anchored skips the penalty when the weight is 0 and still starts Powell from the prior, so "prior_anchored" with prior_weight 0 IS Variant 1 by construction; no test pins that case.
-- Scale-only sub-variant: tested only as (d) step 0 Option B (diagnostics/inspect_tyre_prior.py, pooled prior with per-session scale, against the serial-221 SIX-session prior, not the 18-session one); failed its pre-registered exit; not built.
+- Scale-only sub-variant: tested only as (d) step 0 Option B (diagnostics/inspect_tyre_prior.py (script at tag pre-prune-2026-10-22), pooled prior with per-session scale, against the serial-221 SIX-session prior, not the 18-session one); failed its pre-registered exit; not built.
 - Production default "per_session": a free fit started from the chair start guess PACEJKA_START_GUESS = (12.0, 1.9, 8000.0, 0.97), which does not use the trained model. Under the stated architecture this is outside both variants. Whether it differs in result from Variant 1 (same objective, different Powell start; the B/C/E ridge makes start-dependence plausible) is NOT checked.
 Nothing in this entry changes a recorded verdict ((d) closure, (d2) convergence-by-suppression, Door 1/2); it records the intended frame they are read in.
 MAPPING RULING (author, 2026-10-01): production per_session is a THIRD start point (chair guess) outside the architecture -- (a) now, (c) possibly later. Variant 1 = prior_anchored at prior_weight 0, confirmed. Whether starting from the trained prior changes the fit is tested only in the pending Phase-1/Option-A package; nothing replaces the default without its own boundary.
 
 ## (e) Stage 0: rear-axle force-demand occupancy -- P1 passes on both scorable sessions, P2 not evaluable [2026-10-01, branch new-laps, read-only]
 
-RULINGS BEFORE THE RUN: P3 "none named" (dropped); Stage 0 on P1/P2/P4 with N1-N3 as pre-registered in PLAN.md (e). Script diagnostics/inspect_e_stage0.py (header carries the pre-registration plus the [impl] choices fixed before the run: chain low-pass on Fx_r/Fz_r/kappa_r, under-read guard |Fy_r| >= 10 % of p99, TC event = contiguous run, raw ecu_aps as throttle). Outputs diagnostics/plots/e_stage0/ (stage0.txt, stage0_<key>.json, cs_<key>.png, occupancy_<key>.png).
+RULINGS BEFORE THE RUN: P3 "none named" (dropped); Stage 0 on P1/P2/P4 with N1-N3 as pre-registered in PLAN.md (e). Script diagnostics/inspect_e_stage0.py (script at tag pre-prune-2026-10-22) (header carries the pre-registration plus the [impl] choices fixed before the run: chain low-pass on Fx_r/Fz_r/kappa_r, under-read guard |Fy_r| >= 10 % of p99, TC event = contiguous run, raw ecu_aps as throttle). Outputs diagnostics/plots/e_stage0/ (stage0.txt, stage0_<key>.json, cs_<key>.png, occupancy_<key>.png).
 CENSUS AT EXECUTION: ecu_aps reads up to 104-106 % at full pedal (39-55 % of samples above 100 %), so the parser's range gate flags it partial/failed; the raw channel is live on all three files and was used. sclu_acc_x live (G, 100 Hz) on all three.
 N2 -- DUBAI EXCLUDED: its RR load is on the "reconstructed" tier for the whole session (dead RR travel pot, on record), so its rear-axle Fz is ~~the Level-1 axle total without aero~~ [corrected 2026-10-02: the session-corrected quasi-static axle total, with a session-fitted aero term -- a model, not a measurement; the N2 exclusion stands]; R = 0 of 48,775 base samples. Consequence: P2 (TC events, Dubai the only session with TC activity: 133 TC samples in base) is NOT EVALUABLE -- the pre-registration's P2 and N2 conflict on this data. Limitation item 13 corrected accordingly (rear-axle Level 4 on US-v2 and v3 only).
 RESULTS (US-v2 / v3; R = whole base on both, 107,613 / 35,583 samples):
@@ -25189,7 +25189,7 @@ META (process): the review's chat-level claim that grade leaks about 0.3 m/s^2 i
 
 ## Q2b: fuel-channel content check -- one consumption source, an ECU remaining-fuel counter, level channels are plumbing [2026-10-02, branch new-laps, read-only]
 
-Script diagnostics/inspect_fuel_channels.py (checks fixed in its header before the run); outputs diagnostics/plots/fuel_q2b/ (q2b.txt, q2b.json, one figure per file). 20 usable files, raw channels with their own header units, fuel density from the file (log_c_fueldensity 0.748 kg/l on all 20). Run correction: the first pass took the flow-meter total as the "used" reference, which is zero everywhere; the rerun takes the first used-channel that moves (ecu_fuelcons_kg). The used-family numbers are identical in both passes.
+Script diagnostics/inspect_fuel_channels.py (script at tag pre-prune-2026-10-22) (checks fixed in its header before the run); outputs diagnostics/plots/fuel_q2b/ (q2b.txt, q2b.json, one figure per file). 20 usable files, raw channels with their own header units, fuel density from the file (log_c_fueldensity 0.748 kg/l on all 20). Run correction: the first pass took the flow-meter total as the "used" reference, which is zero everywhere; the rerun takes the first used-channel that moves (ecu_fuelcons_kg). The used-family numbers are identical in both passes.
 - FUEL USED -- ONE SOURCE, NOT THREE: Team_Fuel_Used [ltr] equals ecu_fuelcons [ltr] and Team_Fuel_Used_Stint [kg] equals ecu_fuelcons_kg [kg] on every file (identical consumed values); litres x density agree with kg to 0.995-0.998. The team channels mirror the ECU's consumption model, so the cross-family check is not independent. The flow meter (ffm_mass_total / ffm_mass_total.mass, DTM_ffm_mass_total) reads ZERO consumption on all 20 files. Burn per file 5.9-26.3 kg; per-lap steps median 1.9-2.3 kg (Le Mans 5.7). Lap-sum plausibility: Team_Fuel_Used_per_Lap step sums match the total within ~0.5 kg on most files and fall short on long-run files (e.g. US-v2 16.5 vs 25.4 kg, JDR 10 22.1 vs 26.3) -- consistent with laps whose value repeats or is not stepped (out/in laps), not checked further.
 - vol_fuel_rem_telem (present on 4 usable files: NBR QP CDR, NBR QP MLA, PR US-v2, v3): remaining = set value - ECU fuel used, EXACTLY (slope -0.997 against used litres, rms 0.00 l). The set values are round: 102 l on the two NBR qualifying files and US-v2, 70 l on v3 -- an entered starting assumption at the last counter reset, not a measurement. File-start remaining: 102.0 / 79.3 / 51.6 / 61.4 l (76 / 59 / 39 / 46 kg); the second NBR qualifying file starts at the first one's end value (counter carried over, no reset between them).
 - LEVEL-NAMED CHANNELS (premise: catch tank / plumbing -- confirmed in behaviour): log_fuellevel_catch flat at 10.0-10.19 l (near-full share 1.00) on 16 of 20 files; below full on the two Paul Ricard files (8.6-9.7 l) and dipping on the two NBR qualifying files (min 9.15-9.35 l, back to 10.0) -- including NBR QP CDR, whose computed remaining stays >= 79 l, so the dips are not explained by low total fuel alone; not pursued. lvlfuel_lvl_raw sits at 34-46 % with a 0.7-2.6 % range per file over 6-26 kg of burn, weakly negative against fuel used (rho -0.78 to +0.12); a main-cell level would move by tens of percent -- not a total-fuel level. The sensor voltage tracks lvlfuel_lvl_raw. Slosh (5 s detrended std) cornering vs straights near equal on every channel. No stationary >= 20 s plateau inside the analysed files except one (Le Mans: level change -0.014 %).
@@ -25203,7 +25203,7 @@ DESIGN FACT AND LIMITATION [2026-10-02, author]: fuel load was always designed a
 
 ## Q1: labelled Dubai P2 read on Level-1 rear loads -- NEVER SCORED [2026-10-02, branch new-laps, read-only]
 
-LABEL: Level-1 rear-axle loads (RR reconstructed, ~~no aero~~ [corrected 2026-10-02: session-corrected quasi-static axle total with a session-fitted aero term]), N2 lifted; mechanism look only, never scored ((e) Stage 0 ruling 1). Mode dubai_l1 of diagnostics/inspect_e_stage0.py; outputs diagnostics/plots/e_stage0/stage0_dubai_L1_UNSCORED.json, occupancy_dubai_L1_UNSCORED.png (Dubai's CS set: cs_dubai.png from Stage 0).
+LABEL: Level-1 rear-axle loads (RR reconstructed, ~~no aero~~ [corrected 2026-10-02: session-corrected quasi-static axle total with a session-fitted aero term]), N2 lifted; mechanism look only, never scored ((e) Stage 0 ruling 1). Mode dubai_l1 of diagnostics/inspect_e_stage0.py (script at tag pre-prune-2026-10-22); outputs diagnostics/plots/e_stage0/stage0_dubai_L1_UNSCORED.json, occupancy_dubai_L1_UNSCORED.png (Dubai's CS set: cs_dubai.png from Stage 0).
 WHAT IT SHOWS: 7 TC events (133 samples) at three track positions (~740, ~1690, ~4510 m; most at ~4510 m); event occupancy 0.79-0.96, 6 of 7 at or above the session's exit p75 (0.83). The traction-control events sit on the upper occupancy band of their corner exits -- the mechanism the P2 construction looks for. Same session's checks, for context only: P1 rho 0.77; N3 ratio 11.6; N1 FAILS (exit under-read 26.6 % with log_acc_x vs 17.8 % with sclu_acc_x, 8.9 pp > 5 pp) -- Dubai's longitudinal leg is not resolvable, as predicted from Door 1's E3 offset (0.78 m/s^2). ~~Level-1 loads without aero also bias occupancy with speed (straights read ~0.3 vs 0.1-0.2 at Paul Ricard).~~ [corrected 2026-10-02: the Dubai rear axle is the session-corrected quasi-static total WITH a session-fitted aero term (not "Level-1 without aero"; Q2 Part A + code read), so the no-aero explanation is withdrawn; the straight-line difference (~0.3 vs 0.1-0.2) is reported, not explained. The label in stage0_dubai_L1_UNSCORED.json carries the old wording.] Not a verdict, not a criterion pass; no number from this read enters any comparison.
 
 ## Q2 proposal: NBR damper-offset feasibility + limitation-11 load-source check [2026-10-02, branch new-laps, proposal turn; code/record reads only]
@@ -25224,7 +25224,7 @@ BOUNDARY: read-only diagnostic. Adoption would be a config channel_corrections e
 ## Q2 run: NBR damper offset NOT FEASIBLE per outing; limitation 11 explained by the load source [2026-10-02, branch new-laps, read-only]
 
 RULINGS BEFORE THE RUN (author): proposal approved as written (A -> B -> C, bars and exit as pre-registered); corner-weight provenance unknown -- caveat "event unstated; between-event base-weight difference inherited on top of fuel uncertainty"; result label "L4-rel" (Level-4 shape on a Level-1 offset), not plain Level 4, upgradeable if the offset provenance improves.
-SCRIPT: diagnostics/inspect_damper_offset_q2.py (header = pre-registration plus [impl] choices fixed before the run); outputs diagnostics/plots/damper_offset_q2/ (partA.json, partB_<key>.json, q2.txt, q2_summary.json, loads_<key>.png). Method fact used: the chain is linear in the gauge offset K, fz_c(K) = fz_c(0) - K MR_c(travel) (modules/wheel_loads.py), so one chain run per file gives every candidate.
+SCRIPT: diagnostics/inspect_damper_offset_q2.py (script at tag pre-prune-2026-10-22) (header = pre-registration plus [impl] choices fixed before the run); outputs diagnostics/plots/damper_offset_q2/ (partA.json, partB_<key>.json, q2.txt, q2_summary.json, loads_<key>.png). Method fact used: the chain is linear in the gauge offset K, fz_c(K) = fz_c(0) - K MR_c(travel) (modules/wheel_loads.py), so one chain run per file gives every candidate.
 IMPLEMENTATION FIXES FOUND BY THE ONE-FILE SMOKE TEST (nbr_o019_jst), before the 16-file run, disclosed: (1) the "on wheels" travel band for stationary windows was taken from straights > 60 kph, where downforce compresses the suspension, so every stationary sample fell outside it -- now taken from low-speed driving (5-80 kph, p0.5-p99.5); (2) a file with one analysis lap has no lap-spread SE for C2, and the first version then counted only the fuel term (u = 98 N, a spurious pass) -- an undefined statistical term now fails the leg (insufficient evidence); (3) an UNSCORED sensitivity row for the drift with |a_x| < 0.2 g was added, because the pre-registered |a_x| < 0.1 g straight filter leaves few NBR samples (47-497 per drift estimate). Also: the proposal said "six" (d) NBR sessions; (d) had four, used.
 PART A (limitation 11) -- SOURCE-EXPLAINED: on the four (d) NBR sessions every corner is on the static fallback for 100 % of the fit population, so their "measured" path equals the static path (rear 7621-7631 N). Paul Ricard on the static path: 7626 N (v3), 7626 N (US-v2) -- ratio 1.0002 to the NBR mean 7624 N (bar +/-5 %). The 10.2-10.3 kN elsewhere are damper-measured and carry downforce; the Level-1 static model carries none. Limitation 11's track reading is withdrawn (dated correction there). Side finding, corrected in three records: Dubai's rear axle (RR reconstructed) is the SESSION-CORRECTED quasi-static axle total with a session-fitted aero term, not "Level 1 without aero" as recorded at Stage 0 and Q1; the N2 exclusion stands.
 PART B (16 NBR files): within-file stationarity (burn-corrected matched-speed drift <= 100 N on all four corners) holds on 2 of 16 (o005 MLA, o054 CDR); drifts up to +667 N, mostly positive (later in the run the gauges read higher at the same speed and burn-corrected mass). Unscored sensitivity (|a_x| < 0.2 g, 3-5x the samples): 6 of 16 within the bar; the three short runs (JST problem, o018, o019) drift +150 to +570 N on nearly every corner either way -- a systematic early-run effect (tyre warm-up via ride height, or gauge thermal drift; not separated). Between files: per-corner C2 offsets spread 1.1-2.3 kN (bar 100 N) -- no shared logger-family offset, C3 not applicable. Stationary on-wheel windows: 1-2 per file, 1.5-5 s each, on all 16 files.
@@ -25236,7 +25236,7 @@ EXIT (pre-registered): NOT FEASIBLE -- drift beyond the bar on 14 of 16 files (>
 ## Q2d: rear-curve bias diagnostic -- convergent read uninterpretable (fits 2/3 degenerate), Option-2 residual signature present but phase-confounded; the fit population is dominated by kinematic-alpha error [2026-10-02, branch new-laps, read-only]
 
 HYPOTHESIS (author): the rear pure-lateral fit is biased low, most at large alpha, because combined-slip exit samples (Stage 0: ~37 % longitudinal share, under-read >= 8 %, 41 % at p90) carry less lateral force than the pure-lateral capability, plus one-sided sub-limit scatter.
-SCRIPT: diagnostics/inspect_rear_curve_bias.py (rules in its header, fixed before the runs); sessions PR US-v2 and v3 on the (d2) production fit cache (kinematic alpha, Fy_filt, production base mask). Outputs diagnostics/plots/rear_curve_bias/: q2d.txt, q2d.json, curves_pr_us_v2_rear.png, curves_pr_us_v2_front.png, curves_v3_rear.png, curves_v3_front.png, residual_kappa_pr_us_v2.png, residual_kappa_v3.png, run_log.txt. Fits: (1) production, (2) low-kappa (|kappa - straight median| < 3 x straight robust sd), (3) q = 0.9 binned upper quantile (0.2 deg bins, >= 30 samples) with Pacejka through the bin points; all from the chair start guess. Bar 3.8 % of D (quadrature of the recorded GPS k / a_y scale / mass components; a common scale error largely cancels in fit-to-fit deltas, so a lap bootstrap B = 100 gives the statistical context). Pre-registered reads: READ-L (as ordered) and READ-C (construction-corrected for fit 3: an upper-quantile fit lies above a least-squares fit by construction, so only its alpha-dependence, upper minus lower region delta, is informative).
+SCRIPT: diagnostics/inspect_rear_curve_bias.py (script at tag pre-prune-2026-10-22) (rules in its header, fixed before the runs); sessions PR US-v2 and v3 on the (d2) production fit cache (kinematic alpha, Fy_filt, production base mask). Outputs diagnostics/plots/rear_curve_bias/: q2d.txt, q2d.json, curves_pr_us_v2_rear.png, curves_pr_us_v2_front.png, curves_v3_rear.png, curves_v3_front.png, residual_kappa_pr_us_v2.png, residual_kappa_v3.png, run_log.txt. Fits: (1) production, (2) low-kappa (|kappa - straight median| < 3 x straight robust sd), (3) q = 0.9 binned upper quantile (0.2 deg bins, >= 30 samples) with Pacejka through the bin points; all from the chair start guess. Bar 3.8 % of D (quadrature of the recorded GPS k / a_y scale / mass components; a common scale error largely cancels in fit-to-fit deltas, so a lap bootstrap B = 100 gives the statistical context). Pre-registered reads: READ-L (as ordered) and READ-C (construction-corrected for fit 3: an upper-quantile fit lies above a least-squares fit by construction, so only its alpha-dependence, upper minus lower region delta, is informative).
 ENTRY CHECK: production fit reproduced exactly (max relative parameter difference 0.0 on all four session-axles).
 RESULTS (rear US-v2 / v3; deltas as % of production D, 95 % lap-bootstrap CI):
 - Fit 2 low-kappa: lower region -7.1 / -7.1 %, upper region +2.4 [-1.9, +5.9] / -10.2 [-14.3, -5.6] %; keeps 27 % of the population but only 9-10 % of the upper-alpha region.
@@ -25264,7 +25264,7 @@ CRITERIA OPERATIONALISED (fixed here, before any run):
 - (iii) driver statements: scored only from statements recorded in the repo with corner/phase, phase-differentiated; the recorded NBR A label is "understeer" -- its phase content is not in the record (OPEN).
 - (v) cross-lap coherence: per corner-phase lap-to-lap IQR of CS (lower = more coherent), read TOGETHER with (ii) -- a constant estimator is perfectly coherent and resolves nothing, so (v) alone never ranks a variant.
 - (iv) sanity screen: a variant producing CS outside tyre-mechanics bounds on a session is flagged, not scored.
-- Render rule: CS traces per session per variant (diagnostics/trace_render.py), folder named in the report; inspected before any exit.
+- Render rule: CS traces per session per variant (diagnostics/trace_render.py (script at tag pre-prune-2026-10-22)), folder named in the report; inspected before any exit.
 DECISION RULE (proposed, needs the author's ruling): a variant earns an adoption proposal only if (i) passes (converges; start-insensitive within the bar or the material difference is explained), (ii) score >= production + 2 with zero opposite-direction resolutions, (v) not worse than production by more than the lap-bootstrap spread, and (iii) not contradicted; comparable evidence -> the simpler candidate (production / Variant 1 are equally simple; Variant 2 adds a weight and a prior).
 [2026-10-02: the driver statement for criterion (iii) is anchored below, "Driver statement (iii), NBR outing A".]
 ORDER AND COST: G0 (one streaming pass, ~30 min) -> G1 (cheap, cached altitude) -> G2 -> V1 fits (18 x 2, cached arrays, minutes) -> V1 full chain on material sessions (~5 min EKF each) -> V2 (w-grid x 18 + scale-only x 18 fits; chains on NBR A/B and the material sessions) -> Q4 synthesis. Several hours, overnight-able. BOUNDARY: read-only; adopting any variant is an ESTIMATOR-INPUT CHANGE with its own boundary package (threshold verification by rendered CS traces per rule 2a, goldens, full suite, schema bump if cached values change) and the pending Tier A anchor for a prior-plus-deviation fit.
@@ -25280,7 +25280,7 @@ NOTE: the earlier record calls outing A "labelled understeer"; the statement sho
 
 ## Q2c + Q3 combined run: G0 GPS census, G1 gradient map [2026-10-02, branch new-laps, read-only; written per step as the run proceeds]
 
-SCRIPT AND RESUME: diagnostics/inspect_phase1_q3.py (rules in its header = the frozen pre-registration). The prior launch (stopped by the author during G1) left g0.json, written 10:34 by the script as last edited 10:28 -- rule-identical, REUSED; G1 had saved nothing and was rerun from the start (its Dubai / Le Mans lines reproduce the killed run exactly). Outputs diagnostics/plots/phase1_q3/: g0.json, g1.json, g1_gradient_Dubai.png, g1_gradient_NBR.png, g1_gradient_PRC.png; logs run_log.txt (killed launch) and run_log_resume_g1.txt.
+SCRIPT AND RESUME: diagnostics/inspect_phase1_q3.py (script at tag pre-prune-2026-10-22) (rules in its header = the frozen pre-registration). The prior launch (stopped by the author during G1) left g0.json, written 10:34 by the script as last edited 10:28 -- rule-identical, REUSED; G1 had saved nothing and was rerun from the start (its Dubai / Le Mans lines reproduce the killed run exactly). Outputs diagnostics/plots/phase1_q3/: g0.json, g1.json, g1_gradient_Dubai.png, g1_gradient_NBR.png, g1_gradient_PRC.png; logs run_log.txt (killed launch) and run_log_resume_g1.txt.
 G0 -- ONE INDEPENDENT GPS RECEIVER on all 20 files. log_gps_* and NMEA RX (RMC/VTG) are the same receiver on two paths: speed corr 1.000, rms difference 0.06-0.15 kph, best lag 0.0 s, identical-sample share ~0 (different resolution only); the three files with 0.8-1.4 kph rms (o053, o054, v3) differ by dropout/frozen samples on one path (frozen share 0.09-0.24), not by independent noise. gpsa_* (lat/long/alt/speed, 18 files where present), DTM_gps_sats (18) and IMSA_GPS_* (Dubai, Le Mans) are PRESENT BUT DEAD: one distinct value per file. All live channels 10 Hz, speed kph. GPS lags the IMU by 0.21-0.33 s (d speed/dt vs a_x, corr 0.975-0.993) -- consistent with the recorded 0.32 s. Altitude only from log_gps_alt [m], quantised at 0.1 m (checked on Dubai, NBR A, US-v2) = 0.2 % gradient over the 50 m baseline, a fifth of the 1 % bar. Consequence: no second receiver exists for G1 agreement or G2 cross-checks (the author's "usually two on such cars" is not borne out by the logged channels; TO_VBOX_* are outputs).
 G1 = Q2c -- GRADIENT MAP USABLE on all three scoreable tracks (bar: SE <= 1 % on >= 80 % of the lap): NBR 81 analysis laps / 16 sessions, share 1.00, median SE 0.05 %, p95 |gradient| 6.9 %; Paul Ricard 12 laps, share 1.00, median SE 0.10 %, p95 3.5 %; Dubai 4 laps, share 0.998, median SE 0.09 %, p95 3.7 %. Le Mans: no family with >= 3 analysis laps (not computed; banned from scoring anyway). Two-family agreement not testable (one receiver). Renders inspected: smooth, lap-repeatable profiles, bands hairline except the first ~50 m (baseline edge); NBR shows two long climbs of +7-8 % and descents to -6 %. Dubai and Paul Ricard p95 match Door 1 N4's recorded 2.9-4.6 %; NBR is steeper and was not in N4's set.
 SCOPE OF THE G1 CLAIM: SE is the lap-to-lap repeatability of one receiver, not absolute accuracy; a slow altitude drift of 1 m over a ~5 km lap adds ~0.02 % -- negligible against the bar. Payoffs as ruled (Q2c entry): (1) Door 1 N4 softening -- N2 lock stands, no reopening claim; (2) grade terms in the beta kinematics if ever proposed. Bank stays unmeasurable. No production use without its own proposal.
@@ -25302,12 +25302,12 @@ AUTHOR CORRECTIONS 2026-10-02 (anchored before the G2 repair and the A/B examina
    ~~READING (1) of the Q4 entry: "The direction-pinned (a) expectation (CS_f up) is contradicted on these corners by the data, whatever the tailoring mechanism -- a property of the A/B data or of the expectation"~~ [corrected 2026-10-02: a property of the EXPECTATION -- premise failure, not a data contradiction.]
 2. THE A -> B CHANGE WAS RAKE + SPRINGS, NO DAMPER CLICKS (author: the clicks were a mix-up with other feedback). (ii) keeps "measured setup change" status and loses single-mechanism direction claims; named confound: one spring change rides along with the rake.
 3. RULING 3 REFRAMED: not "why does the data contradict the expectation" but "what does A -> B actually look like in the data given the corrected feedback" -- the C1 / C4 / C10 trace look plus a phase-flipping / consistency comparison A vs B (does B show the calmer, more coherent signature "predictable" implies). Same read-only scope. The Phase-1 closure (ruling 1) is unaffected: it rests on V1 = production within noise and on no variant earning, not on the (ii) direction.
-G2 REPAIR RERUN -- "post-result repair of the test input" (author ruling 2; mode g2r of inspect_phase1_q3.py, straight gate on the G0 0.3 s moving mean of a_y and r, all else unchanged; outputs diagnostics/plots/phase1_q3/g2_repair.json, run_log_g2_repair.txt; g2.json kept as the degenerate record). The repair WORKS MECHANICALLY: anchor runs 22-89 per file on all 20; GPS-quality-and-finite yield on the 12 new NBR outings 920 / 1008 (91 %); median per-corner SE 0.25-0.64 deg (US-v2 0.25, B 0.26, o010 0.30 ... o064 0.64), share of corners at or below the 0.39 deg bar 0.06-0.71, no session at 100 %; Le Mans and o019 have one lap per corner (SE undefined), A and o018 two.
+G2 REPAIR RERUN -- "post-result repair of the test input" (author ruling 2; mode g2r of inspect_phase1_q3.py (script at tag pre-prune-2026-10-22), straight gate on the G0 0.3 s moving mean of a_y and r, all else unchanged; outputs diagnostics/plots/phase1_q3/g2_repair.json, run_log_g2_repair.txt; g2.json kept as the degenerate record). The repair WORKS MECHANICALLY: anchor runs 22-89 per file on all 20; GPS-quality-and-finite yield on the 12 new NBR outings 920 / 1008 (91 %); median per-corner SE 0.25-0.64 deg (US-v2 0.25, B 0.26, o010 0.30 ... o064 0.64), share of corners at or below the 0.39 deg bar 0.06-0.71, no session at 100 %; Le Mans and o019 have one lap per corner (SE undefined), A and o018 two.
 SECOND TEST-INPUT DEFECT FOUND BEFORE ANY READING -- NO ANCHOR READ: the GPS beta reads 10-20 deg at corner apexes with the opposite sign to production beta on every corner (production 2-4 deg). The sign flip is a convention difference (course over ground is compass-positive clockwise, production beta ISO-positive left). The size is a TIMING defect: G0 stores the latency in the field "lag_s_gps_behind_imu" with an INVERTED sign (e.g. -0.23 s on B), and G2 shifts the course by that field, i.e. 0.23 s LATER instead of ~0.30 s EARLIER -- about 0.5 s misalignment, ~15 deg at mid-corner yaw rates. Verified read-only on B: course rate vs yaw rate cross-correlate best (corr 0.995) with the course lagging by +0.30 s. The G0 statement "GPS lags the IMU by 0.21-0.33 s" stands in size and direction; only the stored field's sign is wrong (correction to the g0.json field semantics, recorded here). The repaired SE values are computed on misaligned beta and are not reported as anchor quality. Not fixed in-run (beyond the ruled "same everything else"); reopen = a ruled second repair (course shift by +delay, beta sign converted to ISO).
 
 ## NBR A -> B anchor examination, reframed: what A -> B looks like in the data [2026-10-02, branch new-laps, read-only; author ruling 3 as reframed by the AUTHOR CORRECTIONS 2026-10-02]
 
-SCRIPT: diagnostics/inspect_rake_ab_anchor.py (rules fixed in its header before the run). Outputs diagnostics/plots/rake_ab_anchor/: census.json, corners.json, coherence.json, corner_C1.png, corner_C4.png, corner_C10.png, coherence_ab.png; logs diagnostics/plots/phase1_q3/run_log_rake_ab.txt, run_log_rake_ab_corners.txt. Production CS throughout (variant question closed).
+SCRIPT: diagnostics/inspect_rake_ab_anchor.py (script at tag pre-prune-2026-10-22) (rules fixed in its header before the run). Outputs diagnostics/plots/rake_ab_anchor/: census.json, corners.json, coherence.json, corner_C1.png, corner_C4.png, corner_C10.png, coherence_ab.png; logs diagnostics/plots/phase1_q3/run_log_rake_ab.txt, run_log_rake_ab_corners.txt. Production CS throughout (variant question closed).
 IMPLEMENTATION FIXES DURING THE RUN, disclosed (neither changes a rule): (1) the corner step crashed on a missing pedal channel (throttle_pct is absent from the state on both files; the throttle panel stays empty) -- plot guard added; (2) the first corner pass projected each file's GPS around its OWN gps_origin (the two origins differ by ~120 m N / ~100 m E), putting A and B in shifted frames and giving impossible apex offsets (-104 m vs +35 m); fixed to one common origin, as the header's shared reference line requires. Only the fixed pass is reported.
 (a) CHANGE CENSUS (logged data; 3910 channels in both files, identical channel set). The pre-registered setup-type filter flags 117 channels, mostly lifetime counters, IDs and electronics temperatures; the driver- and handling-relevant ones: brake bias (log_brkbias_dash) A 3.0 / 3.25 / 3.5 (switched during A) -> B 3.5 constant (logged units; direction not interpreted, Porsche-convention warning); engine-brake maps ecu_EB_int_pos 5 -> 4/5 and ecu_EB_tim_pos 4 -> 5/6/7; TC automode 6-8 -> 6-7; steering-wheel rotary switch stw_tw01_left 1 -> 0/1/11; clutch-controller identification values differ (powertrain adaptation, not handling). Ride heights at matched speed: rake -2.5 to -3.7 mm (the recorded change), rear RL/RR +1.2-3.4 mm, FR -0.2 to -1.2 mm. Tyre pressures (moving median) +0.02-0.05 bar in B on all four corners. Electronics temperatures 1-10 C lower in B (ambient/cooling context, not chased). Fuel: the consumption counter was reset between the outings (A 28.2 -> 36.5 kg, B 1.95 -> 18.8 kg); start mass stays unknown (limitations item 14).
 (b) CORNER TRACES (renders inspected before reading). C1 (B C1): UNRESOLVED by the pre-registered labels; B min speed +5.8 kph (resolved) with 11 deg less apex steering (resolved); A drives a visibly different line on both its laps (2-8 m right at entry, crossing 3-4 m left at exit; apex offset itself not resolved); the apex sits on the recorded kerb strike (~605-625 m: speed spikes to 175 kph, a_y to +/-4 g, |alpha_f| to 2x peak in A and B alike) and the front-CS dip lies inside that kerb window. C4 (B C4): LINE CHANGE (apex offset -1.1 -> +0.2 m), B min speed -3.2 kph (resolved), alpha_f/peak not resolved. C10 (B C10): LINE CHANGE (apex offset +1.1 -> -0.3 m; A enters ~3 m left and exits ~3 m right, B the reverse), speed / a_y / alpha_f not resolved; A's |alpha_f| sits at 1.03 of peak, B's at 0.98. The pre-registered peak |a_y| is spike-sensitive (raw 100 Hz with kerb strikes; 3.4 g at C1 is not physical) -- stated, not re-ruled.
@@ -25315,13 +25315,13 @@ IMPLEMENTATION FIXES DURING THE RUN, disclosed (neither changes a rule): (1) the
 READING (labelled): the A -> B anchor is NOT A CLEAN SINGLE-CHANGE PAIR. Beyond rake + springs, the logged data show changes to brake bias, two engine-brake map settings, TC automode and tyre pressure, a reset fuel counter (mass unknown), and a different driving line through at least C1, C4 and C10. Brake bias and engine braking act on corner ENTRY, exactly the phase the driver called "snappy/unstable" in A, so "more predictable" in B has several logged candidate causes besides rake + springs. The estimator-invariant front-CS fall at C1 / C4 / C10 coincides with line changes on all three, and with the kerb strike at C1. The anchor characterises as "measured multi-change outing pair with line and map changes"; any (ii)-type use carries that scope line. A has two analysis laps, so every A statistic rests on two values. No criterion rewritten.
 RENDER NOTE (C4, inspected after the write-up above, before the report): A enters ~2.5 m right and exits ~2 m left on both laps while B holds the reference line; three B laps carry large mid-corner steering corrections (to ~-50 deg) with matching yaw-rate dips -- B is visibly not calmer at C4, consistent with c4.
 AUTHOR ANSWER (2026-10-02, to OPEN 3 of the examination report): the brake-bias and engine-brake-map changes were DELIBERATE, driver-feel driven (not setup-sheet changes by the engineers, not accidental). A's in-outing bias hunting (3.0 -> 3.25 -> 3.5) vs B parked at 3.5 is read by the author as the driver settling / trusting the car more in B. Recorded as an AXIS-1 OBSERVATION: the logged bias trace is a proxy for driver confidence. Consequence for the anchor characterisation: the map changes are part of the deliberate A -> B package, alongside rake + springs.
-PRE-LAUNCH FINDING (2026-10-02, extended package "G2 repair 2 + conditional anchor validation" received, NOT launched -- no explicit go/execute in it, launch rule): a PRIOR GPS-beta record exists and was not cited by the Q2c + Q3 proposal -- section "GPS-course sideslip (beta_gps, WP5b(c)) attempted and shelved [2026-07-26]" (estimate_sideslip_gps in modules/stability_analysis.py, validation only; diagnostics/inspect_beta_gps_validation.py; config gps_course_latency_s 0.32 and gps_course_anchor_*). Omission = a rule-2c breach (a recorded negative cited without its scope line), now repaired here. Relevance: (1) that work already measured the course latency (+0.32 s, corr 0.9898) and read the course ahead by it -- the fix repair 2 re-derives; (2) it diagnosed TIME-LINEAR drift closure between anchors as the cause of under-correction inside corners (gyro shortfall ~6 deg/lap = ~1.7 % of net rotation, accumulating with rotation, not time) and replaced it by a rotation clock (accumulated |yaw rate|); G2 as implemented, repair 2 included, still closes drift linearly in TIME -- the construction the old record identified as defective. By the extended package's own rule ("any further test-input defect found at any point -> close G2") this would close G2 before Part 1 runs; because the defect is a recorded construction choice rather than a new run-time finding, the call is put to the author (OPEN), not taken. SCOPE LINE of the old negative (rule 2c): Dubai only, one 4-lap session, 6 anchors total; its headline metrics (r(beta_gps, beta_kinematic) -0.24, per-corner sign agreement 52 %, straight-line bias vs kinematic) scored the GPS beta AGAINST THE KINEMATIC BETA -- a criterion built from system output (banned since 2026-10-01, ruling 2b) and from the very estimate the Q2d exhibit shows to be wrong at corner level. Current data falls outside that scope (16 NBR files with 4-8 laps per corner); the old verdict does not transfer as a negative on the anchor question.
+PRE-LAUNCH FINDING (2026-10-02, extended package "G2 repair 2 + conditional anchor validation" received, NOT launched -- no explicit go/execute in it, launch rule): a PRIOR GPS-beta record exists and was not cited by the Q2c + Q3 proposal -- section "GPS-course sideslip (beta_gps, WP5b(c)) attempted and shelved [2026-07-26]" (estimate_sideslip_gps in modules/stability_analysis.py, validation only; diagnostics/inspect_beta_gps_validation.py (script at tag pre-prune-2026-10-22); config gps_course_latency_s 0.32 and gps_course_anchor_*). Omission = a rule-2c breach (a recorded negative cited without its scope line), now repaired here. Relevance: (1) that work already measured the course latency (+0.32 s, corr 0.9898) and read the course ahead by it -- the fix repair 2 re-derives; (2) it diagnosed TIME-LINEAR drift closure between anchors as the cause of under-correction inside corners (gyro shortfall ~6 deg/lap = ~1.7 % of net rotation, accumulating with rotation, not time) and replaced it by a rotation clock (accumulated |yaw rate|); G2 as implemented, repair 2 included, still closes drift linearly in TIME -- the construction the old record identified as defective. By the extended package's own rule ("any further test-input defect found at any point -> close G2") this would close G2 before Part 1 runs; because the defect is a recorded construction choice rather than a new run-time finding, the call is put to the author (OPEN), not taken. SCOPE LINE of the old negative (rule 2c): Dubai only, one 4-lap session, 6 anchors total; its headline metrics (r(beta_gps, beta_kinematic) -0.24, per-corner sign agreement 52 %, straight-line bias vs kinematic) scored the GPS beta AGAINST THE KINEMATIC BETA -- a criterion built from system output (banned since 2026-10-01, ruling 2b) and from the very estimate the Q2d exhibit shows to be wrong at corner level. Current data falls outside that scope (16 NBR files with 4-8 laps per corner); the old verdict does not transfer as a negative on the anchor question.
 RULINGS (author, 2026-10-02, on the pre-launch finding): (3) the A/B scope line "measured multi-change outing pair with line and map changes" was already accepted and anchored (incl. the (ii) retirement) -- stands. (1+2) conditional by the pre-registered repair rule: a THIRD TEST-INPUT DEFECT -> close G2 (option a); a KNOWN METHOD LIMITATION stated before the run -> option (c), EXECUTE the package as written with a drift scope line; option (b) (rotation clock) NOT taken in either case (third construction change, beyond the repair budget).
-CASE DECISION (2026-10-02): KNOWN METHOD LIMITATION -> option (c). Ground: the frozen G2 header specifies "integrated yaw rate between consecutive anchors, linearly drift-closed to the next anchor" and the code does exactly that; the Q3 proposal stated heading-from-integrated-yaw as the method's own assumption -- unlike the two input defects, nothing deviates from what was pre-registered. Drift scope line written into the inspect_phase1_q3.py header; validation rules (Gate A, Part 2 checks 1-6, Gate B, Part 3) frozen in diagnostics/inspect_g2_anchor_validation.py before Part 1 produced any number.
+CASE DECISION (2026-10-02): KNOWN METHOD LIMITATION -> option (c). Ground: the frozen G2 header specifies "integrated yaw rate between consecutive anchors, linearly drift-closed to the next anchor" and the code does exactly that; the Q3 proposal stated heading-from-integrated-yaw as the method's own assumption -- unlike the two input defects, nothing deviates from what was pre-registered. Drift scope line written into the inspect_phase1_q3.py (script at tag pre-prune-2026-10-22) header; validation rules (Gate A, Part 2 checks 1-6, Gate B, Part 3) frozen in diagnostics/inspect_g2_anchor_validation.py (script at tag pre-prune-2026-10-22) before Part 1 produced any number.
 
 ## G2 GPS corner anchor: repair 2, Gate A passed, validation FAILED -- route closed at this logging [2026-10-02, branch new-laps, read-only; extended package, option (c)]
 
-SCRIPTS: diagnostics/inspect_phase1_q3.py mode g2r2 (repair 2: course shifted earlier by 0.30 s, ISO sign; drift scope line in header); diagnostics/inspect_g2_anchor_validation.py (Gate A, Part 2 checks 1-6, Gate B, Part 3; rules frozen before Part 1 ran). Outputs: diagnostics/plots/phase1_q3/g2_repair2.json, run_log_g2_repair2.txt, run_log_g2_validation.txt; diagnostics/plots/g2_anchor_validation/gate_a.json, part2.json, part2_battery.png. DRIFT SCOPE LINE on every number: heading between straight re-zeros closed linearly in time (known method limitation, WP5b(c)).
+SCRIPTS: diagnostics/inspect_phase1_q3.py (script at tag pre-prune-2026-10-22) mode g2r2 (repair 2: course shifted earlier by 0.30 s, ISO sign; drift scope line in header); diagnostics/inspect_g2_anchor_validation.py (script at tag pre-prune-2026-10-22) (Gate A, Part 2 checks 1-6, Gate B, Part 3; rules frozen before Part 1 ran). Outputs: diagnostics/plots/phase1_q3/g2_repair2.json, run_log_g2_repair2.txt, run_log_g2_validation.txt; diagnostics/plots/g2_anchor_validation/gate_a.json, part2.json, part2_battery.png. DRIFT SCOPE LINE on every number: heading between straight re-zeros closed linearly in time (known method limitation, WP5b(c)).
 PART 1 (repair 2, the last): no further input defect. beta_gps physically plausible: corner |beta| median 1.43 deg (p90 3.14) vs production EKF 2.50 (3.56); same sign as production on 86 % of corners; per-session median SE 0.11-0.49 deg; anchor runs 22-89 per file.
 GATE A: PROMISING -- 10 of 12 new NBR sessions have >= 50 % of anchor-capable corners at SE <= 0.39 deg (shares 0.65-1.00; fails: o018 0.47, o019 one lap per corner).
 PART 2 (18 sessions: 12 new NBR + pool six):
@@ -25334,12 +25334,12 @@ PART 2 (18 sessions: 12 new NBR + pool six):
 GATE B: FAIL on checks 1, 2 and 6. CLOSURE (pre-registered wording): "anchor forms but fails validation on sign/phase straight leg, latency robustness and cross-session consistency, route closed at this logging". Part 3 not run (gated); Part 4 never in scope.
 MECHANISM (labelled reading): the anchor is PRECISE BUT NOT ACCURATE. The construction makes beta_gps first-order sensitive to the course delay -- at apex yaw rates of 20-30 deg/s, 50 ms of course timing is ~1-1.5 deg of heading, exactly what check 2 measured. The 0.39 deg discrimination bar would need the delay known to < 10 ms per session, while the measured per-session delays already spread 0.21-0.33 s (G0, magnitudes) on a 10 Hz receiver. Small SEs (precision) with ~1 deg session-specific biases (check 6) and a small positive straight bias (check 1a) are the expected signature of that, plus the linear-in-time drift closure. The anchor's limiting term is latency, not noise or lap count.
 CONSEQUENCE AND SCOPE LINE: the GPS corner-anchor route is CLOSED at this logging (single-antenna 10 Hz course over ground, ~0.2-0.33 s receiver delay, heading from integrated yaw with time-linear drift closure, 16 NBR + 2 Paul Ricard sessions). Reopen condition: a heading or sideslip reference without the course-delay sensitivity (dual-antenna / RTK GPS with a characterised low latency, or an optical slip sensor) -- the sensor request already named in the Doors closure and the PHASE 1 PLAN GPS context, now with a measured reason (delay sensitivity ~25 deg per second of delay error at apex yaw rates). The WP5b(c) negative (2026-07-26) is consistent with this, now on 18 sessions and on criteria not built from system output.
-RULINGS (author, 2026-10-02, close-out): commit first (author runs it), Q5 scope-narrowing pass afterwards on the clean state, so the rewrite never shares a diff with the experiments it narrates; the scripts behind the G2 and A/B closures (inspect_phase1_q3.py, inspect_g2_anchor_validation.py, inspect_rake_ab_anchor.py -- three; the report's "four" was a miscount) stay keep-reproduces, each backing a thesis-citable closure.
+RULINGS (author, 2026-10-02, close-out): commit first (author runs it), Q5 scope-narrowing pass afterwards on the clean state, so the rewrite never shares a diff with the experiments it narrates; the scripts behind the G2 and A/B closures (inspect_phase1_q3.py (script at tag pre-prune-2026-10-22), inspect_g2_anchor_validation.py (script at tag pre-prune-2026-10-22), inspect_rake_ab_anchor.py (script at tag pre-prune-2026-10-22) -- three; the report's "four" was a miscount) stay keep-reproduces, each backing a thesis-citable closure.
 
 ## Q-RAW: raw-channel case file -- the sclu_* inertial channels are bus signals, the sclu accelerometers demonstrably filtered; the logger's own log_acc_* look unfiltered [2026-10-02, branch new-laps, read-only]
 
 WORK ORDER: PLAN.md PHASE 1 PLAN Q-RAW (author); standing instruction "gates escalate, never cancel" (PROCESS RULES). Prepare the one team question with real upside: are the logged inertial channels raw body-axis sensor outputs or processed signals, and could raw versions be added to the logging configuration?
-SCRIPT: diagnostics/inspect_raw_channels.py (rules frozen in its header before the run); native samples from the raw exports over the analysis laps of pr_us_v2, v3, nbr_jst_solution (serial 221) and Dubai (serial 147). Outputs diagnostics/plots/raw_channels/: raw_<key>.json, psd_<key>.png, raw_channels.txt.
+SCRIPT: diagnostics/inspect_raw_channels.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before the run); native samples from the raw exports over the analysis laps of pr_us_v2, v3, nbr_jst_solution (serial 221) and Dubai (serial 147). Outputs diagnostics/plots/raw_channels/: raw_<key>.json, psd_<key>.png, raw_channels.txt.
 CENSUS (from the file, v3 and Dubai channel lists): besides the sclu signals every file carries sclu_crc_tx1-3, sclu_msg_cnt_tx1-3, per-signal *_stat channels and sclu_HW_index; v3 also carries *_dash copies; a third accelerometer set ADR2_acc_x/y/z; computed channels a_yaw_velocity, v_yawrate, a_yaw_theo.
 FINDINGS (same on all four files, both loggers):
 - SPECTRUM: sclu rate channels fall 28-38 dB and sclu accelerometers 14-24 dB from their 2-8 Hz level to the top 20 % of the 50 Hz band; log_acc_x/y/z keep a flat floor (drop -2.7 to +3.1 dB). The paired read is the evidence (render psd_v3.png): log_acc_y and sclu_acc_y coincide below ~10 Hz and part above ~15 Hz, log_acc_y rising with vibration to 50 Hz, sclu_acc_y 15-20 dB below it. Reading: the sclu accelerometers carry on-board low-pass filtering; log_acc_* look unfiltered. The gyro roll-off is CONSISTENT with filtering but not separable from the natural decay of yaw/roll motion (no unfiltered gyro reference): not claimed.
@@ -25354,7 +25354,7 @@ CONSEQUENCE FOR THE CHAIN (factual, no proposal): production integrates sclu_yaw
 ## Q-SEED: seed quality sweep -- construction moves the near-zero-alpha bands only by forcing beta to zero; bias-first is inert under the washout [2026-10-02, branch new-laps, read-only]
 
 WORK ORDER: PLAN.md PHASE 1 PLAN Q-SEED (author), rulings 1-7 of 2026-10-02 and EXECUTE; standing instruction "gates escalate, never cancel" (every variant ran to completion with full renders; every baseline measured fresh from S0 in this run).
-SCRIPT: diagnostics/inspect_seed_sweep.py (rules frozen in its header before the run; a labelled POST-HOC block added after the Tier-1 run and before escalation; a one-lap M3 guard added after a crash on nbr_o019_jst, no rule change). Outputs diagnostics/plots/seed_sweep/ (run_log.txt, run_log_o019.txt, offsets_/sweep_/posthoc_/down_<key>.json, seed_sweep.txt/.json, beta_/cloud_/cs_ renders).
+SCRIPT: diagnostics/inspect_seed_sweep.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before the run; a labelled POST-HOC block added after the Tier-1 run and before escalation; a one-lap M3 guard added after a crash on nbr_o019_jst, no rule change). Outputs diagnostics/plots/seed_sweep/ (run_log.txt, run_log_o019.txt, offsets_/sweep_/posthoc_/down_<key>.json, seed_sweep.txt/.json, beta_/cloud_/cs_ renders).
 ENTRY CHECKS: offsets recomputed on the 9 pool sessions with a record match it EXACTLY (diff 0.0: b_r, ay S0 median, referee intercept); S0 alpha/Fy/base mask bit-identical to the (d2) cache and S0 refit B, C, D, E equal to the cached production manifest (max rel 0.0) on all 18.
 OFFSETS (fresh, the 12 new files): b_r -0.254 to -0.314 deg/s on all 16 NBR files (record family -0.25 to -0.35 on serial 221); the referee intercept on nbr_o019_jst +0.649 m/s^2 against +0.37 to +0.51 on the recorded sessions (one lap).
 PREDICTION STATED BEFORE THE RUN (premise check): a constant bias integrates to a ramp, which the forward-backward 4th-order washout removes, so S1 ~ S0.
@@ -25374,12 +25374,12 @@ SUPERVISOR QUESTION -- corner-switched integration (author input 2026-10-02, rec
 DOWNSTREAM (escalated S4w_0.1 + fresh S0, Tier 1; production fit -> EKF -> gate -> CS; the chain was stopped once by the 30-min background limit after v3 and resumed for US-v2 / JST 29, nothing re-scored). Fresh S0 reproduces the recorded gate health (v3 0.098474, US-v2 0.093307). All six: gate PASS, no fallback. Health S0 -> S4w_0.1: v3 0.0985 -> 0.1074, US-v2 0.0933 -> 0.1094, JST 29 0.1155 -> 0.1082. Fitted B rises steeply under S4w_0.1 (rear 8.4 -> 24.0, 7.1 -> 25.5, 10.6 -> 16.4; v3 front lands at B 22.8, C 0.46, E -14.2 -- the ridge). CS renders (assistant read, the author rules): deepest front excursions shallower (v3 -2.0 -> -1.2, US-v2 -2.0 -> -1.3, JST 29 apex -2.7 -> -1.8), one new deeper front spike on JST 29 (-2.4 near 1750 m), visibly more NaN gaps in corner brackets (v3, JST 29 rear) -- partly the (b)-D1 signal-suppression route; corner-by-corner pattern unchanged, no new artefact class.
 M3 BOUND DEFECT, confirmed by construction: S4l_1 / S4l_4 leave beta bit-for-bit unchanged yet read "M3 degraded" on JST 29 under the pre-registered bound (S0 itself above it).
 SYNTHESIS (characterisation, no proposal; author rules): (1) Bias-first (S1) is inert under the washout, as predicted -- the measured offsets do not matter to the seed in this construction. (2) The bands are not set by the 2 Hz alpha/Fy low-pass (S4l inert). (3) Only constructions that pull beta toward zero move the bands: S2/S3 genuinely (corner-only M1c 27-60 %) at the cost of a turn-in/exit streak and large spread closing errors; S4w_0.1 mostly by diluting the bin with straights (M1c rear 0-6 %), with calmer CS traces and lower coverage. None removes the bands without imposing beta ~ 0 where beta is unknown -- consistent with the observability wall: seed construction relocates the seed error, it does not supply the missing information.
-CLOSE-OUT RULINGS (author, 2026-10-02): Q-SEED CLOSED, nothing ships. S2/S3: no all-18 escalation, closed as characterised (entry/exit streak, closing errors spreading in-corner, collapsed rear refit; M1 gain substantially dilution per the post-hoc read). S4w_0.1: "marginal, mostly dilution, no adoption". The SYNTHESIS above stands as the finding, and the supervisor answer stands as written (clean corner switching partly works, at a visible construction cost). Record note (session): the ruling's cost list also names the v3 ~5300 m -8 deg spike; per the render inspection above that spike is present in S0 too, so it is not an S2 cost -- raised with the author; the closure does not rest on it. Case file: the author reviews and decides on sending. Scripts inspect_seed_sweep.py and inspect_raw_channels.py back these closures (keep-reproduces, diagnostics/README.md).
+CLOSE-OUT RULINGS (author, 2026-10-02): Q-SEED CLOSED, nothing ships. S2/S3: no all-18 escalation, closed as characterised (entry/exit streak, closing errors spreading in-corner, collapsed rear refit; M1 gain substantially dilution per the post-hoc read). S4w_0.1: "marginal, mostly dilution, no adoption". The SYNTHESIS above stands as the finding, and the supervisor answer stands as written (clean corner switching partly works, at a visible construction cost). Record note (session): the ruling's cost list also names the v3 ~5300 m -8 deg spike; per the render inspection above that spike is present in S0 too, so it is not an S2 cost -- raised with the author; the closure does not rest on it. Case file: the author reviews and decides on sending. Scripts inspect_seed_sweep.py (script at tag pre-prune-2026-10-22) and inspect_raw_channels.py (script at tag pre-prune-2026-10-22) back these closures (keep-reproduces, diagnostics/README.md).
 STANDING RULE recorded (author, 2026-10-02; CLAUDE.md, PLAN.md PROCESS RULES): every render carries a plain-language in-image title (session, quantity, variant in words); diagnostics/plots_INDEX.md (committed) carries the code legend per folder. This session's seed_sweep / raw_channels renders predate the rule (titles use codes such as "S2"); their legend is in plots_INDEX.md; not regenerated.
 
 ## Q-PUSH "THE LAST PUSH": final estimator-side package [2026-10-02, branch new-laps, read-only; written per step as the run proceeds]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-PUSH (author), rulings 1-7 of 2026-10-02 and EXECUTE; standing instruction "gates escalate, never cancel". SCRIPT: diagnostics/inspect_last_push.py (rules frozen in its header before any run). Outputs diagnostics/plots/last_push/ (p1_..p6_ JSON per session, renders, run_<key>.txt logs). Tier 1 = PR US-v2 (MLA outing 32), v3 (MLA outing 25), JST 29 (nbr_jst_solution).
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-PUSH (author), rulings 1-7 of 2026-10-02 and EXECUTE; standing instruction "gates escalate, never cancel". SCRIPT: diagnostics/inspect_last_push.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any run). Outputs diagnostics/plots/last_push/ (p1_..p6_ JSON per session, renders, run_<key>.txt logs). Tier 1 = PR US-v2 (MLA outing 32), v3 (MLA outing 25), JST 29 (nbr_jst_solution).
 P1 STEERING-DERIVED STEADY-STATE BETA -- v3 (first session, run alone as a code check; nothing changed afterwards):
 - Census: log_asteer [deg sign] valid, 100 Hz, 2532 distinct values; steering ratio 15.7 (Level 1); steering zero offset 2.7 deg at the wheel (0.17 deg road); corr(delta_f, r) in corners +0.94 (sign convention consistent).
 - Understeer gradient (Rajamani Eq. 3.23, beta-free regression on the quasi-steady population): K2 = +1.36 deg/g (95 % cluster CI 1.12-1.65) -- the car UNDERSTEERS in steady cornering. Level-1 K1 = 0 exactly (config C_alpha/Fz = 12 on both axles implies neutral steer). K_fit from the production fits' origin slopes = -0.31 deg/g (OVERSTEER): the kinematic-alpha production curves imply the wrong balance sign against the measured steering balance.
@@ -25418,12 +25418,12 @@ SYNTHESIS (characterisation, no proposal; the author rules on the renders):
 (3) CIRCULARITY: imposing beta_ss writes the assumed stiffness into the anchor samples (slope ratio 1.08-1.23), but the refit origin is dominated by the straight-pinning streak -- the pre-registered claim is not confirmed as worded; the mechanism half is.
 (4) Consistent with the recorded wall: the seed's information content is the limit; outside information (steering balance, here) adds a measurable quantity but not absolute beta. Post-package direction (author, recorded in PLAN.md Q-PUSH): CALIBRATION -- fewer, stronger calls, one problem type per statement.
 SCOPE LINE: Tier 1 = two Paul Ricard sessions (MLA) + one Nurburgring session (JST); all-18 only for the two robust losses; linear-tyre bin empty on Paul Ricard; Level-1 steering ratio constant; stiffness rows Level 1 (uncited 12 per rad) and Level 2 (circular).
-EXIT RULINGS (author, 2026-10-03): (1) Q-PUSH CLOSED; partial wins recorded as above; NO ADOPTION from the package. K2: (a) thesis exhibit written now (section 1, "The car's measured balance: a beta-free external check the production curves fail"); (b) per-session K2 readout queued as a display-candidate proposal (PLAN.md Q-K2), proposal-first, after the calibration package opens. Config: the Level-1 neutral-steer implication gets a dated correction naming K2 as measured replacement candidate (PLAN.md section 7, item 7b; timing open). Qualified-stack calming on Paul Ricard: characterisation only, correctly unproposed. SEED / CLOUD QUESTION CLOSED FINAL -- scope line across Q2d (production seed, all laps: curve-bias fits degenerate on alpha-corrupted bins), Q-SEED (seed construction: only beta-pinning constructions move the near-zero-slip bands, mostly by dilution or at visible cost) and Q-PUSH (steering-derived anchors, despike, robust losses, fast-lap populations, spectrum-matched filters, EKF Q: none moves the bands beyond what straight pinning does): pinning beta is the only mover; the missing information must come from outside the logged chain (a sideslip / heading reference, the standing sensor request). (2) diagnostics/inspect_last_push.py KEPT (keep-reproduces). (3) NEXT: Q5 scope-narrowing pass, widened to fold the Q-SEED and Q-PUSH closures into the (d2) / Doors conclusion rewrite; then direction (c) CALIBRATION as the main package.
+EXIT RULINGS (author, 2026-10-03): (1) Q-PUSH CLOSED; partial wins recorded as above; NO ADOPTION from the package. K2: (a) thesis exhibit written now (section 1, "The car's measured balance: a beta-free external check the production curves fail"); (b) per-session K2 readout queued as a display-candidate proposal (PLAN.md Q-K2), proposal-first, after the calibration package opens. Config: the Level-1 neutral-steer implication gets a dated correction naming K2 as measured replacement candidate (PLAN.md section 7, item 7b; timing open). Qualified-stack calming on Paul Ricard: characterisation only, correctly unproposed. SEED / CLOUD QUESTION CLOSED FINAL -- scope line across Q2d (production seed, all laps: curve-bias fits degenerate on alpha-corrupted bins), Q-SEED (seed construction: only beta-pinning constructions move the near-zero-slip bands, mostly by dilution or at visible cost) and Q-PUSH (steering-derived anchors, despike, robust losses, fast-lap populations, spectrum-matched filters, EKF Q: none moves the bands beyond what straight pinning does): pinning beta is the only mover; the missing information must come from outside the logged chain (a sideslip / heading reference, the standing sensor request). (2) diagnostics/inspect_last_push.py (script at tag pre-prune-2026-10-22) KEPT (keep-reproduces). (3) NEXT: Q5 scope-narrowing pass, widened to fold the Q-SEED and Q-PUSH closures into the (d2) / Doors conclusion rewrite; then direction (c) CALIBRATION as the main package.
 
 ## Q-STIFF-CS: stiffness identification + CS readability [2026-10-03, branch new-laps, read-only; written per step as the run proceeds]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-STIFF-CS (author), rulings 1-4 of 2026-10-03 and EXECUTE; gates escalate, never cancel. SCRIPT: diagnostics/inspect_stiffness_cs.py (rules frozen in its header before any run); Part 0 in diagnostics/inspect_last_push.py. Outputs diagnostics/plots/stiffness_cs/ (p1a_/p1b_/p2_ JSON per session, renders, run logs). Tier 1 = PR US-v2, v3, NBR JST 29.
-PART 0 -- RENDER DEFECT RESOLVED AND THE K2 EXHIBIT VERIFIED. What was wrong (plain): the two panels of p1_traces_<key>.png shared only the x-axis, so each panel scaled its y-axis to its own steady-state band; the one fixed EKF series therefore looked larger in the narrower-scaled panel while the stiffness-dependent series looked constant -- the picture the author saw was real, its cause was the scaling, not a swapped or mislabelled series. Fix: common y-axis (sharey) and the steady-sample rug drawn after the limits are set; title states the common scale. Verification: inspect_last_push p1 re-run on all three sessions; p1_<key>.json BYTE-IDENTICAL to the first run, so K2 (+1.41 / +1.36 / +1.27 deg/g) and K_fit (-0.93 / -0.31 / +0.38) stand as recorded; re-rendered figure inspected: EKF identical in both panels, steady-state estimate carries the stiffness rows. The section-1 exhibit may now cite the figures.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-STIFF-CS (author), rulings 1-4 of 2026-10-03 and EXECUTE; gates escalate, never cancel. SCRIPT: diagnostics/inspect_stiffness_cs.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any run); Part 0 in diagnostics/inspect_last_push.py. Outputs diagnostics/plots/stiffness_cs/ (p1a_/p1b_/p2_ JSON per session, renders, run logs). Tier 1 = PR US-v2, v3, NBR JST 29.
+PART 0 -- RENDER DEFECT RESOLVED AND THE K2 EXHIBIT VERIFIED. What was wrong (plain): the two panels of p1_traces_<key>.png shared only the x-axis, so each panel scaled its y-axis to its own steady-state band; the one fixed EKF series therefore looked larger in the narrower-scaled panel while the stiffness-dependent series looked constant -- the picture the author saw was real, its cause was the scaling, not a swapped or mislabelled series. Fix: common y-axis (sharey) and the steady-sample rug drawn after the limits are set; title states the common scale. Verification: inspect_last_push (script at tag pre-prune-2026-10-22) p1 re-run on all three sessions; p1_<key>.json BYTE-IDENTICAL to the first run, so K2 (+1.41 / +1.36 / +1.27 deg/g) and K_fit (-0.93 / -0.31 / +0.38) stand as recorded; re-rendered figure inspected: EKF identical in both panels, steady-state estimate carries the stiffness rows. The section-1 exhibit may now cite the figures.
 PART 1a -- YAW-RATE GAIN PER SPEED BAND (Rajamani Eq. 8.21; rank 1 with K2 by construction, stated pre-run; cross-check only): K_gain = +1.20 [1.05, 1.41] / +1.28 [0.96, 2.04] / +1.01 [0.91, 1.34] deg/g vs K2 +1.41 [1.32, 1.50] / +1.36 [1.12, 1.65] / +1.27 [1.18, 1.40] -> CIs overlap on all three: AGREE -- K2 is reproduced by a second estimator on the same physics. OBSERVED (not pre-registered, descriptive): the per-band K falls with speed on every session -- US-v2 +2.00 (20 m/s band) / +1.59 (30) / +0.74 (40) / +0.82 (60+); v3 +2.23 (20) / +1.82 (30) / +0.79 (60+); JST 29 +1.59 (20) / +1.54 (30) / +0.95 (50) / +0.79 (60+) deg/g. The car understeers less at high speed -- consistent with a speed-dependent (aero) balance, which the constant-K bicycle model does not contain; named, not chased.
 PART 1b -- TRANSIENT YAW MODE: DEGENERATE AT THIS NOISE on all three sessions, by the pre-registered rule (no speed band with >= 5 coherent points). Sub-limit population (|a_y| <= ~9 m/s^2, v > 20 m/s, runs >= 4 s): 45 / 13 / 43 segments, falling into the 35-50 and 50-65 m/s bands (3-35 segments each); coherent points (0.5-4 Hz, gamma^2 >= 0.6) 3-4 per band. Steering-step events (secondary): 0 on all three -- no sub-limit steering input met the pre-registered step shape. RENDER INSPECTION (p1b_bode_<key>.png, before this write-up): the measured yaw-rate-per-steer response is CLEAN where it is coherent -- coherence 0.65-0.96 from 0.5 to 2 Hz, gain rising toward ~2 Hz, phase lag growing to ~45 deg -- and collapses above ~2 Hz (driver micro-corrections carry little energy there). The binding limit is therefore the coherent BANDWIDTH (about 0.5-2 Hz) at the frozen 2 s Welch window (0.5 Hz resolution): at most 4 points fit in that band, so the 5-point rule could not be met by construction. Recorded as degenerate-as-frozen; the information in 0.5-2 Hz is real but unused. Conditioning, propagated uncertainty and the I_z row were never reached (no fit).
 [2026-10-03, author real-world confirmation (recorded with AMENDMENT 2 to Q-WHEELLOAD-RENDER): the NBR FL ride-height laser, recorded above as stuck at -101.0 mm on the NBR files, was BLOCKED BY A BROKEN CARBON PIECE -- the physical cause is known; the team question on it is struck (PLAN.md AUTHOR-OWNED list). The amendment itself (damper-load unit / convention decode check) is not started: its base package is not in the records.]
@@ -25437,7 +25437,7 @@ PART 2 -- CS READABILITY (production chain: cached production EKF beta; entry ch
 - READING: CS jumpiness is about half lap-to-lap residual; every lever that removes most of it does so by deleting estimates (span floor) or by flattening the shape (heavy ingredient smoothing). The readability gain that costs nothing in the computation is the DISPLAY: phase medians and cross-lap bands of the unchanged production CS. Direction for Q-CAL is the author's ruling.
 - SPIKE METRIC (author addition, pre-close): NOT YET COMPUTED -- Part 2 stored statistics and renders, not CS arrays; a deterministic recomputation of the same variants awaits the author's go, with the known-real-site definition proposed (PLAN.md Q-STIFF-CS).
 SYNTHESIS: (1) Stiffness identification: steady-state data identify the balance only (K, now reproduced by two estimators, with a speed-dependent fall the constant-K model lacks); the transient route is degenerate as frozen -- a clean coherent response exists only in 0.5-2 Hz on sub-limit driving, too few points at the frozen resolution; C_f / C_r remain unidentified. (2) CS readability: production CS is half position-locked signal, half lap-to-lap residual; smoothing levers trade coverage or shape for calm; the phase-median / cross-lap-band DISPLAY of unchanged production CS is the zero-cost readability route. SCOPE: Tier 1 only (nothing escalated); production chain (EKF beta cached, entry-checked); Level-1 I_z untested (no fit reached).
-SPIKE METRIC (author addition, run on "execute" 2026-10-03; definitions frozen in the inspect_stiffness_cs.py SPIKE ADDENDUM before any number; deterministic recomputation of production + the same Part 2 variants + the longest-window / 0.5 Hz combination; outputs spike_<key>.json, spike_<key>.png, run_spike_<key>.txt).
+SPIKE METRIC (author addition, run on "execute" 2026-10-03; definitions frozen in the inspect_stiffness_cs.py (script at tag pre-prune-2026-10-22) SPIKE ADDENDUM before any number; deterministic recomputation of production + the same Part 2 variants + the longest-window / 0.5 Hz combination; outputs spike_<key>.json, spike_<key>.png, run_spike_<key>.txt).
 - PRODUCTION BASELINE (US-v2 / v3 / JST 29, inside corner brackets): front excursions below -1: 28 / 6 / 19, of which non-recurring (noise) 19 / 6 / 5; below -2: 1 / 0 / 2; minimum -2.05 / -1.96 / -2.68. Rear below -1: 5 / 3 / 3 (noise 4 / 3 / 3); below -2: none; minimum -1.80 / -1.23 / -1.22. Known-real sites among the five deepest production dips (position-bound recurrence on >= half the laps): front 4 / 3 / 5, rear 4 / 4 / 2. On JST 29 most front dips below -1 RECUR (14 of 19) -- the characterised apex / kerb sites.
 - SPIKES FIRST, per variant (erases known-real = any recurring site keeps < 50 % of its depth; kills noise = non-recurring count below -1 falls > 50 %):
   window 0.2 s: erases NO known-real site on any session or axle; kills noise on NONE (front noise 19 / 3 / 5 vs 19 / 6 / 5); variance cut 1-9 %. Spike-safe and almost inert.
@@ -25451,7 +25451,7 @@ SPIKE METRIC (author addition, run on "execute" 2026-10-03; definitions frozen i
 
 ## Q-CHAIR-AUDIT: chair pipeline audit + CS foundation [2026-10-03, branch new-laps, read-only; written per part as the run proceeds]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-CHAIR-AUDIT (author), governed by section 2b (GOVERNING FRAME), rulings 1-6 and EXECUTE. SCRIPT: diagnostics/inspect_chair_audit.py (rules frozen in its header before any run). Outputs diagnostics/plots/chair_audit/. Tier 1 = PR US-v2, v3, NBR JST 29. Framing per 2b: position-locked dips are of unproven magnitude; "vs production" numbers track change only.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-CHAIR-AUDIT (author), governed by section 2b (GOVERNING FRAME), rulings 1-6 and EXECUTE. SCRIPT: diagnostics/inspect_chair_audit.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any run). Outputs diagnostics/plots/chair_audit/. Tier 1 = PR US-v2, v3, NBR JST 29. Framing per 2b: position-locked dips are of unproven magnitude; "vs production" numbers track change only.
 PART A -- CHAIR PIPELINE AUDIT (reading only; enlarged copy of the chair performance_analysis tooling (internal) incl. its README and four new tool scripts; the earlier "no gap" expectation set aside, everything re-read).
 - PIPELINE ORDER (README): read -> parser config (names, units) -> resample / interpolate to a uniform rate (data_handler: 100 Hz common time vector, time interpolation) -> DataFile.calc_signals() -> smoothing per filter_config (moving averages written as separate *_smoothed columns) -> lap slicing -> write. The pipeline driver (main.py) and config/filter_config.csv are NOT in the copy: the filter_config window lengths and the call position of the CS step relative to smoothing are not determinable from the reference.
 - calc_signals(), line by line, the steps that feed CS: (1) vy from vx and beta only if vy is absent (vy is a logged channel on the chair's real car -- a measured lateral-velocity / sideslip state); (2) v, beta = atan2(vy, vx) if absent; (3) radius and curvature from v, a_y, beta; curvature_smoothed = 30-sample centred rolling mean -- used only for signs and derived metrics (alpha_diff, excess steer, yaw-rate comparisons), NOT by CS; (4) per-wheel slip angles from UNSMOOTHED vx, vy, yaw rate, steering (calc_slip_angles_vectorized), axle means alpha_f / alpha_r; (5) yaw_accel_radps2 = np.gradient(UNSMOOTHED yaw rate, median dt) -- DIFFERENTIATE FIRST; (6) Fy by the 2-DOF balance (static weight split + I_z yaw_accel / L) ONLY if no Fy channel exists; (7) quasi-static Fz model, efficiencies, weighted slip angles (alpha_f_weighted = Fz-weighted wheel mean) -- not CS inputs. calc_instantaneous_cornering_stiffness() is a separate method consuming alpha_f_rad, alpha_r_rad, fy_f_N, fy_r_N by name (unsmoothed columns); the estimator low-passes alpha and Fy itself (Butterworth order 4, 2 Hz, filtfilt) -- FILTER SECOND.
@@ -25470,8 +25470,8 @@ PARTS C AND D (all three Tier-1 sessions; values US-v2 / v3 / JST 29, front then
 - D3 V-ADAPT (grow until slip and Fy variation exceed 3 x their floors, cap 53 m, nothing deleted): coverage 1.000 everywhere (production 0.93 / 0.93 / 0.89 front, 0.89 / 0.90 / 0.77 rear) -- the spec delivers NO DELETION; median window doubles (about 12 -> 23 m; JST rear 27 -> 37 m); 28-39 % of estimates hit the cap unsatisfied and carry the insufficient grade; lap-to-lap residual -21 / +2 / -9 % front and -11 / +1 / +12 % rear (vs the candidate) -- calm is NOT delivered consistently. Spike table (corrected framing): front non-recurring dips below -1 fall 19 -> 11, 6 -> 4, 5 -> 4; rear ones rise 4 -> 9 on US-v2 (below -2: 0 -> 2), 3 -> 4 / 3 -> 3 elsewhere; position-locked sites: depth kept 0.5-2.5 (mostly about 1) -- the adaptive windows neither erase nor tame them.
 - READING (labelled; the author rules): (1) Fy is not where the dips are made: it is m a_y-dominated, low in yaw-acceleration content, and co-moves with an independent suspension path. (2) The windows at the deepest sites are not starving. (3) Yet the windowed slope there is steeper-negative than the session's own fitted tyre curve can produce. With clean Fy and non-starving windows, the remaining place is the SLIP side and the alpha-Fy pairing (the estimated beta / alpha path, its phase against Fy) -- a named next question, not a finding. (4) The author's adaptive spec delivers full coverage and honest grades, not calm; the grade is informative (exit-heavy, rarely at the deep sites).
 CLOSE-OUT: renders vgrade_<key>.png, vadapt_compare_<key>.png, curvebound_<key>.png, fy_witness_<key>.png, partE_welch4s_bode_<key>.png; JSON audit_<key>.json, partE_welch4s_<key>.json; logs run_<key>.txt. Deviations: Part E titles carry the label via the session name ("post-hoc row: 4 s spectral windows"); the 'braking' phase has no CS samples on Paul Ricard / JST 29 (reported as none). Nothing escalated (no all-18 gate is defined for these characterisations).
-EXIT RULINGS v2 (author, 2026-10-03): (1) Part A CLOSED -- CS conditioning LINEAGE-IDENTICAL to the chair's real-car path (strengthened lineage claim, recorded). Tyre-fit conditioning difference -> Q-CAL shortlist; the upgrade to "reproducible" needs the chair config values, but docs/literature/filter_config.csv and parser_config.csv are 0 BYTES on disk (surfaced; possibly unsaved in the editor) -- not read, not guessed. (2) PART C, BOTH READINGS (dated): the reviewer's Fy-noise mechanism is DEAD (yaw-acceleration term 0.1-0.2 % of in-corner Fy variance in the chain band; Fy co-moves with the damper path). At kerb sites the damper witness is AMBIGUOUS: co-movement may show clean load transfer OR both paths seeing the strike -- "slip side suspect" and "both channels disturbed at strikes" stay open TOGETHER; the curve bound is agnostic between them. (3) CURVE-SHAPE BOUND = the run's finding, section-1 exhibit ("Position-locked CS dips exceed ..."); dips upgrade from magnitude-unproven to magnitude-INCOMPATIBLE. V-GRADE's starvation prediction FAILED, recorded so: spans 3-22 x the floor at the sites, the insufficient marks sit at exits. (4) PART F ordered (below). (5) Slip-side / alpha-Fy pairing = its own package (spec with Q-WHEELLOAD); Q-CAL direction after Part F + that report; inspect_chair_audit.py KEPT; PART E: DEGENERATE AT THIS NOISE (26 / 109 / 39 % vs 25 %); the v3 coincidence of the unconstrained K with K2 is descriptive only.
-PART F -- TYRE-MODEL COMPARISON (author order, run before close; rules frozen in the inspect_chair_audit.py header PART F addendum; outputs partF_<key>.json, partF_tyre_model_<key>.png, run_partF_<key>.txt). INPUT CHECK: docs/literature/filter_config.csv and parser_config.csv are 0 bytes on disk (rechecked after the run) -- the chair's smoothing settings were NOT available; everything below that needs them is marked.
+EXIT RULINGS v2 (author, 2026-10-03): (1) Part A CLOSED -- CS conditioning LINEAGE-IDENTICAL to the chair's real-car path (strengthened lineage claim, recorded). Tyre-fit conditioning difference -> Q-CAL shortlist; the upgrade to "reproducible" needs the chair config values, but docs/literature/filter_config.csv and parser_config.csv are 0 BYTES on disk (surfaced; possibly unsaved in the editor) -- not read, not guessed. (2) PART C, BOTH READINGS (dated): the reviewer's Fy-noise mechanism is DEAD (yaw-acceleration term 0.1-0.2 % of in-corner Fy variance in the chain band; Fy co-moves with the damper path). At kerb sites the damper witness is AMBIGUOUS: co-movement may show clean load transfer OR both paths seeing the strike -- "slip side suspect" and "both channels disturbed at strikes" stay open TOGETHER; the curve bound is agnostic between them. (3) CURVE-SHAPE BOUND = the run's finding, section-1 exhibit ("Position-locked CS dips exceed ..."); dips upgrade from magnitude-unproven to magnitude-INCOMPATIBLE. V-GRADE's starvation prediction FAILED, recorded so: spans 3-22 x the floor at the sites, the insufficient marks sit at exits. (4) PART F ordered (below). (5) Slip-side / alpha-Fy pairing = its own package (spec with Q-WHEELLOAD); Q-CAL direction after Part F + that report; inspect_chair_audit.py (script at tag pre-prune-2026-10-22) KEPT; PART E: DEGENERATE AT THIS NOISE (26 / 109 / 39 % vs 25 %); the v3 coincidence of the unconstrained K with K2 is descriptive only.
+PART F -- TYRE-MODEL COMPARISON (author order, run before close; rules frozen in the inspect_chair_audit.py (script at tag pre-prune-2026-10-22) header PART F addendum; outputs partF_<key>.json, partF_tyre_model_<key>.png, run_partF_<key>.txt). INPUT CHECK: docs/literature/filter_config.csv and parser_config.csv are 0 bytes on disk (rechecked after the run) -- the chair's smoothing settings were NOT available; everything below that needs them is marked.
 - (a) MODEL FORM: IDENTICAL family and parameterisation -- both use the reduced four-parameter Magic Formula Fy = D sin(C atan(B a - E (B a - atan(B a)))), D free (not load-normalised), no shifts, no combined slip. Not load-dependent in either (the chair weights its fit population by speed, not its model by Fz).
 - (b) FIT INPUT CONDITIONING: chair -- slip angle = Fz-weighted wheel mean (alpha_f_weighted, from quasi-static per-wheel loads), axle Fy, both the filter_config moving-average *_smoothed columns, folded (|alpha|, |Fy|), front axle only in the tool; ours -- axle-mean slip angle, Fy, both through the 2 Hz chain low-pass only, signed data, both axles. The chair's smoothing NUMBERS: BLOCKED (filter_config empty on disk). The chair's Fz-weighted slip angle: not reproducible (its per-wheel slip function is in the external vehicle_handler_py).
 - (c) POPULATION AND PROCEDURE: chair -- four overlapping speed bands (reference speeds 18 / 26.7 / 35.3 / 44 m/s, weight clip(1 - k (v - v_ref)^2, 0, 1), samples with weight > 0.05), weighted least squares (scipy least_squares, default trust-region, unbounded), start [10, 1.3, max |Fy|, 0.97], pooled over the selected files; ours -- one fit per session, all speeds unweighted, Powell from the chair CS start guess (12, 1.9, 8000, 0.97), unbounded, signed data.
@@ -25507,7 +25507,7 @@ CHAIR CS-READING TOOL READ (2026-10-03; docs/literature/cs_ratio_tire_obersver_t
 
 ## Q-PAIRING: what the position-locked deep CS dips are -- slip side, strike disturbance, alpha-Fy timing [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-PAIRING (author), EXECUTE with the Part F(b) message; governed by section 2b (mechanisms A slip-side error, B strike-disturbed channels, C alpha-Fy timing held open together; production = candidate). SCRIPT: diagnostics/inspect_pairing.py (rules frozen in its header before any run). Outputs diagnostics/plots/pairing/: sites_<key>.json, synth_<key>.json, lags_<key>.png, site_kerb_<key>.png, site_nokerb_<key>.png, synth_lag_<key>.png, run logs. Tier 1, 22 position-locked sites (front 12, rear 10).
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-PAIRING (author), EXECUTE with the Part F(b) message; governed by section 2b (mechanisms A slip-side error, B strike-disturbed channels, C alpha-Fy timing held open together; production = candidate). SCRIPT: diagnostics/inspect_pairing.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any run). Outputs diagnostics/plots/pairing/: sites_<key>.json, synth_<key>.json, lags_<key>.png, site_kerb_<key>.png, site_nokerb_<key>.png, synth_lag_<key>.png, run logs. Tier 1, 22 position-locked sites (front 12, rear 10).
 ENTRY: the single-sample CS estimator (production window rule, section blend, production running reference) reproduces production CS at every dip sample exactly (difference 0.0 on all six axles).
 - GLOBAL PAIRING (in-corner, every corner instance): alpha-Fy cross-correlation lag median -10 / 0 ms (front / rear, US-v2), -10 / 0 ms (v3), 0 / 0 ms (JST 29); IQR 10-40 ms; 3 of 564 corner lags at the +/-300 ms search edge. The production chain pairs slip angle and force SYNCHRONOUSLY in corners -- no systematic pairing lag.
 - AT THE SITES: the lag is ILL-DEFINED -- 37 of 134 site-laps (28 %) hit the +/-300 ms search edge (corners: 0.5 %); the cross-correlation has no interior maximum there, i.e. slip angle and force do not behave as a time-shifted pair at the dip sites.
@@ -25517,12 +25517,12 @@ ENTRY: the single-sample CS estimator (production window rule, section blend, pr
 - SYNTHETIC LAG (Fy delayed by tau against alpha on clean stretches): the clean-stretch p1 is -0.67 / -0.47 (US-v2 f / r), -0.52 / -0.50 (v3), -0.56 / -0.27 (JST 29) at tau = 0 and deepens only for |tau| >= 100 ms (p1 -0.6 to -1.0 at -100 ms, -0.9 to -1.7 at +200 ms; minima to -3 to -6); +/-20-50 ms change it little. THE PRE-REGISTERED "C SUFFICIENT" TEST IS DEGENERATE: it is met at tau = 0 on 5 of 6 axles because the median site depth (-0.22 to -0.72) is already within the clean stretches' own 1st percentile -- the test cannot separate C from no-lag. Recorded as computed (C SUFFICIENT = true on all six) with this caveat; only JST 29 front (site median -0.72) needs |tau| = 100 ms.
 - VERDICTS AS COMPUTED (22 sites): B 6, C+B 9, C 3, A+B 1, A 1, C+A+B 1, unexplained 1 (v3 front 747 m, lag +150 ms, no B, small gap). Flag totals: B 17, C 13, A 3.
 - READING (labelled; the author rules): (1) Strike disturbance (B) is present at 17 of 22 sites and is directly visible at the deepest one: the force path (m a_y) is disturbed by the strike while the slip path is smoother -- the "both channels disturbed at strikes" reading is supported where the strike is in the window, with the force side the more disturbed. (2) Timing (C) is NOT demonstrated: the chain is synchronous in corners, the site lags are often ill-defined (search edge), and the synthetic test cannot discriminate because the site depths sit inside the clean-stretch tail. (3) Slip-side error (A) is flagged at only 3 sites by the EKF-vs-kinematic gap -- a weak test (two estimates, no reference). (4) NEW observation, descriptive: the median depth of the position-locked dips (-0.22 to -0.72) is NOT deeper than the 1st percentile of CS on clean corner stretches of the same session -- what makes the sites stand out is recurrence at a position, not depth.
-RULINGS ON Q-PAIRING (author, 2026-10-03): (1) verdicts recorded as: B (strike disturbance of the FORCE path) = the supported mechanism, 17 / 22 sites, with the 621 m exhibit; C (timing) = NOT SHOWN -- the synthetic test was degenerate (self-passing at zero delay) and the weak flags rest on limit-hitting lags; A = barely tested, open-minor. KEY REFRAME (section-1 exhibit "The recurring CS dips are position-distinctive ..."): position-distinctive, not depth-distinctive; the deep-spike story ends as short-window regression over strike-disturbed force at fixed sites, magnitude claims void; the healthy normal-corner pairing (median lag ~0, IQR 10-40 ms, 564 passes) is a POSITIVE chain finding. (2) (e) LINEAGE (ruled): NOT on mue_effective alone -- on the chair's combined-slip quantity FAMILY (per-wheel slip velocities, combined slip, slip efficiencies and mue_effective; definitions in Part F(c) above): "the chair computes combined-slip quantities; our occupancy is a demand-side adaptation of the same concept class". (3) inspect_pairing.py KEPT.
+RULINGS ON Q-PAIRING (author, 2026-10-03): (1) verdicts recorded as: B (strike disturbance of the FORCE path) = the supported mechanism, 17 / 22 sites, with the 621 m exhibit; C (timing) = NOT SHOWN -- the synthetic test was degenerate (self-passing at zero delay) and the weak flags rest on limit-hitting lags; A = barely tested, open-minor. KEY REFRAME (section-1 exhibit "The recurring CS dips are position-distinctive ..."): position-distinctive, not depth-distinctive; the deep-spike story ends as short-window regression over strike-disturbed force at fixed sites, magnitude claims void; the healthy normal-corner pairing (median lag ~0, IQR 10-40 ms, 564 passes) is a POSITIVE chain finding. (2) (e) LINEAGE (ruled): NOT on mue_effective alone -- on the chair's combined-slip quantity FAMILY (per-wheel slip velocities, combined slip, slip efficiencies and mue_effective; definitions in Part F(c) above): "the chair computes combined-slip quantities; our occupancy is a demand-side adaptation of the same concept class". (3) inspect_pairing.py (script at tag pre-prune-2026-10-22) KEPT.
 TIMING-HELPER RESOLUTION (author lead, 2026-10-03; docs/literature/resampleandinterpolate.py, 848 bytes, added 12:42; read in full): it is a pipeline DRIVER -- read -> rename __time -> lap_slice -> calc_signals -> resample_and_interpolate -> write -- NOT a lag-correction tool: no cross-correlation, no per-channel delays. DataFile.resample_and_interpolate (data_handler ~2286) linearly interpolates every column onto a uniform 100 Hz grid, with one optional global time offset for the whole frame. RECORD: the chair applies uniform resampling (grid alignment) and NO sensor-latency correction -- the lineage-gap hypothesis on timing is CLOSED (no gap; neither pipeline corrects latency). C stays "not shown, not chair-practised". The stray smoothing_window = 40 constant is defined and never used -- noted, not a setting. Side note: in this driver calc_signals runs BEFORE resampling, so the chair's yaw-acceleration gradient uses the raw time base with the median time step there.
 
 ## Q-WHEELLOAD: per-corner wheel-load renders + damper-gauge decode check [2026-10-03, branch new-laps, read-only; written per part as the run proceeds]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-WHEELLOAD incl. amendment 2 (author), EXECUTE after the Q-PAIRING report. SCRIPT: diagnostics/inspect_wheelload.py (rules frozen in its header before any run). Outputs diagnostics/plots/wheelload/. All 20 usable files; corners never summed to axles. NO new verdict: Q2 stands unless Part 0 or the renders force it open.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-WHEELLOAD incl. amendment 2 (author), EXECUTE after the Q-PAIRING report. SCRIPT: diagnostics/inspect_wheelload.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any run). Outputs diagnostics/plots/wheelload/. All 20 usable files; corners never summed to axles. NO new verdict: Q2 stands unless Part 0 or the renders force it open.
 PART 0 -- DECODE CHECK (ran first; part0.json, run_part0.txt):
 - (a) HEADER UNITS VERBATIM: log_dms_dam_fl / fr / rl / rr read "N" on all 20 files. (Ride-height note for Part 3: log_rideheight_rl reads "m" on nbr_qp_cdr, nbr_qp_mla, pr_us_v2 and v3, "mm" elsewhere -- converted per file.)
 - (b) D1 SCALE (raw / 10, daN logged as N): REJECTED -- the NBR gauges' dynamic std (in motion, off-kerb, analysis laps) is 0.92 / 1.01 / 0.95 / 0.98 of the healthy serial-221 Paul Ricard gauges (FL / FR / RL / RR; healthy std 1.91-2.09 kN): SAME SCALE, the NBR anomaly is a purely additive level. D2 SHARED CONSTANT: NO COLLAPSE -- the Q2 per-file offset K spans 2.10 / 2.20 / 2.27 / 1.41 kN (FL / FR / RL / RR) across the 16 NBR files, against a median |burn-corrected within-run drift| of 62 / 98 / 155 / 147 N (bar: range <= 2 x drift). D3 PORSCHE INVERSE: (i) sign-inverted logged gauge REJECTED -- all 20 files show the load-positive pattern on all four corners (corr(a_y, raw) about -0.8 left, +0.8 right; NBR -0.78 to -0.83 / +0.83 to +0.86); (ii) the inverse convention for a TEAM-SUPPLIED offset value: no such value exists in the data -- not testable, recorded. RESULT AS FROZEN: NO decode convention collapses the offsets; Q2's "not recoverable per outing" is NOT reopened on decode grounds.
@@ -25533,11 +25533,11 @@ PART 2 -- FUEL DRIFT (fueldrift_<key>.png, file_<key>.json): NO file's straight-
 PART 3 -- SETUP-REFERENCE TEST (summary.json, offsets_vs_rideheight.png): NOT SUPPORTED. Spearman rho of the per-file offset K with that corner's ride height at matched speed: FR -0.08, RL -0.20, RR -0.14 (n 16; FL excluded, laser dead) -- no relation. Against outing order: FR -0.32, RL -0.17, RR -0.68 -- the RR offset drifts DOWN over the season (time trend), not with ride height. Rake pair A -> B (outing 21 -> 29): K changes +0.56 / +0.02 / +0.76 / +0.42 kN (FL / FR / RL / RR, gauge units) against ride-height changes FR +0.2, RL +3.9, RR +4.5 mm -- no consistent mapping. PORSCHE CONVENTION RE-READ IN THIS FRAME (record): if the gauges were zeroed against the set-up car on the pad, the per-file offset would follow the static ride height / spring setting of each event; the data show no such dependence, so the offsets are not explained as setup history; the inverse-convention warning continues to apply only to team-supplied offset values, none of which are in the data. SIDE OBSERVATION: the NBR FL ride-height laser reads a live 164 mm on outing 10 (nbr_o010_jdr) and the stuck -101 mm on every other NBR file -- the blockage (author: broken carbon piece) dates after outing 10.
 PART 4 -- CROSS-FILE PER CORNER (offsets_crossfile.png): the Q2 offsets do move file to file by up to 1.4-2.3 kN per corner, BUT most per-file error bars (Q2 uncertainty u in gauge units) overlap a common level per corner; the visibly separated points are few (RL outings 21 and 46; the downward RR trend). Answer to the engineer-conversation question, descriptive: the "jumps" are largely within Q2's own estimation uncertainty -- consistent with the Part 0 lead that the raw in-motion levels vary only 0.39-0.65 kN per corner.
 CLOSE-OUT: no new verdict; Q2 stands (no decode collapse; renders and drift do not force reopening). The lead for the author: a SHARED per-corner NBR offset (about 58.5-60 kN, from the raw levels) may describe the gauges better than Q2's per-file estimates -- testing it would be its own proposal (Q2's family test used the noisier per-file K). Renders loads_<key>.png x20, fueldrift_<key>.png x20, offsets_crossfile.png, offsets_vs_rideheight.png; JSON part0.json, file_<key>.json x20, summary.json; logs run_part0.txt, run_files_0..3.txt, run_summary.txt.
-RULINGS ON Q-WHEELLOAD (author, 2026-10-03): (1) the shared per-corner offset becomes its own SMALL package, Q-SHARED-OFFSET (pre-registered before compute; the run's observation was outside frozen rules -- the package exists to TEST it, not to adopt it). (2) TWO FAILED HYPOTHESES, dated 2026-10-03: the FUEL-DRIFT hypothesis (author) -- no file's drift tracks burn (slopes -35..+32 N/kg vs -2.45 expected); the SETUP-REFERENCE hypothesis (author + reviewer) -- offsets do not follow ride height (|rho| <= 0.20). Both REPLACED by "EVENT-REFERENCED SHARED OFFSET, ORIGIN UNKNOWN". The ENGINEER QUESTION is REWRITTEN: "what changed in load-channel zeroing between the Paul Ricard and Nurburgring events; why does the rear-right offset drift over the season" -- renders in hand (diagnostics/plots/wheelload/). (3) diagnostics/inspect_wheelload.py KEPT. (4) Queue: Q-SHARED-OFFSET next (half-session, decides (e) reach), then Q5, then Q-CAL.
+RULINGS ON Q-WHEELLOAD (author, 2026-10-03): (1) the shared per-corner offset becomes its own SMALL package, Q-SHARED-OFFSET (pre-registered before compute; the run's observation was outside frozen rules -- the package exists to TEST it, not to adopt it). (2) TWO FAILED HYPOTHESES, dated 2026-10-03: the FUEL-DRIFT hypothesis (author) -- no file's drift tracks burn (slopes -35..+32 N/kg vs -2.45 expected); the SETUP-REFERENCE hypothesis (author + reviewer) -- offsets do not follow ride height (|rho| <= 0.20). Both REPLACED by "EVENT-REFERENCED SHARED OFFSET, ORIGIN UNKNOWN". The ENGINEER QUESTION is REWRITTEN: "what changed in load-channel zeroing between the Paul Ricard and Nurburgring events; why does the rear-right offset drift over the season" -- renders in hand (diagnostics/plots/wheelload/). (3) diagnostics/inspect_wheelload.py (script at tag pre-prune-2026-10-22) KEPT. (4) Queue: Q-SHARED-OFFSET next (half-session, decides (e) reach), then Q5, then Q-CAL.
 
 ## Q-SHARED-OFFSET: one shared damper-gauge offset per corner across the 16 NBR files -- PARTIAL (front right) [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-SHARED-OFFSET (author), EXECUTE with the package text. SCRIPT: diagnostics/inspect_shared_offset.py (rules frozen in its header before any compute). Outputs diagnostics/plots/shared_offset/: fit.json, shared_offsets.png, recovered_<role>_<key>.png (earliest nbr_o005_mla, median-residual nbr_o018_jst, latest nbr_qp_mla, worst nbr_o064_jst), run logs. Purpose: TEST the Q-WHEELLOAD observation, not adopt it.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-SHARED-OFFSET (author), EXECUTE with the package text. SCRIPT: diagnostics/inspect_shared_offset.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any compute). Outputs diagnostics/plots/shared_offset/: fit.json, shared_offsets.png, recovered_<role>_<key>.png (earliest nbr_o005_mla, median-residual nbr_o018_jst, latest nbr_qp_mla, worst nbr_o064_jst), run logs. Purpose: TEST the Q-WHEELLOAD observation, not adopt it.
 - ESTIMATOR: per corner, pooled least squares over the 16 files on Q2's straight mask, fz0 - target = K MR + b v^2, ONE aero term b per corner, every file weighted equally (target = config corner weight - burn g / 4, burn from ecu_fuelcons_kg, 5.9-26.3 kg per file); LINEAR variant adds a term in outing rank.
 - SHARED OFFSETS (gauge units, constant variant): FL 58.14, FR 59.31, RL 58.69, RR 59.66 kN; season terms small (FL -21, FR -32, RL -1, RR -11 gauge-N per outing rank). Aero b 0.25-0.60 N per (m/s)^2 per corner.
 - UNCERTAINTY (pre-registered u, wheel N): FL 204 / 206, FR 217 / 199, RL 144 / 142, RR 163 / 151 (constant / linear) -- ALL FAR INSIDE the 700 N bar. Per-file scatter around the shared value s_between 86-235 gauge-N, file-bootstrap SE 72-200 gauge-N.
@@ -25547,20 +25547,20 @@ WORK ORDER: PLAN.md PHASE 1 PLAN Q-SHARED-OFFSET (author), EXECUTE with the pack
 - RENDERS (assistant read; the author rules): recovered loads follow the static fallback's shape on all four renders and sit ABOVE it at speed by the aero load the static model lacks (lift_coeff 0.0; rear +1.5-2 kN on straights), with plausible cornering swings -- visually credible measured loads, including on the worst file.
 - READING (labelled): (1) The in-motion recovery works on all four corners by the uncertainty and dynamic-shape criteria; what fails is the STATIC cross-check, and it fails mostly on single files (FL, RL) or systematically (RR). V4 leans on Q2's C1 stationary offsets, which come from one or few short stationary windows per file (Q2 recorded C1 vs C2 disagreements up to ~1 kN), so V4 is the noisiest leg of the bar -- recorded as a property of the test, not a reason to override it. (2) RR's systematic static-vs-motion gap (~0.6 kN) is the physical question: a gauge or linkage that reads differently at rest than rolling (stiction, hysteresis, temperature) is a candidate, not a finding. (3) Q2 reopens for FRONT RIGHT only, per the frozen exit; the rest stands.
 CONSEQUENCES PER THE PACKAGE: Q2 REOPENS for the NBR front-right corner (L4-rel with a shared offset, uncertainty 217 N); L4 upgrade path: one corner of 16 files, which on its own does not complete any axle (front axle needs FL too); (e) reach unchanged (2 of 20); BACKLOG item 4 (load-weighted slip) stays blocked (needs both corners of an axle).
-RULINGS ON Q-SHARED-OFFSET (author, 2026-10-03): (1) The frozen exit STANDS: PARTIAL, front right recovered -- no post-hoc bar movement. V4's own reliability becomes a NAMED QUESTION (it rests on Q2's short standing windows, which in Q2 disagreed by up to ~1 kN): a small read-only V4 WINDOW DIAGNOSTIC (no refit) opens the standing windows of the two single-file failures (FL on nbr_jst_solution, RL on nbr_qp_mla) -- duration, position in the outing, gauge trace through them, jack / pit / kerb contamination evidence, vs the rolling-derived value; the author then rules whether V4 on those files is a valid measurement or check-noise. PRE-REGISTERED CONSEQUENCE: ONLY if the author rules the windows invalid do FL / RL upgrade to recovered; the bar itself never moves. (2) RR: the ~0.6 kN standing-vs-rolling gap enters the rewritten engineer question as a MEASURED SYMPTOM (consistent, five files, plus the season trend): "what changed in zeroing between events; why does RR drift and disagree standing-vs-rolling". (3) diagnostics/inspect_shared_offset.py KEPT (reproduces the FR recovery Q2 now builds on). (4) Queue: the V4 window diagnostic and the CHANNEL-INVENTORY ADDENDUM run together (both small, read-only), then Q5, then Q-CAL.
+RULINGS ON Q-SHARED-OFFSET (author, 2026-10-03): (1) The frozen exit STANDS: PARTIAL, front right recovered -- no post-hoc bar movement. V4's own reliability becomes a NAMED QUESTION (it rests on Q2's short standing windows, which in Q2 disagreed by up to ~1 kN): a small read-only V4 WINDOW DIAGNOSTIC (no refit) opens the standing windows of the two single-file failures (FL on nbr_jst_solution, RL on nbr_qp_mla) -- duration, position in the outing, gauge trace through them, jack / pit / kerb contamination evidence, vs the rolling-derived value; the author then rules whether V4 on those files is a valid measurement or check-noise. PRE-REGISTERED CONSEQUENCE: ONLY if the author rules the windows invalid do FL / RL upgrade to recovered; the bar itself never moves. (2) RR: the ~0.6 kN standing-vs-rolling gap enters the rewritten engineer question as a MEASURED SYMPTOM (consistent, five files, plus the season trend): "what changed in zeroing between events; why does RR drift and disagree standing-vs-rolling". (3) diagnostics/inspect_shared_offset.py (script at tag pre-prune-2026-10-22) KEPT (reproduces the FR recovery Q2 now builds on). (4) Queue: the V4 window diagnostic and the CHANNEL-INVENTORY ADDENDUM run together (both small, read-only), then Q5, then Q-CAL.
 ADDENDUM RECEIVED with the rulings (author, 2026-10-03): CHANNEL INVENTORY SCAN of every channel in all 20 files (name, unit, rate, liveness) against what the parser consumes, hunting damper / load-adjacent channels beyond the four read (raw strain / voltage signals, alternative load outputs, RAW vs PROCESSED pairs -- author: the voltage offset is entered manually on these systems, so a processing layer exists; an untreated signal may sit next to the treated one we read, or vice versa). Report per file family: channel, unit, rate, consumed-by-us yes/no, candidate relevance.
 LAUNCH NOTE (session): the rulings say the two items run "NOW"; the literal word EXECUTE was not given, so per the launch rule both are premise-checked and frozen, and wait for EXECUTE.
 PREMISE CHECK (session, from code and Q2 output files, 2026-10-03): Q2's stationary windows are runs of v < 3 km/h lasting >= 1 s; C1 averages only the samples in them whose four travels lie inside the p0.5-p99.5 band of low-speed driving (5-80 km/h) -- the "on wheels" test that excludes air jacks -- and needs >= 50 such samples per window. nbr_jst_solution: two windows (t0 138.6 s, 4.8 s long; t0 1136.6 s, 2.0 s), both fully on wheels; FL C1 59.52 kN from the two windows with a between-window SD of only 53 gauge-N -- the two windows AGREE with each other. nbr_qp_mla: two windows (t0 271.6 s, 2.1 s, only 68 % of samples on wheels; t0 1252.6 s, 2.0 s, fully on wheels); RL C1 57.65 kN with a between-window SD of 340 gauge-N -- the two windows DISAGREE. The parser consumes the channels named in config/channels.json (46, including log_dms_dam_* -- "DMS", German Dehnungsmessstreifen, strain gauge -- and log_susp_travel_*); every raw export stores each channel as its own block with its own time stamps, so rate and unit are read per channel from the file.
 PROCESS RULE (author, 2026-10-03; recorded with the backlog in PLAN.md): any finding that identifies a defect in PRODUCTION behaviour carries a PRODUCTION CONSEQUENCE line -- fix queued, or author ships known-defect. An explanation never silently closes a defect.
 AUTHOR READING (2026-10-03, anchors the Q-V4-WINDOWS results): the per-corner NBR wheel-load renders read as HEALTHY GAUGES ON AN UNPINNED REFERENCE -- "not too bad" (author's verdict). The older framing of the NBR damper channels as "broken sensors / 60 kN fault" is SUPERSEDED, dated 2026-10-03 (earlier entries stand as written; the large in-motion gauge level is an unpinned offset, not a sensor fault). SYMMETRIC RULE (author): the V4 standing-vs-rolling disagreement is itself a MEASUREMENT, not presumed check-noise. Q-V4-WINDOWS decides CONTAMINATED WINDOWS vs REAL GAP; both exits are pre-registered, neither is favoured. The kinematic-offset discrepancy (standing vs rolling level of the same gauge) is not to be pushed aside either way.
-EXECUTE (author, 2026-10-03): Q-V4-WINDOWS and Q-CHANNEL-INVENTORY launched per the frozen header of diagnostics/inspect_v4_windows.py (inventory in parallel batches). SUPERSESSION FORM (author ruling on OPEN 2): no earlier entries are struck for the "broken sensors / 60 kN fault" framing -- the dated supersession note is the correct form; earlier entries stand as the record of what was believed when.
+EXECUTE (author, 2026-10-03): Q-V4-WINDOWS and Q-CHANNEL-INVENTORY launched per the frozen header of diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22) (inventory in parallel batches). SUPERSESSION FORM (author ruling on OPEN 2): no earlier entries are struck for the "broken sensors / 60 kN fault" framing -- the dated supersession note is the correct form; earlier entries stand as the record of what was believed when.
 STANDING NOTE FOR Q-CAL's ASSEMBLY (author, 2026-10-03): the reviewer flags his own closing-bias; Q-CAL's order is written IMPLEMENTATION-FIRST (the constructive ledger), closures feed Q5's cleanup, not the work order. Order: (1) kerb-mask edge fix, dilation calibrated from the measured strike-disturbance decay, acceptance = CS windows no longer straddle disturbed stretches (PRODUCTION CHANGE); (2) FR L4 load upgrade (+ the corners the V4 outcome adds): shared-offset recovered loads into the load source for NBR files (PRODUCTION CHANGE, accuracy-level system); (3) chair fit-conditioning: speed-banded fits + 0.15 s moving average on fit inputs (chair-exact, reproducible) + a K2-CONSTRAINED fit variant (labelled: the measured understeer gradient as an equality constraint -- pins the stiffness BALANCE; one labelled variant beside the unconstrained fit); calibration pass THEN production proposal; (4) grade marks ("insufficient signal") + display route (cross-lap band; redesigned recurrence display -- the author found the phase-median render unreadable) (PRODUCTION / UI); (5) TC / engine-brake / ABS phase-gating audit: levers reachable only from evidence in their physical phase (TC = on-throttle / exit; author domain rule) -- check, then guard if missing; (6) config notes 7 + 7b ride the first config touch. Queue after Q-CAL: Q5 cleanup, then Q-K2.
 RE-ORDER (author, 2026-10-03, before V4 rules anything; "we are being too picky and it costs 16 files"): (1) RR is NOT closed as "fails V4": model RR as constant + a characterised standing-rolling correction -- a CONSISTENT 0.6 kN gap (five files, not scatter) is subtractable by definition, not a disqualifier; report whether RR recovers under constant + correction within the shape-validity checks. (2) TARGET-SIDE CHECK: V4 tests the gauge against the CONFIG static corner weight (290 / 290 / 395 / 381 kg, Level 1, provenance never confirmed by the author); test whether the RR gap and the season drift are explained by the target being wrong (actual NBR rear weight differing from config; setup / ballast change across the season) -- if the gauge reads a real car that config mis-states, the gauge is fine and config is the error. (3) POSTURE (standing): recovery exits are judged "can this be characterised and subtracted", NOT "does the one-constant model pass first try". Fewer files lost to model-pickiness; genuine gauge faults still excluded. The bar stays (shape validity + bounded uncertainty); what widens is the MODEL allowed to hit it.
 RE-ORDER PREMISE CHECK (session, arithmetic on existing outputs, 2026-10-03): (a) Config corner weights confirmed in config/parameters.json: 290 / 290 / 395 / 381 kg, note "RR calculated: total - FL - FR - RL. Measured on setup patch including adapters." (b) TARGET vs GAP: the target enters the standing offset C1 and the rolling offset K_shared alike; their difference moves only through the motion ratio at rest vs rolling (median MR standing / rolling: FL 0.6584 / 0.6563, FR 0.6579 / 0.6549, RL 0.7799 / 0.7810, RR 0.7797 / 0.7808) -- 0.0014-0.0045 N of gap per N of target error; the 0.6 kN RR gap would need ~45 t. The target cannot produce the standing-rolling gap; it can produce per-file / seasonal offset changes (re-order item 2 splits accordingly). (c) SIGNED GAPS (C1 - K_shared) x MR_s, median over 16 files: FL +298, FR +269, RL -171, RR -602 N (RR range -914..-115: one sign, consistent). (d) SAME-CAR VOLTAGE REFERENCE (from the inventory maps; car 221 = NBR and Paul Ricard, lmn_mla / Dubai are car 147): NBR-minus-v3 voltage-map offsets FL 58.61, RL 58.52, RR 58.96 kN (gauge units); against the NBR STANDING offsets (C1 median) they differ by only +8 / +35 / +56 N wheel, against the ROLLING shared offsets by +306 / -136 / -546 N. Reading (labelled, to be tested in Q-RECOVER-2 T3): an independent same-car reference agrees with the gauge AT REST, and so -- since C1 is defined against the config weights -- with the config corner weights at rest; the RR gap then sits in the ROLLING model, not in the gauge or the target. Proviso: rests on the Paul Ricard zero being right (T3(a) tests it). v3's FR voltage map is invalid (offset -16 MN): no same-car FR reference from v3.
 
 ## Q-V4-WINDOWS: what the standing windows behind the two single-file V4 failures contain [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-V4-WINDOWS (author ruling 1 on Q-SHARED-OFFSET; EXECUTE 2026-10-03). SCRIPT: diagnostics/inspect_v4_windows.py mode windows (rules frozen in header). Outputs diagnostics/plots/v4_windows/: windows.json, window_nbr_jst_solution.png, window_nbr_qp_mla.png, run_windows.txt.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-V4-WINDOWS (author ruling 1 on Q-SHARED-OFFSET; EXECUTE 2026-10-03). SCRIPT: diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22) mode windows (rules frozen in header). Outputs diagnostics/plots/v4_windows/: windows.json, window_nbr_jst_solution.png, window_nbr_qp_mla.png, run_windows.txt.
 - REPRODUCTION CHECK passed: the rebuilt windows and per-corner C1 match Q2's record (1 ms / 1 gauge-N). Run note: the first launch stopped on a key-lookup bug (fit.json stores per-file offsets by file name) before any evidence was computed; fixed, re-run, no rule touched.
 - nbr_jst_solution, FRONT LEFT (V4 901 N): window 1 = 4.8 s in the pit lane before departure (out-lap, limiter on, engine 1749 rpm, held on ~15 bar brake), window 2 = 2.0 s after the final stop (in-lap, engine off, brake released). Both fully on wheels, no kerb (same-distance kerb share 0.41 / 0.00), settled (FL half-to-half change -63 / +103 N). FL error vs this file's rolling value +653 / +723 N -- the two windows AGREE (70 N apart). Load pattern (E6): FL +653..+723, FR +142..+155, RL -205..-233, RR -86..-108 N, sum +483..+558 N -- an FL-only level, not a redistribution. Only "dirty" item: E3 |a_x| > 0.1 g in both windows.
 - nbr_qp_mla, REAR LEFT (V4 811 N): window 1 = the first 2.1 s of the file (out-lap start in the pit lane, engine cranking ~324 rpm, brake ~24 bar), only 68 % on wheels -- the render shows the car coming DOWN OFF THE AIR JACKS (travel 22 mm -> 0, gauges recovering from about -4 kN), |a_x| peak 1.87 g, rear half-to-half changes ~1.1 kN, four-corner sum -2.0 kN (not at equilibrium). Window 2 = 2.0 s after the final stop (engine off), fully on wheels, still settling (+400..+580 N over 2 s on all corners); RL there 546 N (passes the bar), RR 839 N.
@@ -25571,7 +25571,7 @@ WORK ORDER: PLAN.md PHASE 1 PLAN Q-V4-WINDOWS (author ruling 1 on Q-SHARED-OFFSE
 
 ## Q-CHANNEL-INVENTORY: every channel in all 20 files, raw damper-gauge voltages found [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-CHANNEL-INVENTORY (ADDENDUM to Q-SHARED-OFFSET; EXECUTE 2026-10-03). SCRIPT: diagnostics/inspect_v4_windows.py modes inventory <key> | families (rules frozen in header). Outputs diagnostics/plots/v4_windows/inventory/: inv_<key>.json x20, families.json, families.txt (plain list per family: channel, unit, rate, consumed, relevance, liveness, pair test); logs run_inv_0..3.txt, run_inv_rerun.txt, run_families.txt.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-CHANNEL-INVENTORY (ADDENDUM to Q-SHARED-OFFSET; EXECUTE 2026-10-03). SCRIPT: diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22) modes inventory <key> | families (rules frozen in header). Outputs diagnostics/plots/v4_windows/inventory/: inv_<key>.json x20, families.json, families.txt (plain list per family: channel, unit, rate, consumed, relevance, liveness, pair test); logs run_inv_0..3.txt, run_inv_rerun.txt, run_families.txt.
 - Run note: three files (dubai, nbr_jst_problem, nbr_jst_solution) first crashed on a parse bug (a time stamp kept when its value failed to parse -> arrays out of step); fixed (both parsed before either is kept), re-run; no rule touched. PREMISE CORRECTION: both Paul Ricard files in the usable set are NARROW layout (one channel per block); the wide reader stays but no usable file needs it.
 - FAMILIES (identical channel sets, Jaccard >= 0.95 merged): F1 Dubai (car 147, 2622 channels); F2 lmn_mla (car 147, 3037); F3 the 14 NBR race / test files (car 221, 3897 in every file, 3910 in any); F4 the two NBR qualifying files + both Paul Ricard files (car 221, 4092 / 4210). The parser consumes 46 channels (config/channels.json), present in all 20 files.
 - RAW GAUGE VOLTAGES (the addendum's target): Input 21 / 29 / 31 / 39 Voltage = the raw amplifier voltages behind log_dms_dam_fl / fr / rl / rr. 20 Hz, unit V, LIVE in all 20 files, linear companion of the processed gauge in 20 / 20 files per corner (|r| 0.981-0.994; the residual is the 20 Hz vs 100 Hz sampling and filtering). GAIN 11,990-12,210 N per V, the same on all four corners, both cars and every event (one calibration). ZERO OFFSET of the processed channel (gauge = gain x V + offset): car 147 (Dubai, Le Mans) -15.2..-15.7 kN; car 221 at Paul Ricard -15.5..-15.7 kN (FL, RL, RR); car 221 at NBR +42.7..+43.7 kN on ALL 16 files. The NBR "60 kN" level is therefore a different ZERO ENTRY in the processing layer for the NBR event alone (~58.5 kN = ~4.8 V equivalent), with the raw voltage logged unchanged beside it -- the author's raw-vs-processed hypothesis CONFIRMED in the data. Per-file NBR offsets spread only +/-~0.1-0.2 kN per corner (gauge units).
@@ -25585,13 +25585,13 @@ RULINGS ON Q-V4-WINDOWS + Q-CHANNEL-INVENTORY (author, 2026-10-03):
 (2) qp_mla RL: the jack-drop window is INVALID (car coming off air jacks, 68 % off-wheels, 2 kN sum deficit = textbook contamination). RL upgrades per the pre-registered consequence.
 (3) EXECUTE Q-RECOVER-2, R3 IN -- the main event: recovery through the voltage reference is the reference-pinned route the whole arc was missing. R1's leave-one-out stays as the RR cross-check.
 (4) PRODUCTION CONSEQUENCE: FIX QUEUED -- Q-CAL item 2 upgraded to "NBR loads recovered via the voltage path, all four corners candidate", pending Q-RECOVER-2's numbers. Production does not ship with the known defect.
-(5) diagnostics/inspect_v4_windows.py KEPT (backs the raw-voltage finding and the window verdicts).
+(5) diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22) KEPT (backs the raw-voltage finding and the window verdicts).
 (6) ARC CLOSURE (dated 2026-10-03): the NBR gauge story ends as "healthy gauges + an event-specific zero ENTRY in the processing layer; raw voltages logged beside; gain ~12,150 N/V universal; recovery reference-pinned via voltage". The drift, fuel, setup-reference and broken-sensor hypotheses are all formally SUPERSEDED. The engineer question reduces to: what reference were the zero entries set against per event (setup sheets?).
 EXECUTION NOTE (session, before compute): rule 0 post-dates the frozen Q-RECOVER-2 header. T3(a) (PR zero vs config, 700 N), T3(c) (config check) and R3's V4 item and e_PR term compare against config absolutely. They are computed exactly as frozen; any exit that fails ONLY on such a config-absolute item is marked "rule 0 applies" for the author's ruling -- no criterion is silently dropped.
 
 ## Q-RECOVER-2: NBR wheel loads recovered on all four corners through the raw-voltage reference [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md PHASE 1 PLAN Q-RECOVER-2 (author RE-ORDER + EXECUTE with R3 IN, 2026-10-03). SCRIPT: diagnostics/inspect_recover_rr.py (rules frozen in header before compute; [impl] notes and one pre-compute amendment dated in it). Outputs diagnostics/plots/recover_rr/: recover.json, voltage_reference.png, gap_correction.png, drift_patterns.png, run.txt, run_render.txt. Tier B throughout (calibration offset of a logged sensor, standard statics); no Tier A method involved.
+WORK ORDER: PLAN.md PHASE 1 PLAN Q-RECOVER-2 (author RE-ORDER + EXECUTE with R3 IN, 2026-10-03). SCRIPT: diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22) (rules frozen in header before compute; [impl] notes and one pre-compute amendment dated in it). Outputs diagnostics/plots/recover_rr/: recover.json, voltage_reference.png, gap_correction.png, drift_patterns.png, run.txt, run_render.txt. Tier B throughout (calibration offset of a logged sensor, standard statics); no Tier A method involved.
 - METHOD (R3, the main event): the NBR processed gauge equals gain x V + offset_NBR, the Paul Ricard gauge of the SAME car (serial 221) gain x V + offset_PR, both maps fitted in Q-CHANNEL-INVENTORY. The NBR gauge offset is therefore K_V = offset_NBR - offset_PR, per file and corner (PR FR including production's existing channel correction); one constant per corner = the median over the 16 files. It is pinned to a reference (the same car's other event), not fitted to the NBR config target. Uncertainty u_V = sqrt((MR_s x sqrt(SD_f(K_V)^2 + e_PR^2))^2 + 98^2), e_PR = how far PR's own standing loads sit from config.
 - RESULT R3: offsets FL 58.64, FR 59.47, RL 58.42, RR 58.91 kN (gauge units); file-to-file SD only 45 / 46 / 95 / 76 gauge-N -- the zero entry is CONSTANT across all 16 NBR outings. u_V FL 177, FR 332, RL 389, RR 140 N (102-123 N without the config-referenced e_PR term). V1 (min p0.1 -198 FL -- marginal, 2 N inside the -200 N floor; -116 FR, +52 RL, +682 RR), V2 (min |r| 0.854-0.886), V3 (min b 1.40), V4 (max 576 / 394 / 335 / 475 N) pass on all 16 files. EXIT: ALL FOUR CORNERS RECOVERED VIA REFERENCE.
 - R1 (RR cross-check, leave-one-out): with one characterised standing-rolling correction per corner (FL +298, FR +269, RL -171, RR -602 N) every corner is RECOVERED WITH CORRECTION (LOO max 611 / 444 / 416 / 526 N, u_stand 237-298 N); RR in both variants (LOO max 526 / 482 N). Under the author's posture the RR gap is characterised and subtractable.
@@ -25603,15 +25603,15 @@ WORK ORDER: PLAN.md PHASE 1 PLAN Q-RECOVER-2 (author RE-ORDER + EXECUTE with R3 
 - CONSEQUENCES: Q2 REOPENS for all four NBR corners (reference-pinned via voltage); (e) reach gate re-scored, COUNT ONLY, no adoption: rear axle recovered -> 18 of 20 (was 2 of 20); BACKLOG item 4 (load-weighted slip) UNBLOCKED for re-scoring (both axles); Q-CAL item 2 has its numbers (offsets and u_V above).
 - PRODUCTION CONSEQUENCE: FIX QUEUED (author ruling 4) -- Q-CAL item 2 implements the voltage-path recovery for NBR loads, all four corners; no production change in this package.
 - METHODS NOTE (relative-valid class, section 4 item 15): the NBR damper loads LEAVE the "reference-unpinned" class -- the raw voltage plus a same-car reference event pins them. The general lesson stands: a racing log rich in shape can still hide its own reference one processing layer down.
-RULINGS ON Q-RECOVER-2 (author, 2026-10-03; recording only): (1) FL V1 (-198 vs -200 N): PASS -- 20 kg on a dynamic 1300 kg vehicle is not significant; no grade mark, no re-check. (2) FR accepted into Q-CAL item 2 with the other three corners; no special marks. (3) diagnostics/inspect_recover_rr.py KEPT -- the reference for Q-CAL item 2: production's voltage path must reproduce its four offsets (FL 58.64, FR 59.47, RL 58.42, RR 58.91 kN, gauge units). (4) No commit now; nothing went into production. Q-RECOVER-2 CLOSED.
+RULINGS ON Q-RECOVER-2 (author, 2026-10-03; recording only): (1) FL V1 (-198 vs -200 N): PASS -- 20 kg on a dynamic 1300 kg vehicle is not significant; no grade mark, no re-check. (2) FR accepted into Q-CAL item 2 with the other three corners; no special marks. (3) diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22) KEPT -- the reference for Q-CAL item 2: production's voltage path must reproduce its four offsets (FL 58.64, FR 59.47, RL 58.42, RR 58.91 kN, gauge units). (4) No commit now; nothing went into production. Q-RECOVER-2 CLOSED.
 SCOPE ADDITION RECEIVED (author, from review, 2026-10-03): "~~The RR gap and the season drift are a proven defect in the production rolling fit. Per the production-consequence rule this needs a fix line, not just an explanation. Q-CAL item 3 (fit-conditioning) carries this defect; after item 3, re-run the T2 drift decomposition and the RR standing-vs-rolling comparison. If item 3 does not resolve it, it goes to BACKLOG by author ruling.~~" [SUPERSEDED 2026-10-03, author ruling option (b): premise wrong (reviewer error) -- production has no rolling offset fit, so no production defect and no production-consequence line; see "Rolling-estimator limit" below.]
-PREMISE NOTE (session, from the code, 2026-10-03; surfaced, placement left to the author): production has NO rolling offset fit -- modules/wheel_loads.py reads a fixed config offset (wheel_loads.pushrod_offset_*_N = 0.0) and on NBR uses the static fallback (Q2 partA.json). The rolling fit that carried the RR gap and the drift is the DIAGNOSTIC estimator of Q-SHARED-OFFSET (diagnostics/inspect_shared_offset.py: shared aero term per corner, config target), never production. Q-CAL item 3 conditions the TYRE / CS fits (speed bands, 0.15 s moving average, K2-constrained variant), not the damper-offset fit. Once Q-CAL item 2 ships the voltage path, production uses no rolling offset fit at all.
+PREMISE NOTE (session, from the code, 2026-10-03; surfaced, placement left to the author): production has NO rolling offset fit -- modules/wheel_loads.py reads a fixed config offset (wheel_loads.pushrod_offset_*_N = 0.0) and on NBR uses the static fallback (Q2 partA.json). The rolling fit that carried the RR gap and the drift is the DIAGNOSTIC estimator of Q-SHARED-OFFSET (diagnostics/inspect_shared_offset.py (script at tag pre-prune-2026-10-22): shared aero term per corner, config target), never production. Q-CAL item 3 conditions the TYRE / CS fits (speed bands, 0.15 s moving average, K2-constrained variant), not the damper-offset fit. Once Q-CAL item 2 ships the voltage path, production uses no rolling offset fit at all.
 Rolling-estimator limit: the RR gap and the season drift belong to the DIAGNOSTIC estimator, not to the gauge or production [2026-10-03, author ruling option (b)]
-The ~0.6 kN RR standing-vs-rolling gap and the season drift of the rolling offset are a LIMITATION of the diagnostic rolling estimator of Q-SHARED-OFFSET (diagnostics/inspect_shared_offset.py: one shared aero term per corner, offset fitted against the config target on > 60 km/h straights). The voltage reference (Q-RECOVER-2) does not show them: its per-corner offset is flat over the 16 NBR outings (SD 45-95 gauge-N) and matches the at-rest offsets on FL / RL / RR. No production code has a rolling offset fit (modules/wheel_loads.py reads a fixed config offset), so there is no production defect and no production-consequence line. Thesis use: (1) methods evidence for the voltage path -- a reference-pinned offset avoids the confounding a target-referenced rolling fit picks up (unmodelled per-outing weight, aero split); (2) estimator-limits content -- a fit that absorbs offset into its own model terms can produce an apparent sensor symptom (gap, drift) that the sensor does not have. No fix owed; recorded in PLAN.md BACKLOG -- PERMANENT as a methods limitation.
+The ~0.6 kN RR standing-vs-rolling gap and the season drift of the rolling offset are a LIMITATION of the diagnostic rolling estimator of Q-SHARED-OFFSET (diagnostics/inspect_shared_offset.py (script at tag pre-prune-2026-10-22): one shared aero term per corner, offset fitted against the config target on > 60 km/h straights). The voltage reference (Q-RECOVER-2) does not show them: its per-corner offset is flat over the 16 NBR outings (SD 45-95 gauge-N) and matches the at-rest offsets on FL / RL / RR. No production code has a rolling offset fit (modules/wheel_loads.py reads a fixed config offset), so there is no production defect and no production-consequence line. Thesis use: (1) methods evidence for the voltage path -- a reference-pinned offset avoids the confounding a target-referenced rolling fit picks up (unmodelled per-outing weight, aero split); (2) estimator-limits content -- a fit that absorbs offset into its own model terms can produce an apparent sensor symptom (gap, drift) that the sensor does not have. No fix owed; recorded in PLAN.md BACKLOG -- PERMANENT as a methods limitation.
 
 ## Q-CAL-1 measurement: kerb strikes leak past the mask edge through the 2 Hz filter [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: PLAN.md Q-CAL item 1 (kerb-mask edge fix), re-scoped by the author 2026-10-03 to the FILTER-SMEAR path; raw-envelope mask extensions (options 1 / 2) stay closed per "Kerb-detection variant rulings" (2026-10-01). Tier B preprocessing measurement, no anchor claimed. SCRIPT: diagnostics/inspect_kerb_filter_decay.py (rules frozen in its header before the first run; entry check amended once after the smoke run, rounding only, author ruling). Outputs diagnostics/plots/kerb_filter_decay/.
+WORK ORDER: PLAN.md Q-CAL item 1 (kerb-mask edge fix), re-scoped by the author 2026-10-03 to the FILTER-SMEAR path; raw-envelope mask extensions (options 1 / 2) stay closed per "Kerb-detection variant rulings" (2026-10-01). Tier B preprocessing measurement, no anchor claimed. SCRIPT: diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before the first run; entry check amended once after the smoke run, rounding only, author ruling). Outputs diagnostics/plots/kerb_filter_decay/.
 PREMISE (from the code): production low-passes Fy and alpha (2 Hz, 4th-order Butterworth, zero-phase filtfilt; chair-identical lineage) over the whole series WITH the strike samples, and applies the kerb mask afterwards as an endpoint exclusion only (estimate_cornering_stiffness; the window [start, i) still holds masked samples). The filter alone spreads one sample over +/-0.19 s at 20 % of peak and +/-0.40 s at 10 % (impulse response at 100 Hz). The 2026-10-01 variants measured only RAW ay / yaw envelopes (p75 80-100 ms); the filtered force path that CS regresses was never measured. Side finding: kerb_dilation_samples = 5 is a sample count calibrated as 100 ms on the old 50 Hz grid and runs as +/-50 ms on the 100 Hz grid (known limit in the config's grid-rate comment, never repaired).
 METHOD: event = production-mask run touching a moving analysis-lap sample. Smear d = filt(x_raw) - filt(x_raw with every mask run bridged by a straight line between its neighbouring samples), x in Fy_f, Fy_r, alpha_f, alpha_r. Noise band = p95 of |d| 0-1 s beyond the edges of null-control pseudo-runs (same length, random in-corner positions >= 2 s from any mask sample, seed 20261003). Decay = connected exceedances of the band past the mask edge (0.10 s gap bridge for the filter's ringing), stopped at the next mask run (censored) or 1.5 s; pre side mirrored. Entry check: cached production CS reproduced, identical finite set, max |diff| <= 1e-6.
 SESSIONS: 15 of 16 NBR (nbr_o020_jst stopped at the entry check, see below) + Paul Ricard pr_us_v2 and v3.
@@ -25633,9 +25633,9 @@ SPIKE COINCIDENCE (author ruling 5; read-only from decay_records.json + the cach
 - Zone vs mask contribution (window contents BOUNDED only -- production alpha is not cached, so windows are bounded by the 0.1 s minimum window below and the 53 m cap above): minimum window, deep tail, holds zone only 16.0 / 16.7 %, mask only 0.6 / 1.2 %, both 4.4 / 9.0 % (front / rear); base rate zone only 6.9 / 7.4 %. Near the endpoint the smear zone, not the mask, carries the coincidence. The 53 m upper bound is uninformative (almost every window near a kerb reaches the mask: "both" 22-25 %).
 - READING: the smear zone is a real but MINOR contributor to negative CS: 73-82 % of the deep tail and ~90 % of CS < 0 lie outside every zone. Grading catches the strike-related part only; most negative CS has other causes (apex physics / short windows, see "Kerb-edge association: closed as characterised").
 nbr_o020_jst REAR ENTRY FAILURE (author ruling 3, one probe, nothing fixed): one single sample of 39,546 differs (t = 987.16 s, s = 1721 m; CS 0.4920 recomputed vs 0.4974 cached, 1.1 %); all other samples match to <= 1e-6, Fy_filt identical, time base identical. Not a stale cache (would differ widely) and not denominator amplification (linear reference 224 kN/rad, 71st percentile of |ref|). Third reading, not verified further (timebox): a discrete decision flip at one sample (window growth / span floor or monotonic-section boundary) from the float32-rounded cached beta. The session stays out of the pool (frozen rule); impact nil.
-RULINGS ON Q-CAL-1 OPEN 1-3 (author, 2026-10-03): (1) grade-zone width kerb_smear_grade_s = 0.25 s (Fy p75), one value, both axles; derived_from = the coincidence count above (rear enrichment ends ~250 ms; the front 250-360 ms band adds only x1.7). Enters config with the options 4 + 0 package. (2) Acceptance of BACKLOG item 1 confirmed: "CS windows inside the smear zone carry a grade mark". (3) diagnostics/inspect_kerb_filter_decay.py kept (reproduces; derives the grade width).
+RULINGS ON Q-CAL-1 OPEN 1-3 (author, 2026-10-03): (1) grade-zone width kerb_smear_grade_s = 0.25 s (Fy p75), one value, both axles; derived_from = the coincidence count above (rear enrichment ends ~250 ms; the front 250-360 ms band adds only x1.7). Enters config with the options 4 + 0 package. (2) Acceptance of BACKLOG item 1 confirmed: "CS windows inside the smear zone carry a grade mark". (3) diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22) kept (reproduces; derives the grade width).
 RULING 4 (author, 2026-10-03), RECEIVED: reconcile with frame 2b rule 1 (position-locked dips = characterised-real, unproven magnitude, protected), do not duplicate it. Recorded as binding on the next package: the grade mark flags smear proximity ONLY and must not erase or down-rank the position-locked sites. HELD (premise conflict surfaced per frame rule 2b.4, session): the ruling's statement that the position-locked sites lie outside any smear zone is not shown by this count (it never separated those sites) and conflicts with Q-PAIRING ruling 1 (strike disturbance of the force path, B, at 17 of 22 sites; 621 m exhibit window straddles the mask edge). The supersession note for the parked kerb-edge limitation waits for the author's wording.
-SITE CHECK (author ruling option (b), EXECUTE 2026-10-03; records only, diagnostics/inspect_kerb_filter_decay.py mode sites; output site_check.txt). Do the 22 position-locked dip sites (Q-PAIRING, Tier 1) lie inside the 0.25 s grade zone? Dip sample per site and lap rebuilt by Q-PAIRING's own rule on the cached production CS (entry: matches the recorded per-lap CS to 1.0e-7 on all 134 site-laps). Grade zone = outside the kerb mask, within 0.25 s of a mask sample, either side (plain reading of kerb_smear_grade_s; the package's construction is not frozen). Site INSIDE = dip in the zone on >= half its laps (mirrors Q-PAIRING's B rule).
+SITE CHECK (author ruling option (b), EXECUTE 2026-10-03; records only, diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22) mode sites; output site_check.txt). Do the 22 position-locked dip sites (Q-PAIRING, Tier 1) lie inside the 0.25 s grade zone? Dip sample per site and lap rebuilt by Q-PAIRING's own rule on the cached production CS (entry: matches the recorded per-lap CS to 1.0e-7 on all 134 site-laps). Grade zone = outside the kerb mask, within 0.25 s of a mask sample, either side (plain reading of kerb_smear_grade_s; the package's construction is not frozen). Site INSIDE = dip in the zone on >= half its laps (mirrors Q-PAIRING's B rule).
 - RESULT: 7 of 22 sites INSIDE, all strike-supported: B-flagged 7 / 17, others 0 / 5. Site-laps with the dip in the zone: 49 / 134 (B sites 43 / 99, others 6 / 35); window reaching the zone (window rebuilt from the recorded window_m by track distance, approximate): B 55 / 99, others 7 / 35.
 - INSIDE: JST 29 front 621 m (6 / 6, the Q-PAIRING exhibit) and rear 4538 m (5 / 6); US-v2 front 1297 m (8 / 9), 2893 m (5 / 9), 1347 m (5 / 9); v3 front 645 m (2 / 3), rear 4402 m (2 / 3).
 - B-flagged but OUTSIDE (10): JST 29 front 3548 / 3334 / 1795 m and rear 634 m; US-v2 front 624 m (4 / 9, one lap short of the half) and rear 5185 m; v3 front 2895 m, rear 1364 / 651 / 5264 m. Their B flag comes from kerb overlap anywhere in the window or az / damper activity, not from a dip at the mask edge.
@@ -25652,7 +25652,7 @@ WHAT CHANGED
 - config/decision_frame.json: note 7 (exit_phase_confidence_discount derivation stands as calibration provenance; C3-via-LS retired as a criterion; value and reopen condition unchanged).
 - modules/stability_analysis.py: _seconds_to_samples; _kerb_smear_zone (unmasked samples within the grade width of a mask sample, prefix sums); prepare_vehicle_state stores state["kerb_smear_zone"]; estimate_cornering_stiffness sets near_strike_f / near_strike_r where the regression window [start, i) of a finite CS sample holds a zone sample (the loop's own start, no reconstruction). In memory only: no summary key, ANALYSIS_SCHEMA_VERSION stays 8. The tyre fit (which calls estimate_cornering_stiffness itself) and the trace display (ctx["cs"]) can read it; nothing reads it yet.
 - ui/views/settings_view.py: "Kerb dilation" now a seconds field (0.00-0.50 s).
-- diagnostics/inspect_kerb_wheel_speed_spikes.py: minimal read fix (kerb_dilation_s).
+- diagnostics/inspect_kerb_wheel_speed_spikes.py (script at tag pre-prune-2026-10-22): minimal read fix (kerb_dilation_s).
 - tests/test_kerb_smear_grade.py (new, real Dubai data): dilation is time-based at 50 and 100 Hz; zone matches its definition; near_strike marks exactly the windows reaching the zone (brute force via reconstruct_cs_window_start); removing the zone changes no CS array and no corner summary.
 IDENTITY CHECK (option 4 alone, before option 0): golden suite 13 / 13 unchanged; verify stage A on the three Tier-1 sessions reproduces the cached production CS on all six axles (identical finite sets, max |diff| 2.6e-7 = float32 cache resolution).
 OPTION 0 MOVEMENT (deliberate re-baseline; old goldens diffed against regenerated ones). Dubai mask 1,910 -> 2,810 samples (2.3 -> 3.4 % of the file).
@@ -25660,8 +25660,8 @@ OPTION 0 MOVEMENT (deliberate re-baseline; old goldens diffed against regenerate
 - pipeline kinematic and ekf_auto_dugoff (falls back to kinematic, designed): 163 of 275 phases change; CS_f in 25, CS_r in 14 (largest 0.57 -> 1.00, C4 exit_5 lap 2); stability largest +182 Nm/deg (C4 exit_5 about 1205 -> 1387, all laps).
 - recommendations ekf_auto_pacejka: 0 -> 0 recommendations (only _meta changed). recommendations_dubai_kinematic_cap1.json is an ORPHAN (no test, no generator, recorded 2026-09-02) and stays untouched; it was deleted with the others by mistake during regeneration and restored byte-identical.
 - READING: the yaw-moment stability estimator moves more than CS -- its cross-lap pooling drops every newly masked sample, and stability medians shift by up to ~15-20 % at single phases (both directions; test_stability.py C1 apex 936 -> 839). Classification thresholds were derived on the +/-50 ms mask; they are NOT re-derived here (ruled: once after all three levers), so verdict-level effects are read only after that re-derivation.
-- Goldens regenerated (tests/generate_golden.py, generate_golden_auto_modes.py); golden + schema tests 25 / 25, settings 12 / 12, new tests 4 / 4, test_stability.py clean. The frozen pass-1 validation baseline (diagnostics/inspect_pass1_final_validation.py) is shifted by option 0 and not re-run.
-VERIFY (diagnostics/inspect_kerb_filter_decay.py mode verify; cached production beta, so the mask effect on CS is isolated and no tyre re-fit is included):
+- Goldens regenerated (tests/generate_golden.py, generate_golden_auto_modes.py); golden + schema tests 25 / 25, settings 12 / 12, new tests 4 / 4, test_stability.py clean. The frozen pass-1 validation baseline (diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22)) is shifted by option 0 and not re-run.
+VERIFY (diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22) mode verify; cached production beta, so the mask effect on CS is isolated and no tyre re-fit is included):
 - MARK: 10 of 22 position-locked sites carry near_strike on >= half their laps, all strike-supported (10 / 17 B-flagged, 0 / 5 others): JST 29 front 621 m (6 / 6), rear 634 m (4 / 6), rear 4538 m (5 / 6); US-v2 front 1297 m (9 / 9), 2893 m (6 / 9), 1347 m (5 / 9); v3 front 645 m (2 / 3), 2895 m (2 / 3), rear 4402 m (2 / 3), 651 m (2 / 3).
 - OPTION 0 DIP CHANGES (non-silent-deletion compliance, author ruling 3; before -> after dip CS, dip shift): 27 site-laps.
   JST 29 front 621 m lap 104 -0.789 -> -0.720 (old dip masked, -1.1 m), lap 105 -1.508 -> -1.011 (masked, +8.4 m); front 3334 m lap 107 0.651 -> 0.651 (masked, -0.3 m); rear 634 m lap 105 -1.002 -> -0.787 (masked, +4.2 m); rear 4538 m lap 106 -0.372 -> -0.340 (masked, +1.8 m).
@@ -25671,7 +25671,7 @@ VERIFY (diagnostics/inspect_kerb_filter_decay.py mode verify; cached production 
 
 ## Q-CAL-1 CS-movement check: lever 1 is a local repair, the CS distribution is nearly unchanged [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: author EXECUTE 2026-10-03 with rulings (1) cached production beta, so the mask effect on CS is isolated (the end-to-end movement, including the tyre re-fit under the wider mask, comes with the later Q-CAL levers); (2) site value = median dip over laps, the per-lap list covers lap level. SCRIPT: diagnostics/inspect_kerb_cs_movement.py (rules frozen in its header before the run). Outputs diagnostics/plots/kerb_cs_movement/. Sessions: Paul Ricard US-v2 and v3, Nurburgring JST 29, Dubai. Before = today's code with kerb_dilation_s = 0.05 (the old +/-50 ms); entry check passed on all four (reproduces the cached production CS, identical finite sets, max |diff| 2.6e-7).
+WORK ORDER: author EXECUTE 2026-10-03 with rulings (1) cached production beta, so the mask effect on CS is isolated (the end-to-end movement, including the tyre re-fit under the wider mask, comes with the later Q-CAL levers); (2) site value = median dip over laps, the per-lap list covers lap level. SCRIPT: diagnostics/inspect_kerb_cs_movement.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before the run). Outputs diagnostics/plots/kerb_cs_movement/. Sessions: Paul Ricard US-v2 and v3, Nurburgring JST 29, Dubai. Before = today's code with kerb_dilation_s = 0.05 (the old +/-50 ms); entry check passed on all four (reproduces the cached production CS, identical finite sets, max |diff| 2.6e-7).
 RESULTS
 - DISTRIBUTION (finite CS on analysis laps): option 0 removes ~3-4 % of the finite samples; percentiles move by a few hundredths. Share CS < 0 before -> after: US-v2 front 16.32 -> 16.25 %, rear 12.60 -> 12.61 %; v3 16.76 -> 16.60 / 15.68 -> 15.71 %; JST 29 16.75 -> 16.59 / 7.66 -> 7.62 %; Dubai 5.30 -> 5.11 / 2.17 -> 2.02 %. Share CS < -1: US-v2 0.44 -> 0.44 / 0.11 -> 0.11 %; v3 0.19 -> 0.13 / 0.27 -> 0.26 %; JST 29 0.57 -> 0.68 / 0.02 -> 0.02 %; Dubai 0.13 -> 0.13 / 0.00 -> 0.00 %. In-corner subsets give the same picture.
 - READING: a near-unchanged distribution is what the Q-CAL-1 coincidence count predicts -- about 90 % of CS < 0 lies outside every smear zone and is not kerb-related, so repairing the kerb edge cannot move it.
@@ -25679,7 +25679,7 @@ RESULTS
 - TRACE EXHIBIT (US-v2 front 2893 m, lap 52; plot trace_pr_us_v2_front_2893m_lap52.png): the old dip (-0.700) was a steep plunge in the last samples before the old mask edge -- pre-edge ringdown of the strike -- and the restored +/-100 ms mask now covers exactly those samples; the new minimum near the site is +0.218, inside the smear zone.
 - AUTHOR VERDICT (2026-10-03, from the plots): improvement CONFIRMED -- local repair at the mask edge; sites shallower or held, none deeper.
 NOTED OBSERVATION (author ruling 1): the JST 29 front deep tail (CS < -1) grows 0.57 -> 0.68 %, the edge-following effect (minima follow the mask edge, 2026-10-01). Recorded, not examined now; looked at during the post-levers threshold re-derivation.
-CLOSURE (author ruling 3): Q-CAL item 1 CLOSED. The frozen pass-1 validation baseline (diagnostics/inspect_pass1_final_validation.py) is recorded as MOVED by option 0, not re-run.
+CLOSURE (author ruling 3): Q-CAL item 1 CLOSED. The frozen pass-1 validation baseline (diagnostics/inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22)) is recorded as MOVED by option 0, not re-run.
 
 ## Q-CAL-2 implemented: NBR wheel loads via the voltage-referenced event zero entries [2026-10-03, branch new-laps, PRODUCTION CHANGE]
 
@@ -25693,7 +25693,7 @@ WHAT CHANGED
 - tests/test_event_zero_entries.py (new, real files): Dubai matches no entry; JST 29 gets all four entries applied, channels pass the gate, data = raw - zero_N exactly; with FL's entry 30 kN off (config perturbation, the real file untouched) the guard blocks FL, which stays failed, the other corners apply.
 ACCURACY (ruling 2): NBR damper wheel loads are "L4 with an L2 zero" (L4-rel) -- logged sensor + motion-ratio table, zero entry an event measurement pinned through the same car's Paul Ricard zero.
 IDENTITY: Dubai goldens 13 / 13 unchanged (no entry matches Dubai / logger 147); Paul Ricard v3 and US-v2 wheel loads, per-sample sources, c_session and damper channel data BIT-IDENTICAL before vs after; 52 / 52 tests (goldens, schema, wheel_loads, new tests -- none skipped); test_stability.py unchanged.
-ACCEPTANCE (diagnostics/inspect_nbr_zero_entry_verify.py, rules frozen in its header; all 16 NBR files of Q-RECOVER-2): EXIT ACCEPTED.
+ACCEPTANCE (diagnostics/inspect_nbr_zero_entry_verify.py (script at tag pre-prune-2026-10-22), rules frozen in its header; all 16 NBR files of Q-RECOVER-2): EXIT ACCEPTED.
 - Entry: NBR_221 applied on all four channels of every file, all channels "valid"; damper share 1.000 on every corner of every file (all samples and base mask) -- NBR moves from 100 % static split to 100 % measured.
 - Offset reproduction: the gauge-vs-raw-voltage map re-fitted on the production-corrected channels (inventory construction; Paul Ricard reference from the production-parsed v3 / US-v2) gives implied zero medians equal to the entries to 0.0 gauge-N on all corners (tolerance = file spread). READ CORRECTLY: this equality holds by construction (production subtracts the entry; the re-fit adds it back), so it proves that the production parser hands the reference fit identical gauge data and that every per-file map is healthy (all 64 fits |r| >= 0.981) -- it is not an independent re-derivation of the medians. Per-file implied minus entry ranges -155 to +205 gauge-N, consistent with the recorded spread.
 - V1-V4 on the production loads, all 16 files: V1 p0.1 >= -200 N everywhere (lowest FL -139 N, o018); V2 signs correct, |r| 0.861-0.905; V3 b 1.39-2.28 N/(m/s)^2 > 0; V4 max 576 N (JST 29 FL) <= 700 N. Same picture as Q-RECOVER-2 (base mask now off the +/-100 ms kerb mask instead of +/-50 ms).
@@ -25725,7 +25725,7 @@ Protocol for the two-pairwise-comparison evaluation written and frozen BEFORE an
 
 ## Q-CAL-3 calibration pass: the chair's 0.15 s moving average on the tyre-fit inputs -- HARM, rejected [2026-10-03, branch new-laps, read-only]
 
-WORK ORDER: Q-CAL-3 ruling 3 (author EXECUTE 2026-10-03, frame approved with amendments 1a and 1b, frozen in the header of diagnostics/inspect_fit_ma_calibration.py before any number). P = production (2 Hz Butterworth fit inputs); M = chair-exact centred 0.15 s moving average on the raw slip angle and raw Fy, tyre fit only; everything else identical. Tier 1: Paul Ricard US-v2, v3, Nurburgring JST 29. Stated before the run: the M3 tie rule uses a two-sided bootstrap band from P's 2.5 / 97.5 % edges; the entry reference is a direct production call made now (the cached CS predates Q-CAL-1's mask change).
+WORK ORDER: Q-CAL-3 ruling 3 (author EXECUTE 2026-10-03, frame approved with amendments 1a and 1b, frozen in the header of diagnostics/inspect_fit_ma_calibration.py (script at tag pre-prune-2026-10-22) before any number). P = production (2 Hz Butterworth fit inputs); M = chair-exact centred 0.15 s moving average on the raw slip angle and raw Fy, tyre fit only; everything else identical. Tier 1: Paul Ricard US-v2, v3, Nurburgring JST 29. Stated before the run: the M3 tie rule uses a two-sided bootstrap band from P's 2.5 / 97.5 % edges; the entry reference is a direct production call made now (the cached CS predates Q-CAL-1's mask change).
 ENTRY: the harness reproduces the direct production call exactly on all three sessions (beta and CS max diff 0.0). The MA fitter was called once per axle on every session.
 RESULTS (P -> M)
 - Fit: the curves barely move -- B, C, D within about 1 %, E by up to 0.29 (JST 29 front -5.31 -> -5.61); F2 (residual vs the 2 Hz view) changes by under 0.15 N in every cell. F1 curve stability: median change +2.4 % (worse, within noise).
@@ -25741,13 +25741,13 @@ READING (labelled; the author rules): (1) the chair's moving average and our 2 H
 
 RULING (author, 2026-10-03): the HARM verdict of the 0.15 s moving-average calibration pass is ACCEPTED -- production keeps its 2 Hz fit inputs.
 READING, recorded verbatim from the prior session: the harm items measure the CS<0 share's sensitivity (~2.5 points from ~1 % curve change), not physical worsening of the MA.
-METHOD CONSEQUENCE (for later frames): the in-corner CS < 0 share moves by up to ~2.5 points per session under curve changes of about 1 %, so a 0.5-point harm bar on that share is inside its own sensitivity. The K2 calibration pass therefore carries a 2.5-point bar (author amendment, frozen in diagnostics/inspect_fit_k2_calibration.py).
+METHOD CONSEQUENCE (for later frames): the in-corner CS < 0 share moves by up to ~2.5 points per session under curve changes of about 1 %, so a 0.5-point harm bar on that share is inside its own sensitivity. The K2 calibration pass therefore carries a 2.5-point bar (author amendment, frozen in diagnostics/inspect_fit_k2_calibration.py (script at tag pre-prune-2026-10-22)).
 STATUS: Q-CAL item 3 conditioning resolved -- speed bands not transplantable (display product, no consumer), the chair-exact MA tested and rejected, the K2-constrained variant pending its own calibration pass (informational for Q-K2, no production adoption from that pass). The production estimator is FINAL as of lever 2 (Q-CAL-1 kerb dilation + near_strike mark, Q-CAL-2 NBR zero entries); this unblocks the threshold re-derivation diagnostic.
-Script: diagnostics/inspect_fit_ma_calibration.py kept, keep-reproduces (record of the rejection). metrics.png re-rendered from results.json only (truncated x labels fixed; no number changed).
+Script: diagnostics/inspect_fit_ma_calibration.py (script at tag pre-prune-2026-10-22) kept, keep-reproduces (record of the rejection). metrics.png re-rendered from results.json only (truncated x labels fixed; no number changed).
 
 ## Q-CAL-3 K2-constrained calibration pass: balance pinned to the measured understeer gradient -- HARM (informational for Q-K2) [2026-10-03/04, branch new-laps, read-only]
 
-WORK ORDER: overnight package step 2 (author EXECUTE; Q-CAL-3 premise-check ruling 2). Frame = the MA pass frame with ONE amendment (CS < 0 harm bar 2.5 points, the measured sensitivity, replacing 0.5), frozen in the header of diagnostics/inspect_fit_k2_calibration.py before any number. Purpose: informational for Q-K2 -- no production adoption from this pass regardless of outcome. Verdict vocabulary HARM / PROMISING / NEUTRAL.
+WORK ORDER: overnight package step 2 (author EXECUTE; Q-CAL-3 premise-check ruling 2). Frame = the MA pass frame with ONE amendment (CS < 0 harm bar 2.5 points, the measured sensitivity, replacing 0.5), frozen in the header of diagnostics/inspect_fit_k2_calibration.py (script at tag pre-prune-2026-10-22) before any number. Purpose: informational for Q-K2 -- no production adoption from this pass regardless of outcome. Verdict vocabulary HARM / PROMISING / NEUTRAL.
 METHOD (Tier A, author construction, Rajamani ch. 3, steady-state cornering relation): variant K = joint front/rear Pacejka fit on the production inputs (kinematic-seed alpha, 2 Hz Fy, base mask), minimising SSE_front + SSE_rear subject to m_f / (B_f C_f D_f) - m_r / (B_r C_r D_r) = K2 (Q-PUSH P1's diagnostic K2, read from p1_<key>.json: +1.407 / +1.356 / +1.272 deg/g, Level 2; mass and CoG Level 1). Unconstrained, the objective separates into the two production fits, so K differs from P by the constraint alone. B_r eliminated through the constraint, Powell (production optimiser) from P's fit projected onto the constraint.
 ENTRY: harness reproduces the direct production call exactly (beta, CS max diff 0.0) on all three sessions; K's fitter called once per axle.
 FIT LEVEL: the constrained fit converged on all three sessions, constraint met to 1e-16 -- the pre-registered degeneracy exit did NOT trigger. Balance implied by the production curves now: -0.94 / -0.32 / +0.37 deg/g (Q-PUSH recorded -0.93 / -0.31 / +0.38 before the kerb-mask change). The constraint is met mainly by SOFTENING THE FRONT origin slope (US-v2 153 -> 65, v3 132 -> 81, JST 29 138 -> 108 kN/rad) rather than stiffening the rear (142 -> 122, 157 -> 162, 219 -> 247): the front curve takes an S-kink at the origin, the rear goes nearly linear. US-v2 rear lands at B ~ 0, C ~ 4e6, E ~ -2e13 -- a near-straight line in a pathological Magic-Formula parameterisation (B C D finite and held by the constraint); JST 29 rear C 103. Not caught by the frozen degeneracy rule (B > 0, D > 0, converged), reported here as a labelled observation. Fit cost small: F2 rises by 0-41 N RMS (of 3-7 kN).
@@ -25758,7 +25758,7 @@ Figures: diagnostics/plots/fit_k2_calibration/ (fit_<key>.png, beta_<key>.png, m
 
 ## Threshold re-derivation diagnostic on the final estimator: proposals only [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: overnight package step 3 (author EXECUTE): the once-after-all-levers re-derivation, as a DIAGNOSTIC -- no config write; the author rules on the numbers. Method of record for verdict thresholds remains the author's visual check on rendered CS traces (PHASE 1 PLAN rule 2a). Script diagnostics/inspect_threshold_rederivation.py (rules frozen in its header before any number); Tier B, the recorded procedure of inspect_cs_decision_table.py reused unchanged (strong_rule / moderate_rule).
+WORK ORDER: overnight package step 3 (author EXECUTE): the once-after-all-levers re-derivation, as a DIAGNOSTIC -- no config write; the author rules on the numbers. Method of record for verdict thresholds remains the author's visual check on rendered CS traces (PHASE 1 PLAN rule 2a). Script diagnostics/inspect_threshold_rederivation.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any number); Tier B, the recorded procedure of inspect_cs_decision_table.py (script at tag pre-prune-2026-10-22) reused unchanged (strong_rule / moderate_rule).
 STATE AND POPULATION: production code and config as of lever 2 (schema 9), fresh parse and the production chain per session at accuracy cap 1; per stable corner the classifier's input (worst_lap aggregate over the analysis laps, minimum over the five phases, apex from apex_region), per axle. Eight standard sessions, all gate pass, no fallback. PRIMARY pool = seven (Le Mans excluded, PHASE 1 PLAN rule 1); the eight-session pool reported beside it.
 RESULTS, primary pool (n = 105 front / 104 rear corners; percentile = share of corner values below the threshold):
 - STRONG_CSF: current -0.10 encodes p54.3 -> rule gives -1.48 (p1.0); standout {-2.906}, noise floor -1.477.
@@ -25786,11 +25786,11 @@ COMBINED-LOADS FEASIBILITY, part (a) premise (second pasted block, labelled "STE
 3. stab_neg_thresh stays blocked; BACKLOG A re-derivation queued behind the same boundary (its recorded reopen condition, a negative population under the production beta, is now met -- 7 negatives -- and is deliberately not acted on).
 4. Pool choice for threshold work: seven sessions, Le Mans excluded -- confirmed.
 5. Combined loads: (b) closed as bounded-zero; (a)'s finding stands as recorded ("Overnight package close ..."). Part (c) executed (entry below).
-6. inspect_fit_k2_calibration.py and inspect_threshold_rederivation.py keep-reproduces confirmed.
+6. inspect_fit_k2_calibration.py (script at tag pre-prune-2026-10-22) and inspect_threshold_rederivation.py (script at tag pre-prune-2026-10-22) keep-reproduces confirmed.
 
 ## Combined-loads feasibility (c): CS binned by measured axle load, 16 NBR files -- facts only, no verdict [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: morning ruling 5 (author EXECUTE 2026-10-04). Frozen rule: NO verdict, facts and plots only; no fit, no model, binned medians only. Script diagnostics/inspect_combined_loads_feasibility.py (rules frozen in its header before any number).
+WORK ORDER: morning ruling 5 (author EXECUTE 2026-10-04). Frozen rule: NO verdict, facts and plots only; no fit, no model, binned medians only. Script diagnostics/inspect_combined_loads_feasibility.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before any number).
 METHOD: production chain per file (fresh parse, cap 1, configured sideslip source, measured-load cascade); finite in-corner CS on analysis laps (corner-instance population), per axle; axle Fz = production axle total, low-passed with the production CS filter (2 Hz, Tier B, matching bandwidth), kept only where both wheels of the axle are on the damper tier (L4 with an L2 zero). 1 kN bins; a median is plotted with >= 500 samples from >= 3 files. Noise reference = median over plotted bins of the IQR of the per-file medians.
 COVERAGE: 16 / 16 files, gate pass, no fallback; 100 % of in-corner samples on the damper tier on both axles in every file (front 488,639, rear 433,567 samples).
 FRONT (axle Fz 3.2-9.7 kN): medians 3-4 kN +0.962 (n 734, 12 files, CS p75 at the 1.0 clip), 4-5 +0.381 (47,369), 5-6 +0.485 (171,098), 6-7 +0.439 (177,210), 7-8 +0.508 (77,951), 8-9 +0.611 (13,972); 9-10 not plotted (305). The 4-8 kN bins hold 96.9 % of the samples; their medians span 0.381-0.508 (0.127). Noise reference 0.157.
@@ -25802,11 +25802,11 @@ Figures: diagnostics/plots/combined_loads_feasibility/cs_vs_fz_front_axle.png, c
 
 1. Metric decision CLOSED, option A (author, plots read): no load-dependent metric change. Front CS flat across the populated load range; rear flat through 8-11 kN (87 % of samples). OBSERVATION (limitations chapter): the rear rise above 11 kN (bin medians 0.51 -> 0.92, 16 files) is consistent with load stiffening of the cornering-stiffness ratio, but inseparable from the speed / throttle confound (in-corner axle load tracks aero and longitudinal transfer) and it sits against the CS 1.0 clip -- an inherent limit of track data, stated, not modelled.
 2. Production estimator and metric FINAL. Threshold re-derivation unblocked: author requests corner counts per session at STRONG = p10 / p15 and MODERATE = p30 / p40 of the seven-session pool (counts only, no config write; entry below). stab_neg_thresh / BACKLOG A unblocks behind the same ruling.
-3. inspect_combined_loads_feasibility.py keep-reproduces confirmed.
+3. inspect_combined_loads_feasibility.py (script at tag pre-prune-2026-10-22) keep-reproduces confirmed.
 
 ## Threshold counts at percentile targets, final estimator [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: direction ruling 2 (author): corner counts per session at STRONG = p10 / p15 and MODERATE = p30 / p40, per axle, counts only, no config write. inspect_threshold_rederivation.py mode counts (definition frozen in its header before the run), on the step-3 caches of the final estimator (production unchanged since). Percentiles of the seven-session pool's corner values (np.percentile, linear); STRONG = value < S, MODERATE = S <= value < M (the _classify_corner tiers).
+WORK ORDER: direction ruling 2 (author): corner counts per session at STRONG = p10 / p15 and MODERATE = p30 / p40, per axle, counts only, no config write. inspect_threshold_rederivation.py (script at tag pre-prune-2026-10-22) mode counts (definition frozen in its header before the run), on the step-3 caches of the final estimator (production unchanged since). Percentiles of the seven-session pool's corner values (np.percentile, linear); STRONG = value < S, MODERATE = S <= value < M (the _classify_corner tiers).
 PERCENTILE VALUES: front p10 -0.828, p15 -0.754, p30 -0.390, p40 -0.204 (n 105); rear p10 -0.505, p15 -0.368, p30 -0.194, p40 -0.103 (n 104).
 POOL TOTALS (strong / moderate, of 105 front / 104 rear corners): front S p10 + M p30 11 / 21, S p10 + M p40 11 / 31, S p15 + M p30 16 / 16, S p15 + M p40 16 / 26; rear 11 / 20, 11 / 31, 16 / 15, 16 / 26.
 PER SESSION (strong / moderate, front then rear, combos in the order S p10 M p30 | S p10 M p40 | S p15 M p30 | S p15 M p40):
@@ -25925,7 +25925,7 @@ only if TUM library access works; not load-bearing.
 
 ## Q-FIT-DECISIVE: speed window, smear zone, large-Fx tails -- nothing earns, production stays [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: author rulings 1-4 + EXECUTE 2026-10-04. Frame frozen in diagnostics/inspect_fit_decisive.py (MA-pass frame verbatim, CS<0 harm bar 2.5 points, sanity screen B >= 1 / 1 < C <= 3 / E <= 1, S not scored for zone-excluding variants, ranking by share of reachable candidates, tie -> fewer levers -> lower pooled CS<0 share). Variants change only the fit population: SW speed window ([p1, p99] of in-corner speed; chair-convergent, theory-consistent), Z minus the 0.20 s smear zone (forced by our car), LX minus the a_x tails below p5 / above p95 (Tier B, theory-consistent per Pacejka sec. 4.3.1 Eqs. 4.64-4.69 and sec. 1.3.4, not chair practice). Tier 1.
+WORK ORDER: author rulings 1-4 + EXECUTE 2026-10-04. Frame frozen in diagnostics/inspect_fit_decisive.py (script at tag pre-prune-2026-10-22) (MA-pass frame verbatim, CS<0 harm bar 2.5 points, sanity screen B >= 1 / 1 < C <= 3 / E <= 1, S not scored for zone-excluding variants, ranking by share of reachable candidates, tie -> fewer levers -> lower pooled CS<0 share). Variants change only the fit population: SW speed window ([p1, p99] of in-corner speed; chair-convergent, theory-consistent), Z minus the 0.20 s smear zone (forced by our car), LX minus the a_x tails below p5 / above p95 (Tier B, theory-consistent per Pacejka sec. 4.3.1 Eqs. 4.64-4.69 and sec. 1.3.4, not chair practice). Tier 1.
 DERIVED BOUNDS: speed window 69-226 / 70-229 / 70-222 km/h (US-v2 / v3 / JST 29), removing 0.6 % low and 10.3 / 9.3 / 6.8 % high; LX tails a_x < -1.18 / -1.21 / -1.29 g or > +0.51 g on all three.
 ENTRY: exact on all three sessions (beta, CS max diff 0.0).
 VERDICTS (pre-registered):
@@ -25942,7 +25942,7 @@ Figures: diagnostics/plots/fit_decisive/ (fit_<key>.png, metrics.png, summary.tx
 FINDING (author ruling 2, from Q-FIT-DECISIVE's LX front degeneration): on this car's data the FRONT axle reaches its high-slip / limit region mainly while braking -- removing the heavy-braking tail (a_x < -1.29 g, JST 29) stripped the front fit of its high-slip support and left a curve with no peak (C 0.87, E -24.3). The pure-lateral front limit is therefore not directly observable in our track data; what the front fit sees near the limit is combined slip, where the side force at a given slip angle is reduced by the longitudinal force (Pacejka sec. 1.2.1 friction circle; sec. 4.3.1 Eqs. 4.64-4.69 weighting function G_yk). The fitted front curve near and beyond its peak is an effective combined-slip characteristic, not the pure-slip curve -- a stated limitation of track-data identification.
 AUTHORISED: one further variant LT (traction tail only: exclude a_x above the per-session p95, keep heavy braking), new frame, same bars.
 WHAT "THE FIT WORKS" MEANS (author ruling 3, design principle): method chair-comparable (achieved); fit population cleaned where physics supports it; absolute quality capped by the sensor set (no lateral-velocity / beta sensor) -- stated, not apologised. After LT the data-entry route is exhausted on this frame; what remains is provenance-side.
-Q-FIT-DECISIVE result accepted as pre-registered (nothing ships); inspect_fit_decisive.py keep-reproduces confirmed.
+Q-FIT-DECISIVE result accepted as pre-registered (nothing ships); inspect_fit_decisive.py (script at tag pre-prune-2026-10-22) keep-reproduces confirmed.
 
 ## Thesis claims register built [2026-10-04, records only]
 
@@ -25965,7 +25965,7 @@ OUTLOOK (author ruling; outlook chapter, concrete recommendation to the team; no
 
 ## LT (traction tail only) on the decisive frame -- HARM, nothing ships [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: author ruling 2 after Q-FIT-DECISIVE + EXECUTE. New frame, same bars, frozen in diagnostics/inspect_fit_decisive.py (mode lt): drop base samples with 2 Hz a_x above the per-session p95 (+0.51 g on all three Tier-1 sessions), KEEP heavy braking; Tier B, theory-consistent (Pacejka sec. 4.3.1 Eqs. 4.64-4.69, sec. 1.3.4), not chair practice. Pre-registered expectation: rear-side gains without the front degeneration. The sanity screen ran as frozen (labelled a fit-shape rule afterwards, ruling of the same day).
+WORK ORDER: author ruling 2 after Q-FIT-DECISIVE + EXECUTE. New frame, same bars, frozen in diagnostics/inspect_fit_decisive.py (script at tag pre-prune-2026-10-22) (mode lt): drop base samples with 2 Hz a_x above the per-session p95 (+0.51 g on all three Tier-1 sessions), KEEP heavy braking; Tier B, theory-consistent (Pacejka sec. 4.3.1 Eqs. 4.64-4.69, sec. 1.3.4), not chair practice. Pre-registered expectation: rear-side gains without the front degeneration. The sanity screen ran as frozen (labelled a fit-shape rule afterwards, ruling of the same day).
 ENTRY: exact on all three sessions. Retained 95.0 %.
 RESULTS (P -> LT): front curves keep their peak on all sessions (screen passes; JST 29 front C 1.90 -> 1.61, E -5.3 -> -11.1, origin slope 138 -> 121 kN/rad); rear origin slope +12 / +12 / -4 % and the rear peak D rises on JST 29 (10.8 -> 12.1 kN). CS < 0 share: rear US-v2 14.9 -> 17.0 %, v3 17.5 -> 15.5 %, JST 29 9.1 -> 6.0 %; front 19.2 -> 20.2, 16.5 -> 18.2, 19.9 -> 19.7 %. M3 0.88 -> 0.84, 0.87 -> 0.74, 0.45 -> 0.44 (all inside P's bands, no credit). F1 median -8.2 %.
 VERDICT (pre-registered): HARM -- US-v2 rear coverage -1.03 points (just over the 1-point bar) and JST 29 front strike sensitivity S 0.008 -> 0.022 (> 1.5 x and > +0.01). 1 of 5 candidates met (pooled CS < -1 share -19.8 % rel); pooled CS < 0 +2.3 % rel. SHIPPING RULE: nothing ships; production stays; the fit stays open.
@@ -25986,7 +25986,7 @@ QUEUED (author): thresholds -- ruling follows after the author reads the count p
 ## Steering-ratio premise check: L4 lookup exists, but it divides by a LOCAL ratio [2026-10-04, branch new-laps, read-only]
 
 WORK ORDER: session STEP 1 (author), read-only premise check: (a) how production converts the logged steering signal to road-wheel angle, (b) the front slip-angle error a fixed ratio implies, (c) whether a variable-ratio lookup is a clean input swap.
-(a) LOGGED CHANNEL: log_asteer [deg], 100 Hz, STEERING-WHEEL angle (census of the three Tier-1 caches; not rack travel, not an already-converted wheel angle). PRODUCTION (modules/stability_analysis.py prepare_vehicle_state): delta_f = steer_sw / i_s(steer_sw); i_s = np.interp of the car_data.json steering_ratio_table (manufacturer table, Level 4) when accuracy resolution allows L4 (modules/accuracy_resolution.py; app default "Best available" = L4 when the local car_data.json exists; implemented WP-B 2026-07-26), else the constant 15.7 (L1). THE DIAGNOSTICS HARNESS (inspect_tyre_prior_d2._params, inherited by inspect_last_push / ma / k2 / fit_decisive -- every frozen-frame fit experiment) RUNS AT cap=1, i.e. the constant 15.7 (asserted on the live state). So the work order's premise "production uses a fixed ratio" is wrong for the app and right for the harness.
+(a) LOGGED CHANNEL: log_asteer [deg], 100 Hz, STEERING-WHEEL angle (census of the three Tier-1 caches; not rack travel, not an already-converted wheel angle). PRODUCTION (modules/stability_analysis.py prepare_vehicle_state): delta_f = steer_sw / i_s(steer_sw); i_s = np.interp of the car_data.json steering_ratio_table (manufacturer table, Level 4) when accuracy resolution allows L4 (modules/accuracy_resolution.py; app default "Best available" = L4 when the local car_data.json exists; implemented WP-B 2026-07-26), else the constant 15.7 (L1). THE DIAGNOSTICS HARNESS (inspect_tyre_prior_d2._params, inherited by inspect_last_push (script at tag pre-prune-2026-10-22) / ma / k2 / fit_decisive -- every frozen-frame fit experiment) RUNS AT cap=1, i.e. the constant 15.7 (asserted on the live state). So the work order's premise "production uses a fixed ratio" is wrong for the app and right for the harness.
 DISCOVERED DEFECT (definition mismatch): the table's steering_ratio column is the LOCAL ratio d(sw)/d(wheel), not the overall ratio sw / wheel. The table's own columns show it: at full stroke sw 291.5 deg, wheel 20.98 deg -> overall 13.89, column 11.93, numerical slope ~12.3; at sw 135.5 deg overall 15.33, column 14.02, slope 14.19. Production divides the TOTAL angle by the LOCAL ratio and therefore overestimates the wheel angle at large steer. The correct L4 conversion reads the wheel angle from the table directly (interpolate wheel_angle_deg over steering_wheel_angle_deg). [Definition inferred from the table's internal consistency; the author confirms against the setup sheet.]
 (b) ERRORS vs the table's own wheel angle (mean of the +/- stroke branches, i.e. the two front wheels' Ackermann mean), front alpha error = delta error to first order: |sw| 113 deg (fit-population p99, Paul Ricard): L1 -0.12 deg, current L4 +0.42 deg; 152 deg (US-v2 fit max): L1 -0.42, L4 +1.07; 168 deg (JST 29 fit max): L1 -0.58, L4 +1.43; full lock 291 deg (not driven): L1 -2.70, L4 +3.16. Fit-population census (base mask): |sw| p99 113 / 114 / 127 deg, max 152 / 160 / 168 deg (US-v2 / v3 / JST 29); the current L4 departs from L1 by > 0.5 deg on 1.4-2.0 % of fit samples (2.3-3.3 % inside corner brackets), > 1 deg on 0.07-0.61 %. The fixed 15.7 is closer to the true wheel angle than the current L4 over the whole driven range (about 2.5x smaller error, opposite sign). The work order's "15.7 -> 11.9" span is the local-ratio span; the overall ratio only falls 15.7 -> 13.9 at full lock.
 (c) INPUT SWAP: clean in structure (one line in prepare_vehicle_state, table already loaded and cache-identified by accuracy resolution, front-only kinematic input) but NOT effect-free under ekf_auto_pacejka: delta_f is an EKF input, so beta, the fit population's alpha and both axles' CS can move (the 2026-07 "front-only" scoping was measured on the kinematic beta).
@@ -26003,7 +26003,7 @@ RULE (author, frozen before any (d) number): earlier frozen-frame verdicts (comp
 
 ## Steering-fix impact (d): faulty vs corrected is clean, the 15.7 reference was stale [2026-10-04, branch new-laps, read-only]
 
-RUN: diagnostics/inspect_steering_fix_impact.py, Tier 1 (US-v2, v3, JST 29); path (i) faulty lookup (total angle / local ratio, reproduced through production code by a dense table, error <= 1.3e-4 deg), (iii) corrected lookup (production after the fix; Tier-1 d2 fit caches rebuilt), (ii) constant 15.7 from the archived cap-1 fit caches. Results: plots/steering_fix_impact/summary.txt, results.json.
+RUN: diagnostics/inspect_steering_fix_impact.py (script at tag pre-prune-2026-10-22), Tier 1 (US-v2, v3, JST 29); path (i) faulty lookup (total angle / local ratio, reproduced through production code by a dense table, error <= 1.3e-4 deg), (iii) corrected lookup (production after the fix; Tier-1 d2 fit caches rebuilt), (ii) constant 15.7 from the archived cap-1 fit caches. Results: plots/steering_fix_impact/summary.txt, results.json.
 PREMISE CONFLICT: the archived cap-1 caches were written 2026-10-01, before Q-CAL-1 (time-based kerb dilation, 2026-10-03); their base mask differs from today's (US-v2 107613 vs 105106 samples, v3 35583 vs 34620, JST 29 67210 vs 65836). The frozen frames did not use these caches -- they built P fresh on current code at cap 1 (entry differences 0.0). So the (ii) -> (iii) comparison confounds steering with the mask change and the frozen robustness rule is NOT evaluable on this run; the printed rule lines are void. A fresh cap-1 chain on current code is the correct reference (author decision).
 CLEAN RESULT (i) faulty -> (iii) corrected, identical masks (what the app's results change by):
 - delta_f: median |difference| 0.001 deg in the fit population; p95 0.18-0.20 deg; max 1.11 / 1.27 / 1.45 deg (US-v2 / v3 / JST 29).
@@ -26015,7 +26015,7 @@ OBSERVATION for the rule: the CS < -1 shares rest on small counts (e.g. JST 29 r
 
 ## Beta spikes between faulty and corrected steering: fallback-switch timing, not steering [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER: author ruling 3 -- locate the isolated 8-10 deg beta differences between the faulty and the corrected steering conversion before the robustness ruling; report, no fix. Script: diagnostics/inspect_steering_fix_impact.py mode spikes; output plots/steering_fix_impact/spikes.txt.
+WORK ORDER: author ruling 3 -- locate the isolated 8-10 deg beta differences between the faulty and the corrected steering conversion before the robustness ruling; report, no fix. Script: diagnostics/inspect_steering_fix_impact.py (script at tag pre-prune-2026-10-22) mode spikes; output plots/steering_fix_impact/spikes.txt.
 METHOD: each path's final EKF pass rebuilt from its manifest (Pacejka fit + chosen R); the rebuild reproduces the cached production beta to 4e-7 deg on all six runs, so its divergence mask is the production one. Events = |d beta| > 2 deg, runs closer than 0.2 s merged (reporting choices, Tier B).
 COUNT AND PLACE: |d beta| > 2 deg on 2361 / 2163 / 527 samples (1.6 / 3.2 / 0.5 % of the file; US-v2 / v3 / JST 29), in 598 / 461 / 171 events; median event length 0.02-0.03 s (1-3 samples), longest 1.5 / 2.8 / 0.6 s; > 5 deg on 337 / 316 / 41 samples; events >= 8 deg: 7 / 2 / 1. Mostly in corners (76 / 51 / 71 % of events mainly in a corner bracket), rarely on kerbs (7 / 8 / 20 %), at moderate steering (median |sw| at the peak 30-42 deg, where the two conversions agree to < 0.01 deg) and ~39 m/s. The 15 deg hard bound never fires; divergence flags cover 1.4 / 1.4 / 0.7 % of samples in both runs.
 MECHANISM: at the event peak one run is in the kinematic fallback and the other on the EKF in 98 / 97 / 88 % of events; a divergence flag differing between the runs lies within 5 s before or inside every event. The EKF's fallback is a per-sample switch: a flagged sample carries the kinematic beta and the state resets to it. The tiny upstream difference (front steering input plus the slightly different fit and chosen R it causes) moves the samples where the NIS-window flag trips, so the two runs differ there by the full EKF-minus-kinematic gap (several degrees) for a few samples. The spike size measures that gap, not the steering change (max |d delta| in the event window < 0.1 deg in 53-69 % of events). LIMITATION (thesis-worthy): production beta_with_fallback is discontinuous at fallback switches, and the switch timing is sensitive to small input changes.
@@ -26033,7 +26033,7 @@ The fallback-switch sensitivity is also BACKLOG -- PERMANENT item 11 (estimator 
 
 ## Step 2: our speed distribution against the chair's four speed bands [2026-10-04, branch new-laps, read-only]
 
-WORK ORDER (author): SW ships by AUTHOR OVERRULE despite its NEUTRAL verdict (reason: chair-closeness -- chair-convergent, harmless, deep CS < -1 tail -40 %); before implementing, one read-only investigation of where our data sits relative to the chair's band structure, then the author chooses the window. Script diagnostics/inspect_speed_bands.py, Tier-1 sessions, corrected steering chain; plot plots/speed_bands/speed_bands.png, summary.txt, results.json.
+WORK ORDER (author): SW ships by AUTHOR OVERRULE despite its NEUTRAL verdict (reason: chair-closeness -- chair-convergent, harmless, deep CS < -1 tail -40 %); before implementing, one read-only investigation of where our data sits relative to the chair's band structure, then the author chooses the window. Script diagnostics/inspect_speed_bands.py (script at tag pre-prune-2026-10-22), Tier-1 sessions, corrected steering chain; plot plots/speed_bands/speed_bands.png, summary.txt, results.json.
 CHAIR STRUCTURE (chair tyre-fit script): centres 18 / 26.7 / 35.3 / 44 m/s, quadratic weight with 5 % overlap, weight cut 0.05 -> band union 9.13-52.87 m/s (33-190 km/h).
 OUR DATA (fit population = production base mask): p1 19.8 m/s on all three sessions -- nothing below ~18 m/s; p99 65.3-68.3 m/s. By chair zone (US-v2 / v3 / JST 29): slow band 2.4 / 2.5 / 3.6 %, mid-slow 15.5 / 15.3 / 15.7 %, mid-high 20.7 / 20.6 / 23.2 %, high 26.6 / 26.6 / 30.8 %, ABOVE the chair union 34.7 / 35.1 / 26.7 %. Above 52.9 m/s the data are mostly straights and fast kinks: in corner 23-25 %, front seed |alpha| median 0.59-0.77 deg (p95 2.0-2.3 deg), near-zero alpha (|alpha_f| < 0.5 deg) 27-43 %. Below 40 m/s the samples are 92-100 % in-corner with front |alpha| medians 2.8-5.5 deg. Kerb density (moving analysis-lap samples) 0.8-13.8 % per zone with no monotonic speed trend, lowest above the union (2.6-5.6 %).
 CANDIDATE WINDOWS:
@@ -26046,7 +26046,7 @@ READING (labelled, the author chooses): only SW actually selects on our data; BI
 
 RULINGS (author): SW ships -- per-session in-corner [p1, p99] speed window on the Pacejka fit population. Labels: chair-convergent (function: the chair band union drops the fastest, near-zero-slip straight stretches; SW does that on our data, 26-55 % of what it removes has |alpha_f| < 0.5 deg); FORCED ADAPTATION (one window instead of four band curves, because the EKF consumes one signed curve per axle); edge values = vehicle parameterisation; AUTHOR OVERRULE of the NEUTRAL Q-FIT-DECISIVE verdict (chair-closeness, pooled deep CS < -1 tail -40 %). Percentiles in config, self-adapting (fixed km/h would mis-fit a track with a different speed envelope). 2.0-2.1 % in-corner loss accepted (95-97 % of informative samples kept). All three Pacejka fit modes share the windowed population.
 IMPLEMENTATION: modules/tyre_fit_auto.py _speed_window_mask (percentile population = speed of moving samples inside corner instances on analysis laps, kerb samples included, via the existing _canonical_window_slice; null config or no corner instances -> no window, reason recorded); fit_session_pacejka passes base & window to the axle fit only -- the R derivation follows the fit residuals, NIS sweep / gate / sign check keep the base mask, exactly the tested variant. Manifest block speed_window (pct, lo/hi m/s and km/h, in-corner n, base retained fraction). Config tyre_fit_auto.fit_speed_window_pct [1, 99] with provenance. Schema 10 -> 11. Harness: inspect_last_push.Ctx gains fit_mask / window_info from the production function; the decisive frame's fitter hook stops on its mask check by design, the MA / K2 hooks do not check the mask (a re-run would silently fit the windowed population) -- all three marked RECORD ONLY.
-CHECKS: (1) production window equals the inspect_speed_bands SW bounds exactly on all Tier-1 sessions -- US-v2 69.5-226.4 km/h (89.1 % of the base mask kept), v3 69.6-228.7 km/h (90.1 %), JST 29 69.8-222.4 km/h (92.6 %). (2) Dubai fit_session_pacejka (best available, no setup data): status ok, window applied 60.6-227.0 km/h, 90.8 % of the base mask kept, front B 10.81 C 1.94 D 8181 E 0.45, rear B 12.40 C 2.01 D 9154 E -1.03.
+CHECKS: (1) production window equals the inspect_speed_bands (script at tag pre-prune-2026-10-22) SW bounds exactly on all Tier-1 sessions -- US-v2 69.5-226.4 km/h (89.1 % of the base mask kept), v3 69.6-228.7 km/h (90.1 %), JST 29 69.8-222.4 km/h (92.6 %). (2) Dubai fit_session_pacejka (best available, no setup data): status ok, window applied 60.6-227.0 km/h, 90.8 % of the base mask kept, front B 10.81 C 1.94 D 8181 E 0.45, rear B 12.40 C 2.01 D 9154 E -1.03.
 QUEUED for the commit boundary (one run, author ruling): goldens re-baseline (they move by design -- the fit population changes at every cap), test_stability.py, the schema test, tests/test_steering_table.py (to be written).
 
 ## Step 3 file sets: membership evidence from headers and raw channels [2026-10-04, branch new-laps, read-only]
@@ -26076,7 +26076,7 @@ PROTECTED SET: git ls-files on docs/literature, docs/car_data, config/car_data.j
 
 ## Pooled fits (Step 3): Pool T and Pool D both HARM, production per-session fits stand [2026-10-05, branch new-laps, overnight steps C / D / C+]
 
-FRAME (frozen in the header of diagnostics/inspect_pool_fits.py before any pooled fit): production state = corrected steering (schema 10) + speed window (schema 11). Pooled curve = one production Pacejka fit per axle on the concatenated members' production fit inputs (seed alpha, axle Fy, each member's own windowed fit mask). Each member's chain re-run with its own fit replaced by the pooled curve (fitter hook; R derivation follows the member's residuals against the pooled curve). Tier-1 members: full frozen frame (G, M3 with P's bootstrap band, straight |beta|, chatter, CS shares, coverage); other members: G and CS shares / coverage (author ruling 4). F1 / S not reachable (no per-session refit). HARM: screen; G on any member; CS < 0 +2.5 pt or coverage -1 pt on any member-axle; Tier-1 M3 above band or straight |beta| +0.1 deg. EARNS: no harm and >= 2 of (2) M3 credit on >= 2 Tier-1 members (T only), (3) pooled CS < -1 -10 % rel, (5) pooled CS < 0 -5 % rel.
+FRAME (frozen in the header of diagnostics/inspect_pool_fits.py (script at tag pre-prune-2026-10-22) before any pooled fit): production state = corrected steering (schema 10) + speed window (schema 11). Pooled curve = one production Pacejka fit per axle on the concatenated members' production fit inputs (seed alpha, axle Fy, each member's own windowed fit mask). Each member's chain re-run with its own fit replaced by the pooled curve (fitter hook; R derivation follows the member's residuals against the pooled curve). Tier-1 members: full frozen frame (G, M3 with P's bootstrap band, straight |beta|, chatter, CS shares, coverage); other members: G and CS shares / coverage (author ruling 4). F1 / S not reachable (no per-session refit). HARM: screen; G on any member; CS < 0 +2.5 pt or coverage -1 pt on any member-axle; Tier-1 M3 above band or straight |beta| +0.1 deg. EARNS: no harm and >= 2 of (2) M3 credit on >= 2 Tier-1 members (T only), (3) pooled CS < -1 -10 % rel, (5) pooled CS < 0 -5 % rel.
 STEP C (cache rebuild, three parallel read-only processes, ~1.8 h wall): 18 / 18 members ENTRY OK (status, gate, no fallback, Powell, window applied); windows 64-73 to 220-235 km/h per file. Nothing excluded.
 POOLED CURVES (both pass the fit-shape screen, Powell converged): Pool T front B 8.81 C 1.93 D 8876 E -2.38 (origin slope 150.7 kN/rad, peak 5.1 deg), rear B 11.06 C 1.96 D 10531 E -2.46 (228.0 kN/rad, peak 3.9 deg), n 997175 per axle; Pool D front 149.9 kN/rad, rear 248.4 kN/rad, n 243947. Leave-one-member-out curve spread 0.4-1.0 % (the pooled curve is stable against any single member).
 EVALUATION: 25 / 25 member chains, Tier-1 entry exact at float32 resolution on all four; every pooled chain gate pass, no fallback.
@@ -26106,12 +26106,12 @@ NO verbatim statement on disk that reference-free iteration AMPLIFIES bias. The 
 
 1. POOL VERDICTS ACCEPTED (author): HARM as REPLACEMENT of the session fit; the per-session production fit stands. POSITIVE FINDING (thesis material): the members' own curves agree at the origin and fan apart towards the peak (pool plots) -- the sessions differ genuinely in the high-slip range, so per-session fitting is the correct model granularity, not a workaround. The pooled curves remain in use as starting points (Step 4) and as standalone tyre characterisations of the confirmed tyre spec. The Paul Ricard beta calming under the pooled curve (M3 0.870 -> 0.536) is recorded as an observation only.
 2. TWO UNCERTAINTY SOURCES OF CS LEVELS (author): (a) EKF fallback-switch timing, about +/-1-2 pt on the in-corner CS < 0 share per session; (b) curve choice -- near-identical curves (Pool D vs each member's own, F2 within 0.2 %) move the CS < 0 share by up to 4 pt. Both feed the eventual threshold derivation.
-3. Keep-reproduces confirmed for inspect_steering_fix_impact.py, inspect_speed_bands.py, inspect_pool_fits.py; the record-only notes on the decisive / MA / K2 frames confirmed.
+3. Keep-reproduces confirmed for inspect_steering_fix_impact.py (script at tag pre-prune-2026-10-22), inspect_speed_bands.py (script at tag pre-prune-2026-10-22), inspect_pool_fits.py (script at tag pre-prune-2026-10-22); the record-only notes on the decisive / MA / K2 frames confirmed.
 
 ## Iteration experiment (Step 4): refitting on refined slip angles drifts, does not converge; both starting points HARM [2026-10-05, branch new-laps, read-only]
 
 INTENT (author): does refitting the tyre curve on refined (EKF) slip angles improve the per-session chain, and does the pooled curve as a STARTING POINT beat the kinematic start -- for use as the production fitting procedure if a branch earns.
-LITERATURE, as frozen in the header of diagnostics/inspect_iteration.py: the scheme belongs to the dual-EKF / two-stage family listed by Villano, Lenzo & Sakhnevych (2021, Meccanica 56) sec. 1 (their own cross-combination, sec. 3.3, exchanges states with fixed tyre parameters -- not this scheme); convergence judged on the parameter spread settling, after Bechtloff (2018, VDI 12/809) sec. 6.3; divergence warning behind the amplification exit: Bechtloff (2018) sec. 1.2 (stiffness adaptation from estimated axle forces "can diverge" in stationary manoeuvres) and Sierra, Tseng, Jain & Peng (2006, VSD 44 sup1) sec. 3 (convergence "to the true values" needs persistent excitation); start dependence of Magic Formula regression: Ortiz et al. (2006, VSD 44:9) sec. 1. No work on disk states verbatim that reference-free iteration amplifies bias.
+LITERATURE, as frozen in the header of diagnostics/inspect_iteration.py (script at tag pre-prune-2026-10-22): the scheme belongs to the dual-EKF / two-stage family listed by Villano, Lenzo & Sakhnevych (2021, Meccanica 56) sec. 1 (their own cross-combination, sec. 3.3, exchanges states with fixed tyre parameters -- not this scheme); convergence judged on the parameter spread settling, after Bechtloff (2018, VDI 12/809) sec. 6.3; divergence warning behind the amplification exit: Bechtloff (2018) sec. 1.2 (stiffness adaptation from estimated axle forces "can diverge" in stationary manoeuvres) and Sierra, Tseng, Jain & Peng (2006, VSD 44 sup1) sec. 3 (convergence "to the true values" needs persistent excitation); start dependence of Magic Formula regression: Ortiz et al. (2006, VSD 44:9) sec. 1. No work on disk states verbatim that reference-free iteration amplifies bias.
 FRAME (frozen): Tier 1; own start (round 0 = production fit) and pool start (Pool T curve for Paul Ricard, Pool D for JST 29); round = refit on the 2 Hz slip angles from the previous beta (production fitter, production fit mask) -> production chain with the new curve; <= 3 refits; step = median relative curve change on |alpha| 0.5-8 deg; convergence = step below the session's leave-one-lap-out fit noise on both axles; stops: screen / Powell, G, amplification exit (step 2 > step 1), convergence, round 3. Final round judged on the Q-FIT-DECISIVE frame vs production.
 LAP-TO-LAP FIT NOISE (front / rear): US-v2 0.24 / 0.95 %, v3 1.28 / 5.05 %, JST 29 0.62 / 1.16 %.
 PER BRANCH (steps per round, front / rear; stop; final round):
@@ -26139,14 +26139,14 @@ READINGS (labelled, for the author):
 1. VERDICTS ACCEPTED (author): both starting points HARM; the one-pass production fit stands as the production fitting procedure. CONCLUSION (thesis material, with its evidence): without a reference sensor, refitting the tyre curve on refined slip angles has no fixed point within three rounds -- round-1 steps of 4-53 x the session's lap-to-lap fit noise, then a sustained 1-6 % drift per round with the rear peak force rising every round. This matches the published warnings: Bechtloff (2018, VDI 12/809) sec. 1.2 (stiffness adaptation from estimated states can diverge in stationary driving) and Sierra, Tseng, Jain & Peng (2006, VSD 44 sup1) sec. 3 (convergence to the true values needs persistent excitation). THE FAILED PREDICTION IS A FINDING: the loop is an open drift, not mere self-consistency (the predicted return to the starting curve did not happen).
 2. AMPLIFICATION-EXIT LIMITATION (observation only, no re-run): the frozen exit compared rounds 1 and 2 only and missed the round-3 re-acceleration of the front step in 5 of 6 branches. The verdict is unaffected (HARM on coverage regardless). Future iteration frames, if any, compare consecutive rounds throughout.
 3. FINDING -- AGREEMENT METRICS CANNOT TELL SELF-CONSISTENCY FROM TRUTH (methodological point, thesis material): in the iteration every internal-consistency metric improved (lap-to-lap fit stability, smear sensitivity, lap-to-lap beta coherence, straight-line beta, chatter, the CS < 0 and CS < -1 shares) while the data-grounded metric -- finite-CS coverage -- collapsed. In a reference-free chain, agreement between the estimator and its own curve can rise without the estimate getting closer to the truth; only data-anchored metrics can arbitrate. Recorded beside the two uncertainty sources of CS levels (fallback-switch timing, about +/-1-2 pt; curve choice, up to 4 pt) and cross-referenced to the verdict-validity frame: RELATIVE verdicts (variant vs production on identical inputs) remain valid; this finding concerns ABSOLUTE calibration only.
-4. inspect_iteration.py keep-reproduces confirmed.
+4. inspect_iteration.py (script at tag pre-prune-2026-10-22) keep-reproduces confirmed.
 5. Kerb-display package authorised; rulings and caption recorded in PLAN.md STATUS (2026-10-05).
 
 ## Kerb display package: near-strike CS samples greyed in all thesis-bound CS plots [2026-10-05, branch new-laps, display only]
 
 RULINGS (author): default GREYED, exclude one setting away with the hidden count stated; one config flag corner_trace_display.near_strike_display (grey / exclude / off) for the trace dialogs, the figure exports and the diagnostics renders, so app and thesis figures agree; full scope; the caption states the number. Tier C (presentation) on a Tier B quality class already in production (the near_strike grade mark, Q-CAL-1 option 4, 2026-10-03). The estimator deletes nothing; no computed result changes; no schema bump (display key, not an estimator input).
 CAPTION (grey, author wording): "Grey: samples whose estimation window lies within 0.2 s of a masked kerb strike (strike energy smeared by the 2 Hz filter); marked lower-quality, retained in all computed results." Exclude mode: "... are omitted from this plot (n = X, Y %); retained in all computed results." The width is read from stability_estimation.kerb_smear_grade_s, so the caption stays true if that value changes.
-IMPLEMENTATION: core/trace_display.py near_strike_split (main line without the marked samples; grey overlay = marked samples plus their finite neighbours, so a lone marked sample still draws) and near_strike_caption; core/plot_style.py NEAR_STRIKE_COLOR (= ui/style TEXT_MUTED); core/figure_render.py CS panels of the corner, verdict and lap figures + one caption line per figure; ui/views/corner_trace_dialog.py both dialogs draw the grey overlay, pass the mark into the export data and add the caption to the legend line; diagnostics/trace_render.py optional mark; diagnostics/inspect_pool_fits.py mode csplots (the mark is recomputed from the cached production beta and must reproduce the cached CS first -- it did on all three Tier-1 sessions). Premise found on the way: the mark's own comment said the trace display reads it -- nothing did until now.
+IMPLEMENTATION: core/trace_display.py near_strike_split (main line without the marked samples; grey overlay = marked samples plus their finite neighbours, so a lone marked sample still draws) and near_strike_caption; core/plot_style.py NEAR_STRIKE_COLOR (= ui/style TEXT_MUTED); core/figure_render.py CS panels of the corner, verdict and lap figures + one caption line per figure; ui/views/corner_trace_dialog.py both dialogs draw the grey overlay, pass the mark into the export data and add the caption to the legend line; diagnostics/trace_render.py (script at tag pre-prune-2026-10-22) optional mark; diagnostics/inspect_pool_fits.py (script at tag pre-prune-2026-10-22) mode csplots (the mark is recomputed from the cached production beta and must reproduce the cached CS first -- it did on all three Tier-1 sessions). Premise found on the way: the mark's own comment said the trace display reads it -- nothing did until now.
 CHECKS: tests/test_near_strike_display.py + tests/test_trace_display.py 14 / 14 (Dubai has marked samples; the split hides exactly the marked samples and never modifies its input; CS, the mark, stability and corner summaries byte-identical under grey / exclude / off; no module in modules/ reads the setting; the lap-figure export draws the grey overlay and the caption only in grey mode, the caption only in exclude mode, neither in off). test_stability.py output identical to the pre-change run.
 WHAT THE GREY SHOWS (Tier 1, in-corner CS): near-strike samples are 15.5-22.9 % of in-corner CS samples and 14-26 % of the CS < 0 samples, but a large share of the deep tail: CS < -1 front 46 / 25 / 61 % (US-v2 / v3 / JST 29), rear 2 / 100 / 100 %. The deepest negative values are disproportionately strike-smeared -- the plots now show it instead of mixing it into the distribution. Relevant context for the threshold derivation (the tail sets the STRONG thresholds); no estimator change follows from it here.
 
@@ -26175,7 +26175,7 @@ Method: static import graph of ui/ modules/ core/ models/ main.py (ast), per-fun
 ## Q-MU: lateral force over measured axle load (Fy / Fz) on 15 NBR outings -- a load-distribution trace, not a balance verdict [2026-10-05, branch new-laps, read-only]
 
 PREMISE CHECK (rule 2b.4, surfaced): no record parks a "mu trace" for missing loads. The record is (a) fy_f/r_norm_N = Fy_filt / Fz wired 2026-07-26 as the chair's own normalised-force construction (data_handler) with its display DEFERRED for panel width, and (b) BACKLOG-PERMANENT item 10 (g-g per corner): "upgrade path once voltage-path Fz is in production: load-aware utilisation". What changed since: NBR per-corner Fz measured via the voltage-referenced zero entries (Q-CAL-2, L4 with L2 zero).
-SCRIPT: diagnostics/inspect_mu_trace.py (rules frozen in the header before the run). mu_a = |Fy_a| / Fz_a per axle, Fy = production Level-1 split, Fz = measured axle total, both through the production 2 Hz low-pass; in-corner, analysis laps, kerb-masked samples out; samples within 0.2 s of a masked strike greyed (pointwise reading of the smear zone; the CS grade mark is window-based). Fresh parse per file (cached d2 data predate the zero entries).
+SCRIPT: diagnostics/inspect_mu_trace.py (script at tag pre-prune-2026-10-22) (rules frozen in the header before the run). mu_a = |Fy_a| / Fz_a per axle, Fy = production Level-1 split, Fz = measured axle total, both through the production 2 Hz low-pass; in-corner, analysis laps, kerb-masked samples out; samples within 0.2 s of a masked strike greyed (pointwise reading of the smear zone; the CS grade mark is window-based). Fresh parse per file (cached d2 data predate the zero entries).
 ENTRY: 15 / 16 pass E1-E4 (zero entry applied 4 / 4, Fy identical, CS reproduced, measured source); loads 100 % damper-sourced on every corner, no undefined Fz. EXCLUDED: MLA outing 5 on E3 -- ONE front CS sample of 60,542 differs by 2.5e-3 (all others <= 1.2e-7, finite sets identical): a float32-cache artefact, not a chain difference; the frozen rule kept it out.
 DISTRIBUTIONS (pooled, clean, n 491,999): front p50 1.263 / p90 1.560 / p99 1.815; rear 1.068 / 1.396 / 1.549. Grey 3.0-10.9 % per file; full-population percentiles within 0.006 of clean (front) -- the strike smear barely moves mu, unlike the CS tail. Unfiltered-Fz sensitivity: p50 within 0.02, p90 up to +0.08 (the 2 Hz Fz filter only trims peaks). Per-file front p50 1.13-1.45, rear 0.92-1.15; front above rear in every file.
 SITES (JST 29 position-locked CS dip positions, +/-10 m): mu at the sites is median-HIGHER than elsewhere in corners on 15 / 15 front and 14 / 15 rear (JST 29 front 1.305 vs 1.247, rear 1.199 vs 1.116) but p90-LOWER on most files: the sites sit at sustained high-load mid-corner, not at force peaks. mu shows no anomaly where CS dips -- consistent with the strike-disturbed slope reading of the dips (Q-PAIRING B), not a saturation event visible in force over load.
@@ -26204,7 +26204,7 @@ RULING (author): the stability verdict is anchored in Werner (chair lineage). st
 
 ## Q-MASS step 1: per-outing mass from the damper loads does not extract stably -- FAIL, Q-MASS dies [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_mass.py (rules frozen in the header before the run; pass rule author-confirmed). Production estimate wheel_loads.estimate_session_corrected_axle_totals (total Fz = m g + c v^2 on moving samples with |ay| < 1.5 m/s^2, intercept / g), fresh parse with the NBR zero entries, 16 NBR + Paul Ricard v3 and US-v2; damper loads valid 100 % on all corners of all 18 files.
+SCRIPT: diagnostics/inspect_mass.py (script at tag pre-prune-2026-10-22) (rules frozen in the header before the run; pass rule author-confirmed). Production estimate wheel_loads.estimate_session_corrected_axle_totals (total Fz = m g + c v^2 on moving samples with |ay| < 1.5 m/s^2, intercept / g), fresh parse with the NBR zero entries, 16 NBR + Paul Ricard v3 and US-v2; damper loads valid 100 % on all corners of all 18 files.
 - ACROSS FILES (NBR, n 16): mean 1407 kg (config 1356), SD 26.1 kg, range 1363-1450 -> criterion (a) SD <= 40 kg PASS (above the strict 15 kg end). Paul Ricard: 1311 / 1284 kg. Front mass share 0.40-0.44 (config corner weights 0.428).
 - WITHIN FILE (split at the median time of the fit population): |first - second half| 0.5-44.0 kg on NBR, 52.1 / 46.8 kg on Paul Ricard; 8 / 18 files within 15 kg -> criterion (b) max 52.1 > 40 kg FAIL (also fails on NBR alone: MLA outing 59, 44.0 kg).
 - FUEL DOES NOT EXPLAIN IT: the ECU cumulative burn predicts first-minus-second +4 to +15 kg; the burn-corrected deltas scatter -51 to +46 kg in both signs. The within-file instability is in the fit (intercept of a static + c v^2 model on straights: the aero term and the intercept trade against each other over the speed range a half covers), not in the car's mass.
@@ -26236,7 +26236,7 @@ The recorded threshold procedure ran at accuracy cap 1 (reproducibility). From 2
 
 ## CS threshold counts on the clean population, best-available chain; stability distribution beside [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_threshold_rederivation.py modes compute_clean / counts_clean (rules frozen in its header before the run; procedure note of the same day: best available instead of cap 1). Five sessions from the 2026-10-05 production beta (CS reproduced, entry passed), Dubai and Le Mans on the fresh full chain (gate pass, no fallback). Outputs counts_clean.txt / .json in diagnostics/plots/threshold_rederivation/. Counts only, no config write.
+SCRIPT: diagnostics/inspect_threshold_rederivation.py (script at tag pre-prune-2026-10-22) modes compute_clean / counts_clean (rules frozen in its header before the run; procedure note of the same day: best available instead of cap 1). Five sessions from the 2026-10-05 production beta (CS reproduced, entry passed), Dubai and Le Mans on the fresh full chain (gate pass, no fallback). Outputs counts_clean.txt / .json in diagnostics/plots/threshold_rederivation/. Counts only, no config write.
 - PERCENTILE VALUES (seven-session pool, worst-lap worst-phase corner values): FRONT clean p10 -0.646, p15 -0.508, p30 -0.285, p40 -0.180 (n 104); full -0.826 / -0.753 / -0.362 / -0.241. REAR clean -0.404 / -0.324 / -0.131 / -0.065 (n 103); full -0.472 / -0.405 / -0.171 / -0.098. Removing the near-strike samples moves every candidate value TOWARD ZERO (front STRONG p10 by +0.18) -- the strike smear deepened the tail, as the display package showed at sample level.
 - POOL TOTALS are percentile shares by construction (STRONG p10 -> 11, p15 -> 16 corners per axle; MODERATE p30 -> 20-21, p40 -> 30-31), identical clean and full; the information is in the VALUES and in the per-session redistribution (e.g. rear S p10 / M p30: Paul Ricard outing 25 clean 0 / 4 vs full 3 / 2; NBR JST 29 clean 2 / 3 vs full 0 / 3).
 - STRUCTURAL FACT carried from 2026-10-04: all candidate values are negative on both axles, so under any combination the MODERATE boundary lies past the force peak and a corner between it and 0 reads OK. Current config: STRONG_CSF -0.10, STRONG_CSR -0.07, MODERATE_CSF +0.15, MODERATE_CSR +0.20 (recorded procedure, physical anchor at 0) -- the percentile rule and the recorded procedure define different things.
@@ -26267,7 +26267,7 @@ DOCSTRING (modules/tyre_fit_auto.py header, comment only, no behaviour change): 
 
 ## cs_margin re-measure: the adapted +/-1 % sweep finds no proportional threshold flip -- the recorded rule yields no value [2026-10-05, read-only]
 
-SCRIPTS: diagnostics/inspect_metrology_phase1_sensitivity.py (adapted 2026-10-05: steering input = +/-1 % on the table's wheel-angle column; results in diagnostics/results_metrology_20261005/, the 2026-09-19 record untouched) and inspect_metrology_phase1_analysis.py (same folder switch). 22 runs (Dubai, v3; 5 inputs x 2 signs + baselines; setup-sheet corner weights, best available, full production chain incl. Pacejka refit, speed window, clean classification population, 2026-10-05 thresholds); no fallback in any run; perturbation verified to reach the resolved steering table.
+SCRIPTS: diagnostics/inspect_metrology_phase1_sensitivity.py (script at tag pre-prune-2026-10-22) (adapted 2026-10-05: steering input = +/-1 % on the table's wheel-angle column; results in diagnostics/results_metrology_20261005/, the 2026-09-19 record untouched) and inspect_metrology_phase1_analysis.py (same folder switch). 22 runs (Dubai, v3; 5 inputs x 2 signs + baselines; setup-sheet corner weights, best available, full production chain incl. Pacejka refit, speed window, clean classification population, 2026-10-05 thresholds); no fallback in any run; perturbation verified to reach the resolved steering table.
 - FLIPS (axle-word change, the recorded flip definition): 5 flips, 2 distinct corner-phases. v3 C8 exit_4 (front fraction -1 %, mass +1 %, steering +1 %): rear CS jumps +0.52 -> -0.20 under each -- a DISCONTINUITY of the ratio (linear-reference switch), the mechanism the 2026-09-29 record excluded for v3 C11, not a proportional crossing. Dubai C1 apex_3 (front fraction -1 %, steering -1 %): the classifier reads apex_region for apex_3 but the sweep stores phase medians, so its true threshold distance is not measurable from the stored payload; it is the same corner-phase the 2026-09-19 derivation excluded as a different mechanism (front / rear relative comparison).
 - RESULT under the recorded rule (exclude different-mechanism cases, margin = largest remaining flip distance): NO proportional flip remains -> the rule yields NO cs_margin value. cs_margin stays 0.11 in config until the author rules; nothing written.
 - SCALE (information): per corner-phase and axle, |delta CS| under +/-1 % perturbations: Dubai p50 0.005, p90 0.073, p99 0.40, max 0.60; v3 p50 0.004, p90 0.075, p99 0.38, max 1.56; shifts above 0.3 (discontinuities) 1.7 % / 1.5 %. The old 0.11 sits above the p90 of proportional shifts. Under the 2026-10-05 thresholds (deep in the negative range) few corner-phases sit near a threshold, so +/-1 % input errors rarely flip a verdict -- the flips that do occur are ratio discontinuities.
@@ -26290,7 +26290,7 @@ Per verdict class of the per-event audit (rules fixed before any number): (a) ke
 
 ## Q-SPIKE-AUDIT: every deep CS dip of NBR JST outing 29 named -- (e) nearly empty, but two criteria fire by chance [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_spike_audit.py (rules frozen in its header before the run; author EXECUTE; pre-registered consequences per class recorded the same day). ENTRY: production beta reproduced (max diff 7.4e-09), CS reproduced; in-corner fallback / reset samples 517. p95 references (clean in-corner): |az - 1 g| 0.56 g; damper-velocity high band FL 54 / FR 61 / RL 82 / RR 53 mm/s; wheel-load high band 870 / 786 / 1077 / 1061 N; brake-pressure rate 82 bar/s; throttle channel absent on this file (throttle check not evaluable).
+SCRIPT: diagnostics/inspect_spike_audit.py (script at tag pre-prune-2026-10-22) (rules frozen in its header before the run; author EXECUTE; pre-registered consequences per class recorded the same day). ENTRY: production beta reproduced (max diff 7.4e-09), CS reproduced; in-corner fallback / reset samples 517. p95 references (clean in-corner): |az - 1 g| 0.56 g; damper-velocity high band FL 54 / FR 61 / RL 82 / RR 53 mm/s; wheel-load high band 870 / 786 / 1077 / 1061 N; brake-pressure rate 82 bar/s; throttle channel absent on this file (throttle check not evaluable).
 EVENTS (CS < -0.5 in corners, analysis laps, gaps < 0.5 s bridged): FRONT 48 events, 1301 deep samples; REAR 10 events, 179 deep samples.
 CLASSES (events / share of deep samples):
 - FRONT: (a) kerb detected 20 / 34 %; (b) kerb missed 13 / 24 %; (c) estimator artefact 13 / 34 %; (d) car-on-track event 2 / 8 %; (e) unexplained 0.
@@ -26308,7 +26308,7 @@ Renders: diagnostics/plots/spike_audit/overview_f.png, overview_r.png, deep_1_F3
 
 ## Q-SPIKE-AUDIT specificity re-pass: kerb-shown 25 events, specific kerb-missed 7 (not the expected 7), residual 21 [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_spike_audit.py mode repass (rules frozen in its re-pass section before classifying; author EXECUTE). Same 58 events and evidence windows; per event 2000 matched random windows of the same length wholly inside clean in-corner analysis-lap samples (fixed seed); every statistic's cut = its matched-window p95. Chain re-run once for the reset mask (entry passed again).
+SCRIPT: diagnostics/inspect_spike_audit.py (script at tag pre-prune-2026-10-22) mode repass (rules frozen in its re-pass section before classifying; author EXECUTE). Same 58 events and evidence windows; per event 2000 matched random windows of the same length wholly inside clean in-corner analysis-lap samples (fixed seed); every statistic's cut = its matched-window p95. Chain re-run once for the reset mask (entry passed again).
 LABELS (first pass -> re-pass):
 - FRONT (48): (a) kerb detected 20 (34 % of deep samples, unchanged); (b) kerb missed 7 (18 %); (c) estimator artefact 2 (7 %; both V-GRADE degenerate support, F15 and F35 -- no event's regression window holds more reset samples than its matched p95); (d) car-on-track event 2 (4 %; F21, F44, brake-rate peaks); (r) no specific mechanism shown 17 (38 %).
 - REAR (10): (a) 5 (60 %); (d) 1 (R01); (r) 4 (36 %); no (b), no (c).
@@ -26329,7 +26329,7 @@ RECORD WORDING (author ruling): the deep tail decomposes into kerb-shown dips (a
 
 ## Q-SPIKE-AUDIT FINAL LEDGER (labels frozen): (b) tightened to union-5 % -- 4 kerb-missed events survive, the C10 RR cluster does not [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_spike_audit.py mode repass2 (one final iteration of (b) only, frozen before re-labelling; author EXECUTE; no further tightening). (b) per-channel cut = the EMPIRICAL UNION-5 % LEVEL: per event one common percentile q of the matched-window maxima (q = 97.35-98.75 across events), the smallest at which the one-sided union fires on <= 5 % of the same 2000 matched windows; (a), (c), (d) cuts unchanged. MEASURED BASE RATES of the final criteria: (b) 4.8 %, (c) 2.5 %, (d) 6.0 %; V-GRADE 5.3 % front / 3.4 % rear of clean in-corner CS samples.
+SCRIPT: diagnostics/inspect_spike_audit.py (script at tag pre-prune-2026-10-22) mode repass2 (one final iteration of (b) only, frozen before re-labelling; author EXECUTE; no further tightening). (b) per-channel cut = the EMPIRICAL UNION-5 % LEVEL: per event one common percentile q of the matched-window maxima (q = 97.35-98.75 across events), the smallest at which the one-sided union fires on <= 5 % of the same 2000 matched windows; (a), (c), (d) cuts unchanged. MEASURED BASE RATES of the final criteria: (b) 4.8 %, (c) 2.5 %, (d) 6.0 %; V-GRADE 5.3 % front / 3.4 % rear of clean in-corner CS samples.
 FINAL LEDGER, NBR JST outing 29 (58 deep events, CS < -0.5):
 - FRONT (48 events, 1301 deep samples): (a) kerb detected 20 (34 %); (b) kerb missed 3 (4 %); (c) estimator artefact 3 (9 %; F15, F35 V-GRADE degenerate support, F06 reset samples in its regression window 5 vs matched p95 4); (d) car-on-track event 2 (4 %; F21, F44 brake-rate peaks); (r) no specific mechanism shown 20 (50 %).
 - REAR (10 events, 179 deep samples): (a) 5 (60 %); (b) 1 (4 %); (r) 4 (36 %).
@@ -26352,14 +26352,14 @@ RECORD WORDING (author ruling applied to the frozen ledger): the deep CS tail of
 
 ## Curve floor vs thresholds: STRONG lies beyond the quasi-steady characteristic on every pool session, both axles [2026-10-05, branch new-laps, read-only]
 
-SCRIPT: diagnostics/inspect_curve_floor.py (rules frozen in its header; author EXECUTE). Production Pacejka curve per session and axle at best available (six from the 2026-10-05 production caches, Dubai fitted fresh). FLOOR = min over slip angle of (dFy/dalpha) / (B C D) -- the curve's own cornering-stiffness-ratio analogue -- on the visited range 0 .. p99 |alpha| of the production fit population; the 0-30 deg floor beside. Full suite at HEAD 9427b6a before the run: 585 passed, 9 skipped, 1 xfailed.
+SCRIPT: diagnostics/inspect_curve_floor.py (script at tag pre-prune-2026-10-22) (rules frozen in its header; author EXECUTE). Production Pacejka curve per session and axle at best available (six from the 2026-10-05 production caches, Dubai fitted fresh). FLOOR = min over slip angle of (dFy/dalpha) / (B C D) -- the curve's own cornering-stiffness-ratio analogue -- on the visited range 0 .. p99 |alpha| of the production fit population; the 0-30 deg floor beside. Full suite at HEAD 9427b6a before the run: 585 passed, 9 skipped, 1 xfailed.
 FRONT (STRONG -0.646, MODERATE -0.285), visited-range floor / 0-30 deg floor: Dubai +0.087 / -0.069 (peak 6.3 deg outside the visited 5.0 deg); Paul Ricard outing 25 -0.061 / -0.123; outing 32 +0.005 / -0.053 (peak outside); NBR JST 21 -0.235 / -0.248; JST 29 -0.305 / -0.320; NBR qualifying CDR -0.325 / -0.339; qualifying MLA -0.213 / -0.213. Pool (deepest session floor) -0.325.
 REAR (STRONG -0.404, MODERATE -0.131): Dubai +0.165 / -0.210 (peak outside); Paul Ricard outing 25 +0.017 / -0.208 (peak outside); outing 32 +0.195 / -0.329 (peak outside); JST 21 -0.223 / -0.267; JST 29 -0.209 / -0.298; qualifying CDR -0.233 / -0.233; qualifying MLA -0.203 / -0.284. Pool -0.233.
 OUTCOME (pre-stated case 2, both axles, every session, also against the 0-30 deg extension): STRONG lies BELOW the fitted characteristic's own floor. A corner value at the STRONG threshold cannot be produced by the session's quasi-steady tyre curve; the flag demonstrably marks beyond-characteristic events. WORDING (author, pre-stated): the STRONG verdict means "anomalous force loss beyond the quasi-steady characteristic (kerb-shown majority per audit; mechanism open otherwise)" -- the flag stays, its claim changes; it no longer reads "unusually deep for this car".
 MODERATE (information, no pre-stated case): mixed -- front -0.285 lies below the floor on 5 of 7 sessions (above on JST 29 and qualifying CDR); rear -0.131 lies below the floor on the three sessions whose visited range ends before the peak (Dubai, both Paul Ricard) and above it on the four NBR sessions. On the Paul Ricard and Dubai rear, any negative CS lies beyond the visited part of the curve.
 CAVEAT: the thresholds act on corner values (per-phase medians, worst lap, worst phase); the floor is a pointwise property of the fitted curve -- a corner value at STRONG means a sustained phase median deeper than anything the curve produces anywhere in the visited range.
 RESIDUAL WORDING UPGRADE (author ruling; dated note to "Deep-tail ledger closed ..." and "Q-SPIKE-AUDIT FINAL LEDGER ...", entries not rewritten): the residual "no specific mechanism shown" reads from now on "incompatible with the session's quasi-steady tyre characteristic; specific mechanism not shown". Basis: the audit's events all lie below CS -0.5, and the curve floors lie at or above -0.34 (front) / -0.33 (rear) even to 30 deg -- every deep event is beyond what the session's fitted characteristic can produce.
-[2026-10-05 ADDENDUM, author rulings: inspect_curve_floor.py keep-reproduces -- it re-runs with every threshold re-derivation, so the meaning check rides with the thresholds. UI wording (UI batch): card "anomalous force loss beyond the tyre's quasi-steady characteristic"; the full sentence with the kerb-shown-majority qualifier in tooltip / caption.]
+[2026-10-05 ADDENDUM, author rulings: inspect_curve_floor.py (script at tag pre-prune-2026-10-22) keep-reproduces -- it re-runs with every threshold re-derivation, so the meaning check rides with the thresholds. UI wording (UI batch): card "anomalous force loss beyond the tyre's quasi-steady characteristic"; the full sentence with the kerb-shown-majority qualifier in tooltip / caption.]
 
 ## Event layer: anchor check -- Segers is the lineage for moment-level limit reading; Milliken gives the regime distinction; no source detects events against a fitted characteristic [2026-10-06, read-only; Segers text layer, Milliken RCVD rendered page images (scan, no text layer; PDF page = book page + 34)]
 
@@ -26388,7 +26388,7 @@ SCRIPT: diagnostics/inspect_channel_census.py (modes exports / pds / report / co
 
 ## Event layer implemented: limit events as a display + record output class [2026-10-06, author EXECUTE on the rulings above]
 
-- METHOD: per session and axle the event line is the 0-30 deg floor of the session's own Pacejka curve, min (dFy/dalpha) / (B C D) (modules/limit_events.curve_floor, promoted unchanged from inspect_curve_floor -- floors.json reproduced byte-identically through the module). Events = in-corner stretches (canonical brackets, analysis laps, full CS arrays) of CS below the line, merged across gaps < 0.5 s within one corner instance, no minimum duration. Labels from existing machinery only: kerb-affected (near-strike mark on an event sample, or a kerb-mask sample inside the span), recurring (same axle and corner, another analysis lap, minimum within +/-10 m), else single occurrence. No event line when the fit is degenerate or absent. Schema 12 -> 13 ("events key added").
+- METHOD: per session and axle the event line is the 0-30 deg floor of the session's own Pacejka curve, min (dFy/dalpha) / (B C D) (modules/limit_events.curve_floor, promoted unchanged from inspect_curve_floor (script at tag pre-prune-2026-10-22) -- floors.json reproduced byte-identically through the module). Events = in-corner stretches (canonical brackets, analysis laps, full CS arrays) of CS below the line, merged across gaps < 0.5 s within one corner instance, no minimum duration. Labels from existing machinery only: kerb-affected (near-strike mark on an event sample, or a kerb-mask sample inside the span), recurring (same axle and corner, another analysis lap, minimum within +/-10 m), else single occurrence. No event line when the fit is degenerate or absent. Schema 12 -> 13 ("events key added").
 - DISPLAY-ONLY CONTRACT, tested (tests/test_limit_events.py): summaries, live verdicts and recommendations byte-identical with the layer on and off; detect_events mutates no input; no verdict / recommendation module imports it. Pipeline goldens unchanged (they hold summaries and recommendations only).
 - FIRST COUNTS (best available, read-only): Dubai 49 events over 4 analysis laps (front 39, rear 10; 19 kerb-affected; 20 recurring; duration median 0.21 s, max 1.34 s; 9 events of <= 0.05 s), NBR JST 29 91 events over 6 laps (front 70, rear 21; 34 kerb-affected; 55 recurring; median 0.24 s; 11 events <= 0.05 s). Floors used: Dubai front -0.069 / rear -0.210, JST 29 -0.320 / -0.298. Corner/phase/axle rows: 28 / 39 -- the thesis consumer's resolution.
 
@@ -26468,7 +26468,7 @@ SCRIPT: diagnostics/inspect_channel_census.py (modes exports / pds / report / co
 
 ## Close-out package after the UI cleanup round [2026-10-07, author EXECUTE; the earlier same-day ruling on OPEN 1-6 is VOID; the package itself was revised once (OPEN 1 stays open)]
 
-- CANCELLED: the imu_bias_check work order (it came from a different session); nothing of it exists in the tree (no tools/, diagnostics/inspect_imu_offsets.py unchanged).
+- CANCELLED: the imu_bias_check work order (it came from a different session); nothing of it exists in the tree (no tools/, diagnostics/inspect_imu_offsets.py (script at tag pre-prune-2026-10-22) unchanged).
 - ~~POPULATION REFERENCES vs INSTANCE ELEMENTS (design principle, display): the CS p10 / p90 lines, the yaw envelope and median and the lap window's corner tints pool all analysis laps by design -- they are the population a lap is read against; the checkboxes control instance elements only. Each pooled element is labelled "all analysis laps (n = X)" with the live count (corner window: that corner's pooled laps; lap window: the session's analysis laps). The exports draw no pooled element (their corner bands are neutral grey). Guard: tests/test_pooled_labels.py on NBR JST 29 (labels and n; envelope data identical with all laps vs one lap checked).~~ [VOID 2026-10-07, revised close-out order: OPEN 1 stays open by author decision -- no labels, no code change; the label code was reverted and tests/test_pooled_labels.py removed before any commit.]
 - KERB CAPTION: "kerb-affected samples excluded from verdict statistics, retained in CS arrays", verbatim, with a plot-mode prefix (Grey / Not drawn / Drawn normally) and the count (n = X, Y %); the earlier "retained in all computed results" was inaccurate since schema 12 (struck in the 2026-10-05 entry and in DECISIONS).
 - APEX ROW: the per-phase table reads its CS cells through the classifier's own accessor (OutingForm._verdict_cs_stat), so displayed == consumed by construction; the apex shows as "Apex region (+/-25 m)" (CS) and "Apex (+/-5 samples)" (stability, loads, LS of the apex instant; the instant's CS slice is no longer displayed). Acceptance test (tests/test_apex_row.py): a summary whose apex region (-1.00) and fixed slice (+0.93) differ -- the verdict reads -1.00, the row shows -1.00, 0.93 appears nowhere.
@@ -26557,7 +26557,7 @@ SUPERSEDE NOTE [2026-10-12, corrected]: as a citable source, this communication 
 ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Goblirsch, Weinmann, Betz 2024 (IROS; three IMUs on the Dallara AV-21) ONLY. The IFAC 2019 state-estimation paper (Wischnewski et al., Roborace) uses a single gyro platform; it stays citable for the chair's estimation lineage in general (Kalman-filter velocity / sideslip estimation, sensor table with the optical sensor), never for a multiple-IMU statement. The 2026-10-12 correction above already removed it from this entry; this line fixes the scope for every later use.
 [2026-10-16, R1] Betz et al. 2023 (GNSS receivers with integrated IMU) is likewise not a multi-IMU anchor.
 
-## Beta architectures, round 3: seed sensitivity of the session Pacejka fit and of E [2026-10-07, offline diagnostic diagnostics/seed_sensitivity_fit.py; numbers only -- verdicts are the author's]
+## Beta architectures, round 3: seed sensitivity of the session Pacejka fit and of E [2026-10-07, offline diagnostic diagnostics/seed_sensitivity_fit.py (script at tag pre-prune-2026-10-22); numbers only -- verdicts are the author's]
 
 - READ POINTS (stop report 2026-10-07): the kinematic beta enters the fit path at (1) tyre_fit_auto.fit_session_pacejka (estimate_sideslip -> slip angles -> axle fit data) and (2) sideslip_ekf_pacejka.estimate_sideslip_ekf_pacejka (fallback output AND filter re-initialisation x = [beta_kin, r_meas], P = P0 on every diverged sample), in all 27 EKF calls of the fit (1 interim, 25 R-sweep points as configured, 1 final). resolve_sideslip_beta additionally falls back to the kinematic beta on a degenerate fit or a gate "fail". Route (a) substitutes the seed at (1) only, route (b) at (1) and (2); in-process name swap, nothing persisted (the fit writes no file).
 - STRUCTURAL FACT: the axle curve is fitted before any EKF call, so the fitted (B, C, D, E) depend on read point (1) only; the route (a) vs (b) stiffness gap is zero by construction on both exports. Route (b) acts only on E, the divergence counts and the R choice.
@@ -26577,7 +26577,7 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 - D3 FIRST VARIANT FAILED (recorded, not a ship candidate): keeping the state on every divergence, hard-bound ones included, runs away -- at large slip the Magic Formula slope is near zero or negative, the measurements carry no information on beta, and P0 (beta std about 1 deg) is no real widening. |E| reached 4244 deg (NBR-73-010-026-JDR) and 2531 deg (MLA-SE07_US-v2); validation-straight median 0.21 -> 2224 deg and 0.07 -> 627 deg. This is why the hard-bound case resets to zero.
 - D4 DESIGN (modules/tyre_fit_auto.plausibility_gate, after the status verdict of fit_session_pacejka): per axle g1 excitation (p1..p99 span of the fit's slip-angle data >= 3.0 deg), g2 implied linear stiffness B*C*D in [30000, 600000] N/rad, g3 numerical argmax of the curve in [3.0, 15.0] deg (no peak in the grid fails). Any failure -> status 'degenerate' with the failed checks in degenerate_reason -> the existing kinematic fallback. The per-axle verdict stays in the in-memory manifest; resolve_sideslip_beta strips it, so the persisted payload shape is unchanged. Bands deliberately wide (garbage catch, not ridge adjudication); magnitudes after Bechtloff Fig. 7.2 (single-track reference stiffnesses 140 / 220 kN/rad passenger car, 230 / 630 kN/rad supersport car; p. 130 to verify) and a team rule of thumb (front peak about 8 deg, personal communication, Proton race engineer) -- both coarse bounds. Config: tyre_fit_auto.min_alpha_span_deg, stiffness_min_npr, stiffness_max_npr, peak_min_deg, peak_max_deg.
 - REASON FIELD (ruling 2026-10-07): every degenerate status now carries degenerate_reason, including the sign-check / NIS-miscalibration branch of fit_session and fit_session_pacejka (field already in the payload).
-- VALIDATION, D4 dry run on all round-3 fits (diagnostics/check_estimator_hardening.py; fits recomputed and identical to round 3): NBR A passes (front 149413 N/rad, peak 5.00 deg, span 11.9 deg; rear 253216 N/rad, peak 3.61 deg, span 7.0 deg); NBR D2 rejected (front peak 17.12 deg); NBR B2 rejected (front no peak); PR A passes (front 157269 N/rad, peak 7.45 deg; rear 142125 N/rad, peak 5.81 deg); PR D2 passes; PR B2 rejected (g2 and g3 both axles, 18728 / 12976 N/rad). PEAK-NEAR-BOUND NOTE: the NBR seed-A rear peak sits at 3.61 deg, 0.6 deg above peak_min_deg = 3.0.
+- VALIDATION, D4 dry run on all round-3 fits (diagnostics/check_estimator_hardening.py (script at tag pre-prune-2026-10-22); fits recomputed and identical to round 3): NBR A passes (front 149413 N/rad, peak 5.00 deg, span 11.9 deg; rear 253216 N/rad, peak 3.61 deg, span 7.0 deg); NBR D2 rejected (front peak 17.12 deg); NBR B2 rejected (front no peak); PR A passes (front 157269 N/rad, peak 7.45 deg; rear 142125 N/rad, peak 5.81 deg); PR D2 passes; PR B2 rejected (g2 and g3 both axles, 18728 / 12976 N/rad). PEAK-NEAR-BOUND NOTE: the NBR seed-A rear peak sits at 3.61 deg, 0.6 deg above peak_min_deg = 3.0.
 - VALIDATION, D3 old vs new (seed A, production fit; fitted curves identical old vs new): NBR fit 'ok' / gate pass -> 'marginal' / gate pass (sweep out of band); diverged samples interim / sweep sum / final 6024 / 68448 / 996 -> 6243 / 81741 / 1666; hard-bound / NIS-window final 0 / 996 -> 5 / 1661; hard-bound re-entries at |ay| >= 5 m/s^2 (mid-corner zero resets) interim 200 -> 548, sweep sum 4 -> 130, final 0 -> 3; R chosen 0.1 / 16 both; max |E| 6.96 -> 14.93 deg; C10 signed means +1.65..+1.86 -> +1.61..+1.74 deg; validation straights 0.21 / 0.26 / 0.28 -> 0.21 / 0.26 / 0.28 deg. PR fit 'marginal' / gate pass -> 'degenerate' (reason: sign check, median gate racing fraction 0.333 < 0.5) / gate warn; diverged 4741 / 78866 / 1909 -> 4816 / 92677 / 3634; hard-bound / NIS-window final 0 / 1909 -> 3 / 3631; mid-corner zero resets interim 59 -> 52, sweep sum 19 -> 68, final 0 -> 2; R 0.1 / 16 -> 1 / 1; max |E| 12.27 -> 14.98 deg; C13 signed means +4.75..+4.98 -> +3.01..+4.96 deg (peaks up to +12.31); validation straights 0.07 / 0.19 / 0.24 -> 0.27 / 0.36 / 0.38 deg. Pre-registered expectation (straights sub-degree) holds on both exports.
 - CONSEQUENCE, stated not tuned: under the new re-entry the PR session's fit turns 'degenerate' through the existing sign check, so production would ship the kinematic beta for MLA-SE07_US-v2. A mid-corner zero reset leaves E near zero for about 3 s before it climbs back (PR C13 lap 53 overlay) -- the price of resetting to a bias-free value.
 - FULL SUITE after phase 1 (2026-10-08, goldens still old, nothing re-baselined): 3 failed, 605 passed, 9 skipped, 1 xfailed. Failures: test_auto_fit_wiring::test_ekf_auto_pacejka_reproduces_wp_n3_phase3_figures and ::test_forced_fallback_via_impossible_gate_thresholds (both expect Dubai fit status 'ok', now 'marginal'); test_golden_pipeline::test_pipeline_output_matches_golden (Dubai ekf_auto_pacejka, 2265 fields differ; corner 0 apex_3 cs_ratio_f median 0.518 -> -0.201, stability_observed median 387 -> 11 Nm/deg). The Dubai apex shift is large and belongs to the phase-2 review, not to a re-baseline by default.
@@ -26585,17 +26585,17 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 ## Phase 2 step 2, Part 1: the R-sweep band under the corrected re-entry, and the selection redesign [2026-10-11, diagnostics + author ruling]
 
 - STEP 1b EXONERATION (PR, R pinned): sign-check fraction new@1/1 0.333, new@0.1/16 1.000, old@0.1/16 1.000, old@1/1 0.800 -- the PR collapse came from the sweep's pick (1/1), not from the re-entry.
-- GRID FINDING (full 25-point grid, new estimator, diagnostics/check_estimator_hardening.py --step p2s2grid): the yaw NIS exceedance never comes near the band on any grid point. Floors: Dubai 0.263 (0.1/16), NBR-73-010-026-JDR 0.211 (0.3/16), MLA-SE07_US-v2 0.393 (1/4). The ay exceedance reaches [0.03, 0.15] on all three exports. On PR f_yaw is nearly flat in the yaw scale (0.39-0.44 over x1..x16). Sign check per grid point: 1.000 everywhere on Dubai and NBR; on PR below 1 only on rows ay x1 (1/1 0.333, 1/2 0.600, 1/4 0.800, 1/8 0.933) and ay x0.3 (0.800, 0.867, 0.867 at yaw x1, x2, x4).
+- GRID FINDING (full 25-point grid, new estimator, diagnostics/check_estimator_hardening.py (script at tag pre-prune-2026-10-22) --step p2s2grid): the yaw NIS exceedance never comes near the band on any grid point. Floors: Dubai 0.263 (0.1/16), NBR-73-010-026-JDR 0.211 (0.3/16), MLA-SE07_US-v2 0.393 (1/4). The ay exceedance reaches [0.03, 0.15] on all three exports. On PR f_yaw is nearly flat in the yaw scale (0.39-0.44 over x1..x16). Sign check per grid point: 1.000 everywhere on Dubai and NBR; on PR below 1 only on rows ay x1 (1/1 0.333, 1/2 0.600, 1/4 0.800, 1/8 0.933) and ay x0.3 (0.800, 0.867, 0.867 at yaw x1, x2, x4).
 - CAUSAL CHAIN (author's reading): the old re-entry wrote the kinematic beta into the state on every divergence, which flattered the NIS (yaw exceedance 0.11-0.22 at the old pick); with the honest re-entry the yaw exceedance is 0.21-0.52 everywhere, the joint band is dead, and the old rule then took the grid point "nearest overall" -- an arbitrary pick that inverted the physics on PR.
 - RULING (author, 2026-10-11): select R on the ay exceedance only, in [0.03, 0.15], nearest the band centre; physics guard = the sign-check fraction of that grid point's own run >= 0.7 (sign_check_marginal_fraction), else the next-nearest in-band point; no guarded in-band point -> config default R (ay x0.1, yaw x16), status at most 'marginal' with marginal_reason r_sweep_no_in_band / r_sweep_guard_fail. f_yaw stays logged per point; the gross-miscalibration limit (0.5) stays a degenerate trigger. Reasoning: the yaw innovation is dominated by single-track model mismatch, not sensor noise, so a yaw NIS band cannot select R.
 - UNTESTED HYPOTHESIS (recorded, not checked): PR's flat f_yaw may come from the NIS-window re-entry resetting P to P0 about 3000 times per run, which could keep the yaw innovation covariance dominated by P rather than R.
 - VERIFY (production sweep with the new rule, --step p2s2verify): NBR picks 0.1/16 (f_ay 0.052, sign 16/16) -> status 'ok'; PR: nearest candidate 1/1 FAILS the guard (sign 0.333), next 0.1/1 passes (f_ay 0.071, f_yaw 0.443, sign 15/15) -> status 'ok'; Dubai picks 0.03/1 (f_ay 0.116, sign 11/11) as expected, but its f_yaw there is 0.521 > 0.5, so the retained gross-miscalibration limit makes the Dubai fit 'degenerate' -> production would ship the kinematic beta on Dubai. Package stopped here for a ruling.
 - CONTRADICTION AT THE VERIFY (2026-10-11): f_yaw had been demoted from the R selection but was still a degenerate trigger through the gross-miscalibration limit (max of yaw and ay > 0.5). Dubai exposed it: its guarded ay-band pick 0.03/1 has f_yaw 0.521, so the fit turned 'degenerate' and production would have shipped the kinematic beta. RULING (author, 2026-10-11): the gross trigger reads f_ay only (reason text "NIS gross miscalibration (ay): exceedance X > 0.5"); f_yaw is logged per fit and a new SOFT ceiling yaw_mismatch_ceiling = 0.75 can only cap the status at 'marginal' (marginal_reason yaw_mismatch_high), never degenerate -- set well above the observed 0.21-0.52 so it flags only anomalous sessions. The Dugoff path is unchanged.
 - VERIFY AFTER THE RULING (--step p2s2verify): Dubai 0.03/1, sign 11/11, f_yaw 0.521 logged, status 'ok'; NBR 0.1/16, 16/16, 'ok'; PR 0.1/1 (1/1 guard-failed at 0.333), 15/15, 'ok'. All as expected.
-- PART 2 FRESH CHAIN (inspect_threshold_rederivation.py compute_fresh / counts_fresh, cache_clean_20261011; same eight sessions, seven-session pool, Le Mans information only; all eight through the fresh production chain, none fell back): front p10 -0.784 / p15 -0.548 / p30 -0.265 / p40 -0.184 (n 106); rear p10 -0.677 / p15 -0.571 / p30 -0.323 / p40 -0.213 (n 104). Clean and full populations are identical now -- summarise_corners has excluded kerb-affected CS samples itself since schema 14 (2026-10-07), so the separate clean step no longer changes anything (in the 2026-10-05 caches 14-19 corner-axis values differed per session).
+- PART 2 FRESH CHAIN (inspect_threshold_rederivation.py (script at tag pre-prune-2026-10-22) compute_fresh / counts_fresh, cache_clean_20261011; same eight sessions, seven-session pool, Le Mans information only; all eight through the fresh production chain, none fell back): front p10 -0.784 / p15 -0.548 / p30 -0.265 / p40 -0.184 (n 106); rear p10 -0.677 / p15 -0.571 / p30 -0.323 / p40 -0.213 (n 104). Clean and full populations are identical now -- summarise_corners has excluded kerb-affected CS samples itself since schema 14 (2026-10-07), so the separate clean step no longer changes anything (in the 2026-10-05 caches 14-19 corner-axis values differed per session).
 - STABILITY SURGE (stop reason): worst-phase observed stability, pool of seven: negatives 9 -> 34 of 109, p10 +27 -> -389 Nm/deg. Per session negatives old -> new: Dubai 0 -> 10 of 14 (median 342 -> -360), PR outing 25 4 -> 8, PR outing 32 1 -> 4, NBR JST 21 1 -> 6, NBR JST 29 1 -> 2, NBR qualifying CDR 0 -> 2, NBR qualifying MLA 2 -> 2, Le Mans 1 -> 3. Dubai pinned check (scratch run): new estimator at 0.03/1 10 of 14 negative (median -360), at 0.1/16 6 of 14 (median +55) -- part of the surge comes with the re-entry, part with the R pick. Package stopped before any threshold, golden or schema change.
 
-## Phase 2 step 2c: why worst-phase observed stability turns negative under the corrected estimator [2026-10-11, diagnostic, diagnostics/check_estimator_hardening.py --step p2s2c; numbers only, verdict the author's]
+## Phase 2 step 2c: why worst-phase observed stability turns negative under the corrected estimator [2026-10-11, diagnostic, diagnostics/check_estimator_hardening.py (script at tag pre-prune-2026-10-22) --step p2s2c; numbers only, verdict the author's]
 
 - REGRESSION (modules/yaw_stability.calculate_observed_stability): regressand mz_inertial_Nm (Iz x filtered yaw acceleration, beta-free); predictors beta_rad, delta_f_rad, v_mps, ax_mps2, az_mps2; Gaussian-weighted ridge over lap distance s +/- 55 m pooled across laps (sigma 22 m); stability = beta coefficient in Nm/deg. Only beta differs between estimator variants; every other input is identical.
 - NOTE ON "OLD" IN THIS RUN: the old EKF ran through the current R selection, so on Dubai it also picked 0.03/1 (old EKF at 0.03/1: C4 -295, C8 -217 negative); the 2026-10-05 cache (old EKF, old pick 0.1/16) had no negative Dubai corner.
@@ -26611,7 +26611,7 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 - CAUSAL CHAIN: the old re-entry wrote the kinematic beta into the state on every divergence and thereby flattered the NIS (yaw exceedance 0.11-0.22 at the old picks) -> under the honest re-entry the yaw exceedance floor is 0.21-0.39 on every grid point, the joint NIS band is dead -> the old rule then took the "nearest overall" grid point, an arbitrary pick that inverted the physics on PR (1/1, sign 5/15).
 - PART 1, R SELECTION (rulings 2026-10-11): ay exceedance only, band [0.03, 0.15], nearest the centre, sign-check guard >= 0.7 at the grid point, fallback default R 0.1/16 at most 'marginal'; gross trigger on ay only; soft yaw ceiling 0.75 (marginal only). Picks: Dubai 0.03/1, NBR-73-010-026-JDR 0.1/16, MLA-SE07_US-v2 0.1/1 (1/1 guard-failed), all 'ok'. Pool picks: v3 0.1/1, NBR JST 21 0.1/1, JST 29 0.1/16, qualifying CDR and MLA 0.1/4.
 - STEP 2c, STABILITY SURGE (recorded above in detail): hypothesis (c) reset-time artifacts TESTED AND REJECTED -- the beta step at a new-estimator reset is no larger than an ordinary sample (0.15 vs 0.13 deg, JST 21 C14; Dubai C9 0.36 vs p99 0.92 deg). The OLD BASELINE IS DISCREDITED as a reference: its 1.8-3.0 deg kinematic-injection spikes sat inside the regression windows of its positive slopes. C5 IS THE WORKED RESOLUTION-LIMIT EXAMPLE: -912 +/- 131 (pick 0.03/1) vs +338 +/- 144 Nm/deg (0.1/16) on a 0.24 deg difference of the beta mean and an unchanged beta span -- the regression cannot resolve the sign of dMz/dbeta at that apex from this beta. The ridge standard error understates the true uncertainty because beta is an estimated input, not a measurement. The population count of newly negative corners is 27, not 25 (two old negatives turned positive).
-- ROBUSTNESS SPLIT (the honest headline; diagnostics/check_estimator_hardening.py --step p2s2robust): of the 34 pool corners with negative worst-phase stability at the ruled picks, 23 are negative also at the fallback R 0.1/16 (R-robust) and 11 only at the pick (R-sensitive). Per session (R-robust / R-sensitive): Dubai 6 / 4 (C3, C4, C9, C12, C13, C14 / C1, C5, C6, C8), PR outing 25 6 / 2, PR outing 32 3 / 1, NBR JST 21 3 / 3, NBR JST 29 2 / 0, NBR qualifying CDR 1 / 1, NBR qualifying MLA 2 / 0.
+- ROBUSTNESS SPLIT (the honest headline; diagnostics/check_estimator_hardening.py (script at tag pre-prune-2026-10-22) --step p2s2robust): of the 34 pool corners with negative worst-phase stability at the ruled picks, 23 are negative also at the fallback R 0.1/16 (R-robust) and 11 only at the pick (R-sensitive). Per session (R-robust / R-sensitive): Dubai 6 / 4 (C3, C4, C9, C12, C13, C14 / C1, C5, C6, C8), PR outing 25 6 / 2, PR outing 32 3 / 1, NBR JST 21 3 / 3, NBR JST 29 2 / 0, NBR qualifying CDR 1 / 1, NBR qualifying MLA 2 / 0.
 - PART 2, CLASSIFICATION THRESHOLDS (percentile rule p10 / p30 unchanged, fresh chain, seven-session pool, Le Mans informational, single population because the clean / full distinction is vacuous since schema 14): ~~STRONG_CSF -0.646 -> -0.784 (front p10, n 106); MODERATE_CSF -0.285 -> -0.265 (front p30); STRONG_CSR -0.404 -> -0.677 (rear p10, n 104); MODERATE_CSR -0.131 -> -0.323 (rear p30).~~ [2026-10-20: superseded -- thresholds re-derived on the fit-L default and adopted, see 'Thresholds adopted on the fit-L default'.] No value carried over; none equals the old. stab_neg_thresh 0.0 retained (anchored, Werner sign criterion); its pool distribution n 109, 34 negative (was 9), p5 -457 / p10 -389 / p15 -270 Nm/deg (was -5 / +27 / +50). cs_margin 0.11 not re-derived (its method is the perturbation sweep; pending).
 - PART 3, ACCEPTANCE: the sign-check limits 0.5 / 0.7 checked and retained -- the fraction is 1.000 on all eight reference sessions at their picks; the R-sweep guard and the marginal limit read the same config value (sign_check_marginal_fraction), no second constant. The ay gross limit 0.5 retained (ay exceedance 0.05-0.12). NIS gate thresholds RE-DERIVED with the recorded 2026-09-03 rule because the health-score distribution moved down (combined NIS now carries the yaw mismatch): scores Dubai 0.0549, PR 25 0.0473, PR 32 0.0245, JST 21 0.0663, JST 29 0.0995, qualifying CDR 0.1026, qualifying MLA 0.0795, NBR-73 0.1219 -> threshold_use_ekf 0.08 -> 0.023 (about 6 % below the lowest), threshold_warn 0.01 -> 0.0025 (about an order of magnitude below). Meaning check: the fitted curves do not change with the estimator change, so the STRONG-below-floor reading stands.
 - PART 4, GOLDEN: tests/golden/pipeline_dubai_ekf_auto_pacejka_cap1.json re-baselined (re-entry + new R pick + ay-only trigger together), 2375 of 10561 leaf values differ; corner 0 (lap 1 C1) apex_3 CS front +0.518 -> -0.160, rear +0.395 -> +0.343, observed stability +387 -> -324 Nm/deg; per-lap corner summaries with negative worst-phase stability 4 -> 40 of 56; stable corners (cross-lap median) negative 1 -> 10 of 14. Dubai fit status back to 'ok', so the two wiring tests stand unchanged. Apex fragility line added to tests/test_golden_pipeline.py.
@@ -26627,16 +26627,16 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 
 - STEP 0, chair CS section clipping (docs/literature/cornering_stiffness_estimator.py, read line by line): all recorded facts confirmed. Window [W(i), i] both ends inclusive (slices start:i+1), W(i) the smallest start with max-min of the slip angle strictly below min_slip_angle_interval = 0.02 rad (shrinks while span >= threshold). Sections = whole-signal labels from sign changes of np.diff (np.sign(0) = 0 is its own class, so a zero step starts a section), the turning-point sample keeps the label of the step into it, i.e. it ends the section. Inside each window the sections are clipped exactly to the window (first starts at W(i), last ends at i). Section slope = lstsq line with intercept over the clipped part, NaN below 3 samples (end - start > 1); weight = section weighting function (order 4, [0, 0.02]) of the clipped part's span; NaN slopes drop out of the weighted mean.
 - FIXES (Pacejka production path only; Dugoff mirror untouched, removed in R3): (1) #26 CS sections clipped to our window [start, i), re-fitted on the in-window part, span weight from that part, minimum 3 samples (now also for whole sections; was 2). Residual difference to the chair: our zero step inherits the previous sign; exact zero alpha steps on moving samples are 0 on all three exports, so it is moot here. (2) Q scaled by q_reference_rate_hz / grid rate (50 Hz tuning basis; factor exactly 1 at 50 Hz, 0.5 at 100 Hz; first-order discretisation of white process noise, Tier B). (3) EKF NIS divergence window 20 samples -> nis_window_s 0.4 s at the session rate (40 samples at 100 Hz). (4) #20 sign check, coverage and h2 -- and the R-sweep sign guard -- read beta_with_fallback. (5) #22 NaN sign-check fraction -> degenerate, reason "sign check not computable". (6) #24 NaN NIS leaves the gate's window count; windows under half valid are skipped and counted (n_windows_skipped_low_coverage; the half is a named constant MIN_WINDOW_VALID_FRACTION in nis_gate.py). (7) #32 Module 5 pools analysis laps only (slow laps now excluded besides in/out laps).
-- VALIDATION (diagnostics/check_class_a.py, old = 279f4ee; all recorded acceptance numbers reproduced): status ok -> ok on all three, no fallback; sign check Dubai 11/11, NBR 16/16, PR 15/15 both sides; R pick Dubai ay x0.03/yaw x1 -> ay x0.1/yaw x16, NBR ay x0.1/yaw x16 unchanged, PR ay x0.1/yaw x1 -> ay x0.1/yaw x16; NIS gate score Dubai 0.0549 -> 0.1199, NBR 0.1219 -> 0.1431, PR 0.0245 -> 0.0607, all pass, 0 windows skipped; final-run divergences (hard-bound) Dubai 2418 (0) -> 225 (0), NBR 1666 (5) -> 699 (38), PR 4002 (1) -> 1739 (0); straights |beta| median/worst new Dubai 0.15/0.19, NBR 0.26/0.31, PR 0.16/0.38 deg. #26 isolated (same new beta), worst-lap CS median/max change: NBR front 0.113/0.717 (C12 -0.153 -> -0.869), NBR rear 0.016/0.153, PR front 0.065/2.285 (C16 -1.281 -> -3.566, KNOWN WAYPOINT, reference-path bug fixed next cycle), PR rear 0.114/0.497, Dubai front 0.071/0.216 (rear 0.052/0.269). #32 isolated: NBR worst-phase stability change median 16.3, max 52.0 Nm/deg; Dubai and PR unchanged (0 corners changed). #12 fires: NBR 7/180, PR 15/153 apex-on-grid instances, apex stability NaN on all (Dubai 0/56) -- left for the next cycle.
+- VALIDATION (diagnostics/check_class_a.py (script at tag pre-prune-2026-10-22), old = 279f4ee; all recorded acceptance numbers reproduced): status ok -> ok on all three, no fallback; sign check Dubai 11/11, NBR 16/16, PR 15/15 both sides; R pick Dubai ay x0.03/yaw x1 -> ay x0.1/yaw x16, NBR ay x0.1/yaw x16 unchanged, PR ay x0.1/yaw x1 -> ay x0.1/yaw x16; NIS gate score Dubai 0.0549 -> 0.1199, NBR 0.1219 -> 0.1431, PR 0.0245 -> 0.0607, all pass, 0 windows skipped; final-run divergences (hard-bound) Dubai 2418 (0) -> 225 (0), NBR 1666 (5) -> 699 (38), PR 4002 (1) -> 1739 (0); straights |beta| median/worst new Dubai 0.15/0.19, NBR 0.26/0.31, PR 0.16/0.38 deg. #26 isolated (same new beta), worst-lap CS median/max change: NBR front 0.113/0.717 (C12 -0.153 -> -0.869), NBR rear 0.016/0.153, PR front 0.065/2.285 (C16 -1.281 -> -3.566, KNOWN WAYPOINT, reference-path bug fixed next cycle), PR rear 0.114/0.497, Dubai front 0.071/0.216 (rear 0.052/0.269). #32 isolated: NBR worst-phase stability change median 16.3, max 52.0 Nm/deg; Dubai and PR unchanged (0 corners changed). #12 fires: NBR 7/180, PR 15/153 apex-on-grid instances, apex stability NaN on all (Dubai 0/56) -- left for the next cycle.
 - NOT CHECKED: latent findings #1, #2, #3, #5, #6, #23 -- their definitions were in the lost Oct-13 audit and are not in this tree; needs the reviewer's spec.
 
 ## Class B, rebuild [2026-10-17, R3, author work order; reviewer spec with recorded first-pass acceptance numbers; goldens stale by design, no threshold/golden/schema work]
 
 - FIX 0, reference contamination (mechanism): the CS linear reference (CS_ratio denominator) was set by any window whose max |alpha| stayed under cs_linear_slip_threshold_rad; the moving/kerb test applied to the newest sample only, so a window reaching back over a kerb strike or the smear zone could set the reference, and every CS after it divided by that value. PR C16 lap 51: the worst-lap CS front (-3.566 after R2) rested on clean in-window sections but divided by a reference set 2.2 s earlier by a window with 5 kerb-mask and 20 smear-zone samples -- the kerb rule leaked through the reference path (predates #26; the clipping only changed its size). Rule now: a window sets the reference only if none of its samples [start, i) is in the kerb mask, the smear zone, or off an analysis lap; a disqualified window leaves the previous reference in force; before the first clean window no CS is computed and those samples are counted (n_no_reference_*), never zero-filled or carried. The regression itself still runs over the smear zone (unchanged); the zone now feeds near_strike AND the reference test. estimate_cornering_stiffness takes laps (callers: app, conftest, both golden generators, test_stability.py, tests, smoke tests). [domain improvement: the chair tooling has no kerb treatment]
-- FIX 0 numbers (diagnostics/check_class_b.py, old = 85b9293, same beta; all recorded acceptance numbers reproduced): PR C16 worst CS front per lap: lap 51 -3.566 -> -0.593, lap 50 -0.402 -> -1.368 (its kerb-set reference had inflated the denominator), lap 56 -0.585 unchanged. Front |delta CS| over changed samples, median / p95 / max: Dubai 0.265 / 0.570 / 0.974, NBR-73-010-026-JDR 0.074 / 0.419 / 0.999, PR MLA-SE07_US-v2 0.143 / 0.925 / 25.872 (the 25.9 is one sample dividing by a small but clean reference -- reported, not tuned). No-reference samples front, total / on analysis laps: Dubai 14957 / 81, NBR 8661 / 0, PR 11922 / 419 (rear: 11826 / 81, 6790 / 0, 10829 / 231). Stiffness arrays (C_alpha, C_window, C_section, R2) bit-identical; near_strike identical where CS is finite on both sides. Worst CS per analysis-lap instance moved: Dubai 0/54 front, 0/54 rear; NBR 8/167, 12/154; PR 31/150, 24/148.
+- FIX 0 numbers (diagnostics/check_class_b.py (script at tag pre-prune-2026-10-22), old = 85b9293, same beta; all recorded acceptance numbers reproduced): PR C16 worst CS front per lap: lap 51 -3.566 -> -0.593, lap 50 -0.402 -> -1.368 (its kerb-set reference had inflated the denominator), lap 56 -0.585 unchanged. Front |delta CS| over changed samples, median / p95 / max: Dubai 0.265 / 0.570 / 0.974, NBR-73-010-026-JDR 0.074 / 0.419 / 0.999, PR MLA-SE07_US-v2 0.143 / 0.925 / 25.872 (the 25.9 is one sample dividing by a small but clean reference -- reported, not tuned). No-reference samples front, total / on analysis laps: Dubai 14957 / 81, NBR 8661 / 0, PR 11922 / 419 (rear: 11826 / 81, 6790 / 0, 10829 / 231). Stiffness arrays (C_alpha, C_window, C_section, R2) bit-identical; near_strike identical where CS is finite on both sides. Worst CS per analysis-lap instance moved: Dubai 0/54 front, 0/54 rear; NBR 8/167, 12/154; PR 31/150, 24/148.
 - #12 apex window: the apex_3 instant window is always +/- apex_half_window_samples (11 samples); before, an apex landing exactly on a grid sample got a 1-sample window and every gated statistic went NaN. One helper (stability_analysis.apex_instant_slice) now serves summarise_corners, the tyre-fit h2 check and the TPMS apex read-out (the latter two were copies of the same window). NaN apex_3 cells filled: Dubai 0, NBR 17, PR 27 (instances changed 0 / 7 / 15); no other phase and no apex_region cell moved. Beyond the spec (consequence of the shared helper, reported for the author's ruling): h2 apex check n / correlation NBR 1810 / 0.981607 -> 1870 / 0.981349, PR 1202 / 0.962578 -> 1320 / 0.963645, Dubai unchanged; TPMS apex windows resized NBR 28, PR 60 corner-lap-wheel cells, Dubai 0. Fit status is not affected by h2.
 - LATENT HARDENING, bases (all bit-identical on the three exports -- parse facts, laps, warnings, corners, state, fit manifest, R pick, sign check, gate, beta, stability): #1 the lap-distance travel check converts the channel to metres from its declared unit before comparing with lap_distance_min_travelled_m (in feet a lap had to travel only 305 m); #2 the channel quality gate converts to the config unit before the range test (synonyms kph/G/degree sign; exact factors mph->km/h, m->mm, m->ft), a declared unit without a known conversion stops the parse; #5 + #6 csv_parser._assert_fixed_factor_units: ecu_speed, log_asteer, log_acc_x/y/z, log_speed_* and sclu_yaw_rate must declare the unit their fixed downstream factor assumes (yaw: stability_estimation.yaw_rate_unit, now wired, the unit yaw_rate_to_radps converts from); with no declared unit the assumed unit stands and a range-gate 'failed' verdict in that unit is the mismatch evidence -> loud error; #3 narrow-block files drop NaN samples like wide-block files (a kept NaN survives the grid interpolation and the IIR state of the zero-phase filter spreads it over the whole channel; a dropped one is bridged by the interpolation); #23 the canonical-window slice searches only the lap up to its maximum distance (searchsorted needs ascending distances); core/yaw_pooling now uses the same function instead of its copy; fix 7 resolve_sideslip_beta refuses an unknown sideslip_source (SIDESLIP_SOURCES = kinematic, ekf_auto_pacejka) instead of running kinematic silently. Channel census for #2/#5 read from the files (all 24 exports via the census, the three validation files directly): declared units kph, s, ft or m, %, bar, degree sign, rpm, G, mm or m, mph or kph, N, none.
-- DUGOFF REMOVAL (author ruling: delete including evidence). Method statement moved first into the sideslip_ekf_pacejka.py header with its anchors (Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3; EKF Rajamani ch. 14 flagged "chapter confirmed for the 2nd ed.; edition and page still to verify"). Deleted files: modules/sideslip_ekf_dugoff.py, modules/tyre_model.py, tests/golden/pipeline_dubai_ekf_auto_dugoff_cap1.json, diagnostics/fit_dugoff_first_pass.py, diagnostics/fit_dugoff_pass4_refit.py, diagnostics/inspect_ekf_pass1_rQ_sweep.py, diagnostics/inspect_nis_tyre_mismatch_gate.py, diagnostics/_attic/inspect_ekf_dugoff_sanity_checks.py, diagnostics/_attic/inspect_tyre_fit_auto_acceptance.py, diagnostics/_attic/inspect_tyre_variant_comparison.py; local manifests fit_dugoff_first_pass_manifest.json, fit_dugoff_pass3_refit_manifest.json; Dugoff bytecode in modules/ and diagnostics/__pycache__. Deleted code inside kept files: tyre_fit_auto fit_session, _fit_axle, _status_degenerate_reason and the ekf_pass_1 / ekf_auto_dugoff branches; the UI Dugoff curve branches and labels; the Dugoff tests (tyre model, wiring, golden parametrisation, schema pass_1 check, NIS synthetic-mismatch fixture). Deleted config keys: tyre_model_fit (block), tyre_model_ekf (block), tyre_fit_auto.mu_fz_hi_bound_initial_multiplier, mu_fz_hi_bound_widen_multiplier, mu_fz_max_widen_attempts, mu_fz_bound_fraction_degenerate_threshold, nis_window_samples (and its note sentence). KEPT, other reader: tyre_fit_auto.nis_band_low / nis_band_high (diagnostics/check_estimator_hardening.py prints them; no estimator reads them -- cleanup candidate). The ekf_pass_1 source goes with the observer. EKF Jacobian tests retargeted to the Pacejka module (2 passed). The three NIS-gate degradation tests that were skipped with the Dugoff fixture now run on the real Dubai state. Pacejka path bit-identical after removal (check above ran on the post-removal tree). Kept: inspect_pass1_final_validation.py (frozen pass-1 baseline) exits with an explanatory line; inspect_step2_chair_plots.py lost only its Dugoff source; inspect_steering_fix_impact.py repaired (nis_window_s, q_reference_rate_hz); inspect_saturation_coverage.py keep-reason void, cleanup candidate.
+- DUGOFF REMOVAL (author ruling: delete including evidence). Method statement moved first into the sideslip_ekf_pacejka.py header with its anchors (Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3; EKF Rajamani ch. 14 flagged "chapter confirmed for the 2nd ed.; edition and page still to verify"). Deleted files: modules/sideslip_ekf_dugoff.py, modules/tyre_model.py, tests/golden/pipeline_dubai_ekf_auto_dugoff_cap1.json, diagnostics/fit_dugoff_first_pass.py, diagnostics/fit_dugoff_pass4_refit.py, diagnostics/inspect_ekf_pass1_rQ_sweep.py, diagnostics/inspect_nis_tyre_mismatch_gate.py, diagnostics/_attic/inspect_ekf_dugoff_sanity_checks.py, diagnostics/_attic/inspect_tyre_fit_auto_acceptance.py, diagnostics/_attic/inspect_tyre_variant_comparison.py; local manifests fit_dugoff_first_pass_manifest.json, fit_dugoff_pass3_refit_manifest.json; Dugoff bytecode in modules/ and diagnostics/__pycache__. Deleted code inside kept files: tyre_fit_auto fit_session, _fit_axle, _status_degenerate_reason and the ekf_pass_1 / ekf_auto_dugoff branches; the UI Dugoff curve branches and labels; the Dugoff tests (tyre model, wiring, golden parametrisation, schema pass_1 check, NIS synthetic-mismatch fixture). Deleted config keys: tyre_model_fit (block), tyre_model_ekf (block), tyre_fit_auto.mu_fz_hi_bound_initial_multiplier, mu_fz_hi_bound_widen_multiplier, mu_fz_max_widen_attempts, mu_fz_bound_fraction_degenerate_threshold, nis_window_samples (and its note sentence). KEPT, other reader: tyre_fit_auto.nis_band_low / nis_band_high (diagnostics/check_estimator_hardening.py (script at tag pre-prune-2026-10-22) prints them; no estimator reads them -- cleanup candidate). The ekf_pass_1 source goes with the observer. EKF Jacobian tests retargeted to the Pacejka module (2 passed). The three NIS-gate degradation tests that were skipped with the Dugoff fixture now run on the real Dubai state. Pacejka path bit-identical after removal (check above ran on the post-removal tree). Kept: inspect_pass1_final_validation.py (script at tag pre-prune-2026-10-22) (frozen pass-1 baseline) exits with an explanatory line; inspect_step2_chair_plots.py lost only its Dugoff source; inspect_steering_fix_impact.py (script at tag pre-prune-2026-10-22) repaired (nis_window_s, q_reference_rate_hz); inspect_saturation_coverage.py (script at tag pre-prune-2026-10-22) keep-reason void, cleanup candidate.
 - [2026-10-17, R3 addendum] #12 SCOPE, DEVIATION FROM THE FIRST PASS, reviewer ruling KEPT: the apex-window fix was applied to all three apex-window consumers through one helper (summarise_corners, the tyre-fit h2 check, the TPMS apex read-out); the first pass fixed the summary only. Basis: one apex definition for every consumer, consistent with audit #13. Movement outside the summary: h2 NBR n 1810 -> 1870, corr 0.9816 -> 0.9813; PR n 1202 -> 1320, corr 0.9626 -> 0.9636; Dubai unchanged; TPMS apex windows resized on 28 (NBR) and 60 (PR) corner-lap-wheel cells; no fit status moved.
 - [2026-10-17, R3 addendum] #5/#6 UNDECLARED-UNIT RULE, a declared engineering choice (Tier B, preprocessing): for a fixed-factor channel whose file declares no unit, failing the range gate (quality 'failed') in the assumed unit is treated as unit-mismatch evidence and stops the parse -- a silent pass is worse than a loud failure. Stated at the check (csv_parser._assert_fixed_factor_units docstring). Never fires on the three validation exports or the 24-file census (every fixed-factor channel declares its unit there).
 
@@ -26650,7 +26650,7 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 
 ## K readout removal [2026-10-17, R4b, author work order; author decision recorded in the R4 follow-up; goldens stale by design, schema bump owed]
 
-- REMOVED: modules/balance_gradient.py (estimate_understeer_gradient, balance_reading, _otsu_threshold); tests/test_balance_gradient.py (3 tests); diagnostics/inspect_k2_line.py and its README entry; config/parameters.json understeer_gradient block (_comment, psidd_max_radps2, ax_max_mps2, ay_clip_g, otsu_bins, bootstrap_draws, bootstrap_seed, derived_from) and accuracy_levels.understeer_gradient; outing_form.py: thread computation, pipeline-cache / sidecar entry "balance", payload key "balance", payload-builder and render parameters, DB cache-hit argument, _format_balance_line, balance_label widget and its reset; tests/test_limit_events.py structural-guard entry. Kept: stability_analysis._butterworth_lowpass, tyre_fit_auto._canonical_window_slice, inspect_last_push.py, inspect_fit_k2_calibration.py.
+- REMOVED: modules/balance_gradient.py (estimate_understeer_gradient, balance_reading, _otsu_threshold); tests/test_balance_gradient.py (3 tests); diagnostics/inspect_k2_line.py and its README entry; config/parameters.json understeer_gradient block (_comment, psidd_max_radps2, ax_max_mps2, ay_clip_g, otsu_bins, bootstrap_draws, bootstrap_seed, derived_from) and accuracy_levels.understeer_gradient; outing_form.py: thread computation, pipeline-cache / sidecar entry "balance", payload key "balance", payload-builder and render parameters, DB cache-hit argument, _format_balance_line, balance_label widget and its reset; tests/test_limit_events.py structural-guard entry. Kept: stability_analysis._butterworth_lowpass, tyre_fit_auto._canonical_window_slice, inspect_last_push.py (script at tag pre-prune-2026-10-22), inspect_fit_k2_calibration.py.
 - Basis (author): Guiggiani 2023, K not meaningful for cars with significant downforce; outside the thesis scope.
 - VALIDATION (before = a315362 code, after = working tree; the app's own analysis thread run synchronously, payload builder, per-corner-lap and aggregate classifier, decision frame evidence / candidates / display split, legacy rule engine; Dubai, NBR-73-010-026-JDR, PR MLA-SE07_US-v2): summaries, verdicts, aggregate verdicts, events, evidence, candidates, display split, legacy recommendations identical on all three; validation STOPPED before the suite: besides the missing "balance" key, the payload's resolved_levels loses its understeer_gradient entry (accuracy_resolution.py:265 copies every accuracy_levels node; the node was deleted by order item 3). Display effect none: both accuracy footers (outing_form _ACCURACY_FOOTER_LABELS, weekend_pdf_export._accuracy_footer_text) list fixed nodes without it; not in any cache identity (identity uses resolved values, not levels). Everything else identical. Old payload: a schema-15 payload holding "balance" rendered through the DB cache-hit path without error (headless, throwaway copy of the DB and config).
 - OWED TO THE FINAL CHAIN: schema bump for the removed payload field "balance" (and resolved_levels.understeer_gradient).
@@ -26725,7 +26725,7 @@ ANCHOR SCOPE [2026-10-16, R1 rebuild, author order]: multiple-IMU claim -> Gobli
 
 ## Q-FIT-SIMPLE: frozen frame [2026-10-18, branch new-laps, read-only; author order, proposal confirmed with rulings 1-4 and EXECUTE]
 
-QUESTION: can a simpler, better-identified Magic Formula parameterisation of the per-session axle fit (fixed E, fixed or bounded C, inverse-density weighting) bring EKF beta and CS into an analysable range, with the rest of the chain unchanged? Variants P (production), P13 (chair tyre-fit start), E0, E0C19, E0C13, E97C13, Pw, E0w; sessions NBR-73-010-026-JDR, MLA-SE07_US-v2 (Paul Ricard), NBR JST 29. Script diagnostics/inspect_fit_simplification.py (rules, predictions and the BEATS-P rule frozen in its header before any run); outputs diagnostics/plots/fit_simplification/. Rulings in PLAN.md queue entry Q-FIT-SIMPLE.
+QUESTION: can a simpler, better-identified Magic Formula parameterisation of the per-session axle fit (fixed E, fixed or bounded C, inverse-density weighting) bring EKF beta and CS into an analysable range, with the rest of the chain unchanged? Variants P (production), P13 (chair tyre-fit start), E0, E0C19, E0C13, E97C13, Pw, E0w; sessions NBR-73-010-026-JDR, MLA-SE07_US-v2 (Paul Ricard), NBR JST 29. Script diagnostics/inspect_fit_simplification.py (script at tag pre-prune-2026-10-22) (rules, predictions and the BEATS-P rule frozen in its header before any run); outputs diagnostics/plots/fit_simplification/. Rulings in PLAN.md queue entry Q-FIT-SIMPLE.
 
 ANCHORS (full citations, pages verified by the author): Goblirsch et al. 2025, IEEE Intelligent Vehicles Symposium (IV), pp. 1115-1119 -- parameter correlation in the Magic Formula fit, E needs sliding data (fix E otherwise), C ~1.3 for lateral force quoted from their references, even data distribution over slip (p. 1117). Rajamani 2012, Vehicle Dynamics and Control, 2nd ed., sec. 13.9, p. 387 -- E changes neither the origin slope nor the peak value. Pacejka 2006, Tyre and Vehicle Dynamics, 2nd ed., pp. 173-174 -- D = peak value, B*C*D = origin slope. Chair performance_analysis tooling (internal): CS-estimator evaluation-plot fit and tyre-fit tool start guesses. Fit variants Tier A (on these anchors); inverse-density weighting Tier B preprocessing, motivated by Goblirsch et al.'s even-distribution remark, not their method.
 [2026-10-18 citation precision (author, Q-FIT-LIT): Goblirsch et al. 2025 pages are REVIEWER-VERIFIED in the thesis repo copy (ba-thesis/Pdfs), not in this repo: Table I p. 1116 "To ensure physical behavior ... bound to the following values" B 5-40, C 1.0-3.0, D 0.1-2.0, E -1.0-1.0; p. 1116 C 1.3 for lateral force; p. 1117 shifts removed beforehand, even data distribution; p. 1118 D identifiable once the peak is covered; p. 1119 fixed E "according to the literature", standardized parameters "until sufficient data is acquired". Checked in this repo's Pacejka copy: C 1.3 / Ey -1 in Table 4.1 p. 161 and Table 4.2 p. 196 (hypothetical values), supported by the fitted set Table A3.1 (pCy1 1.193, pEy1 -1.003); Exercise 1.1 p. 15 for D = mu Fz only (it uses E = -3); E > 1 unrealistic, Fig. 4.10 caption p. 175; racing tyres mu 1.5-2, p. 6; axle peak may vanish, p. 14; D peak and BCD origin slope, pp. 173-174. Rajamani sec. 13.9 p. 387 confirmed. Milliken RCVD sec. 2.1 pp. 26-27: load normalisation (lateral force coefficient Fy/Fz). Peak-slip band: Milliken p. 24 (3-7 deg, tyre level) primary, Trzesniowski Bd. 4 (2019) p. 34 second (reviewer-verified).]
@@ -26740,7 +26740,7 @@ BACKGROUND CORRECTIONS (verified in code and records before the design):
 
 ## Q-FIT-SIMPLE: run result [2026-10-18, branch new-laps, read-only; one EXECUTE cycle, frame above]
 
-RUN: diagnostics/inspect_fit_simplification.py at fd40c78 + this cycle's text edits (no module, config, test, golden, threshold or schema change); 100.7 min; outputs diagnostics/plots/fit_simplification/ (run.log, per-session JSON, summary.json, 6 fit renders, 3 CS-distribution renders, 24 trace sets).
+RUN: diagnostics/inspect_fit_simplification.py (script at tag pre-prune-2026-10-22) at fd40c78 + this cycle's text edits (no module, config, test, golden, threshold or schema change); 100.7 min; outputs diagnostics/plots/fit_simplification/ (run.log, per-session JSON, summary.json, 6 fit renders, 3 CS-distribution renders, 24 trace sets).
 ENTRY CHECK PASSED: P through the swap harness bit-identical to unswapped production on all three sessions (fit parameters and every manifest axle field, status, R pick, sign check, gate verdict and score, fallback, shipped beta, every CS array); R5 stepB.log "[new]" reproduced on NBR JDR and US-v2 (JST 29 not in that log).
 ADMISSIBILITY (fit not degenerate, D4 pass, gate not fail, no fallback; every session and axle): P, E0, E0C19, Pw admissible. P13 not (D4 g3 peak: JDR front 37 deg, US-v2 rear 52 deg); E0C13 not (US-v2 rear peak 16.9 deg > 15); E97C13 not (no peak within 0-90 deg on any session or axle); E0w not (US-v2 front C 1.07 peak 37 deg, JST 29 rear C 1.03 peak 64 deg). Inadmissible runs fall back to the kinematic beta, so their CS numbers are the kinematic-beta CS (identical across those variants within a session) and say nothing about the variant curve.
 FIT: the residual RMS is flat across every variant (within about 1 % per axle, e.g. JDR front 2314-2332 N, US-v2 rear 7160-7162 N); left/right and per-speed-class mean residuals move by tens of N at most. Inside the visited slip range every variant curve lies within 0.5-4.3 % of D of production (RMS); beyond p99 they differ by 7-75 % of D. The data constrain the curve in the visited range only; C and E trade along the ridge without a cost change.
@@ -26761,9 +26761,9 @@ LIMITATIONS (recorded with the ruling): limited-slip differential torque not mod
 
 ## Q-FIT-LIT: census and Step 1 (inactive fit L) [2026-10-18, branch new-laps, author EXECUTE]
 
-CENSUS (diagnostics/inspect_fz_census.py, log diagnostics/output/fz_census/census.log; read from the files through the production cascade, vertical_load_source "measured"): on NBR-73-010-026-JDR, MLA-SE07_US-v2 and NBR JST 29 every corner is 100.000 % damper-sourced on the fit population and on all moving analysis-lap samples (0 % reconstructed, 0 % static); all four log_dms_dam_* channels "valid"; NBR event zero entry NBR_221 applied on all four channels of both NBR files (L4 with an L2 zero); on US-v2 the log_dms_dam_fr channel_correction precondition MATCHED (raw file mean -15,950,036.7 N, quality "failed" without the correction) -- the author's premise "Paul Ricard FR via the channels.json correction" holds for this export. log_pbrake_f / _r "valid" on all three. Median axle Fz on the fit population: front 6584 / 5869 / 6755 N, rear 10410 / 10015 / 10335 N (JDR / US-v2 / JST 29). Stop rule (> 1 % non-damper on any corner) NOT fired. Per-corner uncertainty on record: NBR u_wheel FL 177, FR 332, RL 389, RR 140 N (channels.json NBR_221, Q-RECOVER-2); Paul Ricard: none on record.
+CENSUS (diagnostics/inspect_fz_census.py (script at tag pre-prune-2026-10-22), log diagnostics/output/fz_census/census.log; read from the files through the production cascade, vertical_load_source "measured"): on NBR-73-010-026-JDR, MLA-SE07_US-v2 and NBR JST 29 every corner is 100.000 % damper-sourced on the fit population and on all moving analysis-lap samples (0 % reconstructed, 0 % static); all four log_dms_dam_* channels "valid"; NBR event zero entry NBR_221 applied on all four channels of both NBR files (L4 with an L2 zero); on US-v2 the log_dms_dam_fr channel_correction precondition MATCHED (raw file mean -15,950,036.7 N, quality "failed" without the correction) -- the author's premise "Paul Ricard FR via the channels.json correction" holds for this export. log_pbrake_f / _r "valid" on all three. Median axle Fz on the fit population: front 6584 / 5869 / 6755 N, rear 10410 / 10015 / 10335 N (JDR / US-v2 / JST 29). Stop rule (> 1 % non-damper on any corner) NOT fired. Per-corner uncertainty on record: NBR u_wheel FL 177, FR 332, RL 389, RR 140 N (channels.json NBR_221, Q-RECOVER-2); Paul Ricard: none on record.
 STEP 1 (implemented inactive; production default per_session unchanged): modules/tyre_fit_auto.py gains tyre_fit_mode "literature_bounded" with named constants L_SHAPE_C 1.3, L_CURVATURE_E -1, L_B_BOUNDS (5, 40), L_MU_BOUNDS (0.1, 2.0), L_START_B 12, L_START_PEAK_N 8000; _fit_axle_l (ratio domain, bounded Powell, inverse-density weights, residuals in N, D = mu Fz_ref, bound_active); _axle_load_inputs (Fz from the cascade as configured, no refusal, source shares and lowest level in the manifest; Fz, front Fx and steer angle 2 Hz order-4 zero-phase filtered); _front_tyre_frame_force / _front_body_force (Goblirsch et al. 2025 Eq. 13). modules/sideslip_ekf_pacejka.py: pass-config flag d_is_mu -- D = mu Fz(t), front force composed in the body frame from the tyre-frame force and Fx_f sin(delta), slope scaled by cos(delta). config tyre_fit_auto.fit_density_bin_rad 0.01. Front Fx source: estimate_longitudinal_forces (m ax + drag + rolling; braking split by MEASURED BRAKE PRESSURE, drive rear only), Level 1 -- the work order said "split by axle load"; the code splits by brake pressure (open author question).
-ACCEPTANCE: diagnostics/check_fit_lit_inactive.py (log diagnostics/output/fit_lit/inactive_check.log) -- tyre_fit_auto and sideslip_ekf_pacejka at fd40c78 vs the working tree, production path, three sessions: fit manifest, gate, fallback, shipped beta and every CS array BIT-IDENTICAL. Targeted tests (tests/test_tyre_fit_literature.py new, real data JST 29, 3 tests; with test_tyre_fit_prior_anchored, test_tyre_fit_auto_mu, test_nan_empty_paths): 20 passed. test_stability.py exit 0. No schema bump (default path unchanged); owed item on the final-chain list. No verification of L this cycle (author ruling).
+ACCEPTANCE: diagnostics/check_fit_lit_inactive.py (script at tag pre-prune-2026-10-22) (log diagnostics/output/fit_lit/inactive_check.log) -- tyre_fit_auto and sideslip_ekf_pacejka at fd40c78 vs the working tree, production path, three sessions: fit manifest, gate, fallback, shipped beta and every CS array BIT-IDENTICAL. Targeted tests (tests/test_tyre_fit_literature.py new, real data JST 29, 3 tests; with test_tyre_fit_prior_anchored, test_tyre_fit_auto_mu, test_nan_empty_paths): 20 passed. test_stability.py exit 0. No schema bump (default path unchanged); owed item on the final-chain list. No verification of L this cycle (author ruling).
 
 ## Q-FIT-LIT: verification cycle -- rulings [2026-10-18, branch new-laps, author rulings and EXECUTE]
 
@@ -26772,18 +26772,18 @@ STEER ANGLE (record line): kept as built -- the EKF uses its own input delta eve
 
 ## Q-FIT-LIT: verification run -- chain results VOID (implementation defect), fit-level results stand [2026-10-18, branch new-laps]
 
-RUN: diagnostics/inspect_fit_lit.py (frame frozen in its header), 23.8 min, outputs diagnostics/plots/fit_lit/. Before it: the Eq. 9 front-Fx change re-tested -- tests/test_tyre_fit_literature.py 3 passed; diagnostics/check_fit_lit_inactive.py production path BIT-IDENTICAL on all three sessions (log diagnostics/output/fit_lit/inactive_check_eq9.log).
+RUN: diagnostics/inspect_fit_lit.py (script at tag pre-prune-2026-10-22) (frame frozen in its header), 23.8 min, outputs diagnostics/plots/fit_lit/. Before it: the Eq. 9 front-Fx change re-tested -- tests/test_tyre_fit_literature.py 3 passed; diagnostics/check_fit_lit_inactive.py (script at tag pre-prune-2026-10-22) production path BIT-IDENTICAL on all three sessions (log diagnostics/output/fit_lit/inactive_check_eq9.log).
 CHAIN: L and L-nw went degenerate on all three sessions through the NIS gross trigger (ay exceedance 0.665 / 0.599 / 0.630 > 0.5; R sweep found no in-band point), US-v2 rear also D4 g3 (weighted fit peak 15.8 deg) -> kinematic fallback.
-MECHANISM (post-hoc check diagnostics/inspect_fit_lit_mechanism.py, log diagnostics/output/fit_lit/mechanism.log): with the d_is_mu path the ay innovation RMS is 9.56 / 10.59 / 10.75 m/s^2 and does NOT change when the Fx term is removed or Fz is held constant; the same L curves through the constant-D path (D = mu Fz_ref) give 2.03 / 2.77 / 2.40 m/s^2 and ay exceedance 0.069 / 0.060 / 0.067, production 0.082 / 0.077 / 0.078. Cause in the code: modules/sideslip_ekf_pacejka.py measurement update (Fy_f_p, Fy_r_p, Cf_eff_p, Cr_eff_p) still evaluates the curve with the scalar D, which under d_is_mu is mu (~1.3, dimensionless) -- Step 1 patched the prediction step only. The predicted ay is about 1e-4 of the measured one, so the innovation equals the measured ay. IMPLEMENTATION DEFECT (assistant, Step 1), not a property of fit L. The frozen exit ("scoped negative") therefore does NOT apply; surfaced to the author. Not fixed in this cycle (propose-first).
+MECHANISM (post-hoc check diagnostics/inspect_fit_lit_mechanism.py (script at tag pre-prune-2026-10-22), log diagnostics/output/fit_lit/mechanism.log): with the d_is_mu path the ay innovation RMS is 9.56 / 10.59 / 10.75 m/s^2 and does NOT change when the Fx term is removed or Fz is held constant; the same L curves through the constant-D path (D = mu Fz_ref) give 2.03 / 2.77 / 2.40 m/s^2 and ay exceedance 0.069 / 0.060 / 0.067, production 0.082 / 0.077 / 0.078. Cause in the code: modules/sideslip_ekf_pacejka.py measurement update (Fy_f_p, Fy_r_p, Cf_eff_p, Cr_eff_p) still evaluates the curve with the scalar D, which under d_is_mu is mu (~1.3, dimensionless) -- Step 1 patched the prediction step only. The predicted ay is about 1e-4 of the measured one, so the innovation equals the measured ay. IMPLEMENTATION DEFECT (assistant, Step 1), not a property of fit L. The frozen exit ("scoped negative") therefore does NOT apply; surfaced to the author. Not fixed in this cycle (propose-first).
 VOID: every chain-function item (status, gate, fallback, R pick, hard-bound re-entries, NIS-window divergences, straight |beta|), the CS information and prediction (4). TEST GAP: the end-to-end test checked manifest keys only.
 PRODUCTION CONSEQUENCE: none -- the flag-off path is bit-identical (proven twice); the production default is per_session.
 STANDS (fit level, independent of the observer): physical checks, start independence, leave-one-lap-out jackknife, predictions (1), (2), (3), (5) -- numbers in run.log / fit_lit_<key>.json. Headline: peak beyond p99 on 6 of 6 axles (mu extrapolated everywhere; peaks 6.4-15.8 deg vs p99 4.0-7.1 deg); no parameter at a bound; B and mu reproduce within 0.03 % from starts B 8 and 25 on 11 of 12 cases (US-v2 rear from B 25: B +1.30 %, mu -0.98 %, curve 0.06 % of mu); LOLO jackknife SE of K 1.5-4.9 %, of mu 1.2-8.7 % (largest US-v2 rear 8.7 %, JST 29 4-5 %); L vs L-nw BCD within 5.5 % on 5 of 6 axles (US-v2 front 7.9 %).
-[2026-10-18, author ruling with the re-run EXECUTE: the verification run above is VOID -- implementation defect, NOT counted for method L. The re-run of inspect_fit_lit.py with the frame unchanged, after the shared-helper fix, is the one cycle. The void run's outputs are kept in diagnostics/plots/fit_lit/void_run/ for the fit-level reproduction check.]
+[2026-10-18, author ruling with the re-run EXECUTE: the verification run above is VOID -- implementation defect, NOT counted for method L. The re-run of inspect_fit_lit.py (script at tag pre-prune-2026-10-22) with the frame unchanged, after the shared-helper fix, is the one cycle. The void run's outputs are kept in diagnostics/plots/fit_lit/void_run/ for the fit-level reproduction check.]
 
 ## Q-FIT-LIT: verification cycle -- result (the one cycle) [2026-10-18, branch new-laps, author EXECUTE]
 
 FIX BEFORE THE RUN: modules/sideslip_ekf_pacejka.axle_forces -- one helper for the body-lateral axle forces and slopes (constant D, or d_is_mu with D = mu Fz(t), front F_tyre cos(delta) + Fx_f sin(delta), front slope x cos(delta)), called by the prediction AND the measurement update. Physical test (tests/test_tyre_fit_literature.py, JST 29, L's own curves, Fx = 0, Fz = Fz_ref): ay innovation RMS 1.8023 (load path) vs 1.8104 m/s^2 (constant D = mu Fz_ref), ay NIS exceedance 0.1338 vs 0.1342 -- 4 tests passed. Production path BIT-IDENTICAL on all three sessions (diagnostics/output/fit_lit/inactive_check_fix.log).
-RUN: diagnostics/inspect_fit_lit.py, frame unchanged, 24.3 min; outputs diagnostics/plots/fit_lit/ (void run kept in void_run/). FIT LEVEL REPRODUCES EXACTLY: 812 fit-level items (physical checks of L and L-nw, start independence, LOLO) identical to the void run, 0 differences.
+RUN: diagnostics/inspect_fit_lit.py (script at tag pre-prune-2026-10-22), frame unchanged, 24.3 min; outputs diagnostics/plots/fit_lit/ (void run kept in void_run/). FIT LEVEL REPRODUCES EXACTLY: 812 fit-level items (physical checks of L and L-nw, start independence, LOLO) identical to the void run, 0 differences.
 CHAIN FUNCTION (L / L-nw):
 - NBR JDR: L ok, D4 pass, gate pass 0.1058, no fallback, R 0.1/16 in band, hard-bound re-entries 97, NIS-window divergences 525, straight |beta| 0.245 / 0.787 deg; L-nw ok, gate 0.1233, re-entries 71, divergences 389, straight 0.260 / 0.821 deg.
 - US-v2: L DEGENERATE -- D4 g3 rear (peak 15.81 deg > 15) -> kinematic fallback, R 0.03/1 in band, divergences 1153; L-nw ok, D4 pass (rear peak 14.64 deg), gate 0.1132, re-entries 0, divergences 1103, straight 0.127 / 0.900 deg.
@@ -26801,7 +26801,7 @@ EXIT (frozen): L fails the chain function on US-v2 -> SCOPED NEGATIVE for method
 
 ## Q-PR-ANOMALY: US-v2 rear low K -- mechanism NOT SHOWN [2026-10-18, branch new-laps, read-only, author EXECUTE]
 
-SCRIPT diagnostics/inspect_pr_anomaly.py (frame frozen in the header; addendum to item 0 the same day: laps_used and per-lap K); outputs diagnostics/plots/pr_anomaly/ (run.log, pr_anomaly.json, factors_<key>.png, usv2_rear_cloud_by_speed.png). Inputs as fit L builds them, L's curves from the Q-FIT-LIT run, unit = corner instance (>= 20 fit samples per axle), residual signed in the turn direction (positive = more Fy/Fz than the curve).
+SCRIPT diagnostics/inspect_pr_anomaly.py (script at tag pre-prune-2026-10-22) (frame frozen in the header; addendum to item 0 the same day: laps_used and per-lap K); outputs diagnostics/plots/pr_anomaly/ (run.log, pr_anomaly.json, factors_<key>.png, usv2_rear_cloud_by_speed.png). Inputs as fit L builds them, L's curves from the Q-FIT-LIT run, unit = corner instance (>= 20 fit samples per axle), residual signed in the turn direction (positive = more Fy/Fz than the curve).
 0. K CHECK (OLS of Fy/Fz on alpha, |alpha| < 2 deg): US-v2 rear 14.5 / rad, front 22.6; JDR 23.1 / 23.3; JST 29 23.9 / 23.5 (front / rear). PER LAP: US-v2 rear 10.1-17.1 on all 9 analysis laps (48-56); controls 20.4-26.0 on every lap and axle; US-v2 front 20.3-25.2. The low rear K is present on EVERY lap, not carried by a few. laps_used (manifest definition): JDR 27, 28, 30-37; US-v2 48-56; JST 29 103-108.
 H-Fz: measured / quasi-static axle Fz by speed class -- US-v2 front 1.02 / 1.03 / 1.16, rear 1.07 / 1.18 / 1.40 (low / medium / high); JDR front 1.11 / 1.17 / 1.35, rear 1.18 / 1.25 / 1.47; JST 29 front 1.13 / 1.20 / 1.45, rear 1.16 / 1.25 / 1.57. Wheel sum on straights / (m g + c_session v^2): US-v2 0.963 (p5 0.836, p95 1.078), JDR 1.041, JST 29 1.043. Per-instance Fz ratio vs residual on US-v2 rear rho +0.08 (p 0.33): not associated.
 H-Fy: yaw-term share vs residual, US-v2 rear rho +0.05 (p 0.51): not associated; no session has it associated.
@@ -26831,7 +26831,7 @@ Seed construction stays CLOSED, except where a NEW source enables an improvement
 ## Q-FIT-LIT reopen: D4 redesign -- result [2026-10-18, branch new-laps; declared POST-RESULT, see the reopen entry above]
 
 IMPLEMENTATION: modules/tyre_fit_auto.py -- L_K_BAND (6, 30) / rad (Pacejka 2006 sec. 1.2.1, p. 6) and plausibility_gate_l (g1 unchanged; g2 normalised origin slope; mu at a literature bound fails; peak and coverage reported, uncovered -> mu_extrapolated, also written to the manifest axle); fit_session_pacejka uses it in mode literature_bounded only. Production D4 and the CS reference band untouched. Tests (tests/test_tyre_fit_literature.py, JST 29, real data): 5 passed. Production path BIT-IDENTICAL on all three sessions (diagnostics/output/fit_lit/inactive_check_d4.log).
-RUN: diagnostics/inspect_fit_lit.py --reopen-d4 (L only, weighted, as frozen); outputs diagnostics/plots/fit_lit/d4_reopen/. Fit-level items reproduce exactly: 208 / 200 / 176 identical (JDR / US-v2 / JST 29).
+RUN: diagnostics/inspect_fit_lit.py (script at tag pre-prune-2026-10-22) --reopen-d4 (L only, weighted, as frozen); outputs diagnostics/plots/fit_lit/d4_reopen/. Fit-level items reproduce exactly: 208 / 200 / 176 identical (JDR / US-v2 / JST 29).
 D4 (all pass, no mu at a bound, every peak uncovered -> mu extrapolated on all six axles): K front / rear JDR 25.14 / 26.24, US-v2 23.52 / 15.87, JST 29 25.47 / 26.90 per rad; excitation span 11.95 / 7.02, 12.95 / 9.44, 12.06 / 7.95 deg.
 CHAIN (L): JDR ok, gate pass 0.1058, R 0.1/16 in band, hard-bound re-entries 97, NIS-window divergences 525, straight |beta| 0.245 / 0.787 deg; US-v2 ok, gate pass 0.1051, R 0.03/1 in band, re-entries 0, divergences 1153, straight 0.148 / 0.956 deg; JST 29 ok, gate pass 0.0884, R 0.03/1 in band, re-entries 38, divergences 919, straight 0.160 / 0.640 deg. No fallback. JDR and JST 29 identical to the cycle (D4 passed there before).
 CS (information only): finite share front / rear JDR 0.853 / 0.800, US-v2 0.816 / 0.794, JST 29 0.890 / 0.858; share < -2 at most 0.001.
@@ -26839,7 +26839,7 @@ STATUS: this pass rests on a post-result redesign of the gate that had failed; i
 
 ## Q-OBS-REENTRY: hard-bound re-entries under fit L -- loss of observability beyond the peak; CS impact far above 1 % [2026-10-18, branch new-laps, read-only, author EXECUTE]
 
-SCRIPT diagnostics/inspect_obs_reentry.py (frame frozen in its header); outputs diagnostics/plots/obs_reentry/ (run.log, obs_reentry.json, timeline_<key>.png, slip_<key>.png). L (weighted, redesigned D4) in memory; production beside it for change tracking only. Both runs status ok on all three sessions.
+SCRIPT diagnostics/inspect_obs_reentry.py (script at tag pre-prune-2026-10-22) (frame frozen in its header); outputs diagnostics/plots/obs_reentry/ (run.log, obs_reentry.json, timeline_<key>.png, slip_<key>.png). L (weighted, redesigned D4) in memory; production beside it for change tracking only. Both runs status ok on all three sessions.
 EVENTS (L / production): NBR JDR 97 / 28, US-v2 0 / 0, JST 29 38 / 10 -- each a separate cluster (no two within 0.5 s); 89 of 97 and 38 of 38 L events inside a corner bracket. Medians of the L events: speed 112 / 110 km/h, |a_y| 13.2 / 14.7 m/s^2, |a_x| 2.2 / 3.9 m/s^2, 2.5 / 3.4 s after corner entry (JDR / JST 29); NIS in the 0.5 s before mean 14.4 / 16.7, max 26.5 / 53.9.
 SLIP BEFORE THE EVENT: the observer's own slip in the 0.5 s before reaches 2.7 / 2.6 x the visited p99 on the front and 4.0 / 3.5 x on the rear (median; about 12-22 deg, render slip_nbr_jdr.png), beyond the L curve peak (front 7.4 / 7.6, rear 6.6 / 6.4 deg); the local slope of the L curve just before the event is -0.01 of the origin slope (median, both axles) -- the observer sits on the flat, slightly falling branch of the extrapolated curve.
 HYPOTHESES (enrichment = event share / base share on JDR and JST 29; US-v2 has no events): H-OBS CONFIRMED (event share 1.00 vs base 0.37 / 0.41, enrichment 2.74 / 2.46); H-KERB MIXED (0.90 / 1.76); H-LOWV MIXED (1.09 / 0.83); H-LOC MIXED (1.91 / 2.19; locked corners on JDR 10, on JST 29 6). Production events, for context: also all H-OBS (2.57 / 2.35), kerb-enriched (3.12 / 5.02).
@@ -26857,10 +26857,10 @@ C / E SENSITIVITY BAND: named by the author as queued and to centre on C = 1.0; 
 
 ## Q-OBS-REENTRY fix: C = 1.0 -- result [2026-10-18, branch new-laps; post-result ruling, see the entry above]
 
-CODE: modules/tyre_fit_auto.py L_SHAPE_C 1.3 -> 1.0 (source comment updated); plausibility_gate_l reports "no peak (monotonic)". Tests (tests/test_tyre_fit_literature.py, JST 29, real data; new test: slope positive out to 90 deg, no peak, mu flagged extrapolated): 6 passed. Production path BIT-IDENTICAL on all three sessions (diagnostics/output/fit_lit/inactive_check_c10.log). Runs: diagnostics/inspect_fit_lit.py --c10 (outputs diagnostics/plots/fit_lit/c10/) and diagnostics/inspect_obs_reentry.py unchanged (outputs diagnostics/plots/obs_reentry/, the C 1.3 run kept in obs_reentry/c13_run/).
+CODE: modules/tyre_fit_auto.py L_SHAPE_C 1.3 -> 1.0 (source comment updated); plausibility_gate_l reports "no peak (monotonic)". Tests (tests/test_tyre_fit_literature.py, JST 29, real data; new test: slope positive out to 90 deg, no peak, mu flagged extrapolated): 6 passed. Production path BIT-IDENTICAL on all three sessions (diagnostics/output/fit_lit/inactive_check_c10.log). Runs: diagnostics/inspect_fit_lit.py (script at tag pre-prune-2026-10-22) --c10 (outputs diagnostics/plots/fit_lit/c10/) and diagnostics/inspect_obs_reentry.py (script at tag pre-prune-2026-10-22) unchanged (outputs diagnostics/plots/obs_reentry/, the C 1.3 run kept in obs_reentry/c13_run/).
 FIT LEVEL (front / rear): JDR B 18.49 / 20.57, mu 1.407 / 1.309, K 26.02 / 26.93 per rad; US-v2 B 14.18 / 7.94, mu 1.708 / 2.000 (REAR mu AT THE UPPER BOUND), K 24.23 / 15.88; JST 29 B 17.87 / 20.40, mu 1.472 / 1.334, K 26.30 / 27.21. No peak on any axle (monotonic), mu extrapolated everywhere. Residual RMS per |alpha| bin within 1 % of the C 1.3 fit. Start independence: B and mu within 0.16 % from B 8 and 25 on all 12 cases. LOLO jackknife SE: B 3.7-10.0 %, mu 1.8-5.1 %, K 1.7-5.6 %.
 CHAIN: JDR ok, D4-L pass, gate pass 0.114, R 0.1/16 in band, hard-bound re-entries 14, NIS-window divergences 473, straight |beta| 0.240 / 0.767 deg. US-v2 DEGENERATE -- D4-L rear "mu set by literature bound, not data" (mu 2.000) -> kinematic fallback. JST 29 ok, gate pass 0.124, R 0.03/2 in band, re-entries 0, divergences 773, straight 0.165 / 0.626 deg.
-RE-ENTRIES (inspect_obs_reentry.py): L 14 / 0 / 0 (was 97 / 0 / 38 at C 1.3), production 28 / 0 / 10. JDR events: observer slip before the event 2.8 x (front) / 4.2 x (rear) the visited p99, local curve slope 0.00 of the origin slope (flat asymptotic branch), H-OBS enrichment 2.82, H-LOC 4.17 (corners 3, 14, 18), H-KERB 0. CS impact L: JDR 3.36 / 3.62 %, US-v2 0 % (fallback beta), JST 29 0 %; production 4.16 / 4.65, 0, 1.59 / 3.00 %.
+RE-ENTRIES (inspect_obs_reentry.py (script at tag pre-prune-2026-10-22)): L 14 / 0 / 0 (was 97 / 0 / 38 at C 1.3), production 28 / 0 / 10. JDR events: observer slip before the event 2.8 x (front) / 4.2 x (rear) the visited p99, local curve slope 0.00 of the origin slope (flat asymptotic branch), H-OBS enrichment 2.82, H-LOC 4.17 (corners 3, 14, 18), H-KERB 0. CS impact L: JDR 3.36 / 3.62 %, US-v2 0 % (fallback beta), JST 29 0 %; production 4.16 / 4.65, 0, 1.59 / 3.00 %.
 FROZEN EXPECTATIONS: (1) re-entries no longer cluster on a post-peak branch -- MET by construction (no peak exists), but the 14 JDR events sit on the flat asymptotic branch (slope ~0); (2) CS impact < 1 % on every session -- NOT MET (JDR 3.4 / 3.6 %); (3) in-range curve within 5.5 % of D of the C 1.3 fit -- MET (RMS 0.11-1.10 %, max <= 1.62 % on all six axles).
 NEW FAILURE: US-v2 rear mu runs to the 2.0 bound -- with no peak mu is the asymptote, and the low origin slope (K 15.9) with data only to 5.1 deg extrapolates it to the bound; D4-L fails by design ("set by literature bound, not data").
 
@@ -26877,7 +26877,7 @@ C = 1.0 RESULT stands as reported ("Q-OBS-REENTRY fix: C = 1.0 -- result"): resi
 
 ## Q-CAPACITY: re-entries occur where the measured demand exceeds the fitted grip -- H-CAP CONFIRMED [2026-10-19, branch new-laps, read-only, author EXECUTE]
 
-SCRIPT diagnostics/inspect_capacity.py (frame frozen in its header; MIXED / REFUTED rules of H-CAP added by the assistant in the header before the run); outputs diagnostics/plots/capacity/ (run.log, capacity.json, demand_<key>.png, events_nbr_jdr.png). Fit L as implemented (C 1.0, E -1, weighted, D4-L), mode in memory.
+SCRIPT diagnostics/inspect_capacity.py (script at tag pre-prune-2026-10-22) (frame frozen in its header; MIXED / REFUTED rules of H-CAP added by the assistant in the header before the run); outputs diagnostics/plots/capacity/ (run.log, capacity.json, demand_<key>.png, events_nbr_jdr.png). Fit L as implemented (C 1.0, E -1, weighted, D4-L), mode in memory.
 DEMAND |Fy_axle| / Fz_axle on the verdict population (moving, analysis laps, kerb-affected excluded) vs fitted mu (front / rear):
 - JDR: mu_fit 1.407 / 1.309; demand p95 1.354 / 1.308, p99 1.437 / 1.405, p99.5 1.466 / 1.441, max 1.659 / 1.516; share above mu_fit 1.9 / 4.9 %.
 - US-v2 (L degenerate, rear mu at the bound): mu_fit 1.708 / 2.000; p99.5 1.836 / 1.616, max 2.140 / 1.719; share above 5.7 / 0.0 %.
@@ -26901,11 +26901,11 @@ READING (labelled): a fitted asymptote below the demanded utilisation (JDR rear)
 
 - THESIS FILE SET: NBR and Le Castellet only. A file (US-v2 included) may leave the thesis ONLY by failing the uniform quality screen, never by its results. Comparison files are re-picked from the passing set; if no Le Castellet file passes, Le Castellet is reported as a data limitation.
 - The H-CAP record and the demonstrated-utilisation method ruling stand as written in "Q-PR-DEMAND rulings and records" (that entry's diagnostic was replaced by this screen before any run).
-- Criteria frozen in diagnostics/inspect_data_quality.py before any number: Q1 physical ceiling (share of verdict-population samples with axle |Fy|/Fz > 2.0, Pacejka 2006 p. 6, Goblirsch et al. 2025 Table I; PASS < 0.1 % per axle); Q2 load calibration (median straight-line measured wheel-load sum / (m g + c v^2), c fixed from the pooled NBR straights; PASS median in [0.97, 1.03] and p5 >= 0.90); Q3 load completeness (damper share per corner on moving analysis-lap samples; PASS > 99 %); Q4 analysis laps >= 3.
+- Criteria frozen in diagnostics/inspect_data_quality.py (script at tag pre-prune-2026-10-22) before any number: Q1 physical ceiling (share of verdict-population samples with axle |Fy|/Fz > 2.0, Pacejka 2006 p. 6, Goblirsch et al. 2025 Table I; PASS < 0.1 % per axle); Q2 load calibration (median straight-line measured wheel-load sum / (m g + c v^2), c fixed from the pooled NBR straights; PASS median in [0.97, 1.03] and p5 >= 0.90); Q3 load completeness (damper share per corner on moving analysis-lap samples; PASS > 99 %); Q4 analysis laps >= 3.
 
 ## Q-DATA-QUALITY: screen result -- NO file passes the frozen criteria [2026-10-19, branch new-laps, read-only, author EXECUTE]
 
-SCRIPT diagnostics/inspect_data_quality.py (criteria frozen in its header); log diagnostics/output/data_quality/screen.log, screen.json. 23 exports screened: 17 NBR (16 outings + a second copy of outing 29 with a different checksum, identical screen values), 6 Le Castellet (outing 25: MLA-SE07_US-v1 on H:, GT3_PRC_MLA / -v2 / -v3 on C:/Paul/UNI/Bachelorarbeit/outings -- the records' v3 lives there, not on H:; outing 32: MLA-SE07_US-v2, and a 291 KB GT3_Creventic_PRC_MLA export).
+SCRIPT diagnostics/inspect_data_quality.py (script at tag pre-prune-2026-10-22) (criteria frozen in its header); log diagnostics/output/data_quality/screen.log, screen.json. 23 exports screened: 17 NBR (16 outings + a second copy of outing 29 with a different checksum, identical screen values), 6 Le Castellet (outing 25: MLA-SE07_US-v1 on H:, GT3_PRC_MLA / -v2 / -v3 on C:/Paul/UNI/Bachelorarbeit/outings -- the records' v3 lives there, not on H:; outing 32: MLA-SE07_US-v2, and a 291 KB GT3_Creventic_PRC_MLA export).
 POOLED c (NBR, 16 exports, one per outing, all Q3-passing, 156,030 straight samples, config mass 1356 kg): 1.7556 N / (m/s)^2.
 PER FILE (Q1 share > 2.0 front / rear; Q2 median / p5; Q3 min damper share; Q4 laps; verdict):
 - NBR o5 MLA: 0 / 0 %; 1.028 / 0.897; 100 %; 6; FAIL Q2 (p5).
@@ -26937,14 +26937,14 @@ OUTCOME (frozen): analysis set EMPTY; Le Castellet reported as a data limitation
 
 STATUS (declared): post-result revision of the screen, like the D4 reopen. Q2 is WITHDRAWN as an exclusion criterion and reported as information only. Reasons (a design defect of the criterion, not a data finding): the p5 >= 0.90 condition sits on a straight-line distribution whose lower tail (~0.85 on every file) is transient content (gear shifts, bumps, pitch), not calibration; the median band [0.97, 1.03] is tighter than the known session-mass uncertainty (fuel about +/-40 kg; config mass a single Level-1 value); the NBR-fixed c confounds the track's aero configuration. SCREEN = Q1, Q3, Q4 with the frozen values unchanged.
 THESIS ANALYSIS SET [2026-10-21 naming note: these sessions are the DEVELOPMENT set; 'analysis set' = the separate clean data package (A5 closed, 2026-10-19).]: NBR outings 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69, 70; Le Castellet outing 25 (one export, chosen by the rule below) and outing 32 (MLA-SE07_US-v2). EXCLUDED with reason: NBR outing 64 (Q1, 0.478 % of samples above |Fy|/Fz 2.0), outings 18, 19, 21 (Q4, fewer than 3 analysis laps), GT3_PRC_MLA (yaw rate 20 Hz, refused by the pipeline), GT3_Creventic_PRC_MLA (required channels missing), the second copy of outing 29 (duplicate).
-OUTING 25 EXPORT RULE (stated before the count, assistant's operationalisation of the author's rule): the export with the most valid REQUIRED channels, required = channels.json "required" (ecu_speed, lap_number) + prepare_vehicle_state's required list (sclu_yaw_rate, log_asteer, log_acc_y, log_acc_x) + the inputs of fit L (log_dms_dam_fl/fr/rl/rr, log_susp_travel_fl/fr/rl/rr, log_pbrake_f, log_pbrake_r); ties -> the latest export by file timestamp. Candidates: MLA-SE07_US-v1 (H:), GT3_PRC_MLA-v2 and -v3 (C:); GT3_PRC_MLA is excluded above. Choice reported by diagnostics/inspect_data_quality.py --pick-o25.
+OUTING 25 EXPORT RULE (stated before the count, assistant's operationalisation of the author's rule): the export with the most valid REQUIRED channels, required = channels.json "required" (ecu_speed, lap_number) + prepare_vehicle_state's required list (sclu_yaw_rate, log_asteer, log_acc_y, log_acc_x) + the inputs of fit L (log_dms_dam_fl/fr/rl/rr, log_susp_travel_fl/fr/rl/rr, log_pbrake_f, log_pbrake_r); ties -> the latest export by file timestamp. Candidates: MLA-SE07_US-v1 (H:), GT3_PRC_MLA-v2 and -v3 (C:); GT3_PRC_MLA is excluded above. Choice reported by diagnostics/inspect_data_quality.py (script at tag pre-prune-2026-10-22) --pick-o25.
 OPEN DATA NOTE (stated limitation): the Le Castellet straight-line load ratio is 0.950-0.955 against ~1.0 on NBR on BOTH Le Castellet outings -> session mass or aero configuration, not a single file; a demonstrated mu on Le Castellet carries ~5 % mass uncertainty (Fy uses the config mass).
 The thesis comparison files are re-picked from the set by the author later.
-OUTING 25 CHOICE (diagnostics/inspect_data_quality.py --pick-o25, log diagnostics/output/data_quality/pick_o25.log): MLA-SE07_US-v1, GT3_PRC_MLA-v2 and GT3_PRC_MLA-v3 all have 16 / 16 required channels valid (45 / 46 configured channels) -> tie -> latest file timestamp: MLA-SE07_US-v1 (2026-09-18, H:/Data_Bachelorthesis/Paul_Ricard_MLA_US). The records' "v3" (GT3_PRC_MLA-v3, 2026-09-02) is the same outing in an earlier export.
+OUTING 25 CHOICE (diagnostics/inspect_data_quality.py (script at tag pre-prune-2026-10-22) --pick-o25, log diagnostics/output/data_quality/pick_o25.log): MLA-SE07_US-v1, GT3_PRC_MLA-v2 and GT3_PRC_MLA-v3 all have 16 / 16 required channels valid (45 / 46 configured channels) -> tie -> latest file timestamp: MLA-SE07_US-v1 (2026-09-18, H:/Data_Bachelorthesis/Paul_Ricard_MLA_US). The records' "v3" (GT3_PRC_MLA-v3, 2026-09-02) is the same outing in an earlier export.
 
 ## Q-PR-TAIL: US-v2 re-entries under the demonstrated-mu rule -- mechanism NOT SHOWN [2026-10-19, branch new-laps, read-only, author EXECUTE]
 
-SCRIPT diagnostics/inspect_pr_tail.py (frame frozen in its header); outputs diagnostics/plots/pr_tail/ (run.log, pr_tail.json, usv2_demand_track.png, usv2_events_curve.png). L as implemented with mu fixed at p99.5 demand (inspect_capacity.demo_fitter, swap harness).
+SCRIPT diagnostics/inspect_pr_tail.py (script at tag pre-prune-2026-10-22) (frame frozen in its header); outputs diagnostics/plots/pr_tail/ (run.log, pr_tail.json, usv2_demand_track.png, usv2_events_curve.png). L as implemented with mu fixed at p99.5 demand (inspect_capacity.demo_fitter, swap harness).
 RUNS: JDR ok, gate 0.131, 0 re-entries, CS impact 0 %; JST 29 ok, gate 0.138, 0, 0 %; US-v2 ok, gate 0.088, 97 re-entries, CS impact front 20.24 %, rear 22.55 % (mu_demo front 1.844, rear 1.620).
 H-FORCE (term share median, tail / verdict base): yaw term US-v2 0.011 / 0.034 front, 0.010 / 0.025 rear; controls 0.006-0.017 / 0.021-0.037; Fx sin(delta) term 0.000 / 0.000 everywhere (zero outside braking, so its median is 0) -> not supported anywhere (the tail has LESS yaw term than the base).
 H-KERB-MISS (|az - 1 g| in [0.6, 1.2) g within +/- 0.2 s): US-v2 tail 0.123 / 0.193 vs base 0.332; events 0.289 vs base 0.332; controls tail 0.006-0.435 vs base 0.414-0.474 -> not supported anywhere.
@@ -26959,7 +26959,7 @@ CAVEATS (labelled): the Fx sin(delta) median test cannot see a braking-only term
 1. mu = DEMONSTRATED UTILISATION (ruling of 2026-10-19 implemented): _fit_axle_l takes mu per axle as the p99.5 (config tyre_fit_auto.mu_demo_percentile) of |Fy / Fz| on its fit population; B is the only fitted parameter (bounds [5, 40]); C 1.0 and E -1 fixed. Manifest axle field mu_source "demonstrated utilisation p99.5 (lower bound)". D4-L: the mu-at-bound check is replaced by "mu_demo above the physical ceiling 2.0 -> fail" (L_MU_CEILING; Pacejka 2006 p. 6; Goblirsch et al. 2025 Table I). L_MU_BOUNDS and L_START_PEAK_N removed (no fitted mu any more).
 2. HEAVY BRAKING OUT OF THE FIT POPULATION: per axle, ~~samples with longitudinal utilisation |Fx_axle| / Fz_axle > 0.3~~ [2026-10-19: sign-free rule superseded -- braking side only (Fx < 0), declared post-result clarification, see "Filter scope clarification".] samples with longitudinal utilisation |Fx_axle| / Fz_axle > 0.3 (config tyre_fit_auto.fit_long_util_max, derived_from) leave that axle's fit population; Fx from the Goblirsch et al. 2025 Eq. 9 split (front: load share of braking; rear: the remainder plus all drive), measured Fz, both 2 Hz. Basis: friction circle (Pacejka 2006 p. 5) -> lateral capacity loss 1 - sqrt(1 - (0.3 / mu)^2) ~ 2-2.5 % at mu 1.4-1.6; the pure-slip curve is fitted on near-pure-slip data (Farroni 2016 T.R.I.C.K. footnote 9 p. 824; Farroni et al. 2018 TRIP-ID pp. 6, 16-17). The observer still runs on every sample (combined slip in the observer = outlook). Counts in the manifest (axle_load.braking_excluded).
 3. OBSERVER-RESET MARK: estimate_cornering_stiffness(..., reset_mask) marks a CS window [start, i) holding an observer reset (hard-bound re-entry or NIS-window divergence of the shipped run; tyre_fit_auto puts the run's diverged_mask in the in-memory manifest as observer_reset_mask, L mode only) as observer_reset_affected_f / _r; summarise_corners drops those samples from the verdict statistics like kerb-affected ones and reports n_reset_excluded per phase. CS arrays keep every value. Basis: a reset breaks the state continuity the windowed regression assumes (the same reasoning as the R11 lap-boundary guard). Without reset_mask (production) no key is added. App wiring of the mask comes with the default switch (resolve_sideslip_beta strips it, like nis_full).
-RESULT (2026-10-19): tests (tests/test_tyre_fit_literature.py incl. new real-data tests mu = p99.5, braking filter exact, reset mark exact; test_cs_validity_repair; test_pure_functions) 51 passed / 1 xfailed; production path BIT-IDENTICAL on three sessions (diagnostics/output/fit_lit/inactive_check_final.log); test_stability.py exit 0. Run diagnostics/inspect_fit_lit_final.py (outputs diagnostics/plots/fit_lit/final/):
+RESULT (2026-10-19): tests (tests/test_tyre_fit_literature.py incl. new real-data tests mu = p99.5, braking filter exact, reset mark exact; test_cs_validity_repair; test_pure_functions) 51 passed / 1 xfailed; production path BIT-IDENTICAL on three sessions (diagnostics/output/fit_lit/inactive_check_final.log); test_stability.py exit 0. Run diagnostics/inspect_fit_lit_final.py (script at tag pre-prune-2026-10-22) (outputs diagnostics/plots/fit_lit/final/):
 - ALL THREE SESSIONS DEGENERATE -> kinematic fallback: D4-L g2 fails on the REAR axle (K 43.20 JDR, 42.93 JST 29, 30.57 US-v2 per rad, band 6-30). Front passes (K 27.66 / 24.38 / 24.83; mu_demo 1.476 / 1.677 / 1.857).
 - Braking filter removal (share of the fit population): front 14.7 / 19.7 / 20.2 %, rear 55.3 / 63.8 / 62.1 % (JDR / JST 29 / US-v2). Split (scratchpad check on the same inputs): front removals are all braking; rear removals are braking 14.7 / 19.5 / 19.9 % plus DRIVE 40.6 / 44.3 / 42.2 % -- the |Fx_axle| / Fz criterion also catches traction on the driven rear axle; the median rear utilisation of the fit population is 0.33 / 0.39 / 0.37, i.e. the 0.3 threshold sits at the middle of the rear distribution.
 - In-range curve change vs the run without the braking filter: front RMS 3.2-4.1 % of mu, rear 20.3-20.8 % (rear B 16.8 -> 29.4 JDR, 15.3 -> 27.5 JST 29, 10.7 -> 18.6 US-v2).
@@ -26970,7 +26970,7 @@ CONFLICT FOR THE AUTHOR (not resolved here): the ruling names the filter "heavy 
 
 FACTS: the ruled label was "heavy braking out of the fit population"; the specification omitted the sign (|Fx_axle| / Fz_axle > 0.3). The sign-free version removed 55.3 / 63.8 / 62.1 % of the rear fit population (JDR / JST 29 / US-v2), 40.6 / 44.3 / 42.2 points of it drive, and pushed rear K to 43.2 / 42.9 / 30.6 per rad (> 30) -> all three degenerate. CLARIFICATION APPLIED: a sample leaves an axle's fit population only if Fx_axle < 0 AND |Fx_axle| / Fz_axle > 0.3; drive is retained (Eq. 9 puts all drive on the rear, so traction is the rear's operating state through every corner exit, not an outlier). Threshold 0.3 not retuned.
 CHECKS: tests/test_tyre_fit_literature.py 8 passed (filter test: braking above the threshold removed, drive above it kept); production path BIT-IDENTICAL on three sessions (diagnostics/output/fit_lit/inactive_check_braking.log).
-RE-RUN (diagnostics/inspect_fit_lit_final.py; the sign-free run log kept as diagnostics/plots/fit_lit/final/run_signfree_filter.log): EKF L shipped on all three, every gate check passes.
+RE-RUN (diagnostics/inspect_fit_lit_final.py (script at tag pre-prune-2026-10-22); the sign-free run log kept as diagnostics/plots/fit_lit/final/run_signfree_filter.log): EKF L shipped on all three, every gate check passes.
 - JDR: removed (braking) front 14.72 %, rear 14.70 %; front B 18.74, K 27.66, mu_demo 1.476, n 98,326; rear B 19.65, K 28.41, mu_demo 1.446, n 98,347; gate pass 0.103, R 0.1/1; hard-bound re-entries 1, observer resets 2213.
 - JST 29: removed front 19.67 %, rear 19.52 %; front B 14.54, K 24.38, mu_demo 1.677, n 45,962; rear B 15.68, K 24.08, mu_demo 1.536, n 46,052; gate pass 0.085, R 0.1/16; re-entries 7, resets 654.
 - US-v2: removed front 20.25 %, rear 19.92 %; front B 13.38, K 24.83, mu_demo 1.857, n 68,915; rear B 10.95, K 17.69, mu_demo 1.616, n 69,195; gate pass 0.073, R 0.03/2; re-entries 94, resets 2116.
@@ -26982,7 +26982,7 @@ LIMITATION (estimate, Pacejka 2006 p. 5, friction circle): the retained traction
 
 QUESTION: a hard-bound reset sets beta to 0 (a state break; stays in the observer-reset mask regardless). A NIS-window reset keeps the state and resets P to P0 only; afterwards the gain is large and beta is pulled towards the measurements quickly. Does that move alpha inside a CS window enough to change the windowed OLS slope?
 DECLARED CRITERION (written before the run, DECISIONS.md): run A = shipped EKF L, run B = the same final observer configuration (same fit, same R) with the NIS-window reset disabled, hard-bound reset active. Per verdict CS window marked only by NIS-window resets, per axle, |CS_A - CS_B| / |CS_A| with CS the windowed OLS slope over the same Fy and the same [start, i) window. p95 <= 0.10 on every axle of every session -> NIS-window resets do not materially change the CS and the mask scope becomes hard-bound re-entries only; otherwise the mask stays as ruled and the excluded share is a stated limitation. 0.10 is a declared Tier-B tolerance, not tuned. Windows in which run B hits a hard bound are counted as affected and reported separately.
-RESULT (2026-10-19, diagnostics/inspect_nis_reset_effect.py, outputs diagnostics/plots/fit_lit/nis_reset/): tests/test_tyre_fit_literature.py 8 passed; production path BIT-IDENTICAL with the flag at its default (diagnostics/output/fit_lit/inactive_check_nisflag.log). Window reproduction against C_window exact (max rel dev 0). Relative slope difference |CS_A - CS_B| / |CS_A| on NIS-only windows (front / rear):
+RESULT (2026-10-19, diagnostics/inspect_nis_reset_effect.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/fit_lit/nis_reset/): tests/test_tyre_fit_literature.py 8 passed; production path BIT-IDENTICAL with the flag at its default (diagnostics/output/fit_lit/inactive_check_nisflag.log). Window reproduction against C_window exact (max rel dev 0). Relative slope difference |CS_A - CS_B| / |CS_A| on NIS-only windows (front / rear):
 - JDR: n NIS-only 25,073 / 25,250; run B hard-bound in 56 / 27; p50 0.370 / 0.409, p95 3.49 / 3.67, p99 14.5 / 13.4. Run B gate pass 0.090, hard-bound re-entries 1 (run A 1).
 - JST 29: n 8,633 / 9,492; run B hard-bound in 1,765 / 1,965; p50 0.682 / 0.691, p95 3.68 / 3.95, p99 9.85 / 20.1. Run B gate pass 0.078, re-entries 62 (run A 7).
 - US-v2: n 20,301 / 20,367; run B hard-bound in 1,155 / 1,228; p50 0.410 / 0.454, p95 2.57 / 2.80, p99 8.36 / 11.2. Run B gate pass 0.058, re-entries 134 (run A 94).
@@ -26993,8 +26993,8 @@ READING (labelled): run B differs from run A along the whole trajectory, not onl
 
 DESIGN LIMITATION OF Q-NIS-RESET (accepted by the author, 2026-10-19): run B's beta differs from run A's along the whole trajectory, so the Q-NIS-RESET metric measures the dependence of the CS slope on the reset policy, not the local effect of a single reset. The missing control is the same metric on windows that hold no reset.
 DECLARED READING RULE (written before the run): same run A (shipped EKF L) and run B (NIS-window reset off), JDR, JST 29, US-v2. Population U = verdict CS windows per axle holding no reset of either kind in run A; population M = the Q-NIS-RESET NIS-only windows. (a) U p95 of |CS_A - CS_B| / |CS_A| <= 0.10 on every axle of every session -> the sensitivity is specific to reset windows; the mask is justified as protection; the limitation stands as recorded. (b) Otherwise -> the windowed CS slope is sensitive to observer policy in general; the reset mask is not the cause; report and wait. No estimator change in this step. Context metrics for U and M: in-window mean |beta_A - beta_B| (deg), alpha_A window span (deg), and ~~for U the share of windows with span below 0.021 rad (the chair estimator's linear threshold, internal reference)~~ [2026-10-19 correction: this compared the window SPAN with the chair's linear-reference threshold 0.021 rad (linear_slip_threshold, a max |alpha| bound for setting the reference), a different quantity; the span floor is 0.020 rad in both codes (chair min_slip_angle_interval, ours cs_min_slip_angle_span_rad), so the share only counts windows with span in [0.020, 0.021) rad.].
-ADDENDUM (author, 2026-10-19): per session, axle, corner and phase, the remaining verdict CS samples after kerb exclusion and after kerb + reset exclusion, as counts and as a share of the unfiltered verdict population (diagnostics/inspect_nis_reset_effect.py --populations; counts from summarise_corners on analysis laps). Report only, no change.
-RESULT (2026-10-19, diagnostics/inspect_nis_reset_effect.py, outputs diagnostics/plots/fit_lit/nis_reset/run_control.log, nis_control_<key>.json): tests/test_tyre_fit_literature.py 8 passed; production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_nis_control.log); M reproduces the Q-NIS-RESET numbers exactly; window reproduction exact. Relative slope difference p50 / p95, U then M (front; rear):
+ADDENDUM (author, 2026-10-19): per session, axle, corner and phase, the remaining verdict CS samples after kerb exclusion and after kerb + reset exclusion, as counts and as a share of the unfiltered verdict population (diagnostics/inspect_nis_reset_effect.py (script at tag pre-prune-2026-10-22) --populations; counts from summarise_corners on analysis laps). Report only, no change.
+RESULT (2026-10-19, diagnostics/inspect_nis_reset_effect.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/fit_lit/nis_reset/run_control.log, nis_control_<key>.json): tests/test_tyre_fit_literature.py 8 passed; production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_nis_control.log); M reproduces the Q-NIS-RESET numbers exactly; window reproduction exact. Relative slope difference p50 / p95, U then M (front; rear):
 - JDR: front U 0.118 / 4.07, M 0.370 / 3.49; rear U 0.221 / 4.28, M 0.409 / 3.67. Mean |dbeta| p50 / p95 deg: front U 0.05 / 4.18, M 0.33 / 3.46; rear U 0.17 / 4.65, M 0.32 / 3.47.
 - JST 29: front U 0.106 / 2.81, M 0.682 / 3.68; rear U 0.145 / 3.12, M 0.691 / 3.95. |dbeta|: front U 0.03 / 6.07, M 1.20 / 6.97; rear U 0.04 / 6.10, M 1.19 / 6.95.
 - US-v2: front U 0.311 / 3.57, M 0.410 / 2.57; rear U 0.360 / 3.65, M 0.454 / 2.80. |dbeta|: front U 0.55 / 6.74, M 0.69 / 6.32; rear U 0.59 / 6.77, M 0.70 / 6.47.
@@ -27002,7 +27002,7 @@ RESULT (2026-10-19, diagnostics/inspect_nis_reset_effect.py, outputs diagnostics
 BRANCH: (b) -- U p95 > 0.10 on every axle of every session: the windowed CS slope is sensitive to observer policy in general; the reset mask is not the cause. No estimator change. Author rules next.
 READING (labelled): a constant beta offset inside a window leaves the OLS slope unchanged (it shifts alpha by a constant); the slope changes through the within-window variation of the beta difference, measured against an alpha span that sits at the 0.02 rad floor in most windows, so a few tenths of a degree of variation is already a large fraction of the span. The reset windows are more sensitive at the median (M p50 above U p50 on every axle), not in the tail.
 POPULATIONS (author addendum; diagnostics/plots/fit_lit/nis_reset/populations.log, populations_<key>.json; summarise_corners counts on analysis laps; floor = cs_phase_min_valid_samples 5): verdict CS samples remaining after kerb / after kerb + reset as share of unfiltered: JDR front 94.1 / 53.9 %, rear 94.3 / 49.9 %; JST 29 front 84.7 / 60.9 %, rear 84.4 / 57.5 %; US-v2 front 82.0 / 46.3 %, rear 82.3 / 45.6 %. Lap instances (corner x phase x lap) below the floor, unfiltered / after kerb / after kerb + reset: JDR front 260 / 273 / 387 of 900, rear 342 / 361 / 481; JST 29 front 134 / 210 / 231 of 450, rear 137 / 212 / 237; US-v2 front 246 / 310 / 405 of 765, rear 260 / 333 / 426. Per-corner lists in the log.
-PROVENANCE OF THE OBSERVER TUNABLES (author question, report only; config tyre_fit_auto): q_beta_var 9.632e-7 = (0.1 deg)^2 x 0.3162, q_yaw_rate_var 2.408e-7 = (0.05 deg/s)^2 x 0.3162, p0 3.046e-4 = (1 deg)^2: hand-set base values scaled by QR_RATIO 0.3162 from the WP-S5b ratio sweep of the LINEAR Kalman observer (diagnostics/sideslip_kalman_observer.py, commit 4b1b548, 2026-08-19) on the Dubai sample, linear single-track model with the fixed reference stiffnesses cs_front/rear_fallback_reference_n_per_rad; carried unchanged into the Dugoff EKF pass_0 / pass_1 ("no Q-focused sweep run"), then into tyre_fit_auto; never re-tuned for the Pacejka or fit-L observer; no own derived_from key (comment: lineage, provenance in git history). nis_window_s 0.4, nis_chi2_bound 5.99 (chi-square 95 %, df 2), nis_flag_fraction 0.5: recorded in the Dugoff pass_0 nis_tuning_note as PLACEHOLDER defaults, "never validated against a real run"; only the window's rate conversion was fixed (2026-10-16). Reset rule: author D3 amendment 2026-10-07 (PLAN.md; code docstring anchors Goblirsch et al. 2024 IROS sec. III-D and Rajamani sec. 14.4.2 for the P reset, Villano et al. 2021 sec. 3.1 for the zero reset); beta_hard_bound_deg 15 physically anchored (Dugoff pass_0 note). No DECISIONS.md entry carries Q or the NIS thresholds.
+PROVENANCE OF THE OBSERVER TUNABLES (author question, report only; config tyre_fit_auto): q_beta_var 9.632e-7 = (0.1 deg)^2 x 0.3162, q_yaw_rate_var 2.408e-7 = (0.05 deg/s)^2 x 0.3162, p0 3.046e-4 = (1 deg)^2: hand-set base values scaled by QR_RATIO 0.3162 from the WP-S5b ratio sweep of the LINEAR Kalman observer (diagnostics/sideslip_kalman_observer.py (script at tag pre-prune-2026-10-22), commit 4b1b548, 2026-08-19) on the Dubai sample, linear single-track model with the fixed reference stiffnesses cs_front/rear_fallback_reference_n_per_rad; carried unchanged into the Dugoff EKF pass_0 / pass_1 ("no Q-focused sweep run"), then into tyre_fit_auto; never re-tuned for the Pacejka or fit-L observer; no own derived_from key (comment: lineage, provenance in git history). nis_window_s 0.4, nis_chi2_bound 5.99 (chi-square 95 %, df 2), nis_flag_fraction 0.5: recorded in the Dugoff pass_0 nis_tuning_note as PLACEHOLDER defaults, "never validated against a real run"; only the window's rate conversion was fixed (2026-10-16). Reset rule: author D3 amendment 2026-10-07 (PLAN.md; code docstring anchors Goblirsch et al. 2024 IROS sec. III-D and Rajamani sec. 14.4.2 for the P reset, Villano et al. 2021 sec. 3.1 for the zero reset); beta_hard_bound_deg 15 physically anchored (Dugoff pass_0 note). No DECISIONS.md entry carries Q or the NIS thresholds.
 
 ## Q-OBS-DERIVE: rulings and anchor check for deriving the observer Q and reset trigger on fit L [2026-10-19, branch new-laps, author rulings]
 
@@ -27034,9 +27034,9 @@ RESULT (2026-10-19): tests/test_tyre_fit_literature.py 11 passed (new: change-de
 
 ## h derivation for the change-detector trigger (fit L) [2026-10-19, branch new-laps, author EXECUTE]
 
-FRAME (written before any number): (1) CORRECTION -- the straight-line constraint "alarm time share on validation straights <= 0.05" of the frozen frame was ill-defined for one-shot alarms (one alarm is one sample, so 0.05 allowed an alarm every 20 samples; reviewer's spec defect). Replaced by: mean time between alarms on validation straights >= 10 s (declared Tier B; the average run length is the standard false-alarm measure of CUSUM detectors, Page 1954 as cited by Rajamani 2012 p. 411, to verify). The full curve over h is reported. Validation straights = the odd-indexed steering-defined straights (steering_straights in diagnostics/inspect_kinematic_inputs.py, split as in check_estimator_hardening.py). (2) Objective unchanged: fewest hard-bound re-entries summed over the derive split; tie -> fewer alarms. (3) R is held at the cached picks (made with the NIS-window trigger) during the grid -- declared simplification; the acceptance run re-derives R through the full chain. (4) The one-shot reset of a_t is part of the declared adaptation of Rajamani's detector. Grid h = 100, 200, 400, 800, 1600, 3200; derive split NBR 5, 20, 46, 54, 61, 69 and Le Castellet 25. No pick if no point meets the constraint or the objective is flat across the grid. The default trigger is not switched and the check split is not run in this step.
+FRAME (written before any number): (1) CORRECTION -- the straight-line constraint "alarm time share on validation straights <= 0.05" of the frozen frame was ill-defined for one-shot alarms (one alarm is one sample, so 0.05 allowed an alarm every 20 samples; reviewer's spec defect). Replaced by: mean time between alarms on validation straights >= 10 s (declared Tier B; the average run length is the standard false-alarm measure of CUSUM detectors, Page 1954 as cited by Rajamani 2012 p. 411, to verify). The full curve over h is reported. Validation straights = the odd-indexed steering-defined straights (steering_straights in diagnostics/inspect_kinematic_inputs.py, split as in check_estimator_hardening.py (script at tag pre-prune-2026-10-22)). (2) Objective unchanged: fewest hard-bound re-entries summed over the derive split; tie -> fewer alarms. (3) R is held at the cached picks (made with the NIS-window trigger) during the grid -- declared simplification; the acceptance run re-derives R through the full chain. (4) The one-shot reset of a_t is part of the declared adaptation of Rajamani's detector. Grid h = 100, 200, 400, 800, 1600, 3200; derive split NBR 5, 20, 46, 54, 61, 69 and Le Castellet 25. No pick if no point meets the constraint or the objective is flat across the grid. The default trigger is not switched and the check split is not run in this step.
 TEST DATA: the synthetic-sequence unit test of the change detector is replaced by real NIS segments from NBR JST 29 (no synthetic data anywhere).
-RESULT (2026-10-19, diagnostics/derive_cd_threshold.py, outputs diagnostics/plots/cd_threshold/): tests/test_tyre_fit_literature.py 11 passed (real-segment test: quiet stretch max a 1.72, burst first alarm at sample 631, a 51.4 > h 50); production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_h.log). Cache build 97-179 s per session, wall time 430 s with 3 workers; the cached final config reproduces the shipped beta exactly on all seven derive sessions; all seven shipped EKF L (status ok).
+RESULT (2026-10-19, diagnostics/derive_cd_threshold.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/cd_threshold/): tests/test_tyre_fit_literature.py 11 passed (real-segment test: quiet stretch max a 1.72, burst first alarm at sample 631, a 51.4 > h 50); production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_h.log). Cache build 97-179 s per session, wall time 430 s with 3 workers; the cached final config reproduces the shipped beta exactly on all seven derive sessions; all seven shipped EKF L (status ok).
 - Summed over the derive split (hard-bound re-entries / alarms / pooled mean time between alarms on validation straights / NIS gate pass): NIS window (reference) 75 / 3292 / 18.1 s / 7 of 7; h 100: 27 / 9574 / 10.1 s / 7; h 200: 41 / 5930 / 18.1 s / 7; h 400: 61 / 3723 / 22.6 s / 7; h 800: 106 / 2307 / 45.2 s / 7; h 1600: 168 / 1389 / 30.2 s / 7; h 3200: 246 / 768 / 90.5 s / 7.
 - Validation straights are short: 7-24 s per session, 90 s in total. Six of seven sessions have no alarm on them at any h; every alarm on validation straights is on Le Castellet 25 (9 at h 100 down to 1 at h 3200), where the shortest mean time between alarms is 1.0-8.9 s.
 - NO PICK under the declared rule: the pooled reading of the constraint admits every grid point (and picks h 100), the every-session reading admits none.
@@ -27049,7 +27049,7 @@ DECLARED POST-RESULT REOPEN OF THE Q POLICY: "Q is tested, not tuned" is superse
 FRAME (before any number): derive split, full chain per point (R re-derived); trigger points change detector h = 400, 800, 1600, 3200 and hard-bound only (no soft reset); NIS-window trigger at Q-UPPER as reference line only. Straight constraint corrected: all steering-defined straights (both halves), pooled over the derive split, mean time between alarms >= 10 s; the odd / even split remains for beta validation. Selection: among h meeting the constraint, re-entries within 10 % of the minimum count as tied, then fewest alarms; if the objective still falls monotonically to the smallest h -> report and wait.
 RULING, CS ON LOAD-NORMALISED FORCE (implementation later): CS estimated on Fy / Fz of the axle. Basis: cornering stiffness is defined at constant vertical load; Milliken pp. 26-27 (load-normalised lateral force); consistent with fit L and the K gate. Declared adaptation beyond the chair estimator (Fy in N), enabled by measured axle loads. Intended reference band Pacejka 2006 p. 6, 6-30 per rad, to be checked against data before adoption. The dip reduction (Q-DIPS: 65-66 % fewer ratios below -1) is a consequence, not the reason.
 RULING, PHYSICS FLOOR AS A LABEL (implementation in the final chain): a CS ratio below -0.53 (steepest post-peak slope of a pure-lateral Magic Formula at C = 3.0, the Goblirsch et al. 2025 Table I upper bound, E in [-1, 1], Pacejka 2006 p. 175) is labelled "not lateral saturation", never deleted.
-RESULT Q-UPPER (2026-10-19, diagnostics/inspect_q_upper.py, outputs diagnostics/plots/q_upper/; wall time 2585 s, 3 workers, full chain per point): all 42 runs status ok, no fallback, NIS gate pass, D4-L pass, sign check 0.94-1.0, straight-line |beta| median 0.057-0.080 deg.
+RESULT Q-UPPER (2026-10-19, diagnostics/inspect_q_upper.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/q_upper/; wall time 2585 s, 3 workers, full chain per point): all 42 runs status ok, no fallback, NIS gate pass, D4-L pass, sign check 0.94-1.0, straight-line |beta| median 0.057-0.080 deg.
 - Summed hard-bound re-entries over the derive split: h 400: 4, h 800: 2, h 1600: 1, h 3200: 2, hard-bound only: 1, NIS window (reference): 0 -- against 27-246 (change detector) and 75 (NIS window) with the current Q. Alarms 914 / 465 / 226 / 109 / 0 / 348. No alarm on the 185 s of steering-defined straights at any point (constraint met everywhere).
 - NIS on the base mask: mean 1.76-2.85, median 0.52-0.75 per session (JST 29 at the current Q: mean 4.69, median 1.71). NIS-gate health 0.11-0.26 (current Q 0.08-0.12).
 - R picks: r_ay_scale 0.01 on every session and point (the lowest value of the sweep grid); r_yaw_scale 16 on NBR 5, 20, 46, 54, 69 (8 once on NBR 5 at h 3200), 1 on NBR 61 and Le Castellet 25. Exceedance yaw 0.000-0.003, ay 0.069-0.120.
@@ -27057,7 +27057,7 @@ RESULT Q-UPPER (2026-10-19, diagnostics/inspect_q_upper.py, outputs diagnostics/
 - HYPOTHESIS (stated before the run) SUPPORTED: with Q at the upper bound the hard-bound objective is flat over h (1-4 re-entries) and the soft trigger is not needed as a safety net on this split.
 READING (labelled): (1) the counts are small (1-4), so the 10 % tie band acts on single events; (2) every R_ay pick sits at the lower grid edge; (3) with q_r about 6000 times the current value the yaw-rate state follows the measured yaw rate (yaw exceedance about 0), so the yaw-moment equation no longer constrains the state much; (4) the NIS median 0.5-0.75 lies below the chi-square df-2 median 1.39 -- outside the bursts the filter now over-states its uncertainty, consistent with Q being an upper bound.
 
-FALLBACK CHECK OUTINGS 59 / 70 (diagnostics/inspect_fallback_59_70.py, outputs diagnostics/plots/fallback_59_70/): D4-L g2 checks K = B C mu of the fit-L curve against L_K_BAND (6, 30) per rad. Outing 59 front: B 16.390, mu_demo 1.851, K 30.341 (above 30 by 0.34, 1.1 %), g1 span 11.04 deg (min 3), n fit 33,032; rear K 24.02, passes. Outing 70 front: B 15.639, mu_demo 1.940 (the highest front mu_demo of the 14 sessions), K 30.336, span 11.82 deg, n 46,121; rear K 25.63, passes. Next-highest front K: 28.42 (outing 61), 28.34 (53), 28.33 (63). Weather / track state read from each export: no wiper activity, wet-tyre flag 0, gpsa_track_condition 0 on all 14 sessions; ambient (log_tamb median) 21.7 C (59), 24.8 C (70), range 19.9-30.1 C over the set. Both are MLA sessions (outing 59 session 4, outing 70 session 5 = qualifying; MLA outings 5 and 53 pass with front K 26.2 / 28.3). Data-quality screen: outing 70 has the largest front share of |Fy| / Fz > 2 among the NBR sessions shown (0.089 %, max 2.06) and a straight-load ratio median of 0.971. Nothing changed.
+FALLBACK CHECK OUTINGS 59 / 70 (diagnostics/inspect_fallback_59_70.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/fallback_59_70/): D4-L g2 checks K = B C mu of the fit-L curve against L_K_BAND (6, 30) per rad. Outing 59 front: B 16.390, mu_demo 1.851, K 30.341 (above 30 by 0.34, 1.1 %), g1 span 11.04 deg (min 3), n fit 33,032; rear K 24.02, passes. Outing 70 front: B 15.639, mu_demo 1.940 (the highest front mu_demo of the 14 sessions), K 30.336, span 11.82 deg, n 46,121; rear K 25.63, passes. Next-highest front K: 28.42 (outing 61), 28.34 (53), 28.33 (63). Weather / track state read from each export: no wiper activity, wet-tyre flag 0, gpsa_track_condition 0 on all 14 sessions; ambient (log_tamb median) 21.7 C (59), 24.8 C (70), range 19.9-30.1 C over the set. Both are MLA sessions (outing 59 session 4, outing 70 session 5 = qualifying; MLA outings 5 and 53 pass with front K 26.2 / 28.3). Data-quality screen: outing 70 has the largest front share of |Fy| / Fz > 2 among the NBR sessions shown (0.089 %, max 2.06) and a straight-load ratio median of 0.971. Nothing changed.
 
 ## Observer finalisation for fit L (Q-UPPER in the chain, hard-bound only, R_ay noise floor) [2026-10-19, branch new-laps, author EXECUTE]
 
@@ -27069,7 +27069,7 @@ RULINGS (before implementation):
 5. ~~K BAND UNCHANGED at 30 per rad (no post-result move).~~ [2026-10-20: hard cut superseded -- declared reopen of the D4-L K band at source precision, see 'D4-L K band at source precision'.] Outings 59 and 70 fail D4-L g2 front by 1.1 % and ship the kinematic fallback; reported as "plausibility gate triggered" and excluded from the EKF-based verdict analysis (the thresholds encode one estimator's distribution). PENDING: author confirmation that no key driver feedback depends on them.
 IMPLEMENTED (fit L only, production bit-identical): tyre_fit_auto._q_upper_from_residual (Q-PHYS method in the chain; manifest observer_q); EKF trigger "hard_bound_only" as the fit-L default (config l_divergence_trigger); tyre_fit_auto._ay_noise_floor with the steering-defined straights moved into modules/straights.py (config l_straight_*); the R_ay grid continued downward in half-decade steps until one value lies below the floor, no pick below it, pick location recorded (manifest ay_noise_floor). Config keys l_q_beta_var / l_q_yaw_rate_var removed (no longer read); l_q_derived_from states the method.
 CHECKS: tests/test_tyre_fit_literature.py 15 passed (new: Q reproduces inspect_q_phys.py on JST 29 to 1e-9; hard_bound_only makes no soft reset; R_ay pick respects the floor and the grid reaches below it; module straights equal the diagnostic definition). Two tests adapted: since Q-UPPER JST 29 has no hard-bound re-entry, so the reset-mark test uses the real reset sequence of the same observer under the NIS-window trigger, and the mask test no longer requires a reset. Production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_final_obs.log); test_stability.py exit 0.
-RUN (diagnostics/run_fit_l_observer_final.py, outputs diagnostics/plots/fit_l_observer_final/; 14 sessions, wall time 796 s):
+RUN (diagnostics/run_fit_l_observer_final.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/fit_l_observer_final/; 14 sessions, wall time 796 s):
 - Status ok on 11 sessions; NBR 61 marginal (r_sweep_no_in_band -> default R 0.1 / 16, NIS gate WARN 0.016); NBR 59 and 70 degenerate (D4-L g2 front, K 30.34) -> kinematic fallback.
 - Hard-bound re-entries summed over the 14 observer runs: 1 (Le Castellet 25); soft resets 0 everywhere.
 - Q per step at 50 Hz: q_beta 1.28e-5 to 1.98e-5 rad^2, q_r 1.23e-3 to 1.66e-3 (rad/s)^2.
@@ -27087,7 +27087,7 @@ LOAD CHAIN (facts from the read-only report): per wheel, Fz = strain-gauge dampe
 SIGNALS: the measurement update reads state["ay_mps2"] = log_acc_y x 9.81 and state["yaw_rate_radps"] = sclu_yaw_rate x yaw_rate_to_radps, both linearly interpolated onto the common grid (100 Hz) by prepare_vehicle_state and otherwise unfiltered (no channel correction applies to them); both floors are computed on exactly these arrays.
 IMPLEMENTED (fit L only, production bit-identical): tyre_fit_auto._measurement_noise_floors (ay and yaw rate, replaces _ay_noise_floor; manifest noise_floors); the ay floor value inserted into the R_ay grid (grid still continued below it), pick location floor / interior / top edge plus floor_binding (the sweep without the floor would pick lower); R_yaw = the yaw-rate floor, no R_yaw sweep in fit L; the no-in-band default never undercuts either floor.
 CHECKS: tests/test_tyre_fit_literature.py 17 passed (new: floors equal an independent computation on the consumed arrays; the floor is on the R_ay grid and is the pick when the sweep prefers lower; R_yaw equals the yaw-rate floor at every grid point and in the final run); production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_rfloor.log); test_stability.py exit 0.
-RUN (diagnostics/run_fit_l_observer_final.py, 14 sessions, wall time 290 s; previous log kept as run_floor_v1.log):
+RUN (diagnostics/run_fit_l_observer_final.py (script at tag pre-prune-2026-10-22), 14 sessions, wall time 290 s; previous log kept as run_floor_v1.log):
 - Status ok on 12 sessions (NBR 61 back to ok); NBR 59 / 70 degenerate on D4-L g2 front (unchanged, kinematic fallback). Hard-bound re-entries summed: 1 (Le Castellet 25); soft resets 0 everywhere.
 - ay floor 0.38-0.88 (m/s^2)^2 = r_ay_scale 0.0071-0.0284; yaw-rate floor 6.4e-6 to 2.8e-5 (rad/s)^2 (SD 0.15-0.30 deg/s) = r_yaw_scale 0.053-0.30 (the old sweep grid was 1-16).
 - R_ay pick = the floor on 13 sessions (floor-binding on NBR 5, 59, 61, 70, where the sweep without the floor goes to 0.01); Le Castellet 25 interior at 0.01 (floor 0.0071).
@@ -27102,7 +27102,7 @@ D4-L K BAND, DECLARED REOPEN (author): Pacejka 2006 p. 6, verbatim: cornering st
 CS ON Fy / Fz, IMPLEMENTATION (ruling of 2026-10-19): fit L only, default off in production. The force input becomes Fy_axle / Fz_axle sample-wise, Fz from the fit-L load inputs (measured, 2 Hz zero-phase); the Fy definition per axle is unchanged (only divided); the estimator's filter, window, segmentation and R^2 blend are unchanged; the linear reference is normalised the same way, so the ratio stays C / C_ref. ~~Reference plausibility band 6-30 per rad (Pacejka 2006 p. 6) instead of 30k-600k N/rad;~~ [2026-10-20: superseded -- reference band at source precision [5.5, 35] per rad (L_K_EDGE), see 'Reference band at source precision'.] if it excludes more than 10 % of the linear-reference windows on any analysis session -> report and wait. No threshold or verdict change in this step.
 IMPLEMENTED (fit L only, production bit-identical): tyre_fit_auto L_K_EDGE (5.5, 35) beside L_K_BAND (6, 30); plausibility_gate_l returns k_zone (in band / edge / outside), only "outside" fails g2; fit L sets status marginal with "g2 at the edge of the literature range" for an edge zone; manifest k_band_zone. estimate_cornering_stiffness(..., axle_loads, ref_band): Fy / Fz per axle and a replaced reference band, both default None; with either given, the reference-candidate slopes and counts are added to the output. The fit-L manifest carries cs_axle_loads (in memory, stripped in resolve_sideslip_beta like nis_full); app wiring of the flag comes with the default switch, as for the reset mask.
 CHECKS: tests/test_tyre_fit_literature.py 20 passed (new: g2 zones on real K -- JST 29 in band, NBR outing 70 front K 30.34 edge -> marginal with the reason; flag off unchanged; flag on: window slope = OLS of Fy / Fz on the same window to 1e-9, reference inside 6-30 per rad, flag off keeps the N / rad band); production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_csnorm.log); test_stability.py exit 0.
-RUN (diagnostics/inspect_cs_norm.py, 14 sessions, wall time 1089 s, outputs diagnostics/plots/cs_norm/):
+RUN (diagnostics/inspect_cs_norm.py (script at tag pre-prune-2026-10-22), 14 sessions, wall time 1089 s, outputs diagnostics/plots/cs_norm/):
 - Status: 12 ok, NBR 59 and 70 MARGINAL (g2 front edge, K 30.34) -- the EKF now ships on all 14; NIS gate pass on all 14.
 - Reference candidates of the normalised estimate, p5 / p50 / p95 per rad: front 14.4-20.4 / 17.8-24.4 / 19.9-29.7; rear 16.5-25.6 / 17.9-30.6 / 20.0-35.6. Band 6-30 exclusion: front 0-4.4 %; rear 0-5.6 % on ten sessions, 10.0 % (NBR 5), 10.6 % (NBR 59), 17.0 % (NBR 70), 55.1 % (NBR 10), 59.0 % (NBR 61) -- STOP RULE: above 10 % on four sessions -> report and wait; the band is not relied on.
 - Rear reference median above 30 per rad on NBR 10 (30.2) and NBR 61 (30.6), both JDR sessions, whose fit-L rear K is 28.4 / 29.2.
@@ -27117,8 +27117,8 @@ RULINGS (before implementation):
 2. Fy / Fz SIGN BEHAVIOUR: the shares below 0 rise slightly on a few axles while the shares below -0.2 and -0.53 fall on almost all -- expected (small negatives are noise around a flat slope near the limit), not a defect.
 3. PLAUSIBILITY CHECK (author criterion: deep negatives rare and repeatable): passed; one repeatable cell (NBR 54 corner 3 turn-in, front, 4 of 6 laps), otherwise single-lap scatter.
 IMPLEMENTED: no module logic change -- the fit-L callers pass ref_band = tyre_fit_auto.L_K_EDGE (docstring of estimate_cornering_stiffness updated); test: candidates outside [5.5, 35] are excluded, the excluded count matches, every reference in effect is an in-band candidate. tests/test_tyre_fit_literature.py 20 passed; production path BIT-IDENTICAL (diagnostics/output/fit_lit/inactive_check_refband.log).
-RE-RUN (diagnostics/inspect_cs_norm.py, full chain on 14 sessions -- the derive caches are keyed by the module sources and were stale, and the reference candidates had not been stored, so the reference part could not be recomputed from cached inputs; the 6-30 run log is kept as run_band_6_30.log): exclusion under [5.5, 35] front 0.0-0.6 %, rear 0.0-5.9 % (NBR 61 5.9 %, NBR 10 3.3 %, NBR 59 2.0 %, all others <= 0.4 %) -- within 10 % on every session and axle, the stop rule did not fire. Reference candidates unchanged by construction (p5 / p50 / p95 as in the 6-30 run).
-NBR 54 CORNER 3 TURN-IN, FRONT (diagnostics/inspect_nbr54_c3.py, read-only; figure diagnostics/plots/cs_norm/nbr54_corner3_six_laps_front_cs_steering_speed_fx.png): the turn-in phase spans 707-959 m (entry to past the apex). Samples below -0.53: laps 215 / 216 / 217 / 218 = 91 / 130 / 69 / 47, laps 219 / 220 = 0. On 215-217 they sit at 725-770 m (217 also to 847 m): steering winding on to 70-85 deg, speed falling 125 -> 115 km/h, braking share 0.99-1.00 at the low samples with front |Fx| / Fz median 0.16-0.27 (trail braking, below the 0.3 fit filter), front Fz range inside the windows median 24-36 %, |alpha_f| median 6.1-6.9 deg; no kerb at the low samples (nearest kerb 290 / 107 / 36 m), line deviation from the mean line median 0.7-1.4 m. Lap 218 differs: low samples at 845-860 m while the steering unwinds, Fx about 0 (braking share 0.57, |Fx| / Fz 0.000), nearest kerb 20 m, Fz range 11.9 %. Laps 219 / 220 without low samples: 219 turns in late and gradually (steering max 81 deg, |alpha_f| max 5.85 deg); 220 dips to about -0.35 only.
+RE-RUN (diagnostics/inspect_cs_norm.py (script at tag pre-prune-2026-10-22), full chain on 14 sessions -- the derive caches are keyed by the module sources and were stale, and the reference candidates had not been stored, so the reference part could not be recomputed from cached inputs; the 6-30 run log is kept as run_band_6_30.log): exclusion under [5.5, 35] front 0.0-0.6 %, rear 0.0-5.9 % (NBR 61 5.9 %, NBR 10 3.3 %, NBR 59 2.0 %, all others <= 0.4 %) -- within 10 % on every session and axle, the stop rule did not fire. Reference candidates unchanged by construction (p5 / p50 / p95 as in the 6-30 run).
+NBR 54 CORNER 3 TURN-IN, FRONT (diagnostics/inspect_nbr54_c3.py (script at tag pre-prune-2026-10-22), read-only; figure diagnostics/plots/cs_norm/nbr54_corner3_six_laps_front_cs_steering_speed_fx.png): the turn-in phase spans 707-959 m (entry to past the apex). Samples below -0.53: laps 215 / 216 / 217 / 218 = 91 / 130 / 69 / 47, laps 219 / 220 = 0. On 215-217 they sit at 725-770 m (217 also to 847 m): steering winding on to 70-85 deg, speed falling 125 -> 115 km/h, braking share 0.99-1.00 at the low samples with front |Fx| / Fz median 0.16-0.27 (trail braking, below the 0.3 fit filter), front Fz range inside the windows median 24-36 %, |alpha_f| median 6.1-6.9 deg; no kerb at the low samples (nearest kerb 290 / 107 / 36 m), line deviation from the mean line median 0.7-1.4 m. Lap 218 differs: low samples at 845-860 m while the steering unwinds, Fx about 0 (braking share 0.57, |Fx| / Fz 0.000), nearest kerb 20 m, Fz range 11.9 %. Laps 219 / 220 without low samples: 219 turns in late and gradually (steering max 81 deg, |alpha_f| max 5.85 deg); 220 dips to about -0.35 only.
 READING (labelled): on 3 of 4 laps a consistent combined-slip signature -- trail braking into turn-in with a large front load change inside the window, at high front slip; the pure-lateral ratio reads below the floor where the front axle is braking and turning at once. Not kerb (no kerb at the low samples), not line variation (sub-1.5 m median deviation; the lap without the dip is the one with a different steering technique). Lap 218's instance is a different case near a kerb (20 m).
 
 ## Final chain part 1: floor events, fit L as default, threshold proposal [2026-10-20, branch new-laps, author EXECUTE]
@@ -27129,7 +27129,7 @@ RULINGS (before implementation):
 3. EVENTS, NOT SAMPLES: plausibility and floor statistics count events (contiguous runs below the floor), not samples; a slope held over a flat-alpha stretch adds no information. Verdict aggregation stays sample-based; its reduced effective sample size (neighbouring CS samples share most of their window) is a known property.
 4. FIT L IS THE DEFAULT ANALYSIS PATH: observer final (Q-UPPER, hard-bound only, measured R floors), hard-bound-only reset mask, CS on Fy / Fz, reference band [5.5, 35] per rad, g2 zones. The old per_session path stays selectable until the cleanup round. Schema 15 -> 16. From here on the default path intentionally changes; bit-identity is checked for the old path selected explicitly. Goldens are regenerated only after the threshold adoption; the threshold re-derivation on the new default is a proposal, nothing adopted.
 IMPLEMENTED: config tyre_fit_auto.tyre_fit_mode = literature_bounded (default note added, superseded wording struck); tyre_fit_auto.resolve_sideslip_beta_and_cs_inputs returns, besides the five values of resolve_sideslip_beta (now a wrapper, unchanged contract), the CS inputs of fit L (axle loads, reference band L_K_EDGE, hard-bound reset mask -- dropped when the session ships kinematic beta) and the Eq. 9 axle Fx; empty on the old path. cs_axle_loads / axle_fx set before any degenerate return of fit L, stripped from the persisted manifest like nis_full. limit_events.detect_floor_events + PURE_LATERAL_FLOOR = -0.53: per axle the contiguous runs of CS ratio < -0.53 inside corner instances on analysis laps, no bridging, full CS arrays; attributes lap, corner, phase / phases spanned, start / end / min distance and time, duration, n_samples, min ratio, kerb distance, kerb- and observer-reset-affected flags, max |Fx| / Fz, braking share and flag (Fx < 0 on every event sample), Fz range over mean inside the event samples' regression windows (median, max). App: CS with the handed-over inputs; events["floor_events"] in the events record (cached and persisted with it). Schema 15 -> 16 (migration: stored payloads of another schema are recomputed, nothing converted).
-TESTS: full suite 641 passed, 1 xfailed, 2 failed -- the two Dubai goldens (kinematic, ekf_auto_pacejka), stale since the 2026-10-17 Class B rebuild (commit acf7dbf "suite red: 3 stale goldens, by regime"); the old-path outputs behind them (kinematic, and ekf_auto_pacejka with per_session pinned: summaries, fit manifest, gate, fallback) are BIT-IDENTICAL between HEAD 04ff393 and the working tree, so the goldens fail exactly as before. Old path pinned explicitly in tests/conftest.py pipeline_result and tests/test_auto_fit_wiring.py (WP-N3 Dubai figures; Dubai under fit L comes out marginal). New: fit L default end to end on JST 29 with floor events and every attribute; events = maximal runs (count and sample sum checked independently). diagnostics/check_fit_lit_inactive.py with per_session pinned: ALL BIT-IDENTICAL vs fd40c78 on three sessions (diagnostics/output/fit_lit/inactive_check_default_switch.log). test_stability.py exit 0.
+TESTS: full suite 641 passed, 1 xfailed, 2 failed -- the two Dubai goldens (kinematic, ekf_auto_pacejka), stale since the 2026-10-17 Class B rebuild (commit acf7dbf "suite red: 3 stale goldens, by regime"); the old-path outputs behind them (kinematic, and ekf_auto_pacejka with per_session pinned: summaries, fit manifest, gate, fallback) are BIT-IDENTICAL between HEAD 04ff393 and the working tree, so the goldens fail exactly as before. Old path pinned explicitly in tests/conftest.py pipeline_result and tests/test_auto_fit_wiring.py (WP-N3 Dubai figures; Dubai under fit L comes out marginal). New: fit L default end to end on JST 29 with floor events and every attribute; events = maximal runs (count and sample sum checked independently). diagnostics/check_fit_lit_inactive.py (script at tag pre-prune-2026-10-22) with per_session pinned: ALL BIT-IDENTICAL vs fd40c78 on three sessions (diagnostics/output/fit_lit/inactive_check_default_switch.log). test_stability.py exit 0.
 THRESHOLD RE-DERIVATION, PROPOSAL ONLY (diagnostics/inspect_threshold_rederivation_l.py, rule unchanged: p10 / p30 of corner values = worst lap, worst of five phases; 14 development sessions, Dubai excluded; all 14 on EKF beta, gate pass, 12 ok + outings 59 / 70 marginal): front pool n 220 -> STRONG_CSF -0.139, MODERATE_CSF -0.023 (current -0.784 / -0.265 encode p0.0 / p1.8 of the new pool); rear n 208 -> STRONG_CSR -0.002, MODERATE_CSR +0.100 (current -0.677 / -0.323 encode p0.0 / p0.0). Without outings 59 / 70: front -0.143 / -0.019, rear -0.002 / +0.100. Pool minimum front -0.471, rear -0.202: no corner value below -0.53. Under the current thresholds the new default classifies 0 STRONG and 4 MODERATE front, 0 / 0 rear, on the whole pool. Nothing adopted.
 CURVE-PEAK / CURVE-FLOOR WORDING (listed for the author): (1) CS reading "0 = force peak, negative = past the peak" (PRODUCTION.md CS block; longitudinal_stiffness header for LS); (2) STRONG meaning "below the session's fitted-curve floor, beyond the quasi-steady characteristic" (PRODUCTION.md threshold paragraph); (3) limit events "force loss beyond the tyre characteristic" against the curve floor (limit_events, PRODUCTION.md 13.4, corner_trace_dialog legend, outing_form event lines, describe_event) -- the fit-L curve floors over 0-30 deg are +0.0003 to +0.0032, so the layer now fires on practically every negative CS; (4) fit manifest axles mu_extrapolated / plausibility peak_note / onset_coverage -- with C = 1 there is no peak, so mu_extrapolated is always true although mu is the demonstrated utilisation.
 FLOOR-EVENT CENSUS (events, not samples): pool front 58 events (41 clean = neither kerb- nor reset-affected), rear 2 (2 clean); no reset-affected event anywhere. Front per session: NBR 5 3, 10 0, 20 7, 29 7, 46 4, 53 1, 54 10, 59 1, 61 2 (both kerb), 63 9, 69 6, 70 0, Le Castellet 25 2, 32 6 (5 kerb). Rear: NBR 20 1, NBR 46 1 (both traction, |Fx| / Fz 0.68 / 0.62). Durations median 0.05-0.23 s; longest 1.30 s (NBR 54 lap 216 C3) and 1.05 s (NBR 46). Phases mostly exit_4 and entry_2_turnin. Repeatable clean cells (>= half the laps): NBR 54 C3 turn-in (laps 215-218) and NBR 46 C2 turn-in (laps 164, 166); everything else on one lap. NBR 54 C3 in events: laps 215 / 216 / 217 / 218 = 1 / 1 / 2 / 1 events (91 / 130 / 62 + 7 / 47 samples); the early turn-in events braking throughout with max |Fx| / Fz 0.35 / 0.24 / 0.29 and Fz range 30 / 36 / 24 % -- the sample-based reading reproduced by the module.
@@ -27146,7 +27146,7 @@ RULINGS (before implementation):
 IMPLEMENTED: config classification STRONG_CSF -0.139, MODERATE_CSF -0.023, STRONG_CSR -0.002, MODERATE_CSR +0.100 (derived_from with date, rule, pool and the superseded value). Wording: PRODUCTION.md CS reading and section 16 (STRONG meaning); tyre_fit_auto under fit L: axle fits and gate carry peak "none (C = 1, monotonic)" (L_PEAK_NOTE) and mu_source, no peak_alpha_deg / peak_in_visited_range / mu_extrapolated, no onset_coverage. limit_events.detect_events under fit L returns the floor events (line "pure-lateral floor", -0.53 per axle, contiguous runs, measured attributes, recurrence labels, window_start_t, n_instances_by_corner; a fallback is stated in beta_note, the line stays); the old path is unchanged, record shape included. Texts by the layer's line: layer_title (outing-form session list), legend_text (trace dialog), describe_event (corner cards). The app passes the fit-L axle loads and Fx to detect_events; the separate floor_events key of part 1 is gone (one concept, one name). Goldens: the four Dubai files, tests/test_golden_auto_modes.py and tests/generate_golden_auto_modes.py removed; tests/generate_golden.py writes tests/golden/default_nbr_jst29.json and default_pr_lc32.json (best available, the app's chain incl. reclassified speed classes; fit manifest without volatile fields, gate, summaries, event layer, per-corner-lap verdicts, recommendations) through run_default_chain, which tests/test_golden_pipeline.py reuses; the Settings and driver-level tests read the JST 29 golden's summaries; the Dubai fixture in conftest stays on the old path for the old-path tests.
 CHECKS: full suite 650 passed, 1 xfailed, 0 failed (the new goldens reproduced on an independent run -- fit L is deterministic); test_stability.py exit 0. Old path (kinematic, and ekf_auto_pacejka with per_session) BIT-IDENTICAL between HEAD 2adc0cc and the working tree on Dubai cap 1 -- summaries, fit manifest, gate, fallback, event layer, beta, CS. Goldens at the adopted thresholds: NBR JST 29 90 corner-lap verdicts (77 normal, 13 moderate), Le Castellet 32 153 (145 normal, 8 moderate), 0 recommendations each with empty feedback; almost every tier verdict carries [MARGINAL] -- cs_margin 0.11 (2026-09-19, distances to the old thresholds) exceeds the new STRONG-MODERATE spacing (0.116 front, 0.102 rear).
 C, VERDICT COUNTS at the adopted thresholds (threshold population: corner value = worst lap, worst of five phases; strong / moderate / none, from the derivation cache -- part 2 changed nothing upstream of the corner values): front / rear -- NBR 5 2/4/8 (1 no data) / 0/3/10 (2); NBR 10 2/3/13 / 1/1/14 (2); NBR 20 3/0/12 (1) / 0/3/11 (2); NBR 29 1/5/8 (1) / 0/4/9 (2); NBR 46 0/1/13 (1) / 3/3/8 (1); NBR 53 1/1/13 (2) / 1/2/12 (2); NBR 54 5/4/11 / 1/2/16 (1); NBR 59 0/5/10 / 1/2/11 (1); NBR 61 0/2/14 (1) / 1/2/12 (2); NBR 63 2/2/12 / 2/5/8 (1); NBR 69 1/3/11 (1) / 3/3/9 (1); NBR 70 1/5/8 (1) / 2/3/8 (2); Le Castellet 25 2/3/12 / 1/5/10 (1); Le Castellet 32 2/6/9 / 4/5/7 (1). Pool front 22 / 44 / 154 (9 no data), rear 20 / 43 / 145 (21 no data). Floor events unchanged from part 1 (front 58, 41 clean; rear 2).
-D, ROBUSTNESS OF THE OBSERVER NOISE (diagnostics/inspect_observer_robustness.py, 14 sessions x 5 variants, thresholds fixed at the adopted values, variants wrapped in memory; report only, nothing selected). [2026-10-21: re-run on the final chain (with the R26 reference gate), diagnostics/plots/observer_robustness/robustness_20261021.txt: flip rates identical (25.5 / 15.6 / 77.5 / 0.0 %), Q x 0.1 / x 0.3 / R_yaw x 10 shifts identical; old Q_r: floor events 59 -> 2671 (was 60 -> 2818), median shift 0.40 / 0.43 (p90 1.47 / 1.74).] Baseline reproduces the threshold-derivation corner values exactly on all 14 sessions; baseline: 12 ok + 59 / 70 marginal, all gates pass, no fallback, hard-bound re-entries 0 on 12 sessions (Le Castellet 25: 2, 32: 1), 60 floor events.
+D, ROBUSTNESS OF THE OBSERVER NOISE (diagnostics/inspect_observer_robustness.py (script at tag pre-prune-2026-10-22), 14 sessions x 5 variants, thresholds fixed at the adopted values, variants wrapped in memory; report only, nothing selected). [2026-10-21: re-run on the final chain (with the R26 reference gate), diagnostics/plots/observer_robustness/robustness_20261021.txt: flip rates identical (25.5 / 15.6 / 77.5 / 0.0 %), Q x 0.1 / x 0.3 / R_yaw x 10 shifts identical; old Q_r: floor events 59 -> 2671 (was 60 -> 2818), median shift 0.40 / 0.43 (p90 1.47 / 1.74).] Baseline reproduces the threshold-derivation corner values exactly on all 14 sessions; baseline: 12 ok + 59 / 70 marginal, all gates pass, no fallback, hard-bound re-entries 0 on 12 sessions (Le Castellet 25: 2, 32: 1), 60 floor events.
 - Q x 0.1: pooled flip rate 25.5 % (front 64 / 220, rear 45 / 208; 72 more severe, 37 less severe); median |corner-value change| 0.049 front / 0.054 rear (p90 0.21); floor events +78 / -28 against 60; R_ay pick moves up on 10 sessions; no status, gate or fallback change.
 - Q x 0.3: pooled 15.6 % (front 32 / 220, rear 35 / 209; 34 more / 32 less severe, 1 from no data); median change 0.017 / 0.020 (p90 0.09 / 0.11); floor events +33 / -13; no status, gate or fallback change.
 - Q_beta upper bound, Q_r old hand-set value (2.408e-07, yaw-moment constraint active): pooled 77.5 % (front 173 / 228, rear 179 / 226; 316 more severe, 9 less severe, 26 from no data, 1 to no data); median change 0.43 / 0.44 (p90 1.6 / 1.9); hard-bound re-entries 237-783 per session (baseline 0-2); floor events 60 -> 2818 (+2758 / -55); R_ay picks up to 46.5; gate passes everywhere but scores fall (lowest 0.026, NBR 63); status ok -> marginal on NBR 46, 63, 69 and Le Castellet 25, 32. With the yaw-moment equation constraining the force balance the observer is driven to the hard bound hundreds of times per session -- the pre-Q-UPPER behaviour.
@@ -27159,13 +27159,13 @@ RULINGS (before implementation):
 1. ROBUSTNESS READING: R_yaw has no effect (0 % flips). The old-Q_r variant fails the observer-health criterion (237-783 hard-bound re-entries per session, floor events 60 -> 2818), the same criterion that rejected the old Q; it is not an admissible configuration and confirms Q-UPPER for r -- the yaw-moment equation with the fitted curve conflicts with the gyro. Within the admissible range (Q from /10 to Q-UPPER) the corner values shift by a median of 0.02-0.05 (p90 0.09-0.21) and 15-26 % of the verdicts change class, mainly near tier boundaries (tier spacing 0.10-0.12). THESIS STATEMENT: the CS values are robust to a few hundredths; the STRONG / MODERATE split is finer than the observer uncertainty.
 2. cs_margin is re-derived with its recorded method (standing rule): the +/-1 % perturbation sweep of 2026-09-19, on the new default and the adopted thresholds, 14-session pool. Whether two tiers stay is decided in the recommendation overhaul.
 B, cs_margin (diagnostics/inspect_cs_margin_l.py, results_cs_margin_20261020/): the recorded +/-1 % sweep (5 inputs x 2 directions, per-corner-phase verdicts and flip definition imported unchanged) on the fit-L default with the adopted thresholds, 14 sessions; adaptations, forced: the new-default chain, and the vehicle inputs perturbed at Level 1 (no weighing on these sessions; a / b moved as the cascade would; baseline = production default). 140 variant runs, no fallback, 1145 baseline corner-phases. 3 flips on 2 corner-phases, both Le Castellet 25 exit_4: C2 (threshold distance 0.048) is a ratio discontinuity -- front CS +0.037 -> -0.19 under front fraction -1 % and steering +1 %, front strong then overriding rear moderate -- the recorded different-mechanism class, excluded; C14 (distance 0.001, front -0.138 -> -0.139 across STRONG_CSF under wheelbase -1 %) is the one proportional flip. cs_margin = 0.001 rounded up = 0.01 (was 0.11; 0.05 without the exclusion). Observer uncertainty beside it (robustness, Q x 0.3): corner-value change median 0.017 / 0.020, p90 0.085 / 0.106 (front / rear) -- the metrology margin is an order of magnitude below the observer uncertainty; the margin covers the +/-1 % vehicle inputs only. Written to config with derived_from (history kept). Tests: the margin tests read cs_margin from config (offset = margin / 2) instead of a hard 0.05. Goldens regenerated: only their verdicts part changed (the [MARGINAL] tags: 8 fields NBR JST 29, 21 Le Castellet 32); fit manifest, gate, summaries, events, recommendations identical.
-C, ZERO RECOMMENDATIONS (read-only): the golden pins modules/recommendation.generate_recommendations (used by the weekend PDF export, core/weekend_pdf_export.py:233); the on-screen path is the decision frame (PRODUCTION.md 14.1). Data-only verdicts ARE meant to produce recommendations there: 26 active data-trigger rules (status elicited), firing per corner on the worst-lap aggregate verdict (speed-class gate, verdict present, min_severity moderate), as ADVISORY at moderate and RECOMMENDED at strong (config action_class). Both sessions stop at the consistency gate (recommendation.py:256-280, config consistency_gate min_repeat_laps 2, min_repeat_fraction 0.4): the aggregate takes the worst lap per phase, but the same verdict repeats on 1-2 of 6-9 laps only (JST 29: 2 corner-rule cases at 1/6; Le Castellet 32: 5 cases at 1/9-2/9); every other combination fails the speed-class gate, the verdict on the aggregate, or min_severity. With empty feedback the override (one lap plus a strong matching complaint) cannot open it. The decision frame applies the same repetition as a confidence factor instead of a hard gate (decision_frame.py _build_matrix_verdict_evidence).
+C, ZERO RECOMMENDATIONS (read-only): the golden pins modules/recommendation.generate_recommendations (used by the weekend PDF export, core/weekend_pdf_export.py:233); the on-screen path is the decision frame (PRODUCTION.md 14.1). Data-only verdicts ARE meant to produce recommendations there: 26 active data-trigger rules (status elicited), firing per corner on the worst-lap aggregate verdict (speed-class gate, verdict present, min_severity moderate), as ADVISORY at moderate and RECOMMENDED at strong (config action_class). ~~Both sessions stop at the consistency gate (recommendation.py:256-280, config consistency_gate min_repeat_laps 2, min_repeat_fraction 0.4): the aggregate takes the worst lap per phase, but the same verdict repeats on 1-2 of 6-9 laps only (JST 29: 2 corner-rule cases at 1/6; Le Castellet 32: 5 cases at 1/9-2/9); every other combination fails the speed-class gate, the verdict on the aggregate, or min_severity.~~ [2026-10-22: superseded -- counted per corner, min_severity removes more corners (NBR 29: 7, Le Castellet 32: 4) than the consistency gate (2, 5); the root cause is the classifier severity (a MODERATE CS tier alone is severity "normal"). The case counts above stay correct for the cases that passed min_severity. See 'Recommendation inventory: cause of zero recommendations on the goldens' (2026-10-22).] With empty feedback the override (one lap plus a strong matching complaint) cannot open it. The decision frame applies the same repetition as a confidence factor instead of a hard gate (decision_frame.py _build_matrix_verdict_evidence).
 D, [MARGINAL] SHARE of card tier verdicts (analysis-lap corner summaries), cs_margin 0.11 -> 0.01: NBR 5 100 -> 42 %; NBR 10 100 -> 10 %; NBR 20 90 -> 10 %; NBR 29 92 -> 31 %; NBR 46 91 -> 9 %; NBR 53 100 -> 11 %; NBR 54 91 -> 13 %; NBR 59 100 -> 20 %; NBR 61 100 -> 12 %; NBR 63 100 -> 17 %; NBR 69 93 -> 13 %; NBR 70 100 -> 12 %; Le Castellet 25 100 -> 17 %; Le Castellet 32 84 -> 19 %.
 
 CLOSE-OUT RULINGS [2026-10-20, author, records only]:
 1. C2 (Le Castellet 25 exit_4) exclusion confirmed as a ratio discontinuity under the recorded rule; cs_margin = 0.01 stands.
 2. KNOWN PROPERTY: cs_margin covers vehicle-input sensitivity only. The observer uncertainty (corner-value shift p90 about 0.1 at Q x 0.3) is the dominant term and is not expressed by [MARGINAL]. Interim reading: [MARGINAL] = sensitive to vehicle parameters. Combining both into one uncertainty is deferred to the recommendation overhaul, together with the two-tier question.
-3. RECOMMENDATION OVERHAUL TOPICS: (a) the consistency gate across laps against the worst-lap aggregation -- the cause of 0 recommendations on both golden sessions; (b) two recommendation engines (recommendation.py for the PDF export, decision_frame.py on screen) to be merged into one.
+3. RECOMMENDATION OVERHAUL TOPICS: (a) the consistency gate across laps against the worst-lap aggregation ~~-- the cause of 0 recommendations on both golden sessions~~ [2026-10-22: superseded -- the consistency gate is the smaller cause; min_severity removes more corners, root cause the classifier severity, see 'Recommendation inventory: cause of zero recommendations on the goldens' (2026-10-22). The topic itself stands.]; (b) two recommendation engines (recommendation.py for the PDF export, decision_frame.py on screen) to be merged into one.
 4. ~~The analysis chain is FINAL on the development set.~~ [2026-10-20: corrected -- FINAL declared before the NIS gate thresholds and the R26 check were run on fit L; status: final pending those two items, see 'Close-out corrections'.] Next: author review in the app, then the PRODUCTION.md method rewrite.
 
 ## Close-out corrections: NIS gate, R26, CS colours, records pass [2026-10-20, branch new-laps, author EXECUTE]
@@ -27177,8 +27177,8 @@ RULINGS (before implementation):
 4. CS COLOUR BANDS in the UI derive from the adopted thresholds in config; no separate literals.
 5. MID-CORNER COVERAGE ANCHOR: Rajamani 2012 p. 412, sec. 14.4.3 ("Conditions for parameter updates"): with very small slip the data lie around the origin of the force-slip curve, where the estimate is stochastically uncertain; no update without sufficient excitation. Context: slip-slope friction estimation; the same principle as the CS span floor. Sierra 2006 cited alongside (in the bib). Hoffman 2008 p. 136 confirmed as verified.
 6. stab_neg_thresh = 0 Nm/deg is the sign criterion (Werner 2021 sec. 2.2.3), not a distribution-derived threshold; fit L does not affect it.
-7. FALLBACK-REFERENCE KEYS stability_estimation.cs_front / cs_rear_fallback_reference_n_per_rad (68268 / 91343 N/rad): read by diagnostics/sideslip_kalman_observer.py only, by no module, UI or core code; removal deferred to the cleanup round. [Aligns the 2026-07-26 entry recording their deletion with the later entry recording their reintroduction.]
-B, NIS GATE (diagnostics/inspect_closeout_l.py, plots/closeout_l/): health scores on fit L, fresh from the app's chain (identical to the robustness baseline): NBR 5 0.1845, 10 0.1176, 20 0.2429, 29 0.2089, 46 0.1472, 53 0.2106, 54 0.1765, 59 0.2003, 61 0.1558, 63 0.1909, 69 0.1868, 70 0.1377; Le Castellet 25 0.1107, 32 0.1538. Recorded rule unchanged: threshold_use_ekf = 0.104 (6 % below the lowest, Le Castellet 25 0.1107), threshold_warn = 0.011 (an order of magnitude below it); old 0.023 / 0.0025 struck in config. Verdict with the new values: pass on all 14. CONSEQUENCE: the thresholds are shared by both fit paths; the per_session path scores lower (Dubai 0.0549, Le Castellet 32 0.0447, JST 29 0.0898 under per_session), so selecting per_session now fails the gate and falls back to kinematic beta on most sessions. Tests that select the old path pin its own 2026-10-11 gate values with it (tests/conftest.py OLD_PATH_NIS_GATE, test_auto_fit_wiring, check_fit_lit_inactive). Old path with its own gate: BIT-IDENTICAL between HEAD 1ead11d and the working tree (kinematic and per_session, Dubai cap 1: summaries, manifest, gate, fallback, events, beta, CS). Goldens regenerated: only gate_verdict.threshold_use_ekf / threshold_warn changed in both.
+7. FALLBACK-REFERENCE KEYS stability_estimation.cs_front / cs_rear_fallback_reference_n_per_rad (68268 / 91343 N/rad): read by diagnostics/sideslip_kalman_observer.py (script at tag pre-prune-2026-10-22) only, by no module, UI or core code; removal deferred to the cleanup round. [Aligns the 2026-07-26 entry recording their deletion with the later entry recording their reintroduction.]
+B, NIS GATE (diagnostics/inspect_closeout_l.py, plots/closeout_l/): health scores on fit L, fresh from the app's chain (identical to the robustness baseline): NBR 5 0.1845, 10 0.1176, 20 0.2429, 29 0.2089, 46 0.1472, 53 0.2106, 54 0.1765, 59 0.2003, 61 0.1558, 63 0.1909, 69 0.1868, 70 0.1377; Le Castellet 25 0.1107, 32 0.1538. Recorded rule unchanged: threshold_use_ekf = 0.104 (6 % below the lowest, Le Castellet 25 0.1107), threshold_warn = 0.011 (an order of magnitude below it); old 0.023 / 0.0025 struck in config. Verdict with the new values: pass on all 14. CONSEQUENCE: the thresholds are shared by both fit paths; the per_session path scores lower (Dubai 0.0549, Le Castellet 32 0.0447, JST 29 0.0898 under per_session), so selecting per_session now fails the gate and falls back to kinematic beta on most sessions. Tests that select the old path pin its own 2026-10-11 gate values with it (tests/conftest.py OLD_PATH_NIS_GATE, test_auto_fit_wiring, check_fit_lit_inactive (script at tag pre-prune-2026-10-22)). Old path with its own gate: BIT-IDENTICAL between HEAD 1ead11d and the working tree (kinematic and per_session, Dubai cap 1: summaries, manifest, gate, fallback, events, beta, CS). Goldens regenerated: only gate_verdict.threshold_use_ekf / threshold_warn changed in both.
 C, R26 ON FIT L (recorded test: verdict-read CS samples under a reference in force below 0.5 x the session median of set events; reference series forward-filled): the condition STILL OCCURS, front axle only, on four sessions -- NBR 46: 239 of 20022 samples from 9 references (0.41-0.49 x median 21.37 / rad), hold median 0.00 s, most negative CS -0.09, 6 phase medians move without them; NBR 54: 356 of 33312 from 9 references (0.32-0.49 x 24.07), min CS +0.07, 3 medians; NBR 63: 270 of 32274 from 2 references (0.44, 0.50 x 22.05), hold median 1.48 s, min CS +0.63, 1 median; NBR 69: 596 of 30343 from 19 references (0.27-0.49 x 21.34), min CS -0.69, 8 medians. Rear: 0 on all 14; front 0 on the other 10. Total front 1461 samples, 18 phase medians. The lowest set event per axle lies at 0.26-0.81 x the median. R26 NOT closed -- reported, waiting for the author.
 D, CS COLOUR BANDS: ui/views/outing_form.py _stability_colour reads STRONG_CS* / MODERATE_CS* from config: value < STRONG -> BAD, < MODERATE -> WARN, else OK (the classifier's own axle tiers). tests/test_cs_colour_bands.py on the NBR JST 29 golden summaries: every real phase value carries its tier colour; the real rear values between MODERATE_CSR (+0.100) and the retired literal 0.20 read OK, no longer BAD.
 E, RECORDS AND COMMENTS: stale wording fixed (tyre_fit_auto docstring / comments, sideslip_ekf_pacejka change-detector label, stability_analysis reset_mask docstring, longitudinal_stiffness header, nis_gate header, config _comment_l_observer, limit_events._comment, vertical_load_source_derived_from note, nis_gate._comment); 13 superseded DECISIONS.md statements struck with dated notes; [UNCAL] keys on tyre_fit_mode as well (stability_analysis.thresholds_calibrated, config classification.thresholds_calibrated_for_tyre_fit_mode = literature_bounded; one helper for the form, the classifier and the PDF; test on the live config); stab_neg_thresh and the fallback-reference keys recorded (rulings 6 and 7 above; PLAN.md deletion record annotated); PRODUCTION.md mid-corner anchor Rajamani 2012 sec. 14.4.3 p. 412 with Sierra 2006, the colour / [UNCAL] lines and the new gate values.
@@ -27190,7 +27190,7 @@ RULINGS (before implementation):
 2. Estimator change, so the standing rule applies: thresholds re-derived and adopted, cs_margin re-run with its recorded method, goldens regenerated.
 3. per_session gate values: the nis_gate keys stay shared; per_session is the legacy path and falls back under the fit-L gate values; documented, removed in the cleanup round. Tests keep pinning the old values.
 IMPLEMENTED (B): stability_analysis.estimate_cornering_stiffness gains ref_relative; the per-sample loop now records each computed sample's window start and whether it is a reference candidate (linear, clean), the session median of ALL band candidates of the axle is taken after the loop (order-independent), candidates outside [0.5, 2] x that median are dropped from acceptance, and a second pass sets the reference and the ratio in sample order. Without ref_relative the sequence is the old one (old path unchanged). Constant tyre_fit_auto.L_REF_RELATIVE = (0.5, 2.0), handed to the CS estimate on the fit-L path by resolve_sideslip_beta_and_cs_inputs. Output gains n_ref_relative_low_* / _high_* and ref_relative_median_*. Real-data test tests/test_cs_reference_relative.py on NBR qualifying CDR (outing 69): rejected candidates never become the reference, every reference in force lies within the window, the R26 count is 0, and the session did carry small references without the gate.
-C (diagnostics/inspect_r26_fix_l.py, plots/r26_fix_l/): candidates rejected front 69 low / 0 high (NBR 10: 8, 46: 9, 54: 9, 63: 2, 69: 41), rear 0 / 0. R26 test count after the fix 0 on every session and axle (before: front NBR 46 239, 54 356, 63 270, 69 596). Phase medians moved front 15 (NBR 46: 3 of 360, 54: 2 of 720, 63: 2 of 576, 69: 8 of 576), rear 0. Deepest corner value changed only on NBR 69 front (-0.471 -> -0.361); every other session and axle unchanged. No-reference samples unchanged everywhere. NBR 10 lost 8 candidates that had reached no verdict-read sample.
+C (diagnostics/inspect_r26_fix_l.py (script at tag pre-prune-2026-10-22), plots/r26_fix_l/): candidates rejected front 69 low / 0 high (NBR 10: 8, 46: 9, 54: 9, 63: 2, 69: 41), rear 0 / 0. R26 test count after the fix 0 on every session and axle (before: front NBR 46 239, 54 356, 63 270, 69 596). Phase medians moved front 15 (NBR 46: 3 of 360, 54: 2 of 720, 63: 2 of 576, 69: 8 of 576), rear 0. Deepest corner value changed only on NBR 69 front (-0.471 -> -0.361); every other session and axle unchanged. No-reference samples unchanged everywhere. NBR 10 lost 8 candidates that had reached no verdict-read sample.
 D (inspect_threshold_rederivation_l.py tag 20261020b): the recorded rule unchanged on the new default gives p10 / p30 identical at full precision (front -0.13855 / -0.02301, rear -0.00171 / +0.10024); adopted unchanged, derived_from extended with the dated re-derivation. Pool counts: front 22 strong / 44 moderate (unchanged), rear 21 / 42 (NBR 54 rear 1/2 -> 2/1). Pool minimum front -0.375 (was -0.471). Floor events: front 57 (40 clean), rear 2 -- NBR 69 front 6 -> 5.
 E (inspect_cs_margin_l.py, results_cs_margin_20261020b/): the recorded +/-1 % sweep re-run after the fix -- 140 variant runs, no fallback, the same 3 flips on the same 2 corner-phases (Le Castellet 25 C2 exit_4 at 0.048, the excluded ratio discontinuity; C14 exit_4 at 0.001) -> cs_margin 0.01 unchanged (derived_from extended).
 F: goldens regenerated -- content identical in every pinned part (NBR JST 29 and Le Castellet 32 have no rejected reference candidate); only _meta changed. Old path (per_session with its own gate): BIT-IDENTICAL between HEAD 1ead11d and the working tree, CS arrays included -- the two-pass reference logic reproduces the old sequence exactly when ref_relative is off. PRODUCTION.md 7 (relative gate step), 9 (thresholds re-derived identical), 11 (R26 result, floor-event and pool-minimum numbers after the fix, robustness measured before it), 12 (the gate trusts the session median).
@@ -27204,7 +27204,7 @@ RULINGS AND FACTS (before the runs):
 2. diagnostics/results_cs_margin_20261020b/ is kept in the repository like results_metrology_20261011/ (neither folder is git-ignored).
 3. PRODUCTION.md 9 regains the classification / aggregation rules still in the code; the yaw-moment sign is anchored for the thesis on Guiggiani 2023 pp. 306 / 308 (the code docstring's Werner reference is provenance only). The yaw-moment limitation in 12 is reworded: the equation contributes little to the observability of beta; the front / rear split of axle forces (measured a_y and yaw acceleration) and of slip-angle differences (measured steering, yaw rate, speed) does not depend on it; its effect on CS cannot be isolated because no admissible configuration with an active yaw-moment constraint exists (robustness variant 4 inadmissible).
 4. C / E sensitivity (report only, nothing selected) and the observer robustness re-run on the final chain follow below. No estimator or config change in this step.
-B, C / E SENSITIVITY (diagnostics/inspect_ce_sensitivity_l.py, plots/ce_sensitivity_l/; fit L with C {1.0, 1.3, 1.6} x E {-1, 0, 1} set in memory, B fitted, mu = mu_demo, observer and CS with the R26 gate as shipped, adopted thresholds; 14 sessions; report only, nothing selected). Baseline C 1.0 / E -1: 12 ok + 2 marginal (59 / 70 K edge), gate pass 14, re-entries 0-2 (sum 3), front K 22.0-30.3, rear 15.5-29.2, no peak.
+B, C / E SENSITIVITY (diagnostics/inspect_ce_sensitivity_l.py (script at tag pre-prune-2026-10-22), plots/ce_sensitivity_l/; fit L with C {1.0, 1.3, 1.6} x E {-1, 0, 1} set in memory, B fitted, mu = mu_demo, observer and CS with the R26 gate as shipped, adopted thresholds; 14 sessions; report only, nothing selected). Baseline C 1.0 / E -1: 12 ok + 2 marginal (59 / 70 K edge), gate pass 14, re-entries 0-2 (sum 3), front K 22.0-30.3, rear 15.5-29.2, no peak.
 - RESIDUALS: the normalised fit residual barely separates the shapes -- median change against the baseline +0.04 % (C 1.0 E 0, C 1.6 E +1) to +2.09 % (C 1.0 E +1); no variant fits better than the baseline by more than 1.3 % on any axle. The data do not identify C and E (consistent with Q-FIT-SIMPLE).
 - C 1.0, E 0: front K 25.3-34.7 (9 edge), rear 17.4-33.4 (2 edge); 5 ok / 9 marginal; gate pass 14; re-entries 0-7 (sum 12); no peak; shift p50 / p90 front 0.031 / 0.112, rear 0.044 / 0.116; 14.7 % class changes (43 more, 16 less severe).
 - C 1.0, E +1: front K 33.5-50.0 (13 outside the edge band); 13 degenerate (g2) -> kinematic fallback, 1 marginal; re-entries 27-203 (sum 926); shift front 0.104 / 0.316, rear 0.168 / 0.495; 43.0 % class changes (mostly the fallback beta).
@@ -27218,7 +27218,7 @@ B, C / E SENSITIVITY (diagnostics/inspect_ce_sensitivity_l.py, plots/ce_sensitiv
 C, ROBUSTNESS RE-RUN ON THE FINAL CHAIN (ROBUST_RUN_TAG 20261021, with the R26 reference gate): baseline reproduces the post-fix derivation cache (cache_l_20261020b) on all 14 sessions; baseline status 12 ok + 59 / 70 marginal, gate pass 14, re-entries 0 (12 sessions), 2 (Le Castellet 25), 1 (Le Castellet 32), 59 floor events. Q x 0.1: 25.5 % flips (front 64 / 220, rear 45 / 208), shift 0.049 / 0.054 (p90 0.207 / 0.215), floor events +78 / -29. Q x 0.3: 15.6 %, shift 0.017 / 0.020 (p90 0.085 / 0.106), +33 / -14. Old Q_r: 77.5 %, re-entries 237-783, floor events +2667 / -55 (59 -> 2671), shift 0.398 / 0.430 (p90 1.47 / 1.74), status ok -> marginal on NBR 46, 63, 69, Le Castellet 25, 32. R_yaw x 10: 0.0 %, no value moves, one floor event fewer. Every figure of the pre-fix run reproduced except the old-Q_r event and shift magnitudes; PRODUCTION.md 11 now carries the final-chain numbers.
 
 ## Q-UTIL: utilisation and secant ratio beside the CS ratio [2026-10-21, branch new-laps, author EXECUTE, read-only]
-SCOPE: diagnostics/inspect_utilisation.py, outputs diagnostics/plots/utilisation/ (utilisation.txt, nbr29_lap103_cs_secant_utilisation_front_rear.png). Default chain (fit L, schema 17), no module or config change. Sessions NBR 29, 54, 10, Le Castellet 25 (all status ok, no fallback). Definitions after the chair performance_analysis tooling (internal), mue_effective and lateral_slip_efficiency_norm, adapted: u = (|Fy| / Fz) / mu_demo, u_comb = sqrt(Fy^2 + Fx^2) / Fz / mu_demo, s = (|Fy| / Fz) / (|alpha| K) at |alpha| >= 0.01 rad, K = B C mu of fit L, mu_eff = m sqrt(ax^2 + ay^2) / (Fz_f + Fz_r); CS-path 2 Hz signals, Fy in the body frame (front mu_demo / K fitted in the tyre frame -- stated caveat).
+SCOPE: diagnostics/inspect_utilisation.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/utilisation/ (utilisation.txt, nbr29_lap103_cs_secant_utilisation_front_rear.png). Default chain (fit L, schema 17), no module or config change. Sessions NBR 29, 54, 10, Le Castellet 25 (all status ok, no fallback). Definitions after the chair performance_analysis tooling (internal), mue_effective and lateral_slip_efficiency_norm, adapted: u = (|Fy| / Fz) / mu_demo, u_comb = sqrt(Fy^2 + Fx^2) / Fz / mu_demo, s = (|Fy| / Fz) / (|alpha| K) at |alpha| >= 0.01 rad, K = B C mu of fit L, mu_eff = m sqrt(ax^2 + ay^2) / (Fz_f + Fz_r); CS-path 2 Hz signals, Fy in the body frame (front mu_demo / K fitted in the tyre frame -- stated caveat).
 RESULTS:
 - Coverage (share of moving analysis-lap phase samples): u 66-97 %, s 66-95 % (except braking phases), CS verdict-read 44-79 %; u and s gain 10-35 points over CS, mainly in exit_4 and the apex region; in braking phases s drops to 11-39 % (|alpha| < 0.01 rad).
 - Distributions: u p50 0.59-0.78, p95 0.90-0.95, p99 0.98-1.00, share > 1 0.5-0.9 % (bounded by construction: mu_demo is the p99.5 of the fit population); u_comb adds 0.03-0.17 at p50, mostly rear (traction). mu_eff p50 1.10-1.37, p99 1.43-1.65, below both axle mu_demo.
@@ -27230,14 +27230,14 @@ RESULTS:
 READING (diagnostic, no ruling): u and s carry the same direction as the CS ratio (rank correlation 0.5-0.9) with more coverage, but answer different questions. u is a level (how much of the session's demonstrated grip is in use), CS is a slope (how far the axle's local stiffness has fallen); they disagree on the front / rear leader in about half the verdict corners, so u cannot replace the CS verdict. s inherits a systematic front / rear offset that makes it unusable for axle balance in its current form. Decision open (author).
 
 ## Phase segmentation against the chair basis; zero-length braking phases explained [2026-10-21, branch new-laps, author EXECUTE, read-only]
-SCOPE: diagnostics/inspect_phase_segmentation.py, output diagnostics/plots/phase_segmentation/phase_segmentation.txt. No module or config change.
+SCOPE: diagnostics/inspect_phase_segmentation.py (script at tag pre-prune-2026-10-22), output diagnostics/plots/phase_segmentation/phase_segmentation.txt. No module or config change.
 RECORD SEARCH (DECISIONS.md, PLAN.md, thesis_notes.md): no recorded reason why the corner phases use throttle lift-off (entry_1_brake), steering bracket (turn-in), lateral-g peak (apex) and steering unwind (exit_4 / exit_5) instead of the chair's rCosPhi phases (corner_characterisation._create_corner_phase_channel); the chair module appears nowhere in the records, and Q-CHAIR-AUDIT (2026-10-03) did not cover it. What is recorded: the five phase keys map one-to-one to the team's driver feedback form e1..x5 (PLAN.md WP3; DECISIONS 2026-10-06 "the feedback form's resolution", team instrument, frozen); the entry_1_brake lift-off construction and its bounded lookback (thesis_notes "entry_1_brake phase-boundary bug", 2026-08-20, verified against brake pressure); brake_throttle_max_pct = 95 and steering_unwind_fraction = 0.5 carry no derived_from.
 CAUSE OF THE ZERO-LENGTH BRAKING PHASES (Q-UTIL side finding): ecu_aps (throttle, %, 50 Hz) reads up to 104-106 % at full throttle; the channel range gate is [0, 100] (config/channels.json), so the in-range share is 0.389 (NBR 29) and 0.47 (NBR 54) < failed_below 0.5 -> quality "failed" -> corner_analysis._slice_channel returns None -> brake phase = turn-in (zero length) on every corner (90 / 120 instances). NBR 10 (0.549) and Le Castellet 25 (0.528) pass as "partial" by a few points and keep their braking phases. The data are usable: the throttle reaches 95 % in the lookback window on 87 % (NBR 29) and 81 % (NBR 54) of instances. The "throttle missing" warning set in _build_corner does not reach the stored corners (0 of 90 / 120). Whether a session has braking phases therefore depends on how long the driver holds the pedal above 100 %. PRODUCTION CONSEQUENCE: on affected sessions entry_1_brake is empty -> no CS / stability value for that phase, and the no-braking stability gate is moot; the verdict population (worst of five phases) and the derived thresholds include sessions with and without that phase. Extent over the 14 development sessions not yet counted.
 CHAIR rCosPhi PHASES on NBR 29 and NBR 10 (chair thresholds -0.97 / -0.3 / +0.1 and deceleration point at -0.15, 0.15 s centred smoothing, verbatim; declared simplifications: corner start = last chair deceleration point between the previous apex and our apex, else our turn-in; end = our corner end): no chair deceleration point found for 44 / 90 (NBR 29) and 87 / 180 (NBR 10) instances; chair Braking zero-length on 64 / 90 and 101 / 180 (rCosPhi < -0.97 = almost pure braking, rare once the car turns in under trail braking). Boundary shifts (chair minus ours, per corner, median over laps): turn-in / Entry mostly within 10 m where both exist; the largest differences sit at the apex side -- chair Mid start vs our apex -24 to -129 m on NBR 29, -17 to -92 m on NBR 10 (the chair's Mid begins where deceleration falls below 0.3 of the total acceleration, before the lateral-g peak); chair Exit start 3-166 m after our apex. Our phases split the corner by steering and lateral g, the chair's by the direction of the acceleration vector -- different questions, not a re-tuning of the same boundaries.
 READING (diagnostic, no ruling): the segmentation is an UNRECORDED deviation from the chair basis -- no tier, anchor or deviation label exists for it; the closest recorded motivation is the frozen five-phase feedback form. Separately, the zero-length braking phases on NBR 29 / 54 are a defect of the throttle range gate (pedal over-range read as invalid), not of the segmentation method. Decisions open (author).
 
 ## Corner phases as a declared adaptation; throttle range-gate fix ruled [2026-10-21, branch new-laps, author EXECUTE]
-SEGMENTATION RULING (author): corner phases stay driver-input based (entry_1_brake throttle lift-off -> turn-in; entry_2_turnin bracket start -> lateral-g apex; exit_4 apex -> half steering unwind; exit_5 -> bracket end), a DECLARED ADAPTATION of the chair basis (rCosPhi phases, chair performance_analysis tooling (internal), corner_characterisation). Reason: the five phases must match the resolution and definition of the team's driver feedback form (e1..x5, frozen team instrument), which defines phases by driver actions; this keeps measurement and feedback comparable. Compared baseline: diagnostics/inspect_phase_segmentation.py (entry "Phase segmentation against the chair basis", same date) -- main differences around the apex (chair Mid starts 17-129 m before our apex), chair Braking rarely populated under trail braking (64 / 90 and 101 / 180 corners empty).
+SEGMENTATION RULING (author): corner phases stay driver-input based (entry_1_brake throttle lift-off -> turn-in; entry_2_turnin bracket start -> lateral-g apex; exit_4 apex -> half steering unwind; exit_5 -> bracket end), a DECLARED ADAPTATION of the chair basis (rCosPhi phases, chair performance_analysis tooling (internal), corner_characterisation). Reason: the five phases must match the resolution and definition of the team's driver feedback form (e1..x5, frozen team instrument), which defines phases by driver actions; this keeps measurement and feedback comparable. Compared baseline: diagnostics/inspect_phase_segmentation.py (script at tag pre-prune-2026-10-22) (entry "Phase segmentation against the chair basis", same date) -- main differences around the apex (chair Mid starts 17-129 m before our apex), chair Braking rarely populated under trail braking (64 / 90 and 101 / 180 corners empty).
 ANCHOR SEARCH (literature_digest.md, read-only): no source with a verified page defines corner phases by driver inputs. Section-level candidates: Puetz & Serne 2022 secs. 2.2.1-2.2.2 (five phases of a corner: turning in, starting to roll, mid-corner, roll back, acceleration) and 9.1 (the driver reports symptoms per corner phase, all five phases for every corner); Segers 2014 secs. 7.1-7.2 (cornering sequence: straight-line braking, braking into the corner, peak lateral g, acceleration out); Trzesniowski & Eder 2019 Bd. 5 Fig. 5.56 (driver rating at corner entry and mid-corner). Pages not verified (Puetz PDF password-protected). ~~Recorded anchor: TEAM FEEDBACK INSTRUMENT ONLY; the candidates are listed for the author.~~ [2026-10-21: superseded by the author's anchor ruling, entry 'Phase anchor and channel notes; D re-run' below.]
 DERIVED_FROM: brake_throttle_max_pct = 95 -- value predates the records; the 2026-08-20 entry "entry_1_brake phase-boundary bug" verified the lift-off CONSTRUCTION at 95 against brake pressure on Dubai ("log_pbrake_f: n=36, p10=0.003s, p50=0.135s, p90=2.563s ... 0% negative"; rear p50 0.130 s), not the value; Tier B. steering_unwind_fraction = 0.5 -- no derivation recorded; Tier B, midpoint of the unwinding, a stated limitation.
 THROTTLE GATE RULING: ecu_aps range [0, 110] (observed 104-106 % at full throttle, pedal / ECU calibration over-range); the 'throttle missing' warning reaches the stored corners. Estimator inputs change -> schema 18 and the standing-rule re-derivations; census of every channel graded partial / failed by the range gate before the fix.
@@ -27260,7 +27260,7 @@ D RE-RUN ON SCHEMA 18 (author EXECUTE 2026-10-21, default path, 14 development s
 - YAW-STABILITY CROSS-LAP MEDIAN -- rationale recorded AFTER THE FACT (declared as such, not the original motive; the code comment 'Stability always median' in modules/recommendation.py is the only earlier trace): the dMz/dbeta regression is pooled over laps by track distance, so the per-lap values are samples of one pooled curve that differ only through sample positions and masks; the median is their robust central value; a minimum (as for CS, which is estimated per lap and locally) would select mask / position artefacts, not a different lap's behaviour.
 - WASHOUT SCOPE NOTE: the recorded rho +0.44 / +0.78 / +0.63 (rear; n 153 / 174 / 90; US-v2 / JDR / JST 29) come from Q-PR-ANOMALY (2026-10-18) on the PRE-FINAL fit L (C 1.3, mu and B fitted). Re-run on the final chain below.
 - FX DRAG / ROLLING: drag coefficient, frontal area and rolling resistance are unsourced and 0 in config, so Fx_cog = m * ax. Under braking the tyre braking force is over-read by the drag force, under traction the drive force under-read; the fit-L braking filter |Fx| / Fz > 0.3 is affected slightly; magnitude needs c_d * A from the team (to verify).
-- WASHOUT RE-RUN ON THE FINAL CHAIN (diagnostics/inspect_washout_final.py, outputs diagnostics/plots/washout_final/; read-only; fit L as shipped, schema 18; fit inputs and population captured from tyre_fit_auto._fit_axle_l; definitions of inspect_pr_anomaly.py H-alpha). Spearman rho of the turn-signed corner-instance residual with corner duration | time since the last straight, per session (n front / rear):
+- WASHOUT RE-RUN ON THE FINAL CHAIN (diagnostics/inspect_washout_final.py (script at tag pre-prune-2026-10-22), outputs diagnostics/plots/washout_final/; read-only; fit L as shipped, schema 18; fit inputs and population captured from tyre_fit_auto._fit_axle_l; definitions of inspect_pr_anomaly.py (script at tag pre-prune-2026-10-22) H-alpha). Spearman rho of the turn-signed corner-instance residual with corner duration | time since the last straight, per session (n front / rear):
   NBR 5 (90 / 90): front +0.73 | +0.72, rear +0.63 | +0.58; NBR 10 JDR (173 / 174): front +0.74 | +0.64, rear +0.77 | +0.71; NBR 20 (64 / 64): front +0.67 | +0.67, rear +0.67 | +0.59; NBR 29 (90 / 90): front +0.73 | +0.67, rear +0.63 | +0.60; NBR 46 (60 / 60): front +0.77 | +0.49, rear +0.58 | +0.37; NBR 53 (85 / 85): front +0.60 | +0.43, rear +0.51 | +0.48; NBR 54 (115 / 115): front +0.56 | +0.60, rear +0.68 | +0.64; NBR 59 (60 / 60): front +0.59 | +0.61, rear +0.55 | +0.47; NBR 61 (130 / 130): front +0.67 | +0.66, rear +0.78 | +0.70; NBR 63 (92 / 92): front +0.78 | +0.72, rear +0.64 | +0.56; NBR 69 (91 / 91): front +0.71 | +0.65, rear +0.61 | +0.46; NBR 70 (90 / 90): front +0.80 | +0.60, rear +0.67 | +0.51; Le Castellet 25 (51 / 51): front +0.41 | +0.31, rear +0.34 | +0.23; Le Castellet 32 (152 / 152): front +0.30 | +0.25, rear +0.29 | +0.28. All p < 0.01 except Le Castellet 25 front since-straight (p 0.029), rear duration (p 0.013) and rear since-straight (p 0.10). Median instance residual positive everywhere (front +0.13 to +0.58, rear +0.38 to +0.74 in Fy / Fz): the corner data lie above the curve at the seed slip angle. Against the pre-final record (rear duration): JDR +0.77 (was +0.78), JST 29 +0.63 (was +0.63), US-v2 +0.29 (was +0.44). READING: the washout signature holds on the final fit on every Nurburgring session (rho +0.51 to +0.80); on Le Castellet it is weaker (+0.29 to +0.41).
 - NIS HEALTH-SCORE MASK: modules/tyre_fit_auto.py:1228, evaluate_gate(raw_fit_manifest["nis_full"], raw_fit_manifest["base_mask"], ...); base_mask = _base_mask (line 89): moving, minus kerb mask and smear zone, on analysis laps -- not the fit's speed window.
 - KERB CENSUS (read-only, 14 development sessions, moving analysis-lap samples): undilated |az - 1 g| > 1.2 g 0.29-1.12 %; shipped mask (dilated +/- 0.10 s = 10 samples at 100 Hz) NBR 5 3.24, NBR 10 1.94, NBR 20 5.49, NBR 29 5.74, NBR 46 5.99, NBR 53 3.15, NBR 54 3.25, NBR 59 3.08, NBR 61 2.41, NBR 63 4.58, NBR 69 5.33, NBR 70 5.18, Le Castellet 25 8.07, Le Castellet 32 7.08 %; with the 0.2 s smear zone 4.2-15.8 %. The Dubai calibration targeted 3.0 % (band 0.5-3 %) for the dilated mask; 12 of 14 development sessions lie above 3 %.
@@ -27293,3 +27293,24 @@ SCHEMA 19 RE-DERIVATIONS (drag adopted, 2026-10-21):
 - TEST REFERENCE REFRESH (ordered): NOT YET DONE -- the data drive H: (Data_Bachelorthesis) is not mounted on 2026-10-22, so diagnostics/inspect_q_phys.py cannot read NBR 29; the full suite was not run (data-dependent tests would skip). Pending: re-run inspect_q_phys.py on NBR 29 (schema 19), expected Q_beta 1.8839e-5 -> 1.8686e-5 (-0.8 %, the chain value seen in the failing test).
 - TEST REFERENCE REFRESHED (2026-10-22, data drive back): diagnostics/inspect_q_phys.py re-run on NBR 29 only (session list narrowed in memory; run.log of the 14-session run kept, this run's log diagnostics/plots/q_phys/run_nbr29_20261022_schema19.log), schema 19 with drag. q_phys_nbr_o29_jst.json: Q_beta held-step 1.8839e-5 -> 1.8686e-5 (-0.82 %), Q_r 1.4062e-3 -> 1.3981e-3 (-0.57 %) -- drag shifts the fit residual Q is derived from; refreshed under the standing rule, like the goldens. No change to test logic or tolerance; test_observer_q_reproduces_q_phys passes. The other 13 q_phys_<key>.json files still hold the pre-drag 2026-10-19 values (not read by any test).
 - Full suite on schema 19 after the refresh (2026-10-22): 657 passed, 1 xfailed, 0 failed, 0 skipped (44:04); test_stability.py exit 0.
+
+## Recommendation inventory: cause of zero recommendations on the goldens [2026-10-22, branch new-laps, recommendation overhaul step 1, read-only]
+- SCOPE: read-only inventory of modules/recommendation.py, modules/decision_frame.py, config/recommendations.json, config/decision_frame.json and the shared classifier (ui/views/outing_form.py _classify_corner); goldens tests/golden/default_nbr_jst29.json and default_pr_lc32.json (schema 19), traced through the rule engine's gates in code order with empty feedback (scratch script, golden JSON only, no pipeline run).
+- FINDING: with empty feedback, the 26 active matrix rules (all data trigger, all min_severity "moderate") remove the non-ok aggregate corners mainly at min_severity, not at the consistency gate. Per corner, furthest gate reached: NBR JST 29 -- min_severity 7 (C3, C4, C5, C7, C8, C10, C15), consistency gate 2 (C1 US-EXIT-low 1/6, C11 US-EXIT-med 1/6), no CS data 1 (C6); Le Castellet 32 -- min_severity 4 (C2, C4, C14, C16), consistency gate 5 (C1 and C5 OS-APX-med 1/9, C6 OS-APX-low 2/9, C8 OS-EXIT-med 1/9, C9 US-EXIT-med 2/9). No corner-lap of either session reaches severity "strong".
+- ROOT CAUSE: the classifier (outing_form.py:481-489) gives severity "moderate" only to a STRONG CS tier alone, a MODERATE tier with open-loop instability, or instability alone; a MODERATE CS tier alone is severity "normal" (PRODUCTION.md 9 states the rule). The rules' min_severity "moderate" therefore admits a CS verdict only at the STRONG tier (p10) or with instability on the rule's phase slice.
+- COVERAGE GAP: unstable_yaw rules exist only for entry_1_brake (INST-BRK-low/med/high; INST-ENT dropped). NBR JST 29 C8 (open-loop unstable at apex) and C11 (at exit) are unstable on 6/6 laps each and reach no rule in either engine; the decision frame builds the evidence (confidence 1.0) but no rule or bridge consumes it.
+- SIDE NOTE: the screen engine (decision frame) on the same summaries builds 2 (NBR 29) and 8 (Le Castellet 32) candidates; the display evidence floor (0.5) leaves 0 and 1 visible.
+- Supersedes the cause statement of 'cs_margin re-derivation and the recommendation check' C (2026-10-20), struck there.
+- NIS WINDOW-SHARE CENSUS (author EXECUTE 2026-10-22, read-only, B; diagnostics/inspect_nis_window_share.py, results diagnostics/results_nis_window_share_20261022/): fit-L default, schema 19, base_mask, trailing 0.4 s window, chi2_2 95 % = 5.991, band [0.03, 0.15] inclusive, window statistic identical to nis_gate._score_and_skips. Acceptance: the in-band share equals the gate health_score to 4 decimals on all 14 sessions; no low-coverage window skipped on any session. Share of masked samples below / in band / above: NBR 5 0.730 / 0.186 / 0.084; NBR 10 0.842 / 0.118 / 0.040; NBR 20 0.617 / 0.242 / 0.141; NBR 29 0.683 / 0.207 / 0.110; NBR 46 0.743 / 0.147 / 0.110; NBR 53 0.671 / 0.210 / 0.119; NBR 54 0.701 / 0.176 / 0.124; NBR 59 0.704 / 0.201 / 0.095; NBR 61 0.784 / 0.156 / 0.059; NBR 63 0.698 / 0.190 / 0.112; NBR 69 0.677 / 0.187 / 0.136; NBR 70 0.780 / 0.138 / 0.082; Le Castellet 25 0.772 / 0.111 / 0.117; Le Castellet 32 0.724 / 0.152 / 0.124. Pooled, sample-weighted (n 905410): 0.734 / 0.169 / 0.098. Per session median (min-max): below 0.714 (0.617-0.842), in band 0.181 (0.111-0.242), above 0.111 (0.040-0.141). READING (descriptive only): most out-of-band mass lies BELOW the band (windows with under 3 % exceedance, i.e. the NIS is smaller than the chi2 model expects), not above it. Schema-19 health scores differ from the schema-17 values in nis_gate.threshold_derived_from by at most 0.0017 (NBR 29 0.2089 -> 0.2072, Le Castellet 32 0.1538 -> 0.1521); the lowest score (Le Castellet 25, 0.1107) is unchanged.
+- INTERPRETATION (author, 2026-10-22): NIS mass lies mainly below the chi2 band (pooled 0.73 below vs 0.10 above): the filter is conservative, not overconfident, consistent with Q chosen as an upper bound (Q-UPPER). Consistency reference: Bar-Shalom et al. 2001 (to verify, not yet available).
+
+## Recommendation overhaul approved [2026-10-22, author ruling]
+- The recommendation overhaul is approved (review doc "recommendation_overhaul_proposal_2026-10-22", decisions D1-D9): one small engine replaces the two current scoring paths; axle limiting = CS below zero, tiers grade depth only; mechanism table M1-M7 with cited directions; ordinal driver-feedback layer beside a stored data-only recommendation. Full ruling text: DECISIONS.md 'Recommendation overhaul rulings (author, 2026-10-22)'. Pruning starts now (D9).
+
+
+## Diagnostics pruning P1c: keep rule and tag pointer [2026-10-22, branch new-laps, author work order P1c]
+- KEEP RULE (author, 2026-10-22): after the pruning, diagnostics/ holds only scripts that run on the current code AND are needed for (a) re-deriving a current config value under the standing re-derivation rule, (b) producing a thesis figure (the K3 figure sources), or (c) tooling the app or the tests use. A citation alone (config provenance, PLAN, these notes) no longer keeps a script; the record is the deliverable.
+- TAG POINTER: every script and result from before the pruning is preserved at git tag pre-prune-2026-10-22 (on 7dfb15c). References to deleted scripts in config, PLAN.md and these notes carry "(script at tag pre-prune-2026-10-22)"; the reference text itself is unchanged.
+- RESULT: 28 scripts kept (diagnostics/README.md lists each with its reason); 106 scripts and the _attic/ folder deleted; 14 held for an author ruling because a repair would change what they compute (divergence-trigger sweep, longitudinal-stiffness chain, removed wheel-load fallback, frozen Dugoff pass-1 baseline). Kept re-derivation scripts were cut loose from the retired hub scripts by copying the few helpers they used (session list, keep-awake, corner value, verdict classification) unchanged.
+- Import repairs that keep the computation identical: resolve_sideslip_beta was defined as resolve_sideslip_beta_and_cs_inputs(...)[:5], so the three kept callers now take that slice. The threshold re-derivation script drops its curve-floor line section with the curve-floor layer (P1b); the thresholds and the floor-event census it computes are unchanged.
+- Alongside (Part A): ANALYSIS_SCHEMA_VERSION 19 -> 20 (payload shape only; goldens differ only in _meta); a guard test that the observer's peak axle force equals mu * Fz with d_is_mu (C = 1 approaches D asymptotically, so the peak over 0..1.5 rad lies within 1 % below mu * Fz for B >= 5), against the 2026-10-18 "D = mu used as a force" defect.

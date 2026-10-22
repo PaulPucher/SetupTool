@@ -104,7 +104,7 @@ corner_detection; B unless stated).
   2.2.1-2.2.2 and 9.1, page to verify]; Puetz & Serne define the phases by
   roll state, the exact boundaries here follow the feedback form.
   Comparison on NBR 29 and NBR 10 (diagnostics/inspect_phase_segmentation.
-  py): the schemes differ mainly around the apex (the chair's Mid starts
+  py (script at tag pre-prune-2026-10-22)): the schemes differ mainly around the apex (the chair's Mid starts
   17-129 m before our apex); the chair's Braking phase (a_x / |a| < -0.97)
   is empty on 64 of 90 and 101 of 180 corners, since trail braking turns
   the acceleration vector early.
@@ -615,8 +615,10 @@ them with a six-term additive cost (decision_frame.json); it never applies
 a change. The weekend PDF export uses modules/recommendation.py, which
 fires the same rules only through a hard consistency gate (the verdict on
 >= 2 laps and >= 40 % of the corner's laps) -- with empty feedback both
-development goldens produce no recommendation from it, because the
-worst-lap aggregate shows verdicts that repeat on 1-2 of 6-9 laps.
+development goldens produce no recommendation from it. Most non-ok corners
+fail the rules' min_severity "moderate" (a MODERATE CS tier alone is
+severity "normal", section 9); the rest fail the consistency gate, their
+verdicts repeating on 1-2 of 6-9 laps.
 Queued for the overhaul: one combined uncertainty ([MARGINAL] plus
 observer), the two-tier question, the consistency gate against worst-lap
 aggregation, and one engine. Tier C in structure, B in its gates.
@@ -685,7 +687,7 @@ aggregation, and one engine. Tier C in structure, B in its gates.
   to +0.80 on every Nurburgring session and axle, +0.29 to +0.41 on Le
   Castellet (14 development sessions, 51-174 corner instances per axle;
   p < 0.01 except three Le Castellet 25 values; diagnostics/
-  inspect_washout_final.py, 2026-10-21). The weaker effect on Le Castellet
+  inspect_washout_final.py (script at tag pre-prune-2026-10-22), 2026-10-21). The weaker effect on Le Castellet
   is recorded as observed; its causes were not examined. The fit's
   abscissa carries this error; the observer does not (its state never takes
   the seed).

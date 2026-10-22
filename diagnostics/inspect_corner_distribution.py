@@ -26,7 +26,7 @@ from modules.stability_analysis import (
     estimate_cornering_stiffness, estimate_yaw_moment_stability,
     summarise_corners,
 )
-from modules.tyre_fit_auto import resolve_sideslip_beta
+from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 MODES = ["kinematic", "ekf_auto_pacejka"]
@@ -192,9 +192,9 @@ def _noise_margin(by_id, exclude_ids, fmt="{:.3f}"):
 
 
 def run_mode(mode, data, params, state):
-    beta, _fit_manifest, _gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
+    beta, _fit_manifest, _gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta_and_cs_inputs(
         state, params, data, mode, csv_path=RAW_FILE
-    )
+    )[:5]
     if fallback_used:
         raise SystemExit(
             f"{mode} fell back to kinematic on this run ({fallback_reason}) -- refusing to derive "

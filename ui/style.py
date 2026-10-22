@@ -3,22 +3,17 @@
 # All colour literals live here.
 
 # Base
-BG          = "#141414"
 PANEL       = "#1a1a1a"
 PANEL_ALT   = "#252525"
 BORDER      = "#2a2a2a"
-DIVIDER     = "#1e1e1e"
 
 # Text
 TEXT        = "#e0e0e0"
 TEXT_MUTED  = "#888"
 TEXT_DIM    = "#555"
-TEXT_FAINT  = "#444"
 
 # Accent
 ACCENT      = "#C0A060"
-ACCENT_HOVER = "#d4b472"
-ACCENT_PRESSED = "#a88c50"
 
 # status colours (stability cards, validity flags)
 OK          = "#4CAF50"   # healthy / stabilising

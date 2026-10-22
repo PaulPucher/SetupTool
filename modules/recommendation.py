@@ -1,7 +1,7 @@
 # Rule engine: stability summaries + driver feedback + rule table
 # (config/recommendations.json) -> ranked setup suggestions with evidence.
 # No longer shown directly in the UI -- decision_frame migrated all rules as
-# bridges (parity: diagnostics/inspect_frame_stage2_parity.py) and still
+# bridges (parity: diagnostics/inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22)) and still
 # calls the rule table and helpers here.
 #
 # Rules = engineer decision matrix (scenario x speed class, rule.cell_id)

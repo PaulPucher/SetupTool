@@ -13,7 +13,7 @@
 # config/parameters.json). Reuses production functions exactly:
 # modules.stability_analysis.{resolve_cs_min_window_samples,
 # reconstruct_cs_window_start, estimate_cornering_stiffness, ...} and
-# modules.tyre_fit_auto.resolve_sideslip_beta -- no window-growth or
+# modules.tyre_fit_auto.resolve_sideslip_beta_and_cs_inputs -- no window-growth or
 # beta-selection logic is reimplemented here. Also reuses diagnostics/
 # inspect_step2_chair_plots.py's _valid_lap_instances/_canonical_window_
 # slice (corner-bracket geometry, not estimator logic) rather than a
@@ -39,7 +39,7 @@ from modules.stability_analysis import (
     estimate_lateral_forces, estimate_cornering_stiffness, resolve_cs_min_window_samples,
     reconstruct_cs_window_start,
 )
-from modules.tyre_fit_auto import resolve_sideslip_beta
+from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
 from diagnostics.inspect_step2_chair_plots import _valid_lap_instances, _canonical_window_slice
 
 V3_FILE = "GT3_PRC_MLA-v3.txt"
@@ -62,8 +62,8 @@ def run_pipeline(raw_file, params):
     if state is None:
         raise RuntimeError(f"{raw_file}: prepare_vehicle_state returned None")
     source = params["stability_estimation"]["sideslip_source"]
-    beta, _fit_manifest, _gate, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, params, data, source, csv_path=raw_file)
+    beta, _fit_manifest, _gate, fallback_used, fallback_reason = resolve_sideslip_beta_and_cs_inputs(
+        state, params, data, source, csv_path=raw_file)[:5]
     if fallback_used:
         print(f"  ** NOTE: {raw_file} sideslip_source={source!r} fell back to kinematic: {fallback_reason}")
     slip = estimate_slip_angles(state, beta, params)

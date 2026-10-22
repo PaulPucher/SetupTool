@@ -12,19 +12,19 @@
 # md "WP-N2 Step 1a" for the measured breakdown) -- computed once per test
 # run, not once per test function.
 
-import copy
 import os
 
 import pytest
 
-from modules.csv_parser import parse_csv
+from modules.csv_parser import parse_csv, load_channels_config
 from modules.stability_analysis import (
-    load_parameters, prepare_vehicle_state,
+    load_parameters, load_car_data, prepare_vehicle_state,
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
     estimate_yaw_moment_stability, estimate_vertical_loads, summarise_corners,
 )
 from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
-from modules.tyre_fit_auto import resolve_sideslip_beta
+from modules.corner_analysis import reclassify_speed_classes
+from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
 
 # Real telemetry lives outside the repo, and its drive letter differs per
 # machine (laptop: C:/UNI + D:, temporary machine: everything on H:). Data
@@ -77,13 +77,6 @@ RAW_FILE = find_data_file(DUBAI_SAMPLE)
 # independent of any local/gitignored file or session setup_data.
 FIXED_CAP = 1
 
-# The old per_session path's own NIS gate thresholds (2026-10-11, derived on
-# that estimator). Config carries the fit-L values since 2026-10-20
-# (thresholds encode the estimator); tests that select the old path pin
-# these with it, as they pin tyre_fit_mode.
-OLD_PATH_NIS_GATE = {"threshold_use_ekf": 0.023, "threshold_warn": 0.0025}
-
-
 @pytest.fixture(scope="session")
 def raw_params():
     return load_parameters()
@@ -126,10 +119,10 @@ def pipeline_result(parsed_data, effective_params, state):
     the Dubai goldens, including the kinematic secondary set, are retired;
     the default path's goldens live in tests/test_golden_pipeline.py.]
 
-    Uses modules.tyre_fit_auto.resolve_sideslip_beta -- the same
-    dispatch function StabilityAnalysisThread.run() calls -- so this
+    Uses modules.tyre_fit_auto.resolve_sideslip_beta_and_cs_inputs -- the
+    same dispatch function StabilityAnalysisThread.run() calls -- so this
     fixture can never silently diverge from what the app itself would
-    compute for beta.
+    compute for beta and the CS inputs.
 
     Deliberately does not import ui/views/outing_form.py itself: that
     module is PyQt6-based (QThread), and the config-switch branch it
@@ -145,28 +138,31 @@ def pipeline_result(parsed_data, effective_params, state):
         "assume 'ekf_auto_pacejka'; regenerate golden files deliberately if this is an intended change"
     )
 
-    # OLD PATH PINNED (2026-10-20): fit L is the config default since schema
-    # 16; the Dubai tests on this fixture cover the old per_session path
-    # (curve-floor limit events, the WP-N3 figures), selectable until the
-    # cleanup round. The default path has its own goldens on NBR JST 29 and
-    # Le Castellet 32 (tests/test_golden_pipeline.py). tyre_fit_mode is read
-    # only inside resolve_sideslip_beta, so the copy is passed there alone.
-    old_path_params = copy.deepcopy(effective_params)
-    old_path_params["tyre_fit_auto"]["tyre_fit_mode"] = "per_session"
-    old_path_params["nis_gate"].update(OLD_PATH_NIS_GATE)
-    beta, fit_manifest, gate_verdict, fallback_used, fallback_reason = resolve_sideslip_beta(
-        state, old_path_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
+    # DEFAULT PATH (author ruling 2026-10-22, pruning P1a): the live config's
+    # tyre_fit_mode (fit L) and nis_gate values, no per_session pin. Same
+    # call order as StabilityAnalysisThread.run: speed classes reclassified
+    # before the fit (its sign check reads them), then the CS estimate with
+    # the inputs fit L hands over (axle loads, reference band, reset mask).
+    # The data stays the Dubai sample the sibling fixtures parse; fit L runs
+    # on it (measured axle loads present, gate pass).
+    assert effective_params["tyre_fit_auto"]["tyre_fit_mode"] == "literature_bounded", (
+        "config tyre_fit_mode is no longer fit L -- this fixture assumes the default path"
     )
-    # fallback_used is NOT asserted here -- returned instead so callers get one
-    # clear, dedicated failure (test_golden_pipeline.py's test_pipeline_did_not_
-    # fall_back) rather than every pipeline_result-dependent test erroring out
-    # on fixture setup.
+    corners = parsed_data.get("corners", [])
+    reclassify_speed_classes(corners, load_channels_config()["corner_speed_thresholds"])
+    (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason,
+     cs_inputs) = resolve_sideslip_beta_and_cs_inputs(
+        state, effective_params, parsed_data, live_default, csv_path=resolve_data_path(DUBAI_SAMPLE)
+    )
+    # fallback_used is not asserted here: callers that care check it, rather
+    # than every dependent test erroring out on fixture setup
+    laps = parsed_data.get("laps", [])
     slip = estimate_slip_angles(state, beta, effective_params)
     forces = estimate_lateral_forces(state, effective_params)
-    cs = estimate_cornering_stiffness(slip, forces, state, effective_params, parsed_data.get("laps", []))
-    stab = estimate_yaw_moment_stability(state, beta, effective_params, parsed_data.get("laps", []))
-    fz = estimate_vertical_loads(state, forces, effective_params)
-    corners = parsed_data.get("corners", [])
+    cs = estimate_cornering_stiffness(slip, forces, state, effective_params, laps, **cs_inputs["cs_kwargs"])
+    stab = estimate_yaw_moment_stability(state, beta, effective_params, laps)
+    fz = estimate_vertical_loads(state, forces, effective_params,
+                                 channels=parsed_data["channels"], car_data=load_car_data())
     summaries = summarise_corners(corners, cs, stab, state, fz=fz, lap_filter=None)
 
     return {
@@ -182,6 +178,7 @@ def pipeline_result(parsed_data, effective_params, state):
         "gate_verdict": gate_verdict,
         "fallback_used": fallback_used,
         "fallback_reason": fallback_reason,
+        "cs_inputs": cs_inputs,
     }
 
 

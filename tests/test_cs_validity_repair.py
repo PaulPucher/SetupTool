@@ -5,7 +5,7 @@
 # of apex_3's own structurally undersized slice. REGRESSION-STYLE unit
 # tests on synthetic, hand-constructed inputs -- not a re-derivation of
 # the real Dubai numbers (that lives in thesis_notes.md/PLAN.md, from
-# diagnostics/inspect_cs_window_floor_derivation.py and friends).
+# diagnostics/inspect_cs_window_floor_derivation.py (script at tag pre-prune-2026-10-22) and friends).
 
 import numpy as np
 import pytest
@@ -260,54 +260,6 @@ def test_phase_at_or_above_min_valid_samples_reports_real_median():
     )
     phase = out[0]["phases"]["entry_2_turnin"]
     assert phase["cs_ratio_f"]["median"] == 0.5
-
-
-# --- LS validity repair: phase_min_valid_samples gate (Metrology extension
-# Phase 2, 2026-09-19) -- same shape as the CS gate tests above, own
-# separately-named config key (ls_phase_min_valid_samples).
-
-def test_ls_phase_below_min_valid_samples_reports_nan():
-    n = 20
-    t = np.linspace(0.0, 10.0, n)
-    cs_f = np.full(n, np.nan)
-    cs_r = np.full(n, np.nan)
-    stab = np.full(n, 100.0)
-    ls_f = np.full(n, np.nan)
-    ls_f[2:4] = 0.5  # 2 finite samples -- below the min of 3 used here
-    ls_r = np.full(n, np.nan)
-    corner = _make_corner()
-    state = _base_state(n, t)
-    out = summarise_corners(
-        [corner], {"CS_ratio_f": cs_f, "CS_ratio_r": cs_r},
-        {"stability_observed_Nm_per_deg": stab, "stability_valid": np.ones(n, dtype=bool)},
-        state, ls={"LS_ratio_f": ls_f, "LS_ratio_r": ls_r},
-        apex_half_window_samples=1, cs_phase_min_valid_samples=1,
-        cs_apex_region_half_length_m=5.0, ls_phase_min_valid_samples=3,
-    )
-    phase = out[0]["phases"]["entry_2_turnin"]
-    assert phase["ls_ratio_f"]["median"] != phase["ls_ratio_f"]["median"]  # NaN
-
-
-def test_ls_phase_at_or_above_min_valid_samples_reports_real_median():
-    n = 20
-    t = np.linspace(0.0, 10.0, n)
-    cs_f = np.full(n, np.nan)
-    cs_r = np.full(n, np.nan)
-    stab = np.full(n, 100.0)
-    ls_f = np.full(n, np.nan)
-    ls_f[2:5] = 0.5  # 3 finite samples -- meets the min of 3
-    ls_r = np.full(n, np.nan)
-    corner = _make_corner()
-    state = _base_state(n, t)
-    out = summarise_corners(
-        [corner], {"CS_ratio_f": cs_f, "CS_ratio_r": cs_r},
-        {"stability_observed_Nm_per_deg": stab, "stability_valid": np.ones(n, dtype=bool)},
-        state, ls={"LS_ratio_f": ls_f, "LS_ratio_r": ls_r},
-        apex_half_window_samples=1, cs_phase_min_valid_samples=1,
-        cs_apex_region_half_length_m=5.0, ls_phase_min_valid_samples=3,
-    )
-    phase = out[0]["phases"]["entry_2_turnin"]
-    assert phase["ls_ratio_f"]["median"] == 0.5
 
 
 # --- apex_region (Phase 3) ----------------------------------------------------

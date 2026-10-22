@@ -190,89 +190,8 @@
       ],
       "required": false
     },
-    "log_gps_course": {
-      "label": "GPS Course over Ground",
-      "unit": "deg",
-      "range": [
-        0,
-        360
-      ],
-      "required": false
-    },
     "log_gps_speed": {
       "label": "GPS Speed",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "log_speed_fl": {
-      "label": "Wheel Speed FL",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "log_speed_fr": {
-      "label": "Wheel Speed FR",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "log_speed_rl": {
-      "label": "Wheel Speed RL",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "log_speed_rr": {
-      "label": "Wheel Speed RR",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "abs_speed_fl": {
-      "label": "ABS Wheel Speed FL",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "abs_speed_fr": {
-      "label": "ABS Wheel Speed FR",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "abs_speed_rl": {
-      "label": "ABS Wheel Speed RL",
-      "unit": "km/h",
-      "range": [
-        0,
-        350
-      ],
-      "required": false
-    },
-    "abs_speed_rr": {
-      "label": "ABS Wheel Speed RR",
       "unit": "km/h",
       "range": [
         0,
@@ -398,7 +317,7 @@
         4.0
       ],
       "required": false,
-      "note": "2026-09-24: whitelisted for modules/decision_frame.py's tyre_pressure_flags check-only display. Previously present in both real exports but unread (docs/channel_requirements.md, 371 tpms* channels total on this car -- only these 8 press/temp channels wanted). Range [0.5,4.0] bar excludes every known startup/dropout glitch found by direct census (Dubai ~20.47 bar spike at channel start; v3 ~6.2 bar at start, one isolated ~296.7 bar dropout) while covering the full plausible cold-to-hot range -- verified real cornering-phase values on both sessions sit 1.6-1.9 bar (diagnostics/inspect_tpms_pressure_cornering_phase.py)."
+      "note": "2026-09-24: whitelisted for modules/decision_frame.py's tyre_pressure_flags check-only display. Previously present in both real exports but unread (docs/channel_requirements.md, 371 tpms* channels total on this car -- only these 8 press/temp channels wanted). Range [0.5,4.0] bar excludes every known startup/dropout glitch found by direct census (Dubai ~20.47 bar spike at channel start; v3 ~6.2 bar at start, one isolated ~296.7 bar dropout) while covering the full plausible cold-to-hot range -- verified real cornering-phase values on both sessions sit 1.6-1.9 bar (diagnostics/inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22))."
     },
     "tpms_press_fr": {
       "label": "Tyre Pressure FR",
@@ -464,12 +383,12 @@
         -16050000,
         -15850000
       ],
-      "derived_from": "GT3_PRC_MLA-v3.txt gauge forensics (2026-09-04) found log_dms_dam_fr carries real, correctly-signed pushrod-force signal (whole-session std=1864.2N, matching the three healthy corners' own 1925.9/2082.5/2007.3N) riding on a stationary corrupted additive offset (whole-session raw mean -15949976.44N) -- pure rescaling (x1e-3/x1e-6) was ruled out since the raw fluctuation is ALREADY at the correct physical scale. 2026-09-18: the offset was anchored empirically once a real per-outing weighing existed: K is chosen so FR's own straight-line raw mean, scaled by the tiny FR/FL static-weight ratio from the outing's real corner weighing (298.9/300.3 kg), matches FL's own straight-line raw mean -- FR is FL's own axle mate, sharing the same motion-ratio table and (per that weighing) nearly equal static load. VALIDATED against the full wheel_loads.py decomposition chain (diagnostics/inspect_deepening_phase2_fr_correction.py): straight-line total load +10.77% vs session weight (matches the already-recorded, aero-explained +11.64% v3 finding from when FR was on static fallback); corr(ay,Fz_fr)=+0.893, corr(ay,Fz_fl)=-0.903 (both strong, correctly signed, close to this project's own healthy-corner reference band +0.966/-0.893 to -0.895); FR/FL straight-line static means within 2-3% of the outing's own real corner weights on BOTH corners equally (a shared aero-lift bias, not an FR-specific error) -- FL/FR ratio 0.9970 vs the weighing's own 1.0047 (0.77% apart). One clean pass, no red flags -- FR promoted from the axle-total reconstruction fallback to a live, damper-measured Level 4 corner on this file."
+      "derived_from": "GT3_PRC_MLA-v3.txt gauge forensics (2026-09-04) found log_dms_dam_fr carries real, correctly-signed pushrod-force signal (whole-session std=1864.2N, matching the three healthy corners' own 1925.9/2082.5/2007.3N) riding on a stationary corrupted additive offset (whole-session raw mean -15949976.44N) -- pure rescaling (x1e-3/x1e-6) was ruled out since the raw fluctuation is ALREADY at the correct physical scale. 2026-09-18: the offset was anchored empirically once a real per-outing weighing existed: K is chosen so FR's own straight-line raw mean, scaled by the tiny FR/FL static-weight ratio from the outing's real corner weighing (298.9/300.3 kg), matches FL's own straight-line raw mean -- FR is FL's own axle mate, sharing the same motion-ratio table and (per that weighing) nearly equal static load. VALIDATED against the full wheel_loads.py decomposition chain (diagnostics/inspect_deepening_phase2_fr_correction.py (script at tag pre-prune-2026-10-22)): straight-line total load +10.77% vs session weight (matches the already-recorded, aero-explained +11.64% v3 finding from when FR was on static fallback); corr(ay,Fz_fr)=+0.893, corr(ay,Fz_fl)=-0.903 (both strong, correctly signed, close to this project's own healthy-corner reference band +0.966/-0.893 to -0.895); FR/FL straight-line static means within 2-3% of the outing's own real corner weights on BOTH corners equally (a shared aero-lift bias, not an FR-specific error) -- FL/FR ratio 0.9970 vs the weighing's own 1.0047 (0.77% apart). One clean pass, no red flags -- FR promoted from the axle-total reconstruction fallback to a live, damper-measured Level 4 corner on this file."
     }
   },
   "event_zero_entries": {
     "_comment": "Event-specific logger zero entries (Q-CAL-2, author rulings 2026-10-03). A gauge zeroed against a different reference at one event reads a constant offset there; csv_parser subtracts zero_N from the raw channel BEFORE the quality/range gate (the gate otherwise fails the channel and wheel_loads drops to the static split). An entry applies to a file only if (a) the header's TrackName and logger serial (SystemDetails 'Serial Number') match, and (b) GATE-WINDOW GUARD: the channel's raw mean minus zero_N lies inside that channel's own range gate in 'channels' -- no new tunable; a gauge re-zeroed at a later event of the same track fails the guard and stays on the static split instead of silently taking a wrong entry. Accuracy: wheel loads from a corrected channel are 'L4 with an L2 zero' (L4-rel): logged sensor + motion-ratio table (L4), zero entry an event measurement pinned through the same car's Paul Ricard zero (L2, per-corner u below).",
-    "_procedure": "How an event gets its entry (documented, not automated): (1) census the event's files -- header track / serial, raw damper level vs the range gate; (2) preferred: the team's static zero check at the event, entered as a measured zero; otherwise the R3 rule of diagnostics/inspect_recover_rr.py -- per file and corner, the gauge-vs-raw-voltage map offset (Input 21 / 29 / 31 / 39 Voltage -> FL / FR / RL / RR, inventory maps of diagnostics/inspect_v4_windows.py) minus the same car's Paul Ricard map offset, median over the event's files; (3) acceptance: u <= 700 N wheel and V1-V4 on all files of the event; (4) enter the medians with file spread and u. inspect_recover_rr.py is hard-wired to the 16 NBR files, so step (2) needs that script generalised for a new event. LIMITATION (author ruling 3): the header carries no date, so two events of the same track and logger whose zeros are near-identical (both passing the guard) cannot be told apart -- recorded, not solved; an engineer-entered event id is deferred to UI work.",
+    "_procedure": "How an event gets its entry (documented, not automated): (1) census the event's files -- header track / serial, raw damper level vs the range gate; (2) preferred: the team's static zero check at the event, entered as a measured zero; otherwise the R3 rule of diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22) -- per file and corner, the gauge-vs-raw-voltage map offset (Input 21 / 29 / 31 / 39 Voltage -> FL / FR / RL / RR, inventory maps of diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22)) minus the same car's Paul Ricard map offset, median over the event's files; (3) acceptance: u <= 700 N wheel and V1-V4 on all files of the event; (4) enter the medians with file spread and u. inspect_recover_rr.py is hard-wired to the 16 NBR files, so step (2) needs that script generalised for a new event. LIMITATION (author ruling 3): the header carries no date, so two events of the same track and logger whose zeros are near-identical (both passing the guard) cannot be told apart -- recorded, not solved; an engineer-entered event id is deferred to UI work.",
     "NBR_221": {
       "track": "NBR",
       "logger_serial": "221",
@@ -479,7 +398,7 @@
         "log_dms_dam_rl": {"zero_N": 58419.65233960189, "file_spread_sd_N": 95.42392506901811, "u_wheel_N": 389.23661728352465},
         "log_dms_dam_rr": {"zero_N": 58906.647936948786, "file_spread_sd_N": 76.04688007576837, "u_wheel_N": 140.25049383447902}
       },
-      "derived_from": "Q-RECOVER-2 R3, 2026-10-03 (diagnostics/inspect_recover_rr.py, author-ruled reference, recover.json): the NBR event's damper gauges were zeroed against a different reference than every other event of this car (zero entry about +43 kN vs about -15.5 kN). zero_N per corner = median over the 16 NBR files of (NBR gauge-vs-voltage map offset - the same car's Paul Ricard map offset), the Paul Ricard reference = mean of v3 and pr_us_v2; u_wheel_N = sqrt((MR x sqrt(SD^2 + e_PR^2))^2 + 98^2), dominated by the Paul Ricard zero residual e_PR. V1-V4 pass on all 16 files (Q-RECOVER-2). Config corner weights are a guideline (rule 0). FR COUPLING: the FR entry was referenced to the Paul Ricard FR map offset INCLUDING the channel_corrections log_dms_dam_fr value (+15,954,360 N); if that correction is ever re-derived, this FR entry must be re-derived with it (the two never act on the same file -- the correction's mean-range precondition cannot match NBR)."
+      "derived_from": "Q-RECOVER-2 R3, 2026-10-03 (diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22), author-ruled reference, recover.json): the NBR event's damper gauges were zeroed against a different reference than every other event of this car (zero entry about +43 kN vs about -15.5 kN). zero_N per corner = median over the 16 NBR files of (NBR gauge-vs-voltage map offset - the same car's Paul Ricard map offset), the Paul Ricard reference = mean of v3 and pr_us_v2; u_wheel_N = sqrt((MR x sqrt(SD^2 + e_PR^2))^2 + 98^2), dominated by the Paul Ricard zero residual e_PR. V1-V4 pass on all 16 files (Q-RECOVER-2). Config corner weights are a guideline (rule 0). FR COUPLING: the FR entry was referenced to the Paul Ricard FR map offset INCLUDING the channel_corrections log_dms_dam_fr value (+15,954,360 N); if that correction is ever re-derived, this FR entry must be re-derived with it (the two never act on the same file -- the correction's mean-range precondition cannot match NBR)."
     }
   },
   "channel_quality_gates": {
