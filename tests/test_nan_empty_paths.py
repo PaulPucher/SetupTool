@@ -15,7 +15,7 @@ import math
 import numpy as np
 import pytest
 
-from modules.recommendation import aggregate_by_corner, PHASE_KEYS
+from modules.corner_aggregation import aggregate_by_corner, PHASE_KEYS
 
 
 def _all_nan_phase():
@@ -155,50 +155,29 @@ def test_classifier_partial_nan_phases_does_not_raise():
     assert "understeer" in short
 
 
-# --- recommendation rules against a corner with no computable braking signal -
+# --- setup engine against a corner with no computable braking signal --------
 
-def test_recommendation_engine_handles_real_zero_braking_corner(pipeline_result):
-    """Runs the actual recommendation engine against the real, current
-    pipeline output restricted to a corner known to have a zero-length
-    entry_1_brake phase for at least one lap -- confirms no exception,
-    and that entry_1_brake-keyed rules do not fire from a NaN "verdict"
-    (a rule requiring a repeated verdict across laps cannot be satisfied
-    by a phase with nothing to classify)."""
-    try:
-        from ui.views.outing_form import OutingForm
-    except ImportError as e:
-        pytest.skip(f"ui.views.outing_form not importable in this environment ({e})")
+def test_setup_engine_handles_real_zero_braking_corner(pipeline_result):
+    """Runs the setup engine against the real pipeline output restricted to
+    a corner with a zero-length entry_1_brake phase on at least one lap --
+    no exception, and no braking-phase symptom can come from a lap whose
+    braking phase holds nothing to classify. Successor of the retired
+    rule-engine check (2026-10-22)."""
+    from modules.setup_engine import data_layer
 
-    from modules.recommendation import generate_recommendations, load_recommendations_config
-
-    zero_brake_corner_ids = {
-        s["stable_corner_id"] for s in pipeline_result["summaries"]
+    zero_brake_laps = {
+        (s["stable_corner_id"], s["lap_number"]) for s in pipeline_result["summaries"]
         if s["phases"]["entry_1_brake"]["n_samples"] == 0 and s.get("stable_corner_id") is not None
     }
-    assert zero_brake_corner_ids, "no real zero-length entry_1_brake corner found in fixture data"
+    assert zero_brake_laps, "no real zero-length entry_1_brake corner found in fixture data"
 
-    target_id = sorted(zero_brake_corner_ids)[0]
-    restricted_summaries = [
-        s for s in pipeline_result["summaries"] if s.get("stable_corner_id") == target_id
-    ]
-
-    def classify_fn(summary):
-        return OutingForm._classify_corner(None, summary)
-
-    rec_config = load_recommendations_config()
-    # Must not raise -- that is the primary assertion this test exists for.
-    results = generate_recommendations(
-        restricted_summaries, classify_fn, feedback_data={}, setup_data=None,
-        config=rec_config, outing=None, driving_level=None,
-    )
-    for r in results:
-        for cell_id in r.get("cell_ids", []):
-            assert "brk" not in cell_id.lower() or any(
-                c["stable_corner_id"] != target_id for c in r.get("corners", [])
-            ), (
-                f"rule {cell_id!r} fired keyed on entry_1_brake for corner {target_id}, "
-                "which has no computable braking signal on the restricted lap set"
-            )
+    target_id = sorted(zero_brake_laps)[0][0]
+    restricted = [s for s in pipeline_result["summaries"] if s.get("stable_corner_id") == target_id]
+    layer = data_layer(restricted)  # must not raise
+    for c in layer["corners"]:
+        for sym in c["symptoms"]:
+            if sym["phase"] == "entry_1_brake":
+                assert not set((target_id, lap) for lap in sym["lap_numbers"]) & zero_brake_laps
 
 
 # --- fit_session_pacejka with an entirely empty fit population -------------
@@ -210,7 +189,6 @@ def test_recommendation_engine_handles_real_zero_braking_corner(pipeline_result)
 # stays.
 
 from modules.tyre_fit_auto import fit_session_pacejka
-
 
 def test_fit_session_pacejka_all_laps_invalid_degrades_cleanly(pipeline_result):
     """End-to-end version of the same guard: an entire session with no

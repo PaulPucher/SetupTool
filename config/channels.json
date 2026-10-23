@@ -239,15 +239,15 @@
       "required": false,
       "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
     },
-    "abs_active": {
-      "label": "ABS Active",
+    "ecu_B_tc_act": {
+      "label": "TC Active",
       "unit": "bool",
       "range": [
         0,
         1
       ],
       "required": false,
-      "note": "ABS activity flag (clean boolean, intervention-channel survey: 5.95% active on GT3_PRC_MLA-v3.txt, correctly concentrated in hard braking). Whitelisted here for modules/decision_frame.py's intervention-evidence source, config-gated off by default (decision_frame.json intervention_evidence.use_intervention_evidence)."
+      "note": "Traction-control activity flag (clean boolean, the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Read by modules/setup_engine.py (tc_activity): a traction-limited exit ranks tc_lon above the differential (2026-10-22; was the retired decision frame's intervention evidence)."
     },
     "log_abs_pos": {
       "label": "ABS Map Position (logged)",
@@ -257,17 +257,7 @@
         11
       ],
       "required": false,
-      "note": "2026-09-18: the TRUSTED ABS switch-position channel (user decision) -- resolves the cross-domain disagreement found in the damper-channel survey. Census on GT3_PRC_MLA-v3.txt (verified directly, not recalled): log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5 all session (dash/steering-wheel domain, mutually agreeing); abs_switch_pos reads a constant 6 (ECU domain) for the SAME session and is NOT trusted per this decision. Range [0,11] matches car_data.json's own abs table's real row count (0=Off through 11=monsoon emergency). See config/setup_parameters.json abs_position's own updated notes."
-    },
-    "ecu_B_tc_act": {
-      "label": "TC Active",
-      "unit": "bool",
-      "range": [
-        0,
-        1
-      ],
-      "required": false,
-      "note": "Traction-control activity flag (clean boolean, the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Whitelisted here for modules/decision_frame.py's intervention-evidence source, config-gated off by default (decision_frame.json intervention_evidence.use_intervention_evidence)."
+      "note": "2026-09-18: the TRUSTED ABS switch-position channel (user decision) -- resolves the cross-domain disagreement found in the damper-channel survey. Census on GT3_PRC_MLA-v3.txt (verified directly, not recalled): log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5 all session (dash/steering-wheel domain, mutually agreeing); abs_switch_pos reads a constant 6 (ECU domain) for the SAME session and is NOT trusted per this decision. Range [0,11] matches car_data.json's own abs table's real row count (0=Off through 11=monsoon emergency). Re-added 2026-10-23 (work order 4e item 8): modules/setup_state.py reads the current ABS map from it (session mode), since the setup sheet has no ABS field."
     },
     "log_susp_travel_fl": {
       "label": "Suspension Travel FL",
@@ -308,46 +298,6 @@
       ],
       "required": false,
       "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
-    },
-    "tpms_press_fl": {
-      "label": "Tyre Pressure FL",
-      "unit": "bar",
-      "range": [
-        0.5,
-        4.0
-      ],
-      "required": false,
-      "note": "2026-09-24: whitelisted for modules/decision_frame.py's tyre_pressure_flags check-only display. Previously present in both real exports but unread (docs/channel_requirements.md, 371 tpms* channels total on this car -- only these 8 press/temp channels wanted). Range [0.5,4.0] bar excludes every known startup/dropout glitch found by direct census (Dubai ~20.47 bar spike at channel start; v3 ~6.2 bar at start, one isolated ~296.7 bar dropout) while covering the full plausible cold-to-hot range -- verified real cornering-phase values on both sessions sit 1.6-1.9 bar (diagnostics/inspect_tpms_pressure_cornering_phase.py (script at tag pre-prune-2026-10-22))."
-    },
-    "tpms_press_fr": {
-      "label": "Tyre Pressure FR",
-      "unit": "bar",
-      "range": [
-        0.5,
-        4.0
-      ],
-      "required": false,
-      "note": "Same channel family as tpms_press_fl -- see its note."
-    },
-    "tpms_press_rl": {
-      "label": "Tyre Pressure RL",
-      "unit": "bar",
-      "range": [
-        0.5,
-        4.0
-      ],
-      "required": false,
-      "note": "Same channel family as tpms_press_fl -- see its note."
-    },
-    "tpms_press_rr": {
-      "label": "Tyre Pressure RR",
-      "unit": "bar",
-      "range": [
-        0.5,
-        4.0
-      ],
-      "required": false,
-      "note": "Same channel family as tpms_press_fl -- see its note."
     }
   },
   "corner_speed_thresholds": {

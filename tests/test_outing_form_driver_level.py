@@ -1,5 +1,9 @@
-# Regression: decision-frame Generate crashed on detached/absent Outing
-# objects (lazy Outing.driver after session close). Headless Qt form against
+# Regression: Generate crashed on detached/absent Outing objects (lazy
+# Outing.driver after session close; seen in the retired decision frame,
+# kept for the setup-engine panel that replaced it 2026-10-22). Driver level
+# no longer enters the recommendation (D6), so the checks are that Generate
+# runs on every reopen shape and the driver combo shows the stored driver.
+# Headless Qt form against
 # a throwaway SQLite DB -- the shared sessionmaker is rebound per test and
 # restored, data/setuptool.db is never connected. Stability input = real
 # NBR JST 29 summaries from the default-path golden (the Dubai goldens were
@@ -76,20 +80,6 @@ def _reopen(model, row_id):
     return obj
 
 
-@pytest.fixture
-def spy(monkeypatch):
-    import modules.decision_frame as df
-    seen = {}
-    real = df.generate_candidates
-
-    def wrapper(*args, **kwargs):
-        seen["driving_level"] = kwargs.get("driving_level")
-        return real(*args, **kwargs)
-
-    monkeypatch.setattr(df, "generate_candidates", wrapper)
-    return seen
-
-
 def _form(weekend_id, outing=None):
     from models.raceweekend import RaceWeekend
     from ui.views.outing_form import OutingForm
@@ -98,48 +88,46 @@ def _form(weekend_id, outing=None):
 
 def _generate(form, summaries):
     form.stability_result = {"summaries": summaries}
-    form._generate_decision_frame()
+    form._generate_setup()
+    # both layers rendered and kept with the result
+    assert set(form.stability_result["setup_engine"]) == {"data_layer", "engineer_layer"}
 
 
-def test_reopened_outing_with_driver(db, app, spy, real_summaries):
+def test_reopened_outing_with_driver(db, app, real_summaries):
     from models.outing import Outing
     ids = _seed([("A Driver", 3)])
     oid = _add_outing(ids["weekend"], ids["drivers"][0], 1)
     form = _form(ids["weekend"], _reopen(Outing, oid))
     assert form.driver_combo.currentData() == ids["drivers"][0]  # real driver_id unaffected
     _generate(form, real_summaries)
-    assert spy["driving_level"] == 3
 
 
-def test_new_outing_after_first_save(db, app, spy, real_summaries):
+def test_new_outing_after_first_save(db, app, real_summaries):
     ids = _seed([("A Driver", 3)])
     form = _form(ids["weekend"])
     form.driver_combo.setCurrentIndex(form.driver_combo.findData(ids["drivers"][0]))
     form._persist_outing()
     _generate(form, real_summaries)
-    assert spy["driving_level"] == 3
 
 
-def test_new_outing_never_saved(db, app, spy, real_summaries):
+def test_new_outing_never_saved(db, app, real_summaries):
     ids = _seed([("A Driver", 3)])
     form = _form(ids["weekend"])
     assert form.outing is None
     form.driver_combo.setCurrentIndex(form.driver_combo.findData(ids["drivers"][0]))
     _generate(form, real_summaries)
-    assert spy["driving_level"] == 3
 
 
-def test_new_outing_defaults_to_no_driver(db, app, spy, real_summaries):
+def test_new_outing_defaults_to_no_driver(db, app, real_summaries):
     # drivers exist but nothing is stored for this weekend -> "(no driver)",
-    # never the alphabetically first driver; veto gets the unknown level
+    # never the alphabetically first driver
     ids = _seed([("A Driver", 3), ("B Driver", 8)])
     form = _form(ids["weekend"])
     assert form.driver_combo.currentData() is None
     _generate(form, real_summaries)
-    assert spy["driving_level"] is None
 
 
-def test_no_driver_save_reopen_round_trip(db, app, spy, real_summaries):
+def test_no_driver_save_reopen_round_trip(db, app, real_summaries):
     from models.outing import Outing
     ids = _seed([("A Driver", 3)])
     form = _form(ids["weekend"])
@@ -149,25 +137,21 @@ def test_no_driver_save_reopen_round_trip(db, app, spy, real_summaries):
     reopened = _form(ids["weekend"], _reopen(Outing, oid))
     assert reopened.driver_combo.currentData() is None
     _generate(reopened, real_summaries)
-    assert spy["driving_level"] is None
 
 
-def test_veto_follows_displayed_driver_before_save(db, app, spy, real_summaries):
-    # outing saved with driver A; combo switched to B, not saved -> B's level,
-    # same on-screen convention as setup_data
+def test_generate_after_unsaved_driver_switch(db, app, real_summaries):
+    # outing saved with driver A; combo switched to B, not saved
     from models.outing import Outing
     ids = _seed([("A Driver", 3), ("B Driver", 8)])
     oid = _add_outing(ids["weekend"], ids["drivers"][0], 1)
     form = _form(ids["weekend"], _reopen(Outing, oid))
     form.driver_combo.setCurrentIndex(form.driver_combo.findData(ids["drivers"][1]))
     _generate(form, real_summaries)
-    assert spy["driving_level"] == 8
 
 
-def test_no_driver_available_passes_none(db, app, spy, real_summaries):
+def test_no_driver_available_passes_none(db, app, real_summaries):
     ids = _seed([])
     _generate(_form(ids["weekend"]), real_summaries)
-    assert spy["driving_level"] is None
 
 
 def test_driver_lookup_none_is_clean(db):
@@ -183,9 +167,9 @@ def test_generate_failure_is_logged_and_shown(db, app, capsys, monkeypatch):
     def boom():
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(form, "_generate_decision_frame", boom)
-    form._on_generate_decision_frame()
+    monkeypatch.setattr(form, "_generate_setup", boom)
+    form._on_generate_setup()
     out = capsys.readouterr()
-    assert "[DECISION_FRAME] Generate failed:" in out.out
+    assert "[SETUP_ENGINE] Generate failed:" in out.out
     assert "RuntimeError: boom" in out.err  # traceback.print_exc -> stderr
-    assert form.decision_frame_summary_label.text() == "Generate failed: RuntimeError: boom"
+    assert form.setup_summary_label.text() == "Generate failed: RuntimeError: boom"

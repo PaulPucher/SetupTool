@@ -42,6 +42,7 @@ STABILITY_ESTIMATION_REQUIRED_KEYS = [
 ]
 CLASSIFICATION_REQUIRED_KEYS = [
     "STRONG_CSF", "STRONG_CSR", "MODERATE_CSF", "MODERATE_CSR", "stab_neg_thresh_Nm_per_deg",
+    "cs_boundary_margin_front", "cs_boundary_margin_rear",
     "thresholds_calibrated_for_sideslip_source", "thresholds_calibrated_for_tyre_fit_mode",
 ]
 def test_stability_estimation_required_keys_present(raw_params):
@@ -155,9 +156,13 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 20 (2026-10-22): pruning -- LS blocks and seven fit_manifest config
     # echoes removed; corner summaries untouched, every shape check below
     # unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 20, (
+    # 21 (2026-10-22): recommendation overhaul -- the stored analysis gains the
+    # setup engine layers; corner summaries untouched, shape checks unchanged.
+    # 22 (2026-10-23): work order 4e -- per-axle boundary margin and engine
+    # rules (config edits); corner summaries untouched, shape checks unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 22, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 20 -- update this test deliberately if the version was bumped again"
+        "written for 22 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

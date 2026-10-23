@@ -2,11 +2,11 @@
 
 ### NOW
 
-Rewritten 2026-10-22 (records sync after recommendation overhaul step 1, branch
-new-laps). The header, REPO STATE and NEXT this replaces are preserved
-verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-22 STATUS rewrite)";
-older NOW items remain under the 2026-10-21 / 2026-10-20 / 2026-10-11 /
-2026-09-30 / 2026-09-20 sections. The rest of this block is unchanged.
+Rewritten 2026-10-23 (after work order 4e, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23 STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
 
 READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
 PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
@@ -22,123 +22,69 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD 7dfb15c ("Close stability chain: fit L, Fy/Fz CS, drag Level
-  1 (schema 19)"), working tree clean at that head (checked 2026-10-22).
-  Since then NOT committed: the 2026-10-22 records sync (this STATUS,
-  DECISIONS Q-UTIL entry, thesis_notes 'Recommendation inventory',
-  PRODUCTION.md 10 sentence) and diagnostics/inspect_nis_window_share.py
-  with diagnostics/results_nis_window_share_20261022/. [2026-10-22: plus
-  the whole pruning package P1a + P1b + P1c, uncommitted; tag
-  pre-prune-2026-10-22 on 7dfb15c preserves the pre-pruning state.]
-- DEFAULT ANALYSIS PATH: fit L (tyre_fit_auto.tyre_fit_mode
-  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 19 (17 -> 18 on 2026-10-21:
-  throttle range gate [0, 110] %; 18 -> 19 on 2026-10-21: drag c_D A 1.0 m^2,
-  Level 1). Thresholds on 19: front -0.137 / -0.023, rear -0.002 / +0.098
-  (adopted); cs_margin 0.01; goldens regenerated on 19. The per_session path
-  stays selectable until the cleanup round. [2026-10-22, P1c: schema 19 -> 20
-  (payload shape only: LS blocks and seven fit_manifest config echoes gone;
-  values bit-identical, no re-derivation); goldens regenerated on 20, only
-  _meta differs. Fit L is now the only fit mode -- per_session removed in
-  P1b.]
-- CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
-  unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
-  Fy / Fz (C = 1.0, E = -1, mu = demonstrated utilisation p99.5, B free,
-  braking-only filter |Fx| / Fz > 0.3); D4-L gate with K zones [6, 30] ok,
-  [5.5, 6) and (30, 35] marginal; EKF with per-session Q-UPPER,
-  hard-bound-only reset, R_ay with the measured ay noise floor, R_yaw = the
-  measured gyro floor; NIS gate 0.104 / 0.011 (re-derived on fit L
-  2026-10-20); CS on Fy / Fz with reference band [5.5, 35] per rad; floor
-  events at -0.53 with measured attributes (the event layer under fit L);
-  CS linear reference accepted only within [0.5, 2] x the session median of
-  the axle's band candidates (R26 source fix 2026-10-20); thresholds front
-  -0.137 / -0.023, rear -0.002 / +0.098 (re-derived and adopted on schema 19,
-  2026-10-21; before ~~-0.139 / -0.023, -0.002 / +0.100~~); cs_margin 0.01
-  (unchanged on 19); drag c_D A 1.0 m^2 (Level 1, literature);
-  stab_neg_thresh 0 (sign criterion).
-- CHAIN STATUS: CLOSED -- final on the development set (DECISIONS 'Analysis
-  chain FINAL (re-declared)', 2026-10-21) and committed in 7dfb15c.
-- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
-  70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
-  package (pending). (Older records call the 14 sessions "analysis set";
-  naming notes added 2026-10-21.)
-- TESTS: full suite 657 passed, 1 xfailed, 0 failed, 0 skipped (44:04,
-  2026-10-22, schema 19, after the q_phys reference refresh);
-  test_stability.py exit 0. Goldens: NBR JST 29 and Le Castellet 32 on the
-  default path.
-- LEGACY PATH: per_session shares the nis_gate keys and falls back under the
-  fit-L gate values (author ruling 2026-10-20); tests pin its own 2026-10-11
-  values; removed in the cleanup round.
-- OPEN: bib -- the five formerly missing entries now exist (Rao.2006,
-  Voser.2010, Farroni.2016, Farroni.2018, Acosta.2018; keys set in
-  PRODUCTION.md 2026-10-21); two entries with an empty key
-  (@proceedings{.2014, @proceedings{.2024) -- author. "page to verify"
-  items in PRODUCTION.md stay open.
+  new-laps HEAD 21d476a ("Pruning: fit L only, legacy paths and displays
+  removed, diagnostics 148 -> 28, schema 20"); tag pre-prune-2026-10-22 on
+  7dfb15c.
+  NOT committed since 21d476a: work order 4a (inspect_cs_margin_combined.py,
+  results_cs_margin_combined_20261022/), the recommendation overhaul 4b-4d
+  (corner_aggregation.py, setup_state.py, classifier.py, setup_engine.py,
+  mechanisms.json, setup_windows.json, Setup Recommendation panel, removal of
+  the old engines / configs / tests / two diagnostics) and work order 4e
+  (per-axle margin, engine rulings, log_abs_pos, schema 22,
+  inspect_engine_4e.py + results_engine_4e_20261023/, goldens regenerated)
+  and these records. Commit point = this stop (full suite ran, see TESTS).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 22 (21 -> 22 on
+  2026-10-23: per-axle boundary margin and the 4e engine rules, config edits
+  outside Settings). Chain values unchanged since schema 19 (goldens: fit
+  manifest, gate, summaries, floor events bit-identical).
+- CHAIN: unchanged, see the superseded block of 2026-10-22c for the full
+  statement (measured axle loads, fit L, D4-L gate, EKF Q-UPPER, NIS gate
+  0.104 / 0.011, CS on Fy / Fz, floor events -0.53, thresholds front
+  -0.137 / -0.023, rear -0.002 / +0.098, drag c_D A 1.0 m^2).
+- CLASSIFIER (D2, live): limiting = CS < -classification.cs_boundary_margin_
+  front (0.062) / _rear (0.076), author ruling 2026-10-22 (4a p90 combined);
+  front US moderate / strong in the strong tier; rear OS strong; rear below
+  MODERATE_CSR above the boundary = information; INST strong in any phase;
+  high-speed front-only = low priority; [MARGINAL] keeps cs_margin 0.01.
+- RECOMMENDATION: modules/setup_engine.py (DECISIONS 'Work order 4e
+  rulings'): rank severity -> repetition -> TC demotion -> preference ->
+  effort -> headroom; preference only where the cell matches lever and
+  table direction (5 unsupported cells listed in mechanisms.json); INST
+  agrees with oversteer feedback; session layer reports per-lap cell shares
+  and the counted-corner share, no threshold; side-effect texts (TE Tab.
+  5.14); ABS current map from log_abs_pos. 14 sessions: 12 corner
+  recommendations (was 14; 3 changed, 1 by the ranking order alone). NBR JST
+  29: 2 (C8, C11, INST); Le Castellet 32: none.
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63,
+  69, 70; Le Castellet 25, 32). THESIS ANALYSIS SET: clean data package
+  (pending).
+- TESTS: full suite (2026-10-23, schema 22) 388 passed, 1 xfailed, 0 failed
+  (33:42); the xfail is the known single-sample slip-angle window.
+  test_stability.py NBR 29 and Le Castellet 32 match the regenerated goldens.
+- diagnostics/: 28 scripts (README lists each; +inspect_engine_4e, HELD for
+  a keep / delete ruling at commit).
 
 RULED / DONE SINCE THE LAST REWRITE
-- Q-UTIL REJECTED (author, 2026-10-21; recorded 2026-10-22, DECISIONS
-  'Q-UTIL REJECTED'): utilisation is biased by each axle's own mu_demo; the
-  secant ratio carries a structural front / rear offset; mid-corner
-  coverage remains a stated limitation.
-- Recommendation overhaul step 1 (read-only rule inventory, 2026-10-22):
-  DONE. Finding recorded in thesis_notes 'Recommendation inventory: cause
-  of zero recommendations on the goldens' (min_severity, not the
-  consistency gate, removes most corners; classifier severity is the root
-  cause; no unstable_yaw rule outside entry_1_brake). NIS window-share
-  census (author EXECUTE 2026-10-22): diagnostics/inspect_nis_window_share.py,
-  results in diagnostics/results_nis_window_share_20261022/.
-- Recommendation overhaul APPROVED (author, 2026-10-22; DECISIONS
-  'Recommendation overhaul rulings', D1-D9).
+- 4a margin ruling and the 4b-4d OPEN points a-g ruled (author 2026-10-22,
+  work order 4e; answers A-D 2026-10-23, EXECUTE 2026-10-23): margin
+  0.062 / 0.076; damper step fine; session_share_threshold stays null,
+  layer reported; INST agrees with oversteer, conflicts with understeer
+  feedback; preference -> effort order; unsupported preference cells
+  ignored; TE Tab. 5.14 texts on the ruled directions, opposite null; bib
+  TE Bd. 5 = Trzesniowski.2019, Milliken / Segers to verify; log_abs_pos
+  re-added, session mode, "map changed in session (last valid lap: N)".
+  Records: DECISIONS 'Work order 4e rulings', thesis_notes 'Work order 4e:
+  per-axle boundary margin and engine rulings', PRODUCTION.md 9 / 10.
 
-NEXT (author order 2026-10-22, after the overhaul approval)
-[2026-10-22b: replaces the earlier 2026-10-22 NEXT, preserved verbatim
-under "SUPERSEDED NEXT (2026-10-22b STATUS update)".]
-1. Pruning inventory (read-only; D9). [2026-10-22: DONE; P1a test
-   foundation (fixture and test_stability.py on fit L) and P1b removals
-   DONE, uncommitted -- DECISIONS 'Pruning rulings' / 'P1b removals done'.
-   Full suite 598 passed, 1 xfailed, 1 failed
-   (test_auto_fit_wiring::test_forced_fallback_via_impossible_gate_thresholds
-   expects fit status 'ok' on Dubai, fit L gives 'marginal' -- author rules);
-   test_stability.py both goldens match. NEXT inside the package: P1c
-   diagnostics (82 scripts import removed symbols), then the commit.]
-   [2026-10-22, P1c DONE, uncommitted (DECISIONS 'P1c diagnostics pruned';
-   thesis_notes 'Diagnostics pruning P1c'): forced-fallback test drops the
-   fit-status assertion; schema 20, goldens regenerated (only _meta
-   differs); pdf_export "small" scale removed; new guard test
-   test_observer_peak_axle_force_is_mu_times_fz. diagnostics/: 28 scripts
-   kept (README), 106 scripts and _attic/ (35 files) deleted, 14 HELD for
-   an author ruling (README 'Held'); references in config / PLAN /
-   thesis_notes carry "(script at tag pre-prune-2026-10-22)". NEXT: author
-   rules on the 14 held scripts, then full suite and the commit.]
-   [2026-10-22, P1c finish (author rulings): 12 held scripts deleted; the
-   tag pointer extended to modules/ and tests/ comments, DECISIONS.md,
-   PRODUCTION.md and line-wrapped mentions (90 in PLAN / thesis_notes);
-   diagnostics/ = 30 scripts, static re-scan clean, test_stability NBR 29
-   green. OPEN: smoke_test_corner_trace_dialog and
-   smoke_test_cache_sidecar_analyse_contract have their LS step removed but
-   FAIL on app changes that are not LS (diagnostics/README 'Held') -- author
-   rules; then full suite and the commit.]
-   [2026-10-22, author ruling: both smoke tests deleted (stale before the
-   pruning: lap-default change, csv_path guard, hardcoded path, Dubai
-   data). P1c COMPLETE: diagnostics/ = 28 scripts; the P1b full run counts
-   for the commit.]
-2. Margin diagnostic (the combined boundary margin of D2).
-3. Engine build, steps 4b-4d (DECISIONS 'Recommendation overhaul rulings').
-4. Cleanup removals. Carried items from the rule inventory (no code change
-   yet):
-   a. LS absolute thresholds (decision_frame.json ls_threshold_evidence
-      STRONG_LSF / STRONG_LSR, inventory A48): pre-fit-L estimator.
-   b. kerb_blowoff_evidence severity_threshold_g (inventory A53): derived
-      on Dubai + v3 only; Dubai is outside the development set.
-   c. Stale comment ui/views/outing_form.py:3783-3784 (weekend PDF export
-      'removed, unwired' -- it is wired, outings.py:63).
-   d. config/recommendations.json _comment_elicitation_provenance vs the
-      rule data.
-   e. Golden _meta.purpose still reads 'schema 16'.
-   Plus the earlier cleanup-round items (per_session / prior_anchored
-   paths, change detector and NIS-window trigger, fallback-reference keys,
-   stale diagnostics).
-(Not in this list, unchanged in the queue: the clean data package; D8 fixes
-the coding scheme before it.)
+NEXT
+1. Author: app check of the Setup Recommendation panel (ABS line "current
+   N", session line with single-lap cells) and the Settings page.
+2. Author: keep / delete ruling for diagnostics/inspect_engine_4e.py, then
+   the commit of 4a + 4b-4d + 4e.
+3. Review instance: PRODUCTION.md 202 cites Trzesniowski.2019b (Abb. 5.89)
+   while TE Bd. 5 is now Trzesniowski.2019 -- which volume is 2019b.
+4. Cleanup carried items: c (stale weekend-PDF comment) to check. Clean data
+   package; D8 fixes the coding scheme before it.
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -9341,6 +9287,253 @@ superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
 
 ---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-23 STATUS rewrite)
+
+NOW (as written before the 2026-10-23 rewrite)
+
+Rewritten 2026-10-22c (after work order 4a and the unattended package
+4b-4d, branch new-laps). The header, REPO STATE, RULED / DONE and NEXT this
+replaces are preserved verbatim under "SUPERSEDED NOW-BLOCK CONTENT
+(2026-10-22c STATUS rewrite)"; older NOW items remain under the earlier
+superseded sections. The rest of this block is unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD 21d476a ("Pruning: fit L only, legacy paths and displays
+  removed, diagnostics 148 -> 28, schema 20") -- the pruning package is
+  committed; tag pre-prune-2026-10-22 on 7dfb15c.
+  NOT committed since 21d476a: work order 4a (diagnostics/inspect_cs_margin_
+  combined.py, results diagnostics/results_cs_margin_combined_20261022/) and
+  the recommendation overhaul 4b-4d (Parts 1-5: modules/corner_aggregation.py,
+  modules/setup_state.py, modules/classifier.py, modules/setup_engine.py,
+  config/mechanisms.json, config/setup_windows.json, parameters.json
+  classification.cs_boundary_margin and setup_engine block, the Setup
+  Recommendation panel, removal of recommendation.py / decision_frame.py /
+  damper_motion.py / recommendations.json / decision_frame.json / car.json,
+  their tests, Settings sections and two diagnostics; schema 21; goldens
+  regenerated) and these records.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 21 (20 -> 21 on
+  2026-10-22: payload carries the setup engine layers; classifier per D2).
+  Chain values unchanged since schema 19 (goldens: fit manifest, gate,
+  summaries, floor events bit-identical).
+- CHAIN: unchanged, see the superseded block of 2026-10-22c for the full
+  statement (measured axle loads, fit L, D4-L gate, EKF Q-UPPER, NIS gate
+  0.104 / 0.011, CS on Fy / Fz, floor events -0.53, thresholds front
+  -0.137 / -0.023, rear -0.002 / +0.098, drag c_D A 1.0 m^2).
+- CLASSIFIER (D2, live): limiting = CS < -classification.cs_boundary_margin
+  (0.01 interim, PENDING the 4a combined-margin ruling); front US moderate /
+  strong in the strong tier; rear OS strong; rear below MODERATE_CSR above
+  the boundary = information; INST strong in any phase; high-speed
+  front-only = low priority. STRONG_CSR and MODERATE_CSF set no verdict.
+- RECOMMENDATION: modules/setup_engine.py live (D1-D7; DECISIONS 'Setup
+  engine LIVE'). NBR JST 29: 2 corner recommendations (C8, C11, INST);
+  Le Castellet 32: none.
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63,
+  69, 70; Le Castellet 25, 32). THESIS ANALYSIS SET: clean data package
+  (pending).
+- TESTS: full suite (2026-10-22c, schema 21) 378 passed, 1 xfailed, 1 FAILED
+  (38:17): test_cache_identity_settings_inputs::test_settings_inputs_cover_
+  every_section2_estimator_field -- the repeat-rule fields had been put in
+  the estimator-field list; moved to their own Settings lists (not part of
+  the cache identity), test unchanged; that file 16 passed, settings tests
+  10 passed after the fix. Suite count fell from 657 with the deleted
+  old-engine tests (test_decision_frame, test_display_hardening,
+  test_damper_motion).
+  test_stability.py: NBR 29 and Le Castellet 32 match the regenerated
+  goldens (now including the recommendations part).
+- diagnostics/: 27 scripts (README lists each; +inspect_cs_margin_combined,
+  -generate_decision_layer_figure, -smoke_test_settings_view).
+
+RULED / DONE SINCE THE LAST REWRITE
+- Work order 4a (author EXECUTE 2026-10-22): combined CS margin computed,
+  report only; results in thesis_notes 'Combined CS boundary margin (4a)
+  and the setup engine'. p90 combined front 0.062, rear 0.076 (observer
+  term dominates). No config change.
+- Work order 4b-4d (author EXECUTE 2026-10-22, unattended): Parts 1-5 done,
+  uncommitted; DECISIONS 'Setup engine LIVE', 'Classifier per D2 live',
+  'Engine rules live'; PRODUCTION.md 9 and 10 rewritten.
+
+NEXT
+1. Review instance: the combined-margin ruling (4a numbers) ->
+   classification.cs_boundary_margin value and derived_from; which veh
+   reading (max or rss) is canonical.
+2. Review instance / author: the OPEN science items of 4b-4d (report of
+   2026-10-22c; list repeated in thesis_notes entry 'Combined CS boundary
+   margin (4a) and the setup engine' where they are findings):
+   a. damper step "fine" (1 click) vs "exploratory" (2 clicks);
+   b. session_share_threshold (D7) value;
+   c. INST vs driver feedback = neutral (no feedback axis);
+   d. engineer-matrix cells whose recorded direction contradicts the
+      mechanism table (preference is lever-only, direction from the table);
+   e. effort-first ranking puts tc_lat on top for most INST corners;
+   f. TE Tab. 5.14 side-effect wording (text slots empty) and the TE Bd. 5
+      bib key;
+   g. log_abs_pos removed with the old engine (ABS bracket not readable).
+3. Author: app check of the Setup Recommendation panel and the Settings
+   page (repeat rule fields; sections 4 / driver weights gone).
+4. Author: commit of 4a + 4b-4d (full suite ran at this stop).
+5. Cleanup carried items: 4a/4b/4d of the previous list are moot (configs
+   deleted); c (stale weekend-PDF comment) to check; e done (golden _meta
+   purpose reads the schema from code). Clean data package; D8 fixes the
+   coding scheme before it.
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-22c STATUS rewrite)
+
+NOW (as written before the 2026-10-22c rewrite)
+
+Rewritten 2026-10-22 (records sync after recommendation overhaul step 1, branch
+new-laps). The header, REPO STATE and NEXT this replaces are preserved
+verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-22 STATUS rewrite)";
+older NOW items remain under the 2026-10-21 / 2026-10-20 / 2026-10-11 /
+2026-09-30 / 2026-09-20 sections. The rest of this block is unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD 7dfb15c ("Close stability chain: fit L, Fy/Fz CS, drag Level
+  1 (schema 19)"), working tree clean at that head (checked 2026-10-22).
+  Since then NOT committed: the 2026-10-22 records sync (this STATUS,
+  DECISIONS Q-UTIL entry, thesis_notes 'Recommendation inventory',
+  PRODUCTION.md 10 sentence) and diagnostics/inspect_nis_window_share.py
+  with diagnostics/results_nis_window_share_20261022/. [2026-10-22: plus
+  the whole pruning package P1a + P1b + P1c, uncommitted; tag
+  pre-prune-2026-10-22 on 7dfb15c preserves the pre-pruning state.]
+- DEFAULT ANALYSIS PATH: fit L (tyre_fit_auto.tyre_fit_mode
+  "literature_bounded"), ANALYSIS_SCHEMA_VERSION 19 (17 -> 18 on 2026-10-21:
+  throttle range gate [0, 110] %; 18 -> 19 on 2026-10-21: drag c_D A 1.0 m^2,
+  Level 1). Thresholds on 19: front -0.137 / -0.023, rear -0.002 / +0.098
+  (adopted); cs_margin 0.01; goldens regenerated on 19. The per_session path
+  stays selectable until the cleanup round. [2026-10-22, P1c: schema 19 -> 20
+  (payload shape only: LS blocks and seven fit_manifest config echoes gone;
+  values bit-identical, no re-derivation); goldens regenerated on 20, only
+  _meta differs. Fit L is now the only fit mode -- per_session removed in
+  P1b.]
+- CHAIN: measured axle loads (strain-gauge damper force x motion ratio + ARB,
+  unsprung and roll-centre terms; NBR event zero); tyre fit L per axle on
+  Fy / Fz (C = 1.0, E = -1, mu = demonstrated utilisation p99.5, B free,
+  braking-only filter |Fx| / Fz > 0.3); D4-L gate with K zones [6, 30] ok,
+  [5.5, 6) and (30, 35] marginal; EKF with per-session Q-UPPER,
+  hard-bound-only reset, R_ay with the measured ay noise floor, R_yaw = the
+  measured gyro floor; NIS gate 0.104 / 0.011 (re-derived on fit L
+  2026-10-20); CS on Fy / Fz with reference band [5.5, 35] per rad; floor
+  events at -0.53 with measured attributes (the event layer under fit L);
+  CS linear reference accepted only within [0.5, 2] x the session median of
+  the axle's band candidates (R26 source fix 2026-10-20); thresholds front
+  -0.137 / -0.023, rear -0.002 / +0.098 (re-derived and adopted on schema 19,
+  2026-10-21; before ~~-0.139 / -0.023, -0.002 / +0.100~~); cs_margin 0.01
+  (unchanged on 19); drag c_D A 1.0 m^2 (Level 1, literature);
+  stab_neg_thresh 0 (sign criterion).
+- CHAIN STATUS: CLOSED -- final on the development set (DECISIONS 'Analysis
+  chain FINAL (re-declared)', 2026-10-21) and committed in 7dfb15c.
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63, 69,
+  70; Le Castellet 25, 32). THESIS ANALYSIS SET: a separate clean data
+  package (pending). (Older records call the 14 sessions "analysis set";
+  naming notes added 2026-10-21.)
+- TESTS: full suite 657 passed, 1 xfailed, 0 failed, 0 skipped (44:04,
+  2026-10-22, schema 19, after the q_phys reference refresh);
+  test_stability.py exit 0. Goldens: NBR JST 29 and Le Castellet 32 on the
+  default path.
+- LEGACY PATH: per_session shares the nis_gate keys and falls back under the
+  fit-L gate values (author ruling 2026-10-20); tests pin its own 2026-10-11
+  values; removed in the cleanup round.
+- OPEN: bib -- the five formerly missing entries now exist (Rao.2006,
+  Voser.2010, Farroni.2016, Farroni.2018, Acosta.2018; keys set in
+  PRODUCTION.md 2026-10-21); two entries with an empty key
+  (@proceedings{.2014, @proceedings{.2024) -- author. "page to verify"
+  items in PRODUCTION.md stay open.
+
+RULED / DONE SINCE THE LAST REWRITE
+- Q-UTIL REJECTED (author, 2026-10-21; recorded 2026-10-22, DECISIONS
+  'Q-UTIL REJECTED'): utilisation is biased by each axle's own mu_demo; the
+  secant ratio carries a structural front / rear offset; mid-corner
+  coverage remains a stated limitation.
+- Recommendation overhaul step 1 (read-only rule inventory, 2026-10-22):
+  DONE. Finding recorded in thesis_notes 'Recommendation inventory: cause
+  of zero recommendations on the goldens' (min_severity, not the
+  consistency gate, removes most corners; classifier severity is the root
+  cause; no unstable_yaw rule outside entry_1_brake). NIS window-share
+  census (author EXECUTE 2026-10-22): diagnostics/inspect_nis_window_share.py,
+  results in diagnostics/results_nis_window_share_20261022/.
+- Recommendation overhaul APPROVED (author, 2026-10-22; DECISIONS
+  'Recommendation overhaul rulings', D1-D9).
+
+NEXT (author order 2026-10-22, after the overhaul approval)
+[2026-10-22b: replaces the earlier 2026-10-22 NEXT, preserved verbatim
+under "SUPERSEDED NEXT (2026-10-22b STATUS update)".]
+1. Pruning inventory (read-only; D9). [2026-10-22: DONE; P1a test
+   foundation (fixture and test_stability.py on fit L) and P1b removals
+   DONE, uncommitted -- DECISIONS 'Pruning rulings' / 'P1b removals done'.
+   Full suite 598 passed, 1 xfailed, 1 failed
+   (test_auto_fit_wiring::test_forced_fallback_via_impossible_gate_thresholds
+   expects fit status 'ok' on Dubai, fit L gives 'marginal' -- author rules);
+   test_stability.py both goldens match. NEXT inside the package: P1c
+   diagnostics (82 scripts import removed symbols), then the commit.]
+   [2026-10-22, P1c DONE, uncommitted (DECISIONS 'P1c diagnostics pruned';
+   thesis_notes 'Diagnostics pruning P1c'): forced-fallback test drops the
+   fit-status assertion; schema 20, goldens regenerated (only _meta
+   differs); pdf_export "small" scale removed; new guard test
+   test_observer_peak_axle_force_is_mu_times_fz. diagnostics/: 28 scripts
+   kept (README), 106 scripts and _attic/ (35 files) deleted, 14 HELD for
+   an author ruling (README 'Held'); references in config / PLAN /
+   thesis_notes carry "(script at tag pre-prune-2026-10-22)". NEXT: author
+   rules on the 14 held scripts, then full suite and the commit.]
+   [2026-10-22, P1c finish (author rulings): 12 held scripts deleted; the
+   tag pointer extended to modules/ and tests/ comments, DECISIONS.md,
+   PRODUCTION.md and line-wrapped mentions (90 in PLAN / thesis_notes);
+   diagnostics/ = 30 scripts, static re-scan clean, test_stability NBR 29
+   green. OPEN: smoke_test_corner_trace_dialog and
+   smoke_test_cache_sidecar_analyse_contract have their LS step removed but
+   FAIL on app changes that are not LS (diagnostics/README 'Held') -- author
+   rules; then full suite and the commit.]
+   [2026-10-22, author ruling: both smoke tests deleted (stale before the
+   pruning: lap-default change, csv_path guard, hardcoded path, Dubai
+   data). P1c COMPLETE: diagnostics/ = 28 scripts; the P1b full run counts
+   for the commit.]
+2. Margin diagnostic (the combined boundary margin of D2).
+3. Engine build, steps 4b-4d (DECISIONS 'Recommendation overhaul rulings').
+4. Cleanup removals. Carried items from the rule inventory (no code change
+   yet):
+   a. LS absolute thresholds (decision_frame.json ls_threshold_evidence
+      STRONG_LSF / STRONG_LSR, inventory A48): pre-fit-L estimator.
+   b. kerb_blowoff_evidence severity_threshold_g (inventory A53): derived
+      on Dubai + v3 only; Dubai is outside the development set.
+   c. Stale comment ui/views/outing_form.py:3783-3784 (weekend PDF export
+      'removed, unwired' -- it is wired, outings.py:63).
+   d. config/recommendations.json _comment_elicitation_provenance vs the
+      rule data.
+   e. Golden _meta.purpose still reads 'schema 16'.
+   Plus the earlier cleanup-round items (per_session / prior_anchored
+   paths, change detector and NIS-window trigger, fallback-reference keys,
+   stale diagnostics).
+(Not in this list, unchanged in the queue: the clean data package; D8 fixes
+the coding scheme before it.)
+
 
 ## SUPERSEDED NEXT (2026-10-22b STATUS update)
 

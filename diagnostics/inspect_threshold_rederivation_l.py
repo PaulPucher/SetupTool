@@ -119,7 +119,7 @@ def compute(key):
                                             estimate_yaw_moment_stability, summarise_corners)
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
     from modules.corner_analysis import reclassify_speed_classes
-    from modules.recommendation import aggregate_by_corner
+    from modules.corner_aggregation import aggregate_by_corner
     from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
     from modules.limit_events import detect_floor_events
     t0 = time.perf_counter()

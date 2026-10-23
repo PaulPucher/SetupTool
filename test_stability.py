@@ -1,10 +1,10 @@
-# Quick end-to-end check of the DEFAULT analysis path (fit L, schema 20)
+# Quick end-to-end check of the DEFAULT analysis path (fit L, schema 21)
 # against the golden snapshot, without pytest. Runs the app's chain function
 # for function (tests/generate_golden.run_default_chain) on NBR JST outing 29
-# and compares fit manifest, NIS gate, corner summaries, floor events and the
-# classifier verdicts with tests/golden/default_nbr_jst29.json.
-# The recommendations part is left out: both recommendation engines are being
-# replaced (DECISIONS 'Recommendation overhaul rulings', 2026-10-22).
+# and compares fit manifest, NIS gate, corner summaries, floor events, the
+# classifier verdicts and the setup engine's data layer with
+# tests/golden/default_nbr_jst29.json (recommendations compared again since
+# the engine went live, 2026-10-22).
 # Regression, not correctness: a pass means nothing changed unintentionally.
 #
 # Run: python test_stability.py [nbr_jst29 | pr_lc32]   (exit 1 on a diff)
@@ -19,7 +19,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from tests._json_utils import diff_json
 from tests.generate_golden import GOLDEN_SESSIONS, golden_path, run_default_chain
 
-PARTS = ("fit_manifest", "gate_verdict", "summaries", "events", "verdicts")
+PARTS = ("fit_manifest", "gate_verdict", "summaries", "events", "verdicts", "recommendations")
 
 
 def _max_numeric_gap(diffs):
@@ -46,7 +46,8 @@ def main():
           f"fit status {man.get('status')}, gate {gate.get('verdict')} {gate.get('health_score')}, "
           f"fallback {got['fallback_used']}")
     print(f"  corner summaries {len(got['summaries'])}, floor events {len(got['events']['events'])}, "
-          f"non-ok verdicts {sum(1 for v in got['verdicts'] if v['short'] != 'ok')}")
+          f"non-ok verdicts {sum(1 for v in got['verdicts'] if v['short'] != 'ok')}, "
+          f"corner recommendations {len(got['recommendations']['corners'])}")
     print(f"  golden: commit {golden['_meta']['git_commit_hash']}, generated {golden['_meta']['generated_at_utc']}")
 
     failed = got["fallback_used"]

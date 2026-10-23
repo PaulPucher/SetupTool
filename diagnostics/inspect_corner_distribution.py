@@ -10,7 +10,7 @@
 # classify_fn will actually be evaluated against once worst-lap
 # aggregation ships alongside the re-derived thresholds -- can be
 # computed directly (min across a corner's own laps), without needing
-# modules.recommendation.aggregate_by_corner's own median-of-medians path.
+# modules.corner_aggregation.aggregate_by_corner's own median-of-medians path.
 #
 # Refuses to derive against a silently-kinematic run: if ekf_auto_pacejka
 # falls back, this raises rather than printing a distribution that looks

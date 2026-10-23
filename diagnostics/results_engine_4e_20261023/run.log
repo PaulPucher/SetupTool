@@ -1,0 +1,14 @@
+nbr_o20_jst: 109 s, gate pass, fallback False
+nbr_o05_mla: 142 s, gate pass, fallback False
+nbr_o10_jdr: 224 s, gate pass, fallback False
+nbr_o46_jst: 97 s, gate pass, fallback False
+nbr_o29_jst: 133 s, gate pass, fallback False
+nbr_o53_mla: 155 s, gate pass, fallback False
+nbr_o54_cdr: 145 s, gate pass, fallback False
+nbr_o59_mla: 151 s, gate pass, fallback False
+nbr_qp_cdr: 168 s, gate pass, fallback False
+nbr_o61_jdr: 184 s, gate pass, fallback False
+nbr_o63_cdr: 195 s, gate pass, fallback False
+pr_o25_us_v1: 105 s, gate pass, fallback False
+nbr_qp_mla: 145 s, gate pass, fallback False
+pr_o32_us_v2: 201 s, gate pass, fallback False

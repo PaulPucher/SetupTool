@@ -3,7 +3,10 @@
 Read-only scripts beside the app; not imported by it. Run from the project
 root, e.g. `python -m diagnostics.inspect_closeout_l`.
 
-Rewritten 2026-10-22 (pruning step P1c). Every script, result and record
+Rewritten 2026-10-22 (pruning step P1c). [2026-10-22, recommendation
+overhaul: generate_decision_layer_figure.py and smoke_test_settings_view.py
+deleted with the decision frame and its Settings section; the rendered
+plots_decision_layer/ figures stay as record.] Every script, result and record
 from before the pruning is preserved at git tag `pre-prune-2026-10-22`
 (`git show pre-prune-2026-10-22:diagnostics/<script>.py`). References to
 deleted scripts in config, PLAN.md and thesis_notes.md carry the note
@@ -29,6 +32,8 @@ development set (session list inlined in each script):
 - inspect_q_phys.py -- observer Q (held-over-step upper bound); also (c): tests/test_tyre_fit_literature.py reads its NBR 29 output.
 - inspect_nis_window_share.py -- NIS window-share census behind the gate (author-named, 2026-10-22).
 - inspect_drag_sensitivity.py -- drag c_D A sensitivity behind drag_coeff.
+- inspect_cs_margin_combined.py -- combined observer + vehicle-input CS boundary margin behind classification.cs_boundary_margin_front / _rear (work order 4a, 2026-10-22; values ruled 2026-10-22, 4e); reuses CANDIDATES / keep_awake from inspect_cs_margin_l.py.
+- inspect_engine_4e.py -- setup engine before / after work order 4e on the 14 sessions (recommendation changes, ranking-only effect, session-layer cell shares, log_abs_pos census), results results_engine_4e_20261023/. Referenced by thesis_notes 'Work order 4e' (CLAUDE.md Referenced class); it re-derives no config value, so under the (a)-(c) rule above it is HELD for an author keep / delete ruling at commit (2026-10-23). Reuses CANDIDATES / keep_awake from inspect_cs_margin_l.py.
 
 (b) Thesis figure sources (K3):
 - inspect_corner_distribution.py -- CS ratio / stability distributions per corner.
@@ -43,7 +48,6 @@ development set (session list inlined in each script):
 - inspect_v3_reconstruction_ground_truth.py -- reconstruction ground truth (cited in modules/wheel_loads.py).
 - inspect_v3_fr_gauge_forensics.py -- FR damper-gauge forensics figure.
 - inspect_prc_v3_sample_rates.py -- v3 channel sample-rate census.
-- generate_decision_layer_figure.py -- decision-layer flow and lever coverage figures (layer retires with D1).
 
 (c) Tooling:
 - inspect_kinematic_inputs.py -- tests/test_tyre_fit_literature.py imports steering_straights from it (straights definition).
@@ -54,4 +58,3 @@ development set (session list inlined in each script):
 - generate_channel_requirements.py -- regenerates docs/channel_requirements.md from the code and the channel export list.
 - smoke_test_analysis_lock.py -- headless Qt smoke test, analysis lock.
 - smoke_test_measurement_points_widget.py -- headless Qt smoke test, splitter / diffuser widget.
-- smoke_test_settings_view.py -- headless Qt smoke test, Settings cost-function section.

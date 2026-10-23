@@ -222,7 +222,7 @@ def aggregate_by_corner_phase(events):
 
 
 def _phase_word(phase):
-    from modules.decision_frame import PHASE_WORD_LONG
+    from modules.corner_aggregation import PHASE_WORD_LONG
     return PHASE_WORD_LONG.get(phase, phase)
 
 

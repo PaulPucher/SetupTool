@@ -22,7 +22,9 @@
 # reclassified, resolve_sideslip_beta_and_cs_inputs at the configured
 # source, CS with the inputs it hands over, stability, vertical loads,
 # summarise_corners, detect_events -- at best available accuracy (cap
-# None, as the threshold derivation), setup_data None, feedback {}. Best
+# None, as the threshold derivation), setup_data None, feedback {}.
+# 2026-10-22 (recommendation overhaul): verdicts from modules/classifier.py
+# (ruling D2), recommendations = setup engine data layer. Best
 # available and the fit-L axle loads both read the gitignored
 # config/car_data.json, so the goldens hold on a machine that has it.
 
@@ -109,20 +111,17 @@ def run_default_chain(rel_path):
         "fit_manifest": {k: v for k, v in (man or {}).items() if k not in MANIFEST_SKIP},
         "summaries": summaries, "events": events,
     }
-    # verdicts and recommendations through the app's own classifier
-    # (OutingForm._classify_corner with self=None, the precedent the
-    # removed weekend PDF export set); needs PyQt6 importable
-    from ui.views.outing_form import OutingForm
-    from modules.recommendation import generate_recommendations, load_recommendations_config
-
-    def classify_fn(summary):
-        return OutingForm._classify_corner(None, summary)
+    # verdicts through the app's classifier (modules/classifier.py) on every
+    # summary; recommendations = the setup engine's data layer on the valid
+    # analysis laps, as the app runs it (lap filter = valid laps, no setup
+    # sheet, no feedback)
+    from modules.classifier import classify_corner
+    from modules.setup_engine import data_layer
 
     out["verdicts"] = [{"stable_corner_id": s.get("stable_corner_id"), "lap_number": s.get("lap_number"),
-                        "severity": v[0], "short": v[1]} for s, v in ((s, classify_fn(s)) for s in summaries)]
-    out["recommendations"] = generate_recommendations(summaries, classify_fn, feedback_data={}, setup_data=None,
-                                                      config=load_recommendations_config(), outing=None,
-                                                      driving_level=None)
+                        "severity": v[0], "short": v[1]} for s, v in ((s, classify_corner(s)) for s in summaries)]
+    valid = {l["lap_number"] for l in laps if l.get("is_valid_for_analysis")}
+    out["recommendations"] = data_layer([s for s in summaries if s["lap_number"] in valid])
     return json_safe(out)
 
 
@@ -151,7 +150,7 @@ def main():
         with open(target, "w", encoding="utf-8") as f:
             json.dump(res, f, indent=1, allow_nan=True)
         print(f"wrote {target} ({len(res['summaries'])} corner summaries, {len(res['events']['events'])} "
-              f"events, {len(res['recommendations'])} recommendation(s))")
+              f"events, {len(res['recommendations']['corners'])} corner recommendation(s))")
 
 
 if __name__ == "__main__":

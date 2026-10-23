@@ -87,7 +87,19 @@ CAR_DATA_PATH = "config/car_data.json"
 #      cd_threshold), and fit L is the only fit mode, so the in-memory fit
 #      result always carries cs_axle_loads. Goldens differ only in _meta;
 #      no threshold re-derivation (values bit-identical).
-ANALYSIS_SCHEMA_VERSION = 20
+#  21: (2026-10-22) payload shape change, recommendation overhaul: the
+#      stored analysis carries the setup engine's data / engineer / session
+#      layers ("setup_engine"); the classifier follows ruling D2 (limiting =
+#      CS < -cs_boundary_margin). Chain values (fit, gate, summaries, floor
+#      events) unchanged; verdicts and recommendations change by design.
+#  22: (2026-10-23) work order 4e, config edits outside Settings: the
+#      boundary margin is per axle (cs_boundary_margin_front 0.062 / _rear
+#      0.076, was 0.01); the setup engine ranks preference before effort,
+#      ignores preference cells the mechanism table does not support,
+#      counts INST as agreeing with oversteer feedback, reports per-lap cell
+#      shares in the session layer and reads the ABS map from log_abs_pos.
+#      Chain values unchanged; verdicts and recommendations change.
+ANALYSIS_SCHEMA_VERSION = 22
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

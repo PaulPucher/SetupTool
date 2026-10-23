@@ -342,10 +342,8 @@ def test_classify_corner_reads_apex_region_for_apex_3_cs():
         "apex_region": {"cs_ratio_f": {"median": _strong_value("f", 0.15)}, "cs_ratio_r": healthy},
     }
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary_with_apex_region)
-    # "strong" severity additionally requires destabilising yaw (unrelated
-    # to this fix) -- CS alone below STRONG_CSF gives "moderate" severity
-    # by _classify_corner's own severity FSM; that FSM is unchanged here.
-    assert severity == "moderate"
+    # ruling D2 (2026-10-22): front limiting inside the strong tier is strong
+    assert severity == "strong"
     assert "understeer" in short
     assert "apex" in short
 
@@ -367,7 +365,7 @@ def test_classify_corner_without_apex_region_falls_back_to_apex_3_slice():
     }
     from ui.views.outing_form import OutingForm
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary_no_apex_region)
-    assert severity == "moderate"
+    assert severity == "strong"  # D2: front in the strong tier
     assert "understeer" in short
 
 
@@ -395,7 +393,7 @@ def test_classify_corner_marginal_marker_fires_within_anchored_margin():
     summary = {"phases": _healthy_phases()}
     summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", _cs_margin() / 2)}
     severity, short, long_, _colour = OutingForm._classify_corner(None, summary)
-    assert severity == "moderate"
+    assert severity == "strong"  # D2: front in the strong tier
     assert "understeer" in short
     assert "[MARGINAL]" in short
     # 2026-10-06 (author app-check ruling): the card text carries no
@@ -415,7 +413,7 @@ def test_classify_corner_marginal_marker_absent_far_from_threshold():
     summary = {"phases": _healthy_phases()}
     summary["phases"]["apex_3"]["cs_ratio_f"] = {"median": _strong_value("f", 0.15)}
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
-    assert severity == "moderate"
+    assert severity == "strong"  # D2: front in the strong tier
     assert "understeer" in short
     assert "[MARGINAL]" not in short
 
@@ -431,44 +429,32 @@ def test_classify_corner_marginal_marker_absent_when_no_verdict():
 
 
 def test_classify_corner_marginal_marker_fires_on_rear_axle_too():
-    # half the anchored margin below STRONG_CSR, inside the margin.
+    # D2: the rear class is decided by the limiting boundary alone (STRONG_CSR
+    # no longer grades it); half the anchored margin past -cs_boundary_margin_rear
+    from modules.stability_analysis import load_parameters
     from ui.views.outing_form import OutingForm
+    boundary = load_parameters()["classification"]["cs_boundary_margin_rear"]["value"]
     summary = {"phases": _healthy_phases()}
-    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": _strong_value("r", _cs_margin() / 2)}
+    summary["phases"]["apex_3"]["cs_ratio_r"] = {"median": -boundary - _cs_margin() / 2}
     severity, short, _long, _colour = OutingForm._classify_corner(None, summary)
+    assert severity == "strong"
     assert "oversteer" in short
     assert "[MARGINAL]" in short
 
 
-# --- end-to-end: the 6 live apex-keyed recommendation rules (Phase 3) --------
+# --- end-to-end: apex symptoms from apex_region alone (setup engine) --------
+# Successor of the six apex-keyed matrix-rule checks (old engine retired
+# 2026-10-22): apex_3's own slice is healthy, only apex_region carries the
+# fault on every lap, and the setup engine must still count the apex symptom
+# -- the Phase 3 wiring (summarise_corners -> aggregate_by_corner ->
+# verdict_cs_stat) feeds the new engine as it fed the old rules.
 
-APEX_RULE_IDS = [
-    "matrix_us_apx_low", "matrix_us_apx_med", "matrix_us_apx_high",
-    "matrix_os_apx_low", "matrix_os_apx_med", "matrix_os_apx_high",
-]
-
-
-@pytest.mark.parametrize("rule_id,speed_class,axle_key", [
-    ("matrix_us_apx_low", "low", "cs_ratio_f"),
-    ("matrix_us_apx_med", "medium", "cs_ratio_f"),
-    ("matrix_us_apx_high", "high", "cs_ratio_f"),
-    ("matrix_os_apx_low", "low", "cs_ratio_r"),
-    ("matrix_os_apx_med", "medium", "cs_ratio_r"),
-    ("matrix_os_apx_high", "high", "cs_ratio_r"),
+@pytest.mark.parametrize("speed_class,axle_key,symptom", [
+    ("low", "cs_ratio_f", "US"), ("medium", "cs_ratio_f", "US"), ("high", "cs_ratio_f", "US"),
+    ("low", "cs_ratio_r", "OS"), ("medium", "cs_ratio_r", "OS"), ("high", "cs_ratio_r", "OS"),
 ])
-def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_key):
-    # Synthetic case: apex_3's OWN slice is healthy everywhere (as the
-    # repair predicts it usually will be, now that it is gated/undersized)
-    # -- only apex_region carries the fault. All 6 live apex_3-phased
-    # rules (config/recommendations.json) key exclusively on "apex_3", so
-    # this is a direct test that Phase 3's wiring (summarise_corners ->
-    # aggregate_by_corner -> _phase_verdict -> classify_fn) lets them fire
-    # again from apex_region, not from apex_3's own (now often NaN) slice.
-    from modules.recommendation import generate_recommendations, load_recommendations_config
-    from ui.views.outing_form import OutingForm
-
-    def classify_fn(summary):
-        return OutingForm._classify_corner(None, summary)
+def test_apex_symptom_counts_via_apex_region_alone(speed_class, axle_key, symptom):
+    from modules.setup_engine import data_layer
 
     healthy = {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 50}
     stab_ok = {"median": 500.0, "p25": 400.0, "p75": 600.0, "n": 50}
@@ -483,7 +469,7 @@ def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_k
     summaries = []
     for lap in range(1, 5):
         phases = {p: make_phase() for p in
-                   ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")}
+                  ("entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5")}
         apex_region = {axle_key: {"median": bad_median}, other_axle_key: dict(healthy)}
         summaries.append({
             "lap_number": lap, "corner_number": 1, "speed_class": speed_class,
@@ -493,13 +479,10 @@ def test_live_apex_rule_fires_via_apex_region_alone(rule_id, speed_class, axle_k
             "phases": phases, "apex_region": apex_region,
         })
 
-    config = load_recommendations_config()
-    results = generate_recommendations(
-        summaries, classify_fn, feedback_data={}, setup_data=None, config=config,
-        outing=None, driving_level=None,
-    )
-    fired = {rid for r in results for rid in r["rules_fired"]}
-    assert rule_id in fired, f"{rule_id} did not fire; rules_fired across all results: {fired}"
+    layer = data_layer(summaries)
+    counted = [(s["symptom"], s["phase"], s["laps"]) for c in layer["corners"] for s in c["symptoms"]]
+    assert counted == [(symptom, "apex_3", 4)]
+    assert layer["corners"][0]["recommended"] is not None
 
 
 # --- Phase 3: config-driven cross-lap aggregation (median vs worst_lap) -----
@@ -564,7 +547,7 @@ def _monkeypatch_cs_aggregation(monkeypatch, mode):
 
 def test_aggregate_by_corner_worst_lap_mode_takes_min_across_laps(monkeypatch):
     _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
-    from modules.recommendation import aggregate_by_corner
+    from modules.corner_aggregation import aggregate_by_corner
 
     summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
     aggregated = aggregate_by_corner(summaries)
@@ -577,7 +560,7 @@ def test_aggregate_by_corner_worst_lap_mode_takes_min_across_laps(monkeypatch):
 
 def test_aggregate_by_corner_median_mode_is_default_when_key_absent(monkeypatch):
     _monkeypatch_cs_aggregation(monkeypatch, None)
-    from modules.recommendation import aggregate_by_corner
+    from modules.corner_aggregation import aggregate_by_corner
 
     summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
     aggregated = aggregate_by_corner(summaries)
@@ -586,51 +569,27 @@ def test_aggregate_by_corner_median_mode_is_default_when_key_absent(monkeypatch)
     assert aggregated[1]["phases"]["exit_4"]["cs_ratio_f"]["median"] == 1.0
 
 
-def test_consistency_gate_blocks_one_off_lap_under_worst_lap_aggregation(monkeypatch):
-    # The work order's own required check: worst_lap aggregation makes the
-    # AGGREGATE sensitive to a single bad lap (min is outlier-sensitive by
-    # construction), but _evaluate_rule's consistency gate re-evaluates
-    # classify_fn independently PER LAP and still requires the verdict to
-    # repeat across settings.consistency_gate.min_repeat_laps (2 of this
-    # corner's 4 laps here, config/recommendations.json) before any rule
-    # fires -- a lone bad lap must not, by itself, produce a recommendation
-    # just because the aggregation became more sensitive.
+def test_repeat_rule_blocks_one_off_lap_under_worst_lap_aggregation(monkeypatch):
+    # worst_lap aggregation makes the AGGREGATE sensitive to a single bad lap
+    # (min is outlier-sensitive by construction), but the setup engine counts
+    # a symptom only when it repeats per lap (D5: majority of valid laps, at
+    # least 2) -- a lone bad lap must not, by itself, produce a
+    # recommendation. Successor of the retired consistency-gate check.
     _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
-    from modules.recommendation import aggregate_by_corner, generate_recommendations, load_recommendations_config
-    from ui.views.outing_form import OutingForm
+    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import classify_corner
+    from modules.setup_engine import data_layer
 
-    def classify_fn(summary):
-        return OutingForm._classify_corner(None, summary)
-
-    # Threshold-relative by design (2026-10-11): 0.2 below the live STRONG_CSF,
-    # so a threshold re-derivation cannot silently move the bad lap into the
-    # margin band again (the fixed -0.7 did, once STRONG_CSF became -0.784).
+    # threshold-relative: 0.2 below the live STRONG_CSF
     import modules.stability_analysis as sa
     bad_value = sa.load_parameters()["classification"]["STRONG_CSF"]["value"] - 0.2
     summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=bad_value)
 
     aggregated = aggregate_by_corner(summaries)
-    severity, short, _long, _colour = classify_fn(aggregated[1])
-    # severity=="strong" requires a strong CS reading AND destabilising yaw
-    # together (_classify_corner's own severity ladder) -- this synthetic
-    # case only breaks CS (stability stays healthy at 500.0), so "moderate"
-    # is the correct severity here; "understeer" appearing at all is the
-    # actual point of this assertion (confirms worst_lap surfaced the bad
-    # lap's value rather than the aggregate washing it out to "ok").
-    assert severity in ("moderate", "strong") and "understeer" in short, (
-        f"expected the worst_lap aggregate to surface the single bad lap's value "
-        f"as an understeer verdict (bad lap CS {bad_value:.3f} = STRONG_CSF - 0.2), "
-        f"got severity={severity!r} short={short!r}"
-    )
+    severity, short, _long, _state = classify_corner(aggregated[1])
+    # the aggregate surfaces the bad lap (D2: front in the strong tier)
+    assert severity == "strong" and "understeer" in short
 
-    config = load_recommendations_config()
-    results = generate_recommendations(
-        summaries, classify_fn, feedback_data={}, setup_data=None, config=config,
-        outing=None, driving_level=None,
-    )
-    corner_1_hits = [r for r in results for c in r["corners"] if c["stable_corner_id"] == 1]
-    assert not corner_1_hits, (
-        f"a single one-off bad lap produced a recommendation under worst_lap aggregation -- "
-        f"the consistency gate should have blocked it (only 1 of 4 laps shows the verdict, "
-        f"below min_repeat_laps): {corner_1_hits}"
-    )
+    layer = data_layer(summaries)
+    assert not layer["corners"], (
+        f"a single one-off bad lap produced a recommendation under worst_lap aggregation: {layer['corners']}")

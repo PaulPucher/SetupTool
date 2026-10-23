@@ -1,0 +1,245 @@
+{
+  "_comment": "Setup value space per lever for the setup engine: typical-window nominal + span (soft edge, 'engineer may exceed') and edge exemptions. Moved unchanged from config/decision_frame.json (recommendation overhaul Part 1, 2026-10-22). Hard edges stay in setup_parameters.json value_space.",
+  "_comment_parameter_windows": "One entry per registry key (46). nominal + span from the registry's typical_window/value_space: span = half the typical window width (one-sided, e.g. arb_fl 4 +/- 1 from 3..5); no typical window -> nominal = value_space midpoint, span = half the legal range (wider, weaker, flagged). Plain enums without an underlying number stay null (arb_front_mount, wing_position). Null window or non-numeric current value -> neutral headroom term.",
+  "parameter_windows": {
+    "arb_fl": {
+      "nominal": 4,
+      "span": 1,
+      "source": "typical_window {min:3,max:5}"
+    },
+    "arb_fr": {
+      "nominal": 4,
+      "span": 1,
+      "source": "typical_window {min:3,max:5}"
+    },
+    "arb_rl": {
+      "nominal": 4,
+      "span": 1,
+      "source": "typical_window {min:3,max:5}"
+    },
+    "arb_rr": {
+      "nominal": 4,
+      "span": 1,
+      "source": "typical_window {min:3,max:5}"
+    },
+    "arb_front_mount": {
+      "nominal": null,
+      "span": null,
+      "note": "STAYS UNFILLABLE (review 2026-09-18), for a stronger reason than the old 'no team preference recorded': no numeric quantity underlies this enum ANYWHERE in this codebase (verified -- car_data.json's own 'arb' table is BLADE stiffness by position 1-7, a completely different parameter from arb_front_mount's P0/P1/P2 MOUNT-POINT selection). A plain enum-index midpoint (e.g. index 1 = 'P1') would have no physical referent, same category as abs_position below -- not filled."
+    },
+    "springs_front": {
+      "nominal": 265,
+      "span": 45,
+      "source": "2026-09-18: value_space.options=[220,250,280,310] N/mm (a NUMERIC enum, unlike arb_front_mount/wing_position) -- nominal=range midpoint (220+310)/2, span=half-width (310-220)/2. Not one of the 4 legal option values itself (no option sits at the midpoint) -- stated as the window CENTRE for distance purposes, not a recommendable setting."
+    },
+    "springs_rear": {
+      "nominal": 270,
+      "span": 30,
+      "source": "2026-09-18: value_space.options=[240,260,280,300] N/mm -- nominal=(240+300)/2, span=(300-240)/2. Same non-option-value caveat as springs_front."
+    },
+    "damper_bump_ls_fl": {
+      "nominal": 10,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=10; span=fallback (2026-09-18), HALF the full legal value_space range (0-18 clicks)/2=9 -- no team-typical SPAN exists, only the reference point, so this is deliberately a wide, weak window (the full legal range), not a real team-typical tolerance."
+    },
+    "damper_bump_hs_fl": {
+      "nominal": 14,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=14; span=half the full legal range (0-18)/2=9, same fallback as damper_bump_ls_fl."
+    },
+    "damper_blowoff_fl": {
+      "nominal": 6,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=6; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_ls_fl": {
+      "nominal": 7,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=7; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_hs_fl": {
+      "nominal": 8,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_ls_fr": {
+      "nominal": 10,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_hs_fr": {
+      "nominal": 14,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=14; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_blowoff_fr": {
+      "nominal": 6,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=6; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_ls_fr": {
+      "nominal": 7,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=7; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_hs_fr": {
+      "nominal": 8,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_ls_rl": {
+      "nominal": 10,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_hs_rl": {
+      "nominal": 8,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_blowoff_rl": {
+      "nominal": 0,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=0; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_ls_rl": {
+      "nominal": 13,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_hs_rl": {
+      "nominal": 13,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_ls_rr": {
+      "nominal": 10,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_bump_hs_rr": {
+      "nominal": 8,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_blowoff_rr": {
+      "nominal": 0,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=0; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_ls_rr": {
+      "nominal": 13,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "damper_rebound_hs_rr": {
+      "nominal": 13,
+      "span": 9,
+      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
+    },
+    "ride_height_front": {
+      "nominal": 96,
+      "span": 2,
+      "source": "value_space.standard=96, typical_window.max_delta_from_standard=-2",
+      "note": "asymmetric window in the registry ([94,96] only, never above standard) -- recorded here as a symmetric span for the scoring component's uniform distance formula; see setup_parameters.json for the true one-sided bound"
+    },
+    "ride_height_rear": {
+      "nominal": 134,
+      "span": 5,
+      "source": "value_space.standard=134, typical_window.delta_from_standard=[-5,5]"
+    },
+    "diff_package": {
+      "nominal": null,
+      "span": null,
+      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+    },
+    "diff_position": {
+      "nominal": 3,
+      "span": 2,
+      "source": "2026-09-18: no typical_window nominal exists, so nominal=value_space range midpoint (1+5)/2=3 (supersedes the earlier policy of leaving a plain midpoint null); span=half the full range (5-1)/2=2."
+    },
+    "wing_position": {
+      "nominal": null,
+      "span": null,
+      "note": "STAYS UNFILLABLE IN CURRENT FORM (2026-09-18) -- distinct from arb_front_mount's reason: a real physical anchor DOES exist (setup_parameters.json's own angles_deg=[7.3,8.3,9.3], midpoint 8.3 degrees, which lands exactly on option P9), but Outing.setup_data stores this parameter's value as the ENUM LABEL string ('P9'), not the angle -- modules.decision_frame._current_setup_value would return 'P9' as-is, and a nominal/span filled in DEGREES would be compared against a value in a different representation entirely, silently unusable (caught defensively in _settings_window_component, not crashing, but still not a working window). Filling the number without also adding a label->angle mapping in code would misrepresent this as functional when it is not -- left null and flagged rather than shipping a false impression of coverage; a real fix needs a small code change (map the stored label through value_space.options/angles_deg before the numeric comparison)."
+    },
+    "toe_front": {
+      "nominal": -2,
+      "span": 1,
+      "source": "typical_window {min:-3,max:-1}"
+    },
+    "toe_rear": {
+      "nominal": 2,
+      "span": 1,
+      "source": "typical_window {min:1,max:3}"
+    },
+    "camber_fl": {
+      "nominal": -3.5,
+      "span": 1.4,
+      "source": "typical_window.base=-3.5; span=fallback (2026-09-18), half the full legal value_space range (-4.8 to -2.0 deg)/2=1.4 -- no team-typical span exists, only the base value, so this is deliberately the full legal range, not a real tolerance."
+    },
+    "camber_fr": {
+      "nominal": -3.5,
+      "span": 1.4,
+      "source": "typical_window.base=-3.5; span=half the full legal range (-4.8 to -2.0)/2=1.4, same fallback as camber_fl."
+    },
+    "camber_rl": {
+      "nominal": -3.2,
+      "span": 1.4,
+      "source": "typical_window.base=-3.2; span=half the full legal range (-4.8 to -2.0)/2=1.4, same fallback."
+    },
+    "camber_rr": {
+      "nominal": -3.2,
+      "span": 1.4,
+      "source": "typical_window.base=-3.2; span=half the full legal range (-4.8 to -2.0)/2=1.4, same fallback."
+    },
+    "tc_lat": {
+      "nominal": 5,
+      "span": 5.5,
+      "source": "typical_window.baseline=5 ('normal conditions'); span=fallback (2026-09-18), half the full legal value_space range (0-11)/2=5.5 -- no team-typical span exists, only the baseline, so this is deliberately the full legal range."
+    },
+    "tc_lon": {
+      "nominal": 5,
+      "span": 5.5,
+      "source": "typical_window.baseline=5 ('normal conditions'); span=half the full legal range (0-11)/2=5.5, same fallback as tc_lat."
+    },
+    "abs_position": {
+      "nominal": null,
+      "span": null,
+      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal+span distance doesn't apply; scoring treats this parameter's settings-window component as neutral/skipped, not null-as-zero"
+    },
+    "brake_bias": {
+      "nominal": null,
+      "span": null,
+      "note": "CORRECTED 2026-09-23: brake_bias was PROMOTED to recommendation_target=true in config/setup_parameters.json on 2026-09-22 (an oversight fix); this note's former 'context-only' framing predated that and was stale. nominal/span stay null for an independent, still-current reason: current-state window is not evaluable until the brake-bias channel itself is identified (config/setup_parameters.json brake_bias notes)."
+    },
+    "splitter_offset": {
+      "nominal": 0,
+      "span": 4,
+      "source": "config/setup_parameters.json splitter_offset value_space {min:-4, max:4, step:1 mm, default:0} and typical_window = full legal range (sign convention author-elicited 2026-09-22): nominal = default = range midpoint 0, span = half-width 4. Filled 2026-09-26 so headroom is evaluable for splitter, a lever the author named for it. The hard forward edge (negative extreme, splitter/track contact, track-dependent) stays with the window-edge labels, not with this distance."
+    },
+    "kinematic_variants": {
+      "nominal": null,
+      "span": null,
+      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+    },
+    "gear_ratios": {
+      "nominal": null,
+      "span": null,
+      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+    },
+    "engine_curves": {
+      "nominal": null,
+      "span": null,
+      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+    }
+  },
+  "_comment_edge_normal_state_params": "Edge exemptions per (parameter, direction) where the edge is the lever's normal resting state -- e.g. ride_height_front pinned at its lower limit. Standing practice lands here, never as an edit to an engineer-verbatim rule. Exempt edge: no blocked_at_edge, candidate stays proposed with an edge_normal_state_note (live value filled in); other actions still checked and can block. Only 'decrease' for ride_height_front; moving off the pin is an ordinary move.",
+  "edge_normal_state_params": [
+    {
+      "parameter": "ride_height_front",
+      "direction": "decrease",
+      "label": "already at practice position"
+    }
+  ]
+}

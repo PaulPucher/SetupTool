@@ -20,6 +20,7 @@ from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM,
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
 from modules.csv_parser import lap_display_label
+from modules.classifier import NO_CS_SHORT, NO_CS_LONG
 
 # WARN boundary as a fraction of the BAD boundary (stab_neg_thresh), so
 # detail colours follow the verdict threshold. [neutral engineering]
@@ -41,13 +42,6 @@ def _norm_path(path):
 # analyses currently running in this process; Settings refuses a save while
 # one runs (a config write mid-run would race the run's cache entry)
 _ANALYSES_RUNNING = 0
-
-# R13: verdict text of a corner-lap with no finite CS on either axle in any
-# phase -- "ok" would claim a check that never ran. Severity stays "normal"
-# (the decision frame and rule engine read severity and verdict words only).
-NO_CS_SHORT = "no CS data"
-NO_CS_LONG = "No CS data in any phase"
-
 
 def analysis_running():
     return _ANALYSES_RUNNING > 0
@@ -286,6 +280,7 @@ class OutingForm(QWidget):
         # result + reason of the last cache attempt, for the status line; None
         # before any attempt
         self._sidecar_hit = None
+        self._last_sidecar = None
         self._sidecar_miss_reason = None
         # kwargs of the last _render_stability_summaries call -- the fast path
         # replays them without caring which result shape produced them
@@ -303,7 +298,7 @@ class OutingForm(QWidget):
         # setup change against it
         self._displayed_resolved_vehicle_snapshot = None
         # (stored_version, current_version) when the cache was rejected only for
-        # its schema version -- lets the decision frame say so. Cleared on render.
+        # its schema version -- lets the setup panel say so. Cleared on render.
         self._cached_schema_mismatch = None
 
         outer_layout = QVBoxLayout(self)
@@ -333,7 +328,7 @@ class OutingForm(QWidget):
         self.content_layout.addWidget(self._section_setdown)
         self.content_layout.addWidget(self._build_corner_map())
         self.content_layout.addWidget(self._build_stability_toggle())
-        self.content_layout.addWidget(self._build_decision_frame_toggle())
+        self.content_layout.addWidget(self._build_setup_engine_toggle())
         self._section_feedback = self._build_feedback_section()
         self.content_layout.addWidget(self._section_feedback)
         self._section_comments = self._build_comments_section()
@@ -355,21 +350,15 @@ class OutingForm(QWidget):
         return thresholds_calibrated(load_parameters())
 
     def _stability_colour(self, kind, value, axle="f"):
-        # CS bands are the classifier's own axle tiers from config (author
-        # ruling 2026-10-20): below STRONG -> BAD, below MODERATE -> WARN, else
-        # OK -- a phase value is coloured by the tier it would set, so the
-        # colour and the verdict cannot disagree
+        # a CS phase value is coloured by the class it would set in the
+        # classifier (D2 boundary and tiers, modules.classifier.cs_value_state),
+        # so the colour and the verdict cannot disagree (author ruling 2026-10-20)
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
         if kind == "cs":
-            from modules.stability_analysis import load_parameters
-            cl = load_parameters()["classification"]
-            suffix = "R" if axle == "r" else "F"
-            if value < cl[f"STRONG_CS{suffix}"]["value"]:
-                return BAD
-            if value < cl[f"MODERATE_CS{suffix}"]["value"]:
-                return WARN
-            return OK
+            from modules.classifier import cs_value_state
+            return {"strong": BAD, "moderate": WARN, "info": WARN, "normal": OK,
+                    "no_data": NEUTRAL}[cs_value_state(value, axle)]
         if kind == "stab":
             from modules.stability_analysis import load_parameters
             bad_thresh = load_parameters()["classification"]["stab_neg_thresh_Nm_per_deg"]["value"]
@@ -382,154 +371,12 @@ class OutingForm(QWidget):
         return TEXT_MUTED
 
     def _classify_corner(self, summary):
-        # Returns (severity, short_verdict, long_verdict, colour). Thresholds from
-        # parameters.json classification.
-        self_cls = OutingForm
-        from modules.stability_analysis import load_parameters
-        params = load_parameters()
-        cls_cfg = params["classification"]
-        # thresholds valid only for the estimator path they were derived on
-        # (sideslip source and tyre_fit_mode); another path -> [UNCAL] marker
-        # (verdict fine, boundaries unvalidated). Placeholder wording.
-        from modules.stability_analysis import thresholds_calibrated
-        active_sideslip_source = params["stability_estimation"].get(
-            "sideslip_source", "kinematic"
-        )
-        uncalibrated_marker = "" if thresholds_calibrated(params) else " [UNCAL]"
-        # stab_neg_thresh not re-derived for ekf_auto_pacejka (no negative
-        # population) -> separate marker on a firing unstable-yaw verdict only
-        stab_calibrated_for = cls_cfg.get("stab_thresh_calibrated_for_sideslip_source", "kinematic")
-        stab_legacy_marker = "" if active_sideslip_source == stab_calibrated_for else " [stab thresh: kinematic-era, not re-derived]"
-        STRONG_CSF = cls_cfg["STRONG_CSF"]["value"]
-        STRONG_CSR = cls_cfg["STRONG_CSR"]["value"]
-        MODERATE_CSF = cls_cfg["MODERATE_CSF"]["value"]
-        MODERATE_CSR = cls_cfg["MODERATE_CSR"]["value"]
-        STAB_NEG_THRESH = cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"]
-        # MARGINAL tag: the verdict-driving axle is within CS_MARGIN of a
-        # threshold. Qualifier, not a severity tier.
-        CS_MARGIN = cls_cfg["verdict_stability_margin"]["cs_margin"]
-
-        worst_f_phase = None
-        worst_f_val = 1.0
-        worst_r_phase = None
-        worst_r_val = 1.0
-        worst_stab_phase = None
-        worst_stab_val = 1e9
-        # explicit any-finite test: an all-linear corner (CS exactly 1.0) never
-        # moves the 1.0 sentinel but does have data
-        any_cs = False
-
-        from modules.decision_frame import PHASE_WORD_SHORT as phase_labels_short
-        from modules.decision_frame import PHASE_WORD_LONG as phase_labels_long
-
-        for phase, p in summary["phases"].items():
-            csf = self_cls._verdict_cs_stat(summary, phase, "f")["median"]
-            csr = self_cls._verdict_cs_stat(summary, phase, "r")["median"]
-            sob = p["stability_observed_Nm_per_deg"]["median"]
-            any_cs = any_cs or csf == csf or csr == csr
-            if csf == csf and csf < worst_f_val:
-                worst_f_val = csf
-                worst_f_phase = phase
-            if csr == csr and csr < worst_r_val:
-                worst_r_val = csr
-                worst_r_phase = phase
-            if sob == sob and sob < worst_stab_val:
-                worst_stab_val = sob
-                worst_stab_phase = phase
-
-        front_strong_cs = worst_f_val < STRONG_CSF
-        rear_strong_cs = worst_r_val < STRONG_CSR
-        front_moderate_cs = STRONG_CSF <= worst_f_val < MODERATE_CSF
-        rear_moderate_cs = STRONG_CSR <= worst_r_val < MODERATE_CSR
-        destabilising = (worst_stab_val == worst_stab_val
-                         and worst_stab_val < STAB_NEG_THRESH)
-
-        # vocabulary: understeer / oversteer / open-loop unstable. Front -> understeer,
-        # rear -> oversteer, both -> the worse one, at its worst phase.
-        short_parts = []
-        long_parts = []
-        severity = "normal"
-
-        # rear wins ties -- rarer and more consequential
-        front_active = front_strong_cs or front_moderate_cs
-        rear_active = rear_strong_cs or rear_moderate_cs
-
-        primary = None  # "understeer" or "oversteer" or None
-        primary_phase = None
-        primary_val = None
-        primary_axle = None
-
-        if rear_strong_cs:
-            primary, primary_phase, primary_val, primary_axle = (
-                "oversteer", worst_r_phase, worst_r_val, "r")
-        elif front_strong_cs:
-            primary, primary_phase, primary_val, primary_axle = (
-                "understeer", worst_f_phase, worst_f_val, "f")
-        elif rear_moderate_cs:
-            primary, primary_phase, primary_val, primary_axle = (
-                "oversteer", worst_r_phase, worst_r_val, "r")
-        elif front_moderate_cs:
-            primary, primary_phase, primary_val, primary_axle = (
-                "understeer", worst_f_phase, worst_f_val, "f")
-
-        if (front_strong_cs or rear_strong_cs) and destabilising:
-            severity = "strong"
-        elif front_strong_cs or rear_strong_cs:
-            severity = "moderate"
-        elif (front_moderate_cs or rear_moderate_cs) and destabilising:
-            severity = "moderate"
-        elif destabilising:
-            severity = "moderate"
-        # else stays "normal"
-
-        # Two texts: the SHORT string is also the machine interface (decision
-        # frame and rule engine parse its verdict words and the bracket
-        # markers), the LONG string is the card text -- condition, phase,
-        # number, severity; qualifiers live in the tooltip (_verdict_tooltip).
-        marginal_marker = ""
-        if primary is not None:
-            if primary_axle == "f":
-                dist = min(abs(primary_val - STRONG_CSF), abs(primary_val - MODERATE_CSF))
-                tier = "strong" if front_strong_cs else "moderate"
-            else:
-                dist = min(abs(primary_val - STRONG_CSR), abs(primary_val - MODERATE_CSR))
-                tier = "strong" if rear_strong_cs else "moderate"
-            if dist <= CS_MARGIN:
-                marginal_marker = " [MARGINAL]"
-
-            short_parts.append(f"{primary} @ {phase_labels_short[primary_phase]}{marginal_marker}")
-            axle_word = "front" if primary_axle == "f" else "rear"
-            long_parts.append(
-                f"{primary.capitalize()}, {phase_labels_long[primary_phase]}, "
-                f"{axle_word} CS {primary_val:.2f}, {tier}"
-            )
-
-        if destabilising:
-            # sign criterion: dMz/dbeta < 0 is open-loop instability, not a loss of
-            # control -- skilled drivers operate there; severity stays contextual
-            # (anchor in PRODUCTION.md; no source names in product text)
-            short_parts.append(f"open-loop unstable @ {phase_labels_short[worst_stab_phase]}{stab_legacy_marker}")
-            long_parts.append(
-                f"Open-loop unstable, {phase_labels_long[worst_stab_phase]}, {worst_stab_val:.0f} Nm/deg"
-            )
-
-        colour_map = {"strong": BAD, "moderate": WARN, "normal": OK}
-        colour = colour_map[severity]
-        if not short_parts and not any_cs:
-            short_parts.append(NO_CS_SHORT)
-            long_parts.append(NO_CS_LONG)
-            colour = NEUTRAL
-        if not short_parts:
-            short_parts.append("ok")
-        if not long_parts:
-            long_parts.append("Within normal range")
-
-        return (
-            severity,
-            " | ".join(short_parts) + uncalibrated_marker,
-            " | ".join(long_parts),
-            colour,
-        )
+        # (severity, short, long, colour); the verdict itself is
+        # modules.classifier, the UI only maps its state to a colour
+        from modules.classifier import classify_corner
+        severity, short, long_, state = classify_corner(summary)
+        colour = {"strong": BAD, "moderate": WARN, "normal": OK, "no_data": NEUTRAL}[state]
+        return severity, short, long_, colour
 
     def _no_reference_note(self):
         # R12: CS samples with a stiffness but no clean reference are NaN and
@@ -547,13 +394,8 @@ class OutingForm(QWidget):
 
     @staticmethod
     def _verdict_cs_stat(summary, phase, axle):
-        # the CS statistic the verdict reads for this phase -- one accessor for
-        # the classifier and the per-phase table, so the two cannot disagree:
-        # apex_3 from the apex region (distance window), not the fixed slice
-        apex_region = summary.get("apex_region")
-        if phase == "apex_3" and apex_region is not None:
-            return apex_region[f"cs_ratio_{axle}"]
-        return summary["phases"][phase][f"cs_ratio_{axle}"]
+        from modules.classifier import verdict_cs_stat
+        return verdict_cs_stat(summary, phase, axle)
 
     # qualifier markers of the short verdict string -> tooltip sentences
     _VERDICT_QUALIFIERS = (
@@ -1133,6 +975,7 @@ class OutingForm(QWidget):
         self.stability_result = None
         # last cache attempt, for the status line
         self._sidecar_hit = None
+        self._last_sidecar = None
         self._sidecar_miss_reason = None
         self._last_render_kwargs = None
         self.btn_recompute_stale_cache.setVisible(False)
@@ -1184,6 +1027,7 @@ class OutingForm(QWidget):
         self.stability_result = None
         # last cache attempt, for the status line
         self._sidecar_hit = None
+        self._last_sidecar = None
         self._sidecar_miss_reason = None
         self._last_render_kwargs = None
         self.btn_recompute_stale_cache.setVisible(False)
@@ -1208,8 +1052,10 @@ class OutingForm(QWidget):
         self.events_label.setText("")
         self.events_label.setVisible(False)
         self._displayed_events = None
-        self.decision_frame_calibration_banner_label.setText("")
-        self.decision_frame_calibration_banner_label.setVisible(False)
+        self.setup_calibration_banner_label.setText("")
+        self.setup_calibration_banner_label.setVisible(False)
+        self.setup_session_label.setVisible(False)
+        self._clear_setup_rows()
 
         self.lap_table.setRowCount(0)
         self.lap_table.setVisible(False)
@@ -1219,14 +1065,12 @@ class OutingForm(QWidget):
         self.stability_summary_label.setText(
             "Click Analyse in the Data section to populate results."
         )
-        self.decision_frame_summary_label.setText(
-            "Run Analyse in the Data section, then Generate."
-        )
-        self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        self.setup_summary_label.setText("Run Analyse in the Data section, then Generate.")
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
 
         self.btn_analyse.setEnabled(False)
         self.btn_lap_traces.setEnabled(False)
-        self.btn_generate_decision_frame.setEnabled(False)
+        self.btn_generate_setup.setEnabled(False)
 
         self._update_corner_map_trace()
 
@@ -1309,7 +1153,7 @@ class OutingForm(QWidget):
                    self._section_feedback, self._section_comments,
                    self.btn_load, self.btn_clear_data,
                    self.lap_table, self.btn_clear_lap_selection, self.btn_lap_traces,
-                   self.btn_generate_decision_frame, self.btn_back, self.btn_save]
+                   self.btn_generate_setup, self.btn_back, self.btn_save]
         if self.btn_delete is not None:
             widgets.append(self.btn_delete)
         return widgets
@@ -1453,6 +1297,14 @@ class OutingForm(QWidget):
             "fallback_reason": result["fallback_reason"],
             "events": result["events"],
         }
+        # setup engine on the fresh result, stored with it (D6: the data layer
+        # is kept exactly as computed); a failure must not lose the analysis
+        try:
+            setup_layers = self._compute_setup_layers()
+        except Exception:
+            traceback.print_exc()
+            setup_layers = None
+        pipeline_cache_entry["setup_engine"] = setup_layers
         _pipeline_cache_put(self.loaded_csv_path, pipeline_cache_entry)
         # payload for the next save (also after a cache-hit render)
         lap_filter = self.stab_thread.lap_filter
@@ -1462,6 +1314,7 @@ class OutingForm(QWidget):
             gate_verdict=result["gate_verdict"], fallback_used=result["fallback_used"],
             fallback_reason=result["fallback_reason"],
             grid_rate_hz=result["state"]["sample_rate_hz"], events=result["events"],
+            setup_engine=setup_layers,
         )
         if self.outing:
             self._persist_analysis_cache()
@@ -1479,6 +1332,7 @@ class OutingForm(QWidget):
                 estimator_settings=result["resolved_accuracy"]["estimator_settings"],
             )
             write_sidecar(self.outing.id, sidecar_identity, pipeline_cache_entry)
+            self._last_sidecar = (sidecar_identity, pipeline_cache_entry)
         # temporary timing instrumentation
         import time
         t_render0 = time.perf_counter()
@@ -1495,6 +1349,8 @@ class OutingForm(QWidget):
         self._last_render_kwargs = dict(render_kwargs, summaries=result["summaries"],
                                         settings_generation=_SETTINGS_GENERATION)
         self._render_stability_summaries(result["summaries"], cached=False, **render_kwargs)
+        if setup_layers is not None:
+            self._render_setup_layers(setup_layers)
         t_render1 = time.perf_counter()
         print(f"[PERF] render: {t_render1 - t_render0:.3f}s")
         if hasattr(self, "_analyse_click_time"):
@@ -1513,7 +1369,7 @@ class OutingForm(QWidget):
     def _build_analysis_data_json(self, summaries, lap_filter, cap, resolved_accuracy,
                                    sideslip_source="kinematic", fit_manifest=None,
                                    gate_verdict=None, fallback_used=False, fallback_reason=None,
-                                   grid_rate_hz=None, events=None):
+                                   grid_rate_hz=None, events=None, setup_engine=None):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
@@ -1544,6 +1400,8 @@ class OutingForm(QWidget):
             "grid_rate_hz": grid_rate_hz,
             # limit events (display + record only), schema 13
             "events": events,
+            # setup engine data / engineer / session layers, schema 21
+            "setup_engine": setup_engine,
         }
         return json.dumps(payload)
 
@@ -1589,8 +1447,8 @@ class OutingForm(QWidget):
             )
             self.stability_status_label.setText(outdated_msg)
             self.stability_status_label.setStyleSheet(f"color: {WARN}; font-size: 12px;")
-            self.decision_frame_summary_label.setText(outdated_msg)
-            self.decision_frame_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+            self.setup_summary_label.setText(outdated_msg)
+            self.setup_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             return False
         if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
             return False
@@ -1639,6 +1497,7 @@ class OutingForm(QWidget):
         self._sidecar_hit = sidecar_payload is not None
         self._sidecar_miss_reason = sidecar_miss_reason
         if sidecar_payload is not None:
+            self._last_sidecar = (sidecar_identity, sidecar_payload)
             self.stability_result = {"summaries": summaries, **sidecar_payload}
             _pipeline_cache_put(self.loaded_csv_path, sidecar_payload)
         self._analysis_data_json = self.outing.analysis_data
@@ -1663,6 +1522,8 @@ class OutingForm(QWidget):
         self._last_render_kwargs = dict(render_kwargs, summaries=summaries,
                                         settings_generation=_SETTINGS_GENERATION)
         self._render_stability_summaries(summaries, cached=True, **render_kwargs)
+        if cached.get("setup_engine"):
+            self._render_setup_layers(cached["setup_engine"])
         t1 = time.perf_counter()
         print(f"[PERF] db_cache_hit=True sidecar_hit={self._sidecar_hit} "
               f"({self._sidecar_miss_reason if not self._sidecar_hit else 'n/a'}) "
@@ -1819,7 +1680,7 @@ class OutingForm(QWidget):
         else:
             self.estimator_status_label.setVisible(False)
         self.btn_analyse.setEnabled(True)
-        self.btn_generate_decision_frame.setEnabled(True)
+        self.btn_generate_setup.setEnabled(True)
         self.btn_lap_traces.setEnabled(True)
         self._update_corner_map_markers()
 
@@ -2166,15 +2027,15 @@ class OutingForm(QWidget):
             if w is not None:
                 w.deleteLater()
 
-    def _build_decision_frame_toggle(self):
-        # Decision frame -- the recommendation UI; all 39 rules run here as
-        # bridges (parity: diagnostics/inspect_frame_stage2_parity.py (script at tag pre-prune-2026-10-22)).
+    def _build_setup_engine_toggle(self):
+        # Setup recommendation (modules/setup_engine.py): one change per
+        # corner, data layer and engineer layer side by side (D6)
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        btn_toggle = QPushButton("> Decision Frame")
+        btn_toggle = QPushButton("> Setup Recommendation")
         btn_toggle.setStyleSheet(
             f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; "
             "padding: 8px 14px; text-align: left;"
@@ -2183,494 +2044,198 @@ class OutingForm(QWidget):
         btn_toggle.setChecked(False)
         layout.addWidget(btn_toggle)
 
-        self.decision_frame_panel = QWidget()
-        panel_layout = QVBoxLayout(self.decision_frame_panel)
+        self.setup_panel = QWidget()
+        panel_layout = QVBoxLayout(self.setup_panel)
         panel_layout.setContentsMargins(0, 8, 0, 0)
         panel_layout.setSpacing(8)
 
         gen_row = QWidget()
         gen_row_layout = QHBoxLayout(gen_row)
         gen_row_layout.setContentsMargins(0, 0, 0, 0)
-        self.btn_generate_decision_frame = QPushButton("Generate")
-        self.btn_generate_decision_frame.setFixedWidth(100)
-        self.btn_generate_decision_frame.setEnabled(False)
-        self.btn_generate_decision_frame.clicked.connect(self._on_generate_decision_frame)
-        gen_row_layout.addWidget(self.btn_generate_decision_frame)
+        self.btn_generate_setup = QPushButton("Generate")
+        self.btn_generate_setup.setFixedWidth(100)
+        self.btn_generate_setup.setEnabled(False)
+        self.btn_generate_setup.setToolTip("Re-run with the current setup sheet and driver feedback.")
+        self.btn_generate_setup.clicked.connect(self._on_generate_setup)
+        gen_row_layout.addWidget(self.btn_generate_setup)
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
 
-        # calibration banner (rules key on verdicts carrying [UNCAL])
-        self.decision_frame_calibration_banner_label = QLabel("")
-        self.decision_frame_calibration_banner_label.setStyleSheet(
-            f"color: {WARN}; font-size: 11px; font-weight: bold;"
-        )
-        self.decision_frame_calibration_banner_label.setWordWrap(True)
-        self.decision_frame_calibration_banner_label.setVisible(False)
-        panel_layout.addWidget(self.decision_frame_calibration_banner_label)
+        self.setup_calibration_banner_label = QLabel("")
+        self.setup_calibration_banner_label.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: bold;")
+        self.setup_calibration_banner_label.setWordWrap(True)
+        self.setup_calibration_banner_label.setVisible(False)
+        panel_layout.addWidget(self.setup_calibration_banner_label)
 
-        self.decision_frame_summary_label = QLabel(
-            "Run Analyse in the Data section, then Generate."
-        )
-        self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-        panel_layout.addWidget(self.decision_frame_summary_label)
+        self.setup_summary_label = QLabel("Run Analyse in the Data section, then Generate.")
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        self.setup_summary_label.setWordWrap(True)
+        panel_layout.addWidget(self.setup_summary_label)
 
-        # kerb events: informational
-        self.decision_frame_kerb_flags_label = QLabel("")
-        self.decision_frame_kerb_flags_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
-        self.decision_frame_kerb_flags_label.setWordWrap(True)
-        self.decision_frame_kerb_flags_label.setVisible(False)
-        panel_layout.addWidget(self.decision_frame_kerb_flags_label)
+        # session layer (D7)
+        self.setup_session_label = QLabel("")
+        self.setup_session_label.setStyleSheet(
+            f"color: {TEXT_MUTED}; font-size: 11px; background-color: {PANEL_ALT}; "
+            f"border: 1px solid {BORDER}; padding: 6px;")
+        self.setup_session_label.setWordWrap(True)
+        self.setup_session_label.setVisible(False)
+        panel_layout.addWidget(self.setup_session_label)
 
-        # directly above the candidate list: the sheet blocked assessment
-        self.decision_frame_unfilled_banner_label = QLabel("")
-        self.decision_frame_unfilled_banner_label.setStyleSheet(
-            f"color: {WARN}; font-size: 11px; font-weight: bold;")
-        self.decision_frame_unfilled_banner_label.setWordWrap(True)
-        self.decision_frame_unfilled_banner_label.setVisible(False)
-        panel_layout.addWidget(self.decision_frame_unfilled_banner_label)
+        layers = QWidget()
+        layers_layout = QHBoxLayout(layers)
+        layers_layout.setContentsMargins(0, 0, 0, 0)
+        layers_layout.setSpacing(12)
+        self.setup_layer_hosts = {}
+        for key, title in (("data_layer", "Data layer (telemetry only)"),
+                           ("engineer_layer", "Engineer layer (data + driver feedback)")):
+            col = QWidget()
+            col_layout = QVBoxLayout(col)
+            col_layout.setContentsMargins(0, 0, 0, 0)
+            col_layout.setSpacing(4)
+            head = QLabel(title)
+            head.setStyleSheet(f"color: {TEXT}; font-size: 12px; font-weight: bold;")
+            col_layout.addWidget(head)
+            host = QWidget()
+            host_layout = QVBoxLayout(host)
+            host_layout.setContentsMargins(0, 0, 0, 0)
+            host_layout.setSpacing(6)
+            host_layout.addStretch()
+            col_layout.addWidget(host)
+            self.setup_layer_hosts[key] = host_layout
+            layers_layout.addWidget(col, 1)
+        panel_layout.addWidget(layers)
 
-        self.decision_frame_host = QWidget()
-        self.decision_frame_host_layout = QVBoxLayout(self.decision_frame_host)
-        self.decision_frame_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.decision_frame_host_layout.setSpacing(6)
-        self.decision_frame_host_layout.addStretch()
-        panel_layout.addWidget(self.decision_frame_host)
-
-        self.decision_frame_panel.setVisible(False)
-        layout.addWidget(self.decision_frame_panel)
-
+        self.setup_panel.setVisible(False)
+        layout.addWidget(self.setup_panel)
         btn_toggle.toggled.connect(lambda checked, btn=btn_toggle: (
-            self.decision_frame_panel.setVisible(checked),
-            btn.setText("v Decision Frame" if checked else "> Decision Frame")
+            self.setup_panel.setVisible(checked),
+            btn.setText("v Setup Recommendation" if checked else "> Setup Recommendation")
         ))
-
         return container
 
-    def _clear_decision_frame_rows(self):
-        while self.decision_frame_host_layout.count() > 1:
-            item = self.decision_frame_host_layout.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
+    def _clear_setup_rows(self):
+        for host_layout in self.setup_layer_hosts.values():
+            while host_layout.count() > 1:
+                item = host_layout.takeAt(0)
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
 
-    def _on_generate_decision_frame(self):
+    def _compute_setup_layers(self):
+        # both layers from the current form state: setup sheet (from -> to,
+        # limits) and feedback (engineer layer only)
+        import json
+        from modules.setup_engine import run
+        result = self.stability_result or {}
+        return run(
+            result["summaries"],
+            setup_data=json.loads(self._collect_setup_data()),
+            feedback_data=json.loads(self._collect_feedback_data()),
+            corners=result.get("corners"), state=result.get("state"),
+            channels=(self.parsed_data or {}).get("channels"),
+            laps=(self.parsed_data or {}).get("laps"),
+        )
+
+    def _store_setup_layers(self, layers):
+        # stored with the analysis (DB payload and sidecar) so thesis_data
+        # reads the data layer exactly as shown
+        import json
+        if isinstance(self.stability_result, dict):
+            self.stability_result["setup_engine"] = layers
+        if self._analysis_data_json:
+            payload = json.loads(self._analysis_data_json)
+            payload["setup_engine"] = layers
+            self._analysis_data_json = json.dumps(payload)
+            if self.outing:
+                self._persist_analysis_cache()
+        # the sidecar carries the same layers (thesis_data reads it)
+        last = getattr(self, "_last_sidecar", None)
+        if self.outing and last is not None:
+            from modules.pipeline_sidecar import write_sidecar
+            identity, sidecar_payload = last
+            sidecar_payload["setup_engine"] = layers
+            write_sidecar(self.outing.id, identity, sidecar_payload)
+
+    def _on_generate_setup(self):
         # an exception in a slot otherwise vanishes: no console context, no UI
         # reaction (seen with the detached-driver crash)
         try:
-            self._generate_decision_frame()
+            self._generate_setup()
         except Exception as e:
-            print("[DECISION_FRAME] Generate failed:")
+            print("[SETUP_ENGINE] Generate failed:")
             traceback.print_exc()
-            self.decision_frame_summary_label.setText(f"Generate failed: {friendly_error_text(e)}")
-            self.decision_frame_summary_label.setStyleSheet(f"color: {BAD}; font-size: 11px;")
+            self.setup_summary_label.setText(f"Generate failed: {friendly_error_text(e)}")
+            self.setup_summary_label.setStyleSheet(f"color: {BAD}; font-size: 11px;")
 
-    def _generate_decision_frame(self):
-        # synchronous -- fast enough
+    def _generate_setup(self):
         if self._sideslip_source_calibrated():
-            self.decision_frame_calibration_banner_label.setVisible(False)
-            self.decision_frame_calibration_banner_label.setText("")
+            self.setup_calibration_banner_label.setVisible(False)
+            self.setup_calibration_banner_label.setText("")
         else:
-            self.decision_frame_calibration_banner_label.setVisible(True)
-            self.decision_frame_calibration_banner_label.setText(
-                "Sideslip estimator changed; recommendation thresholds not "
-                "re-derived -- treat as indicative only."
-            )
+            self.setup_calibration_banner_label.setVisible(True)
+            self.setup_calibration_banner_label.setText(
+                "Sideslip estimator changed; classification thresholds not re-derived -- "
+                "treat as indicative only.")
         if not self.stability_result:
             if self._cached_schema_mismatch:
                 stored_v, current_v = self._cached_schema_mismatch
-                self.decision_frame_summary_label.setText(
-                    f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first"
-                )
-                self.decision_frame_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
+                self.setup_summary_label.setText(
+                    f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first")
+                self.setup_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             else:
-                self.decision_frame_summary_label.setText(
-                    "Run Analyse in the Data section, then Generate."
-                )
-                self.decision_frame_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+                self.setup_summary_label.setText("Run Analyse in the Data section, then Generate.")
+                self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
             return
-        import json
-        from modules.decision_frame import (
-            build_evidence, aggregate_ls_by_corner, load_decision_frame_config,
-            generate_candidates, generate_display_split, resolve_conflicts,
-            group_display_rows, apply_display_top_n,
-            kerb_event_flags, kerb_event_population_note, unfilled_sheet_banner,
-            harden_display_rows,
-        )
-        from modules.recommendation import load_setup_parameters_registry, _group_by_corner
+        layers = self._compute_setup_layers()
+        self._store_setup_layers(layers)
+        self._render_setup_layers(layers)
 
-        summaries = self.stability_result["summaries"]
-        config = load_decision_frame_config()
-        registry = load_setup_parameters_registry()
-        setup_data = json.loads(self._collect_setup_data())
+    def _render_setup_layers(self, layers):
+        from modules.setup_engine import corner_lines, session_line
+        self._clear_setup_rows()
+        data, eng = layers["data_layer"], layers["engineer_layer"]
+        rules = data["rules"]
+        self.setup_summary_label.setText(
+            f"{len(data['corners'])} corner(s) with a repeated symptom (more than "
+            f"{rules['min_repeat_fraction']:.0%} of valid laps, at least {rules['min_repeat_laps']}); "
+            f"one change per corner, up to two alternatives.")
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        self.setup_session_label.setText(session_line(data["session"]))
+        self.setup_session_label.setVisible(True)
+        for key, layer in (("data_layer", data), ("engineer_layer", eng)):
+            host = self.setup_layer_hosts[key]
+            engineer = key == "engineer_layer"
+            blocks = [corner_lines(c, engineer) for c in layer["corners"]]
+            if engineer:
+                for d in layer.get("driver_only", []):
+                    head, lines = corner_lines({"corner": d["corner"], "speed_class": d["speed_class"],
+                                                "recommended": d["recommended"],
+                                                "alternatives": d["alternatives"],
+                                                "at_limit": d["at_limit"]}, engineer=True)
+                    blocks.append((f"{head} -- driver only, no data support", lines))
+            if not blocks:
+                blocks = [("No corner with a repeated symptom.", [])]
+            for head, lines in blocks:
+                host.insertWidget(host.count() - 1, self._setup_block(head, lines))
 
-        ls_stats = aggregate_ls_by_corner(summaries)
-        # corners/state/channels for intervention evidence (skipped without
-        # them); feedback_data for driver-feedback evidence
-        evidence = build_evidence(
-            summaries, ls_stats, config, self._classify_corner,
-            corners=self.stability_result.get("corners"),
-            state=self.stability_result.get("state"),
-            channels=(self.parsed_data or {}).get("channels"),
-            feedback_data=json.loads(self._collect_feedback_data()),
-        )
-        # every assessed corner, normal included -> breadth
-        assessed_corner_ids = set(_group_by_corner(summaries).keys())
-        # on-screen driver, like setup_data above (unsaved form state counts);
-        # looked up by id -- self.outing is detached or None here
-        _name, driving_level = driver_name_and_level(self.driver_combo.currentData())
-        # setup_data also drives the window-edge check
-        candidates = generate_candidates(evidence, registry, config, setup_data=setup_data,
-                                          assessed_corner_ids=assessed_corner_ids,
-                                          driving_level=driving_level)
-        # full inventory (shortlist + tail) -- ranking never hides
-        split = generate_display_split(candidates, evidence, setup_data, config, registry)
-        shortlist, tail = split["shortlist"], split["tail"]
-        resolve_conflicts(shortlist)
-        # group identical rows, after conflict resolution; display only
-        shortlist = group_display_rows(shortlist, registry)
-        tail = group_display_rows(tail, registry)
-        # session-level lever conflicts -> one card; rows below the evidence
-        # floor join the tail ahead of the non-proposed entries
-        shortlist, below_floor = harden_display_rows(shortlist, config)
-        # top-N distinct proposals, after grouping
-        shortlist, tail, tail_note = apply_display_top_n(shortlist, below_floor + tail, config)
-
-        self._clear_decision_frame_rows()
-
-        laps = (self.parsed_data or {}).get("laps", [])
-        kerb_flags = kerb_event_flags(evidence, laps)
-        self.decision_frame_kerb_flags_label.setText("\n".join(kerb_flags))
-        self.decision_frame_kerb_flags_label.setToolTip(
-            kerb_event_population_note(evidence, laps, config) if kerb_flags else "")
-        self.decision_frame_kerb_flags_label.setVisible(bool(kerb_flags))
-
-        banner = unfilled_sheet_banner(tail)
-        self.decision_frame_unfilled_banner_label.setText(banner or "")
-        self.decision_frame_unfilled_banner_label.setVisible(banner is not None)
-
-        summary_text = f"{len(evidence)} evidence item(s), {len(shortlist)} proposed"
-        if tail_note:
-            summary_text += f", {tail_note} in the assessed-not-proposed tail"
-        if below_floor:
-            summary_text += f", {len(below_floor)} below evidence floor"
-        summary_text += f" ({len(tail)} total in tail)."
-        self.decision_frame_summary_label.setText(summary_text)
-
-        insert_pos = self.decision_frame_host_layout.count() - 1
-        for c in shortlist:
-            row = self._build_decision_frame_row(c, registry)
-            self.decision_frame_host_layout.insertWidget(insert_pos, row)
-            insert_pos += 1
-        if tail:
-            tail_section = self._build_decision_frame_tail_section(tail, registry)
-            self.decision_frame_host_layout.insertWidget(insert_pos, tail_section)
-
-    def _build_decision_frame_row(self, c, registry):
-        # header = change + situation; severity via the usual row colours (NEUTRAL
-        # if none). Score, grade, cell, conflicts etc. in the reasoning dropdown.
-        from modules.decision_frame import render_card_header, candidate_severity, card_driver_disagrees
-        card = QWidget()
-        card.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(10, 8, 10, 8)
-        card_layout.setSpacing(6)
-
-        header = QWidget()
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(10)
-
-        severity_colour = {"strong": BAD, "moderate": WARN, "normal": OK}.get(
-            candidate_severity(c), NEUTRAL
-        )
-        badge = QLabel(render_card_header(c, registry))
-        badge.setWordWrap(True)
-        badge.setStyleSheet(
-            f"background-color: {severity_colour}; color: #111; font-size: 11px; "
-            "font-weight: 600; padding: 3px 8px; border-radius: 3px;"
-        )
-        header_layout.addWidget(badge)
-        if card_driver_disagrees(c):
-            disagree = QLabel("driver disagrees")
-            disagree.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: 600;")
-            header_layout.addWidget(disagree)
-        header_layout.addStretch()
-        card_layout.addWidget(header)
-
-        btn_expand = QPushButton("> reasoning")
-        btn_expand.setCheckable(True)
-        btn_expand.setChecked(False)
-        btn_expand.setStyleSheet(
-            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
-            "text-align: left; border: none; padding: 2px 0;"
-        )
-        card_layout.addWidget(btn_expand)
-
-        detail_host = self._build_decision_frame_reasoning_host(c)
-        card_layout.addWidget(detail_host)
-
-        def toggle_detail(checked):
-            detail_host.setVisible(checked)
-            btn_expand.setText("v reasoning" if checked else "> reasoning")
-        btn_expand.toggled.connect(toggle_detail)
-
-        return card
-
-    def _build_decision_frame_reasoning_host(self, c):
-        # grouped row: one full reasoning block per contributing corner+phase;
-        # conflict card: the same, under one heading per direction
-        members = c.get("group_members")
-        if not members:
-            return self._build_decision_frame_detail_host(c)
-
-        host = QWidget()
-        layout = QVBoxLayout(host)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        if c.get("conflict_members"):
-            from modules.decision_frame import render_card_header
-            from modules.recommendation import load_setup_parameters_registry
-            registry = load_setup_parameters_registry()
-            note = QLabel("LEVER CONFLICT: this session asks for opposite directions on one lever; "
-                          "both are shown, neither is ranked alone")
-            note.setWordWrap(True)
-            note.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
-            layout.addWidget(note)
-            for side in c["conflict_members"]:
-                heading = QLabel(render_card_header(side, registry))
-                heading.setWordWrap(True)
-                heading.setStyleSheet(f"color: {TEXT}; font-size: 10px; font-weight: 600;")
-                layout.addWidget(heading)
-                for member in side.get("group_members") or [side]:
-                    member_host = self._build_decision_frame_detail_host(member)
-                    member_host.setVisible(True)
-                    layout.addWidget(member_host)
-            host.setVisible(False)
-            return host
-        for i, member in enumerate(members):
-            if i > 0:
-                divider = QWidget()
-                divider.setFixedHeight(1)
-                divider.setStyleSheet(f"background-color: {BORDER};")
-                layout.addWidget(divider)
-            member_host = self._build_decision_frame_detail_host(member)
-            member_host.setVisible(True)  # the group toggle handles visibility
-            layout.addWidget(member_host)
-        host.setVisible(False)
-        return host
-
-    def _build_decision_frame_detail_host(self, c):
-        # reasoning content, shared by shortlist and tail rows: the situation
-        # first, the scoring machinery one fold deeper
-        from modules.decision_frame import render_evidence_line
-        detail_host = QWidget()
-        detail_layout = QVBoxLayout(detail_host)
-        detail_layout.setContentsMargins(12, 2, 0, 0)
-        detail_layout.setSpacing(2)
-
-        method_host = QWidget()
-        method_layout = QVBoxLayout(method_host)
-        method_layout.setContentsMargins(12, 0, 0, 0)
-        method_layout.setSpacing(2)
-
-        def add_line(text, colour=TEXT_MUTED, italic=False, bold=False, layout=detail_layout, tooltip=None):
-            line = QLabel(text)
-            line.setWordWrap(True)
-            style = f"color: {colour}; font-size: 10px;"
-            if italic:
-                style += " font-style: italic;"
-            if bold:
-                style += " font-weight: 600;"
-            line.setStyleSheet(style)
-            if tooltip:
-                line.setToolTip(tooltip)
-            layout.addWidget(line)
-
-        laps = (self.parsed_data or {}).get("laps", [])
-        for e in c.get("evidence_refs", []):
-            add_line(render_evidence_line(e, laps), colour=TEXT, tooltip=e.get("source"))
-
-        # driver vs data disagreement, shown side by side
-        for fb in c.get("conflicting_feedback", []):
-            add_line(
-                f"driver feedback disagrees: {fb.get('raw_feedback') or fb.get('verdict')} "
-                f"at {fb.get('phase')}", colour=WARN
-            )
-
-        if c.get("grade") == "proposed":
-            add_line("ADVISORY (proposed, not matrix-reviewed)", bold=True)
-        elif c.get("grade") is not None:
-            add_line("derived-from-matrix", colour=ACCENT, bold=True)
-
-        # trigger provenance: data-only / feedback-only / both agreeing
-        provenance_words = {
-            "data_only": "data-only",
-            "driver_reported": "driver feedback only, zero data verdict",
-            "both_agreeing": "data and driver feedback agreeing (strongest)",
-        }
-        trigger = c.get("trigger_provenance")
-        if trigger:
-            add_line(f"trigger: {provenance_words.get(trigger, trigger)}", colour=TEXT_DIM)
-
-        # conflicts: always labelled, never hidden
-        conflict_status = c.get("conflict_status")
-        if conflict_status == "platform_calming_available":
-            add_line("PLATFORM-CALMING: addresses a compound problem at this corner",
-                      colour=ACCENT, bold=True)
-        elif conflict_status in ("superseded_by_platform_calming", "superseded_by_time_loss"):
-            add_line(f"SUPERSEDED (conflicts with {', '.join(c.get('conflict_with', []))})",
-                      colour=WARN, bold=True)
-        elif conflict_status == "wins_time_loss":
-            add_line(f"CONFLICT WINNER (higher time-loss phase, vs "
-                      f"{', '.join(c.get('conflict_with', []))})", colour=WARN, bold=True)
-        if c.get("conflict_resolution_note"):
-            add_line(c["conflict_resolution_note"], colour=WARN)
-
-        if c.get("rationale"):
-            add_line(c["rationale"])
-        # standing-practice notes: annotation only
-        if c.get("practice_note"):
-            add_line(c["practice_note"], colour=TEXT_DIM)
-        # speed-qualified lever fit (doctrine cell), display only
-        if c.get("effect_class_note"):
-            add_line(c["effect_class_note"], colour=TEXT_DIM)
-        # lower-TC safety caution, display only
-        if c.get("tc_safety_note"):
-            add_line(c["tc_safety_note"], colour=WARN)
-
-        # breadth note, worded by _attach_breadth
-        if c.get("breadth_note"):
-            add_line(f"breadth: {c['breadth_note']}", colour=TEXT_DIM)
-
-        # window-edge / condition-gap reasons
-        if c.get("edge_reason"):
-            add_line(f"window: {c.get('edge_label', c.get('status'))} -- {c['edge_reason']}",
-                      colour=WARN)
-        # exempt edge: normal resting state, not a block
-        if c.get("edge_normal_state_note"):
-            add_line(c["edge_normal_state_note"], colour=TEXT_DIM)
-        if c.get("condition_reasons"):
-            add_line(f"condition: {'; '.join(c['condition_reasons'])}", colour=TEXT_DIM)
-
-        # method detail: how the row was scored and where each evidence item came from
-        corner_phase = (f"C{c['corner']} {c.get('phase')}" if c.get("corner") is not None
-                         else "no corner (unrouted)")
-        add_line(
-            f"{corner_phase} -- {len(c.get('evidence_refs', []))} evidence item(s), "
-            f"effort={c.get('effort_class')}, effect={c.get('effect_class')}, "
-            f"score {c.get('score', 0):.2f}", layout=method_layout
-        )
-        if c.get("cell_id"):
-            add_line(f"matrix cell: {c['cell_id']}", colour=TEXT_DIM, layout=method_layout)
-        if c.get("score_components"):
-            components_text = ", ".join(f"{k}={v:+.3f}" for k, v in c["score_components"].items())
-            add_line(f"score breakdown: {components_text}", colour=TEXT_DIM, layout=method_layout)
-        for note in c.get("score_interaction_notes", []):
-            add_line(f"interaction: {note}", colour=TEXT_DIM, layout=method_layout)
-        for flag in c.get("score_flags", []):
-            add_line(flag, colour=TEXT_DIM, italic=True, layout=method_layout)
-        for e in c.get("evidence_refs", []):
-            add_line(f"evidence ({e['type']}): {e.get('source', '')}", colour=TEXT_DIM, layout=method_layout)
-
-        btn_method = QPushButton("> method detail")
-        btn_method.setCheckable(True)
-        btn_method.setStyleSheet(
-            f"background-color: transparent; color: {TEXT_DIM}; font-size: 10px; "
-            "text-align: left; border: none; padding: 2px 0;"
-        )
-        detail_layout.addWidget(btn_method)
-        detail_layout.addWidget(method_host)
-        method_host.setVisible(False)
-
-        def toggle_method(checked):
-            method_host.setVisible(checked)
-            btn_method.setText("v method detail" if checked else "> method detail")
-        btn_method.toggled.connect(toggle_method)
-
-        detail_host.setVisible(False)
-        return detail_host
-
-    def _build_decision_frame_tail_section(self, tail, registry):
-        # collapsed tail in generate_lever_inventory's order: real candidates by
-        # score, then one count line for the no_trigger levers
-        from modules.decision_frame import split_tail_rows
-        reasoned, no_trigger = split_tail_rows(tail, registry)
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 4, 0, 0)
-        layout.setSpacing(4)
-
-        btn_toggle = QPushButton(f"> assessed, not proposed ({len(tail)})")
-        btn_toggle.setCheckable(True)
-        btn_toggle.setChecked(False)
-        btn_toggle.setStyleSheet(
-            f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 11px; "
-            "padding: 6px 10px; text-align: left;"
-        )
-        layout.addWidget(btn_toggle)
-
-        rows_host = QWidget()
-        rows_layout = QVBoxLayout(rows_host)
-        rows_layout.setContentsMargins(0, 4, 0, 0)
-        rows_layout.setSpacing(4)
-        for entry in reasoned:
-            rows_layout.addWidget(self._build_decision_frame_tail_row(entry, registry))
-        if no_trigger is not None:
-            count_line = QLabel(no_trigger["text"])
-            count_line.setToolTip(no_trigger["tooltip"])
-            count_line.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; padding: 2px 8px;")
-            rows_layout.addWidget(count_line)
-        rows_host.setVisible(False)
-        layout.addWidget(rows_host)
-
-        def toggle(checked):
-            rows_host.setVisible(checked)
-            btn_toggle.setText(f"v assessed, not proposed ({len(tail)})" if checked
-                                else f"> assessed, not proposed ({len(tail)})")
-        btn_toggle.toggled.connect(toggle)
-
-        return container
-
-    def _build_decision_frame_tail_row(self, entry, registry):
-        from modules.decision_frame import render_tail_line, card_driver_disagrees, STATUS_NO_TRIGGER
-        row = QWidget()
-        row.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
-        row_layout = QVBoxLayout(row)
-        row_layout.setContentsMargins(8, 4, 8, 4)
-        row_layout.setSpacing(2)
-
-        line = QLabel(render_tail_line(entry, registry))
-        line.setWordWrap(True)
-        line.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 10px;")
-        row_layout.addWidget(line)
-        # never silent at any tier: a disagreement shows on the tail row too
-        if card_driver_disagrees(entry):
-            disagree = QLabel("driver disagrees")
-            disagree.setStyleSheet(f"color: {WARN}; font-size: 10px; font-weight: 600;")
-            row_layout.addWidget(disagree)
-
-        if entry.get("status") == STATUS_NO_TRIGGER:
-            # nothing further to expand
-            return row
-
-        btn_expand = QPushButton("> reasoning")
-        btn_expand.setCheckable(True)
-        btn_expand.setChecked(False)
-        btn_expand.setStyleSheet(
-            f"background-color: transparent; color: {TEXT_MUTED}; font-size: 10px; "
-            "text-align: left; border: none; padding: 2px 0;"
-        )
-        row_layout.addWidget(btn_expand)
-
-        detail_host = self._build_decision_frame_reasoning_host(entry)
-        row_layout.addWidget(detail_host)
-
-        def toggle_detail(checked):
-            detail_host.setVisible(checked)
-            btn_expand.setText("v reasoning" if checked else "> reasoning")
-        btn_expand.toggled.connect(toggle_detail)
-
-        return row
+    def _setup_block(self, head, lines):
+        box = QWidget()
+        box.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        lay = QVBoxLayout(box)
+        lay.setContentsMargins(8, 6, 8, 6)
+        lay.setSpacing(2)
+        h = QLabel(head)
+        h.setStyleSheet(f"color: {TEXT}; font-size: 11px; font-weight: bold; border: none;")
+        h.setWordWrap(True)
+        lay.addWidget(h)
+        for i, line in enumerate(lines):
+            lab = QLabel(line)
+            colour = TEXT_MUTED if i == 0 else TEXT_DIM
+            lab.setStyleSheet(f"color: {colour}; font-size: 11px; border: none;")
+            lab.setWordWrap(True)
+            lab.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            lay.addWidget(lab)
+        return box
 
     def _open_corner_trace(self, summary):
         # lazily created, replotted in place
@@ -3562,7 +3127,7 @@ class OutingForm(QWidget):
 
         colour_by_id = {}
         if self.stability_result:
-            from modules.recommendation import aggregate_by_corner
+            from modules.corner_aggregation import aggregate_by_corner
             aggregated = aggregate_by_corner(self.stability_result["summaries"])
             for cid, agg in aggregated.items():
                 _severity, _short, _long, colour = self._classify_corner(agg)
@@ -3641,7 +3206,7 @@ class OutingForm(QWidget):
         if not candidates:
             return None
 
-        from modules.recommendation import SEVERITY_RANK
+        from modules.corner_aggregation import SEVERITY_RANK
         ranked = [(SEVERITY_RANK[self._classify_corner(s)[0]], s) for s in candidates]
         max_rank = max(rank for rank, _s in ranked)
         worst = [s for rank, s in ranked if rank == max_rank]

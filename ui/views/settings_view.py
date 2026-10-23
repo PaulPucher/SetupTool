@@ -1,7 +1,6 @@
-# Settings page: vehicle constants, analysis tunables and thresholds
-# (parameters.json), speed-class thresholds (channels.json), rule-engine
-# settings (recommendations.json), cost weights (decision_frame.json).
-# Only reads/writes the JSON and clears the loader caches.
+# Settings page: vehicle constants, analysis tunables, setup-engine
+# repetition rule and thresholds (parameters.json), speed-class thresholds
+# (channels.json). Only reads/writes the JSON and clears the loader caches.
 
 import datetime
 import json
@@ -20,8 +19,6 @@ from modules.wheel_loads import effective_cl_area
 
 PARAMETERS_PATH = "config/parameters.json"
 CHANNELS_PATH = "config/channels.json"
-RECOMMENDATIONS_PATH = "config/recommendations.json"
-DECISION_FRAME_PATH = "config/decision_frame.json"
 
 # left label column; labels wrap inside it instead of clipping
 LABEL_WIDTH = 260
@@ -99,6 +96,19 @@ SECTION2_PARAMS_FIELDS = [
      "decimals": 2, "min": 0.0, "max": 0.5,
      "short_note": "Time masked either side of a kerb hit, to cover the ringdown."},
 ]
+# setup-engine repetition rule (D5): not an estimator input, so outside the
+# cache identity (resolve_estimator_settings); a change takes effect on the
+# next Generate
+SECTION2_ENGINE_FLOAT_FIELDS = [
+    {"path": ("setup_engine", "min_repeat_fraction"), "label": "Repeat rule: lap share", "unit": "",
+     "decimals": 2, "min": 0.0, "max": 1.0,
+     "short_note": "A corner-phase symptom counts when it appears on more than this share of valid laps."},
+]
+SECTION2_ENGINE_INT_FIELDS = [
+    {"path": ("setup_engine", "min_repeat_laps"), "label": "Repeat rule: minimum laps", "unit": "",
+     "min": 1, "max": 20,
+     "short_note": "... and on at least this many laps."},
+]
 SECTION2_CHANNELS_INT_FIELDS = [
     {"path": ("corner_speed_thresholds", "low_max"), "label": "Low/medium speed boundary", "unit": "km/h",
      "min": 0, "max": 350,
@@ -107,85 +117,21 @@ SECTION2_CHANNELS_INT_FIELDS = [
      "min": 0, "max": 350,
      "short_note": "Apex speed separating medium- from high-speed corners."},
 ]
-SECTION2_RECS_INT_FIELDS = [
-    {"path": ("settings", "consistency_gate", "min_repeat_laps"), "label": "Consistency gate: min repeat laps", "unit": "",
-     "min": 0, "max": 10,
-     "short_note": "Weekend report: laps a verdict must repeat on before a rule fires."},
-    {"path": ("settings", "change_budget", "default_max"), "label": "Change budget: default max", "unit": "",
-     "min": 0, "max": 10,
-     "short_note": "Weekend report: number of changes marked as selected."},
-    {"path": ("settings", "change_budget", "absolute_cap"), "label": "Change budget: absolute cap", "unit": "",
-     "min": 0, "max": 10,
-     "short_note": "Weekend report: upper limit reserved for a manual override."},
-]
-SECTION2_RECS_FLOAT_FIELDS = [
-    {"path": ("settings", "consistency_gate", "min_repeat_fraction"), "label": "Consistency gate: min repeat fraction", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 1.0,
-     "short_note": "Weekend report: share of laps a verdict must repeat on."},
-    {"path": ("settings", "driver_level_weighting", "default_weight"), "label": "Driver weighting: default weight", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 3.0,
-     "short_note": "Weekend report: feedback weight for a driver level missing from the table."},
-]
-DRIVER_WEIGHT_LEVELS = [str(i) for i in range(1, 11)]
-
-# Section 4: decision-frame cost weights, saved with the others. Ranking
-# only -- generate_candidates never reads cost_function, only score() does
-# (tested).
-SECTION4_FIELDS = [
-    {"path": ("cost_function", "severity"), "label": "Severity weight", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "derived_from"),
-     "short_note": "How much problem severity (and confidence) drives ranking."},
-    {"path": ("cost_function", "change_time", "seconds"), "label": "Change time: seconds", "unit": "",
-     "decimals": 4, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "change_time_derived_from"),
-     "short_note": "Score for a change done in seconds (in-car electronics or a quick click)."},
-    {"path": ("cost_function", "change_time", "minutes"), "label": "Change time: minutes", "unit": "",
-     "decimals": 4, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "change_time_derived_from"),
-     "short_note": "Score for a change made in the pit box in minutes."},
-    {"path": ("cost_function", "change_time", "half_hour"), "label": "Change time: half hour", "unit": "",
-     "decimals": 4, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "change_time_derived_from"),
-     "short_note": "Score for a change taking about half an hour."},
-    {"path": ("cost_function", "change_time", "garage_hours"), "label": "Change time: garage hours", "unit": "",
-     "decimals": 4, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "change_time_derived_from"),
-     "short_note": "Score for a change that needs the car in the garage."},
-    {"path": ("cost_function", "breadth"), "label": "Breadth weight", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "breadth_derived_from"),
-     "short_note": "Penalises a global lever that helps only some assessed corners (0 = annotation only)."},
-    {"path": ("cost_function", "headroom"), "label": "Headroom weight", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "headroom_derived_from"),
-     "short_note": "How much settings-window distance from nominal matters."},
-    {"path": ("cost_function", "interaction"), "label": "Interaction weight", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "interaction_derived_from"),
-     "short_note": "Penalises adverse side-effects on other active problems at the same corner."},
-    {"path": ("cost_function", "effect_class", "primary"), "label": "Effect class: primary", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "effect_class_derived_from"),
-     "short_note": "Multiplier for a primary (matrix-exact) candidate."},
-    {"path": ("cost_function", "effect_class", "secondary"), "label": "Effect class: secondary", "unit": "",
-     "decimals": 2, "min": 0.0, "max": 10.0,
-     "note_path": ("cost_function", "effect_class_derived_from"),
-     "short_note": "Multiplier for a secondary (side-effect) candidate."},
-]
-
-
 # Section 3: classification thresholds, editable; an edit is recorded as a
 # manual override (core/threshold_overrides.py)
 SECTION3_FIELDS = [
     {"key": "STRONG_CSF", "label": "Strong front CS threshold", "unit": "", "decimals": 3,
-     "min": -2.0, "max": 2.0, "short_note": "Front CS ratio below this = strong understeer."},
+     "min": -2.0, "max": 2.0,
+     "short_note": "A limiting front axle (CS below zero) below this = strong understeer."},
     {"key": "STRONG_CSR", "label": "Strong rear CS threshold", "unit": "", "decimals": 3,
-     "min": -2.0, "max": 2.0, "short_note": "Rear CS ratio below this = strong oversteer."},
+     "min": -2.0, "max": 2.0,
+     "short_note": "Rear grading tier; a limiting rear axle is always strong, so it does not set the verdict."},
     {"key": "MODERATE_CSF", "label": "Moderate front CS threshold", "unit": "", "decimals": 3,
-     "min": -2.0, "max": 2.0, "short_note": "Front CS ratio below this = moderate understeer."},
+     "min": -2.0, "max": 2.0,
+     "short_note": "Front grading tier; the understeer verdict starts at the zero boundary."},
     {"key": "MODERATE_CSR", "label": "Moderate rear CS threshold", "unit": "", "decimals": 3,
-     "min": -2.0, "max": 2.0, "short_note": "Rear CS ratio below this = moderate oversteer."},
+     "min": -2.0, "max": 2.0,
+     "short_note": "Rear CS above zero but below this = rear near its peak, shown as information."},
     {"key": "stab_neg_thresh_Nm_per_deg", "label": "Stability (destabilising) threshold",
      "unit": "Nm/deg", "decimals": 1, "min": -5000.0, "max": 5000.0,
      "short_note": "Yaw stability below this = open-loop unstable."},
@@ -221,8 +167,6 @@ class SettingsView(QWidget):
         super().__init__()
         self.section1_widgets = {}
         self.section2_widgets = {}
-        self.driver_weight_widgets = {}
-        self.section4_widgets = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -248,13 +192,9 @@ class SettingsView(QWidget):
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             initial_params = json.load(f)
 
-        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
-            initial_decision_frame = json.load(f)
-
         self.content_layout.addWidget(self._build_section1(initial_params))
         self.content_layout.addWidget(self._build_section2())
         self.content_layout.addWidget(self._build_section3())
-        self.content_layout.addWidget(self._build_section4(initial_decision_frame))
         self.content_layout.addStretch()
 
         scroll.setWidget(content)
@@ -446,6 +386,21 @@ class SettingsView(QWidget):
             self.section2_widgets[("parameters",) + spec["path"]] = widget
             layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
 
+        for spec in SECTION2_ENGINE_FLOAT_FIELDS:
+            widget = NoScrollSpinBox()
+            widget.setDecimals(spec["decimals"])
+            widget.setRange(spec["min"], spec["max"])
+            widget.setFixedWidth(120)
+            self.section2_widgets[("parameters",) + spec["path"]] = widget
+            layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
+
+        for spec in SECTION2_ENGINE_INT_FIELDS:
+            widget = NoScrollIntSpinBox()
+            widget.setRange(spec["min"], spec["max"])
+            widget.setFixedWidth(120)
+            self.section2_widgets[("parameters",) + spec["path"]] = widget
+            layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
+
         for spec in SECTION2_CHANNELS_INT_FIELDS:
             widget = NoScrollIntSpinBox()
             widget.setRange(spec["min"], spec["max"])
@@ -453,65 +408,7 @@ class SettingsView(QWidget):
             self.section2_widgets[("channels",) + spec["path"]] = widget
             layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
 
-        for spec in SECTION2_RECS_INT_FIELDS:
-            widget = NoScrollIntSpinBox()
-            widget.setRange(spec["min"], spec["max"])
-            widget.setFixedWidth(120)
-            self.section2_widgets[("recommendations",) + spec["path"]] = widget
-            layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
-
-        for spec in SECTION2_RECS_FLOAT_FIELDS:
-            widget = NoScrollSpinBox()
-            widget.setDecimals(spec["decimals"])
-            widget.setRange(spec["min"], spec["max"])
-            widget.setFixedWidth(120)
-            self.section2_widgets[("recommendations",) + spec["path"]] = widget
-            layout.addWidget(self._field_row(spec, widget, short_note=spec.get("short_note")))
-
-        layout.addWidget(self._build_driver_weight_table())
-
         return container
-
-    def _build_driver_weight_table(self):
-        row = QWidget()
-        row_layout = QVBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(2)
-
-        label = QLabel("Driver-level feedback weight table (level 1-10)")
-        label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
-        row_layout.addWidget(label)
-
-        grid = QWidget()
-        grid_layout = QHBoxLayout(grid)
-        grid_layout.setContentsMargins(0, 0, 0, 0)
-        grid_layout.setSpacing(6)
-        for level in DRIVER_WEIGHT_LEVELS:
-            cell = QWidget()
-            cell_layout = QVBoxLayout(cell)
-            cell_layout.setContentsMargins(0, 0, 0, 0)
-            cell_layout.setSpacing(1)
-            level_label = QLabel(level)
-            level_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            level_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 9px;")
-            spin = NoScrollSpinBox()
-            spin.setDecimals(2)
-            spin.setRange(0.0, 3.0)
-            spin.setFixedWidth(56)
-            self.driver_weight_widgets[level] = spin
-            cell_layout.addWidget(level_label)
-            cell_layout.addWidget(spin)
-            grid_layout.addWidget(cell)
-        grid_layout.addStretch()
-        row_layout.addWidget(grid)
-
-        note = QLabel("Weekend report: how much a driver's feedback counts, by driving level.")
-        note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; margin-left: {LABEL_WIDTH}px;")
-        note.setWordWrap(True)
-        note.setToolTip("Elicited from the project lead -- not yet validated.")
-        row_layout.addWidget(note)
-
-        return row
 
     def _build_section3(self):
         container = QWidget()
@@ -556,45 +453,12 @@ class SettingsView(QWidget):
         if default is not None:
             self.section3_widgets[key].setValue(float(default))
 
-    def _build_section4(self, decision_frame):
-        # notes baked in once, as in _build_section1; only numbers are edited
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
-        layout.addWidget(self._section_label("Decision-Frame Scoring Weights"))
-
-        rule_note = QLabel(
-            "Re-rank the shortlist only -- never touch verdicts, evidence, or which "
-            "candidates are generated."
-        )
-        rule_note.setWordWrap(True)
-        rule_note.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-style: italic;")
-        layout.addWidget(rule_note)
-
-        for spec in SECTION4_FIELDS:
-            widget = NoScrollSpinBox()
-            widget.setDecimals(spec["decimals"])
-            widget.setRange(spec["min"], spec["max"])
-            widget.setFixedWidth(120)
-            self.section4_widgets[spec["path"]] = widget
-
-            note_text = _get_path(decision_frame, spec["note_path"]) if spec.get("note_path") else None
-            layout.addWidget(self._field_row(spec, widget, note_text=note_text,
-                                              short_note=spec.get("short_note")))
-
-        return container
-
     def _load_from_disk(self):
         # fresh file read, not the cached loaders -- show what's on disk
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
             channels = json.load(f)
-        with open(RECOMMENDATIONS_PATH, encoding="utf-8") as f:
-            recs = json.load(f)
-        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
-            decision_frame = json.load(f)
 
         for spec in SECTION1_FIELDS:
             widget = self.section1_widgets[spec["path"]]
@@ -602,13 +466,7 @@ class SettingsView(QWidget):
             widget.setValue(float(_get_path(params, spec["path"])))
             widget.blockSignals(False)
 
-        for spec in SECTION4_FIELDS:
-            widget = self.section4_widgets[spec["path"]]
-            widget.blockSignals(True)
-            widget.setValue(float(_get_path(decision_frame, spec["path"])))
-            widget.blockSignals(False)
-
-        sources = {"parameters": params, "channels": channels, "recommendations": recs}
+        sources = {"parameters": params, "channels": channels}
         for key, widget in self.section2_widgets.items():
             file_key, path = key[0], key[1:]
             value = _get_path(sources[file_key], path)
@@ -617,12 +475,6 @@ class SettingsView(QWidget):
                 widget.setValue(int(value))
             else:
                 widget.setValue(float(value))
-            widget.blockSignals(False)
-
-        weights = recs["settings"]["driver_level_weighting"]["weights"]
-        for level, widget in self.driver_weight_widgets.items():
-            widget.blockSignals(True)
-            widget.setValue(float(weights[level]))
             widget.blockSignals(False)
 
         cls_cfg = params["classification"]
@@ -666,10 +518,6 @@ class SettingsView(QWidget):
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
             channels = json.load(f)
-        with open(RECOMMENDATIONS_PATH, encoding="utf-8") as f:
-            recs = json.load(f)
-        with open(DECISION_FRAME_PATH, encoding="utf-8") as f:
-            decision_frame = json.load(f)
 
         section1_changed = False
         for spec in SECTION1_FIELDS:
@@ -682,7 +530,7 @@ class SettingsView(QWidget):
 
         from modules.accuracy_resolution import resolve_estimator_settings
         estimator_before = resolve_estimator_settings(params, channels)
-        sources = {"parameters": params, "channels": channels, "recommendations": recs}
+        sources = {"parameters": params, "channels": channels}
         for key, widget in self.section2_widgets.items():
             file_key, path = key[0], key[1:]
             value = widget.value()
@@ -692,13 +540,6 @@ class SettingsView(QWidget):
         # R2: these inputs are part of every cache identity; a change makes the
         # stored results stale until the next Analyse
         estimator_changed = resolve_estimator_settings(params, channels) != estimator_before
-
-        for level, widget in self.driver_weight_widgets.items():
-            recs["settings"]["driver_level_weighting"]["weights"][level] = widget.value()
-
-        for spec in SECTION4_FIELDS:
-            widget = self.section4_widgets[spec["path"]]
-            _set_path(decision_frame, spec["path"], widget.value())
 
         today = datetime.date.today().isoformat()
         thresholds_changed = False
@@ -719,17 +560,10 @@ class SettingsView(QWidget):
         with open(CHANNELS_PATH, "w", encoding="utf-8", newline="") as f:
             json.dump(channels, f, indent=2)
             f.write("\n")
-        with open(RECOMMENDATIONS_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(recs, f, indent=2)
-            f.write("\n")
-        with open(DECISION_FRAME_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(decision_frame, f, indent=2)
-            f.write("\n")
 
         from modules.stability_analysis import load_parameters, load_car_data
         load_parameters.cache_clear()
         load_car_data.cache_clear()
-        # load_decision_frame_config isn't cached -> nothing to clear
 
         # safety net for an open OutingForm whose in-memory pipeline cache predates
         # this save; the identities (vehicle snapshot, Settings estimator inputs,

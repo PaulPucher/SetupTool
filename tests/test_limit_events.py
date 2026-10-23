@@ -21,14 +21,13 @@ def _events(pipeline_result, state, parsed_data, params):
 
 
 def _verdict_snapshot(pipeline_result, state):
-    # summaries + live classification + recommendations, as JSON text
+    # summaries + live classification + setup-engine data layer, as JSON text
     from ui.views.outing_form import OutingForm
-    from modules.recommendation import generate_recommendations, load_recommendations_config
+    from modules.setup_engine import data_layer
     summaries = summarise_corners(pipeline_result["corners"], pipeline_result["cs"], pipeline_result["stab"],
                                   state, fz=pipeline_result["fz"], lap_filter=None)
     verdicts = [OutingForm._classify_corner(None, s) for s in summaries]
-    recs = generate_recommendations(summaries, lambda s: OutingForm._classify_corner(None, s),
-                                    feedback_data={}, setup_data=None, config=load_recommendations_config())
+    recs = data_layer(summaries)
     return json.dumps({"summaries": summaries, "verdicts": verdicts, "recs": recs}, default=str, sort_keys=True)
 
 
@@ -65,8 +64,8 @@ def test_events_are_display_only(pipeline_result, state, parsed_data, effective_
 def test_no_verdict_module_reads_events():
     # structural guard: only the UI display paths import the event module
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for rel in ("modules/stability_analysis.py", "modules/recommendation.py", "modules/decision_frame.py",
-                "modules/tyre_fit_auto.py"):
+    for rel in ("modules/stability_analysis.py", "modules/classifier.py", "modules/setup_engine.py",
+                "modules/corner_aggregation.py", "modules/tyre_fit_auto.py"):
         src = open(os.path.join(root, rel), encoding="utf-8").read()
         # imports, not mentions (the schema history comment names the module)
         assert "import limit_events" not in src and "modules.limit_events" not in src, \

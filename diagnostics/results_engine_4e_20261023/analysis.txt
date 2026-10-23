@@ -1,0 +1,114 @@
+SETUP ENGINE BEFORE / AFTER WORK ORDER 4e (2026-10-23), 14 development sessions
+old = engine before 4e (margin 0.01, effort before preference); new = 4e (margins front / rear per parameters.json, preference before effort, INST agreement, supported preference cells).
+rank-only = new code with the pre-4e rank key: isolates the ranking change.
+
+NBR outing 5 MLA (nbr_o05_mla), valid laps [2, 3, 4, 5, 6, 7], gate pass
+  per-lap cells (no majority rule): front limiting 8/318 = 0.025; rear limiting 0/293 = 0.000; INST 0/390 = 0.000
+  corners with a counted symptom: 0/15 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 0, new 0; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 10 JDR (nbr_o10_jdr), valid laps [27, 28, 30, 31, 32, 33, 34, 35, 36, 37], gate pass
+  per-lap cells (no majority rule): front limiting 6/627 = 0.010; rear limiting 0/547 = 0.000; INST 0/770 = 0.000
+  corners with a counted symptom: 0/18 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 0, new 0; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 20 JST (nbr_o20_jst), valid laps [66, 67, 68, 69], gate pass
+  per-lap cells (no majority rule): front limiting 4/195 = 0.021; rear limiting 0/174 = 0.000; INST 3/272 = 0.011
+  corners with a counted symptom: 1/16 = 0.062; per symptom US 0, OS 0, INST 1
+  recommendations old 1, new 1; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 29 JST (NBR_Sturm_Solution copy) (nbr_o29_jst), valid laps [103, 104, 105, 106, 107, 108], gate pass
+  per-lap cells (no majority rule): front limiting 8/263 = 0.030; rear limiting 0/239 = 0.000; INST 24/378 = 0.063
+  corners with a counted symptom: 2/15 = 0.133; per symptom US 0, OS 0, INST 2
+  recommendations old 2, new 2; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 46 JST (nbr_o46_jst), valid laps [163, 164, 165, 166], gate pass
+  per-lap cells (no majority rule): front limiting 1/191 = 0.005; rear limiting 1/174 = 0.006; INST 8/258 = 0.031
+  corners with a counted symptom: 1/15 = 0.067; per symptom US 0, OS 0, INST 1
+  recommendations old 1, new 1; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 53 MLA (nbr_o53_mla), valid laps [208, 209, 210, 211, 212], gate pass
+  per-lap cells (no majority rule): front limiting 1/279 = 0.004; rear limiting 0/254 = 0.000; INST 5/358 = 0.014
+  corners with a counted symptom: 1/17 = 0.059; per symptom US 0, OS 0, INST 1
+  recommendations old 1, new 1; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 54 CDR (nbr_o54_cdr), valid laps [215, 216, 217, 218, 219, 220], gate pass
+  per-lap cells (no majority rule): front limiting 16/381 = 0.042; rear limiting 3/336 = 0.009; INST 24/498 = 0.048
+  corners with a counted symptom: 2/20 = 0.100; per symptom US 0, OS 0, INST 2
+  recommendations old 2, new 2; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 59 MLA (nbr_o59_mla), valid laps [233, 234, 235, 236], gate pass
+  per-lap cells (no majority rule): front limiting 2/222 = 0.009; rear limiting 0/209 = 0.000; INST 0/266 = 0.000
+  corners with a counted symptom: 0/15 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 0, new 0; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 61 JDR (nbr_o61_jdr), valid laps [239, 240, 241, 242, 243, 244, 245, 246], gate pass
+  per-lap cells (no majority rule): front limiting 1/448 = 0.002; rear limiting 0/411 = 0.000; INST 0/591 = 0.000
+  corners with a counted symptom: 0/17 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 0, new 0; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR outing 63 CDR (nbr_o63_cdr), valid laps [257, 258, 260, 261, 262, 263], gate pass
+  per-lap cells (no majority rule): front limiting 8/313 = 0.026; rear limiting 0/299 = 0.000; INST 18/396 = 0.045
+  corners with a counted symptom: 2/16 = 0.125; per symptom US 0, OS 0, INST 2
+  recommendations old 2, new 2; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR qualifying CDR (outing 69) (nbr_qp_cdr), valid laps [274, 275, 276, 277, 278, 279], gate pass
+  per-lap cells (no majority rule): front limiting 5/312 = 0.016; rear limiting 1/287 = 0.003; INST 6/395 = 0.015
+  corners with a counted symptom: 1/16 = 0.062; per symptom US 0, OS 0, INST 1
+  recommendations old 1, new 1; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+NBR qualifying MLA (outing 70) (nbr_qp_mla), valid laps [282, 283, 284, 285, 286, 287], gate pass
+  per-lap cells (no majority rule): front limiting 6/288 = 0.021; rear limiting 1/260 = 0.004; INST 0/378 = 0.000
+  corners with a counted symptom: 0/15 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 1, new 0; changed old -> new: 1
+    C3: tc_lat decrease (US@apex_3, M6-tc-lat-US) -> none
+  of which the ranking order alone (rank-only -> new): 0
+
+Le Castellet outing 25, MLA-SE07_US-v1 (pr_o25_us_v1), valid laps [6, 7, 8], gate pass
+  per-lap cells (no majority rule): front limiting 10/164 = 0.061; rear limiting 0/155 = 0.000; INST 6/210 = 0.029
+  corners with a counted symptom: 2/17 = 0.118; per symptom US 1, OS 0, INST 1
+  recommendations old 3, new 2; changed old -> new: 2
+    C2: damper_rebound_ls_fl+damper_rebound_ls_fr softer (US@entry_2_turnin, M2-tin-us-front-rebound) -> diff_position decrease (US@entry_2_turnin, M6-diff-US)
+    C14: damper_rebound_ls_fl+damper_rebound_ls_fr stiffer (US@exit_4, M2-exit-us-front-rebound) -> none
+  of which the ranking order alone (rank-only -> new): 1
+    C2: damper_rebound_ls_fl+damper_rebound_ls_fr softer (US@entry_2_turnin, M2-tin-us-front-rebound) -> diff_position decrease (US@entry_2_turnin, M6-diff-US)
+
+Le Castellet outing 32, MLA-SE07_US-v2 (pr_o32_us_v2), valid laps [48, 49, 50, 51, 52, 53, 54, 55, 56], gate pass
+  per-lap cells (no majority rule): front limiting 8/526 = 0.015; rear limiting 3/498 = 0.006; INST 0/645 = 0.000
+  corners with a counted symptom: 0/17 = 0.000; per symptom US 0, OS 0, INST 0
+  recommendations old 0, new 0; changed old -> new: 0
+  of which the ranking order alone (rank-only -> new): 0
+
+POOLED over sessions (per-session shares)
+  US: p50 0.018, p90 0.039 (n sessions 14)
+  OS: p50 0.000, p90 0.006 (n sessions 14)
+  INST: p50 0.012, p90 0.047 (n sessions 14)
+  counted: p50 0.061, p90 0.123 (n sessions 14)
+TOTAL recommendations old 14, new 12; changed old -> new 3; ranking-order alone 1
+
+log_abs_pos CENSUS (read from each file by parse_csv)
+  nbr_o05_mla: present, quality valid, values {5: 6636, 6: 3444}, per valid lap {2: [5], 3: [5], 4: [5], 5: [5], 6: [5, 6], 7: [6]}, laps with a change [6]
+  nbr_o10_jdr: present, quality valid, values {6: 16700}, per valid lap {27: [6], 28: [6], 30: [6], 31: [6], 32: [6], 33: [6], 34: [6], 35: [6], 36: [6], 37: [6]}, laps with a change none
+  nbr_o20_jst: present, quality valid, values {4: 7460}, per valid lap {66: [4], 67: [4], 68: [4], 69: [4]}, laps with a change none
+  nbr_o29_jst: present, quality valid, values {4: 10000}, per valid lap {103: [4], 104: [4], 105: [4], 106: [4], 107: [4], 108: [4]}, laps with a change none
+  nbr_o46_jst: present, quality valid, values {3: 1542, 4: 3418, 5: 2640}, per valid lap {163: [3, 5], 164: [3], 165: [3, 4], 166: [4]}, laps with a change [163, 165]
+  nbr_o53_mla: present, quality valid, values {4: 9690}, per valid lap {208: [4], 209: [4], 210: [4], 211: [4], 212: [4]}, laps with a change none
+  nbr_o54_cdr: present, quality valid, values {4: 10170}, per valid lap {215: [4], 216: [4], 217: [4], 218: [4], 219: [4], 220: [4]}, laps with a change none
+  nbr_o59_mla: present, quality valid, values {4: 8730}, per valid lap {233: [4], 234: [4], 235: [4], 236: [4]}, laps with a change none
+  nbr_o61_jdr: present, quality valid, values {4: 12560}, per valid lap {239: [4], 240: [4], 241: [4], 242: [4], 243: [4], 244: [4], 245: [4], 246: [4]}, laps with a change none
+  nbr_o63_cdr: present, quality valid, values {4: 11970}, per valid lap {257: [4], 258: [4], 260: [4], 261: [4], 262: [4], 263: [4]}, laps with a change none
+  nbr_qp_cdr: present, quality valid, values {4: 9890}, per valid lap {274: [4], 275: [4], 276: [4], 277: [4], 278: [4], 279: [4]}, laps with a change none
+  nbr_qp_mla: present, quality valid, values {4: 9830}, per valid lap {282: [4], 283: [4], 284: [4], 285: [4], 286: [4], 287: [4]}, laps with a change none
+  pr_o25_us_v1: present, quality valid, values {5: 6860}, per valid lap {6: [5], 7: [5], 8: [5]}, laps with a change none
+  pr_o32_us_v2: present, quality valid, values {6: 14460}, per valid lap {48: [6], 49: [6], 50: [6], 51: [6], 52: [6], 53: [6], 54: [6], 55: [6], 56: [6]}, laps with a change none

@@ -448,10 +448,6 @@ def lap_display_label(lap):
     return str(lap["lap_number"])
 
 
-def lap_labels_by_number(laps):
-    return {lap["lap_number"]: lap_display_label(lap) for lap in laps or []}
-
-
 def _split_laps(channels, config=None):
     config = config or {}
     laps = []

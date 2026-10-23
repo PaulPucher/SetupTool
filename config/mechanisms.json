@@ -1,0 +1,1513 @@
+{
+  "_comment": "Mechanism table of the setup engine (recommendation overhaul D3, author 2026-10-22): one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
+  "_comment_anchors": {
+    "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics (bib key to verify)",
+    "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition (bib key to verify)",
+    "TE": "Trzesniowski & Eder 2019, Handbuch Rennwagentechnik Bd. 5 (bib Trzesniowski.2019)"
+  },
+  "phase_groups": {
+    "BRK": [
+      "entry_1_brake"
+    ],
+    "TIN": [
+      "entry_2_turnin"
+    ],
+    "APX": [
+      "apex_3"
+    ],
+    "EXIT": [
+      "exit_4",
+      "exit_5"
+    ]
+  },
+  "mechanism_names": {
+    "M1": "roll stiffness distribution",
+    "M2": "transient load transfer (low-speed dampers)",
+    "M4": "aero balance",
+    "M5": "tyre working point",
+    "M6": "drivetrain",
+    "M7": "brake balance"
+  },
+  "_comment_not_levers": "Out of scope, deliberately not levers: ride heights (directions contradict between MM p. 573 and TE Tab. 5.11 p. 293), high-speed dampers, blow-off, arb_front_mount (ruling D3).",
+  "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
+  "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author 2026-10-22, 4e item 7), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
+  "mechanisms": [
+    {
+      "id": "M1-arb-front-US",
+      "mechanism": "M1",
+      "levers": [
+        "arb_fl",
+        "arb_fr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-arb-front-OS",
+      "mechanism": "M1",
+      "levers": [
+        "arb_fl",
+        "arb_fr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-arb-rear-US",
+      "mechanism": "M1",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-arb-rear-OS",
+      "mechanism": "M1",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-springs-front-US",
+      "mechanism": "M1",
+      "levers": [
+        "springs_front"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-springs-front-OS",
+      "mechanism": "M1",
+      "levers": [
+        "springs_front"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-springs-rear-US",
+      "mechanism": "M1",
+      "levers": [
+        "springs_rear"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M1-springs-rear-OS",
+      "mechanism": "M1",
+      "levers": [
+        "springs_rear"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-brk-inst-front-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_fl",
+        "damper_bump_ls_fr"
+      ],
+      "symptoms": [
+        "INST"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-brk-inst-rear-rebound",
+      "mechanism": "M2",
+      "levers": [
+        "damper_rebound_ls_rl",
+        "damper_rebound_ls_rr"
+      ],
+      "symptoms": [
+        "INST"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-brk-us-front-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_fl",
+        "damper_bump_ls_fr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "derived by inversion of TE Tab. 5.9 row 1",
+      "side_effect": null
+    },
+    {
+      "id": "M2-tin-us-front-rebound",
+      "mechanism": "M2",
+      "levers": [
+        "damper_rebound_ls_fl",
+        "damper_rebound_ls_fr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-tin-us-rear-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_rl",
+        "damper_bump_ls_rr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-tin-os-front-rebound",
+      "mechanism": "M2",
+      "levers": [
+        "damper_rebound_ls_fl",
+        "damper_rebound_ls_fr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-tin-os-rear-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_rl",
+        "damper_bump_ls_rr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-exit-us-front-rebound",
+      "mechanism": "M2",
+      "levers": [
+        "damper_rebound_ls_fl",
+        "damper_rebound_ls_fr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-exit-us-rear-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_rl",
+        "damper_bump_ls_rr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-exit-os-front-rebound",
+      "mechanism": "M2",
+      "levers": [
+        "damper_rebound_ls_fl",
+        "damper_rebound_ls_fr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M2-exit-os-rear-bump",
+      "mechanism": "M2",
+      "levers": [
+        "damper_bump_ls_rl",
+        "damper_bump_ls_rr"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M4-wing-US",
+      "mechanism": "M4",
+      "levers": [
+        "wing_position"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M4-wing-OS",
+      "mechanism": "M4",
+      "levers": [
+        "wing_position"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M4-splitter-US",
+      "mechanism": "M4",
+      "levers": [
+        "splitter_offset"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "more front downforce",
+      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "condition": null,
+      "note": "sign convention from the registry",
+      "side_effect": null
+    },
+    {
+      "id": "M4-splitter-OS",
+      "mechanism": "M4",
+      "levers": [
+        "splitter_offset"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "less front downforce",
+      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "condition": null,
+      "note": "sign convention from the registry",
+      "side_effect": null
+    },
+    {
+      "id": "M5-camber-front-US",
+      "mechanism": "M5",
+      "levers": [
+        "camber_fl",
+        "camber_fr"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "APX"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more negative camber",
+      "anchor": "TE Tab. 5.11 p. 293; MM p. 394 (10)",
+      "advisory": true,
+      "condition": null,
+      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+      }
+    },
+    {
+      "id": "M5-camber-rear-APX-OS",
+      "mechanism": "M5",
+      "levers": [
+        "camber_rl",
+        "camber_rr"
+      ],
+      "symptoms": [
+        "OS"
+      ],
+      "phases": [
+        "APX"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more negative camber",
+      "anchor": "TE Tab. 5.12 p. 294",
+      "advisory": true,
+      "condition": null,
+      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+      }
+    },
+    {
+      "id": "M5-camber-rear-BRK-INST",
+      "mechanism": "M5",
+      "levers": [
+        "camber_rl",
+        "camber_rr"
+      ],
+      "symptoms": [
+        "INST"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more negative camber",
+      "anchor": "TE Tab. 5.13 p. 295",
+      "advisory": true,
+      "condition": null,
+      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+      }
+    },
+    {
+      "id": "M5-camber-rear-EXIT-OS",
+      "mechanism": "M5",
+      "levers": [
+        "camber_rl",
+        "camber_rr"
+      ],
+      "symptoms": [
+        "OS"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "less negative camber",
+      "anchor": "TE Tab. 5.12 p. 294",
+      "advisory": true,
+      "condition": null,
+      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": null
+      }
+    },
+    {
+      "id": "M5-toe-front-US",
+      "mechanism": "M5",
+      "levers": [
+        "toe_front"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low"
+      ],
+      "direction": "more toe-out",
+      "anchor": "TE p. 213, Tab. 5.14 p. 297",
+      "advisory": false,
+      "condition": null,
+      "note": "steady-state direction opposite in TE Tab. 5.2 p. 210 / Tab. 5.11 p. 293 - response lever only",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "higher tyre temperature and wear"
+      }
+    },
+    {
+      "id": "M5-toe-front-OS",
+      "mechanism": "M5",
+      "levers": [
+        "toe_front"
+      ],
+      "symptoms": [
+        "OS"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low"
+      ],
+      "direction": "less toe-out",
+      "anchor": "TE p. 213, Tab. 5.14 p. 297",
+      "advisory": false,
+      "condition": null,
+      "note": "steady-state direction opposite in TE Tab. 5.2 p. 210 / Tab. 5.11 p. 293 - response lever only",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": null
+      }
+    },
+    {
+      "id": "M5-toe-rear-EXIT-OS",
+      "mechanism": "M5",
+      "levers": [
+        "toe_rear"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more toe-in",
+      "anchor": "TE Tab. 5.12 p. 294; TE p. 213",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M5-toe-rear-TIN-US",
+      "mechanism": "M5",
+      "levers": [
+        "toe_rear"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "less toe-in",
+      "anchor": "TE p. 213; MM p. 726",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": null
+    },
+    {
+      "id": "M6-diff-US",
+      "mechanism": "M6",
+      "levers": [
+        "diff_position"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "TIN",
+        "APX"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": null
+      }
+    },
+    {
+      "id": "M6-diff-OS",
+      "mechanism": "M6",
+      "levers": [
+        "diff_position"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "TIN",
+        "APX"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "disturbing yaw moment in corners at low lateral acceleration"
+      }
+    },
+    {
+      "id": "M6-diff-EXIT-US",
+      "mechanism": "M6",
+      "levers": [
+        "diff_position"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "condition": null,
+      "note": "",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": null
+      }
+    },
+    {
+      "id": "M6-diff-EXIT-OS",
+      "mechanism": "M6",
+      "levers": [
+        "diff_position"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "TE Tab. 5.12 p. 294",
+      "advisory": false,
+      "condition": "not_traction_limited",
+      "note": "traction-limited exit (TC active, ecu_B_tc_act): tc_lon ranks above diff (MM p. 740)",
+      "side_effect": {
+        "source": "TE Tab. 5.14 pp. 296-297",
+        "text": "disturbing yaw moment in corners at low lateral acceleration"
+      }
+    },
+    {
+      "id": "M6-tc-lon-US",
+      "mechanism": "M6",
+      "levers": [
+        "tc_lon"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "SEG p. 89; MM p. 391",
+      "advisory": false,
+      "condition": null,
+      "note": "direction per registry / manufacturer TC table",
+      "side_effect": null
+    },
+    {
+      "id": "M6-tc-lon-OS",
+      "mechanism": "M6",
+      "levers": [
+        "tc_lon"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "SEG p. 89; MM p. 391",
+      "advisory": false,
+      "condition": null,
+      "note": "direction per registry / manufacturer TC table",
+      "side_effect": null
+    },
+    {
+      "id": "M6-tc-lat-US",
+      "mechanism": "M6",
+      "levers": [
+        "tc_lat"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "SEG p. 89; MM p. 391",
+      "advisory": false,
+      "condition": null,
+      "note": "direction per registry / manufacturer TC table",
+      "side_effect": null
+    },
+    {
+      "id": "M6-tc-lat-OS",
+      "mechanism": "M6",
+      "levers": [
+        "tc_lat"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "SEG p. 89; MM p. 391",
+      "advisory": false,
+      "condition": null,
+      "note": "direction per registry / manufacturer TC table",
+      "side_effect": null
+    },
+    {
+      "id": "M7-bias-US",
+      "mechanism": "M7",
+      "levers": [
+        "brake_bias"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more rear",
+      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "advisory": false,
+      "condition": null,
+      "note": "current value unknown (bias channel TBD): direction and one step, feasibility not assessable",
+      "side_effect": null
+    },
+    {
+      "id": "M7-bias-OS",
+      "mechanism": "M7",
+      "levers": [
+        "brake_bias"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "more front",
+      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "advisory": false,
+      "condition": null,
+      "note": "current value unknown (bias channel TBD): direction and one step, feasibility not assessable",
+      "side_effect": null
+    },
+    {
+      "id": "M7-abs-INST",
+      "mechanism": "M7",
+      "levers": [
+        "abs_position"
+      ],
+      "symptoms": [
+        "INST"
+      ],
+      "phases": [
+        "BRK"
+      ],
+      "speed_classes": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "direction": "toward the rear-axle-stable map",
+      "anchor": "SEG p. 114; manufacturer ABS table via registry",
+      "advisory": false,
+      "condition": null,
+      "note": "categorical: stay within the current grip bracket (registry typical_window), no linear step",
+      "side_effect": null
+    }
+  ],
+  "_comment_engineer_preference": "Engineer preference weight (D3): the elicited cells of the retired recommendations.json matrix (moved 2026-10-22, provenance kept). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0 (4e item 6, 2026-10-22). Preference only orders candidates, never adds a lever, never sets a direction.",
+  "_comment_engineer_unsupported": {
+    "_comment": "engineer cells not supported by the literature table (author ruling 2026-10-22, 4e item 6): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. No cell mixes supported and unsupported levers.",
+    "US-BRK-low": "toe_front more toe-out: the table has toe_front only at turn-in (TIN, low speed), not under braking",
+    "US-BRK-high": "wing_position increase contradicts the table (US: decrease, M4-wing-US); ride_height_front / ride_height_rear are not levers (_comment_not_levers)",
+    "OS-APX-high": "camber_fl / camber_fr less negative: the table has no front-camber row for OS",
+    "INST-BRK-med": "ride_height_front / ride_height_rear are not levers (_comment_not_levers)",
+    "INST-BRK-high": "toe_front more toe-out under braking: no toe_front row under braking, and more toe-out is the US direction (M5-toe-front-US), opposite to the OS / INST one"
+  },
+  "engineer_preference": [
+    {
+      "cell": "US-BRK-low",
+      "symptom": "US",
+      "phase": "BRK",
+      "speed_class": "low",
+      "levers": [
+        "toe_front"
+      ],
+      "cell_directions": [
+        "more_negative"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "US-BRK-med",
+      "symptom": "US",
+      "phase": "BRK",
+      "speed_class": "medium",
+      "levers": [
+        "damper_bump_ls_fl",
+        "damper_bump_ls_fr"
+      ],
+      "cell_directions": [
+        "soften",
+        "soften"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-BRK-high",
+      "symptom": "US",
+      "phase": "BRK",
+      "speed_class": "high",
+      "levers": [
+        "wing_position",
+        "ride_height_front",
+        "ride_height_rear"
+      ],
+      "cell_directions": [
+        "increase",
+        "decrease",
+        "increase"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-TIN-low",
+      "symptom": "US",
+      "phase": "TIN",
+      "speed_class": "low",
+      "levers": [
+        "toe_front"
+      ],
+      "cell_directions": [
+        "more_negative"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-TIN-med",
+      "symptom": "US",
+      "phase": "TIN",
+      "speed_class": "medium",
+      "levers": [
+        "diff_position"
+      ],
+      "cell_directions": [
+        "decrease"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-TIN-high",
+      "symptom": "US",
+      "phase": "TIN",
+      "speed_class": "high",
+      "levers": [
+        "wing_position"
+      ],
+      "cell_directions": [
+        "decrease"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "US-APX-low",
+      "symptom": "US",
+      "phase": "APX",
+      "speed_class": "low",
+      "levers": [
+        "arb_fl",
+        "arb_fr"
+      ],
+      "cell_directions": [
+        "soften",
+        "soften"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "US-APX-med",
+      "symptom": "US",
+      "phase": "APX",
+      "speed_class": "medium",
+      "levers": [
+        "diff_position"
+      ],
+      "cell_directions": [
+        "decrease"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-APX-high",
+      "symptom": "US",
+      "phase": "APX",
+      "speed_class": "high",
+      "levers": [
+        "camber_fl",
+        "camber_fr"
+      ],
+      "cell_directions": [
+        "more_negative",
+        "more_negative"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "US-EXIT-low",
+      "symptom": "US",
+      "phase": "EXIT",
+      "speed_class": "low",
+      "levers": [
+        "tc_lon"
+      ],
+      "cell_directions": [
+        "decrease"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-EXIT-med",
+      "symptom": "US",
+      "phase": "EXIT",
+      "speed_class": "medium",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "cell_directions": [
+        "stiffen",
+        "stiffen"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "US-EXIT-high",
+      "symptom": "US",
+      "phase": "EXIT",
+      "speed_class": "high",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "cell_directions": [
+        "stiffen",
+        "stiffen"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "OS-BRK-med",
+      "symptom": "OS",
+      "phase": "BRK",
+      "speed_class": "medium",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "cell_directions": [
+        "soften",
+        "soften"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "OS-BRK-high",
+      "symptom": "OS",
+      "phase": "BRK",
+      "speed_class": "high",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "cell_directions": [
+        "soften",
+        "soften"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "OS-TIN-low",
+      "symptom": "OS",
+      "phase": "TIN",
+      "speed_class": "low",
+      "levers": [
+        "toe_front"
+      ],
+      "cell_directions": [
+        "less_negative"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "OS-TIN-med",
+      "symptom": "OS",
+      "phase": "TIN",
+      "speed_class": "medium",
+      "levers": [
+        "diff_position"
+      ],
+      "cell_directions": [
+        "increase"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "OS-TIN-high",
+      "symptom": "OS",
+      "phase": "TIN",
+      "speed_class": "high",
+      "levers": [
+        "wing_position"
+      ],
+      "cell_directions": [
+        "increase"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "OS-APX-low",
+      "symptom": "OS",
+      "phase": "APX",
+      "speed_class": "low",
+      "levers": [
+        "arb_fl",
+        "arb_fr"
+      ],
+      "cell_directions": [
+        "stiffen",
+        "stiffen"
+      ],
+      "provenance": "mirror-derived"
+    },
+    {
+      "cell": "OS-APX-med",
+      "symptom": "OS",
+      "phase": "APX",
+      "speed_class": "medium",
+      "levers": [
+        "diff_position"
+      ],
+      "cell_directions": [
+        "increase"
+      ],
+      "provenance": "mirror-derived"
+    },
+    {
+      "cell": "OS-APX-high",
+      "symptom": "OS",
+      "phase": "APX",
+      "speed_class": "high",
+      "levers": [
+        "camber_fl",
+        "camber_fr"
+      ],
+      "cell_directions": [
+        "less_negative",
+        "less_negative"
+      ],
+      "provenance": "mirror-derived"
+    },
+    {
+      "cell": "OS-EXIT-low",
+      "symptom": "OS",
+      "phase": "EXIT",
+      "speed_class": "low",
+      "levers": [
+        "tc_lon"
+      ],
+      "cell_directions": [
+        "increase"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "OS-EXIT-med",
+      "symptom": "OS",
+      "phase": "EXIT",
+      "speed_class": "medium",
+      "levers": [
+        "arb_rl",
+        "arb_rr"
+      ],
+      "cell_directions": [
+        "soften",
+        "soften"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "OS-EXIT-high",
+      "symptom": "OS",
+      "phase": "EXIT",
+      "speed_class": "high",
+      "levers": [
+        "wing_position"
+      ],
+      "cell_directions": [
+        "increase"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "INST-BRK-low",
+      "symptom": "INST",
+      "phase": "BRK",
+      "speed_class": "low",
+      "levers": [
+        "abs_position"
+      ],
+      "cell_directions": [
+        "more_ra_stability"
+      ],
+      "provenance": "project-lead-reviewed"
+    },
+    {
+      "cell": "INST-BRK-med",
+      "symptom": "INST",
+      "phase": "BRK",
+      "speed_class": "medium",
+      "levers": [
+        "ride_height_front",
+        "ride_height_rear"
+      ],
+      "cell_directions": [
+        "increase",
+        "decrease"
+      ],
+      "provenance": "engineer-verbatim"
+    },
+    {
+      "cell": "INST-BRK-high",
+      "symptom": "INST",
+      "phase": "BRK",
+      "speed_class": "high",
+      "levers": [
+        "toe_front"
+      ],
+      "cell_directions": [
+        "more_negative"
+      ],
+      "provenance": "project-lead-reviewed"
+    }
+  ]
+}

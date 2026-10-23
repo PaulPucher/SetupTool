@@ -1,0 +1,85 @@
+COMBINED CS BOUNDARY MARGIN (work order 4a, 2026-10-22), 14 development sessions
+obs = max(|dCS| Q x 0.3, |dCS| R_yaw x 10); veh = +/-1 % vehicle-input sweep (results_cs_margin_20261021b);
+combined = sqrt(obs^2 + veh^2); population: valid laps, worst_lap aggregation, apex_3 from apex_region
+
+classifier aggregation (config cs_cross_lap_aggregation): worst_lap; 20261021b used the same aggregate_by_corner (same config value at that run) but on ALL laps (lap_filter None) and the raw apex_3 slice -- population differs from the classifier's (valid laps, apex_region)
+
+BASELINE IDENTITY (fresh HEAD run, all-lap raw aggregate vs 20261021b baseline JSON):
+  nbr_o05_mla: 116 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o10_jdr: 144 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o20_jst: 103 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o29_jst: 91 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o46_jst: 99 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o53_mla: 118 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o54_cdr: 160 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o59_mla: 120 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o61_jdr: 130 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_o63_cdr: 113 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_qp_cdr: 120 axle values compared, 0 differ (max |diff| 0.00e+00)
+  nbr_qp_mla: 103 axle values compared, 0 differ (max |diff| 0.00e+00)
+  pr_o25_us_v1: 120 axle values compared, 0 differ (max |diff| 0.00e+00)
+  pr_o32_us_v2: 135 axle values compared, 0 differ (max |diff| 0.00e+00)
+
+FRONT AXLE, pooled: 905 corner-phases with a baseline CS; obs defined 905, veh defined 872
+  obs      n  905  p50 0.0119  p90 0.0617  p95 0.1009
+  veh_max  n  872  p50 0.0028  p90 0.0112  p95 0.0171
+  veh_rss  n  872  p50 0.0042  p90 0.0148  p95 0.0211
+  comb_max n  872  p50 0.0134  p90 0.0617  p95 0.1043
+  comb_rss n  872  p50 0.0145  p90 0.0632  p95 0.1044
+  obs per lap (information only) n 4527  p50 0.0106  p90 0.0491  p95 0.0795
+  margin (comb_max p90) 0.0617: |CS| < margin 142/905 (15.7 %); limiting CS<0 126, CS<-margin 67, verdicts changing 59
+  margin (comb_rss p90) 0.0632: |CS| < margin 147/905 (16.2 %); limiting CS<0 126, CS<-margin 63, verdicts changing 63
+
+REAR AXLE, pooled: 832 corner-phases with a baseline CS; obs defined 832, veh defined 800
+  obs      n  832  p50 0.0167  p90 0.0782  p95 0.1218
+  veh_max  n  800  p50 0.0022  p90 0.0079  p95 0.0127
+  veh_rss  n  800  p50 0.0031  p90 0.0111  p95 0.0162
+  comb_max n  800  p50 0.0177  p90 0.0759  p95 0.1157
+  comb_rss n  800  p50 0.0184  p90 0.0763  p95 0.1200
+  obs per lap (information only) n 4135  p50 0.0165  p90 0.0683  p95 0.0951
+  margin (comb_max p90) 0.0759: |CS| < margin 69/832 (8.3 %); limiting CS<0 27, CS<-margin 9, verdicts changing 18
+  margin (comb_rss p90) 0.0763: |CS| < margin 69/832 (8.3 %); limiting CS<0 27, CS<-margin 9, verdicts changing 18
+
+PER SESSION (p50 / p90 / p95; margin = pooled per-axle p90 of comb_max):
+  NBR outing 5 MLA
+    front n  61  obs 0.012/0.035/0.041  veh_max 0.003/0.015/0.020  comb_max 0.016/0.040/0.055  within 16 (26 %), verdicts changing 5
+    rear  n  57  obs 0.018/0.075/0.112  veh_max 0.002/0.005/0.012  comb_max 0.018/0.076/0.113  within 3 (5 %), verdicts changing 0
+  NBR outing 10 JDR
+    front n  78  obs 0.007/0.028/0.051  veh_max 0.002/0.007/0.015  comb_max 0.010/0.029/0.051  within 12 (15 %), verdicts changing 8
+    rear  n  67  obs 0.012/0.063/0.093  veh_max 0.002/0.011/0.029  comb_max 0.018/0.066/0.093  within 3 (4 %), verdicts changing 2
+  NBR outing 20 JST
+    front n  60  obs 0.014/0.094/0.173  veh_max 0.003/0.009/0.015  comb_max 0.014/0.086/0.153  within 4 (7 %), verdicts changing 2
+    rear  n  55  obs 0.024/0.087/0.160  veh_max 0.002/0.007/0.008  comb_max 0.023/0.072/0.087  within 4 (7 %), verdicts changing 1
+  NBR outing 29 JST (NBR_Sturm_Solution copy)
+    front n  51  obs 0.006/0.039/0.057  veh_max 0.003/0.008/0.011  comb_max 0.007/0.040/0.058  within 12 (24 %), verdicts changing 4
+    rear  n  48  obs 0.017/0.049/0.119  veh_max 0.003/0.008/0.011  comb_max 0.019/0.046/0.090  within 3 (6 %), verdicts changing 0
+  NBR outing 46 JST
+    front n  55  obs 0.015/0.032/0.038  veh_max 0.003/0.011/0.014  comb_max 0.016/0.033/0.040  within 8 (15 %), verdicts changing 1
+    rear  n  49  obs 0.017/0.049/0.129  veh_max 0.002/0.006/0.023  comb_max 0.016/0.055/0.146  within 7 (14 %), verdicts changing 2
+  NBR outing 53 MLA
+    front n  63  obs 0.015/0.045/0.079  veh_max 0.003/0.012/0.018  comb_max 0.017/0.047/0.070  within 12 (19 %), verdicts changing 3
+    rear  n  61  obs 0.014/0.050/0.062  veh_max 0.002/0.006/0.009  comb_max 0.014/0.051/0.069  within 5 (8 %), verdicts changing 1
+  NBR outing 54 CDR
+    front n  83  obs 0.007/0.036/0.049  veh_max 0.002/0.008/0.015  comb_max 0.008/0.038/0.054  within 5 (6 %), verdicts changing 3
+    rear  n  77  obs 0.008/0.052/0.069  veh_max 0.002/0.008/0.010  comb_max 0.010/0.055/0.069  within 4 (5 %), verdicts changing 1
+  NBR outing 59 MLA
+    front n  64  obs 0.007/0.040/0.062  veh_max 0.003/0.011/0.013  comb_max 0.009/0.045/0.064  within 12 (19 %), verdicts changing 5
+    rear  n  59  obs 0.017/0.071/0.093  veh_max 0.003/0.010/0.013  comb_max 0.019/0.071/0.116  within 5 (8 %), verdicts changing 1
+  NBR outing 61 JDR
+    front n  70  obs 0.006/0.039/0.055  veh_max 0.002/0.007/0.009  comb_max 0.007/0.039/0.055  within 15 (21 %), verdicts changing 6
+    rear  n  63  obs 0.016/0.076/0.119  veh_max 0.002/0.009/0.018  comb_max 0.017/0.063/0.114  within 4 (6 %), verdicts changing 1
+  NBR outing 63 CDR
+    front n  61  obs 0.012/0.056/0.107  veh_max 0.004/0.017/0.023  comb_max 0.013/0.059/0.109  within 8 (13 %), verdicts changing 1
+    rear  n  59  obs 0.014/0.052/0.076  veh_max 0.002/0.008/0.014  comb_max 0.015/0.052/0.094  within 6 (10 %), verdicts changing 3
+  NBR qualifying CDR (outing 69)
+    front n  62  obs 0.036/0.180/0.209  veh_max 0.005/0.019/0.022  comb_max 0.040/0.180/0.209  within 10 (16 %), verdicts changing 5
+    rear  n  58  obs 0.019/0.111/0.142  veh_max 0.002/0.007/0.013  comb_max 0.019/0.111/0.142  within 9 (16 %), verdicts changing 3
+  NBR qualifying MLA (outing 70)
+    front n  56  obs 0.013/0.065/0.106  veh_max 0.003/0.009/0.011  comb_max 0.016/0.067/0.106  within 8 (14 %), verdicts changing 5
+    rear  n  51  obs 0.019/0.091/0.148  veh_max 0.003/0.005/0.011  comb_max 0.020/0.096/0.150  within 4 (8 %), verdicts changing 1
+  Le Castellet outing 25, MLA-SE07_US-v1
+    front n  68  obs 0.018/0.098/0.159  veh_max 0.003/0.009/0.013  comb_max 0.019/0.118/0.184  within 5 (7 %), verdicts changing 1
+    rear  n  62  obs 0.021/0.082/0.102  veh_max 0.002/0.004/0.009  comb_max 0.024/0.078/0.095  within 6 (10 %), verdicts changing 1
+  Le Castellet outing 32, MLA-SE07_US-v2
+    front n  73  obs 0.021/0.086/0.125  veh_max 0.003/0.011/0.018  comb_max 0.022/0.089/0.126  within 15 (21 %), verdicts changing 10
+    rear  n  66  obs 0.022/0.100/0.154  veh_max 0.002/0.005/0.010  comb_max 0.022/0.101/0.156  within 6 (9 %), verdicts changing 1

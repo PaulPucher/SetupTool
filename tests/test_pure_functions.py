@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from modules.stability_analysis import estimate_slip_angles, load_parameters
-from modules.recommendation import _nanmedian_or_nan
+from modules.corner_aggregation import _nanmedian_or_nan
 from modules.sideslip_ekf_pacejka import (
     slip_angles as ekf_slip_angles, process_jacobian, measurement_jacobian,
 )

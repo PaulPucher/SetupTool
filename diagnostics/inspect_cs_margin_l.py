@@ -91,8 +91,8 @@ def keep_awake(on):
 # unchanged from the retired inspect_metrology_phase1_sensitivity.py
 # (the recorded cs_margin method, 2026-10-22).
 def classify_all(summaries):
-    from ui.views.outing_form import OutingForm
-    from modules.recommendation import aggregate_by_corner, PHASE_KEYS
+    from modules.classifier import classify_corner
+    from modules.corner_aggregation import aggregate_by_corner, PHASE_KEYS
     aggregated = aggregate_by_corner(summaries)
     out = {}
     for cid, corner in aggregated.items():
@@ -102,7 +102,7 @@ def classify_all(summaries):
             sliced = {"phases": {phase: corner["phases"][phase]}}
             if phase == "apex_3" and corner.get("apex_region") is not None:
                 sliced["apex_region"] = corner["apex_region"]
-            severity, short, _long, _colour = OutingForm._classify_corner(None, sliced)
+            severity, short, _long, _colour = classify_corner(sliced)
             out[(cid, phase)] = (severity, short)
     return out, aggregated
 
@@ -232,13 +232,13 @@ def _load(key, input_name, tag):
 
 def _marginal_shares(key, margin):
     from modules.stability_analysis import load_parameters
-    from ui.views.outing_form import OutingForm
+    from modules.classifier import classify_corner
     cfg = load_parameters()["classification"]["verdict_stability_margin"]
     keep = cfg["cs_margin"]
     cfg["cs_margin"] = margin   # in-memory only, the cached config dict
     try:
         summ = pickle.load(open(os.path.join(OUT, f"{key}_baseline_summaries.pkl"), "rb"))
-        shorts = [OutingForm._classify_corner(None, s)[1] for s in summ]
+        shorts = [classify_corner(s)[1] for s in summ]
     finally:
         cfg["cs_margin"] = keep
     tier = [s for s in shorts if "understeer @" in s or "oversteer @" in s]

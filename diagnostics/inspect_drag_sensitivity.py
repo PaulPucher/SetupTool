@@ -67,8 +67,8 @@ def keep_awake(on):
 # unchanged from the retired inspect_metrology_phase1_sensitivity.py
 # (the recorded cs_margin method, 2026-10-22).
 def classify_all(summaries):
-    from ui.views.outing_form import OutingForm
-    from modules.recommendation import aggregate_by_corner, PHASE_KEYS
+    from modules.classifier import classify_corner
+    from modules.corner_aggregation import aggregate_by_corner, PHASE_KEYS
     aggregated = aggregate_by_corner(summaries)
     out = {}
     for cid, corner in aggregated.items():
@@ -78,7 +78,7 @@ def classify_all(summaries):
             sliced = {"phases": {phase: corner["phases"][phase]}}
             if phase == "apex_3" and corner.get("apex_region") is not None:
                 sliced["apex_region"] = corner["apex_region"]
-            severity, short, _long, _colour = OutingForm._classify_corner(None, sliced)
+            severity, short, _long, _colour = classify_corner(sliced)
             out[(cid, phase)] = (severity, short)
     return out, aggregated
 
@@ -105,8 +105,8 @@ def compute(task):
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
     from modules.corner_analysis import reclassify_speed_classes
     from modules.limit_events import detect_floor_events
-    from modules.recommendation import aggregate_by_corner
-    from ui.views.outing_form import OutingForm
+    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import classify_corner
     _, track, outing, label, src = {c[0]: c for c in CANDIDATES}[key]
     path = resolve_data_path(src[1])
     data = parse_csv(path)
@@ -136,7 +136,7 @@ def compute(task):
     summ = [s for s in summarise_corners(data.get("corners", []), cs, stab, st, lap_filter=None)
             if s["lap_number"] in valid]
     phase_verdicts, aggregated = classify_all(summ)
-    corner_verdicts = {cid: _strip(OutingForm._classify_corner(None, c)[1]) for cid, c in aggregated.items()}
+    corner_verdicts = {cid: _strip(classify_corner(c)[1]) for cid, c in aggregated.items()}
     events = detect_floor_events(cs, st, data.get("corners", []), laps, p, slip,
                                  axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])["events"]
     fit = {}

@@ -12,8 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from core.threshold_overrides import apply_threshold_edit, is_manual
 
-CONFIG_FILES = ("config/parameters.json", "config/channels.json",
-                "config/recommendations.json", "config/decision_frame.json")
+CONFIG_FILES = ("config/parameters.json", "config/channels.json")
 # real summaries of the default path (Dubai goldens retired 2026-10-20)
 GOLDEN_SUMMARIES = "tests/golden/default_nbr_jst29.json"
 
@@ -87,26 +86,26 @@ def test_settings_round_trip_edit_persist_reload_classify(qapp, restore_config):
     summaries = _real_summaries()
     before = _severities(summaries)
     with open("config/parameters.json", encoding="utf-8") as f:
-        derived = json.load(f)["classification"]["STRONG_CSR"]["value"]
+        derived = json.load(f)["classification"]["STRONG_CSF"]["value"]
 
+    # D2 (2026-10-22): the front strong tier grades a limiting front axle, so
+    # raising it to 0.5 turns every front-limited corner-lap "strong"
     view = SettingsView()
-    view.section3_widgets["STRONG_CSR"].setValue(0.5)  # nearly every rear reading becomes "strong"
+    view.section3_widgets["STRONG_CSF"].setValue(0.5)
     view._on_save_clicked()
 
     with open("config/parameters.json", encoding="utf-8") as f:
-        entry = json.load(f)["classification"]["STRONG_CSR"]
+        entry = json.load(f)["classification"]["STRONG_CSF"]
     assert entry["value"] == 0.5 and entry["derived_default"] == derived
     assert "manually set" in entry["derived_from"]
 
     fresh = SettingsView()
-    assert not fresh.section3_manual_labels["STRONG_CSR"].isHidden()
-    assert not fresh.section3_restore_buttons["STRONG_CSR"].isHidden()
-    assert fresh.section3_manual_labels["STRONG_CSF"].isHidden()
+    assert not fresh.section3_manual_labels["STRONG_CSF"].isHidden()
+    assert not fresh.section3_restore_buttons["STRONG_CSF"].isHidden()
+    assert fresh.section3_manual_labels["STRONG_CSR"].isHidden()
 
-    # severity "strong" also needs destabilising yaw, so the raised rear
-    # threshold shows as more non-normal verdicts, not necessarily "strong"
     after = _severities(summaries)
-    assert sum(s != "normal" for s in after) > sum(s != "normal" for s in before)
+    assert sum(s == "strong" for s in after) > sum(s == "strong" for s in before)
 
 
 def test_restore_control_returns_derived_value_and_clears_tag(qapp, restore_config):

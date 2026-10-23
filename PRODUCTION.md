@@ -2,7 +2,9 @@
 
 Dated 2026-10-21. Describes the default analysis path of branch new-laps:
 tyre fit L (config tyre_fit_auto.tyre_fit_mode = "literature_bounded"),
-ANALYSIS_SCHEMA_VERSION 19. It states what the method IS, in the order the
+ANALYSIS_SCHEMA_VERSION 19. [2026-10-22: sections 9 (classification rules)
+and 10 (recommendation) rewritten for the recommendation overhaul, schema
+21; the chain sections 1-8 are unchanged in value since schema 19.] It states what the method IS, in the order the
 signal flows, so that the thesis method chapter can be written from it. How
 each rule came about is recorded in DECISIONS.md (standing rulings) and
 thesis_notes.md (dated findings); this file points there only where a rule
@@ -513,8 +515,8 @@ Castellet file: at throttle > 90 % the pressure is 0 bar at p99 with one
 6.03 bar transient, real braking phases reach >= 13.6 bar; 3.0 bar lies
 between).
 
-Cross-lap aggregation (recommendation.aggregate_by_corner; the same
-function feeds the map, the decision frame and the PDF recommendations):
+Cross-lap aggregation (modules/corner_aggregation.py aggregate_by_corner;
+the same function feeds the map, the classifier and the setup engine):
 per stable corner and phase, CS = the worst lap, i.e. the minimum over
 laps of the phase medians (CONFIG classification.cs_cross_lap_aggregation
 = "worst_lap"; the apex region likewise); stability = the median over laps
@@ -527,14 +529,14 @@ while a minimum -- right for CS, which is estimated per lap and locally
 behaviour). The classifier then takes the minimum over phases,
 so the CS corner value is the minimum over (lap, phase) -- the population
 the thresholds were derived on. The verdict cards classify each corner-lap
-(worst phase within that lap); the map and the decision frame classify the
-aggregate (ui/views/outing_form.py _classify_corner).
+(worst phase within that lap); the map and the setup engine classify the
+aggregate (modules/classifier.py classify_corner).
 
 Speed class (low < 80 <= medium < 150 km/h <= high, channels.json
 corner_speed_thresholds, Settings-editable; B): a canonical corner takes
 the class of the median apex speed over its instances
 (modules/corner_analysis.py); the aggregate takes the modal class across
-laps, ties towards medium, then the lower class (recommendation.
+laps, ties towards medium, then the lower class (corner_aggregation.
 _aggregate_speed_class) -- this only resolves per-lap corners whose class
 differs between laps.
 
@@ -552,9 +554,30 @@ reference gate and again on schema 18 (populated braking phases,
   [Hoffman.2008, sec. 2, p. 136].
 - Physical statements are separate labels: ratio < 0 = "axle force falling
   while slip grows"; ratio < -0.53 = floor event (8).
-- Verdict word: front -> understeer, rear -> oversteer, at that axle's
-  worst phase; precedence rear STRONG, front STRONG, rear MODERATE, front
-  MODERATE.
+- Axle limiting (ruling D2, 2026-10-22): an axle is limiting when its CS
+  ratio is below zero, i.e. past the peak of its Fy / Fz curve; the test is
+  CS < -margin per axle (CONFIG classification.cs_boundary_margin_front =
+  0.062, cs_boundary_margin_rear = 0.076; L1, B; author ruling 2026-10-22):
+  the p90 of the combined CS change under the two admissible observer
+  perturbations (Q x 0.3, R_yaw x 10) and the +/-1 % vehicle-input sweep
+  (largest run) over the 14 development sessions
+  (diagnostics/inspect_cs_margin_combined.py). The observer term dominates;
+  the vehicle part comes from all laps and the raw apex_3 slice, the
+  observer part from valid laps and the apex region (small population
+  mismatch, stated). The percentile tiers grade depth only.
+- Symptoms per phase (modules/classifier.py phase_symptoms): front
+  limiting -> understeer (US), moderate, strong when the value also lies
+  below STRONG_CSF; rear limiting -> oversteer (OS), always strong -- a
+  rear axle past its peak removes the restoring yaw moment, a loss of
+  stability [Hoffman.2008, sec. 2, p. 136]; rear between the boundary and
+  MODERATE_CSR -> information only, no symptom; open-loop unstable yaw
+  (below) -> INST in whichever phase it occurs, strong. STRONG_CSR and
+  MODERATE_CSF set no verdict any more (recorded tiers, Settings-editable).
+- Verdict word: rear limiting first (oversteer), then front (understeer),
+  each at its worst phase; open-loop unstable added at its worst phase.
+- Low priority: a high-speed corner whose only symptom is front limiting
+  is flagged low priority -- mild high-speed understeer is the deliberate
+  safe balance [Milliken.1995, p. 396 item 21, p. 401 item 1F].
 
 Yaw stability (second signal; modules/yaw_stability.py, chair estimator
 and its six values as-is; CONFIG stability_estimation.yaw_stability_*; L1,
@@ -577,12 +600,14 @@ A): the yaw-moment derivative dMz/dbeta.
 - Sign: positive = restoring. "Open-loop unstable" when the worst phase
   value is < 0 Nm/deg -- the sign criterion, anchored for the thesis on
   [Guiggiani.2023, pp. 306, 308] (the code docstring's Werner reference,
-  sec. 2.2.3, is provenance only); explicitly not a criticality threshold. Severity: strong = a STRONG axle
-and open-loop unstable; moderate = a STRONG axle alone, or MODERATE and
-unstable, or unstable alone; normal otherwise.
+  sec. 2.2.3, is provenance only); explicitly not a criticality threshold.
+Severity (D2): the highest of the corner's symptoms -- strong for rear
+limiting, front limiting in the strong tier, or open-loop unstable;
+moderate for front limiting alone; normal otherwise.
 
-[MARGINAL]: the verdict-driving value lies within cs_margin = 0.01 of its
-nearest threshold (CONFIG classification.verdict_stability_margin; L1, B).
+[MARGINAL]: the verdict-driving value lies within cs_margin = 0.01 of a
+boundary that decides its class -- the axle's own limiting boundary, and for the front
+also the strong tier (CONFIG classification.verdict_stability_margin; L1, B).
 Derived by the recorded +/-1 % sweep of mass, front weight fraction,
 wheelbase, yaw inertia and steering map on the 14 sessions (schema 19):
 one proportional verdict flip at threshold distance 0.000, rounded up;
@@ -593,8 +618,9 @@ expresses sensitivity to the vehicle parameters ONLY; the observer
 uncertainty (12) is larger and is not expressed by it. Share of tier
 verdicts tagged [MARGINAL]: 0-50 % per session.
 
-Display: the CS phase values are coloured by the same axle tiers (below
-STRONG BAD, below MODERATE WARN, else OK; read from config). [UNCAL]
+Display: the CS phase values are coloured by the class they would set
+(classifier.cs_value_state): front limiting WARN, in the strong tier BAD;
+rear limiting BAD; rear information band WARN; else OK. [UNCAL]
 marks every verdict when the active estimator path differs from the one
 the thresholds were derived on -- sideslip source and, for the auto fit,
 tyre_fit_mode (classification.thresholds_calibrated_for_sideslip_source /
@@ -604,24 +630,114 @@ Tier B (thresholds, aggregation), A (stability sign criterion; fit L does
 not touch it). The thresholds differ from any chair value by rule.
 
 
-## 10. Recommendation layer (under revision, overhaul queued)
+## 10. Setup recommendation (setup engine)
 
-As-is: two engines read the classifier. On screen, modules/decision_frame.py
-builds evidence items (corner and matrix verdicts with a confidence =
-laps repeating the verdict / laps, capped for [MARGINAL]; brake balance,
-ABS, damper, kerb and driver-feedback evidence), turns the engineer-elicited
-rules of config/recommendations.json into candidate setup changes and ranks
-them with a six-term additive cost (decision_frame.json); it never applies
-a change. The weekend PDF export uses modules/recommendation.py, which
-fires the same rules only through a hard consistency gate (the verdict on
->= 2 laps and >= 40 % of the corner's laps) -- with empty feedback both
-development goldens produce no recommendation from it. Most non-ok corners
-fail the rules' min_severity "moderate" (a MODERATE CS tier alone is
-severity "normal", section 9); the rest fail the consistency gate, their
-verdicts repeating on 1-2 of 6-9 laps.
-Queued for the overhaul: one combined uncertainty ([MARGINAL] plus
-observer), the two-tier question, the consistency gate against worst-lap
-aggregation, and one engine. Tier C in structure, B in its gates.
+modules/setup_engine.py with config/mechanisms.json (recommendation
+overhaul D1-D7, live 2026-10-22; rulings of work order 4e, schema 22). One small engine; the earlier
+rule engine and decision frame are removed. It proposes, it never applies a
+change. Tier A in the mechanism table (anchors below), B in the repetition
+rule, C in the display.
+
+Symptom -> mechanism -> lever:
+- Symptoms come from the classifier per lap and phase (section 9): US, OS,
+  INST.
+- Repetition (D5; CONFIG setup_engine.min_repeat_fraction = 0.5,
+  min_repeat_laps = 2; L1, B, author ruling 2026-10-22): a corner-phase
+  symptom counts only when it appears on more than half of the corner's
+  valid laps and on at least two. Its severity is read from the cross-lap
+  aggregate, the population the tiers were derived on.
+- Mechanism table (config/mechanisms.json, 42 rows; D3): each row ties a
+  lever group, a direction, symptoms, phase groups (BRK = entry_1_brake,
+  TIN = entry_2_turnin, APX = apex_3, EXIT = exit_4 + exit_5) and speed
+  classes to its source. M1 roll stiffness distribution (ARBs, springs; all
+  phases and speeds) [Milliken.1995, pp. 409-410]; [TE Bd. 5, Tab. 5.2
+  p. 210, Tab. 5.11-5.13 pp. 293-295]. M2 transient load transfer
+  (low-speed dampers; BRK, TIN, EXIT, never APX) [TE Bd. 5, Tab. 5.9,
+  p. 254]; [Segers.2014, pp. 259-263]. M4 aero balance (wing,
+  splitter; high speed only) [Milliken.1995, p. 396, p. 572]; [TE Bd. 5,
+  Tab. 5.11 p. 293]. M5 tyre working point (camber, advisory -- needs tyre
+  temperatures [Segers.2014, pp. 194-196]; front toe at low-speed turn-in
+  only, a response lever; rear toe) [TE Bd. 5, p. 213, Tab. 5.12 p. 294,
+  Tab. 5.14 p. 297]; [Milliken.1995, p. 394, p. 726]. M6 drivetrain (diff,
+  TC long / lat; a traction-limited exit -- TC flag ecu_B_tc_act active on
+  the majority of the symptom laps -- ranks TC long above the diff)
+  [Milliken.1995, pp. 739-740, p. 391]; [Segers.2014, p. 89]. M7 brake
+  balance (bias; ABS map toward the rear-axle-stable map within the
+  current grip bracket) [Milliken.1995, p. 393, p. 398]; [Segers.2014,
+  p. 114]. INST takes a lever's OS direction unless a row names INST for
+  that lever and phase (rear saturation = stability loss
+  [Hoffman.2008, sec. 2, p. 136]). Left and right always move together
+  [Segers.2014, p. 263]. Not levers: ride heights (directions contradict
+  between [Milliken.1995, p. 573] and [TE Bd. 5, Tab. 5.11 p. 293]),
+  high-speed dampers, blow-off, front ARB mount. TE Bd. 5 = Trzesniowski /
+  Eder 2019 (bib Trzesniowski.2019); the Milliken and Segers bib keys are
+  still to verify; pages as given in the overhaul work order.
+- Side effects as text (TE Bd. 5, Tab. 5.14 pp. 296-297): camber more
+  negative -- higher straight-line rolling resistance, less longitudinal
+  force, more tyre deformation; front toe more toe-out -- higher tyre
+  temperature and wear; differential locking increase -- disturbing yaw
+  moment in corners at low lateral acceleration. Rows in the opposite
+  direction carry no text (none ruled).
+- Direction and step: the direction word is converted to a signed step
+  through the registry's direction_semantics (setup_parameters.json; damper
+  clicks: increasing = softer); step = the registry adjustment_step
+  (dampers: "fine" = 1 click, CONFIG setup_engine.damper_step; team
+  practice for race-weekend finetuning, the larger steps of [TE Bd. 5,
+  p. 292] are test-day advice), else value_space.step, else one unit / one
+  enum option.
+- Current value and feasibility (modules/setup_state.py): from -> to from
+  the setup sheet; a step past the registry value space is "at limit" and
+  skipped; past the typical window (config/setup_windows.json) is noted
+  "engineer may exceed"; window headroom breaks ties. The ABS map has no
+  sheet field: its current position is the session mode of the logged
+  channel log_abs_pos (L3), and a map change within the session adds "map
+  changed in session (last valid lap: N)", N = the position on the last
+  valid lap; the map is categorical, so the target stays the engineer's
+  choice. TC and brake bias have neither a sheet field nor a trusted
+  channel and are "not assessable".
+
+Ranking and output (D4, order ruled in 4e): severity -> repetition count
+-> TC-condition demotion -> engineer preference -> change effort (seconds
+< minutes < half hour < garage hours [Milliken.1995, p. 391]; shown on
+every line) -> headroom; high-speed front-only corners sort after the
+others of the same severity. Per corner one recommended change and up to
+two alternatives -- one change at a time, so its effect stays attributable
+[Milliken.1995, p. 391]; [TE Bd. 5, p. 292]. The same lever change across
+phases is merged; an opposite direction of an already chosen lever is
+listed as a conflict. Engineer preference: the elicited cells of the
+retired engineer matrix (moved into mechanisms.json) give preference 1 to a
+candidate only when the cell names its lever with the table's direction
+for that symptom, phase group and speed class; a weight only, never a new
+lever or a direction. Five cells the table does not support (a contradicting
+direction or a lever without a row there) are ignored and listed in
+mechanisms.json: US-BRK-low, US-BRK-high, OS-APX-high, INST-BRK-med,
+INST-BRK-high.
+
+Two layers (D6) and the session layer (D7):
+- Data layer: computed without driver feedback and stored unchanged (DB
+  payload and sidecar, key "setup_engine"); the thesis comparison reads it.
+- Engineer layer: the data layer re-ranked with feedback -- per
+  corner-phase, feedback sign (- understeer, + oversteer, |fb| >= 1) against
+  the symptom gives agree / neutral / conflict, ranked right after
+  severity; INST is read like OS -- rear saturation is a loss of
+  stability [Hoffman.2008, sec. 2], which the driver feels as a loose
+  rear, so oversteer feedback agrees and understeer feedback conflicts;
+  |fb| >= 4 with no counted data symptom adds a driver-only row from the
+  same table, labelled "no data support". Driver level is not used.
+- Session layer: per symptom the share of corners with a counted symptom,
+  the share of corners with any counted symptom, and the single-lap cell
+  shares without the repetition rule (front limiting and rear limiting
+  over the cells with a CS value on that axle, INST over the cells with a
+  stability value; each with its n). Computed, stored and reported; no
+  session recommendation (setup_engine.session_share_threshold = null,
+  author ruling 2026-10-22).
+
+On the development set (2026-10-23, schema 22): single-lap axle limiting
+beyond the margin is rare (pooled p50 / p90 of the per-session shares:
+front 0.018 / 0.039, rear 0.000 / 0.006) and almost never repeats; INST
+(0.012 / 0.047) repeats -- 11 of the 12 counted corners over the 14
+sessions are INST. 12 corner recommendations in total; NBR JST 29 gives two
+(C8, C11, both INST), Le Castellet 32 none.
 
 
 ## 11. Validation evidence (development set, 14 sessions)

@@ -237,7 +237,7 @@ def _contiguous_runs(x, mask):
 def _aggregate_worst_severity(corner_summaries, classify_fn):
     # lap view = problem map: band tint = worst severity over ALL valid
     # instances, via the injected classify_fn (same as everywhere else)
-    from modules.recommendation import SEVERITY_RANK
+    from modules.corner_aggregation import SEVERITY_RANK
 
     worst_rank = -1
     worst_colour = None
