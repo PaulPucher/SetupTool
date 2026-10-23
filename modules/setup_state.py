@@ -68,10 +68,15 @@ def _last_valid_lap_value(ch, laps, valid_laps):
 
 
 def _numeric_bounds(entry):
-    # ride_height_*: bounds = standard +/- typical_window
+    # ride_height_*: bounds from standard + typical_window; None = no edge
+    # on that side
     vs = entry["value_space"]
     if vs is None:
         return None, None
+    # a lever whose scale is only monotonic on part of its range (TC: 2-11)
+    # can be stepped only inside that part
+    if "feasible_min" in vs and "feasible_max" in vs:
+        return vs["feasible_min"], vs["feasible_max"]
     if "min" in vs and "max" in vs:
         return vs["min"], vs["max"]
     tw = entry.get("typical_window") or {}
@@ -79,7 +84,10 @@ def _numeric_bounds(entry):
     if standard is None:
         return None, None
     if "max_delta_from_standard" in tw:
-        return standard + tw["max_delta_from_standard"], standard
+        # front ride height: a floor only (standard - 2 mm, diffuser floor
+        # limit); the car is often run at the minimum but nothing caps it
+        # above the standard (author ruling 2026-10-23, 4g item 3)
+        return standard + tw["max_delta_from_standard"], None
     if "delta_from_standard" in tw:
         lo, hi = tw["delta_from_standard"]
         return standard + lo, standard + hi
@@ -96,13 +104,13 @@ def _check_feasible(entry, current_value, delta_value):
         idx = options.index(current_value) + int(delta_value)
         return 0 <= idx < len(options)
     lo, hi = _numeric_bounds(entry)
-    if lo is None or hi is None:
+    if lo is None and hi is None:
         return None
     try:
         new_value = float(current_value) + delta_value
     except (TypeError, ValueError):
         return None
-    return lo <= new_value <= hi
+    return (lo is None or new_value >= lo) and (hi is None or new_value <= hi)
 
 
 def _current_setup_value(setup_data, entry):

@@ -16,7 +16,8 @@ from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
 from models.base import Session
 from models.driver import Driver, driver_name_and_level
 from models.outing import Outing
-from ui.style import ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
+from ui.style import (ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER,
+                      SPEED_TINT, SPEED_TEXT)
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
 from modules.csv_parser import lap_display_label
@@ -994,6 +995,7 @@ class OutingForm(QWidget):
         )
         self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
         self._populate_lap_table(laps)
+        self._refresh_feedback_speed_labels()
         self._update_corner_map_trace()
         self._update_corner_map_markers()
         self.btn_analyse.setEnabled(True)
@@ -1626,6 +1628,7 @@ class OutingForm(QWidget):
         # and cache hit alike) -> threshold changes always show. Clears the
         # outdated-schema flag.
         self._cached_schema_mismatch = None
+        self._refresh_feedback_speed_labels()
         if cached:
             self.stability_status_label.setText(
                 f"cached ({self._format_lap_filter_label(lap_filter)}) - "
@@ -1814,12 +1817,16 @@ class OutingForm(QWidget):
         cell = QPushButton()
         cell.setCheckable(False)
         cell.setCursor(Qt.CursorShape.PointingHandCursor)
-        cell.setText(f"C{stable_id}\n{self._verdict_cell_text(short)}")
+        speed = self._corner_speed_classes().get(stable_id)
+        cell.setText(f"C{stable_id}{f' ({speed})' if speed else ''}\n{self._verdict_cell_text(short)}")
         cell.setToolTip(self._verdict_tooltip(short))
+        # the fill is the verdict colour, so the speed class rides on a left
+        # stripe in its neutral tint
+        stripe = f" border-left: 6px solid {SPEED_TINT[speed]};" if speed in SPEED_TINT else ""
         cell.setStyleSheet(
             f"QPushButton {{"
             f" background-color: {colour}; color: #111; "
-            f" border: none; border-radius: 3px; "
+            f" border: none;{stripe} border-radius: 3px; "
             f" padding: 4px 8px; font-size: 10px; font-weight: 600; "
             f" text-align: center; "
             f"}}"
@@ -2211,7 +2218,8 @@ class OutingForm(QWidget):
                     head, lines = corner_lines({"corner": d["corner"], "speed_class": d["speed_class"],
                                                 "recommended": d["recommended"],
                                                 "alternatives": d["alternatives"],
-                                                "at_limit": d["at_limit"]}, engineer=True)
+                                                "at_limit": d["at_limit"], "cockpit": d.get("cockpit")},
+                                               engineer=True)
                     blocks.append((f"{head} -- driver only, no data support", lines))
             if not blocks:
                 blocks = [("No corner with a repeated symptom.", [])]
@@ -3267,9 +3275,11 @@ class OutingForm(QWidget):
 
         self.feedback_table = QTableWidget()
         # no "worst corner" column: its flag fed only the old rule engine
-        self.feedback_table.setColumnCount(6)
+        # "Speed" = the corner's canonical speed class, read-only, so the
+        # driver rates a corner knowing which class the engine reads it in
+        self.feedback_table.setColumnCount(7)
         self.feedback_table.setHorizontalHeaderLabels(
-            ["No.", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]
+            ["No.", "Speed", "Entry 1", "Entry 2", "Apex 3", "Exit 4", "Exit 5"]
         )
         self.feedback_table.verticalHeader().setVisible(False)
         self.feedback_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -3280,7 +3290,9 @@ class OutingForm(QWidget):
         self.feedback_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.feedback_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.feedback_table.setColumnWidth(0, 36)
-        for col in range(1, 6):
+        self.feedback_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.feedback_table.setColumnWidth(1, 60)
+        for col in range(2, 7):
             self.feedback_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
         self.feedback_table.setStyleSheet("""
             QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
@@ -3357,6 +3369,7 @@ class OutingForm(QWidget):
             })
 
         self.corner_rows = []
+        self.feedback_speed_labels = []
         self.feedback_table.setRowCount(0)
 
         for i in range(count):
@@ -3368,6 +3381,11 @@ class OutingForm(QWidget):
             num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             num_label.setStyleSheet("color: #C0A060; font-weight: 600; font-size: 11px; background: transparent;")
             self.feedback_table.setCellWidget(row, 0, num_label)
+            speed_label = QLabel("-")
+            speed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            speed_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px; background: transparent;")
+            self.feedback_table.setCellWidget(row, 1, speed_label)
+            self.feedback_speed_labels.append(speed_label)
 
             prev = existing[i] if i < len(existing) else None
             spins = {}
@@ -3386,7 +3404,7 @@ class OutingForm(QWidget):
                         font-size: 12px;
                     }
                 """)
-                self.feedback_table.setCellWidget(row, col_idx + 1, spin)
+                self.feedback_table.setCellWidget(row, col_idx + 2, spin)
                 spins[key] = spin
 
             self.corner_rows.append(spins)
@@ -3394,6 +3412,25 @@ class OutingForm(QWidget):
         header_h = self.feedback_table.horizontalHeader().height()
         total_row_h = sum(self.feedback_table.rowHeight(i) for i in range(count))
         self.feedback_table.setFixedHeight(header_h + total_row_h + 4)
+        self._refresh_feedback_speed_labels()
+
+    def _corner_speed_classes(self):
+        # canonical class per stable corner; the analysed corners first (their
+        # classes follow the current Settings thresholds), else the parse result
+        from modules.corner_analysis import canonical_speed_classes
+        corners = (self.stability_result or {}).get("corners") or (self.parsed_data or {}).get("corners")
+        return canonical_speed_classes(corners)
+
+    def _refresh_feedback_speed_labels(self):
+        classes = self._corner_speed_classes()
+        for i, label in enumerate(getattr(self, "feedback_speed_labels", [])):
+            cls = classes.get(i + 1)
+            label.setText(cls or "-")
+            if cls in SPEED_TINT:
+                label.setStyleSheet(f"color: {SPEED_TEXT[cls]}; background-color: {SPEED_TINT[cls]}; "
+                                    f"font-size: 11px; border-radius: 3px; margin: 3px;")
+            else:
+                label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px; background: transparent;")
 
     def _load_track_map(self):
         from PyQt6.QtWidgets import QFileDialog

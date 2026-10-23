@@ -160,9 +160,13 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # setup engine layers; corner summaries untouched, shape checks unchanged.
     # 22 (2026-10-23): work order 4e -- per-axle boundary margin and engine
     # rules (config edits); corner summaries untouched, shape checks unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 22, (
+    # 23 (2026-10-23): work order 4f -- lever table and registry edits;
+    # corner summaries untouched, shape checks unchanged.
+    # 24 (2026-10-23): work order 4g -- setup / cockpit split in the engine
+    # payload; corner summaries untouched, shape checks unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 24, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 22 -- update this test deliberately if the version was bumped again"
+        "written for 24 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

@@ -633,7 +633,7 @@ not touch it). The thresholds differ from any chair value by rule.
 ## 10. Setup recommendation (setup engine)
 
 modules/setup_engine.py with config/mechanisms.json (recommendation
-overhaul D1-D7, live 2026-10-22; rulings of work order 4e, schema 22). One small engine; the earlier
+overhaul D1-D7, live 2026-10-22; rulings of work orders 4e, 4f and 4g, schema 24). One small engine; the earlier
 rule engine and decision frame are removed. It proposes, it never applies a
 change. Tier A in the mechanism table (anchors below), B in the repetition
 rule, C in the display.
@@ -646,30 +646,44 @@ Symptom -> mechanism -> lever:
   symptom counts only when it appears on more than half of the corner's
   valid laps and on at least two. Its severity is read from the cross-lap
   aggregate, the population the tiers were derived on.
-- Mechanism table (config/mechanisms.json, 42 rows; D3): each row ties a
+- Mechanism table (config/mechanisms.json, 46 rows; D3, lever pass-over 4f): each row ties a
   lever group, a direction, symptoms, phase groups (BRK = entry_1_brake,
   TIN = entry_2_turnin, APX = apex_3, EXIT = exit_4 + exit_5) and speed
   classes to its source. M1 roll stiffness distribution (ARBs, springs; all
   phases and speeds) [Milliken.1995, pp. 409-410]; [TE Bd. 5, Tab. 5.2
   p. 210, Tab. 5.11-5.13 pp. 293-295]. M2 transient load transfer
   (low-speed dampers; BRK, TIN, EXIT, never APX) [TE Bd. 5, Tab. 5.9,
-  p. 254]; [Segers.2014, pp. 259-263]. M4 aero balance (wing,
-  splitter; high speed only) [Milliken.1995, p. 396, p. 572]; [TE Bd. 5,
-  Tab. 5.11 p. 293]. M5 tyre working point (camber, advisory -- needs tyre
+  p. 254]; [Segers.2014, pp. 259-263]; under braking the damper rows serve
+  OS and INST alike (braking instability, [TE Bd. 5, Tab. 5.9 p. 254,
+  Tab. 5.13 p. 295]). M4 aero balance (wing, splitter, ride heights; high
+  speed only) [Milliken.1995, p. 396, p. 572]; [TE Bd. 5, Tab. 5.11
+  p. 293]. Ride heights (4f): nose down moves downforce forward -- US: front
+  down / rear up, OS and INST: front up / rear down -- [Katz, pp. 170-172,
+  Fig. 5.26]; [Milliken.1995, p. 396 item 20, p. 573]; valid outside the
+  ground-effect stall regime, which the engine does not detect, so the line
+  states it for the engineer (the "front up against sudden push" of [TE
+  Bd. 5, Tab. 5.11] is the stall case, Katz Fig. 5.26; Katz edition to
+  verify). M5 tyre working point (camber, advisory -- needs tyre
   temperatures [Segers.2014, pp. 194-196]; front toe at low-speed turn-in
-  only, a response lever; rear toe) [TE Bd. 5, p. 213, Tab. 5.12 p. 294,
+  only, a response lever; rear toe; rear camber more negative also for OS
+  under braking and for INST at the apex) [TE Bd. 5, p. 213, Tab. 5.12 p. 294,
   Tab. 5.14 p. 297]; [Milliken.1995, p. 394, p. 726]. M6 drivetrain (diff,
   TC long / lat; a traction-limited exit -- TC flag ecu_B_tc_act active on
   the majority of the symptom laps -- ranks TC long above the diff)
-  [Milliken.1995, pp. 739-740, p. 391]; [Segers.2014, p. 89]. M7 brake
-  balance (bias; ABS map toward the rear-axle-stable map within the
-  current grip bracket) [Milliken.1995, p. 393, p. 398]; [Segers.2014,
-  p. 114]. INST takes a lever's OS direction unless a row names INST for
+  [Milliken.1995, pp. 739-740, p. 391]; [Segers.2014, p. 89]; TC is
+  stepped only inside positions 2-11, where the manufacturer table is
+  monotonic (a decrease from 2 is at limit). M7 brake balance (bias; OS
+  more front under braking and at turn-in -- too much rear bias makes the
+  car loose coming into the turn [Milliken.1995, p. 393 item 6]; ABS map
+  toward the rear-axle-stable map within the current grip bracket, for OS
+  and INST under braking) [Milliken.1995, p. 393, p. 398]; [Segers.2014,
+  p. 114]. The differential is not a lever for braking instability:
+  coast-side locking of the fitted differential package is not documented
+  (thesis_notes, 4f). INST takes a lever's OS direction unless a row names INST for
   that lever and phase (rear saturation = stability loss
   [Hoffman.2008, sec. 2, p. 136]). Left and right always move together
-  [Segers.2014, p. 263]. Not levers: ride heights (directions contradict
-  between [Milliken.1995, p. 573] and [TE Bd. 5, Tab. 5.11 p. 293]),
-  high-speed dampers, blow-off, front ARB mount. TE Bd. 5 = Trzesniowski /
+  [Segers.2014, p. 263]. Not levers: high-speed dampers, blow-off, front
+  ARB mount. TE Bd. 5 = Trzesniowski /
   Eder 2019 (bib Trzesniowski.2019); the Milliken and Segers bib keys are
   still to verify; pages as given in the overhaul work order.
 - Side effects as text (TE Bd. 5, Tab. 5.14 pp. 296-297): camber more
@@ -683,18 +697,33 @@ Symptom -> mechanism -> lever:
   clicks: increasing = softer); step = the registry adjustment_step
   (dampers: "fine" = 1 click, CONFIG setup_engine.damper_step; team
   practice for race-weekend finetuning, the larger steps of [TE Bd. 5,
-  p. 292] are test-day advice), else value_space.step, else one unit / one
-  enum option.
+  p. 292] are test-day advice; camber 0.2 deg = two 0.1 deg clicks, team
+  practice; ride heights 1 mm), else value_space.step, else one unit / one
+  enum option. Change effort per lever from the registry; dampers are
+  "minutes" (< 5 min in the pitlane, Setup_change_overview).
 - Current value and feasibility (modules/setup_state.py): from -> to from
   the setup sheet; a step past the registry value space is "at limit" and
   skipped; past the typical window (config/setup_windows.json) is noted
-  "engineer may exceed"; window headroom breaks ties. The ABS map has no
+  "engineer may exceed"; window headroom breaks ties. The front ride height
+  has a floor only (standard - 2 mm, diffuser floor limit) and no upper
+  limit. The ABS map has no
   sheet field: its current position is the session mode of the logged
   channel log_abs_pos (L3), and a map change within the session adds "map
   changed in session (last valid lap: N)", N = the position on the last
   valid lap; the map is categorical, so the target stays the engineer's
   choice. TC and brake bias have neither a sheet field nor a trusted
-  channel and are "not assessable".
+  channel and are "not assessable" (the files carry a TC "int" / "tim"
+  position pair, but which one is LAT and which LON is not documented, 4f).
+
+Two outputs per corner (4g): the setup recommendation is chosen among the
+mechanical levers only (ARB, springs, LS dampers, wing, splitter, ride
+heights, camber, toe, diff); the best driver-adjustable lever (registry
+escalation_tier "cockpit": brake bias, ABS map, TC lat / lon) is shown as a
+separate "driver can also" line, from the same table and the same rank
+key. Team practice: cockpit values are changed by the drivers during an
+outing and are not part of the engineer's setup progression
+(Setup_change_overview). The thesis comparison with the engineer's changes
+reads the setup recommendation only (D8 amendment).
 
 Ranking and output (D4, order ruled in 4e): severity -> repetition count
 -> TC-condition demotion -> engineer preference -> change effort (seconds
@@ -704,14 +733,17 @@ others of the same severity. Per corner one recommended change and up to
 two alternatives -- one change at a time, so its effect stays attributable
 [Milliken.1995, p. 391]; [TE Bd. 5, p. 292]. The same lever change across
 phases is merged; an opposite direction of an already chosen lever is
-listed as a conflict. Engineer preference: the elicited cells of the
+listed as a conflict. Without a setup sheet the headroom key is empty, so
+levers of equal effort tie and the row order of mechanisms.json decides
+(stated, pending a ruling). Engineer preference: the elicited cells of the
 retired engineer matrix (moved into mechanisms.json) give preference 1 to a
 candidate only when the cell names its lever with the table's direction
 for that symptom, phase group and speed class; a weight only, never a new
-lever or a direction. Five cells the table does not support (a contradicting
-direction or a lever without a row there) are ignored and listed in
-mechanisms.json: US-BRK-low, US-BRK-high, OS-APX-high, INST-BRK-med,
-INST-BRK-high.
+lever or a direction. Four cells the table does not support (a
+contradicting direction or a lever without a row there) are ignored and
+listed in mechanisms.json: US-BRK-low, OS-APX-high, INST-BRK-med,
+INST-BRK-high; in US-BRK-high only the wing entry is ignored (its ride-height
+entries match M4 since 4f).
 
 Two layers (D6) and the session layer (D7):
 - Data layer: computed without driver feedback and stored unchanged (DB
@@ -737,7 +769,11 @@ beyond the margin is rare (pooled p50 / p90 of the per-session shares:
 front 0.018 / 0.039, rear 0.000 / 0.006) and almost never repeats; INST
 (0.012 / 0.047) repeats -- 11 of the 12 counted corners over the 14
 sessions are INST. 12 corner recommendations in total; NBR JST 29 gives two
-(C8, C11, both INST), Le Castellet 32 none.
+(C8, C11, both INST), Le Castellet 32 none. [Schema 24, 4g: still 12
+corners; every INST setup line is front ARB stiffer, the cockpit line brake
+bias more front (turn-in), tc_lat increase (apex) or tc_lon increase (exit);
+NBR JST 29: C8 front ARB stiffer / brake bias more front, C11 front ARB
+stiffer / tc_lat increase.]
 
 
 ## 11. Validation evidence (development set, 14 sessions)

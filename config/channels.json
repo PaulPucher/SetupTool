@@ -247,7 +247,7 @@
         1
       ],
       "required": false,
-      "note": "Traction-control activity flag (clean boolean, the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Read by modules/setup_engine.py (tc_activity): a traction-limited exit ranks tc_lon above the differential (2026-10-22; was the retired decision frame's intervention evidence)."
+      "note": "Traction-control activity flag (clean boolean, the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Read by modules/setup_engine.py (tc_activity): a traction-limited exit ranks tc_lon above the differential (2026-10-22; was the retired decision frame's intervention evidence). TC POSITION (2026-10-23, 4f scan, 4g ruling): a TC position pair exists in all 14 development files in three agreeing domains (ecu_TC_int_pos / ecu_TC_tim_pos, log_tc_int_pos / log_tc_tim_pos, stw_rt03_tc_int / stw_rt01_tc_tim); the LAT / LON mapping is undocumented and cannot be inferred (the two values run nearly parallel), so no position channel is whitelisted and TC stays 'current value not assessable'."
     },
     "log_abs_pos": {
       "label": "ABS Map Position (logged)",

@@ -3,7 +3,8 @@
   "_comment_anchors": {
     "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics (bib key to verify)",
     "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition (bib key to verify)",
-    "TE": "Trzesniowski & Eder 2019, Handbuch Rennwagentechnik Bd. 5 (bib Trzesniowski.2019)"
+    "TE": "Trzesniowski & Eder 2019, Handbuch Rennwagentechnik Bd. 5 (bib Trzesniowski.2019)",
+    "KATZ": "Katz, Race Car Aerodynamics (bib key: Katz, edition to verify)"
   },
   "phase_groups": {
     "BRK": [
@@ -28,7 +29,7 @@
     "M6": "drivetrain",
     "M7": "brake balance"
   },
-  "_comment_not_levers": "Out of scope, deliberately not levers: ride heights (directions contradict between MM p. 573 and TE Tab. 5.11 p. 293), high-speed dampers, blow-off, arb_front_mount (ruling D3).",
+  "_comment_not_levers": "Out of scope, deliberately not levers: high-speed dampers, blow-off, arb_front_mount (ruling D3). [2026-10-23, 4f item 1: ride heights removed from this list -- M4 levers at high speed, valid outside the ground-effect stall regime.]",
   "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
   "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author 2026-10-22, 4e item 7), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
   "mechanisms": [
@@ -257,13 +258,14 @@
       "side_effect": null
     },
     {
-      "id": "M2-brk-inst-front-bump",
+      "id": "M2-brk-os-inst-front-bump",
       "mechanism": "M2",
       "levers": [
         "damper_bump_ls_fl",
         "damper_bump_ls_fr"
       ],
       "symptoms": [
+        "OS",
         "INST"
       ],
       "phases": [
@@ -275,20 +277,21 @@
         "high"
       ],
       "direction": "stiffer",
-      "anchor": "TE Tab. 5.9 p. 254",
+      "anchor": "TE Tab. 5.9 p. 254; TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
       "advisory": false,
       "condition": null,
       "note": "",
       "side_effect": null
     },
     {
-      "id": "M2-brk-inst-rear-rebound",
+      "id": "M2-brk-os-inst-rear-rebound",
       "mechanism": "M2",
       "levers": [
         "damper_rebound_ls_rl",
         "damper_rebound_ls_rr"
       ],
       "symptoms": [
+        "OS",
         "INST"
       ],
       "phases": [
@@ -300,7 +303,7 @@
         "high"
       ],
       "direction": "softer",
-      "anchor": "TE Tab. 5.9 p. 254",
+      "anchor": "TE Tab. 5.9 p. 254; TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
       "advisory": false,
       "condition": null,
       "note": "",
@@ -638,6 +641,108 @@
       "side_effect": null
     },
     {
+      "id": "M4-ride-front-US",
+      "mechanism": "M4",
+      "levers": [
+        "ride_height_front"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
+      "advisory": false,
+      "condition": "outside_stall_regime",
+      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
+      "side_effect": null
+    },
+    {
+      "id": "M4-ride-front-OS",
+      "mechanism": "M4",
+      "levers": [
+        "ride_height_front"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
+      "advisory": false,
+      "condition": "outside_stall_regime",
+      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
+      "side_effect": null
+    },
+    {
+      "id": "M4-ride-rear-US",
+      "mechanism": "M4",
+      "levers": [
+        "ride_height_rear"
+      ],
+      "symptoms": [
+        "US"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "increase",
+      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
+      "advisory": false,
+      "condition": "outside_stall_regime",
+      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
+      "side_effect": null
+    },
+    {
+      "id": "M4-ride-rear-OS",
+      "mechanism": "M4",
+      "levers": [
+        "ride_height_rear"
+      ],
+      "symptoms": [
+        "OS",
+        "INST"
+      ],
+      "phases": [
+        "BRK",
+        "TIN",
+        "APX",
+        "EXIT"
+      ],
+      "speed_classes": [
+        "high"
+      ],
+      "direction": "decrease",
+      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
+      "advisory": false,
+      "condition": "outside_stall_regime",
+      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
+      "side_effect": null
+    },
+    {
       "id": "M5-camber-front-US",
       "mechanism": "M5",
       "levers": [
@@ -673,7 +778,8 @@
         "camber_rr"
       ],
       "symptoms": [
-        "OS"
+        "OS",
+        "INST"
       ],
       "phases": [
         "APX"
@@ -694,13 +800,14 @@
       }
     },
     {
-      "id": "M5-camber-rear-BRK-INST",
+      "id": "M5-camber-rear-BRK-OS-INST",
       "mechanism": "M5",
       "levers": [
         "camber_rl",
         "camber_rr"
       ],
       "symptoms": [
+        "OS",
         "INST"
       ],
       "phases": [
@@ -712,7 +819,7 @@
         "high"
       ],
       "direction": "more negative camber",
-      "anchor": "TE Tab. 5.13 p. 295",
+      "anchor": "TE Tab. 5.13 p. 295; TE Tab. 5.9 p. 254 (Instabilitaet beim Bremsen)",
       "advisory": true,
       "condition": null,
       "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
@@ -1096,7 +1203,8 @@
         "INST"
       ],
       "phases": [
-        "BRK"
+        "BRK",
+        "TIN"
       ],
       "speed_classes": [
         "low",
@@ -1104,19 +1212,20 @@
         "high"
       ],
       "direction": "more front",
-      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295; MM p. 393 item 6 (too much rear bias -> loose coming into the turn)",
       "advisory": false,
       "condition": null,
       "note": "current value unknown (bias channel TBD): direction and one step, feasibility not assessable",
       "side_effect": null
     },
     {
-      "id": "M7-abs-INST",
+      "id": "M7-abs-OS-INST",
       "mechanism": "M7",
       "levers": [
         "abs_position"
       ],
       "symptoms": [
+        "OS",
         "INST"
       ],
       "phases": [
@@ -1128,7 +1237,7 @@
         "high"
       ],
       "direction": "toward the rear-axle-stable map",
-      "anchor": "SEG p. 114; manufacturer ABS table via registry",
+      "anchor": "SEG p. 114; manufacturer ABS table via registry; TE Tab. 5.9 p. 254 (Instabilitaet beim Bremsen); TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
       "advisory": false,
       "condition": null,
       "note": "categorical: stay within the current grip bracket (registry typical_window), no linear step",
@@ -1137,11 +1246,10 @@
   ],
   "_comment_engineer_preference": "Engineer preference weight (D3): the elicited cells of the retired recommendations.json matrix (moved 2026-10-22, provenance kept). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0 (4e item 6, 2026-10-22). Preference only orders candidates, never adds a lever, never sets a direction.",
   "_comment_engineer_unsupported": {
-    "_comment": "engineer cells not supported by the literature table (author ruling 2026-10-22, 4e item 6): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. No cell mixes supported and unsupported levers.",
+    "_comment": "engineer cells not supported by the literature table (author ruling 2026-10-22, 4e item 6): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. [2026-10-23, 4f: US-BRK-high left this list -- its ride-height entries (front decrease, rear increase) now match M4 at high speed; its wing_position increase still contradicts M4-wing-US and gives no preference. It is the one cell that mixes supported and unsupported levers; the check is per lever.]",
     "US-BRK-low": "toe_front more toe-out: the table has toe_front only at turn-in (TIN, low speed), not under braking",
-    "US-BRK-high": "wing_position increase contradicts the table (US: decrease, M4-wing-US); ride_height_front / ride_height_rear are not levers (_comment_not_levers)",
     "OS-APX-high": "camber_fl / camber_fr less negative: the table has no front-camber row for OS",
-    "INST-BRK-med": "ride_height_front / ride_height_rear are not levers (_comment_not_levers)",
+    "INST-BRK-med": "ride_height_front increase / ride_height_rear decrease: ride heights are M4 levers at high speed only (4f), the cell is medium speed",
     "INST-BRK-high": "toe_front more toe-out under braking: no toe_front row under braking, and more toe-out is the US direction (M5-toe-front-US), opposite to the OS / INST one"
   },
   "engineer_preference": [
@@ -1509,5 +1617,6 @@
       ],
       "provenance": "project-lead-reviewed"
     }
-  ]
+  ],
+  "_comment_ride_height": "M4 ride heights (4f item 1, author ruling 2026-10-23): high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance). That is why MM p. 573 and TE Tab. 5.11 seemed to contradict (the earlier reason for excluding ride heights). Step 1 mm (registry adjustment_step)."
 }

@@ -820,3 +820,21 @@ def reclassify_speed_classes(corners, speed_thresholds):
         for i in instances:
             i["speed_class"] = canon
     return corners
+
+
+def canonical_speed_classes(corners):
+    """{stable_corner_id: speed_class} for display next to the corner number.
+    Canonical instances share one class (above); a corner seen only as
+    per-lap instances takes its most frequent class."""
+    canon, per_lap = {}, {}
+    for c in corners or []:
+        cid, cls = c.get("stable_corner_id"), c.get("speed_class")
+        if cid is None or cls is None:
+            continue
+        if "bracket_start_m" in c:
+            canon[cid] = cls
+        else:
+            per_lap.setdefault(cid, []).append(cls)
+    for cid, classes in per_lap.items():
+        canon.setdefault(cid, max(set(classes), key=classes.count))
+    return canon

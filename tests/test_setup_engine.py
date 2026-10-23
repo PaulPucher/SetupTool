@@ -9,7 +9,8 @@ import json
 import pytest
 
 from modules.setup_engine import (
-    _lever_change, _preference, _select, _data_rank_key, agreement, cell_supports, change_text, data_layer,
+    _lever_change, _preference, _select, _data_rank_key, agreement, cell_supports, change_text, corner_lines,
+    data_layer,
     engineer_layer, load_mechanisms, repeats, run, unsupported_preference_cells,
 )
 from modules.setup_state import load_setup_parameters_registry, load_setup_windows, logged_setup_values
@@ -244,3 +245,60 @@ def test_logged_abs_on_real_file():
 @pytest.mark.parametrize("path", [NBR29, LC32])
 def test_layers_are_json_serialisable(path):
     json.dumps(run(_summaries(path)))
+
+
+def test_tc_decrease_from_2_is_at_limit():
+    # 4f item 3: the TC scale is monotonic only from 2 to 11
+    registry, windows = load_setup_parameters_registry(), load_setup_windows()
+    for lever in ("tc_lat", "tc_lon"):
+        at2 = {lever: {"value": 2, "source": "test", "note": None}}
+        assert _lever_change([lever], "decrease", None, registry, windows, "fine", at2)["feasibility"] == "at_limit"
+        ok = _lever_change([lever], "increase", None, registry, windows, "fine", at2)
+        assert ok["feasibility"] == "ok" and ok["keys"][0]["to"] == 3
+
+
+def test_camber_step_is_two_clicks():
+    registry, windows = load_setup_parameters_registry(), load_setup_windows()
+    sheet = {"rear_left": {"camber": -3.0}, "rear_right": {"camber": -3.0}}
+    ch = _lever_change(["camber_rl", "camber_rr"], "more negative camber", sheet, registry, windows, "fine")
+    assert [k["to"] for k in ch["keys"]] == [-3.2, -3.2]
+
+
+COCKPIT = {"brake_bias", "abs_position", "tc_lat", "tc_lon"}
+
+
+@pytest.mark.parametrize("path", [NBR29, LC32])
+def test_setup_and_cockpit_outputs_are_split(path):
+    # 4g: the setup recommendation and its alternatives are mechanical levers
+    # only; the cockpit line is a driver-adjustable lever (registry tier)
+    summ = _summaries(path)
+    out = run(summ, feedback_data={"corners": [{"e1": 2, "e2": -2, "a3": 2, "x4": 2, "x5": 2}] * 20})
+    for layer in (out["data_layer"], out["engineer_layer"]):
+        for c in data_layer(summ, cfg=_relaxed())["corners"] + layer["corners"]:
+            for x in ([c["recommended"]] if c["recommended"] else []) + c["alternatives"]:
+                assert not set(x["levers"]) & COCKPIT
+            if c["cockpit"] is not None:
+                assert set(c["cockpit"]["levers"]) <= COCKPIT
+
+
+def test_cockpit_line_on_nbr29():
+    # NBR JST 29 C8: brake bias more front at turn-in is the cockpit option,
+    # the setup recommendation a mechanical lever
+    layer = data_layer(_summaries(NBR29))
+    c8 = next(c for c in layer["corners"] if c["corner"] == 8)
+    assert c8["cockpit"]["levers"] == ["brake_bias"] and c8["cockpit"]["direction"] == "more front"
+    assert not set(c8["recommended"]["levers"]) & COCKPIT
+    _head, lines = corner_lines(c8)
+    assert lines[-1].startswith("driver can also: ") and "brake_bias more front" in lines[-1]
+
+
+def test_front_ride_height_floor_only():
+    # 4g item 3: floor standard - 2 mm, no upper limit
+    registry, windows = load_setup_parameters_registry(), load_setup_windows()
+    std = registry["ride_height_front"]["value_space"]["standard"]
+    sheet = {s: {"ride_height_fia": std, "ride_height_aero": std} for s in ("front_left", "front_right")}
+    up = _lever_change(["ride_height_front"], "increase", sheet, registry, windows, "fine")
+    assert up["feasibility"] == "ok" and up["keys"][0]["to"] == std + 1
+    low = {s: {"ride_height_fia": std - 2, "ride_height_aero": std - 2} for s in ("front_left", "front_right")}
+    down = _lever_change(["ride_height_front"], "decrease", low, registry, windows, "fine")
+    assert down["feasibility"] == "at_limit"

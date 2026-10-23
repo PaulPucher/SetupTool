@@ -99,7 +99,17 @@ CAR_DATA_PATH = "config/car_data.json"
 #      counts INST as agreeing with oversteer feedback, reports per-lap cell
 #      shares in the session layer and reads the ABS map from log_abs_pos.
 #      Chain values unchanged; verdicts and recommendations change.
-ANALYSIS_SCHEMA_VERSION = 22
+#  23: (2026-10-23) work order 4f, config edits outside Settings: ride
+#      heights become M4 levers (high speed), OS under braking takes the
+#      braking-instability rows, bias OS also at turn-in, rear camber APX
+#      names INST, camber step 0.2 deg, damper effort minutes, TC stepped
+#      only inside 2-11. Chain values unchanged; recommendations change.
+#  24: (2026-10-23) work order 4g: payload shape change -- each corner of the
+#      setup layers carries a mechanical setup recommendation and a separate
+#      cockpit option (cockpit, cockpit_ranked, cockpit_conflicts,
+#      cockpit_at_limit); the front ride height has a floor only. Chain values
+#      unchanged; recommendations change.
+ANALYSIS_SCHEMA_VERSION = 24
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

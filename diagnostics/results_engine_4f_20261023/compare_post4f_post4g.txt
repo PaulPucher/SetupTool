@@ -1,0 +1,43 @@
+SETUP ENGINE post4f -> post4g (work order 4f, 2026-10-23), 14 development sessions
+
+NBR outing 5 MLA (nbr_o05_mla): 0 changed
+NBR outing 10 JDR (nbr_o10_jdr): 0 changed
+NBR outing 20 JST (nbr_o20_jst): 1 changed
+    C8: tc_lon increase (INST @ exit_5, M6-tc-lon-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ exit_5, M1-arb-front-OS, not_assessable)
+NBR outing 29 JST (NBR_Sturm_Solution copy) (nbr_o29_jst): 2 changed
+    C8: brake_bias more front (INST @ entry_2_turnin, M7-bias-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ entry_2_turnin, M1-arb-front-OS, not_assessable)
+    C11: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+NBR outing 46 JST (nbr_o46_jst): 1 changed
+    C7: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+NBR outing 53 MLA (nbr_o53_mla): 1 changed
+    C1: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+NBR outing 54 CDR (nbr_o54_cdr): 2 changed
+    C7: brake_bias more front (INST @ entry_2_turnin, M7-bias-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ entry_2_turnin, M1-arb-front-OS, not_assessable)
+    C16: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+NBR outing 59 MLA (nbr_o59_mla): 0 changed
+NBR outing 61 JDR (nbr_o61_jdr): 0 changed
+NBR outing 63 CDR (nbr_o63_cdr): 2 changed
+    C6: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+    C8: tc_lon increase (INST @ exit_4, M6-tc-lon-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ exit_4, M1-arb-front-OS, not_assessable)
+NBR qualifying CDR (outing 69) (nbr_qp_cdr): 1 changed
+    C9: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+NBR qualifying MLA (outing 70) (nbr_qp_mla): 0 changed
+Le Castellet outing 25, MLA-SE07_US-v1 (pr_o25_us_v1): 1 changed
+    C12: tc_lat increase (INST @ apex_3, M6-tc-lat-OS, not_assessable) -> arb_fl+arb_fr stiffer (INST @ apex_3, M1-arb-front-OS, not_assessable)
+Le Castellet outing 32, MLA-SE07_US-v2 (pr_o32_us_v2): 0 changed
+
+TOTAL recommendations post4f 12, post4g 12; changed 11
+
+LEVER COVERAGE (lever groups per symptom x phase group x speed class)
+  US BRK: low 6, medium 6, high 10
+  US TIN: low 10, medium 9, high 13
+  US APX: low 7, medium 7, high 11
+  US EXIT: low 9, medium 9, high 13
+  OS BRK: low 9, medium 9, high 13
+  OS TIN: low 9, medium 8, high 12
+  OS APX: low 7, medium 7, high 11
+  OS EXIT: low 11, medium 11, high 15
+  INST BRK: low 9, medium 9, high 13
+  INST TIN: low 9, medium 8, high 12
+  INST APX: low 7, medium 7, high 11
+  INST EXIT: low 11, medium 11, high 15

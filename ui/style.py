@@ -22,6 +22,15 @@ BAD         = "#c0392b"   # saturated / destabilising
 NEUTRAL     = "#444"      # no data / NaN
 INFO        = "#4A90D9"   # opposite-side marker to BAD (yaw panel: deficit flag)
 
+# speed class tints: neutral blue-greys, light -> dark with rising speed, so
+# they never read as a verdict colour (author ruling 2026-10-23, 4g item 5)
+SPEED_LOW    = "#B4C0CA"
+SPEED_MEDIUM = "#7E8C98"
+SPEED_HIGH   = "#4B5864"
+SPEED_TINT = {"low": SPEED_LOW, "medium": SPEED_MEDIUM, "high": SPEED_HIGH}
+# label text on the tint: dark on the light two, light on the dark one
+SPEED_TEXT = {"low": PANEL, "medium": PANEL, "high": TEXT}
+
 STYLESHEET = """
     QMainWindow, QWidget {
         background-color: #141414;

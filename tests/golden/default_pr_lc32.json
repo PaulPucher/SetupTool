@@ -46066,11 +46066,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 22), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 24), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "Le Castellet outing 32",
   "data_file": "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt",
-  "git_commit_hash": "21d476a0749551815169c4eebb020f5725276ab4",
-  "generated_at_utc": "2026-10-23T08:08:34.785004+00:00",
+  "git_commit_hash": "cc0272a8dc366d32c2a6aad1b69176c6b2222741",
+  "generated_at_utc": "2026-10-23T09:49:15.313128+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

@@ -2,9 +2,9 @@
 
 ### NOW
 
-Rewritten 2026-10-23 (after work order 4e, branch new-laps). The header,
+Rewritten 2026-10-23c (after work order 4g, branch new-laps). The header,
 REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
-"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23 STATUS rewrite)"; older NOW items
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23c STATUS rewrite)"; older NOW items
 remain under the earlier superseded sections. The rest of this block is
 unchanged.
 
@@ -20,71 +20,54 @@ tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
 down is record, not instruction: its "NOT committed", "NEXT" and
 "OPEN" lines describe the state when they were written.
 
+
+
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD 21d476a ("Pruning: fit L only, legacy paths and displays
-  removed, diagnostics 148 -> 28, schema 20"); tag pre-prune-2026-10-22 on
-  7dfb15c.
-  NOT committed since 21d476a: work order 4a (inspect_cs_margin_combined.py,
-  results_cs_margin_combined_20261022/), the recommendation overhaul 4b-4d
-  (corner_aggregation.py, setup_state.py, classifier.py, setup_engine.py,
-  mechanisms.json, setup_windows.json, Setup Recommendation panel, removal of
-  the old engines / configs / tests / two diagnostics) and work order 4e
-  (per-axle margin, engine rulings, log_abs_pos, schema 22,
-  inspect_engine_4e.py + results_engine_4e_20261023/, goldens regenerated)
-  and these records. Commit point = this stop (full suite ran, see TESTS).
-- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 22 (21 -> 22 on
-  2026-10-23: per-axle boundary margin and the 4e engine rules, config edits
-  outside Settings). Chain values unchanged since schema 19 (goldens: fit
-  manifest, gate, summaries, floor events bit-identical).
-- CHAIN: unchanged, see the superseded block of 2026-10-22c for the full
-  statement (measured axle loads, fit L, D4-L gate, EKF Q-UPPER, NIS gate
-  0.104 / 0.011, CS on Fy / Fz, floor events -0.53, thresholds front
-  -0.137 / -0.023, rear -0.002 / +0.098, drag c_D A 1.0 m^2).
-- CLASSIFIER (D2, live): limiting = CS < -classification.cs_boundary_margin_
-  front (0.062) / _rear (0.076), author ruling 2026-10-22 (4a p90 combined);
-  front US moderate / strong in the strong tier; rear OS strong; rear below
-  MODERATE_CSR above the boundary = information; INST strong in any phase;
-  high-speed front-only = low priority; [MARGINAL] keeps cs_margin 0.01.
-- RECOMMENDATION: modules/setup_engine.py (DECISIONS 'Work order 4e
-  rulings'): rank severity -> repetition -> TC demotion -> preference ->
-  effort -> headroom; preference only where the cell matches lever and
-  table direction (5 unsupported cells listed in mechanisms.json); INST
-  agrees with oversteer feedback; session layer reports per-lap cell shares
-  and the counted-corner share, no threshold; side-effect texts (TE Tab.
-  5.14); ABS current map from log_abs_pos. 14 sessions: 12 corner
-  recommendations (was 14; 3 changed, 1 by the ranking order alone). NBR JST
-  29: 2 (C8, C11, INST); Le Castellet 32: none.
-- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63,
-  69, 70; Le Castellet 25, 32). THESIS ANALYSIS SET: clean data package
-  (pending).
-- TESTS: full suite (2026-10-23, schema 22) 388 passed, 1 xfailed, 0 failed
-  (33:42); the xfail is the known single-sample slip-angle window.
+  new-laps HEAD cc0272a ("New setup engine: mechanism table with literature
+  anchors, D2 classifier with measured margin, schema 22").
+  NOT committed since cc0272a: work order 4f (lever pass-over, speed-class
+  column) and work order 4g (setup / cockpit split, front ride-height
+  floor only, TC channel note, speed-class tints, schema 24, goldens
+  regenerated), diagnostics/inspect_engine_4f.py + results_engine_4f_
+  20261023/, these records. Commit point = this stop (full suite, TESTS).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 24 (23 -> 24 on
+  2026-10-23: setup / cockpit split in the engine payload). Chain values
+  unchanged since schema 19.
+- CHAIN: unchanged (see the superseded block of 2026-10-22c).
+- CLASSIFIER (D2): margins front 0.062 / rear 0.076.
+- RECOMMENDATION: two outputs per corner (DECISIONS 'Work order 4g
+  rulings'): mechanical setup recommendation + up to 2 alternatives, and a
+  "driver can also" cockpit line. 14 sessions: 12 corners; all 11 INST
+  setup lines front ARB stiffer (row-order tie-break, see NEXT 2); Le
+  Castellet 25 C2 diff decrease. NBR JST 29: C8 front ARB stiffer / brake
+  bias more front, C11 front ARB stiffer / tc_lat increase; Le Castellet 32:
+  none.
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- TESTS: full suite (2026-10-23, schema 24) 397 passed, 1 xfailed, 0 failed
+  (33:05); the xfail is the known single-sample slip-angle window.
   test_stability.py NBR 29 and Le Castellet 32 match the regenerated goldens.
-- diagnostics/: 28 scripts (README lists each; +inspect_engine_4e, HELD for
-  a keep / delete ruling at commit).
+- diagnostics/: 29 scripts; inspect_engine_4e / 4f kept (author 4g).
 
 RULED / DONE SINCE THE LAST REWRITE
-- 4a margin ruling and the 4b-4d OPEN points a-g ruled (author 2026-10-22,
-  work order 4e; answers A-D 2026-10-23, EXECUTE 2026-10-23): margin
-  0.062 / 0.076; damper step fine; session_share_threshold stays null,
-  layer reported; INST agrees with oversteer, conflicts with understeer
-  feedback; preference -> effort order; unsupported preference cells
-  ignored; TE Tab. 5.14 texts on the ruled directions, opposite null; bib
-  TE Bd. 5 = Trzesniowski.2019, Milliken / Segers to verify; log_abs_pos
-  re-added, session mode, "map changed in session (last valid lap: N)".
-  Records: DECISIONS 'Work order 4e rulings', thesis_notes 'Work order 4e:
-  per-axle boundary margin and engine rulings', PRODUCTION.md 9 / 10.
+- Work order 4f (2026-10-23): done (see thesis_notes 'Work order 4f').
+- Work order 4g (author rulings 2026-10-23, EXECUTE): setup / cockpit
+  split, D8 amendment (setup recommendation only in the evaluation), front
+  ride height floor only, TC int / tim mapping recorded as undocumented,
+  speed-class tints, diagnostics kept. Records: DECISIONS 'Work order 4g
+  rulings', thesis_notes 'Work order 4g', PRODUCTION.md 10.
 
 NEXT
-1. Author: app check of the Setup Recommendation panel (ABS line "current
-   N", session line with single-lap cells) and the Settings page.
-2. Author: keep / delete ruling for diagnostics/inspect_engine_4e.py, then
-   the commit of 4a + 4b-4d + 4e.
-3. Review instance: PRODUCTION.md 202 cites Trzesniowski.2019b (Abb. 5.89)
-   while TE Bd. 5 is now Trzesniowski.2019 -- which volume is 2019b.
-4. Cleanup carried items: c (stale weekend-PDF comment) to check. Clean data
-   package; D8 fixes the coding scheme before it.
+1. Author: app check -- setup panel ("driver can also" line per corner),
+   speed tints in the feedback table and the corner cells.
+2. Review instance: the implicit tie-break -- with no setup sheet every
+   INST setup line is front ARB stiffer because equal-effort levers tie and
+   the row order of mechanisms.json decides (thesis_notes 4g OBSERVATION).
+3. Author: commit of 4f + 4g.
+4. Carried: effort classes camber / springs vs Setup_change_overview; TC
+   int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
+   weekend-PDF comment; clean data package (D8 coding scheme first).
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -9285,6 +9268,172 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-23c STATUS rewrite)
+
+NOW (as written before the 2026-10-23c rewrite)
+
+Rewritten 2026-10-23b (after work order 4f, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23b STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD cc0272a ("New setup engine: mechanism table with literature
+  anchors, D2 classifier with measured margin, schema 22") -- 4a + 4b-4d +
+  4e committed by the author.
+  NOT committed since cc0272a: work order 4f (lever pass-over: ride heights
+  as M4 levers, OS braking rows, bias OS at turn-in, camber step, damper
+  effort, TC 2-11, schema 23, goldens regenerated) with the UI addendum
+  (speed class in the feedback table and the corner cells),
+  diagnostics/inspect_engine_4f.py + results_engine_4f_20261023/, these
+  records. Full suite NOT run (by order; the engine-package commit follows).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 23 (22 -> 23 on
+  2026-10-23: 4f lever table and registry edits). Chain values unchanged
+  since schema 19.
+- CHAIN: unchanged (see the superseded block of 2026-10-22c).
+- CLASSIFIER (D2): margins front 0.062 / rear 0.076; unchanged by 4f.
+- RECOMMENDATION: mechanisms.json 46 rows (DECISIONS 'Work order 4e
+  rulings', 'Work order 4f'); 14 sessions: 12 corner recommendations, 4
+  changed by 4f (damper effort minutes). NBR JST 29: C8 brake bias more
+  front (INST @ turn-in), C11 tc_lat increase (INST @ apex); Le Castellet
+  32: none.
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- TESTS: 4f targeted -- test_setup_engine, test_mechanisms_config,
+  test_config_schema_integrity, test_outing_form_driver_level: 57 passed;
+  test_stability.py NBR 29 matches the regenerated golden. Last full suite:
+  2026-10-23 schema 22, 388 passed, 1 xfailed.
+- diagnostics/: 29 scripts (README lists each; inspect_engine_4e and
+  inspect_engine_4f HELD for a keep / delete ruling).
+
+RULED / DONE SINCE THE LAST REWRITE
+- Work order 4f (author EXECUTE 2026-10-23) and the UI addendum (speed
+  class column): done, uncommitted. Records: DECISIONS 'Work order 4f',
+  thesis_notes 'Work order 4f: lever pass-over', PRODUCTION.md 10 (the
+  lever list; the work order said section 9, the list lives in 10).
+
+NEXT
+1. Author: app check -- feedback table "Speed" column, corner cells
+   "C8 (high)", recommendation panel (ride-height lines with the stall
+   condition, brake bias at turn-in).
+2. Author / team: TC int / tim -> LAT / LON mapping (then add the pair
+   like log_abs_pos).
+3. Author: front ride-height window semantics (an increase from the
+   standard reads "at limit"); effort classes camber / springs vs
+   Setup_change_overview.
+4. Review instance: effort key puts cockpit aids (bias, TC) on top of most
+   INST corners (thesis_notes 4f OBSERVATION).
+5. Author: keep / delete for inspect_engine_4e / 4f; full suite + commit of
+   4f. Carried: PRODUCTION.md 202 Trzesniowski.2019b; stale weekend-PDF
+   comment; clean data package (D8 first).
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-23b STATUS rewrite)
+
+NOW (as written before the 2026-10-23b rewrite)
+
+Rewritten 2026-10-23 (after work order 4e, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23 STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD 21d476a ("Pruning: fit L only, legacy paths and displays
+  removed, diagnostics 148 -> 28, schema 20"); tag pre-prune-2026-10-22 on
+  7dfb15c.
+  NOT committed since 21d476a: work order 4a (inspect_cs_margin_combined.py,
+  results_cs_margin_combined_20261022/), the recommendation overhaul 4b-4d
+  (corner_aggregation.py, setup_state.py, classifier.py, setup_engine.py,
+  mechanisms.json, setup_windows.json, Setup Recommendation panel, removal of
+  the old engines / configs / tests / two diagnostics) and work order 4e
+  (per-axle margin, engine rulings, log_abs_pos, schema 22,
+  inspect_engine_4e.py + results_engine_4e_20261023/, goldens regenerated)
+  and these records. Commit point = this stop (full suite ran, see TESTS).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 22 (21 -> 22 on
+  2026-10-23: per-axle boundary margin and the 4e engine rules, config edits
+  outside Settings). Chain values unchanged since schema 19 (goldens: fit
+  manifest, gate, summaries, floor events bit-identical).
+- CHAIN: unchanged, see the superseded block of 2026-10-22c for the full
+  statement (measured axle loads, fit L, D4-L gate, EKF Q-UPPER, NIS gate
+  0.104 / 0.011, CS on Fy / Fz, floor events -0.53, thresholds front
+  -0.137 / -0.023, rear -0.002 / +0.098, drag c_D A 1.0 m^2).
+- CLASSIFIER (D2, live): limiting = CS < -classification.cs_boundary_margin_
+  front (0.062) / _rear (0.076), author ruling 2026-10-22 (4a p90 combined);
+  front US moderate / strong in the strong tier; rear OS strong; rear below
+  MODERATE_CSR above the boundary = information; INST strong in any phase;
+  high-speed front-only = low priority; [MARGINAL] keeps cs_margin 0.01.
+- RECOMMENDATION: modules/setup_engine.py (DECISIONS 'Work order 4e
+  rulings'): rank severity -> repetition -> TC demotion -> preference ->
+  effort -> headroom; preference only where the cell matches lever and
+  table direction (5 unsupported cells listed in mechanisms.json); INST
+  agrees with oversteer feedback; session layer reports per-lap cell shares
+  and the counted-corner share, no threshold; side-effect texts (TE Tab.
+  5.14); ABS current map from log_abs_pos. 14 sessions: 12 corner
+  recommendations (was 14; 3 changed, 1 by the ranking order alone). NBR JST
+  29: 2 (C8, C11, INST); Le Castellet 32: none.
+- DEVELOPMENT SET: 14 sessions (NBR 5, 10, 20, 29, 46, 53, 54, 59, 61, 63,
+  69, 70; Le Castellet 25, 32). THESIS ANALYSIS SET: clean data package
+  (pending).
+- TESTS: full suite (2026-10-23, schema 22) 388 passed, 1 xfailed, 0 failed
+  (33:42); the xfail is the known single-sample slip-angle window.
+  test_stability.py NBR 29 and Le Castellet 32 match the regenerated goldens.
+- diagnostics/: 28 scripts (README lists each; +inspect_engine_4e, HELD for
+  a keep / delete ruling at commit).
+
+RULED / DONE SINCE THE LAST REWRITE
+- 4a margin ruling and the 4b-4d OPEN points a-g ruled (author 2026-10-22,
+  work order 4e; answers A-D 2026-10-23, EXECUTE 2026-10-23): margin
+  0.062 / 0.076; damper step fine; session_share_threshold stays null,
+  layer reported; INST agrees with oversteer, conflicts with understeer
+  feedback; preference -> effort order; unsupported preference cells
+  ignored; TE Tab. 5.14 texts on the ruled directions, opposite null; bib
+  TE Bd. 5 = Trzesniowski.2019, Milliken / Segers to verify; log_abs_pos
+  re-added, session mode, "map changed in session (last valid lap: N)".
+  Records: DECISIONS 'Work order 4e rulings', thesis_notes 'Work order 4e:
+  per-axle boundary margin and engine rulings', PRODUCTION.md 9 / 10.
+
+NEXT
+1. Author: app check of the Setup Recommendation panel (ABS line "current
+   N", session line with single-lap cells) and the Settings page.
+2. Author: keep / delete ruling for diagnostics/inspect_engine_4e.py, then
+   the commit of 4a + 4b-4d + 4e.
+3. Review instance: PRODUCTION.md 202 cites Trzesniowski.2019b (Abb. 5.89)
+   while TE Bd. 5 is now Trzesniowski.2019 -- which volume is 2019b.
+4. Cleanup carried items: c (stale weekend-PDF comment) to check. Clean data
+   package; D8 fixes the coding scheme before it.
 
 ---
 

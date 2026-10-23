@@ -141,7 +141,7 @@
       "nominal": 96,
       "span": 2,
       "source": "value_space.standard=96, typical_window.max_delta_from_standard=-2",
-      "note": "asymmetric window in the registry ([94,96] only, never above standard) -- recorded here as a symmetric span for the scoring component's uniform distance formula; see setup_parameters.json for the true one-sided bound"
+      "note": "the registry gives a floor only (standard - 2 mm, diffuser floor limit; no upper limit, author ruling 2026-10-23, 4g item 3); the symmetric span here only drives the headroom tie-break and the soft 'engineer may exceed' note, it never blocks a step"
     },
     "ride_height_rear": {
       "nominal": 134,

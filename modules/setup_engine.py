@@ -23,6 +23,15 @@ Replaces the rule engine (recommendation.py) and the decision frame
    alternatives, because the effect of a setup change is only attributable
    when one thing changes at a time (Milliken 1995, setup procedure;
    Trzesniowski & Eder 2019, Bd. 5 ch. 5).
+5. Two outputs per corner (author ruling 2026-10-23, 4g): the setup
+   recommendation is chosen among the mechanical levers only; the best
+   cockpit lever (registry escalation_tier "cockpit": brake bias, ABS map,
+   TC lat / lon) is a separate "driver can also" line, ranked by the same key
+   from the same table. Team practice: cockpit values are changed by the
+   drivers during an outing and are not part of the engineer's setup
+   progression (Setup_change_overview); the tool's focus is the physical
+   setup change. The thesis comparison with the engineer's changes reads the
+   setup recommendation only (D8 amendment).
 
 Two layers (D6): the data layer never sees driver feedback and is stored as
 it is (thesis comparison); the engineer layer adds feedback ordinally (agree /
@@ -60,6 +69,8 @@ DRIVER_ONLY_MIN = 4
 _OPPOSITE_WORD = {"stiffer": "softer", "softer": "stiffer"}
 # the elicited matrix's direction words in the table's vocabulary
 # (more_negative / less_negative go through the registry semantics)
+# registry escalation_tier of the driver-adjustable levers (4g split)
+COCKPIT_TIER = "cockpit"
 _CELL_WORD = {"soften": "softer", "stiffen": "stiffer", "more_ra_stability": "toward the rear-axle-stable map"}
 _SIGN_KEYS = {"more_negative": -1, "negative": -1, "more_positive": 1, "positive": 1}
 
@@ -314,6 +325,11 @@ def _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, 
                 if flags and n_on > cfg["min_repeat_fraction"] * len(flags):
                     demoted = True
                     cond_note = f"traction-limited: TC active on {n_on}/{len(flags)} laps -> tc_lon first"
+            elif row.get("condition") == "outside_stall_regime":
+                # no ride-height / ground-clearance signal decides the stall
+                # regime here, so the condition is stated for the engineer,
+                # not tested; the candidate keeps its rank
+                cond_note = "valid outside the ground-effect stall regime (engineer check)"
             cands.append({
                 "corner": cid, "phase": sym["phase"], "symptom": sym["symptom"], "severity": sym["severity"],
                 "laps": sym["laps"], "n_laps": corner["n_laps"], "mechanism_id": row["id"],
@@ -324,6 +340,7 @@ def _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, 
                 "condition_note": cond_note,
                 "preference": _preference(row, sym["symptom"], sym["phase"], corner["speed_class"],
                                           mechanisms, registry),
+                "cockpit": all(registry[k].get("escalation_tier") == COCKPIT_TIER for k in row["levers"]),
             })
     return cands
 
@@ -360,6 +377,17 @@ def _select(cands, rank_key, max_alt):
         "alternatives": chosen[1:1 + max_alt],
         "ranked": chosen, "at_limit": at_limit, "conflicts": conflicts,
     }
+
+
+def _split_select(cands, rank_key, max_alt):
+    """Setup recommendation from the mechanical candidates (with alternatives),
+    and the single best cockpit candidate beside it -- same rank key, so the
+    cockpit line is the lever the mechanical ranking would have picked had it
+    been allowed to."""
+    setup = _select([c for c in cands if not c["cockpit"]], rank_key, max_alt)
+    cockpit = _select([c for c in cands if c["cockpit"]], rank_key, 0)
+    return {**setup, "cockpit": cockpit["recommended"], "cockpit_ranked": cockpit["ranked"],
+            "cockpit_conflicts": cockpit["conflicts"], "cockpit_at_limit": cockpit["at_limit"]}
 
 
 def cell_shares(summaries, thr=None):
@@ -418,7 +446,7 @@ def data_layer(summaries, setup_data=None, registry=None, mechanisms=None, windo
         if not corner["symptoms"]:
             continue
         cands = _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, cfg, logged)
-        sel = _select(cands, _data_rank_key, cfg["max_alternatives"])
+        sel = _split_select(cands, _data_rank_key, cfg["max_alternatives"])
         top = max(corner["symptoms"], key=lambda s: (SEVERITY_RANK[s["severity"]], s["laps"]))
         corners.append({
             "corner": cid, "speed_class": corner["speed_class"], "n_laps": corner["n_laps"],
@@ -467,13 +495,15 @@ def engineer_layer(data, summaries, feedback_data, setup_data=None, registry=Non
         return (base[0], -AGREEMENT_RANK[c["agreement"]]) + base[1:]
 
     for corner in layer["corners"]:
-        pool = corner["ranked"] + corner["conflicts"]
+        pool = corner["ranked"] + corner["conflicts"] + corner["cockpit_ranked"] + corner["cockpit_conflicts"]
         for c in pool:
             c["feedback"] = _feedback_value(feedback_data, corner["corner"], c["phase"])
             c["agreement"] = agreement(c["symptom"], c["feedback"])
-        sel = _select(pool, key, cfg["max_alternatives"])
-        corner.update(recommended=sel["recommended"], alternatives=sel["alternatives"],
-                      ranked=sel["ranked"], conflicts=sel["conflicts"])
+        sel = _split_select(pool, key, cfg["max_alternatives"])
+        # at-limit lists carry no feedback rank, they stay as in the data layer
+        sel.pop("at_limit")
+        sel.pop("cockpit_at_limit")
+        corner.update(sel)
 
     # driver-only rows: strong complaint, no counted data symptom there
     counted = {c["corner"]: c for c in layer["corners"]}
@@ -495,7 +525,7 @@ def engineer_layer(data, summaries, feedback_data, setup_data=None, registry=Non
             cands = _candidates(cid, corner, mechanisms, registry, windows, setup_data, {}, cfg, logged)
             for c in cands:
                 c.update(feedback=fb, agreement="driver_only", label="no data support")
-            sel = _select(cands, _data_rank_key, cfg["max_alternatives"])
+            sel = _split_select(cands, _data_rank_key, cfg["max_alternatives"])
             driver_only.append({"corner": cid, "phase": phase, "symptom": symptom, "feedback": fb,
                                 "speed_class": speed.get(cid), **sel})
     layer["driver_only"] = driver_only
@@ -575,7 +605,9 @@ def corner_lines(corner, engineer=False):
     lines += ["  alternative: " + candidate_line(a, engineer) for a in corner.get("alternatives", [])]
     lines += ["  at limit: " + change_text(a) for a in corner.get("at_limit", [])]
     if not lines:
-        lines.append("no lever in the mechanism table for this symptom, phase and speed class")
+        lines.append("no mechanical lever in the mechanism table for this symptom, phase and speed class")
+    if corner.get("cockpit"):
+        lines.append("driver can also: " + candidate_line(corner["cockpit"], engineer))
     return head, lines
 
 
