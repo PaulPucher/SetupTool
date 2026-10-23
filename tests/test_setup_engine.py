@@ -65,7 +65,8 @@ def test_lever_at_limit_is_skipped():
     assert ch["feasibility"] == "at_limit"
     ok = _lever_change(["arb_fl", "arb_fr"], "softer", sheet, registry, windows, "fine")
     assert ok["feasibility"] == "ok" and [k["to"] for k in ok["keys"]] == [6, 6]
-    base = {"severity": "strong", "laps": 3, "condition_demoted": False, "preference": 0, "direction": "stiffer"}
+    base = {"severity": "strong", "laps": 3, "condition_demoted": False, "preference": 0, "direction": "stiffer",
+            "axle_class": 1}
     at_limit = dict(base, levers=["arb_fl", "arb_fr"], change=ch)
     other = dict(base, levers=["arb_rl", "arb_rr"], direction="softer",
                  change=_lever_change(["arb_rl", "arb_rr"], "softer", {}, registry, windows, "fine"))
@@ -170,7 +171,7 @@ def test_session_cells_use_their_own_denominators():
 
 def test_rank_order_preference_before_effort():
     # 4e: severity -> repetition -> (traction demotion) -> preference -> effort
-    base = {"severity": "strong", "laps": 3, "condition_demoted": False}
+    base = {"severity": "strong", "laps": 3, "condition_demoted": False, "axle_class": 1}
     pref_slow = dict(base, preference=1, change={"effort": "garage_hours", "headroom": None})
     fast = dict(base, preference=0, change={"effort": "seconds", "headroom": None})
     assert sorted([fast, pref_slow], key=_data_rank_key)[0] is pref_slow
@@ -302,3 +303,148 @@ def test_front_ride_height_floor_only():
     low = {s: {"ride_height_fia": std - 2, "ride_height_aero": std - 2} for s in ("front_left", "front_right")}
     down = _lever_change(["ride_height_front"], "decrease", low, registry, windows, "fine")
     assert down["feasibility"] == "at_limit"
+
+
+# work order 4h: session setup recommendation from the corner vote
+
+def _options(rec):
+    return {o["option"]: o for o in rec["ranked"] + rec["at_limit"] + rec["not_recommended"]}
+
+
+def test_session_opposition_is_subtracted():
+    # NBR JST 29: rear camber more negative is voted by C8 / C11 at the apex
+    # (2 x 2.0) and opposed by C11 early exit (less negative, 2.0)
+    rec = data_layer(_summaries(NBR29))["session_recommendation"]
+    opt = _options(rec)
+    more_neg = opt["camber_rl+camber_rr -1"]
+    assert (more_neg["support"], more_neg["opposition"], more_neg["net"]) == (4.0, 2.0, 2.0)
+    assert {v["corner"] for v in more_neg["opposing"]} == {11}
+    assert opt["camber_rl+camber_rr +1"]["net"] == -2.0
+
+
+def test_session_net_not_positive_is_never_recommended():
+    # rear LS bump: C8 turn-in softer vs C11 early exit stiffer, 2.0 each
+    rec = data_layer(_summaries(NBR29))["session_recommendation"]
+    shown = [rec["recommended"]] + rec["alternatives"] + rec["equivalent_options"] + rec["ranked"]
+    assert all(o["net"] > 0 for o in shown if o)
+    bumps = [o for o in rec["not_recommended"] if o["levers"] == ["damper_bump_ls_rl", "damper_bump_ls_rr"]]
+    assert len(bumps) == 2 and all(o["net"] == 0.0 for o in bumps)
+
+
+def test_limiting_end_rear_arb_before_front_arb():
+    # INST = rear limiting: rear ARB softer (limiting axle) before diff
+    # (global) before front ARB stiffer (other axle), per corner and session
+    layer = data_layer(_summaries(NBR29))
+    rec = layer["session_recommendation"]
+    order = [o["option"] for o in rec["ranked"]]
+    assert rec["recommended"]["option"] == "arb_rl+arb_rr -1"
+    assert order.index("arb_rl+arb_rr -1") < order.index("diff_position +1") < order.index("arb_fl+arb_fr +1")
+    for c in layer["corners"]:
+        assert c["recommended"]["levers"] == ["arb_rl", "arb_rr"]
+        ranked = [tuple(x["levers"]) for x in c["ranked"]]
+        assert ranked.index(("arb_rl", "arb_rr")) < ranked.index(("arb_fl", "arb_fr"))
+
+
+def test_exact_tie_gives_equivalent_options():
+    # NBR JST 29 restricted to C8 (real summaries, one corner): rear ARB,
+    # rear ride height and wing tie on every key -> no winner
+    summ = [s for s in _summaries(NBR29) if s["stable_corner_id"] == 8]
+    rec = data_layer(summ)["session_recommendation"]
+    assert rec["recommended"] is None
+    assert {o["option"] for o in rec["equivalent_options"]} == {
+        "arb_rl+arb_rr -1", "ride_height_rear -1", "wing_position +1"}
+    assert all(o["option"] not in {"arb_rl+arb_rr -1"} for o in rec["alternatives"])
+
+
+@pytest.mark.parametrize("path", [NBR29, LC32])
+def test_one_session_recommendation_per_layer(path):
+    out = run(_summaries(path), feedback_data={"corners": [{"e1": 2, "e2": -2, "a3": 2, "x4": 2, "x5": 2}] * 20})
+    for layer in (out["data_layer"], out["engineer_layer"]):
+        rec = layer["session_recommendation"]
+        assert rec["recommended"] is None or isinstance(rec["recommended"], dict)
+        assert len(rec["alternatives"]) <= 2
+        keys = [o["option"] for o in ([rec["recommended"]] if rec["recommended"] else []) + rec["alternatives"]]
+        assert len(keys) == len(set(keys))
+        for o in rec["ranked"]:
+            assert not set(o["levers"]) & COCKPIT
+
+
+def test_session_data_layer_independent_of_feedback():
+    summ = _summaries(NBR29)
+    a = run(summ)["data_layer"]["session_recommendation"]
+    b = run(summ, feedback_data={"corners": [{"e1": -5, "e2": 5, "a3": -4, "x4": 3, "x5": -1}] * 15})
+    assert json.dumps(a, sort_keys=True) == json.dumps(b["data_layer"]["session_recommendation"], sort_keys=True)
+    # below the driver-only floor the engineer layer only marks agreement per
+    # supporting corner; the weights stay those of the data layer
+    mild = run(summ, feedback_data={"corners": [{"e1": -3, "e2": 3, "a3": -2, "x4": 3, "x5": -1}] * 15})
+    e = mild["engineer_layer"]["session_recommendation"]["recommended"]
+    assert e["net"] == a["recommended"]["net"]
+    assert {v["agreement"] for v in e["supporting"]} <= {"agree", "neutral", "conflict"}
+
+
+def test_driver_only_votes_with_weight_one():
+    # a -5 turn-in complaint at C1 (no data symptom) votes 1 x 1 for the
+    # understeer levers there, marked driver only
+    summ = _summaries(NBR29)
+    data = data_layer(summ)
+    rows = [{k: 0 for k in ("e1", "e2", "a3", "x4", "x5")} for _ in range(15)]
+    rows[0]["e2"] = -5
+    rec = engineer_layer(data, summ, {"corners": rows})["session_recommendation"]
+    driver = [v for v in rec["votes"] if v["driver_only"]]
+    assert driver and all(v["corner"] == 1 and v["weight"] == 1.0 and v["agreement"] == "driver_only"
+                          for v in driver)
+    opt = _options(rec)
+    # front ARB stiffer (INST vote 8.0) is now opposed by the C1 US vote for softer
+    assert opt["arb_fl+arb_fr +1"]["opposition"] == 1.0
+
+
+def test_axle_class_ranks_before_preference():
+    # 4h ruling b: severity -> repetition -> (demotion) -> axle class ->
+    # preference -> effort -> headroom
+    base = {"severity": "strong", "laps": 3, "condition_demoted": False,
+            "change": {"effort": "minutes", "headroom": None}}
+    limiting = dict(base, axle_class=0, preference=0)
+    preferred_other = dict(base, axle_class=2, preference=1)
+    assert sorted([preferred_other, limiting], key=_data_rank_key)[0] is limiting
+    assert sorted([dict(limiting, laps=2), preferred_other], key=_data_rank_key)[0] is preferred_other
+
+
+E4 = "diagnostics/results_engine_4e_20261023/{}.pkl"
+
+
+def _frozen(key):
+    # frozen-chain summaries and the real TC flag map of a development
+    # session (tracked snapshot of work order 4e)
+    import os
+    import pickle
+    fn = E4.format(key)
+    if not os.path.exists(fn):
+        pytest.skip(f"{fn} not present")
+    with open(fn, "rb") as f:
+        return pickle.load(f)
+
+
+def test_traction_limited_diff_does_not_vote():
+    # NBR 63 C8, relaxed repetition: the early-exit diff increase is
+    # demoted (TC on most symptom laps) -> its vote is excluded, while the
+    # other exit rows of the same symptom vote
+    d = _frozen("nbr_o63_cdr")
+    layer = data_layer(d["summaries"], tc_map=d["tc_map"], cfg=_relaxed())
+    rec = layer["session_recommendation"]
+    ex = [x for x in rec["excluded"] if x["corner"] == 8 and x["phase"] == "exit_4"]
+    assert [x["option"] for x in ex] == ["diff_position +1"]
+    assert not any(v["corner"] == 8 and v["phase"] == "exit_4" and v["option"] == "diff_position +1"
+                   for v in rec["votes"])
+    assert any(v["corner"] == 8 and v["phase"] == "exit_4" for v in rec["votes"])
+
+
+def test_low_priority_corner_does_not_vote():
+    # NBR qualifying MLA C8, relaxed repetition: high-speed front-only ->
+    # kept in the corner diagnosis, no session vote
+    d = _frozen("nbr_qp_mla")
+    layer = data_layer(d["summaries"], tc_map=d["tc_map"], cfg=_relaxed())
+    c8 = next(c for c in layer["corners"] if c["corner"] == 8)
+    assert c8["low_priority"] and c8["recommended"] is not None
+    rec = layer["session_recommendation"]
+    assert not any(v["corner"] == 8 for v in rec["votes"])
+    assert {x["corner"] for x in rec["excluded"] if x["option"] is None} == {8}

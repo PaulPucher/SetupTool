@@ -2,9 +2,9 @@
 
 ### NOW
 
-Rewritten 2026-10-23c (after work order 4g, branch new-laps). The header,
+Rewritten 2026-10-23d (after work order 4h, branch new-laps). The header,
 REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
-"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23c STATUS rewrite)"; older NOW items
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23d STATUS rewrite)"; older NOW items
 remain under the earlier superseded sections. The rest of this block is
 unchanged.
 
@@ -24,50 +24,57 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD cc0272a ("New setup engine: mechanism table with literature
-  anchors, D2 classifier with measured margin, schema 22").
-  NOT committed since cc0272a: work order 4f (lever pass-over, speed-class
-  column) and work order 4g (setup / cockpit split, front ride-height
-  floor only, TC channel note, speed-class tints, schema 24, goldens
-  regenerated), diagnostics/inspect_engine_4f.py + results_engine_4f_
-  20261023/, these records. Commit point = this stop (full suite, TESTS).
-- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 24 (23 -> 24 on
-  2026-10-23: setup / cockpit split in the engine payload). Chain values
-  unchanged since schema 19.
+  new-laps HEAD 504b4ed ("Engine 4f/4g: ride heights as aero levers ...,
+  schema 24"), 4f / 4g committed and pushed.
+  NOT committed since 504b4ed: work order 4h (session setup
+  recommendation, limiting-end tie-break, mechanisms.json axle field,
+  config setup_engine.session_vote, UI session box, schema 25, goldens
+  regenerated), the 4h follow-up rulings b / e / f (goldens regenerated
+  again), diagnostics/inspect_engine_4f.py mode session +
+  results_engine_4f_20261023/ post4h.pkl, post4h2.pkl, session_post4h.txt,
+  session_post4h2.txt, compare_post4g_post4h.txt,
+  compare_post4h_post4h2.txt, these records. Commit point = this stop.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (24 -> 25 on
+  2026-10-23: session recommendation in the engine payload, axle field,
+  limiting-end tie-break). Chain values unchanged since schema 19.
 - CHAIN: unchanged (see the superseded block of 2026-10-22c).
 - CLASSIFIER (D2): margins front 0.062 / rear 0.076.
-- RECOMMENDATION: two outputs per corner (DECISIONS 'Work order 4g
-  rulings'): mechanical setup recommendation + up to 2 alternatives, and a
-  "driver can also" cockpit line. 14 sessions: 12 corners; all 11 INST
-  setup lines front ARB stiffer (row-order tie-break, see NEXT 2); Le
-  Castellet 25 C2 diff decrease. NBR JST 29: C8 front ARB stiffer / brake
-  bias more front, C11 front ARB stiffer / tc_lat increase; Le Castellet 32:
-  none.
+- RECOMMENDATION (DECISIONS 'Work order 4h rulings'): per session ONE
+  mechanical setup change from the corner vote (net support = support -
+  opposition) + up to 2 alternatives, or equivalent options on an exact
+  tie; per corner the diagnosis (candidate levers + cockpit line). 14
+  sessions: rear ARB softer in NBR 29 (net 8.00), 46, 53, 54, 63;
+  equivalent options in NBR 20, NBR qualifying CDR 69, Le Castellet 25;
+  none in the 6 sessions without a counted symptom (Le Castellet 32
+  among them). Per corner 11 of 12 INST lines front ARB stiffer -> rear
+  ARB softer.
 - DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
   data package (pending).
-- TESTS: full suite (2026-10-23, schema 24) 397 passed, 1 xfailed, 0 failed
-  (33:05); the xfail is the known single-sample slip-angle window.
-  test_stability.py NBR 29 and Le Castellet 32 match the regenerated goldens.
-- diagnostics/: 29 scripts; inspect_engine_4e / 4f kept (author 4g).
+- TESTS: full suite (2026-10-23, schema 25) 406 passed, 1 xfailed, 0 failed (33:09); the xfail is the known single-sample slip-angle window.
+  test_stability.py NBR 29 and Le Castellet 32 match the regenerated
+  goldens (chain, gate, summaries, floor events, verdicts bit-identical to
+  schema 24; recommendations and _meta differ by design).
+- diagnostics/: 29 scripts (unchanged; inspect_engine_4f gains mode session).
 
 RULED / DONE SINCE THE LAST REWRITE
-- Work order 4f (2026-10-23): done (see thesis_notes 'Work order 4f').
-- Work order 4g (author rulings 2026-10-23, EXECUTE): setup / cockpit
-  split, D8 amendment (setup recommendation only in the evaluation), front
-  ride height floor only, TC int / tim mapping recorded as undocumented,
-  speed-class tints, diagnostics kept. Records: DECISIONS 'Work order 4g
-  rulings', thesis_notes 'Work order 4g', PRODUCTION.md 10.
+- Work order 4h (author EXECUTE 2026-10-23): done. Records: DECISIONS 'Work
+  order 4h rulings' (incl. D8 amendment: session recommendation),
+  thesis_notes 'Work order 4h', PRODUCTION.md 10.
 
 NEXT
-1. Author: app check -- setup panel ("driver can also" line per corner),
-   speed tints in the feedback table and the corner cells.
-2. Review instance: the implicit tie-break -- with no setup sheet every
-   INST setup line is front ARB stiffer because equal-effort levers tie and
-   the row order of mechanisms.json decides (thesis_notes 4g OBSERVATION).
-3. Author: commit of 4f + 4g.
+1. Author: app check -- "Session setup recommendation" box on top of both
+   layer columns (accent border), per-corner "candidate:" diagnosis below.
+2. DONE 2026-10-23 (author follow-up rulings, DECISIONS '4h follow-up
+   rulings'): a, c, d, g, h accepted; b axle class before preference per
+   corner; e traction-limited diff votes excluded; f low-priority corners
+   do not vote. Verified: engine tests, test_stability NBR 29 + LC 32,
+   goldens regenerated (chain + verdicts identical); no full suite (the 4h
+   run counts for the commit, author).
+3. Author: commit of 4h.
 4. Carried: effort classes camber / springs vs Setup_change_overview; TC
    int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
-   weekend-PDF comment; clean data package (D8 coding scheme first).
+   weekend-PDF comment; clean data package (D8 coding scheme first);
+   corner importance weighting (TE p. 254) not implemented (limitation).
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -9268,6 +9275,79 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-23d STATUS rewrite)
+
+NOW (as written before the 2026-10-23d rewrite)
+
+Rewritten 2026-10-23c (after work order 4g, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23c STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD cc0272a ("New setup engine: mechanism table with literature
+  anchors, D2 classifier with measured margin, schema 22").
+  NOT committed since cc0272a: work order 4f (lever pass-over, speed-class
+  column) and work order 4g (setup / cockpit split, front ride-height
+  floor only, TC channel note, speed-class tints, schema 24, goldens
+  regenerated), diagnostics/inspect_engine_4f.py + results_engine_4f_
+  20261023/, these records. Commit point = this stop (full suite, TESTS).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 24 (23 -> 24 on
+  2026-10-23: setup / cockpit split in the engine payload). Chain values
+  unchanged since schema 19.
+- CHAIN: unchanged (see the superseded block of 2026-10-22c).
+- CLASSIFIER (D2): margins front 0.062 / rear 0.076.
+- RECOMMENDATION: two outputs per corner (DECISIONS 'Work order 4g
+  rulings'): mechanical setup recommendation + up to 2 alternatives, and a
+  "driver can also" cockpit line. 14 sessions: 12 corners; all 11 INST
+  setup lines front ARB stiffer (row-order tie-break, see NEXT 2); Le
+  Castellet 25 C2 diff decrease. NBR JST 29: C8 front ARB stiffer / brake
+  bias more front, C11 front ARB stiffer / tc_lat increase; Le Castellet 32:
+  none.
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- TESTS: full suite (2026-10-23, schema 24) 397 passed, 1 xfailed, 0 failed
+  (33:05); the xfail is the known single-sample slip-angle window.
+  test_stability.py NBR 29 and Le Castellet 32 match the regenerated goldens.
+- diagnostics/: 29 scripts; inspect_engine_4e / 4f kept (author 4g).
+
+RULED / DONE SINCE THE LAST REWRITE
+- Work order 4f (2026-10-23): done (see thesis_notes 'Work order 4f').
+- Work order 4g (author rulings 2026-10-23, EXECUTE): setup / cockpit
+  split, D8 amendment (setup recommendation only in the evaluation), front
+  ride height floor only, TC int / tim mapping recorded as undocumented,
+  speed-class tints, diagnostics kept. Records: DECISIONS 'Work order 4g
+  rulings', thesis_notes 'Work order 4g', PRODUCTION.md 10.
+
+NEXT
+1. Author: app check -- setup panel ("driver can also" line per corner),
+   speed tints in the feedback table and the corner cells.
+2. Review instance: the implicit tie-break -- with no setup sheet every
+   INST setup line is front ARB stiffer because equal-effort levers tie and
+   the row order of mechanisms.json decides (thesis_notes 4g OBSERVATION).
+3. Author: commit of 4f + 4g.
+4. Carried: effort classes camber / springs vs Setup_change_overview; TC
+   int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
+   weekend-PDF comment; clean data package (D8 coding scheme first).
 
 ---
 

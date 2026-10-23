@@ -109,7 +109,13 @@ CAR_DATA_PATH = "config/car_data.json"
 #      cockpit option (cockpit, cockpit_ranked, cockpit_conflicts,
 #      cockpit_at_limit); the front ride height has a floor only. Chain values
 #      unchanged; recommendations change.
-ANALYSIS_SCHEMA_VERSION = 24
+#  25: (2026-10-23) work order 4h: payload shape change and config edits
+#      outside Settings -- each setup layer carries a session setup
+#      recommendation from the corner vote (session_recommendation, config
+#      setup_engine.session_vote), mechanisms.json rows gain an axle field and
+#      the limiting-end class replaces the row order as the last per-corner
+#      rank key. Chain values unchanged; recommendations change.
+ANALYSIS_SCHEMA_VERSION = 25
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

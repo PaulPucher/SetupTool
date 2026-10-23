@@ -32,10 +32,12 @@
   "_comment_not_levers": "Out of scope, deliberately not levers: high-speed dampers, blow-off, arb_front_mount (ruling D3). [2026-10-23, 4f item 1: ride heights removed from this list -- M4 levers at high speed, valid outside the ground-effect stall regime.]",
   "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
   "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author 2026-10-22, 4e item 7), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
+  "_comment_axle": "Field axle (work order 4h, author 2026-10-23): the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip; implementation classification, reported for ruling). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
   "mechanisms": [
     {
       "id": "M1-arb-front-US",
       "mechanism": "M1",
+      "axle": "front",
       "levers": [
         "arb_fl",
         "arb_fr"
@@ -64,6 +66,7 @@
     {
       "id": "M1-arb-front-OS",
       "mechanism": "M1",
+      "axle": "front",
       "levers": [
         "arb_fl",
         "arb_fr"
@@ -93,6 +96,7 @@
     {
       "id": "M1-arb-rear-US",
       "mechanism": "M1",
+      "axle": "rear",
       "levers": [
         "arb_rl",
         "arb_rr"
@@ -121,6 +125,7 @@
     {
       "id": "M1-arb-rear-OS",
       "mechanism": "M1",
+      "axle": "rear",
       "levers": [
         "arb_rl",
         "arb_rr"
@@ -150,6 +155,7 @@
     {
       "id": "M1-springs-front-US",
       "mechanism": "M1",
+      "axle": "front",
       "levers": [
         "springs_front"
       ],
@@ -177,6 +183,7 @@
     {
       "id": "M1-springs-front-OS",
       "mechanism": "M1",
+      "axle": "front",
       "levers": [
         "springs_front"
       ],
@@ -205,6 +212,7 @@
     {
       "id": "M1-springs-rear-US",
       "mechanism": "M1",
+      "axle": "rear",
       "levers": [
         "springs_rear"
       ],
@@ -232,6 +240,7 @@
     {
       "id": "M1-springs-rear-OS",
       "mechanism": "M1",
+      "axle": "rear",
       "levers": [
         "springs_rear"
       ],
@@ -260,6 +269,7 @@
     {
       "id": "M2-brk-os-inst-front-bump",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_bump_ls_fl",
         "damper_bump_ls_fr"
@@ -286,6 +296,7 @@
     {
       "id": "M2-brk-os-inst-rear-rebound",
       "mechanism": "M2",
+      "axle": "rear",
       "levers": [
         "damper_rebound_ls_rl",
         "damper_rebound_ls_rr"
@@ -312,6 +323,7 @@
     {
       "id": "M2-brk-us-front-bump",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_bump_ls_fl",
         "damper_bump_ls_fr"
@@ -337,6 +349,7 @@
     {
       "id": "M2-tin-us-front-rebound",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_rebound_ls_fl",
         "damper_rebound_ls_fr"
@@ -362,6 +375,7 @@
     {
       "id": "M2-tin-us-rear-bump",
       "mechanism": "M2",
+      "axle": "rear",
       "levers": [
         "damper_bump_ls_rl",
         "damper_bump_ls_rr"
@@ -387,6 +401,7 @@
     {
       "id": "M2-tin-os-front-rebound",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_rebound_ls_fl",
         "damper_rebound_ls_fr"
@@ -413,6 +428,7 @@
     {
       "id": "M2-tin-os-rear-bump",
       "mechanism": "M2",
+      "axle": "rear",
       "levers": [
         "damper_bump_ls_rl",
         "damper_bump_ls_rr"
@@ -439,6 +455,7 @@
     {
       "id": "M2-exit-us-front-rebound",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_rebound_ls_fl",
         "damper_rebound_ls_fr"
@@ -464,6 +481,7 @@
     {
       "id": "M2-exit-us-rear-bump",
       "mechanism": "M2",
+      "axle": "rear",
       "levers": [
         "damper_bump_ls_rl",
         "damper_bump_ls_rr"
@@ -489,6 +507,7 @@
     {
       "id": "M2-exit-os-front-rebound",
       "mechanism": "M2",
+      "axle": "front",
       "levers": [
         "damper_rebound_ls_fl",
         "damper_rebound_ls_fr"
@@ -515,6 +534,7 @@
     {
       "id": "M2-exit-os-rear-bump",
       "mechanism": "M2",
+      "axle": "rear",
       "levers": [
         "damper_bump_ls_rl",
         "damper_bump_ls_rr"
@@ -541,6 +561,7 @@
     {
       "id": "M4-wing-US",
       "mechanism": "M4",
+      "axle": "rear",
       "levers": [
         "wing_position"
       ],
@@ -566,6 +587,7 @@
     {
       "id": "M4-wing-OS",
       "mechanism": "M4",
+      "axle": "rear",
       "levers": [
         "wing_position"
       ],
@@ -592,6 +614,7 @@
     {
       "id": "M4-splitter-US",
       "mechanism": "M4",
+      "axle": "front",
       "levers": [
         "splitter_offset"
       ],
@@ -617,6 +640,7 @@
     {
       "id": "M4-splitter-OS",
       "mechanism": "M4",
+      "axle": "front",
       "levers": [
         "splitter_offset"
       ],
@@ -643,6 +667,7 @@
     {
       "id": "M4-ride-front-US",
       "mechanism": "M4",
+      "axle": "front",
       "levers": [
         "ride_height_front"
       ],
@@ -668,6 +693,7 @@
     {
       "id": "M4-ride-front-OS",
       "mechanism": "M4",
+      "axle": "front",
       "levers": [
         "ride_height_front"
       ],
@@ -694,6 +720,7 @@
     {
       "id": "M4-ride-rear-US",
       "mechanism": "M4",
+      "axle": "rear",
       "levers": [
         "ride_height_rear"
       ],
@@ -719,6 +746,7 @@
     {
       "id": "M4-ride-rear-OS",
       "mechanism": "M4",
+      "axle": "rear",
       "levers": [
         "ride_height_rear"
       ],
@@ -745,6 +773,7 @@
     {
       "id": "M5-camber-front-US",
       "mechanism": "M5",
+      "axle": "front",
       "levers": [
         "camber_fl",
         "camber_fr"
@@ -773,6 +802,7 @@
     {
       "id": "M5-camber-rear-APX-OS",
       "mechanism": "M5",
+      "axle": "rear",
       "levers": [
         "camber_rl",
         "camber_rr"
@@ -802,6 +832,7 @@
     {
       "id": "M5-camber-rear-BRK-OS-INST",
       "mechanism": "M5",
+      "axle": "rear",
       "levers": [
         "camber_rl",
         "camber_rr"
@@ -831,6 +862,7 @@
     {
       "id": "M5-camber-rear-EXIT-OS",
       "mechanism": "M5",
+      "axle": "rear",
       "levers": [
         "camber_rl",
         "camber_rr"
@@ -859,6 +891,7 @@
     {
       "id": "M5-toe-front-US",
       "mechanism": "M5",
+      "axle": "front",
       "levers": [
         "toe_front"
       ],
@@ -884,6 +917,7 @@
     {
       "id": "M5-toe-front-OS",
       "mechanism": "M5",
+      "axle": "front",
       "levers": [
         "toe_front"
       ],
@@ -909,6 +943,7 @@
     {
       "id": "M5-toe-rear-EXIT-OS",
       "mechanism": "M5",
+      "axle": "rear",
       "levers": [
         "toe_rear"
       ],
@@ -934,6 +969,7 @@
     {
       "id": "M5-toe-rear-TIN-US",
       "mechanism": "M5",
+      "axle": "rear",
       "levers": [
         "toe_rear"
       ],
@@ -958,6 +994,7 @@
     {
       "id": "M6-diff-US",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "diff_position"
       ],
@@ -986,6 +1023,7 @@
     {
       "id": "M6-diff-OS",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "diff_position"
       ],
@@ -1015,6 +1053,7 @@
     {
       "id": "M6-diff-EXIT-US",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "diff_position"
       ],
@@ -1042,6 +1081,7 @@
     {
       "id": "M6-diff-EXIT-OS",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "diff_position"
       ],
@@ -1070,6 +1110,7 @@
     {
       "id": "M6-tc-lon-US",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "tc_lon"
       ],
@@ -1094,6 +1135,7 @@
     {
       "id": "M6-tc-lon-OS",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "tc_lon"
       ],
@@ -1119,6 +1161,7 @@
     {
       "id": "M6-tc-lat-US",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "tc_lat"
       ],
@@ -1144,6 +1187,7 @@
     {
       "id": "M6-tc-lat-OS",
       "mechanism": "M6",
+      "axle": "global",
       "levers": [
         "tc_lat"
       ],
@@ -1170,6 +1214,7 @@
     {
       "id": "M7-bias-US",
       "mechanism": "M7",
+      "axle": "global",
       "levers": [
         "brake_bias"
       ],
@@ -1195,6 +1240,7 @@
     {
       "id": "M7-bias-OS",
       "mechanism": "M7",
+      "axle": "global",
       "levers": [
         "brake_bias"
       ],
@@ -1221,6 +1267,7 @@
     {
       "id": "M7-abs-OS-INST",
       "mechanism": "M7",
+      "axle": "global",
       "levers": [
         "abs_position"
       ],

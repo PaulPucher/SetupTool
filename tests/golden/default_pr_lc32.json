@@ -46057,7 +46057,17 @@
    },
    "threshold": null,
    "pattern": null,
-   "note": "reported only: no session recommendation (session_share_threshold not set)"
+   "note": "shares reported only (session_share_threshold not set); the session setup recommendation comes from the corner vote"
+  },
+  "session_recommendation": {
+   "recommended": null,
+   "equivalent_options": [],
+   "alternatives": [],
+   "ranked": [],
+   "at_limit": [],
+   "not_recommended": [],
+   "votes": [],
+   "excluded": []
   },
   "rules": {
    "min_repeat_fraction": 0.5,
@@ -46066,11 +46076,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 24), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 25), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "Le Castellet outing 32",
   "data_file": "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt",
-  "git_commit_hash": "cc0272a8dc366d32c2a6aad1b69176c6b2222741",
-  "generated_at_utc": "2026-10-23T09:49:15.313128+00:00",
+  "git_commit_hash": "504b4ed2a9c4e8f25277f9478c522a8c177fa0fe",
+  "generated_at_utc": "2026-10-23T11:39:34.771374+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

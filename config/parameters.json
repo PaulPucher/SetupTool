@@ -258,7 +258,7 @@
     "thresholds_calibrated_for_tyre_fit_mode": "literature_bounded"
   },
   "setup_engine": {
-    "_comment": "modules/setup_engine.py (recommendation overhaul D4-D7). Repetition rule (D5, Tier B preprocessing): a corner-phase symptom counts when it appears in more than min_repeat_fraction of the corner's valid laps AND in at least min_repeat_laps laps. Session layer (D7): share of corners with a counted symptom; computed and stored always, turned into a recommendation only once session_share_threshold is set.",
+    "_comment": "modules/setup_engine.py (recommendation overhaul D4-D7). Repetition rule (D5, Tier B preprocessing): a corner-phase symptom counts when it appears in more than min_repeat_fraction of the corner's valid laps AND in at least min_repeat_laps laps. Session layer (D7): share of corners with a counted symptom; computed and stored always, turned into a recommendation only once session_share_threshold is set. [2026-10-23, 4h: the session setup recommendation comes from session_vote, not from the share threshold; the shares stay a report.]",
     "min_repeat_fraction": 0.5,
     "min_repeat_laps": 2,
     "repeat_derived_from": "author ruling 2026-10-22 (D5: present in a majority of valid laps, minimum 2)",
@@ -266,7 +266,16 @@
     "session_share_threshold_derived_from": "author ruling 2026-10-22 (4e item 3): kept null -- the layer is computed and reported (per-lap cell shares without the majority rule, share of corners with a counted symptom), no session recommendation and no threshold set",
     "damper_step": "fine",
     "damper_step_derived_from": "team practice: dampers for race-weekend finetuning (Setup_change_overview); TE p. 292 larger steps = test-day advice. Registry adjustment_step 'fine' (1 click) over 'exploratory' (2 clicks); author ruling 2026-10-22 (4e item 2)",
-    "max_alternatives": 2
+    "max_alternatives": 2,
+    "session_vote": {
+      "_comment": "Session setup recommendation (work order 4h, Tier B aggregation rule): every counted corner symptom votes for its mechanical candidate rows (lever group, signed direction) with weight = severity_weight[severity] x k / n (k laps showing the symptom of the corner's n valid laps); votes of the same lever group in the opposite direction are subtracted (net support = support - opposition); net <= 0 is never recommended. Engineer layer: driver-only symptoms (|feedback| >= 4, no data support) vote with driver_only_weight x 1.",
+      "severity_weight": {
+        "moderate": 1,
+        "strong": 2
+      },
+      "driver_only_weight": 1,
+      "derived_from": "author ruling 2026-10-23"
+    }
   },
   "limit_events": {
     "_comment": "Event layer (modules/limit_events.py), display + record only: the floor events -- contiguous runs of CS below the pure-lateral floor -0.53 with measured attributes (limit_events.detect_floor_events; no bridging or minimum duration, only recurrence_radius_m applies); never a verdict or recommendation input. [2026-10-22 pruning: the per_session curve-floor layer and its bridge_gap_s / min_duration_s were removed.]",

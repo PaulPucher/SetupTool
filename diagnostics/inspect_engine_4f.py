@@ -10,6 +10,9 @@
 #                   coverage per symptom x phase group x speed class
 #   list <tag>      setup recommendation and cockpit line per corner (4g
 #                   split: mechanical levers vs driver-adjustable levers)
+#   session <tag>   session setup recommendation per session (4h corner
+#                   vote): net support, supporting / opposing corners,
+#                   alternatives or equivalent options
 # Output diagnostics/results_engine_4f_20261023/.
 # Run: python -m diagnostics.inspect_engine_4f snapshot pre4f | logged |
 #      snapshot post4f | compare pre4f post4f
@@ -130,6 +133,41 @@ def compare(a, b):
     print(txt)
 
 
+def _opt(o):
+    def votes(vs):
+        return ", ".join(f"C{v['corner']} {v['symptom']} @ {v['phase']} {v['weight']:.2f}" for v in vs) or "none"
+    return [f"{'+'.join(o['levers'])} {o['direction']} ({o['change']['effort']}, axle class {o['axle_class']}): "
+            f"net {o['net']:.2f} = support {o['support']:.2f} - opposition {o['opposition']:.2f}",
+            f"            supporting: {votes(o['supporting'])}",
+            f"            opposing: {votes(o['opposing'])}"]
+
+
+def session_listing(tag):
+    T = pickle.load(open(os.path.join(OUT, f"{tag}.pkl"), "rb"))
+    L = [f"SESSION SETUP RECOMMENDATION ({tag}, work order 4h corner vote), 14 development sessions", ""]
+    for key, v in T.items():
+        rec = v["layer"]["session_recommendation"]
+        L.append(f"{v['label']} ({key}): {len(v['layer']['corners'])} corner(s) with a counted symptom")
+        if rec["recommended"]:
+            L += ["    recommended: " + _opt(rec["recommended"])[0]] + _opt(rec["recommended"])[1:]
+        elif rec["equivalent_options"]:
+            L.append("    equivalent options (exact tie, no winner):")
+            for o in rec["equivalent_options"]:
+                L += ["        " + _opt(o)[0]] + _opt(o)[1:]
+        else:
+            L.append("    recommended: none (no lever group with net support > 0)")
+        for o in rec["alternatives"]:
+            L += ["    alternative: " + _opt(o)[0]] + _opt(o)[1:]
+        cut = [o for o in rec["not_recommended"] if o["support"] > 0 and o["net"] <= 0]
+        if cut:
+            L.append("    cancelled by opposition: " + "; ".join(
+                f"{'+'.join(o['levers'])} {o['direction']} net {o['net']:.2f}" for o in cut))
+    txt = "\n".join(L)
+    with open(os.path.join(OUT, f"session_{tag}.txt"), "w", encoding="utf-8") as f:
+        f.write(txt + "\n")
+    print(txt)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == "snapshot":
@@ -138,5 +176,7 @@ if __name__ == "__main__":
         logged()
     elif mode == "list":
         listing(sys.argv[2])
+    elif mode == "session":
+        session_listing(sys.argv[2])
     else:
         compare(sys.argv[2], sys.argv[3])

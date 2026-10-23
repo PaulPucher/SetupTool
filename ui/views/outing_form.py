@@ -2035,8 +2035,9 @@ class OutingForm(QWidget):
                 w.deleteLater()
 
     def _build_setup_engine_toggle(self):
-        # Setup recommendation (modules/setup_engine.py): one change per
-        # corner, data layer and engineer layer side by side (D6)
+        # Setup recommendation (modules/setup_engine.py): one session setup
+        # change on top, the per-corner diagnosis below, data layer and
+        # engineer layer side by side (D6, 4h)
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -2198,14 +2199,15 @@ class OutingForm(QWidget):
         self._render_setup_layers(layers)
 
     def _render_setup_layers(self, layers):
-        from modules.setup_engine import corner_lines, session_line
+        from modules.setup_engine import corner_lines, session_line, session_recommendation_lines
         self._clear_setup_rows()
         data, eng = layers["data_layer"], layers["engineer_layer"]
         rules = data["rules"]
         self.setup_summary_label.setText(
             f"{len(data['corners'])} corner(s) with a repeated symptom (more than "
-            f"{rules['min_repeat_fraction']:.0%} of valid laps, at least {rules['min_repeat_laps']}); "
-            f"one change per corner, up to two alternatives.")
+            f"{rules['min_repeat_fraction']:.0%} of valid laps, at least {rules['min_repeat_laps']}). "
+            f"Session: one setup change from the corner vote, up to two alternatives; "
+            f"per corner: diagnosis with candidate levers and the cockpit option.")
         self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         self.setup_session_label.setText(session_line(data["session"]))
         self.setup_session_label.setVisible(True)
@@ -2223,12 +2225,18 @@ class OutingForm(QWidget):
                     blocks.append((f"{head} -- driver only, no data support", lines))
             if not blocks:
                 blocks = [("No corner with a repeated symptom.", [])]
+            rec = layer.get("session_recommendation")
+            if rec is not None:
+                head, lines = session_recommendation_lines(rec, engineer)
+                host.insertWidget(host.count() - 1, self._setup_block(head, lines, session=True))
             for head, lines in blocks:
                 host.insertWidget(host.count() - 1, self._setup_block(head, lines))
 
-    def _setup_block(self, head, lines):
+    def _setup_block(self, head, lines, session=False):
+        # the session box carries the accent border: it is the setup decision,
+        # the corner boxes below are its evidence
         box = QWidget()
-        box.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {BORDER};")
+        box.setStyleSheet(f"background-color: {PANEL}; border: 1px solid {ACCENT if session else BORDER};")
         lay = QVBoxLayout(box)
         lay.setContentsMargins(8, 6, 8, 6)
         lay.setSpacing(2)

@@ -218,7 +218,7 @@ Approved recommendation overhaul (review doc "recommendation_overhaul_proposal_2
 - D5 A symptom counts when present in a majority of valid laps, minimum 2.
 - D6 Two layers: a data-only recommendation (stored, used for the thesis comparison) and an engineer output combining driver feedback ordinally (agree / neutral / conflict; a driver-only row for |fb| >= 4).
 - D7 Session-level axle pattern.
-- D8 Evaluation at mechanism level; the coding scheme is fixed before the clean data package. [2026-10-23, 4g amendment: setup recommendation only, cockpit changes excluded -- see 'Work order 4g rulings'.]
+- D8 Evaluation at mechanism level; the coding scheme is fixed before the clean data package. [2026-10-23, 4g amendment: setup recommendation only, cockpit changes excluded -- see 'Work order 4g rulings'.] [2026-10-23, 4h amendment: the comparison uses the SESSION setup recommendation, mechanism level; the per-corner diagnosis is supporting evidence -- see 'Work order 4h rulings'.]
 - D9 Pruning starts now.
 - Carry-over requirement: per-lever step sizes and the current-value logic (value space, window edges, headroom) move into the new engine.
 - Setup engine LIVE (2026-10-22, work order 4b-4d, uncommitted; schema 21): modules/setup_engine.py with config/mechanisms.json (42 rows, M1 / M2 / M4-M7, anchors MM / SEG / TE with pages) replaces modules/recommendation.py and modules/decision_frame.py (both deleted with damper_motion.py, recommendations.json, decision_frame.json, car.json and their tests); shared helpers in modules/corner_aggregation.py, modules/setup_state.py (windows in config/setup_windows.json), classifier in modules/classifier.py.
@@ -241,6 +241,17 @@ Approved recommendation overhaul (review doc "recommendation_overhaul_proposal_2
   - TC position channels: the int / tim pair exists in all 14 files (three agreeing domains); the LAT / LON mapping is undocumented and cannot be inferred (values run nearly parallel); TC stays "current value not assessable", no channel added.
   - Speed class display: neutral blue-grey tints (low light, medium mid, high dark; ui/style.py SPEED_*), distinct from the verdict colours, label kept; feedback-table Speed column and corner cells (left stripe).
   - diagnostics/inspect_engine_4e.py and inspect_engine_4f.py are kept (referenced in thesis_notes).
+- Work order 4h rulings (author 2026-10-23, EXECUTE; uncommitted; schema 25): session-level setup recommendation.
+  - Two levels: per corner a diagnosis (symptom, phase, speed, laps, candidate mechanical levers, cockpit line kept -- drivers adjust bias / TC / ABS per corner); per session ONE mechanical setup recommendation + up to 2 alternatives. Anchors: MM p. 572 item 4 (balance cannot be optimal everywhere, seek the best circuit performance), MM p. 391 (one change at a time), TE p. 254 (align the settings to the most important corners).
+  - Session vote: every counted corner symptom (D5) votes for its mechanical candidate rows as (lever group, signed direction), weight = severity rank (moderate 1, strong 2) x repetition fraction k / n; config setup_engine.session_vote (Tier B, derived_from "author ruling 2026-10-23").
+  - Opposition: votes of the same lever group in the opposite direction are subtracted; net support = support - opposition; both reported with the supporting and opposing corners; net <= 0 is not recommended.
+  - Limiting-end tie-break per corner and per session (MM p. 409: improve the limiting end first, degrade the other end only if that is not possible), replacing the implicit row order: mechanisms.json rows carry "axle" (front / rear / global); limiting axle US -> front, OS / INST -> rear; limiting-axle rows before global rows before other-axle rows.
+  - Session rank key: net support -> limiting-end class -> preference -> change effort -> headroom; an exact tie after all keys is listed as "equivalent options", no winner.
+  - Engineer layer at session level: same vote; driver-only corners (|fb| >= 4, no data support) vote with weight 1 x 1 and are marked; per supporting corner agree / neutral / conflict. Data layer unchanged (no feedback).
+  - UI: "Session setup recommendation" box on top of each layer column, per-corner diagnosis below with the cockpit lines, session shares (D7) above. Sidecar / payload: session_recommendation in both layers; schema 25.
+  - D8 amendment: the comparison with the engineer's change uses the SESSION setup recommendation, mechanism level; the per-corner diagnosis is supporting evidence.
+  - Limitation: corner importance weighting (TE p. 254: fastest corners, corners before long straights) not implemented.
+  - 4h follow-up rulings (author 2026-10-23, EXECUTE, same commit): per-corner key severity -> repetition -> (TC demotion, 4e) -> limiting-end axle class -> preference -> effort -> headroom (physics before preference, MM p. 409); a diff-increase vote whose not_traction_limited condition fails is not counted (MM p. 740); low-priority corners (high speed, front limiting only; MM p. 396 item 21, p. 401 item 1F) do not vote, they stay in the diagnosis; readings a, c, d, g, h accepted as implemented.
 
 ## Pruning rulings (author, 2026-10-22)
 - Weekend PDF export and the accuracy-level chooser are removed completely (confirms 2026-10-05); the new recommendation engine has one consumer, the screen.

@@ -27366,30 +27366,30 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "mechanism_id": "M1-arb-front-OS",
+     "mechanism_id": "M1-arb-rear-OS",
      "mechanism": "M1",
      "mechanism_name": "roll stiffness distribution",
      "levers": [
-      "arb_fl",
-      "arb_fr"
+      "arb_rl",
+      "arb_rr"
      ],
-     "direction": "stiffer",
-     "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+     "direction": "softer",
+     "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
      "advisory": false,
      "note": "",
      "side_effect": null,
      "change": {
-      "sign": 1,
+      "sign": -1,
       "step": 1,
       "keys": [
        {
-        "parameter": "arb_fl",
+        "parameter": "arb_rl",
         "from": null,
         "to": null,
         "feasible": null
        },
        {
-        "parameter": "arb_fr",
+        "parameter": "arb_rr",
         "from": null,
         "to": null,
         "feasible": null
@@ -27404,6 +27404,8 @@
      "condition_note": null,
      "preference": 0,
      "cockpit": false,
+     "axle": "rear",
+     "axle_class": 0,
      "also": [
       "INST @ apex_3"
      ]
@@ -27416,30 +27418,30 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M1-arb-rear-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
+      "mechanism_id": "M2-tin-os-rear-bump",
+      "mechanism": "M2",
+      "mechanism_name": "transient load transfer (low-speed dampers)",
       "levers": [
-       "arb_rl",
-       "arb_rr"
+       "damper_bump_ls_rl",
+       "damper_bump_ls_rr"
       ],
       "direction": "softer",
-      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "anchor": "TE Tab. 5.9 p. 254",
       "advisory": false,
       "note": "",
       "side_effect": null,
       "change": {
-       "sign": -1,
+       "sign": 1,
        "step": 1,
        "keys": [
         {
-         "parameter": "arb_rl",
+         "parameter": "damper_bump_ls_rl",
          "from": null,
          "to": null,
          "feasible": null
         },
         {
-         "parameter": "arb_rr",
+         "parameter": "damper_bump_ls_rr",
          "from": null,
          "to": null,
          "feasible": null
@@ -27454,9 +27456,8 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 8,
@@ -27465,30 +27466,23 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M2-tin-os-front-rebound",
-      "mechanism": "M2",
-      "mechanism_name": "transient load transfer (low-speed dampers)",
+      "mechanism_id": "M4-wing-OS",
+      "mechanism": "M4",
+      "mechanism_name": "aero balance",
       "levers": [
-       "damper_rebound_ls_fl",
-       "damper_rebound_ls_fr"
+       "wing_position"
       ],
-      "direction": "stiffer",
-      "anchor": "TE Tab. 5.9 p. 254",
+      "direction": "increase",
+      "anchor": "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294",
       "advisory": false,
       "note": "",
       "side_effect": null,
       "change": {
-       "sign": -1,
+       "sign": 1,
        "step": 1,
        "keys": [
         {
-         "parameter": "damper_rebound_ls_fl",
-         "from": null,
-         "to": null,
-         "feasible": null
-        },
-        {
-         "parameter": "damper_rebound_ls_fr",
+         "parameter": "wing_position",
          "from": null,
          "to": null,
          "feasible": null
@@ -27502,7 +27496,12 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
+      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
+      "also": [
+       "INST @ apex_3"
+      ]
      }
     ],
     "ranked": [
@@ -27513,55 +27512,6 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M1-arb-front-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
-      "levers": [
-       "arb_fl",
-       "arb_fr"
-      ],
-      "direction": "stiffer",
-      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "arb_fl",
-         "from": null,
-         "to": null,
-         "feasible": null
-        },
-        {
-         "parameter": "arb_fr",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
       "mechanism_id": "M1-arb-rear-OS",
       "mechanism": "M1",
       "mechanism_name": "roll stiffness distribution",
@@ -27600,55 +27550,11 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
       "also": [
        "INST @ apex_3"
       ]
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M2-tin-os-front-rebound",
-      "mechanism": "M2",
-      "mechanism_name": "transient load transfer (low-speed dampers)",
-      "levers": [
-       "damper_rebound_ls_fl",
-       "damper_rebound_ls_fr"
-      ],
-      "direction": "stiffer",
-      "anchor": "TE Tab. 5.9 p. 254",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": -1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "damper_rebound_ls_fl",
-         "from": null,
-         "to": null,
-         "feasible": null
-        },
-        {
-         "parameter": "damper_rebound_ls_fr",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false
      },
      {
       "corner": 8,
@@ -27694,7 +27600,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
+      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 8,
@@ -27734,90 +27642,8 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M4-splitter-OS",
-      "mechanism": "M4",
-      "mechanism_name": "aero balance",
-      "levers": [
-       "splitter_offset"
-      ],
-      "direction": "less front downforce",
-      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
-      "advisory": false,
-      "note": "sign convention from the registry",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "splitter_offset",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M4-ride-front-OS",
-      "mechanism": "M4",
-      "mechanism_name": "aero balance",
-      "levers": [
-       "ride_height_front"
-      ],
-      "direction": "increase",
-      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
-      "advisory": false,
-      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "ride_height_front",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": "valid outside the ground-effect stall regime (engineer check)",
-      "preference": 0,
-      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
       "also": [
        "INST @ apex_3"
       ]
@@ -27860,51 +27686,8 @@
       "condition_note": "valid outside the ground-effect stall regime (engineer check)",
       "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M6-diff-OS",
-      "mechanism": "M6",
-      "mechanism_name": "drivetrain",
-      "levers": [
-       "diff_position"
-      ],
-      "direction": "increase",
-      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
-      "advisory": false,
-      "note": "",
-      "side_effect": {
-       "source": "TE Tab. 5.14 pp. 296-297",
-       "text": "disturbing yaw moment in corners at low lateral acceleration"
-      },
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "diff_position",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
       "also": [
        "INST @ apex_3"
       ]
@@ -27956,49 +27739,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
-     },
-     {
-      "corner": 8,
-      "phase": "entry_2_turnin",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M1-springs-front-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
-      "levers": [
-       "springs_front"
-      ],
-      "direction": "stiffer",
-      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "springs_front",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "garage_hours"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ apex_3"
-      ]
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 8,
@@ -28038,6 +27781,286 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
+      "also": [
+       "INST @ apex_3"
+      ]
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M6-diff-OS",
+      "mechanism": "M6",
+      "mechanism_name": "drivetrain",
+      "levers": [
+       "diff_position"
+      ],
+      "direction": "increase",
+      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "note": "",
+      "side_effect": {
+       "source": "TE Tab. 5.14 pp. 296-297",
+       "text": "disturbing yaw moment in corners at low lateral acceleration"
+      },
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "diff_position",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "global",
+      "axle_class": 1,
+      "also": [
+       "INST @ apex_3"
+      ]
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M1-arb-front-OS",
+      "mechanism": "M1",
+      "mechanism_name": "roll stiffness distribution",
+      "levers": [
+       "arb_fl",
+       "arb_fr"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "arb_fl",
+         "from": null,
+         "to": null,
+         "feasible": null
+        },
+        {
+         "parameter": "arb_fr",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
+      "also": [
+       "INST @ apex_3"
+      ]
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M2-tin-os-front-rebound",
+      "mechanism": "M2",
+      "mechanism_name": "transient load transfer (low-speed dampers)",
+      "levers": [
+       "damper_rebound_ls_fl",
+       "damper_rebound_ls_fr"
+      ],
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": -1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "damper_rebound_ls_fl",
+         "from": null,
+         "to": null,
+         "feasible": null
+        },
+        {
+         "parameter": "damper_rebound_ls_fr",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M4-splitter-OS",
+      "mechanism": "M4",
+      "mechanism_name": "aero balance",
+      "levers": [
+       "splitter_offset"
+      ],
+      "direction": "less front downforce",
+      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "note": "sign convention from the registry",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "splitter_offset",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
+      "also": [
+       "INST @ apex_3"
+      ]
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M4-ride-front-OS",
+      "mechanism": "M4",
+      "mechanism_name": "aero balance",
+      "levers": [
+       "ride_height_front"
+      ],
+      "direction": "increase",
+      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
+      "advisory": false,
+      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "ride_height_front",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": "valid outside the ground-effect stall regime (engineer check)",
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
+      "also": [
+       "INST @ apex_3"
+      ]
+     },
+     {
+      "corner": 8,
+      "phase": "entry_2_turnin",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M1-springs-front-OS",
+      "mechanism": "M1",
+      "mechanism_name": "roll stiffness distribution",
+      "levers": [
+       "springs_front"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "springs_front",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "garage_hours"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
       "also": [
        "INST @ apex_3"
       ]
@@ -28082,7 +28105,9 @@
      "condition_demoted": false,
      "condition_note": null,
      "preference": 0,
-     "cockpit": true
+     "cockpit": true,
+     "axle": "global",
+     "axle_class": 1
     },
     "cockpit_ranked": [
      {
@@ -28122,7 +28147,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": true
+      "cockpit": true,
+      "axle": "global",
+      "axle_class": 1
      },
      {
       "corner": 8,
@@ -28161,7 +28188,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": true
+      "cockpit": true,
+      "axle": "global",
+      "axle_class": 1
      }
     ],
     "cockpit_conflicts": [],
@@ -28213,30 +28242,30 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "mechanism_id": "M1-arb-front-OS",
+     "mechanism_id": "M1-arb-rear-OS",
      "mechanism": "M1",
      "mechanism_name": "roll stiffness distribution",
      "levers": [
-      "arb_fl",
-      "arb_fr"
+      "arb_rl",
+      "arb_rr"
      ],
-     "direction": "stiffer",
-     "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+     "direction": "softer",
+     "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
      "advisory": false,
      "note": "",
      "side_effect": null,
      "change": {
-      "sign": 1,
+      "sign": -1,
       "step": 1,
       "keys": [
        {
-        "parameter": "arb_fl",
+        "parameter": "arb_rl",
         "from": null,
         "to": null,
         "feasible": null
        },
        {
-        "parameter": "arb_fr",
+        "parameter": "arb_rr",
         "from": null,
         "to": null,
         "feasible": null
@@ -28251,6 +28280,8 @@
      "condition_note": null,
      "preference": 0,
      "cockpit": false,
+     "axle": "rear",
+     "axle_class": 0,
      "also": [
       "INST @ exit_4"
      ]
@@ -28258,20 +28289,20 @@
     "alternatives": [
      {
       "corner": 11,
-      "phase": "apex_3",
+      "phase": "exit_4",
       "symptom": "INST",
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M1-arb-rear-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
+      "mechanism_id": "M2-exit-os-rear-bump",
+      "mechanism": "M2",
+      "mechanism_name": "transient load transfer (low-speed dampers)",
       "levers": [
-       "arb_rl",
-       "arb_rr"
+       "damper_bump_ls_rl",
+       "damper_bump_ls_rr"
       ],
-      "direction": "softer",
-      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
+      "direction": "stiffer",
+      "anchor": "TE Tab. 5.9 p. 254",
       "advisory": false,
       "note": "",
       "side_effect": null,
@@ -28280,13 +28311,13 @@
        "step": 1,
        "keys": [
         {
-         "parameter": "arb_rl",
+         "parameter": "damper_bump_ls_rl",
          "from": null,
          "to": null,
          "feasible": null
         },
         {
-         "parameter": "arb_rr",
+         "parameter": "damper_bump_ls_rr",
          "from": null,
          "to": null,
          "feasible": null
@@ -28301,37 +28332,33 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ exit_4"
-      ]
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 11,
-      "phase": "apex_3",
+      "phase": "exit_4",
       "symptom": "INST",
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M6-diff-OS",
-      "mechanism": "M6",
-      "mechanism_name": "drivetrain",
+      "mechanism_id": "M5-toe-rear-EXIT-OS",
+      "mechanism": "M5",
+      "mechanism_name": "tyre working point",
       "levers": [
-       "diff_position"
+       "toe_rear"
       ],
-      "direction": "increase",
-      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "direction": "more toe-in",
+      "anchor": "TE Tab. 5.12 p. 294; TE p. 213",
       "advisory": false,
       "note": "",
-      "side_effect": {
-       "source": "TE Tab. 5.14 pp. 296-297",
-       "text": "disturbing yaw moment in corners at low lateral acceleration"
-      },
+      "side_effect": null,
       "change": {
        "sign": 1,
-       "step": 1,
+       "step": 0.5,
        "keys": [
         {
-         "parameter": "diff_position",
+         "parameter": "toe_rear",
          "from": null,
          "to": null,
          "feasible": null
@@ -28346,9 +28373,8 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ exit_4"
-      ]
+      "axle": "rear",
+      "axle_class": 0
      }
     ],
     "ranked": [
@@ -28359,55 +28385,6 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "mechanism_id": "M1-arb-front-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
-      "levers": [
-       "arb_fl",
-       "arb_fr"
-      ],
-      "direction": "stiffer",
-      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "arb_fl",
-         "from": null,
-         "to": null,
-         "feasible": null
-        },
-        {
-         "parameter": "arb_fr",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false,
-      "also": [
-       "INST @ exit_4"
-      ]
-     },
-     {
-      "corner": 11,
-      "phase": "apex_3",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
       "mechanism_id": "M1-arb-rear-OS",
       "mechanism": "M1",
       "mechanism_name": "roll stiffness distribution",
@@ -28446,100 +28423,11 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
       "also": [
        "INST @ exit_4"
       ]
-     },
-     {
-      "corner": 11,
-      "phase": "apex_3",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M6-diff-OS",
-      "mechanism": "M6",
-      "mechanism_name": "drivetrain",
-      "levers": [
-       "diff_position"
-      ],
-      "direction": "increase",
-      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
-      "advisory": false,
-      "note": "",
-      "side_effect": {
-       "source": "TE Tab. 5.14 pp. 296-297",
-       "text": "disturbing yaw moment in corners at low lateral acceleration"
-      },
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "diff_position",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false,
-      "also": [
-       "INST @ exit_4"
-      ]
-     },
-     {
-      "corner": 11,
-      "phase": "exit_4",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M2-exit-os-front-rebound",
-      "mechanism": "M2",
-      "mechanism_name": "transient load transfer (low-speed dampers)",
-      "levers": [
-       "damper_rebound_ls_fl",
-       "damper_rebound_ls_fr"
-      ],
-      "direction": "softer",
-      "anchor": "TE Tab. 5.9 p. 254",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "damper_rebound_ls_fl",
-         "from": null,
-         "to": null,
-         "feasible": null
-        },
-        {
-         "parameter": "damper_rebound_ls_fr",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "minutes"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
-      "cockpit": false
      },
      {
       "corner": 11,
@@ -28585,7 +28473,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
+      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 11,
@@ -28624,7 +28514,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
+      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 11,
@@ -28673,49 +28565,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
-     },
-     {
-      "corner": 11,
-      "phase": "apex_3",
-      "symptom": "INST",
-      "severity": "strong",
-      "laps": 6,
-      "n_laps": 6,
-      "mechanism_id": "M1-springs-front-OS",
-      "mechanism": "M1",
-      "mechanism_name": "roll stiffness distribution",
-      "levers": [
-       "springs_front"
-      ],
-      "direction": "stiffer",
-      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
-      "advisory": false,
-      "note": "",
-      "side_effect": null,
-      "change": {
-       "sign": 1,
-       "step": 1,
-       "keys": [
-        {
-         "parameter": "springs_front",
-         "from": null,
-         "to": null,
-         "feasible": null
-        }
-       ],
-       "feasibility": "not_assessable",
-       "headroom": null,
-       "notes": [],
-       "effort": "garage_hours"
-      },
-      "condition_demoted": false,
-      "condition_note": null,
-      "preference": 0,
       "cockpit": false,
-      "also": [
-       "INST @ exit_4"
-      ]
+      "axle": "rear",
+      "axle_class": 0
      },
      {
       "corner": 11,
@@ -28755,6 +28607,198 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0,
+      "also": [
+       "INST @ exit_4"
+      ]
+     },
+     {
+      "corner": 11,
+      "phase": "apex_3",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M6-diff-OS",
+      "mechanism": "M6",
+      "mechanism_name": "drivetrain",
+      "levers": [
+       "diff_position"
+      ],
+      "direction": "increase",
+      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "advisory": false,
+      "note": "",
+      "side_effect": {
+       "source": "TE Tab. 5.14 pp. 296-297",
+       "text": "disturbing yaw moment in corners at low lateral acceleration"
+      },
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "diff_position",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "global",
+      "axle_class": 1,
+      "also": [
+       "INST @ exit_4"
+      ]
+     },
+     {
+      "corner": 11,
+      "phase": "apex_3",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M1-arb-front-OS",
+      "mechanism": "M1",
+      "mechanism_name": "roll stiffness distribution",
+      "levers": [
+       "arb_fl",
+       "arb_fr"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "arb_fl",
+         "from": null,
+         "to": null,
+         "feasible": null
+        },
+        {
+         "parameter": "arb_fr",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
+      "also": [
+       "INST @ exit_4"
+      ]
+     },
+     {
+      "corner": 11,
+      "phase": "exit_4",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M2-exit-os-front-rebound",
+      "mechanism": "M2",
+      "mechanism_name": "transient load transfer (low-speed dampers)",
+      "levers": [
+       "damper_rebound_ls_fl",
+       "damper_rebound_ls_fr"
+      ],
+      "direction": "softer",
+      "anchor": "TE Tab. 5.9 p. 254",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "damper_rebound_ls_fl",
+         "from": null,
+         "to": null,
+         "feasible": null
+        },
+        {
+         "parameter": "damper_rebound_ls_fr",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "minutes"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2
+     },
+     {
+      "corner": 11,
+      "phase": "apex_3",
+      "symptom": "INST",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "mechanism_id": "M1-springs-front-OS",
+      "mechanism": "M1",
+      "mechanism_name": "roll stiffness distribution",
+      "levers": [
+       "springs_front"
+      ],
+      "direction": "stiffer",
+      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
+      "advisory": false,
+      "note": "",
+      "side_effect": null,
+      "change": {
+       "sign": 1,
+       "step": 1,
+       "keys": [
+        {
+         "parameter": "springs_front",
+         "from": null,
+         "to": null,
+         "feasible": null
+        }
+       ],
+       "feasibility": "not_assessable",
+       "headroom": null,
+       "notes": [],
+       "effort": "garage_hours"
+      },
+      "condition_demoted": false,
+      "condition_note": null,
+      "preference": 0,
+      "cockpit": false,
+      "axle": "front",
+      "axle_class": 2,
       "also": [
        "INST @ exit_4"
       ]
@@ -28809,7 +28853,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": false
+      "cockpit": false,
+      "axle": "rear",
+      "axle_class": 0
      }
     ],
     "cockpit": {
@@ -28850,6 +28896,8 @@
      "condition_note": null,
      "preference": 0,
      "cockpit": true,
+     "axle": "global",
+     "axle_class": 1,
      "also": [
       "INST @ exit_4"
      ]
@@ -28893,6 +28941,8 @@
       "condition_note": null,
       "preference": 0,
       "cockpit": true,
+      "axle": "global",
+      "axle_class": 1,
       "also": [
        "INST @ exit_4"
       ]
@@ -28934,7 +28984,9 @@
       "condition_demoted": false,
       "condition_note": null,
       "preference": 0,
-      "cockpit": true
+      "cockpit": true,
+      "axle": "global",
+      "axle_class": 1
      }
     ],
     "cockpit_conflicts": [],
@@ -28978,7 +29030,2090 @@
    },
    "threshold": null,
    "pattern": null,
-   "note": "reported only: no session recommendation (session_share_threshold not set)"
+   "note": "shares reported only (session_share_threshold not set); the session setup recommendation comes from the corner vote"
+  },
+  "session_recommendation": {
+   "recommended": {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "sign": -1,
+    "axle": "rear",
+    "change": {
+     "sign": -1,
+     "step": 1,
+     "keys": [
+      {
+       "parameter": "arb_rl",
+       "from": null,
+       "to": null,
+       "feasible": null
+      },
+      {
+       "parameter": "arb_rr",
+       "from": null,
+       "to": null,
+       "feasible": null
+      }
+     ],
+     "feasibility": "not_assessable",
+     "headroom": null,
+     "notes": [],
+     "effort": "minutes"
+    },
+    "mechanism": "M1",
+    "mechanism_name": "roll stiffness distribution",
+    "mechanism_ids": [
+     "M1-arb-rear-OS"
+    ],
+    "anchors": [
+     "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295"
+    ],
+    "advisory": false,
+    "condition_notes": [],
+    "side_effect": null,
+    "support": 8.0,
+    "opposition": 0.0,
+    "net": 8.0,
+    "limiting_axle": "rear",
+    "axle_class": 0,
+    "preference": 0,
+    "supporting": [
+     {
+      "corner": 8,
+      "symptom": "INST",
+      "phase": "entry_2_turnin",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "weight": 2.0,
+      "driver_only": false
+     },
+     {
+      "corner": 8,
+      "symptom": "INST",
+      "phase": "apex_3",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "weight": 2.0,
+      "driver_only": false
+     },
+     {
+      "corner": 11,
+      "symptom": "INST",
+      "phase": "apex_3",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "weight": 2.0,
+      "driver_only": false
+     },
+     {
+      "corner": 11,
+      "symptom": "INST",
+      "phase": "exit_4",
+      "severity": "strong",
+      "laps": 6,
+      "n_laps": 6,
+      "weight": 2.0,
+      "driver_only": false
+     }
+    ],
+    "opposing": []
+   },
+   "equivalent_options": [],
+   "alternatives": [
+    {
+     "option": "springs_rear -1",
+     "levers": [
+      "springs_rear"
+     ],
+     "direction": "softer",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "springs_rear",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "garage_hours"
+     },
+     "mechanism": "M1",
+     "mechanism_name": "roll stiffness distribution",
+     "mechanism_ids": [
+      "M1-springs-rear-OS"
+     ],
+     "anchors": [
+      "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "diff_position +1",
+     "levers": [
+      "diff_position"
+     ],
+     "direction": "increase",
+     "sign": 1,
+     "axle": "global",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "diff_position",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M6",
+     "mechanism_name": "drivetrain",
+     "mechanism_ids": [
+      "M6-diff-OS",
+      "M6-diff-EXIT-OS"
+     ],
+     "anchors": [
+      "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "TE Tab. 5.12 p. 294"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": {
+      "source": "TE Tab. 5.14 pp. 296-297",
+      "text": "disturbing yaw moment in corners at low lateral acceleration"
+     },
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 1,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    }
+   ],
+   "ranked": [
+    {
+     "option": "arb_rl+arb_rr -1",
+     "levers": [
+      "arb_rl",
+      "arb_rr"
+     ],
+     "direction": "softer",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "arb_rl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "arb_rr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M1",
+     "mechanism_name": "roll stiffness distribution",
+     "mechanism_ids": [
+      "M1-arb-rear-OS"
+     ],
+     "anchors": [
+      "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "springs_rear -1",
+     "levers": [
+      "springs_rear"
+     ],
+     "direction": "softer",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "springs_rear",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "garage_hours"
+     },
+     "mechanism": "M1",
+     "mechanism_name": "roll stiffness distribution",
+     "mechanism_ids": [
+      "M1-springs-rear-OS"
+     ],
+     "anchors": [
+      "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "diff_position +1",
+     "levers": [
+      "diff_position"
+     ],
+     "direction": "increase",
+     "sign": 1,
+     "axle": "global",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "diff_position",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M6",
+     "mechanism_name": "drivetrain",
+     "mechanism_ids": [
+      "M6-diff-OS",
+      "M6-diff-EXIT-OS"
+     ],
+     "anchors": [
+      "MM pp. 739-740; TE Tab. 5.11 p. 293",
+      "TE Tab. 5.12 p. 294"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": {
+      "source": "TE Tab. 5.14 pp. 296-297",
+      "text": "disturbing yaw moment in corners at low lateral acceleration"
+     },
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 1,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "arb_fl+arb_fr +1",
+     "levers": [
+      "arb_fl",
+      "arb_fr"
+     ],
+     "direction": "stiffer",
+     "sign": 1,
+     "axle": "front",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "arb_fl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "arb_fr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M1",
+     "mechanism_name": "roll stiffness distribution",
+     "mechanism_ids": [
+      "M1-arb-front-OS"
+     ],
+     "anchors": [
+      "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "springs_front +1",
+     "levers": [
+      "springs_front"
+     ],
+     "direction": "stiffer",
+     "sign": 1,
+     "axle": "front",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "springs_front",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "garage_hours"
+     },
+     "mechanism": "M1",
+     "mechanism_name": "roll stiffness distribution",
+     "mechanism_ids": [
+      "M1-springs-front-OS"
+     ],
+     "anchors": [
+      "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 8.0,
+     "opposition": 0.0,
+     "net": 8.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "ride_height_rear -1",
+     "levers": [
+      "ride_height_rear"
+     ],
+     "direction": "decrease",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "ride_height_rear",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M4",
+     "mechanism_name": "aero balance",
+     "mechanism_ids": [
+      "M4-ride-rear-OS"
+     ],
+     "anchors": [
+      "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573"
+     ],
+     "advisory": false,
+     "condition_notes": [
+      "valid outside the ground-effect stall regime (engineer check)"
+     ],
+     "side_effect": null,
+     "support": 4.0,
+     "opposition": 0.0,
+     "net": 4.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "wing_position +1",
+     "levers": [
+      "wing_position"
+     ],
+     "direction": "increase",
+     "sign": 1,
+     "axle": "rear",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "wing_position",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M4",
+     "mechanism_name": "aero balance",
+     "mechanism_ids": [
+      "M4-wing-OS"
+     ],
+     "anchors": [
+      "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 4.0,
+     "opposition": 0.0,
+     "net": 4.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "ride_height_front +1",
+     "levers": [
+      "ride_height_front"
+     ],
+     "direction": "increase",
+     "sign": 1,
+     "axle": "front",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "ride_height_front",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M4",
+     "mechanism_name": "aero balance",
+     "mechanism_ids": [
+      "M4-ride-front-OS"
+     ],
+     "anchors": [
+      "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573"
+     ],
+     "advisory": false,
+     "condition_notes": [
+      "valid outside the ground-effect stall regime (engineer check)"
+     ],
+     "side_effect": null,
+     "support": 4.0,
+     "opposition": 0.0,
+     "net": 4.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "splitter_offset +1",
+     "levers": [
+      "splitter_offset"
+     ],
+     "direction": "less front downforce",
+     "sign": 1,
+     "axle": "front",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "splitter_offset",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M4",
+     "mechanism_name": "aero balance",
+     "mechanism_ids": [
+      "M4-splitter-OS"
+     ],
+     "anchors": [
+      "MM p. 572; TE Tab. 5.11 p. 293"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 4.0,
+     "opposition": 0.0,
+     "net": 4.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "toe_rear +1",
+     "levers": [
+      "toe_rear"
+     ],
+     "direction": "more toe-in",
+     "sign": 1,
+     "axle": "rear",
+     "change": {
+      "sign": 1,
+      "step": 0.5,
+      "keys": [
+       {
+        "parameter": "toe_rear",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M5",
+     "mechanism_name": "tyre working point",
+     "mechanism_ids": [
+      "M5-toe-rear-EXIT-OS"
+     ],
+     "anchors": [
+      "TE Tab. 5.12 p. 294; TE p. 213"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 2.0,
+     "opposition": 0.0,
+     "net": 2.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": []
+    },
+    {
+     "option": "camber_rl+camber_rr -1",
+     "levers": [
+      "camber_rl",
+      "camber_rr"
+     ],
+     "direction": "more negative camber",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 0.2,
+      "keys": [
+       {
+        "parameter": "camber_rl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "camber_rr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "half_hour"
+     },
+     "mechanism": "M5",
+     "mechanism_name": "tyre working point",
+     "mechanism_ids": [
+      "M5-camber-rear-APX-OS"
+     ],
+     "anchors": [
+      "TE Tab. 5.12 p. 294"
+     ],
+     "advisory": true,
+     "condition_notes": [],
+     "side_effect": {
+      "source": "TE Tab. 5.14 pp. 296-297",
+      "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+     },
+     "support": 4.0,
+     "opposition": 2.0,
+     "net": 2.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    }
+   ],
+   "at_limit": [],
+   "not_recommended": [
+    {
+     "option": "damper_bump_ls_rl+damper_bump_ls_rr +1",
+     "levers": [
+      "damper_bump_ls_rl",
+      "damper_bump_ls_rr"
+     ],
+     "direction": "softer",
+     "sign": 1,
+     "axle": "rear",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "damper_bump_ls_rl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "damper_bump_ls_rr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M2",
+     "mechanism_name": "transient load transfer (low-speed dampers)",
+     "mechanism_ids": [
+      "M2-tin-os-rear-bump"
+     ],
+     "anchors": [
+      "TE Tab. 5.9 p. 254"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 2.0,
+     "opposition": 2.0,
+     "net": 0.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    },
+    {
+     "option": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+     "levers": [
+      "damper_bump_ls_rl",
+      "damper_bump_ls_rr"
+     ],
+     "direction": "stiffer",
+     "sign": -1,
+     "axle": "rear",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "damper_bump_ls_rl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "damper_bump_ls_rr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M2",
+     "mechanism_name": "transient load transfer (low-speed dampers)",
+     "mechanism_ids": [
+      "M2-exit-os-rear-bump"
+     ],
+     "anchors": [
+      "TE Tab. 5.9 p. 254"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 2.0,
+     "opposition": 2.0,
+     "net": 0.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    },
+    {
+     "option": "damper_rebound_ls_fl+damper_rebound_ls_fr +1",
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "softer",
+     "sign": 1,
+     "axle": "front",
+     "change": {
+      "sign": 1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "damper_rebound_ls_fl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "damper_rebound_ls_fr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M2",
+     "mechanism_name": "transient load transfer (low-speed dampers)",
+     "mechanism_ids": [
+      "M2-exit-os-front-rebound"
+     ],
+     "anchors": [
+      "TE Tab. 5.9 p. 254"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 2.0,
+     "opposition": 2.0,
+     "net": 0.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    },
+    {
+     "option": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "sign": -1,
+     "axle": "front",
+     "change": {
+      "sign": -1,
+      "step": 1,
+      "keys": [
+       {
+        "parameter": "damper_rebound_ls_fl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "damper_rebound_ls_fr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "minutes"
+     },
+     "mechanism": "M2",
+     "mechanism_name": "transient load transfer (low-speed dampers)",
+     "mechanism_ids": [
+      "M2-tin-os-front-rebound"
+     ],
+     "anchors": [
+      "TE Tab. 5.9 p. 254"
+     ],
+     "advisory": false,
+     "condition_notes": [],
+     "side_effect": null,
+     "support": 2.0,
+     "opposition": 2.0,
+     "net": 0.0,
+     "limiting_axle": "rear",
+     "axle_class": 2,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "entry_2_turnin",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    },
+    {
+     "option": "camber_rl+camber_rr +1",
+     "levers": [
+      "camber_rl",
+      "camber_rr"
+     ],
+     "direction": "less negative camber",
+     "sign": 1,
+     "axle": "rear",
+     "change": {
+      "sign": 1,
+      "step": 0.2,
+      "keys": [
+       {
+        "parameter": "camber_rl",
+        "from": null,
+        "to": null,
+        "feasible": null
+       },
+       {
+        "parameter": "camber_rr",
+        "from": null,
+        "to": null,
+        "feasible": null
+       }
+      ],
+      "feasibility": "not_assessable",
+      "headroom": null,
+      "notes": [],
+      "effort": "half_hour"
+     },
+     "mechanism": "M5",
+     "mechanism_name": "tyre working point",
+     "mechanism_ids": [
+      "M5-camber-rear-EXIT-OS"
+     ],
+     "anchors": [
+      "TE Tab. 5.12 p. 294"
+     ],
+     "advisory": true,
+     "condition_notes": [],
+     "side_effect": {
+      "source": "TE Tab. 5.14 pp. 296-297",
+      "text": null
+     },
+     "support": 2.0,
+     "opposition": 4.0,
+     "net": -2.0,
+     "limiting_axle": "rear",
+     "axle_class": 0,
+     "preference": 0,
+     "supporting": [
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "exit_4",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ],
+     "opposing": [
+      {
+       "corner": 8,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      },
+      {
+       "corner": 11,
+       "symptom": "INST",
+       "phase": "apex_3",
+       "severity": "strong",
+       "laps": 6,
+       "n_laps": 6,
+       "weight": 2.0,
+       "driver_only": false
+      }
+     ]
+    }
+   ],
+   "votes": [
+    {
+     "option": "arb_fl+arb_fr +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_rl+arb_rr -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_front +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_rear -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M2-tin-os-front-rebound",
+     "preference": 0
+    },
+    {
+     "option": "damper_bump_ls_rl+damper_bump_ls_rr +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M2-tin-os-rear-bump",
+     "preference": 0
+    },
+    {
+     "option": "wing_position +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-wing-OS",
+     "preference": 0
+    },
+    {
+     "option": "splitter_offset +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-splitter-OS",
+     "preference": 0
+    },
+    {
+     "option": "ride_height_front +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-ride-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "ride_height_rear -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-ride-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "diff_position +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "entry_2_turnin",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M6-diff-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_fl+arb_fr +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_rl+arb_rr -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_front +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_rear -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "wing_position +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-wing-OS",
+     "preference": 0
+    },
+    {
+     "option": "splitter_offset +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-splitter-OS",
+     "preference": 0
+    },
+    {
+     "option": "ride_height_front +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-ride-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "ride_height_rear -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M4-ride-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "camber_rl+camber_rr -1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M5-camber-rear-APX-OS",
+     "preference": 0
+    },
+    {
+     "option": "diff_position +1",
+     "corner": 8,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M6-diff-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_fl+arb_fr +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_rl+arb_rr -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_front +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_rear -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "camber_rl+camber_rr -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M5-camber-rear-APX-OS",
+     "preference": 0
+    },
+    {
+     "option": "diff_position +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "apex_3",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M6-diff-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_fl+arb_fr +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "arb_rl+arb_rr -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-arb-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_front +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-front-OS",
+     "preference": 0
+    },
+    {
+     "option": "springs_rear -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M1-springs-rear-OS",
+     "preference": 0
+    },
+    {
+     "option": "damper_rebound_ls_fl+damper_rebound_ls_fr +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M2-exit-os-front-rebound",
+     "preference": 0
+    },
+    {
+     "option": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M2-exit-os-rear-bump",
+     "preference": 0
+    },
+    {
+     "option": "toe_rear +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M5-toe-rear-EXIT-OS",
+     "preference": 0
+    },
+    {
+     "option": "diff_position +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M6-diff-EXIT-OS",
+     "preference": 0
+    },
+    {
+     "option": "camber_rl+camber_rr +1",
+     "corner": 11,
+     "symptom": "INST",
+     "phase": "exit_4",
+     "severity": "strong",
+     "laps": 6,
+     "n_laps": 6,
+     "severity_weight": 2,
+     "k": 6,
+     "n": 6,
+     "weight": 2.0,
+     "driver_only": false,
+     "mechanism_id": "M5-camber-rear-EXIT-OS",
+     "preference": 0
+    }
+   ],
+   "excluded": []
   },
   "rules": {
    "min_repeat_fraction": 0.5,
@@ -28987,11 +31122,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 24), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 25), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "NBR JST outing 29",
   "data_file": "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt",
-  "git_commit_hash": "cc0272a8dc366d32c2a6aad1b69176c6b2222741",
-  "generated_at_utc": "2026-10-23T09:47:06.879480+00:00",
+  "git_commit_hash": "504b4ed2a9c4e8f25277f9478c522a8c177fa0fe",
+  "generated_at_utc": "2026-10-23T11:37:28.304318+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

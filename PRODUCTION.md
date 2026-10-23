@@ -633,7 +633,7 @@ not touch it). The thresholds differ from any chair value by rule.
 ## 10. Setup recommendation (setup engine)
 
 modules/setup_engine.py with config/mechanisms.json (recommendation
-overhaul D1-D7, live 2026-10-22; rulings of work orders 4e, 4f and 4g, schema 24). One small engine; the earlier
+overhaul D1-D7, live 2026-10-22; rulings of work orders 4e, 4f, 4g and 4h, schema 25). One small engine; the earlier
 rule engine and decision frame are removed. It proposes, it never applies a
 change. Tier A in the mechanism table (anchors below), B in the repetition
 rule, C in the display.
@@ -733,9 +733,14 @@ others of the same severity. Per corner one recommended change and up to
 two alternatives -- one change at a time, so its effect stays attributable
 [Milliken.1995, p. 391]; [TE Bd. 5, p. 292]. The same lever change across
 phases is merged; an opposite direction of an already chosen lever is
-listed as a conflict. Without a setup sheet the headroom key is empty, so
-levers of equal effort tie and the row order of mechanisms.json decides
-(stated, pending a ruling). Engineer preference: the elicited cells of the
+listed as a conflict. The limiting-end class (4h) ranks right after the
+repetition count and the TC demotion, ahead of preference: limiting axle
+US -> front, OS / INST -> rear; a row on that axle before a global row
+before a row on the other axle [Milliken.1995, p. 409] (improve the
+limiting end first; physics before engineer preference). Each row carries its axle (mechanisms.json "axle"):
+ARB, springs, LS dampers, camber, toe, ride heights by their axle; wing
+rear; splitter front; diff, TC, brake bias, ABS map global. It replaces the
+row order of mechanisms.json, which decided silently before. Engineer preference: the elicited cells of the
 retired engineer matrix (moved into mechanisms.json) give preference 1 to a
 candidate only when the cell names its lever with the table's direction
 for that symptom, phase group and speed class; a weight only, never a new
@@ -744,6 +749,39 @@ contradicting direction or a lever without a row there) are ignored and
 listed in mechanisms.json: US-BRK-low, OS-APX-high, INST-BRK-med,
 INST-BRK-high; in US-BRK-high only the wing entry is ignored (its ride-height
 entries match M4 since 4f).
+
+Session setup recommendation (4h): the setup is changed for the whole
+lap, so the per-corner output is a diagnosis and the setup decision is ONE
+mechanical change per session, with up to two alternatives
+[Milliken.1995, p. 572 item 4, p. 391]; [TE Bd. 5, p. 254].
+- Vote (CONFIG setup_engine.session_vote; L1, B, author ruling
+  2026-10-23): every counted corner symptom votes for each mechanical lever
+  group of its candidate rows, signed by the registry direction, with
+  weight severity rank (moderate 1, strong 2) x k / n.
+- Opposition: the weight of every vote for the same lever group in the
+  opposite direction is subtracted; net support = support - opposition;
+  net <= 0 is never recommended. Support, opposition and the supporting /
+  opposing corners are shown.
+- Rank: net support -> limiting-end class (the option's limiting axle is
+  the one its supporting votes report; equal front and rear weight ranks
+  as global) -> preference (any supporting candidate preferred) -> change
+  effort -> headroom. An exact tie after all keys has no winner and is
+  listed as equivalent options.
+- At-limit lever groups with positive net support are listed, not
+  recommended.
+- Not voting (listed with the reason): a diff increase whose condition
+  not_traction_limited fails (TC active on most symptom laps,
+  [Milliken.1995, p. 740]) and low-priority corners (high speed, front
+  limiting only, [Milliken.1995, p. 396 item 21, p. 401 item 1F]), which
+  stay in the per-corner diagnosis.
+- Engineer layer: the same vote plus the driver-only corners (|fb| >= 4,
+  no data support) with weight 1 x 1, marked; each supporting corner shows
+  agree / neutral / conflict. Feedback weights nothing.
+- The thesis comparison with the engineer's change reads the session setup
+  recommendation of the data layer (D8 amendment, mechanism level); the
+  per-corner diagnosis is supporting evidence.
+- Not weighted: corner importance (fastest corners, corners before long
+  straights, [TE Bd. 5, p. 254]) -- a stated limitation.
 
 Two layers (D6) and the session layer (D7):
 - Data layer: computed without driver feedback and stored unchanged (DB
@@ -760,9 +798,9 @@ Two layers (D6) and the session layer (D7):
   the share of corners with any counted symptom, and the single-lap cell
   shares without the repetition rule (front limiting and rear limiting
   over the cells with a CS value on that axle, INST over the cells with a
-  stability value; each with its n). Computed, stored and reported; no
-  session recommendation (setup_engine.session_share_threshold = null,
-  author ruling 2026-10-22).
+  stability value; each with its n). Computed, stored and reported beside
+  the session setup recommendation; the share threshold itself stays unset
+  (setup_engine.session_share_threshold = null, author ruling 2026-10-22).
 
 On the development set (2026-10-23, schema 22): single-lap axle limiting
 beyond the margin is rare (pooled p50 / p90 of the per-session shares:
@@ -773,7 +811,12 @@ sessions are INST. 12 corner recommendations in total; NBR JST 29 gives two
 corners; every INST setup line is front ARB stiffer, the cockpit line brake
 bias more front (turn-in), tc_lat increase (apex) or tc_lon increase (exit);
 NBR JST 29: C8 front ARB stiffer / brake bias more front, C11 front ARB
-stiffer / tc_lat increase.]
+stiffer / tc_lat increase.] [Schema 25, 4h: the limiting-end key turns
+every INST corner line to rear ARB softer. Session recommendation: rear ARB
+softer in NBR 29 (net 8.00), 46, 53, 54, 63; equivalent options without a
+winner in NBR 20, NBR qualifying CDR 69 and Le Castellet 25 (no setup
+sheet, so no headroom key); none in the six sessions without a counted
+symptom, Le Castellet 32 among them.]
 
 
 ## 11. Validation evidence (development set, 14 sessions)

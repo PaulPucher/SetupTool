@@ -1,0 +1,123 @@
+SESSION SETUP RECOMMENDATION (post4h2, work order 4h corner vote), 14 development sessions
+
+NBR outing 5 MLA (nbr_o05_mla): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)
+NBR outing 10 JDR (nbr_o10_jdr): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)
+NBR outing 20 JST (nbr_o20_jst): 1 corner(s) with a counted symptom
+    equivalent options (exact tie, no winner):
+        arb_rl+arb_rr softer (minutes, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+        damper_bump_ls_rl+damper_bump_ls_rr stiffer (minutes, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+        ride_height_rear decrease (minutes, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+        toe_rear more toe-in (minutes, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+        wing_position increase (minutes, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+    alternative: camber_rl+camber_rr less negative camber (half_hour, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 1.50 = support 1.50 - opposition 0.00
+            supporting: C8 INST @ exit_5 1.50
+            opposing: none
+NBR outing 29 JST (NBR_Sturm_Solution copy) (nbr_o29_jst): 2 corner(s) with a counted symptom
+    recommended: arb_rl+arb_rr softer (minutes, axle class 0): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C8 INST @ entry_2_turnin 2.00, C8 INST @ apex_3 2.00, C11 INST @ apex_3 2.00, C11 INST @ exit_4 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C8 INST @ entry_2_turnin 2.00, C8 INST @ apex_3 2.00, C11 INST @ apex_3 2.00, C11 INST @ exit_4 2.00
+            opposing: none
+    alternative: diff_position increase (minutes, axle class 1): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C8 INST @ entry_2_turnin 2.00, C8 INST @ apex_3 2.00, C11 INST @ apex_3 2.00, C11 INST @ exit_4 2.00
+            opposing: none
+    cancelled by opposition: damper_bump_ls_rl+damper_bump_ls_rr softer net 0.00; damper_bump_ls_rl+damper_bump_ls_rr stiffer net 0.00; damper_rebound_ls_fl+damper_rebound_ls_fr softer net 0.00; damper_rebound_ls_fl+damper_rebound_ls_fr stiffer net 0.00; camber_rl+camber_rr less negative camber net -2.00
+NBR outing 46 JST (nbr_o46_jst): 1 corner(s) with a counted symptom
+    recommended: arb_rl+arb_rr softer (minutes, axle class 0): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00
+            opposing: none
+    alternative: diff_position increase (minutes, axle class 1): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00
+            opposing: none
+    cancelled by opposition: camber_rl+camber_rr less negative camber net 0.00; camber_rl+camber_rr more negative camber net 0.00
+NBR outing 53 MLA (nbr_o53_mla): 1 corner(s) with a counted symptom
+    recommended: arb_rl+arb_rr softer (minutes, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C1 INST @ apex_3 2.00
+            opposing: none
+    alternative: camber_rl+camber_rr more negative camber (half_hour, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C1 INST @ apex_3 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C1 INST @ apex_3 2.00
+            opposing: none
+NBR outing 54 CDR (nbr_o54_cdr): 2 corner(s) with a counted symptom
+    recommended: arb_rl+arb_rr softer (minutes, axle class 0): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C7 INST @ entry_2_turnin 2.00, C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00, C16 INST @ apex_3 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C7 INST @ entry_2_turnin 2.00, C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00, C16 INST @ apex_3 2.00
+            opposing: none
+    alternative: diff_position increase (minutes, axle class 1): net 8.00 = support 8.00 - opposition 0.00
+            supporting: C7 INST @ entry_2_turnin 2.00, C7 INST @ apex_3 2.00, C7 INST @ exit_4 2.00, C16 INST @ apex_3 2.00
+            opposing: none
+    cancelled by opposition: damper_bump_ls_rl+damper_bump_ls_rr softer net 0.00; damper_bump_ls_rl+damper_bump_ls_rr stiffer net 0.00; damper_rebound_ls_fl+damper_rebound_ls_fr softer net 0.00; damper_rebound_ls_fl+damper_rebound_ls_fr stiffer net 0.00; camber_rl+camber_rr less negative camber net -2.00
+NBR outing 59 MLA (nbr_o59_mla): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)
+NBR outing 61 JDR (nbr_o61_jdr): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)
+NBR outing 63 CDR (nbr_o63_cdr): 2 corner(s) with a counted symptom
+    recommended: arb_rl+arb_rr softer (minutes, axle class 0): net 6.00 = support 6.00 - opposition 0.00
+            supporting: C6 INST @ apex_3 2.00, C8 INST @ exit_4 2.00, C8 INST @ exit_5 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 6.00 = support 6.00 - opposition 0.00
+            supporting: C6 INST @ apex_3 2.00, C8 INST @ exit_4 2.00, C8 INST @ exit_5 2.00
+            opposing: none
+    alternative: arb_fl+arb_fr stiffer (minutes, axle class 2): net 6.00 = support 6.00 - opposition 0.00
+            supporting: C6 INST @ apex_3 2.00, C8 INST @ exit_4 2.00, C8 INST @ exit_5 2.00
+            opposing: none
+    cancelled by opposition: camber_rl+camber_rr more negative camber net -2.00
+NBR qualifying CDR (outing 69) (nbr_qp_cdr): 1 corner(s) with a counted symptom
+    equivalent options (exact tie, no winner):
+        arb_rl+arb_rr softer (minutes, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C9 INST @ apex_3 2.00
+            opposing: none
+        ride_height_rear decrease (minutes, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C9 INST @ apex_3 2.00
+            opposing: none
+        wing_position increase (minutes, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C9 INST @ apex_3 2.00
+            opposing: none
+    alternative: camber_rl+camber_rr more negative camber (half_hour, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C9 INST @ apex_3 2.00
+            opposing: none
+    alternative: springs_rear softer (garage_hours, axle class 0): net 2.00 = support 2.00 - opposition 0.00
+            supporting: C9 INST @ apex_3 2.00
+            opposing: none
+NBR qualifying MLA (outing 70) (nbr_qp_mla): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)
+Le Castellet outing 25, MLA-SE07_US-v1 (pr_o25_us_v1): 2 corner(s) with a counted symptom
+    equivalent options (exact tie, no winner):
+        ride_height_rear decrease (minutes, axle class 0): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C12 INST @ apex_3 2.00, C12 INST @ exit_4 2.00
+            opposing: none
+        wing_position increase (minutes, axle class 0): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C12 INST @ apex_3 2.00, C12 INST @ exit_4 2.00
+            opposing: none
+    alternative: ride_height_front increase (minutes, axle class 2): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C12 INST @ apex_3 2.00, C12 INST @ exit_4 2.00
+            opposing: none
+    alternative: splitter_offset less front downforce (minutes, axle class 2): net 4.00 = support 4.00 - opposition 0.00
+            supporting: C12 INST @ apex_3 2.00, C12 INST @ exit_4 2.00
+            opposing: none
+    cancelled by opposition: camber_rl+camber_rr less negative camber net 0.00; camber_rl+camber_rr more negative camber net 0.00; toe_rear less toe-in net -0.67; arb_fl+arb_fr softer net -2.67; springs_front softer net -2.67; diff_position decrease net -2.67; arb_rl+arb_rr stiffer net -2.67; springs_rear stiffer net -2.67
+Le Castellet outing 32, MLA-SE07_US-v2 (pr_o32_us_v2): 0 corner(s) with a counted symptom
+    recommended: none (no lever group with net support > 0)

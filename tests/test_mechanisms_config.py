@@ -138,3 +138,21 @@ def test_ride_heights_m4_high_speed_only(mech, registry):
     for ph in PHASE_KEYS:
         for sp in ("low", "medium"):
             assert not [r for r in _matching_rows("US", ph, sp, mech) if r in rh]
+
+
+def test_every_row_names_its_axle(mech):
+    # 4h: limiting-end tie-break input; the rule of the work order -- axle
+    # levers by their axle, wing rear, splitter front, diff / TC global (bias
+    # and ABS global as the implementation classification)
+    glob = {"diff_position", "tc_lat", "tc_lon", "brake_bias", "abs_position"}
+    for r in mech["mechanisms"]:
+        lv = r["levers"][0]
+        if lv in glob:
+            expected = "global"
+        elif lv == "wing_position":
+            expected = "rear"
+        elif lv == "splitter_offset":
+            expected = "front"
+        else:
+            expected = "front" if lv.endswith(("_fl", "_fr", "_front")) else "rear"
+        assert r["axle"] == expected, r["id"]

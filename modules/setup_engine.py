@@ -32,16 +32,39 @@ Replaces the rule engine (recommendation.py) and the decision frame
    progression (Setup_change_overview); the tool's focus is the physical
    setup change. The thesis comparison with the engineer's changes reads the
    setup recommendation only (D8 amendment).
+6. Limiting-end tie-break (4h, MM p. 409: improve the limiting end first,
+   degrade the other end only when that is not possible): the limiting axle
+   is front for US and rear for OS / INST; a row on that axle ranks before a
+   global row (diff, TC, bias, ABS), which ranks before a row on the other
+   axle. It replaces the row order of mechanisms.json; per corner it ranks
+   right after repetition and ahead of preference (author 2026-10-23:
+   physics before engineer preference).
+7. Session setup recommendation (4h): the setup is changed for the whole
+   lap, so the corner output is a diagnosis and the setup decision is one
+   change per session (MM p. 572 item 4: balance cannot be optimal
+   everywhere, seek the best circuit performance; MM p. 391: one change at
+   a time; TE p. 254: align the settings to the most important corners --
+   corner importance is NOT weighted here, a stated limitation). Every
+   counted symptom votes for its mechanical lever groups with weight
+   severity x k / n; votes for the same lever group in the opposite
+   direction are subtracted. Not counted: a row whose condition fails (diff
+   increase on a traction-limited exit, MM p. 740) and low-priority corners
+   (high speed, front limiting only; MM p. 396 item 21, p. 401 item 1F),
+   which stay in the per-corner diagnosis. Rank: net support -> limiting-end class ->
+   preference -> change effort -> headroom; an exact tie on all keys has no
+   winner and is reported as equivalent options.
 
 Two layers (D6): the data layer never sees driver feedback and is stored as
 it is (thesis comparison); the engineer layer adds feedback ordinally (agree /
 neutral / conflict) and driver-only rows for strong complaints without data
-support. The session layer (D7) states the share of corners per symptom and
-the per-lap share of limiting cells; it sets no recommendation.
+support, which also vote at session level with weight 1 x 1. The session
+layer (D7) states the share of corners per symptom and the per-lap share of
+limiting cells beside the session recommendation.
 """
 
 import copy
 import json
+from fractions import Fraction
 
 import numpy as np
 
@@ -67,6 +90,8 @@ FEEDBACK_MIN = 1
 DRIVER_ONLY_MIN = 4
 
 _OPPOSITE_WORD = {"stiffer": "softer", "softer": "stiffer"}
+# the axle whose grip limits, per symptom (D2): US front, OS / INST rear
+LIMITING_AXLE = {"US": "front", "OS": "rear", "INST": "rear"}
 # the elicited matrix's direction words in the table's vocabulary
 # (more_negative / less_negative go through the registry semantics)
 # registry escalation_tier of the driver-adjustable levers (4g split)
@@ -175,6 +200,14 @@ def _phase_group(phase, mechanisms):
         if phase in members:
             return g
     return None
+
+
+def axle_class(row_axle, limiting):
+    """0 = row acts on the limiting axle, 1 = global row (or no single
+    limiting axle), 2 = row acts on the other axle (MM p. 409)."""
+    if row_axle == "global" or limiting is None:
+        return 1
+    return 0 if row_axle == limiting else 2
 
 
 def _matching_rows(symptom, phase, speed_class, mechanisms):
@@ -341,14 +374,18 @@ def _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, 
                 "preference": _preference(row, sym["symptom"], sym["phase"], corner["speed_class"],
                                           mechanisms, registry),
                 "cockpit": all(registry[k].get("escalation_tier") == COCKPIT_TIER for k in row["levers"]),
+                "axle": row["axle"],
+                "axle_class": axle_class(row["axle"], LIMITING_AXLE[sym["symptom"]]),
             })
     return cands
 
 
 def _data_rank_key(c):
-    # preference before effort (4e): the engineer's choice among the table's
-    # levers outranks the cheaper change; effort stays visible on every line
-    return (-SEVERITY_RANK[c["severity"]], -c["laps"], c["condition_demoted"], -c["preference"],
+    # limiting-end class before preference (4h ruling b): which axle to work
+    # on is physics (MM p. 409), the engineer's choice orders the levers
+    # within it; preference before effort (4e), effort visible on every line.
+    # The traction demotion stays ahead of both (4e ruling)
+    return (-SEVERITY_RANK[c["severity"]], -c["laps"], c["condition_demoted"], c["axle_class"], -c["preference"],
             EFFORT_RANK.get(c["change"]["effort"], len(EFFORT_RANK)),
             -(c["change"]["headroom"] if c["change"]["headroom"] is not None else 0.0))
 
@@ -414,6 +451,132 @@ def cell_shares(summaries, thr=None):
     return {sym: {"k": k[sym], "n": n[sym], "share": (k[sym] / n[sym]) if n[sym] else None} for sym in n}
 
 
+def option_key(levers, sign):
+    return f"{'+'.join(levers)} {sign:+d}"
+
+
+def symptom_votes(cid, corner, cands, vote_cfg, driver_only=False, excluded=None):
+    """One vote per counted symptom and mechanical lever group, signed by
+    the registry direction. Weight = severity weight x k / n, so a strong
+    symptom on every lap weighs twice a moderate one on every lap, and a
+    symptom on a bare majority of laps weighs about half. A driver-only
+    symptom has no lap count and weighs driver_only_weight x 1."""
+    votes = []
+    for sym in corner["symptoms"]:
+        seen = set()
+        for c in cands:
+            if (c["cockpit"] or c["phase"] != sym["phase"] or c["symptom"] != sym["symptom"]
+                    or c["change"]["sign"] is None):
+                continue
+            key = option_key(c["levers"], c["change"]["sign"])
+            if key in seen:
+                continue
+            seen.add(key)
+            if c["condition_demoted"]:
+                # the row's own condition is not met (TC active on most
+                # symptom laps: traction-limited, MM p. 740), so the row does
+                # not apply and cannot vote
+                if excluded is not None:
+                    excluded.append({"corner": cid, "symptom": sym["symptom"], "phase": sym["phase"],
+                                     "option": key, "reason": c["condition_note"]})
+                continue
+            if driver_only:
+                w, k, n = vote_cfg["driver_only_weight"], 1, 1
+            else:
+                w, k, n = vote_cfg["severity_weight"][sym["severity"]], sym["laps"], corner["n_laps"]
+            votes.append({"option": key, "corner": cid, "symptom": sym["symptom"], "phase": sym["phase"],
+                          "severity": sym["severity"], "laps": sym["laps"], "n_laps": corner["n_laps"],
+                          "severity_weight": w, "k": k, "n": n, "weight": w * k / n, "driver_only": driver_only,
+                          "mechanism_id": c["mechanism_id"], "preference": c["preference"]})
+    return votes
+
+
+def option_details(cands, details):
+    # lever-level facts of each session option; the change (from -> to,
+    # feasibility, headroom) depends on the setup sheet only, so the first
+    # candidate of a lever group carries it for all corners
+    for c in cands:
+        if c["cockpit"] or c["change"]["sign"] is None:
+            continue
+        key = option_key(c["levers"], c["change"]["sign"])
+        d = details.setdefault(key, {
+            "option": key, "levers": c["levers"], "direction": c["direction"], "sign": c["change"]["sign"],
+            "axle": c["axle"], "change": c["change"], "mechanism": c["mechanism"],
+            "mechanism_name": c["mechanism_name"], "mechanism_ids": [], "anchors": [], "advisory": False,
+            "condition_notes": [], "side_effect": c["side_effect"]})
+        for field, value in (("mechanism_ids", c["mechanism_id"]), ("anchors", c["anchor"]),
+                             ("condition_notes", c["condition_note"])):
+            if value and value not in d[field]:
+                d[field].append(value)
+        d["advisory"] = d["advisory"] or bool(c["advisory"])
+    return details
+
+
+def _vote_ref(v):
+    return {k: v[k] for k in ("corner", "symptom", "phase", "severity", "laps", "n_laps", "weight",
+                              "driver_only", "feedback", "agreement") if k in v}
+
+
+def session_vote(votes, details, max_alt):
+    """Session setup recommendation from the corner votes (4h).
+
+    Net support = support - opposition, where opposition is the weight of
+    every vote for the same lever group in the opposite direction (the two
+    directions are one decision, so net(+) = -net(-)). Only net > 0 can be
+    recommended. Sums are exact fractions so that an exact tie is a real
+    tie and not a rounding accident."""
+    def weight(v):
+        return Fraction(v["severity_weight"]) * Fraction(v["k"], v["n"])
+
+    by = {}
+    for v in votes:
+        by.setdefault(v["option"], []).append(v)
+    options = []
+    for key, sup in by.items():
+        d = details[key]
+        opp = by.get(option_key(d["levers"], -d["sign"]), [])
+        support = sum(map(weight, sup), Fraction(0))
+        opposition = sum(map(weight, opp), Fraction(0))
+        # the option's limiting axle is the one its supporting votes report;
+        # a lever group voted for by front and rear symptoms with equal weight
+        # (LS dampers across phases) has none and ranks as a global row
+        front = sum((weight(v) for v in sup if LIMITING_AXLE[v["symptom"]] == "front"), Fraction(0))
+        limiting = "front" if 2 * front > support else "rear" if 2 * front < support else None
+        options.append({**d, "support": float(support), "opposition": float(opposition),
+                        "net": float(support - opposition), "_net": support - opposition,
+                        "limiting_axle": limiting, "axle_class": axle_class(d["axle"], limiting),
+                        "preference": max(v["preference"] for v in sup),
+                        "supporting": [_vote_ref(v) for v in sup], "opposing": [_vote_ref(v) for v in opp]})
+
+    def rank(o):
+        return (-o["_net"], o["axle_class"], -o["preference"],
+                EFFORT_RANK.get(o["change"]["effort"], len(EFFORT_RANK)),
+                -(o["change"]["headroom"] if o["change"]["headroom"] is not None else 0.0))
+
+    # the option name only makes the stored order deterministic, it never
+    # breaks a tie
+    options.sort(key=lambda o: (rank(o), o["option"]))
+    positive = [o for o in options if o["_net"] > 0]
+    ranked = [o for o in positive if o["change"]["feasibility"] != "at_limit"]
+    top = [o for o in ranked if rank(o) == rank(ranked[0])] if ranked else []
+    out = {
+        "recommended": top[0] if len(top) == 1 else None,
+        "equivalent_options": top if len(top) > 1 else [],
+        "alternatives": ranked[len(top):len(top) + max_alt],
+        "ranked": ranked,
+        "at_limit": [o for o in positive if o["change"]["feasibility"] == "at_limit"],
+        "not_recommended": [o for o in options if o["_net"] <= 0],
+        "votes": votes,
+    }
+    for o in options:
+        o.pop("_net")
+    return out
+
+
+def _all_options(rec):
+    return rec["ranked"] + rec["at_limit"] + rec["not_recommended"]
+
+
 def _session_layer(counted, summaries, cfg, thr=None):
     n = len(counted)
     shares = {}
@@ -427,8 +590,8 @@ def _session_layer(counted, summaries, cfg, thr=None):
     return {"n_corners": n, "shares": shares, "corners_counted": n_counted,
             "counted_share": (n_counted / n) if n else None, "cells": cell_shares(summaries, thr),
             "threshold": thr_share, "pattern": pattern,
-            "note": "reported only: no session recommendation (session_share_threshold not set)"
-            if thr_share is None else ""}
+            "note": "shares reported only (session_share_threshold not set); the session setup recommendation "
+                    "comes from the corner vote" if thr_share is None else ""}
 
 
 def data_layer(summaries, setup_data=None, registry=None, mechanisms=None, windows=None, tc_map=None, cfg=None,
@@ -441,11 +604,19 @@ def data_layer(summaries, setup_data=None, registry=None, mechanisms=None, windo
     windows = windows or load_setup_windows()
     tc_map = tc_map or {}
     counted = counted_symptoms(summaries, cfg)
-    corners = []
+    corners, votes, details, excluded = [], [], {}, []
     for cid, corner in counted.items():
         if not corner["symptoms"]:
             continue
         cands = _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, cfg, logged)
+        if is_low_priority(corner["symptoms"], corner["speed_class"]):
+            # high-speed front-only limiting (MM p. 396 item 21, p. 401 item
+            # 1F): diagnosis only, no session vote
+            excluded += [{"corner": cid, "symptom": s["symptom"], "phase": s["phase"], "option": None,
+                          "reason": "low priority (high speed, front limiting only)"} for s in corner["symptoms"]]
+        else:
+            votes += symptom_votes(cid, corner, cands, cfg["session_vote"], excluded=excluded)
+        option_details(cands, details)
         sel = _split_select(cands, _data_rank_key, cfg["max_alternatives"])
         top = max(corner["symptoms"], key=lambda s: (SEVERITY_RANK[s["severity"]], s["laps"]))
         corners.append({
@@ -457,6 +628,8 @@ def data_layer(summaries, setup_data=None, registry=None, mechanisms=None, windo
     # low_priority sorts after the other corners of the same severity
     corners.sort(key=lambda c: (-SEVERITY_RANK[c["severity"]], c["low_priority"], -c["laps"], c["corner"]))
     return {"corners": corners, "session": _session_layer(counted, summaries, cfg),
+            "session_recommendation": dict(session_vote(votes, details, cfg["max_alternatives"]),
+                                           excluded=excluded),
             "rules": {"min_repeat_fraction": cfg["min_repeat_fraction"], "min_repeat_laps": cfg["min_repeat_laps"],
                       "damper_step": cfg["damper_step"]}}
 
@@ -505,6 +678,12 @@ def engineer_layer(data, summaries, feedback_data, setup_data=None, registry=Non
         sel.pop("cockpit_at_limit")
         corner.update(sel)
 
+    votes = copy.deepcopy(data["session_recommendation"]["votes"])
+    for v in votes:
+        v["feedback"] = _feedback_value(feedback_data, v["corner"], v["phase"])
+        v["agreement"] = agreement(v["symptom"], v["feedback"])
+    details = {o["option"]: o for o in copy.deepcopy(_all_options(data["session_recommendation"]))}
+
     # driver-only rows: strong complaint, no counted data symptom there
     counted = {c["corner"]: c for c in layer["corners"]}
     speed = {cid: a.get("speed_class") for cid, a in aggregate_by_corner(summaries).items()}
@@ -528,7 +707,15 @@ def engineer_layer(data, summaries, feedback_data, setup_data=None, registry=Non
             sel = _split_select(cands, _data_rank_key, cfg["max_alternatives"])
             driver_only.append({"corner": cid, "phase": phase, "symptom": symptom, "feedback": fb,
                                 "speed_class": speed.get(cid), **sel})
+            for v in symptom_votes(cid, corner, cands, cfg["session_vote"], driver_only=True):
+                v.update(feedback=fb, agreement="driver_only")
+                votes.append(v)
+            option_details(cands, details)
     layer["driver_only"] = driver_only
+    # same vote as the data layer plus the driver-only votes; feedback
+    # weights nothing, it is shown per supporting corner
+    layer["session_recommendation"] = dict(session_vote(votes, details, cfg["max_alternatives"]),
+                                           excluded=copy.deepcopy(data["session_recommendation"]["excluded"]))
     layer["feedback_used"] = bool(rows)
     return layer
 
@@ -601,7 +788,9 @@ def corner_lines(corner, engineer=False):
         head += f" -- {syms}"
     lines = []
     if corner.get("recommended"):
-        lines.append("change: " + candidate_line(corner["recommended"], engineer))
+        # a diagnosis: the corner's best lever; the setup decision itself is
+        # the session recommendation
+        lines.append("candidate: " + candidate_line(corner["recommended"], engineer))
     lines += ["  alternative: " + candidate_line(a, engineer) for a in corner.get("alternatives", [])]
     lines += ["  at limit: " + change_text(a) for a in corner.get("at_limit", [])]
     if not lines:
@@ -620,3 +809,48 @@ def session_line(session):
     lap_txt = ", ".join(f"{k} {v['k']}/{v['n']}" for k, v in cells.items() if v["n"])
     lap_txt = f" Single-lap cells (no repetition rule): {lap_txt}." if lap_txt else ""
     return f"Corners with a counted symptom: {txt}.{lap_txt} {tail}"
+
+
+def _vote_text(v, engineer):
+    t = f"C{v['corner']} {_SYMPTOM_WORD[v['symptom']]} @ {_PHASE_SHORT[v['phase']]} {v['weight']:.2f}"
+    if v.get("driver_only"):
+        return t + " (driver only, no data support)"
+    if engineer and v.get("agreement"):
+        t += f" ({v['agreement']})"
+    return t
+
+
+def option_line(o):
+    parts = [change_text(o), o["change"]["effort"] or "effort ?", f"{o['mechanism']} {o['mechanism_name']}",
+             "; ".join(o["anchors"]),
+             f"net support {o['net']:.2f} (support {o['support']:.2f}, opposition {o['opposition']:.2f})"]
+    if o["advisory"]:
+        parts.append("advisory")
+    parts += o["condition_notes"] + o["change"]["notes"]
+    return " | ".join(str(p) for p in parts)
+
+
+def session_recommendation_lines(rec, engineer=False):
+    """(header, lines) of the session setup recommendation box."""
+    def block(prefix, o):
+        return [prefix + option_line(o),
+                "    supporting: " + (", ".join(_vote_text(v, engineer) for v in o["supporting"]) or "none"),
+                "    opposing: " + (", ".join(_vote_text(v, engineer) for v in o["opposing"]) or "none")]
+
+    lines = []
+    if rec["recommended"]:
+        lines += block("change: ", rec["recommended"])
+    elif rec["equivalent_options"]:
+        lines.append("equivalent options (exact tie on every rank key, no winner):")
+        for o in rec["equivalent_options"]:
+            lines += block("  option: ", o)
+    else:
+        lines.append("no mechanical lever group with positive net support")
+    for o in rec["alternatives"]:
+        lines += block("  alternative: ", o)
+    lines += ["  at limit: " + option_line(o) for o in rec["at_limit"]]
+    if rec.get("excluded"):
+        lines.append("  not voting: " + ", ".join(
+            f"C{x['corner']} {_SYMPTOM_WORD[x['symptom']]} @ {_PHASE_SHORT[x['phase']]}"
+            + (f" {x['option']}" if x["option"] else "") + f" ({x['reason']})" for x in rec["excluded"]))
+    return "Session setup recommendation (one change for the whole lap)", lines
