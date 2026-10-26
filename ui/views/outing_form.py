@@ -17,7 +17,7 @@ from models.base import Session
 from models.driver import Driver, driver_name_and_level
 from models.outing import Outing
 from ui.style import (ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER,
-                      SPEED_TINT, SPEED_TEXT)
+                      SPEED_TINT, SPEED_TEXT, SPEED_LETTER, FILL_TEXT, BACKGROUND, PLOT_FOREGROUND)
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 from core.error_text import friendly_error_text
 from modules.csv_parser import lap_display_label
@@ -419,6 +419,21 @@ class OutingForm(QWidget):
             short = short.replace(" " + marker, "").replace(marker, "")
         return short
 
+    _CELL_SYMPTOM = {"understeer": "US", "oversteer": "OS", "open-loop unstable": "unstable"}
+
+    @staticmethod
+    def _verdict_cell_short(short):
+        # "US - exit", "unstable - apex", "ok"; a second finding is marked
+        # "+" and named in the tooltip, so the cell never truncates
+        parts = []
+        for p in OutingForm._verdict_cell_text(short).split(" | "):
+            if " @ " in p:
+                word, phase = p.split(" @ ", 1)
+                parts.append(f"{OutingForm._CELL_SYMPTOM.get(word, word)} - {phase}")
+            else:
+                parts.append(p)
+        return parts[0] + (" +" if len(parts) > 1 else "")
+
     @staticmethod
     def _phase_table_rows(summary, apex_region_half_m, apex_half_samples):
         """Cell texts of the per-phase table. CS cells come from
@@ -486,7 +501,7 @@ class OutingForm(QWidget):
 
         btn_back = QPushButton("< Back")
         btn_back.setFixedWidth(80)
-        btn_back.setStyleSheet("background-color: #252525; color: #888;")
+        btn_back.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED};")
         btn_back.clicked.connect(self._save_outing)
         self.btn_back = btn_back
         self.btn_delete = None
@@ -494,7 +509,7 @@ class OutingForm(QWidget):
         # explicit Save: same _persist_outing as Back, stays on the page
         self.btn_save = QPushButton("Save")
         self.btn_save.setFixedWidth(80)
-        self.btn_save.setStyleSheet("background-color: #252525; color: #888;")
+        self.btn_save.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED};")
         self.btn_save.clicked.connect(self._on_save_clicked)
 
         title = QLabel(f"New Outing - {self.weekend.track}")
@@ -510,7 +525,7 @@ class OutingForm(QWidget):
         if self.outing:
             btn_delete = QPushButton("Delete")
             btn_delete.setFixedWidth(80)
-            btn_delete.setStyleSheet("background-color: #252525; color: #c0392b;")
+            btn_delete.setStyleSheet(f"background-color: {PANEL_ALT}; color: {BAD};")
             btn_delete.clicked.connect(self._delete_outing)
             layout.addWidget(btn_delete)
             self.btn_delete = btn_delete
@@ -528,7 +543,7 @@ class OutingForm(QWidget):
         row_layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel(label_text)
         label.setFixedWidth(120)
-        label.setStyleSheet("color: #888;")
+        label.setStyleSheet(f"color: {TEXT_MUTED};")
         row_layout.addWidget(label)
         row_layout.addWidget(widget)
         return row
@@ -540,7 +555,7 @@ class OutingForm(QWidget):
         row_layout.setSpacing(8)
         label = QLabel(label_text)
         label.setFixedWidth(100)
-        label.setStyleSheet("color: #888; font-size: 11px;")
+        label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         row_layout.addWidget(label)
         row_layout.addWidget(widget)
         return row
@@ -645,10 +660,10 @@ class OutingForm(QWidget):
         # path, and the status line names what actually ran.
 
         self.csv_status_label = QLabel("No file loaded")
-        self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.csv_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
 
         self.stability_status_label = QLabel("")
-        self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.stability_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
 
         # forces a real recompute after a fast-path render; link-button style
         self.btn_recompute_stale_cache = QPushButton("recompute")
@@ -691,19 +706,19 @@ class OutingForm(QWidget):
 
         self.btn_clear_lap_selection = QPushButton("Clear Selection")
         self.btn_clear_lap_selection.setFixedWidth(120)
-        self.btn_clear_lap_selection.setStyleSheet("""
-            QPushButton {
-                background-color: #1a1a1a;
-                color: #888;
-                border: 1px solid #2a2a2a;
+        self.btn_clear_lap_selection.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {PANEL};
+                color: {TEXT_MUTED};
+                border: 1px solid {BORDER};
                 border-radius: 4px;
                 padding: 4px 10px;
                 font-size: 11px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 color: #C0A060;
                 border-color: #C0A060;
-            }
+            }}
         """)
         self.btn_clear_lap_selection.clicked.connect(self._clear_lap_selection)
         self.btn_clear_lap_selection.setVisible(False)
@@ -735,12 +750,12 @@ class OutingForm(QWidget):
         self.lap_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
         self.lap_table.setColumnWidth(1, 100)
         self.lap_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.lap_table.setStyleSheet("""
-            QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
-            QTableWidget::item { padding: 4px; border-bottom: 1px solid #1e1e1e; color: #d0d0d0; }
-            QTableWidget::item:selected { background-color: #252525; color: #C0A060; }
-            QHeaderView::section { background-color: #1a1a1a; color: #555; font-size: 10px;
-                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }
+        self.lap_table.setStyleSheet(f"""
+            QTableWidget {{ background-color: {BACKGROUND}; border: none; gridline-color: #1e1e1e; outline: 0; }}
+            QTableWidget::item {{ padding: 4px; border-bottom: 1px solid #1e1e1e; color: #d0d0d0; }}
+            QTableWidget::item:selected {{ background-color: {PANEL_ALT}; color: #C0A060; }}
+            QHeaderView::section {{ background-color: {PANEL}; color: {TEXT_DIM}; font-size: 10px;
+                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }}
         """)
         self.lap_table.cellClicked.connect(self._on_lap_selected)
         self.lap_table.setVisible(False)
@@ -754,8 +769,8 @@ class OutingForm(QWidget):
 
     def _build_plot_widget(self):
         import pyqtgraph as pg
-        pg.setConfigOption('background', '#141414')
-        pg.setConfigOption('foreground', '#888888')
+        pg.setConfigOption('background', BACKGROUND)
+        pg.setConfigOption('foreground', PLOT_FOREGROUND)
         pg.setConfigOptions(antialias=True)
 
         class TimeAxisItem(pg.AxisItem):
@@ -792,7 +807,7 @@ class OutingForm(QWidget):
             is_last = (i == len(self.plot_channels) - 1)
             axis_items = {'bottom': TimeAxisItem(orientation='bottom')} if is_last else {}
             plot = self.pg_layout.addPlot(axisItems=axis_items)
-            plot.setLabel('left', ch["label"], color='#888', size='8pt')
+            plot.setLabel('left', ch["label"], color=TEXT_MUTED, size='8pt')
             plot.showGrid(x=True, y=True, alpha=0.15)
             plot.setMaximumHeight(80)
             plot.getAxis('left').setWidth(70)
@@ -805,7 +820,7 @@ class OutingForm(QWidget):
                 plot.getAxis('bottom').setHeight(0)
             else:
                 plot.setMaximumHeight(100)
-                plot.getAxis('bottom').setLabel('Time (m:ss)', color='#888', size='8pt')
+                plot.getAxis('bottom').setLabel('Time (m:ss)', color=TEXT_MUTED, size='8pt')
 
             if first_plot is None:
                 first_plot = plot
@@ -993,7 +1008,7 @@ class OutingForm(QWidget):
         self.csv_status_label.setText(
             f"{filename} - {len(laps)} laps, {len(available)} channels"
         )
-        self.csv_status_label.setStyleSheet("color: #888; font-size: 12px;")
+        self.csv_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self._populate_lap_table(laps)
         self._refresh_feedback_speed_labels()
         self._update_corner_map_trace()
@@ -1005,7 +1020,7 @@ class OutingForm(QWidget):
     def _on_csv_error(self, error_msg):
         self.progress.close()
         self.csv_status_label.setText(f"Error loading file: {error_msg}")
-        self.csv_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
+        self.csv_status_label.setStyleSheet(f"color: {BAD}; font-size: 12px;")
 
     def _on_clear_data_clicked(self):
         # nothing loaded -> no confirmation dialog
@@ -1043,9 +1058,9 @@ class OutingForm(QWidget):
             self._lap_trace_dialog.hide()
 
         self.csv_status_label.setText("No file loaded")
-        self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.csv_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         self.stability_status_label.setText("")
-        self.stability_status_label.setStyleSheet("color: #555; font-size: 12px;")
+        self.stability_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         self.estimator_status_label.setText("")
         self.estimator_status_label.setVisible(False)
         self.calibration_banner_label.setText("")
@@ -1056,7 +1071,6 @@ class OutingForm(QWidget):
         self._displayed_events = None
         self.setup_calibration_banner_label.setText("")
         self.setup_calibration_banner_label.setVisible(False)
-        self.setup_session_label.setVisible(False)
         self._clear_setup_rows()
 
         self.lap_table.setRowCount(0)
@@ -1065,10 +1079,10 @@ class OutingForm(QWidget):
 
         self._clear_cards()
         self.stability_summary_label.setText(
-            "Click Analyse in the Data section to populate results."
+            "Run Analyse."
         )
-        self.setup_summary_label.setText("Run Analyse in the Data section, then Generate.")
-        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        self.setup_summary_label.setText("Run Analyse, then Generate.")
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
 
         self.btn_analyse.setEnabled(False)
         self.btn_lap_traces.setEnabled(False)
@@ -1413,14 +1427,18 @@ class OutingForm(QWidget):
             return
         from sqlalchemy import update
         session = Session()
+        # the file path goes with the cache: a cache without its path would
+        # leave the outing unable to reload the file it describes
+        csv_path = self.loaded_csv_path or self.outing.csv_path or ""
         session.execute(
             update(Outing).where(Outing.id == self.outing.id).values(
-                analysis_data=self._analysis_data_json
+                analysis_data=self._analysis_data_json, csv_path=csv_path
             )
         )
         session.commit()
         session.close()
         self.outing.analysis_data = self._analysis_data_json
+        self.outing.csv_path = csv_path
 
     def _try_render_cached_analysis(self):
         # DB cache-hit path. Guards: existing outing, valid JSON, schema_version
@@ -1452,7 +1470,10 @@ class OutingForm(QWidget):
             self.setup_summary_label.setText(outdated_msg)
             self.setup_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             return False
-        if _norm_path(cached.get("csv_path")) != _norm_path(self.loaded_csv_path):
+        # relative to the data root: the same export under D:/ on one machine
+        # and H:/ on the other is the same analysis input
+        from modules.data_paths import path_key
+        if path_key(cached.get("csv_path")) != path_key(self.loaded_csv_path):
             return False
         cap = self._get_accuracy_cap_from_selector()
         if cached.get("accuracy_cap") != cap:
@@ -1548,24 +1569,16 @@ class OutingForm(QWidget):
         ("wheelbase_m", "wheelbase"),
     ]
 
-    def _format_events_list(self, events):
-        # session list at the feedback form's resolution (corner, phase, axle);
-        # per-lap detail lives in the corner cards
+    @staticmethod
+    def _format_events_line(events):
+        # count only; the per-corner session rows and the per-lap events are
+        # in the corner details, the traces in the trace view
         if events is None:
             return ""
-        from modules.limit_events import aggregate_by_corner_phase, describe_group, layer_title
-        title = layer_title(events)
         if events.get("status") != "computed":
-            return f"{title.split(' (')[0]}: {events.get('status')}."
-        evs = events["events"]
-        if not evs:
-            return f"{title}: none this session."
-        n_kerb = sum(e["kerb_affected"] for e in evs)
-        n_rec = sum(e["recurrence"] == "recurring" for e in evs)
-        lines = [f"{title[:-1]}, display only -- feeds no verdict): "
-                 f"{len(evs)} events, {n_kerb} kerb-affected, {n_rec} recurring at their position."]
-        lines += [describe_group(r) for r in aggregate_by_corner_phase(evs)]
-        return "\n".join(lines)
+            return f"Floor events: {events.get('status')}"
+        n = len(events["events"])
+        return f"Floor events: {n} (in corner details)" if n else "Floor events: none"
 
     def _format_accuracy_footer(self, levels):
         if not levels:
@@ -1631,14 +1644,10 @@ class OutingForm(QWidget):
         self._refresh_feedback_speed_labels()
         if cached:
             self.stability_status_label.setText(
-                f"cached ({self._format_lap_filter_label(lap_filter)}) - "
-                f"re-run Analyse to refresh"
+                f"cached ({self._format_lap_filter_label(lap_filter)})"
             )
         else:
-            self.stability_status_label.setText(
-                f"Analysed {len(summaries)} corners. See Stability Analysis "
-                f"section."
-            )
+            self.stability_status_label.setText(f"Analysed {len(summaries)} corners")
         self.stability_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
         self.accuracy_footer_label.setText(
             self._format_accuracy_footer(resolved_accuracy.get("levels")) if resolved_accuracy else ""
@@ -1646,7 +1655,7 @@ class OutingForm(QWidget):
         # read by the card details and the trace dialogs; None for payloads
         # from before schema 13
         self._displayed_events = events
-        self.events_label.setText(self._format_events_list(events))
+        self.events_label.setText(self._format_events_line(events))
         self.events_label.setVisible(events is not None)
         # placeholder wording
         if self._sideslip_source_calibrated():
@@ -1674,6 +1683,13 @@ class OutingForm(QWidget):
                 grid_text = (f"{grid_rate_hz:.0f} Hz" if grid_rate_hz >= target
                              else f"{grid_rate_hz:.0f} Hz (channel-limited)")
                 status_text = f"{status_text} | time base: {grid_text}"
+            # damper path rejected by the straight-line weight check: the
+            # loads behind every number are the static split this session
+            plaus = ((fit_manifest or {}).get("axle_load") or {}).get("damper_plausibility")
+            if plaus and not plaus.get("passed", True):
+                status_text = (f"{status_text} | wheel loads: damper data rejected ({plaus['ratio']:.2f} x "
+                               "static weight on straights), static split used")
+                status_color = WARN
             self.estimator_status_label.setText(status_text)
             self.estimator_status_label.setStyleSheet(
                 f"color: {status_color}; font-size: 11px;"
@@ -1718,7 +1734,7 @@ class OutingForm(QWidget):
             f"<span style='color:{BAD};'>{n_strong} strong</span> | "
             f"<span style='color:{WARN};'>{n_moderate} moderate</span> | "
             f"<span style='color:{OK};'>{n_normal} normal</span>"
-            + (f" | <span style='color:{NEUTRAL};'>{n_no_cs} {NO_CS_SHORT}</span>" if n_no_cs else "")
+            + (f" | <span style='color:{TEXT_MUTED};'>{n_no_cs} {NO_CS_SHORT}</span>" if n_no_cs else "")
             + self._no_reference_note()
         )
         self.stability_summary_label.setTextFormat(Qt.TextFormat.RichText)
@@ -1818,21 +1834,37 @@ class OutingForm(QWidget):
         cell.setCheckable(False)
         cell.setCursor(Qt.CursorShape.PointingHandCursor)
         speed = self._corner_speed_classes().get(stable_id)
-        cell.setText(f"C{stable_id}{f' ({speed})' if speed else ''}\n{self._verdict_cell_text(short)}")
-        cell.setToolTip(self._verdict_tooltip(short))
-        # the fill is the verdict colour, so the speed class rides on a left
-        # stripe in its neutral tint
-        stripe = f" border-left: 6px solid {SPEED_TINT[speed]};" if speed in SPEED_TINT else ""
+        # two short lines: corner id with the speed badge, the verdict in
+        # short form; the full verdict is the tooltip
+        tip = entry["long"]
+        qualifiers = self._verdict_tooltip(short)
+        cell.setToolTip(tip + (f"\n{qualifiers}" if qualifiers else ""))
+        text_colour = FILL_TEXT.get(colour, TEXT)
         cell.setStyleSheet(
             f"QPushButton {{"
-            f" background-color: {colour}; color: #111; "
-            f" border: none;{stripe} border-radius: 3px; "
-            f" padding: 4px 8px; font-size: 10px; font-weight: 600; "
-            f" text-align: center; "
+            f" background-color: {colour}; border: none; border-radius: 3px; padding: 0px; "
             f"}}"
-            f"QPushButton:hover {{ background-color: {colour}; opacity: 0.85; }}"
         )
-        cell.setMinimumWidth(110)
+        lay = QVBoxLayout(cell)
+        lay.setContentsMargins(6, 3, 6, 3)
+        lay.setSpacing(1)
+        top = QHBoxLayout()
+        top.setSpacing(4)
+        id_label = QLabel(f"C{stable_id}")
+        id_label.setStyleSheet(f"color: {text_colour}; background: transparent; font-size: 11px; font-weight: 700;")
+        top.addWidget(id_label)
+        if speed in SPEED_TINT:
+            top.addWidget(self._speed_badge(speed))
+        top.addStretch()
+        lay.addLayout(top)
+        verdict_label = QLabel(self._verdict_cell_short(short))
+        verdict_label.setStyleSheet(f"color: {text_colour}; background: transparent; font-size: 10px; "
+                                    "font-weight: 600;")
+        lay.addWidget(verdict_label)
+        # the labels must not swallow the click meant for the cell
+        for w in (id_label, verdict_label):
+            w.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        cell.setMinimumWidth(96)
         cell.setMinimumHeight(38)
 
         def on_clicked():
@@ -1844,19 +1876,30 @@ class OutingForm(QWidget):
         cell.clicked.connect(on_clicked)
         return cell
 
+    def _speed_badge(self, speed):
+        # L / M / H on the neutral speed tint, readable on any verdict fill
+        badge = QLabel(SPEED_LETTER[speed])
+        badge.setToolTip(f"{speed} speed")
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        badge.setFixedWidth(16)
+        badge.setStyleSheet(f"color: {SPEED_TEXT[speed]}; background-color: {SPEED_TINT[speed]}; "
+                            "border-radius: 2px; font-size: 9px; font-weight: 700; padding: 0px 2px;")
+        badge.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        return badge
+
     def _build_placeholder_cell(self):
         # dim placeholder, no corner at this id on this lap
         cell = QPushButton("-")
         cell.setEnabled(False)
         cell.setStyleSheet(
             f"QPushButton {{"
-            f" background-color: {NEUTRAL}; color: {TEXT_DIM}; "
+            f" background-color: {PANEL_ALT}; color: {TEXT_MUTED}; "
             f" border: none; border-radius: 3px; "
             f" padding: 4px 8px; font-size: 10px; font-weight: 600; "
             f" text-align: center; "
             f"}}"
         )
-        cell.setMinimumWidth(110)
+        cell.setMinimumWidth(96)
         cell.setMinimumHeight(38)
         return cell
 
@@ -1889,7 +1932,7 @@ class OutingForm(QWidget):
         verdict_badge = QLabel(long_v)
         verdict_badge.setToolTip(self._verdict_tooltip(short_v))
         verdict_badge.setStyleSheet(
-            f"background-color: {colour}; color: #111; "
+            f"background-color: {colour}; color: {FILL_TEXT.get(colour, TEXT)}; "
             "padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;"
         )
 
@@ -1943,12 +1986,16 @@ class OutingForm(QWidget):
         # limit events of this corner on this lap (display only)
         events = getattr(self, "_displayed_events", None)
         if events and events.get("status") == "computed":
-            from modules.limit_events import describe_event
-            n_laps = events.get("n_instances_by_corner", {}).get(str(summary["stable_corner_id"]))
+            from modules.limit_events import aggregate_by_corner_phase, describe_event, describe_group
+            cid = summary["stable_corner_id"]
+            n_laps = events.get("n_instances_by_corner", {}).get(str(cid))
+            session_rows = [describe_group(r) for r in aggregate_by_corner_phase(events["events"])
+                            if r["corner"] == cid]
             mine = [e for e in events["events"]
-                    if e["lap"] == summary["lap_number"] and e["corner"] == summary["stable_corner_id"]]
-            if mine:
-                ev_label = QLabel("\n".join(describe_event(e, n_laps) for e in mine))
+                    if e["lap"] == summary["lap_number"] and e["corner"] == cid]
+            if session_rows or mine:
+                ev_label = QLabel("\n".join(["Floor events, session: " + r for r in session_rows]
+                                            + [describe_event(e, n_laps) for e in mine]))
                 ev_label.setWordWrap(True)
                 ev_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; background: transparent; border: none;")
                 layout.addWidget(ev_label)
@@ -1976,7 +2023,7 @@ class OutingForm(QWidget):
         panel_layout.setSpacing(8)
 
         self.stability_summary_label = QLabel(
-            "Click Analyse in the Data section to populate results."
+            "Run Analyse."
         )
         self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.stability_summary_label)
@@ -1989,18 +2036,29 @@ class OutingForm(QWidget):
         self.calibration_banner_label.setVisible(False)
         panel_layout.addWidget(self.calibration_banner_label)
 
-        # session list of limit events (corner, phase, axle); muted -- events
-        # are moments, not verdicts
+        # one compact line: the floor-event count (the events themselves are
+        # in the corner details and the trace view) and a toggle for the
+        # accuracy levels of the vehicle inputs
+        info_row = QWidget()
+        info_layout = QHBoxLayout(info_row)
+        info_layout.setContentsMargins(0, 0, 0, 0)
         self.events_label = QLabel("")
         self.events_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
-        self.events_label.setWordWrap(True)
         self.events_label.setVisible(False)
-        panel_layout.addWidget(self.events_label)
+        info_layout.addWidget(self.events_label)
+        info_layout.addStretch()
+        btn_method = QPushButton("method details")
+        btn_method.setCheckable(True)
+        btn_method.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 10px; "
+                                 "font-weight: normal; padding: 1px 6px; border-radius: 3px;")
+        info_layout.addWidget(btn_method)
+        panel_layout.addWidget(info_row)
 
-        # resolved-accuracy footer, always shown
         self.accuracy_footer_label = QLabel("")
         self.accuracy_footer_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         self.accuracy_footer_label.setWordWrap(True)
+        self.accuracy_footer_label.setVisible(False)
+        btn_method.toggled.connect(self.accuracy_footer_label.setVisible)
         panel_layout.addWidget(self.accuracy_footer_label)
 
         self.cards_scroll = QScrollArea()
@@ -2075,27 +2133,18 @@ class OutingForm(QWidget):
         self.setup_calibration_banner_label.setVisible(False)
         panel_layout.addWidget(self.setup_calibration_banner_label)
 
-        self.setup_summary_label = QLabel("Run Analyse in the Data section, then Generate.")
-        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+        # one compact line: the repeated symptoms (session shares, D7)
+        self.setup_summary_label = QLabel("Run Analyse, then Generate.")
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         self.setup_summary_label.setWordWrap(True)
         panel_layout.addWidget(self.setup_summary_label)
-
-        # session layer (D7)
-        self.setup_session_label = QLabel("")
-        self.setup_session_label.setStyleSheet(
-            f"color: {TEXT_MUTED}; font-size: 11px; background-color: {PANEL_ALT}; "
-            f"border: 1px solid {BORDER}; padding: 6px;")
-        self.setup_session_label.setWordWrap(True)
-        self.setup_session_label.setVisible(False)
-        panel_layout.addWidget(self.setup_session_label)
 
         layers = QWidget()
         layers_layout = QHBoxLayout(layers)
         layers_layout.setContentsMargins(0, 0, 0, 0)
         layers_layout.setSpacing(12)
         self.setup_layer_hosts = {}
-        for key, title in (("data_layer", "Data layer (telemetry only)"),
-                           ("engineer_layer", "Engineer layer (data + driver feedback)")):
+        for key, title in (("data_layer", "Data layer"), ("engineer_layer", "Engineer layer")):
             col = QWidget()
             col_layout = QVBoxLayout(col)
             col_layout.setContentsMargins(0, 0, 0, 0)
@@ -2191,48 +2240,45 @@ class OutingForm(QWidget):
                     f"analysis outdated (v{stored_v} vs v{current_v}) - re-run Analyse first")
                 self.setup_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             else:
-                self.setup_summary_label.setText("Run Analyse in the Data section, then Generate.")
-                self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
+                self.setup_summary_label.setText("Run Analyse, then Generate.")
+                self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
             return
         layers = self._compute_setup_layers()
         self._store_setup_layers(layers)
         self._render_setup_layers(layers)
 
     def _render_setup_layers(self, layers):
-        from modules.setup_engine import corner_lines, session_line, session_recommendation_lines
+        # session box on top (the setup decision), the per-corner diagnosis
+        # below; vote numbers and sources sit in each box's details
+        import json
+        from modules.setup_engine import (corner_summary, engineer_lines, feedback_entered,
+                                          repeated_symptoms_line, session_details, session_summary)
         self._clear_setup_rows()
         data, eng = layers["data_layer"], layers["engineer_layer"]
-        rules = data["rules"]
-        self.setup_summary_label.setText(
-            f"{len(data['corners'])} corner(s) with a repeated symptom (more than "
-            f"{rules['min_repeat_fraction']:.0%} of valid laps, at least {rules['min_repeat_laps']}). "
-            f"Session: one setup change from the corner vote, up to two alternatives; "
-            f"per corner: diagnosis with candidate levers and the cockpit option.")
-        self.setup_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-        self.setup_session_label.setText(session_line(data["session"]))
-        self.setup_session_label.setVisible(True)
-        for key, layer in (("data_layer", data), ("engineer_layer", eng)):
-            host = self.setup_layer_hosts[key]
-            engineer = key == "engineer_layer"
-            blocks = [corner_lines(c, engineer) for c in layer["corners"]]
-            if engineer:
-                for d in layer.get("driver_only", []):
-                    head, lines = corner_lines({"corner": d["corner"], "speed_class": d["speed_class"],
-                                                "recommended": d["recommended"],
-                                                "alternatives": d["alternatives"],
-                                                "at_limit": d["at_limit"], "cockpit": d.get("cockpit")},
-                                               engineer=True)
-                    blocks.append((f"{head} -- driver only, no data support", lines))
-            if not blocks:
-                blocks = [("No corner with a repeated symptom.", [])]
-            rec = layer.get("session_recommendation")
-            if rec is not None:
-                head, lines = session_recommendation_lines(rec, engineer)
-                host.insertWidget(host.count() - 1, self._setup_block(head, lines, session=True))
-            for head, lines in blocks:
-                host.insertWidget(host.count() - 1, self._setup_block(head, lines))
+        self.setup_summary_label.setText(repeated_symptoms_line(data["session"]))
+        self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
 
-    def _setup_block(self, head, lines, session=False):
+        host = self.setup_layer_hosts["data_layer"]
+        rec = data.get("session_recommendation")
+        if rec is not None:
+            head, why, against, alts, details = session_summary(rec)
+            host.insertWidget(host.count() - 1, self._setup_block(
+                head, [x for x in (why, against, alts) if x], details, session=True))
+        for c in data["corners"]:
+            line, alt, details = corner_summary(c)
+            host.insertWidget(host.count() - 1, self._setup_block(line, [alt] if alt else [], details))
+
+        # engineer layer: only what the feedback changes, and only when the
+        # outing has feedback
+        host = self.setup_layer_hosts["engineer_layer"]
+        if not feedback_entered(json.loads(self._collect_feedback_data())):
+            host.insertWidget(host.count() - 1, self._setup_block("No driver feedback entered", []))
+            return
+        lines = engineer_lines(data, eng)
+        details = session_details(eng["session_recommendation"], engineer=True)
+        host.insertWidget(host.count() - 1, self._setup_block(lines[0], lines[1:], details))
+
+    def _setup_block(self, head, lines, details=None, session=False):
         # the session box carries the accent border: it is the setup decision,
         # the corner boxes below are its evidence
         box = QWidget()
@@ -2240,17 +2286,35 @@ class OutingForm(QWidget):
         lay = QVBoxLayout(box)
         lay.setContentsMargins(8, 6, 8, 6)
         lay.setSpacing(2)
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 0, 0)
         h = QLabel(head)
-        h.setStyleSheet(f"color: {TEXT}; font-size: 11px; font-weight: bold; border: none;")
+        h.setStyleSheet(f"color: {TEXT}; font-size: {12 if session else 11}px; font-weight: bold; border: none;")
         h.setWordWrap(True)
-        lay.addWidget(h)
-        for i, line in enumerate(lines):
+        h.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        top.addWidget(h, 1)
+        detail_label = None
+        if details:
+            btn = QPushButton("details")
+            btn.setCheckable(True)
+            btn.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED}; font-size: 10px; "
+                              "font-weight: normal; padding: 1px 6px; border-radius: 3px;")
+            top.addWidget(btn, 0, Qt.AlignmentFlag.AlignTop)
+            detail_label = QLabel("\n".join(details))
+            detail_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; border: none;")
+            detail_label.setWordWrap(True)
+            detail_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            detail_label.setVisible(False)
+            btn.toggled.connect(detail_label.setVisible)
+        lay.addLayout(top)
+        for line in lines:
             lab = QLabel(line)
-            colour = TEXT_MUTED if i == 0 else TEXT_DIM
-            lab.setStyleSheet(f"color: {colour}; font-size: 11px; border: none;")
+            lab.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; border: none;")
             lab.setWordWrap(True)
             lab.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             lay.addWidget(lab)
+        if detail_label is not None:
+            lay.addWidget(detail_label)
         return box
 
     def _open_corner_trace(self, summary):
@@ -2288,7 +2352,7 @@ class OutingForm(QWidget):
     def _on_stability_error(self, msg):
         self._set_analysis_lock(False)
         self.stability_status_label.setText(f"Analysis failed: {msg}")
-        self.stability_status_label.setStyleSheet("color: #c0392b; font-size: 12px;")
+        self.stability_status_label.setStyleSheet(f"color: {BAD}; font-size: 12px;")
         self.btn_analyse.setEnabled(True)
 
     def _populate_lap_table(self, laps):
@@ -2300,12 +2364,12 @@ class OutingForm(QWidget):
         self.lap_table.setRowHeight(all_row, 28)
         all_item = QTableWidgetItem("All")
         all_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        all_item.setForeground(QColor("#888"))
+        all_item.setForeground(QColor(TEXT_MUTED))
         all_item.setData(Qt.ItemDataRole.UserRole, "all")
         self.lap_table.setItem(all_row, 0, all_item)
         self.lap_table.setItem(all_row, 1, QTableWidgetItem(""))
         full_item = QTableWidgetItem("Full Outing")
-        full_item.setForeground(QColor("#555"))
+        full_item.setForeground(QColor(TEXT_DIM))
         self.lap_table.setItem(all_row, 2, full_item)
 
         for lap in laps:
@@ -2345,7 +2409,7 @@ class OutingForm(QWidget):
                     item.setForeground(QColor("#C0A060"))
             elif is_outlap or is_inlap:
                 for item in [lap_item, time_item, badge_item]:
-                    item.setForeground(QColor("#555555"))
+                    item.setForeground(QColor(TEXT_DIM))
 
             self.lap_table.setItem(row, 0, lap_item)
             self.lap_table.setItem(row, 1, time_item)
@@ -2416,7 +2480,7 @@ class OutingForm(QWidget):
         layout.addWidget(columns)
 
         notes_label = QLabel("Setup Notes")
-        notes_label.setStyleSheet("color: #888; font-size: 11px; margin-top: 8px;")
+        notes_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px; margin-top: 8px;")
         notes_widget = QTextEdit()
         notes_widget.setMinimumHeight(100)
         notes_widget.setPlaceholderText("Kinematic info, special configurations, general setup notes...")
@@ -2454,7 +2518,7 @@ class OutingForm(QWidget):
         layout.setSpacing(0)
 
         btn_toggle = QPushButton("> Add Setdown")
-        btn_toggle.setStyleSheet("background-color: #1a1a1a; color: #888; font-size: 12px; padding: 8px 14px; text-align: left;")
+        btn_toggle.setStyleSheet(f"background-color: {PANEL}; color: {TEXT_MUTED}; font-size: 12px; padding: 8px 14px; text-align: left;")
         btn_toggle.setCheckable(True)
         btn_toggle.setChecked(False)
         layout.addWidget(btn_toggle)
@@ -2520,7 +2584,7 @@ class OutingForm(QWidget):
             layout.addWidget(self._setup_row(labels[param], widget))
 
         damper_label = QLabel("Damper")
-        damper_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        damper_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-weight: 500; margin-top: 6px;")
         layout.addWidget(damper_label)
 
         bump_row = QWidget()
@@ -2533,7 +2597,7 @@ class OutingForm(QWidget):
             cell_layout.setContentsMargins(0, 0, 0, 0)
             cell_layout.setSpacing(2)
             lbl = QLabel(label_text)
-            lbl.setStyleSheet("color: #555; font-size: 10px;")
+            lbl.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
             widget = QLineEdit()
             self._active_inputs[corner_key][param] = widget
             cell_layout.addWidget(lbl)
@@ -2546,7 +2610,7 @@ class OutingForm(QWidget):
         blowoff_cell_layout.setContentsMargins(0, 0, 0, 0)
         blowoff_cell_layout.setSpacing(2)
         blowoff_lbl = QLabel("Blowoff")
-        blowoff_lbl.setStyleSheet("color: #555; font-size: 10px;")
+        blowoff_lbl.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         blowoff_widget = QLineEdit()
         self._active_inputs[corner_key]["blowoff"] = blowoff_widget
         blowoff_cell_layout.addWidget(blowoff_lbl)
@@ -2563,7 +2627,7 @@ class OutingForm(QWidget):
             cell_layout.setContentsMargins(0, 0, 0, 0)
             cell_layout.setSpacing(2)
             lbl = QLabel(label_text)
-            lbl.setStyleSheet("color: #555; font-size: 10px;")
+            lbl.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
             widget = QLineEdit()
             self._active_inputs[corner_key][param] = widget
             cell_layout.addWidget(lbl)
@@ -2574,12 +2638,12 @@ class OutingForm(QWidget):
         if corner_label in ("FL", "RL"):
             mirror_target = "FR" if corner_label == "FL" else "RR"
             btn_mirror = QPushButton(f"<-> mirror damper to {mirror_target}")
-            btn_mirror.setStyleSheet("background-color: #1e1e1e; color: #888; font-size: 10px; padding: 3px 8px;")
+            btn_mirror.setStyleSheet(f"background-color: #1e1e1e; color: {TEXT_MUTED}; font-size: 10px; padding: 3px 8px;")
             btn_mirror.clicked.connect(lambda checked, cl=corner_label, inp=self._active_inputs: self._mirror_damper(cl, inp))
             layout.addWidget(btn_mirror)
 
         btn_advanced = QPushButton("> Damper Advanced")
-        btn_advanced.setStyleSheet("background-color: #1a1a1a; color: #555; font-size: 10px; padding: 3px 8px; text-align: left;")
+        btn_advanced.setStyleSheet(f"background-color: {PANEL}; color: {TEXT_DIM}; font-size: 10px; padding: 3px 8px; text-align: left;")
         btn_advanced.setCheckable(True)
         btn_advanced.setChecked(False)
         layout.addWidget(btn_advanced)
@@ -2625,7 +2689,7 @@ class OutingForm(QWidget):
             img_label.setPixmap(pixmap)
         else:
             img_label.setText("[ car image ]")
-            img_label.setStyleSheet("color: #333; border: 1px solid #2a2a2a; border-radius: 4px;")
+            img_label.setStyleSheet(f"color: {TEXT_DIM}; border: 1px solid {BORDER}; border-radius: 4px;")
 
         layout.addWidget(img_label)
 
@@ -2737,7 +2801,7 @@ class OutingForm(QWidget):
             car_layout.addWidget(self._setup_row(label_text, widget))
 
         splitter_label = QLabel("Splitter Points (measured, vs floor, mm)")
-        splitter_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        splitter_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-weight: 500; margin-top: 6px;")
         splitter_label.setToolTip("Floor-referenced check measurements -- distinct from the Splitter setting above.")
         car_layout.addWidget(splitter_label)
         splitter_widget = MeasurementPointsWidget("splitter")
@@ -2746,7 +2810,7 @@ class OutingForm(QWidget):
         car_layout.addWidget(splitter_widget)
 
         diffuser_label = QLabel("Diffuser Points (measured, vs floor, mm)")
-        diffuser_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        diffuser_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-weight: 500; margin-top: 6px;")
         diffuser_label.setToolTip("Floor-referenced check measurements.")
         car_layout.addWidget(diffuser_label)
         diffuser_widget = MeasurementPointsWidget("diffuser")
@@ -2767,7 +2831,7 @@ class OutingForm(QWidget):
         car_layout.addWidget(self._setup_row("Wing Pos.", wing_position_combo))
 
         diff_torque_label = QLabel("Diff Locking Torque (measured, Nm)")
-        diff_torque_label.setStyleSheet("color: #555; font-size: 10px; font-weight: 500; margin-top: 6px;")
+        diff_torque_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px; font-weight: 500; margin-top: 6px;")
         car_layout.addWidget(diff_torque_label)
 
         diff_torque_row = QWidget()
@@ -2780,7 +2844,7 @@ class OutingForm(QWidget):
             cell_layout.setContentsMargins(0, 0, 0, 0)
             cell_layout.setSpacing(2)
             lbl = QLabel(str(pos))
-            lbl.setStyleSheet("color: #555; font-size: 10px;")
+            lbl.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
             widget = NoScrollSpinBox()
             widget.setRange(0, 9999)
             widget.setDecimals(0)
@@ -3254,7 +3318,7 @@ class OutingForm(QWidget):
         count_layout = QHBoxLayout(count_row)
         count_layout.setContentsMargins(0, 0, 0, 0)
         count_label = QLabel("Corners")
-        count_label.setStyleSheet("color: #888;")
+        count_label.setStyleSheet(f"color: {TEXT_MUTED};")
         self.corner_count_spin = NoScrollIntSpinBox()
         self.corner_count_spin.setRange(1, 30)
         self.corner_count_spin.setValue(10)
@@ -3302,12 +3366,12 @@ class OutingForm(QWidget):
         self.feedback_table.setColumnWidth(1, 60)
         for col in range(2, 7):
             self.feedback_table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
-        self.feedback_table.setStyleSheet("""
-            QTableWidget { background-color: #141414; border: none; gridline-color: #1e1e1e; outline: 0; }
-            QTableWidget::item { padding: 2px; border-bottom: 1px solid #1e1e1e; }
-            QTableWidget::item:selected { background-color: #141414; }
-            QHeaderView::section { background-color: #1a1a1a; color: #555; font-size: 10px;
-                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }
+        self.feedback_table.setStyleSheet(f"""
+            QTableWidget {{ background-color: {BACKGROUND}; border: none; gridline-color: #1e1e1e; outline: 0; }}
+            QTableWidget::item {{ padding: 2px; border-bottom: 1px solid #1e1e1e; }}
+            QTableWidget::item:selected {{ background-color: {BACKGROUND}; }}
+            QHeaderView::section {{ background-color: {PANEL}; color: {TEXT_DIM}; font-size: 10px;
+                padding: 6px 4px; border: none; border-bottom: 1px solid #222; }}
         """)
 
         self._rebuild_corner_rows(self.corner_count_spin.value())
@@ -3321,20 +3385,20 @@ class OutingForm(QWidget):
         map_layout.setSpacing(8)
 
         map_title = QLabel("Track Map")
-        map_title.setStyleSheet("color: #888; font-size: 11px;")
+        map_title.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         map_layout.addWidget(map_title)
 
         self.map_label = QLabel()
         self.map_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.map_label.setMinimumHeight(200)
-        self.map_label.setStyleSheet("""
-            QLabel {
-                border: 1px solid #2a2a2a;
+        self.map_label.setStyleSheet(f"""
+            QLabel {{
+                border: 1px solid {BORDER};
                 border-radius: 4px;
-                color: #333;
+                color: {TEXT_DIM};
                 font-size: 11px;
-                background-color: #1a1a1a;
-            }
+                background-color: {PANEL};
+            }}
         """)
         self.map_label.setText("No track map loaded")
         map_layout.addWidget(self.map_label, 1)
@@ -3345,7 +3409,7 @@ class OutingForm(QWidget):
         map_layout.addWidget(btn_load_map)
 
         self.map_filename_label = QLabel("")
-        self.map_filename_label.setStyleSheet("color: #555; font-size: 10px;")
+        self.map_filename_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 10px;")
         map_layout.addWidget(self.map_filename_label)
         map_layout.addStretch()
 
@@ -3387,7 +3451,7 @@ class OutingForm(QWidget):
 
             num_label = QLabel(str(i + 1))
             num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            num_label.setStyleSheet("color: #C0A060; font-weight: 600; font-size: 11px; background: transparent;")
+            num_label.setStyleSheet(f"color: {ACCENT}; font-weight: 600; font-size: 11px; background: transparent;")
             self.feedback_table.setCellWidget(row, 0, num_label)
             speed_label = QLabel("-")
             speed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -3433,10 +3497,11 @@ class OutingForm(QWidget):
         classes = self._corner_speed_classes()
         for i, label in enumerate(getattr(self, "feedback_speed_labels", [])):
             cls = classes.get(i + 1)
-            label.setText(cls or "-")
+            label.setText(SPEED_LETTER.get(cls, "-"))
+            label.setToolTip(f"{cls} speed" if cls else "")
             if cls in SPEED_TINT:
                 label.setStyleSheet(f"color: {SPEED_TEXT[cls]}; background-color: {SPEED_TINT[cls]}; "
-                                    f"font-size: 11px; border-radius: 3px; margin: 3px;")
+                                    f"font-size: 11px; font-weight: 700; border-radius: 3px; margin: 4px 10px;")
             else:
                 label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px; background: transparent;")
 
@@ -3531,10 +3596,12 @@ class OutingForm(QWidget):
             QTimer.singleShot(100, lambda: self._auto_load_csv(self.outing.csv_path))
 
     def _auto_load_csv(self, path):
-        import os
-        if not os.path.exists(path):
+        # a path saved on the other machine is looked up under its data roots
+        from modules.data_paths import resolve_saved_path
+        path = resolve_saved_path(path)
+        if path is None:
             self.csv_status_label.setText("Data file not found at saved path")
-            self.csv_status_label.setStyleSheet("color: #555; font-size: 12px;")
+            self.csv_status_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px;")
             return
         self.progress = __import__('PyQt6.QtWidgets', fromlist=['QProgressDialog']).QProgressDialog(
             "Loading outing data...", None, 0, 0, self)

@@ -1,0 +1,825 @@
+{
+ "_about": "DEV-1 export, one outing; key names as in code; units in _units",
+ "_units": {
+  "cs_ratio_f / cs_ratio_r": "cornering stiffness ratio, dimensionless (local dFy/dalpha over the session reference slope; < 0 = past the peak of the Fy / Fz curve)",
+  "stability_observed_Nm_per_deg": "dMz/dbeta, N m / deg (negative = open-loop unstable yaw)",
+  "apex_speed": "km/h (ecu_speed unit)",
+  "apex_lateral_g": "g",
+  "lap_time / lap_time_precise / start_time / end_time / t_*": "s (logger time)",
+  "s_*_m / bracket_*_m / distance": "m",
+  "fz_*_N": "N",
+  "fy_*_norm_N": "Fy / Fz, dimensionless",
+  "stiffness_norm_per_rad (K)": "1 / rad, K = B C mu (tyre_fit_auto.plausibility_gate_l)",
+  "mu": "dimensionless (demonstrated utilisation)",
+  "health_score": "fraction of NIS windows in band",
+  "shares": "fraction 0..1",
+  "NaN": "written as null"
+ },
+ "_generated_at": "2026-10-24T10:48:57.110140",
+ "schema_version": 25,
+ "outing": {
+  "outing_id": 9,
+  "weekend": "Labeled PRC",
+  "series": "Creventic",
+  "weekend_date": "2026-10-24",
+  "name": "MLA-longrun",
+  "number": 1,
+  "date_time": "2026-10-24 09:24:51.000000",
+  "session_type": "Practice",
+  "driver": "Manuel Lauk",
+  "driver_level (stored, unused by scoring)": 5,
+  "file_root_relative": null,
+  "file_root": null,
+  "environment": {
+   "air_temp": 0.0,
+   "track_temp": 0.0,
+   "track_condition": "Dry",
+   "fuel_level": 0.0,
+   "tyre_age": 100,
+   "tyre_type": "Dry",
+   "tyre_name": ""
+  },
+  "laps": [
+   {
+    "lap_number": 132,
+    "lap_time": 166.0,
+    "lap_time_precise": null,
+    "start_time": 231.966,
+    "end_time": 397.966,
+    "is_valid_for_analysis": false,
+    "is_outlap": true,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 133,
+    "lap_time": 126.19999999999999,
+    "lap_time_precise": 126.311996,
+    "start_time": 398.166,
+    "end_time": 524.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 134,
+    "lap_time": 126.0,
+    "lap_time_precise": 126.302002,
+    "start_time": 524.566,
+    "end_time": 650.566,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 135,
+    "lap_time": 125.60000000000002,
+    "lap_time_precise": 125.612,
+    "start_time": 650.766,
+    "end_time": 776.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 136,
+    "lap_time": 124.79999999999995,
+    "lap_time_precise": 125.022003,
+    "start_time": 776.566,
+    "end_time": 901.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 137,
+    "lap_time": 124.59999999999991,
+    "lap_time_precise": 124.891998,
+    "start_time": 901.566,
+    "end_time": 1026.166,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 138,
+    "lap_time": 125.20000000000005,
+    "lap_time_precise": 125.362,
+    "start_time": 1026.366,
+    "end_time": 1151.566,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 139,
+    "lap_time": 124.79999999999995,
+    "lap_time_precise": 124.952003,
+    "start_time": 1151.766,
+    "end_time": 1276.566,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 140,
+    "lap_time": 125.0,
+    "lap_time_precise": 125.232002,
+    "start_time": 1276.766,
+    "end_time": 1401.766,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 141,
+    "lap_time": 125.0,
+    "lap_time_precise": 125.022003,
+    "start_time": 1401.966,
+    "end_time": 1526.966,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 142,
+    "lap_time": 126.20000000000005,
+    "lap_time_precise": 126.522003,
+    "start_time": 1527.166,
+    "end_time": 1653.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 143,
+    "lap_time": 125.39999999999986,
+    "lap_time_precise": 125.641998,
+    "start_time": 1653.566,
+    "end_time": 1778.966,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 144,
+    "lap_time": 125.0,
+    "lap_time_precise": 125.152,
+    "start_time": 1779.166,
+    "end_time": 1904.166,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 145,
+    "lap_time": 126.0,
+    "lap_time_precise": 126.181999,
+    "start_time": 1904.366,
+    "end_time": 2030.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 146,
+    "lap_time": 125.20000000000005,
+    "lap_time_precise": 125.362,
+    "start_time": 2030.566,
+    "end_time": 2155.766,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 147,
+    "lap_time": 125.0,
+    "lap_time_precise": 125.071999,
+    "start_time": 2155.966,
+    "end_time": 2280.966,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 148,
+    "lap_time": 124.59999999999991,
+    "lap_time_precise": 124.741997,
+    "start_time": 2281.166,
+    "end_time": 2405.766,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 149,
+    "lap_time": 124.59999999999991,
+    "lap_time_precise": 124.912003,
+    "start_time": 2405.966,
+    "end_time": 2530.566,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 150,
+    "lap_time": 124.59999999999991,
+    "lap_time_precise": 124.681999,
+    "start_time": 2530.766,
+    "end_time": 2655.366,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": true
+   },
+   {
+    "lap_number": 151,
+    "lap_time": 125.20000000000027,
+    "lap_time_precise": 125.332001,
+    "start_time": 2655.566,
+    "end_time": 2780.766,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 152,
+    "lap_time": 181.80000000000018,
+    "lap_time_precise": 182.171997,
+    "start_time": 2780.966,
+    "end_time": 2962.766,
+    "is_valid_for_analysis": false,
+    "is_outlap": false,
+    "is_inlap": true,
+    "is_fastest": false
+   }
+  ],
+  "analysis_laps (lap_filter)": [
+   133,
+   134,
+   135,
+   136,
+   137,
+   138,
+   139,
+   140,
+   141,
+   142,
+   143,
+   144,
+   145,
+   146,
+   147,
+   148,
+   149,
+   150,
+   151
+  ]
+ },
+ "setup_sheet (as stored)": {
+  "car": {
+   "corner_weight_fl": 307.1,
+   "corner_weight_rl": 392.7,
+   "corner_weight_fr": 308.6,
+   "corner_weight_rr": 395.5,
+   "total_weight": 1403.9,
+   "cross_percentage": 49.9,
+   "differential_preload": 90.0,
+   "differential_position": 2.0,
+   "splitter_offset": -1.0,
+   "arb_front_mount": "P0",
+   "wing_position": "P8",
+   "notes": "",
+   "differential_locking_torque_measured": {
+    "1": 80.0,
+    "2": 90.0,
+    "3": 100.0,
+    "4": 110.0,
+    "5": 130.0
+   },
+   "splitter_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "diffuser_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "front_left": {
+   "toe": -1.5,
+   "camber": -3.45,
+   "ride_height_fia": 95.0,
+   "ride_height_aero": 49.0,
+   "arb": 3.0,
+   "springs": 280.0,
+   "bump_ls": "9",
+   "bump_hs": "12",
+   "blowoff": "6",
+   "rebound_ls": "8",
+   "rebound_hs": "8",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_left": {
+   "toe": 1.0,
+   "camber": -3.25,
+   "ride_height_fia": 134.0,
+   "ride_height_aero": 64.0,
+   "arb": 4.0,
+   "springs": 280.0,
+   "bump_ls": "9",
+   "bump_hs": "7",
+   "blowoff": "0",
+   "rebound_ls": "9",
+   "rebound_hs": "10",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "front_right": {
+   "toe": -1.5,
+   "camber": -3.35,
+   "ride_height_fia": 95.0,
+   "ride_height_aero": 49.0,
+   "arb": 3.0,
+   "springs": 280.0,
+   "bump_ls": "9",
+   "bump_hs": "12",
+   "blowoff": "6",
+   "rebound_ls": "8",
+   "rebound_hs": "8",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_right": {
+   "toe": 1.0,
+   "camber": -3.25,
+   "ride_height_fia": 134.0,
+   "ride_height_aero": 64.0,
+   "arb": 4.0,
+   "springs": 280.0,
+   "bump_ls": "9",
+   "bump_hs": "7",
+   "blowoff": "0",
+   "rebound_ls": "9",
+   "rebound_hs": "10",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  }
+ },
+ "setdown_sheet (as stored)": {
+  "car": {
+   "corner_weight_fl": 0.0,
+   "corner_weight_rl": 0.0,
+   "corner_weight_fr": 0.0,
+   "corner_weight_rr": 0.0,
+   "total_weight": 0.0,
+   "cross_percentage": 0.0,
+   "differential_preload": 0.0,
+   "differential_position": 0.0,
+   "splitter_offset": 0.0,
+   "arb_front_mount": "P0",
+   "wing_position": "P8",
+   "notes": "",
+   "differential_locking_torque_measured": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0,
+    "5": 0.0
+   },
+   "splitter_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "diffuser_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "front_left": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_left": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "front_right": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_right": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  }
+ },
+ "comment (verbatim)": "Rear started to drop at the end of the stint. no setup change after",
+ "driver_feedback (as stored)": {
+  "corner_count": 10,
+  "corners": [
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   }
+  ],
+  "map_path": ""
+ },
+ "result_source": "full chain run in this export (not persisted); cache: no analysis_data in the DB",
+ "cockpit_logged": {
+  "logged_setup_values (modules.setup_state, as the engine reads them)": {
+   "abs_position": {
+    "value": 6,
+    "source": "log_abs_pos",
+    "note": "map changed in session (last valid lap: 6)"
+   }
+  },
+  "log_abs_pos": {
+   "session": {
+    "mode": 6,
+    "distinct": {
+     "4": 12759,
+     "5": 2,
+     "6": 14549
+    }
+   },
+   "analysis_laps": {
+    "mode": 6,
+    "distinct": {
+     "4": 11089,
+     "5": 2,
+     "6": 12718
+    }
+   }
+  },
+  "tc_position_modes (raw export, LAT / LON mapping undocumented)": {
+   "ecu_TC_int_pos": {
+    "session": {
+     "mode": 5,
+     "distinct": {
+      "4": 4408,
+      "5": 22902
+     }
+    },
+    "analysis_laps": {
+     "mode": 5,
+     "distinct": {
+      "4": 2744,
+      "5": 21065
+     }
+    }
+   },
+   "ecu_TC_tim_pos": {
+    "session": {
+     "mode": 4,
+     "distinct": {
+      "4": 13715,
+      "5": 13595
+     }
+    },
+    "analysis_laps": {
+     "mode": 4,
+     "distinct": {
+      "4": 12044,
+      "5": 11765
+     }
+    }
+   },
+   "log_tc_int_pos": {
+    "status": "absent from the raw export"
+   },
+   "log_tc_tim_pos": {
+    "status": "absent from the raw export"
+   },
+   "stw_rt03_tc_int": {
+    "status": "absent from the raw export"
+   },
+   "stw_rt01_tc_tim": {
+    "status": "absent from the raw export"
+   }
+  },
+  "ecu_B_tc_act": {
+   "definition": "share of the channel's own samples with flag > 0.5",
+   "share_session": 0.0002270230684730868,
+   "share_analysis_laps": 0.00017651657154384756,
+   "n_samples_analysis_laps": 118969
+  }
+ },
+ "status": "chain failed",
+ "fit_manifest": {
+  "status": null,
+  "missing_or_failed_channels": {
+   "log_dms_dam_fl": "missing",
+   "log_dms_dam_fr": "missing",
+   "log_dms_dam_rl": "missing",
+   "log_dms_dam_rr": "missing",
+   "log_gps_lat": "missing",
+   "log_gps_lon": "missing",
+   "log_gps_speed": "missing",
+   "log_pbrake_f": "missing",
+   "log_pbrake_r": "missing",
+   "log_rideheight_fl": "missing",
+   "log_rideheight_fr": "missing",
+   "log_rideheight_rl": "missing",
+   "log_rideheight_rr": "missing",
+   "log_susp_travel_fl": "missing",
+   "log_susp_travel_fr": "missing",
+   "log_susp_travel_rl": "missing",
+   "log_susp_travel_rr": "missing",
+   "sclu_yaw_rate": "missing"
+  }
+ },
+ "failure_diagnosis": {
+  "failed_step": "prepare_vehicle_state (Module 1 vehicle state)",
+  "app_message": "Required channels missing or failed (prepare_vehicle_state returned None)",
+  "required_channels_absent": [
+   "sclu_yaw_rate"
+  ],
+  "blocked_steps": [
+   "vehicle state",
+   "fit L tyre curve + D4-L gate",
+   "EKF observer + NIS gate",
+   "slip angles / lateral forces",
+   "CS estimate",
+   "yaw-moment stability",
+   "vertical loads",
+   "corner summaries + verdicts",
+   "floor events",
+   "setup engine (data + engineer layer)"
+  ],
+  "steps_completed": {
+   "parse": true,
+   "laps": 21,
+   "corners_detected": 342
+  },
+  "whitelisted_channels_missing_or_failed": {
+   "log_dms_dam_fl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_dms_dam_fr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_dms_dam_rl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_dms_dam_rr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_gps_lat": {
+    "quality": "missing",
+    "role": "soft",
+    "consumer_note": "LIVE, named consumers (not the shelved GPS-heading arc -- see log_gps_course's own note): ui/views/outing_form.py:3342 `_update_corner_map_trace` (the Track Map tab -- \"Load a CSV to see the track map\" / \"No GPS data in this file.\"); modules/corner_analysis.py:867 `compute_stable_corner_positions` (renders corner-map markers immediately after parsing, before Analyse has run); modules/stability_analysis.py:297 `prepare_vehicle_state` feeds summarise_corners' apex_position_x_m/y_m (computed, but not currently read back by ui/ or core/ -- a smaller, separate dead sub-path within otherwise-live code, noted not acted on). Degrades the track-map visualisation only if missing."
+   },
+   "log_gps_lon": {
+    "quality": "missing",
+    "role": "soft",
+    "consumer_note": "see log_gps_lat -- read together at every one of the same call sites, for the same track-map/geo projection."
+   },
+   "log_gps_speed": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_pbrake_f": {
+    "quality": "missing",
+    "role": "soft",
+    "consumer_note": "state channel (stability_analysis.py), front-axle input to modules/longitudinal_forces.py's Fx/slip-ratio split."
+   },
+   "log_pbrake_r": {
+    "quality": "missing",
+    "role": "soft",
+    "consumer_note": "rear-axle input to the same Fx/slip-ratio split. **Both front AND rear are needed** -- the Paul Ricard snippet included only the front; rear-axle longitudinal force/kappa silently loses accuracy without the rear channel, with no error shown."
+   },
+   "log_rideheight_fl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_rideheight_fr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_rideheight_rl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_rideheight_rr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_susp_travel_fl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_susp_travel_fr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_susp_travel_rl": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "log_susp_travel_rr": {
+    "quality": "missing",
+    "role": null,
+    "consumer_note": null
+   },
+   "sclu_yaw_rate": {
+    "quality": "missing",
+    "role": "hard",
+    "consumer_note": "core input to sideslip estimation and Module 5 (yaw moment stability)."
+   }
+  },
+  "raw_export_channel_count": 1073,
+  "raw_export_names_containing_yaw": [
+   "a_yaw_theo",
+   "a_yaw_velocity"
+  ]
+ }
+}

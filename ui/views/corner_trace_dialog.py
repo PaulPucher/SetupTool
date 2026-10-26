@@ -359,7 +359,7 @@ class _TraceDialogBase(QDialog):
         for i, (label, key) in enumerate(self.panel_titles):
             is_last = (i == len(self.panel_titles) - 1)
             plot = self.pg_layout.addPlot()
-            plot.setLabel('left', label, color='#888', size='8pt')
+            plot.setLabel('left', label, color=TEXT_MUTED, size='8pt')
             plot.showGrid(x=True, y=True, alpha=0.15)
             plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
             if first_plot is None:
@@ -367,7 +367,7 @@ class _TraceDialogBase(QDialog):
             else:
                 plot.setXLink(first_plot)
             if is_last:
-                plot.getAxis('bottom').setLabel('Track position s (m)', color='#888', size='8pt')
+                plot.getAxis('bottom').setLabel('Track position s (m)', color=TEXT_MUTED, size='8pt')
             else:
                 plot.getAxis('bottom').setStyle(showValues=False)
             # one legend per plot (_style_new_legend)
@@ -396,7 +396,7 @@ class _TraceDialogBase(QDialog):
             last = (i == len(keys) - 1)
             axis = plot.getAxis('bottom')
             axis.setStyle(showValues=last)
-            axis.setLabel('Track position s (m)', color='#888', size='8pt')
+            axis.setLabel('Track position s (m)', color=TEXT_MUTED, size='8pt')
             axis.showLabel(last)
             context = key in self.CONTEXT_PANEL_KEYS
             ci.layout.setRowStretchFactor(i, 1 if context else 3)
@@ -663,7 +663,7 @@ class CornerTraceDialog(_TraceDialogBase):
             plot = self.tyre_pg_layout.addPlot(row=1, col=col)
             plot.setTitle(title, color=TEXT_MUTED, size='9pt')
             # left label set per render: Fy / Fz or Fy in N (_tyre_curve_basis)
-            plot.setLabel('bottom', 'Slip angle (deg)', color='#888', size='8pt')
+            plot.setLabel('bottom', 'Slip angle (deg)', color=TEXT_MUTED, size='8pt')
             plot.showGrid(x=True, y=True, alpha=0.15)
             # no equal-axis scaling. Legend outside the plot: standalone
             # LegendItem in its own row, filled by addItem()
@@ -811,7 +811,7 @@ class CornerTraceDialog(_TraceDialogBase):
             return
         self.tyre_legend_label.setText(TYRE_CURVE_LEGEND_TEXT)
         for plot in self.tyre_plots.values():
-            plot.setLabel('left', basis["y_label"], color='#888', size='8pt')
+            plot.setLabel('left', basis["y_label"], color=TEXT_MUTED, size='8pt')
 
         def _alpha_brush(color, alpha_frac):
             qcolor = pg.mkColor(color)

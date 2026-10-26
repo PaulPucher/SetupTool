@@ -1,0 +1,338 @@
+{
+ "dev": {
+  "nbr_o05_mla": {
+   "ratio": 1.1595323710516576,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2143,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 5 MLA"
+  },
+  "nbr_o10_jdr": {
+   "ratio": 1.2213598302198594,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2294,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 10 JDR"
+  },
+  "nbr_o20_jst": {
+   "ratio": 1.1182456548106734,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1734,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 20 JST"
+  },
+  "nbr_o29_jst": {
+   "ratio": 1.1380086212145046,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2721,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 29 JST (NBR_Sturm_Solution copy)"
+  },
+  "nbr_o46_jst": {
+   "ratio": 1.1250831039498101,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1876,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 46 JST"
+  },
+  "nbr_o53_mla": {
+   "ratio": 1.1114548883504383,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 3257,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 53 MLA"
+  },
+  "nbr_o54_cdr": {
+   "ratio": 1.1228060836944944,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1336,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 54 CDR"
+  },
+  "nbr_o59_mla": {
+   "ratio": 1.1000212259582274,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 5278,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 59 MLA"
+  },
+  "nbr_o61_jdr": {
+   "ratio": 1.1530214337810498,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1843,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 61 JDR"
+  },
+  "nbr_o63_cdr": {
+   "ratio": 1.0916729827716651,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 5574,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR outing 63 CDR"
+  },
+  "nbr_qp_cdr": {
+   "ratio": 1.1332692221425311,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2001,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR qualifying CDR (outing 69)"
+  },
+  "nbr_qp_mla": {
+   "ratio": 1.1005904313502293,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1941,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "NBR qualifying MLA (outing 70)"
+  },
+  "pr_o25_us_v1": {
+   "ratio": 1.1288693241256664,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1804,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": null,
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "Le Castellet outing 25, MLA-SE07_US-v1"
+  },
+  "pr_o32_us_v2": {
+   "ratio": 1.2969505131753878,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2122,
+   "reason": null,
+   "mass_kg": 1356.0,
+   "event_zero": null,
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ],
+   "label": "Le Castellet outing 32, MLA-SE07_US-v2"
+  }
+ },
+ "labelled": {
+  "Labeled NBR #1 Joel Problem (outing 11)": {
+   "ratio": 1.0516170337365718,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1875,
+   "reason": null,
+   "mass_kg": 1404.9,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled NBR #2 Joel solution (outing 12)": {
+   "ratio": 1.0983982421288834,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2721,
+   "reason": null,
+   "mass_kg": 1404.9,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled NBR #3 CDR quali (outing 15)": {
+   "ratio": 1.0938238061251846,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2001,
+   "reason": null,
+   "mass_kg": 1404.9,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled NBR #4 Manu quali (outing 16)": {
+   "ratio": 1.0622824577627668,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1941,
+   "reason": null,
+   "mass_kg": 1404.9,
+   "event_zero": "NBR_221",
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled PRC #1 MLA-longrun (outing 9)": {
+   "status": "no vehicle state (required channel missing)"
+  },
+  "Labeled PRC #2 JST-longrun (outing 10)": {
+   "ratio": 0.08108200552844042,
+   "f_min": 0.8,
+   "passed": false,
+   "n_straight": 1916,
+   "reason": "straight-line damper total 0.08 x static weight, below 0.8 -- damper path rejected, static split used (gauge zero reference suspect)",
+   "mass_kg": 1403.0,
+   "event_zero": null,
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled PRC #3 MLA understeer (outing 13)": {
+   "ratio": 1.091052604072989,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 1804,
+   "reason": null,
+   "mass_kg": 1403.0,
+   "event_zero": null,
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  },
+  "Labeled PRC #4 MLA US (outing 14)": {
+   "ratio": 1.249584265927118,
+   "f_min": 0.8,
+   "passed": true,
+   "n_straight": 2122,
+   "reason": null,
+   "mass_kg": 1407.4,
+   "event_zero": null,
+   "valid_corners": [
+    "fl",
+    "fr",
+    "rl",
+    "rr"
+   ]
+  }
+ }
+}

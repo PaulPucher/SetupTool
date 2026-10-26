@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QSize
 from ui.views.weekends import WeekendsView
 from ui.views.drivers import DriversView
 from ui.views.settings_view import SettingsView
+from ui.style import TEXT_DIM
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
             left_logo.setPixmap(left_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
         else:
             left_logo.setText("[ logo ]")
-            left_logo.setStyleSheet("color: #333; font-size: 11px;")
+            left_logo.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
 
         title = QLabel("SetupTool")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
             right_logo.setPixmap(right_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
         else:
             right_logo.setText("[ logo ]")
-            right_logo.setStyleSheet("color: #333; font-size: 11px;")
+            right_logo.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
 
         layout.addWidget(left_logo)
         layout.addWidget(title)

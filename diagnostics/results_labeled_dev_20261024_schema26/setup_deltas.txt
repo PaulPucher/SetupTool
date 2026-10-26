@@ -1,0 +1,38 @@
+SETUP-SHEET DELTAS, consecutive outings per weekend (by outing number), old -> new
+
+Labeled PRC
+  #1 MLA-longrun -> #2 JST-longrun: 6 field(s) changed
+    car.arb_front_mount: 'P0' -> 'P2'
+    car.corner_weight_fl: 307.1 -> 308.2
+    car.corner_weight_fr: 308.6 -> 307.5
+    car.corner_weight_rl: 392.7 -> 393.0
+    car.corner_weight_rr: 395.5 -> 394.4
+    car.total_weight: 1403.9 -> 1403.0
+  #2 JST-longrun -> #3 MLA understeer: 0 field(s) changed
+  #3 MLA understeer -> #4 MLA US: 8 field(s) changed
+    car.corner_weight_fl: 308.2 -> 310.9
+    car.corner_weight_fr: 307.5 -> 308.3
+    car.corner_weight_rl: 393.0 -> 390.8
+    car.corner_weight_rr: 394.4 -> 397.4
+    car.cross_percentage: 49.9 -> 49.7
+    car.notes: '' -> 'car is understeery and lacks rotation. Setup changes were stiffer rear arb and damping unkown'
+    car.splitter_points: [None, None, None, None, None] -> [None, None, None, None, 82.8]
+    car.total_weight: 1403.0 -> 1407.4
+
+Labeled NBR
+  #1 Joel Problem -> #2 Joel solution: 3 field(s) changed
+    front_left.camber: -3.6 -> -3.5
+    rear_left.springs: 240.0 -> 260.0
+    rear_right.springs: 240.0 -> 260.0
+  #2 Joel solution -> #3 CDR quali: 2 field(s) changed
+    car.differential_position: 1.0 -> 80.0
+    car.differential_preload: 80.0 -> 1.0
+  #3 CDR quali -> #4 Manu quali: 7 field(s) changed
+    car.arb_front_mount: 'P0' -> 'P2'
+    car.differential_position: 80.0 -> 1.0
+    car.differential_preload: 1.0 -> 80.0
+    rear_left.ride_height_aero: 64.0 -> 134.0
+    rear_left.ride_height_fia: 134.0 -> 64.0
+    rear_right.ride_height_aero: 64.0 -> 134.0
+    rear_right.ride_height_fia: 134.0 -> 64.0
+

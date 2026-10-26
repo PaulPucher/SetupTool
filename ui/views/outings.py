@@ -12,6 +12,7 @@ from models.outing import Outing
 from models.raceweekend import RaceWeekend
 from ui.views.weekend_dialog import WeekendDialog
 from ui.views.outing_form import OutingForm
+from ui.style import PANEL_ALT, TEXT_MUTED
 
 
 class OutingsView(QWidget):
@@ -46,7 +47,7 @@ class OutingsView(QWidget):
 
         btn_back = QPushButton("< Back")
         btn_back.setFixedWidth(80)
-        btn_back.setStyleSheet("background-color: #252525; color: #888;")
+        btn_back.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED};")
         btn_back.clicked.connect(self.on_back)
 
         self.title = QLabel(f"{self.weekend.track} - {self.weekend.series} {self.weekend.year}")
@@ -54,7 +55,7 @@ class OutingsView(QWidget):
 
         btn_edit = QPushButton("Edit")
         btn_edit.setFixedWidth(80)
-        btn_edit.setStyleSheet("background-color: #252525; color: #888;")
+        btn_edit.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED};")
         btn_edit.clicked.connect(self._open_edit_dialog)
 
         btn_new = QPushButton("+ New")

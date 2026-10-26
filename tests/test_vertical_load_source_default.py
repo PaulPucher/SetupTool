@@ -72,10 +72,14 @@ def test_default_resolves_to_measured_cascade_with_real_channels():
     # out the hard way (every corner fell to static_fallback, not damper).
     wobble = 5.0 * np.sin(np.linspace(0, 6.0, n))
     travel = {c: wobble.copy() for c in ("fl", "fr", "rl", "rr")}
-    force = {"fl": 3000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
-             "fr": 3000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
-             "rl": 4000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
-             "rr": 4000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n))}
+    # pushrod levels of a real export (Le Castellet 25 file means about
+    # 4.4-6.7 kN): the straight-line total must clear the damper-path
+    # weight check (DEV-4, 2026-10-24); the earlier 3 / 4 kN summed to about
+    # 0.75 x the config weight and is now rejected, correctly
+    force = {"fl": 5000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
+             "fr": 5000.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
+             "rl": 6500.0 + 200.0 * np.sin(np.linspace(0, 4.0, n)),
+             "rr": 6500.0 + 200.0 * np.sin(np.linspace(0, 4.0, n))}
     channels = {}
     for c in ("fl", "fr", "rl", "rr"):
         channels[f"log_dms_dam_{c}"] = _channel(state["time"], force[c], unit_raw="N")

@@ -777,40 +777,6 @@ def candidate_line(c, engineer=False):
     return " | ".join(str(p) for p in parts)
 
 
-def corner_lines(corner, engineer=False):
-    """(header, [recommended line, alternative lines..., at-limit lines])."""
-    syms = ", ".join(f"{s['symptom']} @ {_PHASE_SHORT[s['phase']]} {s['laps']}/{corner.get('n_laps', 0)}"
-                     for s in corner.get("symptoms", []))
-    head = f"C{corner['corner']} ({corner.get('speed_class') or 'speed ?'})"
-    if corner.get("low_priority"):
-        head += " low priority"
-    if syms:
-        head += f" -- {syms}"
-    lines = []
-    if corner.get("recommended"):
-        # a diagnosis: the corner's best lever; the setup decision itself is
-        # the session recommendation
-        lines.append("candidate: " + candidate_line(corner["recommended"], engineer))
-    lines += ["  alternative: " + candidate_line(a, engineer) for a in corner.get("alternatives", [])]
-    lines += ["  at limit: " + change_text(a) for a in corner.get("at_limit", [])]
-    if not lines:
-        lines.append("no mechanical lever in the mechanism table for this symptom, phase and speed class")
-    if corner.get("cockpit"):
-        lines.append("driver can also: " + candidate_line(corner["cockpit"], engineer))
-    return head, lines
-
-
-def session_line(session):
-    s = session["shares"]
-    txt = ", ".join(f"{k} {v['corners']}/{session['n_corners']}" for k, v in s.items())
-    tail = session["note"] if session["threshold"] is None else (
-        "pattern: " + (", ".join(session["pattern"]) or "none"))
-    cells = session.get("cells") or {}
-    lap_txt = ", ".join(f"{k} {v['k']}/{v['n']}" for k, v in cells.items() if v["n"])
-    lap_txt = f" Single-lap cells (no repetition rule): {lap_txt}." if lap_txt else ""
-    return f"Corners with a counted symptom: {txt}.{lap_txt} {tail}"
-
-
 def _vote_text(v, engineer):
     t = f"C{v['corner']} {_SYMPTOM_WORD[v['symptom']]} @ {_PHASE_SHORT[v['phase']]} {v['weight']:.2f}"
     if v.get("driver_only"):
@@ -830,8 +796,9 @@ def option_line(o):
     return " | ".join(str(p) for p in parts)
 
 
-def session_recommendation_lines(rec, engineer=False):
-    """(header, lines) of the session setup recommendation box."""
+def session_details(rec, engineer=False):
+    """Full session vote for the box details: every option with its from ->
+    to, effort, mechanism, sources and the vote numbers."""
     def block(prefix, o):
         return [prefix + option_line(o),
                 "    supporting: " + (", ".join(_vote_text(v, engineer) for v in o["supporting"]) or "none"),
@@ -853,4 +820,203 @@ def session_recommendation_lines(rec, engineer=False):
         lines.append("  not voting: " + ", ".join(
             f"C{x['corner']} {_SYMPTOM_WORD[x['symptom']]} @ {_PHASE_SHORT[x['phase']]}"
             + (f" {x['option']}" if x["option"] else "") + f" ({x['reason']})" for x in rec["excluded"]))
-    return "Session setup recommendation (one change for the whole lap)", lines
+    return lines
+
+
+def corner_details(corner, engineer=False):
+    """Full candidate lines of one corner for the box details."""
+    lines = []
+    if corner.get("recommended"):
+        lines.append("candidate: " + candidate_line(corner["recommended"], engineer))
+    lines += ["alternative: " + candidate_line(a, engineer) for a in corner.get("alternatives", [])]
+    lines += ["at limit: " + change_text(a) for a in corner.get("at_limit", [])]
+    if not lines:
+        lines.append("no mechanical lever in the mechanism table for this symptom, phase and speed class")
+    if corner.get("cockpit"):
+        lines.append("driver can also: " + candidate_line(corner["cockpit"], engineer))
+    return lines
+
+
+# Panel text (UI-1, author 2026-10-24): engineer-style short lines; the
+# sources, vote numbers, mechanism ids and effort classes stay in the details
+_LEVER_SHORT = {
+    ("arb_fl", "arb_fr"): "front ARB", ("arb_rl", "arb_rr"): "rear ARB",
+    ("springs_front",): "front springs", ("springs_rear",): "rear springs",
+    ("damper_bump_ls_fl", "damper_bump_ls_fr"): "front LS bump",
+    ("damper_bump_ls_rl", "damper_bump_ls_rr"): "rear LS bump",
+    ("damper_rebound_ls_fl", "damper_rebound_ls_fr"): "front LS rebound",
+    ("damper_rebound_ls_rl", "damper_rebound_ls_rr"): "rear LS rebound",
+    ("wing_position",): "wing", ("splitter_offset",): "splitter",
+    ("ride_height_front",): "front ride height", ("ride_height_rear",): "rear ride height",
+    ("camber_fl", "camber_fr"): "front camber", ("camber_rl", "camber_rr"): "rear camber",
+    ("toe_front",): "front toe", ("toe_rear",): "rear toe",
+    ("diff_position",): "diff", ("tc_lat",): "TC lat", ("tc_lon",): "TC lon",
+    ("brake_bias",): "brake bias", ("abs_position",): "ABS map",
+}
+_DIRECTION_SHORT = {"more front": "forward", "more rear": "rearward",
+                    "toward the rear-axle-stable map": "toward the rear-stable map",
+                    "more negative camber": "more negative", "less negative camber": "less negative"}
+_PHASE_WORD = {"entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
+               "exit_4": "exit", "exit_5": "exit"}
+
+
+def lever_name(levers):
+    return _LEVER_SHORT.get(tuple(levers), "+".join(levers))
+
+
+def lever_text(c, capital=False, step_count=False):
+    # "rear ARB softer", "diff +1", "brake bias forward"; the step count
+    # ("(1 step)") only where the change itself is the headline
+    name, d, step = lever_name(c["levers"]), c["direction"], c["change"]["step"]
+    if d in ("increase", "decrease"):
+        txt = f"{name} {'+' if d == 'increase' else '-'}{step:g}"
+    else:
+        txt = f"{name} {_DIRECTION_SHORT.get(d, d)}"
+        if step_count and c["change"]["sign"] is not None and step is not None:
+            txt += f" ({step:g} step{'s' if step != 1 else ''})" if float(step).is_integer() else f" ({step:g})"
+    return txt[0].upper() + txt[1:] if capital else txt
+
+
+def values_text(c):
+    # from -> to where the sheet (or a logged channel) gives both, once per
+    # distinct pair (left and right usually agree)
+    pairs = []
+    for k in c["change"]["keys"]:
+        if k["from"] is not None and k["to"] is not None:
+            t = f"{k['from']} -> {k['to']}"
+            if t not in pairs:
+                pairs.append(t)
+    return ", ".join(pairs)
+
+
+def _phases(phases):
+    out = []
+    for p in sorted(phases, key=PHASE_KEYS.index):
+        if _PHASE_WORD[p] not in out:
+            out.append(_PHASE_WORD[p])
+    return ", ".join(out)
+
+
+def why_text(votes):
+    """'unstable yaw - C8 turn-in, apex; C11 apex, exit - 6/6 laps': per
+    symptom the corners and phases; the lap count once when all agree."""
+    by_sym = {}
+    for v in votes:
+        by_sym.setdefault(v["symptom"], {}).setdefault(v["corner"], []).append(v)
+    parts = []
+    for sym, corners in by_sym.items():
+        laps = {(v["laps"], v["n_laps"]) for vs in corners.values() for v in vs if not v["driver_only"]}
+        once = len(laps) == 1
+        cs = []
+        for cid, vs in corners.items():
+            t = f"C{cid} {_phases({v['phase'] for v in vs})}"
+            if vs[0]["driver_only"]:
+                t += f" (driver {vs[0].get('feedback', 0):+g})"
+            elif not once:
+                t += " " + ", ".join(sorted({f"{v['laps']}/{v['n_laps']}" for v in vs if not v["driver_only"]}))
+            cs.append(t)
+        part = f"{_SYMPTOM_WORD[sym]} - " + "; ".join(cs)
+        if once:
+            k, n = next(iter(laps))
+            part += f" - {k}/{n} laps"
+        parts.append(part)
+    return " | ".join(parts)
+
+
+def session_summary(rec, engineer=False):
+    """(headline, why, against or None, alternatives or None, details lines)."""
+    o = rec["recommended"]
+    against = None
+    if o:
+        head = f"{lever_text(o, capital=True, step_count=True)} | {values_text(o) or '-'}"
+        why = "Why: " + why_text(o["supporting"])
+        if o["opposing"]:
+            against = "Against: " + why_text(o["opposing"])
+    elif rec["equivalent_options"]:
+        head = "Tie, no winner: " + " / ".join(lever_text(x) for x in rec["equivalent_options"])
+        seen, votes = set(), []
+        for x in rec["equivalent_options"]:
+            for v in x["supporting"]:
+                key = (v["corner"], v["symptom"], v["phase"])
+                if key not in seen:
+                    seen.add(key)
+                    votes.append(v)
+        why = "Why: " + why_text(votes)
+    else:
+        head = "No setup change"
+        why = "No repeated symptom" if not rec["votes"] else "No lever with net support"
+    alts = ("Alternatives: " + ", ".join(lever_text(x) for x in rec["alternatives"])) if rec["alternatives"] else None
+    return head, why, against, alts, session_details(rec, engineer)
+
+
+def corner_summary(corner, engineer=False):
+    """('C8 - high - unstable yaw - turn-in, apex - 6/6 -> rear ARB softer
+    (1 step) | driver: brake bias forward', 'alt: ...' or None, details)."""
+    by_sym = {}
+    for s in corner.get("symptoms", []):
+        by_sym.setdefault(s["symptom"], []).append(s)
+    n = corner.get("n_laps", 0)
+    syms = []
+    for sym, ss in by_sym.items():
+        laps = sorted({s["laps"] for s in ss})
+        lap_txt = f"{laps[0]}/{n}" if len(laps) == 1 else ", ".join(f"{k}/{n}" for k in laps)
+        syms.append(f"{_SYMPTOM_WORD[sym]} - {_phases({s['phase'] for s in ss})} - {lap_txt}")
+    line = f"C{corner['corner']} - {corner.get('speed_class') or '-'} - " + "; ".join(syms)
+    if corner.get("low_priority"):
+        line += " (low priority)"
+    rec = corner.get("recommended")
+    if rec:
+        vals = values_text(rec)
+        line += f" -> {lever_text(rec)}" + (f" {vals}" if vals else "")
+    else:
+        line += " -> no mechanical lever"
+    if corner.get("cockpit"):
+        line += f" | driver: {lever_text(corner['cockpit'])}"
+    alts = corner.get("alternatives") or []
+    alt = ("alt: " + ", ".join(lever_text(a) for a in alts)) if alts else None
+    return line, alt, corner_details(corner, engineer)
+
+
+def repeated_symptoms_line(session):
+    n = session["n_corners"]
+    parts = [f"{sym} {v['corners']}/{n}" for sym, v in session["shares"].items() if v["corners"]]
+    return "Repeated symptoms: " + (", ".join(parts) + " corners" if parts else "none")
+
+
+def feedback_entered(feedback_data):
+    # any non-zero rating in the feedback table
+    for row in (feedback_data or {}).get("corners") or []:
+        if any(isinstance(v, (int, float)) and v for v in row.values()):
+            return True
+    return False
+
+
+def _rec_key(c):
+    return (tuple(c["levers"]), c["direction"]) if c else None
+
+
+def engineer_lines(data, eng):
+    """Only what the feedback changes against the data layer, plus the agree
+    / conflict flags of the corners behind the session recommendation."""
+    lines = []
+    d_head = session_summary(data["session_recommendation"])[0]
+    e_rec = eng["session_recommendation"]
+    e_head = session_summary(e_rec)[0]
+    if e_head != d_head:
+        lines.append(f"Session: {e_head} (data: {d_head})")
+    top = e_rec["recommended"] or (e_rec["equivalent_options"] or [None])[0]
+    if top:
+        flags = [f"C{v['corner']} {_PHASE_WORD[v['phase']]} {v['agreement']}" for v in top["supporting"]
+                 if v.get("agreement") in ("agree", "conflict")]
+        if flags:
+            lines.append("Feedback: " + ", ".join(flags))
+    by_corner = {c["corner"]: c for c in data["corners"]}
+    for c in eng["corners"]:
+        a, b = (by_corner.get(c["corner"]) or {}).get("recommended"), c.get("recommended")
+        if _rec_key(a) != _rec_key(b):
+            lines.append(f"C{c['corner']}: {lever_text(b) if b else 'no lever'} (data: {lever_text(a) if a else 'no lever'})")
+    for d in eng.get("driver_only", []):
+        r = d.get("recommended")
+        lines.append(f"C{d['corner']} {_PHASE_WORD[d['phase']]} - driver {d['feedback']:+g}, no data -> "
+                     f"{lever_text(r) if r else 'no lever'}")
+    return lines or ["No difference to the data layer"]

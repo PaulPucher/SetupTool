@@ -49,8 +49,12 @@ def build_identity(schema_version, csv_path, accuracy_cap, resolved_vehicle_snap
 
 
 def _first_mismatch(stored_identity, expected_identity):
+    from modules.data_paths import path_key
     for field in IDENTITY_FIELDS:
         stored, expected = stored_identity.get(field), expected_identity.get(field)
+        if field == "csv_path":
+            # same export under another machine's data root = same input
+            stored, expected = path_key(stored), path_key(expected)
         if stored != expected:
             # name the input itself, so the miss reason says which setting moved
             if field == "estimator_settings" and isinstance(stored, dict) and isinstance(expected, dict):

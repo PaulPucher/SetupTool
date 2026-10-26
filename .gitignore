@@ -72,3 +72,7 @@ handover_*
 diagnostics/results_*/cache/
 
 diagnostics/results_*/cache/
+
+# Thesis figure export: weekend codes and label maps tie neutral labels to
+# driver / outing names -- local only (anonymisation rule 2026-10-26)
+tools/thesis_figures/local/

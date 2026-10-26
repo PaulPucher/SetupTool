@@ -2,9 +2,9 @@
 
 ### NOW
 
-Rewritten 2026-10-23d (after work order 4h, branch new-laps). The header,
+Rewritten 2026-10-24a (after work order UI-1, branch new-laps). The header,
 REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
-"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23d STATUS rewrite)"; older NOW items
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-24a STATUS rewrite)"; older NOW items
 remain under the earlier superseded sections. The rest of this block is
 unchanged.
 
@@ -24,57 +24,149 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD 504b4ed ("Engine 4f/4g: ride heights as aero levers ...,
-  schema 24"), 4f / 4g committed and pushed.
-  NOT committed since 504b4ed: work order 4h (session setup
-  recommendation, limiting-end tie-break, mechanisms.json axle field,
-  config setup_engine.session_vote, UI session box, schema 25, goldens
-  regenerated), the 4h follow-up rulings b / e / f (goldens regenerated
-  again), diagnostics/inspect_engine_4f.py mode session +
-  results_engine_4f_20261023/ post4h.pkl, post4h2.pkl, session_post4h.txt,
-  session_post4h2.txt, compare_post4g_post4h.txt,
-  compare_post4h_post4h2.txt, these records. Commit point = this stop.
-- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (24 -> 25 on
-  2026-10-23: session recommendation in the engine payload, axle field,
-  limiting-end tie-break). Chain values unchanged since schema 19.
+  new-laps HEAD fa7ffb8 ("Engine 4h: session-level setup recommendation
+  ..., schema 25"), 4h committed.
+  NOT committed since fa7ffb8: work order UI-1 (display only + caching
+  fix): modules/data_paths.py + config/data_roots.json (saved paths across
+  machines), outing_form / pipeline_sidecar / thesis_data path lookups,
+  cache persists the file path, compact setup panel text (setup_engine
+  display helpers), contrast constants in ui/style.py, lap-grid cells with
+  L/M/H badge, floor events and accuracy levels out of the main view,
+  tests test_data_paths.py and test_style_contrast.py.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (unchanged by
+  UI-1: no computed value or payload changes). Chain values unchanged
+  since schema 19.
 - CHAIN: unchanged (see the superseded block of 2026-10-22c).
 - CLASSIFIER (D2): margins front 0.062 / rear 0.076.
-- RECOMMENDATION (DECISIONS 'Work order 4h rulings'): per session ONE
-  mechanical setup change from the corner vote (net support = support -
-  opposition) + up to 2 alternatives, or equivalent options on an exact
-  tie; per corner the diagnosis (candidate levers + cockpit line). 14
-  sessions: rear ARB softer in NBR 29 (net 8.00), 46, 53, 54, 63;
-  equivalent options in NBR 20, NBR qualifying CDR 69, Le Castellet 25;
-  none in the 6 sessions without a counted symptom (Le Castellet 32
-  among them). Per corner 11 of 12 INST lines front ARB stiffer -> rear
-  ARB softer.
+- RECOMMENDATION: unchanged since 4h (DECISIONS 'Work order 4h rulings'
+  and '4h follow-up rulings').
 - DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
   data package (pending).
-- TESTS: full suite (2026-10-23, schema 25) 406 passed, 1 xfailed, 0 failed (33:09); the xfail is the known single-sample slip-angle window.
-  test_stability.py NBR 29 and Le Castellet 32 match the regenerated
-  goldens (chain, gate, summaries, floor events, verdicts bit-identical to
-  schema 24; recommendations and _meta differ by design).
-- diagnostics/: 29 scripts (unchanged; inspect_engine_4f gains mode session).
+- TESTS: last full suite 2026-10-23 (schema 25) 406 passed, 1 xfailed.
+  UI-1 (no full suite, author): affected tests 123 passed + contrast /
+  data-path tests; test_stability.py NBR 29 matches the golden.
+- diagnostics/: 32 scripts (+ export_labeled_dev.py DEV-1, inspect_mu_uncertainty.py DEV-3,
+  inspect_wheel_load_plausibility.py DEV-4; uncommitted).
+- SCHEMA 27 (DEV-3 26 + DEV-4 27, uncommitted): mu ceiling edge zone,
+  damper-path plausibility check; see RULED / DONE.
+- TESTS: full suite 2026-10-24 (schema 27) 425 passed, 1 xfailed.
 
 RULED / DONE SINCE THE LAST REWRITE
-- Work order 4h (author EXECUTE 2026-10-23): done. Records: DECISIONS 'Work
-  order 4h rulings' (incl. D8 amendment: session recommendation),
-  thesis_notes 'Work order 4h', PRODUCTION.md 10.
+- 4h and its follow-up rulings: committed (fa7ffb8).
+- Work order UI-1 (author EXECUTE 2026-10-24): done, uncommitted.
+  Caching root cause: the outing stores the absolute export path
+  (D:/Data_Bachelorthesis on the laptop, H:/Data_Bachelorthesis on the
+  temporary machine), so on the other machine _auto_load_csv found no file
+  and, once the file was picked by hand, the DB cache and the sidecar
+  missed on the csv_path string; the path also reached the DB only on
+  Save. Fix: data roots in config/data_roots.json, saved paths resolved
+  under the other roots, caches compare the root-relative path, the cache
+  write persists the path. Nothing computed changes.
+- Work order DEV-1 (author EXECUTE 2026-10-24, read-only): labelled
+  development set export done, uncommitted. diagnostics/
+  export_labeled_dev.py -> diagnostics/results_labeled_dev_20261024/
+  (8 outing JSONs, index.json, setup_deltas.txt). Status: ok 11, 12, 15,
+  13, 14; degenerate 16 (front mu_demo 2.054 > 2.0, K 32.01 edge), 10
+  (sign check 0/14, K / mu outside on both axles, fz_ref front 841 N /
+  rear 2100 N); chain failed 9 (sclu_yaw_rate absent). No gate, bound or
+  config changed. Analysis of the files: review instance.
+- Work order DEV-2 (author EXECUTE 2026-10-24, read-only): done.
+  Outing 10 loads: damper gauges and travel zeroed against another
+  reference (raw stationary FL -697 N vs +4128 N on Le Castellet 25);
+  no PRC event zero, range gate passes; track + serial key cannot
+  separate the file (Metafile Version 24996 vs 25016 does). Outing 9:
+  a_yaw_velocity is not the yaw rate (r <= 0.19); a_yaw_theo tracks
+  sclu_yaw_rate (r 0.984-0.989, x6 deg/s per rpm, +0.5 deg/s, lag 0),
+  definition undocumented. Fixes PROPOSED, not applied (author ruling
+  pending). Record: thesis_notes "Two data problems in the labelled set".
+- Work order DEV-3 (author EXECUTE 2026-10-24): item 1 done, uncommitted,
+  schema 26 -- mu_demo in (2.0, 2.0975] marginal (config
+  tyre_fit_auto.mu_ceiling_edge_u 0.0975, inspect_mu_uncertainty.py);
+  ~~edge read as worded (2.0 + u), relative reading 2.195 OPEN.~~
+  [2026-10-24 DEV-4: relative, edge 2.0 x (1 + u) = 2.195; scales with the
+  assumed 1 m IMU offset.] Item 2
+  (corrected): dev-set comment convention recorded (DECISIONS
+  'Labelled development set', thesis_notes). Re-export:
+  results_labeled_dev_20261024_schema26 -- only status change: Manu quali
+  (outing 16) degenerate -> marginal (EKF, NIS pass 0.139; counted
+  symptoms none, was C3 / C10 INST on kinematic). 14 dev sessions: none
+  (mu_demo <= 1.939). Tests: test_tyre_fit_literature + schema integrity
+  32 passed; test_stability.py NBR 29: summaries / gate / events /
+  verdicts / recommendations match, fit_manifest differs only by the new
+  mu_ceiling_zone key -> golden regeneration needs the author's go.
+- Work order DEV-4 (author EXECUTE 2026-10-24), done, uncommitted,
+  schema 27: (1) mu edge relative, 2.0 x 1.0975 = 2.195, no status change
+  from it; (2) goldens regenerated, diffs only _meta, mu_ceiling_zone and
+  axle_load.damper_plausibility; (3) damper-path plausibility check
+  (wheel_loads.plausibility_min_static_fraction 0.8; dev 1.092-1.297,
+  labelled healthy 1.052-1.250, JST longrun 0.081 the only failure) ->
+  JST longrun on the static split, now marginal through the mu edge band
+  (mu 2.068 / 2.069), EKF, NIS pass; (4) a_yaw_theo alias not adopted,
+  open team question, MLA longrun not analysable; (5) export_labeled_dev
+  kept; (6) re-export results_labeled_dev_20261024_schema27. Full suite
+  425 passed, 1 xfailed. OPEN: mu edge band applied to a static-split
+  session (outside its derivation population).
+- Thesis figure export round 1 (author EXECUTE 2026-10-24, rulings 1-9),
+  done, uncommitted: tools/thesis_figures/ (common.py + fig_example_fit,
+  fig_k_sessions, fig_example_corner, fig_cs_distribution, README),
+  config/thesis_figures.json, tests/test_thesis_figures_smoke.py. Output
+  in ba-thesis/figures/data + plots. Acceptance on outing 12 (schema-27
+  payload re-analysed by the author): A and C deviation 0 against the
+  stored manifest and summaries and against the DEV-4 export. B and D run
+  on outings 11, 12, 15, 16, 13, 14 (all identity-valid). CS definition
+  note in thesis_notes. OPEN: example corner choice (C8 lap 105 has a
+  kerb strike at turn-in, nan bins 2698-2736 m); delta_f and a_y share a
+  panel with very different scales.
+  [2026-10-24 figure round 1 rulings: a_y in g in C panel 1; plotted
+  range = bracket plus all phase bounds (braking lay before the bracket);
+  find_example_corner.py added; candidates listed, none with a counted
+  US / INST on its lap (outing 12 C11 INST fails only the braking-length
+  criterion); preview C = outing 14 lap 53 C16; D caption counts and the
+  three causes of empty cells in thesis_notes. Author picks the corner.]
+  [2026-10-24 final rulings: example corner = outing 14 lap 53 C1; old C
+  files (o12 L105 C8, o14 L53 C16 preview) deleted from the thesis
+  folder; D drops phases that do not occur in a corner (no sample on any
+  lap) from the population, empty cells counted as (b) kerb/reset
+  excluded and (c) no CS value. NEXT (queued): results figure with
+  dMz/dbeta on outing 12 C11 (INST 6/6).]
+- OPEN (2026-10-26, figure round 2 proposal): stable_corner_id is per
+  session (NBR outing 15 shifted by one corner); feedback-to-corner
+  mapping by ID is exposed (no non-zero feedback stored yet). Record:
+  thesis_notes 'stable_corner_id is per session'. Also: thesis-folder
+  fig_k_sessions.csv carries outing names with driver names / nicknames
+  (anonymisation rule) -- to be replaced in the round-2 implementation.
+  [2026-10-26 round-2 rulings: corner-ID / feedback risk = record only,
+  no code (item 9). Observer alpha vs fitted range = open science point
+  for the review instance (thesis_notes 'Observer slip angles vs the
+  fitted range': 304 of 510 instances above the p99). Example-corner
+  candidates under the fit-range criterion: NBR 3 lap 277 C2, lap 278 C8,
+  lap 276 C8 -- author picks; outing 14 lap 53 C1 fails it.]
+- Thesis figure export round 2 (author EXECUTE 2026-10-26), done,
+  uncommitted: Part 1 fixes 1-8 (800 points / series, CS symbol in the
+  helper, name guard + neutral labels '<code> <n>' from local/labels.json,
+  driver codes D1-Dn, label maps in git-ignored tools/thesis_figures/local/,
+  legends below the panels, C in five panels, information band removed,
+  fit-range criterion in the finder, stable names, old ID-suffixed files
+  deleted); new E1-E6 (tab_sessions, tab_example_verdicts, fig_example_lap,
+  tab_observer_health, fig_verdict_repeatability, fig_balance_speed_class).
+  Acceptance: A exact 0 and C 0 against the stored payloads, name guard no
+  hit over figures/, compile check with the real class (textwidth 455 pt,
+  textheight 711 pt) clean, C height 347 pt < 0.9 textheight, smoke tests
+  21 passed / 1 skipped. Deviation: table .tex files hold the whole tabularx
+  environment (a body \input inside tabularx fails: Misplaced \noalign).
 
 NEXT
-1. Author: app check -- "Session setup recommendation" box on top of both
-   layer columns (accent border), per-corner "candidate:" diagnosis below.
-2. DONE 2026-10-23 (author follow-up rulings, DECISIONS '4h follow-up
-   rulings'): a, c, d, g, h accepted; b axle class before preference per
-   corner; e traction-limited diff votes excluded; f low-priority corners
-   do not vote. Verified: engine tests, test_stability NBR 29 + LC 32,
-   goldens regenerated (chain + verdicts identical); no full suite (the 4h
-   run counts for the commit, author).
-3. Author: commit of 4h.
-4. Carried: effort classes camber / springs vs Setup_change_overview; TC
+1. Author: app check of UI-1 -- reopen an outing saved on the other
+   machine (file found, cache hit, no re-run), setup panel (session box,
+   corner lines, details toggles, engineer column), contrast, lap-grid
+   cells and badges, floor-event line, method details toggle.
+2. Author: commit of UI-1.
+3. Carried: effort classes camber / springs vs Setup_change_overview; TC
    int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
    weekend-PDF comment; clean data package (D8 coding scheme first);
-   corner importance weighting (TE p. 254) not implemented (limitation).
+   corner importance weighting (TE p. 254) not implemented (limitation);
+   PRODUCTION.md 10 display wording to update once the UI-1 check passes
+   (PRODUCTION describes settled production only).
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -9275,6 +9367,86 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-24a STATUS rewrite)
+
+NOW (as written before the 2026-10-24a rewrite)
+
+Rewritten 2026-10-23d (after work order 4h, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-23d STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
+
+READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
+PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
+this block -- it holds the approved criteria, standing rulings, the tyre-
+model architecture and THE QUEUE; it supersedes the queue role of the
+EXPERIMENT PLAN.] This block -> EXPERIMENT PLAN (~~next section, the work
+queue~~ the post-meeting experiment records) -> WP-HARDEN (approved, deferred) -> DECISION LAYER SPEC (the
+governing design of the decision frame) -> BACKLOG -> PARKED (the
+consolidated list at its head is the one place parked items are
+tracked) -> PROCESS RULES -> ANCHORS. Everything from "STATUS HISTORY"
+down is record, not instruction: its "NOT committed", "NEXT" and
+"OPEN" lines describe the state when they were written.
+
+
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD 504b4ed ("Engine 4f/4g: ride heights as aero levers ...,
+  schema 24"), 4f / 4g committed and pushed.
+  NOT committed since 504b4ed: work order 4h (session setup
+  recommendation, limiting-end tie-break, mechanisms.json axle field,
+  config setup_engine.session_vote, UI session box, schema 25, goldens
+  regenerated), the 4h follow-up rulings b / e / f (goldens regenerated
+  again), diagnostics/inspect_engine_4f.py mode session +
+  results_engine_4f_20261023/ post4h.pkl, post4h2.pkl, session_post4h.txt,
+  session_post4h2.txt, compare_post4g_post4h.txt,
+  compare_post4h_post4h2.txt, these records. Commit point = this stop.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (24 -> 25 on
+  2026-10-23: session recommendation in the engine payload, axle field,
+  limiting-end tie-break). Chain values unchanged since schema 19.
+- CHAIN: unchanged (see the superseded block of 2026-10-22c).
+- CLASSIFIER (D2): margins front 0.062 / rear 0.076.
+- RECOMMENDATION (DECISIONS 'Work order 4h rulings'): per session ONE
+  mechanical setup change from the corner vote (net support = support -
+  opposition) + up to 2 alternatives, or equivalent options on an exact
+  tie; per corner the diagnosis (candidate levers + cockpit line). 14
+  sessions: rear ARB softer in NBR 29 (net 8.00), 46, 53, 54, 63;
+  equivalent options in NBR 20, NBR qualifying CDR 69, Le Castellet 25;
+  none in the 6 sessions without a counted symptom (Le Castellet 32
+  among them). Per corner 11 of 12 INST lines front ARB stiffer -> rear
+  ARB softer.
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- TESTS: full suite (2026-10-23, schema 25) 406 passed, 1 xfailed, 0 failed (33:09); the xfail is the known single-sample slip-angle window.
+  test_stability.py NBR 29 and Le Castellet 32 match the regenerated
+  goldens (chain, gate, summaries, floor events, verdicts bit-identical to
+  schema 24; recommendations and _meta differ by design).
+- diagnostics/: 29 scripts (unchanged; inspect_engine_4f gains mode session).
+
+RULED / DONE SINCE THE LAST REWRITE
+- Work order 4h (author EXECUTE 2026-10-23): done. Records: DECISIONS 'Work
+  order 4h rulings' (incl. D8 amendment: session recommendation),
+  thesis_notes 'Work order 4h', PRODUCTION.md 10.
+
+NEXT
+1. Author: app check -- "Session setup recommendation" box on top of both
+   layer columns (accent border), per-corner "candidate:" diagnosis below.
+2. DONE 2026-10-23 (author follow-up rulings, DECISIONS '4h follow-up
+   rulings'): a, c, d, g, h accepted; b axle class before preference per
+   corner; e traction-limited diff votes excluded; f low-priority corners
+   do not vote. Verified: engine tests, test_stability NBR 29 + LC 32,
+   goldens regenerated (chain + verdicts identical); no full suite (the 4h
+   run counts for the commit, author).
+3. Author: commit of 4h.
+4. Carried: effort classes camber / springs vs Setup_change_overview; TC
+   int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
+   weekend-PDF comment; clean data package (D8 coding scheme first);
+   corner importance weighting (TE p. 254) not implemented (limitation).
 
 ---
 

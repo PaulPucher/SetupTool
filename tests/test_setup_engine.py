@@ -9,7 +9,7 @@ import json
 import pytest
 
 from modules.setup_engine import (
-    _lever_change, _preference, _select, _data_rank_key, agreement, cell_supports, change_text, corner_lines,
+    _lever_change, _preference, _select, _data_rank_key, agreement, cell_supports, change_text, corner_summary,
     data_layer,
     engineer_layer, load_mechanisms, repeats, run, unsupported_preference_cells,
 )
@@ -289,8 +289,9 @@ def test_cockpit_line_on_nbr29():
     c8 = next(c for c in layer["corners"] if c["corner"] == 8)
     assert c8["cockpit"]["levers"] == ["brake_bias"] and c8["cockpit"]["direction"] == "more front"
     assert not set(c8["recommended"]["levers"]) & COCKPIT
-    _head, lines = corner_lines(c8)
-    assert lines[-1].startswith("driver can also: ") and "brake_bias more front" in lines[-1]
+    line, _alt, details = corner_summary(c8)
+    assert line.endswith("| driver: brake bias forward")
+    assert details[-1].startswith("driver can also: ") and "brake_bias more front" in details[-1]
 
 
 def test_front_ride_height_floor_only():
@@ -448,3 +449,36 @@ def test_low_priority_corner_does_not_vote():
     rec = layer["session_recommendation"]
     assert not any(v["corner"] == 8 for v in rec["votes"])
     assert {x["corner"] for x in rec["excluded"] if x["option"] is None} == {8}
+
+
+# UI-1: panel text -- short lines, numbers and sources in the details
+
+def test_session_box_text_on_nbr29():
+    from modules.setup_engine import session_summary
+    head, why, against, alts, details = session_summary(data_layer(_summaries(NBR29))["session_recommendation"])
+    assert head == "Rear ARB softer (1 step) | -"
+    assert why == "Why: unstable yaw - C8 turn-in, apex; C11 apex, exit - 6/6 laps"
+    assert against is None
+    assert alts == "Alternatives: rear springs softer, diff +1"
+    assert "net support 8.00" in details[0] and "MM p. 410" in details[0]
+
+
+def test_corner_line_on_nbr29():
+    c8 = next(c for c in data_layer(_summaries(NBR29))["corners"] if c["corner"] == 8)
+    line, alt, _details = corner_summary(c8)
+    assert line == ("C8 - high - unstable yaw - turn-in, apex - 6/6 -> rear ARB softer"
+                    " | driver: brake bias forward")
+    assert alt == "alt: rear LS bump softer, wing +1"
+
+
+def test_engineer_lines_list_differences_only():
+    from modules.setup_engine import engineer_lines, feedback_entered
+    summ = _summaries(NBR29)
+    plain = run(summ)
+    assert engineer_lines(plain["data_layer"], plain["engineer_layer"]) == ["No difference to the data layer"]
+    assert not feedback_entered({"corners": [{"e1": 0, "e2": 0}]}) and feedback_entered({"corners": [{"e1": 2}]})
+    rows = [{k: 0 for k in ("e1", "e2", "a3", "x4", "x5")} for _ in range(15)]
+    rows[0]["e2"] = -5
+    out = run(summ, feedback_data={"corners": rows})
+    lines = engineer_lines(out["data_layer"], out["engineer_layer"])
+    assert any(l.startswith("C1 turn-in - driver -5, no data -> ") for l in lines)

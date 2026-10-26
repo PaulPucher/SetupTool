@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QDate
 from models.base import Session
 from models.raceweekend import RaceWeekend
+from ui.style import BAD, PANEL_ALT, TEXT_MUTED
 
 
 class WeekendDialog(QDialog):
@@ -59,7 +60,7 @@ class WeekendDialog(QDialog):
         row_layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel(label_text)
         label.setFixedWidth(100)
-        label.setStyleSheet("color: #888;")
+        label.setStyleSheet(f"color: {TEXT_MUTED};")
         row_layout.addWidget(label)
         row_layout.addWidget(widget)
         return row
@@ -70,7 +71,7 @@ class WeekendDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         btn_cancel = QPushButton("Cancel")
-        btn_cancel.setStyleSheet("background-color: #252525; color: #888;")
+        btn_cancel.setStyleSheet(f"background-color: {PANEL_ALT}; color: {TEXT_MUTED};")
         btn_cancel.clicked.connect(self.reject)
 
         btn_save = QPushButton("Save")
@@ -78,7 +79,7 @@ class WeekendDialog(QDialog):
 
         if self.weekend:
             btn_delete = QPushButton("Delete")
-            btn_delete.setStyleSheet("background-color: #252525; color: #c0392b;")
+            btn_delete.setStyleSheet(f"background-color: {PANEL_ALT}; color: {BAD};")
             btn_delete.clicked.connect(self._delete)
             layout.addWidget(btn_delete)
 

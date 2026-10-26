@@ -1,0 +1,90 @@
+{
+ "_about": "DEV-1 labelled development set, index",
+ "_generated_at": "2026-10-24T10:47:35.888482",
+ "weekends": [
+  "Labeled PRC",
+  "Labeled NBR"
+ ],
+ "outings": [
+  {
+   "file": "Labeled_NBR_01_outing11.json",
+   "outing_id": 11,
+   "weekend": "Labeled NBR",
+   "number": 1,
+   "name": "Joel Problem",
+   "status": "ok",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled NBR #1 Joel Problem (Joel Sturm, outing 11): status ok; D4-L front K 26.23 in band mu 1.930, rear K 24.95 in band mu 1.530; NIS pass health 0.2274059368500662; laps 2 analysis of 4; counted symptoms none; session recommendation (data) No setup change"
+  },
+  {
+   "file": "Labeled_NBR_02_outing12.json",
+   "outing_id": 12,
+   "weekend": "Labeled NBR",
+   "number": 2,
+   "name": "Joel solution",
+   "status": "ok",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled NBR #2 Joel solution (Joel Sturm, outing 12): status ok; D4-L front K 25.76 in band mu 1.774, rear K 25.14 in band mu 1.566; NIS pass health 0.2098883006198347; laps 6 analysis of 8; counted symptoms C8 INST@entry_2_turnin 6/6, INST@apex_3 6/6; C11 INST@apex_3 6/6, INST@exit_4 6/6; session recommendation (data) Rear ARB softer (1 step) | 3.0 -> 2.0"
+  },
+  {
+   "file": "Labeled_NBR_03_outing15.json",
+   "outing_id": 15,
+   "weekend": "Labeled NBR",
+   "number": 3,
+   "name": "CDR quali",
+   "status": "ok",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled NBR #3 CDR quali (J\u00f6rg Dreisow, outing 15): status ok; D4-L front K 27.91 in band mu 1.975, rear K 22.77 in band mu 1.646; NIS pass health 0.18674496912053365; laps 6 analysis of 8; counted symptoms none; session recommendation (data) No setup change"
+  },
+  {
+   "file": "Labeled_NBR_04_outing16.json",
+   "outing_id": 16,
+   "weekend": "Labeled NBR",
+   "number": 4,
+   "name": "Manu quali",
+   "status": "degenerate",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled NBR #4 Manu quali (Manuel Lauk, outing 16): status degenerate; D4-L front K 32.01 edge mu 2.054, rear K 26.42 in band mu 1.648; NIS None health None; laps 6 analysis of 8; counted symptoms C3 INST@entry_2_turnin 6/6; C10 INST@apex_3 6/6; session recommendation (data) Rear ARB softer (1 step) | 3.0 -> 2.0"
+  },
+  {
+   "file": "Labeled_PRC_01_outing9.json",
+   "outing_id": 9,
+   "weekend": "Labeled PRC",
+   "number": 1,
+   "name": "MLA-longrun",
+   "status": "chain failed",
+   "result_source": "full chain run in this export (not persisted); cache: no analysis_data in the DB",
+   "summary": "Labeled PRC #1 MLA-longrun (Manuel Lauk, outing 9): chain failed; required absent ['sclu_yaw_rate']"
+  },
+  {
+   "file": "Labeled_PRC_02_outing10.json",
+   "outing_id": 10,
+   "weekend": "Labeled PRC",
+   "number": 2,
+   "name": "JST-longrun",
+   "status": "degenerate",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled PRC #2 JST-longrun (Joel Sturm, outing 10): status degenerate; D4-L front K 2722.50 outside mu 544.499, rear K 4182.84 outside mu 836.568; NIS None health None; laps 3 analysis of 5; counted symptoms C2 US@entry_2_turnin 2/3; C4 OS@apex_3 3/3, INST@exit_4 3/3, INST@exit_5 3/3, OS@exit_5 3/3; C5 INST@entry_2_turnin 3/3, OS@entry_2_turnin 3/3, US@entry_2_turnin 2/3, INST@apex_3 3/3, OS@apex_3 3/3, INST@exit_4 3/3, OS@exit_4 3/3; C6 OS@entry_2_turnin 3/3, US@entry_2_turnin 2/3, OS@apex_3 3/3, US@apex_3 2/3, US@exit_4 2/3; C7 OS@apex_3 2/3; C8 OS@entry_2_turnin 3/3, US@exit_5 2/3; C9 OS@entry_2_turnin 2/3, US@entry_2_turnin 2/3, OS@apex_3 2/3, OS@exit_5 2/3, US@exit_5 3/3; C10 US@exit_5 3/3; C12 US@apex_3 2/3, INST@exit_4 3/3, INST@exit_5 3/3; C13 OS@entry_2_turnin 2/3, OS@apex_3 2/3, INST@exit_4 3/3, OS@exit_5 2/3, US@exit_5 3/3; C15 OS@entry_2_turnin 2/3, OS@exit_4 2/3, US@exit_4 3/3, OS@exit_5 2/3; C16 OS@entry_2_turnin 3/3, US@entry_2_turnin 2/3, OS@apex_3 3/3, OS@exit_4 3/3, OS@exit_5 2/3, US@exit_5 3/3; session recommendation (data) Rear ARB softer (1 step) | 4.0 -> 3.0"
+  },
+  {
+   "file": "Labeled_PRC_03_outing13.json",
+   "outing_id": 13,
+   "weekend": "Labeled PRC",
+   "number": 3,
+   "name": "MLA understeer",
+   "status": "ok",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled PRC #3 MLA understeer (Manuel Lauk, outing 13): status ok; D4-L front K 23.30 in band mu 1.940, rear K 15.89 in band mu 1.674; NIS pass health 0.11268760247193846; laps 3 analysis of 5; counted symptoms C2 US@entry_2_turnin 2/3; C12 INST@apex_3 3/3, INST@exit_4 3/3; session recommendation (data) Rear ride height -1 | 134.0 -> 133.0"
+  },
+  {
+   "file": "Labeled_PRC_04_outing14.json",
+   "outing_id": 14,
+   "weekend": "Labeled PRC",
+   "number": 4,
+   "name": "MLA US",
+   "status": "ok",
+   "result_source": "app cache (DB payload + sidecar, identity valid)",
+   "summary": "Labeled PRC #4 MLA US (Manuel Lauk, outing 14): status ok; D4-L front K 26.43 in band mu 1.982, rear K 18.31 in band mu 1.643; NIS pass health 0.15387303675684566; laps 9 analysis of 11; counted symptoms none; session recommendation (data) No setup change"
+  }
+ ]
+}

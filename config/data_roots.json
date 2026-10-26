@@ -1,0 +1,9 @@
+{
+  "_comment": "Folders the telemetry exports live under on the machines this app runs on (modules/data_paths.py). An outing stores the absolute path it was loaded from; on another machine the same file sits under another root, so a saved path under one root is looked up under the others, and the analysis caches compare the path relative to its root. Environment configuration, not an analysis input: no schema bump. Same roots as tests/conftest.py DATA_ROOTS.",
+  "roots": [
+    "C:/UNI/Bachelorarbeit/Data",
+    "H:/UNI/Bachelorarbeit/Data",
+    "D:/Data_Bachelorthesis",
+    "H:/Data_Bachelorthesis"
+  ]
+}

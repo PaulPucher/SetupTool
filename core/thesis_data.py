@@ -55,7 +55,8 @@ def read_sidecar(path, laps=None, expected_identity=None):
     state, cs = payload["state"], payload["cs"]
     if laps is None:
         from modules.csv_parser import parse_csv
-        laps = parse_csv(identity["csv_path"])["laps"]
+        from modules.data_paths import resolve_saved_path
+        laps = parse_csv(resolve_saved_path(identity["csv_path"]) or identity["csv_path"])["laps"]
 
     t = np.asarray(state["time"], dtype=float)
     lap_id = np.full(t.shape, -1, dtype=int)

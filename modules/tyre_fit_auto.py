@@ -54,6 +54,11 @@ L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
 # utilisation above it points at the input data, not at the tyre (Pacejka
 # 2006 sec. 1.2.1; Goblirsch et al. 2025 Table I upper bound of D / Fz)
 L_MU_CEILING = 2.0
+# above the ceiling but within the measured uncertainty of mu_demo
+# (config tyre_fit_auto.mu_ceiling_edge_u, p95 of the a_y and event-zero
+# errors on the samples that set it): marginal, the observer ships -- the
+# same structure as the K edge zone (author ruling 2026-10-24)
+MU_EDGE_CONFIG_KEY = "mu_ceiling_edge_u"
 L_START_B = 12.0           # the chair's B start, inside the bounds
 # D4 under L: cornering stiffness "ranges from about 6 to about 30 times the
 # vertical wheel load ... The lower value holds for the older bias-ply tyre
@@ -312,6 +317,9 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
         "lowest_level": lowest,
         "level_note": ("damper loads carry an event zero entry (L4 with an L2 zero, Q-CAL-2)"
                        if zero_applied and "damper" in used else ""),
+        # session check of the damper path against the static weight; a
+        # rejected path shows up above as static_fallback shares, level 1
+        "damper_plausibility": fz.get("damper_plausibility"),
         "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the "
                            "measured axle loads, drive rear only",
         "fx_front_level": min(fx["accuracy_level"], lowest),
@@ -460,7 +468,9 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
          L_K_EDGE it fails (2026-10-20)
       demonstrated mu above L_MU_CEILING: more grip than a racing tyre has
          points at the force or load inputs, not at the tyre (2026-10-19;
-         replaces the mu-at-bound check of the fitted-mu version)
+         replaces the mu-at-bound check of the fitted-mu version); within
+         the ceiling x (1 + mu_ceiling_edge_u) it only flags (mu_zone "edge",
+         status marginal), beyond it fails (2026-10-24)
     No peak to report: with C = 1 the curve is monotonic, and mu is the
     demonstrated utilisation, not an asymptote read off the curve (wording
     ruling 2026-10-20)."""
@@ -477,10 +487,19 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
     else:
         k_zone = "outside"
         failed.append("g2 normalised stiffness")
-    if not axle_fit["mu"] <= L_MU_CEILING:
+    # u is a relative uncertainty of mu_demo, so it scales the ceiling
+    mu_edge = L_MU_CEILING * (1.0 + cfg[MU_EDGE_CONFIG_KEY])
+    if axle_fit["mu"] <= L_MU_CEILING:
+        mu_zone = "in band"
+    elif axle_fit["mu"] <= mu_edge:
+        mu_zone = "edge"
+    else:
+        # NaN lands here too: an undetermined mu is not a plausible one
+        mu_zone = "outside"
         failed.append("mu_demo above the physical ceiling 2.0")
     return {"alpha_span_deg": span, "stiffness_norm_per_rad": K, "k_zone": k_zone,
-            "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING, "mu_source": axle_fit["mu_source"],
+            "mu": axle_fit["mu"], "mu_ceiling": L_MU_CEILING, "mu_edge": mu_edge, "mu_zone": mu_zone,
+            "mu_source": axle_fit["mu_source"],
             "peak": axle_fit["peak"], "failed": failed}
 
 
@@ -832,7 +851,11 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     # session is flagged (author ruling 2026-10-20)
     edge = [f"{name}: g2 at the edge of the literature range (K {g['stiffness_norm_per_rad']:.2f} / rad)"
             for name, g in gate.items() if g["k_zone"] == "edge"]
+    # mu just above the ceiling, within its uncertainty: same treatment
+    edge += [f"{name}: mu_demo {g['mu']:.3f} above the ceiling 2.0 within its uncertainty "
+             f"(edge {g['mu_edge']:.3f})" for name, g in gate.items() if g["mu_zone"] == "edge"]
     manifest["k_band_zone"] = {name: g["k_zone"] for name, g in gate.items()}
+    manifest["mu_ceiling_zone"] = {name: g["mu_zone"] for name, g in gate.items()}
     if edge and manifest["status"] != "degenerate":
         prev = manifest.get("marginal_reason")
         manifest["status"] = "marginal"

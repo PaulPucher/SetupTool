@@ -241,6 +241,40 @@ def _axle_total_with_proxy(damper_result, corner_weight_kg, left_c, right_c):
     return total, degraded, reason
 
 
+def _straight_masks(state, params):
+    # one straight-line definition for the session fit and the plausibility
+    # check: tight for means, wide for the speed fit
+    v, ax, ay = state["v_mps"], state["ax_mps2"], state["ay_mps2"]
+    moving = v >= params["stability_estimation"]["moving_speed_min_mps"]
+    return moving & (np.abs(ax) < 0.5) & (np.abs(ay) < 0.5), moving & (np.abs(ay) < 1.5)
+
+
+def straight_line_plausibility(state, damper_result, params):
+    """Session check of the damper path against the static weight (Tier B
+    safety net, author ruling 2026-10-24). On a straight the four wheel
+    loads sum to the weight plus the downforce, and downforce only adds
+    load, so a total far below m g is not physics: it is a gauge zeroed
+    against another reference (PRC JST longrun, DEV-2). Same straight
+    samples and axle totals (mate proxy) as the session fit.
+    Returns {"ratio", "f_min", "passed", "n_straight", "reason"}. A ratio
+    that cannot be computed passes -- there is nothing to test it against."""
+    vp, f_min = params["vehicle"], params["wheel_loads"]["plausibility_min_static_fraction"]
+    corner_weight_kg = {"fl": vp["corner_weights"]["FL_kg"], "fr": vp["corner_weights"]["FR_kg"],
+                        "rl": vp["corner_weights"]["RL_kg"], "rr": vp["corner_weights"]["RR_kg"]}
+    tight, _wide = _straight_masks(state, params)
+    front, _, _ = _axle_total_with_proxy(damper_result, corner_weight_kg, "fl", "fr")
+    rear, _, _ = _axle_total_with_proxy(damper_result, corner_weight_kg, "rl", "rr")
+    total = (front + rear)[tight]
+    total = total[np.isfinite(total)]
+    weight_N = vp["mass_kg"] * 9.81
+    ratio = float(np.mean(total) / weight_N) if total.size else float("nan")
+    passed = not (ratio < f_min)
+    reason = None if passed else (
+        f"straight-line damper total {ratio:.2f} x static weight, below {f_min:g} -- damper path rejected, "
+        "static split used (gauge zero reference suspect)")
+    return {"ratio": ratio, "f_min": f_min, "passed": passed, "n_straight": int(total.size), "reason": reason}
+
+
 def effective_cl_area(c_session, air_density_kgm3):
     """c_session [N/(m/s)^2] as the Cl*A [m^2] of the config aero model.
     From c*v^2 = -0.5*rho*A*Cl*v^2 (Cl < 0 = downforce, same sign as
@@ -272,13 +306,11 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     Returns fz_f_N/fz_r_N + mass_kg_session, c_session_N_per_mps2,
     aero_front_fraction. Never written back to config.
     """
-    ls = params["stability_estimation"]
     vp = params["vehicle"]
     wl = params["wheel_loads"]
     t_ref = state["time"]
     v = state["v_mps"]
     ax = state["ax_mps2"]
-    ay = state["ay_mps2"]
     g = 9.81
     n = len(t_ref)
 
@@ -287,9 +319,7 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         "rl": vp["corner_weights"]["RL_kg"], "rr": vp["corner_weights"]["RR_kg"],
     }
 
-    moving = v >= ls["moving_speed_min_mps"]
-    straight_tight = moving & (np.abs(ax) < 0.5) & (np.abs(ay) < 0.5)
-    straight_wide = moving & (np.abs(ay) < 1.5)
+    straight_tight, straight_wide = _straight_masks(state, params)
 
     front_total_N, front_degraded, front_degraded_reason = _axle_total_with_proxy(
         damper_result, corner_weight_kg, "fl", "fr")

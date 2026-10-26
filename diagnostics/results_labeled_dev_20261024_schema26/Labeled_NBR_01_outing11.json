@@ -1,0 +1,6953 @@
+{
+ "_about": "DEV-1 export, one outing; key names as in code; units in _units",
+ "_units": {
+  "cs_ratio_f / cs_ratio_r": "cornering stiffness ratio, dimensionless (local dFy/dalpha over the session reference slope; < 0 = past the peak of the Fy / Fz curve)",
+  "stability_observed_Nm_per_deg": "dMz/dbeta, N m / deg (negative = open-loop unstable yaw)",
+  "apex_speed": "km/h (ecu_speed unit)",
+  "apex_lateral_g": "g",
+  "lap_time / lap_time_precise / start_time / end_time / t_*": "s (logger time)",
+  "s_*_m / bracket_*_m / distance": "m",
+  "fz_*_N": "N",
+  "fy_*_norm_N": "Fy / Fz, dimensionless",
+  "stiffness_norm_per_rad (K)": "1 / rad, K = B C mu (tyre_fit_auto.plausibility_gate_l)",
+  "mu": "dimensionless (demonstrated utilisation)",
+  "health_score": "fraction of NIS windows in band",
+  "shares": "fraction 0..1",
+  "NaN": "written as null"
+ },
+ "_generated_at": "2026-10-24T11:28:24.862783",
+ "schema_version": 26,
+ "outing": {
+  "outing_id": 11,
+  "weekend": "Labeled NBR",
+  "series": "Creventic",
+  "weekend_date": "2026-10-24",
+  "name": "Joel Problem",
+  "number": 1,
+  "date_time": "2026-10-24 09:29:57.000000",
+  "session_type": "Practice",
+  "driver": "Joel Sturm",
+  "driver_level (stored, unused by scoring)": 10,
+  "file_root_relative": "nbr_sturm_problem/nbr-73-021-071-jst-26.07.01.1509.txt",
+  "file_root": "H:/Data_Bachelorthesis",
+  "environment": {
+   "air_temp": 0.0,
+   "track_temp": 0.0,
+   "track_condition": "Dry",
+   "fuel_level": 0.0,
+   "tyre_age": 0,
+   "tyre_type": "Dry",
+   "tyre_name": ""
+  },
+  "laps": [
+   {
+    "lap_number": 71,
+    "lap_time": 141.99999999999997,
+    "lap_time_precise": null,
+    "start_time": 175.181,
+    "end_time": 317.181,
+    "is_valid_for_analysis": false,
+    "is_outlap": true,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 72,
+    "lap_time": 116.60000000000002,
+    "lap_time_precise": 116.632004,
+    "start_time": 317.381,
+    "end_time": 433.981,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": true
+   },
+   {
+    "lap_number": 73,
+    "lap_time": 116.80000000000001,
+    "lap_time_precise": 116.972,
+    "start_time": 434.181,
+    "end_time": 550.981,
+    "is_valid_for_analysis": true,
+    "is_outlap": false,
+    "is_inlap": false,
+    "is_fastest": false
+   },
+   {
+    "lap_number": 74,
+    "lap_time": 136.79999999999995,
+    "lap_time_precise": null,
+    "start_time": 551.181,
+    "end_time": 687.981,
+    "is_valid_for_analysis": false,
+    "is_outlap": false,
+    "is_inlap": true,
+    "is_fastest": false
+   }
+  ],
+  "analysis_laps (lap_filter)": [
+   72,
+   73
+  ]
+ },
+ "setup_sheet (as stored)": {
+  "car": {
+   "corner_weight_fl": 308.8,
+   "corner_weight_rl": 392.6,
+   "corner_weight_fr": 305.2,
+   "corner_weight_rr": 398.2,
+   "total_weight": 1404.9,
+   "cross_percentage": 49.7,
+   "differential_preload": 80.0,
+   "differential_position": 1.0,
+   "splitter_offset": -3.0,
+   "arb_front_mount": "P0",
+   "wing_position": "P8",
+   "notes": "",
+   "differential_locking_torque_measured": {
+    "1": 80.0,
+    "2": 90.0,
+    "3": 100.0,
+    "4": 110.0,
+    "5": 130.0
+   },
+   "splitter_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "diffuser_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "front_left": {
+   "toe": -1.5,
+   "camber": -3.6,
+   "ride_height_fia": 97.0,
+   "ride_height_aero": 51.0,
+   "arb": 4.0,
+   "springs": 240.0,
+   "bump_ls": "8",
+   "bump_hs": "12",
+   "blowoff": "6",
+   "rebound_ls": "8",
+   "rebound_hs": "8",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_left": {
+   "toe": 2.0,
+   "camber": -3.4,
+   "ride_height_fia": 134.0,
+   "ride_height_aero": 64.0,
+   "arb": 3.0,
+   "springs": 240.0,
+   "bump_ls": "10",
+   "bump_hs": "8",
+   "blowoff": "7",
+   "rebound_ls": "9",
+   "rebound_hs": "11",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "front_right": {
+   "toe": -1.5,
+   "camber": -3.5,
+   "ride_height_fia": 97.0,
+   "ride_height_aero": 51.0,
+   "arb": 3.0,
+   "springs": 240.0,
+   "bump_ls": "8",
+   "bump_hs": "12",
+   "blowoff": "6",
+   "rebound_ls": "8",
+   "rebound_hs": "8",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_right": {
+   "toe": 2.0,
+   "camber": -3.4,
+   "ride_height_fia": 134.0,
+   "ride_height_aero": 64.0,
+   "arb": 3.0,
+   "springs": 240.0,
+   "bump_ls": "10",
+   "bump_hs": "8",
+   "blowoff": "7",
+   "rebound_ls": "9",
+   "rebound_hs": "11",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  }
+ },
+ "setdown_sheet (as stored)": {
+  "car": {
+   "corner_weight_fl": 0.0,
+   "corner_weight_rl": 0.0,
+   "corner_weight_fr": 0.0,
+   "corner_weight_rr": 0.0,
+   "total_weight": 0.0,
+   "cross_percentage": 0.0,
+   "differential_preload": 0.0,
+   "differential_position": 0.0,
+   "splitter_offset": 0.0,
+   "arb_front_mount": "P0",
+   "wing_position": "P8",
+   "notes": "",
+   "differential_locking_torque_measured": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0,
+    "5": 0.0
+   },
+   "splitter_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "diffuser_points": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "front_left": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_left": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "front_right": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  },
+  "rear_right": {
+   "toe": 0.0,
+   "camber": 0.0,
+   "ride_height_fia": 0.0,
+   "ride_height_aero": 0.0,
+   "arb": 0.0,
+   "springs": 0.0,
+   "bump_ls": "",
+   "bump_hs": "",
+   "blowoff": "",
+   "rebound_ls": "",
+   "rebound_hs": "",
+   "packer": 0.0,
+   "preload": 0.0,
+   "total_travel": 0.0,
+   "free_length": 0.0,
+   "static_droop": 0.0,
+   "gap_on_gnd": 0.0
+  }
+ },
+ "comment (verbatim)": "first part of the corner snappy. mid corner understeer. changes rear springs to 260 from 240",
+ "driver_feedback (as stored)": {
+  "corner_count": 10,
+  "corners": [
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   },
+   {
+    "e1": 0,
+    "e2": 0,
+    "a3": 0,
+    "x4": 0,
+    "x5": 0
+   }
+  ],
+  "map_path": ""
+ },
+ "result_source": "full chain run in this export (not persisted); cache: DB cache miss at schema_version (stored 25, current 26)",
+ "cockpit_logged": {
+  "logged_setup_values (modules.setup_state, as the engine reads them)": {
+   "abs_position": {
+    "value": 4,
+    "source": "log_abs_pos",
+    "note": null
+   }
+  },
+  "log_abs_pos": {
+   "session": {
+    "mode": 4,
+    "distinct": {
+     "4": 5130
+    }
+   },
+   "analysis_laps": {
+    "mode": 4,
+    "distinct": {
+     "4": 2336
+    }
+   }
+  },
+  "tc_position_modes (raw export, LAT / LON mapping undocumented)": {
+   "ecu_TC_int_pos": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   },
+   "ecu_TC_tim_pos": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   },
+   "log_tc_int_pos": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   },
+   "log_tc_tim_pos": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   },
+   "stw_rt03_tc_int": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   },
+   "stw_rt01_tc_tim": {
+    "session": {
+     "mode": 7,
+     "distinct": {
+      "7": 5130
+     }
+    },
+    "analysis_laps": {
+     "mode": 7,
+     "distinct": {
+      "7": 2336
+     }
+    }
+   }
+  },
+  "ecu_B_tc_act": {
+   "definition": "share of the channel's own samples with flag > 0.5",
+   "share_session": 0.01645224171539961,
+   "share_analysis_laps": 0.015335846470185058,
+   "n_samples_analysis_laps": 11672
+  }
+ },
+ "fit_manifest": {
+  "status": "ok",
+  "marginal_reason": null,
+  "degenerate_reason": null,
+  "fallback_used": false,
+  "fallback_reason": null,
+  "gate_d4l": {
+   "k_band_per_rad": [
+    6.0,
+    30.0
+   ],
+   "k_edge_per_rad": [
+    5.5,
+    35.0
+   ],
+   "mu_ceiling": 2.0,
+   "mu_edge": 2.0975,
+   "note": "K in (30, 35] = edge zone, status marginal by design (ruling 2026-10-20); K > 35 fails g2",
+   "source": "plausibility_gate_l result captured in this run",
+   "axles": {
+    "front": {
+     "alpha_span_deg": 12.802698277638981,
+     "stiffness_norm_per_rad": 26.234016579502782,
+     "k_zone": "in band",
+     "mu": 1.9298765041752428,
+     "mu_ceiling": 2.0,
+     "mu_edge": 2.0975,
+     "mu_zone": "in band",
+     "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+     "peak": "none (C = 1, monotonic)",
+     "failed": []
+    },
+    "rear": {
+     "alpha_span_deg": 8.184684644439779,
+     "stiffness_norm_per_rad": 24.950788592825774,
+     "k_zone": "in band",
+     "mu": 1.5297503460020478,
+     "mu_ceiling": 2.0,
+     "mu_edge": 2.0975,
+     "mu_zone": "in band",
+     "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+     "peak": "none (C = 1, monotonic)",
+     "failed": []
+    }
+   }
+  },
+  "gate_nis": {
+   "verdict": "pass",
+   "health_score": 0.2274059368500662,
+   "window_samples": 40,
+   "nis_band_low": 0.03,
+   "nis_band_high": 0.15,
+   "threshold_use_ekf": 0.104,
+   "threshold_warn": 0.011,
+   "masked_population_n": 21156,
+   "n_windows_skipped_low_coverage": 0,
+   "degenerate_reason": null
+  },
+  "sign_check": {
+   "median_gate_all": "15/15",
+   "median_gate_racing": "12/12",
+   "median_gate_racing_fraction": 1.0,
+   "per_sample_fraction_racing": 0.9972386092632107
+  },
+  "nis": {
+   "yaw_rate_exceedance": 0.0011816978634902628,
+   "ay_exceedance": 0.09117980714690868,
+   "combined_exceedance": 0.0584704102854982,
+   "combined_mean_nis": 2.4016817914151756
+  },
+  "speed_window": {
+   "status": "applied",
+   "pct": [
+    1.0,
+    99.0
+   ],
+   "lo_mps": 18.08333388888889,
+   "hi_mps": 62.125000000000036,
+   "lo_kmh": 65.100002,
+   "hi_kmh": 223.65000000000012,
+   "n_incorner_samples": 14417,
+   "base_retained_fraction": 0.9232369067876726
+  },
+  "laps_used": [
+   72,
+   73
+  ],
+  "axles": {
+   "front": {
+    "B": 13.593624526101074,
+    "C": 1.0,
+    "D": 12023.003101287248,
+    "E": -1.0,
+    "mu": 1.9298765041752428,
+    "fz_ref_N": 6229.933923375802,
+    "weighted": true,
+    "bound_active": {
+     "B": null,
+     "mu": null
+    },
+    "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+    "powell_converged": true,
+    "fit_n_samples": 15794,
+    "fit_rms_resid_N": 3012.425672226195,
+    "fit_rms_resid_norm": 0.5446206327187915,
+    "peak": "none (C = 1, monotonic)",
+    "visited_alpha_p99_deg": 7.0619587800147565,
+    "sign_ok": true
+   },
+   "rear": {
+    "B": 16.310366366664887,
+    "C": 1.0,
+    "D": 16366.588025641,
+    "E": -1.0,
+    "mu": 1.5297503460020478,
+    "fz_ref_N": 10698.86211721706,
+    "weighted": true,
+    "bound_active": {
+     "B": null,
+     "mu": null
+    },
+    "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+    "powell_converged": true,
+    "fit_n_samples": 15862,
+    "fit_rms_resid_N": 6099.882976728878,
+    "fit_rms_resid_norm": 0.6142435732884038,
+    "peak": "none (C = 1, monotonic)",
+    "visited_alpha_p99_deg": 5.018580464651283,
+    "sign_ok": true
+   }
+  },
+  "axle_load_lowest_level": 4,
+  "missing_or_failed_channels": {
+   "log_rideheight_fl": "failed"
+  },
+  "full_manifest": {
+   "data_file": "H:/Data_Bachelorthesis/NBR_Sturm_problem/NBR-73-021-071-JST-26.07.01.1509.txt",
+   "tyre_fit_mode": "literature_bounded",
+   "speed_window": {
+    "status": "applied",
+    "pct": [
+     1.0,
+     99.0
+    ],
+    "lo_mps": 18.08333388888889,
+    "hi_mps": 62.125000000000036,
+    "lo_kmh": 65.100002,
+    "hi_kmh": 223.65000000000012,
+    "n_incorner_samples": 14417,
+    "base_retained_fraction": 0.9232369067876726
+   },
+   "laps_used": [
+    72,
+    73
+   ],
+   "timestamp": "2026-10-24T09:28:31.453836+00:00",
+   "axles": {
+    "front": {
+     "B": 13.593624526101074,
+     "C": 1.0,
+     "D": 12023.003101287248,
+     "E": -1.0,
+     "mu": 1.9298765041752428,
+     "fz_ref_N": 6229.933923375802,
+     "weighted": true,
+     "bound_active": {
+      "B": null,
+      "mu": null
+     },
+     "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+     "powell_converged": true,
+     "fit_n_samples": 15794,
+     "fit_rms_resid_N": 3012.425672226195,
+     "fit_rms_resid_norm": 0.5446206327187915,
+     "peak": "none (C = 1, monotonic)",
+     "visited_alpha_p99_deg": 7.0619587800147565,
+     "sign_ok": true
+    },
+    "rear": {
+     "B": 16.310366366664887,
+     "C": 1.0,
+     "D": 16366.588025641,
+     "E": -1.0,
+     "mu": 1.5297503460020478,
+     "fz_ref_N": 10698.86211721706,
+     "weighted": true,
+     "bound_active": {
+      "B": null,
+      "mu": null
+     },
+     "mu_source": "demonstrated utilisation p99.5 (lower bound)",
+     "powell_converged": true,
+     "fit_n_samples": 15862,
+     "fit_rms_resid_N": 6099.882976728878,
+     "fit_rms_resid_norm": 0.6142435732884038,
+     "peak": "none (C = 1, monotonic)",
+     "visited_alpha_p99_deg": 5.018580464651283,
+     "sign_ok": true
+    }
+   },
+   "axle_load": {
+    "vertical_load_source_used": "measured",
+    "source_shares": {
+     "fl": {
+      "fit_population": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      },
+      "moving_analysis_laps": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      }
+     },
+     "fr": {
+      "fit_population": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      },
+      "moving_analysis_laps": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      }
+     },
+     "rl": {
+      "fit_population": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      },
+      "moving_analysis_laps": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      }
+     },
+     "rr": {
+      "fit_population": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      },
+      "moving_analysis_laps": {
+       "damper": 1.0,
+       "reconstructed": 0.0,
+       "static_fallback": 0.0
+      }
+     }
+    },
+    "lowest_level": 4,
+    "level_note": "damper loads carry an event zero entry (L4 with an L2 zero, Q-CAL-2)",
+    "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the measured axle loads, drive rear only",
+    "fx_front_level": 1,
+    "filter_cutoff_hz": 2.0,
+    "braking_excluded": {
+     "front": {
+      "n": 3738,
+      "share": 0.1913782510751587
+     },
+     "rear": {
+      "n": 3670,
+      "share": 0.18789678476346508
+     }
+    }
+   },
+   "front_force_frame": "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer",
+   "fit_density_bin_rad": 0.01,
+   "git_commit_hash": "fa7ffb847a27e3e1c188ea9ae9332db672c7108c",
+   "observer_q": {
+    "q_beta_var": 1.632512274042485e-05,
+    "q_yaw_rate_var": 0.0013633658664569037,
+    "sd_beta_dot": 0.2020217979601759,
+    "sd_r_dot": 1.8461892281513992,
+    "n_joint": 15779,
+    "method": "held-over-step upper bound from the fit-L force residual (Level 2)"
+   },
+   "r_derivation": {
+    "std_front_mps2": 2.142688189650649,
+    "std_rear_mps2": 4.339119680907327,
+    "inter_axle_correlation": 0.8441604812871418,
+    "r_ay_var_derived": 39.116034667951325,
+    "r_yaw_rate_var_derived": 0.00011436348780008632
+   },
+   "noise_floors": {
+    "n_segments": 3,
+    "ay": {
+     "var": 0.4850678949619857,
+     "n_samples": 1560,
+     "straight_s": 15.6,
+     "r_ay_scale": 0.012400743047694788,
+     "pick_location": "floor",
+     "floor_binding": false,
+     "pick_without_floor": {
+      "r_ay_scale": 0.012400743047694788,
+      "r_yaw_scale": 0.09060840696504244
+     }
+    },
+    "yaw_rate": {
+     "var": 1.0362293444531888e-05,
+     "n_samples": 1560,
+     "straight_s": 15.6,
+     "r_yaw_scale": 0.09060840696504244
+    }
+   },
+   "r_sweep": {
+    "grid_points": [
+     {
+      "r_ay_scale": 1.0,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 39.116034667951325,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0002836074872376631,
+      "f_ay": 0.0004254112308564946,
+      "ay_in_band": false,
+      "sign_fraction": 1.0
+     },
+     {
+      "r_ay_scale": 0.3,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 11.734810400385397,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0003781433163168841,
+      "f_ay": 0.0030251465305350727,
+      "ay_in_band": false,
+      "sign_fraction": 1.0
+     },
+     {
+      "r_ay_scale": 0.1,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 3.9116034667951327,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0005199470599357157,
+      "f_ay": 0.011391567404046133,
+      "ay_in_band": false,
+      "sign_fraction": 1.0
+     },
+     {
+      "r_ay_scale": 0.03,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 1.1734810400385398,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0010398941198714313,
+      "f_ay": 0.038097939118926075,
+      "ay_in_band": true,
+      "sign_fraction": 1.0
+     },
+     {
+      "r_ay_scale": 0.01,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 0.39116034667951327,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0011816978634902628,
+      "f_ay": 0.1092361505010399,
+      "ay_in_band": true,
+      "sign_fraction": 1.0
+     },
+     {
+      "r_ay_scale": 0.012400743047694788,
+      "r_yaw_scale": 0.09060840696504244,
+      "R_ay_var": 0.4850678949619857,
+      "R_yaw_rate_var": 1.0362293444531888e-05,
+      "f_yaw": 0.0011816978634902628,
+      "f_ay": 0.09117980714690868,
+      "ay_in_band": true,
+      "sign_fraction": 1.0
+     }
+    ],
+    "chosen": {
+     "r_ay_scale": 0.012400743047694788,
+     "r_yaw_scale": 0.09060840696504244,
+     "R_ay_var": 0.4850678949619857,
+     "R_yaw_rate_var": 1.0362293444531888e-05,
+     "f_yaw": 0.0011816978634902628,
+     "f_ay": 0.09117980714690868,
+     "ay_in_band": true,
+     "sign_fraction": 1.0
+    },
+    "found_in_band": true,
+    "selection": "in_band",
+    "guard_trace": [
+     {
+      "r_ay_scale": 0.012400743047694788,
+      "r_yaw_scale": 0.09060840696504244,
+      "f_ay": 0.09117980714690868,
+      "sign_fraction": 1.0,
+      "guard_pass": true
+     }
+    ]
+   },
+   "final_config": {
+    "b_front": 13.593624526101074,
+    "c_front": 1.0,
+    "d_front": 1.9298765041752428,
+    "e_front": -1.0,
+    "b_rear": 16.310366366664887,
+    "c_rear": 1.0,
+    "d_rear": 1.5297503460020478,
+    "e_rear": -1.0,
+    "Q_beta_var": 1.632512274042485e-05,
+    "Q_yaw_rate_var": 0.0013633658664569037,
+    "q_reference_rate_hz": 50,
+    "P0_beta_var": 0.00030461741978670857,
+    "P0_yaw_rate_var": 0.00030461741978670857,
+    "R_ay_var": 0.4850678949619857,
+    "R_yaw_rate_var": 1.0362293444531888e-05,
+    "beta_hard_bound_deg": 15.0,
+    "d_is_mu": true
+   },
+   "nis": {
+    "yaw_rate_exceedance": 0.0011816978634902628,
+    "ay_exceedance": 0.09117980714690868,
+    "combined_exceedance": 0.0584704102854982,
+    "combined_mean_nis": 2.4016817914151756
+   },
+   "sign_check": {
+    "median_gate_all": "15/15",
+    "median_gate_racing": "12/12",
+    "median_gate_racing_fraction": 1.0,
+    "per_sample_fraction_racing": 0.9972386092632107
+   },
+   "h2_vs_ay_apex": {
+    "n": 211,
+    "correlation": 0.981216919951708
+   },
+   "status": "ok",
+   "k_band_zone": {
+    "front": "in band",
+    "rear": "in band"
+   },
+   "mu_ceiling_zone": {
+    "front": "in band",
+    "rear": "in band"
+   }
+  }
+ },
+ "per_lap_corner_phase": [
+  {
+   "lap_number": 72,
+   "stable_corner_id": 1,
+   "corner_number": 1,
+   "speed_class": "low",
+   "apex_speed": 60.550000100000005,
+   "apex_lateral_g": 2.2112604,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1451.5928699966153,
+      "p25": 693.575443720555,
+      "p75": 1634.9580486220716,
+      "n": 207
+     },
+     "n_samples": 207,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.6806172598196178,
+      "p25": 0.25749102008679775,
+      "p75": 0.951733060158337,
+      "n": 142,
+      "n_kerb_excluded": 22,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8057168792662418,
+      "p25": 0.6995522269996409,
+      "p75": 0.9003731390244232,
+      "n": 78,
+      "n_kerb_excluded": 22,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 448.3999621124606,
+      "p25": 254.1739702954498,
+      "p75": 605.9604587855599,
+      "n": 226
+     },
+     "n_samples": 226,
+     "kerb_fraction": 0.1592920353982301,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.21829285421101474,
+      "p25": -0.029024998802696978,
+      "p75": 0.43666732754360715,
+      "n": 166,
+      "n_kerb_excluded": 60,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.32684258047560033,
+      "p25": 0.07241871693680323,
+      "p75": 0.7218357104030552,
+      "n": 154,
+      "n_kerb_excluded": 72,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 752.2678825660762,
+      "p25": 746.3215797987882,
+      "p75": 758.1470299831708,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.18181818181818182,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.060953382555517216,
+      "p25": -0.21435698344901846,
+      "p75": -0.025483088056944145,
+      "n": 59,
+      "n_kerb_excluded": 38,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.20357647497415074,
+      "p25": 0.04001086005868898,
+      "p75": 0.3158845473569539,
+      "n": 47,
+      "n_kerb_excluded": 50,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 849.3321180370884,
+      "p25": 802.4518061979045,
+      "p75": 891.4767210008731,
+      "n": 97
+     },
+     "n_samples": 97,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.6697642276713911,
+      "p25": 0.5029605027160862,
+      "p75": 0.6908789729951677,
+      "n": 252,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.48153355192759006,
+      "p25": 0.4112265664440277,
+      "p75": 0.5144318074860244,
+      "n": 252,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 694.3861799237733,
+      "p25": 342.3662780808341,
+      "p75": 963.2881438464854,
+      "n": 252
+     },
+     "n_samples": 252,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 1,
+   "corner_number": 1,
+   "speed_class": "low",
+   "apex_speed": 65.3300003,
+   "apex_lateral_g": 2.4118352999999995,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "strong",
+    "short": "understeer @ exit",
+    "long": "Understeer, early exit, front CS -0.28, strong",
+    "state": "strong"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 37,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 0.9867084863033969,
+      "p75": 1.0,
+      "n": 19,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 1452.7499737497858,
+      "p25": 674.2527753481918,
+      "p75": 1634.9923624058222,
+      "n": 204
+     },
+     "n_samples": 204,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.4152094219849886,
+      "p25": 0.31812340458728694,
+      "p75": 0.7469996554408889,
+      "n": 167,
+      "n_kerb_excluded": 19,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.7500328599840452,
+      "p25": 0.7379645722918973,
+      "p75": 0.8788884481271038,
+      "n": 167,
+      "n_kerb_excluded": 19,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 441.7188661369625,
+      "p25": 245.83545299193355,
+      "p75": 601.1022581385441,
+      "n": 216
+     },
+     "n_samples": 216,
+     "kerb_fraction": 0.1388888888888889,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.17011577992195892,
+      "p25": 0.001819078928618532,
+      "p75": 0.3176801769015691,
+      "n": 113,
+      "n_kerb_excluded": 80,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.7381325661198948,
+      "p25": 0.26636778878034484,
+      "p75": 0.7453275598315595,
+      "n": 96,
+      "n_kerb_excluded": 97,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 752.7835980283595,
+      "p25": 746.3184611411552,
+      "p75": 759.2300312467478,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.28413230582163684,
+      "p25": -0.288371365953101,
+      "p75": -0.26592574674374725,
+      "n": 6,
+      "n_kerb_excluded": 61,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 67,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "strong",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 849.7440501430153,
+      "p25": 803.4660587196837,
+      "p75": 891.4767210008731,
+      "n": 89
+     },
+     "n_samples": 89,
+     "kerb_fraction": 0.24719101123595505,
+     "kerb_flag": true,
+     "symptoms": [
+      {
+       "symptom": "US",
+       "phase": "exit_4",
+       "axle": "f",
+       "value": -0.28413230582163684,
+       "severity": "strong"
+      }
+     ],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.38208536998991244,
+      "p25": 0.2774877026660945,
+      "p75": 0.40006008833312556,
+      "n": 251,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4261899025735455,
+      "p25": 0.33343719250747905,
+      "p75": 0.6028277279033611,
+      "n": 240,
+      "n_kerb_excluded": 11,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 677.184069301246,
+      "p25": 340.0360466393465,
+      "p75": 963.1305442200475,
+      "n": 251
+     },
+     "n_samples": 251,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 2,
+   "corner_number": 2,
+   "speed_class": "low",
+   "apex_speed": 67.0100001,
+   "apex_lateral_g": 1.9001876,
+   "method": "steering",
+   "warnings": [
+    "compound_corner"
+   ],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1
+     },
+     "n_samples": 1,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2401376649287645,
+      "p25": 0.09244014821032447,
+      "p75": 0.3608244373100286,
+      "n": 532,
+      "n_kerb_excluded": 252,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2977109575339011,
+      "p25": 0.24559323389925747,
+      "p75": 0.39374823517272123,
+      "n": 637,
+      "n_kerb_excluded": 170,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 230.39780920467368,
+      "p25": -1.957918087771899,
+      "p75": 402.5023850922496,
+      "n": 999
+     },
+     "n_samples": 999,
+     "kerb_fraction": 0.09009009009009009,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": [
+      {
+       "lap": 72,
+       "corner": 2,
+       "axle": "front",
+       "phase": "entry_2_turnin",
+       "phases_spanned": [
+        "entry_2_turnin"
+       ],
+       "t_start": 336.921,
+       "t_end": 336.941,
+       "duration_s": 0.029999999999981812,
+       "n_samples": 3,
+       "s_start_m": 843.0546873696001,
+       "s_end_m": 843.7343749104,
+       "s_min_m": 843.0546873696001,
+       "cs_min": -1.1210505924013785,
+       "kerb_distance_m": 46.4609377104,
+       "kerb_affected": false,
+       "observer_reset_affected": false,
+       "floor": -0.53,
+       "fx_util_max": 2.6579296391336158e-05,
+       "braking_share": 0.3333333333333333,
+       "braking": false,
+       "fz_window_range_median": 0.34123569064332504,
+       "fz_window_range_max": 0.3443513022778702,
+       "window_start_t": 335.241,
+       "recurring_laps": [
+        72
+       ],
+       "recurrence": "single"
+      },
+      {
+       "lap": 72,
+       "corner": 2,
+       "axle": "front",
+       "phase": "entry_2_turnin",
+       "phases_spanned": [
+        "entry_2_turnin"
+       ],
+       "t_start": 338.28099999999995,
+       "t_end": 338.321,
+       "duration_s": 0.05000000000007731,
+       "n_samples": 5,
+       "s_start_m": 892.9296874415978,
+       "s_end_m": 894.4999999728001,
+       "s_min_m": 893.3203124160001,
+       "cs_min": -0.6348966027631491,
+       "kerb_distance_m": 0.0,
+       "kerb_affected": true,
+       "observer_reset_affected": false,
+       "floor": -0.53,
+       "fx_util_max": 0.14179422498790353,
+       "braking_share": 1.0,
+       "braking": true,
+       "fz_window_range_median": 0.037313077340407244,
+       "fz_window_range_max": 0.03733510110669891,
+       "window_start_t": 337.801,
+       "recurring_laps": [
+        72
+       ],
+       "recurrence": "single"
+      }
+     ]
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.0015194879033212218,
+      "p25": -0.03934199586492099,
+      "p75": 0.04787452058987721,
+      "n": 221,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.16561805920778977,
+      "p25": 0.010552702009315688,
+      "p75": 0.28198252637578586,
+      "n": 221,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 91.76087377552935,
+      "p25": 86.715993934945,
+      "p75": 96.8057549925109,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.00012263407914788436,
+      "p25": -0.03898627986668539,
+      "p75": 0.018625953193485957,
+      "n": 214,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.17653623348114666,
+      "p25": 0.06492637663342629,
+      "p75": 0.22531580537284385,
+      "n": 214,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 55.03611833772207,
+      "p25": 23.69072737643576,
+      "p75": 102.80046832774849,
+      "n": 214
+     },
+     "n_samples": 214,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7356891035213937,
+      "p25": 0.45488786933782305,
+      "p75": 1.0,
+      "n": 34,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6567563239554286,
+      "p25": 0.5933407701416343,
+      "p75": 0.7484672789098032,
+      "n": 34,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 221.4949458316071,
+      "p25": 210.48069049332818,
+      "p75": 239.5870723384357,
+      "n": 34
+     },
+     "n_samples": 34,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 2,
+   "corner_number": 2,
+   "speed_class": "low",
+   "apex_speed": 64.9600013,
+   "apex_lateral_g": 1.9570704000000003,
+   "method": "steering",
+   "warnings": [
+    "compound_corner"
+   ],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.24959429410771883,
+      "p25": 0.08706018718021451,
+      "p75": 0.33654835178720266,
+      "n": 554,
+      "n_kerb_excluded": 228,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2607706238144067,
+      "p25": 0.2137087813052972,
+      "p75": 0.33727787751322674,
+      "n": 637,
+      "n_kerb_excluded": 227,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 231.26970753845274,
+      "p25": 0.2198659181008249,
+      "p75": 401.0524866743369,
+      "n": 1010
+     },
+     "n_samples": 1010,
+     "kerb_fraction": 0.09702970297029703,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.17735806553561373,
+      "p25": 0.07003748927217865,
+      "p75": 0.3246237521370606,
+      "n": 135,
+      "n_kerb_excluded": 52,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.20705267789910423,
+      "p25": 0.051901269847514975,
+      "p75": 0.32671550889860757,
+      "n": 125,
+      "n_kerb_excluded": 55,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 92.46645249213103,
+      "p25": 87.52740835790532,
+      "p75": 97.40549524996159,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.09902642669789075,
+      "p25": -0.005487496634961406,
+      "p75": 0.38995462071232445,
+      "n": 128,
+      "n_kerb_excluded": 52,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.09489024420693466,
+      "p25": 0.049456654347342366,
+      "p75": 0.2561252326144518,
+      "n": 91,
+      "n_kerb_excluded": 89,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 54.45081838883179,
+      "p25": 23.40179143669,
+      "p75": 101.98327898726356,
+      "n": 222
+     },
+     "n_samples": 222,
+     "kerb_fraction": 0.1891891891891892,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_4",
+       "axle": "r",
+       "value": 0.09489024420693466,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.9974754353820291,
+      "p25": 0.4326150130551489,
+      "p75": 1.0,
+      "n": 35,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5987895691167978,
+      "p25": 0.529483274905479,
+      "p75": 0.7371053661684734,
+      "n": 35,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 221.78428981516012,
+      "p25": 210.7040365408577,
+      "p75": 240.7362721940372,
+      "n": 35
+     },
+     "n_samples": 35,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 3,
+   "corner_number": 3,
+   "speed_class": "medium",
+   "apex_speed": 89.1900015,
+   "apex_lateral_g": 2.0193739000000006,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.12732569156484125,
+      "p25": -0.19332745209000363,
+      "p75": 0.4439615528706497,
+      "n": 314,
+      "n_kerb_excluded": 22,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8679743503424916,
+      "p25": 0.8187986459758126,
+      "p75": 0.9779901694863778,
+      "n": 223,
+      "n_kerb_excluded": 8,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 429.8514669144797,
+      "p25": 332.3105957959394,
+      "p75": 602.6812800798252,
+      "n": 370
+     },
+     "n_samples": 370,
+     "kerb_fraction": 0.0918918918918919,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.5034596652495704,
+      "p25": 0.5025874646198887,
+      "p75": 0.5039972840781375,
+      "n": 15,
+      "n_kerb_excluded": 49,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 35,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 536.6001221052243,
+      "p25": 509.8002618133923,
+      "p75": 572.0659196594406,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 20,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 20,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 901.346739755227,
+      "p25": 743.0157469962573,
+      "p75": 1021.5382655607314,
+      "n": 59
+     },
+     "n_samples": 59,
+     "kerb_fraction": 0.6610169491525424,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 4,
+      "n_kerb_excluded": 32,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 36,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1198.7520803189948,
+      "p25": 1167.5830385510105,
+      "p75": 1296.1774544476723,
+      "n": 36
+     },
+     "n_samples": 36,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 3,
+   "corner_number": 3,
+   "speed_class": "medium",
+   "apex_speed": 88.32000020000001,
+   "apex_lateral_g": 1.885707,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.14854156763870402,
+      "p25": -0.10511216008358909,
+      "p75": 0.32918132941848344,
+      "n": 304,
+      "n_kerb_excluded": 19,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5300460781424854,
+      "p25": 0.49535218344615217,
+      "p75": 0.8465104772247953,
+      "n": 244,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 439.9742699763964,
+      "p25": 332.817313482397,
+      "p75": 611.1721463451386,
+      "n": 371
+     },
+     "n_samples": 371,
+     "kerb_fraction": 0.1293800539083558,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 3,
+      "n_kerb_excluded": 57,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 38,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 546.6444580657861,
+      "p25": 517.8972400660725,
+      "p75": 585.9910530570572,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 31,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 31,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 905.8304070991744,
+      "p25": 748.532557604177,
+      "p75": 1022.0919571682542,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.45614035087719296,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 3,
+      "n_kerb_excluded": 33,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 36,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1199.1447812293725,
+      "p25": 1167.547832029696,
+      "p75": 1297.1430882718264,
+      "n": 36
+     },
+     "n_samples": 36,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 4,
+   "corner_number": 4,
+   "speed_class": "medium",
+   "apex_speed": 138.7800026,
+   "apex_lateral_g": 2.0819747000000004,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 6,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 668.9807806805634,
+      "p25": 495.77890707076466,
+      "p75": 1177.1000700008335,
+      "n": 83
+     },
+     "n_samples": 83,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.26673673334252684,
+      "p25": 0.2004958162552913,
+      "p75": 0.6444491714957761,
+      "n": 193,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.32325460800162076,
+      "p25": 0.1752062827250625,
+      "p75": 0.7326472320325967,
+      "n": 182,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 195.57495674265652,
+      "p25": 99.62537305839494,
+      "p75": 240.87500464492268,
+      "n": 193
+     },
+     "n_samples": 193,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.285051131037111,
+      "p25": 0.18809647846821556,
+      "p75": 0.4467326828183822,
+      "n": 127,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.16758236134279766,
+      "p25": 0.1047357143636066,
+      "p75": 0.2851280110775056,
+      "n": 127,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 211.4737478968483,
+      "p25": 205.00121038279477,
+      "p75": 217.8055457270496,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3605146075392667,
+      "p25": 0.06140354789935346,
+      "p75": 0.5634218312241589,
+      "n": 86,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.12498669954974684,
+      "p25": -0.015987209584840425,
+      "p75": 0.28738594445578836,
+      "n": 86,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 42.528434434630284,
+      "p25": -107.72881970782343,
+      "p75": 145.0982380111912,
+      "n": 86
+     },
+     "n_samples": 86,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.40818388512752757,
+      "p25": 0.329816799490833,
+      "p75": 0.443194157071156,
+      "n": 129,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.06110268768621505,
+      "p25": -0.005116063473692755,
+      "p75": 0.0658531778831941,
+      "n": 129,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 278.929945169683,
+      "p25": 108.00868096076438,
+      "p75": 329.6308454674106,
+      "n": 129
+     },
+     "n_samples": 129,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_5",
+       "axle": "r",
+       "value": 0.06110268768621505,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 4,
+   "corner_number": 4,
+   "speed_class": "medium",
+   "apex_speed": 139.6099992,
+   "apex_lateral_g": 2.0329636,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "strong",
+    "short": "oversteer @ exit",
+    "long": "Oversteer, late exit, rear CS -0.16, strong",
+    "state": "strong"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 32,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 654.6615185546865,
+      "p25": 494.87331602065456,
+      "p75": 1158.7859364749372,
+      "n": 83
+     },
+     "n_samples": 83,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.40275781673264693,
+      "p25": 0.24632498649744225,
+      "p75": 0.6782268333475123,
+      "n": 197,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3154391372258507,
+      "p25": 0.26214971581193414,
+      "p75": 0.5283164720307401,
+      "n": 166,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 198.04888770183712,
+      "p25": 100.43884155724972,
+      "p75": 241.05003528808288,
+      "n": 197
+     },
+     "n_samples": 197,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2337139220234316,
+      "p25": 0.13576439917936292,
+      "p75": 0.24638124340068795,
+      "n": 127,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2599145265102042,
+      "p25": 0.24918574034179886,
+      "p75": 0.2664082297894134,
+      "n": 46,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 211.12190805282145,
+      "p25": 204.6792310011046,
+      "p75": 217.4047596090769,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.13234809411600396,
+      "p25": 0.12553824024384194,
+      "p75": 0.139294042280536,
+      "n": 86,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 42.88132469482808,
+      "p25": -108.34363695977075,
+      "p75": 145.17261113313086,
+      "n": 86
+     },
+     "n_samples": 86,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.16303367580730965,
+      "p25": -0.08004548049129065,
+      "p75": 0.6389688305815274,
+      "n": 126,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": -0.15730978628236983,
+      "p25": -0.16381559311077212,
+      "p75": 0.3599082004632289,
+      "n": 73,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "strong",
+     "stability_observed_Nm_per_deg": {
+      "median": 280.51656751548376,
+      "p25": 110.06559262643864,
+      "p75": 331.10300272216796,
+      "n": 126
+     },
+     "n_samples": 126,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [
+      {
+       "symptom": "OS",
+       "phase": "exit_5",
+       "axle": "r",
+       "value": -0.15730978628236983,
+       "severity": "strong"
+      }
+     ],
+     "info": [],
+     "floor_events": [
+      {
+       "lap": 73,
+       "corner": 4,
+       "axle": "front",
+       "phase": "exit_5",
+       "phases_spanned": [
+        "exit_5"
+       ],
+       "t_start": 475.5709999999999,
+       "t_end": 475.591,
+       "duration_s": 0.0300000000000955,
+       "n_samples": 3,
+       "s_start_m": 1681.5390624167956,
+       "s_end_m": 1682.3437499616002,
+       "s_min_m": 1681.5390624167956,
+       "cs_min": -0.6806118425932052,
+       "kerb_distance_m": 96.81249989759704,
+       "kerb_affected": false,
+       "observer_reset_affected": false,
+       "floor": -0.53,
+       "fx_util_max": 0.006628462484423443,
+       "braking_share": 0.0,
+       "braking": false,
+       "fz_window_range_median": 0.2900363993493263,
+       "fz_window_range_max": 0.2936921397598818,
+       "window_start_t": 474.871,
+       "recurring_laps": [
+        73
+       ],
+       "recurrence": "single"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 5,
+   "corner_number": 5,
+   "speed_class": "medium",
+   "apex_speed": 88.0199986,
+   "apex_lateral_g": 1.773501,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.36652003786407467,
+      "p25": 0.2063490330646303,
+      "p75": 0.7308274939684075,
+      "n": 153,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5380989665772355,
+      "p25": 0.39128847220019297,
+      "p75": 0.9024127372000083,
+      "n": 153,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 267.5722578251949,
+      "p25": 107.03508891187067,
+      "p75": 471.7038597241342,
+      "n": 153
+     },
+     "n_samples": 153,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.23726248997112237,
+      "p25": 0.14222351689595983,
+      "p75": 0.35226997340578364,
+      "n": 184,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3693585351136722,
+      "p25": 0.33244968135024633,
+      "p75": 0.42459476846948685,
+      "n": 184,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 46.87061800001196,
+      "p25": 43.16572338377625,
+      "p75": 50.55358893309161,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.006431241539842466,
+      "p25": -0.07596281339617603,
+      "p75": 0.3040013034127037,
+      "n": 174,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.26690364496680197,
+      "p25": 0.24767732708637874,
+      "p75": 0.36765624716388706,
+      "n": 174,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 334.7346979536804,
+      "p25": 162.34434267070813,
+      "p75": 507.6369038618742,
+      "n": 174
+     },
+     "n_samples": 174,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": [
+      {
+       "lap": 72,
+       "corner": 5,
+       "axle": "front",
+       "phase": "exit_4",
+       "phases_spanned": [
+        "exit_4"
+       ],
+       "t_start": 362.851,
+       "t_end": 362.91099999999994,
+       "duration_s": 0.06999999999994543,
+       "n_samples": 7,
+       "s_start_m": 1809.6093750336,
+       "s_end_m": 1811.0859374855986,
+       "s_min_m": 1810.3437500952,
+       "cs_min": -0.6675340774244547,
+       "kerb_distance_m": 569.304687448802,
+       "kerb_affected": false,
+       "observer_reset_affected": false,
+       "floor": -0.53,
+       "fx_util_max": 0.01772134051148168,
+       "braking_share": 0.0,
+       "braking": false,
+       "fz_window_range_median": 0.2077710523561994,
+       "fz_window_range_max": 0.21225947284504346,
+       "window_start_t": 362.07099999999997,
+       "recurring_laps": [
+        72
+       ],
+       "recurrence": "single"
+      }
+     ]
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.47711480730185585,
+      "p25": 0.4492378864002062,
+      "p75": 0.5655386120949237,
+      "n": 188,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.31284789872373436,
+      "p25": 0.25273728876167567,
+      "p75": 0.5304581370292799,
+      "n": 188,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 600.3997751688948,
+      "p25": 530.2982710677156,
+      "p75": 759.0919779200985,
+      "n": 188
+     },
+     "n_samples": 188,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 5,
+   "corner_number": 5,
+   "speed_class": "medium",
+   "apex_speed": 87.5600003,
+   "apex_lateral_g": 1.8104824000000002,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.4137201126860939,
+      "p25": 0.2161799173425702,
+      "p75": 0.5845190895867446,
+      "n": 149,
+      "n_kerb_excluded": 8,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.7187747016159336,
+      "p25": 0.5790844520241207,
+      "p75": 0.8910628498178658,
+      "n": 149,
+      "n_kerb_excluded": 8,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 269.53450084911043,
+      "p25": 113.25491114540782,
+      "p75": 474.60353520009636,
+      "n": 157
+     },
+     "n_samples": 157,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2297403057824339,
+      "p25": 0.07672004759944237,
+      "p75": 0.38437363566341604,
+      "n": 79,
+      "n_kerb_excluded": 82,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5802515272155909,
+      "p25": 0.5541429240786975,
+      "p75": 0.6421903797563007,
+      "n": 79,
+      "n_kerb_excluded": 82,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 46.51985788604311,
+      "p25": 42.836886097668014,
+      "p75": 50.18090770185753,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.002608736346649841,
+      "p25": -0.08734274972078418,
+      "p75": 0.08935987684292462,
+      "n": 44,
+      "n_kerb_excluded": 106,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 150,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 343.97035594927587,
+      "p25": 172.29812574139277,
+      "p75": 513.592879308904,
+      "n": 171
+     },
+     "n_samples": 171,
+     "kerb_fraction": 0.12280701754385964,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.19143581784051988,
+      "p25": 0.15236164660392004,
+      "p75": 0.45561660778614455,
+      "n": 188,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.47968076835724544,
+      "p25": 0.41509865614604213,
+      "p75": 0.5861245261472172,
+      "n": 126,
+      "n_kerb_excluded": 33,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 600.4210120028096,
+      "p25": 529.1788822835866,
+      "p75": 761.1933879917831,
+      "n": 188
+     },
+     "n_samples": 188,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 6,
+   "corner_number": 6,
+   "speed_class": "high",
+   "apex_speed": 204.84000010000005,
+   "apex_lateral_g": 0.7435226000000001,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "no CS data",
+    "long": "No CS data in any phase",
+    "state": "no_data"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1
+     },
+     "n_samples": 1,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 827.2618445873837,
+      "p25": 791.1871816911143,
+      "p75": 857.6681989645856,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 706.2351143255604,
+      "p25": 687.7509658798842,
+      "p75": 723.568247381291,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 528.4235149097652,
+      "p25": 311.6265000607949,
+      "p75": 683.865441596354,
+      "n": 119
+     },
+     "n_samples": 119,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1047.4437430158378,
+      "p25": 1003.9113570480679,
+      "p75": 1078.9460982349501,
+      "n": 13
+     },
+     "n_samples": 13,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 6,
+   "corner_number": 6,
+   "speed_class": "high",
+   "apex_speed": 204.76000030000006,
+   "apex_lateral_g": 0.6536687,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "no CS data",
+    "long": "No CS data in any phase",
+    "state": "no_data"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1
+     },
+     "n_samples": 1,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 827.3905355940943,
+      "p25": 791.5275993733925,
+      "p75": 857.9592806260578,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 706.6115269324227,
+      "p25": 688.2107097705998,
+      "p75": 724.0247828131673,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 528.8849824939549,
+      "p25": 311.8449216071017,
+      "p75": 684.3591358960855,
+      "n": 119
+     },
+     "n_samples": 119,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1050.286386789018,
+      "p25": 1006.9340857361195,
+      "p75": 1080.918431918535,
+      "n": 13
+     },
+     "n_samples": 13,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 7,
+   "corner_number": 7,
+   "speed_class": "low",
+   "apex_speed": 80.1099996,
+   "apex_lateral_g": 1.7820407,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.540321316156906,
+      "p25": 0.43966452213679624,
+      "p75": 0.899944421217298,
+      "n": 146,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.9374074042169911,
+      "p25": 0.6512742131528149,
+      "p75": 0.9598571414907624,
+      "n": 146,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 217.9251829004024,
+      "p25": 57.260234255538165,
+      "p75": 421.38936945755336,
+      "n": 146
+     },
+     "n_samples": 146,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3065029201078211,
+      "p25": 0.27964438864491503,
+      "p75": 0.4376623979427531,
+      "n": 164,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5312984882056527,
+      "p25": 0.4978062728051439,
+      "p75": 0.6430198755689216,
+      "n": 164,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 39.80480301772842,
+      "p25": 36.88971400195097,
+      "p75": 42.49565387012089,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.28410776154039336,
+      "p25": 0.2639371296100834,
+      "p75": 0.3667681996305021,
+      "n": 361,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4989472801731689,
+      "p25": 0.47274095135048294,
+      "p75": 0.5539276974508283,
+      "n": 263,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 505.17130090571914,
+      "p25": 315.59420088672664,
+      "p75": 597.0655675687221,
+      "n": 443
+     },
+     "n_samples": 443,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.6650943223383166,
+      "p25": 0.5129397206567274,
+      "p75": 0.9535706997352028,
+      "n": 90,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8138046694323334,
+      "p25": 0.7906563897119887,
+      "p75": 0.8597587887212335,
+      "n": 89,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 1479.9781025015625,
+      "p25": 1192.1856118513672,
+      "p75": 1661.234695377724,
+      "n": 109
+     },
+     "n_samples": 109,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 7,
+   "corner_number": 7,
+   "speed_class": "low",
+   "apex_speed": 79.3300006,
+   "apex_lateral_g": 1.7338465,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.39081479660042107,
+      "p25": 0.26295225187856097,
+      "p75": 0.674188799844767,
+      "n": 145,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 0.7066671858898157,
+      "p75": 1.0,
+      "n": 145,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 221.24159133256356,
+      "p25": 58.32675494461062,
+      "p75": 421.8020210831019,
+      "n": 145
+     },
+     "n_samples": 145,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.33178678728267785,
+      "p25": 0.26764043547113103,
+      "p75": 0.4232209903621449,
+      "n": 167,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.24944012111521346,
+      "p25": 0.0628313954497284,
+      "p75": 0.7027283618621879,
+      "n": 167,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 39.804803017721895,
+      "p25": 37.18402597625613,
+      "p75": 42.42558005918684,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3031781909672339,
+      "p25": 0.12475035038077523,
+      "p75": 0.37562707035138704,
+      "n": 446,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.20789980119382231,
+      "p25": 0.09731761682500477,
+      "p75": 0.25745386277535787,
+      "n": 332,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 505.9875703588948,
+      "p25": 316.16418278579494,
+      "p75": 595.823848831208,
+      "n": 446
+     },
+     "n_samples": 446,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7160455902530978,
+      "p25": 0.6164716800254152,
+      "p75": 0.9104650985705096,
+      "n": 107,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8602852622263631,
+      "p25": 0.8193294636576096,
+      "p75": 1.0,
+      "n": 88,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 1479.5610872754328,
+      "p25": 1192.0504538867262,
+      "p75": 1659.9880200433959,
+      "n": 107
+     },
+     "n_samples": 107,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 8,
+   "corner_number": 8,
+   "speed_class": "high",
+   "apex_speed": 179.68000130000001,
+   "apex_lateral_g": 2.5169865999999996,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7977384282402857,
+      "p25": 0.7523262635023109,
+      "p75": 0.8644135714157224,
+      "n": 22,
+      "n_kerb_excluded": 59,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 57,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 304.4821846080346,
+      "p25": 282.6534297335742,
+      "p75": 336.2929010391779,
+      "n": 102
+     },
+     "n_samples": 102,
+     "kerb_fraction": 0.20588235294117646,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 90,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 90,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 382.6431113368075,
+      "p25": 380.29949242593796,
+      "p75": 384.50606506992665,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.10385927866107242,
+      "p25": 0.09814430997847444,
+      "p75": 0.11473007629939913,
+      "n": 53,
+      "n_kerb_excluded": 81,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3220803198019096,
+      "p25": 0.31483652052655503,
+      "p75": 0.32810883815028263,
+      "n": 47,
+      "n_kerb_excluded": 82,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 387.23290046191835,
+      "p25": 291.0671019489344,
+      "p75": 437.0624670632019,
+      "n": 154
+     },
+     "n_samples": 154,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.4171932746929922,
+      "p25": 0.3757025711063793,
+      "p75": 0.45511117685330804,
+      "n": 47,
+      "n_kerb_excluded": 10,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4296612712185334,
+      "p25": 0.34230120637660105,
+      "p75": 0.46727138634563986,
+      "n": 41,
+      "n_kerb_excluded": 10,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 338.7434715526773,
+      "p25": 322.93169983548404,
+      "p75": 346.8377391684018,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 8,
+   "corner_number": 8,
+   "speed_class": "high",
+   "apex_speed": 166.65000060000003,
+   "apex_lateral_g": 2.1440557,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.5210081981963368,
+      "p25": 0.43933456578414437,
+      "p75": 0.5829050526394084,
+      "n": 105,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 0.7400914471129714,
+      "p75": 1.0,
+      "n": 101,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 306.46571404694345,
+      "p25": 282.68724111710634,
+      "p75": 336.09518163430806,
+      "n": 105
+     },
+     "n_samples": 105,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.44713747089490175,
+      "p25": 0.3383423599699208,
+      "p75": 0.5332078687645286,
+      "n": 106,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4592671203530462,
+      "p25": 0.053975521910183566,
+      "p75": 0.7384043763960393,
+      "n": 106,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 382.5613730388312,
+      "p25": 380.39233213928685,
+      "p75": 384.38306685768623,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.17918478423389655,
+      "p25": 0.12594900357498584,
+      "p75": 0.30402804793269556,
+      "n": 166,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.08173085219106416,
+      "p25": 0.02312120828337586,
+      "p75": 0.37971194635347066,
+      "n": 166,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 387.5932265781298,
+      "p25": 290.9895454836508,
+      "p75": 436.7611957024678,
+      "n": 166
+     },
+     "n_samples": 166,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_4",
+       "axle": "r",
+       "value": 0.08173085219106416,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7900460615767637,
+      "p25": 0.450646497755936,
+      "p75": 0.9816021739802928,
+      "n": 62,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5694332828784402,
+      "p25": 0.3332034059987689,
+      "p75": 0.7332542038752742,
+      "n": 62,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 338.78189671613353,
+      "p25": 323.00404621295047,
+      "p75": 347.0643786491713,
+      "n": 62
+     },
+     "n_samples": 62,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 9,
+   "corner_number": 9,
+   "speed_class": "high",
+   "apex_speed": 189.87999940000006,
+   "apex_lateral_g": 1.9076136000000001,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 2,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 2,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 26,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 26,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 652.0744263973004,
+      "p25": 472.6564094227527,
+      "p75": 840.7063176868562,
+      "n": 59
+     },
+     "n_samples": 59,
+     "kerb_fraction": 0.559322033898305,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 37,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 37,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 928.8364628602131,
+      "p25": 921.1402595226211,
+      "p75": 933.562088093814,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.36363636363636365,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 35,
+      "n_kerb_excluded": 53,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5985566263080337,
+      "p25": 0.5931902842242726,
+      "p75": 0.6246173166474343,
+      "n": 27,
+      "n_kerb_excluded": 46,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 851.6137165764935,
+      "p25": 630.0208191018986,
+      "p75": 1014.1873636015581,
+      "n": 133
+     },
+     "n_samples": 133,
+     "kerb_fraction": 0.17293233082706766,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 66,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8011905204375482,
+      "p25": 0.7340318954775533,
+      "p75": 0.9294659992045442,
+      "n": 66,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 1864.2406171463094,
+      "p25": 1607.628908690845,
+      "p75": 2046.6117286908661,
+      "n": 66
+     },
+     "n_samples": 66,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 9,
+   "corner_number": 9,
+   "speed_class": "high",
+   "apex_speed": 177.7699993,
+   "apex_lateral_g": 1.6387944,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 42,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 42,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 652.9865805735348,
+      "p25": 473.4286718257506,
+      "p75": 841.6826725690506,
+      "n": 63
+     },
+     "n_samples": 63,
+     "kerb_fraction": 0.3333333333333333,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 56,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 56,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 929.3993327780341,
+      "p25": 921.5118614588457,
+      "p75": 933.588650296562,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7144200307548062,
+      "p25": 0.7130127684005336,
+      "p75": 0.714943739620971,
+      "n": 7,
+      "n_kerb_excluded": 37,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 33,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 845.6782127595045,
+      "p25": 631.0479986838878,
+      "p75": 1012.6540187079443,
+      "n": 140
+     },
+     "n_samples": 140,
+     "kerb_fraction": 0.15714285714285714,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.6994001398980786,
+      "p25": 0.666958353373371,
+      "p75": 0.759615544025087,
+      "n": 69,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1855.165436794969,
+      "p25": 1599.842970829393,
+      "p75": 2046.730297311626,
+      "n": 69
+     },
+     "n_samples": 69,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 10,
+   "corner_number": 10,
+   "speed_class": "medium",
+   "apex_speed": 116.41999600000001,
+   "apex_lateral_g": 2.0814551000000003,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 980.6141784354152,
+      "p25": 744.8372183847758,
+      "p75": 1037.9316909465076,
+      "n": 109
+     },
+     "n_samples": 109,
+     "kerb_fraction": 0.2018348623853211,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3748173443818382,
+      "p25": 0.3160578046902156,
+      "p75": 0.516036840909619,
+      "n": 112,
+      "n_kerb_excluded": 68,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6314516691486909,
+      "p25": 0.2689363345939113,
+      "p75": 0.6567228566739782,
+      "n": 86,
+      "n_kerb_excluded": 83,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 433.58970464413267,
+      "p25": 340.86527892527454,
+      "p75": 549.7272249823924,
+      "n": 184
+     },
+     "n_samples": 184,
+     "kerb_fraction": 0.021739130434782608,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2549409652852916,
+      "p25": 0.23608760759374883,
+      "p75": 0.3345008858636274,
+      "n": 145,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.11196614001070591,
+      "p25": 0.055207127842281524,
+      "p75": 0.6293319849109672,
+      "n": 145,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 272.16284900895823,
+      "p25": 271.22958382824515,
+      "p75": 273.7091749515744,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2390038745425583,
+      "p25": 0.23379268673462625,
+      "p75": 0.35863589640145027,
+      "n": 165,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.07146738888259838,
+      "p25": 0.05451123760516247,
+      "p75": 0.18199838335298263,
+      "n": 165,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 338.48569429562286,
+      "p25": 303.5347495544639,
+      "p75": 351.0263212418831,
+      "n": 165
+     },
+     "n_samples": 165,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_4",
+       "axle": "r",
+       "value": 0.07146738888259838,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": [
+      {
+       "lap": 72,
+       "corner": 10,
+       "axle": "front",
+       "phase": "exit_4",
+       "phases_spanned": [
+        "exit_4"
+       ],
+       "t_start": 397.92099999999994,
+       "t_end": 397.92099999999994,
+       "duration_s": 0.01,
+       "n_samples": 1,
+       "s_start_m": 3371.6718748799985,
+       "s_end_m": 3371.6718748799985,
+       "s_min_m": 3371.6718748799985,
+       "cs_min": -0.5481177880464633,
+       "kerb_distance_m": 108.22656129599818,
+       "kerb_affected": false,
+       "observer_reset_affected": false,
+       "floor": -0.53,
+       "fx_util_max": 0.0005784814114949924,
+       "braking_share": 0.0,
+       "braking": false,
+       "fz_window_range_median": 0.2968671331690295,
+       "fz_window_range_max": 0.2968671331690295,
+       "window_start_t": 397.39099999999996,
+       "recurring_laps": [
+        72
+       ],
+       "recurrence": "single"
+      }
+     ]
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.4733306301596082,
+      "p25": 0.3386674055794699,
+      "p75": 0.8683036951220946,
+      "n": 121,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4028966975662555,
+      "p25": 0.370077062968332,
+      "p75": 0.6243669748011538,
+      "n": 115,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 511.38230386735756,
+      "p25": 406.8838755264309,
+      "p75": 646.8523818407502,
+      "n": 121
+     },
+     "n_samples": 121,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 10,
+   "corner_number": 10,
+   "speed_class": "medium",
+   "apex_speed": 119.7100016,
+   "apex_lateral_g": 2.3017826,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 5,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 975.024409704726,
+      "p25": 736.0921941351688,
+      "p75": 1037.5670966220887,
+      "n": 115
+     },
+     "n_samples": 115,
+     "kerb_fraction": 0.25217391304347825,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.5279457482702395,
+      "p25": 0.28284030175527347,
+      "p75": 0.5690123013160504,
+      "n": 143,
+      "n_kerb_excluded": 47,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3607844958373532,
+      "p25": 0.21083542924053017,
+      "p75": 0.4229740865637093,
+      "n": 119,
+      "n_kerb_excluded": 54,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 442.1838521456044,
+      "p25": 346.1745332187933,
+      "p75": 553.8179068082252,
+      "n": 190
+     },
+     "n_samples": 190,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.21181528447901296,
+      "p25": 0.08876701731257294,
+      "p75": 0.341455214069358,
+      "n": 89,
+      "n_kerb_excluded": 31,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.15516536458423855,
+      "p25": 0.13229309657462698,
+      "p75": 0.329928520799876,
+      "n": 89,
+      "n_kerb_excluded": 31,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 272.08379012114756,
+      "p25": 271.21452962510944,
+      "p75": 273.12920861194664,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.21317943195946948,
+      "p25": 0.1518193313515281,
+      "p75": 0.2730983833837874,
+      "n": 34,
+      "n_kerb_excluded": 104,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.0659032948743086,
+      "p25": 0.042258546297187075,
+      "p75": 0.14868034876802014,
+      "n": 46,
+      "n_kerb_excluded": 92,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 337.3718865310464,
+      "p25": 302.37685646019224,
+      "p75": 350.8612734758821,
+      "n": 161
+     },
+     "n_samples": 161,
+     "kerb_fraction": 0.14285714285714285,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_4",
+       "axle": "r",
+       "value": 0.0659032948743086,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3832346077698823,
+      "p25": 0.24057951718957632,
+      "p75": 0.816160190741858,
+      "n": 116,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2743189492530236,
+      "p25": 0.09228574011019776,
+      "p75": 0.29928236561345256,
+      "n": 116,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 511.6276429675536,
+      "p25": 408.34596599802114,
+      "p75": 645.2659001090705,
+      "n": 116
+     },
+     "n_samples": 116,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 11,
+   "corner_number": 11,
+   "speed_class": "medium",
+   "apex_speed": 121.67999989999998,
+   "apex_lateral_g": 1.8865982000000001,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.2554390635421861,
+      "p25": 0.15754262631379623,
+      "p75": 0.38262549800994905,
+      "n": 275,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.7550687427699938,
+      "p25": 0.6354940383564655,
+      "p75": 0.9211637612077579,
+      "n": 190,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 222.39292804821017,
+      "p25": 115.97449708130995,
+      "p75": 532.5768181673035,
+      "n": 317
+     },
+     "n_samples": 317,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.039675408203469334,
+      "p25": 0.02707354875551956,
+      "p75": 0.3288491035713501,
+      "n": 101,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": -0.017326535311443955,
+      "p25": -0.03781939386554403,
+      "p75": 0.012664847338733735,
+      "n": 40,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 223.49049342295507,
+      "p25": 221.57415221521725,
+      "p75": 224.66832089680656,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "apex_3",
+       "axle": "r",
+       "value": -0.017326535311443955,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.060828280620667835,
+      "p25": 0.028603099062474335,
+      "p75": 0.2321157678643776,
+      "n": 55,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.00509718152559058,
+      "p25": -0.013241815875761804,
+      "p75": 0.024545070906693223,
+      "n": 25,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "info",
+     "stability_observed_Nm_per_deg": {
+      "median": 172.21701709424485,
+      "p25": 121.36448021085224,
+      "p75": 200.11455051755547,
+      "n": 55
+     },
+     "n_samples": 55,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [
+      {
+       "phase": "exit_4",
+       "axle": "r",
+       "value": 0.00509718152559058,
+       "note": "rear near its peak (moderate tier), no symptom"
+      }
+     ],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.47073257916263417,
+      "p25": 0.39852461585901505,
+      "p75": 0.5628144747525393,
+      "n": 174,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4145083048301801,
+      "p25": -0.034794304652602116,
+      "p75": 0.5937938750810462,
+      "n": 174,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 200.7153763926016,
+      "p25": -7.432470929076594,
+      "p75": 482.27498750205746,
+      "n": 174
+     },
+     "n_samples": 174,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 11,
+   "corner_number": 11,
+   "speed_class": "medium",
+   "apex_speed": 120.99999830000003,
+   "apex_lateral_g": 1.8715978,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1
+     },
+     "n_samples": 1,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.322614621754175,
+      "p25": 0.15527512651914205,
+      "p75": 0.5487981907949391,
+      "n": 240,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.4719704895848856,
+      "p25": 0.4290730733499586,
+      "p75": 0.6629696121830047,
+      "n": 232,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 222.43180818544926,
+      "p25": 114.33031099059748,
+      "p75": 532.2880599711772,
+      "n": 324
+     },
+     "n_samples": 324,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.048446007670322644,
+      "p25": -0.13068150946837043,
+      "p75": 0.032577437632793756,
+      "n": 97,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.47896131591586877,
+      "p25": 0.4392491334784576,
+      "p75": 0.6252578962879294,
+      "n": 102,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 222.93153944917663,
+      "p25": 219.80098445149002,
+      "p75": 224.54956486522036,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.05515165670157501,
+      "p25": -0.0902087114749694,
+      "p75": -0.03730931869663366,
+      "n": 54,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6194443586536713,
+      "p25": 0.4577428082497218,
+      "p75": 0.6609952435107015,
+      "n": 54,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 171.59750352217065,
+      "p25": 120.89603567138255,
+      "p75": 199.78469271209767,
+      "n": 54
+     },
+     "n_samples": 54,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.3933512417748245,
+      "p25": 0.31422506870156497,
+      "p75": 0.5620367188761555,
+      "n": 172,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.40769983118040853,
+      "p25": 0.18444914419430464,
+      "p75": 0.44420846188304514,
+      "n": 172,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 200.93172658033157,
+      "p25": -6.500632507582439,
+      "p75": 482.2972689395756,
+      "n": 172
+     },
+     "n_samples": 172,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 12,
+   "corner_number": 12,
+   "speed_class": "high",
+   "apex_speed": 206.8300003,
+   "apex_lateral_g": 1.3889114,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.9919400270500364,
+      "p25": 0.9613696970732559,
+      "p75": 0.9964926899840831,
+      "n": 91,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 42,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 1266.8334426339384,
+      "p25": 1105.2659587143141,
+      "p75": 1334.6757169454004,
+      "n": 142
+     },
+     "n_samples": 142,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 922.6387951355833,
+      "p25": 898.4327440165073,
+      "p75": 946.0794812020292,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1138.805824081322,
+      "p25": 878.1557695652759,
+      "p75": 1175.861464173569,
+      "n": 186
+     },
+     "n_samples": 186,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.9818629775277479,
+      "p25": 0.9535249292891292,
+      "p75": 1.0,
+      "n": 47,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 703.6755704435268,
+      "p25": 560.4312588705391,
+      "p75": 927.0435168868049,
+      "n": 61
+     },
+     "n_samples": 61,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 12,
+   "corner_number": 12,
+   "speed_class": "high",
+   "apex_speed": 206.99999709999997,
+   "apex_lateral_g": 1.4799535000000004,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 2
+     },
+     "n_samples": 2,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.9866552025137721,
+      "p25": 0.9574063178757171,
+      "p75": 1.0,
+      "n": 96,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1267.3714477991693,
+      "p25": 1106.7240604241097,
+      "p75": 1334.5720094226806,
+      "n": 142
+     },
+     "n_samples": 142,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.8143844564212317,
+      "p25": 0.8061775176291828,
+      "p75": 0.8233370519535445,
+      "n": 14,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 930.1793085124566,
+      "p25": 906.1001303511927,
+      "p75": 953.5641320482415,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 3,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1138.7457135327334,
+      "p25": 879.5595879018344,
+      "p75": 1176.2203678180795,
+      "n": 186
+     },
+     "n_samples": 186,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 704.5591128652813,
+      "p25": 557.9695341361639,
+      "p75": 930.799519079822,
+      "n": 62
+     },
+     "n_samples": 62,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 14,
+   "corner_number": 13,
+   "speed_class": "high",
+   "apex_speed": 150.2299993,
+   "apex_lateral_g": 2.2763116,
+   "method": "steering",
+   "warnings": [
+    "canonical_boundary_resolved"
+   ],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 6,
+      "n_kerb_excluded": 36,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 1.0,
+      "p75": 1.0,
+      "n": 6,
+      "n_kerb_excluded": 36,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 352.02548480674176,
+      "p25": 337.2871335244109,
+      "p75": 405.8583067270133,
+      "n": 75
+     },
+     "n_samples": 75,
+     "kerb_fraction": 0.44,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 25,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 25,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 451.599791873839,
+      "p25": 443.13998369930164,
+      "p75": 454.2051731005699,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.9090909090909091,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 440.5488594301604,
+      "p25": 438.03547408905285,
+      "p75": 447.6198035127791,
+      "n": 28
+     },
+     "n_samples": 28,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.38165961581807445,
+      "p25": 0.34592851828353255,
+      "p75": 0.4121977515745687,
+      "n": 7,
+      "n_kerb_excluded": 85,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.42625594395789274,
+      "p25": 0.40759905259621904,
+      "p75": 0.4453952882620943,
+      "n": 14,
+      "n_kerb_excluded": 78,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 168.8503507309195,
+      "p25": 108.69955065474497,
+      "p75": 206.01359181820933,
+      "n": 149
+     },
+     "n_samples": 149,
+     "kerb_fraction": 0.3825503355704698,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 14,
+   "corner_number": 14,
+   "speed_class": "high",
+   "apex_speed": 150.33000080000002,
+   "apex_lateral_g": 2.0031855000000003,
+   "method": "steering",
+   "warnings": [
+    "canonical_boundary_resolved"
+   ],
+   "verdict": {
+    "severity": "normal",
+    "short": "no CS data",
+    "long": "No CS data in any phase",
+    "state": "no_data"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 35,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 35,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 351.2435513407197,
+      "p25": 337.35557444183723,
+      "p75": 405.4205017876873,
+      "n": 75
+     },
+     "n_samples": 75,
+     "kerb_fraction": 0.5333333333333333,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 28,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 28,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 452.53387837386686,
+      "p25": 441.4230556184435,
+      "p75": 454.3996696902705,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 440.7271056947003,
+      "p25": 438.3107265056359,
+      "p75": 448.5944878302693,
+      "n": 28
+     },
+     "n_samples": 28,
+     "kerb_fraction": 1.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 95,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 95,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 168.61975783034703,
+      "p25": 109.99404192835468,
+      "p75": 205.53537974292954,
+      "n": 147
+     },
+     "n_samples": 147,
+     "kerb_fraction": 0.35374149659863946,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 15,
+   "corner_number": 14,
+   "speed_class": "medium",
+   "apex_speed": 93.4900002,
+   "apex_lateral_g": 1.7427577000000003,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 37,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 33,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1048.993731918187,
+      "p25": 998.098266626313,
+      "p75": 1118.3987568781693,
+      "n": 37
+     },
+     "n_samples": 37,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.26249743502793316,
+      "p25": 0.16440506259724952,
+      "p75": 0.4270709516799722,
+      "n": 219,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5498742973153046,
+      "p25": 0.34754497322608946,
+      "p75": 1.0,
+      "n": 214,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 77.04650383780634,
+      "p25": -36.281204367942834,
+      "p75": 347.5971468295421,
+      "n": 219
+     },
+     "n_samples": 219,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.004361038332917397,
+      "p25": -0.05186112614501716,
+      "p75": 0.16375585821190236,
+      "n": 178,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3409686859453389,
+      "p25": 0.30907480376302676,
+      "p75": 0.38081205796731665,
+      "n": 178,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 111.07019807861464,
+      "p25": 106.45008256367461,
+      "p75": 115.42310289944118,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.06063347452456803,
+      "p25": -0.09467143080913393,
+      "p75": -0.03448651719806322,
+      "n": 129,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.3983260652008115,
+      "p25": 0.2904682863672591,
+      "p75": 0.506936867113302,
+      "n": 129,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 181.75158827335517,
+      "p25": 158.0045582970737,
+      "p75": 189.73581567306383,
+      "n": 129
+     },
+     "n_samples": 129,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.09299891259117335,
+      "p25": 0.07918684528217365,
+      "p75": 0.12091929282604702,
+      "n": 216,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6080394471523941,
+      "p25": 0.4908198048444654,
+      "p75": 0.700766011542929,
+      "n": 158,
+      "n_kerb_excluded": 19,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 220.80397839029786,
+      "p25": 134.94546699704446,
+      "p75": 906.7068120408262,
+      "n": 309
+     },
+     "n_samples": 309,
+     "kerb_fraction": 0.22653721682847897,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 15,
+   "corner_number": 15,
+   "speed_class": "medium",
+   "apex_speed": 92.92999989999998,
+   "apex_lateral_g": 1.7860509,
+   "method": "steering",
+   "warnings": [],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 4,
+      "n_kerb_excluded": 33,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 3,
+      "n_kerb_excluded": 24,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 1045.5437962332178,
+      "p25": 996.6119642231293,
+      "p75": 1111.31611312424,
+      "n": 37
+     },
+     "n_samples": 37,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.7151118504070648,
+      "p25": 0.25692660074479634,
+      "p75": 0.8848783887516292,
+      "n": 201,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.5292665068816188,
+      "p25": 0.45734017210504047,
+      "p75": 0.635976790649023,
+      "n": 201,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 99.4299248080936,
+      "p25": -3.440133372073208,
+      "p75": 385.47348431403174,
+      "n": 201
+     },
+     "n_samples": 201,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.15883970427883642,
+      "p25": 0.1213646399786327,
+      "p75": 0.21462602605968573,
+      "n": 158,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2743793092622129,
+      "p25": 0.24911026210548462,
+      "p75": 0.34239864754176763,
+      "n": 158,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 110.65952603966227,
+      "p25": 106.06507627541183,
+      "p75": 115.12188342349505,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.1399753043657796,
+      "p25": 0.0856779541638171,
+      "p75": 0.1617416547585454,
+      "n": 130,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.2665958083398868,
+      "p25": 0.24886702458789914,
+      "p75": 0.3206155155413081,
+      "n": 130,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 181.9672627737607,
+      "p25": 158.3800582446206,
+      "p75": 189.7334965270583,
+      "n": 130
+     },
+     "n_samples": 130,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.26374346960742656,
+      "p25": 0.13299328389635656,
+      "p75": 0.4258938964648236,
+      "n": 212,
+      "n_kerb_excluded": 83,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.46076938114407495,
+      "p25": 0.38865321590473784,
+      "p75": 0.4877115371515081,
+      "n": 202,
+      "n_kerb_excluded": 93,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 218.41722987297834,
+      "p25": 134.0163065257567,
+      "p75": 906.3093951857006,
+      "n": 316
+     },
+     "n_samples": 316,
+     "kerb_fraction": 0.06645569620253164,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 72,
+   "stable_corner_id": 13,
+   "corner_number": null,
+   "speed_class": "medium",
+   "apex_speed": 142.7100005,
+   "apex_lateral_g": 2.0956385,
+   "method": "steering",
+   "warnings": [
+    "canonical_quiet",
+    "canonical_boundary_resolved"
+   ],
+   "verdict": {
+    "severity": "moderate",
+    "short": "understeer @ apex [MARGINAL]",
+    "long": "Understeer, apex, front CS -0.07, moderate",
+    "state": "moderate"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0
+     },
+     "n_samples": 0,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.46124635706158973,
+      "p25": -0.03950848045587198,
+      "p75": 0.9501506049987138,
+      "n": 133,
+      "n_kerb_excluded": 2,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6668988021211553,
+      "p25": 0.6257008439918307,
+      "p75": 0.7302135842726187,
+      "n": 113,
+      "n_kerb_excluded": 2,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 286.515981084618,
+      "p25": 52.130493687573356,
+      "p75": 649.7973344807106,
+      "n": 135
+     },
+     "n_samples": 135,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": -0.06710129415710331,
+      "p25": -0.08907572733741956,
+      "p75": 0.09166117793976258,
+      "n": 58,
+      "n_kerb_excluded": 29,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.6258193370921032,
+      "p25": 0.4684152028359418,
+      "p75": 0.6752518377922654,
+      "n": 58,
+      "n_kerb_excluded": 29,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "moderate",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 54.41305664298919,
+      "p25": 52.779021545043165,
+      "p75": 57.046618023632206,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [
+      {
+       "symptom": "US",
+       "phase": "apex_3",
+       "axle": "f",
+       "value": -0.06710129415710331,
+       "severity": "moderate"
+      }
+     ],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 21,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 21,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 95.34526507797594,
+      "p25": 73.87485138195918,
+      "p75": 121.51953706005578,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.631578947368421,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 21,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 21,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 180.4313497870047,
+      "p25": 167.63631891270626,
+      "p75": 194.71133018118994,
+      "n": 21
+     },
+     "n_samples": 21,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  },
+  {
+   "lap_number": 73,
+   "stable_corner_id": 13,
+   "corner_number": 13,
+   "speed_class": "medium",
+   "apex_speed": 143.0900013,
+   "apex_lateral_g": 2.1933638,
+   "method": "steering",
+   "warnings": [
+    "canonical_boundary_resolved"
+   ],
+   "verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "phases": {
+    "entry_1_brake": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 0,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 1
+     },
+     "n_samples": 1,
+     "kerb_fraction": 0.0,
+     "kerb_flag": false,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "entry_2_turnin": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.4621407664823245,
+      "p25": 0.2340932545033225,
+      "p75": 0.6373392517844916,
+      "n": 124,
+      "n_kerb_excluded": 12,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.8302164535457737,
+      "p25": 0.7678560283050443,
+      "p75": 0.8628247090398183,
+      "n": 118,
+      "n_kerb_excluded": 12,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 290.5182363602331,
+      "p25": 52.23603105997369,
+      "p75": 654.0580473520185,
+      "n": 136
+     },
+     "n_samples": 136,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "apex_3": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.22901611947282047,
+      "p25": 0.2018654535435871,
+      "p75": 0.26483807982285384,
+      "n": 51,
+      "n_kerb_excluded": 49,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 0.7612035881446211,
+      "p25": 0.7071530590128153,
+      "p75": 0.7740808764161713,
+      "n": 49,
+      "n_kerb_excluded": 51,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 54.95985590507095,
+      "p25": 53.31946307997808,
+      "p75": 58.193713366743665,
+      "n": 11
+     },
+     "n_samples": 11,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_4": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 34,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": null,
+      "p25": null,
+      "p75": null,
+      "n": 0,
+      "n_kerb_excluded": 34,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "no_data",
+     "cs_state_r": "no_data",
+     "stability_observed_Nm_per_deg": {
+      "median": 96.9641160702392,
+      "p25": 75.51028066041127,
+      "p75": 123.75789630091406,
+      "n": 57
+     },
+     "n_samples": 57,
+     "kerb_fraction": 0.40350877192982454,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    },
+    "exit_5": {
+     "cs_ratio_f (verdict statistic)": {
+      "median": 0.9710824204497293,
+      "p25": 0.9165963186057247,
+      "p75": 0.99259731996943,
+      "n": 18,
+      "n_kerb_excluded": 4,
+      "n_reset_excluded": 0
+     },
+     "cs_ratio_r (verdict statistic)": {
+      "median": 1.0,
+      "p25": 0.9799064284397156,
+      "p75": 1.0,
+      "n": 7,
+      "n_kerb_excluded": 15,
+      "n_reset_excluded": 0
+     },
+     "cs_state_f": "normal",
+     "cs_state_r": "normal",
+     "stability_observed_Nm_per_deg": {
+      "median": 181.37970244303298,
+      "p25": 167.81572585976562,
+      "p75": 196.6042729804497,
+      "n": 22
+     },
+     "n_samples": 22,
+     "kerb_fraction": 0.0,
+     "kerb_flag": true,
+     "symptoms": [],
+     "info": [],
+     "floor_events": []
+    }
+   }
+  }
+ ],
+ "per_corner": [
+  {
+   "stable_corner_id": 1,
+   "canonical_speed_class": "low",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "strong",
+    "short": "understeer @ exit",
+    "long": "Understeer, early exit, front CS -0.28, strong",
+    "state": "strong"
+   },
+   "aggregate_symptoms": [
+    {
+     "symptom": "US",
+     "phase": "exit_4",
+     "axle": "f",
+     "value": -0.28413230582163684,
+     "severity": "strong"
+    }
+   ],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 2,
+   "canonical_speed_class": "low",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 3,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 4,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "strong",
+    "short": "oversteer @ exit",
+    "long": "Oversteer, late exit, rear CS -0.16, strong",
+    "state": "strong"
+   },
+   "aggregate_symptoms": [
+    {
+     "symptom": "OS",
+     "phase": "exit_5",
+     "axle": "r",
+     "value": -0.15730978628236983,
+     "severity": "strong"
+    }
+   ],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 5,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 6,
+   "canonical_speed_class": "high",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "no CS data",
+    "long": "No CS data in any phase",
+    "state": "no_data"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 7,
+   "canonical_speed_class": "low",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 8,
+   "canonical_speed_class": "high",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 9,
+   "canonical_speed_class": "high",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 10,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 11,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 12,
+   "canonical_speed_class": "high",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 13,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "moderate",
+    "short": "understeer @ apex [MARGINAL]",
+    "long": "Understeer, apex, front CS -0.07, moderate",
+    "state": "moderate"
+   },
+   "aggregate_symptoms": [
+    {
+     "symptom": "US",
+     "phase": "apex_3",
+     "axle": "f",
+     "value": -0.06710129415710331,
+     "severity": "moderate"
+    }
+   ],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 14,
+   "canonical_speed_class": "high",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  },
+  {
+   "stable_corner_id": 15,
+   "canonical_speed_class": "medium",
+   "n_laps": 2,
+   "aggregate_verdict": {
+    "severity": "normal",
+    "short": "ok",
+    "long": "Within normal range",
+    "state": "normal"
+   },
+   "aggregate_symptoms": [],
+   "counted_symptoms (D5 majority rule)": []
+  }
+ ],
+ "floor_events": {
+  "status": "computed",
+  "line": "pure-lateral floor",
+  "floor": -0.53,
+  "floors": {
+   "front": -0.53,
+   "rear": -0.53
+  },
+  "label": "not explainable by pure lateral saturation",
+  "n_instances_by_corner": {
+   "1": 2,
+   "2": 2,
+   "3": 2,
+   "4": 2,
+   "5": 2,
+   "6": 2,
+   "7": 2,
+   "8": 2,
+   "9": 2,
+   "10": 2,
+   "11": 2,
+   "12": 2,
+   "14": 2,
+   "15": 2,
+   "13": 2
+  },
+  "n_events": 5
+ },
+ "engine": {
+  "source": "computed in this export from the stored setup sheet and feedback",
+  "recomputed_equals_stored": null,
+  "data_layer": {
+   "corners": [],
+   "session": {
+    "n_corners": 15,
+    "shares": {
+     "US": {
+      "corners": 0,
+      "share": 0.0
+     },
+     "OS": {
+      "corners": 0,
+      "share": 0.0
+     },
+     "INST": {
+      "corners": 0,
+      "share": 0.0
+     }
+    },
+    "corners_counted": 0,
+    "counted_share": 0.0,
+    "cells": {
+     "US": {
+      "k": 2,
+      "n": 92,
+      "share": 0.021739130434782608
+     },
+     "OS": {
+      "k": 1,
+      "n": 80,
+      "share": 0.0125
+     },
+     "INST": {
+      "k": 0,
+      "n": 128,
+      "share": 0.0
+     }
+    },
+    "threshold": null,
+    "pattern": null,
+    "note": "shares reported only (session_share_threshold not set); the session setup recommendation comes from the corner vote"
+   },
+   "session_recommendation": {
+    "recommended": null,
+    "equivalent_options": [],
+    "alternatives": [],
+    "ranked": [],
+    "at_limit": [],
+    "not_recommended": [],
+    "votes": [],
+    "excluded": []
+   },
+   "rules": {
+    "min_repeat_fraction": 0.5,
+    "min_repeat_laps": 2,
+    "damper_step": "fine"
+   }
+  },
+  "engineer_layer": {
+   "corners": [],
+   "session": {
+    "n_corners": 15,
+    "shares": {
+     "US": {
+      "corners": 0,
+      "share": 0.0
+     },
+     "OS": {
+      "corners": 0,
+      "share": 0.0
+     },
+     "INST": {
+      "corners": 0,
+      "share": 0.0
+     }
+    },
+    "corners_counted": 0,
+    "counted_share": 0.0,
+    "cells": {
+     "US": {
+      "k": 2,
+      "n": 92,
+      "share": 0.021739130434782608
+     },
+     "OS": {
+      "k": 1,
+      "n": 80,
+      "share": 0.0125
+     },
+     "INST": {
+      "k": 0,
+      "n": 128,
+      "share": 0.0
+     }
+    },
+    "threshold": null,
+    "pattern": null,
+    "note": "shares reported only (session_share_threshold not set); the session setup recommendation comes from the corner vote"
+   },
+   "session_recommendation": {
+    "recommended": null,
+    "equivalent_options": [],
+    "alternatives": [],
+    "ranked": [],
+    "at_limit": [],
+    "not_recommended": [],
+    "votes": [],
+    "excluded": []
+   },
+   "rules": {
+    "min_repeat_fraction": 0.5,
+    "min_repeat_laps": 2,
+    "damper_step": "fine"
+   },
+   "driver_only": [],
+   "feedback_used": true
+  },
+  "cell_shares (data_layer.session.cells)": {
+   "US": {
+    "k": 2,
+    "n": 92,
+    "share": 0.021739130434782608
+   },
+   "OS": {
+    "k": 1,
+    "n": 80,
+    "share": 0.0125
+   },
+   "INST": {
+    "k": 0,
+    "n": 128,
+    "share": 0.0
+   }
+  },
+  "display_text": {
+   "data_layer": {
+    "session_summary": [
+     "No setup change",
+     "No repeated symptom",
+     null,
+     null,
+     [
+      "no mechanical lever group with positive net support"
+     ]
+    ],
+    "corner_summaries": []
+   },
+   "engineer_layer": {
+    "session_summary": [
+     "No setup change",
+     "No repeated symptom",
+     null,
+     null,
+     [
+      "no mechanical lever group with positive net support"
+     ]
+    ],
+    "corner_summaries": []
+   },
+   "engineer_lines": [
+    "No difference to the data layer"
+   ]
+  }
+ },
+ "status": "ok"
+}

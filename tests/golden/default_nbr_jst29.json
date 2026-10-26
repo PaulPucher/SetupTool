@@ -136,6 +136,13 @@
    },
    "lowest_level": 4,
    "level_note": "damper loads carry an event zero entry (L4 with an L2 zero, Q-CAL-2)",
+   "damper_plausibility": {
+    "ratio": 1.1380086212145046,
+    "f_min": 0.8,
+    "passed": true,
+    "n_straight": 2721,
+    "reason": null
+   },
    "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the measured axle loads, drive rear only",
    "fx_front_level": 1,
    "filter_cutoff_hz": 2.0,
@@ -310,6 +317,10 @@
   },
   "status": "ok",
   "k_band_zone": {
+   "front": "in band",
+   "rear": "in band"
+  },
+  "mu_ceiling_zone": {
    "front": "in band",
    "rear": "in band"
   }
@@ -31122,11 +31133,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 25), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 27), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "NBR JST outing 29",
   "data_file": "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt",
-  "git_commit_hash": "504b4ed2a9c4e8f25277f9478c522a8c177fa0fe",
-  "generated_at_utc": "2026-10-23T11:37:28.304318+00:00",
+  "git_commit_hash": "fa7ffb847a27e3e1c188ea9ae9332db672c7108c",
+  "generated_at_utc": "2026-10-24T10:05:17.492602+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

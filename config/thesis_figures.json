@@ -1,0 +1,4 @@
+{
+  "_comment": "Output folder of the thesis figure scripts (tools/thesis_figures/): CSVs to <dir>/data/, pgfplots .tex to <dir>/plots/; each script takes --out to override it. Environment configuration like data_roots.json, not an analysis input: no schema bump, not part of the analysis config hash. The .tex files reference their CSVs as '<basename of dir>/data/<file>', i.e. relative to the thesis root that holds this folder (author ruling 2026-10-24).",
+  "thesis_figures_dir": "C:/Paul/UNI/Bachelorarbeit/Writing/ba-thesis/figures"
+}

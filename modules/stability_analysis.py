@@ -115,7 +115,20 @@ CAR_DATA_PATH = "config/car_data.json"
 #      setup_engine.session_vote), mechanisms.json rows gain an axle field and
 #      the limiting-end class replaces the row order as the last per-corner
 #      rank key. Chain values unchanged; recommendations change.
-ANALYSIS_SCHEMA_VERSION = 25
+#  26: (2026-10-24) work order DEV-3, config edit outside Settings and a
+#      status meaning change: mu_demo in (2.0, 2.0 + mu_ceiling_edge_u] is
+#      marginal (EKF runs) instead of degenerate (kinematic fallback); the
+#      edge is relative, 2.0 x (1 + u) = 2.195 (author ruling 2026-10-24); the
+#      fit manifest carries mu_ceiling_zone. Unchanged on every session with
+#      mu_demo <= 2.0 (all 14 development sessions); a session in the band
+#      now runs the observer, so its chain values change.
+#  27: (2026-10-24) work order DEV-4, config edit outside Settings and a
+#      payload change: the damper path is checked per session against the
+#      static weight (wheel_loads.plausibility_min_static_fraction 0.8) and
+#      rejected below it (static split, Level 1); the fit manifest's
+#      axle_load carries damper_plausibility. Chain values change only on
+#      a rejected session (PRC JST longrun).
+ANALYSIS_SCHEMA_VERSION = 27
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -608,7 +621,9 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     vertical_load_source == "measured" with channels + car_data -> damper
     cascade (wheel_loads: measured -> reconstructed -> this static model).
     Axle totals then re-summed from the wheels. "static" never touches
-    wheel_loads.
+    wheel_loads. A damper path whose straight-line total falls below
+    plausibility_min_static_fraction x the static weight is rejected for
+    the whole session (wheel_loads.straight_line_plausibility).
     """
     vp = params["vehicle"]
     aero = vp["aero"]
@@ -654,14 +669,23 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     vertical_load_source = params["stability_estimation"].get("vertical_load_source", "static")
     fz_source_per_sample = None
     c_session = None  # session-fitted aero coefficient, level 2; None on the static path
+    damper_plausibility = None  # wheel_loads.straight_line_plausibility; None without damper data
     if vertical_load_source == "measured" and channels is not None and car_data is not None:
         from modules.wheel_loads import (
             estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
-            combine_with_reconstruction_and_fallback, CORNERS as WHEEL_CORNERS,
+            combine_with_reconstruction_and_fallback, straight_line_plausibility, CORNERS as WHEEL_CORNERS,
         )
         static_fallback_fz = {"fl": fz_fl_N, "fr": fz_fr_N, "rl": fz_rl_N, "rr": fz_rr_N}
         damper_result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
         any_damper_valid = any(np.any(damper_result[c]["valid"]) for c in WHEEL_CORNERS)
+        if any_damper_valid:
+            damper_plausibility = straight_line_plausibility(state, damper_result, params)
+            if not damper_plausibility["passed"]:
+                # a wrong zero reference shifts every sample of the session,
+                # so the whole damper path goes, not single corners
+                for c in WHEEL_CORNERS:
+                    damper_result[c]["valid"] = np.zeros_like(damper_result[c]["valid"])
+                any_damper_valid = False
         if any_damper_valid:
             session_corrected = estimate_session_corrected_axle_totals(state, damper_result, params)
             fz_axle_totals = {"fz_f_N": session_corrected["fz_f_N"], "fz_r_N": session_corrected["fz_r_N"]}
@@ -680,7 +704,8 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
         fz_f_N = fz_fl_N + fz_fr_N
         fz_r_N = fz_rl_N + fz_rr_N
         fz_source_per_sample = {c: combined[c]["source"] for c in WHEEL_CORNERS}
-        vertical_load_source = "measured"
+        vertical_load_source = ("measured" if damper_plausibility is None or damper_plausibility["passed"]
+                                else "static (damper path rejected)")
     else:
         vertical_load_source = "static"
 
@@ -702,6 +727,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
         "vertical_load_source_used": vertical_load_source,
         "vertical_load_source_per_sample": fz_source_per_sample,
         "c_session_N_per_mps2": c_session,
+        "damper_plausibility": damper_plausibility,
     }
 
 

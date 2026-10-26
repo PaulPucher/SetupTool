@@ -167,9 +167,15 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 25 (2026-10-23): work order 4h -- session setup recommendation in the
     # engine payload, axle field and limiting-end tie-break; corner summaries
     # untouched, shape checks unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 25, (
+    # 26 (2026-10-24): work order DEV-3 -- mu ceiling edge zone (marginal),
+    # mu_ceiling_zone in the fit manifest; corner summaries untouched on
+    # sessions below the ceiling, shape checks unchanged.
+    # 27 (2026-10-24): work order DEV-4 -- damper-path plausibility check
+    # (axle_load.damper_plausibility); corner summaries untouched on
+    # sessions that pass, shape checks unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 27, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 25 -- update this test deliberately if the version was bumped again"
+        "written for 27 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

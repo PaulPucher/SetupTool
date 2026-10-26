@@ -105,7 +105,12 @@ def test_literature_gate_reports_slope_and_mu_source(l_manifest):
         assert ("g2 normalised stiffness" in g["failed"]) is (not in_edge)
         zone = "in band" if tfa.L_K_BAND[0] <= k <= tfa.L_K_BAND[1] else ("edge" if in_edge else "outside")
         assert g["k_zone"] == zone
-        assert ("mu_demo above the physical ceiling 2.0" in g["failed"]) is (fit["mu"] > tfa.L_MU_CEILING)
+        # fails only beyond the ceiling's uncertainty edge (2026-10-24)
+        edge = tfa.L_MU_CEILING * (1.0 + load_parameters()["tyre_fit_auto"][tfa.MU_EDGE_CONFIG_KEY])
+        assert g["mu_edge"] == pytest.approx(edge)
+        assert ("mu_demo above the physical ceiling 2.0" in g["failed"]) is (fit["mu"] > edge)
+        mu_zone = "in band" if fit["mu"] <= tfa.L_MU_CEILING else ("edge" if fit["mu"] <= edge else "outside")
+        assert g["mu_zone"] == mu_zone == l_manifest["mu_ceiling_zone"][axle]
 
 
 def test_literature_curve_is_monotonic(l_manifest):
