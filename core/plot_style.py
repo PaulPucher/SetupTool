@@ -3,7 +3,7 @@
 # Plain constants, no plotting imports.
 # Lap identity = colour (lap_styles); quantity/axle identity = panel.
 
-from ui.style import NEUTRAL, TEXT, TEXT_MUTED
+from ui.style import NEUTRAL, TEXT_MUTED
 
 # lap palette = matplotlib tab10, hardcoded (no matplotlib import here);
 # mid lightness, readable on both themes
@@ -58,8 +58,8 @@ SESSION_CLOUD_COLOR_SCREEN = "#3A3A3A"
 SESSION_CLOUD_COLOR_PRINT = "#DDDDDD"
 SESSION_CLOUD_SIZE_SCREEN = 1
 SESSION_CLOUD_SIZE_PRINT = 2
-# one px step up from 1.5 so laps separate in the dialog (author
-# 2026-09-28); still below the window rings
+# one px step up from 1.5 so laps separate in the dialog; still below the
+# window rings
 LAP_SAMPLE_SIZE_SCREEN = 2.5
 # print only: smaller again so rings and tangent stay readable over the
 # marker cloud (screen can zoom)
@@ -72,17 +72,8 @@ TYRE_LINE_WIDTH_PRINT = 0.8
 
 LEGEND_FONT_PT = "11pt"   # pyqtgraph legend text (dialog only)
 
-# INTERACTIVE (dark) and PRINT (light) themes; data hues identical, only
-# background/text/grid swap
-INTERACTIVE = {
-    "name": "interactive",
-    "bg": "#1e1e1e",  # dialog plot background
-    "text": TEXT,
-    "text_muted": TEXT_MUTED,
-    "grid": TEXT_MUTED,
-    "grid_alpha": 0.15,
-}
-
+# print theme of the exported figures; data hues are the screen ones, only
+# background/text/grid change
 PRINT = {
     "name": "print",
     "bg": "#ffffff",
@@ -96,7 +87,7 @@ PRINT = {
 # by style: strong dashed, moderate dotted, unstable dash-dot
 THRESHOLD_GREY = "#8A8A8A"
 
-# near-strike grade overlay (kerb display package): the muted text grey, solid --
+# near-strike grade overlay: the muted text grey, solid --
 # reads as lower-quality data, not as a threshold line
 NEAR_STRIKE_COLOR = TEXT_MUTED
 
@@ -104,17 +95,14 @@ NEAR_STRIKE_COLOR = TEXT_MUTED
 TRACK_BG_COLOR = NEUTRAL  # faint whole-lap context outline
 WINDOW_RING_COLOR = "#000000"  # estimation-window ring, fixed black
 
-# tangent line uses theme["text"] at the call site -- a fixed light TEXT
-# colour vanished on the white print background
-
 # fixed print geometry -> exports reproducible regardless of window state
 PRINT_DPI = 300
 PRINT_WIDTH_CM = 16.0          # A4 text width
 # white border around the tight export crop (inches); keeps legend text and
 # tick labels off the file edge
 PRINT_PAD_INCHES = 0.05
-# both figures 24 cm (six stacked panels with side legends still readable)
-PRINT_HEIGHT_CM_CORNER = 24.0  # 4 rows: speed / CSf / CSr / tyre curves
-PRINT_HEIGHT_CM_VERDICT = 24.0  # verdict / lap stacks (sized when the verdict stack had six rows)
+# both 24 cm: stacked panels with side legends stay readable
+PRINT_HEIGHT_CM_CORNER = 24.0  # 5 rows: speed / CSf / CSr / track map / tyre curves
+PRINT_HEIGHT_CM_VERDICT = 24.0  # verdict and lap stacks: speed / stability / CSf / CSr
 PRINT_FONT_FAMILY = "DejaVu Sans"  # matplotlib default, always installed
 PRINT_FONT_SIZE_PT = 8

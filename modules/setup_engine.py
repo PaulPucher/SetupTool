@@ -1,65 +1,39 @@
-"""Setup engine: corner symptoms -> mechanism -> one lever change per corner.
+"""Setup engine: corner symptoms -> mechanism -> one lever change.
 
-Replaces the rule engine (recommendation.py) and the decision frame
-(recommendation overhaul D1-D9, author 2026-10-22). The method in four steps:
-
-1. Symptoms per lap and phase come from the classifier (ruling D2): US = front
-   axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw.
-2. Repetition (D5): a corner-phase symptom counts only when it appears in a
-   majority of the corner's valid laps and in at least two of them, so a
-   single disturbed lap cannot drive a setup change. Its severity is read from
-   the cross-lap aggregate, the population the classification tiers were
-   derived on.
-3. Candidates come from the mechanism table (config/mechanisms.json, D3):
-   each row ties a lever and a direction to a symptom, phase group and speed
-   class with a literature anchor. The registry turns the direction word into
-   a signed step and checks it against the current setup sheet.
-4. Ranking (D4, order ruled 2026-10-22, 4e): severity -> repetition ->
-   engineer preference -> change effort -> window headroom; a traction-limited
-   exit demotes the differential ahead of preference. Preference only counts
-   where its cell agrees with the table (lever and direction), so it orders
-   table candidates and can neither add nor reverse a lever. One change per
-   corner with up to two
-   alternatives, because the effect of a setup change is only attributable
-   when one thing changes at a time (Milliken 1995, setup procedure;
-   Trzesniowski & Eder 2019, Bd. 5 ch. 5).
-5. Two outputs per corner (author ruling 2026-10-23, 4g): the setup
-   recommendation is chosen among the mechanical levers only; the best
-   cockpit lever (registry escalation_tier "cockpit": brake bias, ABS map,
-   TC lat / lon) is a separate "driver can also" line, ranked by the same key
-   from the same table. Team practice: cockpit values are changed by the
-   drivers during an outing and are not part of the engineer's setup
-   progression (Setup_change_overview); the tool's focus is the physical
-   setup change. The thesis comparison with the engineer's changes reads the
-   setup recommendation only (D8 amendment).
-6. Limiting-end tie-break (4h, MM p. 409: improve the limiting end first,
-   degrade the other end only when that is not possible): the limiting axle
-   is front for US and rear for OS / INST; a row on that axle ranks before a
-   global row (diff, TC, bias, ABS), which ranks before a row on the other
-   axle. It replaces the row order of mechanisms.json; per corner it ranks
-   right after repetition and ahead of preference (author 2026-10-23:
-   physics before engineer preference).
-7. Session setup recommendation (4h): the setup is changed for the whole
-   lap, so the corner output is a diagnosis and the setup decision is one
-   change per session (MM p. 572 item 4: balance cannot be optimal
-   everywhere, seek the best circuit performance; MM p. 391: one change at
-   a time; TE p. 254: align the settings to the most important corners --
-   corner importance is NOT weighted here, a stated limitation). Every
-   counted symptom votes for its mechanical lever groups with weight
-   severity x k / n; votes for the same lever group in the opposite
-   direction are subtracted. Not counted: a row whose condition fails (diff
-   increase on a traction-limited exit, MM p. 740) and low-priority corners
-   (high speed, front limiting only; MM p. 396 item 21, p. 401 item 1F),
-   which stay in the per-corner diagnosis. Rank: net support -> limiting-end class ->
-   preference -> change effort -> headroom; an exact tie on all keys has no
-   winner and is reported as equivalent options.
+1. Symptoms (classifier, D2): US = front axle limiting, OS = rear axle
+   limiting, INST = open-loop unstable yaw, per lap and phase.
+2. Repetition (D5): a corner-phase symptom counts only in a majority of the
+   corner's valid laps and in at least min_repeat_laps, so one disturbed lap
+   cannot drive a change. Severity comes from the cross-lap aggregate, the
+   population the classification tiers were derived on.
+3. Candidates: config/mechanisms.json ties lever + direction to symptom,
+   phase group and speed class, each row with a literature anchor; the
+   registry turns the direction word into a signed step on the setup sheet.
+4. Per-corner rank: severity -> repetition -> traction demotion ->
+   limiting-end class (MM p. 409: improve the limiting axle first) ->
+   engineer preference (orders table rows, never adds or reverses one) ->
+   change effort (MM p. 391) -> window headroom. One change plus up to two
+   alternatives, because an effect is only attributable when one thing
+   changes (Milliken 1995, setup procedure; Trzesniowski & Eder 2019,
+   Bd. 5 ch. 5).
+5. Mechanical levers form the setup recommendation; cockpit levers (brake
+   bias, ABS map, TC lat / lon) form a separate "driver can also" line
+   ranked by the same key, since drivers change them during an outing and
+   they are not part of the engineer's setup progression.
+6. Session recommendation: setup acts on the whole lap (MM p. 572 item 4,
+   MM p. 391, TE p. 254). Each counted symptom votes for its mechanical
+   lever group with weight severity x k / n; opposite directions subtract.
+   Not voting: rows whose condition fails (traction-limited exit, MM p. 740)
+   and low-priority corners (high speed, front only; MM p. 396 item 21,
+   p. 401 item 1F). Corner importance is not weighted (limitation). Rank:
+   net support -> limiting-end class -> preference -> effort -> headroom;
+   an exact tie is reported as equivalent options.
 
 Two layers (D6): the data layer never sees driver feedback and is stored as
-it is (thesis comparison); the engineer layer adds feedback ordinally (agree /
-neutral / conflict) and driver-only rows for strong complaints without data
-support, which also vote at session level with weight 1 x 1. The session
-layer (D7) states the share of corners per symptom and the per-lap share of
-limiting cells beside the session recommendation.
+is; the engineer layer adds feedback ordinally (agree / neutral / conflict)
+and driver-only rows for strong complaints without data support, which vote
+at session level with weight 1 x 1. The session layer also reports the
+share of corners per symptom and the per-lap share of limiting cells.
 """
 
 import copy
@@ -70,7 +44,8 @@ import numpy as np
 
 from modules.classifier import phase_symptoms, is_low_priority, verdict_cs_stat, _thresholds
 from modules.corner_aggregation import (
-    PHASE_KEYS, PHASE_TO_FEEDBACK_KEY, SEVERITY_RANK, _group_by_corner, aggregate_by_corner,
+    PHASE_KEYS, PHASE_TO_FEEDBACK_KEY, PHASE_WORD_LONG, PHASE_WORD_SHORT, SEVERITY_RANK, _group_by_corner,
+    aggregate_by_corner,
 )
 from modules.setup_state import (
     load_setup_parameters_registry, load_setup_windows, logged_setup_values, _current_setup_value,
@@ -79,23 +54,23 @@ from modules.setup_state import (
 
 MECHANISMS_CONFIG_PATH = "config/mechanisms.json"
 
-# ordinal enums, method-defining (D4: cheaper changes first, MM p. 391)
+# ordinal enums, method-defining (cheaper changes first, MM p. 391)
 EFFORT_RANK = {"seconds": 0, "minutes": 1, "half_hour": 2, "garage_hours": 3}
 AGREEMENT_RANK = {"agree": 2, "neutral": 1, "conflict": 0}
 
 # feedback scale -5 (undrivable understeer) .. +5 (undrivable oversteer);
 # FEEDBACK_MIN counts as a statement, DRIVER_ONLY_MIN is "approaching
-# undrivable" (the scale's own |4| anchor, D6)
+# undrivable" (the scale's own |4| anchor)
 FEEDBACK_MIN = 1
 DRIVER_ONLY_MIN = 4
 
 _OPPOSITE_WORD = {"stiffer": "softer", "softer": "stiffer"}
 # the axle whose grip limits, per symptom (D2): US front, OS / INST rear
 LIMITING_AXLE = {"US": "front", "OS": "rear", "INST": "rear"}
+# registry escalation_tier of the driver-adjustable levers
+COCKPIT_TIER = "cockpit"
 # the elicited matrix's direction words in the table's vocabulary
 # (more_negative / less_negative go through the registry semantics)
-# registry escalation_tier of the driver-adjustable levers (4g split)
-COCKPIT_TIER = "cockpit"
 _CELL_WORD = {"soften": "softer", "stiffen": "stiffer", "more_ra_stability": "toward the rear-axle-stable map"}
 _SIGN_KEYS = {"more_negative": -1, "negative": -1, "more_positive": 1, "positive": 1}
 
@@ -242,7 +217,7 @@ def cell_supports(cell, row, registry):
     """True when the cell names one of the row's levers with the row's
     direction. A cell that contradicts the table, or names a lever the table
     has no row for at that symptom / phase / speed, supports nothing and is
-    ignored (author ruling 2026-10-22, 4e item 6)."""
+    ignored."""
     for lever, word in zip(cell["levers"], cell["cell_directions"]):
         if lever not in row["levers"]:
             continue
@@ -333,9 +308,10 @@ def counted_symptoms(summaries, cfg, thr=None):
             if not repeats(len(lap_numbers), n, frac, min_laps):
                 continue
             a = agg_syms.get((phase, symptom))
-            # the aggregate is the worst lap for CS and the median for
-            # stability, so a majority symptom is present in it; the per-lap
-            # fallback only guards an aggregation without that property
+            # with worst-lap CS and median stability (config
+            # cs_cross_lap_aggregation) a majority symptom is present in the
+            # aggregate; the fallback only guards an aggregation without that
+            # property
             counted.append({"symptom": symptom, "phase": phase, "laps": len(lap_numbers),
                             "lap_numbers": sorted(lap_numbers),
                             "severity": a["severity"] if a else "moderate",
@@ -381,10 +357,9 @@ def _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, 
 
 
 def _data_rank_key(c):
-    # limiting-end class before preference (4h ruling b): which axle to work
-    # on is physics (MM p. 409), the engineer's choice orders the levers
-    # within it; preference before effort (4e), effort visible on every line.
-    # The traction demotion stays ahead of both (4e ruling)
+    # traction demotion first, then the limiting-end class: which axle to
+    # work on is physics (MM p. 409), the engineer's preference only orders
+    # the levers within it; effort after preference, visible on every line
     return (-SEVERITY_RANK[c["severity"]], -c["laps"], c["condition_demoted"], c["axle_class"], -c["preference"],
             EFFORT_RANK.get(c["change"]["effort"], len(EFFORT_RANK)),
             -(c["change"]["headroom"] if c["change"]["headroom"] is not None else 0.0))
@@ -432,7 +407,7 @@ def cell_shares(summaries, thr=None):
     single lap shows front limiting (US), rear limiting (OS) or INST. Each
     symptom has its own denominator -- US / OS over the cells with a CS value
     on that axle, INST over the cells with a stability value -- so a phase
-    without stability data does not dilute the CS shares (ruling 4e B)."""
+    without stability data does not dilute the CS shares."""
     thr = thr or _thresholds()
     n = {"US": 0, "OS": 0, "INST": 0}
     k = {"US": 0, "OS": 0, "INST": 0}
@@ -518,7 +493,7 @@ def _vote_ref(v):
 
 
 def session_vote(votes, details, max_alt):
-    """Session setup recommendation from the corner votes (4h).
+    """Session setup recommendation from the corner votes.
 
     Net support = support - opposition, where opposition is the weight of
     every vote for the same lever group in the opposite direction (the two
@@ -736,7 +711,7 @@ def run(summaries, setup_data=None, feedback_data=None, corners=None, state=None
 
 
 def change_text(c):
-    # "arb_fl+arb_fr softer (4 -> 3, 4 -> 3)" -- one line per candidate
+    # "arb_fl+arb_fr softer (4 -> 3, 4 -> 3)"
     ch = c["change"]
     levers = "+".join(c["levers"])
     vals = ", ".join(f"{k['from']} -> {k['to']}" for k in ch["keys"] if k["from"] is not None and k["to"] is not None)
@@ -751,15 +726,13 @@ def change_text(c):
     return f"{levers} {c['direction']} ({vals})" if vals else f"{levers} {c['direction']}"
 
 
-_PHASE_SHORT = {"entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
-                "exit_4": "early exit", "exit_5": "late exit"}
 _SYMPTOM_WORD = {"US": "understeer", "OS": "oversteer", "INST": "unstable yaw"}
 
 
 def candidate_line(c, engineer=False):
     # one line per change: symptom and phase, laps, change from -> to,
     # effort, mechanism, source, and in the engineer layer the feedback flag
-    where = f"{_SYMPTOM_WORD[c['symptom']]} @ {_PHASE_SHORT[c['phase']]}"
+    where = f"{_SYMPTOM_WORD[c['symptom']]} @ {PHASE_WORD_LONG[c['phase']]}"
     if c.get("also"):
         where += " (also " + ", ".join(c["also"]) + ")"
     laps = f"{c['laps']}/{c['n_laps']} laps" if c.get("n_laps") else "no data laps"
@@ -778,7 +751,7 @@ def candidate_line(c, engineer=False):
 
 
 def _vote_text(v, engineer):
-    t = f"C{v['corner']} {_SYMPTOM_WORD[v['symptom']]} @ {_PHASE_SHORT[v['phase']]} {v['weight']:.2f}"
+    t = f"C{v['corner']} {_SYMPTOM_WORD[v['symptom']]} @ {PHASE_WORD_LONG[v['phase']]} {v['weight']:.2f}"
     if v.get("driver_only"):
         return t + " (driver only, no data support)"
     if engineer and v.get("agreement"):
@@ -818,7 +791,7 @@ def session_details(rec, engineer=False):
     lines += ["  at limit: " + option_line(o) for o in rec["at_limit"]]
     if rec.get("excluded"):
         lines.append("  not voting: " + ", ".join(
-            f"C{x['corner']} {_SYMPTOM_WORD[x['symptom']]} @ {_PHASE_SHORT[x['phase']]}"
+            f"C{x['corner']} {_SYMPTOM_WORD[x['symptom']]} @ {PHASE_WORD_LONG[x['phase']]}"
             + (f" {x['option']}" if x["option"] else "") + f" ({x['reason']})" for x in rec["excluded"]))
     return lines
 
@@ -837,7 +810,7 @@ def corner_details(corner, engineer=False):
     return lines
 
 
-# Panel text (UI-1, author 2026-10-24): engineer-style short lines; the
+# Panel text: engineer-style short lines; the
 # sources, vote numbers, mechanism ids and effort classes stay in the details
 _LEVER_SHORT = {
     ("arb_fl", "arb_fr"): "front ARB", ("arb_rl", "arb_rr"): "rear ARB",
@@ -856,8 +829,6 @@ _LEVER_SHORT = {
 _DIRECTION_SHORT = {"more front": "forward", "more rear": "rearward",
                     "toward the rear-axle-stable map": "toward the rear-stable map",
                     "more negative camber": "more negative", "less negative camber": "less negative"}
-_PHASE_WORD = {"entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
-               "exit_4": "exit", "exit_5": "exit"}
 
 
 def lever_name(levers):
@@ -892,8 +863,8 @@ def values_text(c):
 def _phases(phases):
     out = []
     for p in sorted(phases, key=PHASE_KEYS.index):
-        if _PHASE_WORD[p] not in out:
-            out.append(_PHASE_WORD[p])
+        if PHASE_WORD_SHORT[p] not in out:
+            out.append(PHASE_WORD_SHORT[p])
     return ", ".join(out)
 
 
@@ -984,7 +955,6 @@ def repeated_symptoms_line(session):
 
 
 def feedback_entered(feedback_data):
-    # any non-zero rating in the feedback table
     for row in (feedback_data or {}).get("corners") or []:
         if any(isinstance(v, (int, float)) and v for v in row.values()):
             return True
@@ -1006,7 +976,7 @@ def engineer_lines(data, eng):
         lines.append(f"Session: {e_head} (data: {d_head})")
     top = e_rec["recommended"] or (e_rec["equivalent_options"] or [None])[0]
     if top:
-        flags = [f"C{v['corner']} {_PHASE_WORD[v['phase']]} {v['agreement']}" for v in top["supporting"]
+        flags = [f"C{v['corner']} {PHASE_WORD_SHORT[v['phase']]} {v['agreement']}" for v in top["supporting"]
                  if v.get("agreement") in ("agree", "conflict")]
         if flags:
             lines.append("Feedback: " + ", ".join(flags))
@@ -1017,6 +987,6 @@ def engineer_lines(data, eng):
             lines.append(f"C{c['corner']}: {lever_text(b) if b else 'no lever'} (data: {lever_text(a) if a else 'no lever'})")
     for d in eng.get("driver_only", []):
         r = d.get("recommended")
-        lines.append(f"C{d['corner']} {_PHASE_WORD[d['phase']]} - driver {d['feedback']:+g}, no data -> "
+        lines.append(f"C{d['corner']} {PHASE_WORD_SHORT[d['phase']]} - driver {d['feedback']:+g}, no data -> "
                      f"{lever_text(r) if r else 'no lever'}")
     return lines or ["No difference to the data layer"]

@@ -1,6 +1,7 @@
 # Per-session accuracy levels: registry (parameters.json accuracy_levels)
 # + outing setup_data + optional cap (int 1-4, None = best available)
-# -> values the pipeline uses and the level map the UI shows.
+# -> values the pipeline uses and the level map the UI shows. The app
+# always passes cap None; the tests pin a cap for reproducible inputs.
 #
 # Resolved live: mass, corner_weights, steering_ratio; cog_position and
 # steering_angle cascade from those. Everything else stays at its registry
@@ -238,7 +239,7 @@ def _resolve_cog_position(params, corner_weights_resolved):
 
 
 def resolve_estimator_settings(params, channels_config=None):
-    """The Settings Section-2 estimator inputs (R2/R23): not vehicle values,
+    """The Settings Section-2 estimator inputs: not vehicle values,
     but each changes the moving / kerb masks or the corner speed classes and
     so the results. Built only here; every cache identity carries it.
     channels_config None -> read config/channels.json."""

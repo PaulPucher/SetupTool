@@ -22,6 +22,10 @@ SPLITTER_POINT_POSITIONS = [(0.045, 0.77), (0.145, 0.255), (0.855, 0.255), (0.95
 # Mirror pairs 1&2, 3&5; 4 = centre.
 DIFFUSER_POINT_POSITIONS = [(0.015, 0.375), (0.985, 0.375), (0.03, 0.955), (0.5, 0.95), (0.97, 0.955)]
 
+# Splitter outline: where the straight sides end (fraction of height from
+# the rear); the front is one arc. Shared so widget and PDF draw one shape.
+SPLITTER_SIDE_FRACTION = 0.45
+
 
 def reshape_points_out(json_string):
     data = json.loads(json_string)

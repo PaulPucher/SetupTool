@@ -59,12 +59,12 @@ def build(outing, tag="dev", allow_status=False, allow_excluded=False, out=None)
                      common.meta(SCRIPT, [outing], tag, marks, session_label=label,
                                  apex_speed="apex speed: median over the analysis laps of the speed at the apex instant",
                                  dmz="cross-lap median per phase; minimum over the phases"))
-    # value and phase in one cell keeps the table inside \textwidth
     header = ["C", "Speed", "$v_\\mathrm{apex}$ in km/h", f"worst {common.CS_F}", f"worst {common.CS_R}",
               "$\\mathrm{d}M_z/\\mathrm{d}\\beta$ in N\\,m/deg", "Verdict"]
 
     def cell(v, fmt, phase):
-        # value over its phase, so the verdict column keeps the width
+        # value over its phase in one cell keeps the table inside \textwidth
+        # and leaves the width to the verdict column
         return f"{format(v, fmt)}\\newline {common.tex_escape(phase)}" if v == v else "--"
     body = [[str(c), common.tex_escape(cols["speed_class"][i] or "-"),
              format(cols["apex_speed_kmh"][i], ".0f") if cols["apex_speed_kmh"][i] == cols["apex_speed_kmh"][i] else "--",

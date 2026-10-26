@@ -4,8 +4,7 @@
 #
 # Steps: (a)+(b) axle curve fit, (c) R derivation from the fit residuals,
 # (d) EKF run (modules/sideslip_ekf_pacejka.py), (e) validation (NIS,
-# sign check, h2). The chain automates the frozen pass-0/1
-# Dugoff workflow, removed 2026-10-17 (Class B rebuild; git history).
+# sign check, h2).
 #
 # Lateral-only axle fit (Pacejka 2nd ed.): pure side slip is the base curve,
 # Eq. 4.49 / 4.E19 with zero shifts and D = mu Fz (sec. 4.3.1; regression per
@@ -28,12 +27,12 @@ from modules.stability_analysis import (
 )
 from modules.longitudinal_forces import estimate_longitudinal_forces
 from modules.tyre_model_pacejka import pacejka_lateral_force
-from modules.nis_gate import evaluate_gate
+from modules.nis_gate import _CHI2_DF2_95 as CHI2_DF2_95, evaluate_gate
 from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 
-# Fit L (tyre_fit_mode "literature_bounded", Q-FIT-LIT 2026-10-18). These
+# Fit L (tyre_fit_mode "literature_bounded"). These
 # values define the method, they are not tuned: with an estimated sideslip
-# and no sliding data the curve shape is not identified (Q-FIT-SIMPLE), so
+# and no sliding data the curve shape is not identified, so
 # shape and curvature are fixed at literature values, mu is the demonstrated
 # utilisation (config mu_demo_percentile) and B is the one fitted parameter.
 # Deviation class FORCED ADAPTATION -- the chair fits all four on measured
@@ -41,9 +40,9 @@ from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
 # C = 1.0: with E = -1 the curve rises monotonically to the asymptote D, so
 # no post-peak drop is modelled where the data never show one (Voser et al.
 # 2010; Rao et al. 2006; axle peak may vanish, Pacejka 2006 sec. 1.2.2; C
-# lower bound, Goblirsch et al. 2025 Table I). C = 1.3 put an extrapolated
-# falling branch in the observer's reach, which drove it to the hard bound
-# (Q-OBS-REENTRY, 2026-10-18).
+# lower bound, Goblirsch et al. 2025 Table I). A larger C (1.3) puts an
+# extrapolated falling branch in the observer's reach, which drives it to
+# the hard bound.
 L_SHAPE_C = 1.0
 L_CURVATURE_E = -1.0     # fixed E "according to the literature", Goblirsch et al. 2025; Pacejka Tables 4.1 / 4.2
 # C = 1 with E in [-1, 1] has a positive slope everywhere, so there is no
@@ -57,37 +56,34 @@ L_MU_CEILING = 2.0
 # above the ceiling but within the measured uncertainty of mu_demo
 # (config tyre_fit_auto.mu_ceiling_edge_u, p95 of the a_y and event-zero
 # errors on the samples that set it): marginal, the observer ships -- the
-# same structure as the K edge zone (author ruling 2026-10-24)
+# same structure as the K edge zone
 MU_EDGE_CONFIG_KEY = "mu_ceiling_edge_u"
 L_START_B = 12.0           # the chair's B start, inside the bounds
 # D4 under L: cornering stiffness "ranges from about 6 to about 30 times the
 # vertical wheel load ... The lower value holds for the older bias-ply tyre
 # construction and the larger value for modern racing tyres" (Pacejka 2006
 # sec. 1.2.1). An order of magnitude given to one significant figure, so it
-# is read at that precision (author ruling 2026-10-20): inside the band ok,
+# is read at that precision: inside the band ok,
 # within the rounding margin of either "about" marginal (the EKF ships,
 # flagged at the edge of the literature range), beyond it degenerate.
 L_K_BAND = (6.0, 30.0)
 L_K_EDGE = (5.5, 35.0)
-# CS linear reference, relative plausibility (R26 ruling 2026-10-20): a band
+# CS linear reference, relative plausibility: a band
 # candidate sets the reference only within [0.5, 2] x the session median of
 # that axle's candidates. The slope at zero slip "is not or hardly affected
 # by the level of speed and by the condition wet or dry", and its load
 # sensitivity is far below a factor 2 (Pacejka 2006 sec. 1.2.1), so a
 # candidate outside the factor-2 window is an ill-determined low-excitation
-# slope, not the tyre. 0.5 is the recorded R26 test criterion, made symmetric
+# slope, not the tyre. 0.5 is the recorded test criterion, made symmetric
 # in ratio terms. Tier B (a plausibility gate on an estimate).
 L_REF_RELATIVE = (0.5, 2.0)
 
-# fit L is the only tyre-fit mode since the 2026-10-22 pruning (per_session,
-# prior_anchored and the load-normalised free fit removed; tag
-# pre-prune-2026-10-22 keeps them)
+# fit L is the only tyre-fit mode; the tuple exists so a config naming
+# another mode is refused
 TYRE_FIT_MODES = ("literature_bounded",)
 SIDESLIP_SOURCES = ("kinematic", "ekf_auto_pacejka")
 
 CHI2_DF1_95 = float(chi2.ppf(0.95, df=1))
-CHI2_DF2_95 = float(chi2.ppf(0.95, df=2))
-NEAR_ZERO_SLIP_DEG = 0.2  # same near-zero alpha_r population as earlier validation
 
 
 def _base_mask(state, laps):
@@ -96,17 +92,13 @@ def _base_mask(state, laps):
     kerb_mask = state.get("kerb_mask")
     if kerb_mask is not None:
         moving = moving & ~kerb_mask
-    # R6: the smear zone goes with the mask -- samples a strike disturbs must
+    # the smear zone goes with the mask -- samples a strike disturbs must
     # not shape the tyre estimate. This one mask feeds the fit, the R
     # derivation, the NIS sweep, the gate population and the sign check.
     smear_zone = state.get("kerb_smear_zone")
     if smear_zone is not None:
         moving = moving & ~smear_zone
-    valid_windows = [(l["start_time"], l["end_time"]) for l in laps if l.get("is_valid_for_analysis")]
-    racing_mask = np.zeros_like(t, dtype=bool)
-    for s, e in valid_windows:
-        racing_mask |= (t >= s) & (t <= e)
-    return moving & racing_mask
+    return moving & _analysis_lap_mask(t, laps)
 
 
 def _r_from_residuals(resid_front_full, resid_rear_full, common_mask, mass_kg):
@@ -182,7 +174,7 @@ def _canonical_window_slice(t, s_m, lap_start_t, lap_end_t, bracket_start_m, bra
         return slice(0, 0)
     # searchsorted needs ascending distances: search only up to the lap's
     # maximum, so samples after it (a reset or a backwards step at the lap
-    # end) cannot misplace the slice (#23)
+    # end) cannot misplace the slice
     k_max = int(np.flatnonzero(finite)[np.argmax(lap_s[finite])])
     lap_s = lap_s[:k_max + 1]
     finite = finite[:k_max + 1]
@@ -274,11 +266,9 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
     # Front Fx after Goblirsch et al. 2025 Eq. 9: the CoG longitudinal force
     # (m ax + drag + rolling, the terms of estimate_longitudinal_forces) goes
     # to the front in proportion to the measured axle load under braking,
-    # none under drive (rear drive). Not the brake-pressure split of
-    # estimate_longitudinal_forces: a pressure ratio is a force ratio only
-    # with known per-axle brake gains, and pad friction varies with
-    # temperature (author ruling 2026-10-18). That split stays as is for its
-    # own reader, the longitudinal-stiffness display.
+    # none under drive (rear drive). Not a split by the measured
+    # brake pressures: a pressure ratio is a force ratio only with known
+    # per-axle brake gains, and pad friction varies with temperature.
     fx = estimate_longitudinal_forces(state, data["channels"], params)
     fx_cog = fx["fx_N"]
     with np.errstate(invalid="ignore", divide="ignore"):
@@ -329,16 +319,16 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
 
 
 def _fit_axle_l(alpha, Fy, Fz, base_mask, bin_rad, mu_pct, weighted=True):
-    """Fit L on one axle (Q-FIT-LIT): the load-normalised force f = Fy / Fz
+    """Fit L on one axle: the load-normalised force f = Fy / Fz
     against slip angle with C and E fixed. mu is not fitted: it is the
     demonstrated utilisation, the mu_pct percentile of |Fy / Fz| on this
     population -- a lower bound of the true grip, because a fitted asymptote
-    below forces the car demonstrably produced contradicts the measurement
-    (Q-CAPACITY). B is then the one fitted parameter (bounded Powell,
+    below forces the car demonstrably produced contradicts the measurement.
+    B is then the one fitted parameter (bounded Powell,
     optional inverse-density weights on the signed slip angle), so it sets
     the origin slope K = B C mu. Fitting the ratio gives every sample the
-    same weight whatever its load. Same dict as _fit_axle_pacejka, D = mu *
-    Fz_ref as the representative peak force for the constant-D readers;
+    same weight whatever its load. D = mu * Fz_ref is stored as a
+    representative peak force for the trace plot's Fy axis;
     residuals in N (Fy - Fz f), in the frame of Fy."""
     m2 = base_mask & np.isfinite(alpha) & np.isfinite(Fy) & np.isfinite(Fz) & (Fz > 0)
     a2, f2, z2 = alpha[m2], Fy[m2], Fz[m2]
@@ -397,8 +387,7 @@ L_R_AY_MAX_EXTRA_STEPS = 8
 
 
 def _q_upper_from_residual(front_fit, rear_fit, load_in, state, params):
-    """Fit-L process noise per session (Q-UPPER, author ruling 2026-10-19,
-    Level 2): the force residual of both axle fits, on the samples both fit
+    """Fit-L process noise per session (Level 2): the force residual of both axle fits, on the samples both fit
     populations share, is the error of the observer's force model; through
     the single-track equations it becomes an error of beta_dot,
     (dFy_f + dFy_r) / (m Vx), and of r_dot, (a dFy_f - b dFy_r) / Iz, taken
@@ -431,8 +420,7 @@ def _q_upper_from_residual(front_fit, rear_fit, load_in, state, params):
 
 
 def _measurement_noise_floors(state, laps, params):
-    """Measurement-noise variances of the session (author rulings
-    2026-10-19, Level 2, Tier B): each observer measurement minus its
+    """Measurement-noise variances of the session (Level 2, Tier B): each observer measurement minus its
     zero-phase low-pass at the CS filter cutoff (2 Hz, the same cutoff as the
     CS and Fz filters), on the steering-defined straights. The single-track
     model has no vertical or vibration dynamics, so what the signal carries
@@ -456,24 +444,22 @@ def _measurement_noise_floors(state, laps, params):
 
 
 def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
-    """D4 for fit L (Q-FIT-LIT reopen, 2026-10-18, declared post-result).
+    """D4 plausibility gate for fit L (declared post-result).
     Under L the curve peak lies beyond the visited slip range wherever the
     data do not reach it, so it is an extrapolation (Goblirsch et al. 2025)
     and cannot be gated on; what the data do identify is the origin slope.
-      g1 excitation: unchanged (p1..p99 span of the fit's slip angles)
+      g1 excitation: p1..p99 span of the fit's slip angles
       g2 normalised origin slope K = B C mu inside L_K_BAND; the axle ratio
          is the sum of tyre stiffnesses over the sum of tyre loads, so the
          tyre band carries over to the axle; inside L_K_EDGE but outside
          the band it only flags (k_zone "edge", status marginal), beyond
-         L_K_EDGE it fails (2026-10-20)
+         L_K_EDGE it fails
       demonstrated mu above L_MU_CEILING: more grip than a racing tyre has
-         points at the force or load inputs, not at the tyre (2026-10-19;
-         replaces the mu-at-bound check of the fitted-mu version); within
+         points at the force or load inputs, not at the tyre; within
          the ceiling x (1 + mu_ceiling_edge_u) it only flags (mu_zone "edge",
-         status marginal), beyond it fails (2026-10-24)
+         status marginal), beyond it fails
     No peak to report: with C = 1 the curve is monotonic, and mu is the
-    demonstrated utilisation, not an asymptote read off the curve (wording
-    ruling 2026-10-20)."""
+    demonstrated utilisation, not an asymptote read off the curve."""
     a = np.degrees(alpha[fit_mask & np.isfinite(alpha)])
     span = float(np.percentile(a, 99) - np.percentile(a, 1)) if a.size else float("nan")
     K = float(axle_fit["B"] * axle_fit["C"] * axle_fit["mu"])
@@ -504,15 +490,14 @@ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
 
 
 def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="literature_bounded"):
-    """Per-session fit L (Q-FIT-LIT, the default since 2026-10-20), steps
-    (a)-(e): _fit_axle_l on the load-normalised force, front in the tyre
+    """Per-session fit L, steps (a)-(e): _fit_axle_l on the load-normalised force, front in the tyre
     frame; the observer gets mu and the per-sample axle loads (d_is_mu). The
     manifest carries axle_load (source shares, lowest level),
     front_force_frame and fit_density_bin_rad; axles carry mu, fz_ref_N,
-    bound_active. R selection of the sweep (2026-10-11): ay exceedance only,
+    bound_active. R selection of the sweep: ay exceedance only,
     band centre, sign-check guard, config-default R as fallback (status at
     most 'marginal', reason in marginal_reason) -- see the comment at the
-    sweep. tyre_fit_mode stays an argument so a config naming a removed
+    sweep. tyre_fit_mode stays an argument so a config naming another
     mode is refused, not silently run as fit L.
     """
     if tyre_fit_mode not in TYRE_FIT_MODES:
@@ -548,9 +533,9 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     # heavy braking leaves the pure-slip fit: beyond fit_long_util_max the
     # friction circle takes more than a few percent of lateral capacity
     # (config derived_from); the observer still sees every sample.
-    # Braking side only (2026-10-19): Eq. 9 puts all drive on the rear,
+    # Braking side only: Eq. 9 puts all drive on the rear,
     # so traction is the rear's normal operating state through every
-    # corner exit, not an outlier; removing it took over half the rear
+    # corner exit, not an outlier; removing it would take over half the rear
     # population. Its combined-slip cost stays, sized by the friction
     # circle.
     axle_masks = {}
@@ -578,8 +563,8 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
     manifest["fit_density_bin_rad"] = bin_rad
     # measured axle loads (2 Hz zero-phase) for the load-normalised CS
-    # (author ruling 2026-10-19) and the Eq. 9 axle Fx for the floor-event
-    # attributes (2026-10-20); set before any degenerate return, since
+    # and the Eq. 9 axle Fx for the floor-event
+    # attributes; set before any degenerate return, since
     # neither depends on the fit. In memory only, like nis_full
     manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
     manifest["axle_fx"] = {"fx_f_N": load_in["fx_f_N"], "fx_r_N": load_in["fx_r_N"]}
@@ -611,7 +596,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     ekf_state["fz_axle_f_N"] = load_in["fz_f_N"]
     ekf_state["fz_axle_r_N"] = load_in["fz_r_N"]
     ekf_state["fx_axle_f_N"] = load_in["fx_f_N"]
-    # Q from this session's force residual (Q-UPPER, 2026-10-19)
+    # Q from this session's force residual
     q_l = _q_upper_from_residual(front_fit, rear_fit, load_in, state, params)
     manifest["observer_q"] = q_l
     interim_cfg = {
@@ -647,15 +632,15 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     s_m = state.get("s_m")
     ay = state["ay_mps2"]
 
-    # R selection (author ruling 2026-10-11): on the ay exceedance only, in
+    # R selection: on the ay exceedance only, in
     # [r_sweep_ay_band_low, r_sweep_ay_band_high], nearest the band centre,
     # guarded by the sign check of that grid point's own run (>= the marginal
-    # limit). Under the corrected re-entry the yaw exceedance stays far above
+    # limit). The yaw exceedance stays far above
     # any NIS band on every grid point -- the yaw innovation is dominated by
     # single-track model mismatch, not sensor noise -- so it is logged per
     # point, not selected on. No guarded in-band point -> the config default R,
-    # never an arbitrary "nearest overall" pick (that pick inverted the
-    # physics on Paul Ricard). Tier B: a data-derived calibration rule on the
+    # never an arbitrary "nearest overall" pick, which can invert the
+    # physics. Tier B: a data-derived calibration rule on the
     # existing chi-square exceedance statistic, not a new method.
     band_lo, band_hi = cfg["r_sweep_ay_band_low"], cfg["r_sweep_ay_band_high"]
     centre = (band_lo + band_hi) / 2.0
@@ -671,7 +656,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
         S_diag = result["S_diag"][base_mask]
         f_yaw = float((innovation[:, 0] ** 2 / S_diag[:, 0] > CHI2_DF1_95).mean())
         f_ay = float((innovation[:, 1] ** 2 / S_diag[:, 1] > CHI2_DF1_95).mean())
-        # guard judges the beta this grid point would ship (#20)
+        # guard judges the beta this grid point would ship
         sign = _sign_check(t, s_m, result["beta_with_fallback"], ay, base_mask, corners_by_stable_id,
                            laps_by_number, racing_ids)
         return {"r_ay_scale": r_ay_scale, "r_yaw_scale": r_yaw_scale,
@@ -681,9 +666,9 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
 
     ay_scales = list(cfg["r_sweep_ay_scales"])
     yaw_scales = list(cfg["r_sweep_yaw_scales"])
-    # measured noise floors (author rulings 2026-10-19), in scale units: R_yaw
+    # measured noise floors, in scale units: R_yaw
     # is the yaw-rate floor itself, not swept -- with Q_r at the upper bound
-    # the yaw state follows the gyro and the sweep only ran into its grid
+    # the yaw state follows the gyro and a sweep only runs into its grid
     # ends. R_ay keeps the sweep with the ay floor as its lowest candidate;
     # the half-decade grid (1, 0.3, 0.1, ...) is continued downward until one
     # value lies below it, so a sweep that prefers lower shows as
@@ -761,7 +746,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     final_result = estimate_sideslip_ekf_pacejka(ekf_state, params_final, pass_id="_auto_final")
     beta_ekf = final_result["beta"]
     # Sign check, coverage and h2 validate the beta that ships, not the raw
-    # update (#20): the two differ at hard-bound re-entries, where the raw
+    # update: the two differ at hard-bound re-entries, where the raw
     # value sits beyond the bound and the shipped one is the reset state.
     beta_shipped = final_result["beta_with_fallback"]
     manifest["final_config"] = final_cfg
@@ -800,14 +785,14 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     r_h2 = float(np.corrcoef(h2_pred, ay[idx])[0, 1]) if len(idx) > 2 else float("nan")
     manifest["h2_vs_ay_apex"] = {"n": int(len(idx)), "correlation": r_h2}
 
-    # The gross-miscalibration trigger reads the ay exceedance only: under the
-    # corrected re-entry the yaw exceedance measures single-track model
-    # mismatch, not noise calibration (ruling 2026-10-11, Tier B), so yaw can
-    # only cap the status through the soft yaw_mismatch_ceiling.
+    # The gross-miscalibration trigger reads the ay exceedance only: the yaw
+    # exceedance measures single-track model mismatch, not noise
+    # calibration (Tier B), so yaw can only cap the status through the soft
+    # yaw_mismatch_ceiling.
     gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
     gross = cfg["nis_gross_miscalibration_fraction"]
-    # No racing corner to check (NaN fraction) used to pass every comparison
-    # silently; an unvalidated fit is degenerate, not ok (#22).
+    # No racing corner to check (NaN fraction) would pass every comparison
+    # silently; an unvalidated fit is degenerate, not ok.
     sign_nan = gate_frac != gate_frac
     if sign_nan or gate_frac < cfg["sign_check_degenerate_fraction"] or f_ay > gross:
         manifest["status"] = "degenerate"
@@ -848,7 +833,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
         manifest["status"] = "degenerate"
         manifest["degenerate_reason"] = reason
     # g2 at the edge of the literature range: the observer still ships, the
-    # session is flagged (author ruling 2026-10-20)
+    # session is flagged
     edge = [f"{name}: g2 at the edge of the literature range (K {g['stiffness_norm_per_rad']:.2f} / rad)"
             for name, g in gate.items() if g["k_zone"] == "edge"]
     # mu just above the ceiling, within its uncertainty: same treatment
@@ -861,8 +846,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
         manifest["status"] = "marginal"
         manifest["marginal_reason"] = "; ".join(([prev] if prev else []) + edge)
 
-    # hard-bound re-entries, for the CS reset mark (author ruling 2026-10-19);
-    # in memory only, like nis_full
+    # hard-bound re-entries, for the CS reset mark; in memory only, like nis_full
     manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
@@ -880,14 +864,14 @@ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, cs
     cs_inputs). fit_manifest: JSON-safe manifest, auto mode only.
     gate_verdict: from nis_gate.evaluate_gate, None for the kinematic source
     or after a degenerate fit. Degenerate fit or gate "fail" -> kinematic
-    beta, reason as text. An unknown sideslip_source is refused: it used to
-    run kinematic silently, so a typo in the config shipped the fallback beta
-    as if chosen. Never mutates params. Sixth element cs_inputs:
+    beta, reason as text. An unknown sideslip_source is refused rather than
+    run as kinematic, so a config typo cannot ship the fallback beta as if
+    chosen. Never mutates params. Sixth element cs_inputs:
     {"cs_kwargs": keyword arguments for estimate_cornering_stiffness,
      "axle_fx": {"fx_f_N", "fx_r_N"} or None, "note": text or None}.
-    Outside fit L both are empty / None, so the old path calls the CS
-    estimate exactly as before. In fit L: CS on Fy / Fz with the reference
-    band L_K_EDGE and the relative reference gate L_REF_RELATIVE (R26), and
+    For the kinematic source both are empty / None, so the CS estimate runs
+    on Fy with its default band. In fit L: CS on Fy / Fz with the reference
+    band L_K_EDGE and the relative reference gate L_REF_RELATIVE, and
     the observer-reset mark from hard-bound re-entries --
     dropped when the session ships kinematic beta, since then no observer
     state reached the slip angles."""

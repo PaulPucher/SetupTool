@@ -2,22 +2,20 @@
 # falls below PURE_LATERAL_FLOOR -- lower than any pure-slip tyre curve can
 # go. A third output class beside the corner verdicts (tendencies) and the
 # recommendations; display and record only, never a verdict or
-# recommendation input (author ruling 2026-10-20, one concept, one name).
+# recommendation input.
 #
 # Lineage: flagging handling moments in logged traces after Segers (secs.
 # 7.4-7.6; sec. 5.4 for a discrete-event precedent); interpretation per
 # Hoffman / Ono / Werner, limit-regime vocabulary per Milliken sec. 8.5. The
 # event channel itself -- CS against a fixed floor -- is SetupTool's
-# construction (Tier B segmentation on a Tier A-derived line). The earlier
-# fitted-curve-floor layer of the per_session path was removed in the
-# 2026-10-22 pruning (tag pre-prune-2026-10-22).
+# construction (Tier B segmentation on a Tier A-derived line).
 
 import numpy as np
 
 from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 from modules.tyre_fit_auto import _canonical_window_slice
 
-# Pure-lateral floor of the CS ratio (author ruling 2026-10-19): the steepest
+# Pure-lateral floor of the CS ratio: the steepest
 # post-peak slope of the Magic Formula over its initial slope, at C = 3.0
 # (Goblirsch et al. 2025 Table I upper bound) with E in [-1, 1] (Pacejka
 # 2006 ch. 4). Independent of B and D. Lower than any pure-slip curve can go,
@@ -83,9 +81,9 @@ def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gat
 
 
 def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None, axle_fx=None):
-    """CS ratio below PURE_LATERAL_FLOOR, as events with measured attributes
-    (author ruling 2026-10-20). JSON-safe {"status", "floor", "label",
-    "events": [...]}.
+    """CS ratio below PURE_LATERAL_FLOOR, as events with measured attributes.
+    JSON-safe {"status", "line", "floor", "floors", "label", "events": [...],
+    "n_instances_by_corner"}.
 
     An event is one contiguous run of finite ratio < floor inside a corner
     instance (canonical bracket, analysis laps), per axle -- no bridging: a
@@ -94,8 +92,9 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
     arrays: kerb-affected and observer-reset-affected runs are kept and
     flagged. Attributes only; nothing is classified or removed.
 
-    axle_loads / axle_fx: the fit-L axle Fz and Eq. 9 axle Fx (2 Hz
-    zero-phase), for the longitudinal utilisation and the load change inside
+    axle_loads / axle_fx: the fit-L axle Fz and the axle Fx with braking
+    split by measured axle load (Goblirsch 2025, Eq. 9 (page to verify)),
+    2 Hz zero-phase, for the longitudinal utilisation and the load change inside
     the regression windows; without them those attributes are None.
     """
     out = {"status": "computed", "line": LINE_PURE, "floor": PURE_LATERAL_FLOOR,
@@ -164,7 +163,6 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
                         fx = axle_fx[f"fx_{ax}_N"][rng]
                         ev["fx_util_max"] = float(np.max(np.abs(fx) / fz[rng]))
                         ev["braking_share"] = float(np.mean(fx < 0.0))
-                        # flag: braking (Fx < 0) on every event sample
                         ev["braking"] = bool(np.all(fx < 0.0))
                     # Fz range over mean inside each event sample's regression
                     # window [start, i) -- how much the load moved while the
@@ -181,7 +179,7 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
                         ev["fz_window_range_max"] = float(np.max(rngs))
                 if slip is not None:
                     # start of the regression window behind the first event
-                    # sample, as for the curve-floor events
+                    # sample
                     w0 = reconstruct_cs_window_start(slip[f"alpha_{ax}_filt"], i0, min_window,
                                                      se["cs_min_slip_angle_span_rad"], s_m, se["cs_max_window_m"])
                     ev["window_start_t"] = float(t[w0])
@@ -193,8 +191,8 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
 
 def label_recurrence(events, radius_m):
     """Recurring = an event of the same axle at the same corner on another
-    analysis lap with its minimum within radius_m lap distance (the audit's
-    position-locked rule); else single occurrence. In place."""
+    analysis lap with its minimum within radius_m lap distance; else single
+    occurrence. In place."""
     for e in events:
         laps = {o["lap"] for o in events
                 if o["axle"] == e["axle"] and o["corner"] == e["corner"]
@@ -227,11 +225,6 @@ def _phase_word(phase):
 
 
 WHAT = "force loss not explainable by pure lateral saturation"
-
-
-def layer_title(events):
-    """Session-list heading of the event layer."""
-    return f"Floor events ({WHAT})"
 
 
 def legend_text(events):

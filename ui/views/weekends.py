@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem,
     QPushButton, QHeaderView, QStackedWidget
 )
-from PyQt6.QtCore import Qt
 from ui.views.weekend_dialog import WeekendDialog
 from ui.views.outings import OutingsView
 from models.base import Session
@@ -70,15 +69,6 @@ class WeekendsView(QWidget):
     def _show_list(self):
         self.load_data()
         self.stack.setCurrentWidget(self.list_page)
-
-    def _open_edit_dialog(self, row, column):
-        session = Session()
-        weekends = session.query(RaceWeekend).order_by(RaceWeekend.date.desc()).all()
-        weekend = weekends[row]
-        session.close()
-        dialog = WeekendDialog(self, weekend=weekend)
-        if dialog.exec():
-            self.load_data()
 
     def _build_table(self):
         table = QTableWidget()

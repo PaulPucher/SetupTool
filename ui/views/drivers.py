@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem,
     QPushButton, QHeaderView
 )
-from PyQt6.QtCore import Qt
 from models.base import Session
 from models.driver import Driver
 from ui.views.driver_dialog import DriverDialog

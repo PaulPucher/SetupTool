@@ -1,13 +1,8 @@
-"""Saved data-file paths across machines.
-
-An outing stores the absolute path of its telemetry export. The laptop
-keeps the exports under D:/Data_Bachelorthesis, the temporary machine under
-H:/Data_Bachelorthesis, so a path saved on one machine does not exist on
-the other: the outing could not reload its file, and once the file was
-picked again by hand the analysis caches missed because the path string
-differed. Both lookups now go through the configured data roots
-(config/data_roots.json): a saved path under one root is found under the
-others, and the caches compare the path relative to its root.
+"""Machine-independent data paths. An outing stores the absolute path of its
+telemetry export, but each machine keeps the exports under its own data root
+(config/data_roots.json). A saved path under one root is looked up under the
+others, and the analysis caches compare the path relative to its root, so a
+file reopened on another machine still hits the cache.
 """
 
 import json

@@ -28,7 +28,7 @@ order. Read PLAN.md before starting any work.
 - No PyQt6 imports in modules/ or core/. No business logic in ui/.
 - All tunable numbers go in config/*.json, never hardcoded.
 - Colour literals only from ui/style.py constants (OK, WARN, BAD, NEUTRAL,
-  ACCENT, PANEL, PANEL_ALT, BORDER, TEXT, TEXT_MUTED, TEXT_DIM, INFO).
+  ACCENT, PANEL, PANEL_ALT, BORDER, TEXT, TEXT_MUTED, TEXT_DIM).
 - Short comment blocks. Real data only — no synthetic test data.
 - Accuracy levels: 1=config default, 2=session measurement, 3=logged sensor,
   4=lookup table. Every physical quantity states its level.

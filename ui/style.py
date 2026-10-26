@@ -1,6 +1,6 @@
-# Global stylesheet, applied once at startup.
-
-# All colour literals live here.
+# UI colour palette (named constants) and the global stylesheet, applied
+# once at startup. Plot data colours shared with the PNG exports live in
+# core/plot_style.py.
 
 # Base
 BACKGROUND  = "#141414"
@@ -9,9 +9,8 @@ PANEL_ALT   = "#252525"
 BORDER      = "#2a2a2a"
 
 # Text. Every text colour reaches the WCAG AA ratio 4.5:1 on all four
-# backgrounds above (UI-1 item 3, author 2026-10-24; checked in
-# tests/test_style_contrast.py): TEXT_MUTED >= 7.5:1, TEXT_DIM >= 5.1:1.
-# The earlier #888 / #555 fell to 4.3:1 / 2.5:1 on the darker panels.
+# backgrounds above (checked in tests/test_style_contrast.py):
+# TEXT_MUTED >= 7.5:1, TEXT_DIM >= 5.1:1.
 TEXT        = "#e0e0e0"
 TEXT_MUTED  = "#adadad"
 TEXT_DIM    = "#959595"
@@ -24,7 +23,6 @@ OK          = "#4CAF50"   # healthy / stabilising
 WARN        = "#C0A060"  # same hue as ACCENT on purpose
 BAD         = "#c0392b"   # saturated / destabilising
 NEUTRAL     = "#444"      # no data / NaN
-INFO        = "#4A90D9"   # opposite-side marker to BAD (yaw panel: deficit flag)
 
 # text on a filled cell or badge: dark on the light fills (green, amber),
 # light on the dark ones (red, grey); TEXT itself reaches only 4.4:1 on BAD
@@ -33,7 +31,7 @@ TEXT_ON_DARK_FILL  = "#f2f2f2"
 FILL_TEXT = {OK: TEXT_ON_LIGHT_FILL, WARN: TEXT_ON_LIGHT_FILL, BAD: TEXT_ON_DARK_FILL, NEUTRAL: TEXT_ON_DARK_FILL}
 
 # speed class tints: neutral blue-greys, light -> dark with rising speed, so
-# they never read as a verdict colour (author ruling 2026-10-23, 4g item 5)
+# they never read as a verdict colour
 SPEED_LOW    = "#B4C0CA"
 SPEED_MEDIUM = "#7E8C98"
 SPEED_HIGH   = "#4B5864"

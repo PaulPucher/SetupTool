@@ -4,8 +4,8 @@ Small scripts that write one CSV set (`<dir>/data/`) and one pgfplots
 `.tex` (`<dir>/plots/`) per thesis figure or table, so a re-run updates the
 thesis directly. `<dir>` comes from `config/thesis_figures.json`
 (`thesis_figures_dir`); every script takes `--out DIR` to override it.
-Separate from `diagnostics/` and its disposal rule (author ruling
-2026-10-24); whether the folder ships with the submission is open.
+Separate from `diagnostics/` and its disposal rule; whether the folder
+ships with the submission is open.
 
 Read-only on the app: the DB is opened read-only, no cache, sidecar or
 config is written. Sessions are app outing IDs. Output names are stable
@@ -29,7 +29,8 @@ Figures:
 - `fig_balance_speed_class.py` (fig:balance_speed_class) -- (before, after)
   pairs; engine cell shares per speed class; stored payloads only.
 
-Tables (CSV plus a booktabs body for tabularx):
+Tables (CSV plus a complete tabularx environment with a booktabs body; the
+chapter holds the table float, caption and label):
 
 - `tab_sessions.py` (tab:sessions), `tab_example_verdicts.py`
   (tab:example_verdicts), `tab_observer_health.py` (tab:observer_health;
@@ -63,12 +64,12 @@ Commands:
     python -m tools.thesis_figures.find_example_corner --outings 11,12,13,14,15,16 --top 3
 
 Refusals: an outing whose damper path is rejected (excluded from the thesis
-evaluation, ruling 2026-10-24) needs `--allow-excluded`; a degenerate fit or
+evaluation) needs `--allow-excluded`; a degenerate fit or
 a kinematic fallback needs `--allow-status`; both then plot the session
 marked. Scripts on stored results refuse a stale payload and name the
 outing: re-analyse it in the app first. tab_sessions lists excluded and
 not-analysable sessions with their reason.
 
-The `.tex` files hold only the tikzpicture (or the table body) and read
+The `.tex` files hold only the tikzpicture (or the tabularx environment) and read
 their CSVs relative to the thesis root (`figures/data/...`) with
 `comment chars={\#}`.

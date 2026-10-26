@@ -1,10 +1,9 @@
 # Per-corner verdict from the aggregated (or per-lap) corner summary: which
-# axle is limiting, in which phase, how severe. Moved from
-# ui/views/outing_form.py (overhaul Part 1, 2026-10-22) so the setup engine
-# and the UI read one classifier; the UI maps the returned state to colour.
+# axle is limiting, in which phase, how severe. One classifier for the setup
+# engine and the UI; the UI maps the returned state to colour.
 #
-# Ruling D2 (author, 2026-10-22). The physical boundary decides, the
-# percentile tiers only grade depth:
+# Verdict rule (D2): the physical boundary decides, the percentile tiers
+# only grade depth:
 # - an axle is LIMITING when its cornering-stiffness ratio is below zero,
 #   i.e. past the peak of its Fy / Fz curve; the test is CS < -margin with
 #   a margin per axle (classification.cs_boundary_margin_front / _rear, p90
@@ -45,8 +44,7 @@ def _thresholds():
     from modules.stability_analysis import load_parameters
     cl = load_parameters()["classification"]
     return {
-        "strong_f": cl["STRONG_CSF"]["value"], "moderate_f": cl["MODERATE_CSF"]["value"],
-        "strong_r": cl["STRONG_CSR"]["value"], "moderate_r": cl["MODERATE_CSR"]["value"],
+        "strong_f": cl["STRONG_CSF"]["value"], "moderate_r": cl["MODERATE_CSR"]["value"],
         "stab": cl["stab_neg_thresh_Nm_per_deg"]["value"],
         "boundary": {"f": cl["cs_boundary_margin_front"]["value"], "r": cl["cs_boundary_margin_rear"]["value"]},
         "marginal": cl["verdict_stability_margin"]["cs_margin"],
@@ -86,7 +84,7 @@ def phase_symptoms(summary, thr=None):
 
 def cs_value_state(value, axle, thr=None):
     # the class one phase value would set, for the per-phase colour: the
-    # colour and the verdict read the same rule (author ruling 2026-10-20)
+    # colour and the verdict read the same rule
     thr = thr or _thresholds()
     if value is None or value != value:
         return "no_data"

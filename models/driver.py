@@ -1,4 +1,4 @@
-# List of Drivers with attributes(name, driving level)
+# Driver table and a detached-safe name/level lookup.
 from sqlalchemy import Column, Integer, String
 from models.base import Base, Session
 

@@ -1,4 +1,4 @@
-# define a raceweekend or test as folder for outings
+# Race weekend or test; parent of its outings.
 
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy.orm import relationship

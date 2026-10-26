@@ -1,8 +1,6 @@
 # Current setup value and value-space logic for the setup engine: where a
 # lever stands on the setup sheet, whether a step stays legal, and how close
-# it sits to its typical window. Moved unchanged from
-# modules/recommendation.py and modules/decision_frame.py (overhaul Part 1,
-# 2026-10-22); windows now live in config/setup_windows.json.
+# it sits to its typical window (config/setup_windows.json).
 
 import json
 
@@ -25,7 +23,7 @@ def load_setup_windows():
 
 # levers the setup sheet has no field for but a logged channel records; the
 # ABS map is read from the dash / steering-wheel position channel the
-# registry trusts (config/channels.json log_abs_pos, decision 2026-09-18)
+# registry trusts (config/channels.json log_abs_pos)
 LOGGED_SETUP_CHANNELS = {"abs_position": "log_abs_pos"}
 
 
@@ -86,7 +84,7 @@ def _numeric_bounds(entry):
     if "max_delta_from_standard" in tw:
         # front ride height: a floor only (standard - 2 mm, diffuser floor
         # limit); the car is often run at the minimum but nothing caps it
-        # above the standard (author ruling 2026-10-23, 4g item 3)
+        # above the standard
         return standard + tw["max_delta_from_standard"], None
     if "delta_from_standard" in tw:
         lo, hi = tw["delta_from_standard"]
@@ -133,15 +131,14 @@ def _current_setup_value(setup_data, entry):
     return node
 
 
-# Window edge: HARD = registry value_space min/max (physical); SOFT =
-# typical window nominal +/- span ("engineer may exceed"). Directional: only
-# a step that pushes further past the edge counts. Missing value for this
-# lever -> not assessable (per lever).
+# Directional edge check: only a step that pushes further past an edge
+# counts. Hard = registry value_space min/max (physical); soft = typical
+# window nominal +/- span ("engineer may exceed").
 def _window_edge_check(action, setup_data, registry, config):
     param = action["parameter"]
     delta = action.get("delta")
     if delta is None or delta == 0:
-        return None  # target action, no push
+        return None  # no step, nothing pushes
     entry = registry.get(param)
     if entry is None:
         return None
@@ -189,7 +186,7 @@ def _edge_normal_state_label(action, config):
 def window_headroom(param, current, delta, registry, config):
     # 1 - |new - nominal| / span, clipped to [0, 1]: how far the step keeps
     # the lever inside its typical window. None when no window or no numeric
-    # value (same neutral case as the retired scoring's window term).
+    # value.
     window = config["parameter_windows"].get(param, {})
     nominal, span = window.get("nominal"), window.get("span")
     if nominal is None or not span or current is None:

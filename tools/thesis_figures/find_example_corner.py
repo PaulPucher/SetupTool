@@ -1,4 +1,4 @@
-# Candidates for fig:example_corner (author rulings 2026-10-24 / 2026-10-26):
+# Candidates for fig:example_corner:
 # corner instances on the analysis laps of the given outings that pass
 #   1. kerb_fraction 0 in every phase of that lap,
 #   2. a CS value on both axles in turn in, at the apex and in at least one
@@ -12,8 +12,8 @@
 # ranked: a US or INST symptom on that lap that is also counted for the
 # corner first, then fewest empty CS bins, then fewest empty bins of any
 # trace -- the bins the figure draws. Lists only; the author picks. Also
-# reports, over ALL corner instances, how many exceed the fitted range
-# (open science point, review instance). Needs an identity-valid stored
+# reports, over ALL corner instances, how many exceed the fitted range.
+# Needs an identity-valid stored
 # payload (for the fitted range) and a read-only re-run (for the traces).
 # Run: python -m tools.thesis_figures.find_example_corner --outings 11,12,13,14,15,16 [--top 3]
 

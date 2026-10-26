@@ -1,5 +1,5 @@
 {
-  "_comment": "Mechanism table of the setup engine (recommendation overhaul D3, author 2026-10-22): one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
+  "_comment": "Mechanism table of the setup engine (author ruling): one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
   "_comment_anchors": {
     "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics (bib key to verify)",
     "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition (bib key to verify)",
@@ -29,10 +29,10 @@
     "M6": "drivetrain",
     "M7": "brake balance"
   },
-  "_comment_not_levers": "Out of scope, deliberately not levers: high-speed dampers, blow-off, arb_front_mount (ruling D3). [2026-10-23, 4f item 1: ride heights removed from this list -- M4 levers at high speed, valid outside the ground-effect stall regime.]",
+  "_comment_not_levers": "Out of scope, deliberately not levers: high-speed dampers, blow-off, arb_front_mount (author ruling). Ride heights are levers at high speed (_comment_ride_height).",
   "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
-  "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author 2026-10-22, 4e item 7), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
-  "_comment_axle": "Field axle (work order 4h, author 2026-10-23): the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip; implementation classification, reported for ruling). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
+  "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
+  "_comment_axle": "Field axle (author ruling): the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
   "mechanisms": [
     {
       "id": "M1-arb-front-US",
@@ -1291,12 +1291,12 @@
       "side_effect": null
     }
   ],
-  "_comment_engineer_preference": "Engineer preference weight (D3): the elicited cells of the retired recommendations.json matrix (moved 2026-10-22, provenance kept). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0 (4e item 6, 2026-10-22). Preference only orders candidates, never adds a lever, never sets a direction.",
+  "_comment_engineer_preference": "Engineer preference weight: the team-elicited cells (provenance per cell). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0. Preference only orders candidates, never adds a lever, never sets a direction.",
   "_comment_engineer_unsupported": {
-    "_comment": "engineer cells not supported by the literature table (author ruling 2026-10-22, 4e item 6): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. [2026-10-23, 4f: US-BRK-high left this list -- its ride-height entries (front decrease, rear increase) now match M4 at high speed; its wing_position increase still contradicts M4-wing-US and gives no preference. It is the one cell that mixes supported and unsupported levers; the check is per lever.]",
+    "_comment": "engineer cells not supported by the literature table (author ruling): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. US-BRK-high mixes supported ride-height entries with an unsupported wing_position increase; the check is per lever.",
     "US-BRK-low": "toe_front more toe-out: the table has toe_front only at turn-in (TIN, low speed), not under braking",
     "OS-APX-high": "camber_fl / camber_fr less negative: the table has no front-camber row for OS",
-    "INST-BRK-med": "ride_height_front increase / ride_height_rear decrease: ride heights are M4 levers at high speed only (4f), the cell is medium speed",
+    "INST-BRK-med": "ride_height_front increase / ride_height_rear decrease: ride heights are M4 levers at high speed only, the cell is medium speed",
     "INST-BRK-high": "toe_front more toe-out under braking: no toe_front row under braking, and more toe-out is the US direction (M5-toe-front-US), opposite to the OS / INST one"
   },
   "engineer_preference": [
@@ -1665,5 +1665,5 @@
       "provenance": "project-lead-reviewed"
     }
   ],
-  "_comment_ride_height": "M4 ride heights (4f item 1, author ruling 2026-10-23): high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance). That is why MM p. 573 and TE Tab. 5.11 seemed to contradict (the earlier reason for excluding ride heights). Step 1 mm (registry adjustment_step)."
+  "_comment_ride_height": "M4 ride heights (author ruling): high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance). This resolves the apparent contradiction between MM p. 573 and TE Tab. 5.11. Step 1 mm (registry adjustment_step)."
 }

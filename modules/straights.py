@@ -1,6 +1,6 @@
-# Steering-defined straights of one session: the definition of
-# diagnostics/inspect_kinematic_inputs.py (steering_straights), moved into
-# modules so the fit-L chain can measure the ay sensor noise on them.
+# Steering-defined straights of one session, where the fit-L chain
+# measures the sensor noise. Same definition as
+# diagnostics/inspect_kinematic_inputs.steering_straights (test cross-check).
 # Thresholds come from steering and speed only, never from the IMU signals
 # whose noise is measured there; centre and widths are measured per session.
 # Tier B preprocessing: a segmentation rule, config-driven

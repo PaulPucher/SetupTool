@@ -1,7 +1,7 @@
 # Matplotlib figure rendering for exports -- display only, draws the arrays
-# it's given. Callers: the trace dialog's export buttons and
-# diagnostics/inspect_step2_chair_plots.py, so both produce identical
-# figures. render_* is the public API; _draw_* are building blocks.
+# it's given. The trace dialog's export buttons and the diagnostics share
+# this code, so their figures are identical. render_* is the public API;
+# _draw_* are building blocks (some diagnostics import them directly).
 # Lap = colour (plot_style.lap_styles); one quantity per panel, front and
 # rear always separate (laps carry cs_f/cs_r).
 
@@ -67,11 +67,9 @@ def _draw_side_legend(ax, legend_ax, theme, font_scale=0.7):
 def _tyre_curve_axes(fig, gs_row):
     """Legend row under each of the two tyre-curve axes in gs_row.
 
-    A bbox_to_anchor legend hanging below the axes made constrained_layout's
-    column solve infeasible (row-spanning axes above) -> tyre panels collapsed
-    to ~0 width with only a warning. A real GridSpec cell behaves like any
-    other axes. Wide legends (ncol=6) in both columns caused the same
-    collapse -> low ncol and tighter padding in render_corner_figure.
+    The legend gets a real GridSpec cell: a bbox_to_anchor legend below the
+    axes, or a wide one, makes constrained_layout's column solve infeasible
+    and collapses the tyre panels to ~0 width (only a warning is raised).
     """
     sub = gs_row.subgridspec(2, 2, height_ratios=[6, 1.6], hspace=0.03, wspace=0.03)
     ax_f = fig.add_subplot(sub[0, 0])
@@ -134,10 +132,9 @@ def _draw_stability_panel(ax, laps, styles, thresholds, theme, legend_ax):
 
 
 def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
-                       strong=None, moderate=None, zero_line=False, near_strike=None):
-    # Front/rear CS and LS panels, one quantity each. LS: no thresholds
-    # (strong/moderate None) but a dotted y = 0 line -- zero = no grip on the
-    # LS scale. near_strike = {"mode"} (kerb-exclusion switch): CS panels only.
+                       strong=None, moderate=None, near_strike=None):
+    # Front or rear CS panel, one quantity each. near_strike = {"mode"}
+    # (kerb-exclusion display switch).
     from core.trace_display import near_strike_split
     mode = (near_strike or {}).get("mode", "off") if value_key in ("cs_f", "cs_r") else "off"
     grey_drawn = False
@@ -153,32 +150,26 @@ def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
     if grey_drawn:
         ax.plot([], [], color=ps.NEAR_STRIKE_COLOR, linewidth=ps.PRINT_LAP_WIDTH,
                 label="Kerb-affected (greyed)")
-    # LS panels stay unbridged, as in the dialog
     if value_key in ("cs_f", "cs_r"):
         _draw_kerb_bridges(ax, laps, styles, value_key)
     if strong is not None:
         _add_threshold(ax, strong, "strong", "Strong")
     if moderate is not None:
         _add_threshold(ax, moderate, "moderate", "Moderate")
-    if zero_line:
-        ax.axhline(0.0, color=ps.THRESHOLD_GREY, linestyle=":", linewidth=1.0, label="Zero")
     ax.set_xlabel("Track position s (m)")
     ax.set_ylabel(ylabel)
     _draw_side_legend(ax, legend_ax, theme)
 
 
-def _draw_track_map_panel(ax, track_map, corner_label, theme, compact=False):
-    # compact (inset): no legend -- lap colours already in the other panels,
-    # ring meaning in the caption
+def _draw_track_map_panel(ax, track_map, theme):
+    # Compact inset without title or legend: the lap colours are already in
+    # the other panels, the ring meaning goes in the caption.
     if track_map is None:
-        # no GPS -> geometry None -> placeholder
         ax.text(0.5, 0.5, "No GPS data", ha="center", va="center",
                 color=theme["text_muted"], transform=ax.transAxes,
-                fontsize=ps.PRINT_FONT_SIZE_PT * (0.6 if compact else 1.0))
+                fontsize=ps.PRINT_FONT_SIZE_PT * 0.6)
         ax.set_xticks([])
         ax.set_yticks([])
-        if not compact:
-            ax.set_title("Track map")
         return
     lap_x, lap_y = track_map["lap_xy"]
     ax.plot(lap_x, lap_y, color=ps.TRACK_BG_COLOR, linewidth=1.0, label="Lap trace")
@@ -187,26 +178,23 @@ def _draw_track_map_panel(ax, track_map, corner_label, theme, compact=False):
     for entry in track_map.get("brackets_by_lap", []):
         bx, by = entry["xy"]
         linestyle = "--" if entry["dash"] == "dash" else "-"
-        ax.plot(bx, by, color=entry["color"], linewidth=(1.2 if compact else 2.0), linestyle=linestyle,
+        ax.plot(bx, by, color=entry["color"], linewidth=1.2, linestyle=linestyle,
                 label=f"Lap {entry['lap_number']} bracket")
     # window rings: hollow black, front solid, rear dotted
-    ring_lw = 0.9 if compact else 1.2
+    ring_lw = 0.9
     if track_map.get("window_f_xy") is not None:
         wx, wy = track_map["window_f_xy"]
-        ax.plot(wx, wy, marker='o', markersize=(4 if compact else 6), markerfacecolor='none',
+        ax.plot(wx, wy, marker='o', markersize=4, markerfacecolor='none',
                 markeredgecolor=ps.WINDOW_RING_COLOR, markeredgewidth=ring_lw,
                 linestyle='-', color=ps.WINDOW_RING_COLOR, linewidth=1.0, label="Front window")
     if track_map.get("window_r_xy") is not None:
         wx, wy = track_map["window_r_xy"]
-        ax.plot(wx, wy, marker='o', markersize=(4 if compact else 6), markerfacecolor='none',
+        ax.plot(wx, wy, marker='o', markersize=4, markerfacecolor='none',
                 markeredgecolor=ps.WINDOW_RING_COLOR, markeredgewidth=ring_lw,
                 linestyle=':', color=ps.WINDOW_RING_COLOR, linewidth=1.0, label="Rear window")
     ax.set_aspect("equal", adjustable="datalim")
     ax.set_xticks([])
     ax.set_yticks([])
-    if not compact:
-        ax.set_title("Track map")
-        _legend(ax, theme, loc="upper right", ncol=1, font_scale=0.7)
 
 
 def _corner_sample_bounds(curve, margin=0.15):
@@ -317,8 +305,8 @@ def _draw_tyre_curve_panel(ax, axle_label, curve, theme, legend_ax):
 def _new_figure(width_cm, height_cm, theme):
     plt.rcParams["font.family"] = ps.PRINT_FONT_FAMILY
     plt.rcParams["font.size"] = ps.PRINT_FONT_SIZE_PT
-    # constrained_layout: fixed hspace/wspace couldn't fit the long axis
-    # labels at 16 cm
+    # constrained_layout: fixed hspace/wspace cannot fit the long axis labels
+    # at 16 cm width
     fig = plt.figure(figsize=(width_cm / CM_PER_INCH, height_cm / CM_PER_INCH),
                       constrained_layout=True)
     return fig
@@ -333,15 +321,13 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
     laps = exactly the checked set; colours assigned here via lap_styles,
     same as the verdict figure.
     """
-    from core import plot_style
-    styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
+    styles = ps.lap_styles(lap["lap_number"] for lap in laps)
 
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_CORNER, theme)
-    # Small h_pad: it applies at every nested boundary and shrank the tyre
-    # panels badly. Outer margins via rect instead, once: bottom 0.036 (~8 mm),
-    # left 0.035 (~5.6 mm) so the y label isn't clipped, top 0.96 (~9.6 mm):
-    # with the rect reaching 1.0 the speed panel was laid out up to the canvas
-    # top and the suptitle landed inside it.
+    # Small h_pad: it applies at every nested boundary and would shrink the
+    # tyre panels. Outer margins once via rect: left 0.07 (~11 mm) so the y
+    # label isn't clipped, bottom 0.036 (~8.6 mm), top 0.96 so the suptitle
+    # stays above the speed panel instead of inside it.
     fig.get_layout_engine().set(w_pad=0.0, h_pad=0.04, wspace=0.0, hspace=0.02, rect=(0.07, 0.036, 1.0, 0.96))
     gs = fig.add_gridspec(5, 2, height_ratios=[2.4, 2.4, 2.4, 0.9, 5.4])
     ax_speed, legend_speed = _side_legend_axes(fig, gs[0, :])
@@ -355,7 +341,7 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
                        strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"], near_strike=near_strike)
     _draw_ratio_panel(ax_csr, laps, styles, theme, "cs_r", "Rear CS ratio", legend_csr,
                        strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"], near_strike=near_strike)
-    _draw_track_map_panel(ax_map, track_map, corner_label, theme, compact=True)
+    _draw_track_map_panel(ax_map, track_map, theme)
     _draw_tyre_curve_panel(ax_tyre_f, "Front", tyre_curves["front"], theme, legend_f)
     _draw_tyre_curve_panel(ax_tyre_r, "Rear", tyre_curves["rear"], theme, legend_r)
 
@@ -387,11 +373,10 @@ def _verdict_panel_set(fig, gs, panel_specs):
 
 def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT, near_strike=None):
     """Extension stack, one quantity per panel, shared x: speed, stability,
-    front CS, rear CS. Side legend per panel. Returns a list of figures --
-    currently one (the LS panels were removed in the 2026-10-22 pruning).
+    front CS, rear CS. Side legend per panel. Returns a list holding one
+    figure; the dialog's export saves every figure in it.
     """
-    from core import plot_style
-    styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
+    styles = ps.lap_styles(lap["lap_number"] for lap in laps)
 
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_VERDICT, theme)
     # left margin 0.035 (~5.6 mm) so the y label isn't clipped
@@ -407,7 +392,6 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT,
                                                     strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
                                                     near_strike=near_strike)),
     ]
-    # x anchored on the speed panel
     axes = _verdict_panel_set(fig, gs, panel_specs)
 
     fig.suptitle(corner_label, color=theme["text"], fontsize=ps.PRINT_FONT_SIZE_PT + 2)
@@ -428,14 +412,12 @@ def _draw_corner_bands(ax, corner_bands, label_above=False):
 
 
 def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT, near_strike=None):
-    """Whole-lap export: speed, stability, front CS, rear CS vs s (no LS -- no
-    lap-level reading). Corner bands in light grey, ids above the top panel.
+    """Whole-lap export: speed, stability, front CS, rear CS vs s. Corner
+    bands in light grey, ids above the top panel.
     """
-    from core import plot_style
-    styles = plot_style.lap_styles(lap["lap_number"] for lap in laps)
+    styles = ps.lap_styles(lap["lap_number"] for lap in laps)
 
     fig = _new_figure(ps.PRINT_WIDTH_CM, ps.PRINT_HEIGHT_CM_VERDICT, theme)
-    # same left margin as the verdict figure
     fig.get_layout_engine().set(w_pad=0.0, h_pad=0.03, wspace=0.0, hspace=0.02, rect=(0.035, 0.0, 1.0, 1.0))
     gs = fig.add_gridspec(4, 1)
     panel_specs = [
@@ -489,12 +471,10 @@ def _near_strike_caption(fig, laps, near_strike, theme):
 def save_png(fig, path):
     """Fixed dpi -> same result, same bytes. Closes the figure.
 
-    Tight crop: constrained_layout leaves the side-legend text and the
-    fixed-aspect map/tyre axes of the corner figure partly outside the
-    nominal 16 cm canvas, and a plain savefig cut them off at the edge. The
-    tight bbox grows the saved canvas to every drawn artist instead, so the
-    file can come out a little wider than PRINT_WIDTH_CM; the layout itself
-    is unchanged.
+    Tight crop: constrained_layout leaves side-legend text and the
+    fixed-aspect map/tyre axes partly outside the nominal 16 cm canvas, so
+    the saved canvas grows to every drawn artist and can come out a little
+    wider than PRINT_WIDTH_CM. The layout itself is unchanged.
     """
     fig.savefig(path, dpi=ps.PRINT_DPI, facecolor=fig.get_facecolor(), bbox_inches="tight",
                 pad_inches=ps.PRINT_PAD_INCHES)

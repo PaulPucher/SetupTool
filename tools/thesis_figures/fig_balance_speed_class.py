@@ -6,8 +6,8 @@
 # that speed class (US: front CS beyond -margin_f, OS: rear beyond
 # -margin_r, INST: dMz/dbeta below the threshold; each symptom over the
 # cells that carry its value). Grey fill per symptom, solid outline =
-# before, dashed outline = after (no patterns library, author ruling
-# 2026-10-26). Denominators per bar in the counts CSV. Stored payloads only.
+# before, dashed outline = after (no patterns library). Denominators per
+# bar in the counts CSV. Stored payloads only.
 # Run: python -m tools.thesis_figures.fig_balance_speed_class --pair 13,14 [--pair 11,12] [--tag r2]
 #      [--allow-status] [--allow-excluded] [--out DIR]
 

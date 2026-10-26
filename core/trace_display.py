@@ -35,10 +35,10 @@ def kerb_gap_bridge(x, y, kerb):
     return out
 
 
-# Kerb exclusion display (one concept, 2026-10-05). The kerb-affected mark is
+# Kerb exclusion display. The kerb-affected mark is
 # estimate_cornering_stiffness' near_strike_f / near_strike_r (internal name:
-# CS samples whose regression window holds a kerb-mask or smear-zone sample,
-# R1). This module only draws; the verdict statistics drop marked samples in
+# CS samples whose regression window holds a kerb-mask or smear-zone sample).
+# This module only draws; the verdict statistics drop marked samples in
 # summarise_corners, and the CS arrays keep every sample.
 NEAR_STRIKE_MODES = ("grey", "exclude", "off")
 
@@ -67,10 +67,9 @@ def near_strike_split(y, mark, mode):
     return main, overlay
 
 
-# Shading budget (author ruling 2026-10-06): per panel, filled area is only
-# the one background tint family and the one exclusion grey -- never stacked.
-# The exclusion grey is drawn once as the union over the checked laps, and
-# the tint is clipped where it lies.
+# Interval helpers for the dialog's shading: per panel only one tint family
+# and one exclusion grey, never stacked, so the grey is drawn once as the
+# union over the checked laps and the tint is clipped where it lies.
 
 def interval_union(intervals):
     """Sorted, merged (lo, hi) intervals."""
@@ -159,7 +158,7 @@ KERB_CAPTION = "kerb-affected samples excluded from CS verdict statistics, retai
 
 
 def kerb_exclusion_caption(mode, n_affected, n_finite):
-    """The one kerb-exclusion caption (author wording 2026-10-07), prefixed by
+    """The one kerb-exclusion caption, prefixed by
     what this plot does with the samples and always carrying the count; the
     0.2 s reach of the mark is methods-text detail, not caption."""
     share = 100.0 * n_affected / max(1, n_finite)

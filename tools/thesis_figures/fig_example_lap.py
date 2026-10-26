@@ -2,7 +2,7 @@
 # distance, three panels: (1) speed in km/h, (2) CS_f, CS_r with the
 # per-axle decision boundaries, (3) dMz/dbeta with the zero line; corner
 # brackets shaded and labelled with that session's corner IDs. Lap rule:
-# the fastest analysis lap (neutral rule, author ruling 2026-10-26).
+# the fastest analysis lap (a neutral rule, no hand-picking).
 # dMz/dbeta is the session profile: the local ridge regression over lap
 # distance pooled across all analysis laps (yaw_stability), one profile
 # per session, not specific to the plotted lap -- said in the header and

@@ -16,118 +16,11 @@ CAR_DATA_PATH = "config/car_data.json"
 
 # Cache version for the persisted analysis payload. Bump when
 # summarise_corners' numbers or the payload shape change for the same
-# input; not for read/render-only changes. Mismatch = no cache.
-#   2: accuracy_cap / resolved_* fields
-#   3: fz / fy_norm stat blocks per phase
-#   4: bracket_start_m / bracket_end_m per corner
-#   5: sideslip_source
-#   6: auto-fit modes, fit_manifest, gate_verdict, fallback_*
-#   7: ls_ratio_f/r stat blocks (display only)
-#   8: apex_region per corner; grid_rate_hz in the payload
-#   9: no shape change -- estimator inputs changed: Q-CAL-1 mask, Q-CAL-2
-#      NBR zero entries (2026-10-03). Standing rule: any estimator-input
-#      change made outside Settings bumps this, since the caches do not
-#      see config edits.
-#  10: no shape change -- estimator input changed (2026-10-04): the Level-4
-#      steering conversion reads the wheel angle from the manufacturer table
-#      (mean of both front wheels) instead of dividing by its local ratio.
-#  11: estimator input changed (2026-10-04): speed window on the Pacejka fit
-#      population (tyre_fit_auto.fit_speed_window_pct); fit manifest gains
-#      speed_window.
-#  12: (2026-10-05) balance key added - measured understeer gradient,
-#      Level 2; and summarise_corners' CS statistics now skip kerb-affected
-#      (near-strike) samples, the population the thresholds derive on.
-#  13: (2026-10-06) events key added - limit events (modules/limit_events.py),
-#      display / record only; no estimator input and no summary changed.
-#  14: (2026-10-07) CS stat blocks gain n_kerb_excluded (finite samples left
-#      out as kerb-affected), so the per-phase table can say "no clean data"
-#      instead of a blank; display only, no value changes.
-#  15: (2026-10-11) estimator change: Pacejka EKF divergence re-entry without
-#      kinematic injection (NIS window -> keep state, P0; hard bound -> beta 0),
-#      tyre-curve plausibility gate, R selected on the ay exceedance with a
-#      sign-check guard and default-R fallback, gross trigger on ay only, soft
-#      yaw ceiling. Payload: fit_manifest gains marginal_reason and
-#      r_sweep.selection / guard_trace (grid points carry ay_in_band and
-#      sign_fraction instead of both_in_band); degenerate_reason / fallback_reason
-#      texts changed; every degenerate status now carries a reason.
-#  owed (final re-derivation chain, registry R3): the 2026-10-16/17 rebuild
-#      changed results under 15; payload drops "balance" (K readout removed,
-#      so the 12 key is no longer written) and resolved_levels.
-#      understeer_gradient, gains "estimator_settings" and the NIS gate's
-#      n_windows_skipped_low_coverage.
-#  16: (2026-10-20) default switch: fit L (tyre_fit_mode literature_bounded)
-#      is the default path -- tyre fit, observer, CS on Fy / Fz with the
-#      [5.5, 35] per rad reference band and the hard-bound reset mark all
-#      change values; thresholds re-derived on it. Payload: under fit L the
-#      events record holds the floor events (CS below the -0.53 pure-lateral
-#      floor, measured attributes, "line" key) instead of the curve-floor
-#      limit events; fit_manifest carries the fit-L fields (peak "none",
-#      mu_source; no mu_extrapolated / onset_coverage). Migration: older payloads are recomputed on
-#      open (schema mismatch), nothing is converted in place. The 15 owed
-#      note above is settled by this bump too.
-#  17: (2026-10-20) estimator inputs changed after 16 was committed (schema
-#      bump rule): NIS gate thresholds re-derived on fit L (0.104 / 0.011,
-#      config), CS linear reference gated to [0.5, 2] x the session median
-#      (R26 source fix, code), cs_margin 0.01 and thresholds re-confirmed. No
-#      payload shape change; stored payloads under 16 are recomputed on open.
-#  18: (2026-10-21) estimator input changed (schema bump rule): the throttle
-#      range gate widens to [0, 110] % (the pedal reads 104-106 % at full
-#      throttle); on 7 of 14 development sessions the channel had been graded
-#      failed, so every entry_1_brake phase was zero-length -- those phases
-#      now hold samples. Corner warnings carry channel-missing warnings into
-#      the canonical instances. No payload shape change.
-#  19: (2026-10-21) estimator input changed (schema bump rule): aerodynamic
-#      drag enters the CoG longitudinal force (drag_coeff 0.50 x frontal area
-#      2.0 m^2, Level 1, literature) -- fit-L braking filter, Eq. 9 axle split
-#      and the observer's front force frame move. No payload shape change.
-#  20: (2026-10-22) payload shape change from the pruning package (P1b), no
-#      value change: the longitudinal-stiffness blocks are gone, fit_manifest
-#      loses seven legacy config echoes (load_normalised, nis_window_s,
-#      nis_chi2_bound, nis_flag_fraction, divergence_trigger, cd_drift,
-#      cd_threshold), and fit L is the only fit mode, so the in-memory fit
-#      result always carries cs_axle_loads. Goldens differ only in _meta;
-#      no threshold re-derivation (values bit-identical).
-#  21: (2026-10-22) payload shape change, recommendation overhaul: the
-#      stored analysis carries the setup engine's data / engineer / session
-#      layers ("setup_engine"); the classifier follows ruling D2 (limiting =
-#      CS < -cs_boundary_margin). Chain values (fit, gate, summaries, floor
-#      events) unchanged; verdicts and recommendations change by design.
-#  22: (2026-10-23) work order 4e, config edits outside Settings: the
-#      boundary margin is per axle (cs_boundary_margin_front 0.062 / _rear
-#      0.076, was 0.01); the setup engine ranks preference before effort,
-#      ignores preference cells the mechanism table does not support,
-#      counts INST as agreeing with oversteer feedback, reports per-lap cell
-#      shares in the session layer and reads the ABS map from log_abs_pos.
-#      Chain values unchanged; verdicts and recommendations change.
-#  23: (2026-10-23) work order 4f, config edits outside Settings: ride
-#      heights become M4 levers (high speed), OS under braking takes the
-#      braking-instability rows, bias OS also at turn-in, rear camber APX
-#      names INST, camber step 0.2 deg, damper effort minutes, TC stepped
-#      only inside 2-11. Chain values unchanged; recommendations change.
-#  24: (2026-10-23) work order 4g: payload shape change -- each corner of the
-#      setup layers carries a mechanical setup recommendation and a separate
-#      cockpit option (cockpit, cockpit_ranked, cockpit_conflicts,
-#      cockpit_at_limit); the front ride height has a floor only. Chain values
-#      unchanged; recommendations change.
-#  25: (2026-10-23) work order 4h: payload shape change and config edits
-#      outside Settings -- each setup layer carries a session setup
-#      recommendation from the corner vote (session_recommendation, config
-#      setup_engine.session_vote), mechanisms.json rows gain an axle field and
-#      the limiting-end class replaces the row order as the last per-corner
-#      rank key. Chain values unchanged; recommendations change.
-#  26: (2026-10-24) work order DEV-3, config edit outside Settings and a
-#      status meaning change: mu_demo in (2.0, 2.0 + mu_ceiling_edge_u] is
-#      marginal (EKF runs) instead of degenerate (kinematic fallback); the
-#      edge is relative, 2.0 x (1 + u) = 2.195 (author ruling 2026-10-24); the
-#      fit manifest carries mu_ceiling_zone. Unchanged on every session with
-#      mu_demo <= 2.0 (all 14 development sessions); a session in the band
-#      now runs the observer, so its chain values change.
-#  27: (2026-10-24) work order DEV-4, config edit outside Settings and a
-#      payload change: the damper path is checked per session against the
-#      static weight (wheel_loads.plausibility_min_static_fraction 0.8) and
-#      rejected below it (static split, Level 1); the fit manifest's
-#      axle_load carries damper_plausibility. Chain values change only on
-#      a rejected session (PRC JST longrun).
+# input, and for any estimator-input change made outside Settings (config
+# edit, mask, channel correction, zero entry) -- the caches do not see
+# config edits. Not for read/render-only changes. Mismatch = recompute on
+# open. Version history: DECISIONS.md ("Analysis schema history" and the
+# rulings that caused each bump).
 ANALYSIS_SCHEMA_VERSION = 27
 
 # method-defining, not tunables
@@ -145,9 +38,9 @@ def load_parameters():
 def thresholds_calibrated(params):
     """True when the classification thresholds were derived for the active
     estimator path: the configured sideslip source and, for the auto fit,
-    the configured tyre_fit_mode (thresholds encode the estimator; author
-    ruling 2026-10-20). Config comparison only -- a run-time kinematic
-    fallback does not change it; the status line shows that."""
+    the configured tyre_fit_mode (thresholds encode the estimator). Config
+    comparison only -- a run-time kinematic fallback does not change it;
+    the status line shows that."""
     cl = params["classification"]
     source = params["stability_estimation"].get("sideslip_source", "kinematic")
     if source != cl.get("thresholds_calibrated_for_sideslip_source", "kinematic"):
@@ -328,11 +221,11 @@ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
 
 
 def _build_non_analysis_lap_mask(t_ref, laps):
-    # Module 5 pools analysis laps only (finding #32): beyond the in/out laps
-    # the slow laps (past valid_lap_max_ratio, e.g. traffic or a cool-down
-    # lap) also break the cross-lap stationarity the regression assumes.
-    # Same lap set as the CS summaries and the tyre fit. No lap list -> no
-    # lap exclusion, as before. [domain improvement]
+    # Module 5 pools analysis laps only: beyond the in/out laps the slow
+    # laps (past valid_lap_max_ratio, e.g. traffic or a cool-down lap) also
+    # break the cross-lap stationarity the regression assumes. Same lap set
+    # as the CS summaries and the tyre fit. No lap list -> no lap
+    # exclusion. [domain improvement]
     mask = np.zeros(len(t_ref), dtype=bool)
     if not laps:
         return mask
@@ -350,8 +243,6 @@ def _compute_kerb_mask_from_az(az_g, threshold_g, baseline_g, dilation_samples):
     raw = np.abs(az_g - baseline_g) > threshold_g
     if dilation_samples <= 0:
         return raw
-    # OR with itself shifted +/- 1..dilation_samples
-    n = len(raw)
     out = raw.copy()
     for shift in range(1, dilation_samples + 1):
         out[shift:] |= raw[:-shift]
@@ -365,13 +256,12 @@ def _seconds_to_samples(duration_s, sample_rate_hz):
 
 def _kerb_smear_zone(kerb_mask, grade_samples):
     # The 2 Hz zero-phase CS filter runs over the strike before the mask is
-    # applied, so the strike leaks into unmasked neighbours on both sides
-    # (Q-CAL-1, diagnostics/inspect_kerb_filter_decay.py (script at tag pre-prune-2026-10-22)). Zone = unmasked
-    # samples within grade_samples of a mask sample. It feeds the
-    # near_strike grade mark (together with the mask, R1), bars a window from
-    # setting the CS linear reference and leaves the tyre-fit base mask with
-    # the kerb mask (R6). The CS regression itself still runs over it.
-    # [domain improvement: the chair tooling has no kerb treatment]
+    # applied, so the strike leaks into unmasked neighbours on both sides.
+    # Zone = unmasked samples within grade_samples of a mask sample. It
+    # feeds the near_strike grade mark (together with the mask), bars a
+    # window from setting the CS linear reference and leaves the tyre-fit
+    # base mask with the kerb mask. The CS regression itself still runs
+    # over it. [domain improvement: the chair tooling has no kerb treatment]
     if kerb_mask is None:
         return None
     n = len(kerb_mask)
@@ -393,12 +283,12 @@ def prepare_vehicle_state(channels, params):
 
     # Synthetic even grid at the resolved rate over ecu_speed's time span.
     # ecu_speed is 50 Hz, the CS chain 100 Hz
-    # (diagnostics/inspect_native_channel_rates.py) -- resampling onto
-    # ecu_speed threw half of it away. ecu_speed upsampled linearly: speed
-    # is inertia-limited, can't jump between samples.
+    # (diagnostics/inspect_native_channel_rates.py), so resampling onto
+    # ecu_speed would discard half of the chain's samples. ecu_speed is
+    # upsampled linearly: speed is inertia-limited, can't jump between samples.
     sr, grid_rate_status = _resolve_grid_rate(channels, params)
     ecu_speed_t = channels["ecu_speed"]["time"]
-    # linspace, not arange -- arange dropped the last sample
+    # linspace, not arange -- arange can drop the last sample
     n_grid = int(round((ecu_speed_t[-1] - ecu_speed_t[0]) * sr)) + 1
     t_ref = np.linspace(ecu_speed_t[0], ecu_speed_t[-1], n_grid)
 
@@ -467,7 +357,6 @@ def prepare_vehicle_state(channels, params):
         gps_lat = None
         gps_lon = None
 
-    # track distance for Module 5; None if lap_distance unusable
     s_m = None
     ld_ch = channels.get("lap_distance")
     if ld_ch is not None and ld_ch.get("quality") not in ("missing", "failed") and ld_ch.get("time") is not None:
@@ -692,8 +581,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
             c_session = session_corrected["c_session_N_per_mps2"]
         else:
             # no real damper sample anywhere -> skip the fit, it would average
-            # nothing and nothing could be reconstructed anyway (both real
-            # sessions have damper data; Dubai only lacks RR)
+            # nothing and nothing could be reconstructed anyway
             fz_axle_totals = {"fz_f_N": fz_f_N, "fz_r_N": fz_r_N}
         combined = combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz)
         fz_fl_N = combined["fl"]["fz_N"]
@@ -734,10 +622,9 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
 def apex_instant_slice(t, apex_t, half_window_samples):
     """The apex_3 window: the apex is one instant, read as the first grid
     sample at or after it +/- half_window_samples (11 samples at N = 5).
-    Always this width -- the old phase slice took [lo, hi) first and only
-    widened when it was empty, so an apex landing exactly on a grid sample
-    got a 1-sample window (finding #12). Shared by summarise_corners, the
-    tyre-fit h2 check and the TPMS apex read-out.
+    Always this width, so an apex landing exactly on a grid sample does not
+    collapse to a 1-sample window. Shared by summarise_corners and the
+    tyre-fit h2 check.
     """
     centre = int(np.searchsorted(t, apex_t, side="left"))
     return slice(max(0, centre - half_window_samples), min(len(t), centre + half_window_samples + 1))
@@ -755,7 +642,7 @@ def resolve_cs_min_window_samples(params, sample_rate_hz):
 def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_window_m=None):
     """Start index of the window compute_cs_for_axle used at index i -- for
     trace-window highlights and diagnostics. Reconstruction only, never
-    recomputes CS. Matched the live loop to 1e-6.
+    recomputes CS.
 
     min_window = sample count (resolve_cs_min_window_samples).
     s_m/max_window_m cap growth by track distance, so the cap means the same
@@ -794,50 +681,47 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     Linear reference (CS_ratio denominator): set only by a clean window --
     no sample of the regression window [start, i) in the kerb mask or the
     smear zone, none off an analysis lap -- whose stiffness lies inside the
-    tyre-fit stiffness band (R26/R27). A disqualified window leaves the
-    previous reference in force. Before, the moving/kerb test looked at the
-    newest sample only, so a window reaching back over a strike could set
-    the reference and every CS after it divided by a kerb-inflated value
-    (PR C16 lap 51). Until the first clean window no CS is computed; those
-    samples are counted (n_no_reference_*), never zero-filled. laps = the
-    parsed lap list (analysis-lap test and the R11 lap-boundary guard);
-    empty -> neither, as in Module 5. [domain improvement: the chair tooling
-    has no kerb treatment]
+    stiffness band. Testing the whole window, not just its newest sample,
+    keeps a window reaching back over a strike from setting a
+    kerb-inflated reference. A disqualified window leaves the previous
+    reference in force. Until the first clean window no CS is computed;
+    those samples are counted (n_no_reference_*), never zero-filled. laps =
+    the parsed lap list (analysis-lap test and lap-boundary guard); empty ->
+    neither, as in Module 5. [domain improvement: the chair tooling has no
+    kerb treatment]
 
-    reset_mask (fit L, Q-FIT-LIT 2026-10-19): samples where the shipped
-    observer reset its state at the hard bound (beta set to zero). A window
-    [start, i) holding one is marked observer_reset_affected_*: the reset
-    breaks the state continuity the windowed regression assumes, the same
-    reasoning as the R11 lap-boundary guard. Covariance-only resets do not
-    mark (author ruling 2026-10-19: the CS sensitivity to the reset policy
-    is general, not specific to reset windows). Marked only, never deleted;
-    None (the per_session path, or a session that fell back to kinematic
-    beta) adds no key.
+    reset_mask (fit L): samples where the shipped observer reset its state
+    at the hard bound (beta set to zero). A window [start, i) holding one is
+    marked observer_reset_affected_*: the reset breaks the state continuity
+    the windowed regression assumes, the same reasoning as the lap-boundary
+    guard. Covariance-only resets do not mark: the CS sensitivity to the
+    reset policy is general, not specific to reset windows. Marked only,
+    never deleted; None (a session that ships kinematic beta) adds no key.
 
-    axle_loads / ref_band (fit L, author ruling 2026-10-19, implemented
-    2026-10-20): with axle_loads ({"fz_f_N", "fz_r_N"}, the measured axle
-    loads after the fit-L 2 Hz zero-phase filter) the force input is Fy / Fz
-    per axle, sample by sample -- cornering stiffness is defined at constant
-    vertical load (Milliken, load-normalised lateral force), and the window
-    regression otherwise reads a load change inside the window as a slope.
-    The Fy definition is unchanged (only divided); filter, window,
+    axle_loads / ref_band (fit L): with axle_loads ({"fz_f_N", "fz_r_N"},
+    the measured axle loads after the fit-L 2 Hz zero-phase filter) the
+    force input is Fy / Fz per axle, sample by sample -- cornering stiffness
+    is defined at constant vertical load (Milliken, load-normalised lateral
+    force), and the window regression otherwise reads a load change inside
+    the window as a slope. Only the division is added; filter, window,
     segmentation and R^2 blend are unchanged, and the reference is
     normalised the same way, so the ratio stays C / C_ref. ref_band replaces
     the reference plausibility band (fit L: tyre_fit_auto.L_K_EDGE, 5.5-35
     per rad -- the "about 6 to about 30" of Pacejka sec. 1.2.1 read at its
-    stated precision, the same reading as the D4-L g2 check, 2026-10-20). Either given -> the output gains the reference-candidate slopes
-    and counts (ref_candidates_*, n_ref_candidates_*, n_ref_band_excluded_*).
+    stated precision, as in the fit-L g2 check). Either given -> the output
+    gains the reference-candidate slopes and counts (ref_candidates_*,
+    n_ref_candidates_*, n_ref_band_excluded_*).
     [declared adaptation beyond the chair estimator, which uses Fy in N;
     enabled by the measured axle loads]
 
-    ref_relative (fit L, R26 ruling 2026-10-20; tyre_fit_auto.L_REF_RELATIVE):
-    (lo, hi) -- a band candidate sets the reference only within lo..hi x the
-    median of ALL band candidates of that axle in the session. The median is
-    taken in a first pass over the whole session, so it does not depend on
-    the order of the samples; the reference is then set in a second pass. A
-    rejected candidate leaves the previous reference in force (no CS value
-    is deleted). The output gains n_ref_relative_low_* / _high_* and
-    ref_relative_median_*. None: the gate is off (the per_session path).
+    ref_relative (fit L, tyre_fit_auto.L_REF_RELATIVE): (lo, hi) -- a band
+    candidate sets the reference only within lo..hi x the median of ALL
+    band candidates of that axle in the session. The median is taken in a
+    first pass over the whole session, so it does not depend on the order
+    of the samples; the reference is then set in a second pass. A rejected
+    candidate leaves the previous reference in force (no CS value is
+    deleted). The output gains n_ref_relative_low_* / _high_* and
+    ref_relative_median_*. None: the gate is off (kinematic source).
     """
     se = params["stability_estimation"]
     moving = state["moving_mask"]
@@ -849,7 +733,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     # window, unchanged); the zone only marks near_strike and disqualifies
     # a window from setting the reference.
     smear_zone = state.get("kerb_smear_zone")
-    # R1: the grade mark covers the mask as well as the zone -- a window lying
+    # The grade mark covers the mask as well as the zone -- a window lying
     # entirely inside a kerb run (i the first sample after it) holds no zone
     # sample and would otherwise pass as clean
     affected = None
@@ -862,7 +746,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     affected_cum = None if affected is None else np.concatenate(([0], np.cumsum(affected, dtype=np.int64)))
     reset_cum = None if reset_mask is None else np.concatenate(([0], np.cumsum(reset_mask, dtype=np.int64)))
     n = len(state["moving_mask"])
-    # R11: lap id per sample from the lap table (-1 outside every lap); the s_m
+    # Lap id per sample from the lap table (-1 outside every lap); the s_m
     # cap stops widening at a distance reset, but the minimum window does not,
     # and s_m need not reset exactly at the lap table's boundary
     lap_id = np.full(n, -1, dtype=np.int64)
@@ -888,10 +772,9 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     linear_thresh = se["cs_linear_slip_threshold_rad"]
     min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     max_window_m = se["cs_max_window_m"]
-    # Band rule (R26/R27, author ruling 2026-10-17): the reference is the
-    # linear axle stiffness, the same quantity the D4 plausibility gate bounds
-    # on the fitted curve (B*C*D, Bechtloff Fig. 7.2 magnitudes), so the same
-    # config band is read here rather than duplicated. Needed because beta is
+    # Band rule: the reference is the linear axle stiffness, the quantity the
+    # D4 plausibility gate bounds on the fitted curve (B*C*D, Bechtloff Fig.
+    # 7.2 magnitudes), so the same config band is read here. Needed because beta is
     # estimated: a low-excitation window's slope is ill-determined (Bechtloff,
     # identifiability) and can set a reference far below the session level,
     # or zero / negative. The chair does not bound its reference because it
@@ -966,7 +849,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
             denom = np.sum((window_alpha - alpha_mean) ** 2)
             if denom < 1e-10:
                 continue
-            # R11: a window over a lap boundary mixes two traversals -> no
+            # A window over a lap boundary mixes two traversals -> no
             # value, counted (a guard, not an assert)
             if lap_id[start] != lap_id[i - 1]:
                 n_straddle += 1
@@ -983,9 +866,8 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
 
             # Sections clipped to the window, as in the chair estimator: a
             # section reaching past either window edge is re-fitted on its
-            # in-window part only, and its weight comes from that part's span.
-            # Before, whole-session sections leaked data from outside the
-            # window into the section estimate (finding #26).
+            # in-window part only, and its weight comes from that part's span,
+            # so no data from outside the window enters the section estimate.
             weights = []
             slopes = []
             for k in range(section_id[start], section_id[i - 1] + 1):
@@ -1026,7 +908,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
                     ref_candidates.append(C_alpha[i])
 
         # outside the band the previous reference is held, as for a
-        # disqualified window (Fix 0); NaN compares False and never sets
+        # disqualified window; NaN compares False and never sets
         with np.errstate(invalid="ignore"):
             accept = candidate & (C_alpha >= ref_min) & (C_alpha <= ref_max)
         rel = {"low": 0, "high": 0, "median": float("nan")}
@@ -1072,21 +954,21 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
         "CS_ratio_r": CS_ratio_r,
         "C_linear_ref_f": Clr_f,
         "C_linear_ref_r": Clr_r,
-        # Q-CAL-1 grade mark (window holds a kerb-mask or smear-zone sample,
-        # R1), in memory only (no schema change). Read by summarise_corners,
-        # which drops marked samples from the verdict statistics, by the
-        # limit-event kerb label, the trace display and the thesis reader
+        # kerb grade mark (window holds a kerb-mask or smear-zone sample), in
+        # memory only. Read by summarise_corners, which drops marked samples
+        # from the verdict statistics, by the limit-event kerb label, the
+        # trace display and the thesis reader
         "near_strike_f": ns_f,
         "near_strike_r": ns_r,
-        # Fix 0 report, in memory only: samples with a stiffness but no clean
-        # reference yet, in total and on analysis laps
+        # in memory only: samples with a stiffness but no clean reference
+        # yet, in total and on analysis laps
         "no_reference_f": nr_f,
         "no_reference_r": nr_r,
         "n_no_reference_f": int(nr_f.sum()),
         "n_no_reference_r": int(nr_r.sum()),
         "n_no_reference_analysis_f": int((nr_f & ~off_analysis).sum()),
         "n_no_reference_analysis_r": int((nr_r & ~off_analysis).sum()),
-        # R11 guard count, in memory only: windows refused for straddling a lap boundary
+        # in memory only: windows refused for straddling a lap boundary
         "n_lap_straddle_f": nx_f,
         "n_lap_straddle_r": nx_r,
     }
@@ -1108,7 +990,8 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
 
 def estimate_yaw_moment_stability(state, beta, params, laps=None):
     """Module 5: dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid (Werner
-    S4.5.2 Eq. 4.3); D_psi not computed yet. Estimator in yaw_stability.py,
+    S4.5.2 Eq. 4.3); the damping term D_psi*psid is not modelled (inertial
+    regressand only, chair-conform). Estimator in yaw_stability.py,
     after the chair performance_analysis tooling (internal).
     Front vs rear saturation = controllability vs stability loss (Hoffman et
     al. 2008, sec. 2); saddle-node framing as motivation only (Ono et al.
@@ -1180,8 +1063,8 @@ def estimate_yaw_moment_stability(state, beta, params, laps=None):
 def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
                        apex_half_window_samples=None, cs_phase_min_valid_samples=None,
                        cs_apex_region_half_length_m=None, stab_phase_no_braking_floor_bar=None):
-    # fz optional: adds its stat blocks per phase, omitted -> older summary
-    # shape. stability_observed goes through _gate_stab_stat (sample-count
+    # fz optional: adds its stat blocks per phase, omitted -> no fz blocks.
+    # stability_observed goes through _gate_stab_stat (sample-count
     # gate + no-braking check for entry_1_brake).
     if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
             or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None):
@@ -1202,7 +1085,7 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
 
     # Classification reads the CLEAN population: kerb-affected (near-strike)
     # samples are left out of the CS statistics, the population the
-    # thresholds were derived on (2026-10-05). The CS arrays themselves keep
+    # thresholds were derived on. The CS arrays themselves keep
     # every sample; only the summary skips them.
     raw_f, raw_r = cs["CS_ratio_f"], cs["CS_ratio_r"]
     mark_f = np.broadcast_to(np.asarray(cs.get("near_strike_f", False), dtype=bool), raw_f.shape)
@@ -1257,7 +1140,7 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
     def _gate_stab_stat(stat, phase, brake_vals):
         # stability: same sample-count gate as CS (cs floor reused), plus
         # entry_1_brake with no real braking (max pressure under the floor) ->
-        # no signal (v3 C7/C15)
+        # no signal
         if stat["n"] < cs_phase_min_valid_samples:
             return {"median": float("nan"), "p25": float("nan"), "p75": float("nan"), "n": stat["n"]}
         if phase == "entry_1_brake" and brake_f_bar is not None:
@@ -1338,7 +1221,6 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
             if sl.stop > sl.start:
                 phase_moving = moving[sl]
                 idx = np.where(phase_moving)[0] + sl.start
-                # share of moving samples flagged as kerb
                 if kerb_mask is not None:
                     n_phase_moving = int(phase_moving.sum())
                     if n_phase_moving > 0:

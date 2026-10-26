@@ -5,9 +5,7 @@
 #   as columns (Paul Ricard).
 
 import numpy as np
-import pandas as pd
 import json
-import os
 import re
 from modules.corner_analysis import analyse_corners
 from modules.stability_analysis import _estimate_sample_rate, _normalize_lap_distance_to_metres, load_parameters
@@ -65,9 +63,9 @@ def _canonical_unit(unit):
 
 
 def _to_config_unit(ch_name, data, unit_raw, unit_cfg):
-    # For the quality gate's range test only (#2): the ranges are in the
-    # config unit, the data in the file's. No declared unit -> taken as the
-    # config unit, as before. The returned channel keeps the file's values;
+    # For the quality gate's range test only: the ranges are in the config
+    # unit, the data in the file's. No declared unit -> taken as the config
+    # unit. The returned channel keeps the file's values;
     # consumers convert from unit_raw themselves.
     if unit_raw is None:
         return data
@@ -97,7 +95,7 @@ def _fixed_factor_units():
 
 def _assert_fixed_factor_units(channels):
     """One place for the unit assumption behind every fixed-factor
-    conversion (#5, #6). Declared unit -> must be the assumed one; a
+    conversion. Declared unit -> must be the assumed one; a
     convertible but different unit still fails, because the factor
     downstream is fixed. No declared unit -> the assumed unit stands, and
     the range gate in that unit is the mismatch evidence: a channel the gate
@@ -125,7 +123,6 @@ def _assert_fixed_factor_units(channels):
 def parse_csv(file_path):
     config = load_channels_config()
     wanted_channels = set(config["channels"].keys())
-    thresholds = config["corner_speed_thresholds"]
 
     metadata = {}
     raw_channels = {}
@@ -168,13 +165,11 @@ def parse_csv(file_path):
                                 except ValueError:
                                     i += 1
                                     continue
-                                # NaN samples dropped, as in the wide layout
-                                # (#3): a kept NaN survives the grid
-                                # interpolation and the IIR state of the
-                                # zero-phase filter carries it through the
-                                # whole filtered channel; a dropped one is
-                                # bridged by the interpolation in
-                                # prepare_vehicle_state.
+                                # drop NaN samples: a kept NaN survives the
+                                # grid interpolation and the zero-phase IIR
+                                # spreads it over the whole channel; a
+                                # dropped one is bridged by the interpolation
+                                # in prepare_vehicle_state
                                 if t == t and v == v:
                                     times.append(t)
                                     values.append(v)
@@ -239,7 +234,7 @@ def parse_csv(file_path):
     # Applied only if this file's raw mean is inside precondition_mean_range
     # -- a healthy channel of the same name stays untouched.
     corrections = config.get("channel_corrections", {})
-    # Event logger zero entries (Q-CAL-2): subtracted before the gate, which
+    # Event logger zero entries: subtracted before the gate, which
     # would otherwise fail a channel zeroed against another reference.
     zero_event, zero_entries = _match_event_zero_entry(config.get("event_zero_entries", {}), metadata)
     zero_status = {}
@@ -338,13 +333,10 @@ def _merge_trailing_pit_fragment(laps, channels, config):
     prev = laps[-2]
 
     limiter_ch = channels.get("ecu_B_speedlimit_en")
-    merge = False
-    if (limiter_ch is not None and limiter_ch.get("quality") not in ("missing", "failed")
-            and limiter_ch.get("time") is not None and len(limiter_ch["time"]) > 0):
+    on_at_start = _limiter_active_at(limiter_ch, last["start_time"])
+    if on_at_start is not None:
         # L3: limiter on at the fragment's first sample
-        idx = min(np.searchsorted(limiter_ch["time"], last["start_time"]),
-                  len(limiter_ch["data"]) - 1)
-        merge = bool(limiter_ch["data"][idx] >= 0.5)
+        merge = on_at_start
     else:
         # L1: no limiter channel -> too short to be a real lap
         max_dur = config.get("lap_splitting", {}).get("pit_fragment_max_duration_s", 20)
@@ -403,8 +395,7 @@ def _classify_out_in_laps_by_limiter(laps, channels):
     # Limiter on at lap start -> outlap, at lap end -> inlap. Only adds
     # flags, never clears the positional ones.
     # Catches pit boxes before start/finish, where the limiter is still on
-    # after the lap counter ticks (v3 lap 5,
-    # diagnostics/inspect_v3_pit_limiter_lap_census.py (script at tag pre-prune-2026-10-22)), and inlaps with no
+    # after the lap counter ticks (v3 lap 5), and inlaps with no
     # trailing fragment. No channel -> positional result unchanged.
     limiter_ch = channels.get("ecu_B_speedlimit_en")
     for lap in laps:
@@ -438,8 +429,8 @@ def _effective_lap_time(lap):
     return lap["lap_time_precise"] if lap.get("lap_time_precise") is not None else lap["lap_time"]
 
 
-# Single source for how a lap is named on screen (lap table, decision-frame
-# evidence and flags). Out wins over In: a one-lap outing is flagged both.
+# Single source for how a lap is named on screen (lap table and flags).
+# Out wins over In: a one-lap outing is flagged both.
 def lap_display_label(lap):
     if lap.get("is_outlap"):
         return "Out"
@@ -549,7 +540,7 @@ def _verify_laps(laps, channels, config=None):
 
         # lap_distance must actually ramp up (outlap skipped). The threshold
         # is in metres, the channel in the file's declared unit (ft on most
-        # exports): compared in feet, a lap had to travel only 305 m (#1).
+        # exports), so the channel is normalised first.
         if lap["lap_number"] != 0 and lap_distance and lap_distance["quality"] not in ("missing", "failed"):
             t = lap_distance["time"]
             d = _normalize_lap_distance_to_metres(lap_distance["data"], lap_distance.get("unit_raw"))

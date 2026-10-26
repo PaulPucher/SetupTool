@@ -1,7 +1,5 @@
 # Cross-lap corner aggregation and the phase / severity vocabulary shared by
 # the classifier, the setup engine, the corner map and the limit events.
-# Moved unchanged from modules/recommendation.py and modules/decision_frame.py
-# (overhaul Part 1, 2026-10-22); the old engines are retired.
 
 import numpy as np
 
@@ -99,7 +97,7 @@ def aggregate_by_corner(summaries):
                 "stability_observed_Nm_per_deg": {"median": _nanmedian_or_nan(stab)},
             }
         # same combiner for apex_region (the classifier reads it for apex_3);
-        # older summaries lack the key -> None, filtered like any other gap
+        # a summary without it is skipped like any other gap
         ar_csf = [s["apex_region"]["cs_ratio_f"]["median"] for s in corner_summaries if s.get("apex_region")]
         ar_csr = [s["apex_region"]["cs_ratio_r"]["median"] for s in corner_summaries if s.get("apex_region")]
         aggregated[cid] = {

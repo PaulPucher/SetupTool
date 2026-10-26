@@ -2,7 +2,7 @@
 # stacked panels with the five phases shaded: (1) road-wheel angle, (2) the
 # filtered a_y in g, (3) observer beta vs kinematic beta, (4) alpha_f,
 # alpha_r, (5) CS_f, CS_r with the per-axle decision boundaries and the
-# front grading tier (no rear grading tier, D2; the rear information band
+# front grading tier (the rear has no grading tier; its information band
 # is display-only and not drawn). Read-only full re-run of the app's chain
 # (common.run_chain); one outing, lap and corner. Stable output names: the
 # session, lap and corner go into the CSV header only.
@@ -171,7 +171,7 @@ def _tex(base, prefix, cols, phases, lin, lo, hi, marks):
                 place = "rotate=90, anchor=east" if narrow else "anchor=north"
                 t.append(f"\\node[{place}, font=\\small] at (axis cs:{0.5 * (s0 + s1):.2f},{y1:.4g}) {{{lab}}};\n")
         if k == last:
-            for _k, (_yl, ser) in enumerate(panels[:-1]):
+            for _yl, ser in panels[:-1]:
                 for _col, style, leg in ser:
                     t.append(f"\\addlegendimage{{{style}, thick}}\\addlegendentry{{{leg}}}\n")
         for col, style, leg in series:

@@ -1,5 +1,5 @@
-# Central database setup. All models import Base from here.
-# engine connects to the SQLite file, Session is used to open database transactions.
+# SQLite engine, session factory and declarative base; all models import
+# Base from here.
 
 import os
 
@@ -8,11 +8,10 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATABASE_PATH = "data/setuptool.db"
 
-# SQLite does not create missing parent directories -- a fresh checkout
-# with no data/ folder crashed here at import-time init_db().
+# SQLite does not create missing parent directories (fresh checkout).
 os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
 
-engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False) #debugging echo=true
+engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False)  # echo=True logs SQL
 
 Session = sessionmaker(bind=engine)
 

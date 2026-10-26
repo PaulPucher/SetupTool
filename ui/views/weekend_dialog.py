@@ -1,4 +1,4 @@
-# Dialog for a new race weekend or test (+ New in the weekends view).
+# Create / edit / delete dialog for a race weekend or test.
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,

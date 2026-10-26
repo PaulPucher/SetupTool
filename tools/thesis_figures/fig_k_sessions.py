@@ -1,5 +1,6 @@
 # fig:k_sessions -- normalised origin slope K_i = B C mu and demonstrated mu_i
-# per session (front circles, rear squares) against the D4-L bands: K band
+# per session (front circles, rear squares) against the plausibility-gate
+# bands of fit L: K band
 # with its edge zones, mu ceiling with its edge zone. Stored results only:
 # every outing needs an identity-valid payload of the current schema, else
 # the script refuses and names the outing and the reason.

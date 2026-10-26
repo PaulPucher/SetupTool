@@ -1,6 +1,4 @@
 # Setup/setdown sheet PDF, landscape A4, monochrome, one sheet per page.
-# (The four-per-page "small" scale went with its only consumer, the weekend
-# PDF export, in the 2026-10-22 pruning.)
 # Rebrand by swapping config/images/team_logo.png.
 
 import json
@@ -17,6 +15,10 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from PIL import Image as PILImage
 
+from core.setup_data_points import (
+    SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS, SPLITTER_SIDE_FRACTION,
+)
+
 
 PAGE_W, PAGE_H = landscape(A4)
 MARGIN = 10 * mm
@@ -26,7 +28,6 @@ MUTED_HEX = "#555555"
 
 TEXT = colors.HexColor(TEXT_HEX)
 MUTED = colors.HexColor(MUTED_HEX)
-LIGHT_GRAY = colors.HexColor("#f5f5f5")
 MID_GRAY = colors.HexColor("#999999")
 WHITE = colors.white
 BLACK = colors.black
@@ -58,14 +59,6 @@ DIFF_TORQUE_POSITIONS = ["1", "2", "3", "4", "5"]
 WEIGHT_TOTALS_LABELS = {
     "total_weight": "Total (kg)", "cross_percentage": "Cross %",
 }
-
-# splitter/diffuser point positions from core/setup_data_points.py (shared
-# with the form widget)
-from core.setup_data_points import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS
-
-# where the splitter's straight sides end (fraction of height from the
-# rear); must match the widget's SPLITTER_SIDE_FRACTION
-SPLITTER_SIDE_FRACTION = 0.45
 
 
 def _fmt(value):
@@ -130,9 +123,9 @@ def _strip_styles():
     return styles
 
 
-def _bordered_table(rows, col_widths, styles, row_heights=None, pad_scale=1.0):
-    table = Table(rows, colWidths=col_widths, rowHeights=row_heights)
-    pad = styles["_pad"] * pad_scale
+def _bordered_table(rows, col_widths, styles):
+    table = Table(rows, colWidths=col_widths)
+    pad = styles["_pad"]
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), WHITE),
         ("TOPPADDING", (0, 0), (-1, -1), pad),
@@ -197,7 +190,6 @@ class MeasurementDiagram(Flowable):
             c.rect(0, 0, self.width, self.height, stroke=1, fill=1)
 
         for (fx, fy), value in zip(self.positions, self.values):
-            # y up: fy = 0 (front) at the top
             cx = fx * self.width
             cy = (1 - fy) * self.height
             x0, y0 = cx - self.box_w / 2, cy - self.box_h / 2
@@ -284,9 +276,8 @@ def _corner_box(label, data, styles, width):
 
 
 def _diff_torque_row(car, styles, width):
-    """One cell per locking-torque position (number over value), DIFF_TORQUE_COLS
-    per row -- five across left no room for a 6-digit value.
-    """
+    """One cell per locking-torque position (number over value),
+    DIFF_TORQUE_COLS per row."""
     torque = car.get("differential_locking_torque_measured") or {}
     cell_w = width / DIFF_TORQUE_COLS
     positions = DIFF_TORQUE_POSITIONS
@@ -337,8 +328,8 @@ def _measurement_diagram_boxes(title, outline, positions, points, styles, width)
 
 def _car_column(car, styles, width):
     """Narrow right column, cells sized to content. Splitter/diffuser as outline
-    + value boxes. Wing position and ARB front mount are plain rows --
-    position codes ("P8"), a schematic added nothing.
+    + value boxes. Wing position and ARB front mount are position codes
+    ("P8"), so plain rows.
     """
     title_gap = 2.5 * mm
     elements = [Paragraph("Car", styles["section_title"]), Spacer(1, title_gap)]

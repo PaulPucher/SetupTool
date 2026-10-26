@@ -7,14 +7,12 @@ from PyQt6.QtGui import QPainter, QPen, QColor, QPainterPath
 from PyQt6.QtCore import Qt, QRectF
 
 from ui.style import TEXT_MUTED, BORDER, PANEL_ALT
-from core.setup_data_points import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS
+from core.setup_data_points import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS, SPLITTER_SIDE_FRACTION
 
 BOX_W = 34
 BOX_H = 20
 # >= max(BOX_W, BOX_H) / 2 -- some points sit on the outline edge
 MARGIN = 20
-# where the splitter's straight sides end (fraction of height from the rear)
-SPLITTER_SIDE_FRACTION = 0.45
 
 
 class MeasurementPointsWidget(QWidget):

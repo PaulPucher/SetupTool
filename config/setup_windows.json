@@ -1,5 +1,5 @@
 {
-  "_comment": "Setup value space per lever for the setup engine: typical-window nominal + span (soft edge, 'engineer may exceed') and edge exemptions. Moved unchanged from config/decision_frame.json (recommendation overhaul Part 1, 2026-10-22). Hard edges stay in setup_parameters.json value_space.",
+  "_comment": "Setup value space per lever for the setup engine: typical-window nominal + span (soft edge, 'engineer may exceed') and edge exemptions. Hard edges stay in setup_parameters.json value_space.",
   "_comment_parameter_windows": "One entry per registry key (46). nominal + span from the registry's typical_window/value_space: span = half the typical window width (one-sided, e.g. arb_fl 4 +/- 1 from 3..5); no typical window -> nominal = value_space midpoint, span = half the legal range (wider, weaker, flagged). Plain enums without an underlying number stay null (arb_front_mount, wing_position). Null window or non-numeric current value -> neutral headroom term.",
   "parameter_windows": {
     "arb_fl": {
@@ -25,7 +25,7 @@
     "arb_front_mount": {
       "nominal": null,
       "span": null,
-      "note": "STAYS UNFILLABLE (review 2026-09-18), for a stronger reason than the old 'no team preference recorded': no numeric quantity underlies this enum ANYWHERE in this codebase (verified -- car_data.json's own 'arb' table is BLADE stiffness by position 1-7, a completely different parameter from arb_front_mount's P0/P1/P2 MOUNT-POINT selection). A plain enum-index midpoint (e.g. index 1 = 'P1') would have no physical referent, same category as abs_position below -- not filled."
+      "note": "Unfillable: no numeric quantity underlies this enum (car_data.json 'arb' is blade stiffness by position 1-7, a different parameter from the P0/P1/P2 mount-point selection); an enum-index midpoint would have no physical referent, same category as abs_position."
     },
     "springs_front": {
       "nominal": 265,
@@ -141,7 +141,7 @@
       "nominal": 96,
       "span": 2,
       "source": "value_space.standard=96, typical_window.max_delta_from_standard=-2",
-      "note": "the registry gives a floor only (standard - 2 mm, diffuser floor limit; no upper limit, author ruling 2026-10-23, 4g item 3); the symmetric span here only drives the headroom tie-break and the soft 'engineer may exceed' note, it never blocks a step"
+      "note": "the registry gives a floor only (standard - 2 mm, diffuser floor limit; no upper limit, author ruling); the symmetric span here only drives the headroom tie-break and the soft 'engineer may exceed' note, it never blocks a step"
     },
     "ride_height_rear": {
       "nominal": 134,
@@ -151,7 +151,7 @@
     "diff_package": {
       "nominal": null,
       "span": null,
-      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
     },
     "diff_position": {
       "nominal": 3,
@@ -161,7 +161,7 @@
     "wing_position": {
       "nominal": null,
       "span": null,
-      "note": "STAYS UNFILLABLE IN CURRENT FORM (2026-09-18) -- distinct from arb_front_mount's reason: a real physical anchor DOES exist (setup_parameters.json's own angles_deg=[7.3,8.3,9.3], midpoint 8.3 degrees, which lands exactly on option P9), but Outing.setup_data stores this parameter's value as the ENUM LABEL string ('P9'), not the angle -- modules.decision_frame._current_setup_value would return 'P9' as-is, and a nominal/span filled in DEGREES would be compared against a value in a different representation entirely, silently unusable (caught defensively in _settings_window_component, not crashing, but still not a working window). Filling the number without also adding a label->angle mapping in code would misrepresent this as functional when it is not -- left null and flagged rather than shipping a false impression of coverage; a real fix needs a small code change (map the stored label through value_space.options/angles_deg before the numeric comparison)."
+      "note": "Unfillable in current form: a physical anchor exists (setup_parameters.json angles_deg [7.3, 8.3, 9.3], midpoint 8.3 deg = option P9), but Outing.setup_data stores the enum label ('P9'), not the angle, so a nominal/span in degrees would compare against a different representation. A working window needs a label -> angle mapping in code first; left null."
     },
     "toe_front": {
       "nominal": -2,
@@ -206,12 +206,12 @@
     "abs_position": {
       "nominal": null,
       "span": null,
-      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal+span distance doesn't apply; scoring treats this parameter's settings-window component as neutral/skipped, not null-as-zero"
+      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal + span distance does not apply; the window headroom term is neutral for this lever."
     },
     "brake_bias": {
       "nominal": null,
       "span": null,
-      "note": "CORRECTED 2026-09-23: brake_bias was PROMOTED to recommendation_target=true in config/setup_parameters.json on 2026-09-22 (an oversight fix); this note's former 'context-only' framing predated that and was stale. nominal/span stay null for an independent, still-current reason: current-state window is not evaluable until the brake-bias channel itself is identified (config/setup_parameters.json brake_bias notes)."
+      "note": "Recommendation target (setup_parameters.json); nominal/span stay null because the current value is not evaluable until the brake-bias channel is identified (setup_parameters.json brake_bias notes)."
     },
     "splitter_offset": {
       "nominal": 0,
@@ -221,17 +221,17 @@
     "kinematic_variants": {
       "nominal": null,
       "span": null,
-      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
     },
     "gear_ratios": {
       "nominal": null,
       "span": null,
-      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
     },
     "engine_curves": {
       "nominal": null,
       "span": null,
-      "note": "context-only, recommendation_target=false -- not a decision-frame candidate parameter"
+      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
     }
   },
   "_comment_edge_normal_state_params": "Edge exemptions per (parameter, direction) where the edge is the lever's normal resting state -- e.g. ride_height_front pinned at its lower limit. Standing practice lands here, never as an edit to an engineer-verbatim rule. Exempt edge: no blocked_at_edge, candidate stays proposed with an edge_normal_state_note (live value filled in); other actions still checked and can block. Only 'decrease' for ride_height_front; moving off the pin is an ordinary move.",

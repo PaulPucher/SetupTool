@@ -1,11 +1,8 @@
 # NIS tyre-mismatch gate: does the fitted tyre curve fit this session well
 # enough to trust EKF beta? pass / warn / fail (-> kinematic beta).
 # Session score = share of samples whose windowed NIS exceedance sits in band.
-# Thresholds re-derived on the fit-L default 2026-10-20 (14 development
-# sessions, config threshold_derived_from); the 2026-10-11 values belong to
-# the per_session estimator. Prototyped
-# on a Dugoff fit; the prototype script was removed 2026-10-17 with the
-# Dugoff path (git history).
+# Thresholds derived on the fit-L chain (14 development sessions, config
+# threshold_derived_from).
 #
 # Score ceiling ~60-65% even for a perfect filter (small-window binomial noise).
 
@@ -22,8 +19,8 @@ MIN_WINDOW_VALID_FRACTION = 0.5
 def _score_and_skips(nis_combined_full, mask, window_samples, band_low, band_high):
     """(health score, skipped count). Score = fraction of masked samples whose
     trailing-window NIS exceedance lies in [band_low, band_high].
-    nis_combined_full is unmasked -- the window looks back across mask gaps,
-    like the EKF divergence monitor. Windows less than half covered by
+    nis_combined_full is unmasked -- the window looks back across mask
+    gaps. Windows less than half covered by
     finite NIS are skipped. NaN on degenerate input; NaN never counts as a
     pass.
     """
@@ -33,8 +30,8 @@ def _score_and_skips(nis_combined_full, mask, window_samples, band_low, band_hig
         return float("nan"), 0
     nis = np.asarray(nis_combined_full, dtype=float)
     # NaN NIS (no EKF update, e.g. standing) leaves both numerator and
-    # denominator (#24) -- it used to count as a non-exceedance and pull the
-    # fraction down.
+    # denominator -- counted as a non-exceedance it would pull the fraction
+    # down.
     finite = np.isfinite(nis)
     exceed = (finite & (nis > _CHI2_DF2_95)).astype(float)
     cw = np.cumsum(np.insert(exceed, 0, 0.0))
@@ -77,7 +74,7 @@ def resolve_nis_window_samples(params, sample_rate_hz):
 
 
 def evaluate_gate(nis_combined_full, mask, params, sample_rate_hz):
-    """Entry point. Returns the verdict plus every number behind it."""
+    """Returns the verdict plus every number behind it."""
     cfg = params["nis_gate"]
     window_samples = resolve_nis_window_samples(params, sample_rate_hz)
     band_low, band_high = cfg["nis_band_low"], cfg["nis_band_high"]

@@ -30,8 +30,8 @@ CHANNELS_CONFIG_PATH = "config/channels.json"
 
 # Channel-missing warnings are set per lap in _build_corner but describe the
 # session; _realize_canonical_corners rebuilds the instances and must carry
-# them, or a dropped channel goes silent (zero-length brake phases on 7 of
-# 14 sessions went unnoticed that way, 2026-10-21).
+# them, or a dropped channel goes silent (zero-length brake phases without
+# a warning).
 WARN_LAT_G_MISSING = "lateral G missing -- apex from speed minimum"
 WARN_THROTTLE_MISSING = "throttle missing -- brake phase = turn-in start"
 INPUT_MISSING_WARNINGS = (WARN_LAT_G_MISSING, WARN_THROTTLE_MISSING)
@@ -66,7 +66,9 @@ def analyse_corners(parsed_data):
     """Detect and classify corners on all valid laps; one dict per corner per lap:
         lap_number, corner_number, speed_class, apex_time, apex_speed,
         apex_lateral_g, segments {phase: (start, end)},
-        method ("steering" / "speed_fallback"), warnings
+        method ("steering" / "speed_fallback"), warnings, stable_corner_id;
+    with a usable lap_distance also bracket_start_m, bracket_end_m and
+    apex_lap_distance_m (canonical instances).
     """
     config = _load_config()
     cd = config["corner_detection"]
@@ -267,12 +269,7 @@ def _build_corner(lap_number, corner_number, method,
     else:
         return None
 
-    if apex_speed < speed_thresholds["low_max"]:
-        speed_class = "low"
-    elif apex_speed < speed_thresholds["medium_max"]:
-        speed_class = "medium"
-    else:
-        speed_class = "high"
+    speed_class = _speed_class_of(apex_speed, speed_thresholds["low_max"], speed_thresholds["medium_max"])
 
     brake_start_t = s_t_start
     if throttle is not None:
@@ -559,7 +556,8 @@ def _resolve_canonical_overlaps(canon_by_id, valid_laps, ld_time, ld_data, lat_g
     profile between the two apexes.
     Inner boundaries re-clamped; a phase that loses its event collapses to
     zero length -> no signal downstream.
-    Returns (canon_by_id, [(lo_id, hi_id, boundary_s, overlap_before)]).
+    Changes canon_by_id in place; returns [(lo_id, hi_id, boundary_s,
+    overlap_before)].
     """
     ids = sorted(canon_by_id)
     resolved = []
@@ -575,7 +573,7 @@ def _resolve_canonical_overlaps(canon_by_id, valid_laps, ld_time, ld_data, lat_g
             lo, hi = (a, b) if wa["apex"] <= wb["apex"] else (b, a)
             apex_lo, apex_hi = canon_by_id[lo]["apex"], canon_by_id[hi]["apex"]
             if apex_hi <= apex_lo:
-                continue  # coincident/inverted apexes, shouldn't happen
+                continue  # coincident apexes: no gap to partition
             grid, pooled = _pooled_median_ay_profile(
                 apex_lo, apex_hi, valid_laps, ld_time, ld_data, lat_g_smoothed, grid_step)
             if np.all(np.isnan(pooled)):
@@ -739,12 +737,7 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, re
 
         if instances:
             canon_apex_speed = float(np.median([i["apex_speed"] for i in instances]))
-            if canon_apex_speed < low_max:
-                canon_class = "low"
-            elif canon_apex_speed < medium_max:
-                canon_class = "medium"
-            else:
-                canon_class = "high"
+            canon_class = _speed_class_of(canon_apex_speed, low_max, medium_max)
             for i in instances:
                 i["speed_class"] = canon_class
 
@@ -802,8 +795,8 @@ def _speed_class_of(apex_speed, low_max, medium_max):
 
 
 def reclassify_speed_classes(corners, speed_thresholds):
-    """Re-derive every corner's speed_class from speed_thresholds, in place
-    (R2/R23). The class is set at parse time, but the boundaries are Settings
+    """Re-derive every corner's speed_class from speed_thresholds, in place.
+    The class is set at parse time, but the boundaries are Settings
     fields, so a full run re-applies the current ones. Same rules as at
     detection: canonical instances (realized over a bracket) share one class
     per stable corner from the median apex speed; per-lap corners use their

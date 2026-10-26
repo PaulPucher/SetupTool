@@ -8,11 +8,11 @@ import os
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
-    QLabel, QPushButton, QFrame,
+    QLabel, QPushButton,
 )
 from PyQt6.QtCore import Qt
 
-from ui.style import ACCENT, WARN, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER
+from ui.style import ACCENT, WARN, TEXT, TEXT_MUTED, TEXT_DIM
 from ui.views.outing_form import NoScrollSpinBox, NoScrollIntSpinBox, latest_pipeline_entry
 from core.threshold_overrides import apply_threshold_edit, is_manual
 from modules.wheel_loads import effective_cl_area
@@ -91,12 +91,12 @@ SECTION2_PARAMS_FIELDS = [
     {"path": ("stability_estimation", "kerb_baseline_g"), "label": "Kerb baseline", "unit": "g",
      "decimals": 2, "min": -2.0, "max": 2.0,
      "short_note": "Vertical acceleration of the car at rest; kerb offsets are measured from it."},
-    # seconds, not samples: a sample count silently halved when the grid went 50 -> 100 Hz
+    # in seconds, not samples, so the value survives a grid-rate change
     {"path": ("stability_estimation", "kerb_dilation_s"), "label": "Kerb dilation", "unit": "s",
      "decimals": 2, "min": 0.0, "max": 0.5,
      "short_note": "Time masked either side of a kerb hit, to cover the ringdown."},
 ]
-# setup-engine repetition rule (D5): not an estimator input, so outside the
+# setup-engine repetition rule: not an estimator input, so outside the
 # cache identity (resolve_estimator_settings); a change takes effect on the
 # next Generate
 SECTION2_ENGINE_FLOAT_FIELDS = [
@@ -230,12 +230,6 @@ class SettingsView(QWidget):
         label = QLabel(text)
         label.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {ACCENT}; margin-bottom: 4px;")
         return label
-
-    def _divider(self):
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setStyleSheet(f"color: {BORDER};")
-        return line
 
     def _field_row(self, spec, widget, note_text=None, short_note=None, accuracy_text=None,
                    accuracy_tooltip=None, extra_widgets=()):
@@ -537,7 +531,7 @@ class SettingsView(QWidget):
             if isinstance(widget, NoScrollIntSpinBox):
                 value = int(value)
             _set_path(sources[file_key], path, value)
-        # R2: these inputs are part of every cache identity; a change makes the
+        # these inputs are part of every cache identity; a change makes the
         # stored results stale until the next Analyse
         estimator_changed = resolve_estimator_settings(params, channels) != estimator_before
 
@@ -565,9 +559,8 @@ class SettingsView(QWidget):
         load_parameters.cache_clear()
         load_car_data.cache_clear()
 
-        # safety net for an open OutingForm whose in-memory pipeline cache predates
-        # this save; the identities (vehicle snapshot, Settings estimator inputs,
-        # R2) cover the persisted stores, and the generation counter the fast path
+        # persisted stores are covered by their cache identities; this drops the
+        # in-memory pipeline cache of any open OutingForm that predates the save
         from ui.views.outing_form import invalidate_all_pipeline_caches
         invalidate_all_pipeline_caches()
 

@@ -4,7 +4,7 @@
 # session may detect one corner more and shift every ID), so corners are
 # matched by lap distance first (common.match_corners: brackets overlapping
 # by at least half the shorter one, one to one, greedy by overlap) to the
-# reference session (the first in label order); a corner without a match
+# reference session (the first by weekend and outing number); a corner without a match
 # gets its own row. Codes: U understeer, O oversteer, I open-loop unstable
 # (combined, e.g. UI), * = MARGINAL on the axle verdict, - ok, n no CS data.
 # Grey: strong dark, moderate medium, ok white, no data light. Stored,

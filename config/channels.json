@@ -6,8 +6,7 @@
       "range": [
         0,
         350
-      ],
-      "required": true
+      ]
     },
     "lap_number": {
       "label": "Lap Number",
@@ -15,8 +14,7 @@
       "range": [
         0,
         999
-      ],
-      "required": true
+      ]
     },
     "lap_time": {
       "label": "Lap Time",
@@ -24,8 +22,7 @@
       "range": [
         0,
         600
-      ],
-      "required": false
+      ]
     },
     "lap_distance": {
       "label": "Lap Distance",
@@ -33,8 +30,7 @@
       "range": [
         0,
         70000
-      ],
-      "required": false
+      ]
     },
     "ecu_B_speedlimit_en": {
       "label": "Pit Speed Limiter Engaged",
@@ -42,8 +38,7 @@
       "range": [
         0,
         1
-      ],
-      "required": false
+      ]
     },
     "ecu_aps": {
       "label": "Throttle",
@@ -52,8 +47,7 @@
         0,
         110
       ],
-      "required": false,
-      "note": "2026-10-21: range widened from [0, 100]. The pedal channel reads 104-106 % at full throttle on every development session (pedal / ECU calibration over-range, not a fault); with [0, 100] the in-range share fell below channel_quality_gates.failed_below on 7 of 14 sessions (NBR 20, 29, 46, 54, 63, 69, Le Castellet 32: 0.36-0.47), corner_analysis treated the throttle as missing and every entry_1_brake phase was zero-length (thesis_notes 'Phase segmentation against the chair basis', 2026-10-21). 110 covers the observed maximum (106.0) with margin; a value above it is still out of range."
+      "note": "Range [0, 110] %: the pedal channel reads 104-106 % at full throttle on every development session (pedal / ECU calibration over-range, not a fault). A [0, 100] gate failed the channel on 7 of 14 sessions (in-range share 0.36-0.47 < channel_quality_gates.failed_below) and left every entry_1_brake phase empty. 110 covers the observed maximum (106.0) with margin."
     },
     "log_pbrake_f": {
       "label": "Brake Pressure Front",
@@ -61,8 +55,7 @@
       "range": [
         0,
         200
-      ],
-      "required": false
+      ]
     },
     "log_pbrake_r": {
       "label": "Brake Pressure Rear",
@@ -70,8 +63,7 @@
       "range": [
         0,
         200
-      ],
-      "required": false
+      ]
     },
     "log_asteer": {
       "label": "Steering Angle",
@@ -79,8 +71,7 @@
       "range": [
         -720,
         720
-      ],
-      "required": false
+      ]
     },
     "ecu_nmot": {
       "label": "RPM",
@@ -88,8 +79,7 @@
       "range": [
         0,
         10000
-      ],
-      "required": false
+      ]
     },
     "ecu_gear": {
       "label": "Gear",
@@ -97,8 +87,7 @@
       "range": [
         0,
         7
-      ],
-      "required": false
+      ]
     },
     "log_acc_x": {
       "label": "Longitudinal G",
@@ -106,8 +95,7 @@
       "range": [
         -5,
         5
-      ],
-      "required": false
+      ]
     },
     "log_acc_y": {
       "label": "Lateral G",
@@ -115,8 +103,7 @@
       "range": [
         -5,
         5
-      ],
-      "required": false
+      ]
     },
     "log_acc_z": {
       "label": "Vertical G",
@@ -124,8 +111,7 @@
       "range": [
         -5,
         5
-      ],
-      "required": false
+      ]
     },
     "log_rideheight_fl": {
       "label": "Ride Height FL",
@@ -133,8 +119,7 @@
       "range": [
         0,
         150
-      ],
-      "required": false
+      ]
     },
     "log_rideheight_fr": {
       "label": "Ride Height FR",
@@ -142,8 +127,7 @@
       "range": [
         0,
         150
-      ],
-      "required": false
+      ]
     },
     "log_rideheight_rl": {
       "label": "Ride Height RL",
@@ -151,8 +135,7 @@
       "range": [
         0,
         150
-      ],
-      "required": false
+      ]
     },
     "log_rideheight_rr": {
       "label": "Ride Height RR",
@@ -160,8 +143,7 @@
       "range": [
         0,
         150
-      ],
-      "required": false
+      ]
     },
     "sclu_yaw_rate": {
       "label": "Yaw Rate",
@@ -169,8 +151,7 @@
       "range": [
         -300,
         300
-      ],
-      "required": false
+      ]
     },
     "log_gps_lat": {
       "label": "GPS Latitude",
@@ -178,8 +159,7 @@
       "range": [
         -90,
         90
-      ],
-      "required": false
+      ]
     },
     "log_gps_lon": {
       "label": "GPS Longitude",
@@ -187,8 +167,7 @@
       "range": [
         -180,
         180
-      ],
-      "required": false
+      ]
     },
     "log_gps_speed": {
       "label": "GPS Speed",
@@ -196,8 +175,7 @@
       "range": [
         0,
         350
-      ],
-      "required": false
+      ]
     },
     "log_dms_dam_fl": {
       "label": "Damper Force FL",
@@ -206,8 +184,7 @@
         -5000,
         20000
       ],
-      "required": false,
-      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py). Range gate is a plausibility bound on pushrod force for this car (order of magnitude a few kN, generous both ways) -- NOT a sensor spec; deliberately wide enough to admit a real dynamic excursion while still failing a grossly corrupted channel (see log_dms_dam_fr's own note on this file's known-bad FR reading)."
+      "note": "Damper/pushrod strain-gauge force sensor (modules/wheel_loads.py). Range gate = plausibility bound on pushrod force for this car (a few kN, generous both ways), not a sensor spec: admits real dynamic excursions, fails a grossly corrupted channel (see log_dms_dam_fr)."
     },
     "log_dms_dam_fr": {
       "label": "Damper Force FR",
@@ -216,8 +193,7 @@
         -5000,
         20000
       ],
-      "required": false,
-      "note": "Same channel family as log_dms_dam_fl. On GT3_PRC_MLA-v3.txt this specific channel reads a constant, wildly implausible value (~-15.95 million N, verified by direct sampling across the full session) -- a stuck/faulted sensor, not real data. This range gate deliberately fails that channel's quality (channel_quality_gates.failed_below), forcing modules/wheel_loads.py's per-corner static-split fallback for FR on this file, rather than silently consuming the fault value."
+      "note": "Same channel family as log_dms_dam_fl. On GT3_PRC_MLA-v3.txt the raw channel carries a constant corrupted offset (~-15.95 million N), removed by channel_corrections.log_dms_dam_fr before this gate. Uncorrected, the gate fails the channel (channel_quality_gates.failed_below) and wheel_loads falls back per corner instead of consuming the fault value."
     },
     "log_dms_dam_rl": {
       "label": "Damper Force RL",
@@ -226,8 +202,7 @@
         -5000,
         20000
       ],
-      "required": false,
-      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+      "note": "Damper/pushrod strain-gauge force sensor (modules/wheel_loads.py)."
     },
     "log_dms_dam_rr": {
       "label": "Damper Force RR",
@@ -236,8 +211,7 @@
         -5000,
         20000
       ],
-      "required": false,
-      "note": "Damper/pushrod strain-gauge force sensor, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+      "note": "Damper/pushrod strain-gauge force sensor (modules/wheel_loads.py)."
     },
     "ecu_B_tc_act": {
       "label": "TC Active",
@@ -246,8 +220,7 @@
         0,
         1
       ],
-      "required": false,
-      "note": "Traction-control activity flag (clean boolean, the mechanism is real but fired on only 3 samples in the whole GT3_PRC_MLA-v3.txt session, a session-data limitation not a channel-quality one). Read by modules/setup_engine.py (tc_activity): a traction-limited exit ranks tc_lon above the differential (2026-10-22; was the retired decision frame's intervention evidence). TC POSITION (2026-10-23, 4f scan, 4g ruling): a TC position pair exists in all 14 development files in three agreeing domains (ecu_TC_int_pos / ecu_TC_tim_pos, log_tc_int_pos / log_tc_tim_pos, stw_rt03_tc_int / stw_rt01_tc_tim); the LAT / LON mapping is undocumented and cannot be inferred (the two values run nearly parallel), so no position channel is whitelisted and TC stays 'current value not assessable'."
+      "note": "Traction-control activity flag (clean boolean; fired on only 3 samples in GT3_PRC_MLA-v3.txt, a session-data limitation, not a channel-quality one). Read by modules/setup_engine.py (tc_activity): a traction-limited exit ranks tc_lon above the differential. TC position: a position pair exists in all 14 development files in three agreeing domains (ecu_TC_int_pos / ecu_TC_tim_pos, log_tc_int_pos / log_tc_tim_pos, stw_rt03_tc_int / stw_rt01_tc_tim), but the LAT / LON mapping is undocumented and cannot be inferred (the values run nearly parallel), so no position channel is whitelisted and TC stays 'current value not assessable' (author ruling)."
     },
     "log_abs_pos": {
       "label": "ABS Map Position (logged)",
@@ -256,8 +229,7 @@
         0,
         11
       ],
-      "required": false,
-      "note": "2026-09-18: the TRUSTED ABS switch-position channel (user decision) -- resolves the cross-domain disagreement found in the damper-channel survey. Census on GT3_PRC_MLA-v3.txt (verified directly, not recalled): log_abs_pos/log_rt_abs_pos/stw_rt04_abs all read a constant 5 all session (dash/steering-wheel domain, mutually agreeing); abs_switch_pos reads a constant 6 (ECU domain) for the SAME session and is NOT trusted per this decision. Range [0,11] matches car_data.json's own abs table's real row count (0=Off through 11=monsoon emergency). Re-added 2026-10-23 (work order 4e item 8): modules/setup_state.py reads the current ABS map from it (session mode), since the setup sheet has no ABS field."
+      "note": "Trusted ABS switch-position channel (author decision). On GT3_PRC_MLA-v3.txt log_abs_pos / log_rt_abs_pos / stw_rt04_abs (dash / steering-wheel domain) agree at a constant 5; the ECU-domain abs_switch_pos reads 6 and is not trusted. Range [0, 11] = the rows of car_data.json's abs table (0 = off .. 11 = monsoon emergency). modules/setup_state.py reads the current ABS map from it, since the setup sheet has no ABS field."
     },
     "log_susp_travel_fl": {
       "label": "Suspension Travel FL",
@@ -266,8 +238,7 @@
         -150,
         150
       ],
-      "required": false,
-      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py) -- used to look up car_data.json motion_ratio_vs_wheel_travel. Range is a generous mechanical-travel bound (car_data.json's own digitised table spans roughly -80..+60mm across both axles), not a precision spec."
+      "note": "Wheel/suspension travel (modules/wheel_loads.py) -- used to look up car_data.json motion_ratio_vs_wheel_travel. Range is a generous mechanical-travel bound (car_data.json's own digitised table spans roughly -80..+60mm across both axles), not a precision spec."
     },
     "log_susp_travel_fr": {
       "label": "Suspension Travel FR",
@@ -276,8 +247,7 @@
         -150,
         150
       ],
-      "required": false,
-      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+      "note": "Wheel/suspension travel (modules/wheel_loads.py)."
     },
     "log_susp_travel_rl": {
       "label": "Suspension Travel RL",
@@ -286,8 +256,7 @@
         -150,
         150
       ],
-      "required": false,
-      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+      "note": "Wheel/suspension travel (modules/wheel_loads.py)."
     },
     "log_susp_travel_rr": {
       "label": "Suspension Travel RR",
@@ -296,8 +265,7 @@
         -150,
         150
       ],
-      "required": false,
-      "note": "Wheel/suspension travel, config-driven mapping added for GT3_PRC_MLA-v3.txt (modules/wheel_loads.py)."
+      "note": "Wheel/suspension travel (modules/wheel_loads.py)."
     }
   },
   "corner_speed_thresholds": {
@@ -326,7 +294,7 @@
     "lap_time_representative_factor_derived_from": "2026-09-03, corner canonicalisation fix. Representative laps cluster within ~1% of the session's fastest valid lap on both real sessions checked (Dubai worst ratio 1.0044, v3 worst representative ratio 1.0097, lap 6); the one excluded outlier observed (v3 lap 9, an on-track incident) sits at ratio 1.097141. SWEPT and confirmed, not just argued: v3's corner count is exactly 17 for every tested factor in (1.0097, 1.097141) -- the transition happens precisely between 1.0971 (17 corners, lap 9 still excluded) and 1.0972 (20 corners, lap 9 now included) -- so the result is not just 'roughly insensitive', it is provably constant on that entire open interval by construction (the filter depends only on the derived representative-lap SET, which is a step function of the factor with steps exactly at each lap's own ratio). Re-examine this factor if a session produces a genuinely intermediate lap (e.g. a traffic-compromised lap around ratio 1.04) -- that case is unobserved in the data checked so far."
   },
   "channel_corrections": {
-    "_comment": "Decoding offsets for known-corrupt channels, applied in csv_parser before the quality/range gate. Not a zero calibration (that's wheel_loads.pushrod_offset_*_N). Applied only if the file's raw mean for the channel is inside precondition_mean_range -- a healthy export stays untouched. [2026-10-03: three offset classes now exist -- decoding faults (this block, e.g. v3 FR), event-specific logger zero entries (event_zero_entries, applied right after this block), and the static gauge-check calibration (wheel_loads.pushrod_offset_*_N, after the gate).]",
+    "_comment": "Decoding offsets for known-corrupt channels, applied in csv_parser before the quality/range gate, only if the file's raw channel mean lies inside precondition_mean_range (a healthy export stays untouched). Three offset classes: decoding faults (this block, e.g. v3 FR), event-specific logger zero entries (event_zero_entries, applied right after this block) and the static gauge-check calibration (wheel_loads.pushrod_offset_*_N, after the gate).",
     "log_dms_dam_fr": {
       "offset": 15954360.401142702,
       "precondition_mean_range": [
@@ -337,8 +305,8 @@
     }
   },
   "event_zero_entries": {
-    "_comment": "Event-specific logger zero entries (Q-CAL-2, author rulings 2026-10-03). A gauge zeroed against a different reference at one event reads a constant offset there; csv_parser subtracts zero_N from the raw channel BEFORE the quality/range gate (the gate otherwise fails the channel and wheel_loads drops to the static split). An entry applies to a file only if (a) the header's TrackName and logger serial (SystemDetails 'Serial Number') match, and (b) GATE-WINDOW GUARD: the channel's raw mean minus zero_N lies inside that channel's own range gate in 'channels' -- no new tunable; a gauge re-zeroed at a later event of the same track fails the guard and stays on the static split instead of silently taking a wrong entry. Accuracy: wheel loads from a corrected channel are 'L4 with an L2 zero' (L4-rel): logged sensor + motion-ratio table (L4), zero entry an event measurement pinned through the same car's Paul Ricard zero (L2, per-corner u below).",
-    "_procedure": "How an event gets its entry (documented, not automated): (1) census the event's files -- header track / serial, raw damper level vs the range gate; (2) preferred: the team's static zero check at the event, entered as a measured zero; otherwise the R3 rule of diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22) -- per file and corner, the gauge-vs-raw-voltage map offset (Input 21 / 29 / 31 / 39 Voltage -> FL / FR / RL / RR, inventory maps of diagnostics/inspect_v4_windows.py (script at tag pre-prune-2026-10-22)) minus the same car's Paul Ricard map offset, median over the event's files; (3) acceptance: u <= 700 N wheel and V1-V4 on all files of the event; (4) enter the medians with file spread and u. inspect_recover_rr.py is hard-wired to the 16 NBR files, so step (2) needs that script generalised for a new event. LIMITATION (author ruling 3): the header carries no date, so two events of the same track and logger whose zeros are near-identical (both passing the guard) cannot be told apart -- recorded, not solved; an engineer-entered event id is deferred to UI work.",
+    "_comment": "Event-specific logger zero entries (author ruling). A gauge zeroed against a different reference at one event reads a constant offset there; csv_parser subtracts zero_N from the raw channel BEFORE the quality/range gate (the gate otherwise fails the channel and wheel_loads drops to the static split). An entry applies to a file only if (a) the header's TrackName and logger serial (SystemDetails 'Serial Number') match, and (b) GATE-WINDOW GUARD: the channel's raw mean minus zero_N lies inside that channel's own range gate in 'channels' -- no new tunable; a gauge re-zeroed at a later event of the same track fails the guard and stays on the static split instead of silently taking a wrong entry. Accuracy: wheel loads from a corrected channel are 'L4 with an L2 zero' (L4-rel): logged sensor + motion-ratio table (L4), zero entry an event measurement pinned through the same car's Paul Ricard zero (L2, per-corner u below).",
+    "_procedure": "How an event gets its entry (documented, not automated): (1) census the event's files -- header track / serial, raw damper level vs the range gate; (2) preferred: the team's static zero check at the event, entered as a measured zero; otherwise the recovery rule of inspect_recover_rr.py (git tag pre-prune-2026-10-22) -- per file and corner, the gauge-vs-raw-voltage map offset (Input 21 / 29 / 31 / 39 Voltage -> FL / FR / RL / RR, inventory maps of inspect_v4_windows.py, same tag) minus the same car's Paul Ricard map offset, median over the event's files; (3) acceptance: u <= 700 N wheel and V1-V4 on all files of the event; (4) enter the medians with file spread and u. inspect_recover_rr.py is hard-wired to the 16 NBR files, so step (2) needs that script generalised for a new event. LIMITATION (author ruling): the header carries no date, so two events of the same track and logger whose zeros are near-identical (both passing the guard) cannot be told apart -- recorded, not solved.",
     "NBR_221": {
       "track": "NBR",
       "logger_serial": "221",

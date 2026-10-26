@@ -1,14 +1,13 @@
 # Single-track EKF sideslip observer, Magic Formula tyres. Used by
 # tyre_fit_auto.
 # Model: Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3.
-# EKF: Rajamani ch. 14 (chapter confirmed for the 2nd ed.; edition and page
-# still to verify).
+# EKF: Rajamani ch. 14.
 #
 # x = [beta, yaw_rate], u = delta_f, z = [yaw_rate, ay]. Vx scheduled per
 # sample (floored at moving_speed_min_mps), not a state.
 # Tyre params (B, C, mu, E per axle) and Q/R/P0 from the pass config
 # (tyre_model_ekf_pacejka.<pass_id>, built per session by tyre_fit_auto).
-# D is a friction coefficient (d_is_mu, fit L, Q-FIT-LIT): the axle loads and
+# D is a friction coefficient (d_is_mu, fit L): the axle loads and
 # the front Fx come from the state (fz_axle_f_N, fz_axle_r_N, fx_axle_f_N),
 # so config plus the session's load cascade reproduce a run.
 #
@@ -16,9 +15,8 @@
 # only for P. F at x_k|k, H at x_k+1|k. Tyre slopes from the analytic
 # pacejka_lateral_stiffness.
 #
-# Divergence: |beta| > beta_hard_bound_deg only (author ruling 2026-10-19;
-# the NIS-window trigger and the change detector were removed in the
-# 2026-10-22 pruning). The bound is physical (15 deg), not from the
+# Divergence: |beta| > beta_hard_bound_deg only. The bound is physical
+# (15 deg), not from the
 # kinematic beta range -- that under-reads mid-corner and would clip the
 # real signal. Re-entry: see estimate_sideslip_ekf_pacejka. Raw EKF beta is
 # returned alongside the shipped one, plus hard_bound_mask (the resets).
@@ -50,8 +48,8 @@ def measurement_jacobian(Cf_eff, Cr_eff, Vx, m, a, b):
 
 def axle_forces(alpha_f, alpha_r, tyre, u, i, load):
     """Body-lateral axle forces and their slip slopes for one sample, the one
-    force model of the prediction and the measurement update (a split
-    evaluation once left the update on the wrong D, Q-FIT-LIT 2026-10-18).
+    force model of the prediction and the measurement update, so both
+    always see the same D.
     tyre = (Bf, Cf, mu_f, Ef, Br, Cr, mu_r, Er), load = (fz_f, fz_r, fx_f)
     arrays: the peak force follows the axle load, D = mu Fz(t) (Pacejka
     Exercise 1.1); the front curve is in the tyre frame, so the body force
@@ -70,12 +68,12 @@ def axle_forces(alpha_f, alpha_r, tyre, u, i, load):
 
 
 def estimate_sideslip_ekf_pacejka(state, params, pass_id):
-    """Divergence re-entry on the hard bound only (author ruling 2026-10-19):
-    with the process noise sized from the session's force-model error
-    (Q-UPPER) the filter needs no covariance-only reset. On |beta| beyond the
+    """Divergence re-entry on the hard bound only: with the process noise
+    sized from the session's force-model error the filter needs no
+    covariance-only reset. On |beta| beyond the
     bound: beta state to 0, yaw rate state to the measured value, P to P0.
     Keeping an out-of-range state runs away -- the curve is flat out there,
-    so the measurements cannot pull it back (phase-1 stop). Zero carries no
+    so the measurements cannot pull it back. Zero carries no
     seed bias; the kinematic beta is never written into the state. Villano
     et al. 2021 (Meccanica, sec. 3.1) force the lateral velocity of their
     kinematic filter to zero at small yaw rate, where it is unobservable;
@@ -95,7 +93,6 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
 
     tyre = (cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"],
             cfg["b_rear"], cfg["c_rear"], cfg["d_rear"], cfg["e_rear"])
-    # D is mu; loads and front Fx from the state, see axle_forces
     if not cfg.get("d_is_mu", False):
         raise ValueError("estimate_sideslip_ekf_pacejka needs d_is_mu (fit L); the constant-D path was removed")
     load = (state["fz_axle_f_N"], state["fz_axle_r_N"], state["fx_axle_f_N"])
@@ -126,13 +123,11 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
     eye2 = np.eye(2)
 
     beta_out = np.zeros(n)
-    yaw_rate_state_out = np.zeros(n)
     nis_out = np.full(n, np.nan)
     hard_bound_mask = np.zeros(n, dtype=bool)
     beta_with_fallback = np.zeros(n)
     innovation_out = np.full((n, 2), np.nan)
     S_diag_out = np.full((n, 2), np.nan)
-    K_ay_out = np.full((n, 2), np.nan)
 
     x = np.zeros(2)
     P = P0.copy()
@@ -142,7 +137,6 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
             x = np.zeros(2)
             P = P0.copy()
             beta_out[i] = 0.0
-            yaw_rate_state_out[i] = 0.0
             beta_with_fallback[i] = 0.0
             continue
 
@@ -182,13 +176,10 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
         nis_out[i] = nis
         innovation_out[i] = nu
         S_diag_out[i] = np.diag(S)
-        K_ay_out[i] = K[:, 1]
 
         bound_flag = abs(x_upd[0]) > beta_hard_bound_rad
 
-        raw_beta, raw_r = float(x_upd[0]), float(x_upd[1])
-        beta_out[i] = raw_beta
-        yaw_rate_state_out[i] = raw_r
+        beta_out[i] = float(x_upd[0])
 
         hard_bound_mask[i] = bound_flag
 
@@ -202,11 +193,9 @@ def estimate_sideslip_ekf_pacejka(state, params, pass_id):
 
     return {
         "beta": beta_out,
-        "yaw_rate_state": yaw_rate_state_out,
         "nis": nis_out,
         "hard_bound_mask": hard_bound_mask,
         "beta_with_fallback": beta_with_fallback,
         "innovation": innovation_out,
         "S_diag": S_diag_out,
-        "K_ay": K_ay_out,
     }

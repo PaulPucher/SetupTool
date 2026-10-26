@@ -114,7 +114,6 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
         "fl": vp["corner_weights"]["FL_kg"], "fr": vp["corner_weights"]["FR_kg"],
         "rl": vp["corner_weights"]["RL_kg"], "rr": vp["corner_weights"]["RR_kg"],
     }
-    g = 9.81
 
     # pushrod force - offset, x MR -> sprung wheel force
     pushrod_N = {}
@@ -251,10 +250,10 @@ def _straight_masks(state, params):
 
 def straight_line_plausibility(state, damper_result, params):
     """Session check of the damper path against the static weight (Tier B
-    safety net, author ruling 2026-10-24). On a straight the four wheel
+    safety net). On a straight the four wheel
     loads sum to the weight plus the downforce, and downforce only adds
     load, so a total far below m g is not physics: it is a gauge zeroed
-    against another reference (PRC JST longrun, DEV-2). Same straight
+    against another reference. Same straight
     samples and axle totals (mate proxy) as the session fit.
     Returns {"ratio", "f_min", "passed", "n_straight", "reason"}. A ratio
     that cannot be computed passes -- there is nothing to test it against."""
@@ -308,11 +307,9 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     """
     vp = params["vehicle"]
     wl = params["wheel_loads"]
-    t_ref = state["time"]
     v = state["v_mps"]
     ax = state["ax_mps2"]
     g = 9.81
-    n = len(t_ref)
 
     corner_weight_kg = {
         "fl": vp["corner_weights"]["FL_kg"], "fr": vp["corner_weights"]["FR_kg"],
@@ -327,8 +324,6 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
         damper_result, corner_weight_kg, "rl", "rr")
     total_fz_for_fit_N = front_total_N + rear_total_N
 
-    # joint fit total(v) = m*g + c*v^2 -- intercept = static, v^2 = aero, no
-    # overlap; no ax term (docstring (1)/(2))
     X_total = np.column_stack([np.ones(int(straight_wide.sum())), v[straight_wide] ** 2])
     y_total = total_fz_for_fit_N[straight_wide]
     coeffs_total, _, _, _ = np.linalg.lstsq(X_total, y_total, rcond=None)
@@ -340,7 +335,6 @@ def estimate_session_corrected_axle_totals(state, damper_result, params):
     mean_rear_straight_N = float(np.mean(rear_total_N[straight_tight]))
     front_mass_fraction = mean_front_straight_N / (mean_front_straight_N + mean_rear_straight_N)
 
-    # (4) reported only, no proxy; NaN if a rear corner is dead
     mean_rl_straight_N = float(np.mean(damper_result["rl"]["fz_N"][straight_tight]))
     mean_rr_straight_N = float(np.mean(damper_result["rr"]["fz_N"][straight_tight]))
     rear_left_fraction = mean_rl_straight_N / (mean_rl_straight_N + mean_rr_straight_N)
@@ -388,7 +382,6 @@ def reconstruct_missing_corner(damper_result, fz_axle_totals):
     Both corners invalid -> NaN, caller falls back to static.
     Returns per corner {"fz_N", "reconstructable"}.
     """
-    n = len(damper_result["fl"]["valid"])
     out = {}
     for c in CORNERS:
         mate = AXLE_MATE[c]

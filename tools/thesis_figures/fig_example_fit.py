@@ -22,7 +22,7 @@ def build(outing, tag="dev", allow_status=False, allow_excluded=False, out=None)
     got = common.capture_fit(session)
     info = got["load_in"]["info"]
     fits = dict(zip(("front", "rear"), got["fits"]))
-    # the production D4-L gate on the same inputs; the partial run stops
+    # the production fit-L plausibility gate on the same inputs; the partial run stops
     # before the sign check and the NIS sweep, so only a failed gate (or the
     # damper-path check) can mark the session here -- the stored payload,
     # where valid, carries the full status

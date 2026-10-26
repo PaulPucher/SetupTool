@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         body_layout.setContentsMargins(0, 0, 0, 0)
         body_layout.setSpacing(0)
 
-        self.nav = self._build_sidebar()  # kept for setCurrentRow and the row-changed hook
+        self.nav = self._build_sidebar()
         self.stack = QStackedWidget()
 
         body_layout.addWidget(self.nav)

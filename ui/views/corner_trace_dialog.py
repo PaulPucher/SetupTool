@@ -12,10 +12,8 @@ from PyQt6.QtWidgets import (
 
 from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
 
-# Colours/widths from core/plot_style.py, shared with the exports
-# (core/figure_render.py, diagnostics/inspect_step2_chair_plots.py).
-# Lap = colour (lap_styles over the checked set); quantity/axle = panel.
-# All laps same width.
+# Colours and widths come from core/plot_style.py, shared with the PNG
+# exports. Lap = colour (lap_styles over the checked set); quantity/axle = panel.
 from core import plot_style
 from core.trace_display import kerb_exclusion_caption
 from modules.limit_events import legend_text as event_legend_text
@@ -65,7 +63,7 @@ KERB_BRIDGE_LEGEND_TEXT = (
     "Dashed, lighter stretch across a kerb band: straight-line bridge for "
     "continuity only -- not measured, not used by any verdict."
 )
-# event-strip legend: modules.limit_events.legend_text (floor events at -0.53)
+# event-strip legend text comes from modules.limit_events.legend_text
 EVENT_STRIP_WIDTH = 5  # px; a line, not a filled band (shading budget)
 EXCLUSION_LEGEND_TEXT = (
     "Grey band: left out of the analysis here -- kerb-affected (the analysis fills the span from "
@@ -81,15 +79,12 @@ TYRE_CURVE_LEGEND_TEXT = (
 
 
 def _tyre_curve_basis(cs, cs_axle_loads):
-    """Which force the tyre-curve tab plots, so points, reference, tangent
-    and fitted curve share the unit the CS was estimated in. Fit L estimates
-    the CS on Fy / Fz with its 2 Hz axle loads (the CS output then carries
-    the relative reference gate keys): plot Fy / Fz, slopes in 1/rad. CS on
-    Fy (kinematic source, or fit L degenerate before the loads existed): plot
-    Fy in N, slopes in N/rad. Returns {"normalised", "loads", "y_label",
-    "slope_unit"}, or None when the CS is normalised but this result holds
-    no loads (an older cached result) -- the tab then says so instead of
-    mixing units."""
+    """Force basis of the tyre-curve tab, so points, reference, tangent and
+    fitted curve share the unit the CS was estimated in: Fy / Fz (slopes in
+    1/rad) when the CS carries the relative-reference keys (fit L, 2 Hz axle
+    loads), else Fy in N (N/rad). Returns {"normalised", "loads", "y_label",
+    "slope_unit"}, or None if a normalised CS arrives without axle loads --
+    the tab then says so instead of mixing units."""
     normalised = cs is not None and "ref_relative_median_f" in cs
     if normalised and cs_axle_loads is None:
         return None
@@ -115,9 +110,9 @@ def _fitted_curve_d(basis, axle_fit):
 
 def _lap_slice(t, s_m, lap_start_t, lap_end_t):
     """Clip to [lap_start_t, lap_end_t) and trim trailing already-reset samples:
-    lap_end_t (lap_number) and the lap_distance reset don't line up exactly,
-    and those near-zero samples broke the s clamp and searchsorted's sort
-    order (seen on Dubai). Trim at the first drop below the running max.
+    lap_end_t (lap_number) and the lap_distance reset do not coincide, and
+    trailing near-zero samples would break the s clamp and searchsorted's
+    sort order. Trim at the first drop below the running max.
     Returns (lo, hi, lap_s, lap_s_lo, lap_s_hi) or None if nothing finite.
     """
     lo = int(np.searchsorted(t, lap_start_t, side="left"))
@@ -150,8 +145,8 @@ def _extend_slice_with_margin(t, s_m, lap_start_t, lap_end_t,
                                margin_before_m, margin_after_m):
     """Canonical bracket (bracket_start_m/end_m, same for every lap) widened by
     the config margin, clamped to this lap's s range (s_m resets per lap).
-    Not anchored on per-lap phase times -- a truncated entry_1_brake made the
-    window open deep inside the corner.
+    Not anchored on per-lap phase times: a truncated entry phase would open
+    the window inside the corner.
     Returns (slice, start_s, end_s) or (slice(0, 0), None, None).
     """
     clipped = _lap_slice(t, s_m, lap_start_t, lap_end_t)
@@ -189,12 +184,12 @@ def _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m, bracket_sta
             best = (val, sl.start + local_idx)
     if best is None:
         return None
-    return {"index": best[1], "cs_ratio": best[0]}
+    return {"index": best[1]}
 
 
 def _worst_stab_phase(summary):
-    # duplicates _classify_corner's stability argmin so the tinted band matches
-    # the verdict badge -- change both together
+    # phase with the lowest stability median; tinted as context, need not be
+    # the verdict phase
     worst_phase, worst_val = None, float("inf")
     for phase, phase_data in summary["phases"].items():
         val = phase_data["stability_observed_Nm_per_deg"]["median"]
@@ -236,7 +231,7 @@ def _contiguous_runs(x, mask):
 
 def _aggregate_worst_severity(corner_summaries, classify_fn):
     # lap view = problem map: band tint = worst severity over ALL valid
-    # instances, via the injected classify_fn (same as everywhere else)
+    # instances, classified by the injected classify_fn
     from modules.corner_aggregation import SEVERITY_RANK
 
     worst_rank = -1
@@ -370,7 +365,6 @@ class _TraceDialogBase(QDialog):
                 plot.getAxis('bottom').setLabel('Track position s (m)', color=TEXT_MUTED, size='8pt')
             else:
                 plot.getAxis('bottom').setStyle(showValues=False)
-            # one legend per plot (_style_new_legend)
             self.legends[key] = _style_new_legend(plot)
             self.plots[key] = plot
             self.pg_layout.nextRow()
@@ -380,9 +374,6 @@ class _TraceDialogBase(QDialog):
         for i, (_label, key) in enumerate(self.panel_titles):
             context = key in self.CONTEXT_PANEL_KEYS
             self.pg_layout.ci.layout.setRowStretchFactor(i, 1 if context else 3)
-
-    # None = every panel visible (lap window); the corner window narrows it
-    DEFAULT_PANELS = None
 
     def _layout_panels(self, visible):
         # re-lays the existing plot items; hidden ones stay alive (and keep
@@ -413,7 +404,6 @@ class _TraceDialogBase(QDialog):
                     plot.setXLink(anchor if key in keys else None)
 
     def _build_lap_checkbox_container(self):
-        from PyQt6.QtWidgets import QWidget
         container = QWidget()
         row_layout = QHBoxLayout(container)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -459,8 +449,6 @@ class _TraceDialogBase(QDialog):
         self.lap_checkbox_layout.addStretch()
 
     def _on_lap_visibility_toggled(self, lap_number, checked):
-        # colour and legends depend on the whole checked set -> full re-render
-        # (_rerender_preserving_checked) instead of patching items
         self.lap_visible[lap_number] = checked
         self._rerender_preserving_checked()
 
@@ -473,7 +461,6 @@ class _TraceDialogBase(QDialog):
         style = self._current_styles.get(lap_number)
         if not items or style is None:
             return
-        # quiet-lap dash OR palette dash -> dashed
         is_dashed = (self._lap_line_style.get(lap_number) == Qt.PenStyle.DashLine) or (style["dash"] == "dash")
         qt_style = Qt.PenStyle.DashLine if is_dashed else Qt.PenStyle.SolidLine
         for item in items:
@@ -522,7 +509,7 @@ class _TraceDialogBase(QDialog):
         for ln in self.lap_curve_items:
             self._restyle_lap_curves(ln)
 
-    # Shading budget (author ruling 2026-10-06), per panel: filled area only for
+    # Shading budget, per panel: filled area only for
     # the background tint family (phase / corner-severity context) and ONE
     # exclusion grey (kerb strike or car not up to speed); never stacked --
     # the grey is drawn once as the union over the checked laps and the tint
@@ -618,8 +605,7 @@ class CornerTraceDialog(_TraceDialogBase):
     """
 
     WINDOW_TITLE = "Corner Trace"
-    # the three verdict-carrying signals; everything else opt-in (author ruling
-    # 2026-10-06)
+    # the three verdict-carrying signals; the rest is opt-in
     DEFAULT_PANELS = ("stab", "cs_f", "cs_r")
 
     def __init__(self, parent=None):
@@ -655,7 +641,7 @@ class CornerTraceDialog(_TraceDialogBase):
         self.track_map_plot.setAspectLocked(True)
         self.track_map_plot.hideAxis('left')
         self.track_map_plot.hideAxis('bottom')
-        self.track_map_legend = _style_new_legend(self.track_map_plot)
+        _style_new_legend(self.track_map_plot)
         self.tyre_pg_layout.nextRow()
 
         self.tyre_plots = {}
@@ -677,7 +663,6 @@ class CornerTraceDialog(_TraceDialogBase):
             legend.setLabelTextColor(TEXT_MUTED)
             self.tyre_pg_layout.addItem(legend, row=2, col=col)
             self.tyre_legends[axle] = legend
-        # short legend row
         self.tyre_pg_layout.ci.layout.setRowStretchFactor(0, 3)
         self.tyre_pg_layout.ci.layout.setRowStretchFactor(1, 6)
         self.tyre_pg_layout.ci.layout.setRowStretchFactor(2, 1)
@@ -727,8 +712,8 @@ class CornerTraceDialog(_TraceDialogBase):
         self._layout_panels(self._visible_panels)
 
     def _add_phase_bands(self, corner, t, s_m, worst_phase):
-        # the tint family of this window: returns the phase tints as specs (drawn
-        # with the exclusion grey, _draw_tint_and_exclusion); the apex line now
+        # phase tints go back as specs for _draw_tint_and_exclusion (drawn with
+        # the exclusion grey); the apex line is drawn here directly
         tint_specs = [(s_start, s_end, BAD if phase == worst_phase else BORDER,
                        70 if phase == worst_phase else 30)
                       for phase, s_start, s_end in _phase_bands_for_lap(corner, t, s_m)]
@@ -779,19 +764,13 @@ class CornerTraceDialog(_TraceDialogBase):
                              t, s_m, slip, forces, cs, kerb_mask, params, session_mask,
                              sideslip_source=None, fit_manifest=None, sample_rate_hz=None,
                              kerb_mode="grey", cs_axle_loads=None):
-        """Tyre Curves tab: alpha vs the force the CS was estimated on (Fy / Fz
-        under fit L, else Fy; _tyre_curve_basis) per axle over the canonical
-        window (no margin). Plot design after the chair performance_analysis
-        tooling (internal); no code copied.
-
-        Checked laps only. Lap colour, filled = clean, hollow = kerb-flagged.
-        Beyond the peak a lap's cloud folds back over the reference line.
-        Reference line = one slope per axle, median C_linear_ref over valid
-        samples (already NaN on kerb / not moving).
-        Faint cloud of the checked laps (whole lap, moving, no kerb) first;
-        estimation window (hollow black ring) + tangent on top.
-        Auto-fit mode: the fitted Pacejka curve over the visited alpha
-        range -- shows the saturation the linear reference can't.
+        """Tyre Curves tab: slip angle vs the CS force basis (_tyre_curve_basis)
+        per axle over the canonical window (no margin), checked laps only.
+        Faint session cloud first; lap samples (hollow = kerb-flagged); the
+        reference line, median C_linear_ref over valid samples; in auto-fit
+        mode the fitted Pacejka curve, which shows the saturation the linear
+        reference cannot; estimation window and tangent on top. Beyond the
+        peak a lap's cloud folds back over the reference line.
         """
         import pyqtgraph as pg
         from core.trace_display import kerb_scatter_split
@@ -1152,7 +1131,7 @@ class CornerTraceDialog(_TraceDialogBase):
         if self._export_data is None:
             QMessageBox.information(self, "Export figure", "Analyse a corner first -- nothing to export yet.")
             return
-        from core import figure_render, plot_style
+        from core import figure_render
 
         data = self._export_data
         default_name = f"{data['corner_label']}_{'figure' if kind == 'corner' else 'verdict_traces'}.png"
@@ -1169,7 +1148,6 @@ class CornerTraceDialog(_TraceDialogBase):
                 figure_render.save_png(fig, path)
                 saved_paths = [path]
             else:
-                # returns a list of figures -> save all
                 figs = figure_render.render_verdict_traces_figure(
                     data["corner_label"], data["laps"], data["thresholds"], theme=plot_style.PRINT,
                     near_strike=data.get("near_strike"),
@@ -1259,7 +1237,6 @@ class CornerTraceDialog(_TraceDialogBase):
         }
 
     def _rerender_preserving_checked(self):
-        # full re-render with the current checkbox state
         if self._last_show_args is not None:
             self.show_corner(*self._last_show_args, preserve_visible=dict(self.lap_visible))
 
@@ -1285,7 +1262,7 @@ class CornerTraceDialog(_TraceDialogBase):
         cs = stability_result.get("cs")
         stab = stability_result.get("stab")
         corners = stability_result.get("corners")
-        # slip/forces: tyre tab only; missing on older cached results -> empty tab
+        # slip/forces feed the tyre tab only
         slip = stability_result.get("slip")
         forces = stability_result.get("forces")
         if state is None or cs is None or stab is None or corners is None:
@@ -1337,7 +1314,7 @@ class CornerTraceDialog(_TraceDialogBase):
         selected_lap = summary["lap_number"]
         representative = next((c for c in instances if c["lap_number"] == selected_lap), instances[0])
         phase_tints = self._add_phase_bands(representative, t, s_m, worst_phase=_worst_stab_phase(summary))
-        # default view (author ruling 2026-10-06): the selected lap full-strength
+        # default view: the selected lap full-strength
         # over the cross-lap envelope of all analysis laps; other laps opt-in
         default_checked_laps = {selected_lap}
         self._rebuild_lap_checkboxes(instances, selected_lap, default_checked_laps=default_checked_laps,
@@ -1354,7 +1331,6 @@ class CornerTraceDialog(_TraceDialogBase):
         any_not_moving = False
         any_event = False
         rep_start_s, rep_end_s = None, None
-        # checked laps only
         checked_instances = self._checked_instances(instances)
         # export copy of exactly what's on screen
         export_laps = []
@@ -1432,15 +1408,13 @@ class CornerTraceDialog(_TraceDialogBase):
             margin_before_m, margin_after_m,
             {"cs_f": cs_f, "cs_r": cs_r, "stab": stab_obs}, margin_cfg.get("cs_envelope"))
 
-        # legend = checked laps + threshold lines
-        self._laps_by_number = laps_by_number
         self._restyle_all_laps()
 
         cls_cfg = params["classification"]
 
         # background cloud (screen and export) = the whole lap of every CHECKED
         # lap: one lap-selection state, so an unchecked lap leaves no dot here
-        # either (author defect 2026-10-07: its kerb samples stayed visible)
+        # either
         session_mask = moving_mask if moving_mask is not None else np.ones_like(t, dtype=bool)
         if kerb_mask is not None:
             session_mask = session_mask & ~kerb_mask
@@ -1500,7 +1474,6 @@ class CornerTraceDialog(_TraceDialogBase):
         n_quiet = sum(1 for c in instances if "canonical_quiet" in c.get("warnings", []))
         # readable text, not the "canonical_quiet" code
         quiet_note = f", {n_quiet} lap(s) not natively detected here (dashed)" if n_quiet else ""
-        # colour is the only difference between laps
         self.header_label.setText(
             f"C{stable_corner_id} -- {n_laps} valid lap(s) available{quiet_note}, unchecked laps hidden -- "
             f"context margin -{margin_before_m:g}m/+{margin_after_m:g}m outside the bracket"
@@ -1536,7 +1509,6 @@ class LapTraceDialog(_TraceDialogBase):
         self._on_corner_click = on_corner_click
         self._corner_bands = []  # [(start_s, end_s, id)] for hit-testing
         self._corner_summary_by_id = {}  # id -> displayed lap's summary
-        self._laps_by_number = {}  # lap_number -> lap dict
         self.pg_layout.scene().sigMouseClicked.connect(self._on_scene_clicked)
 
         # export cache, filled at the end of show_lap
@@ -1552,7 +1524,7 @@ class LapTraceDialog(_TraceDialogBase):
         if self._export_data is None:
             QMessageBox.information(self, "Export figure", "Show a lap first -- nothing to export yet.")
             return
-        from core import figure_render, plot_style
+        from core import figure_render
 
         data = self._export_data
         default_name = f"{data['lap_label']}_figure.png"
@@ -1571,10 +1543,7 @@ class LapTraceDialog(_TraceDialogBase):
             return
         QMessageBox.information(self, "Export figure", f"Saved to {path}")
 
-    # restyle/toggle helpers inherited
-
     def _rerender_preserving_checked(self):
-        # full re-render, checked set kept
         if self._last_show_args is not None:
             lap_number, stability_result, parsed_data, classify_fn = self._last_show_args
             self.show_lap(lap_number, stability_result, parsed_data, classify_fn,
@@ -1657,15 +1626,12 @@ class LapTraceDialog(_TraceDialogBase):
                     self._on_corner_click(summary)
                 return
 
-    def show_lap(self, lap_number, stability_result, parsed_data, classify_fn, on_corner_click=None,
-                 preserve_visible=None):
+    def show_lap(self, lap_number, stability_result, parsed_data, classify_fn, preserve_visible=None):
         """Whole-lap trace of lap_number. Checkbox per valid lap. Bands tinted by
         each corner's worst severity over all valid instances (classify_fn).
         """
         from modules.stability_analysis import load_parameters
 
-        if on_corner_click is not None:
-            self._on_corner_click = on_corner_click
         self._last_show_args = (lap_number, stability_result, parsed_data, classify_fn)
 
         for plot in self.plots.values():
@@ -1693,7 +1659,6 @@ class LapTraceDialog(_TraceDialogBase):
 
         laps_by_number = {l["lap_number"]: l for l in parsed_data.get("laps", [])}
         valid_lap_numbers = {ln for ln, l in laps_by_number.items() if l.get("is_valid_for_analysis")}
-        self._laps_by_number = laps_by_number
 
         if state.get("s_m") is None or lap_number not in valid_lap_numbers:
             self.header_label.setText(
@@ -1736,7 +1701,6 @@ class LapTraceDialog(_TraceDialogBase):
             preserve_visible=preserve_visible,
         )
 
-        # checked laps only
         checked_lap_numbers = sorted(ln for ln, v in self.lap_visible.items() if v)
 
         any_kerb = False
@@ -1792,7 +1756,6 @@ class LapTraceDialog(_TraceDialogBase):
         self._restyle_all_laps()
 
         cls_cfg = load_parameters()["classification"]
-        # thresholds grey, by style
         self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], THRESHOLD_GREY,
                                   Qt.PenStyle.DashDotLine, name="Unstable below this")
         self._add_threshold_line("cs_f", cls_cfg["STRONG_CSF"]["value"], THRESHOLD_GREY, Qt.PenStyle.DashLine,
@@ -1813,7 +1776,6 @@ class LapTraceDialog(_TraceDialogBase):
 
         self._add_corner_bands(corners_by_id, worst_colour_by_id)
 
-        # export cache
         self._export_data = {
             "lap_label": f"Lap {lap_number}", "laps": export_laps,
             "thresholds": {

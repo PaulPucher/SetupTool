@@ -2,11 +2,11 @@
 
 ### NOW
 
-Rewritten 2026-10-24a (after work order UI-1, branch new-laps). The header,
-REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
-"SUPERSEDED NOW-BLOCK CONTENT (2026-10-24a STATUS rewrite)"; older NOW items
-remain under the earlier superseded sections. The rest of this block is
-unchanged.
+Rewritten 2026-10-26 (after work order CLEAN-2, branch new-laps). The header,
+REPO STATE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-26 STATUS rewrite)"; RULED / DONE
+is kept and extended; older NOW items remain under the earlier superseded
+sections. The rest of this block is unchanged.
 
 READING ORDER. [2026-10-03: the BACKLOG -- PERMANENT section (after
 PHASE 1 PLAN) is read with it.] [2026-10-01: PHASE 1 PLAN (next section) comes first after
@@ -24,32 +24,30 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD fa7ffb8 ("Engine 4h: session-level setup recommendation
-  ..., schema 25"), 4h committed.
-  NOT committed since fa7ffb8: work order UI-1 (display only + caching
-  fix): modules/data_paths.py + config/data_roots.json (saved paths across
-  machines), outing_form / pipeline_sidecar / thesis_data path lookups,
-  cache persists the file path, compact setup panel text (setup_engine
-  display helpers), contrast constants in ui/style.py, lap-grid cells with
-  L/M/H badge, floor events and accuracy levels out of the main view,
-  tests test_data_paths.py and test_style_contrast.py.
-- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (unchanged by
-  UI-1: no computed value or payload changes). Chain values unchanged
-  since schema 19.
-- CHAIN: unchanged (see the superseded block of 2026-10-22c).
-- CLASSIFIER (D2): margins front 0.062 / rear 0.076.
-- RECOMMENDATION: unchanged since 4h (DECISIONS 'Work order 4h rulings'
-  and '4h follow-up rulings').
+  new-laps HEAD 3d82ecd ("UI-1, dev-set export and data checks (mu edge,
+  damper plausibility), thesis figure export rounds 1-2 with anonymised
+  labels, schema 27"): UI-1, DEV-1..4 and figure rounds 1-2 committed.
+  NOT committed since 3d82ecd: work order CLEAN-2 (code cleanup for
+  hand-in quality, behaviour-neutral): dead code, comments / docstrings,
+  config prose, 7 duplicate merges across modules/, core/, models/, ui/,
+  tools/thesis_figures/; deleted core/thesis_data.py, modules/yaw_damping.py,
+  tests/test_thesis_data.py, tests/test_yaw_damping.py; config keys
+  channels.*.required and longitudinal_stiffness.brake_front_fraction_fallback
+  removed; CLAUDE.md colour list without INFO; DECISIONS.md schema history
+  section; thesis_notes entry 'Code cleanup for hand-in quality (CLEAN-2)'.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 27 (unchanged by
+  CLEAN-2: goldens bit-identical apart from _meta).
+- CHAIN, CLASSIFIER (D2 margins front 0.062 / rear 0.076), RECOMMENDATION:
+  unchanged since schema 27.
 - DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
   data package (pending).
-- TESTS: last full suite 2026-10-23 (schema 25) 406 passed, 1 xfailed.
-  UI-1 (no full suite, author): affected tests 123 passed + contrast /
-  data-path tests; test_stability.py NBR 29 matches the golden.
-- diagnostics/: 32 scripts (+ export_labeled_dev.py DEV-1, inspect_mu_uncertainty.py DEV-3,
-  inspect_wheel_load_plausibility.py DEV-4; uncommitted).
-- SCHEMA 27 (DEV-3 26 + DEV-4 27, uncommitted): mu ceiling edge zone,
-  damper-path plausibility check; see RULED / DONE.
-- TESTS: full suite 2026-10-24 (schema 27) 425 passed, 1 xfailed.
+- FIGURE CONFIG HASH (tools/thesis_figures/common.config_hash):
+  f57078a7d48b06d5 -> 080ce6f672fb5910 (config prose only).
+- TESTS: full suite 2026-10-26 after CLEAN-2 (schema 27): 438 passed,
+  1 skipped, 1 xfailed (35 min; tests/test_thesis_data.py and
+  tests/test_yaw_damping.py deleted). Goldens NBR 29 + LC 32 bit-identical
+  apart from _meta, test_stability.py matches on both, name guard 0 hits.
+- diagnostics/: 32 scripts (unchanged by CLEAN-2).
 
 RULED / DONE SINCE THE LAST REWRITE
 - 4h and its follow-up rulings: committed (fa7ffb8).
@@ -154,19 +152,139 @@ RULED / DONE SINCE THE LAST REWRITE
   textheight 711 pt) clean, C height 347 pt < 0.9 textheight, smoke tests
   21 passed / 1 skipped. Deviation: table .tex files hold the whole tabularx
   environment (a body \input inside tabularx fails: Misplaced \noalign).
+- Work order CLEAN-2 (author go 2026-10-26), done, uncommitted. Phase 1
+  inventory (read-only) -> phase 2 applied: ~40 dead-code items, ~600
+  comment / docstring lines (history moved out of code, stale references
+  fixed, two comments that contradicted the code corrected), ~99 config
+  prose fields (49,100 -> 33,700 chars; derived_from kept except the two
+  yaw_pooling pointers), 7 bit-identical merges. Rulings: channels.*.required
+  removed; thesis_data.py and yaw_damping.py deleted with their tests
+  (DECISIONS 'Werner Eq. 4.3 v2 term: considered, not adopted; code removed
+  in CLEAN-2'); brake-pressure split and EKF K_ay / yaw_rate_state removed;
+  INFO removed; [PERF] prints removed; air-density note no longer a
+  placeholder; limit_events cites Goblirsch 2025, Eq. 9 (page to verify).
+  Acceptance: goldens NBR 29 and LC 32 bit-identical apart from _meta,
+  test_stability.py matches on both, no schema bump, name guard 38 files
+  0 hits. Records: DECISIONS, thesis_notes 'Code cleanup for hand-in
+  quality (CLEAN-2)'.
 
 NEXT
-1. Author: app check of UI-1 -- reopen an outing saved on the other
-   machine (file found, cache hit, no re-run), setup panel (session box,
-   corner lines, details toggles, engineer column), contrast, lap-grid
-   cells and badges, floor-event line, method details toggle.
-2. Author: commit of UI-1.
-3. Carried: effort classes camber / springs vs Setup_change_overview; TC
-   int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
-   weekend-PDF comment; clean data package (D8 coding scheme first);
-   corner importance weighting (TE p. 254) not implemented (limitation);
-   PRODUCTION.md 10 display wording to update once the UI-1 check passes
-   (PRODUCTION describes settled production only).
+1. Author: app check of CLEAN-2 (display paths touched by dead-code removal:
+   outing form, corner / lap trace windows and their figure export,
+   Settings -- the air-density row no longer carries the placeholder
+   marker, by ruling). Then commit.
+2. Carried from the 2026-10-24a NEXT: app check of UI-1 (status not
+   recorded since; UI-1 is committed in 3d82ecd); effort classes camber /
+   springs vs Setup_change_overview; TC int / tim mapping (team);
+   PRODUCTION.md 202 Trzesniowski.2019b; clean data package (D8 coding
+   scheme first); corner importance weighting (TE p. 254) not implemented
+   (limitation); PRODUCTION.md 10 display wording.
+3. SUSPECTED BUGS from the CLEAN-2 inventory (2026-10-26), NOT fixed --
+   separate work order next. (V) = verified in the code by the
+   implementation instance; the rest from the file reviews, partly
+   unverified on data.
+   B1 (V) modules/straights.py:36 kerb_mask | kerb_smear_zone raises
+      TypeError when log_acc_z is unusable (both None); the fit chain
+      aborts instead of falling back to kinematic beta.
+   B2 (V) modules/stability_analysis.py (estimate_vertical_loads call of
+      estimate_wheel_loads_from_dampers) never passes arb_position: the
+      damper-path Fz always uses wheel_loads.arb_position_fallback 4, while
+      the config note says the session setup value is used when available.
+      Feeds Level-4 Fz -> fit L and CS. Science ruling: wire it or correct
+      the note.
+   B3 (V) tools/thesis_figures/common.py estimation_path: _MARGINAL_WORDS
+      key "R sweep" never matches marginal_reason r_sweep_guard_fail /
+      r_sweep_no_in_band -> tab_sessions / tab_observer_health print
+      "marginal fit" instead of "default R".
+   B4 (V) ui/views/outing_form.py _persist_outing: csv_path=loaded_csv_path
+      or "" and analysis_data without fallback -> Back after a failed or
+      pending file load erases the outing's stored path and analysis.
+   B5 (V) outing_form.py plot update: first_key assigned inside the channel
+      loop -> UnboundLocalError when every plot channel is missing; max()
+      over an empty sequence with "All".
+   B6 (V) ui/views/weekend_dialog.py _delete: RaceWeekend.outings has no
+      cascade and outings.race_weekend_id is NOT NULL -> IntegrityError in a
+      slot (app abort) when the weekend has outings (not run).
+   B7 weekends.py / drivers.py: sortable tables, double-click handler
+      indexes the visual row against a fixed query order -> wrong weekend /
+      driver after a header sort; outings.py fills rows with sorting
+      enabled (row can move mid-fill, UserRole id on the wrong row).
+   B8 ui/views/outings.py Edit then Delete in WeekendDialog -> AttributeError
+      on None; the Session opened there is never closed.
+   B9 outing_form.py _on_csv_loaded: loading a second file keeps the old
+      verdict cards, status labels, setup rows and _cached_schema_mismatch.
+   B10 (V) MODERATE_CSF and STRONG_CSR have no effect on any verdict (D2:
+      front moderate at the boundary, rear always strong) but are drawn as
+      threshold lines in the trace dialog -- display question.
+   B11 ui/views/corner_trace_dialog.py: the red "worst" phase band is the
+      stability argmin; the verdict phase comes from the classifier (CS
+      first) -> band and verdict can disagree.
+   B12 corner_trace_dialog.py: early returns (no valid instances / lap)
+      do not reset _export_data or the track map -> "Export figure" saves
+      the previous corner / lap.
+   B13 modules/wheel_loads.py session axle-total fit: one axle fully invalid
+      -> NaN lstsq coefficients, NaN c_session, NaN reconstructed corner
+      labelled "reconstructed".
+   B14 tyre_fit_auto.py _resolve vs resolve_sideslip_beta_and_cs_inputs vs
+      stability_analysis.thresholds_calibrated: three different defaults for
+      a missing tyre_fit_mode (dormant; config has the key).
+   B15 tools/thesis_figures/tab_sessions.py: ValueError from
+      _resolve_grid_rate not caught (aborts the table instead of a "not
+      analysable" row); CSV fields with commas unquoted -> shifted columns.
+   B16 fig_k_sessions.py KeyError with --allow-status on degenerate /
+      kinematic sessions; short --labels silently drops sessions;
+      --separator-after not in --outings -> IndexError;
+      find_example_corner.py reads fit_manifest axles before the gate.
+   B17 fig_example_fit.py ignores powell_converged / sign_ok (a failed fit
+      can be marked ok).
+   B18 core/pdf_export.py: outing / driver names and notes enter reportlab
+      markup unescaped ("&", "<") -> "Save failed" (standard reportlab
+      behaviour, not run); LOGO_PATH cwd-relative.
+   B19 modules/corner_analysis.py exit_4: argmax == 0 is ambiguous (first
+      post-apex sample already below half) -> exit_5 collapses (unverified
+      on data).
+   B20 corner_analysis.py: NaN bracket edges at the lap_distance reset ->
+      undefined cluster sort, stable_corner_id order may scramble
+      (unverified).
+   B21 corner_analysis.py canonical_speed_classes: modal tie depends on
+      PYTHONHASHSEED and differs from corner_aggregation's tie rule
+      (no-lap_distance path only).
+   B22 ui/views/settings_view.py Save rewrites Section 1/2 values rounded to
+      the spinbox decimals (latent; would be an estimator-input edit
+      without a schema bump).
+   B23 modules/classifier.py marker "[stab thresh: kinematic-era, not
+      re-derived]" -- wording wrong now that the calibration source is
+      ekf_auto_pacejka.
+   B24 modules/limit_events.py detect_events output shape inconsistent
+      (early returns lack "line"; window_start_t only with slip).
+   B25 modules/csv_parser.py _verify_laps identifies the out lap by
+      lap_number 0, not is_outlap (cosmetic warning).
+   Smaller, same inventory: stacked views never removed from the
+   QStackedWidget (memory growth); common.py os.chdir at import;
+   setup_engine reuses min_repeat_fraction for the TC majority; feedback
+   row i -> stable_corner_id i+1 assumption; csv_parser event-zero guard
+   compares file-unit data to a config-unit range; trailing pit-fragment
+   merge on limiter alone; reused lap numbers merge segments; straights.py
+   int() truncation and convolve edge padding; nanmax of an all-NaN brake
+   slice passes the no-braking gate; .PDF suffix check case-sensitive;
+   _delete_outing has no confirmation and leaves the sidecar.
+   Hardcoded tunables (list only): straights.py percentile / 5 m/s / +/-20
+   deg, wheel_loads._straight_masks 0.5 / 1.5 m/s^2,
+   accuracy_resolution.MASS_CORNER_SUM_TOLERANCE, corner_trace_dialog
+   RESET_DROP_M, outing_form STAB_COLOUR_WARN_FRACTION, csv_parser
+   file_max > 5, longitudinal drive split (now implicit: fit-L split).
+4. CLEAN-2 leftovers (not in its scope or kept by ruling): derived_from
+   texts that still narrate per_session / Dugoff history (kept,
+   provenance); diagnostics/generate_channel_requirements.py still names
+   the brake pressures as longitudinal_forces inputs and points to an old
+   outing_form line; docs/dataflow_registry.md mentions the deleted
+   core/thesis_data.py (record); config _comment_status "a proposal, not
+   yet reviewed" and tyre_fit_mode_default_note "g2 zones" (author);
+   mechanisms.json _comment_anchors TODOs ("bib key / edition to verify");
+   Katz edition in drag_coeff_derived_from; colour literals outside
+   ui/style.py in several views (listed, not changed); business logic in
+   ui/ (pipeline orchestration, cache identity, tyre-curve maths) -- a
+   refactor, not cleanup.
 
 CLOSED SINCE THE LAST REWRITE
 - CS diagnostic arc (2026-09-29, branch new-laps, read-only): CLOSED by
@@ -9367,6 +9485,60 @@ the ORDER OF EXECUTION below are superseded by STATUS and the EXPERIMENT PLAN at
 the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
+
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-26 STATUS rewrite)
+
+NOW header, REPO STATE and NEXT (as written before the 2026-10-26 rewrite)
+
+Rewritten 2026-10-24a (after work order UI-1, branch new-laps). The header,
+REPO STATE, RULED / DONE and NEXT this replaces are preserved verbatim under
+"SUPERSEDED NOW-BLOCK CONTENT (2026-10-24a STATUS rewrite)"; older NOW items
+remain under the earlier superseded sections. The rest of this block is
+unchanged.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD fa7ffb8 ("Engine 4h: session-level setup recommendation
+  ..., schema 25"), 4h committed.
+  NOT committed since fa7ffb8: work order UI-1 (display only + caching
+  fix): modules/data_paths.py + config/data_roots.json (saved paths across
+  machines), outing_form / pipeline_sidecar / thesis_data path lookups,
+  cache persists the file path, compact setup panel text (setup_engine
+  display helpers), contrast constants in ui/style.py, lap-grid cells with
+  L/M/H badge, floor events and accuracy levels out of the main view,
+  tests test_data_paths.py and test_style_contrast.py.
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 25 (unchanged by
+  UI-1: no computed value or payload changes). Chain values unchanged
+  since schema 19.
+- CHAIN: unchanged (see the superseded block of 2026-10-22c).
+- CLASSIFIER (D2): margins front 0.062 / rear 0.076.
+- RECOMMENDATION: unchanged since 4h (DECISIONS 'Work order 4h rulings'
+  and '4h follow-up rulings').
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- TESTS: last full suite 2026-10-23 (schema 25) 406 passed, 1 xfailed.
+  UI-1 (no full suite, author): affected tests 123 passed + contrast /
+  data-path tests; test_stability.py NBR 29 matches the golden.
+- diagnostics/: 32 scripts (+ export_labeled_dev.py DEV-1, inspect_mu_uncertainty.py DEV-3,
+  inspect_wheel_load_plausibility.py DEV-4; uncommitted).
+- SCHEMA 27 (DEV-3 26 + DEV-4 27, uncommitted): mu ceiling edge zone,
+  damper-path plausibility check; see RULED / DONE.
+- TESTS: full suite 2026-10-24 (schema 27) 425 passed, 1 xfailed.
+
+NEXT
+1. Author: app check of UI-1 -- reopen an outing saved on the other
+   machine (file found, cache hit, no re-run), setup panel (session box,
+   corner lines, details toggles, engineer column), contrast, lap-grid
+   cells and badges, floor-event line, method details toggle.
+2. Author: commit of UI-1.
+3. Carried: effort classes camber / springs vs Setup_change_overview; TC
+   int / tim mapping (team); PRODUCTION.md 202 Trzesniowski.2019b; stale
+   weekend-PDF comment; clean data package (D8 coding scheme first);
+   corner importance weighting (TE p. 254) not implemented (limitation);
+   PRODUCTION.md 10 display wording to update once the UI-1 check passes
+   (PRODUCTION describes settled production only).
 
 ---
 

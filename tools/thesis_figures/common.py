@@ -1,5 +1,5 @@
-# Shared helper of the thesis figure scripts (tools/thesis_figures/,
-# author ruling 2026-10-24). Read-only on everything the app owns: the DB
+# Shared helper of the thesis figure scripts in tools/thesis_figures/.
+# Read-only on everything the app owns: the DB
 # is opened read-only, no cache or sidecar is written, config is only read.
 # Sessions are app outing IDs; the analysis is taken either from the stored,
 # identity-valid payload (the app's own cache guards) or from a read-only
@@ -48,14 +48,13 @@ PHASE_LABELS = {
 }
 
 TRACE_BIN_M = 2.0          # lap-distance grid of the trace figures
-SCATTER_CAP = 800          # points per scatter series; pdflatex memory (round 2)
+SCATTER_CAP = 800          # points per scatter series; pdflatex memory limit
 SCATTER_ALPHA_BINS = 60    # strata over the slip angle
 THINNING_SEED = 0
 
 
 class Refused(SystemExit):
     """A session the figure must not use; the message names outing and reason."""
-
 
 
 def out_dirs(override=None):
@@ -168,7 +167,7 @@ def guard_hits(text):
 
 
 def guard(text, fname):
-    # anonymisation (hard rule, 2026-10-26): no driver or outing name in any
+    # anonymisation: no driver or outing name in any
     # written file; the file is named, the matched name is not repeated
     if guard_hits(text):
         raise Refused(f"name guard: {fname} would contain a driver or outing name -- not written")
@@ -213,7 +212,6 @@ def write_label_map(tag, outing_ids):
 def table_read(prefix, fname, macro):
     # comment chars={\#}: the bare # of the spec breaks inside a TeX argument
     return f"\\pgfplotstableread[col sep=comma, comment chars={{\\#}}]{{{prefix}{fname}}}{{\\{macro}}}\n"
-
 
 
 def db_outing(outing_id):
@@ -293,8 +291,8 @@ def stored_payload(session):
 
 
 def exclusion_reason(fit_manifest):
-    # Part 0 ruling 2026-10-24: a rejected damper path (static split, Fz
-    # Level 1) keeps the session out of the thesis evaluation
+    # a rejected damper path (static split, Fz Level 1) keeps the session out
+    # of the thesis evaluation
     plaus = ((fit_manifest or {}).get("axle_load") or {}).get("damper_plausibility")
     if plaus and not plaus.get("passed", True):
         return f"excluded from the thesis evaluation: {plaus.get('reason')}"
@@ -302,8 +300,9 @@ def exclusion_reason(fit_manifest):
 
 
 def gate(outing_id, fit_manifest, fallback_used, allow_status, allow_excluded):
-    """Refuse or mark per the rulings; returns the marks to carry into the
-    CSV header and the legend (empty for a clean session)."""
+    """Refuse an excluded, degenerate or fallback session unless allowed;
+    else return the marks for the CSV header and the legend (empty for a
+    clean session)."""
     marks = []
     excl = exclusion_reason(fit_manifest)
     if excl:
@@ -317,7 +316,6 @@ def gate(outing_id, fit_manifest, fallback_used, allow_status, allow_excluded):
                           "(--allow-status to plot it marked)")
         marks.append(f"fit {status}, kinematic fallback" if fallback_used else f"fit {status}")
     return marks
-
 
 
 def run_chain(session):
@@ -399,7 +397,6 @@ def capture_fit(session):
     return got
 
 
-
 def lines():
     from modules.stability_analysis import load_parameters
     from modules.tyre_fit_auto import L_K_BAND, L_K_EDGE, L_MU_CEILING, MU_EDGE_CONFIG_KEY
@@ -415,7 +412,6 @@ def lines():
         "mu_edge": L_MU_CEILING * (1.0 + p["tyre_fit_auto"][MU_EDGE_CONFIG_KEY]),
         "cs_filter_cutoff_hz": p["stability_estimation"]["cs_filter_cutoff_hz"],
     }
-
 
 
 def bin_trace(s, x, excluded, lo, hi, step=TRACE_BIN_M):
@@ -549,7 +545,7 @@ def corner_brackets(summaries):
     return {cid: (float(np.median([a for a, _ in v])), float(np.median([b for _, b in v]))) for cid, v in by.items()}
 
 
-MATCH_MIN_OVERLAP = 0.5   # of the shorter bracket; matching rule ruled 2026-10-26
+MATCH_MIN_OVERLAP = 0.5   # of the shorter bracket
 
 
 def match_corners(ref, other):

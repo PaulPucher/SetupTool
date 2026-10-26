@@ -1,5 +1,5 @@
-# On-disk cache of the full pipeline result (state/cs/stab/fz/ls/slip/
-# forces/corners), next to the DB summary cache. The DB only holds
+# On-disk cache of the full pipeline result (state, cs, stab, fz, slip,
+# forces, corners, events, setup layers), next to the DB summary cache. The DB only holds
 # summaries; graphs and trace dialogs need the arrays.
 #
 # One gzip pickle per outing: small identity header first, then payload.
@@ -18,9 +18,10 @@ SIDECAR_GZIP_COMPRESSLEVEL = 6  # gzip default, untuned
 
 # same 8 fields as the DB-cache check (outing_form._try_render_cached_analysis)
 # + format version; compared in order before the payload is unpickled.
-# estimator_settings (R2): the Settings estimator inputs, from
-# accuracy_resolution.resolve_estimator_settings; a sidecar written before
-# it existed misses on it.
+# estimator_settings: the Settings estimator inputs, from
+# accuracy_resolution.resolve_estimator_settings. accuracy_cap is always None
+# since every analysis runs at the best available level; it stays in the
+# identity so existing sidecars keep matching.
 IDENTITY_FIELDS = (
     "schema_version", "csv_path", "accuracy_cap", "resolved_vehicle_snapshot",
     "sideslip_source", "grid_rate_hz", "lap_filter", "estimator_settings", "sidecar_format_version",
