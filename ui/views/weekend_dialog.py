@@ -3,10 +3,11 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QComboBox,
-    QPushButton, QDateEdit, QWidget
+    QPushButton, QDateEdit, QWidget, QMessageBox
 )
 from PyQt6.QtCore import Qt, QDate
 from models.base import Session
+from models.outing import Outing
 from models.raceweekend import RaceWeekend
 from ui.style import BAD, PANEL_ALT, TEXT_MUTED
 
@@ -132,7 +133,19 @@ class WeekendDialog(QDialog):
         self.accept()
     
     def _delete(self):
+        # A weekend with outings is refused, not deleted together with them:
+        # the outings carry stored analyses and setup sheets that one click
+        # must not wipe. Single outings are deleted from the outing form.
         session = Session()
+        n_outings = session.query(Outing).filter(Outing.race_weekend_id == self.weekend.id).count()
+        if n_outings:
+            session.close()
+            QMessageBox.warning(
+                self, "Delete race weekend / test",
+                f"This race weekend / test still has {n_outings} outing{'s' if n_outings != 1 else ''}. "
+                "Delete them first; nothing was deleted.",
+            )
+            return
         weekend = session.get(RaceWeekend, self.weekend.id)
         session.delete(weekend)
         session.commit()

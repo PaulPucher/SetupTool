@@ -13,7 +13,7 @@ from tools.thesis_figures import common
 
 SCRIPT = "tab_sessions"
 COLUMNS = ("label", "track", "session_type", "driver_code", "analysis_laps", "total_laps", "n_corners",
-           "estimation_path", "path_reason", "health_score")
+           "estimation_path", "path_reason", "fit_status", "health_score")
 
 
 def _not_analysable(session):
@@ -49,14 +49,18 @@ def collect_rows(outings):
                 continue
             base.update(analysis_laps=len(session["ident"]["lap_filter"]),
                         n_corners=len({c.get("stable_corner_id") for c in parsed.get("corners", [])}),
-                        estimation_path="not analysable", path_reason=na, health_score=float("nan"))
+                        estimation_path="not analysable", path_reason=na, fit_status="-",
+                        health_score=float("nan"))
         else:
             path, reason = common.estimation_path(payload["fit_manifest"], payload["fallback_used"],
                                                   payload["fallback_reason"])
+            status, detail = common.fit_status(payload["fit_manifest"])
             gate = payload.get("gate_verdict") or {}
             base.update(analysis_laps=len(payload["lap_filter"]),
                         n_corners=len({s["stable_corner_id"] for s in payload["summaries"]}),
                         estimation_path=path, path_reason=reason or "-",
+                        # ";" inside the field: the CSV writer does not quote
+                        fit_status=status + (f" ({detail.replace(',', ';')})" if detail else ""),
                         health_score=float(gate["health_score"]) if gate.get("health_score") is not None
                         else float("nan"))
         rows.append((o, base))
@@ -73,14 +77,15 @@ def build(outings, tag="dev", out=None):
     common.write_csv(f"{data_dir}/{SCRIPT}.csv", cols,
                      common.meta(SCRIPT, outings, tag, health_score="NIS gate health score (fraction of windows "
                                  "in band); empty without an observer"))
-    header = ["Session", "Track", "Type", "Driver", "Laps", "Corners", "Estimation", "Health"]
+    header = ["Session", "Track", "Type", "Driver", "Laps", "Corners", "Estimation", "Tyre fit", "Health"]
     body = []
     for _o, b in rows:
         path = b["estimation_path"] + (f" ({b['path_reason']})" if b["path_reason"] != "-" else "")
         health = f"{b['health_score']:.2f}" if b["health_score"] == b["health_score"] else "--"
         body.append([common.tex_escape(x) for x in (b["label"], b["track"], b["session_type"], b["driver_code"])]
-                    + [f"{b['analysis_laps']}/{b['total_laps']}", str(b["n_corners"]), common.tex_escape(path), health])
-    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l l l l c c X c")
+                    + [f"{b['analysis_laps']}/{b['total_laps']}", str(b["n_corners"]), common.tex_escape(path),
+                       common.tex_escape(b["fit_status"].replace(";", ",")), health])
+    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l l l l c c X X c")
     return cols
 
 

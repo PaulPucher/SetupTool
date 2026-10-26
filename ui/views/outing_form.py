@@ -257,6 +257,9 @@ class OutingForm(QWidget):
         self.corner_rows = []
         self.parsed_data = None
         self.loaded_csv_path = None
+        # set only by a confirmed Clear data: the one case where saving with
+        # no loaded file may drop the stored path and analysis
+        self._data_cleared = False
         self.stability_result = None
         # result + reason of the last cache attempt, for the status line; None
         # before any attempt
@@ -959,6 +962,7 @@ class OutingForm(QWidget):
         self.progress.close()
         self.parsed_data = result
         self.loaded_csv_path = self.loader_thread.path
+        self._data_cleared = False
         # no analysis state from the previous file. Pipeline cache not reset --
         # it's keyed by csv_path.
         self.stability_result = None
@@ -1012,6 +1016,7 @@ class OutingForm(QWidget):
         # Back without Save discards it
         self.parsed_data = None
         self.loaded_csv_path = None
+        self._data_cleared = True
         self.stability_result = None
         self._sidecar_hit = None
         self._last_sidecar = None
@@ -3605,6 +3610,11 @@ class OutingForm(QWidget):
             csv_path=self.loaded_csv_path or "",
             analysis_data=self._analysis_data_json,
         )
+        if self.outing and self.loaded_csv_path is None and not self._data_cleared:
+            # no file loaded in this form (not found, load failed or still
+            # running): the stored path and analysis were never replaced, so
+            # they are left as they are instead of being overwritten empty
+            del field_values["csv_path"], field_values["analysis_data"]
 
         session = Session()
         if self.outing:

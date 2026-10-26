@@ -484,14 +484,20 @@ def write_table(path, script, header, rows, colspec, tabcolsep=None):
     write_tex(path, "\n".join(t) + "\n")
 
 
+# marginal_reason fragments as tyre_fit_auto writes them -> thesis words;
+# "r_sweep_" covers both selection codes (no setting in band / guard failed),
+# after which the default R is used
 _MARGINAL_WORDS = (("edge of the literature range", "K at the band edge"),
                    ("above the ceiling 2.0 within its uncertainty", "mu in the edge zone"),
-                   ("sign check", "sign check"), ("yaw_mismatch", "yaw mismatch"), ("R sweep", "default R"))
+                   ("sign check", "sign check"), ("yaw_mismatch", "yaw mismatch"), ("r_sweep_", "default R"))
 
 
 def estimation_path(fit_manifest, fallback_used, fallback_reason):
     """(path, reason) in plain words, as the thesis states it: excluded
-    (damper loads rejected) before kinematic fallback before observer."""
+    (damper loads rejected) before kinematic fallback before observer. The
+    reason only explains a path other than the observer; the fit's own
+    status is a separate statement (fit_status), since an observer session
+    can run on a marginal fit."""
     man = fit_manifest or {}
     excl = ((man.get("axle_load") or {}).get("damper_plausibility") or {})
     if excl and not excl.get("passed", True):
@@ -502,11 +508,19 @@ def estimation_path(fit_manifest, fallback_used, fallback_reason):
                else "tyre-curve fit not plausible" if "plausibility gate" in r
                else "tyre-curve fit degenerate")
         return "kinematic fallback", why
-    if man.get("status") == "marginal":
-        mr = man.get("marginal_reason") or ""
-        words = [w for k, w in _MARGINAL_WORDS if k in mr] or ["marginal fit"]
-        return "observer", "marginal: " + ", ".join(dict.fromkeys(words))
     return "observer", ""
+
+
+def fit_status(fit_manifest):
+    """(status, detail) of the tyre-curve fit: ok / marginal / degenerate,
+    "-" without a fit (kinematic source); detail names the marginal reasons."""
+    man = fit_manifest or {}
+    status = man.get("status") or "-"
+    if status != "marginal":
+        return status, ""
+    mr = man.get("marginal_reason") or ""
+    words = [w for k, w in _MARGINAL_WORDS if k in mr] or ["reason not mapped"]
+    return status, ", ".join(dict.fromkeys(words))
 
 
 _SYMPTOM_CODE = {"US": "U", "OS": "O", "INST": "I"}

@@ -13,7 +13,7 @@ from tools.thesis_figures import common
 from tools.thesis_figures.fig_k_sessions import collect
 
 SCRIPT = "tab_observer_health"
-COLUMNS = ("label", "health_score", "gate_verdict", "n_observer_resets", "n_floor_events", "estimation_path")
+COLUMNS = ("label", "health_score", "gate_verdict", "n_observer_resets", "n_floor_events", "estimation_path", "fit_status")
 
 
 def build(outings, tag="dev", allow_status=False, allow_excluded=False, out=None):
@@ -25,6 +25,7 @@ def build(outings, tag="dev", allow_status=False, allow_excluded=False, out=None
         gate = payload.get("gate_verdict") or {}
         path, reason = common.estimation_path(payload["fit_manifest"], payload["fallback_used"],
                                               payload["fallback_reason"])
+        status, detail = common.fit_status(payload["fit_manifest"])
         res = common.run_chain(session)
         resets = common.count_rising(res["reset_mask"])
         for k, v in (("label", common.session_label(session["row"])),
@@ -33,7 +34,8 @@ def build(outings, tag="dev", allow_status=False, allow_excluded=False, out=None
                      ("gate_verdict", gate.get("verdict") or "-"),
                      ("n_observer_resets", resets if resets is not None else "-"),
                      ("n_floor_events", len((payload.get("events") or {}).get("events") or [])),
-                     ("estimation_path", (path + (f" ({reason})" if reason else "")).replace(",", ";"))):
+                     ("estimation_path", (path + (f" ({reason})" if reason else "")).replace(",", ";")),
+                     ("fit_status", (status + (f" ({detail})" if detail else "")).replace(",", ";"))):
             cols[k].append(v)
     data_dir, plots_dir, _prefix = common.out_dirs(out)
     common.write_csv(f"{data_dir}/{SCRIPT}.csv", cols,
@@ -41,13 +43,14 @@ def build(outings, tag="dev", allow_status=False, allow_excluded=False, out=None
                                  sources="health score and verdict: stored gate_verdict; resets: rising edges of the "
                                          "observer reset mask, read-only re-run; floor events: stored events; path: "
                                          "stored fit record"))
-    header = ["Session", "Health score", "Gate", "Observer resets", "Floor events", "Estimation"]
+    header = ["Session", "Health score", "Gate", "Observer resets", "Floor events", "Estimation", "Tyre fit"]
     body = [[common.tex_escape(cols["label"][i]),
              f"{cols['health_score'][i]:.2f}" if cols["health_score"][i] == cols["health_score"][i] else "--",
              common.tex_escape(cols["gate_verdict"][i]), str(cols["n_observer_resets"][i]),
-             str(cols["n_floor_events"][i]), common.tex_escape(cols["estimation_path"][i])]
+             str(cols["n_floor_events"][i]), common.tex_escape(cols["estimation_path"][i]),
+             common.tex_escape(cols["fit_status"][i].replace(";", ","))]
             for i in range(len(cols["label"]))]
-    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l c c c c X")
+    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l c c c c X X")
     return cols
 
 

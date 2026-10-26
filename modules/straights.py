@@ -33,7 +33,12 @@ def steering_straights(state, laps, cfg):
     lap_id = np.full(t.size, -1)
     for l in valid:
         lap_id[(t >= l["start_time"]) & (t <= l["end_time"])] = l["lap_number"]
-    kerb = state["kerb_mask"] | state["kerb_smear_zone"]
+    # no usable az -> no kerb mask (None); exclude nothing, as the rest of
+    # the chain does, instead of failing the whole fit
+    kerb = np.zeros(t.size, dtype=bool)
+    for m in (state["kerb_mask"], state["kerb_smear_zone"]):
+        if m is not None:
+            kerb |= m
     bin_deg, k = cfg["l_straight_hist_bin_deg"], cfg["l_straight_sigma_factor"]
     an = lap_id >= 0
     v_min = float(np.floor(np.percentile(v[an], 25) / 5.0) * 5.0)
