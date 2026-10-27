@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem,
     QPushButton, QHeaderView
 )
+from PyQt6.QtCore import Qt
 from models.base import Session
 from models.driver import Driver
 from ui.views.driver_dialog import DriverDialog
@@ -47,9 +48,10 @@ class DriversView(QWidget):
             self.load_data()
 
     def _open_edit_dialog(self, row, column):
+        # the row's own id: after a header sort the row index no longer
+        # matches the query order
         session = Session()
-        drivers = session.query(Driver).order_by(Driver.name).all()
-        driver = drivers[row]
+        driver = session.get(Driver, self.table.item(row, 0).data(Qt.ItemDataRole.UserRole))
         session.close()
         dialog = DriverDialog(self, driver=driver)
         if dialog.exec():
@@ -74,6 +76,8 @@ class DriversView(QWidget):
         session = Session()
         drivers = session.query(Driver).order_by(Driver.name).all()
 
+        # sorting off while filling, as in the weekend list
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(0)
 
         for driver in drivers:
@@ -81,5 +85,7 @@ class DriversView(QWidget):
             self.table.insertRow(row)
             self.table.setItem(row, 0, QTableWidgetItem(driver.name))
             self.table.setItem(row, 1, QTableWidgetItem(str(driver.driving_level) if driver.driving_level else ""))
+            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, driver.id)
 
+        self.table.setSortingEnabled(True)
         session.close()

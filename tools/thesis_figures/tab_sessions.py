@@ -33,7 +33,7 @@ def collect_rows(outings):
     rows, problems = [], []
     for o in outings:
         try:
-            session = common.load_session(o)
+            session = common.load_session(o, allow_no_grid=True)
         except common.Refused as e:
             problems.append(str(e))
             continue
@@ -41,9 +41,13 @@ def collect_rows(outings):
         base = {"label": common.session_label(row), "track": parsed["metadata"].get("TrackName") or "-",
                 "session_type": row["session_type"] or "-", "driver_code": codes.get(row["driver_id"], "-"),
                 "total_laps": len(parsed["laps"])}
-        payload, why = common.stored_payload(session)
+        # no grid rate -> the app refuses the file before any estimator runs
+        grid_error = session["ident"]["grid_error"]
+        payload, why = (None, None) if grid_error else common.stored_payload(session)
         if payload is None:
-            na = _not_analysable(session)
+            # ";" for the message's commas: the CSV writer does not quote
+            na = (("no common grid rate: " + grid_error.split(" -- ")[0]).replace(",", ";") if grid_error
+                  else _not_analysable(session))
             if na is None:
                 problems.append(f"outing {o}: {why}")
                 continue

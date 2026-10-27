@@ -83,6 +83,17 @@ def write_sidecar(outing_id, identity, payload):
         return False
 
 
+def delete_sidecar(outing_id):
+    """With its outing. SQLite may hand a deleted outing's id to the next
+    new one, which would then find a stranger's sidecar. Never raises."""
+    try:
+        os.remove(_sidecar_path(outing_id))
+    except FileNotFoundError:
+        pass
+    except Exception:
+        print(traceback.format_exc())
+
+
 def load_sidecar(outing_id, expected_identity):
     """(payload, None) on identity match, else (None, reason) -- reason is
     missing file, corrupt file, or the first mismatching field. Never raises;

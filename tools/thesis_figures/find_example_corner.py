@@ -36,6 +36,8 @@ def candidates(outing):
     payload, why = common.stored_payload(session)
     if payload is None:
         raise common.Refused(f"outing {outing}: {why}")
+    # gate first: a degenerate fit may carry no axles to read the range from
+    common.gate(outing, payload["fit_manifest"], payload["fallback_used"], False, False)
     fit_range = {ax: payload["fit_manifest"]["axles"][name]["visited_alpha_p99_deg"]
                  for ax, name in (("f", "front"), ("r", "rear"))}
     res = common.run_chain(session)

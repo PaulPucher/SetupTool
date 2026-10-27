@@ -911,15 +911,14 @@ class OutingForm(QWidget):
             self.plot_curves[key].setData(
                 plot_time.tolist(), plot_data.tolist()
             )
-            first_key = self.plot_channels[0]["key"]
-        if first_key in self.plot_items:
-            self.plot_items[first_key].setXRange(
-                0, (end_t - start_t) if start_t is not None else
-                max((ch["time"][-1] - ch["time"][0])
-                    for ch in channels.values()
-                    if ch["time"] is not None and len(ch["time"]) > 0),
-                padding=0.02
-            )
+        # the x range follows the lap, or the longest channel; a file whose
+        # channels carry no time at all leaves the range as it is
+        first_key = self.plot_channels[0]["key"]
+        spans = [ch["time"][-1] - ch["time"][0] for ch in channels.values()
+                 if ch["time"] is not None and len(ch["time"]) > 0]
+        x_max = (end_t - start_t) if start_t is not None else (max(spans) if spans else None)
+        if first_key in self.plot_items and x_max is not None:
+            self.plot_items[first_key].setXRange(0, x_max, padding=0.02)
         for ch_config in self.plot_channels:
             if ch_config["key"] in self.plot_items:
                 self.plot_items[ch_config["key"]].enableAutoRange(axis='y')
@@ -3578,11 +3577,22 @@ class OutingForm(QWidget):
 
     def _delete_outing(self):
         if self.outing:
+            from PyQt6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, "Delete outing",
+                "Delete this outing with its setup sheets, feedback and stored analysis? "
+                "This cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
             from sqlalchemy import delete
+            from modules.pipeline_sidecar import delete_sidecar
             session = Session()
             session.execute(delete(Outing).where(Outing.id == self.outing.id))
             session.commit()
             session.close()
+            delete_sidecar(self.outing.id)
         self.on_back()
 
     def _persist_outing(self):

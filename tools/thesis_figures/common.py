@@ -234,9 +234,13 @@ def _loads(s):
         return None
 
 
-def load_session(outing_id):
+def load_session(outing_id, allow_no_grid=False):
     """Outing row, resolved file, parsed data (speed classes from the current
-    boundaries, as the app does on load) and the app's analysis identity."""
+    boundaries, as the app does on load) and the app's analysis identity.
+    A file the grid-rate check refuses (no usable fast channel, or below the
+    rate floor) is refused here naming the outing; allow_no_grid keeps the
+    session with grid_rate_hz None and the message in ident["grid_error"],
+    for a table that lists it as not analysable."""
     from modules.accuracy_resolution import apply_resolved_vehicle, resolve_accuracy
     from modules.corner_analysis import reclassify_speed_classes
     from modules.csv_parser import load_channels_config, parse_csv
@@ -253,9 +257,15 @@ def load_session(outing_id):
     resolved = resolve_accuracy(raw, setup, None)   # best available, as the app
     laps = parsed["laps"]
     valid = sorted(l["lap_number"] for l in laps if l.get("is_valid_for_analysis"))
+    try:
+        grid_rate_hz, grid_error = _resolve_grid_rate(parsed["channels"], raw)[0], None
+    except ValueError as e:
+        if not allow_no_grid:
+            raise Refused(f"outing {outing_id}: {e}")
+        grid_rate_hz, grid_error = None, str(e)
     ident = {"cap": None, "resolved": resolved,
              "sideslip_source": raw["stability_estimation"].get("sideslip_source", "kinematic"),
-             "grid_rate_hz": _resolve_grid_rate(parsed["channels"], raw)[0],
+             "grid_rate_hz": grid_rate_hz, "grid_error": grid_error,
              "lap_filter": valid or sorted(l["lap_number"] for l in laps)}
     return {"row": row, "path": path, "parsed": parsed, "params": apply_resolved_vehicle(raw, resolved),
             "ident": ident}

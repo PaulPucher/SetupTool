@@ -100,6 +100,9 @@ class OutingsView(QWidget):
             .all()
         )
 
+        # sorting off while filling: with it on, every setItem re-sorts and the
+        # rest of the row lands on another row
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(0)
 
         for outing in outings:
@@ -113,12 +116,20 @@ class OutingsView(QWidget):
             self.table.setItem(row, 5, QTableWidgetItem(outing.date_time.strftime("%d.%m.%Y %H:%M")))
             self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, outing.id)
 
+        self.table.setSortingEnabled(True)
         session.close()
     
     def _open_edit_dialog(self):
         dialog = WeekendDialog(self, weekend=self.weekend)
         if dialog.exec():
-            self.weekend = Session().get(RaceWeekend, self.weekend.id)
+            session = Session()
+            weekend = session.get(RaceWeekend, self.weekend.id)
+            session.close()
+            if weekend is None:
+                # deleted in the dialog: this view has nothing left to show
+                self.on_back()
+                return
+            self.weekend = weekend
             self.title.setText(f"{self.weekend.track} - {self.weekend.series} {self.weekend.year}")
 
     def _open_new_outing(self):

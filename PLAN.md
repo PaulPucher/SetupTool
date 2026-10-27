@@ -2,9 +2,9 @@
 
 ### NOW
 
-Rewritten 2026-10-26b (after work order BUG-1, branch new-laps). The
+Rewritten 2026-10-27 (after work order BUG-2, branch new-laps). The
 header, REPO STATE and NEXT items 1 and 3 this replaces are preserved
-verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-26b STATUS
+verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-27 STATUS
 rewrite)"; RULED / DONE is kept and extended; older NOW items remain under
 the earlier superseded sections. The rest of this block is unchanged.
 
@@ -24,24 +24,27 @@ down is record, not instruction: its "NOT committed", "NEXT" and
 
 REPO STATE
 - main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
-  new-laps HEAD 91132ec ("CLEAN-2: dead code, stale comments and config
-  prose removed, thesis_data and yaw_damping deleted; behaviour-neutral
-  (goldens identical)"): CLEAN-2 committed.
+  new-laps HEAD 91132ec ("CLEAN-2: ..."): CLEAN-2 committed.
   NOT committed since 91132ec: work order BUG-1 part A (modules/straights.py,
   ui/views/outing_form.py, ui/views/weekend_dialog.py,
   tools/thesis_figures/common.py, tab_sessions.py, tab_observer_health.py,
-  new tests/test_bug1_fixes.py) and its records (DECISIONS, thesis_notes
-  'ARB position in the damper load model', this STATUS).
+  tests/test_bug1_fixes.py) and work order BUG-2 items 1-5
+  (core/pdf_export.py, modules/pipeline_sidecar.py,
+  tools/thesis_figures/common.py, fig_k_sessions.py, find_example_corner.py,
+  tab_sessions.py, ui/views/drivers.py, outing_form.py, outings.py,
+  settings_view.py, weekends.py, tests/test_bug2_fixes.py) with their
+  records (DECISIONS, thesis_notes 'ARB position in the damper load model'
+  incl. the 2026-10-27 RULING line, this STATUS).
 - DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 27 (unchanged by
-  CLEAN-2 and BUG-1: goldens bit-identical apart from _meta).
+  CLEAN-2, BUG-1 and BUG-2: goldens bit-identical apart from _meta).
 - CHAIN, CLASSIFIER (D2 margins front 0.062 / rear 0.076), RECOMMENDATION:
   unchanged since schema 27.
 - DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
   data package (pending).
 - FIGURE CONFIG HASH (tools/thesis_figures/common.config_hash):
-  080ce6f672fb5910 (unchanged by BUG-1; the thesis tables tab_sessions and
-  tab_observer_health gain a "Tyre fit" column, re-export needed).
-- TESTS: full suite 2026-10-26 after BUG-1 (schema 27): 445 passed, 1 skipped, 1 xfailed (34 min; +7 tests in tests/test_bug1_fixes.py). Goldens NBR 29 + LC 32 bit-identical apart from _meta, test_stability.py matches on both.
+  080ce6f672fb5910 (unchanged). tab_sessions and tab_observer_health
+  re-exported 2026-10-27 with the "Tyre fit" column (run tag r2).
+- TESTS: full suite 2026-10-27 after BUG-2 (schema 27): 460 passed, 1 skipped, 1 xfailed (34 min; +15 tests in tests/test_bug2_fixes.py). Goldens NBR 29 + LC 32 bit-identical apart from _meta, test_stability.py matches on both.
 - diagnostics/: 32 scripts (unchanged).
 
 RULED / DONE SINCE THE LAST REWRITE
@@ -178,86 +181,92 @@ RULED / DONE SINCE THE LAST REWRITE
   recommendation change on either session; wiring NOT changed (review
   instance ruling). Record: thesis_notes 'ARB position in the damper load
   model'.
+- Work order BUG-2 (author EXECUTE 2026-10-27), done, uncommitted. Item 1
+  B2: review-instance ruling, ARB position NOT wired (position 4 = Level 1
+  default for the per-wheel split; axle loads and all results independent,
+  BUG-1 max 7.3e-12 N; L != R sheets on outings 11, 12, 15, 16 would need an
+  unanchored combination rule). Items 2-3, each with a test that failed
+  first (tests/test_bug2_fixes.py, 15 tests; real NBR JST 29 file with
+  channels graded failed, real fit L degenerate manifest, app-DB payloads
+  and setup sheet read-only): B5, B8, B15a, B16, B18 (crash), B22, B7,
+  outing delete confirmation + sidecar removal (silent edit / data loss).
+  B22: Save writes a field only when its widget changed since loading and a
+  file only when a value in it changed (Section 3 guard now the same rule:
+  Python round() and Qt round 0.125 differently); no stored result or cache
+  identity affected, but every earlier Save reflowed parameters.json /
+  channels.json and so changed the figure config_hash. Item 4: tables
+  re-exported, name guard 0 hits. DEVIATION (standing rule): both table
+  scripts call common.write_label_map, so the re-export rewrote the
+  git-ignored tools/thesis_figures/local/label_map_r2.txt (old 130-byte file
+  of 2026-10-26 11:35 overwritten, no copy; new one maps outings 11-16) --
+  reported to the author, local/ not touched otherwise. Item 5: report only
+  (wrong-result group), in NEXT item 3.
 
 NEXT
-1. Author: app check of BUG-1 (weekend delete with outings -> message,
-   nothing deleted; reopen an outing whose file is not found, Back -> path
-   and stored analysis still there; Clear data + Save still drops them),
-   then commit. CLEAN-2 app check: status not recorded (CLEAN-2 committed
-   in 91132ec).
+1. Author: app check of BUG-1 and BUG-2, then commit. BUG-1: weekend
+   delete with outings -> message, nothing deleted; reopen an outing whose
+   file is not found, Back -> path and stored analysis still there; Clear
+   data + Save still drops them. BUG-2: header sort then double-click opens
+   the clicked weekend / driver / outing; Edit -> Delete of an empty
+   weekend from its outings list goes back to the weekend list; outing
+   Delete asks first; Settings Save without an edit says "Nothing changed,
+   nothing saved." and leaves both config files untouched; PDF export of an
+   outing named with "<" or "&" works.
 2. Carried from the 2026-10-24a NEXT: app check of UI-1 (status not
    recorded since; UI-1 is committed in 3d82ecd); effort classes camber /
    springs vs Setup_change_overview; TC int / tim mapping (team);
    PRODUCTION.md 202 Trzesniowski.2019b; clean data package (D8 coding
    scheme first); corner importance weighting (TE p. 254) not implemented
    (limitation); PRODUCTION.md 10 display wording.
-3. SUSPECTED BUGS (CLEAN-2 inventory 2026-10-26; BUG-1 fixed B1, B3, B4,
-   B6 and measured B2). REMAINING 20, sorted by severity, one-line proposed
-   fix each, NOT fixed (next work order):
-   B2 ARB position not wired (measured, no result effect while all four
-   damper corners are valid): review-instance ruling -- wire the setup-sheet
-   position (Level 4 lookup) or record the per-wheel split as Level 1.
-   CRASH
-   B5 outing_form plot update: first_key unbound / max() of an empty
-      sequence when every plot channel is missing -- set first_key before
-      the loop, skip setXRange without any time data.
-   B8 outings.py Edit then Delete in the weekend dialog -> AttributeError on
-      None -- if the weekend is gone after exec(), go back to the weekend
-      list; close the Session opened there.
-   B15a tab_sessions.py: ValueError from _resolve_grid_rate aborts the whole
-      table -- catch it in collect_rows and write a "not analysable" row
-      with the message.
-   B16 fig_k_sessions.py KeyError (degenerate / kinematic with
-      --allow-status), IndexError (--separator-after not in --outings),
-      short --labels drop sessions; find_example_corner.py reads axles
-      before the gate -- read via .get and raise a named Refused; validate
-      the arguments; gate first.
-   B18 core/pdf_export.py: "&" or "<" in an outing / driver name or note
-      breaks reportlab markup -> "Save failed" -- escape text before
-      Paragraph (xml.sax.saxutils.escape).
-   DATA LOSS / SILENT EDIT
-   B22 settings_view Save rewrites Section 1/2 values rounded to the spinbox
-      decimals (an estimator-input edit without a schema bump) -- write a
-      field only when it differs from config at the widget precision (the
-      Section 3 guard).
-   B7 weekends.py / drivers.py / outings.py: after a header sort a
-      double-click opens (and Back saves) the wrong weekend / driver /
-      outing -- keep the DB id in each row's UserRole and read it; fill
-      rows with sorting disabled.
-   (smaller) _delete_outing: no confirmation, leaves the outing's pipeline
-      sidecar -- confirmation dialog, delete the sidecar too.
+3. SUSPECTED BUGS (CLEAN-2 inventory 2026-10-26). FIXED: BUG-1 B1, B3, B4,
+   B6; BUG-2 B5, B8, B15a, B16, B18, B22, B7 and the outing delete. CLOSED:
+   B2 (review-instance ruling 2026-10-27, not wired; DECISIONS, thesis_notes
+   'ARB position in the damper load model'). REMAINING, not fixed; the BUG-2
+   item-5 report says per bug whether a fix changes a computed or stored
+   value:
    WRONG RESULT
-   B13 wheel_loads session axle-total fit: one axle fully invalid -> NaN
-      lstsq, NaN c_session and a NaN "reconstructed" corner -- fit on finite
-      samples only; skip the fit (static totals) when an axle has no valid
-      corner.
-   B17 fig_example_fit.py marks a fit ok with powell_converged / sign_ok
-      False -- apply the same status rule as tyre_fit_auto.
-   B15b common.write_csv does not quote: a field with a comma shifts the
-      columns (tab_sessions path_reason) -- write with the csv module
-      (quotes only where needed, other files byte-identical).
-   B9 outing_form _on_csv_loaded: a second file keeps the previous file's
-      verdict cards, status labels, setup rows, schema-mismatch flag --
-      reset them as _reset_data_state does before rendering.
-   B12 corner_trace_dialog: early returns keep _export_data and the track
-      map -> "Export figure" saves the previous corner / lap -- clear both
-      at every early return.
-   B11 corner_trace_dialog red band = stability argmin, verdict phase from
-      the classifier -- display ruling: tint the verdict phase, or label the
-      band "lowest stability".
-   B10 MODERATE_CSF / STRONG_CSR drawn as threshold lines, no verdict use
-      (D2) -- display ruling: drop them or label "reference only".
-   B14 three defaults for a missing tyre_fit_mode (dormant) -- one default
-      constant, or refuse a config without the key.
-   B19 corner_analysis exit_4: argmax == 0 ambiguous (unverified on data)
-      -- test the first sample explicitly; census the 14 sessions first.
-   B20 corner_analysis NaN bracket edges at the lap_distance reset sort
-      undefined (unverified) -- drop or flag NaN-bracket clusters before
-      sorting; census first.
-   B21 canonical_speed_classes modal tie depends on PYTHONHASHSEED --
-      use corner_aggregation's tie rule (closest to medium, then lower).
-   B24 limit_events.detect_events output shape differs by return path --
-      same keys everywhere ("line", window_start_t None without slip).
+   B13 wheel_loads axle-total fit with one axle fully invalid -> NaN
+      c_session / NaN reconstructed corner. Changes values: yes, but only for
+      a session with exactly one axle without damper data; none of the
+      stored sessions has one (all have four damper corners or none), so no
+      stored value and no golden changes.
+   B17 fig_example_fit marks a fit ok with powell_converged / sign_ok False.
+      Changes values: no (exported figure text only).
+   B15b common.write_csv does not quote. Changes values: no analysis value;
+      the exported tab_sessions.csv row of PRC 2 still splits its path_reason
+      ("damper loads rejected, straight-line total ...") over two columns.
+   B9 a second file in the same form keeps the first file's verdict cards,
+      status labels, setup rows, schema-mismatch flag. Changes values: no
+      (display; _analysis_data_json is reset on load, so nothing stale is
+      saved).
+   B12 corner trace export after an early return saves the previous corner /
+      lap. Changes values: no (exported figure file only).
+   B11 trace dialog red tint = phase with the lowest yaw-stability median
+      (_worst_stab_phase), verdict phase from the classifier on CS. Changes
+      values: no (display ruling for the author).
+   B10 MODERATE_CSF and STRONG_CSR drawn as threshold lines; the classifier
+      reads only STRONG_CSF and MODERATE_CSR (D2). Changes values: no
+      (display ruling for the author).
+   B14 three defaults for a missing tyre_fit_mode. Changes values: no while
+      config carries the key (dormant).
+   B19 corner_analysis exit_4: argmax(post_steer <= half) == 0 means both
+      "not found" and "first post-apex sample already below half" -> the
+      second case takes the whole post-apex span. Changes values: unknown
+      until the check -- yes for every corner where it happens (exit_4 /
+      exit_5 bounds -> phase statistics -> stored summaries, possibly the
+      goldens). Check on data: per corner instance of the 14 sessions, count
+      post_steer[0] <= half_th (the ambiguous case) vs no sample below half.
+   B20 NaN bracket edges at the lap_distance reset make the cluster sort
+      order undefined. Changes values: unknown until the check -- yes where
+      a NaN edge occurs (cluster membership -> stable_corner_id -> stored
+      summaries). Check on data: per session, count corner instances with a
+      non-finite bracket_start_m / bracket_end_m and the clusters they enter.
+   B21 canonical_speed_classes modal tie depends on PYTHONHASHSEED. Changes
+      values: no (display label next to the corner number only).
+   B24 limit_events.detect_events output keys differ by return path. Changes
+      values: payload shape only for sessions without a tyre fit or with the
+      event layer disabled (keys added, no number); goldens unchanged (fit
+      path).
    COSMETIC
    B23 classifier marker "[stab thresh: kinematic-era, not re-derived]"
       wording -- name the source the thresholds were derived on (displayed
@@ -273,7 +282,11 @@ NEXT
    pit-fragment merge on the limiter alone (add the duration rule); reused
    lap numbers merge segments (split on gaps); straights int() truncation
    and convolve edge padding; nanmax of an all-NaN brake slice passes the
-   no-braking gate (all-NaN = no data); ".PDF" suffix check case-sensitive.
+   no-braking gate (all-NaN = no data); ".PDF" suffix check case-sensitive;
+   [2026-10-27] weekend delete of an EMPTY weekend has no confirmation;
+   config/parameters.json arb_position_fallback_note still says the
+   fallback applies only without a sheet value (now always, ruling B2) --
+   prose edit, changes the figure config_hash.
    Hardcoded tunables (list only): straights.py percentile / 5 m/s / +/-20
    deg, wheel_loads._straight_masks 0.5 / 1.5 m/s^2,
    accuracy_resolution.MASS_CORNER_SUM_TOLERANCE, corner_trace_dialog
@@ -9492,6 +9505,148 @@ the top of this file; the SESSION PREAMBLE's sample-data line (7 laps) is
 superseded by CLAUDE.md (laps 0-5, analysis 1-4). The NEW DATA FILE checklist
 below stays live.]
 
+---
+
+## SUPERSEDED NOW-BLOCK CONTENT (2026-10-27 STATUS rewrite)
+
+Header, REPO STATE and NEXT items 1 and 3 (as written before the 2026-10-27 rewrite)
+
+Rewritten 2026-10-26b (after work order BUG-1, branch new-laps). The
+header, REPO STATE and NEXT items 1 and 3 this replaces are preserved
+verbatim under "SUPERSEDED NOW-BLOCK CONTENT (2026-10-26b STATUS
+rewrite)"; RULED / DONE is kept and extended; older NOW items remain under
+the earlier superseded sections. The rest of this block is unchanged.
+
+REPO STATE
+- main @ 21c032a, tag stable-2026-09-30 (production fallback) on it. Branch
+  new-laps HEAD 91132ec ("CLEAN-2: dead code, stale comments and config
+  prose removed, thesis_data and yaw_damping deleted; behaviour-neutral
+  (goldens identical)"): CLEAN-2 committed.
+  NOT committed since 91132ec: work order BUG-1 part A (modules/straights.py,
+  ui/views/outing_form.py, ui/views/weekend_dialog.py,
+  tools/thesis_figures/common.py, tab_sessions.py, tab_observer_health.py,
+  new tests/test_bug1_fixes.py) and its records (DECISIONS, thesis_notes
+  'ARB position in the damper load model', this STATUS).
+- DEFAULT ANALYSIS PATH: fit L, ANALYSIS_SCHEMA_VERSION 27 (unchanged by
+  CLEAN-2 and BUG-1: goldens bit-identical apart from _meta).
+- CHAIN, CLASSIFIER (D2 margins front 0.062 / rear 0.076), RECOMMENDATION:
+  unchanged since schema 27.
+- DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).
+- FIGURE CONFIG HASH (tools/thesis_figures/common.config_hash):
+  080ce6f672fb5910 (unchanged by BUG-1; the thesis tables tab_sessions and
+  tab_observer_health gain a "Tyre fit" column, re-export needed).
+- TESTS: full suite 2026-10-26 after BUG-1 (schema 27): 445 passed, 1 skipped, 1 xfailed (34 min; +7 tests in tests/test_bug1_fixes.py). Goldens NBR 29 + LC 32 bit-identical apart from _meta, test_stability.py matches on both.
+- diagnostics/: 32 scripts (unchanged).
+
+NEXT (items 1 and 3)
+1. Author: app check of BUG-1 (weekend delete with outings -> message,
+   nothing deleted; reopen an outing whose file is not found, Back -> path
+   and stored analysis still there; Clear data + Save still drops them),
+   then commit. CLEAN-2 app check: status not recorded (CLEAN-2 committed
+   in 91132ec).
+3. SUSPECTED BUGS (CLEAN-2 inventory 2026-10-26; BUG-1 fixed B1, B3, B4,
+   B6 and measured B2). REMAINING 20, sorted by severity, one-line proposed
+   fix each, NOT fixed (next work order):
+   ~~B2 ARB position not wired~~ CLOSED 2026-10-27 (review-instance ruling,
+   BUG-2 item 1): not wired; position 4 stays the Level 1 default for the
+   per-wheel split; axle loads and all results independent of it (BUG-1,
+   max 7.3e-12 N). Records: DECISIONS, thesis_notes 'ARB position in the
+   damper load model' (RULING line). The hold note of the same day read:
+   | B2 ARB position not wired (measured, no result effect while all four
+   | damper corners are valid): review-instance ruling -- wire the setup-sheet
+   | position (Level 4 lookup) or record the per-wheel split as Level 1.
+   | [2026-10-27, work order BUG-2 item 1] ON HOLD, nothing edited. The
+   | stored sheets (data/setuptool.db) show 0.0 = not entered (outings 1, 2,
+   | 6, 7, 8), and outings 11, 12, 15 and 16 have front FL 4 / FR 3: left
+   | and right differ on one axle, while the damper model takes one ARB rate
+   | per axle (wheel_loads.py:167-168). Author 2026-10-27: Q1 (L != R
+   | combination rule, Tier A, no anchor) and Q2 (where the fallback flag
+   | goes: fit manifest -> golden key + schema 28, or resolved_accuracy only
+   | -> goldens identical, cache identity catches sheet edits) go to the
+   | review instance.
+   CRASH
+   B5 outing_form plot update: first_key unbound / max() of an empty
+      sequence when every plot channel is missing -- set first_key before
+      the loop, skip setXRange without any time data.
+   B8 outings.py Edit then Delete in the weekend dialog -> AttributeError on
+      None -- if the weekend is gone after exec(), go back to the weekend
+      list; close the Session opened there.
+   B15a tab_sessions.py: ValueError from _resolve_grid_rate aborts the whole
+      table -- catch it in collect_rows and write a "not analysable" row
+      with the message.
+   B16 fig_k_sessions.py KeyError (degenerate / kinematic with
+      --allow-status), IndexError (--separator-after not in --outings),
+      short --labels drop sessions; find_example_corner.py reads axles
+      before the gate -- read via .get and raise a named Refused; validate
+      the arguments; gate first.
+   B18 core/pdf_export.py: "&" or "<" in an outing / driver name or note
+      breaks reportlab markup -> "Save failed" -- escape text before
+      Paragraph (xml.sax.saxutils.escape).
+   DATA LOSS / SILENT EDIT
+   B22 settings_view Save rewrites Section 1/2 values rounded to the spinbox
+      decimals (an estimator-input edit without a schema bump) -- write a
+      field only when it differs from config at the widget precision (the
+      Section 3 guard).
+   B7 weekends.py / drivers.py / outings.py: after a header sort a
+      double-click opens (and Back saves) the wrong weekend / driver /
+      outing -- keep the DB id in each row's UserRole and read it; fill
+      rows with sorting disabled.
+   (smaller) _delete_outing: no confirmation, leaves the outing's pipeline
+      sidecar -- confirmation dialog, delete the sidecar too.
+   WRONG RESULT
+   B13 wheel_loads session axle-total fit: one axle fully invalid -> NaN
+      lstsq, NaN c_session and a NaN "reconstructed" corner -- fit on finite
+      samples only; skip the fit (static totals) when an axle has no valid
+      corner.
+   B17 fig_example_fit.py marks a fit ok with powell_converged / sign_ok
+      False -- apply the same status rule as tyre_fit_auto.
+   B15b common.write_csv does not quote: a field with a comma shifts the
+      columns (tab_sessions path_reason) -- write with the csv module
+      (quotes only where needed, other files byte-identical).
+   B9 outing_form _on_csv_loaded: a second file keeps the previous file's
+      verdict cards, status labels, setup rows, schema-mismatch flag --
+      reset them as _reset_data_state does before rendering.
+   B12 corner_trace_dialog: early returns keep _export_data and the track
+      map -> "Export figure" saves the previous corner / lap -- clear both
+      at every early return.
+   B11 corner_trace_dialog red band = stability argmin, verdict phase from
+      the classifier -- display ruling: tint the verdict phase, or label the
+      band "lowest stability".
+   B10 MODERATE_CSF / STRONG_CSR drawn as threshold lines, no verdict use
+      (D2) -- display ruling: drop them or label "reference only".
+   B14 three defaults for a missing tyre_fit_mode (dormant) -- one default
+      constant, or refuse a config without the key.
+   B19 corner_analysis exit_4: argmax == 0 ambiguous (unverified on data)
+      -- test the first sample explicitly; census the 14 sessions first.
+   B20 corner_analysis NaN bracket edges at the lap_distance reset sort
+      undefined (unverified) -- drop or flag NaN-bracket clusters before
+      sorting; census first.
+   B21 canonical_speed_classes modal tie depends on PYTHONHASHSEED --
+      use corner_aggregation's tie rule (closest to medium, then lower).
+   B24 limit_events.detect_events output shape differs by return path --
+      same keys everywhere ("line", window_start_t None without slip).
+   COSMETIC
+   B23 classifier marker "[stab thresh: kinematic-era, not re-derived]"
+      wording -- name the source the thresholds were derived on (displayed
+      text, author).
+   B25 csv_parser._verify_laps finds the out lap by lap_number 0 -- use
+      is_outlap.
+   SMALLER (same inventory, list only): stacked views never removed from
+   the QStackedWidget (remove on back); common.py os.chdir at import
+   (resolve paths from ROOT); setup_engine reuses min_repeat_fraction for
+   the TC majority (own key -- Tier B, ruling); feedback row i ->
+   stable_corner_id i+1 (record); csv_parser event-zero guard compares
+   file-unit data to a config-unit range (convert first); trailing
+   pit-fragment merge on the limiter alone (add the duration rule); reused
+   lap numbers merge segments (split on gaps); straights int() truncation
+   and convolve edge padding; nanmax of an all-NaN brake slice passes the
+   no-braking gate (all-NaN = no data); ".PDF" suffix check case-sensitive.
+   Hardcoded tunables (list only): straights.py percentile / 5 m/s / +/-20
+   deg, wheel_loads._straight_masks 0.5 / 1.5 m/s^2,
+   accuracy_resolution.MASS_CORNER_SUM_TOLERANCE, corner_trace_dialog
+   RESET_DROP_M, outing_form STAB_COLOUR_WARN_FRACTION, csv_parser
+   file_max > 5.
 ---
 
 ## SUPERSEDED NOW-BLOCK CONTENT (2026-10-26b STATUS rewrite)

@@ -29,6 +29,13 @@ def collect(outings, allow_status=False, allow_excluded=False):
                 continue
             man = payload["fit_manifest"] or {}
             marks = common.gate(o, man, payload["fallback_used"], allow_status, allow_excluded)
+            # --allow-status lets a degenerate fit through the gate, but one
+            # that stopped before the curve fit has no K or mu to plot
+            missing = [k for k in ("axles", "k_band_zone", "mu_ceiling_zone") if not man.get(k)]
+            if missing:
+                problems.append(f"outing {o}: fit status {man.get('status')!r} has no fitted curve to plot "
+                                f"(no {', '.join(missing)})")
+                continue
             rows.append((o, session, man, marks))
         except common.Refused as e:
             problems.append(str(e))
@@ -39,6 +46,11 @@ def collect(outings, allow_status=False, allow_excluded=False):
 
 def build(outings, labels=None, separator_after=None, tag="dev", allow_status=False, allow_excluded=False,
           out=None):
+    # argument errors before any session is loaded or file written
+    if labels is not None and len(labels) != len(outings):
+        raise common.Refused(f"--labels gives {len(labels)} labels for {len(outings)} outings")
+    if separator_after is not None and separator_after not in outings:
+        raise common.Refused(f"--separator-after {separator_after} is not one of --outings")
     rows = collect(outings, allow_status, allow_excluded)
     lin = common.lines()
     # neutral labels '<code> <n>' (anonymisation rule); a label given on the
@@ -65,7 +77,7 @@ def build(outings, labels=None, separator_after=None, tag="dev", allow_status=Fa
                                  source="stored payloads (identity-valid)"))
     sep = None
     if separator_after is not None:
-        sep = [i for i, o in enumerate(outings, start=1) if o == separator_after][0] + 0.5
+        sep = outings.index(separator_after) + 1.5
     common.write_tex(f"{plots_dir}/{SCRIPT}.tex", _tex(prefix, len(rows), lin, cols, sep))
     return cols
 

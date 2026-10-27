@@ -2,6 +2,7 @@
 # repetition rule and thresholds (parameters.json), speed-class thresholds
 # (channels.json). Only reads/writes the JSON and clears the loader caches.
 
+import copy
 import datetime
 import json
 import os
@@ -447,8 +448,18 @@ class SettingsView(QWidget):
         if default is not None:
             self.section3_widgets[key].setValue(float(default))
 
+    def _edited(self, key, widget):
+        # A user edit is a widget that no longer shows what it showed after
+        # loading. Comparing with the config value instead fails: the spinbox
+        # rounds to its decimals (Qt rounds 0.125 to 0.13, Python's round()
+        # gives 0.12), so an untouched field would count as edited and be
+        # written back rounded.
+        return abs(widget.value() - self._shown_on_load[key]) > 1e-9
+
     def _load_from_disk(self):
         # fresh file read, not the cached loaders -- show what's on disk
+        # widget values right after loading, keyed like the widget dicts
+        self._shown_on_load = {}
         with open(PARAMETERS_PATH, encoding="utf-8") as f:
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
@@ -459,6 +470,7 @@ class SettingsView(QWidget):
             widget.blockSignals(True)
             widget.setValue(float(_get_path(params, spec["path"])))
             widget.blockSignals(False)
+            self._shown_on_load[spec["path"]] = widget.value()
 
         sources = {"parameters": params, "channels": channels}
         for key, widget in self.section2_widgets.items():
@@ -470,6 +482,7 @@ class SettingsView(QWidget):
             else:
                 widget.setValue(float(value))
             widget.blockSignals(False)
+            self._shown_on_load[key] = widget.value()
 
         cls_cfg = params["classification"]
         active_source = params["stability_estimation"].get("sideslip_source", "kinematic")
@@ -482,6 +495,7 @@ class SettingsView(QWidget):
             widget.blockSignals(True)
             widget.setValue(float(entry["value"]))
             widget.blockSignals(False)
+            self._shown_on_load[key] = widget.value()
             widget.setToolTip(entry.get("derived_from", ""))
             manual = is_manual(entry)
             self._section3_derived_defaults[key] = entry.get("derived_default")
@@ -512,25 +526,29 @@ class SettingsView(QWidget):
             params = json.load(f)
         with open(CHANNELS_PATH, encoding="utf-8") as f:
             channels = json.load(f)
+        params_on_disk, channels_on_disk = copy.deepcopy(params), copy.deepcopy(channels)
 
+        # A field is written only when the user changed it: an untouched field
+        # reads back rounded to its decimals, and writing that back would edit
+        # an estimator input nobody touched (_edited).
         section1_changed = False
         for spec in SECTION1_FIELDS:
             widget = self.section1_widgets[spec["path"]]
-            old_value = _get_path(params, spec["path"])
-            new_value = widget.value()
-            if abs(float(old_value) - new_value) > 1e-9:
-                section1_changed = True
-            _set_path(params, spec["path"], new_value)
+            if not self._edited(spec["path"], widget):
+                continue
+            section1_changed = True
+            _set_path(params, spec["path"], widget.value())
 
         from modules.accuracy_resolution import resolve_estimator_settings
         estimator_before = resolve_estimator_settings(params, channels)
         sources = {"parameters": params, "channels": channels}
         for key, widget in self.section2_widgets.items():
-            file_key, path = key[0], key[1:]
+            if not self._edited(key, widget):
+                continue
             value = widget.value()
             if isinstance(widget, NoScrollIntSpinBox):
                 value = int(value)
-            _set_path(sources[file_key], path, value)
+            _set_path(sources[key[0]], key[1:], value)
         # these inputs are part of every cache identity; a change makes the
         # stored results stale until the next Analyse
         estimator_changed = resolve_estimator_settings(params, channels) != estimator_before
@@ -539,21 +557,32 @@ class SettingsView(QWidget):
         thresholds_changed = False
         for spec in SECTION3_FIELDS:
             entry = params["classification"][spec["key"]]
-            new_value = self.section3_widgets[spec["key"]].value()
-            # the spinbox rounds to its decimals; an untouched row must not
-            # turn a finer-grained derived value into a manual override
-            if abs(new_value - round(float(entry["value"]), spec["decimals"])) < 1e-9:
+            widget = self.section3_widgets[spec["key"]]
+            # an untouched row must not turn a finer-grained derived value
+            # into a manual override
+            if not self._edited(spec["key"], widget):
                 continue
-            outcome = apply_threshold_edit(entry, new_value, today)
+            outcome = apply_threshold_edit(entry, widget.value(), today)
             thresholds_changed |= outcome != "unchanged"
 
+        # A file is rewritten only when a value in it changed: json.dump
+        # reflows the hand-kept layout (0.10 -> 0.1, inline arrays split), which
+        # changes nothing the app reads but every byte hash of the file (the
+        # thesis-figure config_hash).
         # newline="" -- text mode on Windows would turn every LF into CRLF
-        with open(PARAMETERS_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(params, f, indent=2)
-            f.write("\n")
-        with open(CHANNELS_PATH, "w", encoding="utf-8", newline="") as f:
-            json.dump(channels, f, indent=2)
-            f.write("\n")
+        written = []
+        for path, data, on_disk in ((PARAMETERS_PATH, params, params_on_disk),
+                                    (CHANNELS_PATH, channels, channels_on_disk)):
+            if data == on_disk:
+                continue
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                json.dump(data, f, indent=2)
+                f.write("\n")
+            written.append(path)
+        if not written:
+            self._load_from_disk()
+            self.status_label.setText("Nothing changed, nothing saved.")
+            return
 
         from modules.stability_analysis import load_parameters, load_car_data
         load_parameters.cache_clear()

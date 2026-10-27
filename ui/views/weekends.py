@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem,
     QPushButton, QHeaderView, QStackedWidget
 )
+from PyQt6.QtCore import Qt
 from ui.views.weekend_dialog import WeekendDialog
 from ui.views.outings import OutingsView
 from models.base import Session
@@ -57,9 +58,10 @@ class WeekendsView(QWidget):
             self.load_data()
 
     def _open_weekend(self, row, column):
+        # the row's own id: after a header sort the row index no longer
+        # matches the query order
         session = Session()
-        weekends = session.query(RaceWeekend).order_by(RaceWeekend.date.desc()).all()
-        weekend = weekends[row] 
+        weekend = session.get(RaceWeekend, self.table.item(row, 0).data(Qt.ItemDataRole.UserRole))
         session.close()
 
         outings_view = OutingsView(weekend, on_back=self._show_list)
@@ -89,6 +91,9 @@ class WeekendsView(QWidget):
         session = Session()
         weekends = session.query(RaceWeekend).order_by(RaceWeekend.date.desc()).all()
         
+        # sorting off while filling: with it on, every setItem re-sorts and the
+        # rest of the row lands on another row
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(0)
         
         for weekend in weekends:
@@ -100,5 +105,7 @@ class WeekendsView(QWidget):
             date_str = weekend.date.strftime("%d.%m.%Y") if weekend.date else ""
             self.table.setItem(row, 3, QTableWidgetItem(date_str))
             self.table.setItem(row, 4, QTableWidgetItem(weekend.type or ""))
+            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, weekend.id)
 
+        self.table.setSortingEnabled(True)
         session.close()

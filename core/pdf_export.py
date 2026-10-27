@@ -3,6 +3,7 @@
 
 import json
 import os
+from xml.sax.saxutils import escape
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -69,6 +70,12 @@ def _fmt(value):
             return str(int(value))
         return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
+
+
+def _para_fmt(value):
+    # Paragraph text is reportlab markup: a "<" before a letter opens a tag
+    # and fails the whole export, "&amp;" would be read as an entity
+    return escape(_fmt(value))
 
 
 def _strip_styles():
@@ -224,12 +231,12 @@ def _damper_table(data, styles, width):
     for row_label, k_ls, k_hs in DAMPER_ROWS:
         rows.append([
             Paragraph(row_label, styles["table_label"]),
-            Paragraph(_fmt(data.get(k_ls, "")), styles["value"]),
-            Paragraph(_fmt(data.get(k_hs, "")), styles["value"]),
+            Paragraph(_para_fmt(data.get(k_ls, "")), styles["value"]),
+            Paragraph(_para_fmt(data.get(k_hs, "")), styles["value"]),
         ])
     rows.append([
         Paragraph("Blowoff", styles["table_label"]),
-        Paragraph(_fmt(data.get(BLOWOFF_KEY, "")), styles["value"]), "",
+        Paragraph(_para_fmt(data.get(BLOWOFF_KEY, "")), styles["value"]), "",
     ])
     t = _bordered_table(rows, [label_w, val_w, val_w], styles)
     t.setStyle(TableStyle([("SPAN", (1, 3), (2, 3))]))
@@ -239,7 +246,7 @@ def _damper_table(data, styles, width):
 def _advanced_list(data, styles, width):
     val_w = width * ADVANCED_VAL_FRAC
     label_w = width - val_w
-    rows = [[Paragraph(label, styles["table_label"]), Paragraph(_fmt(data.get(key, "")), styles["value"])]
+    rows = [[Paragraph(label, styles["table_label"]), Paragraph(_para_fmt(data.get(key, "")), styles["value"])]
             for key, label in ADVANCED_LABELS.items()]
     return _bordered_table(rows, [label_w, val_w], styles)
 
@@ -254,8 +261,8 @@ def _corner_box(label, data, styles, width):
     for i in range(0, len(core_pairs), 2):
         (k1, l1), (k2, l2) = core_pairs[i], core_pairs[i + 1]
         core_rows.append([
-            Paragraph(l1, styles["core_label"]), Paragraph(_fmt(data.get(k1, "")), styles["value"]),
-            Paragraph(l2, styles["core_label"]), Paragraph(_fmt(data.get(k2, "")), styles["value"]),
+            Paragraph(l1, styles["core_label"]), Paragraph(_para_fmt(data.get(k1, "")), styles["value"]),
+            Paragraph(l2, styles["core_label"]), Paragraph(_para_fmt(data.get(k2, "")), styles["value"]),
         ])
     elements.append(_bordered_table(core_rows, [lw, vw, lw, vw], styles))
     elements.append(Spacer(1, styles["_gap_lg"]))
@@ -284,7 +291,7 @@ def _diff_torque_row(car, styles, width):
     rows = []
     for i in range(0, len(positions), DIFF_TORQUE_COLS):
         chunk = positions[i:i + DIFF_TORQUE_COLS]
-        row = [[Paragraph(pos, styles["table_head"]), Paragraph(_fmt(torque.get(pos, "")), styles["value"])]
+        row = [[Paragraph(pos, styles["table_head"]), Paragraph(_para_fmt(torque.get(pos, "")), styles["value"])]
                for pos in chunk]
         row += [""] * (DIFF_TORQUE_COLS - len(chunk))
         rows.append(row)
@@ -295,10 +302,10 @@ def _weight_grid(car, styles, width):
     lw = width * 0.2
     vw = width * 0.3
     rows = [
-        [Paragraph("FL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fl", "")), styles["value"]),
-         Paragraph("FR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_fr", "")), styles["value"])],
-        [Paragraph("RL", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rl", "")), styles["value"]),
-         Paragraph("RR", styles["car_label"]), Paragraph(_fmt(car.get("corner_weight_rr", "")), styles["value"])],
+        [Paragraph("FL", styles["car_label"]), Paragraph(_para_fmt(car.get("corner_weight_fl", "")), styles["value"]),
+         Paragraph("FR", styles["car_label"]), Paragraph(_para_fmt(car.get("corner_weight_fr", "")), styles["value"])],
+        [Paragraph("RL", styles["car_label"]), Paragraph(_para_fmt(car.get("corner_weight_rl", "")), styles["value"]),
+         Paragraph("RR", styles["car_label"]), Paragraph(_para_fmt(car.get("corner_weight_rr", "")), styles["value"])],
     ]
     return _bordered_table(rows, [lw, vw, lw, vw], styles)
 
@@ -337,7 +344,7 @@ def _car_column(car, styles, width):
     val_w = width * CAR_PARAM_VAL_FRAC
     label_w = width - val_w
     param_rows = [[Paragraph(label, styles["car_label"]),
-                    Paragraph(_fmt(car.get(key, "")), styles["value"])]
+                    Paragraph(_para_fmt(car.get(key, "")), styles["value"])]
                   for key, label in CAR_LABELS.items()]
     elements.append(_bordered_table(param_rows, [label_w, val_w], styles))
     elements.append(Spacer(1, styles["_gap_sm"]))
@@ -360,7 +367,7 @@ def _car_column(car, styles, width):
     elements.append(Spacer(1, title_gap))
     elements.append(_weight_grid(car, styles, width))
     totals_rows = [[Paragraph(label, styles["car_label"]),
-                     Paragraph(_fmt(car.get(key, "")), styles["value"])]
+                     Paragraph(_para_fmt(car.get(key, "")), styles["value"])]
                    for key, label in WEIGHT_TOTALS_LABELS.items()]
     elements.append(_bordered_table(totals_rows, [label_w, val_w], styles))
     return elements
@@ -388,10 +395,10 @@ def build_session_strip(meta, data, strip_w, strip_h):
 
     header_bits = [b for b in [meta.get("session_type"), meta.get("date_str"), meta.get("driver_name")] if b]
     left_header = [
-        Paragraph(f"{meta.get('name') or ''} #{meta.get('number', '')}".strip(), styles["header"]),
-        Paragraph("  |  ".join(header_bits), styles["header_muted"]),
+        Paragraph(escape(f"{meta.get('name') or ''} #{meta.get('number', '')}".strip()), styles["header"]),
+        Paragraph(escape("  |  ".join(header_bits)), styles["header_muted"]),
     ]
-    right_header = [Paragraph(meta.get("sheet_label", ""), styles["sheet_label"])]
+    right_header = [Paragraph(escape(meta.get("sheet_label", "")), styles["sheet_label"])]
     if os.path.exists(LOGO_PATH):
         try:
             right_header.insert(0, _scaled_image(LOGO_PATH, 6 * mm))
@@ -442,7 +449,7 @@ def build_session_strip(meta, data, strip_w, strip_h):
     notes = car.get("notes", "")
     if notes:
         content.append(Spacer(1, 1 * mm))
-        content.append(Paragraph(f"Notes: {notes}", styles["notes"]))
+        content.append(Paragraph(f"Notes: {escape(str(notes))}", styles["notes"]))
 
     return KeepInFrame(strip_w, strip_h, content, mode="shrink")
 
@@ -486,7 +493,7 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
         warn_style = ParagraphStyle("setup_data_error", fontSize=11, fontName="Helvetica-Bold",
                                      textColor=colors.HexColor("#c0392b"))
         story.append(Paragraph(
-            f"Setup data could not be read ({parse_error}) -- sheet below is blank.", warn_style))
+            f"Setup data could not be read ({escape(parse_error)}) -- sheet below is blank.", warn_style))
         story.append(Spacer(1, 3 * mm))
         strip_h -= warn_h
     story.append(build_session_strip(meta, setup, strip_w, strip_h))
