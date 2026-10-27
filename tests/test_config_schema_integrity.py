@@ -176,9 +176,14 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 28 (2026-10-27): work order BUG-3, B24 -- the events record has the
     # same keys on every return path; no value change, shape checks
     # unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 28, (
+    # 29 (2026-10-27): evaluation-package order Part 1 -- payload key
+    # segmentation_excluded (laps left out of a stable corner on an
+    # ambiguous same-lap split); no value change where nothing is excluded.
+    # 30 (2026-10-27): Paul Ricard 24996 event zero entry (estimator input
+    # outside Settings) and damper_plausibility gains reporting / validation.
+    assert ANALYSIS_SCHEMA_VERSION == 30, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 28 -- update this test deliberately if the version was bumped again"
+        "written for 30 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

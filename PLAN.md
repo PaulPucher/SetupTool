@@ -48,7 +48,19 @@ REPO STATE
   2026-10-27: events record has one shape on every return path, no value
   change; goldens NBR 29 and LC 32 regenerated, diff _meta only --
   generated_at_utc, git_commit_hash, "schema 28" in purpose;
-  test_stability.py matches).
+  test_stability.py matches). [2026-10-27: schema 29 -- evaluation-package
+  order Part 1, payload key segmentation_excluded; goldens NOT regenerated
+  (their _meta purpose still says schema 28), test_stability.py NBR 29 and
+  LC 32 match.] [2026-10-27: schema 30 (Paul Ricard 24996 zero entry);
+  goldens regenerated, values unchanged, shape + _meta only.]
+- ~~DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
+  data package (pending).~~ [2026-10-27: superseded by the next item.]
+- EVALUATION SET (author ruling 2026-10-27, final): the app weekends
+  "Nuerburgring final" (NBR1-5, outings 17-21) and "Paul Ricard final"
+  (PRC1, PRC3-7, outings 22, 24-28); PRC2 excluded (no sclu_yaw_rate, no
+  damper channels; not in the app). Overlap with the dev set stays, handled
+  in the text (thesis_notes 'Evaluation package: diagnosis, rulings,
+  segmentation fix'). DEVELOPMENT SET: 14 sessions (unchanged).
 - CHAIN, CLASSIFIER (D2 margins front 0.062 / rear 0.076), RECOMMENDATION:
   unchanged since schema 27 (B10 / B11 display only).
 - DEVELOPMENT SET: 14 sessions (unchanged). THESIS ANALYSIS SET: clean
@@ -61,10 +73,55 @@ REPO STATE
 - TESTS: full suite 2026-10-27 at the BUG-3 close (schema 28, incl. B10 /
   B11 / B24 and the SENS-1 records): 474 passed, 1 skipped, 1 xfailed (38
   min); 14 tests in tests/test_bug3_fixes.py. test_stability.py NBR 29
-  matches the regenerated golden.
+  matches the regenerated golden. [2026-10-27, evaluation-package fixes,
+  schema 30: full suite 479 passed, 1 skipped, 1 xfailed (38 min).]
 - diagnostics/: 32 scripts (unchanged).
 
 RULED / DONE SINCE THE LAST REWRITE
+- Paul Ricard 24996 damper zero (review ruling 2026-10-27: no per-session
+  tare, event zero entry as NBR_221), done, uncommitted, schema 30.
+  diagnostics/inspect_prc24996_zero.py -> config/channels.json
+  PRC_221_24996 (track PRC, serial 221, logger_software 24996; source
+  sessions PRC outings 41 / 43): zero_N FL -4791 / FR -4736 / RL -5828 /
+  RR -5798 N gauge, u_wheel 304 / 458 / 157 / 443 N (u = sqrt(e_between^2 +
+  e_ref^2), e_ref from PRC5-7 and LC 25). csv_parser matches the software
+  key where an entry declares one (NBR_221 unchanged). Gate unchanged;
+  on source sessions reported "not applicable (zero from event entry
+  derived from standstill)", validation = offset-free checks (v^2 slope
+  total, lateral transfer per g front / rear / sum) inside the healthy
+  envelope +-10 % (parameters.json wheel_loads.zero_validation); per-axle
+  aero split information only. PRC1 and PRC4: all checks pass (gate ratio
+  1.223 / 1.145 as information). Absolute travel: only the motion-ratio
+  lookup reads it -- front MR 1.2-3.0 % lower over the 13-33 mm zero shift,
+  rear < 0.2 %; travel reference of the MR table OPEN (team). Goldens
+  regenerated: values unchanged, shape only (reporting, validation) plus
+  _meta. stability_analysis comment B*C*D corrected (fit L: K = B*C*mu);
+  DECISIONS 101 (3-lap evaluation screen) struck. Record: thesis_notes
+  'Paul Ricard 24996 damper zero as an event zero entry; absolute travel'.
+- Evaluation package (author orders 2026-10-27), uncommitted. Read-only
+  diagnosis: PRC5 refused by corner_analysis (residual same-lap collision,
+  lap 18 corner 4; file complete); damper failures of the old NBR5, PRC1,
+  PRC3, PRC4 = gauge zero offset (-4.6..-5.9 kN gauge, sign and scale
+  correct; Paul Ricard, logger software 24996, no zero entry); PRC2 not
+  analysable and excluded. RULINGS: evaluation set = the two "final"
+  weekends, final, overlap handled in the text; ~~3-lap screen excludes
+  (SENS-1)~~ the 3-lap screen is NOT an exclusion criterion (2 laps stay,
+  repetition then k = n = 2); damper loads must work wherever sign and
+  scale are correct; NBR5 replaced by the author (new file = NBR outing 64,
+  byte-identical). DONE (Part 1): assign_stable_corner_ids drops the
+  colliding lap from that one stable corner instead of raising, payload
+  segmentation_excluded, schema 29, new
+  tests/test_corner_segmentation_collision.py; PRC5 loads (lap 18 excluded
+  from stable corner 3). OVERLAP by content hash: NBR1 = golden NBR 29 /
+  labelled 12; NBR2 = NBR outing 18; NBR4 = labelled 11; NBR5 = NBR outing
+  64; NBR3 = dev NBR 20 (same session); PRC6 = golden LC 32 / labelled 14
+  (same session); PRC1 / PRC3 = labelled 10 (same session, two exports of
+  outing 41). OPEN: NBR final mass 1348 vs corner-weight sum 1400.5 kg;
+  identical PRC corner weights on every PRC outing; ~~zero handling of the
+  24996 Paul Ricard files (tare proposal pending author / review ruling);
+  DECISIONS 101 (Q4 evaluation screen) still active text, strike pending
+  author go;~~ [2026-10-27: both done, see the item above] PRC1 vs PRC3
+  duplicate, author identifies the wrong file.
 - 4h and its follow-up rulings: committed (fa7ffb8).
 - Work order UI-1 (author EXECUTE 2026-10-24): done, uncommitted.
   Caching root cause: the outing stores the absolute export path

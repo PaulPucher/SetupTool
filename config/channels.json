@@ -317,6 +317,25 @@
         "log_dms_dam_rr": {"zero_N": 58906.647936948786, "file_spread_sd_N": 76.04688007576837, "u_wheel_N": 140.25049383447902}
       },
       "derived_from": "Q-RECOVER-2 R3, 2026-10-03 (diagnostics/inspect_recover_rr.py (script at tag pre-prune-2026-10-22), author-ruled reference, recover.json): the NBR event's damper gauges were zeroed against a different reference than every other event of this car (zero entry about +43 kN vs about -15.5 kN). zero_N per corner = median over the 16 NBR files of (NBR gauge-vs-voltage map offset - the same car's Paul Ricard map offset), the Paul Ricard reference = mean of v3 and pr_us_v2; u_wheel_N = sqrt((MR x sqrt(SD^2 + e_PR^2))^2 + 98^2), dominated by the Paul Ricard zero residual e_PR. V1-V4 pass on all 16 files (Q-RECOVER-2). Config corner weights are a guideline (rule 0). FR COUPLING: the FR entry was referenced to the Paul Ricard FR map offset INCLUDING the channel_corrections log_dms_dam_fr value (+15,954,360 N); if that correction is ever re-derived, this FR entry must be re-derived with it (the two never act on the same file -- the correction's mean-range precondition cannot match NBR)."
+    },
+    "PRC_221_24996": {
+      "track": "PRC",
+      "logger_serial": "221",
+      "logger_software": "24996",
+      "channels": {
+        "log_dms_dam_fl": {"zero_N": -4791.1567089161545, "u_gauge_N": 462.2368004659767, "u_wheel_N": 304.18463120826175, "e_between_N": 182.09657606078827, "e_ref_N": 424.8572662576936},
+        "log_dms_dam_fr": {"zero_N": -4735.93441509087, "u_gauge_N": 696.3486495753623, "u_wheel_N": 458.25135142260285, "e_between_N": 117.0518091833992, "e_ref_N": 686.4403220472439},
+        "log_dms_dam_rl": {"zero_N": -5827.55773310098, "u_gauge_N": 201.0857935052592, "u_wheel_N": 156.77944515913163, "e_between_N": 76.5745077219517, "e_ref_N": 185.9350454238805},
+        "log_dms_dam_rr": {"zero_N": -5797.749412055788, "u_gauge_N": 568.2521195306771, "u_wheel_N": 443.07946174151766, "e_between_N": 64.7575925532642, "e_ref_N": 564.5501975536032}
+      },
+      "source_sessions": [{"OutingNumber": "41", "SessionNumber": "3"}, {"OutingNumber": "43", "SessionNumber": "3"}],
+      "validation_envelope": {
+        "v2_slope_total": [1.7921882220245315, 2.021635307287321],
+        "llt_front_N_per_g": [2253.897388302963, 2333.91461461677],
+        "llt_rear_N_per_g": [3258.9217783429044, 3341.2869852332124],
+        "llt_sum_N_per_g": [5512.819166645868, 5675.201599849983]
+      },
+      "derived_from": "2026-10-27, review ruling (evaluation package; no per-session tare, event entry as NBR_221). diagnostics/inspect_prc24996_zero.py, diagnostics/output/prc24996_zero.json. The Paul Ricard exports with logger software (Metafile) 24996 read the damper gauges about 5 kN (gauge) low at standstill, sign and scale correct (corr with outside a_y +0.83..+0.87, moving std as on the healthy files); the 25016 exports of the same car and track read correctly. Track + serial alone cannot separate them (gate-window guard passes both), hence the logger_software key. zero_N per corner = median over the source sessions (PRC outing 41 session 3, PRC outing 43 session 3) of [median damper force over standstill-on-wheels samples (v < 1 km/h, travel within +-5 mm of the session's pit-lane rolling median on all four corners, >= 1.0 s) - static corner load W g / MR (setup-sheet corner weights, MR at standstill travel)]. u_gauge_N = sqrt(e_between^2 + e_ref^2), e_between = half the source spread, e_ref = RMS of the same method's offsets on the healthy Paul Ricard files PRC outings 27, 32, 33 and LC 25 (they need no zero, so their offset is the method's own error, mostly the corner-weight guideline: -1.0..+0.04 kN gauge); u_wheel_N = u_gauge_N x MR at standstill. Source residuals +-65..182 N gauge. validation_envelope = min-max of wheel_loads.load_validation_quantities on the same four healthy files (offset-free checks, parameters.json wheel_loads.zero_validation); a session from source_sessions has its zero from its own standstill, so the static-weight plausibility check is reported as not applicable there and these checks carry the validation. Accuracy: wheel loads L4 with an L2 zero, as NBR_221."
     }
   },
   "channel_quality_gates": {

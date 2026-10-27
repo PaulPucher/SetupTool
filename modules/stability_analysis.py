@@ -21,7 +21,7 @@ CAR_DATA_PATH = "config/car_data.json"
 # config edits. Not for read/render-only changes. Mismatch = recompute on
 # open. Version history: DECISIONS.md ("Analysis schema history" and the
 # rulings that caused each bump).
-ANALYSIS_SCHEMA_VERSION = 28
+ANALYSIS_SCHEMA_VERSION = 30
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -778,8 +778,10 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     max_window_m = se["cs_max_window_m"]
     # Band rule: the reference is the linear axle stiffness, the quantity the
-    # D4 plausibility gate bounds on the fitted curve (B*C*D, Bechtloff Fig.
-    # 7.2 magnitudes), so the same config band is read here. Needed because beta is
+    # D4 plausibility gate bounds on the fitted curve -- fit L: K = B*C*mu, the
+    # origin slope per unit vertical load (ref_band); without ref_band the
+    # config band on B*C*D in N/rad (Bechtloff Fig. 7.2 magnitudes) -- so the
+    # same band is read here. Needed because beta is
     # estimated: a low-excitation window's slope is ill-determined (Bechtloff,
     # identifiability) and can set a reference far below the session level,
     # or zero / negative. The chair does not bound its reference because it

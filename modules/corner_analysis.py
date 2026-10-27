@@ -22,6 +22,7 @@
 #   no throttle -> entry_1 starts at bracket start
 
 import json
+import warnings
 import numpy as np
 from modules.geo import compute_gps_origin, project_latlon_to_xy
 from modules.stability_analysis import _interp_lap_distance_guarded, _normalize_lap_distance_to_metres
@@ -85,10 +86,20 @@ def analyse_corners(parsed_data):
         corners.extend(lap_corners)
 
     representative_laps = _representative_lap_numbers(laps, cd["lap_time_representative_factor"])
-    assign_stable_corner_ids(corners, channels, representative_laps)
-    corners = _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps)
+    excluded = assign_stable_corner_ids(corners, channels, representative_laps)
+    # session diagnostic, carried into the stored payload by the caller
+    parsed_data["segmentation_excluded"] = excluded
+    excluded_pairs = {(e["lap_number"], e["stable_corner_id"]) for e in excluded}
+    corners = _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps,
+                                         excluded_pairs=excluded_pairs)
 
     return corners
+
+
+def segmentation_excluded_record(parsed_data):
+    """Payload form of analyse_corners' exclusions: {"count", "items"}."""
+    items = list((parsed_data or {}).get("segmentation_excluded") or [])
+    return {"count": len(items), "items": items}
 
 
 def _analyse_lap(lap, channels, cd, speed_thresholds):
@@ -350,11 +361,15 @@ def assign_stable_corner_ids(corners, channels, representative_laps):
     Clusters with only non-representative laps dropped after clustering
     (link logic unchanged).
     No usable lap_distance -> stable_corner_id stays None.
+
+    Returns the laps excluded from a group because two of their brackets
+    still fell into it after the seeded split (see below), one record per
+    (lap, group).
     """
     lap_distance = channels.get("lap_distance")
     if (lap_distance is None or lap_distance.get("time") is None
             or lap_distance.get("quality") in ("missing", "failed")):
-        return
+        return []
 
     ld_time = lap_distance["time"]
     ld_data = _normalize_lap_distance_to_metres(lap_distance["data"], lap_distance.get("unit_raw"))
@@ -402,6 +417,9 @@ def assign_stable_corner_ids(corners, channels, representative_laps):
         components.setdefault(find(i), []).append(corners[i])
 
     final_clusters = []
+    # (sub-cluster, lap, dropped members); id(sub-cluster) -> excluded laps
+    dropped = []
+    excluded_laps = {}
     for comp in components.values():
         lap_counts = {}
         for c in comp:
@@ -433,20 +451,24 @@ def assign_stable_corner_ids(corners, channels, representative_laps):
             if ranked[1] >= min_frac:
                 c["warnings"].append("straddles_adjacent_corners")
 
+        # Residual collision: two brackets of one lap still match the same
+        # seed (one corner detected as two pieces on that lap). Which piece
+        # is "the" corner cannot be decided from the overlap, so that lap is
+        # excluded from this one group rather than guessed; the rest of the
+        # session stays usable. Tier B segmentation, not a method choice.
         for sub in sub_clusters:
-            seen = set()
+            lap_counts_sub = {}
             for c in sub:
-                if c["lap_number"] in seen:
-                    raise RuntimeError(
-                        f"Residual same-lap collision after seeded split at "
-                        f"lap {c['lap_number']}, corner {c['corner_number']} -- "
-                        f"needs manual review, not auto-resolved."
-                    )
-                seen.add(c["lap_number"])
+                lap_counts_sub[c["lap_number"]] = lap_counts_sub.get(c["lap_number"], 0) + 1
+            for lap in sorted(l for l, cnt in lap_counts_sub.items() if cnt > 1):
+                members = [c for c in sub if c["lap_number"] == lap]
+                sub[:] = [c for c in sub if c["lap_number"] != lap]
+                dropped.append((sub, lap, members))
+                excluded_laps.setdefault(id(sub), set()).add(lap)
 
         final_clusters.extend(sub_clusters)
 
-    _reassign_straddlers_pass2(final_clusters, min_frac)
+    _reassign_straddlers_pass2(final_clusters, min_frac, excluded_laps)
 
     # all-non-representative clusters -> corners dropped outright; id None
     # would lump unrelated corners into one group
@@ -456,12 +478,34 @@ def assign_stable_corner_ids(corners, channels, representative_laps):
     corners[:] = [c for c in corners if id(c) in kept]
 
     final_clusters.sort(key=lambda cluster: min(c["bracket_start_m"] for c in cluster))
+    cluster_ids = {}
     for cluster_id, cluster in enumerate(final_clusters, start=1):
+        cluster_ids[id(cluster)] = cluster_id
         for c in cluster:
             c["stable_corner_id"] = cluster_id
 
+    # group dropped later as non-representative -> stable id None
+    excluded = []
+    for sub, lap, members in dropped:
+        rec = {
+            "lap_number": lap,
+            "stable_corner_id": cluster_ids.get(id(sub)),
+            "reason": "ambiguous segmentation, excluded",
+            "range_m": [min(m["bracket_start_m"] for m in members),
+                        max(m["bracket_end_m"] for m in members)],
+            "brackets_dropped": [{"corner_number": m["corner_number"],
+                                  "start_m": m["bracket_start_m"], "end_m": m["bracket_end_m"]}
+                                 for m in members],
+        }
+        excluded.append(rec)
+        warnings.warn(
+            f"corner segmentation: lap {lap} excluded from stable corner {rec['stable_corner_id']} "
+            f"({rec['range_m'][0]:.0f}-{rec['range_m'][1]:.0f} m), {len(members)} brackets dropped "
+            "-- ambiguous same-lap assignment", stacklevel=2)
+    return excluded
 
-def _reassign_straddlers_pass2(final_clusters, min_frac):
+
+def _reassign_straddlers_pass2(final_clusters, min_frac, excluded_laps=None):
     """Pass 2 of the split. Pass 1 assigns a straggler to the best-overlapping
     seed lap bracket -- a per-lap race. Dubai: a 46 m sub-feature and the
     305 m complex around it ended up in different ids.
@@ -492,7 +536,9 @@ def _reassign_straddlers_pass2(final_clusters, min_frac):
                 best_frac, best_idx = frac, idx
         if best_idx == cur_idx or best_frac < min_frac:
             continue
-        collision = any(m["lap_number"] == c["lap_number"] for m in final_clusters[best_idx])
+        # a lap excluded from that group must not re-enter it through another bracket
+        collision = (any(m["lap_number"] == c["lap_number"] for m in final_clusters[best_idx])
+                     or c["lap_number"] in (excluded_laps or {}).get(id(final_clusters[best_idx]), ()))
         if collision:
             # not auto-resolved -> manual review, as in pass 1
             c["warnings"].append("pass2_reassignment_blocked_by_collision")
@@ -591,7 +637,8 @@ def _resolve_canonical_overlaps(canon_by_id, valid_laps, ld_time, ld_data, lat_g
     return resolved
 
 
-def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps):
+def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, representative_laps,
+                               excluded_pairs=frozenset()):
     """One canonical window + phase boundaries per stable corner, applied to
     every valid lap. Membership already fixed here.
 
@@ -681,6 +728,9 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, re
 
         instances = []
         for lap_number, lap in valid_laps.items():
+            # excluded lap: no instance, else it would come back as "quiet"
+            if (lap_number, cid) in excluded_pairs:
+                continue
             lap_start_t, lap_end_t = lap["start_time"], lap["end_time"]
             t_brake = _invert_s_to_t(canon_brake_s, lap_start_t, lap_end_t, ld_time, ld_data)
             t_turnin = _invert_s_to_t(canon_turnin_s, lap_start_t, lap_end_t, ld_time, ld_data)

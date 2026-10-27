@@ -1345,6 +1345,7 @@ class OutingForm(QWidget):
         import json
         import datetime
         from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
+        from modules.corner_analysis import segmentation_excluded_record
         payload = {
             "csv_path": _norm_path(self.loaded_csv_path),
             "lap_filter": lap_filter,
@@ -1374,6 +1375,9 @@ class OutingForm(QWidget):
             "events": events,
             # setup engine data / engineer / session layers
             "setup_engine": setup_engine,
+            # laps left out of a stable corner by corner_analysis (ambiguous
+            # same-lap segmentation); recorded so the exclusion is visible
+            "segmentation_excluded": segmentation_excluded_record(self.parsed_data),
         }
         return json.dumps(payload)
 

@@ -23,16 +23,29 @@ def _match_event_zero_entry(entries, metadata):
     track and logger serial match this file's header, else (None, {}).
     The header has no date, so this key alone cannot separate two events of
     one track; the per-channel gate-window guard in parse_csv does that for
-    a re-zeroed gauge."""
+    a re-zeroed gauge. An entry that declares logger_software also needs the
+    header's Metafile Version: at Paul Ricard the 24996 and 25016 exports of
+    the same car differ by ~5 kN, both inside the gate window."""
     track = metadata.get("TrackName")
-    m = re.search(r"Serial Number:\s*(\d+)", metadata.get("SystemDetails", ""))
+    details = metadata.get("SystemDetails", "")
+    m = re.search(r"Serial Number:\s*(\d+)", details)
     serial = m.group(1) if m else None
+    m = re.search(r"Metafile Version:\s*(\d+)", details)
+    software = m.group(1) if m else None
     for name, entry in entries.items():
         if name.startswith("_"):
+            continue
+        if "logger_software" in entry and entry["logger_software"] != software:
             continue
         if entry.get("track") == track and entry.get("logger_serial") == serial:
             return name, {ch: v["zero_N"] for ch, v in entry["channels"].items()}
     return None, {}
+
+
+def _is_source_session(entry, metadata):
+    # the file is one the entry was derived from (its own standstill), so the
+    # static-weight check on it cannot be independent
+    return any(all(metadata.get(k) == v for k, v in s.items()) for s in entry.get("source_sessions", []))
 
 
 def _split_name_unit(raw_name):
@@ -315,7 +328,11 @@ def parse_csv(file_path):
         "laps": laps,
         "corners": [],
         "measured_sample_rate_hz": measured_rate,
-        "event_zero_entry": {"event": zero_event, "channels": zero_status},
+        "event_zero_entry": {
+            "event": zero_event, "channels": zero_status,
+            "source_session": bool(zero_event) and _is_source_session(
+                config.get("event_zero_entries", {})[zero_event], metadata),
+        },
     }
 
     result["corners"] = analyse_corners(result)

@@ -144,7 +144,9 @@
     "f_min": 0.8,
     "passed": true,
     "n_straight": 2122,
-    "reason": null
+    "reason": null,
+    "reporting": "gate",
+    "validation": null
    },
    "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the measured axle loads, drive rear only",
    "fx_front_level": 1,
@@ -46087,11 +46089,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 28), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 30), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "Le Castellet outing 32",
   "data_file": "paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt",
-  "git_commit_hash": "a8ca8fad1a151641d9dd64025341d766c56f5e42",
-  "generated_at_utc": "2026-10-27T14:15:19.128264+00:00",
+  "git_commit_hash": "3880d6d7328d89ea1827467c54a0831f597e3f46",
+  "generated_at_utc": "2026-10-27T19:17:09.445346+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

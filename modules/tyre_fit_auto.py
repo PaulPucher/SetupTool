@@ -251,6 +251,36 @@ def _analysis_lap_mask(t, laps):
     return out
 
 
+def _damper_plausibility_record(fz, state, data, params, zero, zero_applied):
+    """The weight check as computed, plus how it is reported. On a session
+    the applied event entry was derived from, the zero comes from that
+    session's own standstill against the static weight, so the weight check
+    passes by construction and is reported as not applicable; the entry's
+    offset-free checks (wheel_loads.load_validation_quantities against its
+    healthy same-track envelope) carry the validation. The gate decision
+    itself is unchanged."""
+    from modules.csv_parser import load_channels_config  # local: csv_parser imports this chain
+    from modules.wheel_loads import check_against_envelope, load_validation_quantities
+    plaus = fz.get("damper_plausibility")
+    if plaus is None:
+        return None
+    rec = dict(plaus, reporting="gate", validation=None)
+    if not zero_applied:
+        return rec
+    entry = load_channels_config()["event_zero_entries"][zero["event"]]
+    if zero.get("source_session"):
+        rec["reporting"] = "not applicable (zero from event entry derived from standstill)"
+    envelope = entry.get("validation_envelope")
+    if envelope is not None:
+        q = load_validation_quantities(state, {c: fz[f"fz_{c}_N"] for c in ("fl", "fr", "rl", "rr")}, params)
+        tol = params["wheel_loads"]["zero_validation"]["envelope_tolerance"]
+        rec["validation"] = dict(
+            check_against_envelope(q, envelope, tol),
+            information={k: q[k] for k in ("v2_slope_front", "v2_slope_rear", "aero_front_share")},
+            n_straight=q["n_straight"], n_corner=q["n_corner"])
+    return rec
+
+
 def _axle_load_inputs(state, data, params, forces, fit_mask):
     """Inputs of fit L besides alpha and Fy: axle Fz from the vertical-load
     cascade as configured (measured -> reconstructed -> static, no refusal),
@@ -309,7 +339,7 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
                        if zero_applied and "damper" in used else ""),
         # session check of the damper path against the static weight; a
         # rejected path shows up above as static_fallback shares, level 1
-        "damper_plausibility": fz.get("damper_plausibility"),
+        "damper_plausibility": _damper_plausibility_record(fz, state, data, params, zero, zero_applied),
         "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the "
                            "measured axle loads, drive rear only",
         "fx_front_level": min(fx["accuracy_level"], lowest),

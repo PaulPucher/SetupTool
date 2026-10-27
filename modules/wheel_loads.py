@@ -274,6 +274,64 @@ def straight_line_plausibility(state, damper_result, params):
     return {"ratio": ratio, "f_min": f_min, "passed": passed, "n_straight": int(total.size), "reason": reason}
 
 
+def load_validation_quantities(state, wheels, params):
+    """Checks of a damper path that do not depend on its zero (Tier B).
+    With the zero taken from a standstill against the static weight, the
+    weight check above passes by construction, so these carry the
+    validation instead: slopes and left-right differences, where a constant
+    gauge offset cancels.
+    (a) axle total vs v^2 on straights: downforce, front / rear / total;
+    (b) right-minus-left wheel load vs a_y / g: lateral load transfer.
+    wheels: {"fl", "fr", "rl", "rr"} -> Fz arrays on the state grid.
+    The per-axle v^2 split depends on rake and wing (setup), so only the
+    total is meant to be checked; the split is information."""
+    cfg = params["wheel_loads"]["zero_validation"]
+    v, ax = state["v_mps"], state["ax_mps2"]
+    ay_g = state["ay_mps2"] / 9.81
+    front = wheels["fl"] + wheels["fr"]
+    rear = wheels["rl"] + wheels["rr"]
+    tight, _wide = _straight_masks(state, params)
+    straight = tight & (v > cfg["straight_min_speed_mps"]) & np.isfinite(front) & np.isfinite(rear)
+    corner = ((v > cfg["corner_min_speed_mps"]) & (np.abs(ax) < cfg["corner_max_abs_ax_mps2"])
+              & (np.abs(ay_g) > cfg["corner_min_abs_ay_g"]) & np.isfinite(front) & np.isfinite(rear))
+
+    def slope(x, y, mask):
+        # two points do not make a slope worth checking
+        return float(np.polyfit(x[mask], y[mask], 1)[0]) if mask.sum() > 2 else float("nan")
+
+    v2 = v ** 2
+    q = {
+        "v2_slope_front": slope(v2, front, straight),
+        "v2_slope_rear": slope(v2, rear, straight),
+        "llt_front_N_per_g": slope(ay_g, wheels["fr"] - wheels["fl"], corner),
+        "llt_rear_N_per_g": slope(ay_g, wheels["rr"] - wheels["rl"], corner),
+        "n_straight": int(straight.sum()),
+        "n_corner": int(corner.sum()),
+    }
+    q["v2_slope_total"] = q["v2_slope_front"] + q["v2_slope_rear"]
+    q["aero_front_share"] = q["v2_slope_front"] / q["v2_slope_total"] if q["v2_slope_total"] else float("nan")
+    q["llt_sum_N_per_g"] = q["llt_front_N_per_g"] + q["llt_rear_N_per_g"]
+    return q
+
+
+# checked against the envelope; the per-axle v^2 slopes and the aero share
+# are reported as information only (setup-dependent)
+VALIDATION_CHECKS = ("v2_slope_total", "llt_front_N_per_g", "llt_rear_N_per_g", "llt_sum_N_per_g")
+
+
+def check_against_envelope(quantities, envelope, tolerance):
+    """Per check: inside [lo (1 - tol), hi (1 + tol)] of the healthy
+    same-track envelope. A missing or non-finite value fails."""
+    checks = {}
+    for key in VALIDATION_CHECKS:
+        lo, hi = envelope[key]
+        val = quantities.get(key)
+        lo_w, hi_w = lo * (1.0 - tolerance), hi * (1.0 + tolerance)
+        ok = val is not None and np.isfinite(val) and lo_w <= val <= hi_w
+        checks[key] = {"value": val, "envelope": [lo, hi], "accepted": [lo_w, hi_w], "passed": bool(ok)}
+    return {"passed": all(c["passed"] for c in checks.values()), "checks": checks}
+
+
 def effective_cl_area(c_session, air_density_kgm3):
     """c_session [N/(m/s)^2] as the Cl*A [m^2] of the config aero model.
     From c*v^2 = -0.5*rho*A*Cl*v^2 (Cl < 0 = downforce, same sign as
