@@ -49,10 +49,14 @@ def _group_by_corner(summaries):
 
 def _aggregate_speed_class(lap_summaries):
     # modal speed_class across laps -> a corner near a class boundary does not
-    # flip its speed gate per lap. Tie -> closest to medium, then lower class.
+    # flip its speed gate per lap
+    return modal_speed_class(s.get("speed_class") for s in lap_summaries)
+
+
+def modal_speed_class(classes):
+    # tie -> closest to medium, then lower class; None entries ignored
     counts = {}
-    for s in lap_summaries:
-        sc = s.get("speed_class")
+    for sc in classes:
         if sc is None:
             continue
         counts[sc] = counts.get(sc, 0) + 1

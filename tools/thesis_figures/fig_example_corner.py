@@ -1,11 +1,12 @@
 # fig:example_corner -- one corner of one lap over lap distance, five
 # stacked panels with the five phases shaded: (1) road-wheel angle, (2) the
 # filtered a_y in g, (3) observer beta vs kinematic beta, (4) alpha_f,
-# alpha_r, (5) CS_f, CS_r with the per-axle decision boundaries and the
-# front grading tier (the rear has no grading tier; its information band
-# is display-only and not drawn). Read-only full re-run of the app's chain
-# (common.run_chain); one outing, lap and corner. Stable output names: the
-# session, lap and corner go into the CSV header only.
+# alpha_r, (5) CS_f, CS_r with the per-axle decision boundaries, the front
+# grading tier and the rear information tier (a note, no symptom) -- the
+# classifier's levels, the same set as the app's trace views. Read-only
+# full re-run of the app's chain (common.run_chain); one outing, lap and
+# corner. Stable output names: the session, lap and corner go into the
+# CSV header only.
 # Run: python -m tools.thesis_figures.fig_example_corner --outing 14 --lap 53
 #      --corner 1 [--tag r2] [--allow-status] [--allow-excluded] [--out DIR]
 
@@ -104,7 +105,8 @@ def build(outing, lap, corner, tag="dev", allow_status=False, allow_excluded=Fal
                     fallback=res["fallback_used"],
                     ay_filter=f"Butterworth {lin['cs_filter_cutoff_hz']:g} Hz zero-phase, as the force estimate; "
                               f"in g (/{G})",
-                    lines=f"boundary f {lin['boundary_f']:g} r {lin['boundary_r']:g}; strong f {lin['strong_f']:g}")
+                    lines=f"boundary f {lin['boundary_f']:g} r {lin['boundary_r']:g}; strong f {lin['strong_f']:g}; "
+                          f"info r {lin['info_r']:g}")
     common.write_csv(f"{data_dir}/{base}.csv", cols, m)
     common.write_csv(f"{data_dir}/{base}_phases.csv", phases, m)
     common.write_tex(f"{plots_dir}/{base}.tex", _tex(base, prefix, cols, phases, lin, lo, hi, marks))
@@ -132,7 +134,8 @@ def _tex(base, prefix, cols, phases, lin, lo, hi, marks):
     ]
     cs_lines = [(lin["boundary_f"], "axleFront, thin, solid", "decision boundary f"),
                 (lin["strong_f"], "axleFront, thin, dashdotted", "grading tier f (strong)"),
-                (lin["boundary_r"], "axleRear, thin, solid", "decision boundary r")]
+                (lin["boundary_r"], "axleRear, thin, solid", "decision boundary r"),
+                (lin["info_r"], "axleRear, very thin, dotted", "rear info tier (no symptom)")]
     ranges = [_range(*[cols[c] for c, _s, _l in p[1]]) for p in panels]
     cs_lo, cs_hi = ranges[-1]
     ranges[-1] = (min(cs_lo, lin["strong_f"] - 0.05), cs_hi)

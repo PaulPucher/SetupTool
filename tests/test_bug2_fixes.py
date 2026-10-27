@@ -86,9 +86,14 @@ def test_b8_edit_then_delete_returns_to_the_weekend_list(db, app, monkeypatch):
     w = _weekend(db)
     went_back = []
     view = outings.OutingsView(w, on_back=lambda: went_back.append(True))
+    # the empty-weekend delete asks first since BUG-3; a real modal box
+    # would block the run
+    from ui.views import weekend_dialog
+    monkeypatch.setattr(weekend_dialog.QMessageBox, "question",
+                        staticmethod(lambda *a, **k: weekend_dialog.QMessageBox.StandardButton.Yes))
 
     def exec_and_delete(dlg):
-        dlg._delete()  # no outings -> deleted, accept()
+        dlg._delete()  # no outings, confirmed -> deleted, accept()
         return dlg.result()
     monkeypatch.setattr(outings.WeekendDialog, "exec", exec_and_delete)
     view._open_edit_dialog()  # used to raise AttributeError on None.track

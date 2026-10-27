@@ -251,11 +251,8 @@ def make_corner_figure(cid, source, state, t, s_m, v_kmh, slip, forces, cs, para
     min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     min_span = se["cs_min_slip_angle_span_rad"]
     cls_cfg = params["classification"]
-    thresholds = {
-        "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
-        "strong_csf": cls_cfg["STRONG_CSF"]["value"], "moderate_csf": cls_cfg["MODERATE_CSF"]["value"],
-        "strong_csr": cls_cfg["STRONG_CSR"]["value"], "moderate_csr": cls_cfg["MODERATE_CSR"]["value"],
-    }
+    from modules.classifier import cs_decision_lines
+    thresholds = {"stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], **cs_decision_lines()}
 
     alpha_f, alpha_r = slip["alpha_f_filt"], slip["alpha_r_filt"]
     Fy_f, Fy_r = forces["Fy_f_filt"], forces["Fy_r_filt"]

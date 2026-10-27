@@ -51,6 +51,16 @@ def _thresholds():
     }
 
 
+def cs_decision_lines(thr=None):
+    """The CS levels the verdict rule above reads, as values to draw: the
+    per-axle boundaries (-margin), the front strong tier and the rear
+    information tier. Every trace view and thesis figure takes its lines
+    from here, so a drawn line can never be one the classifier ignores."""
+    thr = thr or _thresholds()
+    return {"boundary_f": -thr["boundary"]["f"], "strong_f": thr["strong_f"],
+            "boundary_r": -thr["boundary"]["r"], "info_r": thr["moderate_r"]}
+
+
 def phase_symptoms(summary, thr=None):
     """Symptoms per phase of one corner summary (one lap or the aggregate).
 
@@ -106,6 +116,22 @@ def _worst(symptoms, kind):
     return min(cand, key=lambda s: s["value"]) if cand else None
 
 
+def _primary(symptoms):
+    # primary axle verdict: rear limiting first (stability loss), then front;
+    # each at its worst phase
+    return _worst(symptoms, "OS") or _worst(symptoms, "US")
+
+
+def verdict_phases(summary):
+    """Phases the short verdict names -- the primary axle symptom's phase and
+    the open-loop-unstable phase -- in phase order; empty for ok / no data.
+    Same selection as classify_corner, so a view that marks these phases
+    marks exactly what the verdict text says."""
+    symptoms = phase_symptoms(summary)["symptoms"]
+    named = {s["phase"] for s in (_primary(symptoms), _worst(symptoms, "INST")) if s is not None}
+    return [p for p in PHASE_KEYS if p in named]
+
+
 def classify_corner(summary):
     """Return (severity, short_verdict, long_verdict, state).
 
@@ -127,9 +153,7 @@ def classify_corner(summary):
     symptoms = res["symptoms"]
     severity = max((s["severity"] for s in symptoms), key=SEVERITY_RANK.get, default="normal")
 
-    # primary axle verdict: rear limiting first (stability loss), then front;
-    # each at its worst phase
-    primary = _worst(symptoms, "OS") or _worst(symptoms, "US")
+    primary = _primary(symptoms)
     short_parts, long_parts = [], []
     if primary is not None:
         # MARGINAL: the deciding value sits within cs_margin of a boundary

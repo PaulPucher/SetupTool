@@ -100,7 +100,7 @@ def _export_laps(parsed_data, state, cs):
     return out
 
 
-THRESH = {"stab": -50.0, "strong_csf": -0.5, "moderate_csf": 0.5, "strong_csr": -0.5, "moderate_csr": 0.5}
+THRESH = {"stab": -50.0, "boundary_f": -0.5, "strong_f": -0.8, "boundary_r": -0.5, "info_r": 0.5}
 
 
 def _grey_lines(fig):

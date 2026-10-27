@@ -135,7 +135,8 @@ class WeekendDialog(QDialog):
     def _delete(self):
         # A weekend with outings is refused, not deleted together with them:
         # the outings carry stored analyses and setup sheets that one click
-        # must not wipe. Single outings are deleted from the outing form.
+        # must not wipe. Single outings are deleted from the outing form. An
+        # empty one still asks first, like the outing delete.
         session = Session()
         n_outings = session.query(Outing).filter(Outing.race_weekend_id == self.weekend.id).count()
         if n_outings:
@@ -145,6 +146,14 @@ class WeekendDialog(QDialog):
                 f"This race weekend / test still has {n_outings} outing{'s' if n_outings != 1 else ''}. "
                 "Delete them first; nothing was deleted.",
             )
+            return
+        reply = QMessageBox.question(
+            self, "Delete race weekend / test",
+            "Delete this race weekend / test? It has no outings. This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            session.close()
             return
         weekend = session.get(RaceWeekend, self.weekend.id)
         session.delete(weekend)

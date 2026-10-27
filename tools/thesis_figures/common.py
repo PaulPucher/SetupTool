@@ -81,14 +81,21 @@ def config_hash():
 
 def write_csv(path, columns, meta):
     """columns: {name: 1-D array or list}; numbers as %.6g, NaN as nan
-    (pgfplots jumps there with unbounded coords=jump). The text passes the
-    name guard before anything is written."""
+    (pgfplots jumps there with unbounded coords=jump). Fields are quoted
+    only where needed (a comma in a reason text), so a file without one is
+    written exactly as a plain join would. The text passes the name guard
+    before anything is written."""
+    import csv
+    import io
     from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
     names = list(columns)
     n = len(columns[names[0]])
     head = {"schema_version": ANALYSIS_SCHEMA_VERSION, **meta,
             "date": datetime.datetime.now().isoformat(timespec="seconds"), "config_hash": config_hash()}
-    lines = [f"# {k}: {v}" for k, v in head.items()] + [",".join(names)]
+    buf = io.StringIO()
+    buf.write("".join(f"# {k}: {v}\n" for k, v in head.items()))
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(names)
     for i in range(n):
         row = []
         for c in names:
@@ -97,8 +104,8 @@ def write_csv(path, columns, meta):
                 row.append("nan" if not np.isfinite(v) else f"{v:.6g}")
             else:
                 row.append(str(v))
-        lines.append(",".join(row))
-    _write_guarded(path, "\n".join(lines) + "\n")
+        writer.writerow(row)
+    _write_guarded(path, buf.getvalue())
 
 
 def write_tex(path, body):
@@ -410,12 +417,11 @@ def capture_fit(session):
 def lines():
     from modules.stability_analysis import load_parameters
     from modules.tyre_fit_auto import L_K_BAND, L_K_EDGE, L_MU_CEILING, MU_EDGE_CONFIG_KEY
+    from modules.classifier import cs_decision_lines
     p = load_parameters()
-    cl = p["classification"]
     return {
-        "boundary_f": -cl["cs_boundary_margin_front"]["value"],
-        "boundary_r": -cl["cs_boundary_margin_rear"]["value"],
-        "strong_f": cl["STRONG_CSF"]["value"],
+        # CS levels straight from the classifier, as the app's trace views
+        **cs_decision_lines(),
         "k_band": tuple(L_K_BAND), "k_edge": tuple(L_K_EDGE),
         "mu_ceiling": L_MU_CEILING,
         # the gate's own edge: relative uncertainty on the ceiling

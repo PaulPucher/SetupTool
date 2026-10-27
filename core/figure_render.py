@@ -87,9 +87,12 @@ def _lap_pen_kwargs(lap, styles):
 
 
 def _add_threshold(ax, value, kind, label):
-    # thresholds grey, by style: strong dashed, moderate dotted, unstable dash-dot
-    style_map = {"strong": "--", "moderate": ":", "unstable": "-."}
-    ax.axhline(value, color=ps.THRESHOLD_GREY, linestyle=style_map[kind], linewidth=1.0, label=label)
+    # thresholds grey, by style as on screen (core.trace_display.CS_LINE_SPECS):
+    # boundary solid, strong tier dash-dot, rear info tier dotted and fainter
+    # (a note, not a symptom), unstable dash-dot on its own panel
+    linestyle, width, alpha = {"boundary": ("-", 1.0, 1.0), "strong": ("-.", 1.0, 1.0),
+                               "info": (":", 0.8, 0.6), "unstable": ("-.", 1.0, 1.0)}[kind]
+    ax.axhline(value, color=ps.THRESHOLD_GREY, linestyle=linestyle, linewidth=width, alpha=alpha, label=label)
 
 
 def _draw_kerb_bridges(ax, laps, styles, value_key):
@@ -132,9 +135,10 @@ def _draw_stability_panel(ax, laps, styles, thresholds, theme, legend_ax):
 
 
 def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
-                       strong=None, moderate=None, near_strike=None):
+                       thresholds=None, near_strike=None):
     # Front or rear CS panel, one quantity each. near_strike = {"mode"}
-    # (kerb-exclusion display switch).
+    # (kerb-exclusion display switch); thresholds carries the
+    # classifier.cs_decision_lines values.
     from core.trace_display import near_strike_split
     mode = (near_strike or {}).get("mode", "off") if value_key in ("cs_f", "cs_r") else "off"
     grey_drawn = False
@@ -152,10 +156,10 @@ def _draw_ratio_panel(ax, laps, styles, theme, value_key, ylabel, legend_ax,
                 label="Kerb-affected (greyed)")
     if value_key in ("cs_f", "cs_r"):
         _draw_kerb_bridges(ax, laps, styles, value_key)
-    if strong is not None:
-        _add_threshold(ax, strong, "strong", "Strong")
-    if moderate is not None:
-        _add_threshold(ax, moderate, "moderate", "Moderate")
+    if thresholds is not None:
+        from core.trace_display import cs_lines
+        for value, kind, label in cs_lines(value_key, thresholds):
+            _add_threshold(ax, value, kind, label)
     ax.set_xlabel("Track position s (m)")
     ax.set_ylabel(ylabel)
     _draw_side_legend(ax, legend_ax, theme)
@@ -338,9 +342,9 @@ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map,
 
     _draw_speed_panel(ax_speed, laps, styles, theme, legend_speed)
     _draw_ratio_panel(ax_csf, laps, styles, theme, "cs_f", "Front CS ratio", legend_csf,
-                       strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"], near_strike=near_strike)
+                       thresholds=thresholds, near_strike=near_strike)
     _draw_ratio_panel(ax_csr, laps, styles, theme, "cs_r", "Rear CS ratio", legend_csr,
-                       strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"], near_strike=near_strike)
+                       thresholds=thresholds, near_strike=near_strike)
     _draw_track_map_panel(ax_map, track_map, theme)
     _draw_tyre_curve_panel(ax_tyre_f, "Front", tyre_curves["front"], theme, legend_f)
     _draw_tyre_curve_panel(ax_tyre_r, "Rear", tyre_curves["rear"], theme, legend_r)
@@ -386,10 +390,10 @@ def render_verdict_traces_figure(corner_label, laps, thresholds, theme=ps.PRINT,
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
         ("stab", lambda ax, lax: _draw_stability_panel(ax, laps, styles, thresholds, theme, lax)),
         ("cs_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_f", "Front CS ratio", lax,
-                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"],
+                                                    thresholds=thresholds,
                                                     near_strike=near_strike)),
         ("cs_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_r", "Rear CS ratio", lax,
-                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
+                                                    thresholds=thresholds,
                                                     near_strike=near_strike)),
     ]
     axes = _verdict_panel_set(fig, gs, panel_specs)
@@ -424,10 +428,10 @@ def render_lap_figure(lap_label, laps, thresholds, corner_bands, theme=ps.PRINT,
         ("speed", lambda ax, lax: _draw_speed_panel(ax, laps, styles, theme, lax)),
         ("stab", lambda ax, lax: _draw_stability_panel(ax, laps, styles, thresholds, theme, lax)),
         ("cs_f", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_f", "Front CS ratio", lax,
-                                                    strong=thresholds["strong_csf"], moderate=thresholds["moderate_csf"],
+                                                    thresholds=thresholds,
                                                     near_strike=near_strike)),
         ("cs_r", lambda ax, lax: _draw_ratio_panel(ax, laps, styles, theme, "cs_r", "Rear CS ratio", lax,
-                                                    strong=thresholds["strong_csr"], moderate=thresholds["moderate_csr"],
+                                                    thresholds=thresholds,
                                                     near_strike=near_strike)),
     ]
     axes = _verdict_panel_set(fig, gs, panel_specs)

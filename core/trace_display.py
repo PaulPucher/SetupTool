@@ -164,3 +164,22 @@ def kerb_exclusion_caption(mode, n_affected, n_finite):
     share = 100.0 * n_affected / max(1, n_finite)
     prefix = {"grey": "Grey", "exclude": "Not drawn", "off": "Drawn normally"}[mode]
     return f"{prefix}: {KERB_CAPTION} (n = {n_affected}, {share:.1f} %)."
+
+
+# CS lines per ratio panel, shared by the trace window and its export so the
+# two draw the same set. Values from modules.classifier.cs_decision_lines;
+# the kind picks the line style: boundary solid (decides the symptom),
+# strong dash-dot (grades front depth), info dotted and weaker (rear note
+# only, no symptom). Same set as the thesis figure fig_example_corner.
+CS_LINE_SPECS = {
+    "cs_f": (("boundary_f", "boundary", "Decision boundary"),
+             ("strong_f", "strong", "Strong tier (front)")),
+    "cs_r": (("boundary_r", "boundary", "Decision boundary"),
+             ("info_r", "info", "Rear info tier (no symptom)")),
+}
+
+
+def cs_lines(panel, values):
+    """[(value, kind, label)] of one ratio panel; values as returned by
+    classifier.cs_decision_lines (or the export's thresholds dict)."""
+    return [(values[key], kind, label) for key, kind, label in CS_LINE_SPECS[panel]]

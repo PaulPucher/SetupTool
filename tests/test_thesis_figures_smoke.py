@@ -23,8 +23,9 @@ def test_lines_come_from_config_and_the_gate():
     assert lin["boundary_f"] == -cl["cs_boundary_margin_front"]["value"]
     assert lin["boundary_r"] == -cl["cs_boundary_margin_rear"]["value"]
     assert lin["strong_f"] == cl["STRONG_CSF"]["value"]
-    # the rear information band is display-only (D2) and drawn nowhere
-    assert "info_r" not in lin
+    # the rear information tier is drawn since ruling B10 (2026-10-27): a
+    # note, no symptom, same line set as the app's trace views
+    assert lin["info_r"] == cl["MODERATE_CSR"]["value"]
     assert lin["mu_edge"] == pytest.approx(lin["mu_ceiling"] * (1 + load_parameters()["tyre_fit_auto"]["mu_ceiling_edge_u"]))
 
 

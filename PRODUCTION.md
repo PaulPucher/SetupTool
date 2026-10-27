@@ -954,8 +954,11 @@ symptom, Le Castellet 32 among them.]
   (0.7 % of corner-phases) change, 3 of 57 front floor events disappear,
   the braking-filter share falls 0.4-1.6 points, rear K shifts < 0.5 /
   rad, mu_demo within 0.002, no status or fallback change; at 1.3 m^2 3.1
-  % of corner verdicts -- below the admissible observer-noise effect (15.6
-  % at Q x 0.3). Rolling resistance stays 0. Outlook: a Level-2 session
+  % of corner verdicts -- ~~below the admissible observer-noise effect (15.6
+  % at Q x 0.3)~~ [2026-10-27, SENS-1: comparison superseded -- the two
+  numbers use different counting rules (corner verdict string vs per-axle
+  tier class), both on the pre-D2 classifier; recount under one rule
+  pending]. Rolling resistance stays 0. Outlook: a Level-2 session
   estimate from the power balance over full-throttle straights on a flat
   track [Trzesniowski.2019b, sec. 5.4, Eq. 5.13 and Tab. 5.5 (drivetrain efficiency), p. 238].
 - IMU position unknown. The mounting position of the accelerometer

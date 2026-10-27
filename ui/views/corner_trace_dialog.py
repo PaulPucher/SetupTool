@@ -15,7 +15,8 @@ from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEX
 # Colours and widths come from core/plot_style.py, shared with the PNG
 # exports. Lap = colour (lap_styles over the checked set); quantity/axle = panel.
 from core import plot_style
-from core.trace_display import kerb_exclusion_caption
+from core.trace_display import cs_lines, kerb_exclusion_caption
+from modules.classifier import cs_decision_lines, verdict_phases
 from modules.limit_events import legend_text as event_legend_text
 from core.plot_style import (
     FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY, NEAR_STRIKE_COLOR,
@@ -48,6 +49,9 @@ BASE_LEGEND_TEXT = (
     "Unchecked laps are not drawn anywhere in this window."
 )
 
+# phase tint sentence of the corner window (author ruling B11, 2026-10-27)
+PHASE_TINT_LEGEND_TEXT = "Tinted: phase(s) named in the verdict (a named apex = red apex line)."
+
 # corner-band sentence; colour words match ui.style BAD/WARN/OK
 LAP_BAND_LEGEND_TEXT = (
     "Corner bands: colour = worst verdict across all laps (red/gold/green). "
@@ -59,6 +63,8 @@ PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 # kerb-gap bridge: lighter than a measured trace (config corner_trace_display
 # kerb_gap_bridge switches it)
 BRIDGE_ALPHA = 110
+# rear info tier line: fainter than the boundaries, it raises no symptom
+INFO_LINE_ALPHA = 140
 KERB_BRIDGE_LEGEND_TEXT = (
     "Dashed, lighter stretch across a kerb band: straight-line bridge for "
     "continuity only -- not measured, not used by any verdict."
@@ -185,18 +191,6 @@ def _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m, bracket_sta
     if best is None:
         return None
     return {"index": best[1]}
-
-
-def _worst_stab_phase(summary):
-    # phase with the lowest stability median; tinted as context, need not be
-    # the verdict phase
-    worst_phase, worst_val = None, float("inf")
-    for phase, phase_data in summary["phases"].items():
-        val = phase_data["stability_observed_Nm_per_deg"]["median"]
-        if val == val and val < worst_val:  # NaN-safe
-            worst_val = val
-            worst_phase = phase
-    return worst_phase
 
 
 def _phase_bands_for_lap(corner, t, s_m):
@@ -574,17 +568,27 @@ class _TraceDialogBase(QDialog):
         qcolor.setAlpha(alpha)
         return pg.mkPen(color=qcolor, width=width, style=style)
 
-    def _add_threshold_line(self, panel_key, value, color, style=Qt.PenStyle.DashLine, name=None):
+    def _add_threshold_line(self, panel_key, value, color, style=Qt.PenStyle.DashLine, name=None, alpha=255):
         # Threshold meaning goes into the legend (name=None -> no entry).
         # InfiniteLine has no .opts, so LegendItem's swatch paint fails silently
         # -> register a zero-point PlotDataItem with the same pen instead.
-        import pyqtgraph as pg
-        pen = pg.mkPen(color=color, width=1, style=style)
+        pen = self._pen(color, 1, style, alpha=alpha)
         self.plots[panel_key].addLine(y=value, pen=pen)
         if name is not None:
             # not in lap_curve_items (would get restyled as a lap); plot.clear()
             # removes it
             self.plots[panel_key].plot([], [], pen=pen, name=name)
+
+    def _add_cs_lines(self, values):
+        # the classifier's CS levels, same set and styles as the export
+        # (core.trace_display.CS_LINE_SPECS); the rear info tier is fainter,
+        # it raises a note, never a symptom
+        styles = {"boundary": (Qt.PenStyle.SolidLine, 255), "strong": (Qt.PenStyle.DashDotLine, 255),
+                  "info": (Qt.PenStyle.DotLine, INFO_LINE_ALPHA)}
+        for panel in ("cs_f", "cs_r"):
+            for value, kind, label in cs_lines(panel, values):
+                style, alpha = styles[kind]
+                self._add_threshold_line(panel, value, THRESHOLD_GREY, style, name=label, alpha=alpha)
 
     def _apply_ratio_y_range(self):
         # CS panels share a fixed y-range (config corner_trace_display): one
@@ -711,22 +715,22 @@ class CornerTraceDialog(_TraceDialogBase):
             self._visible_panels.discard(key)
         self._layout_panels(self._visible_panels)
 
-    def _add_phase_bands(self, corner, t, s_m, worst_phase):
-        # phase tints go back as specs for _draw_tint_and_exclusion (drawn with
-        # the exclusion grey); the apex line is drawn here directly
-        tint_specs = [(s_start, s_end, BAD if phase == worst_phase else BORDER,
-                       70 if phase == worst_phase else 30)
+    def _add_phase_bands(self, corner, t, s_m, named_phases):
+        # named_phases = classifier.verdict_phases: red tint on every phase
+        # the verdict names, the neutral band on the rest. Specs go back for
+        # _draw_tint_and_exclusion (drawn with the exclusion grey); apex_3 is
+        # an instant, so a named apex turns its line red instead
+        tint_specs = [(s_start, s_end, BAD if phase in named_phases else BORDER,
+                       70 if phase in named_phases else 30)
                       for phase, s_start, s_end in _phase_bands_for_lap(corner, t, s_m)]
         import pyqtgraph as pg
 
         apex_s = corner.get("apex_lap_distance_m")
         if apex_s is not None:
+            apex_pen = (pg.mkPen(color=BAD, width=2, style=Qt.PenStyle.SolidLine) if "apex_3" in named_phases
+                        else pg.mkPen(color=TEXT_DIM, width=1, style=Qt.PenStyle.DotLine))
             for plot in self.plots.values():
-                apex_line = pg.InfiniteLine(
-                    pos=apex_s, angle=90,
-                    pen=pg.mkPen(color=TEXT_DIM, width=1, style=Qt.PenStyle.DotLine),
-                )
-                plot.addItem(apex_line)
+                plot.addItem(pg.InfiniteLine(pos=apex_s, angle=90, pen=apex_pen))
         return tint_specs
 
     def _plot_cross_lap_envelopes(self, instances, laps_by_number, t, s_m, bracket_start_m, bracket_end_m,
@@ -1243,7 +1247,7 @@ class CornerTraceDialog(_TraceDialogBase):
     def show_corner(self, summary, stability_result, parsed_data, preserve_visible=None):
         """Repopulate for summary's stable_corner_id. summary = the clicked lap's
         corner summary: its lap is the representative lap (phase bands, map
-        outline, initial x range) and its phase medians pick the tinted phase.
+        outline, initial x range) and its verdict names the tinted phases.
         """
         from modules.stability_analysis import load_parameters
 
@@ -1252,6 +1256,9 @@ class CornerTraceDialog(_TraceDialogBase):
         for plot in self.plots.values():
             plot.clear()
         self._clear_tyre_curves()
+        # the early returns below must not leave the previous corner to export
+        self.track_map_plot.clear()
+        self._export_data = None
         self.lap_curve_items = {}
         self.lap_bridge_items = {}
         self._render_ctx = None
@@ -1313,7 +1320,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
         selected_lap = summary["lap_number"]
         representative = next((c for c in instances if c["lap_number"] == selected_lap), instances[0])
-        phase_tints = self._add_phase_bands(representative, t, s_m, worst_phase=_worst_stab_phase(summary))
+        phase_tints = self._add_phase_bands(representative, t, s_m, named_phases=verdict_phases(summary))
         # default view: the selected lap full-strength
         # over the cross-lap envelope of all analysis laps; other laps opt-in
         default_checked_laps = {selected_lap}
@@ -1411,6 +1418,7 @@ class CornerTraceDialog(_TraceDialogBase):
         self._restyle_all_laps()
 
         cls_cfg = params["classification"]
+        cs_values = cs_decision_lines()
 
         # background cloud (screen and export) = the whole lap of every CHECKED
         # lap: one lap-selection state, so an unchecked lap leaves no dot here
@@ -1440,22 +1448,13 @@ class CornerTraceDialog(_TraceDialogBase):
             "session_mask": session_mask,
             "thresholds": {
                 "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
-                "strong_csf": cls_cfg["STRONG_CSF"]["value"], "moderate_csf": cls_cfg["MODERATE_CSF"]["value"],
-                "strong_csr": cls_cfg["STRONG_CSR"]["value"], "moderate_csr": cls_cfg["MODERATE_CSR"]["value"],
+                **cs_values,
             },
         }
         self._refresh_checked_dependent_views()
-        # thresholds grey; strong dashed, moderate dotted, unstable dash-dot
         self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], THRESHOLD_GREY,
                                   Qt.PenStyle.DashDotLine, name="Unstable below this")
-        self._add_threshold_line("cs_f", cls_cfg["STRONG_CSF"]["value"], THRESHOLD_GREY, Qt.PenStyle.DashLine,
-                                  name="Strong")
-        self._add_threshold_line("cs_f", cls_cfg["MODERATE_CSF"]["value"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
-                                  name="Moderate")
-        self._add_threshold_line("cs_r", cls_cfg["STRONG_CSR"]["value"], THRESHOLD_GREY, Qt.PenStyle.DashLine,
-                                  name="Strong")
-        self._add_threshold_line("cs_r", cls_cfg["MODERATE_CSR"]["value"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
-                                  name="Moderate")
+        self._add_cs_lines(cs_values)
 
         if rep_start_s is not None:
             x_lo, x_hi = rep_start_s, rep_end_s
@@ -1479,7 +1478,7 @@ class CornerTraceDialog(_TraceDialogBase):
             f"context margin -{margin_before_m:g}m/+{margin_after_m:g}m outside the bracket"
         )
 
-        legend_parts = [BASE_LEGEND_TEXT]
+        legend_parts = [BASE_LEGEND_TEXT, PHASE_TINT_LEGEND_TEXT]
         if any_kerb or any_not_moving:
             legend_parts.append(EXCLUSION_LEGEND_TEXT)
         if any_bridge:
@@ -1636,6 +1635,7 @@ class LapTraceDialog(_TraceDialogBase):
 
         for plot in self.plots.values():
             plot.clear()
+        self._export_data = None  # nothing of the previous lap survives an early return
         self.lap_curve_items = {}
         self.lap_bridge_items = {}
         self._corner_bands = []
@@ -1756,16 +1756,10 @@ class LapTraceDialog(_TraceDialogBase):
         self._restyle_all_laps()
 
         cls_cfg = load_parameters()["classification"]
+        cs_values = cs_decision_lines()
         self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], THRESHOLD_GREY,
                                   Qt.PenStyle.DashDotLine, name="Unstable below this")
-        self._add_threshold_line("cs_f", cls_cfg["STRONG_CSF"]["value"], THRESHOLD_GREY, Qt.PenStyle.DashLine,
-                                  name="Strong")
-        self._add_threshold_line("cs_f", cls_cfg["MODERATE_CSF"]["value"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
-                                  name="Moderate")
-        self._add_threshold_line("cs_r", cls_cfg["STRONG_CSR"]["value"], THRESHOLD_GREY, Qt.PenStyle.DashLine,
-                                  name="Strong")
-        self._add_threshold_line("cs_r", cls_cfg["MODERATE_CSR"]["value"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
-                                  name="Moderate")
+        self._add_cs_lines(cs_values)
 
         for plot in self.plots.values():
             plot.enableAutoRange(axis='x')
@@ -1780,8 +1774,7 @@ class LapTraceDialog(_TraceDialogBase):
             "lap_label": f"Lap {lap_number}", "laps": export_laps,
             "thresholds": {
                 "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
-                "strong_csf": cls_cfg["STRONG_CSF"]["value"], "moderate_csf": cls_cfg["MODERATE_CSF"]["value"],
-                "strong_csr": cls_cfg["STRONG_CSR"]["value"], "moderate_csr": cls_cfg["MODERATE_CSR"]["value"],
+                **cs_values,
             },
             "corner_bands": list(self._corner_bands),
             "near_strike": {"mode": ns_mode},

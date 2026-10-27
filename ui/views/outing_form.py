@@ -962,21 +962,9 @@ class OutingForm(QWidget):
         self.parsed_data = result
         self.loaded_csv_path = self.loader_thread.path
         self._data_cleared = False
-        # no analysis state from the previous file. Pipeline cache not reset --
-        # it's keyed by csv_path.
-        self.stability_result = None
-        self._sidecar_hit = None
-        self._last_sidecar = None
-        self._sidecar_miss_reason = None
-        self._last_render_kwargs = None
-        self.btn_recompute_stale_cache.setVisible(False)
-        self.corner_positions_cache = None
-        self._analysis_data_json = None
-        self._displayed_resolved_vehicle_snapshot = None
-        if self._corner_trace_dialog is not None:
-            self._corner_trace_dialog.hide()
-        if self._lap_trace_dialog is not None:
-            self._lap_trace_dialog.hide()
+        # nothing of the previous file's analysis stays on screen. Pipeline
+        # cache not reset -- it's keyed by csv_path.
+        self._clear_analysis_state()
         filename = os.path.basename(self.loader_thread.path)
         laps = self.parsed_data.get("laps", [])
         available = get_available_channels(self.parsed_data)
@@ -1016,6 +1004,19 @@ class OutingForm(QWidget):
         self.parsed_data = None
         self.loaded_csv_path = None
         self._data_cleared = True
+        self._clear_analysis_state()
+
+        self.csv_status_label.setText("No file loaded")
+        self.csv_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
+        self.lap_table.setRowCount(0)
+        self.lap_table.setVisible(False)
+        self.plot_container.setVisible(False)
+        self.btn_analyse.setEnabled(False)
+        self._update_corner_map_trace()
+
+    def _clear_analysis_state(self):
+        # analysis results and everything rendered from them; shared by Clear
+        # data and a newly loaded file, which must not show the old verdicts
         self.stability_result = None
         self._sidecar_hit = None
         self._last_sidecar = None
@@ -1031,8 +1032,6 @@ class OutingForm(QWidget):
         if self._lap_trace_dialog is not None:
             self._lap_trace_dialog.hide()
 
-        self.csv_status_label.setText("No file loaded")
-        self.csv_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         self.stability_status_label.setText("")
         self.stability_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         self.estimator_status_label.setText("")
@@ -1047,10 +1046,6 @@ class OutingForm(QWidget):
         self.setup_calibration_banner_label.setVisible(False)
         self._clear_setup_rows()
 
-        self.lap_table.setRowCount(0)
-        self.lap_table.setVisible(False)
-        self.plot_container.setVisible(False)
-
         self._clear_cards()
         self.stability_summary_label.setText(
             "Run Analyse."
@@ -1058,11 +1053,8 @@ class OutingForm(QWidget):
         self.setup_summary_label.setText("Run Analyse, then Generate.")
         self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
 
-        self.btn_analyse.setEnabled(False)
         self.btn_lap_traces.setEnabled(False)
         self.btn_generate_setup.setEnabled(False)
-
-        self._update_corner_map_trace()
 
     def _get_lap_filter_from_selector(self):
         # lap selection only scopes the channel plot. Analysis = every valid lap,

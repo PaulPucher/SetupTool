@@ -57,8 +57,11 @@ def test_events_are_display_only(pipeline_result, state, parsed_data, effective_
 
     params_off = copy.deepcopy(effective_params)
     params_off["limit_events"]["enabled"] = False
+    # same keys as the computed record since schema 28 (B24), no events
     assert _events(pipeline_result, state, parsed_data, params_off) == {
-        "status": "disabled in config", "floors": None, "events": [], "n_instances_by_corner": {}}
+        "status": "disabled in config", "line": "pure-lateral floor", "floor": PURE_LATERAL_FLOOR,
+        "floors": {"front": PURE_LATERAL_FLOOR, "rear": PURE_LATERAL_FLOOR},
+        "label": "not explainable by pure lateral saturation", "events": [], "n_instances_by_corner": {}}
 
 
 def test_no_verdict_module_reads_events():

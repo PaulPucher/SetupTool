@@ -22,16 +22,16 @@ def build(outing, tag="dev", allow_status=False, allow_excluded=False, out=None)
     got = common.capture_fit(session)
     info = got["load_in"]["info"]
     fits = dict(zip(("front", "rear"), got["fits"]))
-    # the production fit-L plausibility gate on the same inputs; the partial run stops
-    # before the sign check and the NIS sweep, so only a failed gate (or the
-    # damper-path check) can mark the session here -- the stored payload,
-    # where valid, carries the full status
+    # the production degenerate rules on the same fits: Powell converged and
+    # D > 0 on both axles (as fit_session_pacejka), then the fit-L
+    # plausibility gate. The partial run stops before the NIS sweep, so the
+    # stored payload, where valid, carries the full status
     from modules import tyre_fit_auto as tfa
     cfg = session["params"]["tyre_fit_auto"]
     rows, status = {}, "ok"
     for axle, g in fits.items():
         pg = tfa.plausibility_gate_l(g["alpha"], got["fit_mask"], g["fit"], cfg)
-        if pg["failed"]:
+        if pg["failed"] or not (g["fit"]["sign_ok"] and g["fit"]["powell_converged"]):
             status = "degenerate"
         rows[axle] = {"K": pg["stiffness_norm_per_rad"], "k_zone": pg["k_zone"], "mu_zone": pg["mu_zone"]}
     marks = common.gate(outing, {"axle_load": info, "status": status}, False, allow_status, allow_excluded)

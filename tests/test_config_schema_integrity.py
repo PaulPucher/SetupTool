@@ -173,9 +173,12 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 27 (2026-10-24): work order DEV-4 -- damper-path plausibility check
     # (axle_load.damper_plausibility); corner summaries untouched on
     # sessions that pass, shape checks unchanged.
-    assert ANALYSIS_SCHEMA_VERSION == 27, (
+    # 28 (2026-10-27): work order BUG-3, B24 -- the events record has the
+    # same keys on every return path; no value change, shape checks
+    # unchanged.
+    assert ANALYSIS_SCHEMA_VERSION == 28, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 27 -- update this test deliberately if the version was bumped again"
+        "written for 28 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

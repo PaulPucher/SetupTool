@@ -21,7 +21,7 @@ CAR_DATA_PATH = "config/car_data.json"
 # config edits. Not for read/render-only changes. Mismatch = recompute on
 # open. Version history: DECISIONS.md ("Analysis schema history" and the
 # rulings that caused each bump).
-ANALYSIS_SCHEMA_VERSION = 27
+ANALYSIS_SCHEMA_VERSION = 28
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape
@@ -575,13 +575,18 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
                 for c in WHEEL_CORNERS:
                     damper_result[c]["valid"] = np.zeros_like(damper_result[c]["valid"])
                 any_damper_valid = False
-        if any_damper_valid:
+        # the session fit needs a measured total on BOTH axles: with one axle
+        # lacking any damper corner its total is NaN on every sample, the
+        # least-squares fit returns NaN and every reconstructed corner with it
+        each_axle_measured = all(np.any(damper_result[a]["valid"]) or np.any(damper_result[b]["valid"])
+                                 for a, b in (("fl", "fr"), ("rl", "rr")))
+        if any_damper_valid and each_axle_measured:
             session_corrected = estimate_session_corrected_axle_totals(state, damper_result, params)
             fz_axle_totals = {"fz_f_N": session_corrected["fz_f_N"], "fz_r_N": session_corrected["fz_r_N"]}
             c_session = session_corrected["c_session_N_per_mps2"]
         else:
-            # no real damper sample anywhere -> skip the fit, it would average
-            # nothing and nothing could be reconstructed anyway
+            # no fit -> static axle totals; the measured corners are kept and
+            # an axle mate is still reconstructed against the static total
             fz_axle_totals = {"fz_f_N": fz_f_N, "fz_r_N": fz_r_N}
         combined = combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, static_fallback_fz)
         fz_fl_N = combined["fl"]["fz_N"]

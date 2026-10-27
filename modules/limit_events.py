@@ -48,26 +48,31 @@ def _runs(mask):
     return list(zip(np.where(d == 1)[0], np.where(d == -1)[0] - 1))
 
 
+def _empty_result(status):
+    # every return path carries the same keys, so a reader of the stored
+    # events record never has to know which path wrote it
+    return {"status": status, "line": LINE_PURE, "floor": PURE_LATERAL_FLOOR,
+            "floors": {name: PURE_LATERAL_FLOOR for name in AXLES.values()},
+            "label": "not explainable by pure lateral saturation", "events": [], "n_instances_by_corner": {}}
+
+
 def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gate_verdict=None,
                   axle_loads=None, axle_fx=None):
     """Event layer of one session: the floor events of detect_floor_events,
     line PURE_LATERAL_FLOOR; axle_loads / axle_fx feed their attributes.
-    Returns a JSON-safe dict {"status", "line", "floors", "events": [...],
-    "n_instances_by_corner"}. Without a tyre fit (kinematic sideslip source)
-    there is no event layer.
+    Returns the JSON-safe dict of detect_floor_events on every path; without
+    a tyre fit (kinematic sideslip source) or with the layer disabled it
+    holds no events and the status says why.
 
     Population: in-corner samples (canonical brackets) on analysis laps, the
     FULL CS arrays -- kerb-affected samples are kept and labelled, so nothing
     is hidden (the classifier's clean population is a separate concern).
     """
     cfg = params["limit_events"]
-    out = {"status": "computed", "floors": None, "events": [], "n_instances_by_corner": {}}
     if not cfg.get("enabled", True):
-        out["status"] = "disabled in config"
-        return out
+        return _empty_result("disabled in config")
     if not fit_manifest:
-        out["status"] = "no events: no tyre fit in this run (kinematic sideslip source)"
-        return out
+        return _empty_result("no events: no tyre fit in this run (kinematic sideslip source)")
     fe = detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=axle_loads, axle_fx=axle_fx)
     # the -0.53 line is model-independent, so a degenerate fit or a failed
     # gate does not withdraw it; the note says which beta the CS came from
@@ -97,9 +102,7 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
     2 Hz zero-phase, for the longitudinal utilisation and the load change inside
     the regression windows; without them those attributes are None.
     """
-    out = {"status": "computed", "line": LINE_PURE, "floor": PURE_LATERAL_FLOOR,
-           "floors": {name: PURE_LATERAL_FLOOR for name in AXLES.values()},
-           "label": "not explainable by pure lateral saturation", "events": [], "n_instances_by_corner": {}}
+    out = _empty_result("computed")
     t, s_m = state["time"], state.get("s_m")
     if s_m is None:
         out["status"] = "no events: lap distance unusable"
@@ -156,6 +159,7 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
                     "floor": PURE_LATERAL_FLOOR,
                     "fx_util_max": None, "braking_share": None, "braking": None,
                     "fz_window_range_median": None, "fz_window_range_max": None,
+                    "window_start_t": None,
                 }
                 if axle_loads is not None:
                     fz = axle_loads[f"fz_{ax}_N"]

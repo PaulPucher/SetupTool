@@ -818,7 +818,9 @@ def reclassify_speed_classes(corners, speed_thresholds):
 def canonical_speed_classes(corners):
     """{stable_corner_id: speed_class} for display next to the corner number.
     Canonical instances share one class (above); a corner seen only as
-    per-lap instances takes its most frequent class."""
+    per-lap instances takes its most frequent class, ties broken as in
+    corner_aggregation (not by set order, which follows the hash seed)."""
+    from modules.corner_aggregation import modal_speed_class  # local import, circular otherwise
     canon, per_lap = {}, {}
     for c in corners or []:
         cid, cls = c.get("stable_corner_id"), c.get("speed_class")
@@ -829,5 +831,5 @@ def canonical_speed_classes(corners):
         else:
             per_lap.setdefault(cid, []).append(cls)
     for cid, classes in per_lap.items():
-        canon.setdefault(cid, max(set(classes), key=classes.count))
+        canon.setdefault(cid, modal_speed_class(classes))
     return canon

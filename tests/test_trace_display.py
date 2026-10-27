@@ -101,9 +101,8 @@ def test_export_draws_bridge_and_leaves_analysis_arrays_untouched(pipeline_resul
     before_stab = stab_obs.tobytes()
     t, s_m, kerb = state["time"], state["s_m"], state["kerb_mask"]
     cls = effective_params["classification"]
-    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"],
-                  "strong_csf": cls["STRONG_CSF"]["value"], "moderate_csf": cls["MODERATE_CSF"]["value"],
-                  "strong_csr": cls["STRONG_CSR"]["value"], "moderate_csr": cls["MODERATE_CSR"]["value"]}
+    from modules.classifier import cs_decision_lines
+    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"], **cs_decision_lines()}
 
     def laps(with_kerb):
         out = []
@@ -148,9 +147,8 @@ def test_export_png_holds_every_artist(pipeline_result, parsed_data, state, effe
     cs, stab = pipeline_result["cs"], pipeline_result["stab"]
     t, s_m, kerb = state["time"], state["s_m"], state["kerb_mask"]
     cls = effective_params["classification"]
-    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"],
-                  "strong_csf": cls["STRONG_CSF"]["value"], "moderate_csf": cls["MODERATE_CSF"]["value"],
-                  "strong_csr": cls["STRONG_CSR"]["value"], "moderate_csr": cls["MODERATE_CSR"]["value"]}
+    from modules.classifier import cs_decision_lines
+    thresholds = {"stab": cls["stab_neg_thresh_Nm_per_deg"]["value"], **cs_decision_lines()}
     laps = []
     for lap in parsed_data["laps"]:
         if lap.get("is_valid_for_analysis"):
