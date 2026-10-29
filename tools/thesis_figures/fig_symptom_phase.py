@@ -1,0 +1,151 @@
+# fig:symptom_phase -- per track, per corner phase: the per-lap cell share
+# of front limiting (US), rear limiting (OS) and open-loop instability
+# (INST), pooled over the track's sessions, n printed on each bar. The
+# counting rule is setup_engine.cell_shares split by phase (per lap and
+# corner phase, no repetition rule; US / OS over the cells with a CS value
+# on that axle, INST over the cells with a stability value); the phase sums
+# must reproduce the stored session cells, else the script refuses. Stored
+# results only.
+# Run: python -m tools.thesis_figures.fig_symptom_phase --group "NBR=17,18,19,20,21"
+#      --group "PRC=22,25,26,27,28" [--tag final] [--out DIR] | --render-only
+
+import argparse
+
+from tools.thesis_figures import common
+from tools.thesis_figures.fig_k_sessions import collect
+
+SCRIPT = "fig_symptom_phase"
+TYPES = ("US", "OS", "INST")
+STYLE = {"US": "fill=axleFront", "OS": "fill=axleRear", "INST": "fill=black!80"}
+WORD = {"US": "front limiting (US)", "OS": "rear limiting (OS)", "INST": "open-loop unstable (INST)"}
+BAR_W, BAR_SHIFT = 0.24, 0.26   # axis units; layout only
+
+
+def phase_cells(summaries):
+    """{phase: {type: [k, n]}} -- setup_engine.cell_shares, split by phase."""
+    import numpy as np
+    from modules.classifier import _thresholds, phase_symptoms, verdict_cs_stat
+    from modules.corner_aggregation import PHASE_KEYS
+    thr = _thresholds()
+    out = {ph: {t: [0, 0] for t in TYPES} for ph in PHASE_KEYS}
+    for s in summaries:
+        hit = {(x["phase"], x["symptom"]) for x in phase_symptoms(s, thr)["symptoms"]}
+        for ph in PHASE_KEYS:
+            p = s["phases"].get(ph)
+            if p is None:
+                continue
+            vals = {"US": verdict_cs_stat(s, ph, "f")["median"], "OS": verdict_cs_stat(s, ph, "r")["median"],
+                    "INST": p["stability_observed_Nm_per_deg"]["median"]}
+            for t, v in vals.items():
+                if v is not None and np.isfinite(v):
+                    out[ph][t][1] += 1
+                    out[ph][t][0] += (ph, t) in hit
+    return out
+
+
+def build(groups, tag="dev", out=None):
+    all_outings = [o for _n, os_ in groups for o in os_]
+    rows = {o: s for o, s, _m, _k in collect(all_outings)}
+    common.write_label_map(tag, all_outings)
+    data_dir, _plots, _prefix = common.out_dirs(out)
+    for name, os_ in groups:
+        pooled = None
+        for o in os_:
+            payload, _why = common.stored_payload(rows[o])
+            got = phase_cells(payload["summaries"])
+            stored = payload["setup_engine"]["data_layer"]["session"]["cells"]
+            for t in TYPES:
+                k = sum(got[ph][t][0] for ph in got)
+                n = sum(got[ph][t][1] for ph in got)
+                if (k, n) != (stored[t]["k"], stored[t]["n"]):
+                    raise common.Refused(f"outing {o}: phase split {t} {k}/{n} does not reproduce the stored "
+                                         f"cells {stored[t]['k']}/{stored[t]['n']}")
+            if pooled is None:
+                pooled = got
+            else:
+                for ph in got:
+                    for t in TYPES:
+                        pooled[ph][t] = [a + b for a, b in zip(pooled[ph][t], got[ph][t])]
+        cols = {k: [] for k in ("phase", "phase_abbr", "type", "k", "n", "share")}
+        for ph, by in pooled.items():
+            for t in TYPES:
+                k, n = by[t]
+                for c, v in (("phase", ph), ("phase_abbr", common.PHASE_ABBR[common.PHASE_LABELS[ph]]), ("type", t),
+                             ("k", k), ("n", n), ("share", k / n if n else float("nan"))):
+                    cols[c].append(v)
+        labels = ", ".join(common.session_label(rows[o]["row"]) for o in os_)
+        common.write_csv(f"{data_dir}/{SCRIPT}_{name}.csv", cols,
+                         common.meta(SCRIPT, os_, tag, group=name, session_labels=labels,
+                                     source="stored summaries, setup_engine.cell_shares split by phase; "
+                                            "phase sums checked against the stored session cells"))
+    render(out, [n for n, _os in groups])
+
+
+def render(out=None, names=None):
+    import glob
+    import os
+    data_dir, plots_dir, _prefix = common.out_dirs(out)
+    if not names:
+        # group order as in the CSVs' outing ids (the first group was written first)
+        files = sorted(glob.glob(os.path.join(data_dir, f"{SCRIPT}_*.csv")),
+                       key=lambda f: int(common.read_csv(f)[0]["outing_ids"].split(",")[0]))
+        names = [os.path.basename(f)[len(SCRIPT) + 1:-4] for f in files]
+    data = {n: common.read_csv(f"{data_dir}/{SCRIPT}_{n}.csv")[1] for n in names}
+    phases = list(dict.fromkeys(data[names[0]]["phase_abbr"]))
+    y_max = max(100 * common.num(v) for d in data.values() for v in d["share"] if common.num(v) == common.num(v))
+    y_top = y_max * 1.6   # room for the rotated n above the bars
+    t = ["% generated by tools/thesis_figures/fig_symptom_phase.py -- do not edit; re-run the script\n",
+         "\\begin{tikzpicture}\n",
+         f"\\begin{{groupplot}}[group style={{group size={len(names)} by 1, horizontal sep=1.0cm, "
+         "yticklabels at=edge left},\n"
+         "  thesis axis, ybar, width=0.52\\textwidth, height=0.42\\textwidth, xmajorgrids=false,\n"
+         # full key path: the groupplot options do not know the bar width shorthand
+         f"  /pgf/bar width={BAR_W}, xmin=0.4, xmax={len(phases) + 0.6:g}, ymin=0, ymax={y_top:.3g},\n"
+         f"  xtick={{1,...,{len(phases)}}}, xticklabels={{{','.join(phases)}}}, xlabel={{phase}},\n"
+         "  yticklabel style={/pgf/number format/fixed}]\n"]
+    for g, name in enumerate(names):
+        d = data[name]
+        opts = f"title={{{common.tex_escape(name)}}}"
+        opts += ", ylabel={share of per-lap cells in \\%}" if g == 0 else ""
+        if g == len(names) - 1:
+            opts += (", legend to name=legSymptomPhase, legend style={legend columns=3, cells={anchor=west}, "
+                     "/tikz/every even column/.append style={column sep=0.8em}}")
+        t.append(f"\\nextgroupplot[{opts}]\n")
+        for j, ty in enumerate(TYPES):
+            shift = (j - 1) * BAR_SHIFT
+            idx = [i for i, x in enumerate(d["type"]) if x == ty]
+            pts = " ".join(f"({phases.index(d['phase_abbr'][i]) + 1},{100 * common.num(d['share'][i]):.4g})"
+                           for i in idx if common.num(d["share"][i]) == common.num(d["share"][i]))
+            t.append(f"\\addplot[{STYLE[ty]}, draw=none, bar shift={shift:g}] coordinates {{{pts}}};\n")
+            if g == len(names) - 1:
+                t.append(f"\\addlegendentry{{{WORD[ty]}}}\n")
+            for i in idx:
+                x = phases.index(d["phase_abbr"][i]) + 1 + shift
+                y = common.num(d["share"][i])
+                y = 100 * y if y == y else 0.0
+                t.append(f"\\node[rotate=90, anchor=west, inner sep=1.5pt] at (axis cs:{x:g},{y:.4g}) "
+                         f"{{{d['n'][i]}}};\n")
+    t.append("\\end{groupplot}\n")
+    t.append(f"\\path (group c1r1.outer south west) -- (group c{len(names)}r1.outer south east) "
+             "node[midway, below=2pt] {\\pgfplotslegendfromname{legSymptomPhase}};\n")
+    t.append("\\end{tikzpicture}\n")
+    common.write_tex(f"{plots_dir}/{SCRIPT}.tex", "".join(t))
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--group", action="append", help="NAME=id,id,... (one panel per group)")
+    ap.add_argument("--tag", default="dev")
+    ap.add_argument("--out")
+    ap.add_argument("--render-only", action="store_true", help="write the .tex from the existing CSVs only")
+    a = ap.parse_args(argv)
+    if a.render_only:
+        render(a.out)
+        return
+    if not a.group:
+        ap.error("--group is required unless --render-only")
+    build([(g.split("=")[0], [int(x) for x in g.split("=")[1].split(",")]) for g in a.group], a.tag, a.out)
+
+
+if __name__ == "__main__":
+    main()

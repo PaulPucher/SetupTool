@@ -2,13 +2,16 @@
 # distance, three panels: (1) speed in km/h, (2) CS_f, CS_r with the
 # per-axle decision boundaries, (3) dMz/dbeta with the zero line; corner
 # brackets shaded and labelled with that session's corner IDs. Lap rule:
-# the fastest analysis lap (a neutral rule, no hand-picking).
+# the fastest analysis lap (a neutral rule, no hand-picking), or --lap
+# for continuity with another figure of the same session.
 # dMz/dbeta is the session profile: the local ridge regression over lap
 # distance pooled across all analysis laps (yaw_stability), one profile
 # per session, not specific to the plotted lap -- said in the header and
 # the legend. Read-only full re-run of the app's chain.
-# Run: python -m tools.thesis_figures.fig_example_lap --outing 12 --s-start 3200 --s-end 4000
-#      [--tag r2] [--allow-status] [--allow-excluded] [--out DIR]
+# Without --s-start / --s-end the whole lap, bins widened to stay within
+# the point cap.
+# Run: python -m tools.thesis_figures.fig_example_lap --outing 12 [--s-start 3200 --s-end 4000]
+#      [--lap N] [--tag r2] [--allow-status] [--allow-excluded] [--out DIR]
 
 import argparse
 
@@ -19,17 +22,34 @@ from tools.thesis_figures import common
 SCRIPT = "fig_example_lap"
 
 
-def build(outing, s_start, s_end, tag="dev", allow_status=False, allow_excluded=False, out=None):
+def build(outing, s_start, s_end, tag="dev", allow_status=False, allow_excluded=False, out=None, lap_number=None):
     from modules.csv_parser import _effective_lap_time
     session = common.load_session(outing)
     res = common.run_chain(session)
     marks = common.gate(outing, res["fit_manifest"], res["fallback_used"], allow_status, allow_excluded)
     label = common.session_label(session["row"])
     common.write_label_map(tag, [outing])
-    lap = common.fastest_lap(session["parsed"]["laps"], session["ident"]["lap_filter"])
+    if lap_number is None:
+        lap = common.fastest_lap(session["parsed"]["laps"], session["ident"]["lap_filter"])
+        lap_rule = "fastest analysis lap"
+    else:
+        if lap_number not in session["ident"]["lap_filter"]:
+            raise common.Refused(f"lap {lap_number}: not an analysis lap")
+        lap = [l for l in session["parsed"]["laps"] if l["lap_number"] == lap_number][0]
+        lap_rule = "chosen analysis lap"
     st, cs, stab = res["state"], res["cs"], res["stab"]
     t, s = st["time"], st["s_m"]
     on_lap = (t >= lap["start_time"]) & (t <= lap["end_time"])
+    # lap_distance can reset a few samples before the lap table's end: those
+    # samples belong to the next lap's start and are left out
+    idx = np.flatnonzero(on_lap)
+    fin = np.isfinite(s[idx])
+    after_reset = idx[fin & (s[idx] < np.fmax.accumulate(np.where(fin, s[idx], -np.inf)) - 1.0)]
+    on_lap[after_reset] = False
+    if s_start is None:
+        # whole lap; the bins widen so no series exceeds the point cap
+        s_start, s_end = 0.0, float(np.nanmax(s[on_lap]))
+    step = max(common.TRACE_BIN_M, float(np.ceil((s_end - s_start) / common.SCATTER_CAP)))
     sel = on_lap & (s >= s_start) & (s <= s_end)
     if not sel.any():
         raise common.Refused(f"lap {lap['lap_number']}: no samples between {s_start} and {s_end} m")
@@ -47,7 +67,7 @@ def build(outing, s_start, s_end, tag="dev", allow_status=False, allow_excluded=
     }
     cols = {}
     for name, (x, ex) in traces.items():
-        centres, cols[name] = common.bin_trace(s[sel], np.asarray(x)[sel], ex[sel], s_start, s_end)
+        centres, cols[name] = common.bin_trace(s[sel], np.asarray(x)[sel], ex[sel], s_start, s_end, step)
     cols = {"s_m": centres, **cols}
     corners = {"corner_id": [], "s_start_m": [], "s_end_m": []}
     for sm in sorted((x for x in res["summaries"] if x["lap_number"] == lap["lap_number"]),
@@ -60,8 +80,8 @@ def build(outing, s_start, s_end, tag="dev", allow_status=False, allow_excluded=
     lin = common.lines()
     data_dir, plots_dir, prefix = common.out_dirs(out)
     m = common.meta(SCRIPT, [outing], tag, marks, session_label=label, lap=lap["lap_number"],
-                    lap_rule=f"fastest analysis lap ({_effective_lap_time(lap):.2f} s)",
-                    s_range_m=f"{s_start}-{s_end}", bin_m=common.TRACE_BIN_M,
+                    lap_rule=f"{lap_rule} ({_effective_lap_time(lap):.2f} s)",
+                    s_range_m=f"{s_start:.1f}-{s_end:.1f}", bin_m=f"{step:g}",
                     dmz="session profile: local ridge regression over lap distance pooled across all analysis "
                         "laps; not specific to the plotted lap",
                     corner_ids="per session (stable_corner_id is not matched across sessions)")
@@ -91,7 +111,7 @@ def _tex(prefix, cols, corners, lin, lo, hi, marks):
              "    xticklabels at=edge bottom},\n"
              # 0.95: the y labels sit outside the axis width
              "  thesis axis, width=0.95\\textwidth, height=0.24\\textwidth, unbounded coords=jump,\n"
-             f"  xmin={lo:.1f}, xmax={hi:.1f}, xlabel={{$s$ in m}}, xtick distance=100,\n"
+             f"  xmin={lo:.1f}, xmax={hi:.1f}, xlabel={{$s$ in m}}, xtick distance={100 if hi - lo < 1500 else 500},\n"
              "  /pgf/number format/1000 sep={}]\n")
     last = len(panels) - 1
     for k, (ylabel, series, include) in enumerate(panels):
@@ -108,7 +128,10 @@ def _tex(prefix, cols, corners, lin, lo, hi, marks):
             t.append(f"\\addplot[draw=none, fill={shade}, forget plot] coordinates "
                      f"{{({s0:.2f},{y0:.4g}) ({s1:.2f},{y0:.4g}) ({s1:.2f},{y1:.4g}) ({s0:.2f},{y1:.4g})}} -- cycle;\n")
             if k == 0:
-                t.append(f"\\node[anchor=north, font=\\small] at (axis cs:{0.5 * (s0 + s1):.2f},{y1:.4g}) {{C{cid}}};\n")
+                # over a whole lap short corners sit close: labels alternate between two rows
+                row = 0.0 if (hi - lo < 1500 or j % 2 == 0) else 0.22 * (y1 - y0)
+                t.append(f"\\node[anchor=north, font=\\scriptsize] at (axis cs:{0.5 * (s0 + s1):.2f},{y1 - row:.4g}) "
+                         f"{{C{cid}}};\n")
         if k == last:
             for _yl, ser, _inc in panels[:-1]:
                 for _c, style, leg in ser:
@@ -132,14 +155,17 @@ def _tex(prefix, cols, corners, lin, lo, hi, marks):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--outing", type=int, required=True)
-    ap.add_argument("--s-start", type=float, required=True, help="lap distance in m")
-    ap.add_argument("--s-end", type=float, required=True, help="lap distance in m")
+    ap.add_argument("--s-start", type=float, help="lap distance in m; both omitted = whole lap")
+    ap.add_argument("--s-end", type=float, help="lap distance in m")
+    ap.add_argument("--lap", type=int, help="analysis lap; default the fastest")
     ap.add_argument("--tag", default="dev")
     ap.add_argument("--allow-status", action="store_true")
     ap.add_argument("--allow-excluded", action="store_true")
     ap.add_argument("--out")
     a = ap.parse_args(argv)
-    print(build(a.outing, a.s_start, a.s_end, a.tag, a.allow_status, a.allow_excluded, a.out))
+    if (a.s_start is None) != (a.s_end is None):
+        ap.error("--s-start and --s-end go together (both omitted = whole lap)")
+    print(build(a.outing, a.s_start, a.s_end, a.tag, a.allow_status, a.allow_excluded, a.out, a.lap))
 
 
 if __name__ == "__main__":

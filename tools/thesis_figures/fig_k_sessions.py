@@ -5,13 +5,15 @@
 # every outing needs an identity-valid payload of the current schema, else
 # the script refuses and names the outing and the reason.
 # Tick labels are the neutral '<code> <n>' (local/labels.json + DB outing
-# number); the mapping goes to local/label_map_<tag>.txt only.
+# number); the mapping goes to local/label_map_<tag>.txt only. The CSV
+# marks the damper-load path per session (event zero entry, gate reporting).
 # Run: python -m tools.thesis_figures.fig_k_sessions --outings 11,12,15,16,13,14
 #      [--separator-after 16] [--tag r2] [--allow-status] [--allow-excluded] [--out DIR]
 
 import argparse
 
 from tools.thesis_figures import common
+from tools.thesis_figures.tab_sessions import damper_path
 
 SCRIPT = "fig_k_sessions"
 
@@ -58,7 +60,7 @@ def build(outings, labels=None, separator_after=None, tag="dev", allow_status=Fa
     labels = labels or [common.session_label(s["row"]) for _o, s, _m, _k in rows]
     common.write_label_map(tag, outings)
     cols = {k: [] for k in ("x", "outing_id", "label", "K_f_per_rad", "K_r_per_rad", "mu_f", "mu_r", "k_zone_f",
-                            "k_zone_r", "mu_zone_f", "mu_zone_r", "fit_status", "marks")}
+                            "k_zone_r", "mu_zone_f", "mu_zone_r", "fit_status", "marks", "damper_path")}
     for x, ((o, _s, man, marks), lab) in enumerate(zip(rows, labels), start=1):
         ax = man["axles"]
         for k, v in (("x", x), ("outing_id", o), ("label", lab.replace(",", " ")),
@@ -68,7 +70,8 @@ def build(outings, labels=None, separator_after=None, tag="dev", allow_status=Fa
                      ("mu_f", ax["front"]["mu"]), ("mu_r", ax["rear"]["mu"]),
                      ("k_zone_f", man["k_band_zone"]["front"]), ("k_zone_r", man["k_band_zone"]["rear"]),
                      ("mu_zone_f", man["mu_ceiling_zone"]["front"]), ("mu_zone_r", man["mu_ceiling_zone"]["rear"]),
-                     ("fit_status", man.get("status")), ("marks", "; ".join(marks) or "-")):
+                     ("fit_status", man.get("status")), ("marks", "; ".join(marks) or "-"),
+                     ("damper_path", damper_path(man))):
             cols[k].append(v)
     data_dir, plots_dir, prefix = common.out_dirs(out)
     common.write_csv(f"{data_dir}/{SCRIPT}.csv", cols,

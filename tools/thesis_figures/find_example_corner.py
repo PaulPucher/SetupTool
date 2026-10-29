@@ -11,11 +11,13 @@
 #      population, kinematic slip angle -- the fit's own input),
 # ranked: a US or INST symptom on that lap that is also counted for the
 # corner first, then fewest empty CS bins, then fewest empty bins of any
-# trace -- the bins the figure draws. Lists only; the author picks. Also
+# trace -- the bins the figure draws. --eval-rule (evaluation-set order,
+# 2026-10-27): criterion 4 is reported per candidate but not applied, and
+# any counted symptom (US, OS or INST) ranks first. Lists only. Also
 # reports, over ALL corner instances, how many exceed the fitted range.
 # Needs an identity-valid stored
 # payload (for the fitted range) and a read-only re-run (for the traces).
-# Run: python -m tools.thesis_figures.find_example_corner --outings 11,12,13,14,15,16 [--top 3]
+# Run: python -m tools.thesis_figures.find_example_corner --outings 11,12,13,14,15,16 [--top 3] [--eval-rule]
 
 import argparse
 
@@ -28,7 +30,7 @@ LENGTH_PHASES = ("entry_1_brake", "entry_2_turnin", "exit_4", "exit_5")
 FUNNEL = ("all", "1 kerb-free", "2 CS present", "3 phase lengths", "4 inside fitted range")
 
 
-def candidates(outing):
+def candidates(outing, eval_rule=False):
     from modules.classifier import phase_symptoms, verdict_cs_stat
     from modules.setup_engine import counted_symptoms
     from modules.stability_analysis import load_parameters
@@ -70,18 +72,20 @@ def candidates(outing):
         if any(length.get(ph, 0.0) < common.TRACE_BIN_M for ph in LENGTH_PHASES):
             continue
         funnel["3 phase lengths"] += 1
-        if not all(amax[a] <= fit_range[a] for a in ("f", "r")):
+        inside = all(amax[a] <= fit_range[a] for a in ("f", "r"))
+        if not inside and not eval_rule:
             continue
-        funnel["4 inside fitted range"] += 1
+        funnel["4 inside fitted range"] += inside
         lap_sym = {(x["symptom"], x["phase"]) for x in phase_symptoms(s)["symptoms"]}
         corner_sym = {(x["symptom"], x["phase"]) for x in counted.get(cid, {}).get("symptoms", [])}
-        preferred = sorted(f"{sy} @ {common.PHASE_LABELS[ph]}" for sy, ph in lap_sym & corner_sym if sy in ("US", "INST"))
+        preferred = sorted(f"{sy} @ {common.PHASE_LABELS[ph]}" for sy, ph in lap_sym & corner_sym
+                           if sy in (("US", "OS", "INST") if eval_rule else ("US", "INST")))
         n_cs = int(np.isnan(cols["cs_f"]).sum() + np.isnan(cols["cs_r"]).sum())
         n_any = int(np.isnan(np.column_stack([v for k, v in cols.items() if k != "s_m"])).any(axis=1).sum())
         out.append({"outing": outing, "label": common.session_label(session["row"]), "lap": lap, "corner": cid,
                     "speed_class": s.get("speed_class"), "symptom": ", ".join(preferred) or "none counted on this lap",
                     "preferred": bool(preferred), "n_bins": len(cols["s_m"]), "empty_cs_bins": n_cs,
-                    "empty_any_bins": n_any, "max_alpha_deg": {a: round(amax[a], 2) for a in amax}})
+                    "empty_any_bins": n_any, "inside_fitted_range": inside, "max_alpha_deg": {a: round(amax[a], 2) for a in amax}})
     return out, {"label": common.session_label(session["row"]), "fit_range_p99_deg": fit_range,
                  "funnel": funnel, "exceed": exceed}
 
@@ -90,10 +94,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--outings", required=True)
     ap.add_argument("--top", type=int, default=3)
+    ap.add_argument("--eval-rule", action="store_true",
+                    help="criterion 4 reported, not applied; any counted symptom ranks first")
     a = ap.parse_args(argv)
     allc, stats = [], {}
     for o in (int(x) for x in a.outings.split(",")):
-        c, st = candidates(o)
+        c, st = candidates(o, a.eval_rule)
         stats[o] = st
         print(f"outing {o} ({st['label']}): fitted range p99 f {st['fit_range_p99_deg']['f']:.2f} / "
               f"r {st['fit_range_p99_deg']['r']:.2f} deg; funnel {st['funnel']}; instances above the fitted range "

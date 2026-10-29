@@ -69,6 +69,10 @@ _OPPOSITE_WORD = {"stiffer": "softer", "softer": "stiffer"}
 LIMITING_AXLE = {"US": "front", "OS": "rear", "INST": "rear"}
 # registry escalation_tier of the driver-adjustable levers
 COCKPIT_TIER = "cockpit"
+# An advisory row (mechanisms.json "advisory") acts on the tire working
+# point, which no logged channel confirms, so it is never the single change
+# (review ruling 2026-10-28); it still votes, ranks and is listed.
+ADVISORY_REASON = "advisory: needs tire temperatures to confirm (SEG pp. 194-196)"
 # the elicited matrix's direction words in the table's vocabulary
 # (more_negative / less_negative go through the registry semantics)
 _CELL_WORD = {"soften": "softer", "stiffen": "stiffer", "more_ra_stability": "toward the rear-axle-stable map"}
@@ -368,7 +372,8 @@ def _data_rank_key(c):
 def _select(cands, rank_key, max_alt):
     """One change per corner: drop at-limit levers, merge the same lever
     change across phases, set aside opposite directions of an already chosen
-    lever (conflict), then take the best and up to max_alt alternatives."""
+    lever (conflict), then take the best non-advisory change and up to
+    max_alt alternatives (advisory ones included, in rank order)."""
     at_limit = [c for c in cands if c["change"]["feasibility"] == "at_limit"]
     ranked = sorted((c for c in cands if c["change"]["feasibility"] != "at_limit"), key=rank_key)
     chosen, conflicts, seen = [], [], {}
@@ -383,10 +388,13 @@ def _select(cands, rank_key, max_alt):
             continue
         seen[k] = c
         chosen.append(c)
-    # ranked keeps the whole order, so the engineer layer can re-rank it
+    # the rank stays as it is; only the top position skips advisory levers
+    # (ADVISORY_REASON). ranked keeps the whole order, so the engineer layer
+    # can re-rank it
+    pick = next((c for c in chosen if not c.get("advisory")), None)
     return {
-        "recommended": chosen[0] if chosen else None,
-        "alternatives": chosen[1:1 + max_alt],
+        "recommended": pick,
+        "alternatives": [c for c in chosen if c is not pick][:max_alt],
         "ranked": chosen, "at_limit": at_limit, "conflicts": conflicts,
     }
 
@@ -533,11 +541,14 @@ def session_vote(votes, details, max_alt):
     options.sort(key=lambda o: (rank(o), o["option"]))
     positive = [o for o in options if o["_net"] > 0]
     ranked = [o for o in positive if o["change"]["feasibility"] != "at_limit"]
-    top = [o for o in ranked if rank(o) == rank(ranked[0])] if ranked else []
+    # the top position goes to the best non-advisory option (ADVISORY_REASON);
+    # rank, votes and net support are untouched, advisory options stay listed
+    eligible = [o for o in ranked if not o.get("advisory")]
+    top = [o for o in eligible if rank(o) == rank(eligible[0])] if eligible else []
     out = {
         "recommended": top[0] if len(top) == 1 else None,
         "equivalent_options": top if len(top) > 1 else [],
-        "alternatives": ranked[len(top):len(top) + max_alt],
+        "alternatives": [o for o in ranked if not any(o is x for x in top)][:max_alt],
         "ranked": ranked,
         "at_limit": [o for o in positive if o["change"]["feasibility"] == "at_limit"],
         "not_recommended": [o for o in options if o["_net"] <= 0],
@@ -739,7 +750,7 @@ def candidate_line(c, engineer=False):
     parts = [where, c["severity"], laps, change_text(c), c["change"]["effort"] or "effort ?",
              f"{c['mechanism']} {c['mechanism_name']}", c["anchor"]]
     if c["advisory"]:
-        parts.append("advisory")
+        parts.append(ADVISORY_REASON)
     if c.get("condition_note"):
         parts.append(c["condition_note"])
     parts += c["change"]["notes"]
@@ -764,7 +775,7 @@ def option_line(o):
              "; ".join(o["anchors"]),
              f"net support {o['net']:.2f} (support {o['support']:.2f}, opposition {o['opposition']:.2f})"]
     if o["advisory"]:
-        parts.append("advisory")
+        parts.append(ADVISORY_REASON)
     parts += o["condition_notes"] + o["change"]["notes"]
     return " | ".join(str(p) for p in parts)
 
@@ -784,6 +795,8 @@ def session_details(rec, engineer=False):
         lines.append("equivalent options (exact tie on every rank key, no winner):")
         for o in rec["equivalent_options"]:
             lines += block("  option: ", o)
+    elif rec["ranked"]:
+        lines.append("only advisory lever groups with positive net support -- none recommended")
     else:
         lines.append("no mechanical lever group with positive net support")
     for o in rec["alternatives"]:
@@ -913,6 +926,9 @@ def session_summary(rec, engineer=False):
                     seen.add(key)
                     votes.append(v)
         why = "Why: " + why_text(votes)
+    elif rec["ranked"]:
+        head = "No setup change (only advisory levers)"
+        why = "Advisory levers need tire temperatures to confirm (SEG pp. 194-196)"
     else:
         head = "No setup change"
         why = "No repeated symptom" if not rec["votes"] else "No lever with net support"
@@ -939,6 +955,8 @@ def corner_summary(corner, engineer=False):
     if rec:
         vals = values_text(rec)
         line += f" -> {lever_text(rec)}" + (f" {vals}" if vals else "")
+    elif corner.get("ranked"):
+        line += " -> only advisory levers"
     else:
         line += " -> no mechanical lever"
     if corner.get("cockpit"):

@@ -1,9 +1,12 @@
-# fig:example_corner -- one corner of one lap over lap distance, five
-# stacked panels with the five phases shaded: (1) road-wheel angle, (2) the
-# filtered a_y in g, (3) observer beta vs kinematic beta, (4) alpha_f,
-# alpha_r, (5) CS_f, CS_r with the per-axle decision boundaries, the front
-# grading tier and the rear information tier (a note, no symptom) -- the
-# classifier's levels, the same set as the app's trace views. Read-only
+# fig:example_corner -- one corner of one lap over lap distance, four
+# stacked panels with the phases shaded: (1) the filtered a_y in g, (2)
+# observer beta vs kinematic beta, (3) alpha_f, alpha_r, (4) CS_f, CS_r with
+# the lines a verdict rule acts on (front decision boundary and strong
+# tier, rear decision boundary; the app screen also draws the rear
+# information tier). Panel 3 carries the slip-angle range of the session's
+# fit samples (p0.5-p99.5 of the fit population per axle) as a light band:
+# where the observer's slip angles leave it, the tire curve is
+# extrapolated. The steer angle stays in the CSV only. Read-only
 # full re-run of the app's chain (common.run_chain); one outing, lap and
 # corner. Stable output names: the session, lap and corner go into the
 # CSV header only.
@@ -18,8 +21,8 @@ from tools.thesis_figures import common
 
 SCRIPT = "fig_example_corner"
 G = 9.81   # m/s^2 per g, as in the app's load code
-NARROW_PHASE_FRACTION = 0.12   # of the plotted distance range; layout only
-PANEL_HEIGHT = "0.2\\textwidth"
+PANEL_HEIGHT = "0.15\\textwidth"   # axis box; with the panel gap about 0.18 \textwidth per panel
+AXIS_WIDTH = "0.86\\textwidth"     # leaves room for the y labels inside \textwidth
 
 
 def _instance(res, lap, corner):
@@ -86,6 +89,10 @@ def corner_traces(session, res, lap, corner):
     cols = {"s_m": centres, **cols}
     ok = sel & ~excl
     max_alpha = {ax: float(np.nanmax(np.abs(alpha[ax][ok]))) if ok.any() else float("nan") for ax in ("f", "r")}
+    # signed extremes, for the comparison with the fit samples' p0.5-p99.5 range
+    for ax in ("f", "r"):
+        max_alpha[f"{ax}_lo"] = float(np.nanmin(alpha[ax][ok])) if ok.any() else float("nan")
+        max_alpha[f"{ax}_hi"] = float(np.nanmax(alpha[ax][ok])) if ok.any() else float("nan")
     return cols, phases, lo, hi, summ, max_alpha
 
 
@@ -94,6 +101,7 @@ def build(outing, lap, corner, tag="dev", allow_status=False, allow_excluded=Fal
     res = common.run_chain(session)
     marks = common.gate(outing, res["fit_manifest"], res["fallback_used"], allow_status, allow_excluded)
     cols, phases, lo, hi, _summ, _amax = corner_traces(session, res, lap, corner)
+    fit_range = common.fit_sample_range(session)
     lin = common.lines()
     label = common.session_label(session["row"])
     common.write_label_map(tag, [outing])
@@ -106,13 +114,17 @@ def build(outing, lap, corner, tag="dev", allow_status=False, allow_excluded=Fal
                     ay_filter=f"Butterworth {lin['cs_filter_cutoff_hz']:g} Hz zero-phase, as the force estimate; "
                               f"in g (/{G})",
                     lines=f"boundary f {lin['boundary_f']:g} r {lin['boundary_r']:g}; strong f {lin['strong_f']:g}; "
-                          f"info r {lin['info_r']:g}")
+                          f"info r {lin['info_r']:g}",
+                    fit_sample_range_deg=f"p{common.FIT_RANGE_PCT[0]:g}-p{common.FIT_RANGE_PCT[1]:g} of the fit "
+                                         f"population: f {fit_range['f'][0]:.3f} to {fit_range['f'][1]:.3f} "
+                                         f"(n {fit_range['n_f']}); r {fit_range['r'][0]:.3f} to "
+                                         f"{fit_range['r'][1]:.3f} (n {fit_range['n_r']})")
     common.write_csv(f"{data_dir}/{base}.csv", cols, m)
     common.write_csv(f"{data_dir}/{base}_phases.csv", phases, m)
-    common.write_tex(f"{plots_dir}/{base}.tex", _tex(base, prefix, cols, phases, lin, lo, hi, marks))
+    render(out)
     return {"summaries": res["summaries"], "fit_manifest": res["fit_manifest"], "marks": marks, "files": base,
             "n_bins": len(cols["s_m"]), "n_nan_cs_f": int(np.isnan(cols["cs_f"]).sum()),
-            "n_nan_cs_r": int(np.isnan(cols["cs_r"]).sum())}
+            "n_nan_cs_r": int(np.isnan(cols["cs_r"]).sum()), "fit_range": fit_range}
 
 
 def _range(*arrs, pad=0.08):
@@ -122,85 +134,136 @@ def _range(*arrs, pad=0.08):
     return lo - d, hi + d
 
 
-def _tex(base, prefix, cols, phases, lin, lo, hi, marks):
+def render(out=None):
+    """The .tex from the stored CSVs only (no session is loaded): traces and
+    phase bounds from the two CSVs, the fit-sample range from the CSV
+    header, the CS lines from config."""
+    import re
+    data_dir, plots_dir, prefix = common.out_dirs(out)
+    meta, raw = common.read_csv(f"{data_dir}/{SCRIPT}.csv")
+    _m, ph = common.read_csv(f"{data_dir}/{SCRIPT}_phases.csv")
+    cols = {k: np.array([common.num(x) for x in v]) for k, v in raw.items()}
+    phases = {"phase_label": ph["phase_label"], "s_start_m": [float(x) for x in ph["s_start_m"]],
+              "s_end_m": [float(x) for x in ph["s_end_m"]]}
+    rng = re.search(r"f (\S+) to (\S+) \(n \d+\); r (\S+) to (\S+) \(n", meta["fit_sample_range_deg"])
+    fit_range = {"f": (float(rng.group(1)), float(rng.group(2))), "r": (float(rng.group(3)), float(rng.group(4)))}
+    # bin centres sit half a bin inside the plotted range
+    lo = min([cols["s_m"][0] - common.TRACE_BIN_M / 2] + phases["s_start_m"])
+    hi = max([cols["s_m"][-1] + common.TRACE_BIN_M / 2] + phases["s_end_m"])
+    marks = [m for m in (meta.get("marks") or "").split("; ") if m]
+    common.write_tex(f"{plots_dir}/{SCRIPT}.tex",
+                     _tex(SCRIPT, prefix, cols, phases, common.lines(), lo, hi, marks, fit_range))
+
+
+ALPHA_PANEL = 2
+BAND_STYLE = {"f": "axleFront", "r": "axleRear"}
+BAND_OPACITY = 0.15
+CS_RANGE = (-0.2, 1.05)          # widened downwards only if the corner's CS goes lower
+YLABEL_SHIFT = "3.4em"           # one fixed y-label position for all panels
+# front = axle colour, solid, circles; rear = axle colour, dashed, squares
+FRONT = "axleFront, solid, mark=*, mark size=1pt, mark repeat=4"
+REAR = "axleRear, dashed, mark=square*, mark size=1pt, mark repeat=4, mark options={solid}"
+
+
+def _tex(base, prefix, cols, phases, lin, lo, hi, marks, fit_range):
     panels = [
-        ("$\\delta_\\mathrm{f}$ in deg", [("delta_f_deg", "black, solid", "$\\delta_\\mathrm{f}$")]),
-        ("$a_y$ (filtered) in g", [("ay_filt_g", "black, solid", "$a_y$ (filtered)")]),
-        ("$\\beta$ in deg", [("beta_obs_deg", "black, solid", "$\\beta$ observer"),
-                             ("beta_kin_deg", "auxGray, dashdotted", "$\\beta$ kinematic")]),
-        ("$\\alpha$ in deg", [("alpha_f_deg", "axleFront, solid", "$\\alpha_\\mathrm{f}$"),
-                              ("alpha_r_deg", "axleRear, dashed", "$\\alpha_\\mathrm{r}$")]),
-        (common.CS_AXIS, [("cs_f", "axleFront, solid", common.CS_F), ("cs_r", "axleRear, dashed", common.CS_R)]),
+        ("$a_y$ in g", [("ay_filt_g", "black, solid")]),
+        ("$\\beta$ in deg", [("beta_obs_deg", "black, solid"), ("beta_kin_deg", "auxGray, dashed")]),
+        ("$\\alpha$ in deg", [("alpha_f_deg", FRONT), ("alpha_r_deg", REAR)]),
+        (common.CS_AXIS, [("cs_f", FRONT), ("cs_r", REAR)]),
     ]
-    cs_lines = [(lin["boundary_f"], "axleFront, thin, solid", "decision boundary f"),
-                (lin["strong_f"], "axleFront, thin, dashdotted", "grading tier f (strong)"),
-                (lin["boundary_r"], "axleRear, thin, solid", "decision boundary r"),
-                (lin["info_r"], "axleRear, very thin, dotted", "rear info tier (no symptom)")]
-    ranges = [_range(*[cols[c] for c, _s, _l in p[1]]) for p in panels]
-    cs_lo, cs_hi = ranges[-1]
-    ranges[-1] = (min(cs_lo, lin["strong_f"] - 0.05), cs_hi)
+    # thesis figure: only the lines a verdict rule acts on (B10 amended
+    # 2026-10-27); the app screen keeps the rear information tier as well
+    cs_lines = [(lin["boundary_f"], "axleFront, thin, dashdotted"),
+                (lin["strong_f"], "axleFront, thin, densely dotted"),
+                (lin["boundary_r"], "axleRear, thin, dashdotdotted")]
+    ranges = [_range(*[cols[c] for c, _s in p[1]]) for p in panels]
+    a_lo, a_hi = ranges[ALPHA_PANEL]
+    ranges[ALPHA_PANEL] = (min(a_lo, fit_range["f"][0], fit_range["r"][0]) - 0.3,
+                           max(a_hi, fit_range["f"][1], fit_range["r"][1]) + 0.3)
+    cs_min = float(np.nanmin(np.concatenate([cols["cs_f"], cols["cs_r"]])))
+    ranges[-1] = (min(CS_RANGE[0], round(cs_min - 0.05, 2)), CS_RANGE[1])
     note = f" ({'; '.join(marks)})" if marks else ""
     last = len(panels) - 1
     t = ["% generated by tools/thesis_figures/fig_example_corner.py -- do not edit; re-run the script\n",
          "\\begin{tikzpicture}\n", common.table_read(prefix, f"{base}.csv", "tblCorner")]
-    t.append("\\begin{groupplot}[group style={group size=1 by 5, vertical sep=0.3cm, xlabels at=edge bottom,\n"
-             "    xticklabels at=edge bottom},\n"
-             f"  thesis axis, width=\\textwidth, height={PANEL_HEIGHT}, unbounded coords=jump,\n"
-             f"  xmin={lo:.1f}, xmax={hi:.1f}, xlabel={{$s$ in m}}]\n")
+    # scale only axis: the panel height is the axis box itself, so the tick
+    # and label allowance pgfplots subtracts otherwise cannot squash the panels
+    t.append(f"\\begin{{groupplot}}[group style={{group size=1 by {len(panels)}, vertical sep=0.3cm, "
+             "xlabels at=edge bottom,\n    xticklabels at=edge bottom},\n"
+             f"  thesis axis, scale only axis, width={AXIS_WIDTH}, height={PANEL_HEIGHT}, unbounded coords=jump,\n"
+             f"  xmin={lo:.1f}, xmax={hi:.1f}, xlabel={{$s$ in m}},\n"
+             "  xticklabel style={/pgf/number format/.cd, fixed, set thousands separator={}},\n"
+             "  yticklabel style={/pgf/number format/fixed},\n"
+             # every y label at the same distance from its axis, whatever the tick width
+             # (.style replaces the default anchor=near ticklabel, which follows the tick width)
+             f"  every axis y label/.style={{at={{(rel axis cs:0,0.5)}}, xshift=-{YLABEL_SHIFT}, rotate=90, "
+             "anchor=center}]\n")
     for k, (ylabel, series) in enumerate(panels):
         y0, y1 = ranges[k]
         opts = f"ylabel={{{ylabel}}}, ymin={y0:.4g}, ymax={y1:.4g}"
-        if k == 0 and note:
-            opts += f", title={{{note.strip()}}}"
+        if k == 0:
+            # phase labels sit above the top panel, outside the axis box
+            opts += ", clip=false" + (f", title={{{note.strip()}}}, title style={{yshift=1.2em}}" if note else "")
         if k == last:
-            # one legend for all panels, below the last one
-            opts += (", legend style={font=\\small, cells={anchor=west}, at={(0.5,-0.8)}, anchor=north, "
-                     "legend columns=4}")
+            opts += (", legend to name=legExampleCorner, legend style={cells={anchor=west}, legend columns=5, "
+                     "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
-        # phases: alternating light fills, labels in the top panel only; a
-        # phase shorter than one bin (the apex is one instant) is a thin line
-        for j, (s0, s1, lab) in enumerate(zip(phases["s_start_m"], phases["s_end_m"], phases["phase_label"])):
-            if s1 - s0 < common.TRACE_BIN_M:
-                t.append(f"\\addplot[auxGray, densely dotted, forget plot] coordinates "
+        # phases: light alternating bands; the apex (one instant) a thin dotted line
+        j = 0
+        for s0, s1, lab in zip(phases["s_start_m"], phases["s_end_m"], phases["phase_label"]):
+            abbr = common.PHASE_ABBR.get(lab, lab)
+            if s1 - s0 < common.TRACE_BIN_M / 2:
+                t.append(f"\\addplot[black, thin, densely dotted, forget plot] coordinates "
                          f"{{({s0:.2f},{y0:.4g}) ({s0:.2f},{y1:.4g})}};\n")
-                if k == 0:
-                    t.append(f"\\node[rotate=90, anchor=east, font=\\small] at (axis cs:{s0:.2f},{y1:.4g}) {{{lab}}};\n")
-                continue
-            shade = "auxGray!12" if j % 2 == 0 else "auxGray!4"
-            t.append(f"\\addplot[draw=none, fill={shade}, forget plot] coordinates "
-                     f"{{({s0:.2f},{y0:.4g}) ({s1:.2f},{y0:.4g}) ({s1:.2f},{y1:.4g}) ({s0:.2f},{y1:.4g})}} -- cycle;\n")
-            if k == 0:
-                narrow = (s1 - s0) < NARROW_PHASE_FRACTION * (hi - lo)
-                place = "rotate=90, anchor=east" if narrow else "anchor=north"
-                t.append(f"\\node[{place}, font=\\small] at (axis cs:{0.5 * (s0 + s1):.2f},{y1:.4g}) {{{lab}}};\n")
-        if k == last:
-            for _yl, ser in panels[:-1]:
-                for _col, style, leg in ser:
-                    t.append(f"\\addlegendimage{{{style}, thick}}\\addlegendentry{{{leg}}}\n")
-        for col, style, leg in series:
-            # only the last panel feeds the shared legend directly
-            if k == last:
-                t.append(f"\\addplot[{style}, thick] table[x=s_m, y={col}]{{\\tblCorner}};\n\\addlegendentry{{{leg}}}\n")
+                x_lab = s0
             else:
-                t.append(f"\\addplot[{style}, thick, forget plot] table[x=s_m, y={col}]{{\\tblCorner}};\n")
+                shade = "auxGray!14" if j % 2 == 0 else "auxGray!5"
+                j += 1
+                t.append(f"\\addplot[draw=none, fill={shade}, forget plot] coordinates "
+                         f"{{({s0:.2f},{y0:.4g}) ({s1:.2f},{y0:.4g}) ({s1:.2f},{y1:.4g}) ({s0:.2f},{y1:.4g})}} -- cycle;\n")
+                x_lab = 0.5 * (s0 + s1)
+            if k == 0:
+                t.append(f"\\node[anchor=south, font=\\small, inner sep=1pt] at (axis cs:{x_lab:.2f},{y1:.4g}) {{{abbr}}};\n")
+        if k == ALPHA_PANEL:
+            for ax, (b0, b1) in ((a, fit_range[a]) for a in ("f", "r")):
+                t.append(f"\\addplot[draw=none, fill={BAND_STYLE[ax]}, fill opacity={BAND_OPACITY}, forget plot] "
+                         f"coordinates {{({lo:.1f},{b0:.4g}) ({hi:.1f},{b0:.4g}) ({hi:.1f},{b1:.4g}) "
+                         f"({lo:.1f},{b1:.4g})}} -- cycle;\n")
         if k == last:
-            for val, style, leg in cs_lines:
-                t.append(f"\\addplot[{style}] coordinates {{({lo:.1f},{val:.4g}) ({hi:.1f},{val:.4g})}};\n"
-                         f"\\addlegendentry{{{leg}}}\n")
-    t.append("\\end{groupplot}\n\\end{tikzpicture}\n")
+            t.append(f"\\addlegendimage{{{FRONT}, thick}}\\addlegendentry{{front axle}}\n"
+                     f"\\addlegendimage{{{REAR}, thick}}\\addlegendentry{{rear axle}}\n"
+                     "\\addlegendimage{black, solid, thick}\\addlegendentry{observer}\n"
+                     "\\addlegendimage{auxGray, dashed, thick}\\addlegendentry{kinematic}\n"
+                     f"\\addlegendimage{{area legend, draw=none, fill=auxGray, fill opacity={2 * BAND_OPACITY}}}"
+                     "\\addlegendentry{fit-sample range}\n")
+            for val, style in cs_lines:
+                t.append(f"\\addplot[{style}, forget plot] coordinates {{({lo:.1f},{val:.4g}) ({hi:.1f},{val:.4g})}};\n")
+        for col, style in series:
+            t.append(f"\\addplot[{style}, thick, forget plot] table[x=s_m, y={col}]{{\\tblCorner}};\n")
+    t.append("\\end{groupplot}\n")
+    t.append(f"\\node[anchor=north, below=2pt] at (group c1r{len(panels)}.outer south) "
+             "{\\pgfplotslegendfromname{legExampleCorner}};\n")
+    t.append("\\end{tikzpicture}\n")
     return "".join(t)
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--outing", type=int, required=True)
-    ap.add_argument("--lap", type=int, required=True)
-    ap.add_argument("--corner", type=int, required=True, help="stable corner id of that session")
+    ap.add_argument("--outing", type=int)
+    ap.add_argument("--lap", type=int)
+    ap.add_argument("--corner", type=int, help="stable corner id of that session")
     ap.add_argument("--tag", default="dev")
     ap.add_argument("--allow-status", action="store_true")
     ap.add_argument("--allow-excluded", action="store_true")
     ap.add_argument("--out")
+    ap.add_argument("--render-only", action="store_true", help="write the .tex from the existing CSVs only")
     a = ap.parse_args(argv)
+    if a.render_only:
+        render(a.out)
+        return
+    if None in (a.outing, a.lap, a.corner):
+        ap.error("--outing, --lap and --corner are required unless --render-only")
     res = build(a.outing, a.lap, a.corner, a.tag, a.allow_status, a.allow_excluded, a.out)
     print({k: v for k, v in res.items() if k not in ("summaries", "fit_manifest")})
 

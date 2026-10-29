@@ -16,8 +16,8 @@ NBR_FILE = find_data_file("NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.t
 LC32_FILE = find_data_file("paul_Ricard_MLA_solved/MLA-SE07_US-v2.txt")
 # evaluation package (outside the data roots): Paul Ricard outing 43, logger
 # software 24996, one of the PRC_221_24996 source sessions
-PRC4_FILE = "H:/dani_try 100/PRC4.txt"
-needs_prc4 = pytest.mark.skipif(not os.path.exists(PRC4_FILE), reason="evaluation package drive not present")
+PRC2_FILE = "H:/dani_try 100/PRC2.txt"
+needs_prc2 = pytest.mark.skipif(not os.path.exists(PRC2_FILE), reason="evaluation package drive not present")
 DAMPERS = ("log_dms_dam_fl", "log_dms_dam_fr", "log_dms_dam_rl", "log_dms_dam_rr")
 needs_nbr = pytest.mark.skipif(NBR_FILE is None, reason="NBR thesis data drive not present")
 
@@ -83,12 +83,12 @@ def _header(path):
     return meta
 
 
-@needs_prc4
+@needs_prc2
 def test_prc_24996_entry_applied_on_its_source_session(nbr_config):
     """PRC outing 43 (Metafile 24996): PRC_221_24996 applies on all four
     corners, the channels pass the gate, and the file is flagged as a source
     session of the entry."""
-    out = csv_parser.parse_csv(PRC4_FILE)
+    out = csv_parser.parse_csv(PRC2_FILE)
     zero = out["event_zero_entry"]
     assert zero["event"] == "PRC_221_24996"
     assert zero["source_session"] is True

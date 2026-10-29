@@ -78,6 +78,55 @@ REPO STATE
 - diagnostics/: 32 scripts (unchanged).
 
 RULED / DONE SINCE THE LAST REWRITE
+- Work order FIG-CLOSE (review, 2026-10-28), uncommitted: tab_example_verdicts header v_min + CSV comment (18 values / classes identical, re-exported, run tag final); Part 3 read-only numbers recorded in thesis_notes 'Work order FIG-CLOSE'. HELD for a ruling: fig_corner_phases (canonical vs per-lap events; rule picks C12) and fig_cs_reading (T2 front -0.173 is lap 18, not lap 15). F2 CSVs still carry 'tyre frame' until the next F2 render.
+- FIG-CLOSE rulings (review, 2026-10-28), uncommitted: new fig_corner_phases.py (PRC 3 lap 16 C8 by the tightened rule; C8 single-member corner, see thesis_notes) and fig_cs_reading.py (C17 front lap 18 / rear lap 15, T2 reproduced); common.run_chain returns axle_loads; 3.11 formula u / mu_demo ruled; 0.03 rad floor check closed.
+- fig_cs_reading layout order (review, 2026-10-28), uncommitted: render from CSVs only; k_tilde / k_lin / k_win in black through the window start point, +-50 % of the window span; markers only; lines CSV and --kwin removed (stale fig_cs_reading_lines.csv left in figures/data). Thesis fig 3.3, page 28. INTERRUPTED, not finished: read-only braking-phase / PRC 3 team-lever check (partial numbers in chat only) and the presentation PDF/PNG export -- both re-ordered by the author if wanted.
+- fig_example_fit layout order (review, 2026-10-28), uncommitted: render from CSVs only; braking samples auxGray!40, fit samples 55 % axle colour and smaller, both curves solid (one axle per panel; exception to rear = dashed noted in the script header), curves very thick and drawn last. Thesis fig 4.1, page 34.
+- Work order FIG-PROCESS (author + review, 2026-10-28), uncommitted: new fig_filter_chain, fig_kerb_hit, fig_cs_kerb, fig_beta_washout, fig_dmz_reading, fig_nis_health; fig_example_lap gains --lap (PRC 3 lap 15); common.run_chain returns cs_kwargs. Records: thesis_notes 'Process figures for Ch. 3'. ~~OPEN: F-C corner choice (C13 shows no minimum change).~~ [2026-10-28: closed, lap 15 C1 by a fixed rule.]
+- Review order 2026-10-28 (figure fixes + braking check + advisory rule), uncommitted: fig_cs_kerb lap 15 C1, fig_beta_washout in-lap / session drift, fig_example_lap whole lap 15; braking-phase / team-lever check recorded OPEN (no ruling); setup_engine advisory rule (best non-advisory option recommended; tests added; PRC 5 -> rear ride height lower). No schema bump (payload shape unchanged): stored payloads keep the engine output they were saved with -- PRC 5's stored setup_engine still shows camber until the setup is regenerated in the app. ~~Still open from earlier: presentation PDF/PNG export.~~ [2026-10-28: dropped, review ruling.]
+- Full suite 2026-10-28 (commit point FIG-CLOSE + FIG-PROCESS + review order): 482 passed, 1 failed, 1 skipped, 1 xfailed (36 min). The failure is tests/test_event_zero_entries.py::test_prc_24996_entry_applied_on_its_source_session: the evaluation files in H:/dani_try 100/ were renamed to the new labels (outing 43 session 3 = PRC2.txt; PRC4.txt is now outing 32, a 25016 export) -- stale test path, not a code defect. diagnostics/inspect_prc24996_zero.py carries the same old names (PRC4-PRC7). ~~PROPOSED, not applied: test path -> PRC2.txt; diagnostic paths -> PRC2 / PRC3 / PRC4 / PRC5.txt. Awaiting the author.~~ [2026-10-28: applied by review ruling, see below.]
+- Review rulings 2026-10-28: (1) tests/test_event_zero_entries.py points at H:/dani_try 100/PRC2.txt (outing 43 session 3, header-checked); diagnostics/inspect_prc24996_zero.py at PRC1 / PRC2 (sources, outings 41 / 43) and PRC3 / PRC4 / PRC5 (healthy, outings 27 / 32 / 33), header-checked. Only that test file re-run; the rest of the commit-point suite was green. (2) No schema bump. PRC 5 stored payload predates the advisory rule; the author re-analyses PRC 5 in the app (expected session recommendation: rear ride height lower). (3) Presentation export dropped. (4) Braking phase B ruling recorded in thesis_notes (no detection change before the evaluation freeze; brake-pressure-based phases = future work; 'about 0.13 s' withdrawn).
+- Ch. 4 layout order + addendum (author + review, 2026-10-27, night),
+  uncommitted; figure tooling only, every existing CSV identical (data and
+  header). Render-only mode (--render-only) on the touched scripts. T1 /
+  T2 / T5 plain tabular in \small, one line per row; T1 without the PRC x
+  row (exclusion stated in the text). F1 four panels (no steer panel),
+  fit-sample bands, phase marks B / T / A / E1 / E2, legend below; B10
+  amended 2026-10-27: thesis figures show only lines where a rule acts;
+  the screen keeps the rear info tier (DECISIONS / thesis_notes). F2
+  neutral legend in two rows, no numbers; F4 ticks -0.4 / 0 / 0.4 / 0.8.
+  New fig_session_overview and fig_symptom_phase (stored cells; phase split
+  reproduces the stored cells). Addendum item 3: PRC 3 C10 has no eligible
+  lap (no braking phase on any lap, kerb on 4 of 5) -> F1 stays lap 16 C8.
+  [Same night, review ruling: F1 switched to PRC 3 C17 lap 15 (eligible,
+  lowest rear CS at E2, sets the worst-lap verdict); CSV + .tex regenerated.]
+  New diagnostics/inspect_tire_mileage.py (descriptive). OPEN for the
+  author: chapter 4 captions of fig:example_corner (still name the steer
+  angle and the rear info tier) and tab:sessions / tab:observer_health
+  (still list the dropped columns); T2 apex speed is the corner minimum of
+  the smoothed ecu_speed, not the apex-instant speed (thesis_notes).
+- Thesis figure run on the final evaluation set (order + review rulings
+  Q1-Q3, 2026-10-27), uncommitted, run tag "final". RULINGS: thesis labels
+  follow the outing names NBR 1-5 / PRC 1-5 (local labels.json
+  _outing_labels, read first by common.session_label; weekend code + DB
+  number only as fallback); driver codes by first appearance within the
+  two final weekends (labels.json _driver_code_weekends); outing 27's
+  other driver intended; the excluded old PRC2 is "PRC x" in T1 ("excluded:
+  no yaw-rate and no damper channels"); dev weekends coded dNBR / dPRC.
+  Overlap re-hashed (SHA-256 + header outing / session / first lap): NBR
+  as recorded, NBR3 still same session as dev NBR 20; PRC4 (outing 27)
+  same session as LC 32; PRC1 vs labelled 10 not re-checkable here (file
+  not reachable), record kept. Figure tooling only: common.session_label /
+  driver_codes / fit_sample_range, tab_sessions columns, F1 slip band
+  (alpha panel), T5 columns, F7 damper_path column, find_example_corner
+  --eval-rule. Figure config hash now 3dc9475c51d6ad53 (schema-30
+  channels.json).
+- OPEN BUG: outing 27: analysis run in the app by the author, but no
+  payload stored (2026-10-27); not investigated. [Same day: at the second
+  check the payload was present (schema 30) and was used.]
+- HAND-IN LIST: the ten final-set exports sit in "H:/dani_try 100/",
+  outside config/data_roots.json -- move under a data root (or add the
+  root) before hand-in; no change now.
 - Paul Ricard 24996 damper zero (review ruling 2026-10-27: no per-session
   tare, event zero entry as NBR_221), done, uncommitted, schema 30.
   diagnostics/inspect_prc24996_zero.py -> config/channels.json
@@ -302,8 +351,10 @@ RULED / DONE SINCE THE LAST REWRITE
   classifier.cs_decision_lines -- front boundary (solid) + strong tier
   (dash-dot), rear boundary (solid) + rear info tier MODERATE_CSR (dotted,
   fainter, "no symptom"); MODERATE_CSF / STRONG_CSR lines removed; screen,
-  export and fig_example_corner draw the same set (figure NOT re-run into
-  ba-thesis); B11 option (a): corner window tints every phase the verdict
+  export ~~and fig_example_corner~~ draw the same set (figure NOT re-run into
+  ba-thesis) [B10 amended 2026-10-27: thesis figures show only lines where
+  a rule acts; the screen keeps the rear info tier -- fig_example_corner
+  draws the front boundary, front strong tier and rear boundary]; B11 option (a): corner window tints every phase the verdict
   names (classifier.verdict_phases), a named apex = red apex line, other
   phases the neutral band, legend "Tinted: phase(s) named in the
   verdict".

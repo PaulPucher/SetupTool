@@ -348,10 +348,15 @@ def test_b10_thesis_figure_draws_the_classifier_levels():
     ph = read("fig_example_corner_phases.csv")
     phases = {"s_start_m": [float(x) for x in ph["s_start_m"]], "s_end_m": [float(x) for x in ph["s_end_m"]],
               "phase_label": ph["phase_label"]}
-    want, unused, _v = _cs_level_sets()
-    tex = fig_example_corner._tex("b", "p/", cols, phases, common.lines(), cols["s_m"][0], cols["s_m"][-1], [])
+    want, unused, v = _cs_level_sets()
+    fit_range = {"f": (-6.0, 6.5), "r": (-4.5, 4.8)}
+    tex = fig_example_corner._tex("b", "p/", cols, phases, common.lines(), cols["s_m"][0], cols["s_m"][-1], [],
+                                  fit_range)
     got = {float(m) for m in re.findall(r"\\addplot\[axle(?:Front|Rear), [^\]]*\] coordinates \{\([-\d.]+,([-\d.e]+)\)", tex)}
-    assert got == {float(f"{x:.4g}") for x in want["cs_f"] | want["cs_r"]}
+    # B10 amended 2026-10-27: the thesis figure draws only the lines a
+    # verdict rule acts on; the rear information tier stays on the app screen
+    assert got == {float(f"{x:.4g}") for x in (want["cs_f"] | want["cs_r"]) - {v["info_r"]}}
+    assert float(f"{v['info_r']:.4g}") not in got and not got & unused
 
 
 # --- B11: the corner window tints the phases the verdict names ---

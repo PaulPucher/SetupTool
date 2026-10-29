@@ -40,12 +40,12 @@ from modules.wheel_loads import (  # noqa: E402
 # outside the test data roots, so the paths are absolute
 SOURCES = [
     ("PRC1 (outing 41)", "H:/dani_try 100/PRC1.txt", 22),
-    ("PRC4 (outing 43)", "H:/dani_try 100/PRC4.txt", 25),
+    ("PRC2 (outing 43)", "H:/dani_try 100/PRC2.txt", 25),
 ]
 HEALTHY = [
-    ("PRC5 (outing 27)", "H:/dani_try 100/PRC5.txt", 26),
-    ("PRC6 (outing 32)", "H:/dani_try 100/PRC6.txt", 27),
-    ("PRC7 (outing 33)", "H:/dani_try 100/PRC7.txt", 28),
+    ("PRC3 (outing 27)", "H:/dani_try 100/PRC3.txt", 26),
+    ("PRC4 (outing 32)", "H:/dani_try 100/PRC4.txt", 27),
+    ("PRC5 (outing 33)", "H:/dani_try 100/PRC5.txt", 28),
     ("LC 25", "H:/Data_Bachelorthesis/Paul_Ricard_MLA_US/MLA-SE07_US-v1.txt", 13),
 ]
 CORNERS = ("fl", "fr", "rl", "rr")

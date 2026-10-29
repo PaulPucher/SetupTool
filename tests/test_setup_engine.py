@@ -482,3 +482,39 @@ def test_engineer_lines_list_differences_only():
     out = run(summ, feedback_data={"corners": rows})
     lines = engineer_lines(out["data_layer"], out["engineer_layer"])
     assert any(l.startswith("C1 turn-in - driver -5, no data -> ") for l in lines)
+
+
+def test_advisory_lever_is_never_the_recommended_option():
+    # review ruling 2026-10-28: real NBR JST 29 options, the advisory flag
+    # set on the top-ranked one; rank, votes and net support stay, only the
+    # top position moves to the best non-advisory option
+    from modules.setup_engine import ADVISORY_REASON, _all_options, option_line, session_vote
+    rec = data_layer(_summaries(NBR29))["session_recommendation"]
+    first, second = rec["ranked"][0], rec["ranked"][1]
+    details = {o["option"]: copy.deepcopy(o) for o in _all_options(rec)}
+    details[first["option"]]["advisory"] = True
+    out = session_vote(copy.deepcopy(rec["votes"]), details, 2)
+    assert [o["option"] for o in out["ranked"]] == [o["option"] for o in rec["ranked"]]
+    assert [o["net"] for o in out["ranked"]] == [o["net"] for o in rec["ranked"]]
+    assert out["recommended"]["option"] == second["option"]
+    assert out["alternatives"][0]["option"] == first["option"]
+    assert ADVISORY_REASON in option_line(out["alternatives"][0])
+    for d in details.values():
+        d["advisory"] = True
+    none = session_vote(copy.deepcopy(rec["votes"]), details, 2)
+    assert none["recommended"] is None and none["equivalent_options"] == []
+    assert [o["option"] for o in none["alternatives"]] == [o["option"] for o in rec["ranked"][:2]]
+
+
+def test_advisory_candidate_is_never_the_corner_line():
+    corner = data_layer(_summaries(NBR29))["corners"][0]
+    ranked = copy.deepcopy(corner["ranked"])
+    ranked[0]["advisory"] = True
+    sel = _select(ranked, _data_rank_key, 2)
+    assert sel["recommended"] is ranked[1] and sel["alternatives"][0] is ranked[0]
+    for c in ranked:
+        c["advisory"] = True
+    sel = _select(ranked, _data_rank_key, 2)
+    assert sel["recommended"] is None and sel["alternatives"] == ranked[:2]
+    line = corner_summary(dict(corner, recommended=None, ranked=ranked, alternatives=ranked[:2]))[0]
+    assert "-> only advisory levers" in line

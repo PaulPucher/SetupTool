@@ -1,7 +1,8 @@
 # tab:example_verdicts -- one session, one row per corner: corner ID (of
-# that session), canonical speed class, apex speed (median over the analysis
-# laps of the stored apex_speed, the speed at the apex instant -- not a
-# corner minimum, which is not stored), worst CS_f and CS_r with their phase
+# that session), canonical speed class, corner speed v_min (median over the analysis
+# laps of the stored apex_speed: corner_analysis takes the minimum of the
+# smoothed ecu_speed from turn-in to corner end, in km/h -- the corner
+# minimum, not the speed at the apex instant), worst CS_f and CS_r with their phase
 # (worst lap per phase as the classifier aggregates, then the minimum over
 # the phases), dMz/dbeta (cross-lap median per phase, the minimum over the
 # phases -- the value the open-loop-unstable rule reads) with its phase, and
@@ -57,36 +58,75 @@ def build(outing, tag="dev", allow_status=False, allow_excluded=False, out=None)
     data_dir, plots_dir, _prefix = common.out_dirs(out)
     common.write_csv(f"{data_dir}/{SCRIPT}.csv", cols,
                      common.meta(SCRIPT, [outing], tag, marks, session_label=label,
-                                 apex_speed="apex speed: median over the analysis laps of the speed at the apex instant",
+                                 apex_speed="corner speed v_min in km/h: median over the analysis laps of the "
+                                            "stored apex_speed (minimum smoothed ecu_speed from turn-in to corner "
+                                            "end; the column name is the stored field's)",
                                  dmz="cross-lap median per phase; minimum over the phases"))
-    header = ["C", "Speed", "$v_\\mathrm{apex}$ in km/h", f"worst {common.CS_F}", f"worst {common.CS_R}",
-              "$\\mathrm{d}M_z/\\mathrm{d}\\beta$ in N\\,m/deg", "Verdict"]
-
-    def cell(v, fmt, phase):
-        # value over its phase in one cell keeps the table inside \textwidth
-        # and leaves the width to the verdict column
-        return f"{format(v, fmt)}\\newline {common.tex_escape(phase)}" if v == v else "--"
-    body = [[str(c), common.tex_escape(cols["speed_class"][i] or "-"),
-             format(cols["apex_speed_kmh"][i], ".0f") if cols["apex_speed_kmh"][i] == cols["apex_speed_kmh"][i] else "--",
-             cell(cols["cs_f_worst"][i], ".2f", cols["cs_f_phase"][i]),
-             cell(cols["cs_r_worst"][i], ".2f", cols["cs_r_phase"][i]),
-             cell(cols["dmz_dbeta_Nm_per_deg"][i], ".0f", cols["dmz_phase"][i]),
-             common.tex_escape(cols["verdict"][i])]
-            for i, c in enumerate(cols["corner_id"])]
-    narrow = ">{\\raggedright\\arraybackslash}p{0.1\\textwidth}"
-    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body,
-                       f"r l r {narrow} {narrow} {narrow} >{{\\raggedright\\arraybackslash}}X", tabcolsep="4pt")
+    render(out)
     return cols
+
+
+_SYM = {"understeer": "US", "oversteer": "OS", "open-loop unstable": "INST"}
+_SEV = {"moderate": "mod.", "strong": "strong"}
+
+
+def short_verdict(text):
+    """'understeer (moderate) at early exit; marginal' -> 'US mod. (E1)*'.
+    The CSV keeps the full words; the table abbreviates them."""
+    if text in ("ok", "-"):
+        return "--"
+    if text == "no CS data":
+        return "no data"
+    out = []
+    for part in text.split("; "):
+        if part == "marginal":
+            out[-1] += "*"
+            continue
+        head, _at, phase = part.partition(" at ")
+        word, _sp, sev = head.partition(" (")
+        sev = _SEV.get(sev.rstrip(")"), "")
+        out.append(f"{_SYM[word]}{' ' + sev if sev else ''} ({common.PHASE_ABBR[phase]})")
+    return ", ".join(out)
+
+
+def render(out=None):
+    """The .tex from the stored CSV only (no session is loaded): one line
+    per corner, value with its phase abbreviation (B, T, A, E1, E2)."""
+    data_dir, plots_dir, _prefix = common.out_dirs(out)
+    _meta, c = common.read_csv(f"{data_dir}/{SCRIPT}.csv")
+
+    def cell(v, phase, fmt):
+        v = common.num(v)
+        return f"{format(v, fmt)} ({common.PHASE_ABBR.get(phase, phase)})" if v == v else "--"
+    body = []
+    for i, cid in enumerate(c["corner_id"]):
+        v = common.num(c["apex_speed_kmh"][i])
+        body.append([cid, (c["speed_class"][i] or "-")[:1].upper(), f"{v:.0f}" if v == v else "--",
+                     cell(c["cs_f_worst"][i], c["cs_f_phase"][i], ".2f"),
+                     cell(c["cs_r_worst"][i], c["cs_r_phase"][i], ".2f"),
+                     # stored unit N m/deg (stability_observed_Nm_per_deg), not converted
+                     cell(c["dmz_dbeta_Nm_per_deg"][i], c["dmz_phase"][i], ".0f"),
+                     common.tex_escape(short_verdict(c["verdict"][i]))])
+    header = ["C", "Class", "$v_\\mathrm{min}$ in km/h", f"{common.CS_F} (phase)", f"{common.CS_R} (phase)",
+              "$\\mathrm{d}M_z/\\mathrm{d}\\beta$ in N\\,m/deg (phase)", "Verdict"]
+    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "r c r r r r l",
+                       env="tabular", small=True, space_every=3)
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--outing", type=int, required=True)
+    ap.add_argument("--outing", type=int)
     ap.add_argument("--tag", default="dev")
     ap.add_argument("--allow-status", action="store_true")
     ap.add_argument("--allow-excluded", action="store_true")
     ap.add_argument("--out")
+    ap.add_argument("--render-only", action="store_true", help="write the .tex from the existing CSV only")
     a = ap.parse_args(argv)
+    if a.render_only:
+        render(a.out)
+        return
+    if a.outing is None:
+        ap.error("--outing is required unless --render-only")
     build(a.outing, a.tag, a.allow_status, a.allow_excluded, a.out)
 
 

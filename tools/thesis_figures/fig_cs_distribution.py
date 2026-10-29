@@ -25,6 +25,7 @@ from tools.thesis_figures.fig_k_sessions import collect
 
 SCRIPT = "fig_cs_distribution"
 GROUP_STYLE = ("solid", "dashed")
+X_TICKS = (-0.4, 0.0, 0.4, 0.8)
 
 
 def cells(payload):
@@ -96,8 +97,18 @@ def build(groups, tag="dev", allow_status=False, allow_excluded=False, out=None)
                                                     "stored payloads"))
             curves[(name, ax)] = fn
     common.write_csv(f"{data_dir}/{SCRIPT}_cells.csv", audit, common.meta(SCRIPT, all_outings, tag))
-    common.write_tex(f"{plots_dir}/{SCRIPT}.tex", _tex(prefix, groups, curves, lin))
+    render(out)
     return {k: v for k, v in curves.items()}
+
+
+def render(out=None):
+    """The .tex from the stored CSVs only (no session is loaded): the group
+    names in their order of appearance in the cells CSV, lines from config."""
+    data_dir, plots_dir, prefix = common.out_dirs(out)
+    _meta, cells_ = common.read_csv(f"{data_dir}/{SCRIPT}_cells.csv")
+    names = list(dict.fromkeys(cells_["group"]))
+    curves = {(n, ax): f"{SCRIPT}_{n}_{ax}.csv" for n in names for ax in ("f", "r")}
+    common.write_tex(f"{plots_dir}/{SCRIPT}.tex", _tex(prefix, [(n, None) for n in names], curves, common.lines()))
 
 
 def _tex(prefix, groups, curves, lin):
@@ -110,6 +121,10 @@ def _tex(prefix, groups, curves, lin):
         t.append(common.table_read(prefix, fn, f"tblCS{name.replace(' ', '')}{ax.upper()}"))
     t.append("\\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.2cm},\n"
              "  thesis axis, width=0.5\\textwidth, height=0.42\\textwidth, ymin=0, ymax=1,\n"
+             # few fixed ticks in one fixed-point format, so no label collides
+             f"  xtick={{{','.join(f'{x:g}' for x in X_TICKS)}}},\n"
+             "  xticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},\n"
+             "  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},\n"
              f"  xlabel={{{common.CS_AXIS}}}]\n")
     for ax, colour, axle in (("f", "axleFront", "front"), ("r", "axleRear", "rear")):
         opts = f"title={{{axle} axle}}, ylabel={{{'cumulative share' if ax == 'f' else ''}}}"
@@ -135,12 +150,18 @@ def _tex(prefix, groups, curves, lin):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--group", action="append", required=True, help='NAME=id,id,... (one or two groups)')
+    ap.add_argument("--group", action="append", help='NAME=id,id,... (one or two groups)')
     ap.add_argument("--tag", default="dev")
     ap.add_argument("--allow-status", action="store_true")
     ap.add_argument("--allow-excluded", action="store_true")
     ap.add_argument("--out")
+    ap.add_argument("--render-only", action="store_true", help="write the .tex from the existing CSVs only")
     a = ap.parse_args(argv)
+    if a.render_only:
+        render(a.out)
+        return
+    if not a.group:
+        ap.error("--group is required unless --render-only")
     groups = [(g.split("=")[0], [int(x) for x in g.split("=")[1].split(",")]) for g in a.group]
     build(groups, a.tag, a.allow_status, a.allow_excluded, a.out)
 

@@ -62,7 +62,8 @@ def test_stale_payload_is_refused_with_its_reason():
 
 @pytest.mark.parametrize("mod", ["fig_example_fit", "fig_example_corner", "fig_k_sessions", "fig_cs_distribution",
                                  "find_example_corner", "tab_sessions", "tab_example_verdicts", "fig_example_lap",
-                                 "tab_observer_health", "fig_verdict_repeatability", "fig_balance_speed_class"])
+                                 "tab_observer_health", "fig_verdict_repeatability", "fig_balance_speed_class",
+                                 "fig_session_overview", "fig_symptom_phase"])
 def test_command_line_builds(mod):
     import importlib
     m = importlib.import_module(f"tools.thesis_figures.{mod}")
@@ -71,18 +72,25 @@ def test_command_line_builds(mod):
     assert e.value.code == 0
 
 
-def test_corner_figure_has_five_panels_and_one_legend_below():
-    # round 2: delta_f and a_y in g on their own panels, CS symbol from the
-    # helper, no rear information band, one shared legend below the last
+def test_corner_figure_has_four_panels_and_one_legend_below():
+    # layout order 2026-10-27: a_y, beta, alpha, CS (no steer panel), CS
+    # symbol from the helper, one named legend placed below the last panel,
+    # phase marks abbreviated, fit-sample band per axle on the alpha panel
     from tools.thesis_figures import fig_example_corner as c
     n = 5
     cols = {k: np.linspace(0.1, 1.0, n) for k in ("s_m", "delta_f_deg", "ay_filt_g", "beta_obs_deg", "beta_kin_deg",
                                                   "alpha_f_deg", "alpha_r_deg", "cs_f", "cs_r")}
     phases = {"phase_key": ["exit_4"], "phase_label": ["early exit"], "s_start_m": [0.0], "s_end_m": [10.0]}
-    tex = c._tex("b", "figures/data/", cols, phases, common.lines(), 0.0, 10.0, [])
-    assert tex.count("\\nextgroupplot") == 5 and "group size=1 by 5" in tex
-    assert "y=ay_filt_g" in tex and "(filtered) in g" in tex and common.CS_F in tex
-    assert "information band" not in tex and "outer north east" not in tex and tex.count("legend style") == 1
+    fit_range = {"f": (-6.0, 6.5), "r": (-4.5, 4.8)}
+    tex = c._tex("b", "figures/data/", cols, phases, common.lines(), 0.0, 10.0, [], fit_range)
+    assert tex.count("\\nextgroupplot") == 4 and "group size=1 by 4" in tex
+    assert "y=ay_filt_g" in tex and "y=delta_f_deg" not in tex and f"ylabel={{{common.CS_AXIS}}}" in tex
+    assert tex.count("legend style") == 1 and "\\pgfplotslegendfromname{legExampleCorner}" in tex
+    assert "{E1}" in tex and "early exit}" not in tex and "clip=false" in tex
+    # two bands on the alpha panel plus one legend image
+    assert tex.count("fit-sample range") == 1 and tex.count("fill opacity=") == 3
+    # CS lower limit -0.2 unless the corner's CS goes lower
+    assert "ymin=-0.2, ymax=1.05" in tex
 
 
 def test_name_guard_refuses_a_driver_name(tmp_path):
