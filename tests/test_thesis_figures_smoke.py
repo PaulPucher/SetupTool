@@ -63,7 +63,7 @@ def test_stale_payload_is_refused_with_its_reason():
 @pytest.mark.parametrize("mod", ["fig_example_fit", "fig_example_corner", "fig_k_sessions", "fig_cs_distribution",
                                  "find_example_corner", "tab_sessions", "tab_example_verdicts", "fig_example_lap",
                                  "tab_observer_health", "fig_verdict_repeatability", "fig_balance_speed_class",
-                                 "fig_session_overview", "fig_symptom_phase"])
+                                 "fig_session_overview", "fig_symptom_phase", "app_screenshots"])
 def test_command_line_builds(mod):
     import importlib
     m = importlib.import_module(f"tools.thesis_figures.{mod}")
@@ -75,7 +75,8 @@ def test_command_line_builds(mod):
 def test_corner_figure_has_four_panels_and_one_legend_below():
     # layout order 2026-10-27: a_y, beta, alpha, CS (no steer panel), CS
     # symbol from the helper, one named legend placed below the last panel,
-    # phase marks abbreviated, fit-sample band per axle on the alpha panel
+    # phase marks abbreviated, fit-sample range per axle on the alpha panel
+    # as thin lines without a fill (revision 2026-10-29)
     from tools.thesis_figures import fig_example_corner as c
     n = 5
     cols = {k: np.linspace(0.1, 1.0, n) for k in ("s_m", "delta_f_deg", "ay_filt_g", "beta_obs_deg", "beta_kin_deg",
@@ -87,8 +88,9 @@ def test_corner_figure_has_four_panels_and_one_legend_below():
     assert "y=ay_filt_g" in tex and "y=delta_f_deg" not in tex and f"ylabel={{{common.CS_AXIS}}}" in tex
     assert tex.count("legend style") == 1 and "\\pgfplotslegendfromname{legExampleCorner}" in tex
     assert "{E1}" in tex and "early exit}" not in tex and "clip=false" in tex
-    # two bands on the alpha panel plus one legend image
-    assert tex.count("fit-sample range") == 1 and tex.count("fill opacity=") == 3
+    # two limit lines per axle plus one legend image, no band fill
+    assert tex.count("fit-sample range") == 1 and "okBand" not in tex
+    assert sum(tex.count(f"\\addplot[{c.BAND_EDGE[a]}, forget plot]") for a in ("f", "r")) == 4
     # CS lower limit -0.2 unless the corner's CS goes lower
     assert "ymin=-0.2, ymax=1.05" in tex
 
@@ -147,3 +149,36 @@ def test_distribution_drops_phases_that_do_not_occur():
         assert sum((s["phases"].get(ph) or {}).get("n_samples", 0) for s in laps[cid]) > 0
         assert (cause is None) == bool(np.isfinite(v)) and cause in (None, "b", "c")
     assert dropped >= 0 and len(got) % 2 == 0
+
+
+def test_verdict_table_prints_no_negative_zero():
+    from tools.thesis_figures.tab_example_verdicts import _fmt
+    assert _fmt(-0.00249, ".2f") == "0.00" and _fmt(-0.3, ".0f") == "0"
+    assert _fmt(-0.006, ".2f") == "-0.01"
+
+
+def test_appendix_recommendation_line_has_no_setup_values():
+    from tools.thesis_figures.tab_example_verdicts import appendix_name, recommendation_line
+    o = {"levers": ["arb_rl", "arb_rr"], "direction": "softer", "net": 2.0,
+         "change": {"step": 1, "keys": [{"from": 5, "to": 4}]}}
+    head, alts = recommendation_line({"recommended": o, "equivalent_options": [], "alternatives": []})
+    assert head == "rear anti-roll bar softer (net support 2.00)" and alts == "none"
+    tie = recommendation_line({"recommended": None, "equivalent_options": [o, o], "alternatives": []})[0]
+    assert tie.startswith("none (tie: ")
+    assert appendix_name("PRC 3") == "tab_verdicts_prc3"
+
+
+def test_appendix_line_uses_the_thesis_wording():
+    from tools.thesis_figures.tab_example_verdicts import _option
+    assert _option({"levers": ["damper_bump_ls_rl", "damper_bump_ls_rr"], "direction": "stiffer"}) == \
+        "rear low-speed bump stiffer"
+    assert _option({"levers": ["ride_height_rear"], "direction": "decrease"}) == "rear ride height lower"
+    assert _option({"levers": ["diff_position"], "direction": "increase"}) == "differential locking higher"
+
+
+def test_screenshot_text_hides_step_sizes():
+    from tools.thesis_figures.app_screenshots import hide_steps
+    assert hide_steps("Rear LS bump stiffer (1 step) | [hidden] -> [hidden]") == \
+        "Rear LS bump stiffer ([hidden]) | [hidden] -> [hidden]"
+    assert hide_steps("driver: TC lon +1") == "driver: TC lon [hidden]"
+    assert hide_steps("C15 - medium - unstable yaw - exit - 5/5") == "C15 - medium - unstable yaw - exit - 5/5"

@@ -100,8 +100,9 @@ MARK = {"front": "*", "rear": "square*"}
 HOLLOW = {"front": "o", "rear": "square"}
 COLOUR = {"front": "axleFront", "rear": "axleRear"}
 CURVE = {"front": "axleFront, solid", "rear": "axleRear, solid"}
-FIT_TINT = 55            # % of the axle colour for the fit samples
-BRAKING_STYLE = "auxGray!40"
+FIT_TINT = 35            # % of the axle colour for the fit samples
+BRAKING_STYLE = "auxGray!18"
+CURVE_WIDTH = "line width=1.8pt"
 
 
 def _tex(base, prefix, mu, a_lo, a_hi, marks):
@@ -126,22 +127,23 @@ def _tex(base, prefix, mu, a_lo, a_hi, marks):
                      "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
         if axle == "rear":
-            t.append("\\addlegendimage{only marks, mark=*, mark size=1.2pt, black}\\addlegendentry{fit samples}\n"
+            t.append(f"\\addlegendimage{{only marks, mark=*, mark size=1.2pt, black!{FIT_TINT}}}"
+                     "\\addlegendentry{fit samples}\n"
                      f"\\addlegendimage{{only marks, mark=o, mark size=1.2pt, {BRAKING_STYLE}}}"
                      "\\addlegendentry{removed by braking filter}\n"
-                     "\\addlegendimage{black, solid, very thick}\\addlegendentry{fitted curve}\n"
+                     f"\\addlegendimage{{black, solid, {CURVE_WIDTH}}}\\addlegendentry{{fitted curve}}\n"
                      "\\addlegendimage{black, dotted, thick}\\addlegendentry{linear slope $K\\,\\alpha$}\n"
                      "\\addlegendimage{auxGray, dashdotted}\\addlegendentry{demonstrated $\\mu$}\n")
         # draw order: braking samples, fit samples, reference lines, fitted curve on top
         t.append(f"\\addplot[only marks, mark={HOLLOW[axle]}, mark size=0.4pt, color={BRAKING_STYLE}, forget plot] "
                  f"table[x=alpha_deg, y=fy_fz]{{\\tbl{cap}Braking}};\n")
-        t.append(f"\\addplot[only marks, mark={MARK[axle]}, mark size=0.2pt, color={COLOUR[axle]}!{FIT_TINT}, "
+        t.append(f"\\addplot[only marks, mark={MARK[axle]}, mark size=0.25pt, color={COLOUR[axle]}!{FIT_TINT}, "
                  f"forget plot] table[x=alpha_deg, y=fy_fz]{{\\tbl{cap}Fit}};\n")
         for sgn in (1, -1):
             t.append(f"\\addplot[auxGray, dashdotted, forget plot] coordinates "
                      f"{{({a_lo:.2f},{sgn * mu[axle]:.4f}) ({a_hi:.2f},{sgn * mu[axle]:.4f})}};\n")
         t.append(f"\\addplot[black, dotted, thick, forget plot] table[x=alpha_deg, y=lin_{axle}_fy_fz]{{\\tblCurves}};\n")
-        t.append(f"\\addplot[{CURVE[axle]}, very thick, forget plot] table[x=alpha_deg, y=mf_{axle}_fy_fz]{{\\tblCurves}};\n")
+        t.append(f"\\addplot[{CURVE[axle]}, {CURVE_WIDTH}, forget plot] table[x=alpha_deg, y=mf_{axle}_fy_fz]{{\\tblCurves}};\n")
     t.append("\\end{groupplot}\n")
     # legend centred below both panels, under their x labels
     t.append("\\path (group c1r1.outer south west) -- (group c2r1.outer south east) "

@@ -567,6 +567,10 @@ def num(s):
 
 # thesis phase abbreviations for tables and phase marks (ch. 3 phase words)
 PHASE_ABBR = {"braking": "B", "turn in": "T", "apex": "A", "early exit": "E1", "exit completion": "E2"}
+# colour names are defined once in the thesis (source/definitions/figure_colors.tex);
+# the scripts only name them
+PHASE_FILL = {lab: f"phase{abbr}" for lab, abbr in PHASE_ABBR.items()}
+SYMPTOM_FILL = {"US": "symUS", "OS": "symOS", "INST": "symINST"}
 
 
 # marginal_reason fragments as tyre_fit_auto writes them -> thesis words;

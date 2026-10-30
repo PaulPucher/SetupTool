@@ -1,0 +1,384 @@
+[1/251] nbr_o46_jst baseline: 146 s, status ok, gate pass, fallback False
+[2/251] nbr_o20_jst baseline: 146 s, status ok, gate pass, fallback False
+[3/251] nbr_o54_cdr baseline: 188 s, status ok, gate pass, fallback False
+[4/251] nbr_o05_mla baseline: 190 s, status ok, gate pass, fallback False
+[5/251] nbr_o53_mla baseline: 197 s, status ok, gate pass, fallback False
+[6/251] nbr_o10_jdr baseline: 324 s, status ok, gate pass, fallback False
+[7/251] nbr_o59_mla baseline: 203 s, status marginal, gate pass, fallback False
+[8/251] nbr_qp_mla baseline: 174 s, status marginal, gate pass, fallback False
+[9/251] nbr_qp_cdr baseline: 202 s, status ok, gate pass, fallback False
+[10/251] nbr_o61_jdr baseline: 252 s, status ok, gate pass, fallback False
+[11/251] nbr_o63_cdr baseline: 234 s, status ok, gate pass, fallback False
+[12/251] pr_o25_us_v1 baseline: 110 s, status ok, gate pass, fallback False
+[13/251] nbr_o20_jst q_x0.3: 123 s, status ok, gate pass, fallback False
+[14/251] nbr_o05_mla q_x0.3: 162 s, status ok, gate pass, fallback False
+[15/251] nbr_o46_jst q_x0.3: 123 s, status ok, gate pass, fallback False
+[16/251] pr_o32_us_v2 baseline: 228 s, status ok, gate pass, fallback False
+[17/251] nbr_o29_jst q_x0.3: 165 s, status ok, gate pass, fallback False
+[18/251] nbr_o10_jdr q_x0.3: 271 s, status ok, gate pass, fallback False
+[19/251] nbr_o53_mla q_x0.3: 173 s, status ok, gate pass, fallback False
+[20/251] nbr_o54_cdr q_x0.3: 163 s, status ok, gate pass, fallback False
+[21/251] nbr_o59_mla q_x0.3: 169 s, status marginal, gate pass, fallback False
+[22/251] nbr_o61_jdr q_x0.3: 204 s, status ok, gate pass, fallback False
+[23/251] nbr_o63_cdr q_x0.3: 219 s, status ok, gate pass, fallback False
+[24/251] pr_o25_us_v1 q_x0.3: 113 s, status ok, gate pass, fallback False
+[25/251] nbr_qp_cdr q_x0.3: 185 s, status ok, gate pass, fallback False
+[26/251] nbr_qp_mla q_x0.3: 163 s, status marginal, gate pass, fallback False
+[27/251] nbr_o20_jst ryaw_x10: 123 s, status ok, gate pass, fallback False
+[28/251] nbr_o05_mla ryaw_x10: 162 s, status ok, gate pass, fallback False
+[29/251] pr_o32_us_v2 q_x0.3: 232 s, status ok, gate pass, fallback False
+[30/251] nbr_o46_jst ryaw_x10: 122 s, status ok, gate pass, fallback False
+[31/251] nbr_o29_jst ryaw_x10: 165 s, status ok, gate pass, fallback False
+[32/251] nbr_o10_jdr ryaw_x10: 270 s, status ok, gate pass, fallback False
+[33/251] nbr_o53_mla ryaw_x10: 171 s, status ok, gate pass, fallback False
+[34/251] nbr_o54_cdr ryaw_x10: 162 s, status ok, gate pass, fallback False
+[35/251] nbr_o59_mla ryaw_x10: 169 s, status marginal, gate pass, fallback False
+[36/251] nbr_o61_jdr ryaw_x10: 202 s, status ok, gate pass, fallback False
+[37/251] pr_o25_us_v1 ryaw_x10: 112 s, status ok, gate pass, fallback False
+[38/251] nbr_o63_cdr ryaw_x10: 217 s, status ok, gate pass, fallback False
+[39/251] nbr_qp_cdr ryaw_x10: 183 s, status ok, gate pass, fallback False
+[40/251] nbr_qp_mla ryaw_x10: 161 s, status marginal, gate pass, fallback False
+[41/251] nbr_o05_mla drag_cda_0.0: 163 s, status ok, gate pass, fallback False
+[42/251] nbr_o20_jst drag_cda_0.0: 123 s, status ok, gate pass, fallback False
+[43/251] pr_o32_us_v2 ryaw_x10: 230 s, status ok, gate pass, fallback False
+[44/251] nbr_o46_jst drag_cda_0.0: 122 s, status ok, gate pass, fallback False
+[45/251] nbr_o29_jst drag_cda_0.0: 164 s, status ok, gate pass, fallback False
+[46/251] nbr_o10_jdr drag_cda_0.0: 269 s, status ok, gate pass, fallback False
+[47/251] nbr_o54_cdr drag_cda_0.0: 162 s, status ok, gate pass, fallback False
+[48/251] nbr_o53_mla drag_cda_0.0: 171 s, status ok, gate pass, fallback False
+[49/251] nbr_o59_mla drag_cda_0.0: 169 s, status marginal, gate pass, fallback False
+[50/251] nbr_o61_jdr drag_cda_0.0: 201 s, status ok, gate pass, fallback False
+[51/251] pr_o25_us_v1 drag_cda_0.0: 112 s, status ok, gate pass, fallback False
+[52/251] nbr_o63_cdr drag_cda_0.0: 217 s, status ok, gate pass, fallback False
+[53/251] nbr_qp_cdr drag_cda_0.0: 183 s, status ok, gate pass, fallback False
+[54/251] nbr_qp_mla drag_cda_0.0: 161 s, status marginal, gate pass, fallback False
+[55/251] nbr_o05_mla drag_cda_0.7: 162 s, status ok, gate pass, fallback False
+[56/251] pr_o32_us_v2 drag_cda_0.0: 230 s, status ok, gate pass, fallback False
+[57/251] nbr_o20_jst drag_cda_0.7: 123 s, status ok, gate pass, fallback False
+[58/251] nbr_o46_jst drag_cda_0.7: 122 s, status ok, gate pass, fallback False
+[59/251] nbr_o29_jst drag_cda_0.7: 165 s, status ok, gate pass, fallback False
+[60/251] nbr_o10_jdr drag_cda_0.7: 269 s, status ok, gate pass, fallback False
+[61/251] nbr_o54_cdr drag_cda_0.7: 162 s, status ok, gate pass, fallback False
+[62/251] nbr_o53_mla drag_cda_0.7: 170 s, status ok, gate pass, fallback False
+[63/251] nbr_o59_mla drag_cda_0.7: 168 s, status marginal, gate pass, fallback False
+[64/251] nbr_o61_jdr drag_cda_0.7: 201 s, status ok, gate pass, fallback False
+[65/251] pr_o25_us_v1 drag_cda_0.7: 112 s, status ok, gate pass, fallback False
+[66/251] nbr_o63_cdr drag_cda_0.7: 217 s, status ok, gate pass, fallback False
+[67/251] nbr_qp_mla drag_cda_0.7: 162 s, status marginal, gate pass, fallback False
+[68/251] nbr_qp_cdr drag_cda_0.7: 183 s, status ok, gate pass, fallback False
+[69/251] nbr_o05_mla drag_cda_1.3: 162 s, status ok, gate pass, fallback False
+[70/251] pr_o32_us_v2 drag_cda_0.7: 230 s, status ok, gate pass, fallback False
+[71/251] nbr_o20_jst drag_cda_1.3: 122 s, status ok, gate pass, fallback False
+[72/251] nbr_o46_jst drag_cda_1.3: 122 s, status ok, gate pass, fallback False
+[73/251] nbr_o29_jst drag_cda_1.3: 166 s, status ok, gate pass, fallback False
+[74/251] nbr_o10_jdr drag_cda_1.3: 269 s, status ok, gate pass, fallback False
+[75/251] nbr_o54_cdr drag_cda_1.3: 162 s, status ok, gate pass, fallback False
+[76/251] nbr_o53_mla drag_cda_1.3: 171 s, status ok, gate pass, fallback False
+[77/251] nbr_o59_mla drag_cda_1.3: 167 s, status marginal, gate pass, fallback False
+[78/251] nbr_o61_jdr drag_cda_1.3: 200 s, status ok, gate pass, fallback False
+[79/251] pr_o25_us_v1 drag_cda_1.3: 113 s, status ok, gate pass, fallback False
+[80/251] nbr_o63_cdr drag_cda_1.3: 217 s, status ok, gate pass, fallback False
+[81/251] nbr_qp_mla drag_cda_1.3: 160 s, status marginal, gate pass, fallback False
+[82/251] nbr_qp_cdr drag_cda_1.3: 183 s, status ok, gate pass, fallback False
+[83/251] nbr_o05_mla e_+0: 158 s, status marginal, gate pass, fallback False
+[84/251] pr_o32_us_v2 drag_cda_1.3: 229 s, status ok, gate pass, fallback False
+[85/251] nbr_o20_jst e_+0: 121 s, status ok, gate pass, fallback False
+[86/251] nbr_o46_jst e_+0: 120 s, status ok, gate pass, fallback False
+[87/251] nbr_o29_jst e_+0: 163 s, status ok, gate pass, fallback False
+[88/251] nbr_o10_jdr e_+0: 264 s, status marginal, gate pass, fallback False
+[89/251] nbr_o54_cdr e_+0: 159 s, status marginal, gate pass, fallback False
+[90/251] nbr_o53_mla e_+0: 169 s, status marginal, gate pass, fallback False
+[91/251] nbr_o59_mla e_+0: 166 s, status marginal, gate pass, fallback False
+[92/251] nbr_o61_jdr e_+0: 196 s, status marginal, gate pass, fallback False
+[93/251] pr_o25_us_v1 e_+0: 112 s, status ok, gate pass, fallback False
+[94/251] nbr_o63_cdr e_+0: 213 s, status marginal, gate pass, fallback False
+[95/251] nbr_qp_mla e_+0: 157 s, status marginal, gate pass, fallback False
+[96/251] nbr_qp_cdr e_+0: 181 s, status marginal, gate pass, fallback False
+[97/251] nbr_o05_mla e_+1: 165 s, status degenerate, gate None, fallback True
+[98/251] pr_o32_us_v2 e_+0: 227 s, status ok, gate pass, fallback False
+[99/251] nbr_o20_jst e_+1: 121 s, status degenerate, gate None, fallback True
+[100/251] nbr_o46_jst e_+1: 123 s, status degenerate, gate None, fallback True
+[101/251] nbr_o29_jst e_+1: 168 s, status degenerate, gate None, fallback True
+[102/251] nbr_o10_jdr e_+1: 275 s, status degenerate, gate None, fallback True
+[103/251] nbr_o54_cdr e_+1: 163 s, status degenerate, gate None, fallback True
+[104/251] nbr_o53_mla e_+1: 182 s, status degenerate, gate None, fallback True
+[105/251] nbr_o59_mla e_+1: 174 s, status degenerate, gate None, fallback True
+[106/251] nbr_o61_jdr e_+1: 205 s, status degenerate, gate None, fallback True
+[107/251] pr_o25_us_v1 e_+1: 109 s, status marginal, gate warn, fallback False
+[108/251] nbr_o63_cdr e_+1: 222 s, status degenerate, gate None, fallback True
+[109/251] nbr_qp_cdr e_+1: 171 s, status degenerate, gate None, fallback True
+[110/251] nbr_qp_mla e_+1: 163 s, status degenerate, gate None, fallback True
+[111/251] nbr_o05_mla mass_plus1: 162 s, status ok, gate pass, fallback False
+[112/251] pr_o32_us_v2 e_+1: 236 s, status degenerate, gate None, fallback True
+[113/251] nbr_o20_jst mass_plus1: 122 s, status ok, gate pass, fallback False
+[114/251] nbr_o46_jst mass_plus1: 122 s, status ok, gate pass, fallback False
+[115/251] nbr_o29_jst mass_plus1: 165 s, status ok, gate pass, fallback False
+[116/251] nbr_o10_jdr mass_plus1: 269 s, status ok, gate pass, fallback False
+[117/251] nbr_o53_mla mass_plus1: 171 s, status ok, gate pass, fallback False
+[118/251] nbr_o54_cdr mass_plus1: 161 s, status ok, gate pass, fallback False
+[119/251] nbr_o59_mla mass_plus1: 168 s, status marginal, gate pass, fallback False
+[120/251] nbr_o61_jdr mass_plus1: 201 s, status ok, gate pass, fallback False
+[121/251] pr_o25_us_v1 mass_plus1: 112 s, status ok, gate pass, fallback False
+[122/251] nbr_o63_cdr mass_plus1: 217 s, status ok, gate pass, fallback False
+[123/251] nbr_qp_cdr mass_plus1: 183 s, status ok, gate pass, fallback False
+[124/251] nbr_qp_mla mass_plus1: 161 s, status marginal, gate pass, fallback False
+[125/251] nbr_o05_mla mass_minus1: 163 s, status ok, gate pass, fallback False
+[126/251] nbr_o20_jst mass_minus1: 123 s, status ok, gate pass, fallback False
+[127/251] pr_o32_us_v2 mass_plus1: 230 s, status ok, gate pass, fallback False
+[128/251] nbr_o46_jst mass_minus1: 122 s, status ok, gate pass, fallback False
+[129/251] nbr_o29_jst mass_minus1: 164 s, status ok, gate pass, fallback False
+[130/251] nbr_o10_jdr mass_minus1: 268 s, status ok, gate pass, fallback False
+[131/251] nbr_o54_cdr mass_minus1: 163 s, status ok, gate pass, fallback False
+[132/251] nbr_o53_mla mass_minus1: 172 s, status ok, gate pass, fallback False
+[133/251] nbr_o59_mla mass_minus1: 169 s, status ok, gate pass, fallback False
+[134/251] nbr_o61_jdr mass_minus1: 201 s, status ok, gate pass, fallback False
+[135/251] pr_o25_us_v1 mass_minus1: 115 s, status ok, gate pass, fallback False
+[136/251] nbr_o63_cdr mass_minus1: 215 s, status ok, gate pass, fallback False
+[137/251] nbr_qp_cdr mass_minus1: 183 s, status ok, gate pass, fallback False
+[138/251] nbr_qp_mla mass_minus1: 163 s, status ok, gate pass, fallback False
+[139/251] pr_o32_us_v2 mass_minus1: 232 s, status ok, gate pass, fallback False
+[140/251] nbr_o05_mla front_fraction_plus1: 163 s, status ok, gate pass, fallback False
+[141/251] nbr_o20_jst front_fraction_plus1: 122 s, status ok, gate pass, fallback False
+[142/251] nbr_o46_jst front_fraction_plus1: 122 s, status ok, gate pass, fallback False
+[143/251] nbr_o29_jst front_fraction_plus1: 165 s, status ok, gate pass, fallback False
+[144/251] nbr_o10_jdr front_fraction_plus1: 269 s, status ok, gate pass, fallback False
+[145/251] nbr_o54_cdr front_fraction_plus1: 162 s, status ok, gate pass, fallback False
+[146/251] nbr_o53_mla front_fraction_plus1: 171 s, status ok, gate pass, fallback False
+[147/251] nbr_o59_mla front_fraction_plus1: 167 s, status marginal, gate pass, fallback False
+[148/251] nbr_o61_jdr front_fraction_plus1: 201 s, status ok, gate pass, fallback False
+[149/251] pr_o25_us_v1 front_fraction_plus1: 113 s, status ok, gate pass, fallback False
+[150/251] nbr_o63_cdr front_fraction_plus1: 217 s, status ok, gate pass, fallback False
+[151/251] nbr_qp_mla front_fraction_plus1: 161 s, status marginal, gate pass, fallback False
+[152/251] nbr_qp_cdr front_fraction_plus1: 184 s, status ok, gate pass, fallback False
+[153/251] nbr_o05_mla front_fraction_minus1: 162 s, status ok, gate pass, fallback False
+[154/251] pr_o32_us_v2 front_fraction_plus1: 230 s, status ok, gate pass, fallback False
+[155/251] nbr_o20_jst front_fraction_minus1: 122 s, status ok, gate pass, fallback False
+[156/251] nbr_o46_jst front_fraction_minus1: 122 s, status ok, gate pass, fallback False
+[157/251] nbr_o29_jst front_fraction_minus1: 165 s, status ok, gate pass, fallback False
+[158/251] nbr_o10_jdr front_fraction_minus1: 268 s, status ok, gate pass, fallback False
+[159/251] nbr_o54_cdr front_fraction_minus1: 161 s, status ok, gate pass, fallback False
+[160/251] nbr_o53_mla front_fraction_minus1: 172 s, status ok, gate pass, fallback False
+[161/251] nbr_o59_mla front_fraction_minus1: 167 s, status ok, gate pass, fallback False
+[162/251] nbr_o61_jdr front_fraction_minus1: 202 s, status ok, gate pass, fallback False
+[163/251] pr_o25_us_v1 front_fraction_minus1: 113 s, status ok, gate pass, fallback False
+[164/251] nbr_o63_cdr front_fraction_minus1: 217 s, status ok, gate pass, fallback False
+[165/251] nbr_qp_cdr front_fraction_minus1: 183 s, status ok, gate pass, fallback False
+[166/251] nbr_qp_mla front_fraction_minus1: 160 s, status marginal, gate pass, fallback False
+[167/251] nbr_o05_mla wheelbase_plus1: 163 s, status ok, gate pass, fallback False
+[168/251] pr_o32_us_v2 front_fraction_minus1: 230 s, status ok, gate pass, fallback False
+[169/251] nbr_o20_jst wheelbase_plus1: 122 s, status ok, gate pass, fallback False
+[170/251] nbr_o46_jst wheelbase_plus1: 121 s, status ok, gate pass, fallback False
+[171/251] nbr_o29_jst wheelbase_plus1: 164 s, status ok, gate pass, fallback False
+[172/251] nbr_o10_jdr wheelbase_plus1: 269 s, status ok, gate pass, fallback False
+[173/251] nbr_o54_cdr wheelbase_plus1: 161 s, status ok, gate pass, fallback False
+[174/251] nbr_o53_mla wheelbase_plus1: 171 s, status ok, gate pass, fallback False
+[175/251] nbr_o59_mla wheelbase_plus1: 168 s, status marginal, gate pass, fallback False
+[176/251] nbr_o61_jdr wheelbase_plus1: 200 s, status ok, gate pass, fallback False
+[177/251] pr_o25_us_v1 wheelbase_plus1: 114 s, status ok, gate pass, fallback False
+[178/251] nbr_o63_cdr wheelbase_plus1: 216 s, status ok, gate pass, fallback False
+[179/251] nbr_qp_mla wheelbase_plus1: 161 s, status marginal, gate pass, fallback False
+[180/251] nbr_qp_cdr wheelbase_plus1: 183 s, status ok, gate pass, fallback False
+[181/251] nbr_o05_mla wheelbase_minus1: 162 s, status ok, gate pass, fallback False
+[182/251] pr_o32_us_v2 wheelbase_plus1: 230 s, status ok, gate pass, fallback False
+[183/251] nbr_o20_jst wheelbase_minus1: 122 s, status ok, gate pass, fallback False
+[184/251] nbr_o46_jst wheelbase_minus1: 122 s, status ok, gate pass, fallback False
+[185/251] nbr_o29_jst wheelbase_minus1: 165 s, status ok, gate pass, fallback False
+[186/251] nbr_o10_jdr wheelbase_minus1: 269 s, status ok, gate pass, fallback False
+[187/251] nbr_o54_cdr wheelbase_minus1: 162 s, status ok, gate pass, fallback False
+[188/251] nbr_o53_mla wheelbase_minus1: 171 s, status ok, gate pass, fallback False
+[189/251] nbr_o59_mla wheelbase_minus1: 167 s, status marginal, gate pass, fallback False
+[190/251] nbr_o61_jdr wheelbase_minus1: 201 s, status ok, gate pass, fallback False
+[191/251] pr_o25_us_v1 wheelbase_minus1: 112 s, status ok, gate pass, fallback False
+[192/251] nbr_o63_cdr wheelbase_minus1: 217 s, status ok, gate pass, fallback False
+[193/251] nbr_qp_mla wheelbase_minus1: 161 s, status marginal, gate pass, fallback False
+[194/251] nbr_qp_cdr wheelbase_minus1: 183 s, status ok, gate pass, fallback False
+[195/251] nbr_o05_mla yaw_inertia_plus1: 162 s, status ok, gate pass, fallback False
+[196/251] pr_o32_us_v2 wheelbase_minus1: 229 s, status ok, gate pass, fallback False
+[197/251] nbr_o20_jst yaw_inertia_plus1: 122 s, status ok, gate pass, fallback False
+[198/251] nbr_o46_jst yaw_inertia_plus1: 123 s, status ok, gate pass, fallback False
+[199/251] nbr_o29_jst yaw_inertia_plus1: 164 s, status ok, gate pass, fallback False
+[200/251] nbr_o10_jdr yaw_inertia_plus1: 268 s, status ok, gate pass, fallback False
+[201/251] nbr_o54_cdr yaw_inertia_plus1: 161 s, status ok, gate pass, fallback False
+[202/251] nbr_o53_mla yaw_inertia_plus1: 171 s, status ok, gate pass, fallback False
+[203/251] nbr_o59_mla yaw_inertia_plus1: 167 s, status marginal, gate pass, fallback False
+[204/251] nbr_o61_jdr yaw_inertia_plus1: 201 s, status ok, gate pass, fallback False
+[205/251] pr_o25_us_v1 yaw_inertia_plus1: 113 s, status ok, gate pass, fallback False
+[206/251] nbr_o63_cdr yaw_inertia_plus1: 217 s, status ok, gate pass, fallback False
+[207/251] nbr_qp_cdr yaw_inertia_plus1: 183 s, status ok, gate pass, fallback False
+[208/251] nbr_qp_mla yaw_inertia_plus1: 159 s, status marginal, gate pass, fallback False
+[209/251] pr_o32_us_v2 yaw_inertia_plus1: 230 s, status ok, gate pass, fallback False
+[210/251] nbr_o05_mla yaw_inertia_minus1: 163 s, status ok, gate pass, fallback False
+[211/251] nbr_o20_jst yaw_inertia_minus1: 123 s, status ok, gate pass, fallback False
+[212/251] nbr_o46_jst yaw_inertia_minus1: 122 s, status ok, gate pass, fallback False
+[213/251] nbr_o29_jst yaw_inertia_minus1: 165 s, status ok, gate pass, fallback False
+[214/251] nbr_o10_jdr yaw_inertia_minus1: 269 s, status ok, gate pass, fallback False
+[215/251] nbr_o54_cdr yaw_inertia_minus1: 162 s, status ok, gate pass, fallback False
+[216/251] nbr_o53_mla yaw_inertia_minus1: 171 s, status ok, gate pass, fallback False
+[217/251] nbr_o59_mla yaw_inertia_minus1: 168 s, status marginal, gate pass, fallback False
+[218/251] nbr_o61_jdr yaw_inertia_minus1: 200 s, status ok, gate pass, fallback False
+[219/251] pr_o25_us_v1 yaw_inertia_minus1: 113 s, status ok, gate pass, fallback False
+[220/251] nbr_o63_cdr yaw_inertia_minus1: 217 s, status ok, gate pass, fallback False
+[221/251] nbr_qp_mla yaw_inertia_minus1: 160 s, status marginal, gate pass, fallback False
+[222/251] nbr_qp_cdr yaw_inertia_minus1: 183 s, status ok, gate pass, fallback False
+[223/251] nbr_o05_mla steering_wheel_angle_plus1: 161 s, status ok, gate pass, fallback False
+[224/251] pr_o32_us_v2 yaw_inertia_minus1: 230 s, status ok, gate pass, fallback False
+[225/251] nbr_o20_jst steering_wheel_angle_plus1: 122 s, status ok, gate pass, fallback False
+[226/251] nbr_o46_jst steering_wheel_angle_plus1: 122 s, status ok, gate pass, fallback False
+[227/251] nbr_o29_jst steering_wheel_angle_plus1: 164 s, status ok, gate pass, fallback False
+[228/251] nbr_o10_jdr steering_wheel_angle_plus1: 268 s, status ok, gate pass, fallback False
+[229/251] nbr_o53_mla steering_wheel_angle_plus1: 170 s, status ok, gate pass, fallback False
+[230/251] nbr_o54_cdr steering_wheel_angle_plus1: 161 s, status ok, gate pass, fallback False
+[231/251] nbr_o59_mla steering_wheel_angle_plus1: 168 s, status marginal, gate pass, fallback False
+[232/251] nbr_o61_jdr steering_wheel_angle_plus1: 200 s, status ok, gate pass, fallback False
+[233/251] pr_o25_us_v1 steering_wheel_angle_plus1: 112 s, status ok, gate pass, fallback False
+[234/251] nbr_o63_cdr steering_wheel_angle_plus1: 216 s, status ok, gate pass, fallback False
+[235/251] nbr_qp_mla steering_wheel_angle_plus1: 161 s, status marginal, gate pass, fallback False
+[236/251] nbr_qp_cdr steering_wheel_angle_plus1: 183 s, status ok, gate pass, fallback False
+[237/251] nbr_o05_mla steering_wheel_angle_minus1: 162 s, status ok, gate pass, fallback False
+[238/251] pr_o32_us_v2 steering_wheel_angle_plus1: 228 s, status ok, gate pass, fallback False
+[239/251] nbr_o20_jst steering_wheel_angle_minus1: 122 s, status ok, gate pass, fallback False
+[240/251] nbr_o46_jst steering_wheel_angle_minus1: 122 s, status ok, gate pass, fallback False
+[241/251] nbr_o29_jst steering_wheel_angle_minus1: 164 s, status ok, gate pass, fallback False
+[242/251] nbr_o10_jdr steering_wheel_angle_minus1: 267 s, status ok, gate pass, fallback False
+[243/251] nbr_o54_cdr steering_wheel_angle_minus1: 161 s, status ok, gate pass, fallback False
+[244/251] nbr_o53_mla steering_wheel_angle_minus1: 171 s, status ok, gate pass, fallback False
+[245/251] nbr_o59_mla steering_wheel_angle_minus1: 167 s, status marginal, gate pass, fallback False
+[246/251] nbr_o61_jdr steering_wheel_angle_minus1: 200 s, status ok, gate pass, fallback False
+[247/251] pr_o25_us_v1 steering_wheel_angle_minus1: 109 s, status ok, gate pass, fallback False
+[248/251] nbr_o63_cdr steering_wheel_angle_minus1: 213 s, status ok, gate pass, fallback False
+[249/251] nbr_qp_mla steering_wheel_angle_minus1: 150 s, status marginal, gate pass, fallback False
+[250/251] nbr_qp_cdr steering_wheel_angle_minus1: 174 s, status ok, gate pass, fallback False
+[251/251] pr_o32_us_v2 steering_wheel_angle_minus1: 181 s, status ok, gate pass, fallback False
+SENS-1 RECOUNT (2026-10-29), 14 development sessions, one rule for all perturbations
+unit = corner x phase x {front US, rear OS, stability INST} of the session aggregate; changed = symptom
+appears / disappears / severity differs from baseline (classifier.phase_symptoms, current config)
+session recommendation = setup_engine.data_layer, lever + direction (or tied set), no setup sheet
+NOTE: the CS boundary margins were derived (p90) from the same Q x 0.3, R_yaw x 10 and +/-1 % vehicle
+runs, so part of the flips under those perturbations is built into the boundary.
+
+BASELINE: 14 sessions, 1145 corner-phases -> 3435 units (1145 per kind)
+  US (front): 67 units with the symptom (moderate 39, strong 28)
+  OS (rear): 9 units with the symptom (strong 9)
+  INST (stability): 18 units with the symptom (strong 18)
+  session recommendations: 5 sessions with a recommendation, 3 ties, 6 none
+  baseline status per session: NBR outing 5 MLA ok/pass; NBR outing 10 JDR ok/pass; NBR outing 20 JST ok/pass; NBR outing 29 JST (NBR_Sturm_Solution copy) ok/pass; NBR outing 46 JST ok/pass; NBR outing 53 MLA ok/pass; NBR outing 54 CDR ok/pass; NBR outing 59 MLA marginal/pass; NBR outing 61 JDR ok/pass; NBR outing 63 CDR ok/pass; NBR qualifying CDR (outing 69) ok/pass; NBR qualifying MLA (outing 70) marginal/pass; Le Castellet outing 25, MLA-SE07_US-v1 ok/pass; Le Castellet outing 32, MLA-SE07_US-v2 ok/pass
+
+observer Q x 0.3 (q_x0.3): 68 / 3435 units changed (2.0 %)
+  US front: 44 / 1145 (3.8 %) -- appear 25, disappear 6, severity 13
+  OS rear: 7 / 1145 (0.6 %) -- appear 2, disappear 5, severity 0
+  INST stability: 17 / 1145 (1.5 %) -- appear 0, disappear 17, severity 0
+  session recommendations changed: 8 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 29 JST (NBR_Sturm_Solution copy): ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 46 JST: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 53 MLA: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 54 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('recommended', ('toe_rear', 'more toe-in'))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('tie', (('arb_fl+arb_fr', 'softer'), ('damper_rebound_ls_fl+damper_rebound_ls_fr', 'stiffer')))
+    Le Castellet outing 25, MLA-SE07_US-v1: ('tie', (('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_fl+arb_fr', 'softer'))
+observer R_yaw x 10 (ryaw_x10): 1 / 3435 units changed (0.0 %)
+  US front: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+drag c_D A 0.0 m^2 (drag_cda_0.0): 3 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 1, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+drag c_D A 0.7 m^2 (drag_cda_0.7): 0 / 3435 units changed (0.0 %)
+  US front: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+drag c_D A 1.3 m^2 (drag_cda_1.3): 2 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 0, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+fit-L curvature E = 0 (e_+0): 60 / 3435 units changed (1.7 %)
+  US front: 47 / 1145 (4.1 %) -- appear 19, disappear 17, severity 11
+  OS rear: 4 / 1145 (0.3 %) -- appear 3, disappear 1, severity 0
+  INST stability: 9 / 1145 (0.8 %) -- appear 1, disappear 8, severity 0
+  session recommendations changed: 6 / 14
+    NBR outing 5 MLA: ('none',) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase')))
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 46 JST: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('toe_rear', 'more toe-in')))
+    NBR outing 53 MLA: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('toe_rear', 'more toe-in')))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('none',)
+  status / gate / fallback changed: NBR outing 5 MLA ok/pass/False -> marginal/pass/False; NBR outing 10 JDR ok/pass/False -> marginal/pass/False; NBR outing 53 MLA ok/pass/False -> marginal/pass/False; NBR outing 54 CDR ok/pass/False -> marginal/pass/False; NBR outing 61 JDR ok/pass/False -> marginal/pass/False; NBR outing 63 CDR ok/pass/False -> marginal/pass/False; NBR qualifying CDR (outing 69) ok/pass/False -> marginal/pass/False
+fit-L curvature E = 1 (e_+1): 241 / 3435 units changed (7.0 %)
+  US front: 115 / 1145 (10.0 %) -- appear 62, disappear 37, severity 16
+  OS rear: 65 / 1145 (5.7 %) -- appear 58, disappear 7, severity 0
+  INST stability: 61 / 1145 (5.3 %) -- appear 47, disappear 14, severity 0
+  session recommendations changed: 10 / 14
+    NBR outing 5 MLA: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 10 JDR: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 29 JST (NBR_Sturm_Solution copy): ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 59 MLA: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 61 JDR: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('recommended', ('toe_rear', 'more toe-in'))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR qualifying MLA (outing 70): ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    Le Castellet outing 25, MLA-SE07_US-v1: ('tie', (('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+  status / gate / fallback changed: NBR outing 5 MLA ok/pass/False -> degenerate/None/True; NBR outing 10 JDR ok/pass/False -> degenerate/None/True; NBR outing 20 JST ok/pass/False -> degenerate/None/True; NBR outing 29 JST (NBR_Sturm_Solution copy) ok/pass/False -> degenerate/None/True; NBR outing 46 JST ok/pass/False -> degenerate/None/True; NBR outing 53 MLA ok/pass/False -> degenerate/None/True; NBR outing 54 CDR ok/pass/False -> degenerate/None/True; NBR outing 59 MLA marginal/pass/False -> degenerate/None/True; NBR outing 61 JDR ok/pass/False -> degenerate/None/True; NBR outing 63 CDR ok/pass/False -> degenerate/None/True; NBR qualifying CDR (outing 69) ok/pass/False -> degenerate/None/True; NBR qualifying MLA (outing 70) marginal/pass/False -> degenerate/None/True; Le Castellet outing 25, MLA-SE07_US-v1 ok/pass/False -> marginal/warn/False; Le Castellet outing 32, MLA-SE07_US-v2 ok/pass/False -> degenerate/None/True
+mass +1 % (mass_plus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 0, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+mass -1 % (mass_minus1): 2 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 0, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+  status / gate / fallback changed: NBR outing 59 MLA marginal/pass/False -> ok/pass/False; NBR qualifying MLA (outing 70) marginal/pass/False -> ok/pass/False
+front_fraction +1 % (front_fraction_plus1): 10 / 3435 units changed (0.3 %)
+  US front: 7 / 1145 (0.6 %) -- appear 1, disappear 3, severity 3
+  OS rear: 1 / 1145 (0.1 %) -- appear 1, disappear 0, severity 0
+  INST stability: 2 / 1145 (0.2 %) -- appear 0, disappear 2, severity 0
+  session recommendations changed: 2 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('none',)
+front_fraction -1 % (front_fraction_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 3, disappear 0, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+  status / gate / fallback changed: NBR outing 59 MLA marginal/pass/False -> ok/pass/False
+wheelbase +1 % (wheelbase_plus1): 4 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 1, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+wheelbase -1 % (wheelbase_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 2, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+yaw_inertia +1 % (yaw_inertia_plus1): 1 / 3435 units changed (0.0 %)
+  US front: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+yaw_inertia -1 % (yaw_inertia_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 0, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+steering_wheel_angle +1 % (steering_wheel_angle_plus1): 5 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 2, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+steering_wheel_angle -1 % (steering_wheel_angle_minus1): 4 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 0, disappear 2, severity 2
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14

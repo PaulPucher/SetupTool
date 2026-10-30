@@ -4,7 +4,7 @@
 # the lines a verdict rule acts on (front decision boundary and strong
 # tier, rear decision boundary; the app screen also draws the rear
 # information tier). Panel 3 carries the slip-angle range of the session's
-# fit samples (p0.5-p99.5 of the fit population per axle) as a light band:
+# fit samples (p0.5-p99.5 of the fit population per axle) as thin lines:
 # where the observer's slip angles leave it, the tire curve is
 # extrapolated. The steer angle stays in the CSV only. Read-only
 # full re-run of the app's chain (common.run_chain); one outing, lap and
@@ -156,8 +156,9 @@ def render(out=None):
 
 
 ALPHA_PANEL = 2
-BAND_STYLE = {"f": "axleFront", "r": "axleRear"}
-BAND_OPACITY = 0.15
+# fit-sample range: its limits thin and dotted in the axle colours, so they
+# do not read as a data trace; no fill
+BAND_EDGE = {"f": "axleFront, thin, dotted", "r": "axleRear, thin, dotted"}
 CS_RANGE = (-0.2, 1.05)          # widened downwards only if the corner's CS goes lower
 YLABEL_SHIFT = "3.4em"           # one fixed y-label position for all panels
 # front = axle colour, solid, circles; rear = axle colour, dashed, squares
@@ -174,9 +175,9 @@ def _tex(base, prefix, cols, phases, lin, lo, hi, marks, fit_range):
     ]
     # thesis figure: only the lines a verdict rule acts on (B10 amended
     # 2026-10-27); the app screen keeps the rear information tier as well
-    cs_lines = [(lin["boundary_f"], "axleFront, thin, dashdotted"),
-                (lin["strong_f"], "axleFront, thin, densely dotted"),
-                (lin["boundary_r"], "axleRear, thin, dashdotdotted")]
+    cs_lines = [(lin["boundary_f"], "boundary, thin, dashdotted"),
+                (lin["strong_f"], "boundary, thin, densely dotted"),
+                (lin["boundary_r"], "boundary, thin, dashdotdotted")]
     ranges = [_range(*[cols[c] for c, _s in p[1]]) for p in panels]
     a_lo, a_hi = ranges[ALPHA_PANEL]
     ranges[ALPHA_PANEL] = (min(a_lo, fit_range["f"][0], fit_range["r"][0]) - 0.3,
@@ -209,8 +210,7 @@ def _tex(base, prefix, cols, phases, lin, lo, hi, marks, fit_range):
             opts += (", legend to name=legExampleCorner, legend style={cells={anchor=west}, legend columns=5, "
                      "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
-        # phases: light alternating bands; the apex (one instant) a thin dotted line
-        j = 0
+        # phases: one tint per phase; the apex (one instant) a thin dotted line
         for s0, s1, lab in zip(phases["s_start_m"], phases["s_end_m"], phases["phase_label"]):
             abbr = common.PHASE_ABBR.get(lab, lab)
             if s1 - s0 < common.TRACE_BIN_M / 2:
@@ -218,25 +218,23 @@ def _tex(base, prefix, cols, phases, lin, lo, hi, marks, fit_range):
                          f"{{({s0:.2f},{y0:.4g}) ({s0:.2f},{y1:.4g})}};\n")
                 x_lab = s0
             else:
-                shade = "auxGray!14" if j % 2 == 0 else "auxGray!5"
-                j += 1
-                t.append(f"\\addplot[draw=none, fill={shade}, forget plot] coordinates "
+                t.append(f"\\addplot[draw=none, fill={common.PHASE_FILL[lab]}, forget plot] coordinates "
                          f"{{({s0:.2f},{y0:.4g}) ({s1:.2f},{y0:.4g}) ({s1:.2f},{y1:.4g}) ({s0:.2f},{y1:.4g})}} -- cycle;\n")
                 x_lab = 0.5 * (s0 + s1)
             if k == 0:
                 t.append(f"\\node[anchor=south, font=\\small, inner sep=1pt] at (axis cs:{x_lab:.2f},{y1:.4g}) {{{abbr}}};\n")
         if k == ALPHA_PANEL:
             for ax, (b0, b1) in ((a, fit_range[a]) for a in ("f", "r")):
-                t.append(f"\\addplot[draw=none, fill={BAND_STYLE[ax]}, fill opacity={BAND_OPACITY}, forget plot] "
-                         f"coordinates {{({lo:.1f},{b0:.4g}) ({hi:.1f},{b0:.4g}) ({hi:.1f},{b1:.4g}) "
-                         f"({lo:.1f},{b1:.4g})}} -- cycle;\n")
+                for b in (b0, b1):
+                    t.append(f"\\addplot[{BAND_EDGE[ax]}, forget plot] coordinates "
+                             f"{{({lo:.1f},{b:.4g}) ({hi:.1f},{b:.4g})}};\n")
         if k == last:
             t.append(f"\\addlegendimage{{{FRONT}, thick}}\\addlegendentry{{front axle}}\n"
                      f"\\addlegendimage{{{REAR}, thick}}\\addlegendentry{{rear axle}}\n"
                      "\\addlegendimage{black, solid, thick}\\addlegendentry{observer}\n"
                      "\\addlegendimage{auxGray, dashed, thick}\\addlegendentry{kinematic}\n"
-                     f"\\addlegendimage{{area legend, draw=none, fill=auxGray, fill opacity={2 * BAND_OPACITY}}}"
-                     "\\addlegendentry{fit-sample range}\n")
+                     f"\\addlegendimage{{{BAND_EDGE['f']}}}"
+                     "\\addlegendentry{fit-sample range (thin lines)}\n")
             for val, style in cs_lines:
                 t.append(f"\\addplot[{style}, forget plot] coordinates {{({lo:.1f},{val:.4g}) ({hi:.1f},{val:.4g})}};\n")
         for col, style in series:

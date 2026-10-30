@@ -83,9 +83,9 @@ def render(out=None):
          "  xticklabel style={/pgf/number format/.cd, fixed, set thousands separator={}},\n"
          "  legend style={font=\\small, cells={anchor=west}, at={(0.01,0.97)}, anchor=north west}]\n",
          f"\\addplot[black, thin, densely dotted, forget plot] coordinates {{({s[0]:.0f},0) ({s[-1]:.0f},0)}};\n",
-         "\\addplot[auxGray, thick] table[x=s_m, y=beta_plain_deg]{\\tblWash};\n"
+         "\\addplot[sigRaw, thick] table[x=s_m, y=beta_plain_deg]{\\tblWash};\n"
          "\\addlegendentry{plain integral (from the lap start)}\n",
-         "\\addplot[black, thick] table[x=s_m, y=beta_washout_deg]{\\tblWash};\n"
+         "\\addplot[sigProc, thick] table[x=s_m, y=beta_washout_deg]{\\tblWash};\n"
          f"\\addlegendentry{{after the high-pass ({fc}, zero-phase)}}\n",
          "\\end{axis}\n\\end{tikzpicture}\n"]
     common.write_tex(f"{plots_dir}/{SCRIPT}.tex", "".join(t))

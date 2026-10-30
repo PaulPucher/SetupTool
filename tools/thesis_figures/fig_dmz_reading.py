@@ -8,8 +8,8 @@
 # closest to the stored phase value, removes the fitted contributions of
 # every regressor except beta from the centred Mz (partial residual) and
 # draws it over beta with the ridge slope through the weighted means.
-# Samples within one Gaussian sigma of the grid point dark, the rest of the
-# window light. The grid-point math is the module's, repeated here; build
+# Samples within one Gaussian sigma of the grid point in colour, the rest of
+# the window light gray; Mz drawn in kN m (the CSV keeps N m). The grid-point math is the module's, repeated here; build
 # checks it against the chain's per-sample profile on the phase.
 # Read-only full re-run (common.run_chain).
 # Run: python -m tools.thesis_figures.fig_dmz_reading --outing 17 --unstable 11:exit_4
@@ -25,6 +25,8 @@ SCRIPT = "fig_dmz_reading"
 PANEL_WIDTH = "0.4\\textwidth"
 PANEL_HEIGHT = "0.34\\textwidth"
 REPRO_TOL = 1e-6   # N m/deg, module profile vs the repeated grid-point math
+INNER = "sigProc"     # samples within one sigma of the grid point
+OUTER = "auxGray!30"  # rest of the window
 
 
 def _inputs(session, res):
@@ -185,8 +187,7 @@ def render(out=None):
             t.append(common.table_read(prefix, f"{SCRIPT}_{k}_{part}.csv", f"tbl{k.capitalize()}{part.capitalize()}"))
     t.append("\\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.9cm},\n"
              f"  thesis axis, scale only axis, width={PANEL_WIDTH}, height={PANEL_HEIGHT},\n"
-             "  xlabel={$\\beta$ in deg}, ylabel={$M_z$ partial in N\\,m},\n"
-             "  scaled y ticks=base 10:-3, ytick scale label code/.code={$\\cdot 10^{3}$}]\n")
+             "  xlabel={$\\beta$ in deg}, ylabel={$M_z$ partial in kN\\,m}]\n")
     for n, k in enumerate(("stable", "unstable")):
         cid, phase, stored, slope, bm = info[k]
         _m, inner = common.read_csv(f"{data_dir}/{SCRIPT}_{k}_inner.csv")
@@ -198,18 +199,20 @@ def render(out=None):
             opts += (", legend to name=legDmz, legend style={cells={anchor=west}, legend columns=3, "
                      "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
-        t.append(f"\\addplot[only marks, mark=*, mark size=0.5pt, auxGray!45, forget plot] "
+        # N m -> kN m per plot (y expr would need pgfplotstable, which the thesis does not load)
+        kn = "y filter/.expression={y/1000}"
+        t.append(f"\\addplot[only marks, mark=*, mark size=0.5pt, {OUTER}, {kn}, forget plot] "
                  f"table[x=beta_deg, y=mz_partial_Nm]{{\\tbl{k.capitalize()}Outer}};\n")
-        t.append(f"\\addplot[only marks, mark=*, mark size=0.6pt, auxGray!100!black, forget plot] "
+        t.append(f"\\addplot[only marks, mark=*, mark size=0.6pt, {INNER}, {kn}, forget plot] "
                  f"table[x=beta_deg, y=mz_partial_Nm]{{\\tbl{k.capitalize()}Inner}};\n")
-        t.append(f"\\addplot[black, very thick, forget plot] coordinates {{({b0:.4f},{slope * (b0 - bm):.2f}) "
-                 f"({b1:.4f},{slope * (b1 - bm):.2f})}};\n")
+        t.append(f"\\addplot[black, very thick, forget plot] coordinates {{({b0:.4f},{slope * (b0 - bm) / 1000:.4f}) "
+                 f"({b1:.4f},{slope * (b1 - bm) / 1000:.4f})}};\n")
         t.append(f"\\node[anchor=north west, align=left, font=\\small, fill=white, inner sep=2pt] at "
                  f"(rel axis cs:0.03,0.97) {{$\\mathrm{{d}}M_z/\\mathrm{{d}}\\beta = {slope:.0f}$ N\\,m/deg}};\n")
         if n == 1:
-            t.append("\\addlegendimage{only marks, mark=*, mark size=1.2pt, auxGray!100!black}"
-                     "\\addlegendentry{within one $\\sigma$ of the grid point}\n"
-                     "\\addlegendimage{only marks, mark=*, mark size=1.2pt, auxGray!45}\\addlegendentry{rest of the window}\n"
+            t.append(f"\\addlegendimage{{only marks, mark=*, mark size=1.2pt, {INNER}}}"
+                     "\\addlegendentry{within one kernel standard deviation of the grid point}\n"
+                     f"\\addlegendimage{{only marks, mark=*, mark size=1.2pt, {OUTER}}}\\addlegendentry{{rest of the window}}\n"
                      "\\addlegendimage{black, very thick}\\addlegendentry{ridge slope}\n")
     t.append("\\end{groupplot}\n")
     t.append("\\node[anchor=north, below=2pt] at ($(group c1r1.outer south)!0.5!(group c2r1.outer south)$) "

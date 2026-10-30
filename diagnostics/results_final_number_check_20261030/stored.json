@@ -1,0 +1,1901 @@
+{
+ "dmz_session": {
+  "NBR 1": {
+   "n": 63,
+   "p10": 139.34410247760647,
+   "p50": 442.7758617027905,
+   "p90": 888.3977811208404
+  },
+  "NBR 2": {
+   "n": 60,
+   "p10": 330.6525436804795,
+   "p50": 718.972379396925,
+   "p90": 1055.2602102225073
+  },
+  "NBR 3": {
+   "n": 68,
+   "p10": 144.99219811143175,
+   "p50": 466.29995854015976,
+   "p90": 1266.092153515715
+  },
+  "NBR 4": {
+   "n": 64,
+   "p10": 93.31295692549583,
+   "p50": 385.1340634045745,
+   "p90": 1048.7490914521559
+  },
+  "NBR 5": {
+   "n": 65,
+   "p10": 74.2052520936939,
+   "p50": 314.00004747575815,
+   "p90": 949.7314551458442
+  },
+  "PRC 1": {
+   "n": 66,
+   "p10": 240.6368961716576,
+   "p50": 458.13142442208573,
+   "p90": 735.629389220077
+  },
+  "PRC 2": {
+   "n": 57,
+   "p10": 219.5568332029456,
+   "p50": 404.240782017597,
+   "p90": 838.2338532935397
+  },
+  "PRC 3": {
+   "n": 72,
+   "p10": 192.03034192067182,
+   "p50": 420.10106335542736,
+   "p90": 964.8820199171804
+  },
+  "PRC 4": {
+   "n": 72,
+   "p10": 139.8502465232375,
+   "p50": 309.0926397503961,
+   "p90": 847.8952601048725
+  },
+  "PRC 5": {
+   "n": 66,
+   "p10": 89.83233596669683,
+   "p50": 269.38689830926455,
+   "p90": 742.1543675410978
+  }
+ },
+ "floor_events": {
+  "NBR 1": {
+   "n": 6,
+   "kerb": 3,
+   "braking": 3,
+   "both": 2,
+   "any_braking_sample": 5,
+   "axles": [
+    "front"
+   ]
+  },
+  "NBR 2": {
+   "n": 3,
+   "kerb": 1,
+   "braking": 0,
+   "both": 0,
+   "any_braking_sample": 0,
+   "axles": [
+    "front",
+    "rear"
+   ]
+  },
+  "NBR 3": {
+   "n": 8,
+   "kerb": 2,
+   "braking": 5,
+   "both": 1,
+   "any_braking_sample": 5,
+   "axles": [
+    "front",
+    "rear"
+   ]
+  },
+  "NBR 4": {
+   "n": 5,
+   "kerb": 1,
+   "braking": 1,
+   "both": 1,
+   "any_braking_sample": 2,
+   "axles": [
+    "front"
+   ]
+  },
+  "NBR 5": {
+   "n": 3,
+   "kerb": 0,
+   "braking": 2,
+   "both": 0,
+   "any_braking_sample": 3,
+   "axles": [
+    "front"
+   ]
+  },
+  "PRC 1": {
+   "n": 4,
+   "kerb": 3,
+   "braking": 2,
+   "both": 1,
+   "any_braking_sample": 3,
+   "axles": [
+    "front",
+    "rear"
+   ]
+  },
+  "PRC 2": {
+   "n": 4,
+   "kerb": 0,
+   "braking": 3,
+   "both": 0,
+   "any_braking_sample": 3,
+   "axles": [
+    "front"
+   ]
+  },
+  "PRC 3": {
+   "n": 13,
+   "kerb": 7,
+   "braking": 7,
+   "both": 4,
+   "any_braking_sample": 8,
+   "axles": [
+    "front",
+    "rear"
+   ]
+  },
+  "PRC 4": {
+   "n": 5,
+   "kerb": 4,
+   "braking": 4,
+   "both": 3,
+   "any_braking_sample": 4,
+   "axles": [
+    "front"
+   ]
+  },
+  "PRC 5": {
+   "n": 23,
+   "kerb": 15,
+   "braking": 11,
+   "both": 7,
+   "any_braking_sample": 15,
+   "axles": [
+    "front",
+    "rear"
+   ]
+  }
+ },
+ "inst_counted": {
+  "NBR 1": [
+   {
+    "corner": 8,
+    "phase": "entry_2_turnin",
+    "laps": 6,
+    "n_laps": 6,
+    "lap_numbers": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ],
+    "value_cross_lap_median": -85.67910918416803,
+    "per_lap_inst": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ]
+   },
+   {
+    "corner": 8,
+    "phase": "apex_3",
+    "laps": 6,
+    "n_laps": 6,
+    "lap_numbers": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ],
+    "value_cross_lap_median": -96.79363247162712,
+    "per_lap_inst": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ]
+   },
+   {
+    "corner": 11,
+    "phase": "apex_3",
+    "laps": 6,
+    "n_laps": 6,
+    "lap_numbers": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ],
+    "value_cross_lap_median": -104.65476646502265,
+    "per_lap_inst": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ]
+   },
+   {
+    "corner": 11,
+    "phase": "exit_4",
+    "laps": 6,
+    "n_laps": 6,
+    "lap_numbers": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ],
+    "value_cross_lap_median": -173.3300021971254,
+    "per_lap_inst": [
+     103,
+     104,
+     105,
+     106,
+     107,
+     108
+    ]
+   }
+  ],
+  "NBR 2": [],
+  "NBR 3": [],
+  "NBR 4": [],
+  "NBR 5": [
+   {
+    "corner": 2,
+    "phase": "apex_3",
+    "laps": 5,
+    "n_laps": 5,
+    "lap_numbers": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ],
+    "value_cross_lap_median": -70.34303877984155,
+    "per_lap_inst": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ]
+   },
+   {
+    "corner": 9,
+    "phase": "entry_2_turnin",
+    "laps": 5,
+    "n_laps": 5,
+    "lap_numbers": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ],
+    "value_cross_lap_median": -126.29485701478998,
+    "per_lap_inst": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ]
+   },
+   {
+    "corner": 9,
+    "phase": "apex_3",
+    "laps": 5,
+    "n_laps": 5,
+    "lap_numbers": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ],
+    "value_cross_lap_median": -47.48698905730107,
+    "per_lap_inst": [
+     266,
+     267,
+     268,
+     269,
+     270
+    ]
+   }
+  ],
+  "PRC 1": [],
+  "PRC 2": [
+   {
+    "corner": 11,
+    "phase": "exit_5",
+    "laps": 2,
+    "n_laps": 2,
+    "lap_numbers": [
+     131,
+     132
+    ],
+    "value_cross_lap_median": -137.36836055610587,
+    "per_lap_inst": [
+     131,
+     132
+    ]
+   }
+  ],
+  "PRC 3": [
+   {
+    "corner": 15,
+    "phase": "exit_5",
+    "laps": 5,
+    "n_laps": 5,
+    "lap_numbers": [
+     14,
+     15,
+     16,
+     17,
+     18
+    ],
+    "value_cross_lap_median": -11.925561690989863,
+    "per_lap_inst": [
+     14,
+     15,
+     16,
+     17,
+     18
+    ]
+   }
+  ],
+  "PRC 4": [],
+  "PRC 5": [
+   {
+    "corner": 7,
+    "phase": "apex_3",
+    "laps": 5,
+    "n_laps": 5,
+    "lap_numbers": [
+     59,
+     60,
+     61,
+     62,
+     63
+    ],
+    "value_cross_lap_median": -19.86629160411584,
+    "per_lap_inst": [
+     59,
+     60,
+     61,
+     62,
+     63
+    ]
+   }
+  ]
+ },
+ "ranked": {
+  "NBR 1": [
+   {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 8.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear -1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "softer",
+    "net": 8.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "diff_position +1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "increase",
+    "net": 8.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr +1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "stiffer",
+    "net": 8.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "springs_front +1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "stiffer",
+    "net": 8.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_rear -1",
+    "levers": [
+     "ride_height_rear"
+    ],
+    "direction": "decrease",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "wing_position +1",
+    "levers": [
+     "wing_position"
+    ],
+    "direction": "increase",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "splitter_offset +1",
+    "levers": [
+     "splitter_offset"
+    ],
+    "direction": "less front downforce",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_front +1",
+    "levers": [
+     "ride_height_front"
+    ],
+    "direction": "increase",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6,
+      6
+     ],
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "toe_rear +1",
+    "levers": [
+     "toe_rear"
+    ],
+    "direction": "more toe-in",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_4",
+      6,
+      6
+     ]
+    ]
+   },
+   {
+    "option": "camber_rl+camber_rr -1",
+    "levers": [
+     "camber_rl",
+     "camber_rr"
+    ],
+    "direction": "more negative camber",
+    "net": 2.0,
+    "advisory": true,
+    "supporting": [
+     [
+      8,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6,
+      6
+     ]
+    ]
+   }
+  ],
+  "NBR 2": [],
+  "NBR 3": [],
+  "NBR 4": [],
+  "NBR 5": [
+   {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 4.8,
+    "advisory": false,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear -1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "softer",
+    "net": 4.8,
+    "advisory": false,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "diff_position +1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "increase",
+    "net": 4.8,
+    "advisory": false,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr +1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "stiffer",
+    "net": 4.8,
+    "advisory": false,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_front +1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "stiffer",
+    "net": 4.8,
+    "advisory": false,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_rear -1",
+    "levers": [
+     "ride_height_rear"
+    ],
+    "direction": "decrease",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "wing_position +1",
+    "levers": [
+     "wing_position"
+    ],
+    "direction": "increase",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "camber_rl+camber_rr -1",
+    "levers": [
+     "camber_rl",
+     "camber_rr"
+    ],
+    "direction": "more negative camber",
+    "net": 4.0,
+    "advisory": true,
+    "supporting": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "splitter_offset +1",
+    "levers": [
+     "splitter_offset"
+    ],
+    "direction": "less front downforce",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_front +1",
+    "levers": [
+     "ride_height_front"
+    ],
+    "direction": "increase",
+    "net": 4.0,
+    "advisory": false,
+    "supporting": [
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr +1",
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "softer",
+    "net": 3.2,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "US",
+      "exit_4",
+      3,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 3.2,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "US",
+      "exit_4",
+      3,
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5,
+      5
+     ]
+    ]
+   }
+  ],
+  "PRC 1": [
+   {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr -1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "springs_front -1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "diff_position -1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "decrease",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "arb_rl+arb_rr +1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr +1",
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear +1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2,
+      3
+     ],
+     [
+      13,
+      "US",
+      "exit_4",
+      2,
+      3
+     ]
+    ]
+   }
+  ],
+  "PRC 2": [
+   {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "toe_rear +1",
+    "levers": [
+     "toe_rear"
+    ],
+    "direction": "more toe-in",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "camber_rl+camber_rr +1",
+    "levers": [
+     "camber_rl",
+     "camber_rr"
+    ],
+    "direction": "less negative camber",
+    "net": 2.0,
+    "advisory": true,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear -1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "diff_position +1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "increase",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr +1",
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr +1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   },
+   {
+    "option": "springs_front +1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2,
+      2
+     ]
+    ]
+   }
+  ],
+  "PRC 3": [
+   {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "toe_rear +1",
+    "levers": [
+     "toe_rear"
+    ],
+    "direction": "more toe-in",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "camber_rl+camber_rr +1",
+    "levers": [
+     "camber_rl",
+     "camber_rr"
+    ],
+    "direction": "less negative camber",
+    "net": 2.0,
+    "advisory": true,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear -1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "diff_position +1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "increase",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr +1",
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr +1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_front +1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      15,
+      "INST",
+      "exit_5",
+      5,
+      5
+     ]
+    ]
+   }
+  ],
+  "PRC 4": [],
+  "PRC 5": [
+   {
+    "option": "camber_rl+camber_rr -1",
+    "levers": [
+     "camber_rl",
+     "camber_rr"
+    ],
+    "direction": "more negative camber",
+    "net": 3.2,
+    "advisory": true,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_rear -1",
+    "levers": [
+     "ride_height_rear"
+    ],
+    "direction": "decrease",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "arb_rl+arb_rr -1",
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "wing_position +1",
+    "levers": [
+     "wing_position"
+    ],
+    "direction": "increase",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_rear -1",
+    "levers": [
+     "springs_rear"
+    ],
+    "direction": "softer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "diff_position +1",
+    "levers": [
+     "diff_position"
+    ],
+    "direction": "increase",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "ride_height_front +1",
+    "levers": [
+     "ride_height_front"
+    ],
+    "direction": "increase",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "splitter_offset +1",
+    "levers": [
+     "splitter_offset"
+    ],
+    "direction": "less front downforce",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "arb_fl+arb_fr +1",
+    "levers": [
+     "arb_fl",
+     "arb_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "springs_front +1",
+    "levers": [
+     "springs_front"
+    ],
+    "direction": "stiffer",
+    "net": 2.0,
+    "advisory": false,
+    "supporting": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3,
+      5
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 1.2,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      3,
+      5
+     ]
+    ]
+   },
+   {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr +1",
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "softer",
+    "net": 1.2,
+    "advisory": false,
+    "supporting": [
+     [
+      5,
+      "US",
+      "exit_4",
+      3,
+      5
+     ]
+    ]
+   }
+  ]
+ },
+ "recommended": {
+  "NBR 1": "arb_rl+arb_rr -1",
+  "NBR 2": null,
+  "NBR 3": null,
+  "NBR 4": null,
+  "NBR 5": "arb_rl+arb_rr -1",
+  "PRC 1": "damper_rebound_ls_fl+damper_rebound_ls_fr -1",
+  "PRC 2": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+  "PRC 3": "damper_bump_ls_rl+damper_bump_ls_rr -1",
+  "PRC 4": null,
+  "PRC 5": "ride_height_rear -1"
+ },
+ "dmz_pooled": {
+  "NBR": {
+   "n": 320,
+   "p10": 123.12328731267138,
+   "p50": 463.83304580837313,
+   "p90": 1040.585709603947
+  },
+  "PRC": {
+   "n": 333,
+   "p10": 153.07598860446288,
+   "p50": 381.6122160752516,
+   "p90": 847.6707463744516
+  }
+ }
+}

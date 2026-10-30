@@ -102,17 +102,18 @@ def _tex(prefix, n, lin, cols, sep):
              # explicit ticks: xtick=data would read the band polygon's x
              f"  xtick={{1,...,{n}}}, xticklabels from table={{\\tblK}}{{label}}]\n")
     t.append(f"\\nextgroupplot[ylabel={{$K_i$ in 1/rad}}, ymin=0, ymax={k_hi:.3g}]\n")
-    t.append(_band(x0, x1, lin["k_edge"][0], lin["k_band"][0], "auxGray!8"))
-    t.append(_band(x0, x1, lin["k_band"][0], lin["k_band"][1], "auxGray!20"))
-    t.append(_band(x0, x1, lin["k_band"][1], lin["k_edge"][1], "auxGray!8"))
+    # acceptable band green, the edge zones around it light gray
+    t.append(_band(x0, x1, lin["k_edge"][0], lin["k_band"][0], "edgeBand"))
+    t.append(_band(x0, x1, lin["k_band"][0], lin["k_band"][1], "okBand"))
+    t.append(_band(x0, x1, lin["k_band"][1], lin["k_edge"][1], "edgeBand"))
     t += _points("K_f_per_rad", "K_r_per_rad", legend=False)
     if sep is not None:
         t.append(f"\\addplot[black, densely dashed, forget plot] coordinates {{({sep},0) ({sep},{k_hi:.3g})}};\n")
     # one legend for both panels, below the last one
     t.append(f"\\nextgroupplot[ylabel={{$\\mu_i$}}, ymin={mu_lo:.3g}, ymax={mu_hi:.3g},\n"
              "  legend style={font=\\small, at={(0.5,-0.22)}, anchor=north, legend columns=2}]\n")
-    t.append(_band(x0, x1, mu_lo, lin["mu_ceiling"], "auxGray!20"))
-    t.append(_band(x0, x1, lin["mu_ceiling"], lin["mu_edge"], "auxGray!8"))
+    t.append(_band(x0, x1, mu_lo, lin["mu_ceiling"], "okBand"))
+    t.append(_band(x0, x1, lin["mu_ceiling"], lin["mu_edge"], "edgeBand"))
     t += _points("mu_f", "mu_r", legend=True)
     if sep is not None:
         t.append(f"\\addplot[black, densely dashed, forget plot] coordinates {{({sep},{mu_lo:.3g}) ({sep},{mu_hi:.3g})}};\n")

@@ -16,7 +16,7 @@ from tools.thesis_figures.fig_k_sessions import collect
 
 SCRIPT = "fig_symptom_phase"
 TYPES = ("US", "OS", "INST")
-STYLE = {"US": "fill=axleFront", "OS": "fill=axleRear", "INST": "fill=black!80"}
+STYLE = {t: f"fill={c}" for t, c in common.SYMPTOM_FILL.items()}
 WORD = {"US": "front limiting (US)", "OS": "rear limiting (OS)", "INST": "open-loop unstable (INST)"}
 BAR_W, BAR_SHIFT = 0.24, 0.26   # axis units; layout only
 

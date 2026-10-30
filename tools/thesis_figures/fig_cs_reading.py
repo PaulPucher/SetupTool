@@ -1,7 +1,8 @@
 # fig:cs_reading -- how the cornering stiffness ratio is read from the
 # load-normalised axle force and the slip angle. Two panels, front | rear:
-# Fy_i / Fz_i over alpha_i for the samples of one corner bracket (thin gray),
-# the samples of ONE regression window as axle-colour markers, and three
+# Fy_i / Fz_i over alpha_i for the samples of one corner bracket (small light
+# dots, every BRACKET_EVERY_N-th sample for display), the samples of ONE regression window as hollow axle-colour markers
+# on top, both panels on the same axis ranges, and three
 # slopes through the window's start sample: the blended k_tilde (C_alpha),
 # the plain window slope k_win (C_window) and the linear reference k_lin
 # (C_linear_ref), each extended SLOPE_EXTEND of the window's slip-angle span
@@ -30,13 +31,22 @@ DEG = np.pi / 180.0
 MEDIAN_TOL = 1e-9   # the recomputed phase median must be the stored one
 PANEL_WIDTH = "0.4\\textwidth"
 PANEL_HEIGHT = "0.34\\textwidth"
-# window samples: markers only, front circle, rear square
-STYLE = {"f": "axleFront, only marks, mark=*, mark size=1.8pt",
-         "r": "axleRear, only marks, mark=square*, mark size=1.8pt"}
-SLOPES = (("k_tilde", "black, solid, thick", "$\\tilde{k}$"), ("k_lin", "black, dashed", "$k_\\mathrm{lin}$"),
-          ("k_win", "black, densely dotted, thick", "$k_\\mathrm{win}$"))
+# window samples: hollow markers, front circle, rear square, larger than the
+# bracket dots; unfilled, so the ~40 overlapping samples of one window stay
+# single rings and the slopes show through
+STYLE = {"f": "axleFront, only marks, mark=o, mark size=1.6pt, mark options={line width=0.5pt}",
+         "r": "axleRear, only marks, mark=square, mark size=1.5pt, mark options={line width=0.5pt}"}
+# legend symbols exactly as in the method text (ch. 3)
+SLOPES = (("k_tilde", "black, solid, thick", "$\\tilde{k}_i$"), ("k_lin", "black, dashed", "$k_{\\mathrm{lin},i}$"),
+          ("k_win", "black, densely dotted, thick", "$\\tilde{k}_\\mathrm{win}$"))
 SLOPE_EXTEND = 0.5   # of the window's alpha span, on each side
-BRACKET_STYLE = "auxGray!55, thin"
+# full auxGray (50 % black) and slightly larger: at 40 % tint the 0.5 pt
+# dots faded out in print (author 2026-10-30)
+BRACKET_STYLE = "auxGray, only marks, mark=*, mark size=0.7pt"
+AXIS_PAD = 0.05      # of the shared data span, on each side
+# display only: every n-th bracket sample, so the dots stay separate where
+# alpha barely moves between 100 Hz samples; window samples are not thinned
+BRACKET_EVERY_N = 4
 
 
 def axle_panel(session, res, corner, axle, lap, phase):
@@ -83,7 +93,7 @@ def axle_panel(session, res, corner, axle, lap, phase):
     br = np.arange(np.searchsorted(t, t0, "left"), np.searchsorted(t, t1, "right"))
     sign = float(np.sign(np.nanmedian(y[br]))) or 1.0
     br_excl = excl[br] | np.asarray(st["kerb_mask"], bool)[br] | ~np.asarray(st["moving_mask"], bool)[br]
-    br = br[::max(1, int(np.ceil(br.size / common.SCATTER_CAP)))]
+    br = br[::max(BRACKET_EVERY_N, int(np.ceil(br.size / common.SCATTER_CAP)))]
     xb = np.where(excl[br] | np.asarray(st["kerb_mask"], bool)[br], np.nan, sign * np.degrees(alpha[br]))
     win = np.arange(start, i)
     xw, yw = sign * np.degrees(alpha[win]), sign * y[win]
@@ -117,7 +127,9 @@ def build(outing, corner, picks, tag="dev", allow_status=False, allow_excluded=F
                                  f"{p['k_lin_ref']['s_m']:.1f} m)")
     m = common.meta(SCRIPT, [outing], tag, marks, session_label=label, corner=corner,
                     regressand="Fy / Fz per axle (measured axle loads, 2 Hz zero-phase), x corner direction",
-                    slopes="per rad; drawn through the first window sample", **extra)
+                    slopes="per rad; drawn through the first window sample",
+                    bracket_thinning=f"display only: every {BRACKET_EVERY_N}th bracket sample; window samples complete",
+                    **extra)
     for ax in AXLES:
         common.write_csv(f"{data_dir}/{SCRIPT}_{ax}.csv", panels[ax]["bracket"], m)
         common.write_csv(f"{data_dir}/{SCRIPT}_{ax}_window.csv", panels[ax]["window"], m)
@@ -148,7 +160,11 @@ def render(out=None):
         # slopes per rad, the alpha axis in deg
         segs = [(name, xa, y0 + float(k[name].group(1)) * (xa - x0) * DEG,
                  xz, y0 + float(k[name].group(1)) * (xz - x0) * DEG) for name, _s, _l in SLOPES]
-        panels[ax] = {"lap": g.group(1), "phase": g.group(2), "cs": float(g.group(3)), "segs": segs}
+        _m, b = common.read_csv(f"{data_dir}/{SCRIPT}_{ax}.csv")
+        xs = [common.num(x) for x in b["alpha_deg"]] + list(xw) + [x for sg in segs for x in (sg[1], sg[3])]
+        ys = [common.num(x) for x in b["fy_fz"]] + list(yw) + [y for sg in segs for y in (sg[2], sg[4])]
+        panels[ax] = {"lap": g.group(1), "phase": g.group(2), "cs": float(g.group(3)), "segs": segs,
+                      "xs": xs, "ys": ys}
     marks = [m for m in (meta.get("marks") or "").split("; ") if m]
     common.write_tex(f"{plots_dir}/{SCRIPT}.tex", _tex(prefix, panels, marks))
 
@@ -159,8 +175,16 @@ def _tex(prefix, panels, marks):
     for ax in AXLES:
         t.append(common.table_read(prefix, f"{SCRIPT}_{ax}.csv", f"tblRead{ax.upper()}"))
         t.append(common.table_read(prefix, f"{SCRIPT}_{ax}_window.csv", f"tblWin{ax.upper()}"))
+    # one x and one y range for both panels, so the slopes compare by eye
+    lim = []
+    for key in ("xs", "ys"):
+        v = np.array([x for ax in AXLES for x in panels[ax][key]], float)
+        v = v[np.isfinite(v)]
+        pad = AXIS_PAD * float(v.max() - v.min())
+        lim += [float(v.min()) - pad, float(v.max()) + pad]
     t.append("\\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.6cm},\n"
              f"  thesis axis, scale only axis, width={PANEL_WIDTH}, height={PANEL_HEIGHT}, unbounded coords=jump,\n"
+             f"  xmin={lim[0]:.3f}, xmax={lim[1]:.3f}, ymin={lim[2]:.4f}, ymax={lim[3]:.4f},\n"
              "  xlabel={$\\alpha$ in deg}, yticklabel style={/pgf/number format/fixed}]\n")
     sym = {"f": common.CS_F, "r": common.CS_R}
     ylab = {"f": "$F_{y,\\mathrm{f}}/F_{z,\\mathrm{f}}$", "r": "$F_{y,\\mathrm{r}}/F_{z,\\mathrm{r}}$"}
@@ -173,10 +197,10 @@ def _tex(prefix, panels, marks):
                      "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
         t.append(f"\\addplot[{BRACKET_STYLE}, forget plot] table[x=alpha_deg, y=fy_fz]{{\\tblRead{ax.upper()}}};\n")
-        # markers only: the window samples need not be monotonic in alpha
-        t.append(f"\\addplot[{STYLE[ax]}, forget plot] table[x=alpha_deg, y=fy_fz]{{\\tblWin{ax.upper()}}};\n")
         for name, x0, y0, x1, y1 in p["segs"]:
             t.append(f"\\addplot[{style[name]}, forget plot] coordinates {{({x0:.4f},{y0:.5f}) ({x1:.4f},{y1:.5f})}};\n")
+        # markers only (the window samples need not be monotonic in alpha), last so they sit on top
+        t.append(f"\\addplot[{STYLE[ax]}, forget plot] table[x=alpha_deg, y=fy_fz]{{\\tblWin{ax.upper()}}};\n")
         t.append(f"\\node[anchor=north west, align=left, font=\\small, fill=white, inner sep=2pt] at "
                  f"(rel axis cs:0.03,0.97) {{lap {p['lap']}, {p['phase']}\\\\ {sym[ax]} $= {p['cs']:.3f}$}};\n")
         if n == 1:

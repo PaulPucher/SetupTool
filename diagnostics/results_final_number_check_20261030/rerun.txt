@@ -1,0 +1,62 @@
+RE-MEASURE ON THE FINAL CHAIN (14 development sessions)
+
+median NIS per session (fit base mask, final observer run): 0.488 - 0.701
+  NBR outing 5 MLA: median 0.533, mean 2.017
+  NBR outing 10 JDR: median 0.509, mean 1.248
+  NBR outing 20 JST: median 0.701, mean 2.347
+  NBR outing 29 JST (NBR_Sturm_Solution copy): median 0.618, mean 2.341
+  NBR outing 46 JST: median 0.570, mean 1.911
+  NBR outing 53 MLA: median 0.604, mean 2.215
+  NBR outing 54 CDR: median 0.575, mean 2.285
+  NBR outing 59 MLA: median 0.601, mean 2.539
+  NBR outing 61 JDR: median 0.488, mean 1.588
+  NBR outing 63 CDR: median 0.680, mean 2.303
+  NBR qualifying CDR (outing 69): median 0.643, mean 2.487
+  NBR qualifying MLA (outing 70): median 0.546, mean 1.923
+  Le Castellet outing 25, MLA-SE07_US-v1: median 0.558, mean 2.612
+  Le Castellet outing 32, MLA-SE07_US-v2: median 0.600, mean 3.044
+reference candidates rejected by the relative gate, f: 71 low / 0 high (NBR outing 5 MLA 0/0, NBR outing 10 JDR 8/0, NBR outing 20 JST 0/0, NBR outing 29 JST (NBR_Sturm_Solution copy) 0/0, NBR outing 46 JST 9/0, NBR outing 53 MLA 0/0, NBR outing 54 CDR 10/0, NBR outing 59 MLA 0/0, NBR outing 61 JDR 0/0, NBR outing 63 CDR 1/0, NBR qualifying CDR (outing 69) 43/0, NBR qualifying MLA (outing 70) 0/0, Le Castellet outing 25, MLA-SE07_US-v1 0/0, Le Castellet outing 32, MLA-SE07_US-v2 0/0)
+reference candidates rejected by the relative gate, r: 13 low / 0 high (NBR outing 5 MLA 0/0, NBR outing 10 JDR 0/0, NBR outing 20 JST 0/0, NBR outing 29 JST (NBR_Sturm_Solution copy) 0/0, NBR outing 46 JST 0/0, NBR outing 53 MLA 0/0, NBR outing 54 CDR 0/0, NBR outing 59 MLA 0/0, NBR outing 61 JDR 0/0, NBR outing 63 CDR 13/0, NBR qualifying CDR (outing 69) 0/0, NBR qualifying MLA (outing 70) 0/0, Le Castellet outing 25, MLA-SE07_US-v1 0/0, Le Castellet outing 32, MLA-SE07_US-v2 0/0)
+
+VARIANT C 1.0, E -1 (shipped)
+  K zone front: edge 2, in band 12
+  K zone rear: in band 14
+  sessions (worse axle): edge 2, in band 12
+  status: marginal 2, ok 12; fallback 0; re-entries sum 3 (per session [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1])
+
+VARIANT C 1.0, E +0
+  K zone front: edge 9, in band 5
+  K zone rear: edge 2, in band 12
+  sessions (worse axle): edge 9, in band 5
+  status: marginal 9, ok 5; fallback 0; re-entries sum 11 (per session [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 6])
+  normalised residual change vs shipped, front: median +0.19 %, min -0.27 %, max +0.65 %
+  normalised residual change vs shipped, rear: median -0.01 %, min -0.68 %, max +0.46 %
+
+VARIANT C 1.0, E +1
+  K zone front: edge 1, outside 13
+  K zone rear: edge 2, in band 2, outside 10
+  sessions (worse axle): edge 1, outside 13
+  status: degenerate 13, marginal 1; fallback 13; re-entries sum 900 (per session [66, 77, 27, 58, 53, 45, 29, 27, 85, 45, 50, 44, 96, 198])
+  normalised residual change vs shipped, front: median +3.77 %, min +2.04 %, max +7.02 %
+  normalised residual change vs shipped, rear: median +0.80 %, min -1.23 %, max +2.18 %
+
+VARIANT C 1.3, E -1
+  K zone front: in band 14
+  K zone rear: in band 14
+  sessions (worse axle): in band 14
+  status: ok 14; fallback 0; re-entries sum 9 (per session [0, 1, 0, 1, 0, 0, 2, 1, 1, 0, 1, 0, 2, 0])
+  peak front inside 15 deg on 14/14: 8.0 - 12.5 deg
+  peak rear inside 15 deg on 13/14: 7.6 - 12.8 deg
+  normalised residual change vs shipped, front: median +0.87 %, min +0.19 %, max +1.64 %
+  normalised residual change vs shipped, rear: median +0.44 %, min -0.17 %, max +1.53 %
+
+VARIANT C 1.6, E -1
+  K zone front: in band 14
+  K zone rear: in band 14
+  sessions (worse axle): in band 14
+  status: ok 14; fallback 0; re-entries sum 108 (per session [2, 4, 7, 9, 0, 3, 7, 3, 6, 16, 6, 5, 8, 32])
+  peak front inside 15 deg on 14/14: 6.2 - 10.1 deg
+  peak rear inside 15 deg on 14/14: 5.6 - 12.3 deg
+  normalised residual change vs shipped, front: median +1.20 %, min +0.25 %, max +2.49 %
+  normalised residual change vs shipped, rear: median +0.75 %, min -0.24 %, max +2.24 %
+

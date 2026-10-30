@@ -1,0 +1,133 @@
+SENS-1 RECOUNT (2026-10-29), 14 development sessions, one rule for all perturbations
+unit = corner x phase x {front US, rear OS, stability INST} of the session aggregate; changed = symptom
+appears / disappears / severity differs from baseline (classifier.phase_symptoms, current config)
+session recommendation = setup_engine.data_layer, lever + direction (or tied set), no setup sheet
+NOTE: the CS boundary margins were derived (p90) from the same Q x 0.3, R_yaw x 10 and +/-1 % vehicle
+runs, so part of the flips under those perturbations is built into the boundary.
+
+BASELINE: 14 sessions, 1145 corner-phases -> 3435 units (1145 per kind)
+  US (front): 67 units with the symptom (moderate 39, strong 28)
+  OS (rear): 9 units with the symptom (strong 9)
+  INST (stability): 18 units with the symptom (strong 18)
+  session recommendations: 5 sessions with a recommendation, 3 ties, 6 none
+  baseline status per session: NBR outing 5 MLA ok/pass; NBR outing 10 JDR ok/pass; NBR outing 20 JST ok/pass; NBR outing 29 JST (NBR_Sturm_Solution copy) ok/pass; NBR outing 46 JST ok/pass; NBR outing 53 MLA ok/pass; NBR outing 54 CDR ok/pass; NBR outing 59 MLA marginal/pass; NBR outing 61 JDR ok/pass; NBR outing 63 CDR ok/pass; NBR qualifying CDR (outing 69) ok/pass; NBR qualifying MLA (outing 70) marginal/pass; Le Castellet outing 25, MLA-SE07_US-v1 ok/pass; Le Castellet outing 32, MLA-SE07_US-v2 ok/pass
+
+observer Q x 0.3 (q_x0.3): 68 / 3435 units changed (2.0 %)
+  US front: 44 / 1145 (3.8 %) -- appear 25, disappear 6, severity 13
+  OS rear: 7 / 1145 (0.6 %) -- appear 2, disappear 5, severity 0
+  INST stability: 17 / 1145 (1.5 %) -- appear 0, disappear 17, severity 0
+  session recommendations changed: 8 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 29 JST (NBR_Sturm_Solution copy): ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 46 JST: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 53 MLA: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 54 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('recommended', ('toe_rear', 'more toe-in'))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('tie', (('arb_fl+arb_fr', 'softer'), ('damper_rebound_ls_fl+damper_rebound_ls_fr', 'stiffer')))
+    Le Castellet outing 25, MLA-SE07_US-v1: ('tie', (('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_fl+arb_fr', 'softer'))
+observer R_yaw x 10 (ryaw_x10): 1 / 3435 units changed (0.0 %)
+  US front: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+drag c_D A 0.0 m^2 (drag_cda_0.0): 3 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 1, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+drag c_D A 0.7 m^2 (drag_cda_0.7): 0 / 3435 units changed (0.0 %)
+  US front: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+drag c_D A 1.3 m^2 (drag_cda_1.3): 2 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 0, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+fit-L curvature E = 0 (e_+0): 60 / 3435 units changed (1.7 %)
+  US front: 47 / 1145 (4.1 %) -- appear 19, disappear 17, severity 11
+  OS rear: 4 / 1145 (0.3 %) -- appear 3, disappear 1, severity 0
+  INST stability: 9 / 1145 (0.8 %) -- appear 1, disappear 8, severity 0
+  session recommendations changed: 6 / 14
+    NBR outing 5 MLA: ('none',) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase')))
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 46 JST: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('toe_rear', 'more toe-in')))
+    NBR outing 53 MLA: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('toe_rear', 'more toe-in')))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('none',)
+  status / gate / fallback changed: NBR outing 5 MLA ok/pass/False -> marginal/pass/False; NBR outing 10 JDR ok/pass/False -> marginal/pass/False; NBR outing 53 MLA ok/pass/False -> marginal/pass/False; NBR outing 54 CDR ok/pass/False -> marginal/pass/False; NBR outing 61 JDR ok/pass/False -> marginal/pass/False; NBR outing 63 CDR ok/pass/False -> marginal/pass/False; NBR qualifying CDR (outing 69) ok/pass/False -> marginal/pass/False
+fit-L curvature E = 1 (e_+1): 241 / 3435 units changed (7.0 %)
+  US front: 115 / 1145 (10.0 %) -- appear 62, disappear 37, severity 16
+  OS rear: 65 / 1145 (5.7 %) -- appear 58, disappear 7, severity 0
+  INST stability: 61 / 1145 (5.3 %) -- appear 47, disappear 14, severity 0
+  session recommendations changed: 10 / 14
+    NBR outing 5 MLA: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 10 JDR: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR outing 29 JST (NBR_Sturm_Solution copy): ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('none',)
+    NBR outing 59 MLA: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 61 JDR: ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR outing 63 CDR: ('recommended', ('arb_rl+arb_rr', 'softer')) -> ('recommended', ('toe_rear', 'more toe-in'))
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    NBR qualifying MLA (outing 70): ('none',) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+    Le Castellet outing 25, MLA-SE07_US-v1: ('tie', (('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('recommended', ('arb_rl+arb_rr', 'softer'))
+  status / gate / fallback changed: NBR outing 5 MLA ok/pass/False -> degenerate/None/True; NBR outing 10 JDR ok/pass/False -> degenerate/None/True; NBR outing 20 JST ok/pass/False -> degenerate/None/True; NBR outing 29 JST (NBR_Sturm_Solution copy) ok/pass/False -> degenerate/None/True; NBR outing 46 JST ok/pass/False -> degenerate/None/True; NBR outing 53 MLA ok/pass/False -> degenerate/None/True; NBR outing 54 CDR ok/pass/False -> degenerate/None/True; NBR outing 59 MLA marginal/pass/False -> degenerate/None/True; NBR outing 61 JDR ok/pass/False -> degenerate/None/True; NBR outing 63 CDR ok/pass/False -> degenerate/None/True; NBR qualifying CDR (outing 69) ok/pass/False -> degenerate/None/True; NBR qualifying MLA (outing 70) marginal/pass/False -> degenerate/None/True; Le Castellet outing 25, MLA-SE07_US-v1 ok/pass/False -> marginal/warn/False; Le Castellet outing 32, MLA-SE07_US-v2 ok/pass/False -> degenerate/None/True
+mass +1 % (mass_plus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 0, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+mass -1 % (mass_minus1): 2 / 3435 units changed (0.1 %)
+  US front: 2 / 1145 (0.2 %) -- appear 0, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+  status / gate / fallback changed: NBR outing 59 MLA marginal/pass/False -> ok/pass/False; NBR qualifying MLA (outing 70) marginal/pass/False -> ok/pass/False
+front_fraction +1 % (front_fraction_plus1): 10 / 3435 units changed (0.3 %)
+  US front: 7 / 1145 (0.6 %) -- appear 1, disappear 3, severity 3
+  OS rear: 1 / 1145 (0.1 %) -- appear 1, disappear 0, severity 0
+  INST stability: 2 / 1145 (0.2 %) -- appear 0, disappear 2, severity 0
+  session recommendations changed: 2 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+    NBR qualifying CDR (outing 69): ('tie', (('arb_rl+arb_rr', 'softer'), ('ride_height_rear', 'decrease'), ('wing_position', 'increase'))) -> ('none',)
+front_fraction -1 % (front_fraction_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 3, disappear 0, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+  status / gate / fallback changed: NBR outing 59 MLA marginal/pass/False -> ok/pass/False
+wheelbase +1 % (wheelbase_plus1): 4 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 1, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+wheelbase -1 % (wheelbase_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 2, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+yaw_inertia +1 % (yaw_inertia_plus1): 1 / 3435 units changed (0.0 %)
+  US front: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+yaw_inertia -1 % (yaw_inertia_minus1): 3 / 3435 units changed (0.1 %)
+  US front: 3 / 1145 (0.3 %) -- appear 0, disappear 2, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14
+steering_wheel_angle +1 % (steering_wheel_angle_plus1): 5 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 2, disappear 1, severity 1
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 1 / 1145 (0.1 %) -- appear 0, disappear 1, severity 0
+  session recommendations changed: 1 / 14
+    NBR outing 20 JST: ('tie', (('arb_rl+arb_rr', 'softer'), ('damper_bump_ls_rl+damper_bump_ls_rr', 'stiffer'), ('ride_height_rear', 'decrease'), ('toe_rear', 'more toe-in'), ('wing_position', 'increase'))) -> ('none',)
+steering_wheel_angle -1 % (steering_wheel_angle_minus1): 4 / 3435 units changed (0.1 %)
+  US front: 4 / 1145 (0.3 %) -- appear 0, disappear 2, severity 2
+  OS rear: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  INST stability: 0 / 1145 (0.0 %) -- appear 0, disappear 0, severity 0
+  session recommendations changed: 0 / 14

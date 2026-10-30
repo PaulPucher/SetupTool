@@ -1,0 +1,49 @@
+FLOOR EVENTS (stored events list; kerb = kerb_affected, braking = every Fx sample < 0)
+  NBR 1: 6 events, kerb 3, braking 3, both 2 (any braking sample 5), axles front
+  NBR 2: 3 events, kerb 1, braking 0, both 0 (any braking sample 0), axles front, rear
+  NBR 3: 8 events, kerb 2, braking 5, both 1 (any braking sample 5), axles front, rear
+  NBR 4: 5 events, kerb 1, braking 1, both 1 (any braking sample 2), axles front
+  NBR 5: 3 events, kerb 0, braking 2, both 0 (any braking sample 3), axles front
+  PRC 1: 4 events, kerb 3, braking 2, both 1 (any braking sample 3), axles front, rear
+  PRC 2: 4 events, kerb 0, braking 3, both 0 (any braking sample 3), axles front
+  PRC 3: 13 events, kerb 7, braking 7, both 4 (any braking sample 8), axles front, rear
+  PRC 4: 5 events, kerb 4, braking 4, both 3 (any braking sample 4), axles front
+  PRC 5: 23 events, kerb 15, braking 11, both 7 (any braking sample 15), axles front, rear
+COUNTED INST (data layer): corner phase laps k/n, cross-lap median dMz/dbeta, per-lap INST laps
+  NBR 1 C8 entry_2_turnin: 6/6, -85.7 N m/deg, per-lap INST laps [103, 104, 105, 106, 107, 108]
+  NBR 1 C8 apex_3: 6/6, -96.8 N m/deg, per-lap INST laps [103, 104, 105, 106, 107, 108]
+  NBR 1 C11 apex_3: 6/6, -104.7 N m/deg, per-lap INST laps [103, 104, 105, 106, 107, 108]
+  NBR 1 C11 exit_4: 6/6, -173.3 N m/deg, per-lap INST laps [103, 104, 105, 106, 107, 108]
+  NBR 5 C2 apex_3: 5/5, -70.3 N m/deg, per-lap INST laps [266, 267, 268, 269, 270]
+  NBR 5 C9 entry_2_turnin: 5/5, -126.3 N m/deg, per-lap INST laps [266, 267, 268, 269, 270]
+  NBR 5 C9 apex_3: 5/5, -47.5 N m/deg, per-lap INST laps [266, 267, 268, 269, 270]
+  PRC 2 C11 exit_5: 2/2, -137.4 N m/deg, per-lap INST laps [131, 132]
+  PRC 3 C15 exit_5: 5/5, -11.9 N m/deg, per-lap INST laps [14, 15, 16, 17, 18]
+  PRC 5 C7 apex_3: 5/5, -19.9 N m/deg, per-lap INST laps [59, 60, 61, 62, 63]
+dMz/dbeta CORNER-PHASE (cross-lap median) p10 / p50 / p90, N m/deg
+  NBR pooled: n 320, 123 / 464 / 1041
+  PRC pooled: n 333, 153 / 382 / 848
+    NBR 1: n 63, 139 / 443 / 888
+    NBR 2: n 60, 331 / 719 / 1055
+    NBR 3: n 68, 145 / 466 / 1266
+    NBR 4: n 64, 93 / 385 / 1049
+    NBR 5: n 65, 74 / 314 / 950
+    PRC 1: n 66, 241 / 458 / 736
+    PRC 2: n 57, 220 / 404 / 838
+    PRC 3: n 72, 192 / 420 / 965
+    PRC 4: n 72, 140 / 309 / 848
+    PRC 5: n 66, 90 / 269 / 742
+PRC 5 RANKED OPTIONS (net support)
+  3.20 camber_rl+camber_rr -1 (more negative camber) advisory: C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  2.00 ride_height_rear -1 (decrease): C7 INST apex_3 5/5
+  2.00 arb_rl+arb_rr -1 (softer): C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  2.00 wing_position +1 (increase): C7 INST apex_3 5/5
+  2.00 springs_rear -1 (softer): C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  2.00 diff_position +1 (increase): C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  2.00 ride_height_front +1 (increase): C7 INST apex_3 5/5
+  2.00 splitter_offset +1 (less front downforce): C7 INST apex_3 5/5
+  2.00 arb_fl+arb_fr +1 (stiffer): C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  2.00 springs_front +1 (stiffer): C1 OS apex_3 3/5; C7 INST apex_3 5/5
+  1.20 damper_rebound_ls_fl+damper_rebound_ls_fr -1 (stiffer): C5 US exit_4 3/5
+  1.20 damper_bump_ls_rl+damper_bump_ls_rr +1 (softer): C5 US exit_4 3/5
+  recommended: ride_height_rear -1

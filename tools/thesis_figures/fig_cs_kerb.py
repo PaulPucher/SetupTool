@@ -113,7 +113,7 @@ def render(out=None):
                      "/tikz/every even column/.append style={column sep=0.6em}}")
         t.append(f"\\nextgroupplot[{opts}]\n")
         for a, b in zip(rg["s0_m"], rg["s1_m"]):
-            t.append(f"\\fill[auxGray!25] ({{axis cs:{float(a):.2f},0}} |- {{rel axis cs:0,0}}) rectangle "
+            t.append(f"\\fill[exclusion]({{axis cs:{float(a):.2f},0}} |- {{rel axis cs:0,0}}) rectangle "
                      f"({{axis cs:{float(b):.2f},0}} |- {{rel axis cs:0,1}});\n")
         t.append(f"\\addplot[black, thin, densely dotted, forget plot] coordinates {{({lo:.1f},0) ({hi:.1f},0)}};\n")
         t.append(f"\\addplot[{FRONT}, thick, forget plot] table[x=s_m, y=cs_f_{name}]{{\\tblCsKerb}};\n")
@@ -121,7 +121,7 @@ def render(out=None):
         if k == 1:
             t.append(f"\\addlegendimage{{{FRONT}, thick}}\\addlegendentry{{front axle}}\n"
                      f"\\addlegendimage{{{REAR}, thick}}\\addlegendentry{{rear axle}}\n"
-                     "\\addlegendimage{area legend, draw=none, fill=auxGray!25}\\addlegendentry{kerb mask}\n")
+                     "\\addlegendimage{area legend, draw=none, fill=exclusion}\\addlegendentry{kerb mask}\n")
     t.append("\\end{groupplot}\n")
     t.append("\\node[anchor=north, below=2pt] at (group c1r2.outer south) {\\pgfplotslegendfromname{legCsKerb}};\n")
     t.append("\\end{tikzpicture}\n")

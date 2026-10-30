@@ -1,5 +1,5 @@
 # tab:sessions -- one row per session: neutral label, track, session type,
-# driver code, analysis / total laps, corners, estimation path with its
+# driver code, analysis / total laps, tire age (outing field, km), corners, estimation path with its
 # reason, health score, damper-load path, membership in the 14-session
 # threshold pool, overlap with the development data and the evaluation
 # status. No dates, no event names, no driver names (the label map stays
@@ -19,8 +19,8 @@ import json
 from tools.thesis_figures import common
 
 SCRIPT = "tab_sessions"
-COLUMNS = ("label", "track", "session_type", "driver_code", "analysis_laps", "total_laps", "n_corners",
-           "estimation_path", "path_reason", "fit_status", "health_score", "damper_path", "in_sample",
+COLUMNS = ("label", "track", "session_type", "driver_code", "analysis_laps", "total_laps", "tyre_age_km",
+           "n_corners", "estimation_path", "path_reason", "fit_status", "health_score", "damper_path", "in_sample",
            "dev_overlap", "status")
 
 
@@ -69,6 +69,8 @@ def collect_rows(outings, overlap=None):
         base = {"label": common.session_label(row), "track": parsed["metadata"].get("TrackName") or "-",
                 "session_type": row["session_type"] or "-", "driver_code": codes.get(row["driver_id"], "-"),
                 "total_laps": len(parsed["laps"]),
+                # outing form field, km; 0 is stored as entered (the app lists it as "New")
+                "tyre_age_km": row["tyre_age"] if row["tyre_age"] is not None else "-",
                 "in_sample": (overlap.get(str(o)) or {}).get("in_sample", "-"),
                 "dev_overlap": (overlap.get(str(o)) or {}).get("overlap", "-")}
         # no grid rate -> the app refuses the file before any estimator runs
@@ -113,7 +115,7 @@ def build(outings, tag="dev", out=None, overlap=None, excluded_rows=()):
     for spec in excluded_rows:
         label, track, reason = (x.strip() for x in spec.split(";", 2))
         rows.append((None, {"label": label, "track": track, "session_type": "-", "driver_code": "-",
-                            "analysis_laps": "-", "total_laps": "-", "n_corners": "-", "estimation_path": "-",
+                            "analysis_laps": "-", "total_laps": "-", "tyre_age_km": "-", "n_corners": "-", "estimation_path": "-",
                             "path_reason": "-", "fit_status": "-", "health_score": float("nan"),
                             "damper_path": "-", "in_sample": "no", "dev_overlap": "-",
                             "status": reason.replace(",", ";")}))
@@ -154,16 +156,17 @@ def render(out=None):
             continue
         health = common.num(c["health_score"][i])
         body.append([common.tex_escape(label), common.tex_escape(c["driver_code"][i]),
-                     f"{c['analysis_laps'][i]}/{c['total_laps'][i]}", c["n_corners"][i],
+                     f"{c['analysis_laps'][i]}/{c['total_laps'][i]}",
+                     "--" if c["tyre_age_km"][i] == "-" else c["tyre_age_km"][i], c["n_corners"][i],
                      f"{health:.2f}" if health == health else "--",
                      common.tex_escape(c["fit_status"][i].split(" ")[0]),
                      _zero_entry(c["damper_path"][i]), common.tex_escape(c["in_sample"][i]),
                      common.tex_escape(_OVERLAP_WORDS.get(c["dev_overlap"][i], c["dev_overlap"][i]))])
-    header = ["Session", "Driver", "Laps", "Corners", "Health", "Fit", "Zero entry", "Pool", "Overlap"]
-    note = ("\\parbox{\\linewidth}{\\small $^*$\\,Offset correction checked by the offset-free validation; "
-            "the plausibility gate against the static weight is not applicable.}")
-    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l l r r r l l l l",
-                       env="tabular", small=True, footnote=note)
+    header = ["Session", "Driver", "Laps", "Tire age in km", "Corners", "Health", "Fit", "Zero entry", "Pool",
+              "Overlap"]
+    # the yes* mark is explained in the caption only (author, 2026-10-30)
+    common.write_table(f"{plots_dir}/{SCRIPT}.tex", SCRIPT, header, body, "l l r r r r l l l l",
+                       env="tabular", small=True)
 
 
 def main(argv=None):
