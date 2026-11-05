@@ -1,10 +1,9 @@
 # Floor events (modules/limit_events.py) on the real Dubai sample, through the
 # shared pipeline fixture (default path, fit L). The guard test is the
-# contract the author ruled: events are display + record only, so verdict
-# inputs, corner summaries, verdicts and recommendations must be
-# byte-identical with events on or off.
+# contract: events are display + record only, so verdict inputs, corner
+# summaries, verdicts and recommendations must be byte-identical before and
+# after the event layer runs.
 
-import copy
 import json
 import os
 
@@ -43,9 +42,7 @@ def test_events_are_display_only(pipeline_result, state, parsed_data, effective_
     corners_before = json.dumps(pipeline_result["corners"], default=str, sort_keys=True)
     snap_off = _verdict_snapshot(pipeline_result, state)
 
-    params_on = copy.deepcopy(effective_params)
-    params_on["limit_events"]["enabled"] = True
-    events = _events(pipeline_result, state, parsed_data, params_on)
+    events = _events(pipeline_result, state, parsed_data, effective_params)
     assert events["status"] == "computed"
 
     for k, v in cs_before.items():
@@ -55,20 +52,12 @@ def test_events_are_display_only(pipeline_result, state, parsed_data, effective_
     assert json.dumps(pipeline_result["corners"], default=str, sort_keys=True) == corners_before
     assert _verdict_snapshot(pipeline_result, state) == snap_off
 
-    params_off = copy.deepcopy(effective_params)
-    params_off["limit_events"]["enabled"] = False
-    # same keys as the computed record since schema 28 (B24), no events
-    assert _events(pipeline_result, state, parsed_data, params_off) == {
-        "status": "disabled in config", "line": "pure-lateral floor", "floor": PURE_LATERAL_FLOOR,
-        "floors": {"front": PURE_LATERAL_FLOOR, "rear": PURE_LATERAL_FLOOR},
-        "label": "not explainable by pure lateral saturation", "events": [], "n_instances_by_corner": {}}
-
 
 def test_no_verdict_module_reads_events():
     # structural guard: only the UI display paths import the event module
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for rel in ("modules/stability_analysis.py", "modules/classifier.py", "modules/setup_engine.py",
-                "modules/corner_aggregation.py", "modules/tyre_fit_auto.py"):
+                "modules/tyre_fit_auto.py"):
         src = open(os.path.join(root, rel), encoding="utf-8").read()
         # imports, not mentions (the schema history comment names the module)
         assert "import limit_events" not in src and "modules.limit_events" not in src, \

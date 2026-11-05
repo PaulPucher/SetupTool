@@ -18,11 +18,10 @@
 # tests/test_golden_pipeline.py.
 #
 # Fixed configuration (run_default_chain, shared with the test so the two
-# cannot diverge): the app's chain function for function -- speed classes
-# reclassified, resolve_sideslip_beta_and_cs_inputs at the configured
-# source, CS with the inputs it hands over, stability, vertical loads,
-# summarise_corners, detect_events -- at best available accuracy (cap
-# None, as the threshold derivation), setup_data None, feedback {}.
+# cannot diverge): the app's chain itself (modules.pipeline.run_analysis,
+# the function the analysis thread calls), then summarise_corners over all
+# laps, at best available accuracy (cap None, as the threshold
+# derivation), setup_data None, feedback {}.
 # 2026-10-22 (recommendation overhaul): verdicts from modules/classifier.py
 # (ruling D2), recommendations = setup engine data layer. Best
 # available and the fit-L axle loads both read the gitignored
@@ -75,53 +74,36 @@ def json_safe(obj):
 
 
 def run_default_chain(rel_path):
-    from modules.csv_parser import parse_csv, load_channels_config
-    from modules.stability_analysis import (
-        load_parameters, prepare_vehicle_state, estimate_slip_angles, estimate_lateral_forces,
-        estimate_cornering_stiffness, estimate_yaw_moment_stability, estimate_vertical_loads,
-        summarise_corners, load_car_data,
-    )
-    from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
-    from modules.corner_analysis import reclassify_speed_classes
-    from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
-    from modules.limit_events import detect_events
+    from modules.csv_parser import parse_csv
+    from modules.stability_analysis import load_parameters, summarise_corners
+    from modules.accuracy_resolution import resolve_accuracy
+    from modules.pipeline import recommend, run_analysis
     from tests.conftest import resolve_data_path
 
     path = resolve_data_path(rel_path)
     params = load_parameters()
-    p = apply_resolved_vehicle(params, resolve_accuracy(params, setup_data=None, cap=ACCURACY_CAP))
     data = parse_csv(path)
-    reclassify_speed_classes(data.get("corners", []), load_channels_config()["corner_speed_thresholds"])
-    state = prepare_vehicle_state(data["channels"], p)
-    source = p["stability_estimation"]["sideslip_source"]
-    beta, man, gate, fb, fr, cs_in = resolve_sideslip_beta_and_cs_inputs(state, p, data, source, csv_path=path)
+    chain = run_analysis(data, resolve_accuracy(params, setup_data=None, cap=ACCURACY_CAP), csv_path=path)
     laps = data.get("laps", [])
-    slip = estimate_slip_angles(state, beta, p)
-    forces = estimate_lateral_forces(state, p)
-    cs = estimate_cornering_stiffness(slip, forces, state, p, laps, **cs_in["cs_kwargs"])
-    stab = estimate_yaw_moment_stability(state, beta, p, laps)
-    fz = estimate_vertical_loads(state, forces, p, channels=data["channels"], car_data=load_car_data())
-    corners = data.get("corners", [])
-    summaries = summarise_corners(corners, cs, stab, state, fz=fz, lap_filter=None)
-    events = detect_events(cs, state, corners, laps, man, p, slip=slip, gate_verdict=gate,
-                           axle_loads=cs_in["cs_kwargs"].get("axle_loads"), axle_fx=cs_in["axle_fx"])
+    man = chain["fit_manifest"]
+    summaries = summarise_corners(chain["corners"], chain["cs"], chain["stab"], chain["state"], fz=chain["fz"],
+                                  lap_filter=None)
     out = {
-        "tyre_fit_mode": p["tyre_fit_auto"]["tyre_fit_mode"], "sideslip_source": source,
-        "fallback_used": fb, "fallback_reason": fr, "gate_verdict": gate,
+        "tyre_fit_mode": params["tyre_fit_auto"]["tyre_fit_mode"], "sideslip_source": chain["sideslip_source"],
+        "fallback_used": chain["fallback_used"], "fallback_reason": chain["fallback_reason"],
+        "gate_verdict": chain["gate_verdict"],
         "fit_manifest": {k: v for k, v in (man or {}).items() if k not in MANIFEST_SKIP},
-        "summaries": summaries, "events": events,
+        "summaries": summaries, "events": chain["events"],
     }
     # verdicts through the app's classifier (modules/classifier.py) on every
     # summary; recommendations = the setup engine's data layer on the valid
-    # analysis laps, as the app runs it (lap filter = valid laps, no setup
-    # sheet, no feedback)
+    # analysis laps (no setup sheet, no feedback, no logged channels)
     from modules.classifier import classify_corner
-    from modules.setup_engine import data_layer
 
     out["verdicts"] = [{"stable_corner_id": s.get("stable_corner_id"), "lap_number": s.get("lap_number"),
                         "severity": v[0], "short": v[1]} for s, v in ((s, classify_corner(s)) for s in summaries)]
     valid = {l["lap_number"] for l in laps if l.get("is_valid_for_analysis")}
-    out["recommendations"] = data_layer([s for s in summaries if s["lap_number"] in valid])
+    out["recommendations"] = recommend([s for s in summaries if s["lap_number"] in valid])["data_layer"]
     return json_safe(out)
 
 

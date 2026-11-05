@@ -2,7 +2,7 @@
 # axle is limiting, in which phase, how severe. One classifier for the setup
 # engine and the UI; the UI maps the returned state to colour.
 #
-# Verdict rule (D2): the physical boundary decides, the percentile tiers
+# Verdict rule: the physical boundary decides, the percentile tiers
 # only grade depth:
 # - an axle is LIMITING when its cornering-stiffness ratio is below zero,
 #   i.e. past the peak of its Fy / Fz curve; the test is CS < -margin with
@@ -21,8 +21,127 @@
 # - a high-speed corner whose only symptom is front limiting is flagged
 #   low_priority: mild high-speed understeer is the deliberate safe balance
 #   of a race car (Milliken 1995, setup checklist items 21 and 1F).
+#
+# The same module holds the cross-lap aggregation and phase / severity
+# vocabulary the classifier reads, and the manual threshold-override record
+# the Settings page writes.
 
-from modules.corner_aggregation import PHASE_KEYS, PHASE_WORD_SHORT, PHASE_WORD_LONG, SEVERITY_RANK
+import numpy as np
+
+
+# Cross-lap corner aggregation and the phase / severity vocabulary shared by
+# the classifier, the setup engine, the corner map and the limit events.
+
+# must match summarise_corners' phase keys and the e1..x5 feedback columns
+PHASE_KEYS = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
+PHASE_TO_FEEDBACK_KEY = dict(zip(PHASE_KEYS, ["e1", "e2", "a3", "x4", "x5"]))
+
+# ordinal enum, method-defining
+SEVERITY_RANK = {"normal": 0, "moderate": 1, "strong": 2}
+
+# ordinal enum (corner_analysis speed_class)
+SPEED_CLASS_ORDER = ["low", "medium", "high"]
+
+PHASE_WORD_SHORT = {
+    "entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
+    "exit_4": "exit", "exit_5": "exit",
+}
+PHASE_WORD_LONG = {
+    "entry_1_brake": "brake", "entry_2_turnin": "turn-in", "apex_3": "apex",
+    "exit_4": "early exit", "exit_5": "late exit",
+}
+
+
+def _nanmedian_or_nan(values):
+    valid = [v for v in values if v == v]  # drop NaN (NaN != NaN)
+    if not valid:
+        return float("nan")
+    return float(np.median(valid))
+
+
+def _nanmin_or_nan(values):
+    valid = [v for v in values if v == v]
+    if not valid:
+        return float("nan")
+    return float(np.min(valid))
+
+
+def _group_by_corner(summaries):
+    by_id = {}
+    for s in summaries:
+        cid = s.get("stable_corner_id")
+        if cid is None:
+            continue
+        by_id.setdefault(cid, []).append(s)
+    return by_id
+
+
+def _aggregate_speed_class(lap_summaries):
+    # modal speed_class across laps -> a corner near a class boundary does not
+    # flip its speed gate per lap
+    return modal_speed_class(s.get("speed_class") for s in lap_summaries)
+
+
+def modal_speed_class(classes):
+    # tie -> closest to medium, then lower class; None entries ignored
+    counts = {}
+    for sc in classes:
+        if sc is None:
+            continue
+        counts[sc] = counts.get(sc, 0) + 1
+    if not counts:
+        return None
+    max_n = max(counts.values())
+    tied = [c for c, n in counts.items() if n == max_n]
+    mid = SPEED_CLASS_ORDER.index("medium")
+    tied.sort(key=lambda c: (abs(SPEED_CLASS_ORDER.index(c) - mid), SPEED_CLASS_ORDER.index(c)))
+    return tied[0]
+
+
+def aggregate_by_corner(summaries):
+    # CS cross-lap combiner = worst lap: per-phase min across laps, composed
+    # with the classifier's min over phases = global min over (lap, phase).
+    # The CS thresholds were derived on this population. Stability stays
+    # median: one lap's observer transient must not set the corner value.
+    cs_combine = _nanmin_or_nan
+
+    by_id = _group_by_corner(summaries)
+
+    aggregated = {}
+    for cid, corner_summaries in by_id.items():
+        phases = {}
+        for phase in PHASE_KEYS:
+            csf, csr, stab = [], [], []
+            for s in corner_summaries:
+                p = s["phases"].get(phase)
+                if p is None:
+                    continue
+                csf.append(p["cs_ratio_f"]["median"])
+                csr.append(p["cs_ratio_r"]["median"])
+                stab.append(p["stability_observed_Nm_per_deg"]["median"])
+            phases[phase] = {
+                "cs_ratio_f": {"median": cs_combine(csf)},
+                "cs_ratio_r": {"median": cs_combine(csr)},
+                "stability_observed_Nm_per_deg": {"median": _nanmedian_or_nan(stab)},
+            }
+        # same combiner for apex_region (the classifier reads it for apex_3);
+        # a summary without it is skipped like any other gap
+        ar_csf = [s["apex_region"]["cs_ratio_f"]["median"] for s in corner_summaries if s.get("apex_region")]
+        ar_csr = [s["apex_region"]["cs_ratio_r"]["median"] for s in corner_summaries if s.get("apex_region")]
+        aggregated[cid] = {
+            "stable_corner_id": cid,
+            "n_laps": len(corner_summaries),
+            "speed_class": _aggregate_speed_class(corner_summaries),
+            "phases": phases,
+            "apex_region": {
+                "cs_ratio_f": {"median": cs_combine(ar_csf)},
+                "cs_ratio_r": {"median": cs_combine(ar_csr)},
+            },
+        }
+    return aggregated
+
+
+# Per-corner verdict.
 
 NO_CS_SHORT = "no CS data"
 NO_CS_LONG = "No CS data in any phase"
@@ -138,12 +257,10 @@ def classify_corner(summary):
     state is the severity word, or "no_data" when no phase carries a CS
     value; the UI turns it into a colour. The SHORT string is also a machine
     interface (verdict words, bracket markers); LONG is the card text."""
-    from modules.stability_analysis import load_parameters, thresholds_calibrated
+    from modules.stability_analysis import load_parameters
     params = load_parameters()
     cls_cfg = params["classification"]
     thr = _thresholds()
-    # thresholds valid only for the estimator path they were derived on
-    uncalibrated_marker = "" if thresholds_calibrated(params) else " [UNCAL]"
     active_sideslip_source = params["stability_estimation"].get("sideslip_source", "kinematic")
     stab_calibrated_for = cls_cfg.get("stab_thresh_calibrated_for_sideslip_source", "kinematic")
     stab_legacy_marker = ("" if active_sideslip_source == stab_calibrated_for
@@ -182,4 +299,43 @@ def classify_corner(summary):
         short_parts.append("ok")
     if not long_parts:
         long_parts.append("Within normal range")
-    return severity, " | ".join(short_parts) + uncalibrated_marker, " | ".join(long_parts), state
+    return severity, " | ".join(short_parts), " | ".join(long_parts), state
+
+
+# Manual override of a classification threshold (parameters.json
+# classification.<key>), recorded config-side. The data-derived value is
+# kept once, machine-readable, as derived_default: written on the first
+# override, never overwritten by later edits, removed on restore. The
+# derivation rule (re-derive from this car's own distribution) applies to
+# that default; an override never rewrites it. derived_from stays the
+# human-facing, append-only record.
+
+_TOL = 1e-9
+
+
+def is_manual(entry):
+    return "derived_default" in entry
+
+
+def apply_threshold_edit(entry, new_value, date_str):
+    """Mutates entry. Returns "unchanged", "manual" or "restored".
+    Setting the value back to derived_default is a restore, however the
+    user got there (restore control or typing it in)."""
+    old_value = float(entry["value"])
+    new_value = float(new_value)
+    if abs(new_value - old_value) <= _TOL:
+        return "unchanged"
+
+    if is_manual(entry) and abs(new_value - float(entry["derived_default"])) <= _TOL:
+        entry["value"] = entry.pop("derived_default")
+        entry["derived_from"] = (entry.get("derived_from", "")
+                                 + f"; restored to data-derived default {date_str}")
+        return "restored"
+
+    if not is_manual(entry):
+        entry["derived_default"] = old_value
+    entry["value"] = new_value
+    entry["derived_from"] = (entry.get("derived_from", "")
+                             + f"; manually set {date_str}; data-derived default: "
+                               f"{entry['derived_default']}")
+    return "manual"

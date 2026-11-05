@@ -25,7 +25,7 @@ def phase_cells(summaries):
     """{phase: {type: [k, n]}} -- setup_engine.cell_shares, split by phase."""
     import numpy as np
     from modules.classifier import _thresholds, phase_symptoms, verdict_cs_stat
-    from modules.corner_aggregation import PHASE_KEYS
+    from modules.classifier import PHASE_KEYS
     thr = _thresholds()
     out = {ph: {t: [0, 0] for t in TYPES} for ph in PHASE_KEYS}
     for s in summaries:

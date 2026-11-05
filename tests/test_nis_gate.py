@@ -1,4 +1,4 @@
-# Tests for modules/nis_gate.py: window rate-derivation, boundary
+# Tests for modules/observer.py: window rate-derivation, boundary
 # classification, the live thresholds against the real-session scores, and
 # NaN/short-session degradation to "fail".
 #
@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from modules.stability_analysis import load_parameters
-from modules.nis_gate import _score_and_skips, classify_score, evaluate_gate, resolve_nis_window_samples
+from modules.observer import _score_and_skips, classify_score, evaluate_gate, resolve_nis_window_samples
 
 
 @pytest.fixture(scope="module")

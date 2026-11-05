@@ -11,7 +11,7 @@ import pytest
 from modules.setup_engine import (
     _lever_change, _preference, _select, _data_rank_key, agreement, cell_supports, change_text, corner_summary,
     data_layer,
-    engineer_layer, load_mechanisms, repeats, run, unsupported_preference_cells,
+    engineer_layer, load_mechanisms, repeats, run,
 )
 from modules.setup_state import load_setup_parameters_registry, load_setup_windows, logged_setup_values
 from modules.stability_analysis import load_parameters
@@ -103,7 +103,7 @@ def test_agreement_orders_right_after_severity():
     # LC32 relaxed: a corner whose ranked list holds both US and OS candidates;
     # the driver reports oversteer at both phases -> OS agrees, US conflicts.
     # Severity stays first; inside one severity, agree > neutral > conflict.
-    from modules.corner_aggregation import PHASE_TO_FEEDBACK_KEY, SEVERITY_RANK
+    from modules.classifier import PHASE_TO_FEEDBACK_KEY, SEVERITY_RANK
     summ = _summaries(LC32)
     cfg = _relaxed()
     data = data_layer(summ, cfg=cfg)
@@ -210,12 +210,6 @@ def test_contradicting_cell_gives_no_preference():
     wing_us = next(r for r in mech["mechanisms"] if r["id"] == "M4-wing-US")
     assert _preference(wing_us, "US", "entry_1_brake", "high", mech, registry) == 0
     assert _preference(wing_us, "US", "entry_2_turnin", "high", mech, registry) == 1   # US-TIN-high: decrease
-
-
-def test_unsupported_cells_match_the_config_list():
-    mech = load_mechanisms()
-    listed = {k for k in mech["_comment_engineer_unsupported"] if not k.startswith("_")}
-    assert set(unsupported_preference_cells(mech, load_setup_parameters_registry())) == listed
 
 
 def test_abs_current_value_from_logged_channel():

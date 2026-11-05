@@ -1,4 +1,7 @@
-# Per-wheel Fz from pushrod force + suspension travel.
+# Loads: per-wheel Fz from pushrod force + suspension travel, and the CoG
+# longitudinal force. SI units.
+#
+# Per-wheel Fz:
 # Segers ch. 9 (pushrod force -> wheel via motion ratio), ch. 10 (geometric
 # vs elastic load transfer).
 #
@@ -75,7 +78,7 @@ def _motion_ratio(travel_mm, axle, car_data):
 
 def _arb_rate_n_per_mm(axle, position, car_data):
     """ARB rate at the wheel (car_data arb[axle] x ratio_to_wheel).
-    position clamped to 1-7 -- fallback position must always resolve.
+    position clamped to 1-7 so the configured default always resolves.
     """
     arb = car_data["arb"][axle]
     position = int(min(max(position, 1), 7))
@@ -83,11 +86,10 @@ def _arb_rate_n_per_mm(axle, position, car_data):
     return rate_drop_link * arb["ratio_to_wheel"]
 
 
-def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=None):
+def estimate_wheel_loads_from_dampers(state, channels, params, car_data):
     """Per-corner damper-derived Fz where both channels are usable.
 
-    arb_position: int for all corners, or {"front"/"fl"/...: int};
-    missing -> wheel_loads.arb_position_fallback.
+    ARB position: wheel_loads.arb_position_default on both axles (Level 1).
     Corner valid = both channels "valid", known units (else ValueError),
     and not dead (_channel_is_dead).
 
@@ -100,11 +102,6 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
     t_ref = state["time"]
     ay = state["ay_mps2"]
     n = len(t_ref)
-
-    if arb_position is None:
-        arb_position = {}
-    elif isinstance(arb_position, (int, float)):
-        arb_position = {c: int(arb_position) for c in CORNERS}
 
     track = {"front": vp["track_width_front_m"], "rear": vp["track_width_rear_m"]}
     h_u = {"front": wl["tyre_dynamic_radius_front_m"], "rear": wl["tyre_dynamic_radius_rear_m"]}
@@ -164,8 +161,7 @@ def estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_pos
         arb_valid[right_c] = both_ok
         if not both_ok.any():
             continue
-        position = arb_position.get(axle, arb_position.get(left_c, wl["arb_position_fallback"]))
-        rate = _arb_rate_n_per_mm(axle, position, car_data)
+        rate = _arb_rate_n_per_mm(axle, wl["arb_position_default"], car_data)
         delta_mm = travel_mm[left_c] - travel_mm[right_c]
         avg_mr = 0.5 * (mr[left_c] + mr[right_c])
         with np.errstate(invalid="ignore"):
@@ -468,3 +464,30 @@ def combine_with_reconstruction_and_fallback(damper_result, fz_axle_totals, stat
                            np.where(rc["reconstructable"], "reconstructed", "static_fallback"))
         combined[c] = {"fz_N": fz, "source": source}
     return combined
+
+
+# CoG longitudinal force (drag included) -- input to the fit-L axle split
+# and the floor-event attributes (tyre_fit_auto).
+def estimate_longitudinal_forces(state, channels, params):
+    """CoG Fx from the longitudinal balance; no Fx channel in the log.
+    fx_total = m*ax + drag + rolling (Rajamani ch. 2); chair performance_analysis
+    tooling (internal), fallback tier, as-is. ax < 0 under braking. The axle
+    split is done by the caller (tyre_fit_auto, by measured axle load).
+    """
+    lf = params["longitudinal_stiffness"]
+    vp = params["vehicle"]
+    aero = vp["aero"]
+
+    ax = state["ax_mps2"]
+    v_mps = state["v_mps"]
+    mass = vp["mass_kg"]
+
+    v_forward = np.maximum(v_mps, 0.0)
+    drag_N = 0.5 * aero["air_density_kgm3"] * lf["drag_coeff"] * aero["cross_track_area_m2"] * v_forward ** 2
+    rolling_N = lf["rolling_resistance_coeff"] * mass * 9.81 * np.sign(v_forward)
+    fx_total_N = mass * ax + drag_N + rolling_N
+
+    return {
+        "fx_N": fx_total_N,
+        "accuracy_level": params["accuracy_levels"]["longitudinal_force_split"]["level"],
+    }

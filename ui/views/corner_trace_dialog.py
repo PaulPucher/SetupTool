@@ -12,13 +12,13 @@ from PyQt6.QtWidgets import (
 
 from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEXT_MUTED
 
-# Colours and widths come from core/plot_style.py, shared with the PNG
+# Colours and widths come from core/figure_render.py, shared with the PNG
 # exports. Lap = colour (lap_styles over the checked set); quantity/axle = panel.
-from core import plot_style
-from core.trace_display import cs_lines, kerb_exclusion_caption
+from core import figure_render
+from core.display import cs_lines, kerb_exclusion_caption
 from modules.classifier import cs_decision_lines, verdict_phases
 from modules.limit_events import legend_text as event_legend_text
-from core.plot_style import (
+from core.figure_render import (
     FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY, NEAR_STRIKE_COLOR,
     SCREEN_LAP_WIDTH, LEGEND_FONT_PT,
     SESSION_CLOUD_COLOR_SCREEN, SESSION_CLOUD_SIZE_SCREEN,
@@ -49,7 +49,7 @@ BASE_LEGEND_TEXT = (
     "Unchecked laps are not drawn anywhere in this window."
 )
 
-# phase tint sentence of the corner window (author ruling B11, 2026-10-27)
+# phase tint sentence of the corner window
 PHASE_TINT_LEGEND_TEXT = "Tinted: phase(s) named in the verdict (a named apex = red apex line)."
 
 # corner-band sentence; colour words match ui.style BAD/WARN/OK
@@ -60,8 +60,7 @@ LAP_BAND_LEGEND_TEXT = (
 
 PHASE_ORDER = ["entry_1_brake", "entry_2_turnin", "apex_3", "exit_4", "exit_5"]
 
-# kerb-gap bridge: lighter than a measured trace (config corner_trace_display
-# kerb_gap_bridge switches it)
+# kerb-gap bridge: lighter than a measured trace
 BRIDGE_ALPHA = 110
 # rear info tier line: fainter than the boundaries, it raises no symptom
 INFO_LINE_ALPHA = 140
@@ -226,7 +225,7 @@ def _contiguous_runs(x, mask):
 def _aggregate_worst_severity(corner_summaries, classify_fn):
     # lap view = problem map: band tint = worst severity over ALL valid
     # instances, classified by the injected classify_fn
-    from modules.corner_aggregation import SEVERITY_RANK
+    from modules.classifier import SEVERITY_RANK
 
     worst_rank = -1
     worst_colour = None
@@ -466,7 +465,7 @@ class _TraceDialogBase(QDialog):
 
     def _plot_kerb_bridges(self, lap_number, x, kerb, series):
         """series: [(panel_key, y)]. Returns True if anything was bridged."""
-        from core.trace_display import kerb_gap_bridge
+        from core.display import kerb_gap_bridge
         items = []
         for key, y in series:
             yb = kerb_gap_bridge(x, y, kerb)
@@ -484,7 +483,7 @@ class _TraceDialogBase(QDialog):
         the kerb-affected samples (restyled with the lap), those samples as a
         grey overlay (grey mode). counts = [n_affected, n_finite], updated.
         Drawing only -- the samples stay in every computed result."""
-        from core.trace_display import near_strike_split
+        from core.display import near_strike_split
         main, overlay = near_strike_split(y, mark, mode)
         if mark is not None:
             fin = np.isfinite(np.asarray(y, dtype=float))
@@ -499,7 +498,7 @@ class _TraceDialogBase(QDialog):
     def _restyle_all_laps(self):
         # colour assignment from the current checked set; once per render
         checked = sorted(ln for ln, v in self.lap_visible.items() if v)
-        self._current_styles = plot_style.lap_styles(checked)
+        self._current_styles = figure_render.lap_styles(checked)
         for ln in self.lap_curve_items:
             self._restyle_lap_curves(ln)
 
@@ -516,7 +515,7 @@ class _TraceDialogBase(QDialog):
         """tint_specs: [(s_start, s_end, colour, alpha)], drawn on every panel
         except where an exclusion span lies."""
         import pyqtgraph as pg
-        from core.trace_display import interval_subtract, interval_union
+        from core.display import interval_subtract, interval_union
 
         holes = interval_union(self._exclusion_spans)
         grey = pg.mkColor(NEUTRAL)
@@ -581,7 +580,7 @@ class _TraceDialogBase(QDialog):
 
     def _add_cs_lines(self, values):
         # the classifier's CS levels, same set and styles as the export
-        # (core.trace_display.CS_LINE_SPECS); the rear info tier is fainter,
+        # (core.display.CS_LINE_SPECS); the rear info tier is fainter,
         # it raises a note, never a symptom
         styles = {"boundary": (Qt.PenStyle.SolidLine, 255), "strong": (Qt.PenStyle.DashDotLine, 255),
                   "info": (Qt.PenStyle.DotLine, INFO_LINE_ALPHA)}
@@ -737,7 +736,7 @@ class CornerTraceDialog(_TraceDialogBase):
                                   margin_before_m, margin_after_m, series, cfg):
         # p10 / p90 over ALL analysis laps of this corner as two thin lines per
         # panel (shading budget: no fill); the checked laps draw on top
-        from core.trace_display import cross_lap_envelope
+        from core.display import cross_lap_envelope
         if not cfg:
             return
         slices = []
@@ -777,7 +776,7 @@ class CornerTraceDialog(_TraceDialogBase):
         peak a lap's cloud folds back over the reference line.
         """
         import pyqtgraph as pg
-        from core.trace_display import kerb_scatter_split
+        from core.display import kerb_scatter_split
         from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 
         self._clear_tyre_curves()
@@ -786,7 +785,7 @@ class CornerTraceDialog(_TraceDialogBase):
 
         # unchecked laps contribute nothing, incl. to the pooled reference/window
         instances = self._checked_instances(instances)
-        styles = plot_style.lap_styles(c["lap_number"] for c in instances)
+        styles = figure_render.lap_styles(c["lap_number"] for c in instances)
         basis = _tyre_curve_basis(cs, cs_axle_loads)
         if basis is None:
             self.tyre_legend_label.setText(
@@ -948,7 +947,7 @@ class CornerTraceDialog(_TraceDialogBase):
         Returns the track_map geometry figure_render expects, or None without GPS.
         """
         import pyqtgraph as pg
-        from modules.geo import project_latlon_to_xy
+        from modules.corner_analysis import project_latlon_to_xy
         from modules.stability_analysis import reconstruct_cs_window_start, resolve_cs_min_window_samples
 
         self.track_map_plot.clear()
@@ -967,7 +966,7 @@ class CornerTraceDialog(_TraceDialogBase):
         lap_xy = (x[lap_sl], y[lap_sl])
 
         checked_instances = self._checked_instances(instances)
-        styles = plot_style.lap_styles(c["lap_number"] for c in checked_instances)
+        styles = figure_render.lap_styles(c["lap_number"] for c in checked_instances)
 
         brackets_by_lap = []
         for c in checked_instances:
@@ -1035,12 +1034,12 @@ class CornerTraceDialog(_TraceDialogBase):
         at slope CS * pi/180 per deg. Fy_arr is already on the basis' force
         (Fy / Fz or Fy); the entry carries its axis label.
         """
-        from core.trace_display import kerb_scatter_split
+        from core.display import kerb_scatter_split
         session_valid = session_mask & np.isfinite(alpha_arr) & np.isfinite(Fy_arr)
         session_xy = (np.degrees(alpha_arr[session_valid]), Fy_arr[session_valid],
                       kerb_mask[session_valid] if kerb_mask is not None else None)
 
-        styles = plot_style.lap_styles(c["lap_number"] for c in instances)
+        styles = figure_render.lap_styles(c["lap_number"] for c in instances)
         pooled_alpha = []
         pooled_ref = []
         corner_by_lap = []
@@ -1135,7 +1134,6 @@ class CornerTraceDialog(_TraceDialogBase):
         if self._export_data is None:
             QMessageBox.information(self, "Export figure", "Analyse a corner first -- nothing to export yet.")
             return
-        from core import figure_render
 
         data = self._export_data
         default_name = f"{data['corner_label']}_{'figure' if kind == 'corner' else 'verdict_traces'}.png"
@@ -1146,14 +1144,14 @@ class CornerTraceDialog(_TraceDialogBase):
             if kind == "corner":
                 fig = figure_render.render_corner_figure(
                     data["corner_label"], data["laps"], data["thresholds"],
-                    data["tyre_curves"], data["track_map"], theme=plot_style.PRINT,
+                    data["tyre_curves"], data["track_map"], theme=figure_render.PRINT,
                     near_strike=data.get("near_strike"),
                 )
                 figure_render.save_png(fig, path)
                 saved_paths = [path]
             else:
                 figs = figure_render.render_verdict_traces_figure(
-                    data["corner_label"], data["laps"], data["thresholds"], theme=plot_style.PRINT,
+                    data["corner_label"], data["laps"], data["thresholds"], theme=figure_render.PRINT,
                     near_strike=data.get("near_strike"),
                 )
                 saved_paths = []
@@ -1163,7 +1161,7 @@ class CornerTraceDialog(_TraceDialogBase):
                     figure_render.save_png(fig, fig_path)
                     saved_paths.append(fig_path)
         except Exception as e:
-            from core.error_text import friendly_error_text
+            from core.display import friendly_error_text
             QMessageBox.warning(self, "Export figure", f"Could not export figure ({friendly_error_text(e)}).")
             return
         QMessageBox.information(self, "Export figure", "Saved to " + ", ".join(saved_paths))
@@ -1304,7 +1302,6 @@ class CornerTraceDialog(_TraceDialogBase):
         margin_cfg = params.get("corner_trace_display", {})
         margin_before_m = margin_cfg.get("margin_before_m", 100.0)
         margin_after_m = margin_cfg.get("margin_after_m", 50.0)
-        bridge_on = margin_cfg.get("kerb_gap_bridge", True)
         # kerb exclusion (display only): the same switch drives the export
         ns_mode = margin_cfg.get("kerb_exclusion_display", "grey")
         ns_f, ns_r = cs.get("near_strike_f"), cs.get("near_strike_r")
@@ -1394,7 +1391,7 @@ class CornerTraceDialog(_TraceDialogBase):
                                      self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
             ]
             self.lap_curve_items[c["lap_number"]] = curve_items
-            if bridge_on and kerb_mask is not None:
+            if kerb_mask is not None:
                 any_bridge |= self._plot_kerb_bridges(
                     c["lap_number"], x, kerb_mask[sl][order],
                     [("stab", stab_obs[sl][order]), ("cs_f", cs_f[sl][order]), ("cs_r", cs_r[sl][order])])
@@ -1403,8 +1400,8 @@ class CornerTraceDialog(_TraceDialogBase):
                 "s": x, "v_kmh": v_kmh[sl][order],
                 "cs_f": cs_f[sl][order], "cs_r": cs_r[sl][order],
                 "stab": stab_obs[sl][order],
-                # export draws kerb bridges only when this is set (same flag)
-                "kerb": kerb_mask[sl][order] if (bridge_on and kerb_mask is not None) else None,
+                # export draws kerb bridges from this mask, as the screen does
+                "kerb": kerb_mask[sl][order] if kerb_mask is not None else None,
                 "near_strike_f": ns_f[sl][order] if ns_f is not None else None,
                 "near_strike_r": ns_r[sl][order] if ns_r is not None else None,
             })
@@ -1523,7 +1520,6 @@ class LapTraceDialog(_TraceDialogBase):
         if self._export_data is None:
             QMessageBox.information(self, "Export figure", "Show a lap first -- nothing to export yet.")
             return
-        from core import figure_render
 
         data = self._export_data
         default_name = f"{data['lap_label']}_figure.png"
@@ -1533,11 +1529,11 @@ class LapTraceDialog(_TraceDialogBase):
         try:
             fig = figure_render.render_lap_figure(
                 data["lap_label"], data["laps"], data["thresholds"], data["corner_bands"],
-                theme=plot_style.PRINT, near_strike=data.get("near_strike"),
+                theme=figure_render.PRINT, near_strike=data.get("near_strike"),
             )
             figure_render.save_png(fig, path)
         except Exception as e:
-            from core.error_text import friendly_error_text
+            from core.display import friendly_error_text
             QMessageBox.warning(self, "Export figure", f"Could not export figure ({friendly_error_text(e)}).")
             return
         QMessageBox.information(self, "Export figure", f"Saved to {path}")
@@ -1706,7 +1702,6 @@ class LapTraceDialog(_TraceDialogBase):
         any_kerb = False
         any_event = False
         any_not_moving = False
-        bridge_on = margin_cfg.get("kerb_gap_bridge", True)
         # kerb exclusion (display only): the same switch drives the export
         ns_mode = margin_cfg.get("kerb_exclusion_display", "grey")
         ns_counts = [0, 0]
@@ -1740,7 +1735,7 @@ class LapTraceDialog(_TraceDialogBase):
                                      self._pen(**placeholder_pen_kwargs), lap_name, ns_counts),
             ]
             self.lap_curve_items[ln] = curve_items
-            if bridge_on and data["kerb"] is not None:
+            if data["kerb"] is not None:
                 any_bridge |= self._plot_kerb_bridges(
                     ln, data["x"], data["kerb"],
                     [("stab", data["stab"]), ("cs_f", data["csf"]), ("cs_r", data["csr"])])
@@ -1748,7 +1743,7 @@ class LapTraceDialog(_TraceDialogBase):
             export_laps.append({
                 "lap_number": ln, "s": data["x"], "v_kmh": data["speed"],
                 "stab": data["stab"], "cs_f": data["csf"], "cs_r": data["csr"],
-                "kerb": data["kerb"] if bridge_on else None,
+                "kerb": data["kerb"],
                 "near_strike_f": data["nsf"], "near_strike_r": data["nsr"],
             })
 

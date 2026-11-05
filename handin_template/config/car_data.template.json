@@ -1,0 +1,105 @@
+{
+  "_comment": "Vehicle lookup tables read by the load model and the steering-angle resolution.",
+  "arb": {
+    "front": {
+      "unit": "N/mm at drop link",
+      "ratio_to_wheel": 1.0,
+      "positions": {
+        "1": 5.0,
+        "2": 6.0,
+        "3": 7.0,
+        "4": 8.0,
+        "5": 9.0,
+        "6": 10.0,
+        "7": 11.0
+      }
+    },
+    "rear": {
+      "unit": "N/mm at drop link",
+      "ratio_to_wheel": 1.0,
+      "positions": {
+        "1": 20.0,
+        "2": 25.0,
+        "3": 30.0,
+        "4": 35.0,
+        "5": 40.0,
+        "6": 45.0,
+        "7": 50.0
+      }
+    }
+  },
+  "motion_ratio_vs_wheel_travel": {
+    "note": "MR = damper travel / wheel travel over wheel travel in mm.",
+    "front": {
+      "unit": "damper/wheel",
+      "points": [
+        [
+          -80.0,
+          0.6
+        ],
+        [
+          60.0,
+          0.6
+        ]
+      ]
+    },
+    "rear": {
+      "unit": "damper/wheel",
+      "points": [
+        [
+          -60.0,
+          0.8
+        ],
+        [
+          60.0,
+          0.8
+        ]
+      ]
+    }
+  },
+  "steering_ratio_table": {
+    "note": "Front wheel angle over steering-wheel angle, both in deg.",
+    "columns": [
+      "steering_wheel_angle_deg",
+      "wheel_angle_deg"
+    ],
+    "rows": [
+      [
+        -280.0,
+        -20.0
+      ],
+      [
+        -210.0,
+        -15.0
+      ],
+      [
+        -140.0,
+        -10.0
+      ],
+      [
+        -70.0,
+        -5.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        70.0,
+        5.0
+      ],
+      [
+        140.0,
+        10.0
+      ],
+      [
+        210.0,
+        15.0
+      ],
+      [
+        280.0,
+        20.0
+      ]
+    ]
+  }
+}

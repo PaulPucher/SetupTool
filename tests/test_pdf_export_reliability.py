@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 from types import SimpleNamespace
 
-from core.error_text import friendly_error_text
+from core.display import friendly_error_text
 from core.pdf_export import generate_setup_pdf
 
 

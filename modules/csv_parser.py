@@ -8,9 +8,10 @@ import numpy as np
 import json
 import re
 from modules.corner_analysis import analyse_corners
+from modules.storage import repo_path
 from modules.stability_analysis import _estimate_sample_rate, _normalize_lap_distance_to_metres, load_parameters
 
-CHANNELS_CONFIG_PATH = "config/channels.json"
+CHANNELS_CONFIG_PATH = repo_path("config", "channels.json")
 
 
 def load_channels_config():
@@ -372,7 +373,7 @@ def _merge_leading_pit_fragment(laps, channels, config):
     # Mirror of _merge_trailing_pit_fragment: the lap counter can tick while the
     # car is still in the pit lane, leaving a short first "lap" (16-18 s, pit
     # speed, pit limiter on at its start AND end) ahead of the real out lap --
-    # 7 of 24 exports (lap census 2026-10-06). Merged into the following lap,
+    # 7 of 24 development exports. Merged into the following lap,
     # which is the out lap. Never touches an analysis lap.
     if len(laps) < 2:
         return

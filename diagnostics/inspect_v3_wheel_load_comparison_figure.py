@@ -1,6 +1,6 @@
 # Damper package, Phase 3: comparison figure, static-split estimate vs
 # damper-derived wheel load, GT3_PRC_MLA-v3.txt. Read-only, no config/
-# production changes. Reuses core/plot_style.py's PRINT theme constants
+# production changes. Reuses core/figure_render.py's PRINT theme constants
 # and core/figure_render.py's save_png (the same PNG-export mechanics the
 # app's own "Export figure" buttons use) rather than inventing new style
 # constants -- the panel composition itself is new (no existing renderer
@@ -20,14 +20,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from core import plot_style as ps
+from core import figure_render as ps
 from core.figure_render import save_png
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, load_car_data, prepare_vehicle_state, estimate_lateral_forces,
     estimate_vertical_loads,
 )
-from modules.wheel_loads import estimate_wheel_loads_from_dampers
+from modules.loads import estimate_wheel_loads_from_dampers
 
 RAW_FILE = "GT3_PRC_MLA-v3.txt"
 OUT_DIR = "diagnostics/plots_v3"

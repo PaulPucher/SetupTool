@@ -27,7 +27,7 @@ def ratio(path, setup_data):
     from modules.accuracy_resolution import apply_resolved_vehicle, resolve_accuracy
     from modules.csv_parser import parse_csv
     from modules.stability_analysis import load_car_data, load_parameters, prepare_vehicle_state
-    from modules.wheel_loads import CORNERS, estimate_wheel_loads_from_dampers, straight_line_plausibility
+    from modules.loads import CORNERS, estimate_wheel_loads_from_dampers, straight_line_plausibility
     params = load_parameters()
     p = apply_resolved_vehicle(params, resolve_accuracy(params, setup_data, None))
     data = parse_csv(path)
@@ -44,7 +44,7 @@ def ratio(path, setup_data):
 
 
 def main():
-    from modules.data_paths import resolve_saved_path
+    from modules.storage import resolve_saved_path
     from tests.conftest import resolve_data_path
     os.makedirs(OUT, exist_ok=True)
     res = {"dev": {}, "labelled": {}}

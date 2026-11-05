@@ -18,14 +18,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from core import plot_style as ps
+from core import figure_render as ps
 from core.figure_render import save_png
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, load_car_data, prepare_vehicle_state,
     estimate_lateral_forces, estimate_vertical_loads,
 )
-from modules.wheel_loads import CORNERS
+from modules.loads import CORNERS
 
 OUT_DIR = "diagnostics/plots_fz_integration"
 

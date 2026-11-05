@@ -1,4 +1,4 @@
-# Damper package Phase 1 -- unit tests on modules/wheel_loads.py, synthetic
+# Damper package Phase 1 -- unit tests on modules/loads.py, synthetic
 # fixtures only (same discipline as tests/test_longitudinal_stiffness.py's
 # own hand-computed-ramp tests and tests/test_csv_parser_formats.py's
 # "synthetic fixtures only" precedent -- pure-function unit tests are not
@@ -8,7 +8,7 @@
 import numpy as np
 import pytest
 
-from modules.wheel_loads import (
+from modules.loads import (
     estimate_wheel_loads_from_dampers, CORNERS,
     reconstruct_missing_corner, combine_with_reconstruction_and_fallback,
     estimate_session_corrected_axle_totals, _normalize_travel_to_mm, _channel_is_dead,
@@ -51,7 +51,7 @@ def _params():
             "unsprung_mass_front_kg": 40.0, "unsprung_mass_rear_kg": 45.0,
             "tyre_dynamic_radius_front_m": 0.34, "tyre_dynamic_radius_rear_m": 0.35,
             "roll_centre_front_m": 0.02, "roll_centre_rear_m": 0.05,
-            "arb_position_fallback": 4,
+            "arb_position_default": 4,
             "aero_front_fraction": 0.40,
             # 0.0 here (never below the real threshold) keeps every formula-
             # correctness test below unaffected by the dead-channel guard --
@@ -101,8 +101,9 @@ def test_known_pushrod_force_and_mr_gives_known_sprung_load():
     channels = _all_corner_channels(n, time, force, travel)
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     # ARB delta is zero (symmetric travel) so fz_N reduces to sprung_N plus
     # the (zero, symmetric) unsprung/geometric transfer terms at ay=0.
     assert np.allclose(result["fl"]["sprung_N"], 1000.0 * 0.65)
@@ -120,9 +121,10 @@ def test_pushrod_offset_is_subtracted_before_motion_ratio():
     channels = _all_corner_channels(n, time, force, travel)
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
     params["wheel_loads"]["pushrod_offset_fl_N"] = 200.0
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     assert np.allclose(result["fl"]["sprung_N"], (1200.0 - 200.0) * 0.65)
     assert np.allclose(result["fr"]["sprung_N"], 1200.0 * 0.65)
 
@@ -142,7 +144,7 @@ def test_arb_force_sign_and_magnitude_from_travel_delta():
     car_data = _car_data()
     params = _params()
     # position 4 -> front rate = 4*2.0 = 8.0 N/mm (ratio_to_wheel=1.0)
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=4)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
 
     delta_mm = 10.0
     rate = 8.0
@@ -166,8 +168,9 @@ def test_missing_damper_channel_falls_back_per_corner():
     channels = _all_corner_channels(n, time, force, travel, quality_by_corner=quality)
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     assert result["fl"]["valid"].all()
     assert not result["fr"]["valid"].any()
     assert np.isnan(result["fr"]["fz_N"]).all()
@@ -184,8 +187,9 @@ def test_missing_travel_channel_also_triggers_fallback():
     channels["log_susp_travel_rr"]["time"] = None
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     assert not result["rr"]["valid"].any()
 
 
@@ -200,8 +204,9 @@ def test_lateral_transfer_sign_matches_left_negative_right_positive_convention()
     channels = _all_corner_channels(n, time, force, travel)
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     # Positive ay -> right-side wheels (fr/rr) gain load, left-side (fl/rl)
     # lose it, for BOTH the unsprung and geometric transfer terms --
     # matches modules.stability_analysis.estimate_vertical_loads's own
@@ -374,8 +379,8 @@ def test_wheel_loads_from_dampers_gives_same_result_for_m_and_mm_inputs():
     channels_mm = _all_corner_channels(n, time, force, travel_mm_native, travel_unit_raw="mm")
     channels_m = _all_corner_channels(n, time, force, travel_m_native, travel_unit_raw="m")
 
-    result_mm = estimate_wheel_loads_from_dampers(state, channels_mm, params, car_data, arb_position=4)
-    result_m = estimate_wheel_loads_from_dampers(state, channels_m, params, car_data, arb_position=4)
+    result_mm = estimate_wheel_loads_from_dampers(state, channels_mm, params, car_data)
+    result_m = estimate_wheel_loads_from_dampers(state, channels_m, params, car_data)
     for c in CORNERS:
         assert np.allclose(result_mm[c]["fz_N"], result_m[c]["fz_N"])
         assert np.allclose(result_mm[c]["arb_N"], result_m[c]["arb_N"], equal_nan=True)
@@ -391,8 +396,9 @@ def test_wheel_loads_from_dampers_raises_on_unrecognised_force_unit():
     channels["log_dms_dam_fl"]["unit_raw"] = "bar"  # not N -- must refuse, not silently misread
     car_data = _car_data()
     params = _params()
+    params["wheel_loads"]["arb_position_default"] = 0  # clamps to position 1
     with pytest.raises(ValueError):
-        estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=0)
+        estimate_wheel_loads_from_dampers(state, channels, params, car_data)
 
 
 # --- dead-channel (frozen, plausible-value) guard ----------------------------
@@ -422,7 +428,7 @@ def test_dead_channel_guard_flags_frozen_travel_and_demotes_whole_corner():
     params["wheel_loads"]["dead_channel_std_max_travel_mm"] = 1.0
     params["wheel_loads"]["dead_channel_std_max_force_N"] = 50.0
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=4)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     assert result["rr"]["dead_channel"] is True
     assert not result["rr"]["valid"].any()
     assert np.isnan(result["rr"]["fz_N"]).all()
@@ -451,7 +457,7 @@ def test_dead_channel_on_one_corner_invalidates_only_that_axles_arb_term():
     params["wheel_loads"]["dead_channel_std_max_travel_mm"] = 1.0
     params["wheel_loads"]["dead_channel_std_max_force_N"] = 50.0
 
-    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data, arb_position=4)
+    result = estimate_wheel_loads_from_dampers(state, channels, params, car_data)
     assert result["fl"]["arb_valid"].all()
     assert result["fr"]["arb_valid"].all()
     assert not result["rl"]["arb_valid"].any()

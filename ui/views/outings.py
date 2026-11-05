@@ -7,10 +7,8 @@ from PyQt6.QtWidgets import (
     QPushButton, QHeaderView, QStackedWidget
 )
 from PyQt6.QtCore import Qt
-from models.base import Session
-from models.outing import Outing
-from models.raceweekend import RaceWeekend
-from ui.views.weekend_dialog import WeekendDialog
+from models.db import Session, Outing, RaceWeekend
+from ui.views.weekends import WeekendDialog
 from ui.views.outing_form import OutingForm
 from ui.style import PANEL_ALT, TEXT_MUTED
 

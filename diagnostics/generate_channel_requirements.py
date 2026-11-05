@@ -103,7 +103,7 @@ CHANNEL_NOTES = {
                  "computed duration if missing."),
     "ecu_aps": ("soft", "corner-phase detection (brake/throttle overlap), pipeline state."),
     "log_pbrake_f": ("soft", "state channel (stability_analysis.py), front-axle input to "
-                     "modules/longitudinal_forces.py's Fx/slip-ratio split."),
+                     "modules/loads.py's Fx/slip-ratio split."),
     "log_pbrake_r": ("soft", "rear-axle input to the same Fx/slip-ratio split. **Both front AND rear are "
                      "needed** -- the Paul Ricard snippet included only the front; rear-axle longitudinal "
                      "force/kappa silently loses accuracy without the rear channel, with no error shown."),
@@ -125,7 +125,7 @@ CHANNEL_NOTES = {
                     "Degrades the track-map visualisation only if missing."),
     "log_gps_lon": ("soft", "see log_gps_lat -- read together at every one of the same call sites, for the "
                     "same track-map/geo projection."),
-    "log_speed_fl": ("soft", "per-wheel speed (km/h) -- modules/longitudinal_forces.py's per-wheel slip "
+    "log_speed_fl": ("soft", "per-wheel speed (km/h) -- modules/loads.py's per-wheel slip "
                      "ratio (kappa), feeding the LS_ratio (longitudinal stiffness) display estimator."),
     "log_speed_fr": ("soft", "see log_speed_fl."),
     "log_speed_rl": ("soft", "see log_speed_fl."),

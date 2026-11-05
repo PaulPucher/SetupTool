@@ -10,7 +10,7 @@ import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from core.threshold_overrides import apply_threshold_edit, is_manual
+from modules.classifier import apply_threshold_edit, is_manual
 
 CONFIG_FILES = ("config/parameters.json", "config/channels.json")
 # real summaries of the default path (Dubai goldens retired 2026-10-20)
@@ -165,6 +165,6 @@ def test_notes_carry_no_dates_and_dead_rows_are_gone(qapp):
 
 
 def test_effective_cl_area_sign_and_value():
-    from modules.wheel_loads import effective_cl_area
+    from modules.loads import effective_cl_area
     # v3 session fit c = 1.5979 N/(m/s)^2 -> downforce, Cl*A negative
     assert effective_cl_area(1.5979, 1.225) == pytest.approx(-2.6088, abs=1e-4)

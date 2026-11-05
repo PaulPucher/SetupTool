@@ -62,9 +62,9 @@ def shoot(outing, out=None):
     app = QApplication.instance() or QApplication([])
     from ui.style import STYLESHEET
     app.setStyleSheet(STYLESHEET)
-    import models.driver, models.outing, models.raceweekend  # noqa: F401,E401  (mapper registry)
-    from models.base import Session
-    from models.raceweekend import RaceWeekend
+    import models.db  # noqa: F401,E401  (mapper registry)
+    from models.db import Session
+    from models.db import RaceWeekend
     from ui.views.outing_form import OutingForm
 
     session = common.load_session(outing)
@@ -125,7 +125,7 @@ def shoot_blank(out=None):
     app = QApplication.instance() or QApplication([])
     from ui.style import BACKGROUND, STYLESHEET
     app.setStyleSheet(STYLESHEET)
-    import models.driver, models.outing, models.raceweekend  # noqa: F401,E401  (mapper registry, driver list)
+    import models.db  # noqa: F401,E401  (mapper registry, driver list)
     from ui.views.outing_form import OutingForm
 
     _data, plots_dir, _prefix = common.out_dirs(out)

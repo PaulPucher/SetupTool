@@ -27,7 +27,7 @@
 # the way a raw argmin/argmax would.
 #
 # Uses the three-tier cascade throughout (damper-measured -> reconstructed
-# -> static-split, modules.wheel_loads.combine_with_reconstruction_and_
+# -> static-split, modules.loads.combine_with_reconstruction_and_
 # fallback) so FR reads as "reconstructed" wherever the corrupted
 # log_dms_dam_fr channel would otherwise force a plain static guess.
 #
@@ -44,14 +44,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from core import plot_style as ps
+from core import figure_render as ps
 from core.figure_render import _new_figure, _apply_theme, _draw_corner_bands, save_png
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, load_car_data, prepare_vehicle_state, estimate_lateral_forces,
     estimate_vertical_loads,
 )
-from modules.wheel_loads import (
+from modules.loads import (
     estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
     combine_with_reconstruction_and_fallback, CORNERS,
 )

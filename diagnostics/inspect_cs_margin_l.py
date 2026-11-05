@@ -92,7 +92,7 @@ def keep_awake(on):
 # (the recorded cs_margin method, 2026-10-22).
 def classify_all(summaries):
     from modules.classifier import classify_corner
-    from modules.corner_aggregation import aggregate_by_corner, PHASE_KEYS
+    from modules.classifier import aggregate_by_corner, PHASE_KEYS
     aggregated = aggregate_by_corner(summaries)
     out = {}
     for cid, corner in aggregated.items():

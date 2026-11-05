@@ -37,7 +37,7 @@ def cells(payload):
     for a cell with a value, "b" or "c" without one (module comment); and
     the number of corner-phases dropped as not occurring (per axle)."""
     from modules.classifier import verdict_cs_stat
-    from modules.corner_aggregation import PHASE_KEYS, _group_by_corner, aggregate_by_corner
+    from modules.classifier import PHASE_KEYS, _group_by_corner, aggregate_by_corner
     laps_by_corner = _group_by_corner(payload["summaries"])
     out, dropped = [], 0
     for cid, agg in sorted(aggregate_by_corner(payload["summaries"]).items(), key=lambda kv: kv[0]):

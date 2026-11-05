@@ -164,7 +164,7 @@ def test_reset_mark_spans_exactly_the_windows_with_a_reset(jst29, l_manifest):
     # the same observer on real data with the hard bound lowered to 2 deg
     # (the NIS-window trigger used before was removed in the 2026-10-22
     # pruning); the windowing does not depend on where the mask comes from.
-    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
+    from modules.observer import estimate_sideslip_ekf_pacejka
     st, p, laps = jst29["state"], jst29["params"], jst29["data"]["laps"]
     li = jst29["load_in"]
     st_l = dict(st, fz_axle_f_N=li["fz_f_N"], fz_axle_r_N=li["fz_r_N"], fx_axle_f_N=li["fx_f_N"])
@@ -226,7 +226,7 @@ def test_final_config_reproduces_the_shipped_observer(jst29, l_manifest):
     # the manifest's final config alone (plus the session loads) reproduces
     # the shipped beta; resets are hard-bound ones only (the soft triggers were
     # removed in the 2026-10-22 pruning)
-    from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
+    from modules.observer import estimate_sideslip_ekf_pacejka
     cfg = dict(l_manifest["final_config"])
     assert "divergence_trigger" not in cfg
     li = jst29["load_in"]
@@ -247,7 +247,7 @@ def test_observer_peak_axle_force_is_mu_times_fz(jst29, l_manifest):
     # just below mu * Fz: worst case B = 5 (lower bound) gives 0.997, hence
     # the stated tolerance of 1 % below and none above. Steer 0 isolates the
     # tyre-frame force (the Fx * sin(delta) term vanishes).
-    from modules.sideslip_ekf_pacejka import axle_forces
+    from modules.observer import axle_forces
     cfg = l_manifest["final_config"]
     assert cfg["d_is_mu"] is True
     tyre = (cfg["b_front"], cfg["c_front"], cfg["d_front"], cfg["e_front"],
@@ -271,7 +271,7 @@ def test_noise_floors_are_taken_on_the_consumed_signals(jst29, l_manifest):
     # steering-defined straights, of the very arrays the measurement update
     # reads (state ay_mps2 and yaw_rate_radps)
     from modules.stability_analysis import _butterworth_lowpass
-    from modules.straights import steering_straights
+    from modules.observer import steering_straights
     st, p = jst29["state"], jst29["params"]
     m = steering_straights(st, jst29["data"]["laps"], p["tyre_fit_auto"])["mask"]
     fl = l_manifest["noise_floors"]
@@ -311,9 +311,9 @@ def test_r_yaw_is_the_measured_yaw_rate_floor(l_manifest):
 
 
 def test_module_straights_match_the_diagnostic_definition(jst29):
-    # modules/straights.py is the definition of
+    # modules/observer.py is the definition of
     # diagnostics/inspect_kinematic_inputs.steering_straights, moved
-    from modules.straights import steering_straights
+    from modules.observer import steering_straights
     from diagnostics.inspect_kinematic_inputs import steering_straights as diag
     st, laps = jst29["state"], jst29["data"]["laps"]
     valid = [l for l in laps if l.get("is_valid_for_analysis")]

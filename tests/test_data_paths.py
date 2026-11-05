@@ -7,8 +7,8 @@ import os
 
 import pytest
 
-from modules.data_paths import load_roots, path_key, resolve_saved_path, split_root
-from modules.pipeline_sidecar import _first_mismatch, build_identity
+from modules.storage import load_roots, path_key, resolve_saved_path, split_root
+from modules.storage import _first_mismatch, build_identity
 from tests.conftest import find_data_file
 
 NBR29_REL = "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt"
@@ -58,3 +58,14 @@ def test_path_outside_the_roots_is_unchanged():
     p = "Z:/elsewhere/file.txt"
     assert split_root(p) is None and resolve_saved_path(p) is None
     assert path_key(p) == os.path.normcase(os.path.normpath(p))
+
+
+@pytest.mark.parametrize("content", ['{"roots": null}', '{}', '[]', 'not json', '{"roots": "C:/x"}'])
+def test_unusable_roots_file_means_no_roots(tmp_path, monkeypatch, content):
+    import modules.storage as dp
+    p = tmp_path / "data_roots.json"
+    p.write_text(content, encoding="utf-8")
+    monkeypatch.setattr(dp, "DATA_ROOTS_CONFIG_PATH", str(p))
+    assert load_roots() == []
+    monkeypatch.setattr(dp, "DATA_ROOTS_CONFIG_PATH", str(tmp_path / "missing.json"))
+    assert load_roots() == []

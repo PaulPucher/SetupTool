@@ -45,11 +45,11 @@ def app():
 def db(tmp_path):
     # throwaway SQLite DB (pattern of test_bug1_fixes.py)
     from sqlalchemy import create_engine
-    import models.base as base
+    import models.db as base
     original_bind = base.Session.kw.get("bind")
     engine = create_engine(f"sqlite:///{tmp_path / 'throwaway.db'}")
     base.Session.configure(bind=engine)
-    import models.driver, models.raceweekend, models.outing  # noqa: F401 -- table registration
+    import models.db  # noqa: F401 -- table registration
     base.Base.metadata.create_all(engine)
     yield base
     base.Session.configure(bind=original_bind)
@@ -57,7 +57,7 @@ def db(tmp_path):
 
 
 def _weekend(base, **kw):
-    from models.raceweekend import RaceWeekend
+    from models.db import RaceWeekend
     s = base.Session()
     w = RaceWeekend(**{"track": "Nordschleife", "series": "GT3", "car_number": 1, "year": 2026, **kw})
     s.add(w)
@@ -88,7 +88,7 @@ def test_b8_edit_then_delete_returns_to_the_weekend_list(db, app, monkeypatch):
     view = outings.OutingsView(w, on_back=lambda: went_back.append(True))
     # the empty-weekend delete asks first since BUG-3; a real modal box
     # would block the run
-    from ui.views import weekend_dialog
+    from ui.views import weekends as weekend_dialog
     monkeypatch.setattr(weekend_dialog.QMessageBox, "question",
                         staticmethod(lambda *a, **k: weekend_dialog.QMessageBox.StandardButton.Yes))
 
@@ -108,13 +108,14 @@ def _sorted_desc(table):
 
 
 def test_b7_weekend_row_after_sort(db, app, monkeypatch):
-    from ui.views import weekends
+    from ui.views import outings, weekends
     a = _weekend(db, track="Aragon", date=datetime.date(2026, 7, 1))
     _weekend(db, track="Zandvoort", date=datetime.date(2026, 5, 1))
     view = weekends.WeekendsView()
     _sorted_desc(view.table)  # Zandvoort first, query order has Aragon first
     opened = []
-    monkeypatch.setattr(weekends, "OutingsView", lambda wk, on_back: opened.append(wk.track) or SimpleNamespace())
+    # weekends imports OutingsView when a row opens (import cycle otherwise)
+    monkeypatch.setattr(outings, "OutingsView", lambda wk, on_back: opened.append(wk.track) or SimpleNamespace())
     monkeypatch.setattr(view.stack, "addWidget", lambda w: None)
     monkeypatch.setattr(view.stack, "setCurrentWidget", lambda w: None)
     row = next(r for r in range(view.table.rowCount()) if view.table.item(r, 0).text() == a.track)
@@ -123,7 +124,7 @@ def test_b7_weekend_row_after_sort(db, app, monkeypatch):
 
 
 def test_b7_driver_row_after_sort(db, app, monkeypatch):
-    from models.driver import Driver
+    from models.db import Driver
     from ui.views import drivers
     s = db.Session()
     s.add_all([Driver(name="Driver A"), Driver(name="Driver B")])
@@ -148,7 +149,7 @@ def test_b7_driver_row_after_sort(db, app, monkeypatch):
 def test_b7_rows_filled_while_sorted_keep_their_cells(db, app):
     # filling a sorted table re-sorts after every setItem and scatters a row's
     # cells over several rows; each row must still hold one outing
-    from models.outing import Outing
+    from models.db import Outing
     from ui.views import outings
     w = _weekend(db)
     s = db.Session()
@@ -303,7 +304,7 @@ def test_b22_value_finer_than_the_widget_survives_a_save(app, settings_copy):
 # --- Outing delete: confirmation, and the pipeline sidecar goes too ---
 
 def _outing(base, w):
-    from models.outing import Outing
+    from models.db import Outing
     s = base.Session()
     o = Outing(race_weekend_id=w.id, number=1, date_time=datetime.datetime(2026, 7, 1, 17, 34))
     s.add(o)
@@ -316,7 +317,7 @@ def _outing(base, w):
 
 def test_outing_delete_asks_first(db, app, monkeypatch):
     from PyQt6.QtWidgets import QMessageBox
-    from models.outing import Outing
+    from models.db import Outing
     from ui.views.outing_form import OutingForm
     w = _weekend(db)
     o = _outing(db, w)
@@ -332,8 +333,8 @@ def test_outing_delete_asks_first(db, app, monkeypatch):
 
 def test_outing_delete_removes_its_sidecar(db, app, monkeypatch, tmp_path):
     from PyQt6.QtWidgets import QMessageBox
-    from models.outing import Outing
-    import modules.pipeline_sidecar as ps
+    from models.db import Outing
+    import modules.storage as ps
     from ui.views.outing_form import OutingForm
     monkeypatch.setattr(ps, "SIDECAR_DIR", str(tmp_path))
     w = _weekend(db)

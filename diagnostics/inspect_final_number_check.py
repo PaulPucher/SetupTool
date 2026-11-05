@@ -64,7 +64,7 @@ def peak_deg(B, C, E):
 
 def stored():
     from tools.thesis_figures import common
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     from modules.classifier import _thresholds
     stab = _thresholds()["stab"]
     L, J = [], {}

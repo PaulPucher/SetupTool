@@ -1,12 +1,12 @@
 # Morning follow-up, Item 2 (updated per the "Closing the reconstruction's
 # aero gap" work order): FRONT axle comparison figure -- measured FL vs
-# RECONSTRUCTED FR (modules.wheel_loads.reconstruct_missing_corner),
+# RECONSTRUCTED FR (modules.loads.reconstruct_missing_corner),
 # GT3_PRC_MLA-v3.txt. Companion to diagnostics/inspect_v3_wheel_load_
 # comparison_figure.py (rear axle, damper vs static-split) -- that script
 # explicitly skipped the front axle because log_dms_dam_fr is corrupted
 # for the whole session; this one is what that reconstruction now makes
 # possible. FR is now reconstructed against the SESSION-CORRECTED axle-
-# total model (modules.wheel_loads.estimate_session_corrected_axle_
+# total model (modules.loads.estimate_session_corrected_axle_
 # totals), not the plain static one -- the ground-truth diagnostic
 # (thesis_notes.md "Reconstruction ground-truth check, lap 8" and
 # "Closing the reconstruction's aero gap") found the static model
@@ -22,14 +22,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from core import plot_style as ps
+from core import figure_render as ps
 from core.figure_render import save_png
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, load_car_data, prepare_vehicle_state, estimate_lateral_forces,
     estimate_vertical_loads,
 )
-from modules.wheel_loads import (
+from modules.loads import (
     estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals, reconstruct_missing_corner,
 )
 

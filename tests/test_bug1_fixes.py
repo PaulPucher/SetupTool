@@ -30,7 +30,7 @@ def jst29_no_az():
 def test_b1_straights_run_without_a_kerb_mask(jst29_no_az):
     # no usable az -> no kerb mask (None), as everywhere else in the chain;
     # the straights must then exclude nothing rather than crash on None | None
-    from modules.straights import steering_straights
+    from modules.observer import steering_straights
     st = jst29_no_az["state"]
     assert st["kerb_mask"] is None and st["kerb_smear_zone"] is None
     got = steering_straights(st, jst29_no_az["laps"], jst29_no_az["cfg"])
@@ -59,11 +59,11 @@ MISSING_PATH = "Q:/not_a_data_root/NBR-73-029-101-JST-26.07.01.1734.txt"
 @pytest.fixture
 def db(tmp_path):
     from sqlalchemy import create_engine
-    import models.base as base
+    import models.db as base
     original_bind = base.Session.kw.get("bind")
     engine = create_engine(f"sqlite:///{tmp_path / 'throwaway.db'}")
     base.Session.configure(bind=engine)
-    import models.driver, models.raceweekend, models.outing  # noqa: F401 -- table registration
+    import models.db  # noqa: F401 -- table registration
     base.Base.metadata.create_all(engine)
     yield base
     base.Session.configure(bind=original_bind)
@@ -77,8 +77,8 @@ def app():
 
 
 def _saved_outing(base):
-    from models.outing import Outing
-    from models.raceweekend import RaceWeekend
+    from models.db import Outing
+    from models.db import RaceWeekend
     s = base.Session()
     w = RaceWeekend(track="Nordschleife", series="GT3", car_number=1, year=2026)
     s.add(w)
@@ -101,14 +101,14 @@ def _reopen(base, model, row_id):
 
 
 def _form(base, wid, oid):
-    from models.outing import Outing
-    from models.raceweekend import RaceWeekend
+    from models.db import Outing
+    from models.db import RaceWeekend
     from ui.views.outing_form import OutingForm
     return OutingForm(_reopen(base, RaceWeekend, wid), on_back=lambda: None, outing=_reopen(base, Outing, oid))
 
 
 def test_b4_back_after_file_not_found_keeps_stored_data(db, app):
-    from models.outing import Outing
+    from models.db import Outing
     (wid, oid), payload = _saved_outing(db)
     form = _form(db, wid, oid)
     form._auto_load_csv(MISSING_PATH)  # "Data file not found at saved path"
@@ -120,7 +120,7 @@ def test_b4_back_after_file_not_found_keeps_stored_data(db, app):
 
 def test_b4_back_before_the_load_finished_keeps_stored_data(db, app):
     # the auto-load timer has not fired yet (no event loop here)
-    from models.outing import Outing
+    from models.db import Outing
     (wid, oid), payload = _saved_outing(db)
     form = _form(db, wid, oid)
     form._save_outing()
@@ -130,7 +130,7 @@ def test_b4_back_before_the_load_finished_keeps_stored_data(db, app):
 
 def test_b4_explicit_clear_still_removes_the_data(db, app):
     # Clear data (confirmed) + Save is the one way to drop path and analysis
-    from models.outing import Outing
+    from models.db import Outing
     (wid, oid), _payload = _saved_outing(db)
     form = _form(db, wid, oid)
     form._reset_data_state()
@@ -142,9 +142,9 @@ def test_b4_explicit_clear_still_removes_the_data(db, app):
 # --- Weekend delete with outings: refused with a message, nothing deleted ---
 
 def test_weekend_with_outings_is_not_deleted(db, app, monkeypatch):
-    from models.outing import Outing
-    from models.raceweekend import RaceWeekend
-    from ui.views import weekend_dialog
+    from models.db import Outing
+    from models.db import RaceWeekend
+    from ui.views import weekends as weekend_dialog
     (wid, oid), payload = _saved_outing(db)
     shown = []
     monkeypatch.setattr(weekend_dialog.QMessageBox, "warning",

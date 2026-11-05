@@ -25,9 +25,9 @@ from PyQt6.QtWidgets import QApplication
 
 app = QApplication([])
 
-import models.driver, models.outing, models.raceweekend  # noqa: F401,E401
-from models.base import Session
-from models.raceweekend import RaceWeekend
+import models.db  # noqa: F401,E401
+from models.db import Session
+from models.db import RaceWeekend
 from modules.csv_parser import parse_csv
 from ui.views.outing_form import OutingForm
 

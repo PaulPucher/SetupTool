@@ -1,0 +1,52 @@
+{
+  "_comment": "Overlay applied by tools/make_handin.py on config/parameters.json: generic vehicle description.",
+  "vehicle": {
+    "wheelbase_m": 2.5,
+    "mass_kg": 1250.0,
+    "corner_weights": {
+      "FL_kg": 275.0,
+      "FR_kg": 275.0,
+      "RL_kg": 350.0,
+      "RR_kg": 350.0
+    },
+    "yaw_inertia_kgm2": 1900.0,
+    "steering_ratio": 14.0,
+    "cog_to_front_axle_m": 1.4,
+    "cog_to_rear_axle_m": 1.1,
+    "cog_height_m": 0.35,
+    "track_width_front_m": 1.6,
+    "track_width_rear_m": 1.6,
+    "aero": {
+      "air_density_kgm3": 1.225,
+      "lift_coeff": 0.0,
+      "cross_track_area_m2": 2.2,
+      "diff_cog_x_m": 0.0,
+      "cross_track_area_note": "Frontal area (Level 1), used for drag with longitudinal_stiffness.drag_coeff; the lift model shares it but stays zero while lift_coeff = 0.",
+      "cross_track_area_derived_from": "Generic frontal area of a race car of touring-car size (Trzesniowski 2019)."
+    },
+    "mass_note": "Level 1 vehicle mass; corner weights entered on the setup sheet (Level 2) replace it per session."
+  },
+  "wheel_loads": {
+    "pushrod_offset_fl_N": 0.0,
+    "pushrod_offset_fr_N": 0.0,
+    "pushrod_offset_rl_N": 0.0,
+    "pushrod_offset_rr_N": 0.0,
+    "unsprung_mass_front_kg": 35.0,
+    "unsprung_mass_rear_kg": 40.0,
+    "tyre_dynamic_radius_front_m": 0.32,
+    "tyre_dynamic_radius_rear_m": 0.33,
+    "roll_centre_front_m": 0.02,
+    "roll_centre_rear_m": 0.06,
+    "arb_position_default": 4,
+    "aero_front_fraction": 0.4,
+    "tyre_dynamic_radius_note": "Level 1 estimate: static tyre circumference / (2 pi). Used only as the unsprung transfer arm.",
+    "roll_centre_note": "Level 1 estimate of the roll-centre height. Used for the geometric sprung lateral-transfer term only; the elastic part is already in the measured pushrod force and must not be added twice.",
+    "aero_front_fraction_note": "Level 1 estimate of the front share of the aero load, used only when the aero load is split to the axles."
+  },
+  "longitudinal_stiffness": {
+    "drag_coeff": 0.4,
+    "rolling_resistance_coeff": 0.015,
+    "drag_coeff_note": "Level 1, literature: with vehicle.aero.cross_track_area_m2 the longitudinal balance gains 0.5 rho c_D A v^2.",
+    "drag_coeff_derived_from": "Order of magnitude of production-based GT race cars (Katz 1995)."
+  }
+}

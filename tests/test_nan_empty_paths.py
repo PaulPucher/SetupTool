@@ -15,7 +15,7 @@ import math
 import numpy as np
 import pytest
 
-from modules.corner_aggregation import aggregate_by_corner, PHASE_KEYS
+from modules.classifier import aggregate_by_corner, PHASE_KEYS
 
 
 def _all_nan_phase():
@@ -109,7 +109,8 @@ def test_classifier_all_nan_phases_does_not_raise_and_reads_no_cs_data():
     short text. An all-linear corner (CS exactly 1.0 everywhere) has data and
     still reads "ok" -- the 1.0 sentinel alone cannot tell the two apart."""
     try:
-        from ui.views.outing_form import NO_CS_LONG, NO_CS_SHORT, OutingForm
+        from modules.classifier import NO_CS_LONG
+        from ui.views.outing_form import NO_CS_SHORT, OutingForm
         from ui.style import NEUTRAL, OK
     except ImportError as e:
         pytest.skip(f"ui.views.outing_form not importable in this environment ({e})")

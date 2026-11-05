@@ -5,7 +5,7 @@
 
 import pytest
 
-from modules.corner_aggregation import PHASE_KEYS
+from modules.classifier import PHASE_KEYS
 from modules.setup_engine import _matching_rows, direction_sign, load_mechanisms
 from modules.setup_state import load_setup_parameters_registry
 

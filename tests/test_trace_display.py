@@ -1,13 +1,12 @@
 # Kerb-gap bridge in the trace windows is display-only: it must draw across
 # kerb holes without ever reaching an analysis array. Real Dubai data.
 
-import copy
 import os
 import re
 
 import numpy as np
 
-from core.trace_display import kerb_gap_bridge
+from core.display import kerb_gap_bridge
 
 
 def _nan_equal(a, b):
@@ -49,34 +48,6 @@ def test_bridge_spans_kerb_gaps_only_and_leaves_input_untouched(pipeline_result,
     assert bridged_runs > 0, "Dubai has kerb strikes inside analysis laps; expected at least one bridge"
 
 
-def test_analysis_output_identical_with_bridge_flag_on_and_off(parsed_data, effective_params):
-    from modules.stability_analysis import (
-        prepare_vehicle_state, estimate_sideslip, estimate_slip_angles, estimate_lateral_forces,
-        estimate_cornering_stiffness, estimate_yaw_moment_stability, summarise_corners,
-    )
-
-    def run(flag):
-        p = copy.deepcopy(effective_params)
-        p["corner_trace_display"]["kerb_gap_bridge"] = flag
-        st = prepare_vehicle_state(parsed_data["channels"], p)
-        beta = estimate_sideslip(st, p)
-        slip = estimate_slip_angles(st, beta, p)
-        forces = estimate_lateral_forces(st, p)
-        cs = estimate_cornering_stiffness(slip, forces, st, p, parsed_data.get("laps", []))
-        stab = estimate_yaw_moment_stability(st, beta, p, parsed_data.get("laps", []))
-        summ = summarise_corners(parsed_data.get("corners", []), cs, stab, st)
-        return st, beta, cs, stab, summ
-
-    on, off = run(True), run(False)
-    for k in ("yaw_rate_radps", "ay_mps2", "v_mps", "kerb_mask"):
-        assert np.asarray(on[0][k]).tobytes() == np.asarray(off[0][k]).tobytes()
-    assert on[1].tobytes() == off[1].tobytes()
-    for k in ("CS_ratio_f", "CS_ratio_r"):
-        assert on[2][k].tobytes() == off[2][k].tobytes()
-    assert on[3]["stability_observed_Nm_per_deg"].tobytes() == off[3]["stability_observed_Nm_per_deg"].tobytes()
-    assert repr(on[4]) == repr(off[4])
-
-
 def test_no_analysis_module_reads_the_bridge():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pat = re.compile(r"kerb_gap_bridge|trace_display")
@@ -86,7 +57,7 @@ def test_no_analysis_module_reads_the_bridge():
             # the arrays it is given); it applies the bridge like the dialog.
             # Widening confirmed by the author 2026-09-30: modules/ staying
             # fully guarded is the part that matters.
-            if not name.endswith(".py") or (d == "core" and name in ("trace_display.py", "figure_render.py")):
+            if not name.endswith(".py") or (d == "core" and name in ("display.py", "figure_render.py")):
                 continue
             with open(os.path.join(root, d, name), encoding="utf-8") as fh:
                 assert not pat.search(fh.read()), f"{d}/{name} references the display-only bridge"
@@ -94,7 +65,7 @@ def test_no_analysis_module_reads_the_bridge():
 
 def test_export_draws_bridge_and_leaves_analysis_arrays_untouched(pipeline_result, parsed_data, state,
                                                                   effective_params):
-    from core import figure_render, plot_style as ps
+    from core import figure_render, figure_render as ps
     cs, stab = pipeline_result["cs"], pipeline_result["stab"]
     stab_obs = stab["stability_observed_Nm_per_deg"]
     before = {k: cs[k].tobytes() for k in ("CS_ratio_f", "CS_ratio_r")}
@@ -143,7 +114,7 @@ def test_export_png_holds_every_artist(pipeline_result, parsed_data, state, effe
     # extent (legends included) instead of cutting at the edge
     import matplotlib.pyplot as plt
     from PIL import Image
-    from core import figure_render, plot_style as ps
+    from core import figure_render, figure_render as ps
     cs, stab = pipeline_result["cs"], pipeline_result["stab"]
     t, s_m, kerb = state["time"], state["s_m"], state["kerb_mask"]
     cls = effective_params["classification"]
@@ -187,7 +158,7 @@ def _exclusion_runs(x, mask):
 
 def test_exclusion_union_and_tint_never_overlap(parsed_data, state):
     # real Dubai laps: kerb and not-moving spans of every analysis lap
-    from core.trace_display import interval_subtract, interval_union
+    from core.display import interval_subtract, interval_union
     t, s_m = state["time"], state["s_m"]
     spans = []
     for lap in parsed_data["laps"]:
@@ -207,7 +178,7 @@ def test_exclusion_union_and_tint_never_overlap(parsed_data, state):
 
 
 def test_cross_lap_envelope_brackets_the_median(pipeline_result, parsed_data, state, effective_params):
-    from core.trace_display import cross_lap_envelope
+    from core.display import cross_lap_envelope
     cfg = effective_params["corner_trace_display"]["cs_envelope"]
     assert list(cfg["percentiles"]) == [10, 90]
     t, s_m = state["time"], state["s_m"]

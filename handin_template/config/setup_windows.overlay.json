@@ -1,0 +1,167 @@
+{
+  "_comment": "Overlay applied by tools/make_handin.py on config/setup_windows.json: generic window centres and half-widths.",
+  "parameter_windows": {
+    "arb_fl": {
+      "__replace__": true,
+      "nominal": 4,
+      "span": 2,
+      "source": "middle of the 1-7 range, half-width 2"
+    },
+    "arb_fr": {
+      "__replace__": true,
+      "nominal": 4,
+      "span": 2,
+      "source": "middle of the 1-7 range, half-width 2"
+    },
+    "arb_rl": {
+      "__replace__": true,
+      "nominal": 4,
+      "span": 2,
+      "source": "middle of the 1-7 range, half-width 2"
+    },
+    "arb_rr": {
+      "__replace__": true,
+      "nominal": 4,
+      "span": 2,
+      "source": "middle of the 1-7 range, half-width 2"
+    },
+    "springs_front": {
+      "__replace__": true,
+      "nominal": 260,
+      "span": 60,
+      "source": "midpoint and half-width of the spring options (the midpoint itself is not an option)"
+    },
+    "springs_rear": {
+      "__replace__": true,
+      "nominal": 260,
+      "span": 60,
+      "source": "midpoint and half-width of the spring options (the midpoint itself is not an option)"
+    },
+    "damper_bump_ls_fl": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_bump_ls_fr": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_bump_ls_rl": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_bump_ls_rr": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_rebound_ls_fl": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_rebound_ls_fr": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_rebound_ls_rl": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "damper_rebound_ls_rr": {
+      "__replace__": true,
+      "nominal": 10,
+      "span": 10,
+      "source": "midpoint and half-width of the 0-20 click range"
+    },
+    "ride_height_front": {
+      "__replace__": true,
+      "nominal": 100,
+      "span": 3,
+      "source": "standard and its lower window edge"
+    },
+    "ride_height_rear": {
+      "__replace__": true,
+      "nominal": 120,
+      "span": 6,
+      "source": "standard +-6 mm"
+    },
+    "diff_position": {
+      "__replace__": true,
+      "nominal": 3,
+      "span": 2,
+      "source": "midpoint and half-width of the 1-5 range"
+    },
+    "toe_front": {
+      "__replace__": true,
+      "nominal": -2,
+      "span": 2,
+      "source": "midpoint and half-width of the value range"
+    },
+    "toe_rear": {
+      "__replace__": true,
+      "nominal": 2,
+      "span": 2,
+      "source": "midpoint and half-width of the value range"
+    },
+    "camber_fl": {
+      "__replace__": true,
+      "nominal": -3.25,
+      "span": 1.75,
+      "source": "midpoint and half-width of the value range"
+    },
+    "camber_fr": {
+      "__replace__": true,
+      "nominal": -3.25,
+      "span": 1.75,
+      "source": "midpoint and half-width of the value range"
+    },
+    "camber_rl": {
+      "__replace__": true,
+      "nominal": -3.25,
+      "span": 1.75,
+      "source": "midpoint and half-width of the value range"
+    },
+    "camber_rr": {
+      "__replace__": true,
+      "nominal": -3.25,
+      "span": 1.75,
+      "source": "midpoint and half-width of the value range"
+    },
+    "tc_lat": {
+      "__replace__": true,
+      "nominal": 6,
+      "span": 6,
+      "source": "midpoint and half-width of the 0-12 range"
+    },
+    "tc_lon": {
+      "__replace__": true,
+      "nominal": 6,
+      "span": 6,
+      "source": "midpoint and half-width of the 0-12 range"
+    },
+    "splitter_offset": {
+      "__replace__": true,
+      "nominal": 0,
+      "span": 5,
+      "source": "default and half-width of the value range"
+    },
+    "wing_position": {
+      "__replace__": true,
+      "nominal": null,
+      "span": null,
+      "note": "Stored as the option label, not the angle, so no numeric window."
+    }
+  }
+}

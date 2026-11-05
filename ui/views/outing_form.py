@@ -14,15 +14,13 @@ from PyQt6.QtWidgets import (
     QHeaderView, QAbstractSpinBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QDateTime, QThread, pyqtSignal, QTimer
-from models.base import Session
-from models.driver import Driver
-from models.outing import Outing
+from models.db import Session, Driver, Outing
 from ui.style import (ACCENT, OK, WARN, BAD, NEUTRAL, TEXT, TEXT_MUTED, TEXT_DIM, PANEL, PANEL_ALT, BORDER,
                       SPEED_TINT, SPEED_TEXT, SPEED_LETTER, FILL_TEXT, BACKGROUND, PLOT_FOREGROUND)
 from ui.views.measurement_points_widget import MeasurementPointsWidget
-from core.error_text import friendly_error_text
+from core.display import friendly_error_text
 from modules.csv_parser import lap_display_label
-from modules.classifier import NO_CS_SHORT, NO_CS_LONG
+from modules.classifier import NO_CS_SHORT
 
 # WARN boundary as a fraction of the BAD boundary (stab_neg_thresh), so
 # detail colours follow the verdict threshold.
@@ -62,7 +60,7 @@ def invalidate_all_pipeline_caches():
     _pipeline_cache_store.clear()
 
 
-# Session-wide pipeline cache (Modules 1-5), keyed by normalised csv_path,
+# Session-wide pipeline cache (the full analysis chain), keyed by normalised csv_path,
 # so reopening an outing or a second outing on the same file skips the
 # recompute. LRU, capped at _PIPELINE_CACHE_MAX_ENTRIES. Identity fields
 # still checked by the caller.
@@ -134,7 +132,7 @@ class StabilityAnalysisThread(QThread):
         self.lap_filter = lap_filter
         # for the fit manifest only, never control flow
         self.csv_path = csv_path
-        # cached Modules 1-5 result for the same csv_path, cap and vehicle
+        # cached analysis-chain result for the same csv_path, cap and vehicle
         # snapshot (matched by the caller). Present -> only summarise_corners
         # re-runs for the new lap_filter. None -> full pipeline.
         self.pipeline_cache = pipeline_cache
@@ -145,13 +143,7 @@ class StabilityAnalysisThread(QThread):
 
     def run(self):
         try:
-            from modules.stability_analysis import (
-                load_parameters, load_car_data, prepare_vehicle_state,
-                estimate_slip_angles, estimate_lateral_forces,
-                estimate_cornering_stiffness, estimate_yaw_moment_stability,
-                estimate_vertical_loads, summarise_corners,
-            )
-            from modules.accuracy_resolution import apply_resolved_vehicle
+            from modules.stability_analysis import summarise_corners
             if self.pipeline_cache is not None:
                 corners = self.pipeline_cache["corners"]
                 state = self.pipeline_cache["state"]
@@ -172,50 +164,18 @@ class StabilityAnalysisThread(QThread):
                 fallback_reason = self.pipeline_cache.get("fallback_reason")
                 events = self.pipeline_cache.get("events")
             else:
-                params = load_parameters()
-                # resolved (cap-clipped) vehicle values in a deep-copied params dict
-                effective_params = apply_resolved_vehicle(params, self.resolved_accuracy)
-                state = prepare_vehicle_state(self.parsed_data["channels"], effective_params)
-                if state is None:
-                    self.error.emit("Required channels missing or failed")
+                # the chain itself lives in modules/pipeline.py, testable without Qt
+                from modules.pipeline import MissingChannelsError, run_analysis
+                try:
+                    chain = run_analysis(self.parsed_data, self.resolved_accuracy, csv_path=self.csv_path)
+                except MissingChannelsError as e:
+                    self.error.emit(str(e))
                     return
-                sideslip_source = effective_params["stability_estimation"].get(
-                    "sideslip_source", "kinematic"
-                )
-                # sideslip dispatch lives in tyre_fit_auto, testable without Qt
-                from modules.tyre_fit_auto import resolve_sideslip_beta_and_cs_inputs
-                # speed classes from the current Settings boundaries, before the
-                # fit's sign check reads them
-                from modules.corner_analysis import reclassify_speed_classes
-                from modules.csv_parser import load_channels_config
-                reclassify_speed_classes(self.parsed_data.get("corners", []),
-                                         load_channels_config()["corner_speed_thresholds"])
-                # cs_inputs: fit L's axle loads, reference band and reset mask
-                # for the CS estimate; empty on the kinematic path
-                (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason,
-                 cs_inputs) = resolve_sideslip_beta_and_cs_inputs(
-                    state, effective_params, self.parsed_data, sideslip_source, csv_path=self.csv_path
-                )
-                slip = estimate_slip_angles(state, beta, effective_params)
-                forces = estimate_lateral_forces(state, effective_params)
-                cs = estimate_cornering_stiffness(slip, forces, state, effective_params, self.parsed_data.get("laps", []),
-                                                  **cs_inputs["cs_kwargs"])
-                cs_axle_loads = cs_inputs["cs_kwargs"].get("axle_loads")
-                stab = estimate_yaw_moment_stability(state, beta, effective_params, self.parsed_data.get("laps", []))
-                # Fz / fy_norm: diagnostic only. channels/car_data only used when
-                # vertical_load_source is "measured".
-                fz = estimate_vertical_loads(state, forces, effective_params,
-                                             channels=self.parsed_data["channels"], car_data=load_car_data())
-                corners = self.parsed_data.get("corners", [])
-                # event layer: display + record only, read after the verdict
-                # chain; floor events (-0.53, measured attributes), none on
-                # the kinematic path
-                from modules.limit_events import detect_events
-                events = detect_events(cs, state, corners, self.parsed_data.get("laps", []),
-                                       fit_manifest, effective_params, slip=slip,
-                                       gate_verdict=gate_verdict,
-                                       axle_loads=cs_inputs["cs_kwargs"].get("axle_loads"),
-                                       axle_fx=cs_inputs["axle_fx"])
+                state, cs, stab, fz = chain["state"], chain["cs"], chain["stab"], chain["fz"]
+                slip, forces, cs_axle_loads = chain["slip"], chain["forces"], chain["cs_axle_loads"]
+                corners, sideslip_source, events = chain["corners"], chain["sideslip_source"], chain["events"]
+                fit_manifest, gate_verdict = chain["fit_manifest"], chain["gate_verdict"]
+                fallback_used, fallback_reason = chain["fallback_used"], chain["fallback_reason"]
             summaries = summarise_corners(corners, cs, stab, state, fz=fz,
                                           lap_filter=self.lap_filter)
             self.finished.emit({
@@ -326,15 +286,9 @@ class OutingForm(QWidget):
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
 
-    def _sideslip_source_calibrated(self):
-        # one traces-vs-verdicts gate for the banners, [UNCAL] markers and PDF;
-        # pure config comparison (sideslip source and tyre_fit_mode)
-        from modules.stability_analysis import load_parameters, thresholds_calibrated
-        return thresholds_calibrated(load_parameters())
-
     def _stability_colour(self, kind, value, axle="f"):
         # a CS phase value is coloured by the class it would set in the
-        # classifier (D2 boundary and tiers, modules.classifier.cs_value_state),
+        # classifier (boundary and tiers, modules.classifier.cs_value_state),
         # so the colour and the verdict cannot disagree
         if value is None or (isinstance(value, float) and value != value):
             return NEUTRAL
@@ -383,8 +337,6 @@ class OutingForm(QWidget):
     _VERDICT_QUALIFIERS = (
         ("[MARGINAL]", "Close to a classification threshold: a realistic ~1 % measurement or "
                        "parameter change can flip this verdict."),
-        ("[UNCAL]", "The thresholds were derived for a different sideslip estimate -- read the "
-                    "traces rather than the colours."),
         ("[stab thresh: kinematic-era, not re-derived]",
          "The stability threshold was derived for a different sideslip estimate."),
     )
@@ -681,33 +633,6 @@ class OutingForm(QWidget):
         estimator_status_layout.addWidget(self.estimator_status_label)
         estimator_status_layout.addStretch()
         layout.addWidget(estimator_status_row)
-
-        self.btn_clear_lap_selection = QPushButton("Clear Selection")
-        self.btn_clear_lap_selection.setFixedWidth(120)
-        self.btn_clear_lap_selection.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {PANEL};
-                color: {TEXT_MUTED};
-                border: 1px solid {BORDER};
-                border-radius: 4px;
-                padding: 4px 10px;
-                font-size: 11px;
-            }}
-            QPushButton:hover {{
-                color: #C0A060;
-                border-color: #C0A060;
-            }}
-        """)
-        self.btn_clear_lap_selection.clicked.connect(self._clear_lap_selection)
-        self.btn_clear_lap_selection.setVisible(False)
-
-        lap_controls_row = QWidget()
-        lap_controls_layout = QHBoxLayout(lap_controls_row)
-        lap_controls_layout.setContentsMargins(0, 0, 0, 0)
-        lap_controls_layout.setSpacing(8)
-        lap_controls_layout.addWidget(self.btn_clear_lap_selection)
-        lap_controls_layout.addStretch()
-        layout.addWidget(lap_controls_row)
 
         # lets a repeat click on the selected lap toggle it off
         self._selected_lap_value = None
@@ -1036,14 +961,10 @@ class OutingForm(QWidget):
         self.stability_status_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 12px;")
         self.estimator_status_label.setText("")
         self.estimator_status_label.setVisible(False)
-        self.calibration_banner_label.setText("")
-        self.calibration_banner_label.setVisible(False)
         self.accuracy_footer_label.setText("")
         self.events_label.setText("")
         self.events_label.setVisible(False)
         self._displayed_events = None
-        self.setup_calibration_banner_label.setText("")
-        self.setup_calibration_banner_label.setVisible(False)
         self._clear_setup_rows()
 
         self._clear_cards()
@@ -1061,10 +982,8 @@ class OutingForm(QWidget):
         # or every lap if none is valid.
         if not self.parsed_data:
             return None
-        all_laps = sorted({l["lap_number"] for l in self.parsed_data.get("laps", [])})
-        valid_laps = sorted(l["lap_number"] for l in self.parsed_data.get("laps", [])
-                             if l.get("is_valid_for_analysis", False))
-        return valid_laps if valid_laps else all_laps
+        from modules.pipeline import analysis_laps
+        return analysis_laps(self.parsed_data)
 
     def _get_accuracy_cap_from_selector(self):
         # every analysis runs at best available accuracy (no level chooser);
@@ -1134,7 +1053,7 @@ class OutingForm(QWidget):
         widgets = [self._section_session, self._section_setup, self._section_setdown,
                    self._section_feedback, self._section_comments,
                    self.btn_load, self.btn_clear_data,
-                   self.lap_table, self.btn_clear_lap_selection, self.btn_lap_traces,
+                   self.lap_table, self.btn_lap_traces,
                    self.btn_generate_setup, self.btn_back, self.btn_save]
         if self.btn_delete is not None:
             widgets.append(self.btn_delete)
@@ -1218,7 +1137,7 @@ class OutingForm(QWidget):
         self.stability_status_label.setText(f"{status_text}Analysing laps {lap_filter}...")
         self.stability_status_label.setStyleSheet("color: #C0A060; font-size: 12px;")
 
-        # reuse the cached Modules 1-5 run for the same file, cap, vehicle snapshot,
+        # reuse the cached chain run for the same file, cap, vehicle snapshot,
         # sideslip_source and grid rate -> only summarise_corners re-runs. Cache is
         # session-wide, so another form's run of this file counts.
         pipeline_cache = None
@@ -1250,7 +1169,7 @@ class OutingForm(QWidget):
             self.btn_analyse.setEnabled(True)
             return
         self.stability_result = result
-        # cache Modules 1-5 output incl. corners (fast path never re-detects);
+        # cache the chain output incl. corners (fast path never re-detects);
         # same dict feeds the sidecar
         pipeline_cache_entry = {
             "csv_path": _norm_path(self.loaded_csv_path),
@@ -1298,7 +1217,7 @@ class OutingForm(QWidget):
         if self.outing:
             self._persist_analysis_cache()
             # sidecar write never raises, never blocks the DB write
-            from modules.pipeline_sidecar import build_identity, write_sidecar
+            from modules.storage import build_identity, write_sidecar
             from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
             sidecar_identity = build_identity(
                 schema_version=ANALYSIS_SCHEMA_VERSION,
@@ -1426,9 +1345,9 @@ class OutingForm(QWidget):
             self.setup_summary_label.setText(outdated_msg)
             self.setup_summary_label.setStyleSheet(f"color: {WARN}; font-size: 11px;")
             return False
-        # relative to the data root: the same export under D:/ on one machine
-        # and H:/ on the other is the same analysis input
-        from modules.data_paths import path_key
+        # relative to the data root: the same export under another root on
+        # another machine is the same analysis input
+        from modules.storage import path_key
         if path_key(cached.get("csv_path")) != path_key(self.loaded_csv_path):
             return False
         cap = self._get_accuracy_cap_from_selector()
@@ -1457,7 +1376,7 @@ class OutingForm(QWidget):
         self.stability_result = {"summaries": summaries}
         # sidecar with the same identity: hit -> merge full outputs and warm the
         # pipeline cache; miss -> summaries-only result, unchanged
-        from modules.pipeline_sidecar import build_identity, load_sidecar
+        from modules.storage import build_identity, load_sidecar
         sidecar_identity = build_identity(
             schema_version=ANALYSIS_SCHEMA_VERSION,
             csv_path=_norm_path(self.loaded_csv_path),
@@ -1537,7 +1456,7 @@ class OutingForm(QWidget):
         ]
         return " | ".join(parts)
 
-    # estimator/fit/gate status line, separate from the [UNCAL] banner;
+    # estimator/fit/gate status line;
     # product text says what, not after whom: no model or source names
     _ESTIMATOR_LABELS = {
         "kinematic": "simple kinematic estimate",
@@ -1602,15 +1521,6 @@ class OutingForm(QWidget):
         self._displayed_events = events
         self.events_label.setText(self._format_events_line(events))
         self.events_label.setVisible(events is not None)
-        if self._sideslip_source_calibrated():
-            self.calibration_banner_label.setVisible(False)
-            self.calibration_banner_label.setText("")
-        else:
-            self.calibration_banner_label.setVisible(True)
-            self.calibration_banner_label.setText(
-                "Sideslip estimator changed; verdict thresholds not re-derived -- "
-                "read traces, not verdict colours."
-            )
         self._displayed_resolved_vehicle_snapshot = (
             resolved_accuracy.get("values") if resolved_accuracy else None
         )
@@ -1962,14 +1872,6 @@ class OutingForm(QWidget):
         self.stability_summary_label.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
         panel_layout.addWidget(self.stability_summary_label)
 
-        # banner when the thresholds are not calibrated for the active
-        # estimator path; the per-verdict [UNCAL] can scroll away, this can't
-        self.calibration_banner_label = QLabel("")
-        self.calibration_banner_label.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: bold;")
-        self.calibration_banner_label.setWordWrap(True)
-        self.calibration_banner_label.setVisible(False)
-        panel_layout.addWidget(self.calibration_banner_label)
-
         # one compact line: the floor-event count (the events themselves are
         # in the corner details and the trace view) and a toggle for the
         # accuracy levels of the vehicle inputs
@@ -2061,12 +1963,6 @@ class OutingForm(QWidget):
         gen_row_layout.addStretch()
         panel_layout.addWidget(gen_row)
 
-        self.setup_calibration_banner_label = QLabel("")
-        self.setup_calibration_banner_label.setStyleSheet(f"color: {WARN}; font-size: 11px; font-weight: bold;")
-        self.setup_calibration_banner_label.setWordWrap(True)
-        self.setup_calibration_banner_label.setVisible(False)
-        panel_layout.addWidget(self.setup_calibration_banner_label)
-
         # one compact line: the repeated symptoms (session shares)
         self.setup_summary_label = QLabel("Run Analyse, then Generate.")
         self.setup_summary_label.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
@@ -2116,9 +2012,9 @@ class OutingForm(QWidget):
         # both layers from the current form state: setup sheet (from -> to,
         # limits) and feedback (engineer layer only)
         import json
-        from modules.setup_engine import run
+        from modules.pipeline import recommend
         result = self.stability_result or {}
-        return run(
+        return recommend(
             result["summaries"],
             setup_data=json.loads(self._collect_setup_data()),
             feedback_data=json.loads(self._collect_feedback_data()),
@@ -2142,7 +2038,7 @@ class OutingForm(QWidget):
         # the sidecar carries the same layers
         last = getattr(self, "_last_sidecar", None)
         if self.outing and last is not None:
-            from modules.pipeline_sidecar import write_sidecar
+            from modules.storage import write_sidecar
             identity, sidecar_payload = last
             sidecar_payload["setup_engine"] = layers
             write_sidecar(self.outing.id, identity, sidecar_payload)
@@ -2159,14 +2055,6 @@ class OutingForm(QWidget):
             self.setup_summary_label.setStyleSheet(f"color: {BAD}; font-size: 11px;")
 
     def _generate_setup(self):
-        if self._sideslip_source_calibrated():
-            self.setup_calibration_banner_label.setVisible(False)
-            self.setup_calibration_banner_label.setText("")
-        else:
-            self.setup_calibration_banner_label.setVisible(True)
-            self.setup_calibration_banner_label.setText(
-                "Sideslip estimator changed; classification thresholds not re-derived -- "
-                "treat as indicative only.")
         if not self.stability_result:
             if self._cached_schema_mismatch:
                 stored_v, current_v = self._cached_schema_mismatch
@@ -2612,21 +2500,6 @@ class OutingForm(QWidget):
         layout.setSpacing(10)
         center.setFixedWidth(350)
 
-        img_label = QLabel()
-        img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        img_label.setStyleSheet("border: 1px solid #2a2a2a; border-radius: 4px;")
-
-        from PyQt6.QtGui import QPixmap
-        pixmap = QPixmap("config/images/car_default.jpg")
-        if not pixmap.isNull():
-            pixmap = pixmap.scaledToHeight(750, Qt.TransformationMode.SmoothTransformation)
-            img_label.setPixmap(pixmap)
-        else:
-            img_label.setText("[ car image ]")
-            img_label.setStyleSheet(f"color: {TEXT_DIM}; border: 1px solid {BORDER}; border-radius: 4px;")
-
-        layout.addWidget(img_label)
-
         weights_group = QGroupBox("Weights")
         weights_group.setToolTip(
             "Corner-weighing convention: driver seated + 35 kg fuel reference. "
@@ -2852,15 +2725,15 @@ class OutingForm(QWidget):
         return json.dumps(data)
 
     # Splitter/diffuser points (mm, floor-referenced; separate from the
-    # car-referenced splitter_offset). Reshape in core/setup_data_points.py.
+    # car-referenced splitter_offset). Reshape in modules/setup_state.py.
     # Flat widget keys <-> car[...] arrays on save/load; older outings without
     # the arrays just leave the widgets empty.
     def _reshape_points_out(self, json_string):
-        from core.setup_data_points import reshape_points_out
+        from modules.setup_state import reshape_points_out
         return reshape_points_out(json_string)
 
     def _reshape_points_in(self, json_string):
-        from core.setup_data_points import reshape_points_in
+        from modules.setup_state import reshape_points_in
         return reshape_points_in(json_string)
 
     def _collect_setup_data(self):
@@ -3079,7 +2952,7 @@ class OutingForm(QWidget):
     def _update_corner_map_trace(self):
         import numpy as np
         import pyqtgraph as pg
-        from modules.geo import compute_gps_origin, project_latlon_to_xy
+        from modules.corner_analysis import compute_gps_origin, project_latlon_to_xy
 
         if not self.parsed_data:
             self._show_corner_map_placeholder("Load a CSV to see the track map.")
@@ -3139,7 +3012,7 @@ class OutingForm(QWidget):
 
         colour_by_id = {}
         if self.stability_result:
-            from modules.corner_aggregation import aggregate_by_corner
+            from modules.classifier import aggregate_by_corner
             aggregated = aggregate_by_corner(self.stability_result["summaries"])
             for cid, agg in aggregated.items():
                 _severity, _short, _long, colour = self._classify_corner(agg)
@@ -3217,7 +3090,7 @@ class OutingForm(QWidget):
         if not candidates:
             return None
 
-        from modules.corner_aggregation import SEVERITY_RANK
+        from modules.classifier import SEVERITY_RANK
         ranked = [(SEVERITY_RANK[self._classify_corner(s)[0]], s) for s in candidates]
         max_rank = max(rank for rank, _s in ranked)
         worst = [s for rank, s in ranked if rank == max_rank]
@@ -3526,7 +3399,7 @@ class OutingForm(QWidget):
 
     def _auto_load_csv(self, path):
         # a path saved on the other machine is looked up under its data roots
-        from modules.data_paths import resolve_saved_path
+        from modules.storage import resolve_saved_path
         path = resolve_saved_path(path)
         if path is None:
             self.csv_status_label.setText("Data file not found at saved path")
@@ -3583,7 +3456,7 @@ class OutingForm(QWidget):
             if reply != QMessageBox.StandardButton.Yes:
                 return
             from sqlalchemy import delete
-            from modules.pipeline_sidecar import delete_sidecar
+            from modules.storage import delete_sidecar
             session = Session()
             session.execute(delete(Outing).where(Outing.id == self.outing.id))
             session.commit()

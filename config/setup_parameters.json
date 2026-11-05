@@ -1,14 +1,11 @@
 {
-  "_comment": "Setup-parameter registry, one entry per tunable: identity, value space, direction semantics, typical window, change effort, mechanism, optional phase affinity, notes, recommendation_target. Entries with a car_data.json lookup cite the section in 'notes'; direction_semantics checked against the digitised values. value_source: 'setup_sheet' (maps_to = car.json path) or 'logged_data' (maps_to null, truth is a logged channel) -- independent of recommendation_target.",
+  "_comment": "Registry of setup levers, one entry per tunable: identity, value space, direction semantics, typical window, change effort, mechanism and recommendation target. value_source 'setup_sheet' means maps_to points into car.json; 'logged_data' means maps_to is null and the current value comes from a logged channel. Entries backed by a car_data.json table name it in 'notes'.",
   "arb_fl": {
-    "key": "arb_fl",
     "label": "Front-Left ARB Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.arb"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 1,
@@ -20,26 +17,16 @@
       "7": "stiffest",
       "increasing": "stiffer"
     },
-    "typical_window": {
-      "min": 3,
-      "max": 5,
-      "notes": "2/6 rare, 1/7 unused; rear usually a slightly lower position than front"
-    },
     "change_effort": "minutes",
-    "mechanism": "Sets front-axle roll-stiffness share, which sets front lateral-load-transfer share, which sets front grip share relative to rear.",
-    "phase_affinity": null,
-    "notes": "Stiffness lookup: car_data.json arb.front (6.3..20.6 N/mm at drop link, ratio_to_wheel 1.07) -- verified: position 1->6.3 N/mm, position 7->20.6 N/mm, monotonic increasing, confirms 1=softest. Position-to-stiffness convention (linear vs squared) unresolved -- flagged convention_unresolved, unresolved. Four fully independent per-corner targets, no pairing concept.",
-    "recommendation_target": true
+    "mechanism": "Sets the front axle's share of roll stiffness, hence its share of lateral load transfer and its grip relative to the rear.",
+    "notes": "Stiffness from car_data.json arb.front: 6.3 N/mm (position 1) to 20.6 N/mm (position 7) at the drop link, ratio_to_wheel 1.07, monotonic, so 1 = softest. Whether stiffness scales linearly or squared with position is unknown (flagged convention_unresolved). Each corner is an independent target."
   },
   "arb_fr": {
-    "key": "arb_fr",
     "label": "Front-Right ARB Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.arb"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 1,
@@ -51,26 +38,16 @@
       "7": "stiffest",
       "increasing": "stiffer"
     },
-    "typical_window": {
-      "min": 3,
-      "max": 5,
-      "notes": "2/6 rare, 1/7 unused; rear usually a slightly lower position than front"
-    },
     "change_effort": "minutes",
-    "mechanism": "Sets front-axle roll-stiffness share, which sets front lateral-load-transfer share, which sets front grip share relative to rear.",
-    "phase_affinity": null,
-    "notes": "Stiffness lookup: car_data.json arb.front. Four fully independent per-corner targets, no pairing concept.",
-    "recommendation_target": true
+    "mechanism": "Sets the front axle's share of roll stiffness, hence its share of lateral load transfer and its grip relative to the rear.",
+    "notes": "Stiffness from car_data.json arb.front; independent per-corner target."
   },
   "arb_rl": {
-    "key": "arb_rl",
     "label": "Rear-Left ARB Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.arb"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 1,
@@ -82,26 +59,16 @@
       "7": "stiffest",
       "increasing": "stiffer"
     },
-    "typical_window": {
-      "min": 3,
-      "max": 5,
-      "notes": "usually a slightly lower position than front; 2/6 rare, 1/7 unused"
-    },
     "change_effort": "minutes",
-    "mechanism": "Sets rear-axle roll-stiffness share, which sets rear lateral-load-transfer share, which sets rear grip share relative to front.",
-    "phase_affinity": null,
-    "notes": "Stiffness lookup: car_data.json arb.rear (26.9..80.1 N/mm at drop link, ratio_to_wheel 0.77) -- verified: position 1->26.9 N/mm, position 7->80.1 N/mm, monotonic increasing, confirms 1=softest. Same convention_unresolved flag as front.",
-    "recommendation_target": true
+    "mechanism": "Sets the rear axle's share of roll stiffness, hence its share of lateral load transfer and its grip relative to the front.",
+    "notes": "Stiffness from car_data.json arb.rear: 26.9 N/mm (position 1) to 80.1 N/mm (position 7) at the drop link, ratio_to_wheel 0.77, monotonic, so 1 = softest. Same convention_unresolved flag as the front."
   },
   "arb_rr": {
-    "key": "arb_rr",
     "label": "Rear-Right ARB Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.arb"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 1,
@@ -113,60 +80,17 @@
       "7": "stiffest",
       "increasing": "stiffer"
     },
-    "typical_window": {
-      "min": 3,
-      "max": 5,
-      "notes": "usually a slightly lower position than front; 2/6 rare, 1/7 unused"
-    },
     "change_effort": "minutes",
-    "mechanism": "Sets rear-axle roll-stiffness share, which sets rear lateral-load-transfer share, which sets rear grip share relative to front.",
-    "phase_affinity": null,
-    "notes": "Stiffness lookup: car_data.json arb.rear.",
-    "recommendation_target": true
-  },
-  "arb_front_mount": {
-    "key": "arb_front_mount",
-    "label": "Front ARB Mount",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.car.arb_front_mount"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "enum",
-      "options": [
-        "P0",
-        "P1",
-        "P2"
-      ]
-    },
-    "direction_semantics": {
-      "P0": "softest coupling",
-      "increasing": "more direct/snappy turn-in"
-    },
-    "typical_window": {
-      "options": ["P0", "P1", "P2"],
-      "notes": "Full legal enum is the window -- no numeric quantity underlies this parameter (setup_windows.json parameter_windows.arb_front_mount), so no narrower nominal + span; option set only."
-    },
-    "change_effort": "minutes",
-    "mechanism": "Upright mount couples steering input to ARB preload -- higher position gives a more direct/snappy turn-in response.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "No source image digitises this parameter -- mechanism from team knowledge only, no car_data.json cross-check. Stored in car.json's 'car' dict alongside differential_position / wing_position / splitter_offset.",
-    "recommendation_target": true
+    "mechanism": "Sets the rear axle's share of roll stiffness, hence its share of lateral load transfer and its grip relative to the front.",
+    "notes": "Stiffness from car_data.json arb.rear."
   },
   "springs_front": {
-    "key": "springs_front",
     "label": "Front Springs",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_left.springs",
       "setup_parameters.front_right.springs"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "enum",
       "options": [
@@ -180,23 +104,17 @@
     "direction_semantics": {
       "increasing": "stiffer"
     },
-    "typical_window": null,
     "change_effort": "garage_hours",
-    "mechanism": "Sets front-axle vertical (ride) stiffness independent of roll stiffness; conditions which damper window (car_data.json dampers.matrix_by_spring_pairing) is valid.",
-    "phase_affinity": null,
-    "notes": "Damper matrix conditions the recommended damper windows on the installed spring pairing -- see dampers.matrix_by_spring_pairing, cells keyed '{front}x{rear}'.",
-    "recommendation_target": true
+    "mechanism": "Sets axle ride stiffness independently of roll stiffness, and selects which damper window (car_data.json dampers.matrix_by_spring_pairing) applies.",
+    "notes": "Recommended damper windows depend on the installed spring pairing; see dampers.matrix_by_spring_pairing, cells keyed '{front}x{rear}'."
   },
   "springs_rear": {
-    "key": "springs_rear",
     "label": "Rear Springs",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_left.springs",
       "setup_parameters.rear_right.springs"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "enum",
       "options": [
@@ -210,22 +128,16 @@
     "direction_semantics": {
       "increasing": "stiffer"
     },
-    "typical_window": null,
     "change_effort": "garage_hours",
-    "mechanism": "Sets rear-axle vertical (ride) stiffness independent of roll stiffness; conditions which damper window (car_data.json dampers.matrix_by_spring_pairing) is valid.",
-    "phase_affinity": null,
-    "notes": "Same matrix-conditioning relationship as springs_front.",
-    "recommendation_target": true
+    "mechanism": "Sets axle ride stiffness independently of roll stiffness, and selects which damper window (car_data.json dampers.matrix_by_spring_pairing) applies.",
+    "notes": "Conditions the damper matrix in the same way as springs_front."
   },
   "damper_bump_ls_fl": {
-    "key": "damper_bump_ls_fl",
     "label": "FL Bump Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.bump_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -237,105 +149,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 10
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "Click semantics confirmed by car_data.json dampers.dyno_metadata.front.click_semantics (dyno chart's own '0-0-0-0'/'18-18-18-18' reference curves). Team practice: axle-symmetric values, 1-2 click changes, bump/rebound moved independently to counter specific effects.",
-    "recommendation_target": true
-  },
-  "damper_bump_hs_fl": {
-    "key": "damper_bump_hs_fl",
-    "label": "FL Bump High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_left.bump_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 14
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel motion over kerbs/bumps.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
-  },
-  "damper_blowoff_fl": {
-    "key": "damper_blowoff_fl",
-    "label": "FL Blowoff",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_left.blowoff"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "no relief -- deliberate platform priority",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 6
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; 0 means no relief is given, a deliberate platform-over-protection choice.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) - platform control.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.front.click_semantics (the dyno chart's '0-0-0-0' and '18-18-18-18' reference curves). Team practice: axle-symmetric values, 1-2 click changes, bump and rebound moved independently."
   },
   "damper_rebound_ls_fl": {
-    "key": "damper_rebound_ls_fl",
     "label": "FL Rebound Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.rebound_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -347,70 +177,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 7
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls platform recovery speed after compression -- floating control.",
-    "phase_affinity": [
-      "entry_2_turnin",
-      "apex_3"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
-  },
-  "damper_rebound_hs_fl": {
-    "key": "damper_rebound_hs_fl",
-    "label": "FL Rebound High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_left.rebound_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 8
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
+    "mechanism": "Controls how fast the platform recovers after compression - controls floating.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.front."
   },
   "damper_bump_ls_fr": {
-    "key": "damper_bump_ls_fr",
     "label": "FR Bump Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.bump_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -422,105 +205,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 10
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
-  },
-  "damper_bump_hs_fr": {
-    "key": "damper_bump_hs_fr",
-    "label": "FR Bump High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_right.bump_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 14
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel motion over kerbs/bumps.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
-  },
-  "damper_blowoff_fr": {
-    "key": "damper_blowoff_fr",
-    "label": "FR Blowoff",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_right.blowoff"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "no relief -- deliberate platform priority",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 6
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) - platform control.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.front."
   },
   "damper_rebound_ls_fr": {
-    "key": "damper_rebound_ls_fr",
     "label": "FR Rebound Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_right.rebound_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -532,70 +233,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 7
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls platform recovery speed after compression -- floating control.",
-    "phase_affinity": [
-      "entry_2_turnin",
-      "apex_3"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
-  },
-  "damper_rebound_hs_fr": {
-    "key": "damper_rebound_hs_fr",
-    "label": "FR Rebound High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.front_right.rebound_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 8
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.front.",
-    "recommendation_target": true
+    "mechanism": "Controls how fast the platform recovers after compression - controls floating.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.front."
   },
   "damper_bump_ls_rl": {
-    "key": "damper_bump_ls_rl",
     "label": "RL Bump Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.bump_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -607,105 +261,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 10
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "Click semantics confirmed by car_data.json dampers.dyno_metadata.rear.click_semantics.",
-    "recommendation_target": true
-  },
-  "damper_bump_hs_rl": {
-    "key": "damper_bump_hs_rl",
-    "label": "RL Bump High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_left.bump_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 8
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel motion over kerbs/bumps.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
-  },
-  "damper_blowoff_rl": {
-    "key": "damper_blowoff_rl",
-    "label": "RL Blowoff",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_left.blowoff"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "no relief -- deliberate platform priority",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 0
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) - platform control.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.rear.click_semantics."
   },
   "damper_rebound_ls_rl": {
-    "key": "damper_rebound_ls_rl",
     "label": "RL Rebound Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.rebound_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -717,70 +289,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 13
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls platform recovery speed after compression -- floating control.",
-    "phase_affinity": [
-      "entry_2_turnin",
-      "apex_3"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
-  },
-  "damper_rebound_hs_rl": {
-    "key": "damper_rebound_hs_rl",
-    "label": "RL Rebound High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_left.rebound_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 13
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
+    "mechanism": "Controls how fast the platform recovers after compression - controls floating.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.rear."
   },
   "damper_bump_ls_rr": {
-    "key": "damper_bump_ls_rr",
     "label": "RR Bump Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.bump_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -792,105 +317,23 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 10
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) -- platform control.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
-  },
-  "damper_bump_hs_rr": {
-    "key": "damper_bump_hs_rr",
-    "label": "RR Bump High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_right.bump_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 8
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel motion over kerbs/bumps.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
-  },
-  "damper_blowoff_rr": {
-    "key": "damper_blowoff_rr",
-    "label": "RR Blowoff",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_right.blowoff"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "no relief -- deliberate platform priority",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 0
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Caps peak force at high shaft speed -- contact-patch protection over the worst hits; reference point uses 0 (no relief) on this corner.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
+    "mechanism": "Controls body motion into the damper (dive, roll rate at turn-in) - platform control.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.rear."
   },
   "damper_rebound_ls_rr": {
-    "key": "damper_rebound_ls_rr",
     "label": "RR Rebound Low-Speed",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_right.rebound_ls"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -902,65 +345,19 @@
       "18": "fully open = softest",
       "increasing": "softer"
     },
-    "typical_window": {
-      "reference_point_NBR": 13
-    },
     "adjustment_step": {
       "exploratory": 2,
       "fine": 1,
       "unit": "clicks"
     },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
+    "adjustment_step_derived_from": "Team practice: an exploratory change is 2 clicks (large enough to feel on track), a fine-tune change 1 click; the same for every damper adjuster.",
+    "change_effort_derived_from": "Team setup-change overview: a damper change takes under 5 min in the pitlane without a setup patch, hence 'minutes'.",
     "change_effort": "minutes",
-    "mechanism": "Controls platform recovery speed after compression -- floating control.",
-    "phase_affinity": [
-      "entry_2_turnin",
-      "apex_3"
-    ],
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
-  },
-  "damper_rebound_hs_rr": {
-    "key": "damper_rebound_hs_rr",
-    "label": "RR Rebound High-Speed",
-    "category": "mechanical",
-    "escalation_tier": "pitlane",
-    "maps_to": [
-      "setup_parameters.rear_right.rebound_hs"
-    ],
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "int",
-      "min": 0,
-      "max": 18,
-      "unit": "clicks"
-    },
-    "direction_semantics": {
-      "0": "fully closed = stiffest",
-      "18": "fully open = softest",
-      "increasing": "softer"
-    },
-    "typical_window": {
-      "reference_point_NBR": 13
-    },
-    "adjustment_step": {
-      "exploratory": 2,
-      "fine": 1,
-      "unit": "clicks"
-    },
-    "adjustment_step_derived_from": "Author-elicited 2026-09-24: exploratory changes move 2 clicks (large enough to feel on track), fine-tune changes move 1 click -- per adjuster, same convention for every damper channel (bump/rebound LS/HS, blowoff).",
-    "change_effort_derived_from": "Setup_change_overview: damper settings < 5 min, pitlane, no setup patch -> minutes (was seconds); author ruling 2026-10-23 (4f item 8)",
-    "change_effort": "minutes",
-    "mechanism": "Controls wheel-release after kerbs; too stiff jacks the car down and unloads the tyre.",
-    "phase_affinity": null,
-    "notes": "Click semantics: car_data.json dampers.dyno_metadata.rear.",
-    "recommendation_target": true
+    "mechanism": "Controls how fast the platform recovers after compression - controls floating.",
+    "notes": "Click semantics from car_data.json dampers.dyno_metadata.rear."
   },
   "ride_height_front": {
-    "key": "ride_height_front",
     "label": "Front Ride Height",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.ride_height_fia",
@@ -968,7 +365,6 @@
       "setup_parameters.front_right.ride_height_fia",
       "setup_parameters.front_right.ride_height_aero"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "unit": "mm",
@@ -979,21 +375,16 @@
       "window_max": "~-2mm below standard (diffuser floor limit)"
     },
     "typical_window": {
-      "max_delta_from_standard": -2,
-      "notes": "Floor only: standard - 2 mm (diffuser floor limit). No upper limit -- often run at the minimum, not required (author ruling); setup_state reads this as lower bound only."
+      "max_delta_from_standard": -2
     },
     "adjustment_step": 1,
-    "adjustment_step_derived_from": "1 mm per recommended change, author ruling 2026-10-23 (4f item 1, ride heights become M4 levers)",
+    "adjustment_step_derived_from": "One recommended ride-height step is 1 mm.",
     "change_effort": "minutes",
-    "mechanism": "Sets front floor/splitter proximity to the ground -- aero platform height; FIA and aero conventions quoted at a constant offset, aero wears so the measured value is used to verify, not independently settable.",
-    "phase_affinity": null,
-    "notes": "Convention offsets: car_data.json ride_height_measuring_points (FIA/ADAC/Porsche-laser, per corner X/Y/Z). Not itself a free target -- both readings move together.",
-    "recommendation_target": true
+    "mechanism": "Sets front floor and splitter height above the ground (aero platform). FIA and aero conventions differ by a constant offset; aero wear means the measured value verifies the setting rather than being set independently.",
+    "notes": "Convention offsets in car_data.json ride_height_measuring_points (FIA/ADAC/Porsche laser, per corner X/Y/Z). Both readings move together, so neither is a free target."
   },
   "ride_height_rear": {
-    "key": "ride_height_rear",
     "label": "Rear Ride Height",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.ride_height_fia",
@@ -1001,7 +392,6 @@
       "setup_parameters.rear_right.ride_height_fia",
       "setup_parameters.rear_right.ride_height_aero"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "unit": "mm",
@@ -1017,40 +407,17 @@
       ]
     },
     "adjustment_step": 1,
-    "adjustment_step_derived_from": "1 mm per recommended change, author ruling 2026-10-23 (4f item 1, ride heights become M4 levers)",
+    "adjustment_step_derived_from": "One recommended ride-height step is 1 mm.",
     "change_effort": "minutes",
-    "mechanism": "Sets rear floor/diffuser exit height -- aero platform height and rake (with ride_height_front); FIA and aero conventions quoted at a constant offset.",
-    "phase_affinity": null,
-    "notes": "Convention offsets: car_data.json ride_height_measuring_points.",
-    "recommendation_target": true
-  },
-  "diff_package": {
-    "key": "diff_package",
-    "label": "Differential Package",
-    "category": "context",
-    "maps_to": null,
-    "value_source": "setup_sheet",
-    "value_space": {
-      "type": "fixed",
-      "value": "30-series"
-    },
-    "direction_semantics": null,
-    "typical_window": null,
-    "change_effort": "garage_hours",
-    "mechanism": "Selects the spring/ramp preload package that determines the diff's locking-torque-vs-position curve (see diff_position).",
-    "phase_affinity": null,
-    "notes": "Reference curve: car_data.json diff_locking_torque (installed_package '8304N_1372N_30-5'). ~2h to change; context only, not a session-level target.",
-    "recommendation_target": false
+    "mechanism": "Sets rear floor and diffuser exit height, and with ride_height_front the rake; FIA and aero conventions differ by a constant offset.",
+    "notes": "Convention offsets in car_data.json ride_height_measuring_points."
   },
   "diff_position": {
-    "key": "diff_position",
     "label": "Differential Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.differential_position"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": 1,
@@ -1062,29 +429,16 @@
       "5": "most locking torque",
       "increasing": "more locking torque"
     },
-    "typical_window": {
-      "min": 1,
-      "max": 5,
-      "notes": "full 5 sheet positions are the window, no narrower team-typical sub-range recorded"
-    },
     "change_effort": "minutes",
-    "mechanism": "Sets clutch-pack preload/locking torque on the installed diff package -- more locking torque resists axle-speed difference under power, affecting exit rotation vs. traction.",
-    "phase_affinity": [
-      "exit_4",
-      "exit_5"
-    ],
-    "notes": "Locking torque lookup: car_data.json diff_locking_torque.positions (30-5 package: 1 -> 70 Nm .. 5 -> 250 Nm, monotonic increasing) -- confirms 1 = least. Locking torque per position drifts with wear (measured continuously by the team; car.json would need a per-position torque field). Coupled to engine braking: teams run high diff and per-corner EB weakens it in-corner; the EB program is unknown in the data, which limits diff recommendations. Unit 'position' (the 5 sheet positions).",
-    "recommendation_target": true
+    "mechanism": "Sets clutch-pack preload, i.e. locking torque; more locking resists axle speed difference under power, trading exit rotation against traction.",
+    "notes": "Locking torque from car_data.json diff_locking_torque.positions (30-5 package: 1 -> 70 Nm to 5 -> 250 Nm, monotonic), so 1 = least. Torque per position drifts with wear. Per-corner engine braking weakens the diff in-corner and the engine-braking program is not in the data, which limits diff recommendations. Unit: the 5 sheet positions."
   },
   "wing_position": {
-    "key": "wing_position",
     "label": "Wing Position",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.wing_position"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "enum",
       "options": [
@@ -1101,28 +455,17 @@
     "direction_semantics": {
       "increasing": "higher angle = more rear downforce"
     },
-    "typical_window": {
-      "options": ["P8", "P9", "P10"],
-      "notes": "Full legal enum is the window: a numeric anchor exists (angles_deg) but Outing.setup_data stores the enum label, not the angle (setup_windows.json parameter_windows.wing_position), so a numeric nominal + span would compare against the wrong representation."
-    },
     "change_effort": "minutes",
-    "mechanism": "Rear wing angle sets rear downforce -- affects high-speed balance (more angle = more rear grip/stability, less top speed).",
-    "phase_affinity": [
-      "high_speed_corners"
-    ],
-    "notes": "Legal set confirmed against car_data.json wing_position_table's 'GT3 R 2026' column: only 7.3/8.3/9.3 deg (P8/P9/P10) have an entry.",
-    "recommendation_target": true
+    "mechanism": "Rear wing angle sets rear downforce: more angle gives more rear grip and stability at high speed, less top speed.",
+    "notes": "Legal positions from car_data.json wing_position_table, 'GT3 R 2026' column: only 7.3/8.3/9.3 deg (P8/P9/P10)."
   },
   "toe_front": {
-    "key": "toe_front",
     "label": "Front Toe",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.front_left.toe",
       "setup_parameters.front_right.toe"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": -3,
@@ -1134,28 +477,17 @@
       "more_negative": "more toe-out",
       "near_zero": "used in extreme cases"
     },
-    "typical_window": {
-      "min": -3,
-      "max": -1
-    },
     "change_effort": "minutes",
-    "mechanism": "Front toe-out sharpens initial turn-in response at the cost of straight-line stability and tyre wear.",
-    "phase_affinity": [
-      "entry_2_turnin"
-    ],
-    "notes": "No digitised car_data table backs this parameter's direction (the toe-vs-wheel-travel kinematic curves were pruned as no-consumer) -- value space/direction from team knowledge only.",
-    "recommendation_target": true
+    "mechanism": "Front toe-out sharpens initial turn-in at the cost of straight-line stability and tyre wear.",
+    "notes": "No car_data table backs this lever; value space and direction are team knowledge."
   },
   "toe_rear": {
-    "key": "toe_rear",
     "label": "Rear Toe",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.rear_left.toe",
       "setup_parameters.rear_right.toe"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": 1,
@@ -1167,28 +499,16 @@
       "more_positive": "more toe-in",
       "near_zero": "used in extreme cases"
     },
-    "typical_window": {
-      "min": 1,
-      "max": 3
-    },
     "change_effort": "minutes",
-    "mechanism": "Rear toe-in adds straight-line and corner-exit stability at the cost of some rear tyre wear.",
-    "phase_affinity": [
-      "exit_4",
-      "exit_5"
-    ],
-    "notes": "Team knowledge only, no car_data table backing (same as toe_front).",
-    "recommendation_target": true
+    "mechanism": "Rear toe-in adds straight-line and exit stability at the cost of some rear tyre wear.",
+    "notes": "Team knowledge only, no car_data table (as toe_front)."
   },
   "camber_fl": {
-    "key": "camber_fl",
     "label": "FL Camber",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_left.camber"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": -4.8,
@@ -1199,26 +519,18 @@
     "direction_semantics": {
       "more_negative": "more negative camber"
     },
-    "typical_window": {
-      "base": -3.5
-    },
     "adjustment_step": 0.2,
-    "adjustment_step_derived_from": "team practice per this entry's notes: a camber change is two 0.1 deg clicks (0.2 deg); author ruling 2026-10-23 (4f item 7)",
+    "adjustment_step_derived_from": "Team practice: a camber change is two 0.1 deg clicks (0.2 deg).",
     "change_effort": "half_hour",
-    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
-    "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves pruned, no consumer). One click = 0.1 deg; a typical change is two clicks, 0.2 deg (adjustment_step; project-lead review). A tyre-surface / wear-pattern inspection precedes any camber change; a single-corner change is sometimes preferred over the symmetric pair. change_effort half_hour (20-30 min).",
-    "recommendation_target": true
+    "mechanism": "Sets static camber, chosen from tyre usage and temperature distribution across the contact patch.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table. One click = 0.1 deg, a typical change two clicks. A tyre-surface and wear-pattern check precedes any change; a single-corner change is sometimes preferred over the symmetric pair. Takes 20-30 min (half_hour)."
   },
   "camber_fr": {
-    "key": "camber_fr",
     "label": "FR Camber",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.front_right.camber"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": -4.8,
@@ -1229,26 +541,18 @@
     "direction_semantics": {
       "more_negative": "more negative camber"
     },
-    "typical_window": {
-      "base": -3.5
-    },
     "adjustment_step": 0.2,
-    "adjustment_step_derived_from": "team practice per this entry's notes: a camber change is two 0.1 deg clicks (0.2 deg); author ruling 2026-10-23 (4f item 7)",
+    "adjustment_step_derived_from": "Team practice: a camber change is two 0.1 deg clicks (0.2 deg).",
     "change_effort": "half_hour",
-    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
-    "phase_affinity": null,
-    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves pruned, no consumer). One click = 0.1 deg; a typical change is two clicks, 0.2 deg (adjustment_step; project-lead review). A tyre-surface / wear-pattern inspection precedes any camber change; a single-corner change is sometimes preferred over the symmetric pair. change_effort half_hour (20-30 min).",
-    "recommendation_target": true
+    "mechanism": "Sets static camber, chosen from tyre usage and temperature distribution across the contact patch.",
+    "notes": "Base -3.5 deg front. Team knowledge only, no car_data table. One click = 0.1 deg, a typical change two clicks. A tyre-surface and wear-pattern check precedes any change; a single-corner change is sometimes preferred over the symmetric pair. Takes 20-30 min (half_hour)."
   },
   "camber_rl": {
-    "key": "camber_rl",
     "label": "RL Camber",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_left.camber"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": -4.8,
@@ -1259,26 +563,18 @@
     "direction_semantics": {
       "more_negative": "more negative camber"
     },
-    "typical_window": {
-      "base": -3.2
-    },
     "adjustment_step": 0.2,
-    "adjustment_step_derived_from": "team practice per this entry's notes: a camber change is two 0.1 deg clicks (0.2 deg); author ruling 2026-10-23 (4f item 7)",
+    "adjustment_step_derived_from": "Team practice: a camber change is two 0.1 deg clicks (0.2 deg).",
     "change_effort": "half_hour",
-    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
-    "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves pruned, no consumer). One click = 0.1 deg; a typical change is two clicks, 0.2 deg (adjustment_step; project-lead review). A tyre-surface / wear-pattern inspection precedes any camber change; a single-corner change is sometimes preferred over the symmetric pair. change_effort half_hour (20-30 min).",
-    "recommendation_target": true
+    "mechanism": "Sets static camber, chosen from tyre usage and temperature distribution across the contact patch.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table. One click = 0.1 deg, a typical change two clicks. A tyre-surface and wear-pattern check precedes any change; a single-corner change is sometimes preferred over the symmetric pair. Takes 20-30 min (half_hour)."
   },
   "camber_rr": {
-    "key": "camber_rr",
     "label": "RR Camber",
-    "category": "mechanical",
     "escalation_tier": "garage",
     "maps_to": [
       "setup_parameters.rear_right.camber"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "float",
       "min": -4.8,
@@ -1289,24 +585,16 @@
     "direction_semantics": {
       "more_negative": "more negative camber"
     },
-    "typical_window": {
-      "base": -3.2
-    },
     "adjustment_step": 0.2,
-    "adjustment_step_derived_from": "team practice per this entry's notes: a camber change is two 0.1 deg clicks (0.2 deg); author ruling 2026-10-23 (4f item 7)",
+    "adjustment_step_derived_from": "Team practice: a camber change is two 0.1 deg clicks (0.2 deg).",
     "change_effort": "half_hour",
-    "mechanism": "Sets static camber -- dictated by tyre usage/temperature distribution across the contact patch.",
-    "phase_affinity": null,
-    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table backing (camber-vs-wheel-travel curves pruned, no consumer). One click = 0.1 deg; a typical change is two clicks, 0.2 deg (adjustment_step; project-lead review). A tyre-surface / wear-pattern inspection precedes any camber change; a single-corner change is sometimes preferred over the symmetric pair. change_effort half_hour (20-30 min).",
-    "recommendation_target": true
+    "mechanism": "Sets static camber, chosen from tyre usage and temperature distribution across the contact patch.",
+    "notes": "Base -3.2 deg rear. Team knowledge only, no car_data table. One click = 0.1 deg, a typical change two clicks. A tyre-surface and wear-pattern check precedes any change; a single-corner change is sometimes preferred over the symmetric pair. Takes 20-30 min (half_hour)."
   },
   "tc_lat": {
-    "key": "tc_lat",
     "label": "Traction Control - Lateral",
-    "category": "electronic",
     "escalation_tier": "cockpit",
     "maps_to": null,
-    "value_source": "logged_data",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -1314,7 +602,7 @@
       "unit": "position",
       "feasible_min": 2,
       "feasible_max": 11,
-      "feasible_derived_from": "manufacturer TC table monotonic only from 2 to 11 (0 / 1 not on the same scale, see direction_semantics and notes); a decrease from 2 is at limit. Author ruling 2026-10-23 (4f item 3)"
+      "feasible_derived_from": "The manufacturer TC table is monotonic only from 2 to 11 (0 and 1 are not on the same scale), so a decrease from 2 is at the limit."
     },
     "direction_semantics": {
       "0": "TC off",
@@ -1322,29 +610,14 @@
       "5": "normal conditions (baseline)",
       "increasing_2_to_11": "LESS permitted car rotation under lateral load on power = MORE TC intervention/support"
     },
-    "typical_window": {
-      "min": 1,
-      "max": 11,
-      "baseline": 5,
-      "notes": "window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 (off) excluded from the tuning window, it is a distinct state, not the window floor. 5 = 'normal conditions' per source table; increase toward 11 for more support, decrease toward 2 for more permitted rotation."
-    },
     "change_effort": "seconds",
-    "mechanism": "Sets how much car rotation the TC system permits during the lateral-loaded cornering phase (power applied while cornering); higher position = less permitted rotation = more intervention.",
-    "phase_affinity": [
-      "apex_3",
-      "exit_4",
-      "exit_5"
-    ],
-    "notes": "Driver-adjustable mid-session from the steering wheel (feel, tyre life, fuel load); the current value is a logged quantity, not a setup-sheet value, and stays not assessable (channels.json ecu_B_tc_act: LAT / LON position mapping undocumented). Direction verified against car_data.json tc (TC_reference.png, current LAT/LON system): 2 'even more rotation', 3 'increased rotation', 4 'slightly more rotation', 5 'normal conditions', 6 'less rotation', 8-9 'increased TC support', 10 'strongly increased TC support', 11 'lots of TC support' -- monotonically less rotation permitted from 2 to 11, the opposite of a naive 'higher = more rotation' reading. Position 1 reads near-identical to 0 (low intervention next to the floor, not continuing the 2-11 trend) -- flagged, not smoothed. Supersedes the 2023-25 single-switch TC_1.png system (not digitised).",
-    "recommendation_target": true
+    "mechanism": "Sets how much rotation TC permits while power is applied in the cornering phase; a higher position permits less rotation (more intervention).",
+    "notes": "Driver-adjustable from the steering wheel; the current value is logged, not on the setup sheet, and stays not assessable because the LAT/LON mapping of ecu_B_tc_act is undocumented. Direction from car_data.json tc (current LAT/LON system): from 2 ('even more rotation') to 11 ('lots of TC support') monotonically less rotation, the opposite of a naive 'higher = more rotation' reading. Position 1 reads almost like 0 and is flagged, not smoothed."
   },
   "tc_lon": {
-    "key": "tc_lon",
     "label": "Traction Control - Longitudinal",
-    "category": "electronic",
     "escalation_tier": "cockpit",
     "maps_to": null,
-    "value_source": "logged_data",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -1352,7 +625,7 @@
       "unit": "position",
       "feasible_min": 2,
       "feasible_max": 11,
-      "feasible_derived_from": "manufacturer TC table monotonic only from 2 to 11 (0 / 1 not on the same scale, see direction_semantics and notes); a decrease from 2 is at limit. Author ruling 2026-10-23 (4f item 3)"
+      "feasible_derived_from": "The manufacturer TC table is monotonic only from 2 to 11 (0 and 1 are not on the same scale), so a decrease from 2 is at the limit."
     },
     "direction_semantics": {
       "0": "driver modulation, little TC support -- NOTE: per project docs, TC LON at 0 does NOT disable TC (only TC LAT=0 does); wording matches position 1",
@@ -1360,28 +633,14 @@
       "5": "normal conditions (baseline)",
       "increasing_2_to_11": "LESS permitted wheel spin under longitudinal load = MORE TC intervention/support"
     },
-    "typical_window": {
-      "min": 1,
-      "max": 11,
-      "baseline": 5,
-      "notes": "window is 1..11, NON-LINEAR (per-position semantics from TC_reference table, not raw arithmetic) -- 0 excluded from the tuning window (does NOT disable TC for tc_lon, see direction_semantics, but is still not part of the intervention-severity scale). 5 = 'normal conditions' per source table."
-    },
     "change_effort": "seconds",
-    "mechanism": "Sets how much wheel spin the TC system permits during high-torque longitudinal phases (1st/2nd gear power-down on exit); higher position = less permitted spin = more intervention, useful for managing rear-tyre degradation.",
-    "phase_affinity": [
-      "exit_4",
-      "exit_5"
-    ],
-    "notes": "Driver-adjustable mid-session from the steering wheel; current value not assessable (see tc_lat). Direction verified against car_data.json tc: monotonically less wheel spin permitted from 2 to 11, 5 = baseline. TC LON = 0 does not switch TC off (TC_1.png introductory text, still true for the current system; only TC LAT has an off state).",
-    "recommendation_target": true
+    "mechanism": "Sets how much wheel spin TC permits in high-torque phases (1st/2nd gear power-down on exit); a higher position permits less spin, which helps manage rear-tyre degradation.",
+    "notes": "Driver-adjustable from the steering wheel; current value not assessable (see tc_lat). Direction from car_data.json tc: monotonically less wheel spin from 2 to 11, 5 = baseline. TC LON = 0 does not switch TC off; only TC LAT has an off state."
   },
   "abs_position": {
-    "key": "abs_position",
     "label": "ABS Position",
-    "category": "electronic",
     "escalation_tier": "cockpit",
     "maps_to": null,
-    "value_source": "logged_data",
     "value_space": {
       "type": "int",
       "min": 0,
@@ -1394,54 +653,32 @@
       "1_to_8": "dry maps -- 1-4 grouped 'High' overall grip level (1=baseline dry-high, 2/4=more stable FA/RA variants, 3=printed 'BL Medium grip map' despite its own row being categorised 'High' -- verified as printed, not a transcription error), 5-8 grouped 'Medium' overall grip level (5=baseline medium, 6=more stable, 7-8=add lateral support)",
       "9_to_11": "wet maps ascending severity -- 9=baseline good-wet-grip, 10=rain tyres/heavy wet (limited deceleration), 11=monsoon emergency (highly limited deceleration)"
     },
-    "typical_window": {
-      "type": "categorical brackets, not a numeric min/max distance (see direction_semantics.type)",
-      "dry_high": [1, 4],
-      "dry_medium": [5, 8],
-      "wet": [9, 11],
-      "notes": "Per ABS_2 V2 table (car_data.json abs, installed_config V2): sweet-spot search stays WITHIN the bracket appropriate to conditions; jumping across brackets (e.g. 4 to 9) is not a valid tuning move."
-    },
     "change_effort": "seconds",
-    "mechanism": "Selects the ABS intervention map; team practice is a sweet-spot search within the dry or wet bracket appropriate to conditions, not a linear soft-to-hard sweep.",
-    "phase_affinity": [
-      "entry_1_brake"
-    ],
-    "notes": "Driver-adjustable mid-session from the steering wheel; current value from logged data, not the setup sheet. Trusted channel log_abs_pos (dash / steering-wheel domain; agrees with log_rt_abs_pos and stw_rt04_abs, while the ECU-domain abs_switch_pos disagrees on GT3_PRC_MLA-v3.txt; author decision, channels.json). Installed config V2 (ABS_2.png header 'Map for ABS configuration option \"V2\"'); full table car_data.json abs; Monza2 / CTMP / V4 not installed, not digitised. Categorical, not one monotonic axis: jumping across grip-level brackets (e.g. 4 to 9) is not a tuning move; within one bracket an ordinal +1 / +2 step is used in practice as a stability nudge toward the front- or rear-axle-stable variant (project-lead review).",
-    "recommendation_target": true
+    "mechanism": "Selects the ABS intervention map; in practice a sweet-spot search within the dry or wet bracket, not a linear soft-to-hard sweep.",
+    "notes": "Driver-adjustable from the steering wheel; the current value comes from the logged channel log_abs_pos, which agrees with log_rt_abs_pos and stw_rt04_abs (the ECU-side abs_switch_pos does not; see channels.json). Installed map set V2, table in car_data.json abs. Categorical: jumping between grip-level brackets is not a tuning move; within a bracket a +1/+2 step nudges toward the front- or rear-axle-stable variant."
   },
   "brake_bias": {
-    "key": "brake_bias",
     "label": "Brake Bias",
-    "category": "electronic",
     "escalation_tier": "cockpit",
     "maps_to": null,
-    "value_source": "logged_data",
     "value_space": {
       "type": "int",
       "min": 1,
       "max": 3,
       "unit": "clicks",
-      "note": "direction convention (fwd vs rear) and the channel's own identity are still open -- not invented here"
+      "note": "Direction convention (forward vs rear) and the channel itself are not identified, so not set here."
     },
     "direction_semantics": null,
-    "typical_window": null,
     "change_effort": "seconds",
-    "mechanism": "Driver-exclusive in-corner adjustment; braking-phase target only. Not evaluable for current-state window until the bias channel is identified [E].",
-    "phase_affinity": [
-      "entry_1_brake"
-    ],
-    "notes": "Recommendation target. Lockup chain behind it (Segers C5-1/2, docs/segers_bridge_review.md). The value comes from logged data, not the setup sheet; the brake-bias channel is not identified, so direction_semantics stays null and typical_window not assessable rather than invented.",
-    "recommendation_target": true
+    "mechanism": "Driver-only in-corner adjustment, braking-phase target. Its current value cannot be evaluated until the bias channel is identified.",
+    "notes": "Recommendation target behind the lockup chain (Segers C5-1/2). The value is logged, not on the setup sheet; with no identified channel, direction_semantics stays null and typical_window not assessable."
   },
   "splitter_offset": {
-    "key": "splitter_offset",
     "label": "Splitter Offset",
-    "category": "mechanical",
     "escalation_tier": "pitlane",
     "maps_to": [
       "setup_parameters.car.splitter_offset"
     ],
-    "value_source": "setup_sheet",
     "value_space": {
       "type": "int",
       "min": -4,
@@ -1456,63 +693,8 @@
       "positive": "less front downforce",
       "hard_limit": "the NEGATIVE extreme (more front downforce) is bounded by front-splitter/track contact, track-dependent -- HARD edge. The positive extreme is a range limit only, no physical contact -- SOFT edge. Author-elicited 2026-09-22 (Phase C), resolving Phase A's own unresolved placeholder ('sign convention unresolved, not invented, flagged for elicitation') -- see thesis_notes.md for the full provenance record."
     },
-    "typical_window": {
-      "min": -4,
-      "max": 4,
-      "step": 1,
-      "notes": "full legal range is the window; hard forward limit (negative extreme only) is track-dependent, not a fixed sub-range"
-    },
     "change_effort": "minutes",
-    "mechanism": "Front aero balance trim -- high-speed balance lever, paired to wing_position (same aero axis) and ride_height_front (shared ground clearance).",
-    "phase_affinity": [
-      "high_speed_corners"
-    ],
-    "notes": "change_effort minutes (2 min sloppy / 20 min precise, author-elicited). No car_data digitisation of the offset-to-effect relationship. Direction convention (author-elicited): negative = more front downforce, positive = less; not symmetric -- negative approaches a hard physical edge (splitter/track contact), positive only a range limit. Known simplification: setup_state._window_edge_check treats both value_space ends as hard.",
-    "recommendation_target": true
-  },
-  "kinematic_variants": {
-    "key": "kinematic_variants",
-    "label": "Kinematic Variants",
-    "category": "context",
-    "maps_to": null,
-    "value_source": "setup_sheet",
-    "value_space": null,
-    "direction_semantics": null,
-    "typical_window": null,
-    "change_effort": "garage_hours",
-    "mechanism": "Homologated suspension-geometry variants (front FS-series, rear RS-series); background context for interpreting damper ratio / roll centre / antidive-antisquat behaviour, not a session-level tunable.",
-    "phase_affinity": null,
-    "notes": "Reference: car_data.json kinematic_variants_front / kinematic_variants_rear.",
-    "recommendation_target": false
-  },
-  "gear_ratios": {
-    "key": "gear_ratios",
-    "label": "Gear Ratios",
-    "category": "context",
-    "maps_to": null,
-    "value_source": "setup_sheet",
-    "value_space": null,
-    "direction_semantics": null,
-    "typical_window": null,
-    "change_effort": "garage_hours",
-    "mechanism": "Fixed per-event gearbox setup; background context, excluded from recommendations.",
-    "phase_affinity": null,
-    "notes": "Not digitised into car_data.json -- no near-term consumer (stub there, reason: context-only). Source: docs/car_data/Gear_ratio.png.",
-    "recommendation_target": false
-  },
-  "engine_curves": {
-    "key": "engine_curves",
-    "label": "Engine Power/Torque Curves",
-    "category": "context",
-    "maps_to": null,
-    "value_source": "setup_sheet",
-    "value_space": null,
-    "direction_semantics": null,
-    "typical_window": null,
-    "change_effort": null,
-    "mechanism": "Fixed engine characteristic; background context, excluded from recommendations.",
-    "phase_affinity": null,
-    "notes": "Not digitised into car_data.json -- no near-term consumer (stubs there). Source: docs/car_data/Engine_1.png, Engine_2.png.",
-    "recommendation_target": false
+    "mechanism": "Front aero balance trim for high-speed balance; paired with wing_position (same aero axis) and ride_height_front (shared ground clearance).",
+    "notes": "A change takes about 2 min roughly or 20 min precisely (minutes). The offset-to-effect relation is not digitised. Negative = more front downforce, positive = less; negative approaches a hard edge (splitter/track contact), positive only a range limit. Simplification: setup_state._window_edge_check treats both value_space ends as hard."
   }
 }

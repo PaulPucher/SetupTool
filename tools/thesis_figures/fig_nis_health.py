@@ -42,7 +42,7 @@ def window_shares(nis, window, min_valid_fraction, bound):
 
 
 def build(outing, lap, tag="dev", allow_status=False, allow_excluded=False, out=None):
-    from modules import nis_gate
+    from modules import observer as nis_gate
     from modules import tyre_fit_auto as tfa
     session = common.load_session(outing)
     got = {}

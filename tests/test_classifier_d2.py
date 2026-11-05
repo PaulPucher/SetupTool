@@ -6,7 +6,7 @@
 import pytest
 
 from modules.classifier import classify_corner, cs_value_state, is_low_priority, phase_symptoms
-from modules.corner_aggregation import PHASE_KEYS
+from modules.classifier import PHASE_KEYS
 from modules.stability_analysis import load_parameters
 
 

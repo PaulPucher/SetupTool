@@ -15,8 +15,8 @@ import numpy as np
 import pytest
 
 from modules.stability_analysis import estimate_slip_angles, load_parameters
-from modules.corner_aggregation import _nanmedian_or_nan
-from modules.sideslip_ekf_pacejka import (
+from modules.classifier import _nanmedian_or_nan
+from modules.observer import (
     slip_angles as ekf_slip_angles, process_jacobian, measurement_jacobian,
 )
 from modules.tyre_model_pacejka import pacejka_lateral_force as plf, pacejka_lateral_stiffness as pls
@@ -177,7 +177,7 @@ def test_lateral_force_split_moment_identity(pipeline_result, state, effective_p
 # coefficients: the config tyre_fit_prior (a real pooled fit), as literals.
 
 def _ekf_f(x, u, Vx, m, a, b, Iz, tyre_f, tyre_r):
-    """The predict step's state derivative (modules/sideslip_ekf_pacejka.py
+    """The predict step's state derivative (modules/observer.py
     estimate_sideslip_ekf_pacejka) as a standalone function so it can be
     finite-differenced -- the same three lines, on pacejka_lateral_force."""
     beta, r = x

@@ -3,7 +3,7 @@
 # sideslip_source.
 #
 # Steps: (a)+(b) axle curve fit, (c) R derivation from the fit residuals,
-# (d) EKF run (modules/sideslip_ekf_pacejka.py), (e) validation (NIS,
+# (d) EKF run (modules/observer.py), (e) validation (NIS,
 # sign check, h2).
 #
 # Lateral-only axle fit (Pacejka 2nd ed.): pure side slip is the base curve,
@@ -25,10 +25,10 @@ from modules.stability_analysis import (
     estimate_lateral_forces, estimate_vertical_loads, load_car_data, apex_instant_slice,
     _butterworth_lowpass,
 )
-from modules.longitudinal_forces import estimate_longitudinal_forces
+from modules.loads import estimate_longitudinal_forces
 from modules.tyre_model_pacejka import pacejka_lateral_force
-from modules.nis_gate import _CHI2_DF2_95 as CHI2_DF2_95, evaluate_gate
-from modules.sideslip_ekf_pacejka import estimate_sideslip_ekf_pacejka
+from modules.storage import REPO_ROOT
+from modules.observer import _CHI2_DF2_95 as CHI2_DF2_95, estimate_sideslip_ekf_pacejka, evaluate_gate
 
 # Fit L (tyre_fit_mode "literature_bounded"). These
 # values define the method, they are not tuned: with an estimated sideslip
@@ -59,7 +59,7 @@ L_MU_CEILING = 2.0
 # same structure as the K edge zone
 MU_EDGE_CONFIG_KEY = "mu_ceiling_edge_u"
 L_START_B = 12.0           # the chair's B start, inside the bounds
-# D4 under L: cornering stiffness "ranges from about 6 to about 30 times the
+# Plausibility under L: cornering stiffness "ranges from about 6 to about 30 times the
 # vertical wheel load ... The lower value holds for the older bias-ply tyre
 # construction and the larger value for modern racing tyres" (Pacejka 2006
 # sec. 1.2.1). An order of magnitude given to one significant figure, so it
@@ -260,7 +260,7 @@ def _damper_plausibility_record(fz, state, data, params, zero, zero_applied):
     healthy same-track envelope) carry the validation. The gate decision
     itself is unchanged."""
     from modules.csv_parser import load_channels_config  # local: csv_parser imports this chain
-    from modules.wheel_loads import check_against_envelope, load_validation_quantities
+    from modules.loads import check_against_envelope, load_validation_quantities
     plaus = fz.get("damper_plausibility")
     if plaus is None:
         return None
@@ -460,7 +460,7 @@ def _measurement_noise_floors(state, laps, params):
     (sclu_yaw_rate x yaw_rate_to_radps), both linearly interpolated onto the
     grid and otherwise unfiltered. ay is the floor for R_ay; yaw rate gives
     R_yaw directly."""
-    from modules.straights import steering_straights
+    from modules.observer import steering_straights
     sd = steering_straights(state, laps, params["tyre_fit_auto"])
     cutoff, sr = params["stability_estimation"]["cs_filter_cutoff_hz"], state["sample_rate_hz"]
     out = {"n_segments": len(sd["segs"])}
@@ -474,7 +474,7 @@ def _measurement_noise_floors(state, laps, params):
 
 
 def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
-    """D4 plausibility gate for fit L (declared post-result).
+    """Plausibility gate for fit L (declared post-result).
     Under L the curve peak lies beyond the visited slip range wherever the
     data do not reach it, so it is an extrapolation (Goblirsch et al. 2025)
     and cannot be gated on; what the data do identify is the origin slope.
@@ -599,7 +599,8 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
     manifest["axle_fx"] = {"fx_f_N": load_in["fx_f_N"], "fx_r_N": load_in["fx_r_N"]}
     try:
-        git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        git_hash = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+                                  cwd=REPO_ROOT).stdout.strip()
     except Exception as e:
         git_hash = f"UNAVAILABLE ({e})"
     manifest["git_commit_hash"] = git_hash
@@ -848,7 +849,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
         else:
             manifest["status"] = "ok"
 
-    # D4: an implausible curve takes the existing degenerate route (kinematic
+    # an implausible curve takes the existing degenerate route (kinematic
     # fallback in resolve_sideslip_beta). The verdict lives in the in-memory
     # manifest only -- resolve_sideslip_beta strips it, the failed checks
     # reach the persisted payload through degenerate_reason / fallback_reason.
@@ -880,7 +881,7 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
     manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
     manifest["beta_ekf"] = beta_ekf
     manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
-    manifest["nis_full"] = final_result["nis"]  # full-length, for modules.nis_gate.evaluate_gate
+    manifest["nis_full"] = final_result["nis"]  # full-length, for modules.observer.evaluate_gate
     manifest["base_mask"] = base_mask
     return manifest
 
@@ -892,7 +893,7 @@ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, cs
 
     Returns (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason,
     cs_inputs). fit_manifest: JSON-safe manifest, auto mode only.
-    gate_verdict: from nis_gate.evaluate_gate, None for the kinematic source
+    gate_verdict: from observer.evaluate_gate, None for the kinematic source
     or after a degenerate fit. Degenerate fit or gate "fail" -> kinematic
     beta, reason as text. An unknown sideslip_source is refused rather than
     run as kinematic, so a config typo cannot ship the fallback beta as if
@@ -908,8 +909,8 @@ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, cs
     beta, fit_manifest, gate_verdict, fallback_used, fallback_reason, raw = _resolve(
         state, params, data, sideslip_source, csv_path)
     cs_inputs = {"cs_kwargs": {}, "axle_fx": None, "note": None}
-    # from the config, not the manifest: the early degenerate returns carry no mode
-    if raw is not None and params.get("tyre_fit_auto", {}).get("tyre_fit_mode") == "literature_bounded":
+    # raw exists only when fit L ran (the one tyre_fit_mode)
+    if raw is not None:
         loads = raw.get("cs_axle_loads")
         if loads is None:
             # only a non-finite load input stops fit L before the loads exist;
@@ -927,7 +928,7 @@ def _resolve(state, params, data, sideslip_source, csv_path):
     if sideslip_source not in SIDESLIP_SOURCES:
         raise ValueError(
             f"sideslip_source {sideslip_source!r} not recognised (expected one of {SIDESLIP_SOURCES}; "
-            "the Dugoff sources ekf_pass_1 / ekf_auto_dugoff were removed 2026-10-17)"
+            "the Dugoff sources ekf_pass_1 / ekf_auto_dugoff were removed)"
         )
 
     if sideslip_source == "ekf_auto_pacejka":

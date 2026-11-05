@@ -11,7 +11,7 @@ from tools.thesis_figures import common
 
 
 def test_phase_labels_cover_the_app_phases_once():
-    from modules.corner_aggregation import PHASE_KEYS
+    from modules.classifier import PHASE_KEYS
     assert list(common.PHASE_LABELS) == PHASE_KEYS
     assert common.PHASE_LABELS["exit_5"] == "exit completion"
 
@@ -130,7 +130,7 @@ def test_corner_matching_recovers_the_shifted_ids():
 
 def test_verdict_codes():
     import json
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     agg = aggregate_by_corner(json.loads(common.db_outing(12)["analysis_data"])["summaries"])
     codes = {common.verdict(a)[1] for a in agg.values()}
     assert codes <= {"-", "n", "U", "U*", "O", "O*", "I", "UI", "U*I", "OI", "O*I"} and codes
@@ -140,7 +140,7 @@ def test_distribution_drops_phases_that_do_not_occur():
     # ruling 2026-10-24: a phase without any sample on any lap is not a cell;
     # read-only on the stored payload of outing 14
     import json
-    from modules.corner_aggregation import _group_by_corner
+    from modules.classifier import _group_by_corner
     from tools.thesis_figures.fig_cs_distribution import cells
     payload = json.loads(common.db_outing(14)["analysis_data"])
     got, dropped = cells(payload)

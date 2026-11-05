@@ -39,7 +39,7 @@ def _channel(time, data, quality="valid", unit_raw="N"):
 
 def _state_and_forces(n=30):
     t = np.arange(n, dtype=float)
-    # Half straight-line (|ax|,|ay| small -- needed so modules.wheel_loads.
+    # Half straight-line (|ax|,|ay| small -- needed so modules.loads.
     # estimate_session_corrected_axle_totals's own straight-line masks are
     # non-empty, avoiding a benign-but-noisy "mean of empty slice" warning
     # a first version of this fixture (constant ay=3.0, never "straight")
@@ -67,7 +67,7 @@ def test_default_resolves_to_measured_cascade_with_real_channels():
     state, forces = _state_and_forces()
     n = len(state["time"])
     # Real variation, not flat -- a perfectly constant channel correctly
-    # trips the dead-channel guard (modules.wheel_loads._channel_is_dead,
+    # trips the dead-channel guard (modules.loads._channel_is_dead,
     # Fz-integration Phase 1), which a first version of this fixture found
     # out the hard way (every corner fell to static_fallback, not damper).
     wobble = 5.0 * np.sin(np.linspace(0, 6.0, n))

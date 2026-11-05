@@ -100,7 +100,7 @@ def run_chain(key):
 def _old_rank_key(c):
     # the pre-4e order: severity -> repetition -> demotion -> effort -> preference -> headroom
     from modules.setup_engine import EFFORT_RANK
-    from modules.corner_aggregation import SEVERITY_RANK
+    from modules.classifier import SEVERITY_RANK
     return (-SEVERITY_RANK[c["severity"]], -c["laps"], c["condition_demoted"],
             EFFORT_RANK.get(c["change"]["effort"], len(EFFORT_RANK)), -c["preference"],
             -(c["change"]["headroom"] if c["change"]["headroom"] is not None else 0.0))

@@ -1,6 +1,6 @@
 # UI colour palette (named constants) and the global stylesheet, applied
 # once at startup. Plot data colours shared with the PNG exports live in
-# core/plot_style.py.
+# core/figure_render.py.
 
 # Base
 BACKGROUND  = "#141414"

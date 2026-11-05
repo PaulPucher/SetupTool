@@ -1,8 +1,19 @@
-# Display-only helpers for the trace windows. Nothing here is imported by
-# modules/ or by any analysis path; the arrays it returns exist only to be
-# drawn.
+# Display helpers without Qt: the one-line error text for status labels,
+# dialogs and PDF notes, and the drawing helpers of the trace windows.
+# Nothing here is imported by modules/ or by any analysis path; the arrays
+# the drawing helpers return exist only to be drawn.
 
 import numpy as np
+
+
+def friendly_error_text(e):
+    """One readable line, never a bare repr(). ValueError messages are written
+    as full sentences here -> str(e). Anything else is more likely a bug ->
+    prefix the class name (a bare KeyError is just the key).
+    """
+    if isinstance(e, ValueError) and str(e):
+        return str(e)
+    return f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
 
 
 def kerb_gap_bridge(x, y, kerb):

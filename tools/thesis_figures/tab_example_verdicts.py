@@ -33,7 +33,7 @@ def appendix_name(label):
 
 
 def _worst(agg, getter):
-    from modules.corner_aggregation import PHASE_KEYS
+    from modules.classifier import PHASE_KEYS
     best = (float("nan"), "-")
     for ph in PHASE_KEYS:
         v = getter(agg, ph)
@@ -76,7 +76,7 @@ def recommendation_line(rec):
 
 def build(outing, tag="dev", allow_status=False, allow_excluded=False, out=None, name=SCRIPT, label_map=True):
     from modules.classifier import verdict_cs_stat
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     session = common.load_session(outing)
     payload, why = common.stored_payload(session)
     if payload is None:

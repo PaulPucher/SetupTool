@@ -184,7 +184,7 @@ def cockpit_values(channels, laps, analysis_laps, tc_raw):
 def db_cache_check(outing, loaded_path, parsed, ident):
     """The guards of OutingForm._try_render_cached_analysis, in order;
     (payload, None) on a hit, else (None, reason)."""
-    from modules.data_paths import path_key
+    from modules.storage import path_key
     from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
     cached = _loads(outing["analysis_data"])
     if cached is None:
@@ -284,7 +284,7 @@ def d4l_block(man, captured):
 
 def per_cell(summaries, events):
     from modules.classifier import classify_corner, cs_value_state, phase_symptoms, verdict_cs_stat
-    from modules.corner_aggregation import PHASE_KEYS
+    from modules.classifier import PHASE_KEYS
     ev = (events or {}).get("events") or []
     rows = []
     for s in summaries:
@@ -321,7 +321,7 @@ def per_cell(summaries, events):
 
 def per_corner(summaries):
     from modules.classifier import classify_corner, phase_symptoms
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     from modules.setup_engine import counted_symptoms
     from modules.stability_analysis import load_parameters
     counted = counted_symptoms(summaries, load_parameters()["setup_engine"])
@@ -382,8 +382,8 @@ def export_one(o):
     from modules.accuracy_resolution import resolve_accuracy
     from modules.csv_parser import parse_csv, load_channels_config
     from modules.corner_analysis import reclassify_speed_classes
-    from modules.data_paths import path_key, resolve_saved_path, split_root
-    from modules.pipeline_sidecar import build_identity, load_sidecar
+    from modules.storage import path_key, resolve_saved_path, split_root
+    from modules.storage import build_identity, load_sidecar
     from modules.setup_engine import run as engine_run
     from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION, load_parameters, _resolve_grid_rate
 

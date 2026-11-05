@@ -1,26 +1,25 @@
 # Vehicle state, sideslip, slip angles, axle forces, Fz, cornering
-# stiffness (Module 4b) and yaw-moment stability (Module 5). SI units.
+# stiffness ratio and yaw-moment stability. SI units.
 # CS_ratio framework: Werner 2021; stiffness estimation adapted (windowed
-# regression on logged Fy/alpha). Module 5 estimator (yaw_stability.py)
+# regression on logged Fy/alpha). Yaw-moment estimator (yaw_stability.py)
 # after the chair performance_analysis tooling (internal).
 
 import functools
 import numpy as np
 from scipy.signal import butter, filtfilt
 import json
-from modules.geo import project_latlon_to_xy
+from modules.storage import repo_path
 from modules.yaw_stability import calculate_filtered_yaw_acceleration, calculate_observed_stability
 
-PARAMETERS_PATH = "config/parameters.json"
-CAR_DATA_PATH = "config/car_data.json"
+PARAMETERS_PATH = repo_path("config", "parameters.json")
+CAR_DATA_PATH = repo_path("config", "car_data.json")
 
 # Cache version for the persisted analysis payload. Bump when
 # summarise_corners' numbers or the payload shape change for the same
 # input, and for any estimator-input change made outside Settings (config
 # edit, mask, channel correction, zero entry) -- the caches do not see
 # config edits. Not for read/render-only changes. Mismatch = recompute on
-# open. Version history: DECISIONS.md ("Analysis schema history" and the
-# rulings that caused each bump).
+# open.
 ANALYSIS_SCHEMA_VERSION = 30
 
 # method-defining, not tunables
@@ -33,22 +32,6 @@ R2_WEIGHT_EXPONENT = 1  # plain linear R^2 blend
 def load_parameters():
     with open(PARAMETERS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def thresholds_calibrated(params):
-    """True when the classification thresholds were derived for the active
-    estimator path: the configured sideslip source and, for the auto fit,
-    the configured tyre_fit_mode (thresholds encode the estimator). Config
-    comparison only -- a run-time kinematic fallback does not change it;
-    the status line shows that."""
-    cl = params["classification"]
-    source = params["stability_estimation"].get("sideslip_source", "kinematic")
-    if source != cl.get("thresholds_calibrated_for_sideslip_source", "kinematic"):
-        return False
-    if source == "ekf_auto_pacejka":
-        mode = params.get("tyre_fit_auto", {}).get("tyre_fit_mode", "per_session")
-        return mode == cl.get("thresholds_calibrated_for_tyre_fit_mode", "per_session")
-    return True
 
 
 @functools.lru_cache(maxsize=1)  # same as load_parameters
@@ -91,6 +74,9 @@ def _estimate_sample_rate(time_arr):
 # channels whose native rate limits the grid rate. ecu_speed excluded --
 # it may be slower and gets upsampled (see prepare_vehicle_state).
 CS_CHAIN_FAST_CHANNELS = ["sclu_yaw_rate", "log_asteer", "log_acc_y", "log_acc_z", "lap_distance"]
+
+# without these the vehicle state cannot be built and the analysis is refused
+REQUIRED_STATE_CHANNELS = ("ecu_speed", "sclu_yaw_rate", "log_asteer", "log_acc_y", "log_acc_x")
 
 
 def _resolve_grid_rate(channels, params):
@@ -221,7 +207,7 @@ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
 
 
 def _build_non_analysis_lap_mask(t_ref, laps):
-    # Module 5 pools analysis laps only: beyond the in/out laps the slow
+    # The yaw-moment estimate pools analysis laps only: beyond the in/out laps the slow
     # laps (past valid_lap_max_ratio, e.g. traffic or a cool-down lap) also
     # break the cross-lap stationarity the regression assumes. Same lap set
     # as the CS summaries and the tyre fit. No lap list -> no lap
@@ -275,8 +261,7 @@ def prepare_vehicle_state(channels, params):
     vp = params["vehicle"]
     se = params["stability_estimation"]
 
-    required = ["ecu_speed", "sclu_yaw_rate", "log_asteer", "log_acc_y", "log_acc_x"]
-    for ch_name in required:
+    for ch_name in REQUIRED_STATE_CHANNELS:
         ch = channels.get(ch_name)
         if ch is None or ch["quality"] in ("missing", "failed") or ch["time"] is None:
             return None
@@ -454,11 +439,11 @@ def estimate_slip_angles(state, beta, params):
 
 
 def estimate_lateral_forces(state, params):
-    """Module 4a: 2-DOF planar balance (Milliken RCVD ch. 5 (sec. 5.7);
+    """Axle lateral forces from the 2-DOF planar balance (Milliken RCVD ch. 5 (sec. 5.7);
     Rajamani sec. 2.3 (Eqs. 2.21/2.22)), as in the chair
     performance_analysis tooling (internal):
         Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,  Fy_r = m*ay - Fy_f
-    psidd = raw gradient of yaw rate, not Module 5's smoothed one -- the CS
+    psidd = raw gradient of yaw rate, not the yaw-moment estimate's smoothed one -- the CS
     Butterworth downstream would otherwise double-filter.
     Still Level 1: Iz and the static fractions are L1.
     """
@@ -560,7 +545,7 @@ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None)
     c_session = None  # session-fitted aero coefficient, level 2; None on the static path
     damper_plausibility = None  # wheel_loads.straight_line_plausibility; None without damper data
     if vertical_load_source == "measured" and channels is not None and car_data is not None:
-        from modules.wheel_loads import (
+        from modules.loads import (
             estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
             combine_with_reconstruction_and_fallback, straight_line_plausibility, CORNERS as WHEEL_CORNERS,
         )
@@ -679,7 +664,7 @@ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_wi
 
 def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None, axle_loads=None,
                                  ref_band=None, ref_relative=None):
-    """Module 4b: effective cornering stiffness and CS_ratio (Werner 2021).
+    """Effective cornering stiffness and CS_ratio (Werner 2021).
     Stiffness by windowed regression on logged Fy/alpha instead of Werner's
     Pacejka evaluation.
 
@@ -692,7 +677,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     reference in force. Until the first clean window no CS is computed;
     those samples are counted (n_no_reference_*), never zero-filled. laps =
     the parsed lap list (analysis-lap test and lap-boundary guard); empty ->
-    neither, as in Module 5. [domain improvement: the chair tooling has no
+    neither, as in the yaw-moment estimate. [domain improvement: the chair tooling has no
     kerb treatment]
 
     reset_mask (fit L): samples where the shipped observer reset its state
@@ -778,7 +763,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
     min_window = resolve_cs_min_window_samples(params, state["sample_rate_hz"])
     max_window_m = se["cs_max_window_m"]
     # Band rule: the reference is the linear axle stiffness, the quantity the
-    # D4 plausibility gate bounds on the fitted curve -- fit L: K = B*C*mu, the
+    # plausibility gate bounds on the fitted curve -- fit L: K = B*C*mu, the
     # origin slope per unit vertical load (ref_band); without ref_band the
     # config band on B*C*D in N/rad (Bechtloff Fig. 7.2 magnitudes) -- so the
     # same band is read here. Needed because beta is
@@ -996,7 +981,7 @@ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=N
 
 
 def estimate_yaw_moment_stability(state, beta, params, laps=None):
-    """Module 5: dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid (Werner
+    """Yaw-moment stability dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid (Werner
     S4.5.2 Eq. 4.3); the damping term D_psi*psid is not modelled (inertial
     regressand only, chair-conform). Estimator in yaw_stability.py,
     after the chair performance_analysis tooling (internal).
@@ -1073,6 +1058,8 @@ def summarise_corners(corners, cs, stab, state, fz=None, lap_filter=None,
     # fz optional: adds its stat blocks per phase, omitted -> no fz blocks.
     # stability_observed goes through _gate_stab_stat (sample-count
     # gate + no-braking check for entry_1_brake).
+    # imported here: corner_analysis imports this module at load time
+    from modules.corner_analysis import project_latlon_to_xy
     if (apex_half_window_samples is None or cs_phase_min_valid_samples is None
             or cs_apex_region_half_length_m is None or stab_phase_no_braking_floor_bar is None):
         se_defaults = load_parameters()["stability_estimation"]

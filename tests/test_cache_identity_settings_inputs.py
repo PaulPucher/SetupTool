@@ -8,7 +8,7 @@ import copy
 
 import pytest
 
-from modules import pipeline_sidecar
+from modules import storage
 from modules.accuracy_resolution import resolve_accuracy, resolve_estimator_settings
 from modules.corner_analysis import reclassify_speed_classes
 from modules.csv_parser import load_channels_config
@@ -56,21 +56,21 @@ def test_resolve_accuracy_carries_the_settings_inputs(raw_params):
 
 @pytest.mark.parametrize("file_key,path,key", INPUTS)
 def test_sidecar_check_names_the_mismatch(tmp_path, monkeypatch, raw_params, file_key, path, key):
-    monkeypatch.setattr(pipeline_sidecar, "SIDECAR_DIR", str(tmp_path))
+    monkeypatch.setattr(storage, "SIDECAR_DIR", str(tmp_path))
 
     def identity(settings):
-        return pipeline_sidecar.build_identity(ANALYSIS_SCHEMA_VERSION, "dubai.txt", None, {"mass_kg": 1.0},
+        return storage.build_identity(ANALYSIS_SCHEMA_VERSION, "dubai.txt", None, {"mass_kg": 1.0},
                                                "ekf_auto_pacejka", 100.0, [1, 2], estimator_settings=settings)
 
     stored = resolve_estimator_settings(raw_params, load_channels_config())
-    assert pipeline_sidecar.write_sidecar(7, identity(stored), {"x": 1})
-    assert pipeline_sidecar.load_sidecar(7, identity(stored)) == ({"x": 1}, None)
+    assert storage.write_sidecar(7, identity(stored), {"x": 1})
+    assert storage.load_sidecar(7, identity(stored)) == ({"x": 1}, None)
     params, channels = _bumped(raw_params, file_key, path)
-    payload, reason = pipeline_sidecar.load_sidecar(7, identity(resolve_estimator_settings(params, channels)))
+    payload, reason = storage.load_sidecar(7, identity(resolve_estimator_settings(params, channels)))
     assert payload is None and reason == f"estimator_settings.{key}"
     # a sidecar written before the field existed misses on it
-    assert pipeline_sidecar.write_sidecar(8, identity(None), {"x": 1})
-    assert pipeline_sidecar.load_sidecar(8, identity(stored)) == (None, "estimator_settings")
+    assert storage.write_sidecar(8, identity(None), {"x": 1})
+    assert storage.load_sidecar(8, identity(stored)) == (None, "estimator_settings")
 
 
 def test_every_cache_check_compares_the_settings_inputs():

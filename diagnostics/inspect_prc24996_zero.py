@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from modules.accuracy_resolution import apply_resolved_vehicle, resolve_accuracy  # noqa: E402
 from modules.csv_parser import load_channels_config, parse_csv  # noqa: E402
 from modules.stability_analysis import load_car_data, load_parameters, prepare_vehicle_state  # noqa: E402
-from modules.wheel_loads import (  # noqa: E402
+from modules.loads import (  # noqa: E402
     CORNER_AXLE, _motion_ratio, _normalize_travel_to_mm, estimate_wheel_loads_from_dampers,
     load_validation_quantities,
 )

@@ -2,7 +2,7 @@
 # changes). Both RL and RR are 100% damper-valid all session on
 # GT3_PRC_MLA-v3.txt (Phase 2 finding) -- this lets us drop one of them
 # ON PURPOSE, reconstruct it with the EXACT SAME method already shipped
-# (modules.wheel_loads.reconstruct_missing_corner), and compare the
+# (modules.loads.reconstruct_missing_corner), and compare the
 # reconstruction against its own real measurement, a genuine ground-truth
 # check that the real FR reconstruction (corrupted gauge, no ground truth
 # available) can never have.
@@ -41,13 +41,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from core import plot_style as ps
+from core import figure_render as ps
 from core.figure_render import save_png
 from modules.csv_parser import parse_csv
 from modules.stability_analysis import (
     load_parameters, load_car_data, prepare_vehicle_state, _butterworth_lowpass,
 )
-from modules.wheel_loads import (
+from modules.loads import (
     estimate_wheel_loads_from_dampers, estimate_session_corrected_axle_totals,
     reconstruct_missing_corner, CORNERS,
 )
@@ -66,7 +66,7 @@ def _drop_and_reconstruct(damper_result, fz_axle_totals, corner_to_drop, mate_fz
     dr = {c: dict(v) for c, v in damper_result.items()}
     dr[corner_to_drop]["valid"] = np.zeros_like(dr[corner_to_drop]["valid"])
     if mate_fz_override is not None:
-        from modules.wheel_loads import AXLE_MATE
+        from modules.loads import AXLE_MATE
         mate = AXLE_MATE[corner_to_drop]
         dr[mate] = dict(dr[mate])
         dr[mate]["fz_N"] = mate_fz_override
@@ -144,7 +144,7 @@ def main():
 
     results_filt = {}
     for drop, label in (("rl", "RL (mate RR filtered)"), ("rr", "RR (mate RL filtered)")):
-        from modules.wheel_loads import AXLE_MATE
+        from modules.loads import AXLE_MATE
         mate = AXLE_MATE[drop]
         mate_fz_filt = _butterworth_lowpass(damper_result[mate]["fz_N"], LOWPASS_CUTOFF_HZ, sample_rate_hz)
         recon_full = _drop_and_reconstruct(damper_result, fz_axle_totals, drop, mate_fz_override=mate_fz_filt)

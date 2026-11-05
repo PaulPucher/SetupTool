@@ -1,0 +1,1887 @@
+diff --git a/config/channels.json b/config/channels.json
+--- a/config/channels.json
++++ b/config/channels.json
+@@ -245,9 +245,9 @@
+     "compound_corner_min_length_m": 300,
+     "bracket_overlap_min_fraction": 0.3,
+     "brake_throttle_max_pct": 95,
+-    "brake_throttle_max_pct_derived_from": "Tier B. The lift-off construction at 95 (last sample at or above it before turn-in = end of full throttle) was verified against brake pressure, derived on the development data (see thesis); the value 95 itself is set, not derived.",
++    "brake_throttle_max_pct_derived_from": "The lift-off construction at 95 (last sample at or above it before turn-in = end of full throttle) was checked against brake pressure on the development data (see thesis); the value 95 itself is set, not derived.",
+     "steering_unwind_fraction": 0.5,
+-    "steering_unwind_fraction_derived_from": "Tier B, no derivation: exit_4 ends where the post-apex steering has unwound to half its post-apex peak, the midpoint of the unwinding. Listed as a limitation.",
++    "steering_unwind_fraction_derived_from": "No derivation: exit_4 ends where the post-apex steering has unwound to half its post-apex peak, the midpoint of the unwinding. A stated limitation.",
+     "canonical_overlap_max": 0.1,
+     "canonical_boundary_grid_step_m": 2.0,
+     "lap_time_representative_factor": 1.05,
+diff --git a/config/mechanisms.json b/config/mechanisms.json
+--- a/config/mechanisms.json
++++ b/config/mechanisms.json
+@@ -1,11 +1,6 @@
+ {
+-  "_comment": "Mechanism table of the setup engine: one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
+-  "_comment_anchors": {
+-    "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics",
+-    "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition",
+-    "TE": "Trzesniowski & Eder 2019, Handbuch Rennwagentechnik Bd. 5 (bib Trzesniowski.2019)",
+-    "KATZ": "Katz, Race Car Aerodynamics"
+-  },
++  "_comment": "Mechanism table of the setup engine: one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss). Left / right levers always change together, so the car stays symmetric. Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
++  "_comment_anchors": "Field anchor: the setup rule a row's direction follows, in plain words; shown with the recommendation.",
+   "phase_groups": {
+     "BRK": [
+       "entry_1_brake"
+@@ -30,9 +25,9 @@
+     "M7": "brake balance"
+   },
+   "_comment_not_levers": "Deliberately out of scope, not levers: high-speed dampers, blow-off, arb_front_mount. Ride heights are levers at high speed only (_comment_ride_height).",
+-  "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
+-  "_comment_side_effect": "side_effect.text is taken from TE Tab. 5.14 pp. 296-297 and set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (the table gives no wording); the source stays named so the slot is traceable.",
+-  "_comment_axle": "Field axle: the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
++  "_comment_m2_phases": "M2 acts on transient load transfer only: never APX, where the load transfer is quasi-steady.",
++  "_comment_side_effect": "side_effect.text is the known side effect of the change, set on the rows whose direction it describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording for that direction).",
++  "_comment_axle": "Field axle: the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip). Limiting-end tie-break (improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
+   "mechanisms": [
+     {
+       "id": "M1-arb-front-US",
+@@ -57,7 +52,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -87,7 +82,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "MM p. 410 (11B); TE Tab. 5.2 p. 210; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -116,7 +111,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -146,7 +141,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "MM p. 410; TE Tab. 5.11 p. 293; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -174,7 +169,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -203,7 +198,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "MM p. 409 (10A-C); TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 pp. 293-294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -231,7 +226,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409",
++      "anchor": "standard setup table (entry and exit)",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -260,7 +255,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.11 p. 293 (exit); TE Tab. 5.12 p. 294 (entry); MM p. 409",
++      "anchor": "standard setup table (entry and exit)",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -287,7 +282,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.9 p. 254; TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
++      "anchor": "standard setup table (rear axle unsettled, tendency to spin)",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -314,7 +309,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254; TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
++      "anchor": "standard setup table (rear axle unsettled, tendency to spin)",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -340,10 +335,10 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254",
+-      "advisory": false,
+-      "condition": null,
+-      "note": "derived by inversion of TE Tab. 5.9 row 1",
++      "anchor": "standard setup table",
++      "advisory": false,
++      "condition": null,
++      "note": "direction derived by inverting the table rule for the opposite symptom",
+       "side_effect": null
+     },
+     {
+@@ -366,7 +361,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -392,7 +387,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -419,7 +414,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -446,7 +441,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -472,7 +467,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -498,7 +493,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -525,7 +520,7 @@
+         "high"
+       ],
+       "direction": "softer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -552,7 +547,7 @@
+         "high"
+       ],
+       "direction": "stiffer",
+-      "anchor": "TE Tab. 5.9 p. 254",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -578,7 +573,7 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -605,7 +600,7 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "MM p. 396 (20), p. 572; TE Tab. 5.2 p. 210; TE Tab. 5.11/5.12 high rows pp. 293-294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -631,7 +626,7 @@
+         "high"
+       ],
+       "direction": "more front downforce",
+-      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "sign convention from the registry",
+@@ -658,7 +653,7 @@
+         "high"
+       ],
+       "direction": "less front downforce",
+-      "anchor": "MM p. 572; TE Tab. 5.11 p. 293",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "sign convention from the registry",
+@@ -684,10 +679,10 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": "outside_stall_regime",
+-      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
++      "note": "direction valid outside the ground-effect stall regime; at very low clearance the underbody stalls, and there raising the front ride height is the remedy against a sudden push",
+       "side_effect": null
+     },
+     {
+@@ -711,10 +706,10 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": "outside_stall_regime",
+-      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
++      "note": "direction valid outside the ground-effect stall regime; at very low clearance the underbody stalls, and there raising the front ride height is the remedy against a sudden push",
+       "side_effect": null
+     },
+     {
+@@ -737,10 +732,10 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": "outside_stall_regime",
+-      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
++      "note": "direction valid outside the ground-effect stall regime; at very low clearance the underbody stalls, and there raising the front ride height is the remedy against a sudden push",
+       "side_effect": null
+     },
+     {
+@@ -764,10 +759,10 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "Katz pp. 170-172 (Fig. 5.26); MM p. 396 (20), p. 573",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": "outside_stall_regime",
+-      "note": "direction valid outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26 viscous effect at very low clearance)",
++      "note": "direction valid outside the ground-effect stall regime; at very low clearance the underbody stalls, and there raising the front ride height is the remedy against a sudden push",
+       "side_effect": null
+     },
+     {
+@@ -790,12 +785,12 @@
+         "high"
+       ],
+       "direction": "more negative camber",
+-      "anchor": "TE Tab. 5.11 p. 293; MM p. 394 (10)",
++      "anchor": "standard setup table",
+       "advisory": true,
+       "condition": null,
+-      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
++      "note": "needs tyre temperatures to confirm",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+       }
+     },
+@@ -820,12 +815,12 @@
+         "high"
+       ],
+       "direction": "more negative camber",
+-      "anchor": "TE Tab. 5.12 p. 294",
++      "anchor": "standard setup table",
+       "advisory": true,
+       "condition": null,
+-      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
++      "note": "needs tyre temperatures to confirm",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+       }
+     },
+@@ -850,12 +845,12 @@
+         "high"
+       ],
+       "direction": "more negative camber",
+-      "anchor": "TE Tab. 5.13 p. 295; TE Tab. 5.9 p. 254 (Instabilitaet beim Bremsen)",
++      "anchor": "standard setup table (instability under braking)",
+       "advisory": true,
+       "condition": null,
+-      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
++      "note": "needs tyre temperatures to confirm",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
+       }
+     },
+@@ -879,12 +874,12 @@
+         "high"
+       ],
+       "direction": "less negative camber",
+-      "anchor": "TE Tab. 5.12 p. 294",
++      "anchor": "standard setup table",
+       "advisory": true,
+       "condition": null,
+-      "note": "needs tyre temperatures to confirm (SEG pp. 194-196)",
++      "note": "needs tyre temperatures to confirm",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": null
+       }
+     },
+@@ -905,12 +900,12 @@
+         "low"
+       ],
+       "direction": "more toe-out",
+-      "anchor": "TE p. 213, Tab. 5.14 p. 297",
+-      "advisory": false,
+-      "condition": null,
+-      "note": "steady-state direction opposite in TE Tab. 5.2 p. 210 / Tab. 5.11 p. 293 - response lever only",
++      "anchor": "standard setup table",
++      "advisory": false,
++      "condition": null,
++      "note": "the steady-state direction is the opposite - response lever only",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "higher tyre temperature and wear"
+       }
+     },
+@@ -931,12 +926,12 @@
+         "low"
+       ],
+       "direction": "less toe-out",
+-      "anchor": "TE p. 213, Tab. 5.14 p. 297",
+-      "advisory": false,
+-      "condition": null,
+-      "note": "steady-state direction opposite in TE Tab. 5.2 p. 210 / Tab. 5.11 p. 293 - response lever only",
++      "anchor": "standard setup table",
++      "advisory": false,
++      "condition": null,
++      "note": "the steady-state direction is the opposite - response lever only",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": null
+       }
+     },
+@@ -960,7 +955,7 @@
+         "high"
+       ],
+       "direction": "more toe-in",
+-      "anchor": "TE Tab. 5.12 p. 294; TE p. 213",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -985,7 +980,7 @@
+         "high"
+       ],
+       "direction": "less toe-in",
+-      "anchor": "TE p. 213; MM p. 726",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+@@ -1011,12 +1006,12 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": null
+       }
+     },
+@@ -1041,12 +1036,12 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "MM pp. 739-740; TE Tab. 5.11 p. 293",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "disturbing yaw moment in corners at low lateral acceleration"
+       }
+     },
+@@ -1069,12 +1064,12 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "TE Tab. 5.11 p. 293",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": null
+       }
+     },
+@@ -1098,12 +1093,12 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "TE Tab. 5.12 p. 294",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": "not_traction_limited",
+-      "note": "traction-limited exit (TC active, ecu_B_tc_act): tc_lon ranks above diff (MM p. 740)",
++      "note": "traction-limited exit (TC active, ecu_B_tc_act): tc_lon ranks above diff",
+       "side_effect": {
+-        "source": "TE Tab. 5.14 pp. 296-297",
++        "source": "standard setup table",
+         "text": "disturbing yaw moment in corners at low lateral acceleration"
+       }
+     },
+@@ -1126,7 +1121,7 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "SEG p. 89; MM p. 391",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "direction per registry / manufacturer TC table",
+@@ -1152,7 +1147,7 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "SEG p. 89; MM p. 391",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "direction per registry / manufacturer TC table",
+@@ -1178,7 +1173,7 @@
+         "high"
+       ],
+       "direction": "decrease",
+-      "anchor": "SEG p. 89; MM p. 391",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "direction per registry / manufacturer TC table",
+@@ -1205,7 +1200,7 @@
+         "high"
+       ],
+       "direction": "increase",
+-      "anchor": "SEG p. 89; MM p. 391",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "direction per registry / manufacturer TC table",
+@@ -1231,7 +1226,7 @@
+         "high"
+       ],
+       "direction": "more rear",
+-      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295",
++      "anchor": "standard setup table",
+       "advisory": false,
+       "condition": null,
+       "note": "current value unknown (bias channel TBD): direction and one step, feasibility not assessable",
+@@ -1258,7 +1253,7 @@
+         "high"
+       ],
+       "direction": "more front",
+-      "anchor": "MM p. 393 (6), p. 398 (29); TE Tab. 5.2 p. 210; TE Tab. 5.12 p. 294; TE Tab. 5.13 p. 295; MM p. 393 item 6 (too much rear bias -> loose coming into the turn)",
++      "anchor": "standard setup table (too much rear bias -> loose coming into the turn)",
+       "advisory": false,
+       "condition": null,
+       "note": "current value unknown (bias channel TBD): direction and one step, feasibility not assessable",
+@@ -1284,21 +1279,15 @@
+         "high"
+       ],
+       "direction": "toward the rear-axle-stable map",
+-      "anchor": "SEG p. 114; manufacturer ABS table via registry; TE Tab. 5.9 p. 254 (Instabilitaet beim Bremsen); TE Tab. 5.13 p. 295 (rear axle unsettled, tendency to spin)",
++      "anchor": "manufacturer ABS table via registry; standard setup table (instability under braking, rear axle unsettled, tendency to spin)",
+       "advisory": false,
+       "condition": null,
+       "note": "categorical: stay within the current grip bracket (registry typical_window), no linear step",
+       "side_effect": null
+     }
+   ],
+-  "_comment_engineer_preference": "Engineer preference weight: the team-elicited cells (provenance per cell). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0. Preference only orders candidates, never adds a lever, never sets a direction.",
+-  "_comment_engineer_unsupported": {
+-    "_comment": "Engineer cells not supported by the literature table: a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored and gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. The check is per lever, so US-BRK-high keeps its supported ride-height entries and drops only the wing_position increase.",
+-    "US-BRK-low": "toe_front more toe-out: the table has toe_front only at turn-in (TIN, low speed), not under braking",
+-    "OS-APX-high": "camber_fl / camber_fr less negative: the table has no front-camber row for OS",
+-    "INST-BRK-med": "ride_height_front increase / ride_height_rear decrease: ride heights are M4 levers at high speed only, the cell is medium speed",
+-    "INST-BRK-high": "toe_front more toe-out under braking: no toe_front row under braking, and more toe-out is the US direction (M5-toe-front-US), opposite to the OS / INST one"
+-  },
++  "_comment_engineer_preference": "Engineer preference weight: cells set by the team's engineer. Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0. Preference only orders candidates, never adds a lever, never sets a direction.",
++  "_comment_engineer_unsupported": "A cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored and gives no preference to any candidate. The check is per lever, so a cell keeps its supported entries.",
+   "engineer_preference": [],
+-  "_comment_ride_height": "M4 ride heights: high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance), which resolves the apparent contradiction between MM p. 573 and TE Tab. 5.11. Step 1 mm (registry adjustment_step)."
++  "_comment_ride_height": "M4 ride heights: high speed only, all phases; nose down -> more front, less rear downforce (pitch sensitivity of the underbody). The direction holds outside the ground-effect stall regime; at very low clearance the underbody stalls, and there raising the front ride height is the remedy against a sudden push. Step 1 mm (registry adjustment_step)."
+ }
+diff --git a/config/parameters.json b/config/parameters.json
+--- a/config/parameters.json
++++ b/config/parameters.json
+@@ -27,10 +27,10 @@
+       "air_density_note": "ISA sea-level standard value (Level 1); no session weather correction is implemented.",
+       "lift_coeff": 0.0,
+       "lift_coeff_sign_convention": "cl < 0 means downforce, cl > 0 means lift (standard aerodynamic Cl sign, not a downforce-positive convention); verified computationally against estimate_vertical_loads. The first real Cl entry must be negative.",
+-      "lift_coeff_note": "Placeholder 0.0 (Level 1): the aero load term is zero, so Fz underestimates both axle loads at speed but not the front/rear balance. Sign as in fz_aero = -0.5 rho v^2 A Cl, Cl < 0 = downforce (after the chair performance_analysis tooling (internal)); a first real Cl must make the axle-load sum rise with v^2 on a straight.",
++      "lift_coeff_note": "Placeholder 0.0 (Level 1): the aero load term is zero, so Fz underestimates both axle loads at speed but not the front/rear balance. Sign as in fz_aero = -0.5 rho v^2 A Cl, Cl < 0 = downforce; a first real Cl must make the axle-load sum rise with v^2 on a straight.",
+       "cross_track_area_m2": 2.2,
+       "cross_track_area_note": "Frontal area (Level 1), used for drag with longitudinal_stiffness.drag_coeff; the lift model shares it but stays zero while lift_coeff = 0.",
+-      "cross_track_area_derived_from": "Generic frontal area of a race car of touring-car size (Trzesniowski 2019).",
++      "cross_track_area_derived_from": "Generic frontal area of a race car of touring-car size.",
+       "diff_cog_x_m": 0.0,
+       "diff_cog_x_note": "Centre-of-pressure to CoG longitudinal offset, not sourced; inert while lift_coeff = 0. A value of 0 means no front/rear aero balance shift."
+     }
+@@ -40,7 +40,7 @@
+     "_comment_yaw_rate_unit": "Logged yaw rate is in rpm; 2 x pi / 60 = 0.10472 converts to rad/s. The parser checks the declared unit of sclu_yaw_rate and stops on a mismatch instead of scaling by the wrong factor.",
+     "yaw_rate_to_radps": 0.10472,
+     "cs_filter_cutoff_hz": 2.0,
+-    "_comment_cs_window_floors": "Cornering-stiffness window floors: cs_min_window_s = 0.1 s is the chair value; 0.2 s gave the same results on the development data, so there is no reason to deviate.",
++    "_comment_cs_window_floors": "Cornering-stiffness window floors: cs_min_window_s = 0.1 s; 0.2 s gave the same results on the development data, so the shorter window is kept.",
+     "cs_min_window_s": 0.1,
+     "cs_min_window_s_derived_from": "derived on the development data (see thesis)",
+     "cs_min_window_samples_floor": 5,
+@@ -60,7 +60,7 @@
+     "_comment_grid_rate": "Common grid rate = min(target_sample_rate_hz, slowest native rate of the fast CS channels); below min_sample_rate_hz the run is refused, exactly at it the run is marked channel-limited. Time windows are converted to samples at the grid rate; apex_half_window_samples is still a sample count.",
+     "target_sample_rate_hz": 100,
+     "min_sample_rate_hz": 50,
+-    "_comment_sideslip_source": "Which beta feeds the cornering-stiffness ratio and yaw-moment stability. 'ekf_auto_pacejka' (default) uses the per-session tyre fit and observer; 'kinematic' is the universal fallback. Verdict thresholds are calibrated for one source; another source is marked [UNCAL].",
++    "_comment_sideslip_source": "Which beta feeds the cornering-stiffness ratio and yaw-moment stability. 'ekf_auto_pacejka' (default) uses the per-session tyre fit and observer; 'kinematic' is the universal fallback. Verdict thresholds are calibrated for the default source.",
+     "sideslip_source": "ekf_auto_pacejka",
+     "_comment_sideslip_source_auto_modes": "'ekf_auto_pacejka': fit the session tyre curve, run the NIS gate and use the observer beta only if the gate passes or warns and the fit is not degenerate; otherwise kinematic beta with the fallback reason recorded.",
+     "_comment_vertical_load_source": "'static' = static, aero and load-transfer model; 'measured' (default) = damper-based wheel loads with reconstruction and static fallback, which also feed the tyre fit, the observer and Fy/Fz under the default fit. Without damper channels both give identical results.",
+@@ -69,7 +69,7 @@
+     "apex_half_window_samples": 5,
+     "_comment_cs_apex_region": "apex_3 is one instant +/- apex_half_window_samples and is too short for a cornering-stiffness window, so its CS is read over +/- cs_apex_region_half_length_m around the apex: 25 m covers the typical CS dip without reaching the next corner or straight.",
+     "cs_apex_region_half_length_m": 25.0,
+-    "_comment_yaw_stability": "Yaw-moment stability estimator after the chair performance_analysis tooling (internal), with the chair defaults; changing any of the six values requires re-deriving the classification thresholds.",
++    "_comment_yaw_stability": "Yaw-moment stability estimator settings, standard values, not tuned; changing any of the six values requires re-deriving the classification thresholds.",
+     "yaw_stability_accel_window_s": 0.15,
+     "yaw_stability_grid_step_m": 2.0,
+     "yaw_stability_window_m": 55.0,
+@@ -94,16 +94,16 @@
+     "threshold_derived_from": "derived on the development data (see thesis)"
+   },
+   "tyre_fit_auto": {
+-    "_comment": "Tunables of the per-session Pacejka tyre fit (fit L) with observer validation. P0, beta_hard_bound and the interim yaw-rate R seed come from the earlier observer; the seed is used only in the interim run that fixes R_ay first. The fit population is limited to a per-session speed percentile window (fit_speed_window_pct, null = off), which drops the fastest, mostly straight-line samples like the speed bands of the chair performance_analysis tooling (internal).",
++    "_comment": "Tunables of the per-session Magic Formula tyre fit (fit L) with observer validation. P0, beta_hard_bound and the interim yaw-rate R seed come from the earlier observer; the seed is used only in the interim run that fixes R_ay first. The fit population is limited to a per-session speed percentile window (fit_speed_window_pct, null = off), which drops the fastest, mostly straight-line samples, as tyre-fit speed bands usually do.",
+     "_comment_q_reference_rate_hz": "Reference rate of the per-step process-noise variances: Q is scaled by q_reference_rate_hz / grid rate (first-order discretisation of white process noise), so the variance per second is the same at 50 and 100 Hz. A convention, not a tunable.",
+     "q_reference_rate_hz": 50,
+     "p0_beta_var": 0.00030461741978670857,
+     "p0_yaw_rate_var": 0.00030461741978670857,
+     "r_yaw_rate_interim_seed_var": 3.046174197867086e-06,
+     "beta_hard_bound_deg": 15.0,
+-    "_comment_l_observer": "Observer process noise Q is computed per session as a held-over-step upper bound from the fit force residual (Level 2), propagated to beta_dot and r_dot, diagonal (Villano et al. 2021; Bechtloff ch. 5). The observer resets on the hard bound only.",
++    "_comment_l_observer": "Observer process noise Q is computed per session as a held-over-step upper bound from the fit force residual (Level 2), propagated to beta_dot and r_dot, diagonal. The observer resets on the hard bound only.",
+     "l_q_derived_from": "derived on the development data (see thesis)",
+-    "_comment_l_straights": "Steering-defined straights on which the session ay sensor noise is measured (R_ay floor, modules/observer.py). Tier B segmentation from steering and speed only: steering-centre histogram bin, sigma-factor thresholds on a robust sigma, a moving average before differentiating steering, and the longest minimum duration that still leaves enough segments on every analysis lap.",
++    "_comment_l_straights": "Steering-defined straights on which the session ay sensor noise is measured (R_ay floor, modules/observer.py). A segmentation from steering and speed only: steering-centre histogram bin, sigma-factor thresholds on a robust sigma, a moving average before differentiating steering, and the longest minimum duration that still leaves enough segments on every analysis lap.",
+     "l_straight_hist_bin_deg": 0.2,
+     "l_straight_sigma_factor": 2.0,
+     "l_straight_rate_smooth_s": 0.2,
+@@ -120,13 +120,13 @@
+       99
+     ],
+     "fit_speed_window_pct_derived_from": "derived on the development data (see thesis)",
+-    "_comment_fit_density_bin_rad": "Inverse-density weights on the signed slip angle of the fit population, weight = 1 / (samples in the bin), so the even data distribution of Goblirsch et al. 2025 holds. Tier B; the bin width is a resolution choice, not a literature value.",
++    "_comment_fit_density_bin_rad": "Inverse-density weights on the signed slip angle of the fit population, weight = 1 / (samples in the bin), so the fit sees an even data distribution over slip angle. The bin width is a resolution choice, not a published value.",
+     "fit_density_bin_rad": 0.01,
+     "fit_density_bin_rad_derived_from": "Resolution choice carried over from an earlier fit variant; not tuned to data.",
+-    "_comment_fit_long_util_max": "Braking samples whose utilisation |Fx_axle| / Fz_axle exceeds this value leave that axle fit population, so the pure-slip curve is fitted on near-pure-slip data (Farroni 2016; Farroni et al. 2018). By the friction circle (Pacejka 2006) the lateral capacity loss at 0.3 is about 2-2.5 % for mu 1.4-1.6; traction samples are kept and the observer runs on every sample. Fx from the Goblirsch et al. 2025 split, measured Fz.",
++    "_comment_fit_long_util_max": "Braking samples whose utilisation |Fx_axle| / Fz_axle exceeds this value leave that axle fit population, so the pure-slip curve is fitted on near-pure-slip data. By the friction circle the lateral capacity loss at 0.3 is about 2-2.5 % for mu 1.4-1.6; traction samples are kept and the observer runs on every sample. Fx from the load-proportional braking split, measured Fz.",
+     "fit_long_util_max": 0.3,
+-    "fit_long_util_max_derived_from": "Friction-circle bound on the lateral capacity loss, about 2-2.5 % at mu 1.4-1.6 (Pacejka 2006); not tuned to data.",
+-    "_comment_mu_demo_percentile": "mu per axle = this percentile of |Fy| / Fz on the fit population: demonstrated utilisation, a lower bound of true friction. Tier B percentile, fixed before results were seen. Anchors: Farroni et al. 2018 (peak bounded by the maximum acquired forces); Acosta Reche et al. 2018 (conservative grip estimate); chair performance_analysis tooling (internal), mue_effective.",
++    "fit_long_util_max_derived_from": "Friction-circle bound on the lateral capacity loss, about 2-2.5 % at mu 1.4-1.6; not tuned to data.",
++    "_comment_mu_demo_percentile": "mu per axle = this percentile of |Fy| / Fz on the fit population: demonstrated utilisation, a lower bound of true friction, since the peak can only be bounded by the largest forces acquired. Percentile fixed before results were seen.",
+     "mu_demo_percentile": 99.5,
+     "mu_demo_percentile_derived_from": "Fixed before any result was seen; not tuned to data.",
+     "r_sweep_ay_scales": [
+@@ -154,25 +154,25 @@
+     "sign_check_degenerate_fraction": 0.5,
+     "sign_check_marginal_fraction": 0.7,
+     "nis_gross_miscalibration_fraction": 0.5,
+-    "_comment_plausibility_gate": "Tyre-curve plausibility gate. min_alpha_span_deg: p1-p99 span of the fit slip angles (excitation). stiffness_min_npr / stiffness_max_npr: linear axle stiffness band in N/rad (magnitudes after Bechtloff), used as the CS reference band when the CS runs on Fy.",
++    "_comment_plausibility_gate": "Tyre-curve plausibility gate. min_alpha_span_deg: p1-p99 span of the fit slip angles (excitation). stiffness_min_npr / stiffness_max_npr: linear axle stiffness band in N/rad (typical racing-tyre magnitudes), used as the CS reference band when the CS runs on Fy.",
+     "min_alpha_span_deg": 3.0,
+     "stiffness_min_npr": 30000,
+     "stiffness_max_npr": 600000,
+     "mu_ceiling_edge_u": 0.0975,
+     "mu_ceiling_edge_u_derived_from": "derived on the development data (see thesis)",
+     "tyre_fit_mode": "literature_bounded",
+-    "tyre_fit_mode_default_note": "Fit L (literature_bounded) is the only analysis path; the key stays so the [UNCAL] marker and the threshold calibration tag can compare against it."
++    "tyre_fit_mode_default_note": "Fit L (literature_bounded) is the only analysis path; the key stays so a config naming another mode is refused."
+   },
+   "longitudinal_stiffness": {
+     "_comment": "Axle Fx from the longitudinal force balance at the CoG (modules/loads.py) with drag and rolling resistance; input to the axle force split of the fit and to the floor-event attributes. The block name is historical.",
+     "drag_coeff": 0.4,
+-    "drag_coeff_note": "Level 1, literature: with vehicle.aero.cross_track_area_m2 the longitudinal balance gains 0.5 rho c_D A v^2.",
+-    "drag_coeff_derived_from": "Order of magnitude of production-based GT race cars (Katz 1995).",
++    "drag_coeff_note": "Level 1, typical value: with vehicle.aero.cross_track_area_m2 the longitudinal balance gains 0.5 rho c_D A v^2.",
++    "drag_coeff_derived_from": "Order of magnitude of production-based GT race cars.",
+     "rolling_resistance_coeff": 0.015,
+     "rolling_resistance_coeff_note": "Not sourced; zero is a documented first-order simplification, since a slick tyre rolling resistance is one to two orders of magnitude below drag and traction forces at racing speed."
+   },
+   "wheel_loads": {
+-    "_comment": "Per-wheel Fz from pushrod force and suspension travel (modules/loads.py; Segers ch. 9/10): Level 4 per corner where log_dms_dam_* and log_susp_travel_* are valid, static split (Level 1) as per-corner fallback. A session whose mean straight-line damper axle total falls below plausibility_min_static_fraction x m g uses the static split instead; damper zeros from an event entry are checked with offset-independent slopes (zero_validation).",
++    "_comment": "Per-wheel Fz from pushrod force and suspension travel (modules/loads.py): Level 4 per corner where log_dms_dam_* and log_susp_travel_* are valid, static split (Level 1) as per-corner fallback. A session whose mean straight-line damper axle total falls below plausibility_min_static_fraction x m g uses the static split instead; damper zeros from an event entry are checked with offset-independent slopes (zero_validation).",
+     "pushrod_offset_fl_N": 0.0,
+     "pushrod_offset_fr_N": 0.0,
+     "pushrod_offset_rl_N": 0.0,
+@@ -216,9 +216,9 @@
+     "cs_ls_panel_y_max": 1.2,
+     "cs_ls_panel_y_range_note": "Fixed y-range of the CS ratio panels, so numerically unstable windows cannot stretch the axis and hide the meaningful 0..1 region; set from the observed CS_ratio range plus headroom. Out-of-range samples are not drawn.",
+     "default_laps_shown": 5,
+-    "default_laps_shown_note": "From an all-laps analysis the fastest N valid laps of the corner start checked, the rest stay available; N = 5 avoids overlapping colours and stays inside the 10-colour palette. Tier C UI default.",
++    "default_laps_shown_note": "From an all-laps analysis the fastest N valid laps of the corner start checked, the rest stay available; N = 5 avoids overlapping colours and stays inside the 10-colour palette. A display default.",
+     "kerb_exclusion_display": "grey",
+-    "kerb_exclusion_display_note": "One switch for every CS trace, histogram and tyre-curve scatter in the app and the figure exports, so app and thesis figures agree: grey (default) draws kerb-affected samples grey, exclude leaves them out, off draws them normally. Kerb-affected = inside the kerb mask or near_strike. Presentation only; no computed result changes.",
++    "kerb_exclusion_display_note": "One switch for every CS trace, histogram and tyre-curve scatter in the app and the figure exports, so both agree: grey (default) draws kerb-affected samples grey, exclude leaves them out, off draws them normally. Kerb-affected = inside the kerb mask or near_strike. Presentation only; no computed result changes.",
+     "cs_envelope": {
+       "_comment": "Cross-lap envelope (core/display.py) drawn as two thin lines on the CS and stability panels over all analysis laps of the corner, with the selected lap on top. Display only.",
+       "percentiles": [
+@@ -233,7 +233,7 @@
+     }
+   },
+   "classification": {
+-    "_comment": "Corner-verdict thresholds. STRONG = p10 and MODERATE = p30 of the worst-lap, worst-phase corner CS ratios per axle over the development pool: relative ranks for this estimator and car, never taken from the chair. Physical statements come from separate labels (ratio < 0: axle force falling while slip grows); rear saturation reduces the stability margin (Hoffman et al. 2008). verdict_stability_margin marks a verdict MARGINAL when its value lies within cs_margin of a threshold (covers the vehicle inputs only, not the observer); an axle counts as limiting when its CS ratio is below minus cs_boundary_margin_front / _rear (combined observer and vehicle-input uncertainty).",
++    "_comment": "Corner-verdict thresholds. STRONG = p10 and MODERATE = p30 of the worst-lap, worst-phase corner CS ratios per axle over the development pool: relative ranks for this estimator and car. Physical statements come from separate labels (ratio < 0: axle force falling while slip grows); rear saturation reduces the stability margin. verdict_stability_margin marks a verdict MARGINAL when its value lies within cs_margin of a threshold (covers the vehicle inputs only, not the observer); an axle counts as limiting when its CS ratio is below minus cs_boundary_margin_front / _rear (combined observer and vehicle-input uncertainty).",
+     "STRONG_CSF": {
+       "value": -0.137,
+       "derived_from": "derived on the development data (see thesis)"
+@@ -252,7 +252,7 @@
+     },
+     "stab_neg_thresh_Nm_per_deg": {
+       "value": 0.0,
+-      "derived_from": "Sign criterion of Werner 2021 sec. 2.2.3: dMz/dbeta < 0 is open-loop unstable; a boundary, not a criticality threshold, since skilled drivers operate there."
++      "derived_from": "Sign criterion: dMz/dbeta < 0 is open-loop unstable; a boundary, not a criticality threshold, since skilled drivers operate there."
+     },
+     "verdict_stability_margin": {
+       "cs_margin": 0.01,
+@@ -269,17 +269,17 @@
+     "stab_thresh_calibrated_for_sideslip_source": "ekf_auto_pacejka"
+   },
+   "setup_engine": {
+-    "_comment": "Setup engine (modules/setup_engine.py). A corner-phase symptom counts when it appears in more than min_repeat_fraction of the corner valid laps and in at least min_repeat_laps laps (Tier B). The session share of corners with a counted symptom is always reported; the session recommendation comes from session_vote.",
++    "_comment": "Setup engine (modules/setup_engine.py). A corner-phase symptom counts when it appears in more than min_repeat_fraction of the corner valid laps and in at least min_repeat_laps laps. The session share of corners with a counted symptom is always reported; the session recommendation comes from session_vote.",
+     "min_repeat_fraction": 0.5,
+     "min_repeat_laps": 2,
+     "repeat_derived_from": "Present in a majority of the valid laps, at least 2, so a single lap cannot create a symptom.",
+     "session_share_threshold": null,
+     "session_share_threshold_derived_from": "Kept null: the session share is computed and reported, but no recommendation is drawn from it.",
+     "damper_step": "fine",
+-    "damper_step_derived_from": "Team practice: dampers are the race-weekend fine-tuning lever, so the 1-click fine step is used; larger steps are test-day advice (TE).",
++    "damper_step_derived_from": "Team practice: dampers are the race-weekend fine-tuning lever, so the 1-click fine step is used; larger steps are test-day advice.",
+     "max_alternatives": 2,
+     "session_vote": {
+-      "_comment": "Session recommendation (Tier B aggregation): each counted corner symptom votes for its candidate levers with weight severity_weight x k / n (k of n valid laps show it); opposite directions of the same lever subtract, and net support <= 0 is never recommended. Driver-only symptoms (|feedback| >= 4, no data support) vote with driver_only_weight.",
++      "_comment": "Session recommendation (an aggregation rule): each counted corner symptom votes for its candidate levers with weight severity_weight x k / n (k of n valid laps show it); opposite directions of the same lever subtract, and net support <= 0 is never recommended. Driver-only symptoms (|feedback| >= 4, no data support) vote with driver_only_weight.",
+       "severity_weight": {
+         "moderate": 1,
+         "strong": 2
+@@ -317,7 +317,7 @@
+     },
+     "steering_ratio": {
+       "level": 1,
+-      "source": "config default (vehicle.steering_ratio); resolves to Level 4 (manufacturer steering table in car_data.json) when that local file is present, with the wheel angle interpolated from the wheel-angle column (mean of both front wheels). Vehicle parameterisation, not a deviation from the chair.",
++      "source": "config default (vehicle.steering_ratio); resolves to Level 4 (manufacturer steering table in car_data.json) when that local file is present, with the wheel angle interpolated from the wheel-angle column (mean of both front wheels).",
+       "capped_by": null
+     },
+     "lateral_force_split": {
+@@ -327,13 +327,13 @@
+     },
+     "longitudinal_force_split": {
+       "level": 1,
+-      "source": "Fx = m x ax + drag + rolling resistance (estimate_longitudinal_forces), same construction as the chair performance_analysis tooling (internal); split to the axles by measured axle load in the tyre fit (Goblirsch 2025, Eq. 9)",
++      "source": "Fx = m x ax + drag + rolling resistance (estimate_longitudinal_forces); split to the axles by measured axle load in the tyre fit",
+       "capped_by": "chained-constant: mass_kg, longitudinal_stiffness.drag_coeff, longitudinal_stiffness.rolling_resistance_coeff",
+-      "note": "Drag Level 1 from literature: c_D A = 0.50 x 2.0 = 1.0 m^2; rolling resistance stays 0 (documented approximation)."
++      "note": "Drag Level 1, typical value: c_D A = drag_coeff x cross_track_area_m2; rolling resistance from config (documented approximation)."
+     },
+     "sideslip_angle": {
+       "level": 1,
+-      "source": "per-session Pacejka fit with observer, gated (modules/tyre_fit_auto.py, sideslip_source = 'ekf_auto_pacejka'); falls back to kinematic integration with washout (estimate_sideslip) when the NIS gate fails or the fit is degenerate",
++      "source": "per-session Magic Formula fit with observer, gated (modules/tyre_fit_auto.py, sideslip_source = 'ekf_auto_pacejka'); falls back to kinematic integration with washout (estimate_sideslip) when the NIS gate fails or the fit is degenerate",
+       "capped_by": "chained-constant: kinematic-integration inputs",
+       "note": "Level 1, because the fit is a per-session model, not a measured, logged or lookup source; fallback and gate outcome are recorded in the analysis result. A GPS-course Level 3 path was not viable on this data."
+     },
+@@ -366,27 +366,27 @@
+     },
+     "vertical_load_split": {
+       "level": 1,
+-      "source": "axle Fz from static + aero + longitudinal-transfer decomposition (estimate_vertical_loads), same construction as the chair performance_analysis tooling (internal)",
++      "source": "axle Fz from static + aero + longitudinal-transfer decomposition (estimate_vertical_loads)",
+       "capped_by": "chained-constant: cog_height_m, aero.lift_coeff/cross_track_area_m2/diff_cog_x_m"
+     },
+     "per_wheel_load_split": {
+       "level": 1,
+-      "source": "per-axle lateral-transfer split (estimate_vertical_loads), same construction as the chair performance_analysis tooling (internal); not a roll-stiffness apportionment",
++      "source": "per-axle lateral-transfer split (estimate_vertical_loads); not a roll-stiffness apportionment",
+       "capped_by": "chained-constant: cog_height_m, track_width_front_m, track_width_rear_m, aero.lift_coeff/cross_track_area_m2/diff_cog_x_m",
+       "note": "Static split only. With vertical_load_source = measured the level is recorded per sample: 'damper' = Level 4 (logged sensor + motion-ratio table); damper loads with an event zero entry (channels.json event_zero_entries) are Level 4 with a Level 2 zero."
+     },
+     "wheel_load_damper": {
+       "level": 4,
+-      "source": "pushrod force + motion ratio + ARB + unsprung and geometric lateral-transfer decomposition (modules/loads.py) per corner where log_dms_dam_* and log_susp_travel_* are valid (Segers ch. 9/10)",
++      "source": "pushrod force + motion ratio + ARB + unsprung and geometric lateral-transfer decomposition (modules/loads.py) per corner where log_dms_dam_* and log_susp_travel_* are valid",
+       "capped_by": "chained-constant: wheel_loads.unsprung_mass_front/rear_kg, wheel_loads.tyre_dynamic_radius_front/rear_m, wheel_loads.roll_centre_front/rear_m, wheel_loads.pushrod_offset_*_N, car_data.json motion_ratio_vs_wheel_travel/arb tables",
+       "note": "Per corner: a corner with a missing or failed damper or travel channel falls back to the Level 1 static split for that corner alone, recorded per sample."
+     },
+     "wheel_load_damper_reconstructed": {
+       "level": 1,
+-      "source": "quasi-static axle total (fz_f_N / fz_r_N) minus the damper-measured mate on the same axle (modules/loads.py), used only where exactly one corner of an axle is invalid (Segers modal-decomposition method)",
++      "source": "quasi-static axle total (fz_f_N / fz_r_N) minus the damper-measured mate on the same axle (modules/loads.py), used only where exactly one corner of an axle is invalid (modal decomposition, heave and pitch)",
+       "capped_by": "chained-constant: vertical_load_split (cog_height_m, aero lift_coeff/cross_track_area_m2/diff_cog_x_m -- the axle-total half of this method), wheel_load_damper (the measured-mate half)",
+       "note": "Level 1 although it uses three real sensors: the level records provenance, and the axle total carries the Level 1 aero and CoG-height placeholders. Tried after the damper path and before the static split. Limits: a single-wheel event at the reconstructed corner is invisible, the warp mode is unobservable, and two invalid corners on one axle fall through to the static split."
+     }
+   },
+-  "_comment": "Overlay applied by tools/make_handin.py on config/parameters.json: generic vehicle description."
++  "_comment": "Vehicle description, estimator and classification parameters, accuracy levels."
+ }
+diff --git a/config/setup_parameters.json b/config/setup_parameters.json
+--- a/config/setup_parameters.json
++++ b/config/setup_parameters.json
+@@ -381,7 +381,7 @@
+     "adjustment_step_derived_from": "One recommended ride-height step is 1 mm.",
+     "change_effort": "minutes",
+     "mechanism": "Sets front floor and splitter height above the ground (aero platform). FIA and aero conventions differ by a constant offset; aero wear means the measured value verifies the setting rather than being set independently.",
+-    "notes": "Convention offsets in car_data.json ride_height_measuring_points (FIA/ADAC/Porsche laser, per corner X/Y/Z). Both readings move together, so neither is a free target."
++    "notes": "Convention offsets in car_data.json ride_height_measuring_points (FIA/ADAC/manufacturer laser, per corner X/Y/Z). Both readings move together, so neither is a free target."
+   },
+   "ride_height_rear": {
+     "label": "Rear Ride Height",
+@@ -457,7 +457,7 @@
+     },
+     "change_effort": "minutes",
+     "mechanism": "Rear wing angle sets rear downforce: more angle gives more rear grip and stability at high speed, less top speed.",
+-    "notes": "Legal positions from car_data.json wing_position_table, 'GT3 R 2026' column: only 7.3/8.3/9.3 deg (P8/P9/P10)."
++    "notes": "Legal positions only (P8/P9/P10)."
+   },
+   "toe_front": {
+     "label": "Front Toe",
+@@ -606,7 +606,7 @@
+     },
+     "direction_semantics": {
+       "0": "TC off",
+-      "1": "driver modulation, minimal TC support (wording near-identical to 0; the scale is not cleanly monotonic between 0/1 and 2 -- see notes)",
++      "1": "driver modulation, minimal TC support (wording near-identical to 0; the scale is not cleanly monotonic between 0/1 and 2)",
+       "5": "normal conditions (baseline)",
+       "increasing_2_to_11": "LESS permitted car rotation under lateral load on power = MORE TC intervention/support"
+     },
+@@ -671,7 +671,7 @@
+     "direction_semantics": null,
+     "change_effort": "seconds",
+     "mechanism": "Driver-only in-corner adjustment, braking-phase target. Its current value cannot be evaluated until the bias channel is identified.",
+-    "notes": "Recommendation target behind the lockup chain (Segers C5-1/2). The value is logged, not on the setup sheet; with no identified channel, direction_semantics stays null and typical_window not assessable."
++    "notes": "Recommendation target behind the lockup chain. The value is logged, not on the setup sheet; with no identified channel, direction_semantics stays null and typical_window not assessable."
+   },
+   "splitter_offset": {
+     "label": "Splitter Offset",
+@@ -691,7 +691,7 @@
+       "0": "default",
+       "negative": "more front downforce",
+       "positive": "less front downforce",
+-      "hard_limit": "the NEGATIVE extreme (more front downforce) is bounded by front-splitter/track contact, track-dependent -- HARD edge. The positive extreme is a range limit only, no physical contact -- SOFT edge. Author-elicited 2026-09-22 (Phase C), resolving Phase A's own unresolved placeholder ('sign convention unresolved, not invented, flagged for elicitation') -- see thesis_notes.md for the full provenance record."
++      "hard_limit": "the NEGATIVE extreme (more front downforce) is bounded by front-splitter/track contact, track-dependent -- HARD edge. The positive extreme is a range limit only, no physical contact -- SOFT edge."
+     },
+     "change_effort": "minutes",
+     "mechanism": "Front aero balance trim for high-speed balance; paired with wing_position (same aero axis) and ride_height_front (shared ground clearance).",
+diff --git a/core/display.py b/core/display.py
+--- a/core/display.py
++++ b/core/display.py
+@@ -181,7 +181,7 @@
+ # two draw the same set. Values from modules.classifier.cs_decision_lines;
+ # the kind picks the line style: boundary solid (decides the symptom),
+ # strong dash-dot (grades front depth), info dotted and weaker (rear note
+-# only, no symptom). Same set as the thesis figure fig_example_corner.
++# only, no symptom).
+ CS_LINE_SPECS = {
+     "cs_f": (("boundary_f", "boundary", "Decision boundary"),
+              ("strong_f", "strong", "Strong tier (front)")),
+diff --git a/core/figure_render.py b/core/figure_render.py
+--- a/core/figure_render.py
++++ b/core/figure_render.py
+@@ -1,7 +1,6 @@
+ # Matplotlib figure rendering for exports -- display only, draws the arrays
+-# it's given. The trace dialog's export buttons and the diagnostics share
+-# this code, so their figures are identical. render_* is the public API;
+-# _draw_* are building blocks (some diagnostics import them directly).
++# it's given. All figure exports share this code, so their figures are
++# identical. render_* is the public API; _draw_* are building blocks.
+ # Lap = colour (lap_styles); one quantity per panel, front and rear always
+ # separate (laps carry cs_f/cs_r). The style constants below are shared
+ # with the trace dialog (pyqtgraph), so a quantity has one colour on screen
+@@ -55,7 +54,7 @@
+ 
+ 
+ # fixed hues, not lap-identified
+-FITTED_CURVE_COLOR = "#E040FB"   # EKF auto-fit model curve (Pacejka)
++FITTED_CURVE_COLOR = "#E040FB"   # EKF auto-fit model curve (Magic Formula)
+ 
+ # line widths: screen in px, print in pt. One width for all laps.
+ SCREEN_LAP_WIDTH = 1.5
+@@ -425,7 +424,7 @@
+ 
+ 
+ def render_corner_figure(corner_label, laps, thresholds, tyre_curves, track_map, theme=PRINT, near_strike=None):
+-    """Chair-style composition: speed, front CS, rear CS vs s (with thresholds),
++    """Composition: speed, front CS, rear CS vs s (with thresholds),
+     a narrow track-map row (compact: no title/legend), front/rear tyre curves
+     (linear reference, fitted model, tangent). Stability is in
+     render_verdict_traces_figure.
+diff --git a/modules/accuracy_resolution.py b/modules/accuracy_resolution.py
+--- a/modules/accuracy_resolution.py
++++ b/modules/accuracy_resolution.py
+@@ -1,7 +1,7 @@
+ # Per-session accuracy levels: registry (parameters.json accuracy_levels)
+ # + outing setup_data + optional cap (int 1-4, None = best available)
+ # -> values the pipeline uses and the level map the UI shows. The app
+-# always passes cap None; the tests pin a cap for reproducible inputs.
++# always passes cap None; a fixed cap gives reproducible inputs.
+ #
+ # Resolved live: mass, corner_weights, steering_ratio; cog_position and
+ # steering_angle cascade from those. Everything else stays at its registry
+@@ -34,8 +34,8 @@
+ 
+     The manufacturer table gives ONE wheel's angle over the full stroke; the
+     +/- branches differ at large lock (Ackermann). The bicycle model's steer
+-    angle is the mean of the inner and outer wheel (Rajamani sec. 2.2,
+-    Ackermann turning geometry), i.e. the mean of |wheel| on both branches at
++    angle is the mean of the inner and outer wheel (Ackermann turning
++    geometry), i.e. the mean of |wheel| on both branches at
+     the same |sw|, signed like sw. The result is odd in sw, so it does not
+     depend on which wheel or sign convention the table was printed in.
+     """
+diff --git a/modules/classifier.py b/modules/classifier.py
+--- a/modules/classifier.py
++++ b/modules/classifier.py
+@@ -12,15 +12,15 @@
+ # - front limiting -> understeer symptom (US), moderate; strong when the
+ #   front value also lies in the strong tier (below STRONG_CSF);
+ # - rear limiting -> oversteer symptom (OS), always strong: a rear axle past
+-#   its peak removes the restoring yaw moment, i.e. a loss of stability
+-#   (Hoffman 2008, sec. 2);
++#   its peak removes the restoring yaw moment, i.e. a loss of stability,
++#   while a saturated front only costs controllability;
+ # - rear between the boundary and its moderate tier -> information only, no
+ #   symptom (the rear still has positive slope);
+-# - open-loop unstable yaw (dMz/dbeta sign criterion, Werner 2021 sec.
+-#   2.2.3) -> symptom INST in whichever phase it occurs, strong;
++# - open-loop unstable yaw (dMz/dbeta below zero, no restoring yaw moment)
++#   -> symptom INST in whichever phase it occurs, strong;
+ # - a high-speed corner whose only symptom is front limiting is flagged
+ #   low_priority: mild high-speed understeer is the deliberate safe balance
+-#   of a race car (Milliken 1995, setup checklist items 21 and 1F).
++#   of a race car, not something to tune away.
+ #
+ # The same module holds the cross-lap aggregation and phase / severity
+ # vocabulary the classifier reads, and the manual threshold-override record
+@@ -173,7 +173,7 @@
+ def cs_decision_lines(thr=None):
+     """The CS levels the verdict rule above reads, as values to draw: the
+     per-axle boundaries (-margin), the front strong tier and the rear
+-    information tier. Every trace view and thesis figure takes its lines
++    information tier. Every trace view and figure export takes its lines
+     from here, so a drawn line can never be one the classifier ignores."""
+     thr = thr or _thresholds()
+     return {"boundary_f": -thr["boundary"]["f"], "strong_f": thr["strong_f"],
+diff --git a/modules/corner_analysis.py b/modules/corner_analysis.py
+--- a/modules/corner_analysis.py
++++ b/modules/corner_analysis.py
+@@ -481,9 +481,9 @@
+ 
+         # Residual collision: two brackets of one lap still match the same
+         # seed (one corner detected as two pieces on that lap). Which piece
+-        # is "the" corner cannot be decided from the overlap, so that lap is
++        # is "the" corner cannot be told from the overlap, so that lap is
+         # excluded from this one group rather than guessed; the rest of the
+-        # session stays usable. Tier B segmentation, not a method choice.
++        # session stays usable. A segmentation rule, not a method choice.
+         for sub in sub_clusters:
+             lap_counts_sub = {}
+             for c in sub:
+@@ -568,7 +568,7 @@
+         collision = (any(m["lap_number"] == c["lap_number"] for m in final_clusters[best_idx])
+                      or c["lap_number"] in (excluded_laps or {}).get(id(final_clusters[best_idx]), ()))
+         if collision:
+-            # not auto-resolved -> manual review, as in pass 1
++            # not auto-resolved -> left for manual checking, as in pass 1
+             c["warnings"].append("pass2_reassignment_blocked_by_collision")
+             continue
+         final_clusters[cur_idx].remove(c)
+diff --git a/modules/limit_events.py b/modules/limit_events.py
+--- a/modules/limit_events.py
++++ b/modules/limit_events.py
+@@ -4,11 +4,9 @@
+ # recommendations; display and record only, never a verdict or
+ # recommendation input.
+ #
+-# Lineage: flagging handling moments in logged traces after Segers (secs.
+-# 7.4-7.6; sec. 5.4 for a discrete-event precedent); interpretation per
+-# Hoffman / Ono / Werner, limit-regime vocabulary per Milliken sec. 8.5. The
+-# event channel itself -- CS against a fixed floor -- is SetupTool's
+-# construction (Tier B segmentation on a Tier A-derived line).
++# Flagging discrete handling moments in logged traces is common practice in
++# race data analysis. The event channel itself -- CS against a fixed floor --
++# is this tool's own segmentation step on a physically derived line.
+ 
+ import numpy as np
+ 
+@@ -17,8 +15,8 @@
+ 
+ # Pure-lateral floor of the CS ratio: the steepest
+ # post-peak slope of the Magic Formula over its initial slope, at C = 3.0
+-# (Goblirsch et al. 2025 Table I upper bound) with E in [-1, 1] (Pacejka
+-# 2006 ch. 4). Independent of B and D. Lower than any pure-slip curve can go,
++# (upper end of the published C range) with E in [-1, 1]. Independent of B
++# and D. Lower than any pure-slip curve can go,
+ # so a ratio below it is "not explainable by pure lateral saturation". A
+ # label, never a deletion or a verdict input. Method-defining, not a tunable.
+ PURE_LATERAL_FLOOR = -0.53
+@@ -96,7 +94,7 @@
+     flagged. Attributes only; nothing is classified or removed.
+ 
+     axle_loads / axle_fx: the fit-L axle Fz and the axle Fx with braking
+-    split by measured axle load (Goblirsch 2025, Eq. 9),
++    split by measured axle load,
+     2 Hz zero-phase, for the longitudinal utilisation and the load change inside
+     the regression windows; without them those attributes are None.
+     """
+@@ -204,7 +202,7 @@
+ 
+ 
+ def aggregate_by_corner_phase(events):
+-    """The thesis consumer's resolution (the driver-feedback form's): one
++    """The driver-feedback form's resolution: one
+     row per corner, phase and axle -- events, laps, kerb-affected count."""
+     rows = {}
+     for e in events:
+diff --git a/modules/loads.py b/modules/loads.py
+--- a/modules/loads.py
++++ b/modules/loads.py
+@@ -1,9 +1,8 @@
+ # Loads: per-wheel Fz from pushrod force + suspension travel, and the CoG
+ # longitudinal force. SI units.
+ #
+-# Per-wheel Fz:
+-# Segers ch. 9 (pushrod force -> wheel via motion ratio), ch. 10 (geometric
+-# vs elastic load transfer).
++# Per-wheel Fz: pushrod force goes to the wheel via the motion ratio;
++# lateral load transfer splits into a geometric and an elastic part.
+ #
+ # Fz = four additive terms per wheel:
+ #   1. sprung: pushrod force x motion ratio -- static weight, aero, pitch
+@@ -245,7 +244,7 @@
+ 
+ 
+ def straight_line_plausibility(state, damper_result, params):
+-    """Session check of the damper path against the static weight (Tier B
++    """Session check of the damper path against the static weight (a
+     safety net). On a straight the four wheel
+     loads sum to the weight plus the downforce, and downforce only adds
+     load, so a total far below m g is not physics: it is a gauge zeroed
+@@ -271,7 +270,7 @@
+ 
+ 
+ def load_validation_quantities(state, wheels, params):
+-    """Checks of a damper path that do not depend on its zero (Tier B).
++    """Checks of a damper path that do not depend on its zero.
+     With the zero taken from a standstill against the static weight, the
+     weight check above passes by construction, so these carry the
+     validation instead: slopes and left-right differences, where a constant
+@@ -354,7 +353,6 @@
+ 
+     Only real corner data feeds the fits (_axle_total_with_proxy), never the
+     reconstruction itself -- no self-correction loop.
+-    Check: diagnostics/inspect_v3_reconstruction_ground_truth.py.
+ 
+     Returns fz_f_N/fz_r_N + mass_kg_session, c_session_N_per_mps2,
+     aero_front_fraction. Never written back to config.
+@@ -424,7 +422,7 @@
+ 
+ 
+ def reconstruct_missing_corner(damper_result, fz_axle_totals):
+-    """One invalid corner = axle total - measured mate (Segers modal
++    """One invalid corner = axle total - measured mate (modal
+     decomposition, heave+pitch mode only). Roll only shifts load within an
+     axle -> no roll/ARB model; the mate carries the real split.
+ 
+@@ -470,8 +468,7 @@
+ # and the floor-event attributes (tyre_fit_auto).
+ def estimate_longitudinal_forces(state, channels, params):
+     """CoG Fx from the longitudinal balance; no Fx channel in the log.
+-    fx_total = m*ax + drag + rolling (Rajamani ch. 2); chair performance_analysis
+-    tooling (internal), fallback tier, as-is. ax < 0 under braking. The axle
++    fx_total = m*ax + drag + rolling. ax < 0 under braking. The axle
+     split is done by the caller (tyre_fit_auto, by measured axle load).
+     """
+     lf = params["longitudinal_stiffness"]
+diff --git a/modules/observer.py b/modules/observer.py
+--- a/modules/observer.py
++++ b/modules/observer.py
+@@ -9,9 +9,7 @@
+ 
+ 
+ # Single-track EKF sideslip observer, Magic Formula tyres. Used by
+-# tyre_fit_auto.
+-# Model: Rajamani sec. 2.3/2.6, Ulsoy/Peng/Cakmakci sec. 14.1/14.3.
+-# EKF: Rajamani ch. 14.
++# tyre_fit_auto. Standard single-track model and extended Kalman filter.
+ #
+ # x = [beta, yaw_rate], u = delta_f, z = [yaw_rate, ay]. Vx scheduled per
+ # sample (floored at moving_speed_min_mps), not a state.
+@@ -56,11 +54,10 @@
+     force model of the prediction and the measurement update, so both
+     always see the same D.
+     tyre = (Bf, Cf, mu_f, Ef, Br, Cr, mu_r, Er), load = (fz_f, fz_r, fx_f)
+-    arrays: the peak force follows the axle load, D = mu Fz(t) (Pacejka
+-    Exercise 1.1); the front curve is in the tyre frame, so the body force
+-    adds the Fx share of the steered wheel and only the tyre-frame part,
+-    scaled by cos(delta), depends on the state (Goblirsch et al. 2025
+-    Eq. 13)."""
++    arrays: the peak force follows the axle load, D = mu Fz(t); the front
++    curve is in the tyre frame, so the body force adds the Fx share of the
++    steered wheel and only the tyre-frame part, scaled by cos(delta),
++    depends on the state."""
+     Bf, Cf, Df, Ef, Br, Cr, Dr, Er = tyre
+     fz_f, fz_r, fx_f = load
+     Df_i = Df * float(fz_f[i])
+@@ -79,10 +76,10 @@
+     bound: beta state to 0, yaw rate state to the measured value, P to P0.
+     Keeping an out-of-range state runs away -- the curve is flat out there,
+     so the measurements cannot pull it back. Zero carries no
+-    seed bias; the kinematic beta is never written into the state. Villano
+-    et al. 2021 (Meccanica, sec. 3.1) force the lateral velocity of their
+-    kinematic filter to zero at small yaw rate, where it is unobservable;
+-    using a zero reset on divergence is our adaptation of that.
++    seed bias; the kinematic beta is never written into the state. Kinematic
++    sideslip filters commonly force the lateral velocity to zero at small
++    yaw rate, where it is unobservable; the zero reset on divergence applies
++    the same idea.
+     beta_with_fallback keeps its name for the callers and carries the
+     post-re-entry state; beta is the raw update (a re-entry shows with
+     |beta| > bound).
+@@ -115,8 +112,8 @@
+     # noise integrated over one step adds variance in proportion to the step
+     # length (first-order discretisation, Q_d = Q_c * dt), so scale by
+     # dt / dt_ref: exactly 1 at the reference rate (bit-identical), half per
+-    # step at 100 Hz, i.e. the same variance per second. [Tier B: standard
+-    # discretisation, preprocessing of a tuned value]
++    # step at 100 Hz, i.e. the same variance per second (standard
++    # discretisation of a tuned value).
+     q_scale = cfg["q_reference_rate_hz"] / sr
+     Q = np.diag([cfg["Q_beta_var"], cfg["Q_yaw_rate_var"]]) * q_scale
+     R = np.diag([cfg["R_yaw_rate_var"], cfg["R_ay_var"]])
+@@ -205,12 +202,10 @@
+ 
+ 
+ # Steering-defined straights of one session, where the fit-L chain
+-# measures the sensor noise. Same definition as
+-# diagnostics/inspect_kinematic_inputs.steering_straights (test cross-check).
+-# Thresholds come from steering and speed only, never from the IMU signals
+-# whose noise is measured there; centre and widths are measured per session.
+-# Tier B preprocessing: a segmentation rule, config-driven
+-# (tyre_fit_auto.l_straight_*).
++# measures the sensor noise. Thresholds come from steering and speed only,
++# never from the IMU signals whose noise is measured there; centre and
++# widths are measured per session. Preprocessing: a segmentation rule,
++# config-driven (tyre_fit_auto.l_straight_*).
+ 
+ def _robust_sigma(x):
+     x = np.asarray(x, dtype=float)
+diff --git a/modules/pipeline.py b/modules/pipeline.py
+--- a/modules/pipeline.py
++++ b/modules/pipeline.py
+@@ -1,7 +1,7 @@
+ # The analysis chain without Qt: the sequence the app's analysis thread
+ # runs, from a parsed session to corner summaries and floor events, and the
+ # setup recommendation on top of the summaries. The UI calls these
+-# functions, tests/generate_golden pins them, and
++# functions, and
+ #     python -m modules.pipeline <session file> [-o out.json]
+ # runs them on one exported session and writes a JSON summary.
+ 
+diff --git a/modules/setup_engine.py b/modules/setup_engine.py
+--- a/modules/setup_engine.py
++++ b/modules/setup_engine.py
+@@ -7,25 +7,25 @@
+    cannot drive a change. Severity comes from the cross-lap aggregate, the
+    population the classification tiers were derived on.
+ 3. Candidates: config/mechanisms.json ties lever + direction to symptom,
+-   phase group and speed class, each row with a literature anchor; the
++   phase group and speed class, each row with its source rule; the
+    registry turns the direction word into a signed step on the setup sheet.
+ 4. Per-corner rank: severity -> repetition -> traction demotion ->
+-   limiting-end class (MM p. 409: improve the limiting axle first) ->
++   limiting-end class (improve the limiting axle first) ->
+    engineer preference (orders table rows, never adds or reverses one) ->
+-   change effort (MM p. 391) -> window headroom. One change plus up to two
+-   alternatives, because an effect is only attributable when one thing
+-   changes (Milliken 1995, setup procedure; Trzesniowski & Eder 2019,
+-   Bd. 5 ch. 5).
++   change effort (cheaper changes first) -> window headroom. One change plus
++   up to two alternatives, because an effect is only attributable when one
++   thing changes.
+ 5. Mechanical levers form the setup recommendation; cockpit levers (brake
+    bias, ABS map, TC lat / lon) form a separate "driver can also" line
+    ranked by the same key, since drivers change them during an outing and
+    they are not part of the engineer's setup progression.
+-6. Session recommendation: setup acts on the whole lap (MM p. 572 item 4,
+-   MM p. 391, TE p. 254). Each counted symptom votes for its mechanical
++6. Session recommendation: setup acts on the whole lap, not on one
++   corner. Each counted symptom votes for its mechanical
+    lever group with weight severity x k / n; opposite directions subtract.
+-   Not voting: rows whose condition fails (traction-limited exit, MM p. 740)
+-   and low-priority corners (high speed, front only; MM p. 396 item 21,
+-   p. 401 item 1F). Corner importance is not weighted (limitation). Rank:
++   Not voting: rows whose condition fails (traction-limited exit) and
++   low-priority corners (high speed, front only: mild high-speed understeer
++   is the intended safe balance). Corner importance is not weighted
++   (limitation). Rank:
+    net support -> limiting-end class -> preference -> effort -> headroom;
+    an exact tie is reported as equivalent options.
+ 
+@@ -54,7 +54,7 @@
+ 
+ MECHANISMS_CONFIG_PATH = repo_path("config", "mechanisms.json")
+ 
+-# ordinal enums, method-defining (cheaper changes first, MM p. 391)
++# ordinal enums, method-defining (cheaper changes first)
+ EFFORT_RANK = {"seconds": 0, "minutes": 1, "half_hour": 2, "garage_hours": 3}
+ AGREEMENT_RANK = {"agree": 2, "neutral": 1, "conflict": 0}
+ 
+@@ -71,9 +71,9 @@
+ COCKPIT_TIER = "cockpit"
+ # An advisory row (mechanisms.json "advisory") acts on the tire working
+ # point, which no logged channel confirms, so it is never the single change;
+-# it still votes, ranks and is listed. The reason text keeps its source
+-# because it is stored with the recommendation.
+-ADVISORY_REASON = "advisory: needs tire temperatures to confirm (SEG pp. 194-196)"
++# it still votes, ranks and is listed. Tire temperatures are the measurement
++# that would confirm such a change.
++ADVISORY_REASON = "advisory: needs tire temperatures to confirm"
+ # the elicited matrix's direction words in the table's vocabulary
+ # (more_negative / less_negative go through the registry semantics)
+ _CELL_WORD = {"soften": "softer", "stiffen": "stiffer", "more_ra_stability": "toward the rear-axle-stable map"}
+@@ -184,7 +184,7 @@
+ 
+ def axle_class(row_axle, limiting):
+     """0 = row acts on the limiting axle, 1 = global row (or no single
+-    limiting axle), 2 = row acts on the other axle (MM p. 409)."""
++    limiting axle), 2 = row acts on the other axle."""
+     if row_axle == "global" or limiting is None:
+         return 1
+     return 0 if row_axle == limiting else 2
+@@ -351,7 +351,7 @@
+ 
+ def _data_rank_key(c):
+     # traction demotion first, then the limiting-end class: which axle to
+-    # work on is physics (MM p. 409), the engineer's preference only orders
++    # work on is physics, the engineer's preference only orders
+     # the levers within it; effort after preference, visible on every line
+     return (-SEVERITY_RANK[c["severity"]], -c["laps"], c["condition_demoted"], c["axle_class"], -c["preference"],
+             EFFORT_RANK.get(c["change"]["effort"], len(EFFORT_RANK)),
+@@ -446,7 +446,7 @@
+             seen.add(key)
+             if c["condition_demoted"]:
+                 # the row's own condition is not met (TC active on most
+-                # symptom laps: traction-limited, MM p. 740), so the row does
++                # symptom laps: traction-limited), so the row does
+                 # not apply and cannot vote
+                 if excluded is not None:
+                     excluded.append({"corner": cid, "symptom": sym["symptom"], "phase": sym["phase"],
+@@ -585,8 +585,8 @@
+             continue
+         cands = _candidates(cid, corner, mechanisms, registry, windows, setup_data, tc_map, cfg, logged)
+         if is_low_priority(corner["symptoms"], corner["speed_class"]):
+-            # high-speed front-only limiting (MM p. 396 item 21, p. 401 item
+-            # 1F): diagnosis only, no session vote
++            # high-speed front-only limiting is the intended safe balance:
++            # diagnosis only, no session vote
+             excluded += [{"corner": cid, "symptom": s["symptom"], "phase": s["phase"], "option": None,
+                           "reason": "low priority (high speed, front limiting only)"} for s in corner["symptoms"]]
+         else:
+@@ -621,7 +621,7 @@
+         return "neutral"
+     if symptom == "US":
+         return "agree" if fb < 0 else "conflict"
+-    # OS and INST: rear saturation is a loss of stability (Hoffman 2008),
++    # OS and INST: rear saturation is a loss of stability,
+     # which the driver feels as a loose rear, i.e. oversteer feedback
+     return "agree" if fb > 0 else "conflict"
+ 
+@@ -917,7 +917,7 @@
+         why = "Why: " + why_text(votes)
+     elif rec["ranked"]:
+         head = "No setup change (only advisory levers)"
+-        # tire temperatures as the confirming measurement: SEG pp. 194-196
++        # tire temperatures are the confirming measurement
+         why = "Advisory levers need tire temperatures to confirm"
+     else:
+         head = "No setup change"
+diff --git a/modules/stability_analysis.py b/modules/stability_analysis.py
+--- a/modules/stability_analysis.py
++++ b/modules/stability_analysis.py
+@@ -1,8 +1,8 @@
+ # Vehicle state, sideslip, slip angles, axle forces, Fz, cornering
+ # stiffness ratio and yaw-moment stability. SI units.
+-# CS_ratio framework: Werner 2021; stiffness estimation adapted (windowed
+-# regression on logged Fy/alpha). Yaw-moment estimator (yaw_stability.py)
+-# after the chair performance_analysis tooling (internal).
++# Cornering-stiffness ratio: effective axle stiffness over its linear value,
++# estimated by windowed regression on logged Fy/alpha. Yaw-moment estimator
++# in yaw_stability.py.
+ 
+ import functools
+ import numpy as np
+@@ -119,7 +119,7 @@
+ 
+ 
+ # CS_alpha blend preprocessing (smooth-step weights, monotonic sections,
+-# section OLS) -- signal conditioning, not part of Werner's method
++# section OLS) -- signal conditioning, not part of the stability method
+ def _smooth_weight(value, lower, upper, order):
+     v = np.clip(value, lower, upper)
+     rng = upper - lower
+@@ -151,8 +151,8 @@
+     return sections, section_id
+ 
+ 
+-# A line with intercept is only over-determined from 3 points on; the chair
+-# estimator uses the same floor (end - start > 1, both ends inclusive).
++# A line with intercept is only over-determined from 3 points on
++# (end - start > 1, both ends inclusive).
+ SECTION_MIN_SAMPLES = 3
+ 
+ 
+@@ -196,7 +196,6 @@
+ def _interp_lap_distance_guarded(t_ref, ld_time, ld_data_m):
+     # lap_distance resets each lap -> interpolating across the reset invents a
+     # position; those samples go NaN. Needed only because we resample s_m.
+-    # [neutral engineering]
+     # ld_data_m already in metres.
+     s_m = np.interp(t_ref, ld_time, ld_data_m)
+ 
+@@ -211,7 +210,7 @@
+     # laps (past valid_lap_max_ratio, e.g. traffic or a cool-down lap) also
+     # break the cross-lap stationarity the regression assumes. Same lap set
+     # as the CS summaries and the tyre fit. No lap list -> no lap
+-    # exclusion. [domain improvement]
++    # exclusion.
+     mask = np.zeros(len(t_ref), dtype=bool)
+     if not laps:
+         return mask
+@@ -247,7 +246,7 @@
+     # feeds the near_strike grade mark (together with the mask), bars a
+     # window from setting the CS linear reference and leaves the tyre-fit
+     # base mask with the kerb mask. The CS regression itself still runs
+-    # over it. [domain improvement: the chair tooling has no kerb treatment]
++    # over it.
+     if kerb_mask is None:
+         return None
+     n = len(kerb_mask)
+@@ -267,8 +266,8 @@
+             return None
+ 
+     # Synthetic even grid at the resolved rate over ecu_speed's time span.
+-    # ecu_speed is 50 Hz, the CS chain 100 Hz
+-    # (diagnostics/inspect_native_channel_rates.py), so resampling onto
++    # ecu_speed is 50 Hz, the CS chain 100 Hz (native logger rates), so
++    # resampling onto
+     # ecu_speed would discard half of the chain's samples. ecu_speed is
+     # upsampled linearly: speed is inertia-limited, can't jump between samples.
+     sr, grid_rate_status = _resolve_grid_rate(channels, params)
+@@ -381,7 +380,7 @@
+ 
+ 
+ def estimate_sideslip(state, params):
+-    """Kinematic identity ay = v*(beta_dot + psi_dot) (Rajamani ch. 2).
++    """Kinematic identity ay = v*(beta_dot + psi_dot).
+     Washout integration = drift correction, signal conditioning only.
+     """
+     se = params["stability_estimation"]
+@@ -403,7 +402,7 @@
+ 
+ 
+ def estimate_slip_angles(state, beta, params):
+-    """Single-track slip angles, Werner S2.2.3 convention."""
++    """Single-track slip angles; positive alpha gives positive Fy."""
+     vp = params["vehicle"]
+     se = params["stability_estimation"]
+ 
+@@ -439,9 +438,8 @@
+ 
+ 
+ def estimate_lateral_forces(state, params):
+-    """Axle lateral forces from the 2-DOF planar balance (Milliken RCVD ch. 5 (sec. 5.7);
+-    Rajamani sec. 2.3 (Eqs. 2.21/2.22)), as in the chair
+-    performance_analysis tooling (internal):
++    """Axle lateral forces from the 2-DOF planar balance of the
++    single-track model (lateral force and yaw moment):
+         Fy_f = m*ay*front_fraction + Iz*psidd/wheelbase,  Fy_r = m*ay - Fy_f
+     psidd = raw gradient of yaw rate, not the yaw-moment estimate's smoothed one -- the CS
+     Butterworth downstream would otherwise double-filter.
+@@ -487,8 +485,7 @@
+ 
+ def estimate_vertical_loads(state, forces, params, channels=None, car_data=None):
+     """Axle and per-wheel Fz + diagnostic fy_*_norm_N = Fy_filt / Fz.
+-    As in the chair performance_analysis tooling (internal): per-axle
+-    lateral-transfer split, no roll-stiffness apportionment.
++    Per-axle lateral-transfer split, no roll-stiffness apportionment.
+     fy_*_norm_N: display only, not a classifier input.
+     Level 1 (cog height, track widths, aero are placeholders).
+ 
+@@ -621,8 +618,8 @@
+ 
+ 
+ def resolve_cs_min_window_samples(params, sample_rate_hz):
+-    """cs_min_window_s [s] -> samples at this file's rate, floored. The chair's
+-    10-sample default was implicitly 100 Hz. Shared by the estimator and all
++    """cs_min_window_s [s] -> samples at this file's rate, floored, so the
++    minimum window is the same time at any logger rate. Shared by the estimator and all
+     window reconstructions.
+     """
+     se = params["stability_estimation"]
+@@ -631,7 +628,7 @@
+ 
+ def reconstruct_cs_window_start(alpha, i, min_window, min_span, s_m=None, max_window_m=None):
+     """Start index of the window compute_cs_for_axle used at index i -- for
+-    trace-window highlights and diagnostics. Reconstruction only, never
++    trace-window highlights. Reconstruction only, never
+     recomputes CS.
+ 
+     min_window = sample count (resolve_cs_min_window_samples).
+@@ -664,9 +661,9 @@
+ 
+ def estimate_cornering_stiffness(slip, forces, state, params, laps, reset_mask=None, axle_loads=None,
+                                  ref_band=None, ref_relative=None):
+-    """Effective cornering stiffness and CS_ratio (Werner 2021).
+-    Stiffness by windowed regression on logged Fy/alpha instead of Werner's
+-    Pacejka evaluation.
++    """Effective cornering stiffness and CS_ratio.
++    Stiffness by windowed regression on logged Fy/alpha, so no tyre model
++    has to be evaluated.
+ 
+     Linear reference (CS_ratio denominator): set only by a clean window --
+     no sample of the regression window [start, i) in the kerb mask or the
+@@ -677,8 +674,7 @@
+     reference in force. Until the first clean window no CS is computed;
+     those samples are counted (n_no_reference_*), never zero-filled. laps =
+     the parsed lap list (analysis-lap test and lap-boundary guard); empty ->
+-    neither, as in the yaw-moment estimate. [domain improvement: the chair tooling has no
+-    kerb treatment]
++    neither, as in the yaw-moment estimate.
+ 
+     reset_mask (fit L): samples where the shipped observer reset its state
+     at the hard bound (beta set to zero). A window [start, i) holding one is
+@@ -691,18 +687,17 @@
+     axle_loads / ref_band (fit L): with axle_loads ({"fz_f_N", "fz_r_N"},
+     the measured axle loads after the fit-L 2 Hz zero-phase filter) the
+     force input is Fy / Fz per axle, sample by sample -- cornering stiffness
+-    is defined at constant vertical load (Milliken, load-normalised lateral
+-    force), and the window regression otherwise reads a load change inside
++    is defined at constant vertical load (load-normalised lateral force),
++    and the window regression otherwise reads a load change inside
+     the window as a slope. Only the division is added; filter, window,
+     segmentation and R^2 blend are unchanged, and the reference is
+     normalised the same way, so the ratio stays C / C_ref. ref_band replaces
+     the reference plausibility band (fit L: tyre_fit_auto.L_K_EDGE, 5.5-35
+-    per rad -- the "about 6 to about 30" of Pacejka sec. 1.2.1 read at its
+-    stated precision, as in the fit-L g2 check). Either given -> the output
++    per rad -- the published "about 6 to about 30" read at its stated
++    precision, as in the fit-L g2 check). Either given -> the output
+     gains the reference-candidate slopes and counts (ref_candidates_*,
+-    n_ref_candidates_*, n_ref_band_excluded_*).
+-    [declared adaptation beyond the chair estimator, which uses Fy in N;
+-    enabled by the measured axle loads]
++    n_ref_candidates_*, n_ref_band_excluded_*). The division needs the
++    measured axle loads; without them Fy stays in N.
+ 
+     ref_relative (fit L, tyre_fit_auto.L_REF_RELATIVE): (lo, hi) -- a band
+     candidate sets the reference only within lo..hi x the median of ALL
+@@ -719,8 +714,8 @@
+     if kerb_mask is not None:
+         moving = moving & ~kerb_mask
+     s_m = state.get("s_m")
+-    # The regression itself still runs over the smear zone (the chair
+-    # window, unchanged); the zone only marks near_strike and disqualifies
++    # The regression itself still runs over the smear zone (window
++    # unchanged); the zone only marks near_strike and disqualifies
+     # a window from setting the reference.
+     smear_zone = state.get("kerb_smear_zone")
+     # The grade mark covers the mask as well as the zone -- a window lying
+@@ -765,12 +760,12 @@
+     # Band rule: the reference is the linear axle stiffness, the quantity the
+     # plausibility gate bounds on the fitted curve -- fit L: K = B*C*mu, the
+     # origin slope per unit vertical load (ref_band); without ref_band the
+-    # config band on B*C*D in N/rad (Bechtloff Fig. 7.2 magnitudes) -- so the
+-    # same band is read here. Needed because beta is
+-    # estimated: a low-excitation window's slope is ill-determined (Bechtloff,
+-    # identifiability) and can set a reference far below the session level,
+-    # or zero / negative. The chair does not bound its reference because it
+-    # works with measured beta. [domain improvement]
++    # config band on B*C*D in N/rad (typical racing-tyre magnitudes) -- so
++    # the same band is read here. Needed because beta is
++    # estimated: a low-excitation window's slope is ill-determined
++    # (not identifiable) and can set a reference far below the session level,
++    # or zero / negative. With a measured beta this bound would not be
++    # needed.
+     ref_min = params["tyre_fit_auto"]["stiffness_min_npr"]
+     ref_max = params["tyre_fit_auto"]["stiffness_max_npr"]
+     if ref_band is not None:
+@@ -856,7 +851,7 @@
+             C_window[i] = C_w
+             R2[i] = R2_i
+ 
+-            # Sections clipped to the window, as in the chair estimator: a
++            # Sections clipped to the window: a
+             # section reaching past either window edge is re-fitted on its
+             # in-window part only, and its weight comes from that part's span,
+             # so no data from outside the window enters the section estimate.
+@@ -949,7 +944,7 @@
+         # kerb grade mark (window holds a kerb-mask or smear-zone sample), in
+         # memory only. Read by summarise_corners, which drops marked samples
+         # from the verdict statistics, by the limit-event kerb label, the
+-        # trace display and the thesis reader
++        # trace display and the figure export
+         "near_strike_f": ns_f,
+         "near_strike_r": ns_r,
+         # in memory only: samples with a stiffness but no clean reference
+@@ -981,21 +976,18 @@
+ 
+ 
+ def estimate_yaw_moment_stability(state, beta, params, laps=None):
+-    """Yaw-moment stability dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid (Werner
+-    S4.5.2 Eq. 4.3); the damping term D_psi*psid is not modelled (inertial
+-    regressand only, chair-conform). Estimator in yaw_stability.py,
+-    after the chair performance_analysis tooling (internal).
+-    Front vs rear saturation = controllability vs stability loss (Hoffman et
+-    al. 2008, sec. 2); saddle-node framing as motivation only (Ono et al.
+-    1998), no bifurcation analysis.
++    """Yaw-moment stability dMz/dbeta. Target relation Mz = Iz*psidd + D_psi*psid;
++    the damping term D_psi*psid is not modelled (inertial regressand
++    only). Estimator in yaw_stability.py.
++    Front vs rear saturation = controllability vs stability loss; the
++    loss of stability is read from the sign only, no bifurcation analysis.
+ 
+     Exclusions (moving, kerb, non-analysis lap) applied here by NaN-ing
+-    samples; the estimator itself runs unmasked. [neutral engineering]
++    samples; the estimator itself runs unmasked.
+     Only analysis laps are pooled, independent of the UI lap_filter -- in/out
+-    laps (cold tyres) and slow laps corrupt the cross-lap pooling. [domain
+-    improvement]
+-    The chair's time-anchored fallback (no s_m) not ported: different
+-    estimator, the s-grid thresholds don't apply -> no verdict instead.
++    laps (cold tyres) and slow laps corrupt the cross-lap pooling.
++    No time-based fallback without s_m: the s-grid thresholds would not
++    apply, so no verdict instead.
+     """
+     vp = params["vehicle"]
+     se = params["stability_estimation"]
+diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
+--- a/modules/tyre_fit_auto.py
++++ b/modules/tyre_fit_auto.py
+@@ -1,4 +1,4 @@
+-# Per-session Pacejka tyre-curve fit (fit L) + EKF validation, and
++# Per-session Magic Formula tyre-curve fit (fit L) + EKF validation, and
+ # resolve_sideslip_beta_and_cs_inputs -- the live beta dispatcher for every
+ # sideslip_source.
+ #
+@@ -6,12 +6,12 @@
+ # (d) EKF run (modules/observer.py), (e) validation (NIS,
+ # sign check, h2).
+ #
+-# Lateral-only axle fit (Pacejka 2nd ed.): pure side slip is the base curve,
+-# Eq. 4.49 / 4.E19 with zero shifts and D = mu Fz (sec. 4.3.1; regression per
+-# sec. 1.2.1); an effective axle curve absorbing load transfer is valid for
+-# quasi-steady turning, peak may vanish (sec. 1.2.2). Combined slip only scales
+-# it by G_yk = 1 at zero slip ratio (Eqs. 4.64-4.69): moderate Fx is harmless,
+-# the large-Fx tails (front limit seen under braking) are the known bias.
++# Lateral-only axle fit: the pure side-slip Magic Formula with zero shifts
++# and D = mu Fz is the base curve. An effective axle curve that absorbs load
++# transfer is valid for quasi-steady turning, and its peak may vanish.
++# Combined slip only scales it by a weighting that is 1 at zero slip ratio:
++# moderate Fx is harmless, the large-Fx tails (front limit seen under
++# braking) are the known bias.
+ 
+ import subprocess
+ from datetime import datetime, timezone
+@@ -33,36 +33,33 @@
+ # Fit L (tyre_fit_mode "literature_bounded"). These
+ # values define the method, they are not tuned: with an estimated sideslip
+ # and no sliding data the curve shape is not identified, so
+-# shape and curvature are fixed at literature values, mu is the demonstrated
++# shape and curvature are fixed at published values, mu is the demonstrated
+ # utilisation (config mu_demo_percentile) and B is the one fitted parameter.
+-# Deviation class FORCED ADAPTATION -- the chair fits all four on measured
+-# beta.
++# Fitting all four would need a measured sideslip angle.
+ # C = 1.0: with E = -1 the curve rises monotonically to the asymptote D, so
+-# no post-peak drop is modelled where the data never show one (Voser et al.
+-# 2010; Rao et al. 2006; axle peak may vanish, Pacejka 2006 sec. 1.2.2; C
+-# lower bound, Goblirsch et al. 2025 Table I). A larger C (1.3) puts an
+-# extrapolated falling branch in the observer's reach, which drives it to
+-# the hard bound.
++# no post-peak drop is modelled where the data never show one (an axle curve
++# may have no peak; 1.0 is the lower end of the published C range). A larger
++# C (1.3) puts an extrapolated falling branch in the observer's reach, which
++# drives it to the hard bound.
+ L_SHAPE_C = 1.0
+-L_CURVATURE_E = -1.0     # fixed E "according to the literature", Goblirsch et al. 2025; Pacejka Tables 4.1 / 4.2
++L_CURVATURE_E = -1.0     # fixed at the published value for a lateral curve
+ # C = 1 with E in [-1, 1] has a positive slope everywhere, so there is no
+ # peak to locate; stated in the manifest instead of a NaN peak position
+ L_PEAK_NOTE = "none (C = 1, monotonic)"
+-L_B_BOUNDS = (5.0, 40.0)   # Goblirsch et al. 2025 Table I
++L_B_BOUNDS = (5.0, 40.0)   # published range of the stiffness factor B
+ # physical ceiling of a racing tyre's friction coefficient; a demonstrated
+-# utilisation above it points at the input data, not at the tyre (Pacejka
+-# 2006 sec. 1.2.1; Goblirsch et al. 2025 Table I upper bound of D / Fz)
++# utilisation above it points at the input data, not at the tyre (upper
++# end of the published D / Fz range)
+ L_MU_CEILING = 2.0
+ # above the ceiling but within the measured uncertainty of mu_demo
+ # (config tyre_fit_auto.mu_ceiling_edge_u, p95 of the a_y and event-zero
+ # errors on the samples that set it): marginal, the observer ships -- the
+ # same structure as the K edge zone
+ MU_EDGE_CONFIG_KEY = "mu_ceiling_edge_u"
+-L_START_B = 12.0           # the chair's B start, inside the bounds
+-# Plausibility under L: cornering stiffness "ranges from about 6 to about 30 times the
+-# vertical wheel load ... The lower value holds for the older bias-ply tyre
+-# construction and the larger value for modern racing tyres" (Pacejka 2006
+-# sec. 1.2.1). An order of magnitude given to one significant figure, so it
++L_START_B = 12.0           # start value inside the bounds
++# Plausibility under L: the cornering stiffness of a tyre ranges from about
++# 6 to about 30 times its vertical load, the upper end for modern racing
++# tyres. An order of magnitude given to one significant figure, so it
+ # is read at that precision: inside the band ok,
+ # within the rounding margin of either "about" marginal (the EKF ships,
+ # flagged at the edge of the literature range), beyond it degenerate.
+@@ -72,10 +69,10 @@
+ # candidate sets the reference only within [0.5, 2] x the session median of
+ # that axle's candidates. The slope at zero slip "is not or hardly affected
+ # by the level of speed and by the condition wet or dry", and its load
+-# sensitivity is far below a factor 2 (Pacejka 2006 sec. 1.2.1), so a
+-# candidate outside the factor-2 window is an ill-determined low-excitation
+-# slope, not the tyre. 0.5 is the recorded test criterion, made symmetric
+-# in ratio terms. Tier B (a plausibility gate on an estimate).
++# sensitivity is far below a factor 2, so a candidate outside the factor-2
++# window is an ill-determined low-excitation slope, not the tyre. 0.5 is the
++# test criterion, made symmetric in ratio terms; a plausibility gate on an
++# estimate, not part of the method.
+ L_REF_RELATIVE = (0.5, 2.0)
+ 
+ # fit L is the only tyre-fit mode; the tuple exists so a config naming
+@@ -188,9 +185,9 @@
+ 
+ 
+ def _speed_window_mask(state, data, cfg):
+-    """Speed window on the Pacejka fit population, after the chair
+-    performance_analysis tooling (internal), tyre-fit speed bands: their band
+-    union drops the fastest, mostly straight-line stretches. One window instead
++    """Speed window on the tyre-fit population. Speed bands are the usual way
++    to select fit data; their union drops the fastest, mostly straight-line
++    stretches. One window instead
+     of four band curves because the EKF consumes one signed curve per axle;
+     the edges come from this session's own corner speeds (vehicle
+     parameterisation), so the window adapts to the track.
+@@ -233,7 +230,7 @@
+ 
+ def _front_tyre_frame_force(fy_body, fx, delta):
+     """Front axle lateral force in the wheel frame from the body-frame value
+-    and the axle Fx (Goblirsch et al. 2025 Eq. 13)."""
++    and the axle Fx (rotation by the steer angle)."""
+     return (fy_body - fx * np.sin(delta)) / np.cos(delta)
+ 
+ 
+@@ -286,14 +283,14 @@
+     cascade as configured (measured -> reconstructed -> static, no refusal),
+     front Fx split by axle load (below), and the steer angle, each
+     through the same 2 Hz order-4 zero-phase filter as Fy and alpha so the
+-    pairing stays consistent (Tier B; the fitted curve is a quasi-steady
+-    effective axle curve, Pacejka sec. 1.2.2). Also records which load source
++    pairing stays consistent (preprocessing; the fitted curve is a
++    quasi-steady effective axle curve). Also records which load source
+     each corner used and the lowest accuracy level among them."""
+     se = params["stability_estimation"]
+     sr = state["sample_rate_hz"]
+     cutoff = se["cs_filter_cutoff_hz"]
+     fz = estimate_vertical_loads(state, forces, params, channels=data["channels"], car_data=load_car_data())
+-    # Front Fx after Goblirsch et al. 2025 Eq. 9: the CoG longitudinal force
++    # Front Fx: the CoG longitudinal force
+     # (m ax + drag + rolling, the terms of estimate_longitudinal_forces) goes
+     # to the front in proportion to the measured axle load under braking,
+     # none under drive (rear drive). Not a split by the measured
+@@ -335,7 +332,7 @@
+         "vertical_load_source_used": fz["vertical_load_source_used"],
+         "source_shares": shares,
+         "lowest_level": lowest,
+-        "level_note": ("damper loads carry an event zero entry (L4 with an L2 zero, Q-CAL-2)"
++        "level_note": ("damper loads carry an event zero entry (L4 with an L2 zero: voltage-referenced zero recorded at the event)"
+                        if zero_applied and "damper" in used else ""),
+         # session check of the damper path against the static weight; a
+         # rejected path shows up above as static_fallback shares, level 1
+@@ -425,8 +422,8 @@
+     the per-step variance is SD^2 dt_ref^2 at the q_reference_rate_hz grid
+     (the convention the observer rescales to the session rate). An upper
+     bound: the residual is taken at the kinematic slip angle and carries its
+-    error too. Diagonal, after Villano et al. 2021 (dynamic filter);
+-    physically meaningful variances after Bechtloff (ch. 5)."""
++    error too. Diagonal, as usual for a dynamic sideslip filter, with
++    physically meaningful variances."""
+     vp, se, cfg = params["vehicle"], params["stability_estimation"], params["tyre_fit_auto"]
+     n = state["v_mps"].size
+     res = {}
+@@ -450,7 +447,7 @@
+ 
+ 
+ def _measurement_noise_floors(state, laps, params):
+-    """Measurement-noise variances of the session (Level 2, Tier B): each observer measurement minus its
++    """Measurement-noise variances of the session (Level 2): each observer measurement minus its
+     zero-phase low-pass at the CS filter cutoff (2 Hz, the same cutoff as the
+     CS and Fz filters), on the steering-defined straights. The single-track
+     model has no vertical or vibration dynamics, so what the signal carries
+@@ -476,7 +473,7 @@
+ def plausibility_gate_l(alpha, fit_mask, axle_fit, cfg):
+     """Plausibility gate for fit L (declared post-result).
+     Under L the curve peak lies beyond the visited slip range wherever the
+-    data do not reach it, so it is an extrapolation (Goblirsch et al. 2025)
++    data do not reach it, so it is an extrapolation
+     and cannot be gated on; what the data do identify is the origin slope.
+       g1 excitation: p1..p99 span of the fit's slip angles
+       g2 normalised origin slope K = B C mu inside L_K_BAND; the axle ratio
+@@ -563,7 +560,7 @@
+     # heavy braking leaves the pure-slip fit: beyond fit_long_util_max the
+     # friction circle takes more than a few percent of lateral capacity
+     # (config derived_from); the observer still sees every sample.
+-    # Braking side only: Eq. 9 puts all drive on the rear,
++    # Braking side only: the Fx split puts all drive on the rear,
+     # so traction is the rear's normal operating state through every
+     # corner exit, not an outlier; removing it would take over half the rear
+     # population. Its combined-slip cost stays, sized by the friction
+@@ -593,7 +590,7 @@
+     manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
+     manifest["fit_density_bin_rad"] = bin_rad
+     # measured axle loads (2 Hz zero-phase) for the load-normalised CS
+-    # and the Eq. 9 axle Fx for the floor-event
++    # and the split axle Fx for the floor-event
+     # attributes; set before any degenerate return, since
+     # neither depends on the fit. In memory only, like nis_full
+     manifest["cs_axle_loads"] = {"fz_f_N": load_in["fz_f_N"], "fz_r_N": load_in["fz_r_N"]}
+@@ -671,8 +668,8 @@
+     # single-track model mismatch, not sensor noise -- so it is logged per
+     # point, not selected on. No guarded in-band point -> the config default R,
+     # never an arbitrary "nearest overall" pick, which can invert the
+-    # physics. Tier B: a data-derived calibration rule on the
+-    # existing chi-square exceedance statistic, not a new method.
++    # physics. A data-derived calibration rule on the existing
++    # chi-square exceedance statistic, not a new method.
+     band_lo, band_hi = cfg["r_sweep_ay_band_low"], cfg["r_sweep_ay_band_high"]
+     centre = (band_lo + band_hi) / 2.0
+ 
+@@ -818,7 +815,7 @@
+ 
+     # The gross-miscalibration trigger reads the ay exceedance only: the yaw
+     # exceedance measures single-track model mismatch, not noise
+-    # calibration (Tier B), so yaw can only cap the status through the soft
++    # calibration, so yaw can only cap the status through the soft
+     # yaw_mismatch_ceiling.
+     gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
+     gross = cfg["nis_gross_miscalibration_fraction"]
+@@ -880,7 +877,7 @@
+     # hard-bound re-entries, for the CS reset mark; in memory only, like nis_full
+     manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
+     manifest["beta_ekf"] = beta_ekf
+-    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # production must use this, not beta_ekf
++    manifest["beta_ekf_with_fallback"] = final_result["beta_with_fallback"]  # the analysis must use this, not beta_ekf
+     manifest["nis_full"] = final_result["nis"]  # full-length, for modules.observer.evaluate_gate
+     manifest["base_mask"] = base_mask
+     return manifest
+@@ -889,7 +886,7 @@
+ def resolve_sideslip_beta_and_cs_inputs(state, params, data, sideslip_source, csv_path=None):
+     """Which beta a given sideslip_source produces, plus what the CS estimate
+     needs from fit L. Lives here, not in the QThread, so it is testable
+-    without Qt (tests/test_auto_fit_wiring.py).
++    without Qt.
+ 
+     Returns (beta, fit_manifest, gate_verdict, fallback_used, fallback_reason,
+     cs_inputs). fit_manifest: JSON-safe manifest, auto mode only.
+diff --git a/modules/tyre_model_pacejka.py b/modules/tyre_model_pacejka.py
+--- a/modules/tyre_model_pacejka.py
++++ b/modules/tyre_model_pacejka.py
+@@ -1,11 +1,9 @@
+ # Reduced 4-parameter Magic Formula, lateral only.
+-# After the chair performance_analysis tooling (internal).
+-# General form: Rajamani ch. 13.
+ #
+ # Fy = D*sin(C*arctan(B*alpha - E*(B*alpha - arctan(B*alpha))))
+ # B = stiffness, C = shape, D = peak Fy [N], E = curvature. Odd in alpha;
+-# positive slope at the origin matches our slip-angle sign convention
+-# (Werner S2.2.3), so no sign flip is needed.
++# positive slope at the origin matches our slip-angle sign convention,
++# so no sign flip is needed.
+ 
+ import numpy as np
+ 
+@@ -24,7 +22,7 @@
+       dFy/dalpha = D*C*cos(C*arctan(u)) * (du/dalpha) / (1 + u^2)
+       du/dalpha  = B*(1-E) + E*B / (1 + (B*alpha)^2)
+ 
+-    Checked against central differences in tests/test_pacejka_model.py.
++    Checked against central differences.
+     """
+     alpha_rad = np.asarray(alpha_rad, dtype=float)
+     b_alpha = B * alpha_rad
+diff --git a/modules/yaw_stability.py b/modules/yaw_stability.py
+--- a/modules/yaw_stability.py
++++ b/modules/yaw_stability.py
+@@ -1,7 +1,6 @@
+ # Yaw-moment stability dMz/dbeta: yaw acceleration + local ridge regression
+ # over track distance, pooled across laps.
+-# Concept and sign (positive = restoring): Werner S2.2.3.
+-# Estimator after the chair performance_analysis tooling (internal).
++# Sign: positive = restoring yaw moment, negative = open-loop unstable.
+ 
+ import numpy as np
+ import pandas as pd
+@@ -13,9 +12,8 @@
+ 
+ 
+ def calculate_filtered_yaw_acceleration(yaw_rate_radps, time_s, sample_rate_hz, window_s):
+-    """d(yaw rate)/dt, then centred rolling mean (chair window/min_periods).
+-    Raw-yaw-rate path only -- chair's pre-smoothed input path not available.
+-    [forced adaptation]
++    """d(yaw rate)/dt, then centred rolling mean. The logged yaw rate is
++    raw, so the derivative is smoothed here.
+     """
+     window = max(5, int(round(window_s * sample_rate_hz)))
+     if window % 2 == 0:
+@@ -42,7 +40,7 @@
+ 
+     s_m = lap distance [m], resets each lap -> sorting by s interleaves all
+     laps through the same corner. Interpolated onto the common timeline
+-    (lap-reset guard in stability_analysis.py). [neutral engineering]
++    (lap-reset guard in stability_analysis.py).
+     az_mps2 optional: None drops it from the regressors.
+     valid_mask = samples to keep; the rest go NaN before dropna.
+ 
+diff --git a/ui/style.py b/ui/style.py
+--- a/ui/style.py
++++ b/ui/style.py
+@@ -9,7 +9,7 @@
+ BORDER      = "#2a2a2a"
+ 
+ # Text. Every text colour reaches the WCAG AA ratio 4.5:1 on all four
+-# backgrounds above (checked in tests/test_style_contrast.py):
++# backgrounds above:
+ # TEXT_MUTED >= 7.5:1, TEXT_DIM >= 5.1:1.
+ TEXT        = "#e0e0e0"
+ TEXT_MUTED  = "#adadad"
+diff --git a/ui/views/corner_trace_dialog.py b/ui/views/corner_trace_dialog.py
+--- a/ui/views/corner_trace_dialog.py
++++ b/ui/views/corner_trace_dialog.py
+@@ -75,8 +75,7 @@
+     "clean data nearby) or the car not up to speed (out lap or pit lane)."
+ )
+ 
+-# tyre-curve tab legend. Plot design after the chair performance_analysis
+-# tooling (internal); no code copied.
++# tyre-curve tab legend
+ TYRE_CURVE_LEGEND_TEXT = (
+     "Slip angle vs lateral force, this corner's window. Filled = lap "
+     "sample, hollow = kerb-affected, black ring = estimation window."
+@@ -167,8 +166,7 @@
+ 
+ def _worst_cs_phase(cs_ratio_arr, instances, laps_by_number, t, s_m, bracket_start_m, bracket_end_m):
+     """Lowest-CS_ratio sample in the canonical bracket over all valid instances
+-    (same idea as inspect_step2_chair_plots' _find_worst_phase), for the
+-    estimation-window highlight. Returns {"index"} or None.
++    for the estimation-window highlight. Returns {"index"} or None.
+     """
+     best = None
+     for c in instances:
+@@ -771,7 +769,7 @@
+         per axle over the canonical window (no margin), checked laps only.
+         Faint session cloud first; lap samples (hollow = kerb-flagged); the
+         reference line, median C_linear_ref over valid samples; in auto-fit
+-        mode the fitted Pacejka curve, which shows the saturation the linear
++        mode the fitted Magic Formula curve, which shows the saturation the linear
+         reference cannot; estimation window and tangent on top. Beyond the
+         peak a lap's cloud folds back over the reference line.
+         """
+diff --git a/ui/views/outing_form.py b/ui/views/outing_form.py
+--- a/ui/views/outing_form.py
++++ b/ui/views/outing_form.py
+@@ -1476,7 +1476,7 @@
+ 
+     def _format_estimator_status(self, sideslip_source, fit_manifest, gate_verdict,
+                                   fallback_used, fallback_reason):
+-        # class attributes, not self: tests call this unbound with self=None
++        # class attributes, not self, so it also works unbound (self=None)
+         label = OutingForm._ESTIMATOR_LABELS.get(sideslip_source, sideslip_source)
+         if fallback_used:
+             # loud: KINEMATIC (WARN colour) is what ran, and why
+diff --git a/ui/views/settings_view.py b/ui/views/settings_view.py
+--- a/ui/views/settings_view.py
++++ b/ui/views/settings_view.py
+@@ -568,8 +568,7 @@
+ 
+         # A file is rewritten only when a value in it changed: json.dump
+         # reflows the hand-kept layout (0.10 -> 0.1, inline arrays split), which
+-        # changes nothing the app reads but every byte hash of the file (the
+-        # thesis-figure config_hash).
++        # changes nothing the app reads but every byte hash of the file.
+         # newline="" -- text mode on Windows would turn every LF into CRLF
+         written = []
+         for path, data, on_disk in ((PARAMETERS_PATH, params, params_on_disk),

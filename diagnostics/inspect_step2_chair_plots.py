@@ -11,7 +11,7 @@
 # that reference is interactive Plotly, this is static matplotlib PNGs).
 #
 # Read-only diagnostic. Calls production pipeline functions directly
-# (modules/stability_analysis.py, modules/geo.py) -- no estimation logic
+# (modules/stability_analysis.py, modules/corner_analysis.py) -- no estimation logic
 # is reimplemented here.
 # The only local logic is worst-phase/window-slice bookkeeping below,
 # needed because estimate_cornering_stiffness returns only per-sample
@@ -43,8 +43,8 @@ from modules.stability_analysis import (
     estimate_slip_angles, estimate_lateral_forces, estimate_cornering_stiffness,
     reconstruct_cs_window_start, resolve_cs_min_window_samples,
 )
-from modules.geo import project_latlon_to_xy
-from core import figure_render, plot_style
+from modules.corner_analysis import project_latlon_to_xy
+from core import figure_render, figure_render as plot_style
 
 RAW_FILE = "C:/UNI/Bachelorarbeit/Data/Sample/Sample_Dubai.txt"
 OUT_DIR = "diagnostics/plots_step2"
@@ -166,7 +166,7 @@ def _build_track_map(cid, instances, laps_by_number, t, s_m, bg_xy, cs, alpha_f,
     # representative lap's bracket, so it is wrapped as a single-entry
     # list under that lap's own colour rather than the old bare
     # "bracket_xy" key _draw_track_map_panel no longer reads.
-    from core.plot_style import lap_styles
+    from core.figure_render import lap_styles
     style = lap_styles([rep_lap_number])[rep_lap_number]
     brackets_by_lap = [{"xy": bracket_xy, "color": style["color"], "dash": style["dash"],
                          "lap_number": rep_lap_number}] if bracket_xy is not None else []

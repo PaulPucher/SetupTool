@@ -22,7 +22,7 @@ GREY = {"strong": "black!45", "moderate": "black!20", "normal": "white", "no_dat
 
 
 def build(outings, tag="dev", allow_status=False, allow_excluded=False, out=None):
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     rows = collect(outings, allow_status, allow_excluded)
     rows.sort(key=lambda r: (r[1]["row"]["race_weekend_id"], r[1]["row"]["number"]))
     tracks = {r[1]["parsed"]["metadata"].get("TrackName") for r in rows}

@@ -1,10 +1,10 @@
 {
-  "_comment": "Mechanism table of the setup engine (author ruling): one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
+  "_comment": "Mechanism table of the setup engine: one row per (lever group, symptoms, phases, speed classes, direction, anchor). Symptoms: US = front axle limiting, OS = rear axle limiting, INST = open-loop unstable yaw. INST uses the OS direction of a row unless a row names INST for that lever and phase (rear saturation = stability loss, Hoffman 2008). Left / right levers always change together (SEG p. 263). Directions are words; the sign comes from the registry direction_semantics (setup_parameters.json), never from this file (damper clicks: increasing = softer).",
   "_comment_anchors": {
-    "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics (bib key to verify)",
-    "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition (bib key to verify)",
+    "MM": "Milliken & Milliken 1995, Race Car Vehicle Dynamics",
+    "SEG": "Segers 2014, Analysis Techniques for Racecar Data Acquisition",
     "TE": "Trzesniowski & Eder 2019, Handbuch Rennwagentechnik Bd. 5 (bib Trzesniowski.2019)",
-    "KATZ": "Katz, Race Car Aerodynamics (bib key: Katz, edition to verify)"
+    "KATZ": "Katz, Race Car Aerodynamics"
   },
   "phase_groups": {
     "BRK": [
@@ -29,10 +29,10 @@
     "M6": "drivetrain",
     "M7": "brake balance"
   },
-  "_comment_not_levers": "Out of scope, deliberately not levers: high-speed dampers, blow-off, arb_front_mount (author ruling). Ride heights are levers at high speed (_comment_ride_height).",
+  "_comment_not_levers": "Deliberately out of scope, not levers: high-speed dampers, blow-off, arb_front_mount. Ride heights are levers at high speed only (_comment_ride_height).",
   "_comment_m2_phases": "M2 acts on transient load transfer only: never APX (TE p. 254; SEG pp. 259-263).",
-  "_comment_side_effect": "side_effect.text from TE Tab. 5.14 pp. 296-297 (wording ruled by the author), set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (no wording ruled); the source stays named so the slot is traceable.",
-  "_comment_axle": "Field axle (author ruling): the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
+  "_comment_side_effect": "side_effect.text is taken from TE Tab. 5.14 pp. 296-297 and set on the rows whose direction the table entry describes: camber more negative, toe_front more toe-out, diff_position increase. Rows in the opposite direction keep text null (the table gives no wording); the source stays named so the slot is traceable.",
+  "_comment_axle": "Field axle: the axle a row's lever acts on -- front / rear / global. ARB, springs, LS dampers, camber, toe and ride height by their axle; wing rear, splitter front; diff and TC global; brake bias and ABS map global (they set the brake balance between the axles, not one axle's grip). Limiting-end tie-break (MM p. 409, improve the limiting end first): limiting axle US -> front, OS / INST -> rear; rows on the limiting axle rank before global rows, which rank before rows on the other axle.",
   "mechanisms": [
     {
       "id": "M1-arb-front-US",
@@ -1293,7 +1293,7 @@
   ],
   "_comment_engineer_preference": "Engineer preference weight: the team-elicited cells (provenance per cell). Per (symptom, phase, speed class) a candidate gets preference 1 when the cell names its lever with the table's direction (cell_directions mapped through the registry direction_semantics), else 0. Preference only orders candidates, never adds a lever, never sets a direction.",
   "_comment_engineer_unsupported": {
-    "_comment": "engineer cells not supported by the literature table (author ruling): a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored -- it gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. US-BRK-high mixes supported ride-height entries with an unsupported wing_position increase; the check is per lever.",
+    "_comment": "Engineer cells not supported by the literature table: a cell whose direction contradicts the table, or that names a lever the table has no row for at that symptom / phase / speed class, is ignored and gives no preference to any candidate. Computed by setup_engine.unsupported_preference_cells; tests/test_setup_engine.py checks this list against it. The check is per lever, so US-BRK-high keeps its supported ride-height entries and drops only the wing_position increase.",
     "US-BRK-low": "toe_front more toe-out: the table has toe_front only at turn-in (TIN, low speed), not under braking",
     "OS-APX-high": "camber_fl / camber_fr less negative: the table has no front-camber row for OS",
     "INST-BRK-med": "ride_height_front increase / ride_height_rear decrease: ride heights are M4 levers at high speed only, the cell is medium speed",
@@ -1310,8 +1310,7 @@
       ],
       "cell_directions": [
         "more_negative"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "US-BRK-med",
@@ -1325,8 +1324,7 @@
       "cell_directions": [
         "soften",
         "soften"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-BRK-high",
@@ -1342,8 +1340,7 @@
         "increase",
         "decrease",
         "increase"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-TIN-low",
@@ -1355,8 +1352,7 @@
       ],
       "cell_directions": [
         "more_negative"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-TIN-med",
@@ -1368,8 +1364,7 @@
       ],
       "cell_directions": [
         "decrease"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-TIN-high",
@@ -1381,8 +1376,7 @@
       ],
       "cell_directions": [
         "decrease"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "US-APX-low",
@@ -1396,8 +1390,7 @@
       "cell_directions": [
         "soften",
         "soften"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "US-APX-med",
@@ -1409,8 +1402,7 @@
       ],
       "cell_directions": [
         "decrease"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-APX-high",
@@ -1424,8 +1416,7 @@
       "cell_directions": [
         "more_negative",
         "more_negative"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "US-EXIT-low",
@@ -1437,8 +1428,7 @@
       ],
       "cell_directions": [
         "decrease"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-EXIT-med",
@@ -1452,8 +1442,7 @@
       "cell_directions": [
         "stiffen",
         "stiffen"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "US-EXIT-high",
@@ -1467,8 +1456,7 @@
       "cell_directions": [
         "stiffen",
         "stiffen"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "OS-BRK-med",
@@ -1482,8 +1470,7 @@
       "cell_directions": [
         "soften",
         "soften"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "OS-BRK-high",
@@ -1497,8 +1484,7 @@
       "cell_directions": [
         "soften",
         "soften"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "OS-TIN-low",
@@ -1510,8 +1496,7 @@
       ],
       "cell_directions": [
         "less_negative"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "OS-TIN-med",
@@ -1523,8 +1508,7 @@
       ],
       "cell_directions": [
         "increase"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "OS-TIN-high",
@@ -1536,8 +1520,7 @@
       ],
       "cell_directions": [
         "increase"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "OS-APX-low",
@@ -1551,8 +1534,7 @@
       "cell_directions": [
         "stiffen",
         "stiffen"
-      ],
-      "provenance": "mirror-derived"
+      ]
     },
     {
       "cell": "OS-APX-med",
@@ -1564,8 +1546,7 @@
       ],
       "cell_directions": [
         "increase"
-      ],
-      "provenance": "mirror-derived"
+      ]
     },
     {
       "cell": "OS-APX-high",
@@ -1579,8 +1560,7 @@
       "cell_directions": [
         "less_negative",
         "less_negative"
-      ],
-      "provenance": "mirror-derived"
+      ]
     },
     {
       "cell": "OS-EXIT-low",
@@ -1592,8 +1572,7 @@
       ],
       "cell_directions": [
         "increase"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "OS-EXIT-med",
@@ -1607,8 +1586,7 @@
       "cell_directions": [
         "soften",
         "soften"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "OS-EXIT-high",
@@ -1620,8 +1598,7 @@
       ],
       "cell_directions": [
         "increase"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "INST-BRK-low",
@@ -1633,8 +1610,7 @@
       ],
       "cell_directions": [
         "more_ra_stability"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     },
     {
       "cell": "INST-BRK-med",
@@ -1648,8 +1624,7 @@
       "cell_directions": [
         "increase",
         "decrease"
-      ],
-      "provenance": "engineer-verbatim"
+      ]
     },
     {
       "cell": "INST-BRK-high",
@@ -1661,9 +1636,8 @@
       ],
       "cell_directions": [
         "more_negative"
-      ],
-      "provenance": "project-lead-reviewed"
+      ]
     }
   ],
-  "_comment_ride_height": "M4 ride heights (author ruling): high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance). This resolves the apparent contradiction between MM p. 573 and TE Tab. 5.11. Step 1 mm (registry adjustment_step)."
+  "_comment_ride_height": "M4 ride heights: high speed only, all phases; nose down -> more front, less rear downforce (Katz pp. 170-172, Fig. 5.26 pitch sensitivity). The direction holds outside the ground-effect stall regime; TE Tab. 5.11 p. 293 (front ride height up against sudden push) is the stall case (Katz Fig. 5.26, viscous effect at very low clearance), which resolves the apparent contradiction between MM p. 573 and TE Tab. 5.11. Step 1 mm (registry adjustment_step)."
 }

@@ -1,13 +1,13 @@
 # Splitter/diffuser measurement-point diagrams: fixed outline with numbered
 # input boxes at the measurement positions, front up (as the wheel grid).
-# Positions from core/setup_data_points.py.
+# Positions from modules/setup_state.py.
 
 from PyQt6.QtWidgets import QWidget, QLineEdit
 from PyQt6.QtGui import QPainter, QPen, QColor, QPainterPath
 from PyQt6.QtCore import Qt, QRectF
 
 from ui.style import TEXT_MUTED, BORDER, PANEL_ALT
-from core.setup_data_points import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS, SPLITTER_SIDE_FRACTION
+from modules.setup_state import SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS, SPLITTER_SIDE_FRACTION
 
 BOX_W = 34
 BOX_H = 20

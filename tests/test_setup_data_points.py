@@ -1,6 +1,6 @@
 # Targeted tests for the splitter/diffuser measurement-point persistence
 # added in the "8. Splitter/diffuser measurement points" work package
-# (thesis_notes.md). Tests core/setup_data_points.py directly rather than
+# (thesis_notes.md). Tests modules/setup_state.py directly rather than
 # ui/views/outing_form.py's thin delegating wrappers -- same reason
 # tests/conftest.py's own pipeline_result fixture keeps that PyQt6 module
 # out of this suite (see its docstring). Persistence-shape coverage only;
@@ -10,7 +10,7 @@
 
 import json
 
-from core.setup_data_points import reshape_points_out, reshape_points_in, POINT_GROUPS
+from modules.setup_state import reshape_points_out, reshape_points_in, POINT_GROUPS
 
 
 def test_old_outing_load_is_a_no_op():

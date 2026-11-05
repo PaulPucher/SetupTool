@@ -20,7 +20,7 @@ QtWidgets = pytest.importorskip("PyQt6.QtWidgets")
 
 from sqlalchemy import create_engine
 
-import models.base as base
+import models.db as base
 
 GOLDEN = Path(__file__).parent / "golden" / "default_nbr_jst29.json"
 
@@ -35,7 +35,7 @@ def db(tmp_path):
     original_bind = base.Session.kw.get("bind")
     engine = create_engine(f"sqlite:///{tmp_path / 'throwaway.db'}")
     base.Session.configure(bind=engine)
-    import models.driver, models.raceweekend, models.outing  # noqa: F401 -- table registration
+    import models.db  # noqa: F401 -- table registration
     base.Base.metadata.create_all(engine)
     yield
     base.Session.configure(bind=original_bind)
@@ -48,8 +48,8 @@ def app():
 
 
 def _seed(drivers):
-    from models.driver import Driver
-    from models.raceweekend import RaceWeekend
+    from models.db import Driver
+    from models.db import RaceWeekend
     s = base.Session()
     rows = [Driver(name=n, driving_level=lvl) for n, lvl in drivers]
     weekend = RaceWeekend(track="Dubai", series="GT3", car_number=1, year=2026)
@@ -61,7 +61,7 @@ def _seed(drivers):
 
 
 def _add_outing(weekend_id, driver_id, number):
-    from models.outing import Outing
+    from models.db import Outing
     s = base.Session()
     o = Outing(race_weekend_id=weekend_id, driver_id=driver_id, number=number,
                date_time=datetime.datetime(2026, 9, 1, 10, number))
@@ -81,7 +81,7 @@ def _reopen(model, row_id):
 
 
 def _form(weekend_id, outing=None):
-    from models.raceweekend import RaceWeekend
+    from models.db import RaceWeekend
     from ui.views.outing_form import OutingForm
     return OutingForm(_reopen(RaceWeekend, weekend_id), on_back=lambda: None, outing=outing)
 
@@ -94,7 +94,7 @@ def _generate(form, summaries):
 
 
 def test_reopened_outing_with_driver(db, app, real_summaries):
-    from models.outing import Outing
+    from models.db import Outing
     ids = _seed([("A Driver", 3)])
     oid = _add_outing(ids["weekend"], ids["drivers"][0], 1)
     form = _form(ids["weekend"], _reopen(Outing, oid))
@@ -128,7 +128,7 @@ def test_new_outing_defaults_to_no_driver(db, app, real_summaries):
 
 
 def test_no_driver_save_reopen_round_trip(db, app, real_summaries):
-    from models.outing import Outing
+    from models.db import Outing
     ids = _seed([("A Driver", 3)])
     form = _form(ids["weekend"])
     form._persist_outing()
@@ -141,7 +141,7 @@ def test_no_driver_save_reopen_round_trip(db, app, real_summaries):
 
 def test_generate_after_unsaved_driver_switch(db, app, real_summaries):
     # outing saved with driver A; combo switched to B, not saved
-    from models.outing import Outing
+    from models.db import Outing
     ids = _seed([("A Driver", 3), ("B Driver", 8)])
     oid = _add_outing(ids["weekend"], ids["drivers"][0], 1)
     form = _form(ids["weekend"], _reopen(Outing, oid))
@@ -152,12 +152,6 @@ def test_generate_after_unsaved_driver_switch(db, app, real_summaries):
 def test_no_driver_available_passes_none(db, app, real_summaries):
     ids = _seed([])
     _generate(_form(ids["weekend"]), real_summaries)
-
-
-def test_driver_lookup_none_is_clean(db):
-    # PDF export path: no driver -> no name, never a fabricated one
-    from models.driver import driver_name_and_level
-    assert driver_name_and_level(None) == (None, None)
 
 
 def test_generate_failure_is_logged_and_shown(db, app, capsys, monkeypatch):

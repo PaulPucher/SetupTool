@@ -102,7 +102,7 @@ def run_task(job):
                                             estimate_vertical_loads, summarise_corners)
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
     from modules.corner_analysis import reclassify_speed_classes
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     t0 = time.perf_counter()
     _, _track, _outing, label, src = {c[0]: c for c in CANDIDATES}[key]
     path = resolve_data_path(src[1])

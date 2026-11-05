@@ -24,10 +24,38 @@
 import json
 import warnings
 import numpy as np
-from modules.geo import compute_gps_origin, project_latlon_to_xy
+from modules.storage import repo_path
 from modules.stability_analysis import _interp_lap_distance_guarded, _normalize_lap_distance_to_metres
 
-CHANNELS_CONFIG_PATH = "config/channels.json"
+CHANNELS_CONFIG_PATH = repo_path("config", "channels.json")
+
+# GPS -> local x/y in metres. Equirectangular about an origin -- fine at
+# track scale (a few km).
+METERS_PER_DEG_LAT = 111320.0
+
+
+def project_latlon_to_xy(lat, lon, origin_lat, origin_lon):
+    meters_per_deg_lon = METERS_PER_DEG_LAT * np.cos(np.radians(origin_lat))
+    x = (lon - origin_lon) * meters_per_deg_lon
+    y = (lat - origin_lat) * METERS_PER_DEG_LAT
+    return x, y
+
+
+def compute_gps_origin(gps_lat_channel, gps_lon_channel):
+    # origin = first raw GPS sample, for use before any resampled state exists.
+    # Can sit slightly off prepare_vehicle_state's origin (anchored on
+    # ecu_speed's first time) -- same projection, different anchor instant.
+    if gps_lat_channel is None or gps_lon_channel is None:
+        return None, None
+    if (gps_lat_channel.get("quality") in ("missing", "failed")
+            or gps_lon_channel.get("quality") in ("missing", "failed")):
+        return None, None
+    lat_data = gps_lat_channel.get("data")
+    lon_data = gps_lon_channel.get("data")
+    if lat_data is None or lon_data is None or len(lat_data) == 0 or len(lon_data) == 0:
+        return None, None
+    return float(lat_data[0]), float(lon_data[0])
+
 
 # Channel-missing warnings are set per lap in _build_corner but describe the
 # session; _realize_canonical_corners rebuilds the instances and must carry
@@ -802,7 +830,7 @@ def _realize_canonical_corners(corners, channels, laps, cd, speed_thresholds, re
 def compute_stable_corner_positions(corners, channels):
     """Median GPS apex position (local x/y m) per stable_corner_id, from raw
     channels -- map markers work before Analyse has run.
-    GPS interpolated at each apex_time, projected via modules.geo, median per
+    GPS interpolated at each apex_time, projected via project_latlon_to_xy, median per
     axis across laps.
     Returns {id: {"x_m", "y_m", "n_laps"}}; {} if no GPS or no ids.
     """
@@ -869,8 +897,8 @@ def canonical_speed_classes(corners):
     """{stable_corner_id: speed_class} for display next to the corner number.
     Canonical instances share one class (above); a corner seen only as
     per-lap instances takes its most frequent class, ties broken as in
-    corner_aggregation (not by set order, which follows the hash seed)."""
-    from modules.corner_aggregation import modal_speed_class  # local import, circular otherwise
+    the classifier module (not by set order, which follows the hash seed)."""
+    from modules.classifier import modal_speed_class
     canon, per_lap = {}, {}
     for c in corners or []:
         cid, cls = c.get("stable_corner_id"), c.get("speed_class")

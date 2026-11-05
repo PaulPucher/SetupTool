@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, QSize
 from ui.views.weekends import WeekendsView
 from ui.views.drivers import DriversView
 from ui.views.settings_view import SettingsView
-from ui.style import TEXT_DIM
+from modules.storage import repo_path
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,33 +47,11 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(16, 0, 16, 0)
 
-        from PyQt6.QtGui import QPixmap
-
-        left_logo = QLabel()
-        left_logo.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        left_pixmap = QPixmap("config/images/logo_left.png")
-        if not left_pixmap.isNull():
-            left_logo.setPixmap(left_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
-        else:
-            left_logo.setText("[ logo ]")
-            left_logo.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-
         title = QLabel("SetupTool")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("color: #666; font-size: 16px; letter-spacing: 3px;")
 
-        right_logo = QLabel()
-        right_logo.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        right_pixmap = QPixmap("config/images/logo_right.jpg")
-        if not right_pixmap.isNull():
-            right_logo.setPixmap(right_pixmap.scaledToHeight(36, Qt.TransformationMode.SmoothTransformation))
-        else:
-            right_logo.setText("[ logo ]")
-            right_logo.setStyleSheet(f"color: {TEXT_DIM}; font-size: 11px;")
-
-        layout.addWidget(left_logo)
         layout.addWidget(title)
-        layout.addWidget(right_logo)
 
         return bar
    
@@ -84,12 +62,8 @@ class MainWindow(QMainWindow):
         nav.setSpacing(4)
         nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        # placeholder SVGs
-        icon_paths = [
-            "ui/icons/weekends.svg",
-            "ui/icons/drivers.svg",
-            "ui/icons/settings.svg"
-        ]
+        icon_paths = [repo_path("ui", "icons", name)
+                      for name in ("weekends.svg", "drivers.svg", "settings.svg")]
 
         for icon_path in icon_paths:
             item = QListWidgetItem()

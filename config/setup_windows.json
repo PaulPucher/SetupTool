@@ -1,6 +1,6 @@
 {
   "_comment": "Setup value space per lever for the setup engine: typical-window nominal + span (soft edge, 'engineer may exceed') and edge exemptions. Hard edges stay in setup_parameters.json value_space.",
-  "_comment_parameter_windows": "One entry per registry key (46). nominal + span from the registry's typical_window/value_space: span = half the typical window width (one-sided, e.g. arb_fl 4 +/- 1 from 3..5); no typical window -> nominal = value_space midpoint, span = half the legal range (wider, weaker, flagged). Plain enums without an underlying number stay null (arb_front_mount, wing_position). Null window or non-numeric current value -> neutral headroom term.",
+  "_comment_parameter_windows": "One entry per registry key (46). nominal + span come from the registry's typical_window / value_space: span = half the typical window width (e.g. arb_fl 4 +/- 1 from 3..5); without a typical window, nominal = value_space midpoint and span = half the legal range (wider, weaker, flagged). Plain enums without an underlying number stay null (arb_front_mount, wing_position). A null window or a non-numeric current value gives a neutral headroom term.",
   "parameter_windows": {
     "arb_fl": {
       "nominal": 4,
@@ -22,92 +22,42 @@
       "span": 1,
       "source": "typical_window {min:3,max:5}"
     },
-    "arb_front_mount": {
-      "nominal": null,
-      "span": null,
-      "note": "Unfillable: no numeric quantity underlies this enum (car_data.json 'arb' is blade stiffness by position 1-7, a different parameter from the P0/P1/P2 mount-point selection); an enum-index midpoint would have no physical referent, same category as abs_position."
-    },
     "springs_front": {
       "nominal": 265,
       "span": 45,
-      "source": "2026-09-18: value_space.options=[220,250,280,310] N/mm (a NUMERIC enum, unlike arb_front_mount/wing_position) -- nominal=range midpoint (220+310)/2, span=half-width (310-220)/2. Not one of the 4 legal option values itself (no option sits at the midpoint) -- stated as the window CENTRE for distance purposes, not a recommendable setting."
+      "source": "value_space.options = [220, 250, 280, 310] N/mm (a numeric enum): nominal = range midpoint (220+310)/2, span = half-width (310-220)/2. The midpoint is not itself a legal option; it is the window centre for distance purposes, not a recommendable setting."
     },
     "springs_rear": {
       "nominal": 270,
       "span": 30,
-      "source": "2026-09-18: value_space.options=[240,260,280,300] N/mm -- nominal=(240+300)/2, span=(300-240)/2. Same non-option-value caveat as springs_front."
+      "source": "value_space.options = [240, 260, 280, 300] N/mm: nominal = (240+300)/2, span = (300-240)/2. Same caveat as springs_front: the midpoint is not a legal option."
     },
     "damper_bump_ls_fl": {
       "nominal": 10,
       "span": 9,
-      "source": "typical_window.reference_point_NBR=10; span=fallback (2026-09-18), HALF the full legal value_space range (0-18 clicks)/2=9 -- no team-typical SPAN exists, only the reference point, so this is deliberately a wide, weak window (the full legal range), not a real team-typical tolerance."
-    },
-    "damper_bump_hs_fl": {
-      "nominal": 14,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=14; span=half the full legal range (0-18)/2=9, same fallback as damper_bump_ls_fl."
-    },
-    "damper_blowoff_fl": {
-      "nominal": 6,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=6; span=half the full legal range (0-18)/2=9, same fallback."
+      "source": "typical_window.reference_point_NBR = 10; span = half the full legal range (0-18 clicks)/2 = 9. Only a reference point exists, no team-typical span, so this is deliberately a wide, weak window, not a real tolerance."
     },
     "damper_rebound_ls_fl": {
       "nominal": 7,
       "span": 9,
       "source": "typical_window.reference_point_NBR=7; span=half the full legal range (0-18)/2=9, same fallback."
     },
-    "damper_rebound_hs_fl": {
-      "nominal": 8,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
-    },
     "damper_bump_ls_fr": {
       "nominal": 10,
       "span": 9,
       "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_bump_hs_fr": {
-      "nominal": 14,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=14; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_blowoff_fr": {
-      "nominal": 6,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=6; span=half the full legal range (0-18)/2=9, same fallback."
     },
     "damper_rebound_ls_fr": {
       "nominal": 7,
       "span": 9,
       "source": "typical_window.reference_point_NBR=7; span=half the full legal range (0-18)/2=9, same fallback."
     },
-    "damper_rebound_hs_fr": {
-      "nominal": 8,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
-    },
     "damper_bump_ls_rl": {
       "nominal": 10,
       "span": 9,
       "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
     },
-    "damper_bump_hs_rl": {
-      "nominal": 8,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_blowoff_rl": {
-      "nominal": 0,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=0; span=half the full legal range (0-18)/2=9, same fallback."
-    },
     "damper_rebound_ls_rl": {
-      "nominal": 13,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_rebound_hs_rl": {
       "nominal": 13,
       "span": 9,
       "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
@@ -117,22 +67,7 @@
       "span": 9,
       "source": "typical_window.reference_point_NBR=10; span=half the full legal range (0-18)/2=9, same fallback."
     },
-    "damper_bump_hs_rr": {
-      "nominal": 8,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=8; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_blowoff_rr": {
-      "nominal": 0,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=0; span=half the full legal range (0-18)/2=9, same fallback."
-    },
     "damper_rebound_ls_rr": {
-      "nominal": 13,
-      "span": 9,
-      "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
-    },
-    "damper_rebound_hs_rr": {
       "nominal": 13,
       "span": 9,
       "source": "typical_window.reference_point_NBR=13; span=half the full legal range (0-18)/2=9, same fallback."
@@ -141,27 +76,22 @@
       "nominal": 96,
       "span": 2,
       "source": "value_space.standard=96, typical_window.max_delta_from_standard=-2",
-      "note": "the registry gives a floor only (standard - 2 mm, diffuser floor limit; no upper limit, author ruling); the symmetric span here only drives the headroom tie-break and the soft 'engineer may exceed' note, it never blocks a step"
+      "note": "The registry gives a floor only (standard - 2 mm, diffuser floor limit; no upper limit). The symmetric span here only drives the headroom tie-break and the soft 'engineer may exceed' note; it never blocks a step."
     },
     "ride_height_rear": {
       "nominal": 134,
       "span": 5,
       "source": "value_space.standard=134, typical_window.delta_from_standard=[-5,5]"
     },
-    "diff_package": {
-      "nominal": null,
-      "span": null,
-      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
-    },
     "diff_position": {
       "nominal": 3,
       "span": 2,
-      "source": "2026-09-18: no typical_window nominal exists, so nominal=value_space range midpoint (1+5)/2=3 (supersedes the earlier policy of leaving a plain midpoint null); span=half the full range (5-1)/2=2."
+      "source": "No typical_window nominal exists, so nominal = value_space range midpoint (1+5)/2 = 3 and span = half the full range (5-1)/2 = 2."
     },
     "wing_position": {
       "nominal": null,
       "span": null,
-      "note": "Unfillable in current form: a physical anchor exists (setup_parameters.json angles_deg [7.3, 8.3, 9.3], midpoint 8.3 deg = option P9), but Outing.setup_data stores the enum label ('P9'), not the angle, so a nominal/span in degrees would compare against a different representation. A working window needs a label -> angle mapping in code first; left null."
+      "note": "Left null: a physical anchor exists (setup_parameters.json angles_deg [7.3, 8.3, 9.3], midpoint 8.3 deg = option P9), but the outing's setup data stores the enum label ('P9'), not the angle, so a window in degrees would compare against a different representation. A label -> angle mapping in code is needed first."
     },
     "toe_front": {
       "nominal": -2,
@@ -176,7 +106,7 @@
     "camber_fl": {
       "nominal": -3.5,
       "span": 1.4,
-      "source": "typical_window.base=-3.5; span=fallback (2026-09-18), half the full legal value_space range (-4.8 to -2.0 deg)/2=1.4 -- no team-typical span exists, only the base value, so this is deliberately the full legal range, not a real tolerance."
+      "source": "typical_window.base = -3.5; span = half the full legal range (-4.8 to -2.0 deg)/2 = 1.4. Only a base value exists, no team-typical span, so this is deliberately the full legal range, not a real tolerance."
     },
     "camber_fr": {
       "nominal": -3.5,
@@ -196,7 +126,7 @@
     "tc_lat": {
       "nominal": 5,
       "span": 5.5,
-      "source": "typical_window.baseline=5 ('normal conditions'); span=fallback (2026-09-18), half the full legal value_space range (0-11)/2=5.5 -- no team-typical span exists, only the baseline, so this is deliberately the full legal range."
+      "source": "typical_window.baseline = 5 ('normal conditions'); span = half the full legal range (0-11)/2 = 5.5. Only a baseline exists, no team-typical span, so this is deliberately the full legal range."
     },
     "tc_lon": {
       "nominal": 5,
@@ -206,35 +136,20 @@
     "abs_position": {
       "nominal": null,
       "span": null,
-      "note": "categorical, not one monotonic axis (registry direction_semantics.type) -- a nominal + span distance does not apply; the window headroom term is neutral for this lever."
+      "note": "Categorical, not one monotonic axis (registry direction_semantics.type), so a nominal + span distance does not apply; the headroom term is neutral for this lever."
     },
     "brake_bias": {
       "nominal": null,
       "span": null,
-      "note": "Recommendation target (setup_parameters.json); nominal/span stay null because the current value is not evaluable until the brake-bias channel is identified (setup_parameters.json brake_bias notes)."
+      "note": "Recommendation target (setup_parameters.json); nominal and span stay null because the current value cannot be evaluated until the brake-bias channel is identified (setup_parameters.json brake_bias notes)."
     },
     "splitter_offset": {
       "nominal": 0,
       "span": 4,
-      "source": "config/setup_parameters.json splitter_offset value_space {min:-4, max:4, step:1 mm, default:0} and typical_window = full legal range (sign convention author-elicited 2026-09-22): nominal = default = range midpoint 0, span = half-width 4. Filled 2026-09-26 so headroom is evaluable for splitter, a lever the author named for it. The hard forward edge (negative extreme, splitter/track contact, track-dependent) stays with the window-edge labels, not with this distance."
-    },
-    "kinematic_variants": {
-      "nominal": null,
-      "span": null,
-      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
-    },
-    "gear_ratios": {
-      "nominal": null,
-      "span": null,
-      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
-    },
-    "engine_curves": {
-      "nominal": null,
-      "span": null,
-      "note": "context-only, recommendation_target=false -- not a setup-engine lever"
+      "source": "setup_parameters.json splitter_offset value_space {min:-4, max:4, step:1 mm, default:0}, typical window = full legal range: nominal = default = range midpoint 0, span = half-width 4, so headroom is evaluable for the splitter. The hard forward edge (negative extreme, splitter / track contact, track-dependent) stays with the window-edge labels, not with this distance."
     }
   },
-  "_comment_edge_normal_state_params": "Edge exemptions per (parameter, direction) where the edge is the lever's normal resting state -- e.g. ride_height_front pinned at its lower limit. Standing practice lands here, never as an edit to an engineer-verbatim rule. Exempt edge: no blocked_at_edge, candidate stays proposed with an edge_normal_state_note (live value filled in); other actions still checked and can block. Only 'decrease' for ride_height_front; moving off the pin is an ordinary move.",
+  "_comment_edge_normal_state_params": "Edge exemptions per (parameter, direction) where the edge is the lever's normal resting state, e.g. ride_height_front pinned at its lower limit. Standing practice is recorded here, never as an edit to an engineer rule. An exempt edge gives no blocked_at_edge: the candidate stays proposed with an edge_normal_state_note (live value filled in), and other actions are still checked and can block. Only 'decrease' for ride_height_front; moving off the pin is an ordinary move.",
   "edge_normal_state_params": [
     {
       "parameter": "ride_height_front",

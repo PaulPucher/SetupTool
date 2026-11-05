@@ -98,20 +98,23 @@ def _range(a, pad=0.08, include=()):
     return lo - d, hi + d
 
 
-# speed, limiting boundaries and dMz/dbeta each in their own line style, so
-# the legend tells them apart in black and white as well
+# speed and dMz/dbeta are both solid black: they sit in separate panels, and
+# a broken dMz line hid detail of the profile (author 2026-10-31). The
+# boundaries keep their own patterns so they read in black and white.
 SPEED = "black, solid"
-DMZ = "black, dashdotted"
+DMZ = "black, solid"
 BOUNDARY = {"f": "boundary, thin, densely dotted", "r": "boundary, thin, loosely dashed"}
-LABEL_W = 0.04       # corner label width incl. gap, share of the x span (scriptsize "C18" on 0.95 textwidth)
+# corner labels in \small (10 pt, unscaled at 0.95 textwidth), like the tick
+# and axis labels; \scriptsize was 8 pt, below the 9 pt print minimum
+LABEL_FONT = "\\small"
+LABEL_W = 0.055      # corner label width incl. gap, share of the x span ("C18" in \small)
 LABEL_ROW = 1.1      # em between label rows in the strip above the speed panel
-# panel heights (share of the text width): the CS panel gets the most, since
-# its dips toward the boundaries are the subject; the total stays 0.72 as with
-# three equal panels (author 2026-10-30)
-PANEL_HEIGHT = (0.18, 0.32, 0.22)
-# CS is capped at 1 (stability_analysis), so the axis stops just above the cap
-# instead of the usual data padding
-CS_CAP, CAP_PAD = 1.0, 0.04
+# three equal panels, total 0.72 of the text width (author 2026-10-31)
+PANEL_HEIGHT = (0.24, 0.24, 0.24)
+# fixed CS axis wider than the data (capped at 1 in stability_analysis), so
+# the curves are compressed vertically and read less steep (author 2026-10-31)
+CS_YLIM = (-0.4, 1.3)
+CS_TICKS = "0,0.5,1"
 
 
 def _label_rows(xs, width):
@@ -150,8 +153,15 @@ def _tex(prefix, cols, corners, lin, lo, hi, marks):
     for k, (ylabel, series, include) in enumerate(panels):
         y0, y1 = _range(np.concatenate([cols[c] for c, _s, _l in series]), include=include)
         if k == 1:
-            y1 = CS_CAP + CAP_PAD * (CS_CAP - y0)
+            # refuse rather than silently clip a sample at the fixed range
+            v = np.concatenate([cols[c] for c, _s, _l in series] + [np.asarray(include, float)])
+            v = v[np.isfinite(v)]
+            if v.min() <= CS_YLIM[0] or v.max() >= CS_YLIM[1]:
+                raise common.Refused(f"CS {v.min():.3g}..{v.max():.3g} outside the fixed axis {CS_YLIM}")
+            y0, y1 = CS_YLIM
         opts = f"height={PANEL_HEIGHT[k]}\\textwidth, ylabel={{{ylabel}}}, ymin={y0:.4g}, ymax={y1:.4g}"
+        if k == 1:
+            opts += f", ytick={{{CS_TICKS}}}"
         if k == 0:
             # the corner labels sit in a strip above the axis box
             opts += ", clip=false"
@@ -166,7 +176,7 @@ def _tex(prefix, cols, corners, lin, lo, hi, marks):
             t.append(f"\\addplot[draw=none, fill={shade}, on layer=axis background, forget plot] coordinates "
                      f"{{({s0:.2f},{y0:.4g}) ({s1:.2f},{y0:.4g}) ({s1:.2f},{y1:.4g}) ({s0:.2f},{y1:.4g})}} -- cycle;\n")
             if k == 0:
-                t.append(f"\\node[anchor=south, font=\\scriptsize, inner sep=1pt, "
+                t.append(f"\\node[anchor=south, font={LABEL_FONT}, inner sep=1pt, "
                          f"yshift={0.15 + rows[j] * LABEL_ROW:.2f}em] at "
                          f"({{axis cs:{mids[j]:.2f},0}} |- {{rel axis cs:0,1}}) {{C{cid}}};\n")
         if k == last:

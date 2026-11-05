@@ -1,8 +1,8 @@
 """Setup engine: corner symptoms -> mechanism -> one lever change.
 
-1. Symptoms (classifier, D2): US = front axle limiting, OS = rear axle
+1. Symptoms (classifier): US = front axle limiting, OS = rear axle
    limiting, INST = open-loop unstable yaw, per lap and phase.
-2. Repetition (D5): a corner-phase symptom counts only in a majority of the
+2. Repetition: a corner-phase symptom counts only in a majority of the
    corner's valid laps and in at least min_repeat_laps, so one disturbed lap
    cannot drive a change. Severity comes from the cross-lap aggregate, the
    population the classification tiers were derived on.
@@ -29,7 +29,7 @@
    net support -> limiting-end class -> preference -> effort -> headroom;
    an exact tie is reported as equivalent options.
 
-Two layers (D6): the data layer never sees driver feedback and is stored as
+Two layers: the data layer never sees driver feedback and is stored as
 is; the engineer layer adds feedback ordinally (agree / neutral / conflict)
 and driver-only rows for strong complaints without data support, which vote
 at session level with weight 1 x 1. The session layer also reports the
@@ -42,17 +42,17 @@ from fractions import Fraction
 
 import numpy as np
 
-from modules.classifier import phase_symptoms, is_low_priority, verdict_cs_stat, _thresholds
-from modules.corner_aggregation import (
+from modules.storage import repo_path
+from modules.classifier import (
     PHASE_KEYS, PHASE_TO_FEEDBACK_KEY, PHASE_WORD_LONG, PHASE_WORD_SHORT, SEVERITY_RANK, _group_by_corner,
-    aggregate_by_corner,
+    _thresholds, aggregate_by_corner, is_low_priority, phase_symptoms, verdict_cs_stat,
 )
 from modules.setup_state import (
     load_setup_parameters_registry, load_setup_windows, logged_setup_values, _current_setup_value,
     _check_feasible, _window_edge_check, _edge_normal_state_label, window_headroom,
 )
 
-MECHANISMS_CONFIG_PATH = "config/mechanisms.json"
+MECHANISMS_CONFIG_PATH = repo_path("config", "mechanisms.json")
 
 # ordinal enums, method-defining (cheaper changes first, MM p. 391)
 EFFORT_RANK = {"seconds": 0, "minutes": 1, "half_hour": 2, "garage_hours": 3}
@@ -65,13 +65,14 @@ FEEDBACK_MIN = 1
 DRIVER_ONLY_MIN = 4
 
 _OPPOSITE_WORD = {"stiffer": "softer", "softer": "stiffer"}
-# the axle whose grip limits, per symptom (D2): US front, OS / INST rear
+# the axle whose grip limits, per symptom: US front, OS / INST rear
 LIMITING_AXLE = {"US": "front", "OS": "rear", "INST": "rear"}
 # registry escalation_tier of the driver-adjustable levers
 COCKPIT_TIER = "cockpit"
 # An advisory row (mechanisms.json "advisory") acts on the tire working
-# point, which no logged channel confirms, so it is never the single change
-# (review ruling 2026-10-28); it still votes, ranks and is listed.
+# point, which no logged channel confirms, so it is never the single change;
+# it still votes, ranks and is listed. The reason text keeps its source
+# because it is stored with the recommendation.
 ADVISORY_REASON = "advisory: needs tire temperatures to confirm (SEG pp. 194-196)"
 # the elicited matrix's direction words in the table's vocabulary
 # (more_negative / less_negative go through the registry semantics)
@@ -246,18 +247,6 @@ def _preference(row, symptom, phase, speed_class, mechanisms, registry):
                    for cell in mechanisms.get("engineer_preference", [])))
 
 
-def unsupported_preference_cells(mechanisms, registry):
-    # cells that no table row at their own symptom / phase group / speed
-    # class supports -- the list recorded in mechanisms.json
-    out = []
-    for cell in mechanisms.get("engineer_preference", []):
-        phase = mechanisms["phase_groups"][cell["phase"]][0]
-        rows = _matching_rows(cell["symptom"], phase, cell["speed_class"], mechanisms)
-        if not any(cell_supports(cell, r, registry) for r in rows):
-            out.append(cell["cell"])
-    return out
-
-
 def tc_activity(corners, state, channels):
     """{(stable_corner_id, lap_number, phase): bool} -- TC flag (ecu_B_tc_act)
     set anywhere inside that corner-lap's phase window. Empty when the
@@ -281,12 +270,12 @@ def tc_activity(corners, state, channels):
 
 
 def repeats(k, n, frac, min_laps):
-    # D5: strictly more than frac of the n valid laps, and at least min_laps
+    # strictly more than frac of the n valid laps, and at least min_laps
     return k > frac * n and k >= min_laps
 
 
 def counted_symptoms(summaries, cfg, thr=None):
-    """Per corner: the symptoms that pass the repetition rule (D5).
+    """Per corner: the symptoms that pass the repetition rule.
 
     Returns {cid: {"n_laps", "speed_class", "symptoms": [...]}}; a symptom is
     {"symptom", "phase", "laps", "lap_numbers", "severity", "value"}."""
@@ -312,9 +301,9 @@ def counted_symptoms(summaries, cfg, thr=None):
             if not repeats(len(lap_numbers), n, frac, min_laps):
                 continue
             a = agg_syms.get((phase, symptom))
-            # with worst-lap CS and median stability (config
-            # cs_cross_lap_aggregation) a majority symptom is present in the
-            # aggregate; the fallback only guards an aggregation without that
+            # with worst-lap CS and median stability
+            # (classifier.aggregate_by_corner) a majority symptom is
+            # present in the aggregate; the fallback only guards an aggregation without that
             # property
             counted.append({"symptom": symptom, "phase": phase, "laps": len(lap_numbers),
                             "lap_numbers": sorted(lap_numbers),
@@ -582,7 +571,7 @@ def _session_layer(counted, summaries, cfg, thr=None):
 
 def data_layer(summaries, setup_data=None, registry=None, mechanisms=None, windows=None, tc_map=None, cfg=None,
                logged=None):
-    """The data-only recommendation (D6): no feedback enters here."""
+    """The data-only recommendation: no feedback enters here."""
     from modules.stability_analysis import load_parameters
     cfg = cfg or load_parameters()["setup_engine"]
     registry = registry or load_setup_parameters_registry()
@@ -639,7 +628,7 @@ def agreement(symptom, fb):
 
 def engineer_layer(data, summaries, feedback_data, setup_data=None, registry=None, mechanisms=None,
                    windows=None, cfg=None, logged=None):
-    """Data layer plus driver feedback (D6): agreement ranks right after
+    """Data layer plus driver feedback: agreement ranks right after
     severity; |fb| >= DRIVER_ONLY_MIN without a data symptom adds a
     driver-only row labelled "no data support". Driver level is not used."""
     from modules.stability_analysis import load_parameters
@@ -928,7 +917,8 @@ def session_summary(rec, engineer=False):
         why = "Why: " + why_text(votes)
     elif rec["ranked"]:
         head = "No setup change (only advisory levers)"
-        why = "Advisory levers need tire temperatures to confirm (SEG pp. 194-196)"
+        # tire temperatures as the confirming measurement: SEG pp. 194-196
+        why = "Advisory levers need tire temperatures to confirm"
     else:
         head = "No setup change"
         why = "No repeated symptom" if not rec["votes"] else "No lever with net support"

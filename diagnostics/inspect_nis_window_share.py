@@ -3,7 +3,7 @@
 # whose trailing 0.4 s window has a combined-NIS exceedance share inside
 # [nis_band_low, nis_band_high]; this script splits the rest into below and
 # above the band, per session, to show where the out-of-band mass sits.
-# Window statistic identical to modules.nis_gate._score_and_skips (NaN NIS
+# Window statistic identical to modules.observer._score_and_skips (NaN NIS
 # leaves numerator and denominator, windows under half covered are skipped
 # and leave the denominator). Acceptance: the in-band share equals the gate
 # health_score; a mismatch is reported, never fitted away.
@@ -65,7 +65,7 @@ WORKERS = 3
 def window_shares(nis_full, mask, window_samples, band_low, band_high):
     # same cumulative-sum window as nis_gate._score_and_skips, kept inline so
     # the three-way split reads the very fractions the gate reads
-    from modules.nis_gate import _CHI2_DF2_95, MIN_WINDOW_VALID_FRACTION
+    from modules.observer import _CHI2_DF2_95, MIN_WINDOW_VALID_FRACTION
     nis = np.asarray(nis_full, dtype=float)
     n = nis.size
     finite = np.isfinite(nis)
@@ -99,7 +99,7 @@ def compute(key):
     from modules.stability_analysis import load_parameters, prepare_vehicle_state
     from modules.accuracy_resolution import resolve_accuracy, apply_resolved_vehicle
     from modules.corner_analysis import reclassify_speed_classes
-    from modules.nis_gate import _score_and_skips, resolve_nis_window_samples
+    from modules.observer import _score_and_skips, resolve_nis_window_samples
     t0 = time.perf_counter()
     _, track, outing, label, src = {c[0]: c for c in CANDIDATES}[key]
     path = resolve_data_path(src[1])

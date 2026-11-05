@@ -4,7 +4,7 @@
 # read-only re-run of the chain), floor events (stored events list) and the
 # estimation path (stored fit record); from the same re-run, the median
 # |beta| of the observer on the steering-defined straights (the fit-L noise
-# straights, modules/straights.py), and per axle the share of corner
+# straights, modules/observer.py), and per axle the share of corner
 # instances on the analysis laps whose observer slip angle leaves the
 # slip-angle range of the session's fit samples (p0.5-p99.5 of the fit
 # population, common.fit_sample_range; partial fit re-run) on either side.
@@ -41,7 +41,7 @@ def beyond_fit_range(session, res, fit_range):
 
 
 def median_abs_beta_straights(session, res):
-    from modules.straights import steering_straights
+    from modules.observer import steering_straights
     mask = steering_straights(res["state"], session["parsed"]["laps"], session["params"]["tyre_fit_auto"])["mask"]
     b = np.degrees(np.abs(np.asarray(res["beta"])[mask]))
     b = b[np.isfinite(b)]

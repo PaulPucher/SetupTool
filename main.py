@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication
 from ui.main_window import MainWindow
 from ui.style import STYLESHEET
-from models.base import init_db
+from models.db import init_db
 init_db()
 if __name__ == "__main__":
     app = QApplication(sys.argv)

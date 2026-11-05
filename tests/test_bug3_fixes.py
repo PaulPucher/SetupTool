@@ -53,11 +53,11 @@ def app():
 def db(tmp_path):
     # throwaway SQLite DB (pattern of test_bug1_fixes.py)
     from sqlalchemy import create_engine
-    import models.base as base
+    import models.db as base
     original_bind = base.Session.kw.get("bind")
     engine = create_engine(f"sqlite:///{tmp_path / 'throwaway.db'}")
     base.Session.configure(bind=engine)
-    import models.driver, models.raceweekend, models.outing  # noqa: F401 -- table registration
+    import models.db  # noqa: F401 -- table registration
     base.Base.metadata.create_all(engine)
     yield base
     base.Session.configure(bind=original_bind)
@@ -65,7 +65,7 @@ def db(tmp_path):
 
 
 def _weekend(base, **kw):
-    from models.raceweekend import RaceWeekend
+    from models.db import RaceWeekend
     s = base.Session()
     w = RaceWeekend(**{"track": "Nordschleife", "series": "GT3", "car_number": 1, "year": 2026, **kw})
     s.add(w)
@@ -218,8 +218,8 @@ def test_b9_second_file_clears_the_previous_results(db, app, jst29, jst29_path):
 # --- Deleting an empty weekend asks first ---
 
 def test_empty_weekend_delete_asks_first(db, app, monkeypatch):
-    from models.raceweekend import RaceWeekend
-    from ui.views import weekend_dialog
+    from models.db import RaceWeekend
+    from ui.views import weekends as weekend_dialog
     w = _weekend(db)
     asked = []
 
@@ -267,15 +267,11 @@ def jst29_chain():
 
 
 def test_b24_event_record_has_one_shape(jst29_chain):
-    import copy
     from modules.limit_events import detect_events, detect_floor_events
     c = jst29_chain
     computed = detect_events(*c.args, c.man, c.params, slip=c.slip)
-    off = copy.deepcopy(c.params)
-    off["limit_events"]["enabled"] = False
-    disabled = detect_events(*c.args, c.man, off)
     no_fit = detect_events(*c.args, None, c.params)
-    assert set(disabled) == set(no_fit) == set(computed)  # early returns lacked line / floor / label
+    assert set(no_fit) == set(computed)  # the early return lacked line / floor / label
     # without the slip input an event still has window_start_t, as None
     no_slip = detect_floor_events(*c.args, c.params, None)
     assert computed["events"] and no_slip["events"]
@@ -352,10 +348,13 @@ def test_b10_thesis_figure_draws_the_classifier_levels():
     fit_range = {"f": (-6.0, 6.5), "r": (-4.5, 4.8)}
     tex = fig_example_corner._tex("b", "p/", cols, phases, common.lines(), cols["s_m"][0], cols["s_m"][-1], [],
                                   fit_range)
-    got = {float(m) for m in re.findall(r"\\addplot\[axle(?:Front|Rear), [^\]]*\] coordinates \{\([-\d.]+,([-\d.e]+)\)", tex)}
+    # rule lines share the "boundary" style; the axle-coloured dotted lines
+    # in the slip-angle panel are the tyre-fit sample range, not rule lines
+    got = {float(m) for m in re.findall(r"\\addplot\[boundary, [^\]]*\] coordinates \{\([-\d.]+,([-\d.e]+)\)", tex)}
     # B10 amended 2026-10-27: the thesis figure draws only the lines a
-    # verdict rule acts on; the rear information tier stays on the app screen
-    assert got == {float(f"{x:.4g}") for x in (want["cs_f"] | want["cs_r"]) - {v["info_r"]}}
+    # verdict rule acts on (front boundary, front strong tier, rear
+    # boundary); the rear information tier stays on the app screen
+    assert got == {float(f"{x:.4g}") for x in (v["boundary_f"], v["strong_f"], v["boundary_r"])}
     assert float(f"{v['info_r']:.4g}") not in got and not got & unused
 
 
@@ -363,7 +362,7 @@ def test_b10_thesis_figure_draws_the_classifier_levels():
 
 def test_b11_named_phases_match_the_verdict_text():
     from modules.classifier import classify_corner, verdict_phases
-    from modules.corner_aggregation import PHASE_WORD_LONG
+    from modules.classifier import PHASE_WORD_LONG
     with open(os.path.join(ROOT, "tests", "golden", "default_nbr_jst29.json"), encoding="utf-8") as f:
         summaries = json.load(f)["summaries"]
     n_named = 0

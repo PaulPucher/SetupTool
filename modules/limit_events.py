@@ -61,16 +61,14 @@ def detect_events(cs, state, corners, laps, fit_manifest, params, slip=None, gat
     """Event layer of one session: the floor events of detect_floor_events,
     line PURE_LATERAL_FLOOR; axle_loads / axle_fx feed their attributes.
     Returns the JSON-safe dict of detect_floor_events on every path; without
-    a tyre fit (kinematic sideslip source) or with the layer disabled it
-    holds no events and the status says why.
+    a tyre fit (kinematic sideslip source) it holds no events and the status
+    says why.
 
     Population: in-corner samples (canonical brackets) on analysis laps, the
     FULL CS arrays -- kerb-affected samples are kept and labelled, so nothing
     is hidden (the classifier's clean population is a separate concern).
     """
     cfg = params["limit_events"]
-    if not cfg.get("enabled", True):
-        return _empty_result("disabled in config")
     if not fit_manifest:
         return _empty_result("no events: no tyre fit in this run (kinematic sideslip source)")
     fe = detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=axle_loads, axle_fx=axle_fx)
@@ -98,7 +96,7 @@ def detect_floor_events(cs, state, corners, laps, params, slip, axle_loads=None,
     flagged. Attributes only; nothing is classified or removed.
 
     axle_loads / axle_fx: the fit-L axle Fz and the axle Fx with braking
-    split by measured axle load (Goblirsch 2025, Eq. 9 (page to verify)),
+    split by measured axle load (Goblirsch 2025, Eq. 9),
     2 Hz zero-phase, for the longitudinal utilisation and the load change inside
     the regression windows; without them those attributes are None.
     """
@@ -224,7 +222,7 @@ def aggregate_by_corner_phase(events):
 
 
 def _phase_word(phase):
-    from modules.corner_aggregation import PHASE_WORD_LONG
+    from modules.classifier import PHASE_WORD_LONG
     return PHASE_WORD_LONG.get(phase, phase)
 
 

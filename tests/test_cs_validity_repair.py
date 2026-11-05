@@ -485,17 +485,12 @@ def test_apex_symptom_counts_via_apex_region_alone(speed_class, axle_key, sympto
     assert layer["corners"][0]["recommended"] is not None
 
 
-# --- Phase 3: config-driven cross-lap aggregation (median vs worst_lap) -----
+# --- cross-lap aggregation (worst lap) --------------------------------------
 #
-# classification.cs_cross_lap_aggregation ("median"|"worst_lap", absent ==
-# "median"): the cross-LAP combiner aggregate_by_corner applies to each
-# phase's CS_ratio before classify_fn's own existing min-across-PHASES
-# search (_classify_corner) runs on top. "worst_lap" is min-then-min
-# (thesis_notes.md "Gated Stage-2 recomputation...") -- min is associative,
-# so composing a per-phase min-across-laps here with classify_fn's own
-# min-across-phases IS the true global min over every (lap, phase) pair,
-# with no separate flattening step needed. Stability stays median
-# unconditionally in both modes.
+# aggregate_by_corner takes each phase's CS_ratio minimum across laps before
+# the classifier's own min across phases runs on top; min is associative, so
+# the composition is the global min over every (lap, phase) pair. Stability
+# stays median.
 
 def _healthy_phase_block():
     return {"cs_ratio_f": {"median": 1.0, "p25": 1.0, "p75": 1.0, "n": 50},
@@ -527,27 +522,8 @@ def _corner_summaries_one_bad_lap(bad_lap, axle_key, bad_value, phase="exit_4", 
     return summaries
 
 
-def _monkeypatch_cs_aggregation(monkeypatch, mode):
-    # cs_cross_lap_aggregation is read via a local `from modules.
-    # stability_analysis import load_parameters` inside aggregate_by_corner
-    # (and _classify_corner does the identical local import for the rest of
-    # the classification block) -- patching the module attribute is seen by
-    # both. mode=None removes the key entirely (tests the documented
-    # "absent -> median" default, not just an explicit "median" value).
-    import modules.stability_analysis as sa
-    real_params = sa.load_parameters()
-    fake = dict(real_params)
-    fake["classification"] = dict(real_params["classification"])
-    if mode is None:
-        fake["classification"].pop("cs_cross_lap_aggregation", None)
-    else:
-        fake["classification"]["cs_cross_lap_aggregation"] = mode
-    monkeypatch.setattr(sa, "load_parameters", lambda: fake)
-
-
-def test_aggregate_by_corner_worst_lap_mode_takes_min_across_laps(monkeypatch):
-    _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
-    from modules.corner_aggregation import aggregate_by_corner
+def test_aggregate_by_corner_takes_min_across_laps():
+    from modules.classifier import aggregate_by_corner
 
     summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
     aggregated = aggregate_by_corner(summaries)
@@ -558,25 +534,13 @@ def test_aggregate_by_corner_worst_lap_mode_takes_min_across_laps(monkeypatch):
     assert exit4["stability_observed_Nm_per_deg"]["median"] == 500.0
 
 
-def test_aggregate_by_corner_median_mode_is_default_when_key_absent(monkeypatch):
-    _monkeypatch_cs_aggregation(monkeypatch, None)
-    from modules.corner_aggregation import aggregate_by_corner
-
-    summaries = _corner_summaries_one_bad_lap(bad_lap=2, axle_key="cs_ratio_f", bad_value=-0.7)
-    aggregated = aggregate_by_corner(summaries)
-    # 3 healthy (1.0) laps + 1 bad (-0.7) lap -> median([1, 1, 1, -0.7]) = 1.0:
-    # the one-off lap washes out, exactly the pre-Phase-3 behaviour.
-    assert aggregated[1]["phases"]["exit_4"]["cs_ratio_f"]["median"] == 1.0
-
-
-def test_repeat_rule_blocks_one_off_lap_under_worst_lap_aggregation(monkeypatch):
+def test_repeat_rule_blocks_one_off_lap_under_worst_lap_aggregation():
     # worst_lap aggregation makes the AGGREGATE sensitive to a single bad lap
     # (min is outlier-sensitive by construction), but the setup engine counts
     # a symptom only when it repeats per lap (D5: majority of valid laps, at
     # least 2) -- a lone bad lap must not, by itself, produce a
     # recommendation. Successor of the retired consistency-gate check.
-    _monkeypatch_cs_aggregation(monkeypatch, "worst_lap")
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     from modules.classifier import classify_corner
     from modules.setup_engine import data_layer
 

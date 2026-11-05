@@ -1,22 +1,19 @@
 # Setup/setdown sheet PDF, landscape A4, monochrome, one sheet per page.
-# Rebrand by swapping config/images/team_logo.png.
 
 import json
-import os
 from xml.sax.saxutils import escape
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image,
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
     Flowable, KeepInFrame,
 )
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from PIL import Image as PILImage
 
-from core.setup_data_points import (
+from modules.setup_state import (
     SPLITTER_POINT_POSITIONS, DIFFUSER_POINT_POSITIONS, SPLITTER_SIDE_FRACTION,
 )
 
@@ -32,8 +29,6 @@ MUTED = colors.HexColor(MUTED_HEX)
 MID_GRAY = colors.HexColor("#999999")
 WHITE = colors.white
 BLACK = colors.black
-
-LOGO_PATH = "config/images/team_logo.png"
 
 # Core row: readable words, one bordered cell per value.
 CORNER_LABELS = {
@@ -373,13 +368,6 @@ def _car_column(car, styles, width):
     return elements
 
 
-def _scaled_image(path, target_height):
-    with PILImage.open(path) as im:
-        iw, ih = im.size
-    width = target_height * (iw / ih)
-    return Image(path, width=width, height=target_height)
-
-
 def build_session_strip(meta, data, strip_w, strip_h):
     """One Setup or Setdown sheet. data = setup/setdown dict (front_left ..
     rear_right, car); meta = header text fields.
@@ -399,11 +387,6 @@ def build_session_strip(meta, data, strip_w, strip_h):
         Paragraph(escape("  |  ".join(header_bits)), styles["header_muted"]),
     ]
     right_header = [Paragraph(escape(meta.get("sheet_label", "")), styles["sheet_label"])]
-    if os.path.exists(LOGO_PATH):
-        try:
-            right_header.insert(0, _scaled_image(LOGO_PATH, 6 * mm))
-        except Exception:
-            pass
     header_pad = 3 * mm
     header_table = Table([[left_header, right_header]], colWidths=[strip_w * 0.75, strip_w * 0.25])
     header_table.setStyle(TableStyle([
@@ -471,7 +454,7 @@ def generate_setup_pdf(outing, weekend, output_path, sheet_type="Setup"):
             setup = json.loads(outing.setup_data)
         except Exception as e:
             # corrupt setup_data -> visible note in the PDF, not a blank-looking sheet
-            from core.error_text import friendly_error_text
+            from core.display import friendly_error_text
             parse_error = friendly_error_text(e)
 
     meta = {

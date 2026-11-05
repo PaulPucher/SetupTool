@@ -15,11 +15,12 @@ from PyQt6.QtCore import Qt
 
 from ui.style import ACCENT, WARN, TEXT, TEXT_MUTED, TEXT_DIM
 from ui.views.outing_form import NoScrollSpinBox, NoScrollIntSpinBox, latest_pipeline_entry
-from core.threshold_overrides import apply_threshold_edit, is_manual
-from modules.wheel_loads import effective_cl_area
+from modules.classifier import apply_threshold_edit, is_manual
+from modules.loads import effective_cl_area
+from modules.storage import repo_path
 
-PARAMETERS_PATH = "config/parameters.json"
-CHANNELS_PATH = "config/channels.json"
+PARAMETERS_PATH = repo_path("config", "parameters.json")
+CHANNELS_PATH = repo_path("config", "channels.json")
 
 # left label column; labels wrap inside it instead of clipping
 LABEL_WIDTH = 260
@@ -119,7 +120,7 @@ SECTION2_CHANNELS_INT_FIELDS = [
      "short_note": "Apex speed separating medium- from high-speed corners."},
 ]
 # Section 3: classification thresholds, editable; an edit is recorded as a
-# manual override (core/threshold_overrides.py)
+# manual override (modules/classifier.py)
 SECTION3_FIELDS = [
     {"key": "STRONG_CSF", "label": "Strong front CS threshold", "unit": "", "decimals": 3,
      "min": -2.0, "max": 2.0,

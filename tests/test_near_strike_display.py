@@ -11,8 +11,8 @@ import re
 import numpy as np
 import pytest
 
-from core import plot_style
-from core.trace_display import near_strike_split, kerb_exclusion_caption, kerb_scatter_split
+from core import figure_render as plot_style
+from core.display import near_strike_split, kerb_exclusion_caption, kerb_scatter_split
 
 
 def _lap_arrays(state, cs, lap):

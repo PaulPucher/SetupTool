@@ -43,7 +43,6 @@ STABILITY_ESTIMATION_REQUIRED_KEYS = [
 CLASSIFICATION_REQUIRED_KEYS = [
     "STRONG_CSF", "STRONG_CSR", "MODERATE_CSF", "MODERATE_CSR", "stab_neg_thresh_Nm_per_deg",
     "cs_boundary_margin_front", "cs_boundary_margin_rear",
-    "thresholds_calibrated_for_sideslip_source", "thresholds_calibrated_for_tyre_fit_mode",
 ]
 def test_stability_estimation_required_keys_present(raw_params):
     se = raw_params["stability_estimation"]
@@ -66,24 +65,6 @@ def test_missing_sideslip_source_defaults_to_kinematic():
     invoking the Qt-based call site itself."""
     se = {"some_other_key": 1}
     assert se.get("sideslip_source", "kinematic") == "kinematic"
-
-
-def test_missing_calibration_flag_defaults_to_kinematic():
-    cls_cfg = {"some_other_key": 1}
-    assert cls_cfg.get("thresholds_calibrated_for_sideslip_source", "kinematic") == "kinematic"
-
-
-def test_uncal_keys_on_tyre_fit_mode_too(raw_params):
-    # thresholds encode the estimator (author ruling 2026-10-20): the live
-    # config is calibrated; the same config naming another tyre-fit mode is
-    # not, although the sideslip source is unchanged (per_session, the
-    # example used before, was removed in the 2026-10-22 pruning)
-    import copy
-    from modules.stability_analysis import thresholds_calibrated
-    assert thresholds_calibrated(raw_params)
-    other = copy.deepcopy(raw_params)
-    other["tyre_fit_auto"]["tyre_fit_mode"] = "some_other_mode"
-    assert not thresholds_calibrated(other)
 
 
 # --- 2. ANALYSIS_SCHEMA_VERSION matches the payload shape actually built -----

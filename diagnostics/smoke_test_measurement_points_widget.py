@@ -16,10 +16,10 @@ from PyQt6.QtWidgets import QApplication
 
 app = QApplication([])
 
-import models.driver, models.outing, models.raceweekend
-from models.base import Session
-from models.outing import Outing
-from models.raceweekend import RaceWeekend
+import models.db
+from models.db import Session
+from models.db import Outing
+from models.db import RaceWeekend
 from ui.views.outing_form import OutingForm
 from ui.views.measurement_points_widget import MeasurementPointsWidget
 

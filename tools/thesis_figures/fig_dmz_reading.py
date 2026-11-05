@@ -131,7 +131,7 @@ def phase_panel(session, res, work, cols, se, agg, cid, phase):
 
 
 def build(outing, unstable, stable=None, tag="dev", allow_status=False, allow_excluded=False, out=None):
-    from modules.corner_aggregation import PHASE_KEYS, aggregate_by_corner
+    from modules.classifier import PHASE_KEYS, aggregate_by_corner
     session = common.load_session(outing)
     res = common.run_chain(session)
     marks = common.gate(outing, res["fit_manifest"], res["fallback_used"], allow_status, allow_excluded)

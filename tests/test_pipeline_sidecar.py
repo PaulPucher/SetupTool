@@ -1,4 +1,4 @@
-# WP-CACHE Phase 1: targeted unit tests for modules/pipeline_sidecar.py.
+# WP-CACHE Phase 1: targeted unit tests for the sidecar cache in modules/storage.py.
 # Pure filesystem/pickle module, no Qt/DB/pipeline dependency -- every test
 # redirects SIDECAR_DIR into pytest's own tmp_path so the real data/
 # analysis_cache/ is never touched. "Restart-simulate" (the work order's
@@ -13,7 +13,7 @@ import pickle
 import numpy as np
 import pytest
 
-from modules import pipeline_sidecar as sidecar
+from modules import storage as sidecar
 
 
 @pytest.fixture(autouse=True)

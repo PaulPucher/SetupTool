@@ -260,7 +260,7 @@ def load_session(outing_id, allow_no_grid=False):
     from modules.accuracy_resolution import apply_resolved_vehicle, resolve_accuracy
     from modules.corner_analysis import reclassify_speed_classes
     from modules.csv_parser import load_channels_config, parse_csv
-    from modules.data_paths import resolve_saved_path
+    from modules.storage import resolve_saved_path
     from modules.stability_analysis import _resolve_grid_rate, load_parameters
     row = db_outing(outing_id)
     path = resolve_saved_path(row["csv_path"])
@@ -290,7 +290,7 @@ def load_session(outing_id, allow_no_grid=False):
 def stored_payload(session):
     """(payload, None) when the DB payload passes the app's cache guards
     (OutingForm._try_render_cached_analysis, in order), else (None, reason)."""
-    from modules.data_paths import path_key
+    from modules.storage import path_key
     from modules.stability_analysis import ANALYSIS_SCHEMA_VERSION
     row, ident = session["row"], session["ident"]
     cached = _loads(row["analysis_data"])

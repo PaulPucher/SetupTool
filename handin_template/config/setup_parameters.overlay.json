@@ -1,0 +1,414 @@
+{
+  "_comment": "Overlay applied by tools/make_handin.py on config/setup_parameters.json: generic value ranges and steps. '__replace__' replaces the whole object.",
+  "arb_fl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    }
+  },
+  "arb_fr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    }
+  },
+  "arb_rl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    }
+  },
+  "arb_rr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 7,
+      "unit": "blade position"
+    }
+  },
+  "springs_front": {
+    "value_space": {
+      "__replace__": true,
+      "type": "enum",
+      "options": [
+        200,
+        240,
+        280,
+        320
+      ],
+      "unit": "N/mm"
+    }
+  },
+  "springs_rear": {
+    "value_space": {
+      "__replace__": true,
+      "type": "enum",
+      "options": [
+        200,
+        240,
+        280,
+        320
+      ],
+      "unit": "N/mm"
+    }
+  },
+  "damper_bump_ls_fl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_bump_ls_fr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_bump_ls_rl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_bump_ls_rr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_rebound_ls_fl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_rebound_ls_fr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_rebound_ls_rl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "damper_rebound_ls_rr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 20,
+      "unit": "clicks"
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "0": "fully closed = stiffest",
+      "20": "fully open = softest",
+      "increasing": "softer"
+    },
+    "adjustment_step": {
+      "__replace__": true,
+      "exploratory": 2,
+      "fine": 1,
+      "unit": "clicks"
+    }
+  },
+  "ride_height_front": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "unit": "mm",
+      "standard": 100
+    },
+    "adjustment_step": 1,
+    "typical_window": {
+      "__replace__": true,
+      "max_delta_from_standard": -3
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "decreasing": "lower to the ground",
+      "window_max": "3 mm below standard (diffuser floor limit)"
+    }
+  },
+  "ride_height_rear": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "unit": "mm",
+      "standard": 120
+    },
+    "adjustment_step": 1,
+    "typical_window": {
+      "__replace__": true,
+      "delta_from_standard": [
+        -6,
+        6
+      ]
+    },
+    "direction_semantics": {
+      "__replace__": true,
+      "window": "+-6 mm around standard"
+    }
+  },
+  "diff_position": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 5,
+      "unit": "position"
+    }
+  },
+  "wing_position": {
+    "value_space": {
+      "__replace__": true,
+      "type": "enum",
+      "options": [
+        "P8",
+        "P9",
+        "P10"
+      ],
+      "angles_deg": [
+        6.0,
+        7.0,
+        8.0
+      ]
+    }
+  },
+  "toe_front": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": -4,
+      "max": 0,
+      "step": 0.5,
+      "unit": "mm"
+    }
+  },
+  "toe_rear": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": 0,
+      "max": 4,
+      "step": 0.5,
+      "unit": "mm"
+    }
+  },
+  "camber_fl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": -5.0,
+      "max": -1.5,
+      "unit": "deg",
+      "step": 0.1
+    },
+    "adjustment_step": 0.25
+  },
+  "camber_fr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": -5.0,
+      "max": -1.5,
+      "unit": "deg",
+      "step": 0.1
+    },
+    "adjustment_step": 0.25
+  },
+  "camber_rl": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": -5.0,
+      "max": -1.5,
+      "unit": "deg",
+      "step": 0.1
+    },
+    "adjustment_step": 0.25
+  },
+  "camber_rr": {
+    "value_space": {
+      "__replace__": true,
+      "type": "float",
+      "min": -5.0,
+      "max": -1.5,
+      "unit": "deg",
+      "step": 0.1
+    },
+    "adjustment_step": 0.25
+  },
+  "tc_lat": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 12,
+      "unit": "position",
+      "feasible_min": 2,
+      "feasible_max": 12,
+      "feasible_derived_from": "The TC scale is monotonic only from position 2 upward, so a decrease from 2 is at the limit."
+    }
+  },
+  "tc_lon": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 12,
+      "unit": "position",
+      "feasible_min": 2,
+      "feasible_max": 12,
+      "feasible_derived_from": "The TC scale is monotonic only from position 2 upward, so a decrease from 2 is at the limit."
+    }
+  },
+  "abs_position": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 0,
+      "max": 12,
+      "unit": "position"
+    }
+  },
+  "brake_bias": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": 1,
+      "max": 4,
+      "unit": "clicks",
+      "note": "Direction convention and channel not identified."
+    }
+  },
+  "splitter_offset": {
+    "value_space": {
+      "__replace__": true,
+      "type": "int",
+      "min": -5,
+      "max": 5,
+      "step": 1,
+      "unit": "mm",
+      "default": 0
+    }
+  }
+}

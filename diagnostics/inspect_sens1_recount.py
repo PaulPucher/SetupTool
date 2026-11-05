@@ -115,7 +115,7 @@ def run_task(job):
                                             estimate_yaw_moment_stability, estimate_vertical_loads,
                                             summarise_corners)
     from modules.corner_analysis import reclassify_speed_classes
-    from modules.corner_aggregation import aggregate_by_corner
+    from modules.classifier import aggregate_by_corner
     from modules.classifier import phase_symptoms
     from modules.setup_engine import data_layer, tc_activity
     from modules.setup_state import logged_setup_values
