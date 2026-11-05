@@ -14,15 +14,15 @@ For one exported session the analysis chain runs these steps in order:
    passes a range gate. Laps are split and classified (out lap, in lap,
    analysis lap).
 2. **Corner detection**: corner brackets from steering and lateral
-   acceleration, the apex, a speed class and five phases per corner (brake,
-   turn-in, apex, early exit, late exit). Corners are matched across laps so
+   acceleration, the apex, a speed class and five phases per corner (braking,
+   turn-in, apex, early exit, exit completion). Corners are matched across laps so
    every lap of the same corner shares one corner number.
 3. **Vehicle state**: all channels resampled onto one time base, filtered,
    with a kerb mask from vertical acceleration.
 4. **Vertical loads**: per-wheel loads from the damper force and travel
    channels through the motion-ratio table; if these channels are missing or
    implausible, the static weight split is used instead.
-5. **Tyre fit and observer**: a reduced Magic Formula curve is fitted per
+5. **Tire fit and observer**: a reduced Magic Formula curve is fitted per
    axle for this session; a single-track extended Kalman filter estimates the
    sideslip angle with that curve. A consistency check on the filter
    innovations (NIS) decides whether the observer's sideslip is used; if the
@@ -58,9 +58,13 @@ On Linux or macOS use `python3.13 -m venv .venv` and
 
 ## 3. Use
 
-Start the application from any working directory:
+Start the application from the tool folder with
 
     python main.py
+
+or from any other folder with
+
+    python <tool folder>/main.py
 
 1. **Weekends**: "+ New" creates a race weekend or test (track, series, car
    number and date are required).
@@ -90,7 +94,11 @@ writes a JSON summary: fit status, normalised stiffness K and friction
 coefficient mu per axle, NIS health score, per-corner verdicts, counted
 symptoms and the session recommendation (lever and direction). Without `-o`
 the summary is printed. A file without a mandatory channel is refused with a
-message naming the channel.
+message naming the channel. Without a setup sheet the remaining adjustment
+range of each lever is unknown, so options that rank equally on every other
+criterion cannot be separated; the summary then lists them as equivalent
+options with their shared net support. Enter the setup sheet in the
+application so that such ties can be separated by the remaining range.
 
 `config/data_roots.json` may list folders where session files are stored on
 different machines; a saved file path is then found under any of them.
@@ -125,8 +133,8 @@ In the order of the analysis chain.
   loads, CS ratio and the corner summaries.
 - `loads.py`: per-wheel loads from damper channels; longitudinal force.
 - `yaw_stability.py`: yaw-moment derivative dMz/dbeta.
-- `tyre_model_pacejka.py`: reduced Magic Formula tyre model.
-- `tyre_fit_auto.py`: per-session tyre fit, plausibility checks, sideslip
+- `tyre_model_pacejka.py`: reduced Magic Formula tire model.
+- `tyre_fit_auto.py`: per-session tire fit, plausibility checks, sideslip
   source selection.
 - `observer.py`: extended Kalman filter, straight-line noise measurement,
   NIS check.

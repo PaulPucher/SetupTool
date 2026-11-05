@@ -121,7 +121,17 @@ def _session_summary(path, chain, summaries, layers):
     data = layers["data_layer"]
     counted = [{"corner": c["corner"], "symptom": s["symptom"], "phase": s["phase"], "laps": s["laps"]}
                for c in data["corners"] for s in c["symptoms"]]
-    rec = (data.get("session_recommendation") or {}).get("recommended")
+    vote = data.get("session_recommendation") or {}
+    rec, tie = vote.get("recommended"), vote.get("equivalent_options") or []
+    if rec:
+        session_rec = {"levers": rec["levers"], "direction": rec["direction"], "net": rec["net"]}
+    elif tie:
+        # an exact tie of the rank key has no single winner; without a setup
+        # sheet the headroom term is 0 for every option and cannot break it
+        session_rec = {"equivalent_options": [{"levers": o["levers"], "direction": o["direction"]} for o in tie],
+                       "net": tie[0]["net"]}
+    else:
+        session_rec = None
     return {
         "session_file": os.path.basename(path),
         "sideslip_source": chain["sideslip_source"],
@@ -135,8 +145,7 @@ def _session_summary(path, chain, summaries, layers):
         "analysis_laps": sorted({s["lap_number"] for s in summaries}),
         "corner_verdicts": verdicts,
         "counted_symptoms": counted,
-        "session_recommendation": ({"levers": rec["levers"], "direction": rec["direction"], "net": rec["net"]}
-                                   if rec else None),
+        "session_recommendation": session_rec,
     }
 
 

@@ -1557,7 +1557,7 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
  
  import subprocess
  from datetime import datetime, timezone
-@@ -33,36 +33,33 @@
+@@ -33,39 +33,36 @@
  # Fit L (tyre_fit_mode "literature_bounded"). These
  # values define the method, they are not tuned: with an estimated sideslip
  # and no sliding data the curve shape is not identified, so
@@ -1607,7 +1607,11 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
 +# tyres. An order of magnitude given to one significant figure, so it
  # is read at that precision: inside the band ok,
  # within the rounding margin of either "about" marginal (the EKF ships,
- # flagged at the edge of the literature range), beyond it degenerate.
+-# flagged at the edge of the literature range), beyond it degenerate.
++# flagged at the edge of the accepted range), beyond it degenerate.
+ L_K_BAND = (6.0, 30.0)
+ L_K_EDGE = (5.5, 35.0)
+ # CS linear reference, relative plausibility: a band
 @@ -72,10 +69,10 @@
  # candidate sets the reference only within [0.5, 2] x the session median of
  # that axle's candidates. The slope at zero slip "is not or hardly affected
@@ -1663,7 +1667,7 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
      # (m ax + drag + rolling, the terms of estimate_longitudinal_forces) goes
      # to the front in proportion to the measured axle load under braking,
      # none under drive (rear drive). Not a split by the measured
-@@ -335,7 +332,7 @@
+@@ -335,10 +332,10 @@
          "vertical_load_source_used": fz["vertical_load_source_used"],
          "source_shares": shares,
          "lowest_level": lowest,
@@ -1672,6 +1676,10 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
                         if zero_applied and "damper" in used else ""),
          # session check of the damper path against the static weight; a
          # rejected path shows up above as static_fallback shares, level 1
+         "damper_plausibility": _damper_plausibility_record(fz, state, data, params, zero, zero_applied),
+-        "fx_front_source": "Goblirsch et al. 2025 Eq. 9: m ax + drag + rolling, braking split by the "
++        "fx_front_source": "CoG longitudinal force (m ax + drag + rolling), braking share to the front by the "
+                            "measured axle loads, drive rear only",
 @@ -425,8 +422,8 @@
      the per-step variance is SD^2 dt_ref^2 at the q_reference_rate_hz grid
      (the convention the observer rescales to the session rate). An upper
@@ -1711,7 +1719,8 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
      # corner exit, not an outlier; removing it would take over half the rear
      # population. Its combined-slip cost stays, sized by the friction
 @@ -593,7 +590,7 @@
-     manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
+-    manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
++    manifest["front_force_frame"] = "tyre frame (front lateral force from the body-frame value and the axle Fx through the steer angle), fit and observer"
      manifest["fit_density_bin_rad"] = bin_rad
      # measured axle loads (2 Hz zero-phase) for the load-normalised CS
 -    # and the Eq. 9 axle Fx for the floor-event
@@ -1739,6 +1748,15 @@ diff --git a/modules/tyre_fit_auto.py b/modules/tyre_fit_auto.py
      # yaw_mismatch_ceiling.
      gate_frac = manifest["sign_check"]["median_gate_racing_fraction"]
      gross = cfg["nis_gross_miscalibration_fraction"]
+@@ -863,7 +860,7 @@
+             reason = manifest["degenerate_reason"] + "; " + reason
+         manifest["status"] = "degenerate"
+         manifest["degenerate_reason"] = reason
+-    # g2 at the edge of the literature range: the observer still ships, the
++    # g2 at the edge of the accepted range: the observer still ships, the
+     # session is flagged
+     edge = [f"{name}: g2 at the edge of the literature range (K {g['stiffness_norm_per_rad']:.2f} / rad)"
+             for name, g in gate.items() if g["k_zone"] == "edge"]
 @@ -880,7 +877,7 @@
      # hard-bound re-entries, for the CS reset mark; in memory only, like nis_full
      manifest["observer_reset_mask"] = final_result["hard_bound_mask"]
