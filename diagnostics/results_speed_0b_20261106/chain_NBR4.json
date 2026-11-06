@@ -1,0 +1,1150 @@
+{
+ "key": "NBR4",
+ "outing": 20,
+ "copy_root": "C:\\Users\\puche\\AppData\\Local\\Temp\\claude\\77baac36d970d516\\645cf160-0a5e-40d7-92f0-dbfcab97c631\\scratchpad\\work_copy",
+ "variants": {
+  "current": {
+   "session_file": "NBR4.txt",
+   "sideslip_source": "ekf_auto_pacejka",
+   "fit_status": "ok",
+   "fallback_used": false,
+   "fallback_reason": null,
+   "vertical_load_source": "measured",
+   "axles": {
+    "front": {
+     "K_per_rad": 26.17977084999097,
+     "mu": 1.9252891442866698,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    },
+    "rear": {
+     "K_per_rad": 24.87631076907153,
+     "mu": 1.524062957876879,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    }
+   },
+   "health_score": 0.22679145396105124,
+   "gate_verdict": "pass",
+   "analysis_laps": [
+    72,
+    73
+   ],
+   "corner_verdicts": [
+    {
+     "corner": 1,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "understeer @ exit"
+    },
+    {
+     "corner": 2,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 3,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 4,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "oversteer @ exit"
+    },
+    {
+     "corner": 5,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 6,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "no CS data"
+    },
+    {
+     "corner": 7,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 8,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 9,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 10,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 11,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 12,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 13,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ apex [MARGINAL]"
+    },
+    {
+     "corner": 14,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 15,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    }
+   ],
+   "counted_symptoms": [],
+   "session_recommendation": null,
+   "session_recommendation_full": {
+    "tie": []
+   },
+   "braking_excluded": {
+    "front": {
+     "n": 3728,
+     "share": 0.19086627073520376
+    },
+    "rear": {
+     "n": 3663,
+     "share": 0.1875383985254966
+    }
+   }
+  },
+  "R": {
+   "session_file": "NBR4.txt",
+   "sideslip_source": "ekf_auto_pacejka",
+   "fit_status": "ok",
+   "fallback_used": false,
+   "fallback_reason": null,
+   "vertical_load_source": "measured",
+   "axles": {
+    "front": {
+     "K_per_rad": 25.523992395612733,
+     "mu": 1.9253414874699952,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    },
+    "rear": {
+     "K_per_rad": 23.692757733428913,
+     "mu": 1.5240735632379472,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    }
+   },
+   "health_score": 0.22759500850822462,
+   "gate_verdict": "pass",
+   "analysis_laps": [
+    72,
+    73
+   ],
+   "corner_verdicts": [
+    {
+     "corner": 1,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "understeer @ exit"
+    },
+    {
+     "corner": 2,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 3,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 4,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "oversteer @ exit"
+    },
+    {
+     "corner": 5,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 6,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "no CS data"
+    },
+    {
+     "corner": 7,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 8,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 9,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 10,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 11,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 12,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 13,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ apex"
+    },
+    {
+     "corner": 14,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 15,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    }
+   ],
+   "counted_symptoms": [
+    {
+     "corner": 1,
+     "symptom": "US",
+     "phase": "exit_4",
+     "laps": 2
+    }
+   ],
+   "session_recommendation": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   },
+   "session_recommendation_full": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   },
+   "braking_excluded": {
+    "front": {
+     "n": 3736,
+     "share": 0.19125627111702673
+    },
+    "rear": {
+     "n": 3671,
+     "share": 0.1879287396334596
+    }
+   },
+   "b4_stats": {}
+  },
+  "R+EB pooled": {
+   "session_file": "NBR4.txt",
+   "sideslip_source": "ekf_auto_pacejka",
+   "fit_status": "ok",
+   "fallback_used": false,
+   "fallback_reason": null,
+   "vertical_load_source": "measured",
+   "axles": {
+    "front": {
+     "K_per_rad": 25.618475414761924,
+     "mu": 1.923017243297196,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    },
+    "rear": {
+     "K_per_rad": 22.531007020988486,
+     "mu": 1.493385832825416,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    }
+   },
+   "health_score": 0.23005294006428437,
+   "gate_verdict": "pass",
+   "analysis_laps": [
+    72,
+    73
+   ],
+   "corner_verdicts": [
+    {
+     "corner": 1,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ exit [MARGINAL]"
+    },
+    {
+     "corner": 2,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 3,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 4,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "oversteer @ exit"
+    },
+    {
+     "corner": 5,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 6,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "no CS data"
+    },
+    {
+     "corner": 7,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 8,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 9,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 10,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 11,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 12,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 13,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ apex"
+    },
+    {
+     "corner": 14,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 15,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    }
+   ],
+   "counted_symptoms": [],
+   "session_recommendation": null,
+   "session_recommendation_full": {
+    "tie": []
+   },
+   "braking_excluded": {
+    "front": {
+     "n": 3220,
+     "share": 0.16484079041670932
+    },
+    "rear": {
+     "n": 4118,
+     "share": 0.21081191768199037
+    }
+   },
+   "b4_stats": {
+    "eb_share_moving": 0.23457640460493948,
+    "eb_share_fit": 0.2655370123886557,
+    "front_term_change_N": {
+     "median": 0.0014573506910456387,
+     "p99": 69.22657508110495,
+     "max": 118.98576394023709
+    },
+    "front_term_change_rel_Fy_median": 3.429917989437058e-07,
+    "front_term_change_rel_Fy_p99": 0.008196304558663612,
+    "front_fx_change_fit_N": {
+     "median": 0.06289185416924728,
+     "p99": 669.2361266777134
+    }
+   }
+  },
+  "R+EB upper": {
+   "session_file": "NBR4.txt",
+   "sideslip_source": "ekf_auto_pacejka",
+   "fit_status": "ok",
+   "fallback_used": false,
+   "fallback_reason": null,
+   "vertical_load_source": "measured",
+   "axles": {
+    "front": {
+     "K_per_rad": 25.612579159712467,
+     "mu": 1.9229800302224518,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    },
+    "rear": {
+     "K_per_rad": 22.432814866821257,
+     "mu": 1.489436748585797,
+     "k_zone": "in band",
+     "mu_zone": "in band"
+    }
+   },
+   "health_score": 0.23312535450935903,
+   "gate_verdict": "pass",
+   "analysis_laps": [
+    72,
+    73
+   ],
+   "corner_verdicts": [
+    {
+     "corner": 1,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ exit [MARGINAL]"
+    },
+    {
+     "corner": 2,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 3,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 4,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "strong",
+     "verdict": "oversteer @ exit"
+    },
+    {
+     "corner": 5,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 6,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "no CS data"
+    },
+    {
+     "corner": 7,
+     "speed_class": "low",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 8,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 9,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 10,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 11,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 12,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 13,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "moderate",
+     "verdict": "understeer @ apex"
+    },
+    {
+     "corner": 14,
+     "speed_class": "high",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    },
+    {
+     "corner": 15,
+     "speed_class": "medium",
+     "n_laps": 2,
+     "severity": "normal",
+     "verdict": "ok"
+    }
+   ],
+   "counted_symptoms": [],
+   "session_recommendation": null,
+   "session_recommendation_full": {
+    "tie": []
+   },
+   "braking_excluded": {
+    "front": {
+     "n": 3149,
+     "share": 0.16120610218081294
+    },
+    "rear": {
+     "n": 4206,
+     "share": 0.2153168833828197
+    }
+   },
+   "b4_stats": {
+    "eb_share_moving": 0.23457640460493948,
+    "eb_share_fit": 0.2655370123886557,
+    "front_term_change_N": {
+     "median": 0.0015981677779096717,
+     "p99": 79.1961099745879,
+     "max": 136.35073435346862
+    },
+    "front_term_change_rel_Fy_median": 3.8838687104031335e-07,
+    "front_term_change_rel_Fy_p99": 0.00939574060023082,
+    "front_fx_change_fit_N": {
+     "median": 0.07156508623618738,
+     "p99": 769.6614909520843
+    }
+   }
+  }
+ },
+ "identity": {
+  "stored_payload": "valid",
+  "schema": 30,
+  "verdicts_equal": true,
+  "n_verdicts": 15,
+  "verdict_diffs": {},
+  "stored_recommendation": null,
+  "now_recommendation": {
+   "tie": []
+  }
+ },
+ "r_replacement": {
+  "flagged": 67,
+  "replaced": 1316
+ },
+ "census": {
+  "channels": {
+   "ecu_speed": {
+    "quality": "valid",
+    "rate_hz": 50.0,
+    "n": 25650,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 140,
+    "spike_share": 0.0055105093285050775,
+    "isolated_spikes": 21,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "lap_number": {
+    "quality": "valid",
+    "rate_hz": 5.0,
+    "n": 2565,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 5,
+    "stuck_s": 508.40000000000003
+   },
+   "lap_time": {
+    "quality": "valid",
+    "rate_hz": 20.0,
+    "n": 10260,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 198,
+    "spike_share": 0.019484353473725645,
+    "isolated_spikes": 109,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "lap_distance": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 4,
+    "spike_share": 7.871846341559412e-05,
+    "isolated_spikes": 0,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "ecu_B_speedlimit_en": {
+    "quality": "valid",
+    "rate_hz": 50.0,
+    "n": 25650,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 3,
+    "stuck_s": 508.1600000000001
+   },
+   "ecu_aps": {
+    "quality": "valid",
+    "rate_hz": 50.0,
+    "n": 25650,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 181,
+    "stuck_s": 391.05999999999966
+   },
+   "log_pbrake_f": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 42,
+    "stuck_s": 396.75
+   },
+   "log_pbrake_r": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 41,
+    "stuck_s": 401.5200000000001
+   },
+   "log_asteer": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 6035,
+    "spike_share": 0.11876648167827764,
+    "isolated_spikes": 0,
+    "stuck_runs": 15,
+    "stuck_s": 11.840000000000174
+   },
+   "ecu_nmot": {
+    "quality": "valid",
+    "rate_hz": 50.0,
+    "n": 25650,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 526,
+    "spike_share": 0.020703770762811935,
+    "isolated_spikes": 22,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "ecu_gear": {
+    "quality": "valid",
+    "rate_hz": 20.0,
+    "n": 10260,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 114,
+    "stuck_s": 505.20000000000005
+   },
+   "log_acc_x": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 402,
+    "spike_share": 0.007911205573267209,
+    "isolated_spikes": 258,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_acc_y": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 795,
+    "spike_share": 0.015645294603849332,
+    "isolated_spikes": 570,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_acc_z": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 104,
+    "spike_share": 0.0020466800488054475,
+    "isolated_spikes": 66,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "sclu_yaw_rate": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 251,
+    "spike_share": 0.004939583579328531,
+    "isolated_spikes": 0,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_gps_lat": {
+    "quality": "valid",
+    "rate_hz": 10.0,
+    "n": 5130,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 0,
+    "spike_share": 0.0,
+    "isolated_spikes": 0,
+    "stuck_runs": 2,
+    "stuck_s": 1.3999999999999204
+   },
+   "log_gps_lon": {
+    "quality": "valid",
+    "rate_hz": 10.0,
+    "n": 5130,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 0,
+    "spike_share": 0.0,
+    "isolated_spikes": 0,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_dms_dam_fl": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 476,
+    "spike_share": 0.0093674971464557,
+    "isolated_spikes": 139,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_dms_dam_fr": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 302,
+    "spike_share": 0.005943243987877356,
+    "isolated_spikes": 63,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_dms_dam_rl": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 393,
+    "spike_share": 0.007734089030582123,
+    "isolated_spikes": 179,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_dms_dam_rr": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 207,
+    "spike_share": 0.004073680481756996,
+    "isolated_spikes": 90,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "ecu_B_tc_act": {
+    "quality": "valid",
+    "rate_hz": 50.0,
+    "n": 25650,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 31,
+    "stuck_s": 502.0599999999999
+   },
+   "log_abs_pos": {
+    "quality": "valid",
+    "rate_hz": 10.0,
+    "n": 5130,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_rule": "MAD of the first difference is 0 (quantised or mostly constant)",
+    "stuck_runs": 1,
+    "stuck_s": 508.20000000000005
+   },
+   "log_susp_travel_fl": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 1277,
+    "spike_share": 0.025130869445428427,
+    "isolated_spikes": 19,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_susp_travel_fr": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 1137,
+    "spike_share": 0.022375723225882632,
+    "isolated_spikes": 5,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_susp_travel_rl": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 1474,
+    "spike_share": 0.029007753768646435,
+    "isolated_spikes": 72,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   },
+   "log_susp_travel_rr": {
+    "quality": "valid",
+    "rate_hz": 100.0,
+    "n": 51300,
+    "gaps": 0,
+    "gap_s": 0.0,
+    "spike_samples": 823,
+    "spike_share": 0.01619632384775849,
+    "isolated_spikes": 19,
+    "stuck_runs": 0,
+    "stuck_s": 0.0
+   }
+  },
+  "straights": {
+   "n": 1560,
+   "steer_centre_deg": 0.09999999999992859,
+   "yaw_rate_deg_s": -0.5299992393658713,
+   "steer_sw_deg": -0.5,
+   "ay_mps2": 0.052817040002815875,
+   "beta_kin_deg": -0.2175356260774401,
+   "beta_chain_deg": -0.029337312239281616
+  },
+  "ay_vs_vr": {
+   "rule": "moving, outside kerb mask / smear, |a_y| > 5 m/s^2, |steer rate| < 10 deg/s (0.1 s mean), |v r| > 3 m/s^2",
+   "n": 6527,
+   "median": 1.038176656134641,
+   "p10": 0.8828129438734603,
+   "p90": 1.2791522542809737
+  },
+  "lags_ms": {
+   "a_y vs v r (IMU vs ECU speed x gyro)": {
+    "lag_ms": -9.794557628677461,
+    "r": 0.9706018881960334
+   },
+   "d(ecu_speed)/dt vs d(max front ABS)/dt": {
+    "lag_ms": 13.774484474316125,
+    "r": 0.6131734049451847
+   },
+   "d(ecu_speed)/dt vs a_x (ECU vs IMU)": {
+    "lag_ms": 7.406074717233249,
+    "r": 0.6676896385531084
+   },
+   "d(max front ABS)/dt vs a_x (ABS vs IMU)": {
+    "lag_ms": -11.375403982519057,
+    "r": 0.6364184937233323
+   },
+   "yaw rate vs a_y / v (gyro vs IMU)": {
+    "lag_ms": 12.969431699330316,
+    "r": 0.9734031502253944
+   }
+  },
+  "yaw_accel": {
+   "p99_9_abs": 5.050508814736151,
+   "p99_abs": 3.079290343348248,
+   "gyro_spike_times": 251,
+   "top10": [
+    {
+     "t": 445.571,
+     "rdot_radps2": -10.585443176014136,
+     "gyro_spike_within_50ms": true,
+     "kerb": true,
+     "v": 19.92968738464033,
+     "ay": -15.602324310000002
+    },
+    {
+     "t": 328.841,
+     "rdot_radps2": -9.468431587999998,
+     "gyro_spike_within_50ms": true,
+     "kerb": true,
+     "v": 18.73437484512,
+     "ay": -11.093010660000001
+    },
+    {
+     "t": 210.531,
+     "rdot_radps2": -8.27287999998862,
+     "gyro_spike_within_50ms": true,
+     "kerb": true,
+     "v": 20.291666111108803,
+     "ay": -26.536893660000004
+    },
+    {
+     "t": 612.9509999999999,
+     "rdot_radps2": 6.510096823995137,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 32.13888736111174,
+     "ay": -9.388346580038014
+    },
+    {
+     "t": 630.121,
+     "rdot_radps2": -6.396643176000002,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 33.138889444444445,
+     "ay": 11.49732
+    },
+    {
+     "t": 521.4409999999999,
+     "rdot_radps2": -5.864319999994841,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 40.861110555553026,
+     "ay": -16.60763348995652
+    },
+    {
+     "t": 575.891,
+     "rdot_radps2": 5.724691588,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 24.055555277777778,
+     "ay": 17.55103176
+    },
+    {
+     "t": 246.281,
+     "rdot_radps2": 5.611248411991915,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 33.80555722222222,
+     "ay": -9.17708823
+    },
+    {
+     "t": 459.731,
+     "rdot_radps2": -5.576334763999996,
+     "gyro_spike_within_50ms": true,
+     "kerb": true,
+     "v": 19.611110694444445,
+     "ay": 17.223210990000002
+    },
+    {
+     "t": 481.29099999999994,
+     "rdot_radps2": -5.532703175998015,
+     "gyro_spike_within_50ms": true,
+     "kerb": false,
+     "v": 34.24999999999953,
+     "ay": -8.90026964998886
+    }
+   ],
+   "Iz_kgm2": 2082.0
+  },
+  "damper_drift": {
+   "source": "measured",
+   "front": {
+    "laps": 2,
+    "raw_dev_pct_static": [
+     -3.95,
+     3.95
+    ],
+    "v2_corrected_dev_pct_static": [
+     -0.8,
+     1.31
+    ],
+    "session_mean_over_static": 1.107
+   },
+   "rear": {
+    "laps": 2,
+    "raw_dev_pct_static": [
+     -5.06,
+     5.06
+    ],
+    "v2_corrected_dev_pct_static": [
+     -1.02,
+     1.66
+    ],
+    "session_mean_over_static": 1.522
+   },
+   "total": {
+    "laps": 2,
+    "raw_dev_pct_static": [
+     -4.58,
+     4.58
+    ],
+    "v2_corrected_dev_pct_static": [
+     -0.93,
+     1.51
+    ],
+    "session_mean_over_static": 1.341
+   }
+  }
+ },
+ "runtime_s": 261.6952917575836
+}

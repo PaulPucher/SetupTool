@@ -1,0 +1,269 @@
+[
+ {
+  "key": "NBR1",
+  "vehicle": {
+   "mass_kg": 1400.5,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 1.69,
+  "imu_bias_N": 198.7852171017213,
+  "imu_bias_laps": 6,
+  "F_median_N": -1053.210568069856,
+  "F_bias_corrected_N": -1251.9957851715772,
+  "bands": {
+   "high 45-80 m/s": {
+    "n": 169,
+    "F_median_N": -1251.9957851715772,
+    "drag_median_N": 2365.010310386785,
+    "drag_share_of_decel_force": 0.6502638382694668,
+    "drag_span_cda_pm30pct_N": 1419.006186232071
+   }
+  },
+  "braking_force_N": {
+   "median": 10822.49069543622,
+   "p95": 22220.098541518983
+  }
+ },
+ {
+  "key": "NBR2",
+  "vehicle": {
+   "mass_kg": 1400.5,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 5.57,
+  "imu_bias_N": 211.15586923094423,
+  "imu_bias_laps": 2,
+  "F_median_N": -1274.0166922383557,
+  "F_bias_corrected_N": -1485.1725614693,
+  "bands": {
+   "medium 20-45 m/s": {
+    "n": 114,
+    "F_median_N": -1866.4137176353322,
+    "drag_median_N": 1171.2470067257423,
+    "drag_share_of_decel_force": 0.42409396361347806,
+    "drag_span_cda_pm30pct_N": 702.7482040354454
+   },
+   "high 45-80 m/s": {
+    "n": 443,
+    "F_median_N": -1408.4140152085743,
+    "drag_median_N": 1432.5131712484963,
+    "drag_share_of_decel_force": 0.5074477620657606,
+    "drag_span_cda_pm30pct_N": 859.5079027490978
+   }
+  },
+  "braking_force_N": {
+   "median": 9799.140624804408,
+   "p95": 22499.583190074805
+  }
+ },
+ {
+  "key": "NBR3",
+  "vehicle": {
+   "mass_kg": 1400.5,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 2.69,
+  "imu_bias_N": 219.7222883574018,
+  "imu_bias_laps": 4,
+  "F_median_N": -1510.1583947310883,
+  "F_bias_corrected_N": -1729.88068308849,
+  "bands": {
+   "medium 20-45 m/s": {
+    "n": 54,
+    "F_median_N": -2379.6020375625926,
+    "drag_median_N": 326.7576300076835,
+    "drag_share_of_decel_force": 0.12084179372759675,
+    "drag_span_cda_pm30pct_N": 196.05457800461008
+   },
+   "high 45-80 m/s": {
+    "n": 215,
+    "F_median_N": -1493.3844937380002,
+    "drag_median_N": 2362.8965669084428,
+    "drag_share_of_decel_force": 0.6318646611776565,
+    "drag_span_cda_pm30pct_N": 1417.7379401450655
+   }
+  },
+  "braking_force_N": {
+   "median": 10004.674429266961,
+   "p95": 22351.762422073323
+  }
+ },
+ {
+  "key": "NBR4",
+  "vehicle": {
+   "mass_kg": 1400.5,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 1.2,
+  "imu_bias_N": 220.75818124050977,
+  "imu_bias_laps": 2,
+  "F_median_N": -1011.1816029559534,
+  "F_bias_corrected_N": -1231.9397841964633,
+  "bands": {
+   "high 45-80 m/s": {
+    "n": 120,
+    "F_median_N": -1231.9397841964633,
+    "drag_median_N": 2411.757031365398,
+    "drag_share_of_decel_force": 0.6761006134588452,
+    "drag_span_cda_pm30pct_N": 1447.0542188192387
+   }
+  },
+  "braking_force_N": {
+   "median": 10735.380632758486,
+   "p95": 21931.261397662613
+  }
+ },
+ {
+  "key": "NBR5",
+  "vehicle": {
+   "mass_kg": 1400.5,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 4.68,
+  "imu_bias_N": 212.08646872320068,
+  "imu_bias_laps": 5,
+  "F_median_N": -1372.8327894556169,
+  "F_bias_corrected_N": -1584.9192581788175,
+  "bands": {
+   "medium 20-45 m/s": {
+    "n": 360,
+    "F_median_N": -1600.8279689013539,
+    "drag_median_N": 344.2772151201118,
+    "drag_share_of_decel_force": 0.17686991580524394,
+    "drag_span_cda_pm30pct_N": 206.56632907206708
+   },
+   "high 45-80 m/s": {
+    "n": 108,
+    "F_median_N": -1401.4022030539068,
+    "drag_median_N": 2526.252876273007,
+    "drag_share_of_decel_force": 0.6825284823430703,
+    "drag_span_cda_pm30pct_N": 1515.7517257638042
+   }
+  },
+  "braking_force_N": {
+   "median": 9288.986361977444,
+   "p95": 23011.585887899866
+  }
+ },
+ {
+  "key": "PRC1",
+  "vehicle": {
+   "mass_kg": 1370.0,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 0.0,
+  "imu_bias_N": 208.24039907394092,
+  "imu_bias_laps": 3,
+  "braking_force_N": {
+   "median": 10290.004466982964,
+   "p95": 20528.42917297176
+  }
+ },
+ {
+  "key": "PRC2",
+  "vehicle": {
+   "mass_kg": 1370.0,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 0.0,
+  "imu_bias_N": 250.2364717723769,
+  "imu_bias_laps": 1,
+  "braking_force_N": {
+   "median": 9891.311879803048,
+   "p95": 19397.60478211119
+  }
+ },
+ {
+  "key": "PRC3",
+  "vehicle": {
+   "mass_kg": 1370.0,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 0.0,
+  "imu_bias_N": 215.57165113879657,
+  "imu_bias_laps": 5,
+  "braking_force_N": {
+   "median": 8649.921740215555,
+   "p95": 21624.999634386695
+  }
+ },
+ {
+  "key": "PRC4",
+  "vehicle": {
+   "mass_kg": 1370.0,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 0.0,
+  "imu_bias_N": 192.36863795218645,
+  "imu_bias_laps": 9,
+  "braking_force_N": {
+   "median": 9502.562447256085,
+   "p95": 19999.654388550654
+  }
+ },
+ {
+  "key": "PRC5",
+  "vehicle": {
+   "mass_kg": 1370.0,
+   "rho": 1.225,
+   "area": 2.0,
+   "cd": 0.5,
+   "rolling": 0.0
+  },
+  "cda": 1.0,
+  "coast_s": 0.93,
+  "imu_bias_N": 254.4366934890627,
+  "imu_bias_laps": 5,
+  "F_median_N": -1261.947985399514,
+  "F_bias_corrected_N": -1516.3846788885767,
+  "bands": {
+   "high 45-80 m/s": {
+    "n": 93,
+    "F_median_N": -1516.3846788885767,
+    "drag_median_N": 2340.7567838168716,
+    "drag_share_of_decel_force": 0.5930277420398867,
+    "drag_span_cda_pm30pct_N": 1404.454070290123
+   }
+  },
+  "braking_force_N": {
+   "median": 8334.6061495549,
+   "p95": 21851.76070387485
+  }
+ }
+]

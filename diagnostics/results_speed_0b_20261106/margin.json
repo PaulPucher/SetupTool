@@ -1,0 +1,372 @@
+[
+ {
+  "key": "NBR1",
+  "moving_samples": 46484,
+  "signature_samples_moving": 6155,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.08159654280888873,
+   "p1": -24.455781336239998,
+   "p99": 4.263698967546622
+  },
+  "ecu_speed_affected_samples": 288,
+  "margins": {
+   "1.0": {
+    "flagged": 234,
+    "flagged_events": 153,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 194,
+    "widened_samples": 3595,
+    "undetected_signature": 5921,
+    "undetected_signature_outside_widened": 3897,
+    "undetected_ecu_speed_affected": 10,
+    "undetected_ecu_speed_affected_max_dv": 1.939235661795557
+   },
+   "3.0": {
+    "flagged": 125,
+    "flagged_events": 90,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 106,
+    "widened_samples": 2450,
+    "undetected_signature": 6030,
+    "undetected_signature_outside_widened": 4585,
+    "undetected_ecu_speed_affected": 52,
+    "undetected_ecu_speed_affected_max_dv": 3.3993051856177807
+   }
+  }
+ },
+ {
+  "key": "NBR2",
+  "moving_samples": 23947,
+  "signature_samples_moving": 3144,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.06944294897777326,
+   "p1": -13.973194680279823,
+   "p99": 5.94625016454404
+  },
+  "ecu_speed_affected_samples": 231,
+  "margins": {
+   "1.0": {
+    "flagged": 193,
+    "flagged_events": 148,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 158,
+    "widened_samples": 2316,
+    "undetected_signature": 2951,
+    "undetected_signature_outside_widened": 1863,
+    "undetected_ecu_speed_affected": 1,
+    "undetected_ecu_speed_affected_max_dv": 1.3003462224888978
+   },
+   "3.0": {
+    "flagged": 101,
+    "flagged_events": 90,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 89,
+    "widened_samples": 1754,
+    "undetected_signature": 3043,
+    "undetected_signature_outside_widened": 2028,
+    "undetected_ecu_speed_affected": 20,
+    "undetected_ecu_speed_affected_max_dv": 3.449653565671113
+   }
+  }
+ },
+ {
+  "key": "NBR3",
+  "moving_samples": 34804,
+  "signature_samples_moving": 2836,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07378541666666916,
+   "p1": -13.980799411111112,
+   "p99": 1.4946367805555605
+  },
+  "ecu_speed_affected_samples": 158,
+  "margins": {
+   "1.0": {
+    "flagged": 132,
+    "flagged_events": 99,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 123,
+    "widened_samples": 2331,
+    "undetected_signature": 2704,
+    "undetected_signature_outside_widened": 1715,
+    "undetected_ecu_speed_affected": 2,
+    "undetected_ecu_speed_affected_max_dv": 1.2534713888888973
+   },
+   "3.0": {
+    "flagged": 70,
+    "flagged_events": 51,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 69,
+    "widened_samples": 1495,
+    "undetected_signature": 2766,
+    "undetected_signature_outside_widened": 2061,
+    "undetected_ecu_speed_affected": 26,
+    "undetected_ecu_speed_affected_max_dv": 3.2256927777777733
+   }
+  }
+ },
+ {
+  "key": "NBR4",
+  "moving_samples": 23189,
+  "signature_samples_moving": 2159,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07465381991111109,
+   "p1": -19.158056244418848,
+   "p99": 3.193123816329242
+  },
+  "ecu_speed_affected_samples": 130,
+  "margins": {
+   "1.0": {
+    "flagged": 115,
+    "flagged_events": 85,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 102,
+    "widened_samples": 1768,
+    "undetected_signature": 2044,
+    "undetected_signature_outside_widened": 1197,
+    "undetected_ecu_speed_affected": 1,
+    "undetected_ecu_speed_affected_max_dv": 0.8576394239644429
+   },
+   "3.0": {
+    "flagged": 67,
+    "flagged_events": 54,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 62,
+    "widened_samples": 1316,
+    "undetected_signature": 2092,
+    "undetected_signature_outside_widened": 1397,
+    "undetected_ecu_speed_affected": 19,
+    "undetected_ecu_speed_affected_max_dv": 3.151040934791112
+   }
+  }
+ },
+ {
+  "key": "NBR5",
+  "moving_samples": 43945,
+  "signature_samples_moving": 4055,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.052081959004432576,
+   "p1": -20.4362494444544,
+   "p99": 2.1856248054307295
+  },
+  "ecu_speed_affected_samples": 174,
+  "margins": {
+   "1.0": {
+    "flagged": 146,
+    "flagged_events": 108,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 113,
+    "widened_samples": 2339,
+    "undetected_signature": 3909,
+    "undetected_signature_outside_widened": 2683,
+    "undetected_ecu_speed_affected": 8,
+    "undetected_ecu_speed_affected_max_dv": 1.685764523164444
+   },
+   "3.0": {
+    "flagged": 78,
+    "flagged_events": 59,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 64,
+    "widened_samples": 1651,
+    "undetected_signature": 3977,
+    "undetected_signature_outside_widened": 3054,
+    "undetected_ecu_speed_affected": 39,
+    "undetected_ecu_speed_affected_max_dv": 3.41319268913778
+   }
+  }
+ },
+ {
+  "key": "PRC1",
+  "moving_samples": 30527,
+  "signature_samples_moving": 1781,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07986055555555538,
+   "p1": -1.424373827777779,
+   "p99": 1.0815963888888902
+  },
+  "ecu_speed_affected_samples": 113,
+  "margins": {
+   "1.0": {
+    "flagged": 97,
+    "flagged_events": 69,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 93,
+    "widened_samples": 1408,
+    "undetected_signature": 1684,
+    "undetected_signature_outside_widened": 1351,
+    "undetected_ecu_speed_affected": 3,
+    "undetected_ecu_speed_affected_max_dv": 1.6545144444444517
+   },
+   "3.0": {
+    "flagged": 53,
+    "flagged_events": 41,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 52,
+    "widened_samples": 947,
+    "undetected_signature": 1728,
+    "undetected_signature_outside_widened": 1475,
+    "undetected_ecu_speed_affected": 16,
+    "undetected_ecu_speed_affected_max_dv": 3.394096388888883
+   }
+  }
+ },
+ {
+  "key": "PRC2",
+  "moving_samples": 18024,
+  "signature_samples_moving": 777,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07291805555555442,
+   "p1": -1.0130910249999998,
+   "p99": 0.7644274027777807
+  },
+  "ecu_speed_affected_samples": 36,
+  "margins": {
+   "1.0": {
+    "flagged": 27,
+    "flagged_events": 23,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 26,
+    "widened_samples": 765,
+    "undetected_signature": 750,
+    "undetected_signature_outside_widened": 626,
+    "undetected_ecu_speed_affected": 3,
+    "undetected_ecu_speed_affected_max_dv": 1.0729161111111125
+   },
+   "3.0": {
+    "flagged": 10,
+    "flagged_events": 10,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 10,
+    "widened_samples": 317,
+    "undetected_signature": 767,
+    "undetected_signature_outside_widened": 693,
+    "undetected_ecu_speed_affected": 14,
+    "undetected_ecu_speed_affected_max_dv": 3.51215361111111
+   }
+  }
+ },
+ {
+  "key": "PRC3",
+  "moving_samples": 43364,
+  "signature_samples_moving": 4568,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07638944444444462,
+   "p1": -24.008471738888897,
+   "p99": 1.8879855555555745
+  },
+  "ecu_speed_affected_samples": 132,
+  "margins": {
+   "1.0": {
+    "flagged": 93,
+    "flagged_events": 72,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 74,
+    "widened_samples": 2292,
+    "undetected_signature": 4475,
+    "undetected_signature_outside_widened": 3152,
+    "undetected_ecu_speed_affected": 15,
+    "undetected_ecu_speed_affected_max_dv": 1.5954855555555625
+   },
+   "3.0": {
+    "flagged": 44,
+    "flagged_events": 30,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 39,
+    "widened_samples": 1167,
+    "undetected_signature": 4524,
+    "undetected_signature_outside_widened": 3776,
+    "undetected_ecu_speed_affected": 55,
+    "undetected_ecu_speed_affected_max_dv": 3.8246536111111062
+   }
+  }
+ },
+ {
+  "key": "PRC4",
+  "moving_samples": 69217,
+  "signature_samples_moving": 6737,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.078125,
+   "p1": -19.481250244444446,
+   "p99": 1.411180888888882
+  },
+  "ecu_speed_affected_samples": 155,
+  "margins": {
+   "1.0": {
+    "flagged": 114,
+    "flagged_events": 92,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 87,
+    "widened_samples": 2800,
+    "undetected_signature": 6623,
+    "undetected_signature_outside_widened": 5111,
+    "undetected_ecu_speed_affected": 17,
+    "undetected_ecu_speed_affected_max_dv": 2.1875
+   },
+   "3.0": {
+    "flagged": 54,
+    "flagged_events": 43,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 46,
+    "widened_samples": 1444,
+    "undetected_signature": 6683,
+    "undetected_signature_outside_widened": 5873,
+    "undetected_ecu_speed_affected": 66,
+    "undetected_ecu_speed_affected_max_dv": 4.17534638888889
+   }
+  }
+ },
+ {
+  "key": "PRC5",
+  "moving_samples": 43469,
+  "signature_samples_moving": 4858,
+  "clean_rr_minus_abs_rr": {
+   "median": -0.07638944444444462,
+   "p1": -23.5518748,
+   "p99": 2.00402801111111
+  },
+  "ecu_speed_affected_samples": 144,
+  "margins": {
+   "1.0": {
+    "flagged": 113,
+    "flagged_events": 82,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 88,
+    "widened_samples": 2696,
+    "undetected_signature": 4745,
+    "undetected_signature_outside_widened": 3217,
+    "undetected_ecu_speed_affected": 7,
+    "undetected_ecu_speed_affected_max_dv": 1.5920144444444375
+   },
+   "3.0": {
+    "flagged": 46,
+    "flagged_events": 32,
+    "flagged_not_signature_same_sample": 0,
+    "flagged_not_signature_pm1": 0,
+    "flagged_under_braking": 37,
+    "widened_samples": 1328,
+    "undetected_signature": 4812,
+    "undetected_signature_outside_widened": 3976,
+    "undetected_ecu_speed_affected": 58,
+    "undetected_ecu_speed_affected_max_dv": 3.3715286111111133
+   }
+  }
+ }
+]
