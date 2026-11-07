@@ -200,7 +200,8 @@ def _add_threshold(ax, value, kind, label):
     # boundary solid, strong tier dash-dot, rear info tier dotted and fainter
     # (a note, not a symptom), unstable dash-dot on its own panel
     linestyle, width, alpha = {"boundary": ("-", 1.0, 1.0), "strong": ("-.", 1.0, 1.0),
-                               "info": (":", 0.8, 0.6), "unstable": ("-.", 1.0, 1.0)}[kind]
+                               "info": (":", 0.8, 0.6), "unstable": ("-.", 1.0, 1.0),
+                               "reference": (":", 0.6, 0.6)}[kind]
     ax.axhline(value, color=THRESHOLD_GREY, linestyle=linestyle, linewidth=width, alpha=alpha, label=label)
 
 
@@ -236,6 +237,10 @@ def _draw_stability_panel(ax, laps, styles, thresholds, theme, legend_ax):
     for lap in laps:
         ax.plot(lap["s"], lap["stab"], label=f"Lap {lap['lap_number']}", **_lap_pen_kwargs(lap, styles))
     _draw_kerb_bridges(ax, laps, styles, "stab")
+    # "stab" is the INST level (sign criterion minus the band,
+    # classifier.inst_decision_lines); the zero line stays as a thin reference
+    if thresholds.get("stab_zero") is not None:
+        _add_threshold(ax, thresholds["stab_zero"], "reference", "Zero (sign reference)")
     _add_threshold(ax, thresholds["stab"], "unstable", "Unstable below this")
     ax.set_xlabel("Track position s (m)")
     ax.set_ylabel("Stability (Nm/deg)")

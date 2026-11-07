@@ -16,7 +16,7 @@ from ui.style import BAD, BORDER, NEUTRAL, PANEL, PANEL_ALT, TEXT, TEXT_DIM, TEX
 # exports. Lap = colour (lap_styles over the checked set); quantity/axle = panel.
 from core import figure_render
 from core.display import cs_lines, kerb_exclusion_caption
-from modules.classifier import cs_decision_lines, verdict_phases
+from modules.classifier import cs_decision_lines, inst_decision_lines, verdict_phases
 from modules.limit_events import legend_text as event_legend_text
 from core.figure_render import (
     FITTED_CURVE_COLOR, TRACK_BG_COLOR, WINDOW_RING_COLOR, THRESHOLD_GREY, NEAR_STRIKE_COLOR,
@@ -588,6 +588,14 @@ class _TraceDialogBase(QDialog):
             for value, kind, label in cs_lines(panel, values):
                 style, alpha = styles[kind]
                 self._add_threshold_line(panel, value, THRESHOLD_GREY, style, name=label, alpha=alpha)
+
+    def _add_stab_lines(self, values):
+        # the INST level the verdict reads (sign criterion minus the band),
+        # and the zero line as a thin reference
+        self._add_threshold_line("stab", values["stab_zero"], THRESHOLD_GREY, Qt.PenStyle.DotLine,
+                                 name="Zero (sign reference)", alpha=INFO_LINE_ALPHA)
+        self._add_threshold_line("stab", values["stab"], THRESHOLD_GREY, Qt.PenStyle.DashDotLine,
+                                 name="Unstable below this")
 
     def _apply_ratio_y_range(self):
         # CS panels share a fixed y-range (config corner_trace_display): one
@@ -1414,7 +1422,6 @@ class CornerTraceDialog(_TraceDialogBase):
 
         self._restyle_all_laps()
 
-        cls_cfg = params["classification"]
         cs_values = cs_decision_lines()
 
         # background cloud (screen and export) = the whole lap of every CHECKED
@@ -1444,13 +1451,12 @@ class CornerTraceDialog(_TraceDialogBase):
             "near_strike": {"mode": ns_mode},
             "session_mask": session_mask,
             "thresholds": {
-                "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
+                **inst_decision_lines(),
                 **cs_values,
             },
         }
         self._refresh_checked_dependent_views()
-        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], THRESHOLD_GREY,
-                                  Qt.PenStyle.DashDotLine, name="Unstable below this")
+        self._add_stab_lines(inst_decision_lines())
         self._add_cs_lines(cs_values)
 
         if rep_start_s is not None:
@@ -1750,10 +1756,8 @@ class LapTraceDialog(_TraceDialogBase):
         # colour assignment, same rule as the toggle re-render
         self._restyle_all_laps()
 
-        cls_cfg = load_parameters()["classification"]
         cs_values = cs_decision_lines()
-        self._add_threshold_line("stab", cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"], THRESHOLD_GREY,
-                                  Qt.PenStyle.DashDotLine, name="Unstable below this")
+        self._add_stab_lines(inst_decision_lines())
         self._add_cs_lines(cs_values)
 
         for plot in self.plots.values():
@@ -1768,7 +1772,7 @@ class LapTraceDialog(_TraceDialogBase):
         self._export_data = {
             "lap_label": f"Lap {lap_number}", "laps": export_laps,
             "thresholds": {
-                "stab": cls_cfg["stab_neg_thresh_Nm_per_deg"]["value"],
+                **inst_decision_lines(),
                 **cs_values,
             },
             "corner_bands": list(self._corner_bands),

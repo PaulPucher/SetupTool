@@ -186,6 +186,21 @@ def cs_decision_lines(thr=None):
             "boundary_r": -thr["boundary"]["r"], "info_r": thr["moderate_r"]}
 
 
+def inst_level(thr=None):
+    # the dMz/dbeta level below which INST counts: the sign criterion moved
+    # by the uncertainty band; one place for the verdict, the colour and the
+    # drawn line
+    thr = thr or _thresholds()
+    return thr["stab"] - thr["inst_band"]
+
+
+def inst_decision_lines(thr=None):
+    """The stability levels to draw: the INST level the verdict reads and
+    the sign criterion as a thin reference."""
+    thr = thr or _thresholds()
+    return {"stab": inst_level(thr), "stab_zero": thr["stab"]}
+
+
 def phase_symptoms(summary, thr=None):
     """Symptoms per phase of one corner summary (one lap or the aggregate).
 
@@ -212,7 +227,7 @@ def phase_symptoms(summary, thr=None):
             elif csr < thr["moderate_r"]:
                 info.append({"phase": phase, "axle": "r", "value": csr,
                              "note": "rear near its peak (moderate tier), no symptom"})
-        if sob == sob and sob < thr["stab"] - thr["inst_band"]:
+        if sob == sob and sob < inst_level(thr):
             symptoms.append({"symptom": "INST", "phase": phase, "axle": None, "value": sob, "severity": "strong"})
     return {"symptoms": symptoms, "info": info, "any_cs": any_cs}
 
@@ -230,6 +245,14 @@ def cs_value_state(value, axle, thr=None):
     if axle == "r" and value < thr["moderate_r"]:
         return "info"
     return "normal"
+
+
+def stab_value_state(value, thr=None):
+    # the class one stability value would set, for the per-phase colour:
+    # "strong" below the INST level, "normal" in [-band, 0) and above
+    if value is None or value != value:
+        return "no_data"
+    return "strong" if value < inst_level(thr) else "normal"
 
 
 def is_low_priority(symptoms, speed_class):

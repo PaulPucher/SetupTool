@@ -22,10 +22,6 @@ from core.display import friendly_error_text
 from modules.csv_parser import lap_display_label
 from modules.classifier import NO_CS_SHORT
 
-# WARN boundary as a fraction of the BAD boundary (stab_neg_thresh), so
-# detail colours follow the verdict threshold.
-STAB_COLOUR_WARN_FRACTION = 0.4
-
 # click radius in px = marker dot size; converted via viewPixelSize()
 CORNER_MARKER_CLICK_RADIUS_PX = 26
 
@@ -297,14 +293,10 @@ class OutingForm(QWidget):
             return {"strong": BAD, "moderate": WARN, "info": WARN, "normal": OK,
                     "no_data": NEUTRAL}[cs_value_state(value, axle)]
         if kind == "stab":
-            from modules.stability_analysis import load_parameters
-            bad_thresh = load_parameters()["classification"]["stab_neg_thresh_Nm_per_deg"]["value"]
-            warn_thresh = bad_thresh * STAB_COLOUR_WARN_FRACTION
-            if value > warn_thresh:
-                return OK
-            if value > bad_thresh:
-                return WARN
-            return BAD
+            # BAD only below the INST level (sign criterion minus band), the
+            # verdict's own rule
+            from modules.classifier import stab_value_state
+            return {"strong": BAD, "normal": OK, "no_data": NEUTRAL}[stab_value_state(value)]
         return TEXT_MUTED
 
     def _classify_corner(self, summary):

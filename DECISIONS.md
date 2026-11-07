@@ -166,6 +166,7 @@ line that changes is replaced, not appended. Distilled 2026-10-05.
 - One lap-selection state in the trace windows: every drawn element follows the checked laps; hiding a lap hides all its marks (2026-10-07; the cross-lap envelopes' population is an open author question against the 2026-10-06 default view).
 - An empty per-phase CS cell states why: kerb-affected samples excluded (with count) or too few samples (2026-10-07).
 - Per-phase table Apex row shows the apex-region CS value the verdict reads; a fixed-slice value is shown only under its own distinct label, else not at all (2026-10-07).
+- Stability display follows the INST band (author, 2026-11-07, ORDER INST-4; display only): the per-phase stability colour is BAD only below the INST level (sign criterion minus inst_band_Nm_per_deg), values in [-band, 0) show OK, so colour and verdict cannot disagree; trace views and exported figures draw 'Unstable below this' at the INST level and keep the zero line as a thin dotted reference. One source: classifier.inst_level / stab_value_state / inst_decision_lines (the cs_value_state / cs_decision_lines precedent).
 
 ## Loads and mass
 - Measured Level-4 NBR wheel loads stay in the pipeline (voltage-referenced event zero entries, L2 zero); NBR zero entries stay in config (2026-10-05).
