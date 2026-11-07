@@ -1,0 +1,119 @@
+THRESHOLD RE-DERIVATION ON THE NEW DEFAULT (fit L, schema 16) -- PROPOSAL ONLY, nothing adopted
+Rule unchanged (2026-10-11 compute_fresh / counts_fresh): STRONG = p10, MODERATE = p30 of the pool's corner values per axle; corner value = worst lap, worst of five phases, apex_3 from apex_region.
+
+POOL COMPOSITION (14 development sessions, Dubai excluded):
+  NBR outing 5 MLA: mode literature_bounded, status ok, beta EKF, gate pass, 6 analysis laps, corner values front 14 / rear 13
+  NBR outing 10 JDR: mode literature_bounded, status ok, beta EKF, gate pass, 10 analysis laps, corner values front 18 / rear 16
+  NBR outing 20 JST: mode literature_bounded, status ok, beta EKF, gate pass, 4 analysis laps, corner values front 15 / rear 14
+  NBR outing 29 JST (NBR_Sturm_Solution copy): mode literature_bounded, status ok, beta EKF, gate pass, 6 analysis laps, corner values front 14 / rear 14
+  NBR outing 46 JST: mode literature_bounded, status ok, beta EKF, gate pass, 4 analysis laps, corner values front 14 / rear 14
+  NBR outing 53 MLA: mode literature_bounded, status ok, beta EKF, gate pass, 5 analysis laps, corner values front 15 / rear 15
+  NBR outing 54 CDR: mode literature_bounded, status ok, beta EKF, gate pass, 6 analysis laps, corner values front 20 / rear 19
+  NBR outing 59 MLA: mode literature_bounded, status marginal (front: g2 at the edge of the literature range (K 30.19 / rad)), beta EKF, gate pass, 4 analysis laps, corner values front 15 / rear 14
+  NBR outing 61 JDR: mode literature_bounded, status ok, beta EKF, gate pass, 8 analysis laps, corner values front 17 / rear 15
+  NBR outing 63 CDR: mode literature_bounded, status ok, beta EKF, gate pass, 6 analysis laps, corner values front 16 / rear 15
+  NBR qualifying CDR (outing 69): mode literature_bounded, status ok, beta EKF, gate pass, 6 analysis laps, corner values front 15 / rear 15
+  NBR qualifying MLA (outing 70): mode literature_bounded, status marginal (front: g2 at the edge of the literature range (K 30.40 / rad)), beta EKF, gate pass, 6 analysis laps, corner values front 14 / rear 14
+  Le Castellet outing 25, MLA-SE07_US-v1: mode literature_bounded, status ok, beta EKF, gate pass, 3 analysis laps, corner values front 17 / rear 16
+  Le Castellet outing 32, MLA-SE07_US-v2: mode literature_bounded, status ok, beta EKF, gate pass, 9 analysis laps, corner values front 17 / rear 16
+  EKF beta on 14 of 14 sessions
+
+FRONT (pool n 221):
+  current  STRONG_CSF -0.137, MODERATE_CSF -0.023  (encode p8.6 / p30.8 of the new pool)
+  proposed STRONG_CSF -0.122, MODERATE_CSF -0.024  (p10 / p30)
+  sensitivity without outings 59 / 70 (n 192): -0.134 / -0.019
+  pool p5 / p50 / p90 / min: -0.188 / +0.050 / +0.870 / -0.373; values below -0.53: 0 (0.0 %)
+  per session strong / moderate of n, current | proposed:
+    NBR outing 5 MLA: 0/4 | 1/3 of 14
+    NBR outing 10 JDR: 1/3 | 2/2 of 18
+    NBR outing 20 JST: 3/1 | 3/1 of 15
+    NBR outing 29 JST (NBR_Sturm_Solution copy): 1/4 | 2/3 of 14
+    NBR outing 46 JST: 0/1 | 0/1 of 14
+    NBR outing 53 MLA: 1/2 | 1/1 of 15
+    NBR outing 54 CDR: 3/6 | 3/6 of 20
+    NBR outing 59 MLA: 0/6 | 0/6 of 15
+    NBR outing 61 JDR: 0/3 | 0/3 of 17
+    NBR outing 63 CDR: 2/2 | 2/2 of 16
+    NBR qualifying CDR (outing 69): 2/3 | 2/2 of 15
+    NBR qualifying MLA (outing 70): 1/5 | 1/5 of 14
+    Le Castellet outing 25, MLA-SE07_US-v1: 3/2 | 3/2 of 17
+    Le Castellet outing 32, MLA-SE07_US-v2: 2/7 | 2/7 of 17
+
+REAR (pool n 210):
+  current  STRONG_CSR -0.002, MODERATE_CSR +0.098  (encode p11.0 / p29.0 of the new pool)
+  proposed STRONG_CSR -0.004, MODERATE_CSR +0.103  (p10 / p30)
+  sensitivity without outings 59 / 70 (n 182): -0.004 / +0.101
+  pool p5 / p50 / p90 / min: -0.038 / +0.201 / +0.770 / -0.208; values below -0.53: 0 (0.0 %)
+  per session strong / moderate of n, current | proposed:
+    NBR outing 5 MLA: 1/1 | 1/1 of 13
+    NBR outing 10 JDR: 1/1 | 0/2 of 16
+    NBR outing 20 JST: 1/1 | 1/1 of 14
+    NBR outing 29 JST (NBR_Sturm_Solution copy): 0/3 | 0/3 of 14
+    NBR outing 46 JST: 3/3 | 3/3 of 14
+    NBR outing 53 MLA: 1/3 | 1/3 of 15
+    NBR outing 54 CDR: 2/1 | 1/3 of 19
+    NBR outing 59 MLA: 1/2 | 1/2 of 14
+    NBR outing 61 JDR: 1/3 | 1/3 of 15
+    NBR outing 63 CDR: 2/4 | 2/5 of 15
+    NBR qualifying CDR (outing 69): 3/3 | 3/3 of 15
+    NBR qualifying MLA (outing 70): 2/3 | 2/3 of 14
+    Le Castellet outing 25, MLA-SE07_US-v1: 1/5 | 1/5 of 16
+    Le Castellet outing 32, MLA-SE07_US-v2: 4/5 | 4/5 of 16
+
+FLOOR EVENTS (CS ratio < -0.53, contiguous runs inside corner instances on analysis laps; clean = neither kerb- nor observer-reset-affected):
+  NBR outing 5 MLA (6 analysis laps):
+    front: 2 events, 1 clean, 1 kerb-affected, 0 reset-affected; duration median 0.05 s (max 0.06), samples median 5; min ratio median -0.72 (deepest -0.82); max |Fx|/Fz median 0.00; braking throughout 0 of 2; Fz range in windows median 18 %; kerb distance median 20 m; phases exit_4 2
+      clean events per lap: 2 0, 3 1, 4 0, 5 0, 6 0, 7 0; cells on >= half the laps: none; cells on one lap: 1
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 10 JDR (10 analysis laps):
+    front: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 20 JST (4 analysis laps):
+    front: 7 events, 5 clean, 2 kerb-affected, 0 reset-affected; duration median 0.08 s (max 0.12), samples median 8; min ratio median -0.61 (deepest -1.05); max |Fx|/Fz median 0.02; braking throughout 5 of 7; Fz range in windows median 20 %; kerb distance median 59 m; phases entry_2_turnin 1, exit_4 5, exit_5 1
+      clean events per lap: 66 0, 67 1, 68 2, 69 2; cells on >= half the laps: none; cells on one lap: 5
+    rear: 1 events, 1 clean, 0 kerb-affected, 0 reset-affected; duration median 0.12 s (max 0.12), samples median 12; min ratio median -0.60 (deepest -0.60); max |Fx|/Fz median 0.72; braking throughout 0 of 1; Fz range in windows median 7 %; kerb distance median 237 m; phases exit_4 1
+      clean events per lap: 66 0, 67 0, 68 0, 69 1; cells on >= half the laps: none; cells on one lap: 1
+  NBR outing 29 JST (NBR_Sturm_Solution copy) (6 analysis laps):
+    front: 4 events, 2 clean, 2 kerb-affected, 0 reset-affected; duration median 0.12 s (max 0.17), samples median 12; min ratio median -0.67 (deepest -0.70); max |Fx|/Fz median 0.02; braking throughout 3 of 4; Fz range in windows median 28 %; kerb distance median 10 m; phases entry_2_turnin 2, exit_4 1, exit_5 1
+      clean events per lap: 103 0, 104 0, 105 0, 106 1, 107 1, 108 0; cells on >= half the laps: none; cells on one lap: 2
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 46 JST (4 analysis laps):
+    front: 4 events, 3 clean, 1 kerb-affected, 0 reset-affected; duration median 0.06 s (max 0.99), samples median 6; min ratio median -0.63 (deepest -0.81); max |Fx|/Fz median 0.00; braking throughout 2 of 4; Fz range in windows median 18 %; kerb distance median 22 m; phases entry_2_turnin 3, exit_4 1
+      clean events per lap: 163 0, 164 1, 165 0, 166 2; cells on >= half the laps: {'C2 entry_2_turnin': [164, 166]}; cells on one lap: 1
+    rear: 1 events, 1 clean, 0 kerb-affected, 0 reset-affected; duration median 0.07 s (max 0.07), samples median 7; min ratio median -0.70 (deepest -0.70); max |Fx|/Fz median 0.67; braking throughout 0 of 1; Fz range in windows median 4 %; kerb distance median 35 m; phases exit_4 1
+      clean events per lap: 163 1, 164 0, 165 0, 166 0; cells on >= half the laps: none; cells on one lap: 1
+  NBR outing 53 MLA (5 analysis laps):
+    front: 2 events, 2 clean, 0 kerb-affected, 0 reset-affected; duration median 0.03 s (max 0.04), samples median 2; min ratio median -0.56 (deepest -0.58); max |Fx|/Fz median 0.14; braking throughout 2 of 2; Fz range in windows median 32 %; kerb distance median 38 m; phases entry_2_turnin 2
+      clean events per lap: 208 0, 209 0, 210 2, 211 0, 212 0; cells on >= half the laps: none; cells on one lap: 1
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 54 CDR (6 analysis laps):
+    front: 9 events, 9 clean, 0 kerb-affected, 0 reset-affected; duration median 0.19 s (max 1.31), samples median 19; min ratio median -0.74 (deepest -0.89); max |Fx|/Fz median 0.00; braking throughout 5 of 9; Fz range in windows median 18 %; kerb distance median 100 m; phases entry_2_turnin 4, exit_4 5
+      clean events per lap: 215 3, 216 1, 217 2, 218 1, 219 0, 220 2; cells on >= half the laps: {'C3 entry_2_turnin': [215, 216, 217, 218]}; cells on one lap: 3
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 59 MLA (4 analysis laps):
+    front: 1 events, 1 clean, 0 kerb-affected, 0 reset-affected; duration median 0.05 s (max 0.05), samples median 5; min ratio median -0.62 (deepest -0.62); max |Fx|/Fz median 0.00; braking throughout 0 of 1; Fz range in windows median 30 %; kerb distance median 256 m; phases exit_4 1
+      clean events per lap: 233 0, 234 0, 235 0, 236 1; cells on >= half the laps: none; cells on one lap: 1
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 61 JDR (8 analysis laps):
+    front: 2 events, 0 clean, 2 kerb-affected, 0 reset-affected; duration median 0.15 s (max 0.21), samples median 15; min ratio median -0.67 (deepest -0.72); max |Fx|/Fz median 0.01; braking throughout 0 of 2; Fz range in windows median 24 %; kerb distance median 1 m; phases exit_4 2
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR outing 63 CDR (6 analysis laps):
+    front: 8 events, 7 clean, 1 kerb-affected, 0 reset-affected; duration median 0.06 s (max 0.14), samples median 6; min ratio median -0.63 (deepest -0.80); max |Fx|/Fz median 0.00; braking throughout 4 of 8; Fz range in windows median 14 %; kerb distance median 103 m; phases entry_2_turnin 2, exit_4 5, exit_5 1
+      clean events per lap: 257 1, 258 1, 260 1, 261 3, 262 1, 263 0; cells on >= half the laps: none; cells on one lap: 5
+    rear: 1 events, 1 clean, 0 kerb-affected, 0 reset-affected; duration median 0.03 s (max 0.03), samples median 3; min ratio median -0.57 (deepest -0.57); max |Fx|/Fz median 0.52; braking throughout 0 of 1; Fz range in windows median 8 %; kerb distance median 461 m; phases exit_4 1
+      clean events per lap: 257 0, 258 1, 260 0, 261 0, 262 0, 263 0; cells on >= half the laps: none; cells on one lap: 1
+  NBR qualifying CDR (outing 69) (6 analysis laps):
+    front: 7 events, 7 clean, 0 kerb-affected, 0 reset-affected; duration median 0.09 s (max 0.65), samples median 9; min ratio median -0.59 (deepest -1.24); max |Fx|/Fz median 0.01; braking throughout 4 of 7; Fz range in windows median 10 %; kerb distance median 57 m; phases entry_2_turnin 1, exit_4 4, exit_5 2
+      clean events per lap: 274 1, 275 3, 276 1, 277 0, 278 0, 279 2; cells on >= half the laps: none; cells on one lap: 3
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  NBR qualifying MLA (outing 70) (6 analysis laps):
+    front: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  Le Castellet outing 25, MLA-SE07_US-v1 (3 analysis laps):
+    front: 4 events, 2 clean, 2 kerb-affected, 0 reset-affected; duration median 0.07 s (max 0.10), samples median 6; min ratio median -0.61 (deepest -0.81); max |Fx|/Fz median 0.07; braking throughout 4 of 4; Fz range in windows median 14 %; kerb distance median 34 m; phases entry_2_turnin 3, exit_4 1
+      clean events per lap: 6 2, 7 0, 8 0; cells on >= half the laps: none; cells on one lap: 2
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  Le Castellet outing 32, MLA-SE07_US-v2 (9 analysis laps):
+    front: 5 events, 0 clean, 5 kerb-affected, 0 reset-affected; duration median 0.11 s (max 0.22), samples median 11; min ratio median -0.61 (deepest -1.22); max |Fx|/Fz median 0.11; braking throughout 4 of 5; Fz range in windows median 16 %; kerb distance median 0 m; phases entry_2_turnin 1, exit_4 3, exit_5 1
+    rear: 0 events, 0 clean, 0 kerb-affected, 0 reset-affected
+  POOL TOTAL front 55 events (39 clean), rear 3 (3 clean)

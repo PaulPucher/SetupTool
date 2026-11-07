@@ -1,0 +1,8 @@
+cs_margin RE-DERIVATION on the new default (+/-1 % sweep, 14 sessions); thresholds front (-0.137, -0.023), rear (-0.002, 0.098); config cs_margin now 0.01
+
+runs: 140 variants + 14 baselines; fallback in 0 variant runs; 1140 baseline corner-phases
+FLIPS (axle direction changes, recorded _is_flip): 3 flips, 1 distinct corner-phases
+  distance 0.045  NBR outing 54 CDR C5|exit_4: 3 input(s): mass +1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf -0.068->-0.069, CSr -0.077->-0.075); yaw_inertia -1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf -0.068->-0.068, CSr -0.077->-0.076); steering_wheel_angle +1%: oversteer @ exit [MARGINAL] -> understeer @ exit [MARGINAL] (CSf -0.068->-0.070, CSr -0.077->-0.076)
+
+distinct flipped corner-phase distances, descending: 0.045
+observer uncertainty (robustness, Q x 0.3), |corner-value change| median / p90: front 0.017 / 0.085, rear 0.02 / 0.106

@@ -7,6 +7,7 @@
 import numpy as np
 import json
 import re
+from modules import signal_corrections as sc
 from modules.corner_analysis import analyse_corners
 from modules.storage import repo_path
 from modules.stability_analysis import _estimate_sample_rate, _normalize_lap_distance_to_metres, load_parameters
@@ -312,7 +313,19 @@ def parse_csv(file_path):
         }
 
     _assert_fixed_factor_units(result_channels)
+    # R1 before the lap split and the corner detection, R3 after the lap
+    # split (its straights need the analysis laps) and before the corner
+    # detection, so no consumer sees the uncorrected signals
+    params = load_parameters()
+    corrections_rec = {}
+    sr_cfg = sc.config(params, "speed_reference")
+    if sr_cfg is not None:
+        corrections_rec["speed_reference"] = sc.correct_speed_reference(
+            result_channels, sr_cfg, _canonical_unit, UNIT_CONVERSIONS, _estimate_sample_rate)
     laps = _split_laps(result_channels, config)
+    so_cfg = sc.config(params, "sensor_offset_removal")
+    if so_cfg is not None:
+        corrections_rec["sensor_offsets"] = sc.remove_sensor_offsets(result_channels, laps, params, so_cfg)
 
     # measured from ecu_speed; None = unknown, not "matches expected"
     measured_rate = None
@@ -335,6 +348,8 @@ def parse_csv(file_path):
                 config.get("event_zero_entries", {})[zero_event], metadata),
         },
     }
+    if corrections_rec:
+        result["signal_corrections"] = corrections_rec
 
     result["corners"] = analyse_corners(result)
 

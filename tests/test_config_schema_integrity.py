@@ -162,9 +162,20 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # ambiguous same-lap split); no value change where nothing is excluded.
     # 30 (2026-10-27): Paul Ricard 24996 event zero entry (estimator input
     # outside Settings) and damper_plausibility gains reporting / validation.
-    assert ANALYSIS_SCHEMA_VERSION == 30, (
+    # 31 (2026-11-06): ORDER SPEED-1 -- estimator inputs changed outside
+    # Settings (config signal_corrections): ecu_speed spike replacement (R1),
+    # engine braking on the rear axle (R2), straight-line sensor offsets (R3);
+    # fit_manifest gains signal_corrections, corner summary shape unchanged.
+    # 32 (2026-11-06): ORDER SPEED-1c -- R3 amended (yaw rate and a_y offsets
+    # from the standstill on wheels, yaw fallback heading excess per lap,
+    # steering from near-zero-yaw straights); record shape of
+    # signal_corrections.sensor_offsets changes, corner summaries unchanged.
+    # 33 (2026-11-06): ORDER SPEED-2a -- re-derived CS tiers, NIS gate
+    # thresholds and boundary margins adopted (config edit outside Settings,
+    # not in the cache identity); no payload shape change.
+    assert ANALYSIS_SCHEMA_VERSION == 33, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 30 -- update this test deliberately if the version was bumped again"
+        "written for 33 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"

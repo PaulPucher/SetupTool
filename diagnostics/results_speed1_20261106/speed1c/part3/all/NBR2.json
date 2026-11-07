@@ -1,0 +1,289 @@
+{
+ "session_file": "NBR2.txt",
+ "sideslip_source": "ekf_auto_pacejka",
+ "fit_status": "ok",
+ "fallback_used": false,
+ "fallback_reason": null,
+ "vertical_load_source": "measured",
+ "axles": {
+  "front": {
+   "K_per_rad": 26.330620995070163,
+   "mu": 1.8285432509253734,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  },
+  "rear": {
+   "K_per_rad": 22.852345358465335,
+   "mu": 1.5082325480644048,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  }
+ },
+ "health_score": 0.19928981418425917,
+ "gate_verdict": "pass",
+ "analysis_laps": [
+  59,
+  60
+ ],
+ "corner_verdicts": [
+  {
+   "corner": 1,
+   "speed_class": "low",
+   "n_laps": 2,
+   "severity": "strong",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 2,
+   "speed_class": "low",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 3,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 4,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 5,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 6,
+   "speed_class": "high",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "no CS data"
+  },
+  {
+   "corner": 7,
+   "speed_class": "low",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 8,
+   "speed_class": "high",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 9,
+   "speed_class": "high",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 10,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 11,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 12,
+   "speed_class": "high",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 13,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 14,
+   "speed_class": "high",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "no CS data"
+  },
+  {
+   "corner": 15,
+   "speed_class": "medium",
+   "n_laps": 2,
+   "severity": "normal",
+   "verdict": "ok"
+  }
+ ],
+ "counted_symptoms": [],
+ "session_recommendation": null,
+ "session_recommendation_full": null,
+ "braking_excluded": {
+  "front": {
+   "n": 3382,
+   "share": 0.17961654894046417
+  },
+  "rear": {
+   "n": 4260,
+   "share": 0.22624674703914174
+  }
+ },
+ "signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 193,
+   "flagged_events": 148,
+   "replaced_samples": 2316,
+   "max_excess_mps": 60.36978913594666
+  },
+  "sensor_offsets": {
+   "enabled": true,
+   "channels": {
+    "sclu_yaw_rate": {
+     "applied": true,
+     "source": "standstill",
+     "n": 619,
+     "offset": -0.051667,
+     "unit": "rpm",
+     "offset_physical": -0.31000272491952585,
+     "unit_physical": "deg/s"
+    },
+    "log_acc_y": {
+     "applied": true,
+     "source": "standstill",
+     "n": 619,
+     "offset": -0.013924,
+     "unit": "G",
+     "offset_physical": -0.13659444,
+     "unit_physical": "m/s^2"
+    },
+    "log_asteer": {
+     "applied": true,
+     "source": "straights_near_zero_yaw",
+     "n": 680,
+     "offset": 3.5,
+     "unit": "\u00b0",
+     "offset_physical": 3.5,
+     "unit_physical": "deg"
+    }
+   },
+   "min_standstill_s": 1.0,
+   "min_straight_s": 5.0,
+   "steering_straight_yaw_max_deg_s": 0.5,
+   "standstill_s": 6.19,
+   "straight_samples": 827,
+   "applied": true,
+   "not_corrected": [],
+   "status": "applied"
+  },
+  "engine_braking": {
+   "enabled": true,
+   "drag_force_N": 1500.0,
+   "throttle_closed_max_pct": 1.0,
+   "accuracy_level": 1,
+   "applied": true,
+   "status": "applied",
+   "share_moving": 0.23812357064499934,
+   "share_fit_population": 0.2760104094747464
+  }
+ },
+ "parsed_signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 193,
+   "flagged_events": 148,
+   "replaced_samples": 2316,
+   "max_excess_mps": 60.36978913594666
+  },
+  "sensor_offsets": {
+   "enabled": true,
+   "channels": {
+    "sclu_yaw_rate": {
+     "applied": true,
+     "source": "standstill",
+     "n": 619,
+     "offset": -0.051667,
+     "unit": "rpm",
+     "offset_physical": -0.31000272491952585,
+     "unit_physical": "deg/s"
+    },
+    "log_acc_y": {
+     "applied": true,
+     "source": "standstill",
+     "n": 619,
+     "offset": -0.013924,
+     "unit": "G",
+     "offset_physical": -0.13659444,
+     "unit_physical": "m/s^2"
+    },
+    "log_asteer": {
+     "applied": true,
+     "source": "straights_near_zero_yaw",
+     "n": 680,
+     "offset": 3.5,
+     "unit": "\u00b0",
+     "offset_physical": 3.5,
+     "unit_physical": "deg"
+    }
+   },
+   "min_standstill_s": 1.0,
+   "min_straight_s": 5.0,
+   "steering_straight_yaw_max_deg_s": 0.5,
+   "standstill_s": 6.19,
+   "straight_samples": 827,
+   "applied": true,
+   "not_corrected": [],
+   "status": "applied"
+  }
+ },
+ "n_corners_parsed": 30,
+ "ay_vs_vr": {
+  "n": 6606,
+  "median": 1.0354565717136823,
+  "p10": 0.8650583013622611,
+  "p90": 1.2880845570169686
+ },
+ "stored_identity": {
+  "schema": 30,
+  "n_verdicts": 15,
+  "verdicts_equal": true,
+  "verdict_diffs": {},
+  "recommendation_equal": true,
+  "stored_recommendation": null,
+  "counted_equal": true
+ },
+ "runtime_s": 69.98519229888916
+}

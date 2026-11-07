@@ -1,0 +1,220 @@
+{
+ "session_file": "PRC4.txt",
+ "sideslip_source": "ekf_auto_pacejka",
+ "fit_status": "ok",
+ "fallback_used": false,
+ "fallback_reason": null,
+ "vertical_load_source": "measured",
+ "axles": {
+  "front": {
+   "K_per_rad": 25.51521478153045,
+   "mu": 1.9010525042428035,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  },
+  "rear": {
+   "K_per_rad": 18.06477849543963,
+   "mu": 1.6178535862972327,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  }
+ },
+ "health_score": 0.15301989967930268,
+ "gate_verdict": "pass",
+ "analysis_laps": [
+  48,
+  49,
+  50,
+  51,
+  52,
+  53,
+  54,
+  55,
+  56
+ ],
+ "corner_verdicts": [
+  {
+   "corner": 1,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 2,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 3,
+   "speed_class": "high",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 4,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 5,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "strong",
+   "verdict": "oversteer @ apex"
+  },
+  {
+   "corner": 6,
+   "speed_class": "low",
+   "n_laps": 9,
+   "severity": "strong",
+   "verdict": "oversteer @ apex"
+  },
+  {
+   "corner": 7,
+   "speed_class": "high",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 8,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "strong",
+   "verdict": "oversteer @ exit"
+  },
+  {
+   "corner": 9,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "strong",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 10,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 11,
+   "speed_class": "high",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 12,
+   "speed_class": "high",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 13,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 14,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "moderate",
+   "verdict": "understeer @ exit [MARGINAL]"
+  },
+  {
+   "corner": 15,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 16,
+   "speed_class": "medium",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 17,
+   "speed_class": "low",
+   "n_laps": 9,
+   "severity": "normal",
+   "verdict": "ok"
+  }
+ ],
+ "counted_symptoms": [],
+ "session_recommendation": null,
+ "session_recommendation_full": null,
+ "braking_excluded": {
+  "front": {
+   "n": 16511,
+   "share": 0.19140081609941575
+  },
+  "rear": {
+   "n": 16222,
+   "share": 0.1880506352592043
+  }
+ },
+ "signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 116,
+   "flagged_events": 93,
+   "replaced_samples": 2852,
+   "max_excess_mps": 23.059028611111113
+  }
+ },
+ "parsed_signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 116,
+   "flagged_events": 93,
+   "replaced_samples": 2852,
+   "max_excess_mps": 23.059028611111113
+  }
+ },
+ "n_corners_parsed": 153,
+ "ay_vs_vr": {
+  "n": 20500,
+  "median": 1.0648767143828561,
+  "p10": 0.8976170614215079,
+  "p90": 1.309872339350578
+ },
+ "stored_identity": {
+  "schema": 30,
+  "n_verdicts": 17,
+  "verdicts_equal": true,
+  "verdict_diffs": {},
+  "recommendation_equal": true,
+  "stored_recommendation": null,
+  "counted_equal": true
+ },
+ "runtime_s": 176.78968930244446
+}

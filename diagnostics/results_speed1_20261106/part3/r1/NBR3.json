@@ -1,0 +1,208 @@
+{
+ "session_file": "NBR3.txt",
+ "sideslip_source": "ekf_auto_pacejka",
+ "fit_status": "ok",
+ "fallback_used": false,
+ "fallback_reason": null,
+ "vertical_load_source": "measured",
+ "axles": {
+  "front": {
+   "K_per_rad": 26.616739099313843,
+   "mu": 1.9433933133971708,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  },
+  "rear": {
+   "K_per_rad": 24.281634550541835,
+   "mu": 1.5874866099935039,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  }
+ },
+ "health_score": 0.2393883405455341,
+ "gate_verdict": "pass",
+ "analysis_laps": [
+  66,
+  67,
+  68,
+  69
+ ],
+ "corner_verdicts": [
+  {
+   "corner": 1,
+   "speed_class": "low",
+   "n_laps": 4,
+   "severity": "strong",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 2,
+   "speed_class": "low",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 3,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 4,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 5,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "strong",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 6,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "no CS data"
+  },
+  {
+   "corner": 7,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 8,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 9,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 10,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 11,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 12,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 13,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 14,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "strong",
+   "verdict": "understeer @ apex"
+  },
+  {
+   "corner": 15,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 16,
+   "speed_class": "medium",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  }
+ ],
+ "counted_symptoms": [],
+ "session_recommendation": null,
+ "session_recommendation_full": null,
+ "braking_excluded": {
+  "front": {
+   "n": 6990,
+   "share": 0.18461782261898474
+  },
+  "rear": {
+   "n": 6930,
+   "share": 0.1830331202789076
+  }
+ },
+ "signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 132,
+   "flagged_events": 99,
+   "replaced_samples": 2331,
+   "max_excess_mps": 30.204860555555555
+  }
+ },
+ "parsed_signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 132,
+   "flagged_events": 99,
+   "replaced_samples": 2331,
+   "max_excess_mps": 30.204860555555555
+  }
+ },
+ "n_corners_parsed": 64,
+ "ay_vs_vr": {
+  "n": 10248,
+  "median": 1.039563311016467,
+  "p10": 0.8945492320153822,
+  "p90": 1.2718893152917745
+ },
+ "stored_identity": {
+  "schema": 30,
+  "n_verdicts": 16,
+  "verdicts_equal": true,
+  "verdict_diffs": {},
+  "recommendation_equal": true,
+  "stored_recommendation": null,
+  "counted_equal": true
+ },
+ "runtime_s": 139.88072729110718
+}

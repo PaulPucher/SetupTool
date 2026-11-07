@@ -1,0 +1,24 @@
+NIS WINDOW-SHARE CENSUS, fit-L default, base_mask, window 0.4 s, band [0.03, 0.15] (inclusive), chi2_2 95 %
+share = samples / valid samples (masked, window at least half covered); skipped = masked samples whose window is under half covered (outside the denominator)
+
+  NBR outing 5 MLA: below 0.7075, in band 0.2005, above 0.0919; skipped 0 (valid 66855 of 66855 masked); gate health_score 0.2005 -> MATCH
+  NBR outing 10 JDR: below 0.8388, in band 0.1208, above 0.0404; skipped 0 (valid 118132 of 118132 masked); gate health_score 0.1208 -> MATCH
+  NBR outing 20 JST: below 0.6003, in band 0.2477, above 0.1520; skipped 0 (valid 41134 of 41134 masked); gate health_score 0.2477 -> MATCH
+  NBR outing 29 JST (NBR_Sturm_Solution copy): below 0.6679, in band 0.2160, above 0.1162; skipped 0 (valid 61952 of 61952 masked); gate health_score 0.2160 -> MATCH
+  NBR outing 46 JST: below 0.7379, in band 0.1513, above 0.1108; skipped 0 (valid 41715 of 41715 masked); gate health_score 0.1513 -> MATCH
+  NBR outing 53 MLA: below 0.6638, in band 0.2141, above 0.1220; skipped 0 (valid 56421 of 56421 masked); gate health_score 0.2141 -> MATCH
+  NBR outing 54 CDR: below 0.6966, in band 0.1770, above 0.1265; skipped 0 (valid 66672 of 66672 masked); gate health_score 0.1770 -> MATCH
+  NBR outing 59 MLA: below 0.7040, in band 0.2021, above 0.0939; skipped 0 (valid 44101 of 44101 masked); gate health_score 0.2021 -> MATCH
+  NBR outing 61 JDR: below 0.7792, in band 0.1604, above 0.0604; skipped 0 (valid 91131 of 91131 masked); gate health_score 0.1604 -> MATCH
+  NBR outing 63 CDR: below 0.6916, in band 0.1942, above 0.1142; skipped 0 (valid 63700 of 63700 masked); gate health_score 0.1942 -> MATCH
+  NBR qualifying CDR (outing 69): below 0.6782, in band 0.1855, above 0.1364; skipped 0 (valid 62663 of 62663 masked); gate health_score 0.1855 -> MATCH
+  NBR qualifying MLA (outing 70): below 0.7761, in band 0.1409, above 0.0830; skipped 0 (valid 61930 of 61930 masked); gate health_score 0.1409 -> MATCH
+  Le Castellet outing 25, MLA-SE07_US-v1: below 0.7689, in band 0.1136, above 0.1175; skipped 0 (valid 31716 of 31716 masked); gate health_score 0.1136 -> MATCH
+  Le Castellet outing 32, MLA-SE07_US-v2: below 0.7035, in band 0.1648, above 0.1317; skipped 0 (valid 97288 of 97288 masked); gate health_score 0.1648 -> MATCH
+
+POOLED, sample-weighted over all valid masked samples (n 905410, skipped 0): below 0.7252, in band 0.1738, above 0.1010
+PER-SESSION below: median 0.7038, min 0.6003, max 0.8388 (n 14)
+PER-SESSION in_band: median 0.1812, min 0.1136, max 0.2477 (n 14)
+PER-SESSION above: median 0.1152, min 0.0404, max 0.1520 (n 14)
+
+ACCEPTANCE (in-band share == gate health_score to 4 decimals): all 14 match

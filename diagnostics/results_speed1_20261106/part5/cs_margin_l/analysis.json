@@ -1,0 +1,67 @@
+{
+ "flips": [
+  {
+   "session": "nbr_o54_cdr",
+   "label": "NBR outing 54 CDR",
+   "corner_phase": "5|exit_4",
+   "input": "mass",
+   "sign": 1,
+   "old": [
+    "strong",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.045095764899236994,
+   "base_f": -0.068095764899237,
+   "base_r": -0.07679036471987105,
+   "var_f": -0.06887619851779865,
+   "var_r": -0.07544919965879321
+  },
+  {
+   "session": "nbr_o54_cdr",
+   "label": "NBR outing 54 CDR",
+   "corner_phase": "5|exit_4",
+   "input": "yaw_inertia",
+   "sign": -1,
+   "old": [
+    "strong",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.045095764899236994,
+   "base_f": -0.068095764899237,
+   "base_r": -0.07679036471987105,
+   "var_f": -0.06771899113072015,
+   "var_r": -0.07590656253229502
+  },
+  {
+   "session": "nbr_o54_cdr",
+   "label": "NBR outing 54 CDR",
+   "corner_phase": "5|exit_4",
+   "input": "steering_wheel_angle",
+   "sign": 1,
+   "old": [
+    "strong",
+    "oversteer @ exit [MARGINAL]"
+   ],
+   "new": [
+    "moderate",
+    "understeer @ exit [MARGINAL]"
+   ],
+   "distance": 0.045095764899236994,
+   "base_f": -0.068095764899237,
+   "base_r": -0.07679036471987105,
+   "var_f": -0.06998532160624751,
+   "var_r": -0.07593588810951063
+  }
+ ],
+ "distances": [
+  0.045095764899236994
+ ]
+}

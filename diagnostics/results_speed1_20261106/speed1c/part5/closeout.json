@@ -1,0 +1,674 @@
+{
+ "nbr_o05_mla": {
+  "key": "nbr_o05_mla",
+  "label": "NBR outing 5 MLA",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.20053847879739736
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 5898,
+    "median_ref": 21.734507159134367,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 33743,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.684082046838385,
+    "set_rel_min": 0.5660775229492141,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 5985,
+    "median_ref": 26.885239139857035,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 31158,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7031940499115032,
+    "set_rel_min": 0.6361757745985623,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o10_jdr": {
+  "key": "nbr_o10_jdr",
+  "label": "NBR outing 10 JDR",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.12079707445907967
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 13592,
+    "median_ref": 22.465103360913993,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 61304,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6907412591734672,
+    "set_rel_min": 0.43013353243515745,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 12278,
+    "median_ref": 29.58744136889741,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 53972,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7281170347448586,
+    "set_rel_min": 0.6439224114431569,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o20_jst": {
+  "key": "nbr_o20_jst",
+  "label": "NBR outing 20 JST",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.2477269412165119
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 3631,
+    "median_ref": 21.813425502478733,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 19993,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7474546664689835,
+    "set_rel_min": 0.6977618270325215,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 3456,
+    "median_ref": 24.989283583828993,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 16894,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.8484944001106887,
+    "set_rel_min": 0.6831073386691379,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o29_jst": {
+  "key": "nbr_o29_jst",
+  "label": "NBR outing 29 JST (NBR_Sturm_Solution copy)",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.21595751549586778
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 4860,
+    "median_ref": 20.530333057584848,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 29627,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.760923939287635,
+    "set_rel_min": 0.6481956844148302,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 4816,
+    "median_ref": 24.746199298682818,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 25467,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.802702972786274,
+    "set_rel_min": 0.6825051669310588,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o46_jst": {
+  "key": "nbr_o46_jst",
+  "label": "NBR outing 46 JST",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.15128850533381277
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 3397,
+    "median_ref": 21.41758916812204,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 20176,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.723382255147234,
+    "set_rel_min": 0.3885125658411232,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 3500,
+    "median_ref": 22.446802754409173,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 18268,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.8398087390064715,
+    "set_rel_min": 0.8040983990178147,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o53_mla": {
+  "key": "nbr_o53_mla",
+  "label": "NBR outing 53 MLA",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.21414012513071373
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 5082,
+    "median_ref": 22.796523953532315,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 26510,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6359024066475899,
+    "set_rel_min": 0.5649553578946503,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 5348,
+    "median_ref": 26.358031908618614,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 24848,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7822005775742901,
+    "set_rel_min": 0.6610158516091733,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o54_cdr": {
+  "key": "nbr_o54_cdr",
+  "label": "NBR outing 54 CDR",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.17698584113270938
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 7408,
+    "median_ref": 23.690212933232452,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 34423,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6760464330570107,
+    "set_rel_min": 0.31606526270293733,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 7346,
+    "median_ref": 25.395029432690563,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 31771,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6922348187875819,
+    "set_rel_min": 0.533061692999102,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o59_mla": {
+  "key": "nbr_o59_mla",
+  "label": "NBR outing 59 MLA",
+  "status": "marginal",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.20208158545157706
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 4464,
+    "median_ref": 23.442059390596633,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 21696,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7458091737436098,
+    "set_rel_min": 0.7172823449686306,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 4259,
+    "median_ref": 26.742303061279138,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 19860,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7789902286907006,
+    "set_rel_min": 0.7538812790190569,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o61_jdr": {
+  "key": "nbr_o61_jdr",
+  "label": "NBR outing 61 JDR",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.1603735282176208
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 9400,
+    "median_ref": 23.380847306906745,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 46149,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6777760304878684,
+    "set_rel_min": 0.6071653601611053,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 7863,
+    "median_ref": 29.953715134184915,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 41881,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.6869413581414553,
+    "set_rel_min": 0.5758957369959219,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_o63_cdr": {
+  "key": "nbr_o63_cdr",
+  "label": "NBR outing 63 CDR",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.19417582417582419
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 6541,
+    "median_ref": 21.77116881002009,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 33322,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7225691808861634,
+    "set_rel_min": 0.44486110666531664,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 6406,
+    "median_ref": 23.579865377214468,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 30886,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7772535727295402,
+    "set_rel_min": 0.42151138695049595,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_qp_cdr": {
+  "key": "nbr_qp_cdr",
+  "label": "NBR qualifying CDR (outing 69)",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.1854842570575938
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 6182,
+    "median_ref": 20.926089208351588,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 31154,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.5829509144961922,
+    "set_rel_min": 0.26314199196983395,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 5776,
+    "median_ref": 23.62358498638136,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 29210,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7418474464766752,
+    "set_rel_min": 0.5666588156036603,
+    "medians_moved": 0
+   }
+  }
+ },
+ "nbr_qp_mla": {
+  "key": "nbr_qp_mla",
+  "label": "NBR qualifying MLA (outing 70)",
+  "status": "marginal",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.1409333118036493
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 5314,
+    "median_ref": 24.105765110814964,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 30369,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7207747537683679,
+    "set_rel_min": 0.6254501160653404,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 5075,
+    "median_ref": 27.656079723901428,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 27739,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.5467664683700887,
+    "set_rel_min": 0.5252812662914957,
+    "medians_moved": 0
+   }
+  }
+ },
+ "pr_o25_us_v1": {
+  "key": "pr_o25_us_v1",
+  "label": "Le Castellet outing 25, MLA-SE07_US-v1",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.11360196746121831
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 1750,
+    "median_ref": 17.93153787505718,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 14783,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7289140176137678,
+    "set_rel_min": 0.5287594782838849,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 1892,
+    "median_ref": 17.970744861708965,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 14481,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.8792709724318464,
+    "set_rel_min": 0.7494315516170785,
+    "medians_moved": 0
+   }
+  }
+ },
+ "pr_o32_us_v2": {
+  "key": "pr_o32_us_v2",
+  "label": "Le Castellet outing 32, MLA-SE07_US-v2",
+  "status": "ok",
+  "fallback": false,
+  "gate": {
+   "verdict": "pass",
+   "health_score": 0.16484047364525944
+  },
+  "axles": {
+   "f": {
+    "n_set_events": 4648,
+    "median_ref": 19.64966857642408,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 47980,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.7231286596693592,
+    "set_rel_min": 0.6244014626241099,
+    "medians_moved": 0
+   },
+   "r": {
+    "n_set_events": 5570,
+    "median_ref": 20.512470478195375,
+    "band": [
+     5.5,
+     35.0
+    ],
+    "n_verdict_read": 47375,
+    "n_small": 0,
+    "n_small_refs": 0,
+    "small_ref_values": [],
+    "small_ref_rel": [],
+    "median_hold_s": NaN,
+    "min_cs_small": NaN,
+    "set_rel_p1": 0.8257183979147527,
+    "set_rel_min": 0.5556396242820133,
+    "medians_moved": 0
+   }
+  }
+ }
+}

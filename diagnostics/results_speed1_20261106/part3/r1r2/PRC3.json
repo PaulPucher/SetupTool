@@ -1,0 +1,270 @@
+{
+ "session_file": "PRC3.txt",
+ "sideslip_source": "ekf_auto_pacejka",
+ "fit_status": "ok",
+ "fallback_used": false,
+ "fallback_reason": null,
+ "vertical_load_source": "measured",
+ "axles": {
+  "front": {
+   "K_per_rad": 23.740316923841096,
+   "mu": 1.906851546745256,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  },
+  "rear": {
+   "K_per_rad": 16.069809922642694,
+   "mu": 1.6058009400850304,
+   "k_zone": "in band",
+   "mu_zone": "in band"
+  }
+ },
+ "health_score": 0.14134922489678273,
+ "gate_verdict": "pass",
+ "analysis_laps": [
+  14,
+  15,
+  16,
+  17,
+  18
+ ],
+ "corner_verdicts": [
+  {
+   "corner": 1,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 2,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 3,
+   "speed_class": "high",
+   "n_laps": 4,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 4,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 5,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "moderate",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 6,
+   "speed_class": "low",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 7,
+   "speed_class": "high",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 8,
+   "speed_class": "high",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 9,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 10,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "strong",
+   "verdict": "understeer @ exit"
+  },
+  {
+   "corner": 11,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 12,
+   "speed_class": "high",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 13,
+   "speed_class": "high",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 14,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "strong",
+   "verdict": "understeer @ apex"
+  },
+  {
+   "corner": 15,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "strong",
+   "verdict": "understeer @ exit [MARGINAL] | open-loop unstable @ exit"
+  },
+  {
+   "corner": 16,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "normal",
+   "verdict": "ok"
+  },
+  {
+   "corner": 17,
+   "speed_class": "medium",
+   "n_laps": 5,
+   "severity": "strong",
+   "verdict": "oversteer @ exit"
+  },
+  {
+   "corner": 18,
+   "speed_class": "low",
+   "n_laps": 5,
+   "severity": "moderate",
+   "verdict": "understeer @ exit"
+  }
+ ],
+ "counted_symptoms": [
+  {
+   "corner": 15,
+   "symptom": "INST",
+   "phase": "exit_5",
+   "laps": 5
+  }
+ ],
+ "session_recommendation": {
+  "levers": [
+   "damper_bump_ls_rl",
+   "damper_bump_ls_rr"
+  ],
+  "direction": "stiffer",
+  "net": 2.0
+ },
+ "session_recommendation_full": {
+  "levers": [
+   "damper_bump_ls_rl",
+   "damper_bump_ls_rr"
+  ],
+  "direction": "stiffer",
+  "net": 2.0
+ },
+ "braking_excluded": {
+  "front": {
+   "n": 7827,
+   "share": 0.1668763192119907
+  },
+  "rear": {
+   "n": 9715,
+   "share": 0.20712960791420593
+  }
+ },
+ "signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 93,
+   "flagged_events": 72,
+   "replaced_samples": 2292,
+   "max_excess_mps": 33.713543055555554
+  },
+  "engine_braking": {
+   "enabled": true,
+   "drag_force_N": 1500.0,
+   "throttle_closed_max_pct": 1.0,
+   "accuracy_level": 1,
+   "applied": true,
+   "status": "applied",
+   "share_moving": 0.2262643609447518,
+   "share_fit_population": 0.266081060912948
+  }
+ },
+ "parsed_signal_corrections": {
+  "speed_reference": {
+   "enabled": true,
+   "spike_margin_mps": 1.0,
+   "comparison_half_window_s": 0.1,
+   "widen_s": 0.5,
+   "detection": "max(abs_speed_fl, abs_speed_fr, abs_speed_rl, abs_speed_rr)",
+   "replacement": "max(abs_speed_fl, abs_speed_fr)",
+   "status": "applied",
+   "applied": true,
+   "sample_rate_hz": 50.000000000045475,
+   "flagged_samples": 93,
+   "flagged_events": 72,
+   "replaced_samples": 2292,
+   "max_excess_mps": 33.713543055555554
+  }
+ },
+ "n_corners_parsed": 89,
+ "ay_vs_vr": {
+  "n": 10739,
+  "median": 1.0663268365378076,
+  "p10": 0.9032675496009464,
+  "p90": 1.321613268390352
+ },
+ "stored_identity": {
+  "schema": 30,
+  "n_verdicts": 18,
+  "verdicts_equal": false,
+  "verdict_diffs": {
+   "18": [
+    "understeer @ exit [MARGINAL]",
+    "understeer @ exit"
+   ],
+   "15": [
+    "open-loop unstable @ exit",
+    "understeer @ exit [MARGINAL] | open-loop unstable @ exit"
+   ]
+  },
+  "recommendation_equal": true,
+  "stored_recommendation": {
+   "levers": [
+    "damper_bump_ls_rl",
+    "damper_bump_ls_rr"
+   ],
+   "direction": "stiffer",
+   "net": 2.0
+  },
+  "counted_equal": true
+ },
+ "runtime_s": 118.59364938735962
+}

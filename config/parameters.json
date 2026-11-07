@@ -89,9 +89,9 @@
     "nis_window_s_derived_from": "derived on the development data (see thesis)",
     "nis_band_low": 0.03,
     "nis_band_high": 0.15,
-    "threshold_use_ekf": 0.104,
+    "threshold_use_ekf": 0.107,
     "threshold_warn": 0.011,
-    "threshold_derived_from": "derived on the development data (see thesis)"
+    "threshold_derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
   },
   "tyre_fit_auto": {
     "_comment": "Tunables of the per-session Pacejka tyre fit (fit L) with observer validation. P0, beta_hard_bound and the interim yaw-rate R seed come from the earlier observer; the seed is used only in the interim run that fixes R_ay first. The fit population is limited to a per-session speed percentile window (fit_speed_window_pct, null = off), which drops the fastest, mostly straight-line samples like the speed bands of the chair performance_analysis tooling (internal).",
@@ -154,7 +154,7 @@
     "stiffness_min_npr": 30000,
     "stiffness_max_npr": 600000,
     "mu_ceiling_edge_u": 0.0975,
-    "mu_ceiling_edge_u_derived_from": "derived on the development data (see thesis)",
+    "mu_ceiling_edge_u_derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged (value unchanged)",
     "tyre_fit_mode": "literature_bounded",
     "tyre_fit_mode_default_note": "Fit L (literature_bounded) is the only analysis path; the key stays so the [UNCAL] marker and the threshold calibration tag can compare against it."
   },
@@ -227,20 +227,20 @@
   "classification": {
     "_comment": "Corner-verdict thresholds. STRONG = p10 and MODERATE = p30 of the worst-lap, worst-phase corner CS ratios per axle over the development pool: relative ranks for this estimator and car, never taken from the chair. Physical statements come from separate labels (ratio < 0: axle force falling while slip grows); rear saturation reduces the stability margin (Hoffman et al. 2008). verdict_stability_margin marks a verdict MARGINAL when its value lies within cs_margin of a threshold (covers the vehicle inputs only, not the observer); an axle counts as limiting when its CS ratio is below minus cs_boundary_margin_front / _rear (combined observer and vehicle-input uncertainty).",
     "STRONG_CSF": {
-      "value": -0.137,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": -0.122,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "STRONG_CSR": {
-      "value": -0.002,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": -0.004,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "MODERATE_CSF": {
-      "value": -0.023,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": -0.024,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "MODERATE_CSR": {
-      "value": 0.098,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": 0.103,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "stab_neg_thresh_Nm_per_deg": {
       "value": 0.0,
@@ -248,15 +248,15 @@
     },
     "verdict_stability_margin": {
       "cs_margin": 0.01,
-      "derived_from": "derived on the development data (see thesis)"
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged (value unchanged)"
     },
     "cs_boundary_margin_front": {
-      "value": 0.062,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": 0.063,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "cs_boundary_margin_rear": {
-      "value": 0.076,
-      "derived_from": "derived on the development data (see thesis)"
+      "value": 0.077,
+      "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged"
     },
     "stab_thresh_calibrated_for_sideslip_source": "ekf_auto_pacejka"
   },
@@ -284,6 +284,41 @@
     "_comment": "Floor events (modules/limit_events.py), display and record only: contiguous runs of the CS ratio below the pure-lateral floor -0.53 with measured attributes, no bridging or minimum duration; never a verdict or recommendation input.",
     "recurrence_radius_m": 10.0,
     "recurrence_radius_m_derived_from": "An event recurs when another analysis lap has an event on the same axle at the same corner with its minimum within this lap distance."
+  },
+  "signal_corrections": {
+    "_comment": "Input corrections of ORDER SPEED-1 (author rulings R1-R3, 2026-11-06), modules/signal_corrections.py; each switch on by default, off = the uncorrected chain of schema 30. Records in the fit manifest (signal_corrections).",
+    "speed_reference": {
+      "enabled": true,
+      "_comment": "R1, Tier B preprocessing: ecu_speed spikes from the faulty ECU rear-right wheel input (team information; every spike carries the ecu_speed_rr vs abs_speed_rr signature) detected against the maximum of the four ABS wheel speeds and replaced by the larger front ABS wheel speed, before the lap split and the corner detection. Any ABS channel missing -> ecu_speed uncorrected, flagged.",
+      "spike_margin_mps": 1.0,
+      "spike_margin_mps_derived_from": "Author ruling R1 (2026-11-06) on the SPEED-0b margin check: at 1.0 m/s no flagged sample lacks the faulty-wheel signature (10 final sessions), and fewer affected samples stay unflagged than at 3.0 m/s; clean ecu_speed exceeds the ABS maximum by 0.21 m/s at p99.9 pooled.",
+      "comparison_half_window_s": 0.1,
+      "comparison_half_window_s_derived_from": "Covers the 14-23 ms lag of ecu_speed behind the ABS speeds (SPEED-0b census) with margin; same window as the 2026-11-05 counterfactual.",
+      "widen_s": 0.5,
+      "widen_s_derived_from": "The flagged samples are the peaks of a spike; the widening takes its flanks along. Same value as the 2026-11-05 counterfactual and SPEED-0b."
+    },
+    "engine_braking": {
+      "enabled": true,
+      "_comment": "R2, accuracy level 1 (config default): with the throttle closed and the car decelerating, a constant engine drag goes to the driven rear axle; only the remainder of the CoG force is split by axle load; the axle sum is unchanged and the rear never takes more than the total.",
+      "drag_force_N": 1500.0,
+      "drag_force_N_derived_from": "Pooled coasting estimate of ORDER SPEED-0b: median of the six measurable sessions (NBR 1-5, PRC 5), -1.50 kN, range -1.23 to -1.73 kN; real config, resolved mass, IMU bias corrected per lap.",
+      "throttle_closed_max_pct": 1.0,
+      "throttle_closed_max_pct_derived_from": "Same closed-throttle condition as the coasting estimate and the SPEED-0b counterfactual (throttle below 1 % on 80-100 % of braking samples)."
+    },
+    "sensor_offset_removal": {
+      "enabled": true,
+      "_comment": "R3, Tier B preprocessing (zero-input calibration), ruling amended 2026-11-06 (SPEED-1c): yaw rate and lateral acceleration from the median at standstill on wheels; yaw rate falls back to the per-lap heading excess beyond one full turn over the lap time; a_y has no fallback (no standstill -> no correction, flagged), since on straights the accelerometer's specific force also carries crossfall and roll, which are real lateral tyre load; steering-wheel angle from the chain's straights restricted to near-zero bias-corrected yaw rate. Applied before the corner detection.",
+      "standstill_speed_max_kmh": 1.0,
+      "on_wheels_travel_mm": 5.0,
+      "pit_speed_range_kmh": [5.0, 70.0],
+      "standstill_derived_from": "Same standstill-on-wheels rule as the event zero entries (diagnostics/inspect_prc24996_zero.py): below 1 km/h with every suspension travel within 5 mm of its pit-lane median (limiter on, 5-70 km/h), so a car on jacks is not taken.",
+      "min_standstill_s": 1.0,
+      "min_standstill_s_derived_from": "Same minimum as the zero-entry detection; the ten final sessions have 2.4-9.4 s (SPEED-1b).",
+      "steering_straight_yaw_max_deg_s": 0.5,
+      "steering_straight_yaw_max_deg_s_derived_from": "Author ruling SPEED-1c start value: a straight sample counts for the steering centre only while the bias-corrected yaw rate is below 0.5 deg/s (five counts of the 0.1 deg/s yaw-rate resolution), so real curvature on a straight does not shift the centre.",
+      "min_straight_s": 5.0,
+      "min_straight_s_derived_from": "Minimum of qualifying straight samples for the steering centre (500 samples at 100 Hz); below the shortest straight total of the ten final sessions (8.3 s, NBR 2)."
+    }
   },
   "accuracy_levels": {
     "_comment": "Accuracy per quantity: 1 = config default, 2 = session measurement, 3 = logged sensor, 4 = lookup table. Per node: static level, source and capped_by ('chained-constant: <name>' = a Level 1 constant in its derivation; 'provenance-assumption: <name>' = an unverifiable assumption about the channel; null = neither). modules/accuracy_resolution.py resolves the leaf nodes per outing; derived nodes follow their caps, bounded by the method ceiling where one exists (e.g. m x a x b for yaw inertia).",
@@ -372,6 +407,12 @@
       "source": "pushrod force + motion ratio + ARB + unsprung and geometric lateral-transfer decomposition (modules/loads.py) per corner where log_dms_dam_* and log_susp_travel_* are valid (Segers ch. 9/10)",
       "capped_by": "chained-constant: wheel_loads.unsprung_mass_front/rear_kg, wheel_loads.tyre_dynamic_radius_front/rear_m, wheel_loads.roll_centre_front/rear_m, wheel_loads.pushrod_offset_*_N, car_data.json motion_ratio_vs_wheel_travel/arb tables",
       "note": "Per corner: a corner with a missing or failed damper or travel channel falls back to the Level 1 static split for that corner alone, recorded per sample."
+    },
+    "engine_braking": {
+      "level": 1,
+      "source": "config default signal_corrections.engine_braking.drag_force_N: constant closed-throttle engine drag on the driven rear axle in the fit-L axle split (Mitschke & Wallentowitz sec. 33.4.2; Rajamani 2012 sec. 4.2)",
+      "capped_by": "chained-constant: signal_corrections.engine_braking.drag_force_N",
+      "note": "Pooled coasting estimate of ORDER SPEED-0b (six sessions with coasting samples, real config, IMU bias corrected per lap): -1.23 to -1.73 kN, median -1.50 kN. Constant, although the anchor's engine braking torque depends on engine speed and total ratio; Paul Ricard offers no coasting value of its own."
     },
     "wheel_load_damper_reconstructed": {
       "level": 1,

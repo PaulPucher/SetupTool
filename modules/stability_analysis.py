@@ -20,7 +20,12 @@ CAR_DATA_PATH = repo_path("config", "car_data.json")
 # edit, mask, channel correction, zero entry) -- the caches do not see
 # config edits. Not for read/render-only changes. Mismatch = recompute on
 # open.
-ANALYSIS_SCHEMA_VERSION = 30
+# 31 (2026-11-06): ORDER SPEED-1 signal corrections R1-R3 (config
+# signal_corrections, modules/signal_corrections.py). 32 (2026-11-06):
+# SPEED-1c, R3 offsets from the standstill (yaw rate, a_y) and from
+# near-zero-yaw straights (steering). 33 (2026-11-06): SPEED-2a,
+# re-derived thresholds adopted (CS tiers, NIS gate, boundary margins).
+ANALYSIS_SCHEMA_VERSION = 33
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

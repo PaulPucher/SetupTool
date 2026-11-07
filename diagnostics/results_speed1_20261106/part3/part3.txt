@@ -1,0 +1,225 @@
+=== (0) all off  (10 sessions)
+POOLED: verdicts 157; kinematic fallback / degenerate: none
+  stored-payload identity (verdicts, recommendation, counted symptoms): all ten equal
+- NBR1: fit ok, gate pass health 0.210, fallback False; K f/r 25.70 / 25.05, mu f/r 1.770 / 1.561; braking excl f/r 0.186 / 0.184
+    corners parsed 90, verdicts 15; recommendation: arb_rl+arb_rr softer, net 8.00
+- NBR2: fit ok, gate pass health 0.214, fallback False; K f/r 26.75 / 24.98, mu f/r 1.820 / 1.524; braking excl f/r 0.203 / 0.198
+    corners parsed 30, verdicts 15; recommendation: none
+- NBR3: fit ok, gate pass health 0.244, fallback False; K f/r 26.85 / 24.86, mu f/r 1.943 / 1.587; braking excl f/r 0.184 / 0.183
+    corners parsed 64, verdicts 16; recommendation: none
+- NBR4: fit ok, gate pass health 0.227, fallback False; K f/r 26.18 / 24.88, mu f/r 1.925 / 1.524; braking excl f/r 0.191 / 0.188
+    corners parsed 30, verdicts 15; recommendation: none
+- NBR5: fit marginal, gate pass health 0.204, fallback False; K f/r 28.75 / 23.65, mu f/r 2.132 / 1.608; braking excl f/r 0.196 / 0.192
+    corners parsed 75, verdicts 15; recommendation: arb_rl+arb_rr softer, net 4.80
+- PRC1: fit ok, gate pass health 0.183, fallback False; K f/r 20.56 / 17.55, mu f/r 1.741 / 1.610; braking excl f/r 0.197 / 0.194
+    corners parsed 48, verdicts 16; recommendation: damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00
+- PRC2: fit ok, gate pass health 0.115, fallback False; K f/r 22.02 / 17.64, mu f/r 1.758 / 1.576; braking excl f/r 0.199 / 0.196
+    corners parsed 28, verdicts 14; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+- PRC3: fit ok, gate pass health 0.137, fallback False; K f/r 23.63 / 17.48, mu f/r 1.907 / 1.608; braking excl f/r 0.187 / 0.184
+    corners parsed 89, verdicts 18; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+- PRC4: fit ok, gate pass health 0.153, fallback False; K f/r 25.38 / 18.08, mu f/r 1.901 / 1.618; braking excl f/r 0.191 / 0.187
+    corners parsed 153, verdicts 17; recommendation: none
+- PRC5: fit marginal, gate pass health 0.147, fallback False; K f/r 24.62 / 17.38, mu f/r 2.010 / 1.638; braking excl f/r 0.210 / 0.207
+    corners parsed 80, verdicts 16; recommendation: ride_height_rear decrease, net 2.00
+
+=== (1) R1  (10 sessions)
+POOLED: verdicts 157; kinematic fallback / degenerate: none
+  changed verdicts vs (0): 4 of 157; vs (0) all off: 4
+  changed counted symptoms vs (0): 3; vs (0) all off: 3
+  sessions whose recommendation differs from (0): ['NBR5']
+- NBR1: fit ok, gate pass health 0.209, fallback False; K f/r 25.68 / 24.01, mu f/r 1.770 / 1.561; braking excl f/r 0.186 / 0.184
+    R1: applied, flagged 234 samples (153 events), replaced 3595, max excess 42.9 m/s
+    corners parsed 90, verdicts 15; recommendation: arb_rl+arb_rr softer, net 8.00
+    verdicts vs (0): C7 'ok' -> 'understeer @ exit'
+    verdicts vs (0) all off: C7 'ok' -> 'understeer @ exit'
+- NBR2: fit ok, gate pass health 0.190, fallback False; K f/r 26.20 / 23.65, mu f/r 1.821 / 1.524; braking excl f/r 0.205 / 0.200
+    R1: applied, flagged 193 samples (148 events), replaced 2316, max excess 60.4 m/s
+    corners parsed 30, verdicts 15; recommendation: none
+- NBR3: fit ok, gate pass health 0.239, fallback False; K f/r 26.62 / 24.28, mu f/r 1.943 / 1.587; braking excl f/r 0.185 / 0.183
+    R1: applied, flagged 132 samples (99 events), replaced 2331, max excess 30.2 m/s
+    corners parsed 64, verdicts 16; recommendation: none
+- NBR4: fit ok, gate pass health 0.229, fallback False; K f/r 25.55 / 23.82, mu f/r 1.925 / 1.524; braking excl f/r 0.191 / 0.188
+    R1: applied, flagged 115 samples (85 events), replaced 1768, max excess 82.7 m/s
+    corners parsed 30, verdicts 15; recommendation: none
+    verdicts vs (0): C13 'understeer @ apex [MARGINAL]' -> 'understeer @ apex'
+    verdicts vs (0) all off: C13 'understeer @ apex [MARGINAL]' -> 'understeer @ apex'
+- NBR5: fit marginal, gate pass health 0.202, fallback False; K f/r 28.49 / 22.81, mu f/r 2.132 / 1.608; braking excl f/r 0.196 / 0.192
+    R1: applied, flagged 146 samples (108 events), replaced 2339, max excess 58.8 m/s
+    corners parsed 75, verdicts 15; recommendation: arb_rl+arb_rr softer, net 10.00
+    verdicts vs (0): C5 'ok' -> 'open-loop unstable @ apex'; C6 'no CS data' -> 'ok'
+    counted vs (0): C1 US exit_4 laps 3 -> None; C5 INST apex_3 laps None -> 5; C5 INST exit_4 laps None -> 5
+    recommendation vs (0): arb_rl+arb_rr softer, net 4.80 -> arb_rl+arb_rr softer, net 10.00
+    verdicts vs (0) all off: C5 'ok' -> 'open-loop unstable @ apex'; C6 'no CS data' -> 'ok'
+    counted vs (0) all off: C1 US exit_4 laps 3 -> None; C5 INST apex_3 laps None -> 5; C5 INST exit_4 laps None -> 5
+    recommendation vs (0) all off: arb_rl+arb_rr softer, net 4.80 -> arb_rl+arb_rr softer, net 10.00
+- PRC1: fit ok, gate pass health 0.183, fallback False; K f/r 20.47 / 17.36, mu f/r 1.741 / 1.611; braking excl f/r 0.198 / 0.195
+    R1: applied, flagged 97 samples (69 events), replaced 1408, max excess 62.8 m/s
+    corners parsed 48, verdicts 16; recommendation: damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00
+- PRC2: fit ok, gate pass health 0.115, fallback False; K f/r 21.98 / 17.64, mu f/r 1.758 / 1.576; braking excl f/r 0.199 / 0.196
+    R1: applied, flagged 27 samples (23 events), replaced 765, max excess 25.2 m/s
+    corners parsed 28, verdicts 14; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+- PRC3: fit ok, gate pass health 0.136, fallback False; K f/r 23.76 / 17.29, mu f/r 1.908 / 1.609; braking excl f/r 0.189 / 0.186
+    R1: applied, flagged 93 samples (72 events), replaced 2292, max excess 33.7 m/s
+    corners parsed 89, verdicts 18; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+- PRC4: fit ok, gate pass health 0.153, fallback False; K f/r 25.52 / 18.06, mu f/r 1.901 / 1.618; braking excl f/r 0.191 / 0.188
+    R1: applied, flagged 116 samples (93 events), replaced 2852, max excess 23.1 m/s
+    corners parsed 153, verdicts 17; recommendation: none
+- PRC5: fit marginal, gate pass health 0.148, fallback False; K f/r 24.79 / 17.36, mu f/r 2.010 / 1.638; braking excl f/r 0.210 / 0.207
+    R1: applied, flagged 113 samples (82 events), replaced 2696, max excess 14.8 m/s
+    corners parsed 80, verdicts 16; recommendation: ride_height_rear decrease, net 2.00
+
+=== (2) R1+R2  (10 sessions)
+POOLED: verdicts 157; kinematic fallback / degenerate: none
+  changed verdicts vs (0): 8 of 157; vs (1) R1: 4
+  changed counted symptoms vs (0): 3; vs (1) R1: 0
+  sessions whose recommendation differs from (0): ['NBR5']
+- NBR1: fit ok, gate pass health 0.212, fallback False; K f/r 25.73 / 22.87, mu f/r 1.770 / 1.550; braking excl f/r 0.164 / 0.211
+    R1: applied, flagged 234 samples (153 events), replaced 3595, max excess 42.9 m/s
+    R2: applied, share of moving samples 0.243, of the fit population 0.277
+    corners parsed 90, verdicts 15; recommendation: arb_rl+arb_rr softer, net 8.00
+    verdicts vs (0): C7 'ok' -> 'understeer @ exit'; C11 'open-loop unstable @ exit' -> 'understeer @ exit | open-loop unstable @ exit'
+    verdicts vs (1) R1: C11 'open-loop unstable @ exit' -> 'understeer @ exit | open-loop unstable @ exit'
+- NBR2: fit ok, gate pass health 0.190, fallback False; K f/r 25.55 / 22.18, mu f/r 1.813 / 1.498; braking excl f/r 0.179 / 0.226
+    R1: applied, flagged 193 samples (148 events), replaced 2316, max excess 60.4 m/s
+    R2: applied, share of moving samples 0.238, of the fit population 0.276
+    corners parsed 30, verdicts 15; recommendation: none
+- NBR3: fit ok, gate pass health 0.245, fallback False; K f/r 26.65 / 23.57, mu f/r 1.941 / 1.553; braking excl f/r 0.161 / 0.212
+    R1: applied, flagged 132 samples (99 events), replaced 2331, max excess 30.2 m/s
+    R2: applied, share of moving samples 0.240, of the fit population 0.262
+    corners parsed 64, verdicts 16; recommendation: none
+- NBR4: fit ok, gate pass health 0.231, fallback False; K f/r 25.65 / 22.67, mu f/r 1.923 / 1.493; braking excl f/r 0.165 / 0.211
+    R1: applied, flagged 115 samples (85 events), replaced 1768, max excess 82.7 m/s
+    R2: applied, share of moving samples 0.235, of the fit population 0.266
+    corners parsed 30, verdicts 15; recommendation: none
+    verdicts vs (0): C1 'understeer @ exit' -> 'ok'; C13 'understeer @ apex [MARGINAL]' -> 'understeer @ apex'
+    verdicts vs (1) R1: C1 'understeer @ exit' -> 'ok'
+- NBR5: fit marginal, gate pass health 0.205, fallback False; K f/r 28.34 / 21.43, mu f/r 2.130 / 1.598; braking excl f/r 0.170 / 0.218
+    R1: applied, flagged 146 samples (108 events), replaced 2339, max excess 58.8 m/s
+    R2: applied, share of moving samples 0.235, of the fit population 0.254
+    corners parsed 75, verdicts 15; recommendation: arb_rl+arb_rr softer, net 10.00
+    verdicts vs (0): C5 'ok' -> 'open-loop unstable @ apex'; C6 'no CS data' -> 'ok'
+    counted vs (0): C1 US exit_4 laps 3 -> None; C5 INST apex_3 laps None -> 5; C5 INST exit_4 laps None -> 5
+    recommendation vs (0): arb_rl+arb_rr softer, net 4.80 -> arb_rl+arb_rr softer, net 10.00
+- PRC1: fit ok, gate pass health 0.185, fallback False; K f/r 20.52 / 17.00, mu f/r 1.741 / 1.608; braking excl f/r 0.172 / 0.214
+    R1: applied, flagged 97 samples (69 events), replaced 1408, max excess 62.8 m/s
+    R2: applied, share of moving samples 0.208, of the fit population 0.263
+    corners parsed 48, verdicts 16; recommendation: damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00
+- PRC2: fit ok, gate pass health 0.115, fallback False; K f/r 22.15 / 17.12, mu f/r 1.756 / 1.576; braking excl f/r 0.182 / 0.212
+    R1: applied, flagged 27 samples (23 events), replaced 765, max excess 25.2 m/s
+    R2: applied, share of moving samples 0.205, of the fit population 0.267
+    corners parsed 28, verdicts 14; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+- PRC3: fit ok, gate pass health 0.141, fallback False; K f/r 23.74 / 16.07, mu f/r 1.907 / 1.606; braking excl f/r 0.167 / 0.207
+    R1: applied, flagged 93 samples (72 events), replaced 2292, max excess 33.7 m/s
+    R2: applied, share of moving samples 0.226, of the fit population 0.266
+    corners parsed 89, verdicts 18; recommendation: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00
+    verdicts vs (0): C15 'open-loop unstable @ exit' -> 'understeer @ exit [MARGINAL] | open-loop unstable @ exit'; C18 'understeer @ exit [MARGINAL]' -> 'understeer @ exit'
+    verdicts vs (1) R1: C15 'open-loop unstable @ exit' -> 'understeer @ exit [MARGINAL] | open-loop unstable @ exit'; C18 'understeer @ exit [MARGINAL]' -> 'understeer @ exit'
+- PRC4: fit ok, gate pass health 0.157, fallback False; K f/r 25.40 / 17.44, mu f/r 1.900 / 1.611; braking excl f/r 0.169 / 0.204
+    R1: applied, flagged 116 samples (93 events), replaced 2852, max excess 23.1 m/s
+    R2: applied, share of moving samples 0.187, of the fit population 0.205
+    corners parsed 153, verdicts 17; recommendation: none
+- PRC5: fit marginal, gate pass health 0.154, fallback False; K f/r 24.86 / 16.57, mu f/r 2.008 / 1.630; braking excl f/r 0.180 / 0.228
+    R1: applied, flagged 113 samples (82 events), replaced 2696, max excess 14.8 m/s
+    R2: applied, share of moving samples 0.238, of the fit population 0.287
+    corners parsed 80, verdicts 16; recommendation: ride_height_rear decrease, net 2.00
+
+=== (3) R1+R2+R3  (10 sessions)
+POOLED: verdicts 158; kinematic fallback / degenerate: none
+  changed verdicts vs (0): 34 of 158; vs (2) R1+R2: 33
+  changed counted symptoms vs (0): 12; vs (2) R1+R2: 13
+  sessions whose recommendation differs from (0): ['NBR1', 'NBR5', 'PRC2', 'PRC3']
+- NBR1: fit ok, gate pass health 0.215, fallback False; K f/r 25.61 / 19.82, mu f/r 1.716 / 1.525; braking excl f/r 0.160 / 0.205
+    R1: applied, flagged 234 samples (153 events), replaced 3595, max excess 42.9 m/s
+    R2: applied, share of moving samples 0.243, of the fit population 0.269
+    R3: applied, straights 41.2 s; sclu_yaw_rate -0.0333 rpm; log_acc_y 0.0505 G; log_asteer 3.5000 °
+    corners parsed 96, verdicts 16; recommendation: ride_height_rear decrease, net 4.00
+    verdicts vs (0): C1 'understeer @ exit' -> 'ok'; C2 'ok' -> 'understeer @ exit'; C3 'understeer @ apex [MARGINAL]' -> 'ok'; C4 'ok' -> 'understeer @ apex'; C6 'no CS data' -> 'ok'; C7 'ok' -> 'no CS data'; C8 'open-loop unstable @ apex' -> 'ok'; C9 'ok' -> 'open-loop unstable @ apex'; C11 'open-loop unstable @ exit' -> 'ok'; C15 'understeer @ exit' -> 'ok'; C16 'None' -> 'understeer @ exit'
+    counted vs (0): C11 INST apex_3 laps 6 -> None; C11 INST exit_4 laps 6 -> None; C8 INST apex_3 laps 6 -> None; C8 INST entry_2_turnin laps 6 -> None; C9 INST apex_3 laps None -> 6; C9 INST entry_2_turnin laps None -> 6
+    recommendation vs (0): arb_rl+arb_rr softer, net 8.00 -> ride_height_rear decrease, net 4.00
+    verdicts vs (2) R1+R2: C1 'understeer @ exit' -> 'ok'; C2 'ok' -> 'understeer @ exit'; C3 'understeer @ apex [MARGINAL]' -> 'ok'; C4 'ok' -> 'understeer @ apex'; C6 'no CS data' -> 'ok'; C7 'understeer @ exit' -> 'no CS data'; C8 'open-loop unstable @ apex' -> 'ok'; C9 'ok' -> 'open-loop unstable @ apex'; C11 'understeer @ exit | open-loop unstable @ exit' -> 'ok'; C15 'understeer @ exit' -> 'ok'; C16 'None' -> 'understeer @ exit'
+    counted vs (2) R1+R2: C11 INST apex_3 laps 6 -> None; C11 INST exit_4 laps 6 -> None; C8 INST apex_3 laps 6 -> None; C8 INST entry_2_turnin laps 6 -> None; C9 INST apex_3 laps None -> 6; C9 INST entry_2_turnin laps None -> 6
+    recommendation vs (2) R1+R2: arb_rl+arb_rr softer, net 8.00 -> ride_height_rear decrease, net 4.00
+    a_y / (v r): median 1.043, p10 0.894, p90 1.253 (n 12395)
+- NBR2: fit ok, gate pass health 0.185, fallback False; K f/r 25.09 / 20.76, mu f/r 1.799 / 1.478; braking excl f/r 0.179 / 0.226
+    R1: applied, flagged 193 samples (148 events), replaced 2316, max excess 60.4 m/s
+    R2: applied, share of moving samples 0.238, of the fit population 0.276
+    R3: applied, straights 8.3 s; sclu_yaw_rate -0.0583 rpm; log_acc_y 0.0381 G; log_asteer 3.5000 °
+    corners parsed 30, verdicts 15; recommendation: none
+    verdicts vs (0): C1 'understeer @ exit' -> 'ok'
+    verdicts vs (2) R1+R2: C1 'understeer @ exit' -> 'ok'
+    a_y / (v r): median 1.042, p10 0.872, p90 1.279 (n 6485)
+- NBR3: fit ok, gate pass health 0.242, fallback False; K f/r 25.81 / 21.32, mu f/r 1.883 / 1.527; braking excl f/r 0.161 / 0.212
+    R1: applied, flagged 132 samples (99 events), replaced 2331, max excess 30.2 m/s
+    R2: applied, share of moving samples 0.240, of the fit population 0.262
+    R3: applied, straights 14.1 s; sclu_yaw_rate -0.0350 rpm; log_acc_y 0.0522 G; log_asteer 0.5000 °
+    corners parsed 64, verdicts 16; recommendation: none
+    a_y / (v r): median 1.044, p10 0.905, p90 1.249 (n 9992)
+- NBR4: fit ok, gate pass health 0.234, fallback False; K f/r 25.64 / 22.94, mu f/r 1.916 / 1.491; braking excl f/r 0.165 / 0.211
+    R1: applied, flagged 115 samples (85 events), replaced 1768, max excess 82.7 m/s
+    R2: applied, share of moving samples 0.235, of the fit population 0.266
+    R3: applied, straights 15.6 s; sclu_yaw_rate -0.0883 rpm; log_acc_y 0.0054 G; log_asteer -0.5000 °
+    corners parsed 30, verdicts 15; recommendation: none
+    verdicts vs (0): C1 'understeer @ exit' -> 'understeer @ exit [MARGINAL]'; C13 'understeer @ apex [MARGINAL]' -> 'understeer @ apex'
+    verdicts vs (2) R1+R2: C1 'ok' -> 'understeer @ exit [MARGINAL]'
+    a_y / (v r): median 1.039, p10 0.885, p90 1.269 (n 6499)
+- NBR5: fit marginal, gate pass health 0.196, fallback False; K f/r 27.69 / 18.51, mu f/r 2.082 / 1.579; braking excl f/r 0.169 / 0.218
+    R1: applied, flagged 146 samples (108 events), replaced 2339, max excess 58.8 m/s
+    R2: applied, share of moving samples 0.235, of the fit population 0.254
+    R3: applied, straights 27.3 s; sclu_yaw_rate -0.0283 rpm; log_acc_y 0.0517 G; log_asteer -0.6000 °
+    corners parsed 75, verdicts 15; recommendation: arb_rl+arb_rr softer, net 4.00
+    verdicts vs (0): C6 'no CS data' -> 'ok'; C15 'ok' -> 'oversteer @ exit'
+    counted vs (0): C1 US exit_4 laps 3 -> None; C9 INST apex_3 laps 5 -> None
+    recommendation vs (0): arb_rl+arb_rr softer, net 4.80 -> arb_rl+arb_rr softer, net 4.00
+    verdicts vs (2) R1+R2: C5 'open-loop unstable @ apex' -> 'ok'; C15 'ok' -> 'oversteer @ exit'
+    counted vs (2) R1+R2: C5 INST apex_3 laps 5 -> None; C5 INST exit_4 laps 5 -> None; C9 INST apex_3 laps 5 -> None
+    recommendation vs (2) R1+R2: arb_rl+arb_rr softer, net 10.00 -> arb_rl+arb_rr softer, net 4.00
+    a_y / (v r): median 1.038, p10 0.886, p90 1.254 (n 11905)
+- PRC1: fit ok, gate pass health 0.178, fallback False; K f/r 20.00 / 17.63, mu f/r 1.757 / 1.597; braking excl f/r 0.172 / 0.214
+    R1: applied, flagged 97 samples (69 events), replaced 1408, max excess 62.8 m/s
+    R2: applied, share of moving samples 0.208, of the fit population 0.263
+    R3: applied, straights 13.6 s; sclu_yaw_rate -0.0400 rpm; log_acc_y 0.0415 G; log_asteer 1.2000 °
+    corners parsed 48, verdicts 16; recommendation: damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00
+    verdicts vs (0): C1 'understeer @ apex' -> 'ok'; C9 'ok' -> 'understeer @ apex [MARGINAL]'; C12 'oversteer @ exit' -> 'ok'
+    verdicts vs (2) R1+R2: C1 'understeer @ apex' -> 'ok'; C9 'ok' -> 'understeer @ apex [MARGINAL]'; C12 'oversteer @ exit' -> 'ok'
+    a_y / (v r): median 1.069, p10 0.905, p90 1.292 (n 6379)
+- PRC2: fit ok, gate pass health 0.116, fallback False; K f/r 22.34 / 17.38, mu f/r 1.789 / 1.578; braking excl f/r 0.182 / 0.212
+    R1: applied, flagged 27 samples (23 events), replaced 765, max excess 25.2 m/s
+    R2: applied, share of moving samples 0.205, of the fit population 0.267
+    R3: applied, straights 9.8 s; sclu_yaw_rate -0.0433 rpm; log_acc_y 0.0378 G; log_asteer 1.4000 °
+    corners parsed 28, verdicts 14; recommendation: arb_rl+arb_rr softer, net 4.00
+    verdicts vs (0): C1 'understeer @ apex' -> 'ok'; C6 'understeer @ exit' -> 'understeer @ exit [MARGINAL]'; C10 'ok' -> 'open-loop unstable @ turn-in'
+    counted vs (0): C10 INST entry_2_turnin laps None -> 2
+    recommendation vs (0): damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 -> arb_rl+arb_rr softer, net 4.00
+    verdicts vs (2) R1+R2: C1 'understeer @ apex' -> 'ok'; C6 'understeer @ exit' -> 'understeer @ exit [MARGINAL]'; C10 'ok' -> 'open-loop unstable @ turn-in'
+    counted vs (2) R1+R2: C10 INST entry_2_turnin laps None -> 2
+    recommendation vs (2) R1+R2: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 -> arb_rl+arb_rr softer, net 4.00
+    a_y / (v r): median 1.063, p10 0.898, p90 1.286 (n 4086)
+- PRC3: fit ok, gate pass health 0.138, fallback False; K f/r 24.14 / 16.24, mu f/r 1.892 / 1.606; braking excl f/r 0.166 / 0.205
+    R1: applied, flagged 93 samples (72 events), replaced 2292, max excess 33.7 m/s
+    R2: applied, share of moving samples 0.226, of the fit population 0.263
+    R3: applied, straights 57.8 s; sclu_yaw_rate -0.0583 rpm; log_acc_y 0.0386 G; log_asteer 4.9000 °
+    corners parsed 90, verdicts 18; recommendation: toe_rear more toe-in, net 2.00
+    verdicts vs (0): C5 'understeer @ exit' -> 'ok'; C6 'ok' -> 'understeer @ exit'; C7 'ok' -> 'understeer @ exit [MARGINAL]'; C10 'understeer @ exit' -> 'ok'; C11 'ok' -> 'oversteer @ exit'; C17 'oversteer @ exit' -> 'understeer @ exit [MARGINAL]'; C18 'understeer @ exit [MARGINAL]' -> 'understeer @ exit'
+    counted vs (0): C11 US exit_4 laps None -> 3; C15 INST exit_4 laps None -> 5; C15 INST exit_5 laps 5 -> None
+    recommendation vs (0): damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 -> toe_rear more toe-in, net 2.00
+    verdicts vs (2) R1+R2: C5 'understeer @ exit' -> 'ok'; C6 'ok' -> 'understeer @ exit'; C7 'ok' -> 'understeer @ exit [MARGINAL]'; C10 'understeer @ exit' -> 'ok'; C11 'ok' -> 'oversteer @ exit'; C15 'understeer @ exit [MARGINAL] | open-loop unstable @ exit' -> 'open-loop unstable @ exit'; C17 'oversteer @ exit' -> 'understeer @ exit [MARGINAL]'
+    counted vs (2) R1+R2: C11 US exit_4 laps None -> 3; C15 INST exit_4 laps None -> 5; C15 INST exit_5 laps 5 -> None
+    recommendation vs (2) R1+R2: damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 -> toe_rear more toe-in, net 2.00
+    a_y / (v r): median 1.069, p10 0.913, p90 1.267 (n 10503)
+- PRC4: fit ok, gate pass health 0.163, fallback False; K f/r 25.09 / 17.72, mu f/r 1.897 / 1.593; braking excl f/r 0.169 / 0.204
+    R1: applied, flagged 116 samples (93 events), replaced 2852, max excess 23.1 m/s
+    R2: applied, share of moving samples 0.187, of the fit population 0.205
+    R3: applied, straights 117.9 s; sclu_yaw_rate -0.0533 rpm; log_acc_y 0.0360 G; log_asteer 1.5000 °
+    corners parsed 153, verdicts 17; recommendation: none
+    verdicts vs (0): C4 'ok' -> 'understeer @ apex [MARGINAL]'; C14 'understeer @ exit [MARGINAL]' -> 'ok'
+    verdicts vs (2) R1+R2: C4 'ok' -> 'understeer @ apex [MARGINAL]'; C14 'understeer @ exit [MARGINAL]' -> 'ok'
+    a_y / (v r): median 1.063, p10 0.907, p90 1.268 (n 20188)
+- PRC5: fit ok, gate pass health 0.161, fallback False; K f/r 24.89 / 15.74, mu f/r 1.988 / 1.635; braking excl f/r 0.179 / 0.228
+    R1: applied, flagged 113 samples (82 events), replaced 2696, max excess 14.8 m/s
+    R2: applied, share of moving samples 0.238, of the fit population 0.287
+    R3: applied, straights 67.3 s; sclu_yaw_rate -0.0600 rpm; log_acc_y 0.0345 G; log_asteer 1.9000 °
+    corners parsed 80, verdicts 16; recommendation: ride_height_rear decrease, net 2.00
+    verdicts vs (0): C2 'ok' -> 'oversteer @ turn-in'; C5 'understeer @ exit' -> 'understeer @ apex'; C13 'ok' -> 'oversteer @ exit'
+    verdicts vs (2) R1+R2: C2 'ok' -> 'oversteer @ turn-in'; C5 'understeer @ exit' -> 'understeer @ apex'; C13 'ok' -> 'oversteer @ exit'
+    a_y / (v r): median 1.064, p10 0.923, p90 1.266 (n 10975)
+

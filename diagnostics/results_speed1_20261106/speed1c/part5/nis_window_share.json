@@ -1,0 +1,190 @@
+{
+ "per_session": {
+  "nbr_o05_mla": {
+   "label": "NBR outing 5 MLA",
+   "below": 0.7075312242913768,
+   "in_band": 0.20053847879739736,
+   "above": 0.09193029691122578,
+   "skipped": 0,
+   "n_valid": 66855,
+   "n_masked": 66855,
+   "gate_health_score": 0.20053847879739736,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o10_jdr": {
+   "label": "NBR outing 10 JDR",
+   "below": 0.8387989706430096,
+   "in_band": 0.12079707445907967,
+   "above": 0.040403954897910814,
+   "skipped": 0,
+   "n_valid": 118132,
+   "n_masked": 118132,
+   "gate_health_score": 0.12079707445907967,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o20_jst": {
+   "label": "NBR outing 20 JST",
+   "below": 0.6003063159430155,
+   "in_band": 0.2477269412165119,
+   "above": 0.1519667428404726,
+   "skipped": 0,
+   "n_valid": 41134,
+   "n_masked": 41134,
+   "gate_health_score": 0.2477269412165119,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o29_jst": {
+   "label": "NBR outing 29 JST (NBR_Sturm_Solution copy)",
+   "below": 0.6678880423553719,
+   "in_band": 0.21595751549586778,
+   "above": 0.11615444214876033,
+   "skipped": 0,
+   "n_valid": 61952,
+   "n_masked": 61952,
+   "gate_health_score": 0.21595751549586778,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o46_jst": {
+   "label": "NBR outing 46 JST",
+   "below": 0.73788804986216,
+   "in_band": 0.15128850533381277,
+   "above": 0.11082344480402732,
+   "skipped": 0,
+   "n_valid": 41715,
+   "n_masked": 41715,
+   "gate_health_score": 0.15128850533381277,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o53_mla": {
+   "label": "NBR outing 53 MLA",
+   "below": 0.6638308431257866,
+   "in_band": 0.21414012513071373,
+   "above": 0.12202903174349976,
+   "skipped": 0,
+   "n_valid": 56421,
+   "n_masked": 56421,
+   "gate_health_score": 0.21414012513071373,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o54_cdr": {
+   "label": "NBR outing 54 CDR",
+   "below": 0.6965592752579793,
+   "in_band": 0.17698584113270938,
+   "above": 0.12645488360931126,
+   "skipped": 0,
+   "n_valid": 66672,
+   "n_masked": 66672,
+   "gate_health_score": 0.17698584113270938,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o59_mla": {
+   "label": "NBR outing 59 MLA",
+   "below": 0.7040429922223986,
+   "in_band": 0.20208158545157706,
+   "above": 0.09387542232602435,
+   "skipped": 0,
+   "n_valid": 44101,
+   "n_masked": 44101,
+   "gate_health_score": 0.20208158545157706,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o61_jdr": {
+   "label": "NBR outing 61 JDR",
+   "below": 0.7792079533857853,
+   "in_band": 0.1603735282176208,
+   "above": 0.060418518396593915,
+   "skipped": 0,
+   "n_valid": 91131,
+   "n_masked": 91131,
+   "gate_health_score": 0.1603735282176208,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_o63_cdr": {
+   "label": "NBR outing 63 CDR",
+   "below": 0.6916483516483517,
+   "in_band": 0.19417582417582419,
+   "above": 0.11417582417582417,
+   "skipped": 0,
+   "n_valid": 63700,
+   "n_masked": 63700,
+   "gate_health_score": 0.19417582417582419,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_qp_cdr": {
+   "label": "NBR qualifying CDR (outing 69)",
+   "below": 0.678151381197836,
+   "in_band": 0.1854842570575938,
+   "above": 0.13636436174457017,
+   "skipped": 0,
+   "n_valid": 62663,
+   "n_masked": 62663,
+   "gate_health_score": 0.1854842570575938,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "nbr_qp_mla": {
+   "label": "NBR qualifying MLA (outing 70)",
+   "below": 0.7761020507024059,
+   "in_band": 0.1409333118036493,
+   "above": 0.08296463749394478,
+   "skipped": 0,
+   "n_valid": 61930,
+   "n_masked": 61930,
+   "gate_health_score": 0.1409333118036493,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "pr_o25_us_v1": {
+   "label": "Le Castellet outing 25, MLA-SE07_US-v1",
+   "below": 0.7688863665027116,
+   "in_band": 0.11360196746121831,
+   "above": 0.11751166603607012,
+   "skipped": 0,
+   "n_valid": 31716,
+   "n_masked": 31716,
+   "gate_health_score": 0.11360196746121831,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  },
+  "pr_o32_us_v2": {
+   "label": "Le Castellet outing 32, MLA-SE07_US-v2",
+   "below": 0.703468053614012,
+   "in_band": 0.16484047364525944,
+   "above": 0.13169147274072857,
+   "skipped": 0,
+   "n_valid": 97288,
+   "n_masked": 97288,
+   "gate_health_score": 0.16484047364525944,
+   "gate_verdict": "pass",
+   "acceptance_ok": true
+  }
+ },
+ "pooled_sample_weighted": {
+  "below": 0.7252382898355442,
+  "in": 0.1737621629979788,
+  "above": 0.10099954716647706
+ },
+ "totals": {
+  "n_valid": 905410,
+  "n_below": 656638,
+  "n_in": 157326,
+  "n_above": 91446,
+  "n_skipped_low_coverage": 0
+ },
+ "mismatches": [],
+ "nis_gate": {
+  "nis_window_s": 0.4,
+  "nis_band_low": 0.03,
+  "nis_band_high": 0.15
+ }
+}

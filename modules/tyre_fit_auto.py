@@ -25,6 +25,7 @@ from modules.stability_analysis import (
     estimate_lateral_forces, estimate_vertical_loads, load_car_data, apex_instant_slice,
     _butterworth_lowpass,
 )
+from modules import signal_corrections as sc
 from modules.loads import estimate_longitudinal_forces
 from modules.tyre_model_pacejka import pacejka_lateral_force
 from modules.storage import REPO_ROOT
@@ -302,7 +303,24 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
     fx = estimate_longitudinal_forces(state, data["channels"], params)
     fx_cog = fx["fx_N"]
     with np.errstate(invalid="ignore", divide="ignore"):
-        fx_front = np.where(fx_cog < 0.0, fx_cog * fz["fz_f_N"] / (fz["fz_f_N"] + fz["fz_r_N"]), 0.0)
+        share_f = fz["fz_f_N"] / (fz["fz_f_N"] + fz["fz_r_N"])
+        fx_front = np.where(fx_cog < 0.0, fx_cog * share_f, 0.0)
+    # R2 (signal_corrections.engine_braking): closed-throttle engine drag to
+    # the driven rear axle before the load split of the remainder
+    eb_cfg = sc.config(params, "engine_braking")
+    eb_rec = None
+    if eb_cfg is not None:
+        eb_rec = {"enabled": True, "drag_force_N": eb_cfg["drag_force_N"],
+                  "throttle_closed_max_pct": eb_cfg["throttle_closed_max_pct"],
+                  "accuracy_level": params["accuracy_levels"]["engine_braking"]["level"]}
+        if state.get("throttle_pct") is None:
+            eb_rec.update(applied=False, status="no_throttle_channel")
+        else:
+            with np.errstate(invalid="ignore"):
+                fx_front, eb = sc.engine_braking_front_fx(fx_cog, share_f, state["throttle_pct"], eb_cfg)
+            eb_rec.update(applied=True, status="applied",
+                          share_moving=float(np.mean(eb[state["moving_mask"]])) if state["moving_mask"].any() else 0.0,
+                          share_fit_population=float(np.mean(eb[fit_mask])) if fit_mask.any() else 0.0)
     # rear: its load share of braking plus all of the drive
     raw = {"fz_f_N": fz["fz_f_N"], "fz_r_N": fz["fz_r_N"], "fx_f_N": fx_front, "fx_r_N": fx_cog - fx_front,
            "delta_f": state["delta_f_rad"]}
@@ -345,6 +363,8 @@ def _axle_load_inputs(state, data, params, forces, fit_mask):
         "fx_front_level": min(fx["accuracy_level"], lowest),
         "filter_cutoff_hz": cutoff,
     }
+    if eb_rec is not None:
+        out["engine_braking"] = eb_rec
     return out
 
 
@@ -590,6 +610,13 @@ def fit_session_pacejka(data, params, data_file_path=None, tyre_fit_mode="litera
                   "rear": {k: v for k, v in rear_fit.items() if k not in ("residuals", "residual_mask")}},
     }
     manifest["axle_load"] = load_in["info"]
+    # R1 / R3 records come from the parser, R2 from the axle split; the key
+    # exists only when a correction is switched on
+    corrections = dict(data.get("signal_corrections") or {})
+    if "engine_braking" in load_in:
+        corrections["engine_braking"] = load_in["engine_braking"]
+    if corrections:
+        manifest["signal_corrections"] = corrections
     manifest["front_force_frame"] = "tyre frame (Goblirsch et al. 2025 Eq. 13), fit and observer"
     manifest["fit_density_bin_rad"] = bin_rad
     # measured axle loads (2 Hz zero-phase) for the load-normalised CS

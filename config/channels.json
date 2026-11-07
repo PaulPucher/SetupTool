@@ -137,6 +137,42 @@
         180
       ]
     },
+    "abs_speed_fl": {
+      "label": "ABS Wheel Speed Front Left",
+      "unit": "km/h",
+      "range": [
+        0,
+        400
+      ],
+      "note": "ABS-domain wheel speed of signal_corrections.speed_reference (R1): all four detect the ecu_speed spikes, the fronts replace them. Logged in mph on some exports and kph on others; the declared unit is converted where the channel is used (modules/signal_corrections.py)."
+    },
+    "abs_speed_fr": {
+      "label": "ABS Wheel Speed Front Right",
+      "unit": "km/h",
+      "range": [
+        0,
+        400
+      ],
+      "note": "ABS-domain wheel speed of signal_corrections.speed_reference (R1): all four detect the ecu_speed spikes, the fronts replace them. Logged in mph on some exports and kph on others; the declared unit is converted where the channel is used (modules/signal_corrections.py)."
+    },
+    "abs_speed_rl": {
+      "label": "ABS Wheel Speed Rear Left",
+      "unit": "km/h",
+      "range": [
+        0,
+        400
+      ],
+      "note": "ABS-domain wheel speed of signal_corrections.speed_reference (R1): all four detect the ecu_speed spikes, the fronts replace them. Logged in mph on some exports and kph on others; the declared unit is converted where the channel is used (modules/signal_corrections.py)."
+    },
+    "abs_speed_rr": {
+      "label": "ABS Wheel Speed Rear Right",
+      "unit": "km/h",
+      "range": [
+        0,
+        400
+      ],
+      "note": "ABS-domain wheel speed of signal_corrections.speed_reference (R1): all four detect the ecu_speed spikes, the fronts replace them. Logged in mph on some exports and kph on others; the declared unit is converted where the channel is used (modules/signal_corrections.py)."
+    },
     "log_dms_dam_fl": {
       "label": "Damper Force FL",
       "unit": "N",
@@ -265,16 +301,16 @@
     }
   },
   "event_zero_entries": {
-    "_comment": "Event-specific logger zero entries. A gauge zeroed against a different reference at one event reads a constant offset there; csv_parser subtracts zero_N from the raw channel before the quality / range gate (otherwise the gate fails the channel and the wheel loads drop to the static split). An entry applies to a file only if (a) the header's TrackName and logger serial (and logger_software where given) match, and (b) the channel's raw mean minus zero_N lies inside that channel's own range gate in 'channels', so a gauge re-zeroed at a later event of the same track stays on the static split instead of taking a wrong entry. The NBR FR entry is referenced to the Paul Ricard FR offset including channel_corrections.log_dms_dam_fr; if that correction is re-derived, the FR entry must be re-derived with it. Accuracy: wheel loads from a corrected channel are 'L4 with an L2 zero' (logged sensor + motion-ratio table, zero entry an event measurement, per-corner u in the entries).",
+    "_comment": "Event-specific logger zero entries. A gauge zeroed against a different reference at one event reads a constant offset there; csv_parser subtracts zero_N from the raw channel before the quality / range gate (otherwise the gate fails the channel and the wheel loads drop to the static split). An entry applies to a file only if (a) the header's TrackName and logger serial (and logger_software where given) match, and (b) the channel's raw mean minus zero_N lies inside that channel's own range gate in 'channels', so a gauge re-zeroed at a later event of the same track stays on the static split instead of taking a wrong entry. The NBR FR entry is referenced to the Paul Ricard FR offset including channel_corrections.log_dms_dam_fr; if that correction is re-derived, the FR entry must be re-derived with it. Accuracy: wheel loads from a corrected channel are 'L4 with an L2 zero' (logged sensor + motion-ratio table, zero entry an event measurement, per-corner u in the entries). u_wheel_N: uncertainty of the zero entry at the wheel, read by the mu-uncertainty derivation (diagnostics/inspect_mu_uncertainty.py); not an estimator input.",
     "_procedure": "How an event gets its entry (documented, not automated): (1) check the event's files: header track / serial, raw damper level against the range gate; (2) preferred: the team's static zero check at the event, entered as a measured zero; otherwise per file and corner the gauge-vs-raw-voltage map offset minus the same car's Paul Ricard map offset, median over the event's files; (3) acceptance: u <= 700 N at the wheel and the load validation checks passing on all files of the event; (4) enter the medians with file spread and u. Limitation: the header carries no date, so two events of the same track and logger with near-identical zeros cannot be told apart.",
     "NBR_221": {
       "track": "NBR",
       "logger_serial": "221",
       "channels": {
-        "log_dms_dam_fl": {"zero_N": 58639.912104081246},
-        "log_dms_dam_fr": {"zero_N": 59466.25648145499},
-        "log_dms_dam_rl": {"zero_N": 58419.65233960189},
-        "log_dms_dam_rr": {"zero_N": 58906.647936948786}
+        "log_dms_dam_fl": {"zero_N": 58639.912104081246, "u_wheel_N": 176.86067987317855},
+        "log_dms_dam_fr": {"zero_N": 59466.25648145499, "u_wheel_N": 332.1734924558037},
+        "log_dms_dam_rl": {"zero_N": 58419.65233960189, "u_wheel_N": 389.23661728352465},
+        "log_dms_dam_rr": {"zero_N": 58906.647936948786, "u_wheel_N": 140.25049383447902}
       },
       "derived_from": "derived on the development data (see thesis)"
     },
@@ -283,10 +319,10 @@
       "logger_serial": "221",
       "logger_software": "24996",
       "channels": {
-        "log_dms_dam_fl": {"zero_N": -4791.1567089161545},
-        "log_dms_dam_fr": {"zero_N": -4735.93441509087},
-        "log_dms_dam_rl": {"zero_N": -5827.55773310098},
-        "log_dms_dam_rr": {"zero_N": -5797.749412055788}
+        "log_dms_dam_fl": {"zero_N": -4791.1567089161545, "u_wheel_N": 304.18463120826175},
+        "log_dms_dam_fr": {"zero_N": -4735.93441509087, "u_wheel_N": 458.25135142260285},
+        "log_dms_dam_rl": {"zero_N": -5827.55773310098, "u_wheel_N": 156.77944515913163},
+        "log_dms_dam_rr": {"zero_N": -5797.749412055788, "u_wheel_N": 443.07946174151766}
       },
       "source_sessions": [{"OutingNumber": "41", "SessionNumber": "3"}, {"OutingNumber": "43", "SessionNumber": "3"}],
       "validation_envelope": {

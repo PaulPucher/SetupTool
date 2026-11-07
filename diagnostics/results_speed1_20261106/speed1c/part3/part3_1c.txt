@@ -1,0 +1,56 @@
+PART 2 off vs stored payloads: 157 verdicts, differing sessions: none
+fallback/degenerate run (3): none
+verdicts total (2) 157 (3) 159
+(3) vs r1r2: verdicts 23, counted 4, recommendation changed ['NBR4', 'PRC3']
+(3) vs off: verdicts 23, counted 7, recommendation changed ['NBR4', 'NBR5', 'PRC3']
+(2) vs off: verdicts 8
+front K (3) vs (2) -0.9 to +3.1 %, mu -0.4 to +1.1 %
+rear K (3) vs (2) -1.3 to +3.5 %, mu +0.2 to +1.0 %
+health (3)-(2) x1e-3 -2.8 to +9.0
+- NBR1: corners (0) 90 / (2) 90 / (3) 90; stable verdicts 15; standstill 6.7 s; sclu_yaw_rate -0.300 deg/s (standstill, n 669); log_acc_y -0.113 m/s^2 (standstill, n 669); log_asteer +3.500 deg (straights_near_zero_yaw, n 3521)
+    rec (2): arb_rl+arb_rr softer, net 8.00 | (3): arb_rl+arb_rr softer, net 8.00; verdict changes vs (2): 5; health 0.217; K f/r 26.44/23.02; a_y/(v r) 1.032
+      C3: 'understeer @ apex [MARGINAL]' -> 'understeer @ apex'
+      C5: 'ok' -> 'understeer @ exit [MARGINAL]'
+      C7: 'understeer @ exit' -> 'ok'
+      C11: 'understeer @ exit | open-loop unstable @ exit' -> 'open-loop unstable @ exit'
+      C15: 'understeer @ exit' -> 'understeer @ exit [MARGINAL]'
+- NBR2: corners (0) 30 / (2) 30 / (3) 30; stable verdicts 15; standstill 6.2 s; sclu_yaw_rate -0.310 deg/s (standstill, n 619); log_acc_y -0.137 m/s^2 (standstill, n 619); log_asteer +3.500 deg (straights_near_zero_yaw, n 680)
+    rec (2): none | (3): none; verdict changes vs (2): 0; health 0.199; K f/r 26.33/22.85; a_y/(v r) 1.035
+- NBR3: corners (0) 64 / (2) 64 / (3) 64; stable verdicts 16; standstill 4.0 s; sclu_yaw_rate -0.310 deg/s (standstill, n 403); log_acc_y -0.086 m/s^2 (standstill, n 403); log_asteer +0.500 deg (straights_near_zero_yaw, n 1306)
+    rec (2): none | (3): none; verdict changes vs (2): 0; health 0.248; K f/r 26.77/23.84; a_y/(v r) 1.040
+- NBR4: corners (0) 30 / (2) 30 / (3) 30; stable verdicts 15; standstill 3.4 s; sclu_yaw_rate -0.310 deg/s (standstill, n 335); log_acc_y -0.086 m/s^2 (standstill, n 335); log_asteer -0.100 deg (straights_near_zero_yaw, n 936)
+    rec (2): none | (3): damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00; verdict changes vs (2): 1; health 0.231; K f/r 25.42/23.02; a_y/(v r) 1.040
+      C1: 'ok' -> 'understeer @ exit'
+      counted C1 US exit_4: None -> 2
+- NBR5: corners (0) 75 / (2) 75 / (3) 75; stable verdicts 15; standstill 4.9 s; sclu_yaw_rate -0.310 deg/s (standstill, n 487); log_acc_y -0.167 m/s^2 (standstill, n 487); log_asteer -0.600 deg (straights_near_zero_yaw, n 2151)
+    rec (2): arb_rl+arb_rr softer, net 10.00 | (3): arb_rl+arb_rr softer, net 10.00; verdict changes vs (2): 1; health 0.203; K f/r 28.55/22.19; a_y/(v r) 1.028
+      C15: 'ok' -> 'oversteer @ exit'
+- PRC1: corners (0) 48 / (2) 48 / (3) 51; stable verdicts 17; standstill 2.4 s; sclu_yaw_rate -0.300 deg/s (standstill, n 239); log_acc_y -0.161 m/s^2 (standstill, n 239); log_asteer +1.200 deg (straights_near_zero_yaw, n 1182)
+    rec (2): damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 | (3): damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00; verdict changes vs (2): 5; health 0.187; K f/r 20.63/16.85; a_y/(v r) 1.081
+      C11: 'ok' -> 'no CS data'
+      C12: 'oversteer @ exit' -> 'ok'
+      C13: 'understeer @ exit' -> 'oversteer @ exit [MARGINAL]'
+      C14: 'ok' -> 'understeer @ exit'
+      C17: 'None' -> 'ok'
+      counted C13 US exit_4: 2 -> None
+      counted C14 US exit_4: None -> 2
+- PRC2: corners (0) 28 / (2) 28 / (3) 28; stable verdicts 14; standstill 4.0 s; sclu_yaw_rate -0.300 deg/s (standstill, n 403); log_acc_y -0.168 m/s^2 (standstill, n 403); log_asteer +1.400 deg (straights_near_zero_yaw, n 873)
+    rec (2): damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 | (3): damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00; verdict changes vs (2): 0; health 0.117; K f/r 21.94/17.09; a_y/(v r) 1.077
+- PRC3: corners (0) 89 / (2) 89 / (3) 95; stable verdicts 19; standstill 3.6 s; sclu_yaw_rate -0.375 deg/s (standstill, n 364); log_acc_y -0.182 m/s^2 (standstill, n 364); log_asteer +4.800 deg (straights_near_zero_yaw, n 4296)
+    rec (2): damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 | (3): none; verdict changes vs (2): 10; health 0.140; K f/r 23.79/16.50; a_y/(v r) 1.069
+      C5: 'understeer @ exit' -> 'ok'
+      C6: 'ok' -> 'understeer @ exit'
+      C10: 'understeer @ exit' -> 'oversteer @ exit'
+      C11: 'ok' -> 'understeer @ exit'
+      C14: 'understeer @ apex' -> 'ok'
+      C15: 'understeer @ exit [MARGINAL] | open-loop unstable @ exit' -> 'understeer @ apex'
+      C16: 'ok' -> 'understeer @ apex [MARGINAL]'
+      C17: 'oversteer @ exit' -> 'ok'
+      C18: 'understeer @ exit' -> 'understeer @ apex'
+      C19: 'None' -> 'understeer @ exit [MARGINAL]'
+      counted C15 INST exit_5: 5 -> None
+- PRC4: corners (0) 153 / (2) 153 / (3) 153; stable verdicts 17; standstill 9.4 s; sclu_yaw_rate -0.360 deg/s (standstill, n 941); log_acc_y -0.164 m/s^2 (standstill, n 941); log_asteer +1.500 deg (straights_near_zero_yaw, n 8749)
+    rec (2): none | (3): none; verdict changes vs (2): 1; health 0.165; K f/r 25.56/17.32; a_y/(v r) 1.065
+      C14: 'understeer @ exit [MARGINAL]' -> 'understeer @ exit'
+- PRC5: corners (0) 80 / (2) 80 / (3) 80; stable verdicts 16; standstill 3.5 s; sclu_yaw_rate -0.370 deg/s (standstill, n 355); log_acc_y -0.171 m/s^2 (standstill, n 355); log_asteer +1.900 deg (straights_near_zero_yaw, n 5261)
+    rec (2): ride_height_rear decrease, net 2.00 | (3): ride_height_rear decrease, net 2.00; verdict changes vs (2): 0; health 0.157; K f/r 25.00/16.36; a_y/(v r) 1.072

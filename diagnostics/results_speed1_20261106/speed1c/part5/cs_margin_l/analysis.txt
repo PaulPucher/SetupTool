@@ -1,0 +1,7 @@
+cs_margin RE-DERIVATION on the new default (+/-1 % sweep, 14 sessions); thresholds front (-0.137, -0.023), rear (-0.002, 0.098); config cs_margin now 0.01
+
+runs: 140 variants + 14 baselines; fallback in 0 variant runs; 1145 baseline corner-phases
+FLIPS (axle direction changes, recorded _is_flip): 0 flips, 0 distinct corner-phases
+
+distinct flipped corner-phase distances, descending: 
+observer uncertainty (robustness, Q x 0.3), |corner-value change| median / p90: front 0.017 / 0.085, rear 0.02 / 0.106
