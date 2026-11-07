@@ -29091,9 +29091,9 @@
     "advisory": false,
     "condition_notes": [],
     "side_effect": null,
-    "support": 8.0,
+    "support": 4.0,
     "opposition": 0.0,
-    "net": 8.0,
+    "net": 4.0,
     "limiting_axle": "rear",
     "axle_class": 0,
     "preference": 0,
@@ -29105,7 +29105,7 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "weight": 2.0,
+      "weight": 1.0,
       "driver_only": false
      },
      {
@@ -29115,7 +29115,7 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "weight": 2.0,
+      "weight": 1.0,
       "driver_only": false
      },
      {
@@ -29125,7 +29125,7 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "weight": 2.0,
+      "weight": 1.0,
       "driver_only": false
      },
      {
@@ -29135,7 +29135,7 @@
       "severity": "strong",
       "laps": 6,
       "n_laps": 6,
-      "weight": 2.0,
+      "weight": 1.0,
       "driver_only": false
      }
     ],
@@ -29178,9 +29178,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -29192,7 +29192,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29202,7 +29202,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29212,7 +29212,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29222,7 +29222,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29268,9 +29268,9 @@
       "source": "TE Tab. 5.14 pp. 296-297",
       "text": "disturbing yaw moment in corners at low lateral acceleration"
      },
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 1,
      "preference": 0,
@@ -29282,7 +29282,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29292,7 +29292,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29302,7 +29302,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29312,7 +29312,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29362,9 +29362,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -29376,7 +29376,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29386,7 +29386,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29396,7 +29396,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29406,7 +29406,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29447,9 +29447,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -29461,7 +29461,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29471,7 +29471,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29481,7 +29481,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29491,7 +29491,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29537,9 +29537,9 @@
       "source": "TE Tab. 5.14 pp. 296-297",
       "text": "disturbing yaw moment in corners at low lateral acceleration"
      },
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 1,
      "preference": 0,
@@ -29551,7 +29551,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29561,7 +29561,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29571,7 +29571,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29581,7 +29581,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29629,9 +29629,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 2,
      "preference": 0,
@@ -29643,7 +29643,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29653,7 +29653,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29663,7 +29663,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29673,7 +29673,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29714,9 +29714,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 8.0,
+     "support": 4.0,
      "opposition": 0.0,
-     "net": 8.0,
+     "net": 4.0,
      "limiting_axle": "rear",
      "axle_class": 2,
      "preference": 0,
@@ -29728,7 +29728,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29738,7 +29738,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29748,7 +29748,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29758,7 +29758,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29801,9 +29801,9 @@
       "valid outside the ground-effect stall regime (engineer check)"
      ],
      "side_effect": null,
-     "support": 4.0,
+     "support": 2.0,
      "opposition": 0.0,
-     "net": 4.0,
+     "net": 2.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -29815,7 +29815,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29825,7 +29825,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29866,9 +29866,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 4.0,
+     "support": 2.0,
      "opposition": 0.0,
-     "net": 4.0,
+     "net": 2.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -29880,7 +29880,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29890,7 +29890,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29933,9 +29933,9 @@
       "valid outside the ground-effect stall regime (engineer check)"
      ],
      "side_effect": null,
-     "support": 4.0,
+     "support": 2.0,
      "opposition": 0.0,
-     "net": 4.0,
+     "net": 2.0,
      "limiting_axle": "rear",
      "axle_class": 2,
      "preference": 0,
@@ -29947,7 +29947,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -29957,7 +29957,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -29998,9 +29998,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 4.0,
+     "support": 2.0,
      "opposition": 0.0,
-     "net": 4.0,
+     "net": 2.0,
      "limiting_axle": "rear",
      "axle_class": 2,
      "preference": 0,
@@ -30012,7 +30012,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -30022,7 +30022,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30063,9 +30063,9 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 2.0,
+     "support": 1.0,
      "opposition": 0.0,
-     "net": 2.0,
+     "net": 1.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -30077,7 +30077,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30128,9 +30128,9 @@
       "source": "TE Tab. 5.14 pp. 296-297",
       "text": "higher straight-line rolling resistance, less longitudinal force, more tyre deformation"
      },
-     "support": 4.0,
-     "opposition": 2.0,
-     "net": 2.0,
+     "support": 2.0,
+     "opposition": 1.0,
+     "net": 1.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -30142,7 +30142,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -30152,7 +30152,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30164,7 +30164,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30214,8 +30214,8 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 2.0,
-     "opposition": 2.0,
+     "support": 1.0,
+     "opposition": 1.0,
      "net": 0.0,
      "limiting_axle": "rear",
      "axle_class": 0,
@@ -30228,7 +30228,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30240,7 +30240,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30287,8 +30287,8 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 2.0,
-     "opposition": 2.0,
+     "support": 1.0,
+     "opposition": 1.0,
      "net": 0.0,
      "limiting_axle": "rear",
      "axle_class": 0,
@@ -30301,7 +30301,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30313,7 +30313,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30360,8 +30360,8 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 2.0,
-     "opposition": 2.0,
+     "support": 1.0,
+     "opposition": 1.0,
      "net": 0.0,
      "limiting_axle": "rear",
      "axle_class": 2,
@@ -30374,7 +30374,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30386,7 +30386,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30433,8 +30433,8 @@
      "advisory": false,
      "condition_notes": [],
      "side_effect": null,
-     "support": 2.0,
-     "opposition": 2.0,
+     "support": 1.0,
+     "opposition": 1.0,
      "net": 0.0,
      "limiting_axle": "rear",
      "axle_class": 2,
@@ -30447,7 +30447,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30459,7 +30459,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30509,9 +30509,9 @@
       "source": "TE Tab. 5.14 pp. 296-297",
       "text": null
      },
-     "support": 2.0,
-     "opposition": 4.0,
-     "net": -2.0,
+     "support": 1.0,
+     "opposition": 2.0,
+     "net": -1.0,
      "limiting_axle": "rear",
      "axle_class": 0,
      "preference": 0,
@@ -30523,7 +30523,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ],
@@ -30535,7 +30535,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       },
       {
@@ -30545,7 +30545,7 @@
        "severity": "strong",
        "laps": 6,
        "n_laps": 6,
-       "weight": 2.0,
+       "weight": 1.0,
        "driver_only": false
       }
      ]
@@ -30560,10 +30560,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-front-OS",
      "preference": 0
@@ -30576,10 +30576,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-rear-OS",
      "preference": 0
@@ -30592,10 +30592,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-front-OS",
      "preference": 0
@@ -30608,10 +30608,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-rear-OS",
      "preference": 0
@@ -30624,10 +30624,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M2-tin-os-front-rebound",
      "preference": 0
@@ -30640,10 +30640,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M2-tin-os-rear-bump",
      "preference": 0
@@ -30656,10 +30656,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-wing-OS",
      "preference": 0
@@ -30672,10 +30672,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-splitter-OS",
      "preference": 0
@@ -30688,10 +30688,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-ride-front-OS",
      "preference": 0
@@ -30704,10 +30704,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-ride-rear-OS",
      "preference": 0
@@ -30720,10 +30720,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M6-diff-OS",
      "preference": 0
@@ -30736,10 +30736,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-front-OS",
      "preference": 0
@@ -30752,10 +30752,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-rear-OS",
      "preference": 0
@@ -30768,10 +30768,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-front-OS",
      "preference": 0
@@ -30784,10 +30784,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-rear-OS",
      "preference": 0
@@ -30800,10 +30800,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-wing-OS",
      "preference": 0
@@ -30816,10 +30816,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-splitter-OS",
      "preference": 0
@@ -30832,10 +30832,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-ride-front-OS",
      "preference": 0
@@ -30848,10 +30848,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M4-ride-rear-OS",
      "preference": 0
@@ -30864,10 +30864,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M5-camber-rear-APX-OS",
      "preference": 0
@@ -30880,10 +30880,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M6-diff-OS",
      "preference": 0
@@ -30896,10 +30896,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-front-OS",
      "preference": 0
@@ -30912,10 +30912,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-rear-OS",
      "preference": 0
@@ -30928,10 +30928,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-front-OS",
      "preference": 0
@@ -30944,10 +30944,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-rear-OS",
      "preference": 0
@@ -30960,10 +30960,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M5-camber-rear-APX-OS",
      "preference": 0
@@ -30976,10 +30976,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M6-diff-OS",
      "preference": 0
@@ -30992,10 +30992,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-front-OS",
      "preference": 0
@@ -31008,10 +31008,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-arb-rear-OS",
      "preference": 0
@@ -31024,10 +31024,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-front-OS",
      "preference": 0
@@ -31040,10 +31040,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M1-springs-rear-OS",
      "preference": 0
@@ -31056,10 +31056,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M2-exit-os-front-rebound",
      "preference": 0
@@ -31072,10 +31072,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M2-exit-os-rear-bump",
      "preference": 0
@@ -31088,10 +31088,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M5-toe-rear-EXIT-OS",
      "preference": 0
@@ -31104,10 +31104,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M6-diff-EXIT-OS",
      "preference": 0
@@ -31120,10 +31120,10 @@
      "severity": "strong",
      "laps": 6,
      "n_laps": 6,
-     "severity_weight": 2,
+     "severity_weight": 1,
      "k": 6,
      "n": 6,
-     "weight": 2.0,
+     "weight": 1.0,
      "driver_only": false,
      "mechanism_id": "M5-camber-rear-EXIT-OS",
      "preference": 0
@@ -31138,11 +31138,11 @@
   }
  },
  "_meta": {
-  "purpose": "REGRESSION baseline of the default path (fit L, schema 33), not a correctness claim -- see tests/test_golden_pipeline.py",
+  "purpose": "REGRESSION baseline of the default path (fit L, schema 34), not a correctness claim -- see tests/test_golden_pipeline.py",
   "session": "NBR JST outing 29",
   "data_file": "NBR_Sturm_Solution/NBR-73-029-101-JST-26.07.01.1734.txt",
-  "git_commit_hash": "368831ac9134fa409746052bedc9d136b9d621eb",
-  "generated_at_utc": "2026-11-06T16:30:46.391065+00:00",
+  "git_commit_hash": "4c7e97dfe6f442f9c1b97ad85a43f2bd85884d6f",
+  "generated_at_utc": "2026-11-07T14:12:28.840564+00:00",
   "accuracy_cap": "best available",
   "setup_data": null
  }

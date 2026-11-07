@@ -1,0 +1,40 @@
+INST-2 ADDENDUM (2026-11-07), band_INST 15.3856 N m/deg (INST-2)
+ITEM 4: development units below -band: 18 (of 975), sessions 7
+  p10 -139.95  p50 -76.59  p90 -31.34 N m/deg
+  bootstrap 90 % interval of the p50 (10000 resamples of the units, seed 20261107): [-102.50, -38.66]
+  units per session: nbr_o29_jst 4, nbr_o54_cdr 4, nbr_o63_cdr 3, nbr_o46_jst 2, nbr_o53_mla 2, pr_o25_us_v1 2, nbr_o59_mla 1 (clustered by session, so the unit bootstrap interval is optimistic)
+  values: -171.5, -145.1, -137.7, -133.1, -118.4, -117.6, -86.6, -79.8, -79.2, -73.9, -43.0, -40.4, -38.7, -36.5, -34.1, -32.5, -28.5, -25.8
+
+ITEM 5: variant T: INST moderate if -76.59 < dMz/dbeta < -15.39, strong if below -76.59 N m/deg; vote weights moderate 1, strong 2 (configured severity_weight)
+  NBR1 (outing 17): INST units moderate 2 [(8, 'entry_2_turnin', -69.8), (8, 'apex_3', -75.1)], strong 2 [(11, 'apex_3', -140.9), (11, 'exit_4', -173.5)]
+    corner severity C8: strong -> moderate
+    counted C8 INST apex_3: strong -> moderate
+    counted C8 INST entry_2_turnin: strong -> moderate
+    recommendation: {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 8.0}  ->  {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 6.0}
+  NBR2 (outing 18): INST units moderate 0 [], strong 0 []
+    recommendation: None (unchanged)
+  NBR3 (outing 19): INST units moderate 0 [], strong 0 []
+    recommendation: None (unchanged)
+  NBR4 (outing 20): INST units moderate 0 [], strong 0 []
+    recommendation: {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  NBR5 (outing 21): INST units moderate 4 [(2, 'apex_3', -65.0), (5, 'apex_3', -62.3), (5, 'exit_4', -53.5), (9, 'apex_3', -55.7)], strong 1 [(9, 'entry_2_turnin', -129.6)]
+    corner severity C5: strong -> moderate
+    counted C2 INST apex_3: strong -> moderate
+    counted C5 INST apex_3: strong -> moderate
+    counted C5 INST exit_4: strong -> moderate
+    counted C9 INST apex_3: strong -> moderate
+    recommendation: {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 10.0}  ->  {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 6.0}
+  PRC1 (outing 22): INST units moderate 0 [], strong 0 []
+    recommendation: {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  PRC2 (outing 25): INST units moderate 0 [], strong 1 [(11, 'exit_5', -116.0)]
+    recommendation: {'levers': ['damper_bump_ls_rl', 'damper_bump_ls_rr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  PRC3 (outing 26): INST units moderate 0 [], strong 0 []
+    recommendation: None (unchanged)
+  PRC4 (outing 27): INST units moderate 0 [], strong 0 []
+    recommendation: None (unchanged)
+  PRC5 (outing 28): INST units moderate 0 [], strong 0 []
+    verdict C7: open-loop unstable @ apex  ->  ok
+    corner severity C7: strong -> normal
+    counted C7 INST apex_3: strong -> None
+    recommendation: {'levers': ['ride_height_rear'], 'direction': 'decrease', 'net': 2.0}  ->  {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 1.2}
+  totals vs schema-33 default: verdict text changed 1 of 159; corner severity changed 3; counted symptoms changed (presence or severity) 7; recommendations changed 3

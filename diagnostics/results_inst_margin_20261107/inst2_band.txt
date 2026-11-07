@@ -1,0 +1,43 @@
+INST-2 BAND (2026-11-07): combined = sqrt(r_yaw^2 + veh^2), pooled p90, 14 development sessions
+sessions (14): nbr_o05_mla, nbr_o10_jdr, nbr_o20_jst, nbr_o29_jst, nbr_o46_jst, nbr_o53_mla, nbr_o54_cdr, nbr_o59_mla, nbr_o61_jdr, nbr_o63_cdr, nbr_qp_cdr, nbr_qp_mla, pr_o25_us_v1, pr_o32_us_v2
+units 975, combined defined 975
+combined p50 5.7984  p90 15.3856  p99 23.8921 N m/deg
+band_INST = 15.3856 N m/deg (unrounded)
+  r_yaw: p50 0.77  p90 2.75  p99 9.30
+  veh: p50 5.60  p90 14.56  p99 23.86
+  Q x 0.3 (sensitivity, not in the band): p50 260.60  p90 511.82  p99 934.37
+  r_yaw > veh in 35 / 975 units
+  development INST units 18, of which in [-band, 0): 0
+
+FINAL SESSIONS, INST only if dMz/dbeta < -15.3856:
+  NBR1 (outing 17): INST units 4 -> 4; counted INST 4 -> 4 [(8, 'apex_3'), (8, 'entry_2_turnin'), (11, 'apex_3'), (11, 'exit_4')]
+    recommendation: {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 8.0} (unchanged)
+  NBR2 (outing 18): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: None (unchanged)
+  NBR3 (outing 19): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: None (unchanged)
+  NBR4 (outing 20): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  NBR5 (outing 21): INST units 5 -> 5; counted INST 5 -> 5 [(2, 'apex_3'), (5, 'apex_3'), (5, 'exit_4'), (9, 'apex_3'), (9, 'entry_2_turnin')]
+    recommendation: {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 10.0} (unchanged)
+  PRC1 (outing 22): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  PRC2 (outing 25): INST units 1 -> 1; counted INST 1 -> 1 [(11, 'exit_5')]
+    recommendation: {'levers': ['damper_bump_ls_rl', 'damper_bump_ls_rr'], 'direction': 'stiffer', 'net': 2.0} (unchanged)
+  PRC3 (outing 26): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: None (unchanged)
+  PRC4 (outing 27): INST units 0 -> 0; counted INST 0 -> 0 []
+    recommendation: None (unchanged)
+  PRC5 (outing 28): INST units 1 -> 0; counted INST 1 -> 0 []
+    verdict C7: open-loop unstable @ apex  ->  ok
+    counted only before: C7 INST apex_3 (5 laps)
+    recommendation: {'levers': ['ride_height_rear'], 'direction': 'decrease', 'net': 2.0}  ->  {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 1.2}
+  totals: verdicts changed 1 of 159; counted symptoms changed 1; recommendations changed 1
+
+NAMED CASES (aggregate dMz/dbeta, N m/deg; survives = counted INST after the band):
+  PRC5 C7: {'apex_3': -14.9}; counted INST before ['apex_3'], after [] -> removed
+  NBR1 C8: {'entry_2_turnin': -69.8, 'apex_3': -75.1}; counted INST before ['apex_3', 'entry_2_turnin'], after ['apex_3', 'entry_2_turnin'] -> survives
+  NBR1 C11: {'apex_3': -140.9, 'exit_4': -173.5}; counted INST before ['apex_3', 'exit_4'], after ['apex_3', 'exit_4'] -> survives
+  NBR5 C2: {'apex_3': -65.0}; counted INST before ['apex_3'], after ['apex_3'] -> survives
+  NBR5 C9: {'entry_2_turnin': -129.6, 'apex_3': -55.7}; counted INST before ['apex_3', 'entry_2_turnin'], after ['apex_3', 'entry_2_turnin'] -> survives
+  PRC2 C11: {'exit_5': -116.0}; counted INST before ['exit_5'], after ['exit_5'] -> survives

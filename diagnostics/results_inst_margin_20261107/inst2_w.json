@@ -1,0 +1,420 @@
+{
+ "band": 15.385648062449498,
+ "sessions": {
+  "NBR1": {
+   "default": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 8.0,
+    "support": 8.0,
+    "opposition": 0.0,
+    "inst_support": 8.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      8,
+      "apex_3",
+      2.0
+     ],
+     [
+      8,
+      "entry_2_turnin",
+      2.0
+     ],
+     [
+      11,
+      "apex_3",
+      2.0
+     ],
+     [
+      11,
+      "exit_4",
+      2.0
+     ]
+    ]
+   },
+   "band": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 8.0,
+    "support": 8.0,
+    "opposition": 0.0,
+    "inst_support": 8.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      8,
+      "apex_3",
+      2.0
+     ],
+     [
+      8,
+      "entry_2_turnin",
+      2.0
+     ],
+     [
+      11,
+      "apex_3",
+      2.0
+     ],
+     [
+      11,
+      "exit_4",
+      2.0
+     ]
+    ]
+   },
+   "W": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 4.0,
+    "support": 4.0,
+    "opposition": 0.0,
+    "inst_support": 4.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      8,
+      "apex_3",
+      1.0
+     ],
+     [
+      8,
+      "entry_2_turnin",
+      1.0
+     ],
+     [
+      11,
+      "apex_3",
+      1.0
+     ],
+     [
+      11,
+      "exit_4",
+      1.0
+     ]
+    ]
+   },
+   "W_differs_from_band": true
+  },
+  "NBR2": {
+   "default": null,
+   "band": null,
+   "W": null,
+   "W_differs_from_band": false
+  },
+  "NBR3": {
+   "default": null,
+   "band": null,
+   "W": null,
+   "W_differs_from_band": false
+  },
+  "NBR4": {
+   "default": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "band": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W_differs_from_band": false
+  },
+  "NBR5": {
+   "default": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 10.0,
+    "support": 10.0,
+    "opposition": 0.0,
+    "inst_support": 10.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      2,
+      "apex_3",
+      2.0
+     ],
+     [
+      5,
+      "apex_3",
+      2.0
+     ],
+     [
+      5,
+      "exit_4",
+      2.0
+     ],
+     [
+      9,
+      "apex_3",
+      2.0
+     ],
+     [
+      9,
+      "entry_2_turnin",
+      2.0
+     ]
+    ]
+   },
+   "band": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 10.0,
+    "support": 10.0,
+    "opposition": 0.0,
+    "inst_support": 10.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      2,
+      "apex_3",
+      2.0
+     ],
+     [
+      5,
+      "apex_3",
+      2.0
+     ],
+     [
+      5,
+      "exit_4",
+      2.0
+     ],
+     [
+      9,
+      "apex_3",
+      2.0
+     ],
+     [
+      9,
+      "entry_2_turnin",
+      2.0
+     ]
+    ]
+   },
+   "W": {
+    "option": "arb_rl+arb_rr softer",
+    "tie": false,
+    "net": 5.0,
+    "support": 5.0,
+    "opposition": 0.0,
+    "inst_support": 5.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      2,
+      "apex_3",
+      1.0
+     ],
+     [
+      5,
+      "apex_3",
+      1.0
+     ],
+     [
+      5,
+      "exit_4",
+      1.0
+     ],
+     [
+      9,
+      "apex_3",
+      1.0
+     ],
+     [
+      9,
+      "entry_2_turnin",
+      1.0
+     ]
+    ]
+   },
+   "W_differs_from_band": true
+  },
+  "PRC1": {
+   "default": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "band": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 2.0,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W_differs_from_band": false
+  },
+  "PRC2": {
+   "default": {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 2.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      11,
+      "exit_5",
+      2.0
+     ]
+    ]
+   },
+   "band": {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr stiffer",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 2.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      11,
+      "exit_5",
+      2.0
+     ]
+    ]
+   },
+   "W": {
+    "option": "damper_bump_ls_rl+damper_bump_ls_rr stiffer",
+    "tie": false,
+    "net": 1.0,
+    "support": 1.0,
+    "opposition": 0.0,
+    "inst_support": 1.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      11,
+      "exit_5",
+      1.0
+     ]
+    ]
+   },
+   "W_differs_from_band": true
+  },
+  "PRC3": {
+   "default": null,
+   "band": null,
+   "W": null,
+   "W_differs_from_band": false
+  },
+  "PRC4": {
+   "default": null,
+   "band": null,
+   "W": null,
+   "W_differs_from_band": false
+  },
+  "PRC5": {
+   "default": {
+    "option": "ride_height_rear decrease",
+    "tie": false,
+    "net": 2.0,
+    "support": 2.0,
+    "opposition": 0.0,
+    "inst_support": 2.0,
+    "other_support": 0.0,
+    "inst_source": "all",
+    "inst_votes": [
+     [
+      7,
+      "apex_3",
+      2.0
+     ]
+    ]
+   },
+   "band": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 1.2,
+    "support": 1.2,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 1.2,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W": {
+    "option": "damper_rebound_ls_fl+damper_rebound_ls_fr stiffer",
+    "tie": false,
+    "net": 1.2,
+    "support": 1.2,
+    "opposition": 0.0,
+    "inst_support": 0.0,
+    "other_support": 1.2,
+    "inst_source": "none",
+    "inst_votes": []
+   },
+   "W_differs_from_band": false
+  }
+ },
+ "source_counts": {
+  "band": {
+   "all": 3,
+   "none": 3
+  },
+  "W": {
+   "all": 3,
+   "none": 3
+  }
+ }
+}

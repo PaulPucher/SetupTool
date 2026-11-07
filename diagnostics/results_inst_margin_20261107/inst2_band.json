@@ -1,0 +1,946 @@
+{
+ "band": 15.385648062449498,
+ "combined": {
+  "n": 975,
+  "p50": 5.7983658922556325,
+  "p90": 15.385648062449498,
+  "p99": 23.89208043074446
+ },
+ "sessions": [
+  "nbr_o05_mla",
+  "nbr_o10_jdr",
+  "nbr_o20_jst",
+  "nbr_o29_jst",
+  "nbr_o46_jst",
+  "nbr_o53_mla",
+  "nbr_o54_cdr",
+  "nbr_o59_mla",
+  "nbr_o61_jdr",
+  "nbr_o63_cdr",
+  "nbr_qp_cdr",
+  "nbr_qp_mla",
+  "pr_o25_us_v1",
+  "pr_o32_us_v2"
+ ],
+ "final": {
+  "NBR1": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "understeer @ apex [MARGINAL]",
+     "4": "ok",
+     "5": "understeer @ exit [MARGINAL]",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "open-loop unstable @ apex",
+     "9": "ok",
+     "11": "open-loop unstable @ exit",
+     "12": "ok",
+     "14": "ok",
+     "10": "ok",
+     "15": "understeer @ exit [MARGINAL]",
+     "13": "ok"
+    },
+    "inst_units": 4,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      8,
+      "INST",
+      "apex_3",
+      6
+     ],
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6
+     ]
+    ],
+    "cells": {
+     "k": 24,
+     "n": 378,
+     "share": 0.06349206349206349
+    },
+    "inst_cells": 24,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "arb_rl",
+      "arb_rr"
+     ],
+     "direction": "softer",
+     "net": 8.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "understeer @ apex [MARGINAL]",
+     "4": "ok",
+     "5": "understeer @ exit [MARGINAL]",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "open-loop unstable @ apex",
+     "9": "ok",
+     "11": "open-loop unstable @ exit",
+     "12": "ok",
+     "14": "ok",
+     "10": "ok",
+     "15": "understeer @ exit [MARGINAL]",
+     "13": "ok"
+    },
+    "inst_units": 4,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      8,
+      "INST",
+      "apex_3",
+      6
+     ],
+     [
+      8,
+      "INST",
+      "entry_2_turnin",
+      6
+     ],
+     [
+      11,
+      "INST",
+      "apex_3",
+      6
+     ],
+     [
+      11,
+      "INST",
+      "exit_4",
+      6
+     ]
+    ],
+    "cells": {
+     "k": 24,
+     "n": 378,
+     "share": 0.06349206349206349
+    },
+    "inst_cells": 24,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "arb_rl",
+      "arb_rr"
+     ],
+     "direction": "softer",
+     "net": 8.0
+    }
+   }
+  },
+  "NBR2": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "4": "ok",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "no CS data",
+     "15": "ok",
+     "3": "ok",
+     "5": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 120,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "4": "ok",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "no CS data",
+     "15": "ok",
+     "3": "ok",
+     "5": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 120,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   }
+  },
+  "NBR3": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "understeer @ exit",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "understeer @ apex",
+     "15": "ok",
+     "16": "ok",
+     "10": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 272,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "understeer @ exit",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "understeer @ apex",
+     "15": "ok",
+     "16": "ok",
+     "10": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 272,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   }
+  },
+  "NBR4": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "ok",
+     "4": "oversteer @ exit",
+     "5": "ok",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "14": "ok",
+     "15": "ok",
+     "13": "understeer @ apex"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      1,
+      "US",
+      "exit_4",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 0,
+     "n": 128,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "ok",
+     "3": "ok",
+     "4": "oversteer @ exit",
+     "5": "ok",
+     "6": "no CS data",
+     "7": "ok",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "14": "ok",
+     "15": "ok",
+     "13": "understeer @ apex"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      1,
+      "US",
+      "exit_4",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 0,
+     "n": 128,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   }
+  },
+  "NBR5": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "understeer @ apex | open-loop unstable @ apex",
+     "3": "ok",
+     "4": "ok",
+     "5": "open-loop unstable @ apex",
+     "6": "ok",
+     "7": "ok",
+     "8": "ok",
+     "9": "open-loop unstable @ turn-in",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "ok",
+     "15": "oversteer @ exit"
+    },
+    "inst_units": 5,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      5,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      5,
+      "INST",
+      "exit_4",
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5
+     ]
+    ],
+    "cells": {
+     "k": 26,
+     "n": 315,
+     "share": 0.08253968253968254
+    },
+    "inst_cells": 26,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "arb_rl",
+      "arb_rr"
+     ],
+     "direction": "softer",
+     "net": 10.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ exit",
+     "2": "understeer @ apex | open-loop unstable @ apex",
+     "3": "ok",
+     "4": "ok",
+     "5": "open-loop unstable @ apex",
+     "6": "ok",
+     "7": "ok",
+     "8": "ok",
+     "9": "open-loop unstable @ turn-in",
+     "10": "ok",
+     "11": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "ok",
+     "15": "oversteer @ exit"
+    },
+    "inst_units": 5,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      2,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      5,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      5,
+      "INST",
+      "exit_4",
+      5
+     ],
+     [
+      9,
+      "INST",
+      "apex_3",
+      5
+     ],
+     [
+      9,
+      "INST",
+      "entry_2_turnin",
+      5
+     ]
+    ],
+    "cells": {
+     "k": 25,
+     "n": 315,
+     "share": 0.07936507936507936
+    },
+    "inst_cells": 25,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "arb_rl",
+      "arb_rr"
+     ],
+     "direction": "softer",
+     "net": 10.0
+    }
+   }
+  },
+  "PRC1": {
+   "current": {
+    "verdicts": {
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "understeer @ exit",
+     "6": "ok",
+     "7": "ok",
+     "8": "oversteer @ exit",
+     "9": "ok",
+     "10": "ok",
+     "11": "no CS data",
+     "12": "ok",
+     "13": "oversteer @ exit [MARGINAL]",
+     "14": "understeer @ exit",
+     "15": "ok",
+     "16": "ok",
+     "17": "ok",
+     "1": "understeer @ apex"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2
+     ],
+     [
+      14,
+      "US",
+      "exit_4",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 0,
+     "n": 207,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "understeer @ exit",
+     "6": "ok",
+     "7": "ok",
+     "8": "oversteer @ exit",
+     "9": "ok",
+     "10": "ok",
+     "11": "no CS data",
+     "12": "ok",
+     "13": "oversteer @ exit [MARGINAL]",
+     "14": "understeer @ exit",
+     "15": "ok",
+     "16": "ok",
+     "17": "ok",
+     "1": "understeer @ apex"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      5,
+      "US",
+      "exit_4",
+      2
+     ],
+     [
+      14,
+      "US",
+      "exit_4",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 0,
+     "n": 207,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   }
+  },
+  "PRC2": {
+   "current": {
+    "verdicts": {
+     "1": "understeer @ apex",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "ok",
+     "6": "understeer @ exit",
+     "7": "understeer @ exit",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "understeer @ exit | open-loop unstable @ exit",
+     "12": "ok",
+     "13": "ok",
+     "14": "ok"
+    },
+    "inst_units": 1,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 2,
+     "n": 116,
+     "share": 0.017241379310344827
+    },
+    "inst_cells": 2,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_bump_ls_rl",
+      "damper_bump_ls_rr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "1": "understeer @ apex",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "ok",
+     "6": "understeer @ exit",
+     "7": "understeer @ exit",
+     "8": "ok",
+     "9": "ok",
+     "10": "ok",
+     "11": "understeer @ exit | open-loop unstable @ exit",
+     "12": "ok",
+     "13": "ok",
+     "14": "ok"
+    },
+    "inst_units": 1,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      11,
+      "INST",
+      "exit_5",
+      2
+     ]
+    ],
+    "cells": {
+     "k": 2,
+     "n": 116,
+     "share": 0.017241379310344827
+    },
+    "inst_cells": 2,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_bump_ls_rl",
+      "damper_bump_ls_rr"
+     ],
+     "direction": "stiffer",
+     "net": 2.0
+    }
+   }
+  },
+  "PRC3": {
+   "current": {
+    "verdicts": {
+     "2": "ok",
+     "3": "ok",
+     "5": "ok",
+     "6": "understeer @ exit",
+     "7": "ok",
+     "8": "ok",
+     "10": "oversteer @ exit",
+     "11": "understeer @ exit",
+     "12": "ok",
+     "14": "ok",
+     "15": "understeer @ apex",
+     "16": "understeer @ apex [MARGINAL]",
+     "17": "ok",
+     "18": "understeer @ apex [MARGINAL]",
+     "19": "understeer @ exit [MARGINAL]",
+     "1": "ok",
+     "4": "ok",
+     "13": "ok",
+     "9": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 379,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   },
+   "band": {
+    "verdicts": {
+     "2": "ok",
+     "3": "ok",
+     "5": "ok",
+     "6": "understeer @ exit",
+     "7": "ok",
+     "8": "ok",
+     "10": "oversteer @ exit",
+     "11": "understeer @ exit",
+     "12": "ok",
+     "14": "ok",
+     "15": "understeer @ apex",
+     "16": "understeer @ apex [MARGINAL]",
+     "17": "ok",
+     "18": "understeer @ apex [MARGINAL]",
+     "19": "understeer @ exit [MARGINAL]",
+     "1": "ok",
+     "4": "ok",
+     "13": "ok",
+     "9": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 379,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   }
+  },
+  "PRC4": {
+   "current": {
+    "verdicts": {
+     "1": "ok",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "oversteer @ apex",
+     "6": "oversteer @ apex",
+     "7": "ok",
+     "8": "oversteer @ exit",
+     "9": "understeer @ exit",
+     "10": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "understeer @ exit",
+     "15": "ok",
+     "16": "ok",
+     "17": "ok",
+     "11": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 646,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   },
+   "band": {
+    "verdicts": {
+     "1": "ok",
+     "2": "ok",
+     "3": "ok",
+     "4": "ok",
+     "5": "oversteer @ apex",
+     "6": "oversteer @ apex",
+     "7": "ok",
+     "8": "oversteer @ exit",
+     "9": "understeer @ exit",
+     "10": "ok",
+     "12": "ok",
+     "13": "ok",
+     "14": "understeer @ exit",
+     "15": "ok",
+     "16": "ok",
+     "17": "ok",
+     "11": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [],
+    "cells": {
+     "k": 0,
+     "n": 646,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": null
+   }
+  },
+  "PRC5": {
+   "current": {
+    "verdicts": {
+     "1": "oversteer @ apex",
+     "3": "ok",
+     "4": "ok",
+     "6": "ok",
+     "7": "open-loop unstable @ apex",
+     "8": "understeer @ exit",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "understeer @ apex",
+     "13": "ok",
+     "14": "ok",
+     "15": "ok",
+     "16": "ok",
+     "5": "understeer @ exit",
+     "2": "ok"
+    },
+    "inst_units": 1,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3
+     ],
+     [
+      5,
+      "US",
+      "exit_4",
+      3
+     ],
+     [
+      7,
+      "INST",
+      "apex_3",
+      5
+     ]
+    ],
+    "cells": {
+     "k": 5,
+     "n": 329,
+     "share": 0.015197568389057751
+    },
+    "inst_cells": 5,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "ride_height_rear"
+     ],
+     "direction": "decrease",
+     "net": 2.0
+    }
+   },
+   "band": {
+    "verdicts": {
+     "1": "oversteer @ apex",
+     "3": "ok",
+     "4": "ok",
+     "6": "ok",
+     "7": "ok",
+     "8": "understeer @ exit",
+     "9": "ok",
+     "10": "ok",
+     "11": "ok",
+     "12": "understeer @ apex",
+     "13": "ok",
+     "14": "ok",
+     "15": "ok",
+     "16": "ok",
+     "5": "understeer @ exit",
+     "2": "ok"
+    },
+    "inst_units": 0,
+    "inst_units_rear": 0,
+    "counted": [
+     [
+      1,
+      "OS",
+      "apex_3",
+      3
+     ],
+     [
+      5,
+      "US",
+      "exit_4",
+      3
+     ]
+    ],
+    "cells": {
+     "k": 0,
+     "n": 329,
+     "share": 0.0
+    },
+    "inst_cells": 0,
+    "inst_cells_rear": 0,
+    "rec": {
+     "levers": [
+      "damper_rebound_ls_fl",
+      "damper_rebound_ls_fr"
+     ],
+     "direction": "stiffer",
+     "net": 1.2
+    }
+   }
+  }
+ }
+}

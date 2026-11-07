@@ -246,6 +246,10 @@
       "value": 0.0,
       "derived_from": "Sign criterion of Werner 2021 sec. 2.2.3: dMz/dbeta < 0 is open-loop unstable; a boundary, not a criticality threshold, since skilled drivers operate there."
     },
+    "inst_band_Nm_per_deg": {
+      "value": 15.3856,
+      "derived_from": "Uncertainty band around the sign criterion from measurement noise (yaw-rate R x 10) and the +/-1 % vehicle inputs: p90 of the combined per-unit change over the 14 development sessions (ORDER INST-2, 2026-11-07, schema 33 chain). INST only below -band; the sign criterion stays the reference. Observer Q is a model setting for dMz/dbeta and is not in the band."
+    },
     "verdict_stability_margin": {
       "cs_margin": 0.01,
       "derived_from": "derived on the development data (see thesis); re-derived 2026-11-06 (ORDER SPEED-1c, schema 32 chain), rule unchanged (value unchanged)"
@@ -271,12 +275,14 @@
     "damper_step_derived_from": "Team practice: dampers are the race-weekend fine-tuning lever, so the 1-click fine step is used; larger steps are test-day advice (TE).",
     "max_alternatives": 2,
     "session_vote": {
-      "_comment": "Session recommendation (Tier B aggregation): each counted corner symptom votes for its candidate levers with weight severity_weight x k / n (k of n valid laps show it); opposite directions of the same lever subtract, and net support <= 0 is never recommended. Driver-only symptoms (|feedback| >= 4, no data support) vote with driver_only_weight.",
+      "_comment": "Session recommendation (Tier B aggregation): each counted corner symptom votes for its candidate levers with weight severity_weight x k / n (k of n valid laps show it); opposite directions of the same lever subtract, and net support <= 0 is never recommended. A counted INST symptom votes with inst_weight instead of its severity weight. Driver-only symptoms (|feedback| >= 4, no data support) vote with driver_only_weight.",
       "severity_weight": {
         "moderate": 1,
         "strong": 2
       },
       "driver_only_weight": 1,
+      "inst_weight": 1,
+      "inst_weight_derived_from": "A counted INST symptom votes with weight 1 instead of its strong severity weight 2, to balance it with the CS symptoms; the severity label stays strong (ORDER INST-3, 2026-11-07).",
       "derived_from": "Set as a simple, explainable aggregation rule; not tuned to data."
     }
   },

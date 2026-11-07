@@ -17,7 +17,12 @@
 # - rear between the boundary and its moderate tier -> information only, no
 #   symptom (the rear still has positive slope);
 # - open-loop unstable yaw (dMz/dbeta sign criterion, Werner 2021 sec.
-#   2.2.3) -> symptom INST in whichever phase it occurs, strong;
+#   2.2.3) -> symptom INST in whichever phase it occurs, strong. The test is
+#   dMz/dbeta < -band (classification.inst_band_Nm_per_deg, p90 of the
+#   yaw-rate noise and vehicle-input uncertainty); the sign criterion stays
+#   the reference, the band only keeps estimation noise around zero from
+#   setting the verdict. Observer Q is not in the band: for dMz/dbeta it
+#   shifts the estimate systematically and is a model setting, not noise;
 # - a high-speed corner whose only symptom is front limiting is flagged
 #   low_priority: mild high-speed understeer is the deliberate safe balance
 #   of a race car (Milliken 1995, setup checklist items 21 and 1F).
@@ -165,6 +170,7 @@ def _thresholds():
     return {
         "strong_f": cl["STRONG_CSF"]["value"], "moderate_r": cl["MODERATE_CSR"]["value"],
         "stab": cl["stab_neg_thresh_Nm_per_deg"]["value"],
+        "inst_band": cl["inst_band_Nm_per_deg"]["value"],
         "boundary": {"f": cl["cs_boundary_margin_front"]["value"], "r": cl["cs_boundary_margin_rear"]["value"]},
         "marginal": cl["verdict_stability_margin"]["cs_margin"],
     }
@@ -206,7 +212,7 @@ def phase_symptoms(summary, thr=None):
             elif csr < thr["moderate_r"]:
                 info.append({"phase": phase, "axle": "r", "value": csr,
                              "note": "rear near its peak (moderate tier), no symptom"})
-        if sob == sob and sob < thr["stab"]:
+        if sob == sob and sob < thr["stab"] - thr["inst_band"]:
             symptoms.append({"symptom": "INST", "phase": phase, "axle": None, "value": sob, "severity": "strong"})
     return {"symptoms": symptoms, "info": info, "any_cs": any_cs}
 

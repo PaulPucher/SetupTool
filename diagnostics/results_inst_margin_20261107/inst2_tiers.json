@@ -1,0 +1,331 @@
+{
+ "band": 15.385648062449498,
+ "units_below_band": [
+  -171.47133543920611,
+  -145.09287414170745,
+  -137.74425109342442,
+  -133.13018633191527,
+  -118.43597389761064,
+  -117.56859924858671,
+  -86.56069954954194,
+  -79.81966697312997,
+  -79.23166877603953,
+  -73.94592970760658,
+  -43.04010575711351,
+  -40.388832190943,
+  -38.66375999229731,
+  -36.544690157993145,
+  -34.14947398629678,
+  -32.54163589392401,
+  -28.535477262699033,
+  -25.790172571141866
+ ],
+ "p10": -139.94883800790933,
+ "p50": -76.58879924182305,
+ "p90": -31.339788304556514,
+ "boot90": [
+  -102.49833672357629,
+  -38.66375999229731
+ ],
+ "final": {
+  "NBR1": {
+   "tiers": {
+    "moderate": [
+     [
+      8,
+      "entry_2_turnin",
+      -69.8
+     ],
+     [
+      8,
+      "apex_3",
+      -75.1
+     ]
+    ],
+    "strong": [
+     [
+      11,
+      "apex_3",
+      -140.9
+     ],
+     [
+      11,
+      "exit_4",
+      -173.5
+     ]
+    ]
+   },
+   "verdicts_changed": {},
+   "severity_changed": {
+    "8": [
+     "strong",
+     "moderate"
+    ]
+   },
+   "counted_changed": {
+    "(8, 'INST', 'apex_3')": [
+     "strong",
+     "moderate"
+    ],
+    "(8, 'INST', 'entry_2_turnin')": [
+     "strong",
+     "moderate"
+    ]
+   },
+   "rec_before": {
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 8.0
+   },
+   "rec_after": {
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 6.0
+   }
+  },
+  "NBR2": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": null,
+   "rec_after": null
+  },
+  "NBR3": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": null,
+   "rec_after": null
+  },
+  "NBR4": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   },
+   "rec_after": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   }
+  },
+  "NBR5": {
+   "tiers": {
+    "moderate": [
+     [
+      2,
+      "apex_3",
+      -65.0
+     ],
+     [
+      5,
+      "apex_3",
+      -62.3
+     ],
+     [
+      5,
+      "exit_4",
+      -53.5
+     ],
+     [
+      9,
+      "apex_3",
+      -55.7
+     ]
+    ],
+    "strong": [
+     [
+      9,
+      "entry_2_turnin",
+      -129.6
+     ]
+    ]
+   },
+   "verdicts_changed": {},
+   "severity_changed": {
+    "5": [
+     "strong",
+     "moderate"
+    ]
+   },
+   "counted_changed": {
+    "(9, 'INST', 'apex_3')": [
+     "strong",
+     "moderate"
+    ],
+    "(5, 'INST', 'exit_4')": [
+     "strong",
+     "moderate"
+    ],
+    "(5, 'INST', 'apex_3')": [
+     "strong",
+     "moderate"
+    ],
+    "(2, 'INST', 'apex_3')": [
+     "strong",
+     "moderate"
+    ]
+   },
+   "rec_before": {
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 10.0
+   },
+   "rec_after": {
+    "levers": [
+     "arb_rl",
+     "arb_rr"
+    ],
+    "direction": "softer",
+    "net": 6.0
+   }
+  },
+  "PRC1": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   },
+   "rec_after": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   }
+  },
+  "PRC2": {
+   "tiers": {
+    "moderate": [],
+    "strong": [
+     [
+      11,
+      "exit_5",
+      -116.0
+     ]
+    ]
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": {
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   },
+   "rec_after": {
+    "levers": [
+     "damper_bump_ls_rl",
+     "damper_bump_ls_rr"
+    ],
+    "direction": "stiffer",
+    "net": 2.0
+   }
+  },
+  "PRC3": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": null,
+   "rec_after": null
+  },
+  "PRC4": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {},
+   "severity_changed": {},
+   "counted_changed": {},
+   "rec_before": null,
+   "rec_after": null
+  },
+  "PRC5": {
+   "tiers": {
+    "moderate": [],
+    "strong": []
+   },
+   "verdicts_changed": {
+    "7": [
+     "open-loop unstable @ apex",
+     "ok"
+    ]
+   },
+   "severity_changed": {
+    "7": [
+     "strong",
+     "normal"
+    ]
+   },
+   "counted_changed": {
+    "(7, 'INST', 'apex_3')": [
+     "strong",
+     null
+    ]
+   },
+   "rec_before": {
+    "levers": [
+     "ride_height_rear"
+    ],
+    "direction": "decrease",
+    "net": 2.0
+   },
+   "rec_after": {
+    "levers": [
+     "damper_rebound_ls_fl",
+     "damper_rebound_ls_fr"
+    ],
+    "direction": "stiffer",
+    "net": 1.2
+   }
+  }
+ }
+}

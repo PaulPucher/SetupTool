@@ -1,0 +1,50 @@
+INST-2 ADDENDUM W (2026-11-07): band_INST 15.3856 N m/deg; INST votes weight 1 instead of 2
+per session: default (schema 33) | band alone | W; INST share of the recommended option's support
+
+  NBR1 (outing 17):
+    default : arb_rl+arb_rr softer, net 8.00 (support 8.00: INST 8.00, other 0.00; opposition 0.00) -> INST share all
+    band    : arb_rl+arb_rr softer, net 8.00 (support 8.00: INST 8.00, other 0.00; opposition 0.00) -> INST share all
+    W       : arb_rl+arb_rr softer, net 4.00 (support 4.00: INST 4.00, other 0.00; opposition 0.00) -> INST share all   [differs from band alone]
+    W INST votes (corner, phase, weight): [(8, 'apex_3', 1.0), (8, 'entry_2_turnin', 1.0), (11, 'apex_3', 1.0), (11, 'exit_4', 1.0)]
+  NBR2 (outing 18):
+    default : none
+    band    : none
+    W       : none
+  NBR3 (outing 19):
+    default : none
+    band    : none
+    W       : none
+  NBR4 (outing 20):
+    default : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+    band    : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+    W       : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+  NBR5 (outing 21):
+    default : arb_rl+arb_rr softer, net 10.00 (support 10.00: INST 10.00, other 0.00; opposition 0.00) -> INST share all
+    band    : arb_rl+arb_rr softer, net 10.00 (support 10.00: INST 10.00, other 0.00; opposition 0.00) -> INST share all
+    W       : arb_rl+arb_rr softer, net 5.00 (support 5.00: INST 5.00, other 0.00; opposition 0.00) -> INST share all   [differs from band alone]
+    W INST votes (corner, phase, weight): [(2, 'apex_3', 1.0), (5, 'apex_3', 1.0), (5, 'exit_4', 1.0), (9, 'apex_3', 1.0), (9, 'entry_2_turnin', 1.0)]
+  PRC1 (outing 22):
+    default : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+    band    : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+    W       : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 2.00 (support 2.00: INST 0.00, other 2.00; opposition 0.00) -> INST share none
+  PRC2 (outing 25):
+    default : damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 (support 2.00: INST 2.00, other 0.00; opposition 0.00) -> INST share all
+    band    : damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 2.00 (support 2.00: INST 2.00, other 0.00; opposition 0.00) -> INST share all
+    W       : damper_bump_ls_rl+damper_bump_ls_rr stiffer, net 1.00 (support 1.00: INST 1.00, other 0.00; opposition 0.00) -> INST share all   [differs from band alone]
+    W INST votes (corner, phase, weight): [(11, 'exit_5', 1.0)]
+  PRC3 (outing 26):
+    default : none
+    band    : none
+    W       : none
+  PRC4 (outing 27):
+    default : none
+    band    : none
+    W       : none
+  PRC5 (outing 28):
+    default : ride_height_rear decrease, net 2.00 (support 2.00: INST 2.00, other 0.00; opposition 0.00) -> INST share all
+    band    : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 1.20 (support 1.20: INST 0.00, other 1.20; opposition 0.00) -> INST share none
+    W       : damper_rebound_ls_fl+damper_rebound_ls_fr stiffer, net 1.20 (support 1.20: INST 0.00, other 1.20; opposition 0.00) -> INST share none
+
+  session recommendations: band alone 6, W 6; W differs from the band alone in 3
+  band: recommendations from INST -- all 3, majority 0, part 0, none 3
+  W: recommendations from INST -- all 3, majority 0, part 0, none 3

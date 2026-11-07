@@ -1,0 +1,220 @@
+INST UNCERTAINTY MARGIN (ORDER INST-1, 2026-11-07)
+unit = corner x phase of the session aggregate (median over analysis laps of the per-lap phase median
+of dMz/dbeta, N m/deg); obs = max(|d| Q x 0.3, |d| R_yaw x 10); veh = max |d| over the ten +/-1 %
+vehicle runs; comb = sqrt(obs^2 + veh^2); m_INST = pooled p90 of comb (14 development sessions)
+
+ANALYSIS LAPS (classifier population): 14 sessions, 975 units with a baseline value
+  segmentation differs in: none
+  status / gate / fallback changed: nbr_o59_mla mass_minus1: marginal/pass/False -> ok/pass/False; nbr_o59_mla front_fraction_minus1: marginal/pass/False -> ok/pass/False
+  obs       n  975  p50   260.60  p90   511.82  p99   934.37
+  veh_max   n  975  p50     5.60  p90    14.56  p99    23.86
+  veh_rss   n  975  p50     6.92  p90    17.02  p99    27.33
+  comb_max  n  975  p50   260.81  p90   511.84  p99   934.39
+  comb_rss  n  975  p50   260.82  p90   511.87  p99   934.39
+  m_INST (p90 comb_max) = 511.84 N m/deg
+  per perturbation |d| (N m/deg):
+    q_x0.3                       n  975  p50   260.60  p90   511.82  p99   934.37
+    ryaw_x10                     n  975  p50     0.77  p90     2.75  p99     9.30
+    mass_plus1                   n  975  p50     0.35  p90     1.12  p99     3.50
+    mass_minus1                  n  975  p50     0.37  p90     1.06  p99     2.49
+    front_fraction_plus1         n  975  p50     3.05  p90     6.29  p99    10.74
+    front_fraction_minus1        n  975  p50     3.21  p90     6.28  p99     9.38
+    wheelbase_plus1              n  975  p50     0.72  p90     3.56  p99     8.93
+    wheelbase_minus1             n  975  p50     0.88  p90     3.88  p99     7.57
+    yaw_inertia_plus1            n  975  p50     5.42  p90    14.53  p99    23.35
+    yaw_inertia_minus1           n  975  p50     5.39  p90    14.55  p99    23.76
+    steering_wheel_angle_plus1   n  975  p50     1.03  p90     2.25  p99     3.84
+    steering_wheel_angle_minus1  n  975  p50     0.99  p90     2.25  p99     3.92
+  dominance: obs > veh in 971 / 975 units; Q x 0.3 >= R_yaw x 10 in 975 units; largest vehicle input per unit: yaw_inertia 756, front_fraction 193, steering_wheel_angle 16, wheelbase 9, mass 1
+  baseline INST units (stab < 0): 18; within [-m_INST, 0): 18
+  VEHICLE-INPUT BAND (cs_margin analog): p90 veh_max = 14.56 N m/deg
+    flips at boundary -m_INST: 0 units; distances descending: 
+      fewer than two flips
+      BAND (headline) = nan N m/deg (2nd distance rounded up)
+    flips at boundary 0 (current, information): 2 units; distances descending: 1.66, 0.50
+      2nd-most-marginal flip distance: 0.50
+      nbr_qp_cdr C9|apex_3 stab +1.66: front_fraction_minus1
+      nbr_qp_cdr C9|exit_4 stab +0.50: front_fraction_minus1, steering_wheel_angle_minus1
+  information, Q x 0.3 as a scale: median of (Q-run value / baseline) over units with |baseline| > 50: 1.44
+    |baseline| in [0, 100): comb_max n   47  p50   208.88  p90   598.28  p99   982.92
+    |baseline| in [100, 300): comb_max n  204  p50   225.29  p90   498.82  p99   972.54
+    |baseline| in [300, 1000000000): comb_max n  724  p50   277.66  p90   514.66  p99   891.61
+  baseline INST units (aggregate < 0): value -> Q x 0.3 value, obs, veh_max:
+    nbr_o29_jst C11|exit_4: -171.5 -> +240.0, obs 411.5, veh 3.5
+    nbr_o63_cdr C8|exit_4: -145.1 -> -44.8, obs 100.3, veh 3.2
+    nbr_o29_jst C11|apex_3: -137.7 -> +233.2, obs 370.9, veh 3.3
+    nbr_o46_jst C7|exit_4: -133.1 -> -32.4, obs 100.7, veh 3.8
+    nbr_o54_cdr C7|exit_4: -118.4 -> +247.9, obs 366.3, veh 2.9
+    nbr_o54_cdr C7|apex_3: -117.6 -> +97.8, obs 215.4, veh 2.7
+    nbr_o63_cdr C8|exit_5: -86.6 -> +83.6, obs 170.2, veh 3.1
+    nbr_o53_mla C1|apex_3: -79.8 -> +78.2, obs 158.0, veh 1.9
+    nbr_o29_jst C8|apex_3: -79.2 -> +157.6, obs 236.9, veh 4.1
+    nbr_o29_jst C8|entry_2_turnin: -73.9 -> +210.4, obs 284.4, veh 4.1
+    nbr_o53_mla C1|exit_4: -43.0 -> +202.4, obs 245.4, veh 2.9
+    nbr_o54_cdr C16|apex_3: -40.4 -> +215.4, obs 255.8, veh 1.9
+    nbr_o59_mla C5|apex_3: -38.7 -> +331.7, obs 370.3, veh 2.0
+    pr_o25_us_v1 C12|apex_3: -36.5 -> +10.2, obs 46.7, veh 0.6
+    nbr_o46_jst C5|apex_3: -34.1 -> +245.8, obs 280.0, veh 2.4
+    nbr_o54_cdr C7|entry_2_turnin: -32.5 -> +149.6, obs 182.2, veh 0.7
+    nbr_o63_cdr C6|apex_3: -28.5 -> +164.8, obs 193.3, veh 1.3
+    pr_o25_us_v1 C12|exit_4: -25.8 -> +23.5, obs 49.3, veh 0.5
+  information: per-session p90 comb_max nbr_o05_mla 524.2; nbr_o10_jdr 592.0; nbr_o20_jst 983.3; nbr_o29_jst 407.1; nbr_o46_jst 325.9; nbr_o53_mla 344.6; nbr_o54_cdr 355.7; nbr_o59_mla 444.3; nbr_o61_jdr 456.2; nbr_o63_cdr 340.7; nbr_qp_cdr 735.6; nbr_qp_mla 611.2; pr_o25_us_v1 446.8; pr_o32_us_v2 341.9
+
+ALL LAPS (recorded CS veh population, comparison): 14 sessions, 975 units with a baseline value
+  obs       n  975  p50   260.60  p90   511.82  p99   934.37
+  veh_max   n  975  p50     5.60  p90    14.56  p99    23.86
+  veh_rss   n  975  p50     6.92  p90    17.02  p99    27.33
+  comb_max  n  975  p50   260.81  p90   511.84  p99   934.39
+  comb_rss  n  975  p50   260.82  p90   511.87  p99   934.39
+  m_INST (p90 comb_max) = 511.84 N m/deg
+
+CHAIN CHECK (CS boundary margins by the recorded rule from these runs):
+  CS front: p90 combined 0.0638 (n 898); adopted 0.063
+  CS rear: p90 combined 0.0788 (n 828); adopted 0.077
+
+POPULATION: m_INST analysis laps 511.84 vs all laps 511.84 N m/deg (+0 %)
+
+FINAL SESSIONS (ten, real config, stored setup sheets), m_INST 511.84, band nan (flip rule), comparison band 14.56 (p90 veh) N m/deg
+  A (headline) = INST if dMz/dbeta < -m (counted, votes); [MARGINAL] tag in [-m - band, -m)
+  A_p90 = as A, tag band p90 of veh (comparison); B = INST only below -m - band, band no vote (comparison)
+  NBR1 (outing 17, ok/pass): 15 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 4 (with rear limiting 0); INST cells 24 (rear limiting 0); counted INST 4 [(8, 'apex_3'), (8, 'entry_2_turnin'), (11, 'apex_3'), (11, 'exit_4')]; rec {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 8.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 2; counted symptoms changed 4; recommendation CHANGED
+      C11: open-loop unstable @ exit  ->  ok
+      C8: open-loop unstable @ apex  ->  ok
+      counted only before: C8 INST apex_3 (6 laps)
+      counted only before: C8 INST entry_2_turnin (6 laps)
+      counted only before: C11 INST apex_3 (6 laps)
+      counted only before: C11 INST exit_4 (6 laps)
+    A_p90: verdicts changed 2; counted symptoms changed 4; recommendation CHANGED
+      C11: open-loop unstable @ exit  ->  ok
+      C8: open-loop unstable @ apex  ->  ok
+      counted only before: C8 INST apex_3 (6 laps)
+      counted only before: C8 INST entry_2_turnin (6 laps)
+      counted only before: C11 INST apex_3 (6 laps)
+      counted only before: C11 INST exit_4 (6 laps)
+    B: verdicts changed 2; counted symptoms changed 4; recommendation CHANGED
+      C11: open-loop unstable @ exit  ->  ok
+      C8: open-loop unstable @ apex  ->  ok
+      counted only before: C8 INST apex_3 (6 laps)
+      counted only before: C8 INST entry_2_turnin (6 laps)
+      counted only before: C11 INST apex_3 (6 laps)
+      counted only before: C11 INST exit_4 (6 laps)
+  NBR2 (outing 18, ok/pass): 15 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  NBR3 (outing 19, ok/pass): 16 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  NBR4 (outing 20, ok/pass): 15 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  NBR5 (outing 21, marginal/pass): 15 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 5 (with rear limiting 0); INST cells 26 (rear limiting 0); counted INST 5 [(2, 'apex_3'), (5, 'apex_3'), (5, 'exit_4'), (9, 'apex_3'), (9, 'entry_2_turnin')]; rec {'levers': ['arb_rl', 'arb_rr'], 'direction': 'softer', 'net': 10.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 3; counted symptoms changed 5; recommendation CHANGED
+      C2: understeer @ apex | open-loop unstable @ apex  ->  understeer @ apex
+      C5: open-loop unstable @ apex  ->  ok
+      C9: open-loop unstable @ turn-in  ->  ok
+      counted only before: C2 INST apex_3 (5 laps)
+      counted only before: C5 INST apex_3 (5 laps)
+      counted only before: C5 INST exit_4 (5 laps)
+      counted only before: C9 INST apex_3 (5 laps)
+      counted only before: C9 INST entry_2_turnin (5 laps)
+    A_p90: verdicts changed 3; counted symptoms changed 5; recommendation CHANGED
+      C2: understeer @ apex | open-loop unstable @ apex  ->  understeer @ apex
+      C5: open-loop unstable @ apex  ->  ok
+      C9: open-loop unstable @ turn-in  ->  ok
+      counted only before: C2 INST apex_3 (5 laps)
+      counted only before: C5 INST apex_3 (5 laps)
+      counted only before: C5 INST exit_4 (5 laps)
+      counted only before: C9 INST apex_3 (5 laps)
+      counted only before: C9 INST entry_2_turnin (5 laps)
+    B: verdicts changed 3; counted symptoms changed 5; recommendation CHANGED
+      C2: understeer @ apex | open-loop unstable @ apex  ->  understeer @ apex
+      C5: open-loop unstable @ apex  ->  ok
+      C9: open-loop unstable @ turn-in  ->  ok
+      counted only before: C2 INST apex_3 (5 laps)
+      counted only before: C5 INST apex_3 (5 laps)
+      counted only before: C5 INST exit_4 (5 laps)
+      counted only before: C9 INST apex_3 (5 laps)
+      counted only before: C9 INST entry_2_turnin (5 laps)
+  PRC1 (outing 22, ok/pass): 17 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 2.0}
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  PRC2 (outing 25, ok/pass): 14 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 1 (with rear limiting 0); INST cells 2 (rear limiting 0); counted INST 1 [(11, 'exit_5')]; rec {'levers': ['damper_bump_ls_rl', 'damper_bump_ls_rr'], 'direction': 'stiffer', 'net': 2.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C11: understeer @ exit | open-loop unstable @ exit  ->  understeer @ exit
+      counted only before: C11 INST exit_5 (2 laps)
+    A_p90: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C11: understeer @ exit | open-loop unstable @ exit  ->  understeer @ exit
+      counted only before: C11 INST exit_5 (2 laps)
+    B: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C11: understeer @ exit | open-loop unstable @ exit  ->  understeer @ exit
+      counted only before: C11 INST exit_5 (2 laps)
+  PRC3 (outing 26, ok/pass): 19 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  PRC4 (outing 27, ok/pass): 17 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec None
+    A: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    A_p90: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+    B: verdicts changed 0; counted symptoms changed 0; recommendation unchanged
+  PRC5 (outing 28, marginal/pass): 16 verdicts; in-memory current vs pipeline counted symptoms: identical
+    current INST units 1 (with rear limiting 0); INST cells 5 (rear limiting 0); counted INST 1 [(7, 'apex_3')]; rec {'levers': ['ride_height_rear'], 'direction': 'decrease', 'net': 2.0}
+    A       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 1.2}
+    A_p90   INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 1.2}
+    B       INST units 0 (with rear limiting 0); INST cells 0 (rear limiting 0); counted INST 0 []; rec {'levers': ['damper_rebound_ls_fl', 'damper_rebound_ls_fr'], 'direction': 'stiffer', 'net': 1.2}
+    A: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C7: open-loop unstable @ apex  ->  ok
+      counted only before: C7 INST apex_3 (5 laps)
+    A_p90: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C7: open-loop unstable @ apex  ->  ok
+      counted only before: C7 INST apex_3 (5 laps)
+    B: verdicts changed 1; counted symptoms changed 1; recommendation CHANGED
+      C7: open-loop unstable @ apex  ->  ok
+      counted only before: C7 INST apex_3 (5 laps)
+  total verdicts 159
+  case PRC3 C16: negative aggregate dMz/dbeta {}; counted INST current 0, A 0, B 0
+  case PRC5 C7: negative aggregate dMz/dbeta {'apex_3': -14.9}; counted INST current 1, A 0, B 0
+  case NBR1 C8: negative aggregate dMz/dbeta {'entry_2_turnin': -69.8, 'apex_3': -75.1}; counted INST current 2, A 0, B 0
+  case NBR1 C11: negative aggregate dMz/dbeta {'apex_3': -140.9, 'exit_4': -173.5}; counted INST current 2, A 0, B 0
+  case NBR5 C2: negative aggregate dMz/dbeta {'apex_3': -65.0}; counted INST current 1, A 0, B 0
+  case NBR5 C9: negative aggregate dMz/dbeta {'entry_2_turnin': -129.6, 'apex_3': -55.7}; counted INST current 2, A 0, B 0

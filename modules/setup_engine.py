@@ -22,7 +22,8 @@
    they are not part of the engineer's setup progression.
 6. Session recommendation: setup acts on the whole lap (MM p. 572 item 4,
    MM p. 391, TE p. 254). Each counted symptom votes for its mechanical
-   lever group with weight severity x k / n; opposite directions subtract.
+   lever group with weight severity x k / n (INST with its own weight, 1);
+   opposite directions subtract.
    Not voting: rows whose condition fails (traction-limited exit, MM p. 740)
    and low-priority corners (high speed, front only; MM p. 396 item 21,
    p. 401 item 1F). Corner importance is not weighted (limitation). Rank:
@@ -431,8 +432,9 @@ def symptom_votes(cid, corner, cands, vote_cfg, driver_only=False, excluded=None
     """One vote per counted symptom and mechanical lever group, signed by
     the registry direction. Weight = severity weight x k / n, so a strong
     symptom on every lap weighs twice a moderate one on every lap, and a
-    symptom on a bare majority of laps weighs about half. A driver-only
-    symptom has no lap count and weighs driver_only_weight x 1."""
+    symptom on a bare majority of laps weighs about half. INST weighs
+    inst_weight x k / n whatever its severity label. A driver-only symptom
+    has no lap count and weighs driver_only_weight x 1."""
     votes = []
     for sym in corner["symptoms"]:
         seen = set()
@@ -455,7 +457,11 @@ def symptom_votes(cid, corner, cands, vote_cfg, driver_only=False, excluded=None
             if driver_only:
                 w, k, n = vote_cfg["driver_only_weight"], 1, 1
             else:
-                w, k, n = vote_cfg["severity_weight"][sym["severity"]], sym["laps"], corner["n_laps"]
+                # INST votes with its own weight (1, balanced with the CS
+                # symptoms); its severity label stays strong
+                w = (vote_cfg["inst_weight"] if sym["symptom"] == "INST"
+                     else vote_cfg["severity_weight"][sym["severity"]])
+                k, n = sym["laps"], corner["n_laps"]
             votes.append({"option": key, "corner": cid, "symptom": sym["symptom"], "phase": sym["phase"],
                           "severity": sym["severity"], "laps": sym["laps"], "n_laps": corner["n_laps"],
                           "severity_weight": w, "k": k, "n": n, "weight": w * k / n, "driver_only": driver_only,

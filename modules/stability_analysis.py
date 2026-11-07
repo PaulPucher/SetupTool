@@ -25,7 +25,9 @@ CAR_DATA_PATH = repo_path("config", "car_data.json")
 # SPEED-1c, R3 offsets from the standstill (yaw rate, a_y) and from
 # near-zero-yaw straights (steering). 33 (2026-11-06): SPEED-2a,
 # re-derived thresholds adopted (CS tiers, NIS gate, boundary margins).
-ANALYSIS_SCHEMA_VERSION = 33
+# 34 (2026-11-07): ORDER INST-3, INST band (classification.
+# inst_band_Nm_per_deg) and INST vote weight 1 (session_vote.inst_weight).
+ANALYSIS_SCHEMA_VERSION = 34
 
 # method-defining, not tunables
 BUTTERWORTH_ORDER = 4  # roll-off shape

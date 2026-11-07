@@ -308,17 +308,18 @@ def _options(rec):
 
 def test_session_opposition_is_subtracted():
     # NBR JST 29: rear camber more negative is voted by C8 / C11 at the apex
-    # (2 x 2.0) and opposed by C11 early exit (less negative, 2.0)
+    # (2 x 1.0, INST weight 1 since ORDER INST-3) and opposed by C11 early
+    # exit (less negative, 1.0)
     rec = data_layer(_summaries(NBR29))["session_recommendation"]
     opt = _options(rec)
     more_neg = opt["camber_rl+camber_rr -1"]
-    assert (more_neg["support"], more_neg["opposition"], more_neg["net"]) == (4.0, 2.0, 2.0)
+    assert (more_neg["support"], more_neg["opposition"], more_neg["net"]) == (2.0, 1.0, 1.0)
     assert {v["corner"] for v in more_neg["opposing"]} == {11}
-    assert opt["camber_rl+camber_rr +1"]["net"] == -2.0
+    assert opt["camber_rl+camber_rr +1"]["net"] == -1.0
 
 
 def test_session_net_not_positive_is_never_recommended():
-    # rear LS bump: C8 turn-in softer vs C11 early exit stiffer, 2.0 each
+    # rear LS bump: C8 turn-in softer vs C11 early exit stiffer, 1.0 each
     rec = data_layer(_summaries(NBR29))["session_recommendation"]
     shown = [rec["recommended"]] + rec["alternatives"] + rec["equivalent_options"] + rec["ranked"]
     assert all(o["net"] > 0 for o in shown if o)
@@ -454,7 +455,8 @@ def test_session_box_text_on_nbr29():
     assert why == "Why: unstable yaw - C8 turn-in, apex; C11 apex, exit - 6/6 laps"
     assert against is None
     assert alts == "Alternatives: rear springs softer, diff +1"
-    assert "net support 8.00" in details[0] and "MM p. 410" in details[0]
+    # four INST votes of weight 1 (ORDER INST-3)
+    assert "net support 4.00" in details[0] and "MM p. 410" in details[0]
 
 
 def test_corner_line_on_nbr29():

@@ -42,7 +42,7 @@ STABILITY_ESTIMATION_REQUIRED_KEYS = [
 ]
 CLASSIFICATION_REQUIRED_KEYS = [
     "STRONG_CSF", "STRONG_CSR", "MODERATE_CSF", "MODERATE_CSR", "stab_neg_thresh_Nm_per_deg",
-    "cs_boundary_margin_front", "cs_boundary_margin_rear",
+    "cs_boundary_margin_front", "cs_boundary_margin_rear", "inst_band_Nm_per_deg",
 ]
 def test_stability_estimation_required_keys_present(raw_params):
     se = raw_params["stability_estimation"]
@@ -173,9 +173,11 @@ def test_schema_version_matches_pipeline_result_shape(pipeline_result):
     # 33 (2026-11-06): ORDER SPEED-2a -- re-derived CS tiers, NIS gate
     # thresholds and boundary margins adopted (config edit outside Settings,
     # not in the cache identity); no payload shape change.
-    assert ANALYSIS_SCHEMA_VERSION == 33, (
+    # 34 (2026-11-07): ORDER INST-3 -- INST band and INST vote weight 1
+    # (config edit outside Settings); no payload shape change.
+    assert ANALYSIS_SCHEMA_VERSION == 34, (
         f"ANALYSIS_SCHEMA_VERSION is {ANALYSIS_SCHEMA_VERSION}, this test's expectations were "
-        "written for 33 -- update this test deliberately if the version was bumped again"
+        "written for 34 -- update this test deliberately if the version was bumped again"
     )
     summaries = pipeline_result["summaries"]
     assert summaries, "no corner summaries produced -- cannot check payload shape"
